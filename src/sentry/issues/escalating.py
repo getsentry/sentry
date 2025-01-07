@@ -7,7 +7,7 @@ from __future__ import annotations
 import logging
 import math
 from collections import defaultdict
-from collections.abc import Iterable, Mapping, MutableMapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from datetime import datetime, timedelta
 from typing import Any, TypedDict
 
@@ -37,7 +37,12 @@ from sentry.issues.priority import PriorityChangeReason, auto_update_priority
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
-from sentry.models.groupinbox import INBOX_REASON_DETAILS, GroupInboxReason, add_group_to_inbox
+from sentry.models.groupinbox import (
+    INBOX_REASON_DETAILS,
+    GroupInboxReason,
+    InboxReasonDetails,
+    add_group_to_inbox,
+)
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
@@ -491,7 +496,7 @@ def manage_issue_states(
     group: Group,
     group_inbox_reason: GroupInboxReason,
     event: GroupEvent | None = None,
-    snooze_details: MutableMapping[str, Any] | None = None,
+    snooze_details: InboxReasonDetails | None = None,
     activity_data: Mapping[str, Any] | None = None,
 ) -> None:
     from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs

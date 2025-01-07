@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterable, MutableMapping
+from collections.abc import Iterable
 from datetime import datetime
 from enum import Enum
-from typing import TYPE_CHECKING, Any, TypedDict
+from typing import TYPE_CHECKING, TypedDict
 
 import jsonschema
 import sentry_sdk
@@ -82,11 +82,12 @@ class GroupInbox(Model):
 
 
 def add_group_to_inbox(
-    group: Group, reason: GroupInboxReason, reason_details: MutableMapping[str, Any] | None = None
+    group: Group,
+    reason: GroupInboxReason,
+    reason_details: InboxReasonDetails | None = None,
 ) -> GroupInbox:
-    if reason_details is not None:
-        if "until" in reason_details and reason_details["until"] is not None:
-            reason_details["until"] = reason_details["until"].replace(microsecond=0).isoformat()
+    if reason_details is not None and reason_details["until"] is not None:
+        reason_details["until"] = reason_details["until"].replace(microsecond=0)
 
     try:
         jsonschema.validate(reason_details, INBOX_REASON_DETAILS)
@@ -94,7 +95,7 @@ def add_group_to_inbox(
         logging.exception("GroupInbox invalid jsonschema: %s", reason_details)
         reason_details = None
 
-    group_inbox, created = GroupInbox.objects.get_or_create(
+    group_inbox, _ = GroupInbox.objects.get_or_create(
         group=group,
         defaults={
             "project": group.project,
@@ -157,7 +158,7 @@ def bulk_remove_groups_from_inbox(
 
 
 class InboxReasonDetails(TypedDict):
-    until: str | None
+    until: datetime | None
     count: int | None
     window: int | None
     user_count: int | None
