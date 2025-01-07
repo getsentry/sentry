@@ -165,12 +165,7 @@ function OnboardingContent({
     return {
       value: provider,
       textValue: provider,
-      label:
-        provider === ProviderOptions.GENERIC ? (
-          <TextOverflow>{t('Custom')}</TextOverflow>
-        ) : (
-          <TextOverflow>{provider}</TextOverflow>
-        ),
+      label: <TextOverflow>{provider}</TextOverflow>,
     };
   });
 
@@ -185,12 +180,7 @@ function OnboardingContent({
     return {
       value: provider,
       textValue: provider,
-      label:
-        provider === ProviderOptions.GENERIC ? (
-          <TextOverflow>{t('Custom')}</TextOverflow>
-        ) : (
-          <TextOverflow>{provider}</TextOverflow>
-        ),
+      label: <TextOverflow>{provider}</TextOverflow>,
     };
   });
 
