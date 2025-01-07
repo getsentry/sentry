@@ -526,18 +526,16 @@ class RuleConditionsForm extends PureComponent<Props, State> {
               required
             />
           )}
-          {
-            <SelectControl
-              name="timeWindow"
-              styles={this.selectControlStyles}
-              options={this.timeWindowOptions}
-              isDisabled={disabled}
-              value={timeWindow}
-              onChange={({value}) => onTimeWindowChange(value)}
-              inline={false}
-              flexibleControlStateSize
-            />
-          }
+          <SelectControl
+            name="timeWindow"
+            styles={this.selectControlStyles}
+            options={this.timeWindowOptions}
+            isDisabled={disabled}
+            value={timeWindow}
+            onChange={({value}) => onTimeWindowChange(value)}
+            inline={false}
+            flexibleControlStateSize
+          />
         </FormRow>
       </Fragment>
     );
