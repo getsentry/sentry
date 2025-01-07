@@ -255,14 +255,14 @@ function ManageDashboards() {
   function renderActions() {
     const activeSort = getActiveSort();
     return (
-      <StyledActions listView={organization.features.includes('dashboards-table-view')}>
+      <StyledActions listView={organization.features.includes('dashboards-favourite')}>
         <SearchBar
           defaultQuery=""
           query={getQuery()}
           placeholder={t('Search Dashboards')}
           onSearch={query => handleSearch(query)}
         />
-        <Feature features={'organizations:dashboards-table-view'}>
+        <Feature features={'organizations:dashboards-favourite'}>
           <SegmentedControl<DashboardsLayout>
             onChange={setDashboardsLayout}
             size="md"

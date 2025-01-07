@@ -27,7 +27,7 @@ describe('Dashboards - DashboardTable', function () {
       'dashboards-basic',
       'dashboards-edit',
       'discover-query',
-      'dashboards-table-view',
+      'dashboards-favourite',
     ],
   });
 
@@ -294,7 +294,7 @@ describe('Dashboards - DashboardTable', function () {
         'dashboards-basic',
         'dashboards-edit',
         'discover-query',
-        'dashboards-table-view',
+        'dashboards-favourite',
         'dashboards-edit-access',
       ],
     });
@@ -327,7 +327,7 @@ describe('Dashboards - DashboardTable', function () {
         'dashboards-basic',
         'dashboards-edit',
         'discover-query',
-        'dashboards-table-view',
+        'dashboards-favourite',
         'dashboards-favourite',
       ],
     });
