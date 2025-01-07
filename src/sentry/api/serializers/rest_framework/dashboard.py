@@ -868,6 +868,17 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         widget.limit = data.get("limit", widget.limit)
         widget.dataset_source = data.get("dataset_source", widget.dataset_source)
         widget.detail = {"layout": data.get("layout", prev_layout)}
+
+        if widget.widget_type not in [
+            DashboardWidgetTypes.DISCOVER,
+            DashboardWidgetTypes.TRANSACTION_LIKE,
+            DashboardWidgetTypes.ERROR_EVENTS,
+        ]:
+            # Reset the discover split fields if the widget type is no longer
+            # a discover/errors/transactions widget
+            widget.discover_widget_split = None
+            widget.dataset_source = DatasetSourcesTypes.UNKNOWN.value
+
         widget.save()
 
         if "queries" in data:

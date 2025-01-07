@@ -30,7 +30,6 @@ from sentry.sentry_apps.tasks.sentry_apps import (
     installation_webhook,
     notify_sentry_app,
     process_resource_change_bound,
-    send_alert_event,
     send_alert_webhook,
     send_webhooks,
     workflow_notification,
@@ -105,15 +104,6 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         self.install = self.create_sentry_app_installation(
             organization=self.organization, slug=self.sentry_app.slug
         )
-
-    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
-    def test_no_sentry_app(self, safe_urlopen):
-        event = self.store_event(data={}, project_id=self.project.id)
-        assert event.group is not None
-        group_event = GroupEvent.from_event(event, event.group)
-        send_alert_event(group_event, self.rule, 9999)
-
-        assert not safe_urlopen.called
 
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
     def test_no_sentry_app_for_send_alert_event_v2(self, safe_urlopen):

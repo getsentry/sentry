@@ -2,6 +2,7 @@ import {Fragment, useCallback, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
+import {useDiffCompareContext} from 'sentry/components/replays/diff/diffCompareContext';
 import {After, Before, DiffHeader} from 'sentry/components/replays/diff/utils';
 import ReplayPlayer from 'sentry/components/replays/player/replayPlayer';
 import ReplayPlayerMeasurer from 'sentry/components/replays/player/replayPlayerMeasurer';
@@ -17,20 +18,14 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 
 interface Props {
-  leftOffsetMs: number;
-  replay: ReplayReader;
-  rightOffsetMs: number;
   minHeight?: `${number}px` | `${number}%`;
 }
 
 const BORDER_WIDTH = 3;
 
-export function ReplaySliderDiff({
-  minHeight = '0px',
-  leftOffsetMs,
-  replay,
-  rightOffsetMs,
-}: Props) {
+export function ReplaySliderDiff({minHeight = '0px'}: Props) {
+  const {replay, leftOffsetMs, rightOffsetMs} = useDiffCompareContext();
+
   const positionedRef = useRef<HTMLDivElement>(null);
   const viewDimensions = useDimensions({elementRef: positionedRef});
   const width = toPixels(viewDimensions.width);
@@ -38,8 +33,8 @@ export function ReplaySliderDiff({
   return (
     <Fragment>
       <DiffHeader>
-        <Before />
-        <After />
+        <Before startTimestampMs={replay.getStartTimestampMs()} offset={leftOffsetMs} />
+        <After startTimestampMs={replay.getStartTimestampMs()} offset={rightOffsetMs} />
       </DiffHeader>
       <WithPadding>
         <Positioned style={{minHeight}} ref={positionedRef}>

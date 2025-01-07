@@ -6,16 +6,13 @@ import math
 from datetime import datetime, timedelta, timezone
 from typing import Any, NotRequired, Protocol, TypedDict
 
-from snuba_sdk import BooleanCondition, Column, Condition, Function, Limit, Op
+from snuba_sdk import BooleanCondition, Column, Condition, Function
 
 from sentry.api.utils import get_date_range_from_params
 from sentry.exceptions import InvalidParams
 from sentry.models.project import Project
 from sentry.release_health.base import AllowedResolution, SessionsQueryConfig
-from sentry.search.events.builder.sessions import (
-    SessionsV2QueryBuilder,
-    TimeseriesSessionsV2QueryBuilder,
-)
+from sentry.search.events.builder.sessions import SessionsV2QueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.utils import to_intervals
@@ -469,72 +466,6 @@ def get_constrained_date_range(
 
 
 TS_COL = "bucketed_started"
-
-
-def _run_sessions_query(query):
-    """
-    Runs the `query` as defined by [`QueryDefinition`] two times, once for the
-    `totals` and again for the actual time-series data grouped by the requested
-    interval.
-    """
-    # If we don't have any fields that can be derived from raw fields, it doesn't make sense to even
-    # run the query in the first place.
-    if len(query.fields) == 0:
-        return [], []
-
-    # We only return the top-N groups, based on the first field that is being
-    # queried, assuming that those are the most relevant to the user.
-    # In a future iteration we might expose an `orderBy` query parameter.
-    #
-    # In case we don't have a primary column because only metrics-only fields have been supplied to
-    # the query definition we just avoid the order by under the assumption that the result set of
-    # the query will be empty.
-    orderby = [f"-{query.primary_column}"] if hasattr(query, "primary_column") else None
-
-    try:
-        query_builder_dict = query.to_query_builder_dict(orderby=orderby)
-    except ZeroIntervalsException:
-        return [], []
-
-    result_totals = SessionsV2QueryBuilder(**query_builder_dict).run_query("sessions.totals")[
-        "data"
-    ]
-    if not result_totals:
-        # No need to query time series if totals is already empty
-        return [], []
-
-    # We only get the time series for groups which also have a total:
-    if query.query_groupby:
-        # E.g. (release, environment) IN [(1, 2), (3, 4), ...]
-        extra_conditions = []
-        if len(query.query_groupby) > 1:
-            groups = {tuple(row[column] for column in query.query_groupby) for row in result_totals}
-
-            extra_conditions = [
-                Condition(
-                    Function("tuple", [Column(col) for col in query.query_groupby]),
-                    Op.IN,
-                    Function("tuple", list(groups)),
-                )
-            ]
-
-        extra_conditions += [
-            Condition(
-                Column(column),
-                Op.IN,
-                Function("tuple", list({row[column] for row in result_totals})),
-            )
-            for column in query.query_groupby
-        ]
-    else:
-        extra_conditions = []
-
-    timeseries_query_builder = TimeseriesSessionsV2QueryBuilder(**query_builder_dict)
-    timeseries_query_builder.where.extend(extra_conditions)
-    timeseries_query_builder.limit = Limit(SNUBA_LIMIT)
-    result_timeseries = timeseries_query_builder.run_query("sessions.timeseries")["data"]
-
-    return result_totals, result_timeseries
 
 
 def massage_sessions_result(

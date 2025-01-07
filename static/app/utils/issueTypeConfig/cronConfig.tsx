@@ -18,6 +18,7 @@ const cronConfig: IssueCategoryConfigMapping = {
         disabledReason: t('Not yet supported for cron issues'),
       },
       ignore: {enabled: true},
+      resolve: {enabled: true},
       resolveInRelease: {enabled: true},
       share: {enabled: true},
     },

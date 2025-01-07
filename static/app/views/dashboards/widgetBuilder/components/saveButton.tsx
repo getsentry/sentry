@@ -14,9 +14,10 @@ import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder
 interface SaveButtonProps {
   isEditing: boolean;
   onSave: ({index, widget}: {index: number; widget: Widget}) => void;
+  setError: (error: Record<string, any>) => void;
 }
 
-function SaveButton({isEditing, onSave}: SaveButtonProps) {
+function SaveButton({isEditing, onSave, setError}: SaveButtonProps) {
   const {state} = useWidgetBuilderContext();
   const {widgetIndex} = useParams();
   const api = useApi();
@@ -28,9 +29,11 @@ function SaveButton({isEditing, onSave}: SaveButtonProps) {
       await validateWidget(api, organization.slug, widget);
       onSave({index: Number(widgetIndex), widget});
     } catch (error) {
+      const errorDetails = error.responseJSON || error;
+      setError(errorDetails);
       addErrorMessage(t('Unable to save widget'));
     }
-  }, [api, onSave, organization.slug, state, widgetIndex]);
+  }, [api, onSave, organization.slug, state, widgetIndex, setError]);
 
   return (
     <Button priority="primary" onClick={handleSave}>

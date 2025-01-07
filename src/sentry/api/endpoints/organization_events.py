@@ -169,7 +169,9 @@ ALLOWED_EVENTS_REFERRERS: set[str] = {
     Referrer.API_PERFORMANCE_MOBILE_UI_METRICS_RIBBON.value,
     Referrer.API_PERFORMANCE_SPAN_SUMMARY_HEADER_DATA.value,
     Referrer.API_PERFORMANCE_SPAN_SUMMARY_TABLE.value,
+    Referrer.API_EXPLORE_SPANS_AGGREGATES_TABLE.value,
     Referrer.API_EXPLORE_SPANS_SAMPLES_TABLE.value,
+    Referrer.API_EXPLORE_SPANS_EXTRAPOLATION_META.value,
     Referrer.ISSUE_DETAILS_STREAMLINE_GRAPH.value,
     Referrer.ISSUE_DETAILS_STREAMLINE_LIST.value,
 }
@@ -593,7 +595,8 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                     discover_query.dataset is not DiscoverSavedQueryTypes.DISCOVER
                 )
                 if does_widget_have_split:
-                    return _data_fn(scoped_dataset_query, offset, limit, scoped_query)
+                    with handle_query_errors():
+                        return _data_fn(scoped_dataset_query, offset, limit, scoped_query)
 
                 dataset_inferred_from_query = dataset_split_decision_inferred_from_query(
                     self.get_field_list(organization, request),

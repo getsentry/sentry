@@ -4,7 +4,6 @@ from typing import Any
 
 from django.db import DataError, IntegrityError, router, transaction
 from django.db.models import F
-from django.db.models.base import Model
 
 from sentry import eventstream, similarity, tsdb
 from sentry.silo.base import SiloMode
@@ -13,9 +12,6 @@ from sentry.tsdb.base import TSDBModel
 
 logger = logging.getLogger("sentry.merge")
 delete_logger = logging.getLogger("sentry.deletions.async")
-
-# populated in `TagStorage.setup_merge`
-EXTRA_MERGE_MODELS: list[type[Model]] = []
 
 
 @instrumented_task(
@@ -90,7 +86,7 @@ def merge_groups(
             extra={"transaction_id": transaction_id, "old_object_id": from_object_id},
         )
     else:
-        model_list = tuple(EXTRA_MERGE_MODELS) + (
+        model_list = (
             Activity,
             GroupAssignee,
             GroupEnvironment,
