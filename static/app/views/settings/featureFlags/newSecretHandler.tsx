@@ -25,7 +25,7 @@ function NewSecretHandler({
 
   return (
     <div>
-      <StyledAlert type="warning" showIcon system>
+      <StyledAlert type="success" showIcon system>
         {t('The secret has been posted.')}
       </StyledAlert>
 
