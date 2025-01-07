@@ -100,7 +100,7 @@ pyasn1==0.4.5
 pyasn1-modules==0.2.4
 pycountry==17.5.14
 pycparser==2.21
-pydantic==1.10.18
+pydantic==1.10.20
 pyjwt==2.4.0
 pymemcache==4.0.0
 python-dateutil==2.9.0
