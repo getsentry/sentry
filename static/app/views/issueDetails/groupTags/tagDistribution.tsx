@@ -105,7 +105,7 @@ export function TagDistribution({tag}: {tag: GroupTag}) {
   );
 }
 
-function TagBar({
+export function TagBar({
   percentage,
   style,
   ...props
@@ -114,7 +114,11 @@ function TagBar({
   className?: string;
   style?: React.CSSProperties;
 }) {
-  return <TagBarContainer style={{width: `${percentage}%`, ...style}} {...props} />;
+  return (
+    <TagBarPlaceholder>
+      <TagBarContainer style={{width: `${percentage}%`, ...style}} {...props} />
+    </TagBarPlaceholder>
+  );
 }
 
 const TagPanel = styled(Link)`
@@ -173,21 +177,28 @@ const TagValue = styled('div')`
   margin-right: ${space(0.5)};
 `;
 
+const TagBarPlaceholder = styled('div')`
+  position: relative;
+  height: ${space(1)};
+  width: 100%;
+  border-radius: 3px;
+  box-shadow: inset 0 0 0 1px ${p => p.theme.translucentBorder};
+  background: ${p => Color(p.theme.gray300).alpha(0.1).toString()};
+  overflow: hidden;
+`;
+
 const TagBarContainer = styled('div')`
   height: ${space(1)};
-  position: relative;
-  flex: 1;
-  min-width: ${space(1)};
-  display: flex;
-  align-items: center;
+  position: absolute;
+  left: 0;
+  top: 0;
+  min-width: ${space(0.25)};
   &:before {
     position: absolute;
     inset: 0;
     content: '';
-    border-radius: 3px;
     background: ${p =>
       `linear-gradient(to right, ${Color(p.theme.gray300).alpha(0.5).toString()} 0px, ${Color(p.theme.gray300).alpha(0.7).toString()} ${progressBarWidth})`};
-    box-shadow: inset 0 0 0 1px ${p => p.theme.translucentInnerBorder};
     width: 100%;
   }
 `;

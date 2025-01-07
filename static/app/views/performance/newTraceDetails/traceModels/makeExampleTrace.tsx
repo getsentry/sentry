@@ -54,7 +54,7 @@ export function makeExampleTrace(metadata: TraceTree.Metadata): TraceTree {
     const nest = i > 0 && Math.random() > 0.33;
 
     if (nest) {
-      const parent = root.children[root.children.length - 1];
+      const parent = root.children[root.children.length - 1]!;
       parent.children.push(
         partialTransaction({
           ...metadata,

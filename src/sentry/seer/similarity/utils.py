@@ -5,6 +5,8 @@ from typing import Any, TypedDict, TypeVar
 
 from sentry import options
 from sentry.eventstore.models import Event, GroupEvent
+from sentry.grouping.api import get_contributing_variant_and_component
+from sentry.grouping.variants import BaseVariant, ComponentVariant
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.project import Project
 from sentry.utils import metrics
@@ -19,15 +21,7 @@ FULLY_MINIFIED_STACKTRACE_MAX_FRAME_COUNT = 20
 # this separately from backfill status allows us to backfill projects which have events from
 # multiple platforms, some supported and some not, and not worry about events from the unsupported
 # platforms getting sent to Seer during ingest.
-SEER_INELIGIBLE_EVENT_PLATFORMS = frozenset(
-    [
-        # Native platforms
-        "c",
-        "native",
-        # We don't know what's in the event
-        "other",
-    ]
-)
+SEER_INELIGIBLE_EVENT_PLATFORMS = frozenset(["other"])  # We don't know what's in the event
 # Event platforms corresponding to project platforms which were backfilled before we started
 # blocking events with more than `MAX_FRAME_COUNT` frames from being sent to Seer (which we do to
 # prevent possible over-grouping). Ultimately we want a more unified solution, but for now, we're
@@ -46,11 +40,6 @@ EVENT_PLATFORMS_BYPASSING_FRAME_COUNT_CHECK = frozenset(
 # platforms shouldn't have Seer enabled.
 SEER_INELIGIBLE_PROJECT_PLATFORMS = frozenset(
     [
-        # Native platforms
-        "c",
-        "minidump",
-        "native",
-        "native-qt",
         # We have no clue what's in these projects
         "other",
         "",
@@ -327,6 +316,64 @@ def record_did_call_seer_metric(*, call_made: bool, blocker: str) -> None:
         sample_rate=options.get("seer.similarity.metrics_sample_rate"),
         tags={"call_made": call_made, "blocker": blocker},
     )
+
+
+def has_too_many_contributing_frames(
+    event: Event | GroupEvent,
+    variants: dict[str, BaseVariant],
+    referrer: ReferrerOptions,
+) -> bool:
+    platform = event.platform
+    shared_tags = {"referrer": referrer.value, "platform": platform}
+
+    contributing_variant, contributing_component = get_contributing_variant_and_component(variants)
+
+    # Ideally we're calling this function after we already know the event both has a stacktrace and
+    # is using it for grouping (in which case none of the below conditions should apply), but still
+    # worth checking that we have enough information to answer the question just in case
+    if (
+        # Fingerprint, checksum, fallback variants
+        not isinstance(contributing_variant, ComponentVariant)
+        # Security violations, log-message-based grouping
+        or contributing_variant.variant_name == "default"
+        # Any ComponentVariant will have this, but this reassures mypy
+        or not contributing_component
+        # Exception-message-based grouping
+        or not hasattr(contributing_component, "frame_counts")
+    ):
+        # We don't bother to collect a metric on this outcome, because we shouldn't have called the
+        # function in the first place
+        return False
+
+    # Certain platforms were backfilled before we added this filter, so to keep new events matching
+    # with the existing data, we turn off the filter for them (instead their stacktraces will be
+    # truncated)
+    if platform in EVENT_PLATFORMS_BYPASSING_FRAME_COUNT_CHECK:
+        metrics.incr(
+            "grouping.similarity.frame_count_filter",
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+            tags={**shared_tags, "outcome": "bypass"},
+        )
+        return False
+
+    stacktrace_type = "in_app" if contributing_variant.variant_name == "app" else "system"
+    key = f"{stacktrace_type}_contributing_frames"
+    shared_tags["stacktrace_type"] = stacktrace_type
+
+    if contributing_component.frame_counts[key] > MAX_FRAME_COUNT:
+        metrics.incr(
+            "grouping.similarity.frame_count_filter",
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+            tags={**shared_tags, "outcome": "block"},
+        )
+        return True
+
+    metrics.incr(
+        "grouping.similarity.frame_count_filter",
+        sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+        tags={**shared_tags, "outcome": "pass"},
+    )
+    return False
 
 
 def killswitch_enabled(

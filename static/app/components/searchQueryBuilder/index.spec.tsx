@@ -163,18 +163,18 @@ describe('SearchQueryBuilder', function () {
       // Should call onChange and onSearch after enter
       await waitFor(() => {
         expect(mockOnChange).toHaveBeenCalledTimes(1);
-        expect(mockOnChange).toHaveBeenCalledWith('ab', expectedQueryState);
-        expect(mockOnSearch).toHaveBeenCalledTimes(1);
-        expect(mockOnSearch).toHaveBeenCalledWith('ab', expectedQueryState);
       });
+      expect(mockOnChange).toHaveBeenCalledWith('ab', expectedQueryState);
+      expect(mockOnSearch).toHaveBeenCalledTimes(1);
+      expect(mockOnSearch).toHaveBeenCalledWith('ab', expectedQueryState);
 
       await userEvent.click(document.body);
 
       // Clicking outside activates onBlur
       await waitFor(() => {
         expect(mockOnBlur).toHaveBeenCalledTimes(1);
-        expect(mockOnBlur).toHaveBeenCalledWith('ab', expectedQueryState);
       });
+      expect(mockOnBlur).toHaveBeenCalledWith('ab', expectedQueryState);
     });
   });
 
@@ -194,8 +194,8 @@ describe('SearchQueryBuilder', function () {
 
       await waitFor(() => {
         expect(mockOnChange).toHaveBeenCalledWith('', expect.anything());
-        expect(mockOnSearch).toHaveBeenCalledWith('', expect.anything());
       });
+      expect(mockOnSearch).toHaveBeenCalledWith('', expect.anything());
 
       expect(
         screen.queryByRole('row', {name: 'browser.name:firefox'})
@@ -321,7 +321,7 @@ describe('SearchQueryBuilder', function () {
       expect(groups).toHaveLength(3);
 
       // First group (Field) should have age, assigned, browser.name
-      const group1 = groups[0];
+      const group1 = groups[0]!;
       expect(within(group1).getByRole('option', {name: 'age'})).toBeInTheDocument();
       expect(within(group1).getByRole('option', {name: 'assigned'})).toBeInTheDocument();
       expect(
@@ -329,13 +329,13 @@ describe('SearchQueryBuilder', function () {
       ).toBeInTheDocument();
 
       // Second group (Tag) should have custom_tag_name
-      const group2 = groups[1];
+      const group2 = groups[1]!;
       expect(
         within(group2).getByRole('option', {name: 'custom_tag_name'})
       ).toBeInTheDocument();
 
       // There should be a third group for uncategorized keys
-      const group3 = groups[2];
+      const group3 = groups[2]!;
       expect(
         within(group3).getByRole('option', {name: 'uncategorized_tag'})
       ).toBeInTheDocument();
@@ -398,7 +398,7 @@ describe('SearchQueryBuilder', function () {
         expect(recentFilterKeys[1]).toHaveTextContent('browser');
         expect(recentFilterKeys[2]).toHaveTextContent('is');
 
-        await userEvent.click(recentFilterKeys[0]);
+        await userEvent.click(recentFilterKeys[0]!);
 
         expect(await screen.findByRole('row', {name: 'assigned:""'})).toBeInTheDocument();
       });
@@ -460,7 +460,7 @@ describe('SearchQueryBuilder', function () {
         await waitFor(() => {
           expect(getLastInput()).toHaveAttribute(
             'aria-activedescendant',
-            recentFilterKeys[0].id
+            recentFilterKeys[0]!.id
           );
         });
 
@@ -469,7 +469,7 @@ describe('SearchQueryBuilder', function () {
         await waitFor(() => {
           expect(getLastInput()).toHaveAttribute(
             'aria-activedescendant',
-            recentFilterKeys[1].id
+            recentFilterKeys[1]!.id
           );
         });
 
@@ -487,7 +487,7 @@ describe('SearchQueryBuilder', function () {
         await waitFor(() => {
           expect(getLastInput()).toHaveAttribute(
             'aria-activedescendant',
-            recentFilterKeys[0].id
+            recentFilterKeys[0]!.id
           );
         });
       });
@@ -518,6 +518,35 @@ describe('SearchQueryBuilder', function () {
         expect(
           screen.getByRole('option', {name: 'some recent query'})
         ).toBeInTheDocument();
+      });
+
+      it('switches to keys menu when recent searches no longer exist', async function () {
+        const {rerender} = render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            recentSearches={SavedSearchType.ISSUE}
+            initialQuery=""
+          />
+        );
+
+        await userEvent.click(getLastInput());
+
+        // Recent should be selected
+        expect(screen.getByRole('button', {name: 'Recent'})).toHaveAttribute(
+          'aria-selected',
+          'true'
+        );
+
+        // Rerender without recent searches
+        rerender(<SearchQueryBuilder {...defaultProps} />);
+
+        // Recent should not exist anymore
+        expect(screen.queryByRole('button', {name: 'Recent'})).not.toBeInTheDocument();
+        // All should be selected
+        expect(screen.getByRole('button', {name: 'All'})).toHaveAttribute(
+          'aria-selected',
+          'true'
+        );
       });
 
       it('when selecting a recent search, should reset query and call onSearch', async function () {
@@ -666,7 +695,7 @@ describe('SearchQueryBuilder', function () {
       // jsdom does not support getBoundingClientRect, so we need to mock it for each item
 
       // First freeText area is 5px wide
-      freeText1.getBoundingClientRect = () => {
+      freeText1!.getBoundingClientRect = () => {
         return {
           top: 0,
           left: 10,
@@ -677,7 +706,7 @@ describe('SearchQueryBuilder', function () {
         } as DOMRect;
       };
       // "is:unresolved" filter is 100px wide
-      filter.getBoundingClientRect = () => {
+      filter!.getBoundingClientRect = () => {
         return {
           top: 0,
           left: 15,
@@ -688,7 +717,7 @@ describe('SearchQueryBuilder', function () {
         } as DOMRect;
       };
       // Last freeText area is 200px wide
-      freeText2.getBoundingClientRect = () => {
+      freeText2!.getBoundingClientRect = () => {
         return {
           top: 0,
           left: 115,
@@ -961,7 +990,7 @@ describe('SearchQueryBuilder', function () {
 
       // Put focus into the first input (before the token)
       await userEvent.click(
-        screen.getAllByRole('combobox', {name: 'Add a search term'})[0]
+        screen.getAllByRole('combobox', {name: 'Add a search term'})[0]!
       );
 
       // Pressing delete once should focus the previous token
@@ -1432,17 +1461,17 @@ describe('SearchQueryBuilder', function () {
       expect(within(screen.getByRole('listbox')).getByText('All')).toBeInTheDocument();
 
       // First group is the selected "me"
-      expect(within(groups[0]).getByRole('option', {name: 'me'})).toBeInTheDocument();
+      expect(within(groups[0]!).getByRole('option', {name: 'me'})).toBeInTheDocument();
       // Second group is the remaining option in the "Suggested" section
       expect(
-        within(groups[1]).getByRole('option', {name: 'unassigned'})
+        within(groups[1]!).getByRole('option', {name: 'unassigned'})
       ).toBeInTheDocument();
       // Third group are the options under the "All" section
       expect(
-        within(groups[2]).getByRole('option', {name: 'person1@sentry.io'})
+        within(groups[2]!).getByRole('option', {name: 'person1@sentry.io'})
       ).toBeInTheDocument();
       expect(
-        within(groups[2]).getByRole('option', {name: 'person2@sentry.io'})
+        within(groups[2]!).getByRole('option', {name: 'person2@sentry.io'})
       ).toBeInTheDocument();
     });
 

@@ -25,7 +25,7 @@ export default function getProjectsByTeams(
         if (!projectsByTeam.hasOwnProperty(team.slug)) {
           projectsByTeam[team.slug] = [];
         }
-        projectsByTeam[team.slug].push(project);
+        projectsByTeam[team.slug]!.push(project);
       });
     }
   });

@@ -6,7 +6,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import MemberBadge from 'sentry/components/idBadge/memberBadge';
 
 describe('MemberBadge', function () {
-  let member;
+  let member!: ReturnType<typeof MemberFixture>;
   beforeEach(() => {
     member = MemberFixture();
   });

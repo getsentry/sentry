@@ -8,14 +8,15 @@ import * as pageFilters from 'sentry/actionCreators/pageFilters';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import {browserHistory} from 'sentry/utils/browserHistory';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
+import type {Project} from 'sentry/types/project';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import PerformanceContent from 'sentry/views/performance/content';
 import {DEFAULT_MAX_DURATION} from 'sentry/views/performance/trends/utils';
 
 const FEATURES = ['performance-view'];
 
-function WrappedComponent({router}) {
+function WrappedComponent({router}: {router: InjectedRouter}) {
   return (
     <MEPSettingProvider>
       <PerformanceContent router={router} location={router.location} />
@@ -23,7 +24,11 @@ function WrappedComponent({router}) {
   );
 }
 
-function initializeData(projects, query, features = FEATURES) {
+function initializeData(
+  projects: Project[],
+  query: Record<string, string | string[] | undefined>,
+  features = FEATURES
+) {
   const organization = OrganizationFixture({
     features,
   });
@@ -42,7 +47,10 @@ function initializeData(projects, query, features = FEATURES) {
   return initialData;
 }
 
-function initializeTrendsData(query, addDefaultQuery = true) {
+function initializeTrendsData(
+  query: Record<string, string | string[] | undefined>,
+  addDefaultQuery = true
+) {
   const projects = [
     ProjectFixture({id: '1', firstTransactionEvent: false}),
     ProjectFixture({id: '2', firstTransactionEvent: true}),
@@ -75,7 +83,6 @@ function initializeTrendsData(query, addDefaultQuery = true) {
 describe('Performance > Content', function () {
   beforeEach(function () {
     act(() => void TeamStore.loadInitialData([], false, null));
-    browserHistory.push = jest.fn();
     jest.spyOn(pageFilters, 'updateDateTime');
 
     MockApiClient.addMockResponse({
@@ -288,14 +295,14 @@ describe('Performance > Content', function () {
       ProjectFixture({id: '1', firstTransactionEvent: false}),
       ProjectFixture({id: '2', firstTransactionEvent: true}),
     ];
-    const {router} = initializeData(projects, {project: [1]});
+    const {router} = initializeData(projects, {project: ['1']});
 
     render(<WrappedComponent router={router} />, {
       router,
     });
 
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
-    expect(screen.queryByText('Pinpoint problems')).toBeInTheDocument();
+    expect(screen.getByText('Pinpoint problems')).toBeInTheDocument();
     expect(screen.queryByTestId('performance-table')).not.toBeInTheDocument();
   });
 
@@ -364,7 +371,7 @@ describe('Performance > Content', function () {
 
     expect(pageFilters.updateDateTime).toHaveBeenCalledTimes(0);
 
-    expect(browserHistory.push).toHaveBeenCalledWith(
+    expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({
         pathname: '/organizations/org-slug/performance/trends/',
         query: {
@@ -387,7 +394,7 @@ describe('Performance > Content', function () {
     });
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
 
-    expect(browserHistory.push).toHaveBeenCalledTimes(0);
+    expect(router.push).toHaveBeenCalledTimes(0);
   });
 
   it('Default page (transactions) with trends feature will not update filters if none are set', async function () {
@@ -397,7 +404,7 @@ describe('Performance > Content', function () {
       router,
     });
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
-    expect(browserHistory.push).toHaveBeenCalledTimes(0);
+    expect(router.push).toHaveBeenCalledTimes(0);
   });
 
   it('Tags are replaced with trends default query if navigating to trends', async function () {
@@ -408,10 +415,10 @@ describe('Performance > Content', function () {
     });
 
     const trendsLinks = await screen.findAllByTestId('landing-header-trends');
-    await userEvent.click(trendsLinks[0]);
+    await userEvent.click(trendsLinks[0]!);
 
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
-    expect(browserHistory.push).toHaveBeenCalledWith(
+    expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({
         pathname: '/organizations/org-slug/performance/trends/',
         query: {
@@ -433,6 +440,6 @@ describe('Performance > Content', function () {
     });
 
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
-    expect(screen.queryByTestId('create-sample-transaction-btn')).toBeInTheDocument();
+    expect(screen.getByTestId('create-sample-transaction-btn')).toBeInTheDocument();
   });
 });

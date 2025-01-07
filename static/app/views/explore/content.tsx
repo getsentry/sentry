@@ -1,5 +1,6 @@
 import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
@@ -196,6 +197,8 @@ function ExploreTagsProvider({children}) {
 }
 
 export function ExploreContent(props: ExploreContentProps) {
+  Sentry.setTag('explore.visited', 'yes');
+
   return (
     <PageParamsProvider>
       <ExploreTagsProvider>

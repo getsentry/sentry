@@ -10,13 +10,6 @@ controls are enabled. For more details about this alert alert, view on Sentry:
 Alert: {{ link }}
 Status: {{ status }}
 Project: {{ project_slug }}
-{% if monitor_type == 1 %}
-    {% if condition_type == 0 %}
-New Release: {{activator}}
-    {% elif condition_type == 1 %}
-New Deploy: {{activator}}
-    {% endif %}
-{% endif %}
 Metric: {{ aggregate }}
 Environment: {{ environment }}
 Threshold: {{ threshold_prefix_string }} {{ threshold }}

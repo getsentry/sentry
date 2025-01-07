@@ -31,9 +31,9 @@ describe('addOrganizationFeaturesHandler', () => {
   it('should not change the functionality of `includes`', () => {
     const mockHandler = jest.fn();
     addOrganizationFeaturesHandler({organization, handler: mockHandler});
-    expect(organization.features.includes('enable-issues')).toBe(true);
-    expect(organization.features.includes('enable-replay')).toBe(true);
-    expect(organization.features.includes('replay-mobile-ui')).toBe(false);
+    expect(organization.features).toContain('enable-issues');
+    expect(organization.features).toContain('enable-replay');
+    expect(organization.features).not.toContain('replay-mobile-ui');
   });
 });
 
@@ -62,8 +62,8 @@ describe('addProjectFeaturesHandler', () => {
   it('should not change the functionality of `includes`', () => {
     const mockHandler = jest.fn();
     addProjectFeaturesHandler({project, handler: mockHandler});
-    expect(project.features.includes('enable-issues')).toBe(true);
-    expect(project.features.includes('enable-replay')).toBe(true);
-    expect(project.features.includes('replay-mobile-ui')).toBe(false);
+    expect(project.features).toContain('enable-issues');
+    expect(project.features).toContain('enable-replay');
+    expect(project.features).not.toContain('replay-mobile-ui');
   });
 });

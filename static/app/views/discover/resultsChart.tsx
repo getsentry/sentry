@@ -93,7 +93,7 @@ class ResultsChart extends Component<ResultsChartProps> {
     const isPrevious = display === DisplayModes.PREVIOUS;
     const referrer = `api.discover.${display}-chart`;
     const topEvents = eventView.topEvents ? parseInt(eventView.topEvents, 10) : TOP_N;
-    const aggregateParam = getAggregateArg(yAxisValue[0]) || '';
+    const aggregateParam = getAggregateArg(yAxisValue[0]!) || '';
     const customPerformanceMetricFieldType = isCustomMeasurement(aggregateParam)
       ? customMeasurements
         ? customMeasurements[aggregateParam]?.fieldType

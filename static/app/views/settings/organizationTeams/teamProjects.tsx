@@ -1,8 +1,9 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
+import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Button} from 'sentry/components/button';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import DropdownButton from 'sentry/components/dropdownButton';
@@ -14,6 +15,7 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
+import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconFlag, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -91,13 +93,20 @@ function TeamProjects({team, location, params}: TeamProjectsProps) {
 
   const linkedProjectsPageLinks = linkedProjectsHeaders?.('Link');
   const hasWriteAccess = hasEveryAccess(['team:write'], {organization, team});
-  const otherProjects = unlinkedProjects
-    .filter(p => p.access.includes('project:write'))
-    .map(p => ({
-      value: p.id,
-      searchKey: p.slug,
-      label: <ProjectListElement>{p.slug}</ProjectListElement>,
-    }));
+  const otherProjects = useMemo(() => {
+    return unlinkedProjects
+      .filter(p => p.access.includes('project:write'))
+      .map(p => ({
+        value: p.id,
+        searchKey: p.slug,
+        label: (
+          <ProjectListElement>
+            <ProjectAvatar project={p} size={16} />
+            <TextOverflow>{p.slug}</TextOverflow>
+          </ProjectListElement>
+        ),
+      }));
+  }, [unlinkedProjects]);
 
   return (
     <Fragment>
@@ -112,6 +121,7 @@ function TeamProjects({team, location, params}: TeamProjectsProps) {
           <div style={{textTransform: 'none', fontWeight: 'normal'}}>
             <DropdownAutoComplete
               items={otherProjects}
+              minWidth={300}
               onChange={evt => setQuery(evt.target.value)}
               onSelect={selection => {
                 const project = unlinkedProjects.find(p => p.id === selection.value);
@@ -183,6 +193,9 @@ const StyledPanelItem = styled(PanelItem)`
 `;
 
 const ProjectListElement = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
   padding: ${space(0.25)} 0;
 `;
 

@@ -52,7 +52,7 @@ describe('AccountSecurity', function () {
           onDisable={jest.fn()}
           orgsRequire2fa={[]}
           location={router.location}
-          route={router.routes[0]}
+          route={router.routes[0]!}
           routes={router.routes}
           router={router}
           routeParams={router.params}
@@ -175,7 +175,7 @@ describe('AccountSecurity', function () {
       await screen.findAllByRole('status', {name: 'Authentication Method Active'})
     ).toHaveLength(2);
 
-    await userEvent.click(screen.getAllByRole('button', {name: 'Delete'})[0]);
+    await userEvent.click(screen.getAllByRole('button', {name: 'Delete'})[0]!);
 
     renderGlobalModal();
     await userEvent.click(screen.getByTestId('confirm-button'));

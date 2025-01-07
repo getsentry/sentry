@@ -4,8 +4,8 @@ import debounce from 'lodash/debounce';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useResourcePagesQuery} from 'sentry/views/insights/browser/resources/queries/useResourcePagesQuery';
@@ -21,6 +21,7 @@ export function TransactionSelector({
   defaultResourceTypes?: string[];
   value?: string;
 }) {
+  const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
   const pageFilters = usePageFilters();
@@ -84,7 +85,7 @@ export function TransactionSelector({
         trackAnalytics('insight.asset.filter_by_page', {
           organization,
         });
-        browserHistory.push({
+        navigate({
           ...location,
           query: {
             ...location.query,

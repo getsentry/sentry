@@ -1953,10 +1953,6 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
                 [column for column in self.columns if column not in self.aggregates]
             )
 
-    @cached_property
-    def non_aggregate_columns(self) -> list[str]:
-        return list(set(self.original_selected_columns) - set(self.timeseries_columns))
-
     @property
     def translated_groupby(self) -> list[str]:
         """Get the names of the groupby columns to create the series names"""

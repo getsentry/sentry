@@ -176,7 +176,7 @@ function AppStartup({additionalFilters, chartHeight}: Props) {
     yAxes: Y_AXES,
     primaryRelease,
     secondaryRelease,
-    colorPalette: theme.charts.getColorPalette(TOP_SCREENS - 2),
+    colorPalette: theme.charts.getColorPalette(TOP_SCREENS - 2) ?? [],
     releaseEvents,
     topTransactions,
   });
@@ -199,7 +199,7 @@ function AppStartup({additionalFilters, chartHeight}: Props) {
               title: countTopScreens > 1 ? pluralTopScreenTitle : singularTopScreenTitle,
               yAxis,
               xAxisLabel: topTransactions,
-              series: Object.values(transformedReleaseEvents[yAxis]),
+              series: Object.values(transformedReleaseEvents[yAxis]!),
               subtitle: primaryRelease
                 ? t(
                     '%s v. %s',
@@ -233,7 +233,7 @@ function AppStartup({additionalFilters, chartHeight}: Props) {
           });
         }}
         organization={organization}
-        query={getFreeTextFromQuery(derivedQuery)}
+        query={getFreeTextFromQuery(derivedQuery)!}
         placeholder={t('Search for Screen')}
         additionalConditions={
           new MutableSearch(
