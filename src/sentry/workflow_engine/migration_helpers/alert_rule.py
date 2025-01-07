@@ -107,6 +107,11 @@ def migrate_metric_data_condition(
     data_condition_group = DataConditionGroup.objects.create(
         organization_id=alert_rule.organization_id
     )
+    alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=alert_rule)
+    WorkflowDataConditionGroup.objects.create(
+        condition_group=data_condition_group,
+        workflow=alert_rule_workflow.workflow,
+    )
 
     condition_result = (
         DetectorPriorityLevel.MEDIUM

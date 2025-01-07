@@ -217,11 +217,17 @@ class AlertRuleMigrationHelpersTest(APITestCase):
         assert data_conditions[0].comparison == self.alert_rule_trigger_warning.alert_threshold
         assert data_conditions[0].condition_result == DetectorPriorityLevel.MEDIUM
         assert data_conditions[0].condition_group == data_conditions[0].condition_group
+        assert WorkflowDataConditionGroup.objects.filter(
+            condition_group=data_conditions[0].condition_group
+        ).exists()
 
         assert data_conditions[1].type == Condition.GREATER
         assert data_conditions[1].comparison == self.alert_rule_trigger_critical.alert_threshold
         assert data_conditions[1].condition_result == DetectorPriorityLevel.HIGH
         assert data_conditions[1].condition_group == data_conditions[1].condition_group
+        assert WorkflowDataConditionGroup.objects.filter(
+            condition_group=data_conditions[1].condition_group
+        ).exists()
 
     def test_create_metric_alert_trigger_action(self):
         """
