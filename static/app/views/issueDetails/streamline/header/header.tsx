@@ -208,12 +208,12 @@ export default function StreamlinedGroupHeader({
             <ReplayBadge group={group} project={project} />
           </Flex>
           {issueTypeConfig.eventAndUserCounts.enabled && (
-            <StatCount value={eventCount} aria-label={t('Event count')} />
-          )}
-          {issueTypeConfig.eventAndUserCounts.enabled && (
-            <GuideAnchor target="issue_header_stats">
-              <StatCount value={userCount} aria-label={t('User count')} />
-            </GuideAnchor>
+            <Fragment>
+              <StatCount value={eventCount} aria-label={t('Event count')} />
+              <GuideAnchor target="issue_header_stats">
+                <StatCount value={userCount} aria-label={t('User count')} />
+              </GuideAnchor>
+            </Fragment>
           )}
         </HeaderGrid>
       </Header>
