@@ -109,13 +109,12 @@ class OrganizationFlagsWebHookSigningSecretsEndpoint(OrganizationEndpoint):
                     "secret": validator.validated_data["secret"],
                 },
             )
+            return Response(status=201)
         else:
             return Response(
                 "You must be an organization owner or manager, or the creator of this secret in order to perform this action.",
                 status=403,
             )
-
-        return Response(status=201)
 
 
 @region_silo_endpoint
