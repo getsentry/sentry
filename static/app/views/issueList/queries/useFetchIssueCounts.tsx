@@ -30,7 +30,7 @@ export const useFetchIssueCounts = (
   options: Partial<UseApiQueryOptions<Record<string, QueryCount>>> = {}
 ) => {
   return useApiQuery<QueryCounts>(makeFetchIssueCounts(params), {
-    staleTime: 0,
+    staleTime: 180000, // 3 minutes
     placeholderData: keepPreviousData,
     ...options,
   });
