@@ -51,15 +51,13 @@ class NotificationActionsIndexEndpointTest(APITestCase):
         def mock_register(
             data: MutableMapping[str, Any]
         ) -> Callable[[type[ActionRegistrationT]], type[ActionRegistrationT]]:
-            assert (
-                triggerType := ActionTrigger.get_value(data["triggerType"])
-            ) is not None, "triggerType must exist"
-            assert (
-                serviceType := ActionService.get_value(data["serviceType"])
-            ) is not None, "serviceType must exist"
-            assert (
-                targetType := ActionTarget.get_value(data["targetType"])
-            ) is not None, "targetType must exist"
+            triggerType = ActionTrigger.get_value(data["triggerType"])
+            serviceType = ActionService.get_value(data["serviceType"])
+            targetType = ActionTarget.get_value(data["targetType"])
+
+            assert triggerType is not None, "triggerType must exist"
+            assert serviceType is not None, "serviceType must exist"
+            assert targetType is not None, "targetType must exist"
 
             return NotificationAction.register_action(
                 trigger_type=triggerType, service_type=serviceType, target_type=targetType
