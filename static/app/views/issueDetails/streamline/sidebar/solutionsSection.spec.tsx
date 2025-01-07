@@ -57,8 +57,12 @@ describe('SolutionsSection', () => {
         deleteAndDiscard: {enabled: false},
         ignore: {enabled: false},
         merge: {enabled: false},
+        resolve: {enabled: true},
         resolveInRelease: {enabled: false},
         share: {enabled: false},
+      },
+      customCopy: {
+        resolution: 'Resolved',
       },
       attachments: {enabled: false},
       autofix: true,

@@ -1754,29 +1754,36 @@ class MetricsDatasetConfig(DatasetConfig):
             )
             for vital in vitals
         }
+        # TODO: Divide by the total weights to factor out any missing web vitals
         return Function(
-            "plus",
+            "divide",
             [
-                adjusted_opportunity_scores["lcp"],
                 Function(
                     "plus",
                     [
-                        adjusted_opportunity_scores["fcp"],
+                        adjusted_opportunity_scores["lcp"],
                         Function(
                             "plus",
                             [
-                                adjusted_opportunity_scores["cls"],
+                                adjusted_opportunity_scores["fcp"],
                                 Function(
                                     "plus",
                                     [
-                                        adjusted_opportunity_scores["ttfb"],
-                                        adjusted_opportunity_scores["inp"],
+                                        adjusted_opportunity_scores["cls"],
+                                        Function(
+                                            "plus",
+                                            [
+                                                adjusted_opportunity_scores["ttfb"],
+                                                adjusted_opportunity_scores["inp"],
+                                            ],
+                                        ),
                                     ],
                                 ),
                             ],
                         ),
                     ],
                 ),
+                self._resolve_total_weights_function(),
             ],
             alias,
         )
@@ -1794,6 +1801,7 @@ class MetricsDatasetConfig(DatasetConfig):
             params={},
             snuba_params=self.builder.params,
             selected_columns=[f"sum({column})"],
+            query=self.builder.query,
         )
 
         total_query.columns += self.builder.resolve_groupby()
@@ -1837,6 +1845,70 @@ class MetricsDatasetConfig(DatasetConfig):
             alias,
         )
 
+    def _resolve_total_weights_function(self) -> SelectType:
+        vitals = ["lcp", "fcp", "cls", "ttfb", "inp"]
+        weights = {
+            vital: Function(
+                "if",
+                [
+                    Function(
+                        "isZeroOrNull",
+                        [
+                            Function(
+                                "sumIf",
+                                [
+                                    Column("value"),
+                                    Function(
+                                        "equals",
+                                        [
+                                            Column("metric_id"),
+                                            self.resolve_metric(
+                                                f"measurements.score.weight.{vital}"
+                                            ),
+                                        ],
+                                    ),
+                                ],
+                            ),
+                        ],
+                    ),
+                    0,
+                    constants.WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS[vital],
+                ],
+            )
+            for vital in vitals
+        }
+
+        if features.has(
+            "organizations:performance-vitals-handle-missing-webvitals",
+            self.builder.params.organization,
+        ):
+            return Function(
+                "plus",
+                [
+                    Function(
+                        "plus",
+                        [
+                            Function(
+                                "plus",
+                                [
+                                    Function(
+                                        "plus",
+                                        [
+                                            weights["lcp"],
+                                            weights["fcp"],
+                                        ],
+                                    ),
+                                    weights["cls"],
+                                ],
+                            ),
+                            weights["ttfb"],
+                        ],
+                    ),
+                    weights["inp"],
+                ],
+            )
+        return 1
+
     def _resolve_total_performance_score_function(
         self,
         _: Mapping[str, str | Column | SelectType | int | float],
@@ -1868,39 +1940,11 @@ class MetricsDatasetConfig(DatasetConfig):
             for vital in vitals
         }
 
-        weights = {
-            vital: Function(
-                "if",
-                [
-                    Function(
-                        "isZeroOrNull",
-                        [
-                            Function(
-                                "countIf",
-                                [
-                                    Column("value"),
-                                    Function(
-                                        "equals",
-                                        [
-                                            Column("metric_id"),
-                                            self.resolve_metric(f"measurements.score.{vital}"),
-                                        ],
-                                    ),
-                                ],
-                            ),
-                        ],
-                    ),
-                    0,
-                    constants.WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS[vital],
-                ],
-            )
-            for vital in vitals
-        }
-
-        # TODO: Is there a way to sum more than 2 values at once?
+        # TODO: Divide by the total weights to factor out any missing web vitals
         return Function(
             "divide",
             [
+                # TODO: Is there a way to sum more than 2 values at once?
                 Function(
                     "plus",
                     [
@@ -1926,38 +1970,7 @@ class MetricsDatasetConfig(DatasetConfig):
                         scores["inp"],
                     ],
                 ),
-                (
-                    Function(
-                        "plus",
-                        [
-                            Function(
-                                "plus",
-                                [
-                                    Function(
-                                        "plus",
-                                        [
-                                            Function(
-                                                "plus",
-                                                [
-                                                    weights["lcp"],
-                                                    weights["fcp"],
-                                                ],
-                                            ),
-                                            weights["cls"],
-                                        ],
-                                    ),
-                                    weights["ttfb"],
-                                ],
-                            ),
-                            weights["inp"],
-                        ],
-                    )
-                    if features.has(
-                        "organizations:performance-vitals-handle-missing-webvitals",
-                        self.builder.params.organization,
-                    )
-                    else 1
-                ),
+                self._resolve_total_weights_function(),
             ],
             alias,
         )

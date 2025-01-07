@@ -6,6 +6,7 @@ import {
   errorConfig,
   getErrorHelpResource,
 } from 'sentry/utils/issueTypeConfig/errorConfig';
+import metricIssueConfig from 'sentry/utils/issueTypeConfig/metricIssueConfig';
 import performanceConfig from 'sentry/utils/issueTypeConfig/performanceConfig';
 import replayConfig from 'sentry/utils/issueTypeConfig/replayConfig';
 import type {
@@ -31,8 +32,12 @@ const BASE_CONFIG: IssueTypeConfig = {
     deleteAndDiscard: {enabled: false},
     merge: {enabled: false},
     ignore: {enabled: false},
+    resolve: {enabled: true},
     resolveInRelease: {enabled: true},
     share: {enabled: false},
+  },
+  customCopy: {
+    resolution: 'Resolved',
   },
   attachments: {enabled: false},
   autofix: false,
@@ -64,6 +69,7 @@ const issueTypeConfig: Config = {
   [IssueCategory.CRON]: cronConfig,
   [IssueCategory.REPLAY]: replayConfig,
   [IssueCategory.UPTIME]: uptimeConfig,
+  [IssueCategory.METRIC_ALERT]: metricIssueConfig,
 };
 
 /**
