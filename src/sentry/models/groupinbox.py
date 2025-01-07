@@ -110,7 +110,7 @@ def add_group_to_inbox(
 
 def remove_group_from_inbox(
     group: Group,
-    action: GroupInboxRemoveAction,
+    action: GroupInboxRemoveAction | None = None,
     user: User | RpcUser | AnonymousUser | None = None,
 ) -> None:
     try:
