@@ -1,4 +1,5 @@
 import type {ComponentProps} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import Link from 'sentry/components/links/link';
@@ -12,7 +13,24 @@ interface Props extends ComponentProps<'div'> {
 }
 
 export default function StoryTree({files, style}: Props) {
-  const tree = toTree(files);
+  const tree = useMemo(() => {
+    const fileTree = new StoryTreeModel();
+
+    for (const file of files) {
+      const parts = file.split('/');
+      let parent = fileTree.root;
+
+      for (const part of parts) {
+        if (!(part in parent.children)) {
+          parent.children[part] = new StoryTreeNode(part);
+        }
+
+        parent = parent.children[part]!;
+      }
+    }
+
+    return tree;
+  }, [files]);
 
   return (
     <nav style={style}>
@@ -21,7 +39,7 @@ export default function StoryTree({files, style}: Props) {
   );
 }
 
-function FolderContent({path, content}: {content: TreeMapping; path: string}) {
+function FolderContent({path, content}: {content: Tree; path: string}) {
   const location = useLocation<StoriesQuery>();
   const currentFile = location.query.name;
 
@@ -61,21 +79,18 @@ function FolderContent({path, content}: {content: TreeMapping; path: string}) {
   );
 }
 
-interface TreeMapping extends Record<string, TreeMapping> {}
+class StoryTreeNode {
+  expanded = false;
+  children: Record<string, StoryTreeNode> = {};
 
-function toTree(files: string[]): TreeMapping {
-  const root: Record<string, TreeMapping> = {};
-  for (const file of files) {
-    const parts = file.split('/');
-    let tree = root;
-    for (const part of parts) {
-      if (!(part in tree)) {
-        tree[part] = {};
-      }
-      tree = tree[part]!;
-    }
+  constructor(public name: string) {}
+}
+class StoryTreeModel {
+  constructor() {
+    this.root = new StoryTreeNode('');
   }
-  return root;
+
+  root: StoryTreeNode;
 }
 
 function toPath(path: string, name: string) {
