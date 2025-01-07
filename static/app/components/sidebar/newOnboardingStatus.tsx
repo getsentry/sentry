@@ -4,14 +4,10 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
-import {DeprecatedNewOnboardingSidebar} from 'sentry/components/onboardingWizard/deprecatedNewSidebar';
 import {NewOnboardingSidebar} from 'sentry/components/onboardingWizard/newSidebar';
 import {getMergedTasks} from 'sentry/components/onboardingWizard/taskConfig';
 import {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardingTasks';
-import {
-  findCompleteTasks,
-  hasQuickStartUpdatesFeatureGA,
-} from 'sentry/components/onboardingWizard/utils';
+import {findCompleteTasks} from 'sentry/components/onboardingWizard/utils';
 import ProgressRing, {
   RingBackground,
   RingBar,
@@ -153,24 +149,15 @@ export function NewOnboardingStatus({
           </div>
         )}
       </Container>
-      {isActive &&
-        (hasQuickStartUpdatesFeatureGA(organization) ? (
-          <NewOnboardingSidebar
-            orientation={orientation}
-            collapsed={collapsed}
-            onClose={hidePanel}
-            gettingStartedTasks={gettingStartedTasks}
-            beyondBasicsTasks={beyondBasicsTasks}
-          />
-        ) : (
-          <DeprecatedNewOnboardingSidebar
-            orientation={orientation}
-            collapsed={collapsed}
-            onClose={hidePanel}
-            gettingStartedTasks={gettingStartedTasks}
-            beyondBasicsTasks={beyondBasicsTasks}
-          />
-        ))}
+      {isActive && (
+        <NewOnboardingSidebar
+          orientation={orientation}
+          collapsed={collapsed}
+          onClose={hidePanel}
+          gettingStartedTasks={gettingStartedTasks}
+          beyondBasicsTasks={beyondBasicsTasks}
+        />
+      )}
     </Fragment>
   );
 }
