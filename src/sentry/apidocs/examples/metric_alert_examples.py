@@ -209,25 +209,6 @@ class MetricAlertExamples:
         )
     ]
 
-    GET_METRIC_ALERT_ACTIVATIONS = [
-        OpenApiExample(
-            "Fetch a list of activations for a metric alert rule",
-            value=[
-                {
-                    "id": "1",
-                    "alertRuleId": "1",
-                    "dateCreated": "2023-09-25T23:35:31.787875Z",
-                    "finishedAt": "2023-09-25T23:35:31.787866Z",
-                    "metricValue": 100,
-                    "querySubscriptionId": "1",
-                    "isComplete": True,
-                    "activator": "1",
-                    "conditionType": "0",
-                }
-            ],
-        )
-    ]
-
     GET_METRIC_ALERT_ANOMALIES = [
         OpenApiExample(
             "Fetch a list of anomalies for a metric alert rule",
