@@ -20,7 +20,6 @@ from sentry.features.rollout import in_rollout_group
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.killswitches import killswitch_matches_context
-from sentry.models.groupinbox import InboxReasonDetails
 from sentry.replays.lib.event_linking import transform_event_for_linking_payload
 from sentry.replays.lib.kafka import initialize_replays_publisher
 from sentry.sentry_metrics.client import generic_metrics_backend
@@ -47,6 +46,7 @@ if TYPE_CHECKING:
     from sentry.eventstore.models import Event, GroupEvent
     from sentry.eventstream.base import GroupState
     from sentry.models.group import Group
+    from sentry.models.groupinbox import InboxReasonDetails
     from sentry.models.project import Project
     from sentry.models.team import Team
     from sentry.ownership.grammar import Rule
