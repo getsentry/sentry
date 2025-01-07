@@ -11,21 +11,19 @@ __all__ = [
     "LevelConditionHandler",
     "TaggedEventConditionHandler",
     "AgeComparisonConditionHandler",
+    "AssignedToConditionHandler",
 ]
 
-from .group_event_handlers import (
-    AgeComparisonConditionHandler,
-    EventAttributeConditionHandler,
-    EventCreatedByDetectorConditionHandler,
-    EventSeenCountConditionHandler,
-    EveryEventConditionHandler,
-    LevelConditionHandler,
-    TaggedEventConditionHandler,
-)
-from .group_state_handlers import (
-    ExistingHighPriorityIssueConditionHandler,
-    FirstSeenEventConditionHandler,
-    NewHighPriorityIssueConditionHandler,
-    ReappearedEventConditionHandler,
-    RegressionEventConditionHandler,
-)
+from .age_comparison_handler import AgeComparisonConditionHandler
+from .assigned_to_handler import AssignedToConditionHandler
+from .event_attribute_handler import EventAttributeConditionHandler
+from .event_created_by_detector_handler import EventCreatedByDetectorConditionHandler
+from .event_seen_count_handler import EventSeenCountConditionHandler
+from .every_event_handler import EveryEventConditionHandler
+from .existing_high_priority_issue_handler import ExistingHighPriorityIssueConditionHandler
+from .first_seen_event_handler import FirstSeenEventConditionHandler
+from .level_handler import LevelConditionHandler
+from .new_high_priority_issue_handler import NewHighPriorityIssueConditionHandler
+from .reappeared_event_handler import ReappearedEventConditionHandler
+from .regression_event_handler import RegressionEventConditionHandler
+from .tagged_event_handler import TaggedEventConditionHandler

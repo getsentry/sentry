@@ -198,6 +198,26 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             == "Parse error at 'hi \n ther' (column 4). This is commonly caused by unmatched parentheses. Enclose any text in double quotes."
         )
 
+    def test_invalid_field(self):
+        self.features["organizations:performance-discover-dataset-selector"] = True
+        self.create_project()
+        query: dict[str, Any] = {"field": ["foo[…]bar"], "dataset": "transactions"}
+        model = DiscoverSavedQuery.objects.create(
+            organization=self.organization,
+            created_by_id=self.user.id,
+            name="query name",
+            query=query,
+            version=2,
+            date_created=before_now(minutes=10),
+            date_updated=before_now(minutes=10),
+            dataset=DiscoverSavedQueryTypes.TRANSACTION_LIKE,
+        )
+        query["discoverSavedQueryId"] = model.id
+
+        response = self.do_request(query)
+        assert response.status_code == 400, response.content
+        assert response.data["detail"] == "Invalid characters in field foo[…]bar"
+
     def test_invalid_trace_span(self):
         self.create_project()
 
@@ -325,6 +345,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["id"] == "a" * 32
 
+    @pytest.mark.xfail(reason="Started failing after getsentry/snuba#6711")
     def test_parent_span_id_in_context(self):
         self.store_event(
             data={
