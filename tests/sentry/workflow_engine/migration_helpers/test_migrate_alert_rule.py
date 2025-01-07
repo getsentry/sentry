@@ -12,7 +12,6 @@ from sentry.workflow_engine.models import (
     DetectorState,
     DetectorWorkflow,
     Workflow,
-    WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
@@ -53,8 +52,7 @@ class AlertRuleMigrationHelpersTest(APITestCase):
         detector_workflow = DetectorWorkflow.objects.get(detector=detector)
         assert detector_workflow.workflow == workflow
 
-        workflow_data_condition_group = WorkflowDataConditionGroup.objects.get(workflow=workflow)
-        assert workflow_data_condition_group.condition_group == workflow.when_condition_group
+        assert workflow.when_condition_group is None
 
         assert self.metric_alert.snuba_query
         query_subscription = QuerySubscription.objects.get(
