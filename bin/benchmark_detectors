@@ -1,0 +1,51 @@
+#!/usr/bin/env python
+# isort: skip_file
+
+"""
+This script benchmarks the performance of issue detectors in Sentry.
+
+NOTE: This currently only supports FileIOMainThreadDetector.
+
+Usage: python benchmark_detectors
+"""
+from sentry.runner import configure
+
+configure()
+import time
+import sentry_sdk
+from sentry.testutils.performance_issues.event_generators import get_event  # noqa: S007
+from sentry.utils.performance_issues.detectors import FileIOMainThreadDetector
+from sentry.utils.performance_issues.performance_detection import (
+    get_detection_settings,
+    run_detector_on_data,
+)
+
+sentry_sdk.init(None)
+
+
+def main():
+    settings = get_detection_settings()
+
+    # 10 events: 1 ignored, 1 matching, and 8 ignored
+    events = [get_event("file-io-on-main-thread") for _ in range(0, 10)]
+    events[0]["spans"][0]["data"]["file.path"] = "somethins/stuff/blah/yup/KBLayout_iPhone.dat"
+    for i in range(2, 10):
+        events[i]["spans"][0]["data"]["blocked_main_thread"] = False
+
+    count = 100_000
+
+    start = time.perf_counter()
+    for _ in range(0, count):
+        for event in events:
+            detector = FileIOMainThreadDetector(settings, event)
+            run_detector_on_data(detector, event)
+    elapsed = time.perf_counter() - start
+
+    ops = count * len(events)
+    print(f"{ops:,} ops")  # noqa
+    print(f"{elapsed:.3f} s")  # noqa
+    print(f"{ops/elapsed:,.2f} ops/s")  # noqa
+
+
+if __name__ == "__main__":
+    main()
