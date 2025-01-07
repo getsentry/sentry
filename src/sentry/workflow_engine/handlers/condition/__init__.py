@@ -11,9 +11,11 @@ __all__ = [
     "LevelConditionHandler",
     "TaggedEventConditionHandler",
     "AgeComparisonConditionHandler",
+    "AssignedToConditionHandler",
 ]
 
 from .age_comparison_handler import AgeComparisonConditionHandler
+from .assigned_to_handler import AssignedToConditionHandler
 from .event_attribute_handler import EventAttributeConditionHandler
 from .event_created_by_detector_handler import EventCreatedByDetectorConditionHandler
 from .event_seen_count_handler import EventSeenCountConditionHandler
