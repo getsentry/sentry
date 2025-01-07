@@ -125,7 +125,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 )
             )
 
-        return open_periods
+        return open_periods[::-1]
 
     def _get_context_plugins(self, request: Request, group: Group):
         project = group.project
