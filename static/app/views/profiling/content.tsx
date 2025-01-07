@@ -221,7 +221,7 @@ function TransactionsTab({location, selection}: TabbedContentProps) {
         sort={sort}
         sortableColumns={new Set(fields)}
       />
-      <Pagination
+      <StyledPagination
         pageLinks={
           transactions.status === 'success'
             ? transactions.getResponseHeader?.('Link') ?? null
@@ -398,4 +398,8 @@ const WidgetsContainer = styled('div')`
 const SearchbarContainer = styled('div')`
   margin-top: ${space(3)};
   margin-bottom: ${space(2)};
+`;
+
+const StyledPagination = styled(Pagination)`
+  margin: 0;
 `;
