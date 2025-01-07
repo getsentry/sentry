@@ -47,27 +47,4 @@ describe('MetricHistory', () => {
     render(<MetricHistory incidents={incidents} />);
     expect(screen.getByText('No alerts triggered during this time.')).toBeInTheDocument();
   });
-
-  // it('renders activation starts and ends', () => {
-  //   // render 1 activation that has completed
-  //   // render 1 activation that has not finished yet
-  //   const activations = [
-  //     MetricRuleActivationFixture({
-  //       id: `1`,
-  //       activator: '1',
-  //       dateCreated: '2024-05-02T12:00:00.123Z',
-  //       isComplete: true,
-  //       finishedAt: '2024-05-02T13:00:00.123Z',
-  //     }),
-  //     MetricRuleActivationFixture({
-  //       id: `2`,
-  //       activator: '2',
-  //       dateCreated: '2024-05-02T17:00:00.123Z',
-  //     }),
-  //   ];
-  //   render(<MetricHistory incidents={[]} activations={activations} />);
-
-  //   expect(screen.getAllByText('Start monitoring.').length).toBe(2);
-  //   expect(screen.getAllByText('Finish monitoring.').length).toBe(1);
-  // });
 });
