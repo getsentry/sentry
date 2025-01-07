@@ -1,5 +1,5 @@
-from collections.abc import Callable, MutableMapping
-from typing import Any, TypeVar
+from collections.abc import Callable, Mapping, MutableMapping
+from typing import Any, TypedDict, TypeVar
 from unittest.mock import MagicMock, patch
 
 import responses
@@ -23,6 +23,16 @@ from sentry.testutils.silo import assume_test_silo_mode
 from tests.sentry.integrations.slack.utils.test_mock_slack_response import mock_slack_response
 
 ActionRegistrationT = TypeVar("ActionRegistrationT", bound=ActionRegistration)
+
+
+class _Query(TypedDict, total=False):
+    triggerType: str
+    project: int
+
+
+class _QueryResult(TypedDict):
+    query: _Query
+    result: set[NotificationAction]
 
 
 class NotificationActionsIndexEndpointTest(APITestCase):
@@ -118,7 +128,7 @@ class NotificationActionsIndexEndpointTest(APITestCase):
             trigger_type=1,
         )
 
-        query_data = {
+        query_data: Mapping[str, _QueryResult] = {
             "checks projects by default": {"query": {}, "result": {na1, na2, na3, na4}},
             "regular project": {
                 "query": {"project": project.id},
@@ -134,7 +144,7 @@ class NotificationActionsIndexEndpointTest(APITestCase):
             },
             "empty result": {
                 "query": {"triggerType": "beast"},
-                "result": {},
+                "result": set(),
             },
             "not member": {"query": {"triggerType": "watcher"}, "result": {na3}},
             "not member but has access": {
@@ -144,11 +154,10 @@ class NotificationActionsIndexEndpointTest(APITestCase):
         }
 
         for data in query_data.values():
-            assert isinstance(data, MutableMapping), "query_data's values need to be indexable ;-;"
             response = self.get_success_response(
                 self.organization.slug,
                 status_code=status.HTTP_200_OK,
-                qs_params=data.get("query"),
+                qs_params=data["query"],
             )
             assert len(response.data) == len(data["result"])
             for action in data["result"]:
@@ -383,11 +392,11 @@ class NotificationActionsIndexEndpointTest(APITestCase):
         assert response.data["targetIdentifier"] == service["id"]
         assert response.data["targetDisplay"] == service["service_name"]
 
+    @patch("sentry.notifications.models.notificationaction.ActionRegistration.validate_action")
     @patch.dict(NotificationAction._registry, {})
-    def test_post_simple(self):
-        class MockActionRegistration(ActionRegistration):
-            validate_action = MagicMock()
+    def test_post_simple(self, validate_action):
 
+        class MockActionRegistration(ActionRegistration):
             def fire(self, data: Any) -> None:
                 raise NotImplementedError
 
@@ -398,8 +407,7 @@ class NotificationActionsIndexEndpointTest(APITestCase):
             **self.base_data,
             "projects": [p.slug for p in self.projects],
         }
-
-        assert not registration.validate_action.called
+        assert not validate_action.called
         response = self.get_success_response(
             self.organization.slug,
             status_code=status.HTTP_201_CREATED,
@@ -407,7 +415,7 @@ class NotificationActionsIndexEndpointTest(APITestCase):
             **data,
         )
         # Database reflects changes
-        assert registration.validate_action.called
+        assert validate_action.called
         notif_action = NotificationAction.objects.get(id=response.data.get("id"))
         assert response.data == serialize(notif_action)
         # Relation table has been updated
