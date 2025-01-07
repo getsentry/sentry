@@ -595,7 +595,8 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                     discover_query.dataset is not DiscoverSavedQueryTypes.DISCOVER
                 )
                 if does_widget_have_split:
-                    return _data_fn(scoped_dataset_query, offset, limit, scoped_query)
+                    with handle_query_errors():
+                        return _data_fn(scoped_dataset_query, offset, limit, scoped_query)
 
                 dataset_inferred_from_query = dataset_split_decision_inferred_from_query(
                     self.get_field_list(organization, request),
