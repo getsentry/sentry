@@ -142,6 +142,12 @@ describe('Incident Rules Form', () => {
       expect(screen.queryByText(permissionAlertText)).not.toBeInTheDocument();
     });
 
+    it('renders time window', async () => {
+      createWrapper({rule});
+
+      expect(await screen.findByText('1 hour interval')).toBeInTheDocument();
+    });
+
     it('is enabled with project-level alerts:write', async () => {
       organization.access = [];
       project.access = ['alerts:write'];

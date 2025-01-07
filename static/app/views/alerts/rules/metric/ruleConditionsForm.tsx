@@ -490,7 +490,15 @@ class RuleConditionsForm extends PureComponent<Props, State> {
   }
 
   renderInterval() {
-    const {organization, disabled, alertType, project, isForLlmMetric} = this.props;
+    const {
+      organization,
+      timeWindow,
+      disabled,
+      alertType,
+      project,
+      isForLlmMetric,
+      onTimeWindowChange,
+    } = this.props;
 
     return (
       <Fragment>
@@ -518,6 +526,16 @@ class RuleConditionsForm extends PureComponent<Props, State> {
               required
             />
           )}
+          <SelectControl
+            name="timeWindow"
+            styles={this.selectControlStyles}
+            options={this.timeWindowOptions}
+            isDisabled={disabled}
+            value={timeWindow}
+            onChange={({value}) => onTimeWindowChange(value)}
+            inline={false}
+            flexibleControlStateSize
+          />
         </FormRow>
       </Fragment>
     );
