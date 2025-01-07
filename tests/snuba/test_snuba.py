@@ -38,7 +38,7 @@ class SnubaTest(TestCase, SnubaTestCase):
 
         now = datetime.now()
 
-        events = [
+        self.snuba_insert(
             (
                 2,
                 "insert",
@@ -54,9 +54,7 @@ class SnubaTest(TestCase, SnubaTestCase):
                 },
                 {},
             )
-        ]
-
-        self.snuba_insert(events)
+        )
         assert snuba.query(
             start=now - timedelta(days=1),
             end=now + timedelta(days=1),
