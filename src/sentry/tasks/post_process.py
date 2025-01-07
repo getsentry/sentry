@@ -20,6 +20,7 @@ from sentry.features.rollout import in_rollout_group
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.killswitches import killswitch_matches_context
+from sentry.models.groupinbox import InboxReasonDetails
 from sentry.replays.lib.event_linking import transform_event_for_linking_payload
 from sentry.replays.lib.kafka import initialize_replays_publisher
 from sentry.sentry_metrics.client import generic_metrics_backend
@@ -913,7 +914,7 @@ def process_snoozes(job: PostProcessJob) -> None:
         )
 
         if not snooze_condition_still_applies:
-            snooze_details = {
+            snooze_details: InboxReasonDetails = {
                 "until": snooze.until,
                 "count": snooze.count,
                 "window": snooze.window,
