@@ -14,6 +14,7 @@ __all__ = [
     "DetectorWorkflow",
     "Workflow",
     "WorkflowDataConditionGroup",
+    "WorkflowGroupStatus",
 ]
 
 from .action import Action
@@ -30,3 +31,4 @@ from .detector_state import DetectorState
 from .detector_workflow import DetectorWorkflow
 from .workflow import Workflow
 from .workflow_data_condition_group import WorkflowDataConditionGroup
+from .workflow_group_status import WorkflowGroupStatus

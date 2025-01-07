@@ -1,5 +1,5 @@
 ---
-created: '2024-12-18T23:54:45.830268+00:00'
+created: '2025-01-07T23:27:23.102868+00:00'
 creator: sentry
 source: tests/sentry/backup/test_comparators.py
 ---
@@ -1798,3 +1798,9 @@ source: tests/sentry/backup/test_comparators.py
     - condition_group
     - workflow
   model_name: workflow_engine.workflowdataconditiongroup
+- comparators:
+  - class: ForeignKeyComparator
+    fields:
+    - group
+    - workflow
+  model_name: workflow_engine.workflowgroupstatus
