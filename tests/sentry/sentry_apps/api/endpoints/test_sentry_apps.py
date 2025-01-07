@@ -402,17 +402,18 @@ class SuperuserStaffPostSentryAppsTest(SentryAppsTest):
     def test_staff_cannot_create_app(self):
         """We do not allow staff to create Sentry Apps b/c this cannot be done in _admin."""
         self.login_as(self.staff_user, staff=True)
-        response = self.get_error_response(**self.get_data(), status_code=404)
-        assert response.data["detail"] == "Not found."
+        response = self.get_error_response(**self.get_data(), status_code=400)
+        assert (
+            response.data["detail"]
+            == "User must be a part of the Org they're trying to create the app in"
+        )
 
     def test_superuser_cannot_create_app_in_nonexistent_organization(self):
         sentry_app = self.create_internal_integration(name="Foo Bar")
 
         data = self.get_data(name=sentry_app.name, organization="some-non-existent-org")
         response = self.get_error_response(**data, status_code=400)
-        assert response.data == {
-            "organization": "Organization 'some-non-existent-org' does not exist.",
-        }
+        assert response.data == {"detail": "Organization 'some-non-existent-org' does not exist."}
 
     def test_superuser_can_create_with_popularity(self):
         response = self.get_success_response(
@@ -544,7 +545,7 @@ class PostSentryAppsTest(SentryAppsTest):
         data = self.get_data(name=sentry_app.name, organization=None)
         response = self.get_error_response(**data, status_code=400)
         assert response.data == {
-            "organization": "Please provide a valid value for the 'organization' field.",
+            "detail": "Please provide a valid value for the 'organization' field.",
         }
 
     def test_cannot_create_app_in_alien_organization(self):
@@ -553,7 +554,7 @@ class PostSentryAppsTest(SentryAppsTest):
         sentry_app = self.create_internal_integration(name="Foo Bar")
 
         data = self.get_data(name=sentry_app.name, organization=other_organization.slug)
-        response = self.get_error_response(**data, status_code=403)
+        response = self.get_error_response(**data, status_code=400)
         assert response.data["detail"].startswith("User does not belong to")
 
     def test_user_cannot_create_app_in_nonexistent_organization(self):
@@ -561,7 +562,7 @@ class PostSentryAppsTest(SentryAppsTest):
         sentry_app = self.create_internal_integration(name="Foo Bar")
 
         data = self.get_data(name=sentry_app.name, organization="some-non-existent-org")
-        response = self.get_error_response(**data, status_code=403)
+        response = self.get_error_response(**data, status_code=400)
         assert response.data["detail"].startswith("User does not belong to")
 
     def test_nonsuperuser_cannot_create_with_popularity(self):
