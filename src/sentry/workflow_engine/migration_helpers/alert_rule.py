@@ -178,12 +178,15 @@ def dual_delete_migrated_alert_rule(
         alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=alert_rule)
         alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=alert_rule)
     except AlertRuleDetector.DoesNotExist:
-        logger.exception(
+        # NOTE: making this an info log because we run the dual delete even if the user
+        # isn't flagged into dual write
+        logger.info(
             "AlertRuleDetector does not exist",
             extra={"alert_rule_id": AlertRule.id},
         )
+        return
     except AlertRuleWorkflow.DoesNotExist:
-        logger.exception(
+        logger.info(
             "AlertRuleWorkflow does not exist",
             extra={"alert_rule_id": AlertRule.id},
         )
