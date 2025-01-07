@@ -95,6 +95,7 @@ export default function OrganizationGeneralSettings({}: RouteComponentProps<{}, 
 
     addLoadingMessage();
     removeAndRedirectToRemainingOrganization(api, {
+      navigate,
       orgId: organization.slug,
       successMessage: `${organization.name} is queued for deletion.`,
       errorMessage: `Error removing the ${organization.name} organization`,

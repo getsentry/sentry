@@ -108,7 +108,6 @@ function RelatedIssues({rule, organization, projects, query, timePeriod}: Props)
           orgSlug={organization.slug}
           endpointPath={path}
           queryParams={queryParams}
-          query={`start=${start}&end=${end}&groupStatsPeriod=auto`}
           canSelectGroups={false}
           renderEmptyMessage={renderEmptyMessage}
           renderErrorMessage={renderErrorMessage}

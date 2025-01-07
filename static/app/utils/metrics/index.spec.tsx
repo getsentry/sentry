@@ -72,7 +72,7 @@ describe('getFormattedMQL', () => {
       query: 'result:success',
     });
 
-    expect(result).toEqual(
+    expect(result).toBe(
       'avg(sentry.process_profile.symbolicate.process){result:success} by result'
     );
   });
@@ -85,7 +85,7 @@ describe('getFormattedMQL', () => {
       query: '',
     });
 
-    expect(result).toEqual('');
+    expect(result).toBe('');
   });
 });
 

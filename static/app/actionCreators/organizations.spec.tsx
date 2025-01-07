@@ -2,7 +2,6 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import ConfigStore from 'sentry/stores/configStore';
-import {browserHistory} from 'sentry/utils/browserHistory';
 
 describe('fetchOrganizations', function () {
   const api = new MockApiClient();
@@ -76,6 +75,5 @@ describe('fetchOrganizations', function () {
     expect(usMock).toHaveBeenCalledTimes(1);
     expect(deMock).toHaveBeenCalledTimes(1);
     expect(window.location.reload).not.toHaveBeenCalled();
-    expect(browserHistory.replace).not.toHaveBeenCalled();
   });
 });

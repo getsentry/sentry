@@ -145,17 +145,17 @@ describe('SentryAppRuleModal', function () {
       const descriptionInput = screen.getByTestId('description');
       await userEvent.type(descriptionInput, 'some description');
 
-      const channelInput = screen.getAllByText('Type to search')[0];
+      const channelInput = screen.getAllByText('Type to search')[0]!;
       await userEvent.type(channelInput, '{keyDown}');
       await userEvent.click(screen.getByText('valor'));
 
       // Ensure text fields are persisted on edit
       const savedExtraDetailsInput = screen.getByDisplayValue(
-        resetValues.settings[0].value
+        resetValues.settings[0]!.value
       );
       expect(savedExtraDetailsInput).toBeInTheDocument();
       // Ensure select fields are persisted with labels on edit
-      const savedAssigneeInput = screen.getByText(resetValues.settings[1].label!);
+      const savedAssigneeInput = screen.getByText(resetValues.settings[1]!.label!);
       expect(savedAssigneeInput).toBeInTheDocument();
 
       // Ensure async select fields filter correctly
@@ -169,10 +169,10 @@ describe('SentryAppRuleModal', function () {
       });
       const workspaceInput = screen.getByText('Type to search');
       // Search by value
-      await userEvent.type(workspaceInput, workspaceChoices[1][0]);
+      await userEvent.type(workspaceInput, workspaceChoices[1]![0]!);
       await waitFor(() => expect(workspaceResponse).toHaveBeenCalled());
       // Select by label
-      await userEvent.click(screen.getByText(workspaceChoices[1][1]));
+      await userEvent.click(screen.getByText(workspaceChoices[1]![1]!));
 
       await submitSuccess();
     });

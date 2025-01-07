@@ -20,7 +20,7 @@ describe('InactivePlugins', function () {
     const enableFn = jest.fn();
     const plugins = PluginsFixture();
     render(<InactivePlugins onEnablePlugin={enableFn} plugins={plugins} />);
-    await userEvent.click(screen.getByRole('button', {name: plugins[0].name}));
+    await userEvent.click(screen.getByRole('button', {name: plugins[0]!.name}));
     expect(enableFn).toHaveBeenCalledWith(expect.objectContaining(plugins[0]));
   });
 });

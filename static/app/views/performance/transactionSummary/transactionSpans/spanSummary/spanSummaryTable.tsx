@@ -14,7 +14,6 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView, {type MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {ColumnType} from 'sentry/utils/discover/fields';
@@ -101,7 +100,7 @@ export default function SpanSummaryTable(props: Props) {
   const organization = useOrganization();
   const {spanSlug} = useParams();
   const navigate = useNavigate();
-  const [spanOp, groupId] = spanSlug.split(':');
+  const [spanOp, groupId] = spanSlug!.split(':');
 
   const location = useLocation();
   const {transaction} = location.query;
@@ -194,13 +193,13 @@ export default function SpanSummaryTable(props: Props) {
       const transactionId = row[SpanIndexedField.TRANSACTION_ID];
       const newRow = {
         ...row,
-        'transaction.duration': transactionDurationMap[transactionId],
+        'transaction.duration': transactionDurationMap[transactionId]!,
       };
       return newRow;
     }) ?? [];
 
   const handleCursor: CursorHandler = (cursor, pathname, query) => {
-    browserHistory.push({
+    navigate({
       pathname,
       query: {...query, [QueryParameterNames.SPANS_CURSOR]: cursor},
     });
@@ -252,6 +251,9 @@ export default function SpanSummaryTable(props: Props) {
                 location,
                 sort,
               }),
+            // This is now caught by noUncheckedIndexedAccess, ignoring for now as
+            // it seems related to some nasty grid editable generic.
+            // @ts-ignore
             renderBodyCell: renderBodyCell(
               location,
               organization,

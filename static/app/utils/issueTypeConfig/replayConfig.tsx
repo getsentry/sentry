@@ -18,6 +18,7 @@ const replayConfig: IssueCategoryConfigMapping = {
         disabledReason: t('Not supported for replay issues'),
       },
       ignore: {enabled: true},
+      resolve: {enabled: true},
       resolveInRelease: {enabled: true},
       share: {enabled: true},
     },

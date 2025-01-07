@@ -15,9 +15,7 @@ class ProjectManagementActionType(StrEnum):
     OUTBOUND_STATUS_SYNC = "outbound_status_sync"
     INBOUND_STATUS_SYNC = "inbound_status_sync"
     LINK_EXTERNAL_ISSUE = "link_external_issue"
-
-    def __str__(self):
-        return self.value.lower()
+    CREATE_EXTERNAL_ISSUE_VIA_ISSUE_DETAIL = "create_external_issue_via_issue_detail"
 
 
 class ProjectManagementHaltReason(StrEnum):

@@ -7,10 +7,10 @@ import ModalStore from 'sentry/stores/modalStore';
 import PermissionSelection from 'sentry/views/settings/organizationDeveloperSettings/permissionSelection';
 
 describe('PermissionSelection', () => {
-  let onChange;
-  let model;
+  let onChange: jest.Mock;
+  let model: FormModel;
 
-  beforeEach(() => {
+  function renderForm() {
     model = new FormModel();
     onChange = jest.fn();
     render(
@@ -30,9 +30,10 @@ describe('PermissionSelection', () => {
       </Form>
     );
     ModalStore.reset();
-  });
+  }
 
   it('renders a row for each resource', () => {
+    renderForm();
     expect(screen.getByRole('textbox', {name: 'Project'})).toBeInTheDocument();
     expect(screen.getByRole('textbox', {name: 'Team'})).toBeInTheDocument();
     expect(screen.getByRole('textbox', {name: 'Release'})).toBeInTheDocument();
@@ -42,7 +43,8 @@ describe('PermissionSelection', () => {
   });
 
   it('lists human readable permissions', async () => {
-    const expectOptions = async (name, options) => {
+    renderForm();
+    const expectOptions = async (name: string, options: string[]) => {
       for (const option of options) {
         await selectEvent.select(screen.getByRole('textbox', {name}), option);
       }
@@ -57,7 +59,8 @@ describe('PermissionSelection', () => {
   });
 
   it('stores the permissions the User has selected', async () => {
-    const selectByValue = (name, value) =>
+    renderForm();
+    const selectByValue = (name: string, value: string) =>
       selectEvent.select(screen.getByRole('textbox', {name}), value);
 
     await selectByValue('Project', 'Read & Write');
@@ -67,11 +70,11 @@ describe('PermissionSelection', () => {
     await selectByValue('Organization', 'Read');
     await selectByValue('Member', 'No Access');
 
-    expect(model.getValue('Project--permission')).toEqual('write');
-    expect(model.getValue('Team--permission')).toEqual('read');
-    expect(model.getValue('Release--permission')).toEqual('admin');
-    expect(model.getValue('Event--permission')).toEqual('admin');
-    expect(model.getValue('Organization--permission')).toEqual('read');
-    expect(model.getValue('Member--permission')).toEqual('no-access');
+    expect(model.getValue('Project--permission')).toBe('write');
+    expect(model.getValue('Team--permission')).toBe('read');
+    expect(model.getValue('Release--permission')).toBe('admin');
+    expect(model.getValue('Event--permission')).toBe('admin');
+    expect(model.getValue('Organization--permission')).toBe('read');
+    expect(model.getValue('Member--permission')).toBe('no-access');
   });
 });

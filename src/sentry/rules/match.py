@@ -1,8 +1,9 @@
 from collections.abc import Iterable
+from enum import StrEnum
 from typing import Any
 
 
-class MatchType:
+class MatchType(StrEnum):
     CONTAINS = "co"
     ENDS_WITH = "ew"
     EQUAL = "eq"

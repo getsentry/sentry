@@ -127,9 +127,9 @@ describe('searchSyntax/parser', function () {
     const barTag = result[7] as TokenResult<Token.FILTER>;
 
     expect(foo.warning).toBe('foo warning');
-    expect(bar.warning).toBe(null);
+    expect(bar.warning).toBeNull();
     expect(fooTag.warning).toBe('foo warning');
-    expect(barTag.warning).toBe(null);
+    expect(barTag.warning).toBeNull();
   });
 
   it('applies disallowFreeText', () => {
@@ -149,7 +149,7 @@ describe('searchSyntax/parser', function () {
     const foo = result[1] as TokenResult<Token.FILTER>;
     const test = result[3] as TokenResult<Token.FREE_TEXT>;
 
-    expect(foo.invalid).toBe(null);
+    expect(foo.invalid).toBeNull();
     expect(test.invalid).toEqual({
       type: InvalidReason.FREE_TEXT_NOT_ALLOWED,
       reason: 'Custom message',
@@ -174,12 +174,12 @@ describe('searchSyntax/parser', function () {
     const or = result[3] as TokenResult<Token.LOGIC_BOOLEAN>;
     const and = result[5] as TokenResult<Token.LOGIC_BOOLEAN>;
 
-    expect(foo.invalid).toBe(null);
+    expect(foo.invalid).toBeNull();
     expect(or.invalid).toEqual({
       type: InvalidReason.LOGICAL_OR_NOT_ALLOWED,
       reason: 'Custom message',
     });
-    expect(and.invalid).toBe(null);
+    expect(and.invalid).toBeNull();
   });
 
   it('applies disallowLogicalOperators (AND)', () => {
@@ -200,8 +200,8 @@ describe('searchSyntax/parser', function () {
     const or = result[3] as TokenResult<Token.LOGIC_BOOLEAN>;
     const and = result[5] as TokenResult<Token.LOGIC_BOOLEAN>;
 
-    expect(foo.invalid).toBe(null);
-    expect(or.invalid).toBe(null);
+    expect(foo.invalid).toBeNull();
+    expect(or.invalid).toBeNull();
     expect(and.invalid).toEqual({
       type: InvalidReason.LOGICAL_AND_NOT_ALLOWED,
       reason: 'Custom message',
@@ -224,7 +224,7 @@ describe('searchSyntax/parser', function () {
 
     const foo = result[1] as TokenResult<Token.FILTER>;
 
-    expect(foo.negated).toEqual(true);
+    expect(foo.negated).toBe(true);
     expect(foo.invalid).toEqual({
       type: InvalidReason.NEGATION_NOT_ALLOWED,
       reason: 'Custom message',

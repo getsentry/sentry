@@ -246,7 +246,7 @@ export function ExploreCharts({query, setConfidence, setError}: ExploreChartsPro
   const handleChartTypeChange = useCallback(
     (chartType: ChartType, index: number) => {
       const newVisualizes = visualizes.slice();
-      newVisualizes[index] = {...newVisualizes[index], chartType};
+      newVisualizes[index] = {...newVisualizes[index]!, chartType};
       setVisualizes(newVisualizes);
     },
     [visualizes, setVisualizes]
@@ -334,10 +334,14 @@ export function ExploreCharts({query, setConfidence, setError}: ExploreChartsPro
                 grid={{
                   left: '0',
                   right: '0',
-                  top: '8px',
+                  top: '32px', // make room to fit the legend above the chart
                   bottom: '0',
                 }}
                 legendFormatter={value => formatVersion(value)}
+                legendOptions={{
+                  itemGap: 24,
+                  top: '4px',
+                }}
                 data={data}
                 error={error}
                 loading={loading}
@@ -368,7 +372,7 @@ export function ExploreCharts({query, setConfidence, setError}: ExploreChartsPro
                             insufficientSamples: (
                               <Tooltip
                                 title={t(
-                                  'Boost accuracy by shortening the date range, increasing the time interval or removing extra filters.'
+                                  'Shortening the date range, increasing the time interval or removing extra filters may improve accuracy.'
                                 )}
                               >
                                 <InsufficientSamples>

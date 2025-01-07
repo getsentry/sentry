@@ -5,7 +5,6 @@ import omit from 'lodash/omit';
 
 import type {DropdownOption} from 'sentry/components/discover/transactionsList';
 import TransactionsList from 'sentry/components/discover/transactionsList';
-import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -13,9 +12,7 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import {SuspectFunctionsTable} from 'sentry/components/profiling/suspectFunctions/suspectFunctionsTable';
-import type {ActionBarItem} from 'sentry/components/smartSearchBar';
 import {Tooltip} from 'sentry/components/tooltip';
-import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -23,7 +20,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined, generateQueryWithTag} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
 import {
   formatTagKey,
@@ -32,10 +28,10 @@ import {
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
 import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
-import type {MetricsEnhancedPerformanceDataContext} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {useMEPDataContext} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {decodeScalar} from 'sentry/utils/queryString';
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import withProjects from 'sentry/utils/withProjects';
 import type {Actions} from 'sentry/views/discover/table/cellAction';
@@ -103,6 +99,7 @@ function SummaryContent({
   onChangeFilter,
 }: Props) {
   const routes = useRoutes();
+  const navigate = useNavigate();
   const mepDataContext = useMEPDataContext();
   const domainViewFilters = useDomainViewFilters();
 
@@ -116,12 +113,12 @@ function SummaryContent({
       // do not propagate pagination when making a new search
       const searchQueryParams = omit(queryParams, 'cursor');
 
-      browserHistory.push({
+      navigate({
         pathname: location.pathname,
         query: searchQueryParams,
       });
     },
-    [location]
+    [location, navigate]
   );
 
   function generateTagUrl(key: string, value: string) {
@@ -139,7 +136,7 @@ function SummaryContent({
 
       updateQuery(searchConditions, action, column, value);
 
-      browserHistory.push({
+      navigate({
         pathname: location.pathname,
         query: {
           ...location.query,
@@ -156,7 +153,7 @@ function SummaryContent({
       query: {...location.query, showTransactions: value, transactionCursor: undefined},
     };
 
-    browserHistory.push(target);
+    navigate(target);
   }
 
   function handleAllEventsViewClick() {
@@ -189,29 +186,6 @@ function SummaryContent({
     return sortedEventView;
   }
 
-  function generateActionBarItems(
-    _org: Organization,
-    _location: Location,
-    _mepDataContext: MetricsEnhancedPerformanceDataContext
-  ) {
-    let items: ActionBarItem[] | undefined = undefined;
-    if (!canUseTransactionMetricsData(_org, _mepDataContext)) {
-      items = [
-        {
-          key: 'alert',
-          makeAction: () => ({
-            Button: () => <MetricsWarningIcon />,
-            menuItem: {
-              key: 'alert',
-            },
-          }),
-        },
-      ];
-    }
-
-    return items;
-  }
-
   const trailingItems = useMemo(() => {
     if (!canUseTransactionMetricsData(organization, mepDataContext)) {
       return <MetricsWarningIcon />;
@@ -228,7 +202,7 @@ function SummaryContent({
     return decodeScalar(location.query.query, '');
   }, [location]);
 
-  const totalCount = totalValues === null ? null : totalValues['count()'];
+  const totalCount = totalValues === null ? null : totalValues['count()']!;
 
   // NOTE: This is not a robust check for whether or not a transaction is a front end
   // transaction, however it will suffice for now.
@@ -352,30 +326,15 @@ function SummaryContent({
   const projectIds = useMemo(() => eventView.project.slice(), [eventView.project]);
 
   function renderSearchBar() {
-    if (organization.features.includes('search-query-builder-performance')) {
-      return (
-        <TransactionSearchQueryBuilder
-          projects={projectIds}
-          initialQuery={query}
-          onSearch={handleSearch}
-          searchSource="transaction_summary"
-          disableLoadingTags // already loaded by the parent component
-          filterKeyMenuWidth={420}
-          trailingItems={trailingItems}
-        />
-      );
-    }
-
     return (
-      <SearchBar
-        searchSource="transaction_summary"
-        organization={organization}
-        projectIds={eventView.project}
-        query={query}
-        fields={eventView.fields}
+      <TransactionSearchQueryBuilder
+        projects={projectIds}
+        initialQuery={query}
         onSearch={handleSearch}
-        maxQueryLength={MAX_QUERY_LENGTH}
-        actionBarItems={generateActionBarItems(organization, location, mepDataContext)}
+        searchSource="transaction_summary"
+        disableLoadingTags // already loaded by the parent component
+        filterKeyMenuWidth={420}
+        trailingItems={trailingItems}
       />
     );
   }
@@ -589,7 +548,7 @@ function getTransactionsListSort(
     location.query.showTransactions,
     TransactionFilterOptions.SLOW
   );
-  const selectedSort = sortOptions.find(opt => opt.value === urlParam) || sortOptions[0];
+  const selectedSort = sortOptions.find(opt => opt.value === urlParam) || sortOptions[0]!;
   return {selected: selectedSort, options: sortOptions};
 }
 

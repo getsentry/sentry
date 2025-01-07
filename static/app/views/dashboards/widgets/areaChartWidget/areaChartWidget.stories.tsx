@@ -11,6 +11,7 @@ import type {DateString} from 'sentry/types/core';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 import type {Release, TimeseriesData} from '../common/types';
+import {shiftTimeserieToNow} from '../timeSeriesWidget/shiftTimeserieToNow';
 
 import {AreaChartWidget} from './areaChartWidget';
 import sampleLatencyTimeSeries from './sampleLatencyTimeSeries.json';
@@ -66,18 +67,28 @@ export default storyBook(AreaChartWidget, story => {
             title="Duration Breakdown"
             description="Explains what proportion of total duration is taken up by latency vs. span duration"
             timeseries={[latencyTimeSeries, spanDurationTimeSeries]}
-            meta={{
-              fields: {
-                'avg(latency)': 'duration',
-                'avg(span.duration)': 'duration',
-              },
-              units: {
-                'avg(latency)': 'millisecond',
-                'avg(span.duration)': 'millisecond',
-              },
-            }}
           />
         </SmallSizingWindow>
+
+        <p>
+          The <code>dataCompletenessDelay</code> prop indicates that this data is live,
+          and the last few buckets might not have complete data. The delay is a number in
+          seconds. Any data bucket that happens in that delay window will be plotted with
+          a fainter fill. By default the delay is <code>0</code>.
+        </p>
+
+        <SideBySide>
+          <MediumWidget>
+            <AreaChartWidget
+              title="span.duration"
+              dataCompletenessDelay={60 * 60 * 3}
+              timeseries={[
+                shiftTimeserieToNow(latencyTimeSeries),
+                shiftTimeserieToNow(spanDurationTimeSeries),
+              ]}
+            />
+          </MediumWidget>
+        </SideBySide>
       </Fragment>
     );
   });
@@ -135,16 +146,6 @@ export default storyBook(AreaChartWidget, story => {
 
               {...sampleSpanDurationTimeSeries, color: theme.warning},
             ]}
-            meta={{
-              fields: {
-                'avg(latency)': 'duration',
-                'avg(span.duration)': 'duration',
-              },
-              units: {
-                'avg(latency)': 'millisecond',
-                'avg(span.duration)': 'millisecond',
-              },
-            }}
           />
         </MediumWidget>
       </Fragment>
@@ -175,16 +176,6 @@ export default storyBook(AreaChartWidget, story => {
           <AreaChartWidget
             title="error_rate()"
             timeseries={[sampleLatencyTimeSeries, sampleSpanDurationTimeSeries]}
-            meta={{
-              fields: {
-                'avg(latency)': 'duration',
-                'avg(span.duration)': 'duration',
-              },
-              units: {
-                'avg(latency)': 'millisecond',
-                'avg(span.duration)': 'millisecond',
-              },
-            }}
             releases={releases}
           />
         </MediumWidget>

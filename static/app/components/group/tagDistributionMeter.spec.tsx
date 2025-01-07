@@ -35,8 +35,8 @@ describe('TagDistributionMeter', function () {
         group={GroupFixture({id: '1337'})}
         organization={organization}
         projectId="456"
-        totalValues={tags[0].totalValues}
-        topValues={tags[0].topValues}
+        totalValues={tags[0]!.totalValues}
+        topValues={tags[0]!.topValues}
       />
     );
     expect(

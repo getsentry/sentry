@@ -32,6 +32,7 @@ class TestDetectorSerializer(TestCase):
             "dateUpdated": detector.date_updated,
             "dataSources": None,
             "conditionGroup": None,
+            "config": {},
         }
 
     def test_serialize_full(self):
@@ -114,6 +115,7 @@ class TestDetectorSerializer(TestCase):
                     }
                 ],
             },
+            "config": {},
         }
 
     def test_serialize_bulk(self):

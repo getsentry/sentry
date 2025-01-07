@@ -127,7 +127,7 @@ function NotificationActionManager({
         const integrationId = service.action.integrationId;
         if (integrationId) {
           if (integrationId in integrations) {
-            integrations[integrationId].push(service);
+            integrations[integrationId]!.push(service);
           } else {
             integrations[integrationId] = [service];
           }
@@ -143,7 +143,7 @@ function NotificationActionManager({
         const integrationId = team.action.integrationId;
         if (integrationId) {
           if (integrationId in integrations) {
-            integrations[integrationId].push(team);
+            integrations[integrationId]!.push(team);
           } else {
             integrations[integrationId] = [team];
           }
@@ -207,7 +207,7 @@ function NotificationActionManager({
         label,
         onAction: () => {
           // Add notification action
-          const updatedActions = [...notificationActions, validActions[0].action];
+          const updatedActions = [...notificationActions, validActions[0]!.action];
           setNotificationActions(updatedActions);
         },
       });
