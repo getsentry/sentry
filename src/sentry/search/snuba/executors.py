@@ -116,15 +116,6 @@ ENTITY_GROUP_ATTRIBUTES = "group_attributes"
 ENTITY_SEARCH_ISSUES = "search_issues"
 
 
-def map_field_name_from_format_search_filter(field: str) -> str:
-    """
-    Maps the field name we get from the format_search_filter to the field used in Suba
-    """
-    if field == "date":
-        return "timestamp"
-    return field
-
-
 @dataclass
 class TrendsParams:
     # (event or issue age_hours) / (event or issue halflife hours)
@@ -195,8 +186,6 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
     It's used to keep the query logic out of the actual search backend,
     which can now just build query parameters and use the appropriate query executor to run the query
     """
-
-    TABLE_ALIAS = ""
 
     @property
     @abstractmethod
