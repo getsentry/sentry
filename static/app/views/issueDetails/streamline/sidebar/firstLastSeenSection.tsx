@@ -40,7 +40,7 @@ export default function FirstLastSeenSection({group}: {group: Group}) {
           <Title>
             {issueTypeConfig.lastSeen.prefix}
             {issueTypeConfig.lastSeen.showStatus &&
-              (group.status === GroupStatus.RESOLVED ? t('resolved') : t('ongoing'))}
+              (group.status === GroupStatus.RESOLVED ? t(' resolved') : t(' ongoing'))}
           </Title>
           {issueTypeConfig.lastSeen.showDate &&
             (group.lastSeen ? (

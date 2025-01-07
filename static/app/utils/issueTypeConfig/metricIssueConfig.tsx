@@ -18,7 +18,7 @@ const metricIssueConfig: IssueCategoryConfigMapping = {
       firstSeen: t('Started'),
     },
     lastSeen: {
-      prefix: t('Open period '),
+      prefix: t('Open period'),
       showDate: false,
       showStatus: true,
     },

@@ -66,7 +66,7 @@ describe('SolutionsSection', () => {
         firstSeen: 'First seen',
       },
       lastSeen: {
-        prefix: 'Last seen ',
+        prefix: 'Last seen',
         showDate: true,
         showStatus: false,
       },
