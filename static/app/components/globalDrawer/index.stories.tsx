@@ -15,7 +15,8 @@ export default storyBook('GlobalDrawer', story => {
       </CodeSnippet>
       <p>
         By default the drawer can be closed with an 'escape' press, or an outside click.
-        This behavior can be changed by passing in options to <code>openDrawer</code>.
+        It also closes by default on location change. This behavior can be changed by
+        passing in options to <code>openDrawer</code>.
       </p>
     </Fragment>
   ));
@@ -49,6 +50,7 @@ export default storyBook('GlobalDrawer', story => {
   ariaLabel: 'test drawer',
   closeOnEscapeKeypress: false, // defaults to true
   closeOnOutsideClick: false, // defaults to true
+  shouldCloseOnLocationChange: (newLocation) => !newLocation.pathname.includes('tags'),
 })}>
   Open Drawer
 </Button>`}
