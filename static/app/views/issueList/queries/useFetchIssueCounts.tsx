@@ -21,9 +21,7 @@ export const makeFetchIssueCounts = ({
 }: FetchIssueCountsParameters): ApiQueryKey => [
   `/organizations/${orgSlug}/issues-count/`,
   {
-    query: {
-      ...requestParams,
-    },
+    query: requestParams,
   },
 ];
 
