@@ -60,6 +60,7 @@ function Visualize() {
   const isChartWidget =
     state.displayType !== DisplayType.TABLE &&
     state.displayType !== DisplayType.BIG_NUMBER;
+  const isBigNumberWidget = state.displayType === DisplayType.BIG_NUMBER;
   const numericSpanTags = useSpanTags('number');
   const stringSpanTags = useSpanTags('string');
 
@@ -197,9 +198,10 @@ function Visualize() {
             value: option.value.meta.name,
             label: option.value.meta.name,
           }));
-          aggregateOptions = isChartWidget
-            ? aggregateOptions
-            : [NONE_AGGREGATE, ...aggregateOptions];
+          aggregateOptions =
+            isChartWidget || isBigNumberWidget
+              ? aggregateOptions
+              : [NONE_AGGREGATE, ...aggregateOptions];
 
           let matchingAggregate;
           if (
@@ -258,16 +260,18 @@ function Visualize() {
                             : field.field
                         }
                         onChange={newField => {
+                          const newFields = cloneDeep(fields);
+                          const currentField = newFields[index]!;
                           // Update the current field's aggregate with the new aggregate
-                          if (field.kind === FieldValueKind.FUNCTION) {
-                            field.function[1] = newField.value as string;
+                          if (currentField.kind === FieldValueKind.FUNCTION) {
+                            currentField.function[1] = newField.value as string;
                           }
-                          if (field.kind === FieldValueKind.FIELD) {
-                            field.field = newField.value as string;
+                          if (currentField.kind === FieldValueKind.FIELD) {
+                            currentField.field = newField.value as string;
                           }
                           dispatch({
                             type: updateAction,
-                            payload: fields,
+                            payload: newFields,
                           });
                         }}
                         triggerProps={{
@@ -427,8 +431,8 @@ function Visualize() {
                   </Fragment>
                 )}
               </FieldBar>
-              <FieldExtras isChartWidget={isChartWidget}>
-                {!isChartWidget && (
+              <FieldExtras isChartWidget={isChartWidget || isBigNumberWidget}>
+                {!isChartWidget && !isBigNumberWidget && (
                   <LegendAliasInput
                     type="text"
                     name="name"
@@ -470,7 +474,7 @@ function Visualize() {
           onClick={() =>
             dispatch({
               type: updateAction,
-              payload: [...(fields ?? []), datasetConfig.defaultField],
+              payload: [...(fields ?? []), cloneDeep(datasetConfig.defaultField)],
             })
           }
         >

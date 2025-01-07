@@ -36,7 +36,7 @@ const FLAG_OPTION_TO_IMPORT: Record<IntegrationOptions, FlagImports> = {
     integration: 'UnleashIntegration',
   },
   [IntegrationOptions.GENERIC]: {
-    module: 'featureflags',
+    module: 'feature_flags',
     integration: 'FeatureFlagsIntegration',
   },
 };

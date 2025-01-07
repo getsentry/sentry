@@ -13,10 +13,10 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {ReleasesSortOption} from 'sentry/constants/releases';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import ReleasesList from 'sentry/views/releases/list/';
 import {ReleasesDisplayOption} from 'sentry/views/releases/list/releasesDisplayOptions';
-import {ReleasesSortOption} from 'sentry/views/releases/list/releasesSortOptions';
 import {ReleasesStatusOption} from 'sentry/views/releases/list/releasesStatusOptions';
 
 describe('ReleasesList', () => {
@@ -120,7 +120,7 @@ describe('ReleasesList', () => {
     });
     const items = await screen.findAllByTestId('release-panel');
 
-    expect(items.length).toEqual(3);
+    expect(items).toHaveLength(3);
 
     expect(within(items.at(0)!).getByText('1.0.0')).toBeInTheDocument();
     expect(within(items.at(0)!).getByText('Adoption')).toBeInTheDocument();
@@ -582,7 +582,7 @@ describe('ReleasesList', () => {
     const hiddenProjectsMessage = await screen.findByTestId('hidden-projects');
     expect(hiddenProjectsMessage).toHaveTextContent('2 hidden projects');
 
-    expect(screen.getAllByTestId('release-card-project-row').length).toBe(1);
+    expect(screen.getAllByTestId('release-card-project-row')).toHaveLength(1);
 
     expect(screen.getByTestId('badge-display-name')).toHaveTextContent('test2');
   });
