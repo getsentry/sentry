@@ -376,15 +376,15 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert response.data["openPeriods"] == [
             {
-                "start": group.first_seen,
-                "end": resolved_time,
-                "duration": resolved_time - group.first_seen,
-                "isOpen": False,
-            },
-            {
                 "start": unresolved_time,
                 "end": second_resolved_time,
                 "duration": second_resolved_time - unresolved_time,
+                "isOpen": False,
+            },
+            {
+                "start": group.first_seen,
+                "end": resolved_time,
+                "duration": resolved_time - group.first_seen,
                 "isOpen": False,
             },
         ]
