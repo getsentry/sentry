@@ -451,7 +451,7 @@ class SnubaEventStorage(EventStorage):
             return Dataset.Discover
 
     def get_adjacent_event_ids_snql(
-        self, organization_id, project_id, group_id, environments, event
+        self, organization_id, project_id, group_id, environments, event, conditions
     ):
         """
         Utility function for grabbing an event's adjascent events,
@@ -464,9 +464,6 @@ class SnubaEventStorage(EventStorage):
         app_id = "eventstore"
         referrer = "eventstore.get_next_or_prev_event_id_snql"
         tenant_ids = {"organization_id": organization_id}
-        environment_conditions = []
-        if environments:
-            environment_conditions.append(Condition(Column("environment"), Op.IN, environments))
 
         def make_constant_conditions():
             environment_conditions = []
@@ -478,6 +475,7 @@ class SnubaEventStorage(EventStorage):
                 group_conditions.append(Condition(Column("group_id"), Op.EQ, group_id))
             project_conditions = [Condition(Column("project_id"), Op.EQ, project_id)]
             return [
+                *conditions,
                 *environment_conditions,
                 *group_conditions,
                 *project_conditions,
