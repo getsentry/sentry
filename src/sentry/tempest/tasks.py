@@ -2,6 +2,7 @@ import logging
 
 from sentry import http
 from sentry.models.projectkey import ProjectKey, UseCase
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.tempest.models import TempestCredentials
 from sentry.utils import json
@@ -16,6 +17,9 @@ logger = logging.getLogger(__name__)
 @instrumented_task(
     name="sentry.tempest.tasks.poll_tempest",
     queue="tempest",
+    silo_mode=SiloMode.REGION,
+    soft_time_limit=4 * 60,
+    time_limit=4 * 60 + 5,
 )
 def poll_tempest(**kwargs):
     # FIXME: Once we have more traffic this needs to be done smarter.
@@ -29,6 +33,9 @@ def poll_tempest(**kwargs):
 @instrumented_task(
     name="sentry.tempest.tasks.fetch_latest_item_id",
     queue="tempest",
+    silo_mode=SiloMode.REGION,
+    soft_time_limit=1 * 60,
+    time_limit=1 * 60 + 5,
 )
 def fetch_latest_item_id(credentials_id: int) -> None:
     # FIXME: Try catch this later
@@ -72,8 +79,11 @@ def fetch_latest_item_id(credentials_id: int) -> None:
 
 
 @instrumented_task(
-    name="sentry.tempest.tasks.poll_tempest",
+    name="sentry.tempest.tasks.poll_tempest_crashes",
     queue="tempest",
+    silo_mode=SiloMode.REGION,
+    soft_time_limit=4 * 60,
+    time_limit=4 * 60 + 5,
 )
 def poll_tempest_crashes(credentials_id: int) -> None:
     # FIXME: Try catch this later
@@ -83,16 +93,16 @@ def poll_tempest_crashes(credentials_id: int) -> None:
     client_id = credentials.client_id
 
     try:
-        response_text = fetch_crashes_from_tempest(
+        # This does generate a dsn not sure if it will work in the grand scheme of things though.
+        dsn = ProjectKey.objects.get_or_create(
+            use_case=UseCase.TEMPEST, project=credentials.project
+        )[0].get_dsn()
+        response_text = fetch_items_from_tempest(
             org_id=org_id,
             project_id=project_id,
             client_id=client_id,
             client_secret=credentials.client_secret,
-            dsn=ProjectKey.objects.get_or_create(
-                use_case=UseCase.TEMPEST, project=credentials.project
-            )[
-                0
-            ].get_dsn(),  # This does generate a dsn not sure if it will work in the grand scheme of things though.
+            dsn=dsn,
             offset=int(
                 credentials.latest_fetched_item_id
             ),  # Need to convert here because it is a char in the DB
@@ -146,7 +156,7 @@ def fetch_latest_id_from_tempest(
     return response.text
 
 
-def fetch_crashes_from_tempest(
+def fetch_items_from_tempest(
     org_id: int,
     project_id: int,
     client_id: str,

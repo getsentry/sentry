@@ -1,5 +1,6 @@
 from unittest.mock import patch
 
+from sentry.tempest.models import MessageType
 from sentry.tempest.tasks import fetch_latest_item_id, poll_tempest_crashes
 from sentry.testutils.cases import TestCase
 from sentry.utils import json
@@ -30,6 +31,7 @@ class TempestTasksTest(TestCase):
 
         self.credentials.refresh_from_db()
         assert self.credentials.message == "Seems like the provided credentials are invalid"
+        assert self.credentials.message_type == MessageType.ERROR
         assert self.credentials.latest_fetched_item_id is None
 
     @patch("sentry.tempest.tasks.fetch_latest_id_from_tempest")
@@ -40,6 +42,7 @@ class TempestTasksTest(TestCase):
 
         self.credentials.refresh_from_db()
         assert self.credentials.message == "Seems like our IP is not allow-listed"
+        assert self.credentials.message_type == MessageType.ERROR
         assert self.credentials.latest_fetched_item_id is None
 
     @patch("sentry.tempest.tasks.fetch_latest_id_from_tempest")
@@ -66,7 +69,7 @@ class TempestTasksTest(TestCase):
         mock_fetch.assert_called_once()
         assert "Fetching the latest item id failed." in cm.output[0]
 
-    @patch("sentry.tempest.tasks.fetch_crashes_from_tempest")
+    @patch("sentry.tempest.tasks.fetch_items_from_tempest")
     def test_poll_tempest_crashes_task(self, mock_fetch):
         mock_fetch.return_value = json.dumps({"latest_id": 20002})
 
@@ -80,7 +83,7 @@ class TempestTasksTest(TestCase):
         assert self.credentials.latest_fetched_item_id == "20002"
         mock_fetch.assert_called_once()
 
-    @patch("sentry.tempest.tasks.fetch_crashes_from_tempest")
+    @patch("sentry.tempest.tasks.fetch_items_from_tempest")
     def test_poll_tempest_crashes_invalid_json(self, mock_fetch):
         mock_fetch.return_value = "not valid json"
 
@@ -97,7 +100,7 @@ class TempestTasksTest(TestCase):
         mock_fetch.assert_called_once()
         assert "Fetching the crashes failed." in cm.output[0]
 
-    @patch("sentry.tempest.tasks.fetch_crashes_from_tempest")
+    @patch("sentry.tempest.tasks.fetch_items_from_tempest")
     def test_poll_tempest_crashes_error(self, mock_fetch):
         mock_fetch.side_effect = Exception("Connection error")
 
