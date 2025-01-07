@@ -333,7 +333,6 @@ describe('SentryAppRuleModal', function () {
       expect(screen.getByText('Medium')).toBeInTheDocument();
       expect(screen.getByText('High')).toBeInTheDocument();
     });
-
     it('should populate skip_load_on fields with the default value', async function () {
       const mockApi = MockApiClient.addMockResponse({
         url: `/sentry-app-installations/${sentryAppInstallation.uuid}/external-requests/`,
@@ -394,6 +393,168 @@ describe('SentryAppRuleModal', function () {
       expect(screen.getByText('Low')).toBeInTheDocument();
       expect(screen.queryByText('Medium')).not.toBeInTheDocument();
       expect(screen.queryByText('High')).not.toBeInTheDocument();
+    });
+    it('should populate dependent fields on load if the parent field is loaded with default value', async function () {
+      const mockApi = MockApiClient.addMockResponse({
+        url: `/sentry-app-installations/${sentryAppInstallation.uuid}/external-requests/`,
+        body: {
+          defaultValue: 'high',
+          choices: [
+            ['low', 'Low'],
+            ['medium', 'Medium'],
+            ['high', 'High'],
+          ],
+        },
+      });
+
+      const schema: SchemaFormConfig = {
+        uri: '/api/sentry/issue-link/create/',
+        required_fields: [
+          {
+            type: 'select',
+            label: 'Task Name',
+            name: 'title',
+            uri: '/api/sentry/options/create/',
+            choices: [
+              ['yay', 'YAY'],
+              ['pog', 'POG'],
+            ],
+          },
+        ],
+        optional_fields: [
+          {
+            type: 'select',
+            label: 'What is the estimated complexity?',
+            name: 'complexity',
+            depends_on: ['title'],
+            uri: '/api/sentry/options/complexity-options/',
+            choices: [],
+          },
+        ],
+      };
+      const defaultValues = {
+        settings: [
+          {
+            name: 'title',
+            value: 'yay',
+          },
+        ],
+      };
+
+      createWrapper({config: schema, resetValues: defaultValues});
+
+      // because we have a default value in title, we should immeadiatly fetch for complexity
+      await waitFor(() => expect(mockApi).toHaveBeenCalled());
+      expect(screen.getByText('High')).toBeInTheDocument();
+      expect(screen.getByText('YAY')).toBeInTheDocument();
+    });
+    it('should populate dependent fields with skip_load_on_open if the parent field is loaded with default value', async function () {
+      const mockApi = MockApiClient.addMockResponse({
+        url: `/sentry-app-installations/${sentryAppInstallation.uuid}/external-requests/`,
+        body: {
+          defaultValue: 'high',
+          choices: [
+            ['low', 'Low'],
+            ['medium', 'Medium'],
+            ['high', 'High'],
+          ],
+        },
+      });
+
+      const schema: SchemaFormConfig = {
+        uri: '/api/sentry/issue-link/create/',
+        required_fields: [
+          {
+            type: 'select',
+            label: 'Task Name',
+            name: 'title',
+            uri: '/api/sentry/options/create/',
+            choices: [
+              ['yay', 'YAY'],
+              ['pog', 'POG'],
+            ],
+          },
+        ],
+        optional_fields: [
+          {
+            type: 'select',
+            label: 'What is the estimated complexity?',
+            name: 'complexity',
+            skip_load_on_open: true,
+            depends_on: ['title'],
+            uri: '/api/sentry/options/complexity-options/',
+            choices: [],
+          },
+        ],
+      };
+      const defaultValues = {
+        settings: [
+          {
+            name: 'title',
+            value: 'yay',
+          },
+        ],
+      };
+
+      createWrapper({config: schema, resetValues: defaultValues});
+
+      // because we have a default value in title, we should immediately fetch for complexity
+      await waitFor(() => expect(mockApi).toHaveBeenCalled());
+      expect(screen.getByText('High')).toBeInTheDocument();
+      expect(screen.getByText('YAY')).toBeInTheDocument();
+    });
+    it('does not make external req for non skip on load fields that dont depend on another field', async function () {
+      const mockApi = MockApiClient.addMockResponse({
+        url: `/sentry-app-installations/${sentryAppInstallation.uuid}/external-requests/`,
+        body: {
+          defaultValue: 'high',
+          choices: [
+            ['low', 'Low'],
+            ['medium', 'Medium'],
+            ['high', 'High'],
+          ],
+        },
+      });
+
+      const schema: SchemaFormConfig = {
+        uri: '/api/sentry/issue-link/create/',
+        required_fields: [
+          {
+            type: 'select',
+            label: 'Task Name',
+            name: 'title',
+            uri: '/api/sentry/options/create/',
+            choices: [
+              ['yay', 'YAY'],
+              ['pog', 'POG'],
+            ],
+          },
+        ],
+        optional_fields: [
+          {
+            type: 'select',
+            label: 'What is the estimated complexity?',
+            name: 'complexity',
+            depends_on: [],
+            uri: '/api/sentry/options/complexity-options/',
+            choices: [],
+          },
+        ],
+      };
+      const defaultValues = {
+        settings: [
+          {
+            name: 'title',
+            value: 'yay',
+          },
+        ],
+      };
+
+      createWrapper({config: schema, resetValues: defaultValues});
+
+      // Because this is a skip_load_on_open: false field that means we have already made the api call to get options on the page load
+      await waitFor(() => expect(mockApi).not.toHaveBeenCalled());
+      expect(screen.getByText('YAY')).toBeInTheDocument();
     });
   });
 });
