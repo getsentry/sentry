@@ -396,7 +396,7 @@ export function Trace({
       </div>
       <div className="TraceDivider" ref={manager.registerDividerRef} />
       <div
-        className="TraceIndicatorContainer"
+        className="TraceIndicatorsContainer"
         ref={manager.registerIndicatorContainerRef}
       >
         {trace.indicators.length > 0
@@ -407,14 +407,21 @@ export function Trace({
                   : STATUS_TEXT[scoreToStatus(indicator.score)];
 
               return (
-                <div
-                  key={i}
-                  ref={r => manager.registerIndicatorRef(r, i, indicator)}
-                  className={`TraceIndicator ${indicator.poor ? 'Errored' : ''}`}
-                >
-                  <div className={`TraceIndicatorLabel ${status}`}>{indicator.label}</div>
-                  <div className={`TraceIndicatorLine ${status}`} />
-                </div>
+                <Fragment key={i}>
+                  <div
+                    key={i}
+                    ref={r => manager.registerIndicatorLabelRef(r, i, indicator)}
+                    className={`TraceIndicatorLabel ${status}`}
+                  >
+                    {indicator.label}
+                  </div>
+                  <div
+                    ref={r => manager.registerIndicatorRef(r, i, indicator)}
+                    className={`TraceIndicator ${indicator.poor ? 'Errored' : ''}`}
+                  >
+                    <div className={`TraceIndicatorLine ${status}`} />
+                  </div>
+                </Fragment>
               );
             })
           : null}
@@ -757,7 +764,6 @@ const TraceStylingWrapper = styled('div')`
       .TraceIndicatorLabel {
         top: 26px;
       }
-
       .TraceIndicatorLine {
         top: 30px;
       }
@@ -847,7 +853,7 @@ const TraceStylingWrapper = styled('div')`
     }
   }
 
-  .TraceIndicatorContainer {
+  .TraceIndicatorsContainer {
     overflow: hidden;
     width: 100%;
     height: 100%;
@@ -858,51 +864,63 @@ const TraceStylingWrapper = styled('div')`
     pointer-events: none;
   }
 
-  .TraceIndicator {
-    z-index: 1;
-    width: 3px;
-    height: 100%;
-    top: 0;
+  .TraceIndicatorLabel {
+    min-width: 34px;
+    text-align: center;
     position: absolute;
+    font-size: 10px;
+    font-weight: ${p => p.theme.fontWeightBold};
+    color: ${p => p.theme.textColor};
+    background-color: ${p => p.theme.background};
+    border-radius: ${p => p.theme.borderRadius};
+    border: 1px solid ${p => p.theme.border};
+    padding: 2px;
+    display: inline-block;
+    line-height: 1;
+    margin-top: 2px;
+    white-space: nowrap;
+    pointer-events: auto;
+
+    &:hover {
+      z-index: 10;
+      & + div {
+        z-index: 10;
+      }
+    }
+
+    &.Poor {
+      color: ${p => p.theme.red300};
+      border: 1px solid ${p => p.theme.red300};
+      background: ${p => p.theme.red100};
+    }
+
+    &.Meh {
+      color: ${p => p.theme.yellow400};
+      border: 1px solid ${p => p.theme.yellow300};
+      background: ${p => p.theme.yellow100};
+    }
+
+    &.Good {
+      color: ${p => p.theme.green300};
+      border: 1px solid ${p => p.theme.green300};
+      background: ${p => p.theme.green100};
+    }
+  }
+
+  .TraceIndicatorContainer {
+    position: absolute;
+    z-index: 1;
 
     &:hover {
       z-index: 10;
     }
+  }
 
-    .TraceIndicatorLabel {
-      min-width: 34px;
-      text-align: center;
-      position: absolute;
-      font-size: 10px;
-      font-weight: ${p => p.theme.fontWeightBold};
-      color: ${p => p.theme.textColor};
-      background-color: ${p => p.theme.background};
-      border-radius: ${p => p.theme.borderRadius};
-      border: 1px solid ${p => p.theme.border};
-      padding: 2px;
-      display: inline-block;
-      line-height: 1;
-      margin-top: 2px;
-      white-space: nowrap;
-
-      &.Poor {
-        color: ${p => p.theme.red300};
-        border: 1px solid ${p => p.theme.red300};
-        background: ${p => p.theme.red100};
-      }
-
-      &.Meh {
-        color: ${p => p.theme.yellow400};
-        border: 1px solid ${p => p.theme.yellow300};
-        background: ${p => p.theme.yellow100};
-      }
-
-      &.Good {
-        color: ${p => p.theme.green300};
-        border: 1px solid ${p => p.theme.green300};
-        background: ${p => p.theme.green100};
-      }
-    }
+  .TraceIndicator {
+    width: 3px;
+    height: 100%;
+    top: 0;
+    position: absolute;
 
     .TraceIndicatorLine {
       width: 1px;
