@@ -239,7 +239,7 @@ export function fetchTotalCount(
 type FetchEventAttachmentParameters = {
   eventId: string;
   orgSlug: string;
-  projectSlug: string;
+  projectSlug: string | undefined;
 };
 
 type FetchEventAttachmentResponse = IssueAttachment[];
@@ -264,7 +264,8 @@ export const useFetchEventAttachments = (
       ...options,
       enabled:
         (organization.features.includes('event-attachments') ?? false) &&
-        options.enabled !== false,
+        options.enabled !== false &&
+        params.projectSlug !== undefined,
     }
   );
 };
