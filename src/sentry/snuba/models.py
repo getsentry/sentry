@@ -22,17 +22,6 @@ if TYPE_CHECKING:
     from sentry.workflow_engine.models.data_source import DataSource
 
 
-class QueryAggregations(Enum):
-    TOTAL = 0
-    UNIQUE_USERS = 1
-
-
-query_aggregation_to_snuba = {
-    QueryAggregations.TOTAL: ("count()", "", "count"),
-    QueryAggregations.UNIQUE_USERS: ("uniq", "tags[sentry:user]", "unique_users"),
-}
-
-
 @region_silo_model
 class SnubaQuery(Model):
     __relocation_scope__ = RelocationScope.Organization

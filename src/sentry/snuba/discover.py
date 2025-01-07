@@ -20,7 +20,7 @@ from sentry.search.events.builder.discover import (
     TimeseriesQueryBuilder,
     TopEventsQueryBuilder,
 )
-from sentry.search.events.fields import FIELD_ALIASES, get_function_alias, is_function
+from sentry.search.events.fields import get_function_alias
 from sentry.search.events.types import (
     EventsResponse,
     HistogramParams,
@@ -65,7 +65,6 @@ DEFAULT_DATASET_REASON = "unchanged"
 
 logger = logging.getLogger(__name__)
 
-PreparedQuery = namedtuple("PreparedQuery", ["filter", "columns", "fields"])
 PaginationResult = namedtuple("PaginationResult", ["next", "previous", "oldest", "latest"])
 FacetResult = namedtuple("FacetResult", ["key", "value", "count"])
 HistogramResults = dict[str, list[dict[str, Any]]]
@@ -75,20 +74,6 @@ resolve_discover_column = resolve_column(Dataset.Discover)
 
 OTHER_KEY = "Other"
 TOP_KEYS_DEFAULT_LIMIT = 10
-
-
-def is_real_column(col):
-    """
-    Return true if col corresponds to an actual column to be fetched
-    (not an aggregate function or field alias)
-    """
-    if is_function(col):
-        return False
-
-    if col in FIELD_ALIASES:
-        return False
-
-    return True
 
 
 def format_time(
@@ -273,21 +258,6 @@ def query(
     )
     result["meta"]["tips"] = transform_tips(builder.tips)
     return result
-
-
-def _query_temp_do_not_use(
-    selected_columns: list[str],
-    query_string: str,
-    snuba_params: SnubaParams,
-    referrer: str | None = None,
-):
-    """There's a single function call in getsentry that we need to support as we remove params"""
-    return query(
-        selected_columns=selected_columns,
-        query=query_string,
-        snuba_params=snuba_params,
-        referrer=referrer,
-    )
 
 
 def timeseries_query(
@@ -1187,113 +1157,6 @@ def find_span_histogram_min_max(
     return min_value, max_value
 
 
-def find_span_op_count_histogram_min_max(
-    span_op: str,
-    min_value: float | None,
-    max_value: float | None,
-    user_query: str,
-    snuba_params: SnubaParams,
-    data_filter: Literal["exclude_outliers"] | None = None,
-) -> tuple[float | None, float | None]:
-    """
-    Find the min/max value of the specified span op count. If either min/max is already
-    specified, it will be used and not queried for.
-
-    :param span_op: A span op for which count you want to generate the histograms for.
-    :param min_value: The minimum value allowed to be in the histogram.
-        If left unspecified, it is queried using `user_query` and `params`.
-    :param max_value: The maximum value allowed to be in the histogram.
-        If left unspecified, it is queried using `user_query` and `params`.
-    :param user_query: Filter query string to create conditions from.
-    :param params: Filtering parameters with start, end, project_id, environment
-    :param data_filter: Indicate the filter strategy to be applied to the data.
-    """
-    if min_value is not None and max_value is not None:
-        return min_value, max_value
-
-    selected_columns = []
-    min_column = ""
-    max_column = ""
-    outlier_lower_fence = ""
-    outlier_upper_fence = ""
-    if min_value is None:
-        min_column = f'fn_span_count("{span_op}", min)'
-        selected_columns.append(min_column)
-    if max_value is None:
-        max_column = f'fn_span_count("{span_op}", max)'
-        selected_columns.append(max_column)
-    if data_filter == "exclude_outliers":
-        outlier_lower_fence = f'fn_span_count("{span_op}", quantile(0.25))'
-        outlier_upper_fence = f'fn_span_count("{span_op}", quantile(0.75))'
-        selected_columns.append(outlier_lower_fence)
-        selected_columns.append(outlier_upper_fence)
-
-    results = query(
-        selected_columns=selected_columns,
-        query=user_query,
-        snuba_params=snuba_params,
-        limit=1,
-        referrer="api.organization-spans-histogram-min-max",
-        functions_acl=["fn_span_count"],
-    )
-
-    data = results.get("data")
-
-    # there should be exactly 1 row in the results, but if something went wrong here,
-    # we force the min/max to be None to coerce an empty histogram
-    if data is None or len(data) != 1:
-        return None, None
-
-    row = data[0]
-
-    if min_value is None:
-        calculated_min_value = row[get_function_alias(min_column)]
-        min_value = calculated_min_value if calculated_min_value else None
-        if max_value is not None and min_value is not None:
-            # max_value was provided by the user, and min_value was queried.
-            # If min_value > max_value, then we adjust min_value with respect to
-            # max_value. The rationale is that if the user provided max_value,
-            # then any and all data above max_value should be ignored since it is
-            # and upper bound.
-            min_value = min([max_value, min_value])
-
-    if max_value is None:
-        calculated_max_value = row[get_function_alias(max_column)]
-        max_value = calculated_max_value if calculated_max_value else None
-
-        max_fence_value = None
-        if data_filter == "exclude_outliers":
-            outlier_lower_fence_alias = get_function_alias(outlier_lower_fence)
-            outlier_upper_fence_alias = get_function_alias(outlier_upper_fence)
-
-            first_quartile = row[outlier_lower_fence_alias]
-            third_quartile = row[outlier_upper_fence_alias]
-
-            if (
-                first_quartile is not None
-                and third_quartile is not None
-                and not math.isnan(first_quartile)
-                and not math.isnan(third_quartile)
-            ):
-                interquartile_range = abs(third_quartile - first_quartile)
-                upper_outer_fence = third_quartile + 3 * interquartile_range
-                max_fence_value = upper_outer_fence
-
-        candidates: list[float] = []
-        for candidate_value in [max_fence_value, max_value]:
-            if isinstance(candidate_value, float):
-                candidates.append(candidate_value)
-        max_value = min(candidates) if candidates else None
-        if max_value is not None and min_value is not None:
-            # min_value may be either queried or provided by the user. max_value was queried.
-            # If min_value > max_value, then max_value should be adjusted with respect to
-            # min_value, since min_value is a lower bound, and any and all data below
-            # min_value should be ignored.
-            max_value = max([max_value, min_value])
-
-    return min_value, max_value
-
-
 def find_histogram_min_max(
     fields: list[str],
     min_value: float | None,
@@ -1524,39 +1387,3 @@ def check_multihistogram_fields(
         elif histogram_type == "span_op_breakdowns" and not is_span_op_breakdown(field):
             return None
     return histogram_type
-
-
-def corr_snuba_timeseries(
-    x: Sequence[tuple[int, Sequence[dict[str, float]]]],
-    y: Sequence[tuple[int, Sequence[dict[str, float]]]],
-) -> float | None:
-    """
-    Returns the Pearson's coefficient of two snuba timeseries.
-    """
-    if len(x) != len(y):
-        return None
-
-    n = len(x)
-    sum_x, sum_y, sum_xy, sum_x_squared, sum_y_squared = 0.0, 0.0, 0.0, 0.0, 0.0
-    for i in range(n):
-        x_datum = x[i]
-        y_datum = y[i]
-
-        x_ = x_datum[1][0]["count"]
-        y_ = y_datum[1][0]["count"]
-
-        sum_x += x_
-        sum_y += y_
-        sum_xy += x_ * y_
-        sum_x_squared += x_ * x_
-        sum_y_squared += y_ * y_
-
-    denominator = math.sqrt(
-        (n * sum_x_squared - sum_x * sum_x) * (n * sum_y_squared - sum_y * sum_y)
-    )
-    if denominator == 0:
-        return None
-
-    pearsons_corr_coeff = ((n * sum_xy) - (sum_x * sum_y)) / denominator
-
-    return pearsons_corr_coeff
