@@ -39,9 +39,8 @@ export default function FirstLastSeenSection({group}: {group: Group}) {
         <Flex gap={space(0.5)}>
           <Title>
             {issueTypeConfig.lastSeen.prefix}
-            {issueTypeConfig.lastSeen.showStatus && group.status === GroupStatus.RESOLVED
-              ? t('resolved')
-              : t('ongoing')}
+            {issueTypeConfig.lastSeen.showStatus &&
+              (group.status === GroupStatus.RESOLVED ? t('resolved') : t('ongoing'))}
           </Title>
           {issueTypeConfig.lastSeen.showDate &&
             (group.lastSeen ? (
