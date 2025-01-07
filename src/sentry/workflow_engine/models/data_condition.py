@@ -21,6 +21,7 @@ class Condition(models.TextChoices):
     LESS = "lt"
     NOT_EQUAL = "ne"
     AGE_COMPARISON = "age_comparison"
+    ASSIGNED_TO = "assigned_to"
     EVENT_ATTRIBUTE = "event_attribute"
     EVENT_CREATED_BY_DETECTOR = "event_created_by_detector"
     EVENT_SEEN_COUNT = "event_seen_count"
