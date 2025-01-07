@@ -445,8 +445,7 @@ def _is_snipped_context_line(context_line: str) -> bool:
 
 def project_is_seer_eligible(project: Project) -> bool:
     """
-    Return True if the project hasn't already been backfilled, is a Seer-eligible platform, and
-    the feature is enabled in the region.
+    Return True if the project hasn't already been backfilled and the feature is enabled in the region.
     """
     is_backfill_completed = project.get_option("sentry:similarity_backfill_completed")
     is_region_enabled = options.get("similarity.new_project_seer_grouping.enabled")
