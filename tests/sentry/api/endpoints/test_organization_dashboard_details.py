@@ -2731,6 +2731,65 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert len(queries) == 1
         self.assert_serialized_widget_query(data["widgets"][0]["queries"][0], queries[0])
 
+    def test_dashboard_release_widget_resets_to_errors(self):
+        dashboard = self.create_dashboard(title="First dashboard", organization=self.organization)
+        widget = DashboardWidget.objects.create(
+            dashboard=dashboard,
+            order=1,
+            title="Custom Widget",
+            display_type=DashboardWidgetDisplayTypes.TABLE,
+            widget_type=DashboardWidgetTypes.ERROR_EVENTS,
+            discover_widget_split=DashboardWidgetTypes.ERROR_EVENTS,
+            dataset_source=DatasetSourcesTypes.USER.value,
+        )
+        DashboardWidgetQuery.objects.create(
+            widget=widget,
+            name="",
+            fields=["count()"],
+            columns=[],
+            aggregates=["count()"],
+            conditions="",
+            orderby="-count()",
+            order=0,
+        )
+
+        data = {
+            "title": "reset issue",
+            "projects": [self.project.id],
+            "period": "24h",
+            "filters": {},
+            "widgets": [
+                {
+                    "id": str(widget.id),
+                    "title": "Custom Widget",
+                    "displayType": "table",
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["crash_free_rate(session)"],
+                            "fieldAliases": [],
+                            "columns": [],
+                            "aggregates": ["crash_free_rate(session)"],
+                            "conditions": "",
+                            "orderby": "-crash_free_rate(session)",
+                        }
+                    ],
+                    "widgetType": "metrics",
+                    "thresholds": None,
+                    "description": None,
+                },
+            ],
+        }
+        with self.feature(
+            {
+                "organizations:performance-discover-dataset-selector": True,
+            }
+        ):
+            response = self.do_request("put", self.url(dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+
+        assert response.data["widgets"][0]["widgetType"] == "metrics"
+
 
 class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestCase):
     widget_type = DashboardWidgetTypes.DISCOVER
