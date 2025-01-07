@@ -445,8 +445,8 @@ describe('SentryAppRuleModal', function () {
 
       // because we have a default value in title, we should immeadiatly fetch for complexity
       await waitFor(() => expect(mockApi).toHaveBeenCalled());
-      expect(screen.queryByText('High')).toBeInTheDocument();
-      expect(screen.queryByText('YAY')).toBeInTheDocument();
+      expect(screen.getByText('High')).toBeInTheDocument();
+      expect(screen.getByText('YAY')).toBeInTheDocument();
     });
     it('should populate dependent fields with skip_load_on_open if the parent field is loaded with default value', async function () {
       const mockApi = MockApiClient.addMockResponse({
@@ -500,8 +500,8 @@ describe('SentryAppRuleModal', function () {
 
       // because we have a default value in title, we should immediately fetch for complexity
       await waitFor(() => expect(mockApi).toHaveBeenCalled());
-      expect(screen.queryByText('High')).toBeInTheDocument();
-      expect(screen.queryByText('YAY')).toBeInTheDocument();
+      expect(screen.getByText('High')).toBeInTheDocument();
+      expect(screen.getByText('YAY')).toBeInTheDocument();
     });
     it('does not make external req for non skip on load fields that dont depend on another field', async function () {
       const mockApi = MockApiClient.addMockResponse({
@@ -554,7 +554,7 @@ describe('SentryAppRuleModal', function () {
 
       // Because this is a skip_load_on_open: false field that means we have already made the api call to get options on the page load
       await waitFor(() => expect(mockApi).not.toHaveBeenCalled());
-      expect(screen.queryByText('YAY')).toBeInTheDocument();
+      expect(screen.getByText('YAY')).toBeInTheDocument();
     });
   });
 });
