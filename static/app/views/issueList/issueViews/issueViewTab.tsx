@@ -23,6 +23,7 @@ import {
 import {useFetchIssueCounts} from 'sentry/views/issueList/queries/useFetchIssueCounts';
 
 const TAB_MAX_COUNT = 99;
+
 interface IssueViewTabProps {
   editingTabKey: string | null;
   initialTabKey: string;
@@ -64,7 +65,7 @@ export function IssueViewTab({
   const pageFilters = usePageFilters();
 
   // TODO(msun): Once page filters are saved to views, remember to use the view's specific
-  // page filters here instead of the global pageFilters, if they exists.
+  // page filters here instead of the global pageFilters, if they exist.
   const {data: queryCount, isLoading: queryCountLoading} = useFetchIssueCounts({
     orgSlug: organization.slug,
     query: [view.query],
