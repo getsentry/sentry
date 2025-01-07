@@ -20,20 +20,14 @@ def create_metric_alert_lookup_tables(
     alert_rule: AlertRule,
     detector: Detector,
     workflow: Workflow,
-    data_source: DataSource,
-    data_condition_group: DataConditionGroup,
 ) -> tuple[AlertRuleDetector, AlertRuleWorkflow, DetectorWorkflow, WorkflowDataConditionGroup]:
     alert_rule_detector = AlertRuleDetector.objects.create(alert_rule=alert_rule, detector=detector)
     alert_rule_workflow = AlertRuleWorkflow.objects.create(alert_rule=alert_rule, workflow=workflow)
     detector_workflow = DetectorWorkflow.objects.create(detector=detector, workflow=workflow)
-    workflow_data_condition_group = WorkflowDataConditionGroup.objects.create(
-        condition_group=data_condition_group, workflow=workflow
-    )
     return (
         alert_rule_detector,
         alert_rule_workflow,
         detector_workflow,
-        workflow_data_condition_group,
     )
 
 
@@ -57,7 +51,6 @@ def create_data_source(
 
 def create_data_condition_group(organization_id: int) -> DataConditionGroup:
     return DataConditionGroup.objects.create(
-        logic_type=DataConditionGroup.Type.ANY,
         organization_id=organization_id,
     )
 
@@ -65,13 +58,12 @@ def create_data_condition_group(organization_id: int) -> DataConditionGroup:
 def create_workflow(
     name: str,
     organization_id: int,
-    data_condition_group: DataConditionGroup,
     user: RpcUser | None = None,
 ) -> Workflow:
     return Workflow.objects.create(
         name=name,
         organization_id=organization_id,
-        when_condition_group=data_condition_group,
+        when_condition_group=None,
         enabled=True,
         created_by_id=user.id if user else None,
         config={},
@@ -129,9 +121,10 @@ def migrate_alert_rule(
     if not data_source:
         return None
 
-    data_condition_group = create_data_condition_group(organization_id)
-    workflow = create_workflow(alert_rule.name, organization_id, data_condition_group, user)
-    detector = create_detector(alert_rule, project.id, data_condition_group, user)
+    detector_data_condition_group = create_data_condition_group(organization_id)
+    detector = create_detector(alert_rule, project.id, detector_data_condition_group, user)
+
+    workflow = create_workflow(alert_rule.name, organization_id, user)
 
     data_source.detectors.set([detector])
     detector_state = DetectorState.objects.create(
@@ -139,19 +132,16 @@ def migrate_alert_rule(
         active=False,
         state=DetectorPriorityLevel.OK,
     )
-    alert_rule_detector, alert_rule_workflow, detector_workflow, workflow_data_condition_group = (
-        create_metric_alert_lookup_tables(
-            alert_rule, detector, workflow, data_source, data_condition_group
-        )
+    alert_rule_detector, alert_rule_workflow, detector_workflow = create_metric_alert_lookup_tables(
+        alert_rule, detector, workflow
     )
     return (
         data_source,
-        data_condition_group,
+        detector_data_condition_group,
         workflow,
         detector,
         detector_state,
         alert_rule_detector,
         alert_rule_workflow,
         detector_workflow,
-        workflow_data_condition_group,
     )
