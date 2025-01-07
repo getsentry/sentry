@@ -7,7 +7,7 @@ from datetime import datetime, timedelta, timezone
 from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
 from sentry_kafka_schemas.codecs import Codec
-from sentry_kafka_schemas.schema_types.snuba_uptime_results_v1 import SnubaUptimeResults
+from sentry_kafka_schemas.schema_types.snuba_uptime_results_v1 import SnubaUptimeResult
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CHECKSTATUS_FAILURE,
     CHECKSTATUS_MISSED_WINDOW,
@@ -63,7 +63,7 @@ ACTIVE_FAILURE_THRESHOLD = 3
 ACTIVE_RECOVERY_THRESHOLD = 1
 # The TTL of the redis key used to track consecutive statuses
 ACTIVE_THRESHOLD_REDIS_TTL = timedelta(minutes=60)
-SNUBA_UPTIME_RESULTS_CODEC: Codec[SnubaUptimeResults] = get_topic_codec(Topic.SNUBA_UPTIME_RESULTS)
+SNUBA_UPTIME_RESULTS_CODEC: Codec[SnubaUptimeResult] = get_topic_codec(Topic.SNUBA_UPTIME_RESULTS)
 
 
 def _get_snuba_uptime_checks_producer() -> KafkaProducer:
@@ -417,7 +417,9 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         """
         try:
             project = project_subscription.project
-            retention_days = quotas.backend.get_event_retention(organization=project.organization)
+            retention_days = (
+                quotas.backend.get_event_retention(organization=project.organization) or 90
+            )
             snuba_message = {
                 # Copy over fields from original result
                 "guid": result["guid"],

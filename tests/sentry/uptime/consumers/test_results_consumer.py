@@ -39,6 +39,7 @@ from sentry.uptime.models import (
     UptimeStatus,
     UptimeSubscription,
 )
+from sentry.utils import json
 from tests.sentry.uptime.subscriptions.test_tasks import ProducerTestMixin
 
 
@@ -709,16 +710,19 @@ class ProcessResultTest(ProducerTestMixin):
         """
         Validates that the consumer produces a message to Snuba's Kafka topic for uptime check results
         """
-        factory = UptimeResultsStrategyFactory(mode="parallel", max_batch_size=3, max_workers=1)
-        consumer = factory.create_with_partitions(mock.Mock(), {self.partition: 0})
         result = self.create_uptime_result(
             self.subscription.subscription_id,
             scheduled_check_time=datetime.now() - timedelta(minutes=5),
         )
-        self.send_result(result, consumer=consumer)
+        self.send_result(result)
         mock_produce.assert_called_once()
-        assert mock_produce.call_args.args[0].topic == "snuba-uptime-results"
-        # TODO :assert it's the right message
+
+        assert mock_produce.call_args.args[0].name == "snuba-uptime-results"
+
+        parsed_value = json.loads(mock_produce.call_args.args[1].value)
+        assert parsed_value["organization_id"] == self.project.organization_id
+        assert parsed_value["project_id"] == self.project.id
+        assert parsed_value["retention_days"] == 90
 
     @mock.patch("random.random")
     def test_check_and_update_regions(self, mock_random):
