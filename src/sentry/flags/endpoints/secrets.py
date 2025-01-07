@@ -111,7 +111,10 @@ class OrganizationFlagsWebHookSigningSecretsEndpoint(OrganizationEndpoint):
                 },
             )
         else:
-            return Response("Not authorized.", status=401)
+            return Response(
+                "You must be an organization owner or manager, or the creator of this secret in order to perform this action.",
+                status=403,
+            )
 
         return Response(status=201)
 

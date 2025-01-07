@@ -165,7 +165,11 @@ class OrganizationFlagsWebHookSigningSecretsEndpointTestCase(APITestCase):
                 self.url,
                 data={"secret": "31271af8b9804cd99a4c787a28274993", "provider": "generic"},
             )
-            assert response.status_code == 401, response.content
+            assert response.status_code == 403, response.content
+            assert (
+                response.data
+                == "You must be an organization owner or manager, or the creator of this secret in order to perform this action."
+            )
 
         models = FlagWebHookSigningSecretModel.objects.filter(provider="generic").all()
         assert len(models) == 1
