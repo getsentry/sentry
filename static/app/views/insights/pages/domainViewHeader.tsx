@@ -98,8 +98,8 @@ export function DomainViewHeader({
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <ButtonBar gap={1}>
-            {additonalHeaderActions}
             <FeedbackWidgetButton />
+            {additonalHeaderActions}
           </ButtonBar>
         </Layout.HeaderActions>
         <Tabs value={tabValue} onChange={tabs?.onTabChange}>
