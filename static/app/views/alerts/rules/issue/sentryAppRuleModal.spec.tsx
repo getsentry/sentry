@@ -498,7 +498,7 @@ describe('SentryAppRuleModal', function () {
 
       createWrapper({config: schema, resetValues: defaultValues});
 
-      // because we have a default value in title, we should immeadiatly fetch for complexity
+      // because we have a default value in title, we should immediately fetch for complexity
       await waitFor(() => expect(mockApi).toHaveBeenCalled());
       expect(screen.queryByText('High')).toBeInTheDocument();
       expect(screen.queryByText('YAY')).toBeInTheDocument();
