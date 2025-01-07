@@ -133,7 +133,11 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             send_uptime_config_deletion(
                 get_active_region_configs()[0].slug, result["subscription_id"]
             )
-            metrics.incr("uptime.result_processor.subscription_not_found", sample_rate=1.0)
+            metrics.incr(
+                "uptime.result_processor.subscription_not_found",
+                sample_rate=1.0,
+                tags={"uptime_region": result.get("region", "default")},
+            )
             return
 
         self.check_and_update_regions(subscription)
@@ -158,6 +162,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         metric_tags = {
             "status": result["status"],
             "mode": ProjectUptimeSubscriptionMode(project_subscription.mode).name.lower(),
+            "uptime_region": result.get("region", "default"),
         }
 
         status_reason = "none"
@@ -202,12 +207,14 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                         result["duration_ms"],
                         sample_rate=1.0,
                         unit="millisecond",
+                        tags=metric_tags,
                     )
                 metrics.distribution(
                     "uptime.result_processor.check_result.delay",
                     result["actual_check_time_ms"] - result["scheduled_check_time_ms"],
                     sample_rate=1.0,
                     unit="millisecond",
+                    tags=metric_tags,
                 )
 
             if project_subscription.mode == ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING:
@@ -253,7 +260,10 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                     status_reason = result["status_reason"]["type"]
                 metrics.incr(
                     "uptime.result_processor.autodetection.failed_onboarding",
-                    tags={"failure_reason": status_reason},
+                    tags={
+                        "failure_reason": status_reason,
+                        "uptime_region": result.get("region", "default"),
+                    },
                     sample_rate=1.0,
                 )
                 logger.info(
@@ -284,7 +294,9 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                 )
                 remove_uptime_subscription_if_unused(onboarding_subscription)
                 metrics.incr(
-                    "uptime.result_processor.autodetection.graduated_onboarding", sample_rate=1.0
+                    "uptime.result_processor.autodetection.graduated_onboarding",
+                    sample_rate=1.0,
+                    tags={"uptime_region": result.get("region", "default")},
                 )
                 logger.info(
                     "uptime_onboarding_graduated",
@@ -328,12 +340,19 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                 metrics.incr(
                     "uptime.result_processor.restricted_by_provider",
                     sample_rate=1.0,
-                    tags={"host_provider_id": host_provider_id},
+                    tags={
+                        "host_provider_id": host_provider_id,
+                        "uptime_region": result.get("region", "default"),
+                    },
                 )
 
             if issue_creation_flag_enabled and not issue_creation_restricted_by_provider:
                 create_issue_platform_occurrence(result, project_subscription)
-                metrics.incr("uptime.result_processor.active.sent_occurrence", sample_rate=1.0)
+                metrics.incr(
+                    "uptime.result_processor.active.sent_occurrence",
+                    tags={"uptime_region": result.get("region", "default")},
+                    sample_rate=1.0,
+                )
                 logger.info(
                     "uptime_active_sent_occurrence",
                     extra={
@@ -354,7 +373,11 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                 "organizations:uptime-create-issues", project_subscription.project.organization
             ):
                 resolve_uptime_issue(project_subscription)
-                metrics.incr("uptime.result_processor.active.resolved", sample_rate=1.0)
+                metrics.incr(
+                    "uptime.result_processor.active.resolved",
+                    sample_rate=1.0,
+                    tags={"uptime_region": result.get("region", "default")},
+                )
                 logger.info(
                     "uptime_active_resolved",
                     extra={
