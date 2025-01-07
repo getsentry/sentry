@@ -45,11 +45,11 @@ const platformOptions = {
     label: t('OpenTelemetry'),
     items: [
       {
-        label: t('With OpenTelemetry'),
+        label: t('Combine Sentry with OpenTelemetry'),
         value: YesNo.YES,
       },
       {
-        label: t('Without OpenTelemetry'),
+        label: t('Do not use OpenTelemetry'),
         value: YesNo.NO,
       },
     ],
@@ -221,24 +221,26 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
               language: 'xml',
               code: getMavenInstallSnippet(params),
             },
-        params.platformOptions.opentelemetry === YesNo.YES
-          ? {
-              description: tct(
-                "When running your application, please add our [code:sentry-opentelemetry-agent] to the [code:java] command. You can download the latest version of the [code:sentry-opentelemetry-agent.jar] from [link:MavenCentral]. It's also available as a [code:ZIP] containing the [code:JAR] used on this page on [link:GitHub].",
-                {
-                  code: <code />,
-                  linkMC: (
-                    <ExternalLink href="https://search.maven.org/artifact/io.sentry/sentry-opentelemetry-agent" />
-                  ),
-                  linkGH: (
-                    <ExternalLink href="https://github.com/getsentry/sentry-java/releases/" />
-                  ),
-                }
-              ),
-              language: 'bash',
-              code: getOpenTelemetryRunSnippet(params),
-            }
-          : {},
+        ...(params.platformOptions.opentelemetry === YesNo.YES
+          ? [
+              {
+                description: tct(
+                  "When running your application, please add our [code:sentry-opentelemetry-agent] to the [code:java] command. You can download the latest version of the [code:sentry-opentelemetry-agent.jar] from [linkMC:MavenCentral]. It's also available as a [code:ZIP] containing the [code:JAR] used on this page on [linkGH:GitHub].",
+                  {
+                    code: <code />,
+                    linkMC: (
+                      <ExternalLink href="https://search.maven.org/artifact/io.sentry/sentry-opentelemetry-agent" />
+                    ),
+                    linkGH: (
+                      <ExternalLink href="https://github.com/getsentry/sentry-java/releases/" />
+                    ),
+                  }
+                ),
+                language: 'bash',
+                code: getOpenTelemetryRunSnippet(params),
+              },
+            ]
+          : []),
       ],
       additionalInfo: (
         <p>

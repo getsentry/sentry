@@ -27,6 +27,11 @@ export enum PackageManager {
   MAVEN = 'maven',
 }
 
+export enum YesNo {
+  YES = 'yes',
+  NO = 'no',
+}
+
 const platformOptions = {
   springVersion: {
     label: t('Spring Version'),
@@ -51,6 +56,19 @@ const platformOptions = {
       {
         label: t('Maven'),
         value: PackageManager.MAVEN,
+      },
+    ],
+  },
+  opentelemetry: {
+    label: t('OpenTelemetry'),
+    items: [
+      {
+        label: t('Combine Sentry with OpenTelemetry'),
+        value: YesNo.YES,
+      },
+      {
+        label: t('Do not use OpenTelemetry'),
+        value: YesNo.NO,
       },
     ],
   },
@@ -129,6 +147,10 @@ const getMavenInstallSnippet = (params: Params) => `
   ...
 </build>`;
 
+const getOpenTelemetryRunSnippet = (params: Params) => `
+SENTRY_AUTO_INIT=false java -javaagent:sentry-opentelemetry-agent-${getPackageVersion(params, 'sentry.java.opentelemetry-agent', '8.0.0')}.jar -jar your-application.jar
+`;
+
 const getJavaConfigSnippet = (params: Params) => `
 import io.sentry.spring${
   params.platformOptions.springVersion === SpringVersion.V6 ? '.jakarta' : ''
@@ -169,6 +191,14 @@ try {
 } catch (e: Exception) {
   Sentry.captureException(e)
 }`;
+
+const getSentryPropertiesSnippet = (params: Params) =>
+  `${
+    params.isPerformanceSelected
+      ? `
+traces-sample-rate=1.0`
+      : ''
+  }`;
 
 const onboarding: OnboardingConfig<PlatformOptions> = {
   introduction: () =>
@@ -246,6 +276,26 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
               },
             ]
           : []),
+        ...(params.platformOptions.opentelemetry === YesNo.YES
+          ? [
+              {
+                description: tct(
+                  "When running your application, please add our [code:sentry-opentelemetry-agent] to the [code:java] command. You can download the latest version of the [code:sentry-opentelemetry-agent.jar] from [linkMC:MavenCentral]. It's also available as a [code:ZIP] containing the [code:JAR] used on this page on [linkGH:GitHub].",
+                  {
+                    code: <code />,
+                    linkMC: (
+                      <ExternalLink href="https://search.maven.org/artifact/io.sentry/sentry-opentelemetry-agent" />
+                    ),
+                    linkGH: (
+                      <ExternalLink href="https://github.com/getsentry/sentry-java/releases/" />
+                    ),
+                  }
+                ),
+                language: 'bash',
+                code: getOpenTelemetryRunSnippet(params),
+              },
+            ]
+          : []),
       ],
       additionalInfo: (
         <p>
@@ -313,6 +363,25 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
             },
           ],
         },
+        ...(params.isPerformanceSelected
+          ? [
+              {
+                type: StepType.CONFIGURE,
+                description: tct(
+                  'Add a [code:sentry.properties] file to enable Performance:',
+                  {
+                    code: <code />,
+                  }
+                ),
+                configurations: [
+                  {
+                    language: 'java',
+                    code: getSentryPropertiesSnippet(params),
+                  },
+                ],
+              },
+            ]
+          : []),
       ],
     },
   ],
