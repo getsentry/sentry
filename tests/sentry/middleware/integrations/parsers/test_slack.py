@@ -97,7 +97,7 @@ class SlackRequestParserTest(TestCase):
         parser = SlackRequestParser(request, self.get_response)
         parser_integration = parser.get_integration_from_request()
         if not parser_integration:
-            raise ValueError("Parser could not identify an integration")
+            raise AssertionError("Parser could not identify an integration")
         assert parser_integration.id == self.integration.id
 
         # Passes through to control silo

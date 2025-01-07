@@ -5,18 +5,19 @@ import {BarChart} from 'sentry/components/charts/barChart';
 import type {LineChartSeries} from 'sentry/components/charts/lineChart';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import {DateTime} from 'sentry/components/dateTime';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import Link from 'sentry/components/links/link';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelFooter from 'sentry/components/panels/panelFooter';
 import PanelHeader from 'sentry/components/panels/panelHeader';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SentryApp} from 'sentry/types/integrations';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import withOrganization from 'sentry/utils/withOrganization';
-import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import RequestLog from './requestLog';
@@ -25,7 +26,7 @@ type Props = RouteComponentProps<{appSlug: string}, {}> & {
   organization: Organization;
 };
 
-type State = DeprecatedAsyncView['state'] & {
+type State = DeprecatedAsyncComponent['state'] & {
   app: SentryApp;
   interactions: {
     componentInteractions: {
@@ -41,8 +42,8 @@ type State = DeprecatedAsyncView['state'] & {
   };
 };
 
-class SentryApplicationDashboard extends DeprecatedAsyncView<Props, State> {
-  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
+class SentryApplicationDashboard extends DeprecatedAsyncComponent<Props, State> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {appSlug} = this.props.params;
 
     // Default time range for now: 90 days ago to now
@@ -63,10 +64,6 @@ class SentryApplicationDashboard extends DeprecatedAsyncView<Props, State> {
       ],
       ['app', `/sentry-apps/${appSlug}/`],
     ];
-  }
-
-  getTitle() {
-    return t('Integration Dashboard');
   }
 
   renderInstallData() {
@@ -206,6 +203,7 @@ class SentryApplicationDashboard extends DeprecatedAsyncView<Props, State> {
 
     return (
       <div>
+        <SentryDocumentTitle title={t('Integration Dashboard')} />
         <SettingsPageHeader title={`${t('Integration Dashboard')} - ${app.name}`} />
         {app.status === 'published' && this.renderInstallData()}
         {app.status === 'published' && this.renderIntegrationViews()}

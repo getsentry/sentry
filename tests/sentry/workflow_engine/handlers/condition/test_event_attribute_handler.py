@@ -935,6 +935,20 @@ class TestEventAttributeCondition(ConditionTestCase):
         }
         self.assert_passes(self.dc, self.job)
 
+    def test_is_set(self):
+        self.dc.comparison = {"match": MatchType.IS_SET, "attribute": "platform"}
+        self.assert_passes(self.dc, self.job)
+
+        self.dc.comparison = {"match": MatchType.IS_SET, "attribute": "missing"}
+        self.assert_does_not_pass(self.dc, self.job)
+
+    def test_not_set(self):
+        self.dc.comparison = {"match": MatchType.NOT_SET, "attribute": "platform"}
+        self.assert_does_not_pass(self.dc, self.job)
+
+        self.dc.comparison = {"match": MatchType.NOT_SET, "attribute": "missing"}
+        self.assert_passes(self.dc, self.job)
+
     def test_attr_is_in(self):
         self.dc.comparison = {
             "match": MatchType.IS_IN,

@@ -3462,8 +3462,10 @@ ngrok_host = os.environ.get("SENTRY_DEVSERVER_NGROK")
 if ngrok_host:
     SENTRY_OPTIONS["system.url-prefix"] = f"https://{ngrok_host}"
     SENTRY_OPTIONS["system.base-hostname"] = ngrok_host
-    SENTRY_OPTIONS["system.region-api-url-template"] = f"https://{{region}}.{ngrok_host}"
-    SENTRY_FEATURES["system:multi-region"] = True
+    SENTRY_OPTIONS["system.region-api-url-template"] = ""
+
+    # No multi-region in non-siloed ngrok dev.
+    SENTRY_FEATURES["system:multi-region"] = False
 
     CSRF_TRUSTED_ORIGINS = [f"https://*.{ngrok_host}", f"https://{ngrok_host}"]
     ALLOWED_HOSTS = [f".{ngrok_host}", "localhost", "127.0.0.1", ".docker.internal"]
@@ -3518,3 +3520,9 @@ if SILO_DEVSERVER:
         SENTRY_WEB_PORT = int(bind[1])
 
     CELERYBEAT_SCHEDULE_FILENAME = f"celerybeat-schedule-{SILO_MODE}"
+
+if ngrok_host and SILO_DEVSERVER:
+    # In siloed mode + ngrok we enable multi-region so that
+    # the region API URL template is set to the ngrok host.
+    SENTRY_OPTIONS["system.region-api-url-template"] = f"https://{{region}}.{ngrok_host}"
+    SENTRY_FEATURES["system:multi-region"] = True

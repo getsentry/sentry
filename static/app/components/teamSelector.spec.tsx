@@ -96,7 +96,7 @@ describe('Team Selector', function () {
     expect(screen.getByText('#team1')).toBeInTheDocument();
 
     // team2 and team3 should have add to project buttons
-    expect(screen.getAllByRole('button').length).toBe(2);
+    expect(screen.getAllByRole('button')).toHaveLength(2);
   });
 
   it('respects the team and project filter', async function () {
@@ -110,7 +110,7 @@ describe('Team Selector', function () {
     expect(screen.queryByText('#team3')).not.toBeInTheDocument();
 
     // team2 should have add to project buttons
-    expect(screen.getAllByRole('button').length).toBe(1);
+    expect(screen.getAllByRole('button')).toHaveLength(1);
   });
 
   it('allows you to add teams outside of project', async function () {

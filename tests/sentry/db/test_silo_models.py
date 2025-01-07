@@ -36,6 +36,6 @@ def test_cross_silo_deletions():
 def test_no_serializers_for_hybrid_cloud_dataclasses():
     for type in registry.keys():
         if "hybrid_cloud" in type.__module__:
-            raise ValueError(
+            raise AssertionError(
                 f"{type!r} has a registered serializer, but we should not create serializers for hybrid cloud dataclasses."
             )

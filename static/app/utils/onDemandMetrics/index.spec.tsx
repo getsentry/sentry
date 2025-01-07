@@ -31,7 +31,7 @@ describe('createOnDemandFilterWarning', () => {
     const message = "This filter isn't supported";
     const getOnDemandFilterWarning = createOnDemandFilterWarning(message);
     STANDARD_SEARCH_FIELD_KEYS.forEach(key => {
-      expect(getOnDemandFilterWarning(key)).toBe(null);
+      expect(getOnDemandFilterWarning(key)).toBeNull();
     });
   });
 });

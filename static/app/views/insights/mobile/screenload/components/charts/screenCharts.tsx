@@ -143,7 +143,7 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
               } as SeriesDataUnit;
             }) ?? [];
 
-          const color = isPrimary ? CHART_PALETTE[3]![0]! : CHART_PALETTE[3]![1]!;
+          const color = isPrimary ? CHART_PALETTE[3][0] : CHART_PALETTE[3][1];
           transformedReleaseSeries[yAxis]![release] = {
             seriesName: formatVersion(label, true),
             color,

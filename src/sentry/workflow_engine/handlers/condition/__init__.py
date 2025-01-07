@@ -7,17 +7,25 @@ __all__ = [
     "ExistingHighPriorityIssueConditionHandler",
     "EventAttributeConditionHandler",
     "FirstSeenEventConditionHandler",
+    "NewHighPriorityIssueConditionHandler",
+    "LevelConditionHandler",
+    "TaggedEventConditionHandler",
+    "AgeComparisonConditionHandler",
 ]
 
 from .group_event_handlers import (
+    AgeComparisonConditionHandler,
     EventAttributeConditionHandler,
     EventCreatedByDetectorConditionHandler,
     EventSeenCountConditionHandler,
     EveryEventConditionHandler,
+    LevelConditionHandler,
+    TaggedEventConditionHandler,
 )
 from .group_state_handlers import (
     ExistingHighPriorityIssueConditionHandler,
     FirstSeenEventConditionHandler,
+    NewHighPriorityIssueConditionHandler,
     ReappearedEventConditionHandler,
     RegressionEventConditionHandler,
 )

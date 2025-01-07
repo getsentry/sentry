@@ -69,7 +69,7 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
   );
 
   const getAreaChart = () => {
-    const segmentColors = theme.charts.getColorPalette(3).slice(0, 5);
+    const segmentColors = (theme.charts.getColorPalette(3) ?? []).slice(0, 5);
     return (
       <Chart
         stacked

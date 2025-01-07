@@ -81,7 +81,7 @@ describe('incremental trace fetch', () => {
     });
 
     tree.build();
-    expect(tree.list.length).toBe(3);
+    expect(tree.list).toHaveLength(3);
 
     tree.fetchAdditionalTraces({
       replayTraces: traces,
@@ -95,7 +95,7 @@ describe('incremental trace fetch', () => {
 
     await waitFor(() => expect(tree.root.children[0]!.fetchStatus).toBe('idle'));
 
-    expect(tree.list.length).toBe(7);
+    expect(tree.list).toHaveLength(7);
   });
 
   it('Does not infinitely fetch on error', async () => {
@@ -154,7 +154,7 @@ describe('incremental trace fetch', () => {
     });
 
     tree.build();
-    expect(tree.list.length).toBe(3);
+    expect(tree.list).toHaveLength(3);
 
     tree.fetchAdditionalTraces({
       replayTraces: traces,
@@ -169,7 +169,7 @@ describe('incremental trace fetch', () => {
     await waitFor(() => expect(tree.root.children[0]!.fetchStatus).toBe('idle'));
     tree.build();
 
-    expect(tree.list.length).toBe(7);
+    expect(tree.list).toHaveLength(7);
     expect(mockedResponse1).toHaveBeenCalledTimes(1);
     expect(mockedResponse2).toHaveBeenCalledTimes(1);
     expect(mockedResponse3).toHaveBeenCalledTimes(1);
