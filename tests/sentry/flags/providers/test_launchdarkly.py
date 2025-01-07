@@ -478,7 +478,7 @@ def test_launchdarkly_create_no_member():
     flag_row = res[0]
     assert flag_row["action"] == ACTION_MAP["created"]
     assert flag_row["flag"] == "test flag"
-    assert flag_row["created_by"] == "unknown"
+    assert flag_row["created_by"] is None
     assert flag_row["created_by_type"] == CREATED_BY_TYPE_MAP["email"]
     assert flag_row["organization_id"] == 123
     assert flag_row["tags"] is not None

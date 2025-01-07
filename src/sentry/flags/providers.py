@@ -42,7 +42,7 @@ class FlagAuditLogRow(TypedDict):
 
     action: int
     created_at: datetime.datetime
-    created_by: str
+    created_by: str | None
     created_by_type: int
     flag: str
     organization_id: int
@@ -139,7 +139,7 @@ class LaunchDarklyProvider:
         if result.get("member"):
             created_by = result["member"]["email"]
         else:
-            created_by = "unknown"
+            created_by = None
 
         return [
             {
