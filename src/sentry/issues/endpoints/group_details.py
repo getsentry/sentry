@@ -96,6 +96,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         activities = Activity.objects.filter(
             group=group,
             type__in=[ActivityType.SET_UNRESOLVED.value, ActivityType.SET_RESOLVED.value],
+            datetime__gte=timezone.now() - timedelta(days=90),
         ).order_by("datetime")
 
         open_periods = []
