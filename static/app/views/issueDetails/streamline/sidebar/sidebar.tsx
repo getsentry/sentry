@@ -16,11 +16,10 @@ import StreamlinedActivitySection from 'sentry/views/issueDetails/streamline/sid
 import {ExternalIssueList} from 'sentry/views/issueDetails/streamline/sidebar/externalIssueList';
 import FirstLastSeenSection from 'sentry/views/issueDetails/streamline/sidebar/firstLastSeenSection';
 import {MergedIssuesSidebarSection} from 'sentry/views/issueDetails/streamline/sidebar/mergedSidebarSection';
+import {MetricIssueSidebarSection} from 'sentry/views/issueDetails/streamline/sidebar/metricIssueSidebarSection';
 import PeopleSection from 'sentry/views/issueDetails/streamline/sidebar/peopleSection';
 import {SimilarIssuesSidebarSection} from 'sentry/views/issueDetails/streamline/sidebar/similarIssuesSidebarSection';
 import SolutionsSection from 'sentry/views/issueDetails/streamline/sidebar/solutionsSection';
-
-import {MetricIssueSidebarSection} from './metricIssueSidebarSection';
 
 type Props = {
   group: Group;
