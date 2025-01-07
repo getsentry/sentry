@@ -30,14 +30,14 @@ import {SectionDivider} from 'sentry/views/issueDetails/streamline/foldSection';
 
 interface HighlightsIconSummaryProps {
   event: Event;
-  group: Group;
+  group?: Group;
 }
 
 export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps) {
   const organization = useOrganization();
   const {data: attachments = []} = useFetchEventAttachments({
     orgSlug: organization.slug,
-    projectSlug: group.project.slug,
+    projectSlug: group?.project.slug,
     eventId: event.id,
   });
   const screenshot = attachments.find(({name}) => SCREENSHOT_NAMES.includes(name));
@@ -76,7 +76,7 @@ export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps
     <Fragment>
       <IconBar>
         <ScrollCarousel gap={2} aria-label={t('Icon highlights')}>
-          {screenshot && (
+          {screenshot && group && (
             <Fragment>
               <ScreenshotButton
                 type="button"
@@ -118,24 +118,22 @@ export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps
               </IconDescription>
             </IconContainer>
           ))}
-          {releaseTag && (
+          {releaseTag && group && (
             <IconContainer key="release">
               <IconWrapper>
                 <IconReleases size="sm" color="subText" />
               </IconWrapper>
               <IconDescription aria-label={t('Event release')}>
-                {releaseTag && (
-                  <VersionHoverCard
-                    organization={organization}
-                    projectSlug={group.project.slug}
-                    releaseVersion={releaseTag.value}
-                  >
-                    <StyledVersion
-                      version={releaseTag.value}
-                      projectId={group.project.id}
-                    />
-                  </VersionHoverCard>
-                )}
+                <VersionHoverCard
+                  organization={organization}
+                  projectSlug={group.project.slug}
+                  releaseVersion={releaseTag.value}
+                >
+                  <StyledVersion
+                    version={releaseTag.value}
+                    projectId={group.project.id}
+                  />
+                </VersionHoverCard>
               </IconDescription>
             </IconContainer>
           )}
