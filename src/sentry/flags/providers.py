@@ -139,7 +139,7 @@ class LaunchDarklyProvider:
         if result.get("member"):
             created_by = result["member"]["email"]
         else:
-            created_by = None
+            created_by = ""
 
         return [
             {
