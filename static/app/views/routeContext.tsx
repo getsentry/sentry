@@ -9,8 +9,3 @@ import type {RouteContextInterface} from 'sentry/types/legacyReactRouter';
  * DO NOT use this outside of tests!
  */
 export const TestRouteContext = createContext<RouteContextInterface | null>(null);
-
-/**
- * Temporary while fixing getsentry
- */
-export const RouteContext = TestRouteContext;
