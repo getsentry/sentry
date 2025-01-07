@@ -4,6 +4,7 @@ from datetime import datetime
 from re import Match
 from typing import cast
 
+import sentry_sdk
 from parsimonious.exceptions import ParseError
 from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
@@ -54,9 +55,13 @@ class SearchResolver:
         field(default_factory=dict)
     )
 
+    @sentry_sdk.trace
     def resolve_meta(self, referrer: str) -> RequestMeta:
         if self.params.organization_id is None:
             raise Exception("An organization is required to resolve queries")
+        span = sentry_sdk.get_current_span()
+        if span:
+            span.set_tag("SearchResolver.params", self.params)
         return RequestMeta(
             organization_id=self.params.organization_id,
             referrer=referrer,
@@ -65,10 +70,18 @@ class SearchResolver:
             end_timestamp=self.params.rpc_end_date,
         )
 
-    def resolve_query(self, querystring: str | None) -> TraceItemFilter | None:
+    @sentry_sdk.trace
+    def resolve_query(
+        self, querystring: str | None
+    ) -> tuple[TraceItemFilter | None, list[VirtualColumnContext | None]]:
         """Given a query string in the public search syntax eg. `span.description:foo` construct the TraceItemFilter"""
         environment_query = self.__resolve_environment_query()
-        query = self.__resolve_query(querystring)
+        query, contexts = self.__resolve_query(querystring)
+        span = sentry_sdk.get_current_span()
+        if span:
+            span.set_tag("SearchResolver.query_string", querystring)
+            span.set_tag("SearchResolver.resolved_query", query)
+            span.set_tag("SearchResolver.environment_query", environment_query)
 
         # The RPC request meta does not contain the environment.
         # So we have to inject it as a query condition.
@@ -78,18 +91,21 @@ class SearchResolver:
         # But if both are defined, we AND them together.
 
         if not environment_query:
-            return query
+            return query, contexts
 
         if not query:
-            return environment_query
+            return environment_query, []
 
-        return TraceItemFilter(
-            and_filter=AndFilter(
-                filters=[
-                    environment_query,
-                    query,
-                ]
-            )
+        return (
+            TraceItemFilter(
+                and_filter=AndFilter(
+                    filters=[
+                        environment_query,
+                        query,
+                    ]
+                )
+            ),
+            contexts,
         )
 
     def __resolve_environment_query(self) -> TraceItemFilter | None:
@@ -115,9 +131,11 @@ class SearchResolver:
 
         return TraceItemFilter(and_filter=AndFilter(filters=filters))
 
-    def __resolve_query(self, querystring: str | None) -> TraceItemFilter | None:
+    def __resolve_query(
+        self, querystring: str | None
+    ) -> tuple[TraceItemFilter | None, list[VirtualColumnContext | None]]:
         if querystring is None:
-            return None
+            return None, []
         try:
             parsed_terms = event_search.parse_search_query(
                 querystring,
@@ -142,8 +160,10 @@ class SearchResolver:
 
     def _resolve_boolean_conditions(
         self, terms: event_filter.ParsedTerms
-    ) -> TraceItemFilter | None:
-        if len(terms) == 1:
+    ) -> tuple[TraceItemFilter | None, list[VirtualColumnContext | None]]:
+        if len(terms) == 0:
+            return None, []
+        elif len(terms) == 1:
             if isinstance(terms[0], event_search.ParenExpression):
                 return self._resolve_boolean_conditions(terms[0].children)
             elif isinstance(terms[0], event_search.SearchFilter):
@@ -196,38 +216,54 @@ class SearchResolver:
             lhs, rhs = terms[:1], terms[1:]
             operator = AndFilter
 
-        resolved_lhs = self._resolve_boolean_conditions(lhs) if lhs else None
-        resolved_rhs = self._resolve_boolean_conditions(rhs) if rhs else None
+        resolved_lhs, contexts_lhs = self._resolve_boolean_conditions(lhs)
+        resolved_rhs, contexts_rhs = self._resolve_boolean_conditions(rhs)
+        contexts = contexts_lhs + contexts_rhs
 
         if resolved_lhs is not None and resolved_rhs is not None:
             if operator == AndFilter:
-                return TraceItemFilter(and_filter=AndFilter(filters=[resolved_lhs, resolved_rhs]))
+                return (
+                    TraceItemFilter(and_filter=AndFilter(filters=[resolved_lhs, resolved_rhs])),
+                    contexts,
+                )
             else:
-                return TraceItemFilter(or_filter=OrFilter(filters=[resolved_lhs, resolved_rhs]))
+                return (
+                    TraceItemFilter(or_filter=OrFilter(filters=[resolved_lhs, resolved_rhs])),
+                    contexts,
+                )
         elif resolved_lhs is None and resolved_rhs is not None:
-            return resolved_rhs
+            return resolved_rhs, contexts
         elif resolved_lhs is not None and resolved_rhs is None:
-            return resolved_lhs
+            return resolved_lhs, contexts
         else:
-            return None
+            return None, contexts
 
-    def _resolve_terms(self, terms: event_filter.ParsedTerms) -> TraceItemFilter | None:
+    def _resolve_terms(
+        self, terms: event_filter.ParsedTerms
+    ) -> tuple[TraceItemFilter | None, list[VirtualColumnContext | None]]:
         parsed_terms = []
+        resolved_contexts = []
         for item in terms:
             if isinstance(item, event_search.SearchFilter):
-                parsed_terms.append(self.resolve_term(cast(event_search.SearchFilter, item)))
+                resolved_term, resolved_context = self.resolve_term(
+                    cast(event_search.SearchFilter, item)
+                )
+                parsed_terms.append(resolved_term)
+                resolved_contexts.append(resolved_context)
             else:
                 if self.config.use_aggregate_conditions:
                     raise NotImplementedError("Can't filter on aggregates yet")
 
         if len(parsed_terms) > 1:
-            return TraceItemFilter(and_filter=AndFilter(filters=parsed_terms))
+            return TraceItemFilter(and_filter=AndFilter(filters=parsed_terms)), resolved_contexts
         elif len(parsed_terms) == 1:
-            return parsed_terms[0]
+            return parsed_terms[0], resolved_contexts
         else:
-            return None
+            return None, []
 
-    def resolve_term(self, term: event_search.SearchFilter) -> TraceItemFilter:
+    def resolve_term(
+        self, term: event_search.SearchFilter
+    ) -> tuple[TraceItemFilter, VirtualColumnContext | None]:
         resolved_column, context = self.resolve_column(term.key.name)
         raw_value = term.value.raw_value
         if term.value.is_wildcard():
@@ -251,12 +287,15 @@ class SearchResolver:
         else:
             raise InvalidSearchQuery(f"Unknown operator: {term.operator}")
         if isinstance(resolved_column.proto_definition, AttributeKey):
-            return TraceItemFilter(
-                comparison_filter=ComparisonFilter(
-                    key=resolved_column.proto_definition,
-                    op=operator,
-                    value=self._resolve_search_value(resolved_column, term.operator, raw_value),
-                )
+            return (
+                TraceItemFilter(
+                    comparison_filter=ComparisonFilter(
+                        key=resolved_column.proto_definition,
+                        op=operator,
+                        value=self._resolve_search_value(resolved_column, term.operator, raw_value),
+                    )
+                ),
+                context,
             )
         else:
             raise NotImplementedError("Can't filter on aggregates yet")
@@ -325,16 +364,20 @@ class SearchResolver:
                 final_contexts.append(context)
         return final_contexts
 
+    @sentry_sdk.trace
     def resolve_columns(
         self, selected_columns: list[str]
-    ) -> tuple[list[ResolvedColumn | ResolvedFunction], list[VirtualColumnContext]]:
+    ) -> tuple[list[ResolvedColumn | ResolvedFunction], list[VirtualColumnContext | None]]:
         """Given a list of columns resolve them and get their context if applicable
 
         This function will also dedupe the virtual column contexts if necessary
         """
+        span = sentry_sdk.get_current_span()
         resolved_columns = []
         resolved_contexts = []
         stripped_columns = [column.strip() for column in selected_columns]
+        if span:
+            span.set_tag("SearchResolver.selected_columns", stripped_columns)
         has_aggregates = False
         for column in stripped_columns:
             match = fields.is_function(column)
@@ -355,7 +398,7 @@ class SearchResolver:
                 resolved_columns.append(project_column)
                 resolved_contexts.append(project_context)
 
-        return resolved_columns, self.clean_contexts(resolved_contexts)
+        return resolved_columns, resolved_contexts
 
     def resolve_column(
         self, column: str, match: Match | None = None
@@ -372,6 +415,7 @@ class SearchResolver:
         resolved_column, _ = self.resolve_column(column)
         return resolved_column.search_type
 
+    @sentry_sdk.trace
     def resolve_attributes(
         self, columns: list[str]
     ) -> tuple[list[ResolvedColumn], list[VirtualColumnContext | None]]:
@@ -420,8 +464,12 @@ class SearchResolver:
             if field_type not in constants.TYPE_MAP:
                 raise InvalidSearchQuery(f"Unsupported type {field_type} in {column}")
 
+            if column.startswith("sentry_tags"):
+                field = f"sentry.{field}"
+
+            search_type = cast(constants.SearchType, field_type)
             column_definition = ResolvedColumn(
-                public_alias=column, internal_name=field, search_type=field_type
+                public_alias=column, internal_name=field, search_type=search_type
             )
             column_context = None
 
@@ -431,6 +479,7 @@ class SearchResolver:
         else:
             raise InvalidSearchQuery(f"Could not parse {column}")
 
+    @sentry_sdk.trace
     def resolve_aggregates(
         self, columns: list[str]
     ) -> tuple[list[ResolvedFunction], list[VirtualColumnContext | None]]:
@@ -496,19 +545,24 @@ class SearchResolver:
         # Proto doesn't support anything more than 1 argument yet
         if len(parsed_columns) > 1:
             raise InvalidSearchQuery("Cannot use more than one argument")
-        elif len(parsed_columns) == 1:
-            resolved_argument = (
-                parsed_columns[0].proto_definition
-                if isinstance(parsed_columns[0].proto_definition, AttributeKey)
-                else None
+        elif len(parsed_columns) == 1 and isinstance(
+            parsed_columns[0].proto_definition, AttributeKey
+        ):
+            parsed_column = parsed_columns[0]
+            resolved_argument = parsed_column.proto_definition
+            search_type = (
+                parsed_column.search_type
+                if function_definition.infer_search_type_from_arguments
+                else function_definition.default_search_type
             )
         else:
             resolved_argument = None
+            search_type = function_definition.default_search_type
 
         resolved_function = ResolvedFunction(
             public_alias=alias,
             internal_name=function_definition.internal_function,
-            search_type=function_definition.search_type,
+            search_type=search_type,
             internal_type=function_definition.internal_type,
             processor=function_definition.processor,
             extrapolation=function_definition.extrapolation,

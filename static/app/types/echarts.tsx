@@ -1,6 +1,6 @@
 import type {
   AxisPointerComponentOption,
-  ECharts,
+  ECharts as EChartsType,
   LineSeriesOption,
   PatternObject,
 } from 'echarts';
@@ -12,7 +12,6 @@ export type SeriesDataUnit = {
   // number because we sometimes use timestamps
   name: string | number;
   value: number;
-  confidence?: Confidence;
   itemStyle?: {
     color?: string;
   };
@@ -27,6 +26,7 @@ export type Series = {
     opacity: number;
   };
   color?: string;
+  confidence?: Confidence;
   id?: string;
   lineStyle?: AxisPointerComponentOption['lineStyle'];
   // https://echarts.apache.org/en/option.html#series-line.z
@@ -143,3 +143,5 @@ export type EChartBrushSelectedHandler = EChartEventHandler<{
   brushId: string;
   type: 'brushselected';
 }>;
+
+export type ECharts = EChartsType;

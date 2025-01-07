@@ -9,12 +9,13 @@ import {
   DiffLineType,
   type FilePatch,
 } from 'sentry/components/events/autofix/types';
+import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
 import TextArea from 'sentry/components/forms/controls/textarea';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {IconChevron, IconClose, IconDelete, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {useMutation} from 'sentry/utils/queryClient';
+import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
 type AutofixDiffProps = {
@@ -42,7 +43,7 @@ function makeTestIdFromLineType(lineType: DiffLineType) {
 
 function addChangesToDiffLines(lines: DiffLineWithChanges[]): DiffLineWithChanges[] {
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
+    const line = lines[i]!;
     if (line.line_type === DiffLineType.CONTEXT) {
       continue;
     }
@@ -101,7 +102,7 @@ function HunkHeader({lines, sectionHeader}: {lines: DiffLine[]; sectionHeader: s
 
 function useUpdateHunk({groupId, runId}: {groupId: string; runId: string}) {
   const api = useApi({persistInFlight: true});
-
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (params: {
       fileName: string;
@@ -122,6 +123,9 @@ function useUpdateHunk({groupId, runId}: {groupId: string; runId: string}) {
           },
         },
       });
+    },
+    onSuccess: _ => {
+      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(groupId)});
     },
     onError: () => {
       addErrorMessage(t('Something went wrong when updating changes.'));
@@ -289,7 +293,7 @@ function DiffHunkContent({
 
     // Update diff_line_no for all lines after the insertion
     for (let i = insertionIndex + newAddedLines.length; i < updatedLines.length; i++) {
-      updatedLines[i].diff_line_no = ++lastDiffLineNo;
+      updatedLines[i]!.diff_line_no = ++lastDiffLineNo;
     }
 
     updateHunk.mutate({hunkIndex, lines: updatedLines, repoId, fileName});
@@ -328,15 +332,15 @@ function DiffHunkContent({
   };
 
   const getStartLineNumber = (index: number, lineType: DiffLineType) => {
-    const line = linesWithChanges[index];
+    const line = linesWithChanges[index]!;
     if (lineType === DiffLineType.REMOVED) {
       return line.source_line_no;
     }
     if (lineType === DiffLineType.ADDED) {
       // Find the first non-null target_line_no
       for (let i = index; i < linesWithChanges.length; i++) {
-        if (linesWithChanges[i].target_line_no !== null) {
-          return linesWithChanges[i].target_line_no;
+        if (linesWithChanges[i]!.target_line_no !== null) {
+          return linesWithChanges[i]!.target_line_no;
         }
       }
     }

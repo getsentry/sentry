@@ -17,6 +17,8 @@ export enum ModuleName {
   MOBILE_UI = 'mobile-ui',
   MOBILE_SCREENS = 'mobile-screens',
   SCREEN_RENDERING = 'screen-rendering',
+  CRONS = 'crons',
+  UPTIME = 'uptime',
   OTHER = 'other',
 }
 

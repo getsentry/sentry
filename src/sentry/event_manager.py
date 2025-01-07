@@ -138,6 +138,8 @@ from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
 from sentry.utils.sdk import set_measurement
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
 
+from .utils.event_tracker import TransactionStageStatus, track_sampled_event
+
 if TYPE_CHECKING:
     from sentry.eventstore.models import BaseEvent, Event
 
@@ -181,10 +183,6 @@ def get_tag(data: dict[str, Any], key: str) -> Any | None:
         if k == key:
             return v
     return None
-
-
-def is_sample_event(job):
-    return get_tag(job["data"], "sample_event") == "yes"
 
 
 def sdk_metadata_from_event(event: Event) -> Mapping[str, Any]:
@@ -348,7 +346,7 @@ class EventManager:
             grouping_config = config.get("grouping_config")
         # if we still don't have a grouping also try the project
         if grouping_config is None and project is not None:
-            grouping_config = get_grouping_config_dict_for_project(self._project)
+            grouping_config = get_grouping_config_dict_for_project(project)
         self._grouping_config = grouping_config
         self._client_ip = client_ip
         self._user_agent = user_agent
@@ -2117,14 +2115,17 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
             reason = "microservice_max_retry"
             update_severity_error_count()
             metrics.incr("issues.severity.error", tags={"reason": "max_retries"})
+            logger.exception("Seer severity microservice max retries exceeded")
         except TimeoutError:
             reason = "microservice_timeout"
             update_severity_error_count()
             metrics.incr("issues.severity.error", tags={"reason": "timeout"})
+            logger.exception("Seer severity microservice timeout")
         except Exception:
             reason = "microservice_error"
             update_severity_error_count()
             metrics.incr("issues.severity.error", tags={"reason": "unknown"})
+            logger.exception("Seer severity microservice error")
             sentry_sdk.capture_exception()
         else:
             update_severity_error_count(reset=True)
@@ -2375,7 +2376,7 @@ def save_attachment(
         return
     from sentry import ratelimits as ratelimiter
 
-    is_limited, num_requests, reset_time = ratelimiter.backend.is_limited_with_value(
+    is_limited, _, _ = ratelimiter.backend.is_limited_with_value(
         key="event_attachment.save_per_sec",
         limit=options.get("sentry.save-event-attachments.project-per-sec-limit"),
         project=project,
@@ -2383,7 +2384,7 @@ def save_attachment(
     )
     rate_limit_tag = "per_sec"
     if not is_limited:
-        is_limited, num_requests, reset_time = ratelimiter.backend.is_limited_with_value(
+        is_limited, _, _ = ratelimiter.backend.is_limited_with_value(
             key="event_attachment.save_5_min",
             limit=options.get("sentry.save-event-attachments.project-per-5-minute-limit"),
             project=project,
@@ -2611,6 +2612,8 @@ def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping)
 
 @sentry_sdk.tracing.trace
 def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> Sequence[Job]:
+    from .ingest.types import ConsumerType
+
     organization_ids = {project.organization_id for project in projects.values()}
     organizations = {o.id: o for o in Organization.objects.get_many_from_cache(organization_ids)}
 
@@ -2661,6 +2664,13 @@ def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> S
 
     with metrics.timer("save_transaction_events.eventstream_insert_many"):
         _eventstream_insert_many(jobs)
+
+    for job in jobs:
+        track_sampled_event(
+            job["event"].event_id,
+            ConsumerType.Transactions,
+            TransactionStageStatus.SNUBA_TOPIC_PUT,
+        )
 
     with metrics.timer("save_transaction_events.track_outcome_accepted_many"):
         _track_outcome_accepted_many(jobs)

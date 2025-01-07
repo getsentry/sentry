@@ -23,8 +23,10 @@ export function CheckInTooltip({jobTick, timeWindowConfig, children, ...props}: 
   const capturedEnvs = Object.keys(envMapping);
   const representsSingleJob =
     capturedEnvs.length === 1 &&
-    Object.values(envMapping[capturedEnvs[0]]).reduce((sum, count) => sum + count, 0) ===
-      1;
+    Object.values(envMapping[capturedEnvs[0]!]!).reduce(
+      (sum, count) => sum + count,
+      0
+    ) === 1;
 
   const tooltipTitle = (
     <Fragment>
@@ -56,8 +58,6 @@ export function CheckInTooltip({jobTick, timeWindowConfig, children, ...props}: 
                     <StatusLabel status={status as CheckInStatus}>
                       {statusToText[status]}
                     </StatusLabel>
-                    {/* TODO(davidenwang): handle long env names */}
-                    <EnvLabel>{envName}</EnvLabel>
                     <StatusCount>{count}</StatusCount>
                   </tr>
                 )
@@ -100,8 +100,4 @@ const StatusLabel = styled('td')<{status: CheckInStatus}>`
 
 const StatusCount = styled('td')`
   font-variant-numeric: tabular-nums;
-`;
-
-const EnvLabel = styled('td')`
-  padding: ${space(0.25)} ${space(0.5)};
 `;

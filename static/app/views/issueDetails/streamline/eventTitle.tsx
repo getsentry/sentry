@@ -28,7 +28,7 @@ import EventCreatedTooltip from 'sentry/views/issueDetails/eventCreatedTooltip';
 import {
   type SectionConfig,
   SectionKey,
-  useEventDetails,
+  useIssueDetails,
 } from 'sentry/views/issueDetails/streamline/context';
 import {getFoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 
@@ -46,13 +46,14 @@ type EventNavigationProps = {
 const sectionLabels = {
   [SectionKey.HIGHLIGHTS]: t('Highlights'),
   [SectionKey.STACKTRACE]: t('Stack Trace'),
-  [SectionKey.TRACE]: t('Trace'),
   [SectionKey.EXCEPTION]: t('Stack Trace'),
+  [SectionKey.THREADS]: t('Stack Trace'),
+  [SectionKey.REPLAY]: t('Replay'),
   [SectionKey.BREADCRUMBS]: t('Breadcrumbs'),
+  [SectionKey.TRACE]: t('Trace'),
   [SectionKey.TAGS]: t('Tags'),
   [SectionKey.CONTEXTS]: t('Context'),
   [SectionKey.USER_FEEDBACK]: t('User Feedback'),
-  [SectionKey.REPLAY]: t('Replay'),
   [SectionKey.FEATURE_FLAGS]: t('Flags'),
 };
 
@@ -63,7 +64,7 @@ export const EventTitle = forwardRef<HTMLDivElement, EventNavigationProps>(
     const organization = useOrganization();
     const theme = useTheme();
 
-    const {sectionData} = useEventDetails();
+    const {sectionData} = useIssueDetails();
     const eventSectionConfigs = Object.values(sectionData ?? {}).filter(
       config => sectionLabels[config.key]
     );
@@ -94,6 +95,7 @@ export const EventTitle = forwardRef<HTMLDivElement, EventNavigationProps>(
       trackAnalytics('issue_details.event_json_clicked', {
         organization,
         group_id: parseInt(`${event.groupID}`, 10),
+        streamline: true,
       });
     };
 
@@ -105,12 +107,20 @@ export const EventTitle = forwardRef<HTMLDivElement, EventNavigationProps>(
           organization,
           ...getAnalyticsDataForGroup(group),
           ...getAnalyticsDataForEvent(event),
+          streamline: true,
         }),
     });
 
     const {onClick: copyEventId} = useCopyToClipboard({
       successMessage: t('Event ID copied to clipboard'),
       text: event.id,
+      onCopy: () =>
+        trackAnalytics('issue_details.copy_event_id_clicked', {
+          organization,
+          ...getAnalyticsDataForGroup(group),
+          ...getAnalyticsDataForEvent(event),
+          streamline: true,
+        }),
     });
 
     return (

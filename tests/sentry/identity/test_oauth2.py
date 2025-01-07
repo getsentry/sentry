@@ -12,9 +12,9 @@ from sentry.identity.oauth2 import OAuth2CallbackView, OAuth2LoginView
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.identity.providers.dummy import DummyProvider
 from sentry.integrations.types import EventLifecycleOutcome
+from sentry.testutils.asserts import assert_failure_metric, assert_slo_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
-from tests.sentry.integrations.utils.test_assert_metrics import assert_failure_metric
 
 MockResponse = namedtuple("MockResponse", ["headers", "content"])
 
@@ -68,10 +68,7 @@ class OAuth2CallbackViewTest(TestCase):
             "redirect_uri": "http://testserver/extensions/default/setup/",
         }
 
-        assert len(mock_record.mock_calls) == 2
-        start, success = mock_record.mock_calls
-        assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert success.args[0] == EventLifecycleOutcome.SUCCESS
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
 
     @responses.activate
     def test_exchange_token_success_customer_domains(self, mock_record, mock_integration_const):
@@ -96,10 +93,7 @@ class OAuth2CallbackViewTest(TestCase):
             "redirect_uri": "http://testserver/extensions/default/setup/",
         }
 
-        assert len(mock_record.mock_calls) == 2
-        start, success = mock_record.mock_calls
-        assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert success.args[0] == EventLifecycleOutcome.SUCCESS
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
 
     @responses.activate
     def test_exchange_token_ssl_error(self, mock_record, mock_integration_const):

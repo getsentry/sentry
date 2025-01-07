@@ -69,6 +69,10 @@ export interface AssigneeSelectorDropdownProps {
    */
   loading: boolean;
   /**
+   * Additional items to render in the menu footer
+   */
+  additionalMenuFooterItems?: React.ReactNode;
+  /**
    * Additional styles to apply to the dropdown
    */
   className?: string;
@@ -151,6 +155,7 @@ export function AssigneeAvatar({
   }
 
   if (suggestedActors.length > 0) {
+    const actor = suggestedActors[0]!;
     return (
       <SuggestedAvatarStack
         size={26}
@@ -160,17 +165,12 @@ export function AssigneeAvatar({
           <TooltipWrapper>
             <div>
               {tct('Suggestion: [name]', {
-                name:
-                  suggestedActors[0].type === 'team'
-                    ? `#${suggestedActors[0].name}`
-                    : suggestedActors[0].name,
+                name: actor.type === 'team' ? `#${actor.name}` : actor.name,
               })}
               {suggestedActors.length > 1 &&
                 tn(' + %s other', ' + %s others', suggestedActors.length - 1)}
             </div>
-            <TooltipSubtext>
-              {suggestedReasons[suggestedActors[0].suggestedReason]}
-            </TooltipSubtext>
+            <TooltipSubtext>{suggestedReasons[actor.suggestedReason]}</TooltipSubtext>
           </TooltipWrapper>
         }
       />
@@ -213,6 +213,7 @@ export default function AssigneeSelectorDropdown({
   owners,
   sizeLimit = 150,
   trigger,
+  additionalMenuFooterItems,
 }: AssigneeSelectorDropdownProps) {
   const memberLists = useLegacyStore(MemberListStore);
   const sessionUser = useUser();
@@ -260,7 +261,10 @@ export default function AssigneeSelectorDropdown({
     const uniqueSuggestions = uniqBy(suggestedOwners, owner => owner.owner);
     return uniqueSuggestions
       .map<SuggestedAssignee | null>(suggestion => {
-        const [suggestionType, suggestionId] = suggestion.owner.split(':');
+        const [suggestionType, suggestionId] = suggestion.owner.split(':') as [
+          string,
+          string,
+        ];
         const suggestedReasonText = suggestedReasonTable[suggestion.type];
         if (suggestionType === 'user') {
           const member = currentMemberList.find(user => user.id === suggestionId);
@@ -317,7 +321,7 @@ export default function AssigneeSelectorDropdown({
     }
     // See makeMemberOption and makeTeamOption for how the value is formatted
     const type = selectedOption.value.startsWith('user:') ? 'user' : 'team';
-    const assigneeId = selectedOption.value.split(':')[1];
+    const assigneeId = selectedOption.value.split(':')[1]!;
     let assignee: User | Actor;
 
     if (type === 'user') {
@@ -339,10 +343,10 @@ export default function AssigneeSelectorDropdown({
         actor => actor.type === type && actor.id === assignee.id
       );
       onAssign({
-        assignee: assignee,
+        assignee,
         id: assigneeId,
-        type: type,
-        suggestedAssignee: suggestedAssignee,
+        type,
+        suggestedAssignee,
       });
     }
   };
@@ -536,18 +540,21 @@ export default function AssigneeSelectorDropdown({
   };
 
   const footerInviteButton = (
-    <Button
-      size="xs"
-      aria-label={t('Invite Member')}
-      disabled={loading}
-      onClick={(event: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
-        event.preventDefault();
-        openInviteMembersModal({source: 'assignee_selector'});
-      }}
-      icon={<IconAdd isCircled />}
-    >
-      {t('Invite Member')}
-    </Button>
+    <FooterWrapper>
+      <Button
+        size="xs"
+        aria-label={t('Invite Member')}
+        disabled={loading}
+        onClick={(event: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
+          event.preventDefault();
+          openInviteMembersModal({source: 'assignee_selector'});
+        }}
+        icon={<IconAdd isCircled />}
+      >
+        {t('Invite Member')}
+      </Button>
+      {additionalMenuFooterItems}
+    </FooterWrapper>
   );
 
   return (
@@ -610,4 +617,10 @@ const TooltipSubExternalLink = styled(ExternalLink)`
 
 const TooltipSubtext = styled('div')`
   color: ${p => p.theme.subText};
+`;
+
+const FooterWrapper = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  align-items: center;
 `;

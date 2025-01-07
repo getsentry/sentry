@@ -51,6 +51,8 @@ import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHead
 import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
 import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
+import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
+import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import type {SpanMetricsQueryFilters} from 'sentry/views/insights/types';
 import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
@@ -180,45 +182,27 @@ export function HTTPDomainSummaryPage() {
     !isThroughputDataLoading && !isDurationDataLoading && !isResponseCodeDataLoading
   );
 
-  const headerTitle = (
-    <Fragment>
-      {project && <ProjectAvatar project={project} size={36} />}
-      {domain || NULL_DOMAIN_DESCRIPTION}
-      <DomainStatusLink domain={domain} />
-    </Fragment>
-  );
+  const headerProps = {
+    headerTitle: (
+      <Fragment>
+        {project && <ProjectAvatar project={project} size={36} />}
+        {domain || NULL_DOMAIN_DESCRIPTION}
+        <DomainStatusLink domain={domain} />
+      </Fragment>
+    ),
+    breadcrumbs: [
+      {
+        label: t('Domain Summary'),
+      },
+    ],
+    module: ModuleName.HTTP,
+  };
 
   return (
     <React.Fragment>
-      {view === FRONTEND_LANDING_SUB_PATH && (
-        <FrontendHeader
-          headerTitle={
-            <Fragment>
-              {project && <ProjectAvatar project={project} size={36} />}
-              {domain || NULL_DOMAIN_DESCRIPTION}
-              <DomainStatusLink domain={domain} />
-            </Fragment>
-          }
-          breadcrumbs={[
-            {
-              label: 'Domain Summary',
-            },
-          ]}
-          module={ModuleName.HTTP}
-        />
-      )}
-
-      {view === BACKEND_LANDING_SUB_PATH && (
-        <BackendHeader
-          headerTitle={headerTitle}
-          module={ModuleName.HTTP}
-          breadcrumbs={[
-            {
-              label: t('Domain Summary'),
-            },
-          ]}
-        />
-      )}
+      {view === FRONTEND_LANDING_SUB_PATH && <FrontendHeader {...headerProps} />}
+      {view === BACKEND_LANDING_SUB_PATH && <BackendHeader {...headerProps} />}
+      {view === MOBILE_LANDING_SUB_PATH && <MobileHeader {...headerProps} />}
 
       <ModuleBodyUpsellHook moduleName={ModuleName.HTTP}>
         <Layout.Body>
@@ -290,7 +274,7 @@ export function HTTPDomainSummaryPage() {
                       value={domainMetrics?.[0]?.['sum(span.self_time)']}
                       unit={DurationUnit.MILLISECOND}
                       tooltip={getTimeSpentExplanation(
-                        domainMetrics?.[0]?.['time_spent_percentage()'],
+                        domainMetrics?.[0]!?.['time_spent_percentage()'],
                         'http'
                       )}
                       isLoading={areDomainMetricsLoading}
@@ -304,7 +288,6 @@ export function HTTPDomainSummaryPage() {
                   series={throughputData['spm()']}
                   isLoading={isThroughputDataLoading}
                   error={throughputError}
-                  filters={filters}
                 />
               </ModuleLayout.Third>
 
@@ -313,7 +296,6 @@ export function HTTPDomainSummaryPage() {
                   series={[durationData[`avg(${SpanMetricsField.SPAN_SELF_TIME})`]]}
                   isLoading={isDurationDataLoading}
                   error={durationError}
-                  filters={filters}
                 />
               </ModuleLayout.Third>
 
@@ -335,7 +317,6 @@ export function HTTPDomainSummaryPage() {
                   ]}
                   isLoading={isResponseCodeDataLoading}
                   error={responseCodeError}
-                  filters={filters}
                 />
               </ModuleLayout.Third>
 

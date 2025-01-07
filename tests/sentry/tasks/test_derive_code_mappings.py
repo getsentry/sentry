@@ -18,15 +18,12 @@ from sentry.tasks.derive_code_mappings import (
     derive_code_mappings,
     identify_stacktrace_paths,
 )
+from sentry.testutils.asserts import assert_failure_metric, assert_halt_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.locking import UnableToAcquireLock
-from tests.sentry.integrations.utils.test_assert_metrics import (
-    assert_failure_metric,
-    assert_halt_metric,
-)
 
 pytestmark = [requires_snuba]
 

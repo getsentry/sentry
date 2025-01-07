@@ -3,6 +3,7 @@ from __future__ import annotations
 import dataclasses
 import functools
 import logging
+import math
 import os
 import re
 import time
@@ -310,8 +311,6 @@ DATASET_FIELDS = {
     Dataset.EventsAnalyticsPlatform: list(SPAN_EAP_COLUMN_MAP.values()),
 }
 
-SNUBA_OR = "or"
-SNUBA_AND = "and"
 OPERATOR_TO_FUNCTION = {
     "LIKE": "like",
     "NOT LIKE": "notLike",
@@ -934,7 +933,6 @@ class SnubaRequest:
         return headers
 
 
-LegacyQueryBody = tuple[MutableMapping[str, Any], Translator, Translator]
 # TODO: Would be nice to make this a concrete structure
 ResultSet = list[Mapping[str, Any]]
 
@@ -1993,3 +1991,21 @@ def get_array_column_field(array_column, internal_key):
     if array_column == "span_op_breakdowns":
         return get_span_op_breakdown_key_name(internal_key)
     return internal_key
+
+
+def process_value(value: None | str | int | float | list[str] | list[int] | list[float]):
+    if isinstance(value, float):
+        # 0 for nan, and none for inf were chosen arbitrarily, nan and inf are
+        # invalid json so needed to pick something valid to use instead
+        if math.isnan(value):
+            value = 0
+        elif math.isinf(value):
+            value = None
+
+    if isinstance(value, list):
+        for i, v in enumerate(value):
+            if isinstance(v, float):
+                value[i] = process_value(v)
+        return value
+
+    return value

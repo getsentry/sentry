@@ -255,7 +255,7 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
         <LinkButton
           aria-label={t('Open this server in the Discord app')}
           size="sm"
-          href={`discord://discord.com/channels/${integration.externalId}`}
+          href={`https://discord.com/channels/${integration.externalId}`}
         >
           {t('Open in Discord')}
         </LinkButton>
@@ -382,7 +382,7 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
           <Alert type="info">
             {instructions.length === 1 ? (
               <span
-                dangerouslySetInnerHTML={{__html: singleLineRenderer(instructions[0])}}
+                dangerouslySetInnerHTML={{__html: singleLineRenderer(instructions[0]!)}}
               />
             ) : (
               <List symbol={<IconArrow size="xs" direction="right" />}>

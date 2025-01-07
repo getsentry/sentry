@@ -200,13 +200,13 @@ class EventsTable extends Component<Props, State> {
       } else {
         if (field === 'id') {
           target = generateLinkToEventInTraceView({
-            traceSlug: dataRow.trace?.toString(),
-            projectSlug: dataRow['project.name']?.toString(),
+            traceSlug: dataRow.trace?.toString()!,
+            projectSlug: dataRow['project.name']?.toString()!,
             eventId: dataRow.id,
-            timestamp: dataRow.timestamp,
+            timestamp: dataRow.timestamp!,
             location: locationWithTab,
             organization,
-            transactionName: transactionName,
+            transactionName,
             source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
             view: this.props.domainViewFilters?.view,
           });
@@ -244,7 +244,7 @@ class EventsTable extends Component<Props, State> {
           allowActions={allowActions}
         >
           {target ? (
-            <ViewReplayLink replayId={dataRow.replayId} to={target}>
+            <ViewReplayLink replayId={dataRow.replayId!} to={target}>
               {rendered}
             </ViewReplayLink>
           ) : (
@@ -523,7 +523,7 @@ class EventsTable extends Component<Props, State> {
                   tableData ??= {data: []};
                   const pageEventsCount = tableData?.data?.length ?? 0;
                   const parsedPageLinks = parseLinkHeader(pageLinks);
-                  const cursor = parsedPageLinks?.next?.cursor;
+                  const cursor = parsedPageLinks?.next!?.cursor;
                   const shouldFetchAttachments: boolean =
                     organization.features.includes('event-attachments') &&
                     !!this.props.issueId &&

@@ -216,7 +216,7 @@
               },
               "statusDetails": {
                 "type": "object",
-                "description": "Additional details about the status of the issue.",
+                "description": "Additional details about the resolution. Supported values are `\"inRelease\"`, `\"inNextRelease\"`, `\"inCommit\"`, `\"ignoreDuration\"`, `\"ignoreCount\"`, `\"ignoreWindow\"`, `\"ignoreUserCount\"`, and `\"ignoreUserWindow\"`.",
                 "properties": {
                   "inNextRelease": {
                     "type": "boolean",

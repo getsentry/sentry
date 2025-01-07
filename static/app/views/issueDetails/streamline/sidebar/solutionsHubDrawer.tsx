@@ -8,13 +8,11 @@ import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
-import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
 import {AutofixSetupContent} from 'sentry/components/events/autofix/autofixSetupModal';
 import {AutofixSteps} from 'sentry/components/events/autofix/autofixSteps';
 import {useAiAutofix} from 'sentry/components/events/autofix/useAutofix';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
-import {GroupSummary, useGroupSummary} from 'sentry/components/group/groupSummary';
+import {GroupSummary} from 'sentry/components/group/groupSummary';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import Input from 'sentry/components/input';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -134,11 +132,6 @@ const AiSetupDataConsent = HookOrDefault({
 
 export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerProps) {
   const {autofixData, triggerAutofix, reset} = useAiAutofix(group, event);
-  const {
-    data: summaryData,
-    isError,
-    isPending: isSummaryLoading,
-  } = useGroupSummary(group, event, project);
   const aiConfig = useAiConfig(group, event, project);
 
   useRouteAnalyticsParams({
@@ -199,20 +192,17 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
             />
           </HeaderContainer>
           {autofixData && (
-            <ButtonBar gap={1}>
-              <AutofixFeedback />
-              <Button
-                size="xs"
-                onClick={reset}
-                title={
-                  autofixData.created_at
-                    ? `Last run at ${autofixData.created_at.split('T')[0]}`
-                    : null
-                }
-              >
-                {t('Start Over')}
-              </Button>
-            </ButtonBar>
+            <Button
+              size="xs"
+              onClick={reset}
+              title={
+                autofixData.created_at
+                  ? `Last run at ${autofixData.created_at.split('T')[0]}`
+                  : null
+              }
+            >
+              {t('Start Over')}
+            </Button>
           )}
         </HeaderText>
         {aiConfig.isAutofixSetupLoading ? (
@@ -225,11 +215,7 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
           <Fragment>
             {aiConfig.hasSummary && (
               <StyledCard>
-                <GroupSummary
-                  data={summaryData}
-                  isError={isError}
-                  isPending={isSummaryLoading}
-                />
+                <GroupSummary group={group} event={event} project={project} />
               </StyledCard>
             )}
             {aiConfig.hasAutofix && (

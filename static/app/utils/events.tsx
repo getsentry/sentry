@@ -1,3 +1,5 @@
+import * as Sentry from '@sentry/react';
+
 import {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
 import ConfigStore from 'sentry/stores/configStore';
 import type {
@@ -20,6 +22,10 @@ import {GroupActivityType, IssueCategory, IssueType} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
 import {uniq} from 'sentry/utils/array/uniq';
+import {
+  getExceptionGroupHeight,
+  getExceptionGroupWidth,
+} from 'sentry/utils/eventExceptionGroup';
 import {getDaysSinceDatePrecise} from 'sentry/utils/getDaysSinceDate';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
@@ -269,7 +275,7 @@ function getExceptionFrames(event: Event, inAppOnly: boolean) {
 /**
  * Returns all entries of type 'exception' of this event
  */
-function getExceptionEntries(event: Event) {
+export function getExceptionEntries(event: Event) {
   return (event.entries?.filter(entry => entry.type === EntryType.EXCEPTION) ||
     []) as EntryException[];
 }
@@ -349,6 +355,36 @@ export function eventHasExceptionGroup(event: Event) {
   );
 }
 
+export function eventExceptionGroupHeight(event: Event) {
+  try {
+    const exceptionEntry = getExceptionEntries(event)[0];
+
+    if (!exceptionEntry) {
+      return 0;
+    }
+
+    return getExceptionGroupHeight(exceptionEntry);
+  } catch (e) {
+    Sentry.captureException(e);
+    return 0;
+  }
+}
+
+export function eventExceptionGroupWidth(event: Event) {
+  try {
+    const exceptionEntry = getExceptionEntries(event)[0];
+
+    if (!exceptionEntry) {
+      return 0;
+    }
+
+    return getExceptionGroupWidth(exceptionEntry);
+  } catch (e) {
+    Sentry.captureException(e);
+    return 0;
+  }
+}
+
 export function eventHasGraphQlRequest(event: Event) {
   const requestEntry = event.entries?.find(entry => entry.type === EntryType.REQUEST) as
     | EntryRequest
@@ -390,6 +426,8 @@ export function getAnalyticsDataForEvent(event?: Event | null): BaseEventAnalyti
     event_type: event?.type,
     has_release: !!event?.release,
     has_exception_group: event ? eventHasExceptionGroup(event) : false,
+    exception_group_height: event ? eventExceptionGroupHeight(event) : 0,
+    exception_group_width: event ? eventExceptionGroupWidth(event) : 0,
     has_graphql_request: event ? eventHasGraphQlRequest(event) : false,
     has_profile: event ? hasProfile(event) : false,
     has_source_context: event ? eventHasSourceContext(event) : false,

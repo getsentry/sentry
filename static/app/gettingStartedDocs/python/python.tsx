@@ -28,8 +28,12 @@ const FLAG_OPTION_TO_IMPORT: Record<IntegrationOptions, FlagImports> = {
     integration: 'LaunchDarklyIntegration',
   },
   [IntegrationOptions.OPENFEATURE]: {
-    module: 'OpenFeature',
+    module: 'openfeature',
     integration: 'OpenFeatureIntegration',
+  },
+  [IntegrationOptions.GENERIC]: {
+    module: 'feature_flags',
+    integration: 'FeatureFlagsIntegration',
   },
 };
 

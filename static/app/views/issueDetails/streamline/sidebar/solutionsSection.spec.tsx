@@ -24,7 +24,11 @@ describe('SolutionsSection', () => {
   });
   const mockGroup = GroupFixture();
   const mockProject = ProjectFixture();
-  const organization = OrganizationFixture({genAIConsent: true, hideAiFeatures: false});
+  const organization = OrganizationFixture({
+    genAIConsent: true,
+    hideAiFeatures: false,
+    features: ['gen-ai-features'],
+  });
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -53,12 +57,17 @@ describe('SolutionsSection', () => {
         deleteAndDiscard: {enabled: false},
         ignore: {enabled: false},
         merge: {enabled: false},
+        resolve: {enabled: true},
         resolveInRelease: {enabled: false},
         share: {enabled: false},
+      },
+      customCopy: {
+        resolution: 'Resolved',
       },
       attachments: {enabled: false},
       autofix: true,
       discover: {enabled: false},
+      eventAndUserCounts: {enabled: true},
       events: {enabled: false},
       evidence: null,
       filterAndSearchHeader: {enabled: false},
@@ -96,7 +105,7 @@ describe('SolutionsSection', () => {
     );
 
     expect(screen.getByText('Solutions Hub')).toBeInTheDocument();
-    expect(screen.getAllByTestId('loading-placeholder')).toHaveLength(4);
+    expect(screen.getAllByTestId('loading-placeholder')).toHaveLength(3);
   });
 
   it('renders summary when AI features are enabled and data is available', async () => {
@@ -125,6 +134,7 @@ describe('SolutionsSection', () => {
     const customOrganization = OrganizationFixture({
       hideAiFeatures: true,
       genAIConsent: false,
+      features: ['gen-ai-features'],
     });
 
     render(
@@ -168,6 +178,7 @@ describe('SolutionsSection', () => {
       const customOrganization = OrganizationFixture({
         genAIConsent: false,
         hideAiFeatures: false,
+        features: ['gen-ai-features'],
       });
 
       MockApiClient.addMockResponse({

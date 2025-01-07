@@ -9,7 +9,7 @@ def make_ctx_snapshot(insta_snapshot):
     def inner(data):
         mgr = EventManager(data={"contexts": data})
         mgr.normalize()
-        evt = eventstore.backend.create_event(data=mgr.get_data())
+        evt = eventstore.backend.create_event(project_id=1, data=mgr.get_data())
         interface = evt.interfaces.get("contexts")
 
         insta_snapshot(
@@ -125,7 +125,7 @@ def test_large_numbers():
 
     mgr = EventManager(data={"contexts": data})
     mgr.normalize()
-    evt = eventstore.backend.create_event(data=mgr.get_data())
+    evt = eventstore.backend.create_event(project_id=1, data=mgr.get_data())
     interface = evt.interfaces.get("contexts")
     ctx_data = interface.to_json()["large_numbers"]
     for key in numeric_keys:
@@ -157,7 +157,7 @@ def test_large_nested_numbers():
 
     mgr = EventManager(data={"contexts": data})
     mgr.normalize()
-    evt = eventstore.backend.create_event(data=mgr.get_data())
+    evt = eventstore.backend.create_event(project_id=1, data=mgr.get_data())
     interface = evt.interfaces.get("contexts")
     ctx_data = interface.to_json()["large_numbers"]
 

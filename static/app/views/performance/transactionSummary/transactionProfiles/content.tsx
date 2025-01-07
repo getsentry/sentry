@@ -21,7 +21,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DeepPartial} from 'sentry/types/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
@@ -41,6 +40,7 @@ import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
   FlamegraphProvider,
@@ -360,6 +360,7 @@ const PROFILES_SORT = 'profilesSort';
 const PROFILES_CURSOR = 'profilesCursor';
 
 function ProfileList({query: userQuery, transaction}: TransactionProfilesContentProps) {
+  const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
 
@@ -418,7 +419,7 @@ function ProfileList({query: userQuery, transaction}: TransactionProfilesContent
 
   const handleSort = useCallback(
     (value: {value: SortOption}) => {
-      browserHistory.push({
+      navigate({
         ...location,
         query: {
           ...location.query,
@@ -427,15 +428,18 @@ function ProfileList({query: userQuery, transaction}: TransactionProfilesContent
         },
       });
     },
-    [location]
+    [location, navigate]
   );
 
-  const handleCursor = useCallback((newCursor, pathname, query) => {
-    browserHistory.push({
-      pathname,
-      query: {...query, [PROFILES_CURSOR]: newCursor},
-    });
-  }, []);
+  const handleCursor = useCallback(
+    (newCursor, pathname, query) => {
+      navigate({
+        pathname,
+        query: {...query, [PROFILES_CURSOR]: newCursor},
+      });
+    },
+    [navigate]
+  );
 
   return (
     <ProfileListContainer>
@@ -530,11 +534,10 @@ const TransactionProfilesContentContainer = styled('div')`
   /* false positive for grid layout */
   /* stylelint-disable */
   grid-template-areas: 'visualization digest';
-  grid-template-columns: 1fr 250px;
+  grid-template-columns: 1fr min-content;
   flex: 1;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  overflow: hidden;
 `;
 
 const ProfileVisualizationContainer = styled('div')`
@@ -546,7 +549,6 @@ const ProfileVisualizationContainer = styled('div')`
 `;
 
 const FlamegraphContainer = styled('div')`
-  overflow: hidden;
   display: flex;
 `;
 

@@ -230,6 +230,7 @@ function RootCauseContext({
           icon={<IconCode size="sm" color="subText" />}
           title={'Relevant code'}
           rounded
+          expandByDefault
         >
           <AutofixRootCauseCodeContexts codeContext={cause.code_context} repos={repos} />
         </ExpandableInsightContext>
@@ -279,7 +280,11 @@ export function SuggestedFixSnippet({
     if (!repo) {
       return undefined;
     }
-    return `${repo.url}/blob/${repo.default_branch}/${snippet.file_path}`;
+    return `${repo.url}/blob/${repo.default_branch}/${snippet.file_path}${
+      snippet.start_line && snippet.end_line
+        ? `#L${snippet.start_line}-L${snippet.end_line}`
+        : ''
+    }`;
   }
   const extension = getFileExtension(snippet.file_path);
   const language = extension ? getPrismLanguage(extension) : undefined;
@@ -298,7 +303,7 @@ export function SuggestedFixSnippet({
       </StyledCodeSnippet>
       {sourceLink && (
         <CodeLinkWrapper>
-          <Tooltip title={t('Open this file in GitHub')} skipWrapper>
+          <Tooltip title={t('Open in GitHub')} skipWrapper>
             <OpenInLink href={sourceLink} openInNewTab aria-label={t('GitHub')}>
               <StyledIconWrapper>{getIntegrationIcon('github', 'sm')}</StyledIconWrapper>
             </OpenInLink>
@@ -378,7 +383,7 @@ function AutofixRootCauseDisplay({
   rootCauseSelection,
   repos,
 }: AutofixRootCauseProps) {
-  const [selectedId, setSelectedId] = useState(() => causes[0].id);
+  const [selectedId, setSelectedId] = useState(() => causes[0]!.id);
   const {isPending, mutate: handleSelectFix} = useSelectCause({groupId, runId});
 
   if (rootCauseSelection) {
@@ -463,10 +468,24 @@ function AutofixRootCauseDisplay({
 }
 
 const cardAnimationProps: AnimationProps = {
-  exit: {opacity: 0},
-  initial: {opacity: 0, y: 20},
-  animate: {opacity: 1, y: 0},
-  transition: testableTransition({duration: 0.3}),
+  exit: {opacity: 0, height: 0, scale: 0.8, y: -20},
+  initial: {opacity: 0, height: 0, scale: 0.8},
+  animate: {opacity: 1, height: 'auto', scale: 1},
+  transition: testableTransition({
+    duration: 1.0,
+    height: {
+      type: 'spring',
+      bounce: 0.2,
+    },
+    scale: {
+      type: 'spring',
+      bounce: 0.2,
+    },
+    y: {
+      type: 'tween',
+      ease: 'easeOut',
+    },
+  }),
 };
 
 export function AutofixRootCause(props: AutofixRootCauseProps) {
@@ -622,7 +641,9 @@ const ContentWrapper = styled(motion.div)<{selected: boolean}>`
   }
 `;
 
-const AnimationWrapper = styled(motion.div)``;
+const AnimationWrapper = styled(motion.div)`
+  transform-origin: top center;
+`;
 
 const CustomRootCausePadding = styled('div')`
   padding: ${space(2)} ${space(2)} ${space(2)} ${space(2)};

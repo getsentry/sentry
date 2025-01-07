@@ -102,7 +102,7 @@ class FlamegraphTextRenderer extends TextRenderer {
 
       const endChild = upperBound(configView.right, frame.children);
       for (let i = lowerBound(configView.left, frame.children); i < endChild; i++) {
-        frames.push(frame.children[i]);
+        frames.push(frame.children[i]!);
       }
 
       // If a frame is lower than the top, we can skip drawing its text, however
@@ -149,7 +149,7 @@ class FlamegraphTextRenderer extends TextRenderer {
 
           for (let i = 0; i < frameResults.match.length; i++) {
             const highlightedBounds = computeHighlightedBounds(
-              frameResults.match[i],
+              frameResults.match[i]!,
               trim
             );
 

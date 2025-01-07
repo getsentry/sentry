@@ -18,8 +18,8 @@ from sentry.hybridcloud.rpc import RpcModel, RpcModelProtocolMeta
 
 class RpcApiApplication(RpcModel):
     id: int = -1
-    client_id: str = ""
-    client_secret: str = ""
+    client_id: str = Field(repr=False, default="")
+    client_secret: str = Field(repr=False, default="")
 
 
 class RpcSentryAppService(RpcModel):

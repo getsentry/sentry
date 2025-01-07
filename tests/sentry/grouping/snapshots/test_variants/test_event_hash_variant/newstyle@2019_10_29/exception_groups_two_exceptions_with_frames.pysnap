@@ -1,0 +1,87 @@
+---
+created: '2024-12-17T22:46:58.683797+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: "d505dfb9059ac63c11955233323a9100"
+  contributing component: chained-exception
+  component:
+    app*
+      chained-exception*
+        exception*
+          stacktrace*
+            frame*
+              module*
+                "dostuff"
+              function*
+                "do_stuff"
+            frame*
+              module*
+                "dostuff"
+              function*
+                "do_different_stuff"
+          type*
+            "DoStuffException"
+          value (ignored because stacktrace takes precedence)
+            "Can't do the stuff"
+        exception*
+          stacktrace*
+            frame*
+              module*
+                "dostuff"
+              function*
+                "do_other_stuff"
+            frame (ignored due to recursion)
+              module*
+                "dostuff"
+              function*
+                "do_other_stuff"
+          type*
+            "DoOtherStuffException"
+          value (ignored because stacktrace takes precedence)
+            "Can't do the other stuff"
+        exception*
+          type*
+            "System.AggregateException"
+          value*
+            "One or more errors occurred."
+--------------------------------------------------------------------------
+system:
+  hash: "4f9cc6a81f4eb34f9e917374f281b9dc"
+  contributing component: chained-exception
+  component:
+    system*
+      chained-exception*
+        exception*
+          stacktrace*
+            frame*
+              module*
+                "dostuff"
+              function*
+                "do_stuff"
+            frame*
+              module*
+                "dostuff"
+              function*
+                "do_different_stuff"
+          type*
+            "DoStuffException"
+          value (ignored because stacktrace takes precedence)
+            "Can't do the stuff"
+        exception*
+          stacktrace*
+            frame*
+              module*
+                "dostuff"
+              function*
+                "do_other_stuff"
+            frame (ignored due to recursion)
+              module*
+                "dostuff"
+              function*
+                "do_other_stuff"
+          type*
+            "DoOtherStuffException"
+          value (ignored because stacktrace takes precedence)
+            "Can't do the other stuff"

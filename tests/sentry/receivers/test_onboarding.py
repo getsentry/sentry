@@ -27,6 +27,7 @@ from sentry.signals import (
     member_joined,
     plugin_enabled,
     project_created,
+    transaction_processed,
 )
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
@@ -87,9 +88,9 @@ class OrganizationOnboardingTaskTest(TestCase):
                 "platform": "javascript",
                 "timestamp": before_now(minutes=1).isoformat(),
                 "tags": {
-                    "sentry:release": "e1b5d1900526feaf20fe2bc9cad83d392136030a",
                     "sentry:user": "id:41656",
                 },
+                "release": "e1b5d1900526feaf20fe2bc9cad83d392136030a",
                 "user": {"ip_address": "0.0.0.0", "id": "41656", "email": "test@example.com"},
                 "exception": {
                     "values": [
@@ -414,9 +415,9 @@ class OrganizationOnboardingTaskTest(TestCase):
                 "platform": "javascript",
                 "timestamp": before_now(minutes=1).isoformat(),
                 "tags": {
-                    "sentry:release": "e1b5d1900526feaf20fe2bc9cad83d392136030a",
                     "sentry:user": "id:41656",
                 },
+                "release": "e1b5d1900526feaf20fe2bc9cad83d392136030a",
                 "user": {"ip_address": "0.0.0.0", "id": "41656", "email": "test@example.com"},
                 "exception": {
                     "values": [
@@ -965,3 +966,489 @@ class OrganizationOnboardingTaskTest(TestCase):
                 status=OnboardingTaskStatus.COMPLETE,
             )
             assert task is not None
+
+    def test_release_received_through_transaction_event(self):
+        project = self.create_project()
+
+        event_data = load_data("transaction")
+        event_data.update({"release": "my-first-release", "tags": []})
+
+        event = self.store_event(data=event_data, project_id=project.id)
+        event_processed.send(project=project, event=event, sender=type(project))
+
+        task = OrganizationOnboardingTask.objects.get(
+            organization=project.organization,
+            task=OnboardingTask.RELEASE_TRACKING,
+            status=OnboardingTaskStatus.COMPLETE,
+        )
+        assert task is not None
+
+    def test_issue_alert_received_through_project_creation(self):
+        with self.feature("organizations:quick-start-updates"):
+            now = timezone.now()
+
+            first_organization = self.create_organization(owner=self.user, slug="first-org")
+            first_project = self.create_project(first_event=now, organization=first_organization)
+            # By default, the project creation will create a default rule
+            project_created.send(project=first_project, user=self.user, sender=type(first_project))
+            assert OrganizationOnboardingTask.objects.filter(
+                organization=first_project.organization,
+                task=OnboardingTask.ALERT_RULE,
+                status=OnboardingTaskStatus.COMPLETE,
+            ).exists()
+
+            second_organization = self.create_organization(owner=self.user, slug="second-org")
+            second_project = self.create_project(first_event=now, organization=second_organization)
+            # When creating a project, a user can opt out of creating a default rule
+            project_created.send(
+                project=second_project,
+                user=self.user,
+                sender=type(second_project),
+                default_rules=False,
+            )
+            assert not OrganizationOnboardingTask.objects.filter(
+                organization=second_project.organization,
+                task=OnboardingTask.ALERT_RULE,
+                status=OnboardingTaskStatus.COMPLETE,
+            ).exists()
+
+    # New quick start
+    @patch("sentry.analytics.record")
+    def test_new_onboarding_complete(self, record_analytics):
+        """
+        Test the new quick start happy path (without source maps)
+        """
+        with self.feature("organizations:quick-start-updates"):
+            # Create first project
+            project = self.create_project(platform="python")
+            project_created.send(
+                project=project, user=self.user, default_rules=False, sender=type(project)
+            )
+            assert (
+                OrganizationOnboardingTask.objects.get(
+                    organization=self.organization,
+                    task=OnboardingTask.FIRST_PROJECT,
+                    status=OnboardingTaskStatus.COMPLETE,
+                )
+                is not None
+            )
+            record_analytics.assert_called_with(
+                "project.created",
+                user_id=self.user.id,
+                default_user_id=self.organization.default_owner_id,
+                organization_id=self.organization.id,
+                project_id=project.id,
+                platform=project.platform,
+                updated_empty_state=False,
+            )
+
+            # Set up tracing
+            transaction_event = load_data("transaction")
+            transaction_event.update({"user": None})
+            event = self.store_event(data=transaction_event, project_id=project.id)
+            transaction_processed.send(project=project, event=event, sender=type(project))
+            assert (
+                OrganizationOnboardingTask.objects.get(
+                    organization=self.organization,
+                    task=OnboardingTask.FIRST_TRANSACTION,
+                    status=OnboardingTaskStatus.COMPLETE,
+                )
+                is not None
+            )
+            record_analytics.assert_called_with(
+                "first_transaction.sent",
+                default_user_id=self.organization.default_owner_id,
+                organization_id=self.organization.id,
+                project_id=project.id,
+                platform=project.platform,
+            )
+
+            #  Capture first error
+            error_event = self.store_event(
+                data={
+                    "event_id": "c" * 32,
+                    "message": "this is bad.",
+                    "timestamp": timezone.now().isoformat(),
+                    "type": "error",
+                },
+                project_id=project.id,
+            )
+            event_processed.send(project=project, event=error_event, sender=type(project))
+            assert (
+                OrganizationOnboardingTask.objects.get(
+                    organization=self.organization,
+                    task=OnboardingTask.FIRST_EVENT,
+                    status=OnboardingTaskStatus.COMPLETE,
+                )
+                is not None
+            )
+            record_analytics.assert_called_with(
+                "first_event.sent",
+                user_id=self.user.id,
+                organization_id=project.organization_id,
+                project_id=project.id,
+                platform=error_event.platform,
+                project_platform=project.platform,
+            )
+
+            # Configure an issue alert
+            alert_rule_created.send(
+                rule_id=Rule(id=1).id,
+                project=project,
+                user=self.user,
+                rule_type="issue",
+                sender=type(Rule),
+                is_api_token=False,
+            )
+            assert (
+                OrganizationOnboardingTask.objects.get(
+                    organization=self.organization,
+                    task=OnboardingTask.ALERT_RULE,
+                    status=OnboardingTaskStatus.COMPLETE,
+                )
+                is not None
+            )
+            record_analytics.assert_called_with(
+                "alert.created",
+                user_id=self.user.id,
+                default_user_id=self.organization.default_owner_id,
+                organization_id=self.organization.id,
+                project_id=project.id,
+                rule_id=Rule(id=1).id,
+                rule_type="issue",
+                referrer=None,
+                session_id=None,
+                is_api_token=False,
+                alert_rule_ui_component=None,
+                duplicate_rule=None,
+                wizard_v3=None,
+                query_type=None,
+            )
+
+            # Track releases
+            transaction_event = load_data("transaction")
+            transaction_event.update({"release": "my-first-release", "tags": []})
+            event = self.store_event(data=transaction_event, project_id=project.id)
+            transaction_processed.send(project=project, event=event, sender=type(project))
+            assert (
+                OrganizationOnboardingTask.objects.get(
+                    organization=self.organization,
+                    task=OnboardingTask.RELEASE_TRACKING,
+                    status=OnboardingTaskStatus.COMPLETE,
+                )
+                is not None
+            )
+            record_analytics.call_args_list[
+                len(record_analytics.call_args_list) - 2
+            ].assert_called_with(
+                "first_release_tag.sent",
+                user_id=self.user.id,
+                project_id=project.id,
+                organization_id=self.organization.id,
+            )
+
+            # Link Sentry to source code
+            github_integration = self.create_integration("github", 1234)
+            integration_added.send(
+                integration_id=github_integration.id,
+                organization_id=self.organization.id,
+                user_id=self.user.id,
+                sender=None,
+            )
+            assert (
+                OrganizationOnboardingTask.objects.get(
+                    organization=self.organization,
+                    task=OnboardingTask.LINK_SENTRY_TO_SOURCE_CODE,
+                    status=OnboardingTaskStatus.COMPLETE,
+                )
+                is not None
+            )
+            record_analytics.assert_called_with(
+                "integration.added",
+                user_id=self.user.id,
+                default_user_id=self.organization.default_owner_id,
+                organization_id=self.organization.id,
+                provider=github_integration.provider,
+                id=github_integration.id,
+            )
+
+            # Invite your team
+            user = self.create_user(email="test@example.org")
+            member = self.create_member(
+                organization=self.organization, teams=[self.team], email=user.email
+            )
+            member_invited.send(member=member, user=user, sender=type(member))
+            assert (
+                OrganizationOnboardingTask.objects.get(
+                    organization=self.organization,
+                    task=OnboardingTask.INVITE_MEMBER,
+                    status=OnboardingTaskStatus.PENDING,
+                )
+                is not None
+            )
+            record_analytics.assert_called_with(
+                "member.invited",
+                invited_member_id=member.id,
+                inviter_user_id=user.id,
+                organization_id=self.organization.id,
+                referrer=None,
+            )
+
+            # Member accepted the invite
+            member_joined.send(
+                organization_member_id=member.id,
+                organization_id=self.organization.id,
+                user_id=member.user_id,
+                sender=None,
+            )
+            assert (
+                OrganizationOnboardingTask.objects.get(
+                    organization=self.organization,
+                    task=OnboardingTask.INVITE_MEMBER,
+                    status=OnboardingTaskStatus.COMPLETE,
+                )
+                is not None
+            )
+            record_analytics.assert_called_with(
+                "organization.joined",
+                user_id=None,
+                organization_id=self.organization.id,
+            )
+
+            # The first group is complete but the beyond the basics is not
+            assert (
+                OrganizationOption.objects.filter(
+                    organization=self.organization, key="onboarding:complete"
+                ).count()
+                == 0
+            )
+
+            # Set up session replay
+            first_replay_received.send(project=project, sender=type(project))
+            assert (
+                OrganizationOnboardingTask.objects.get(
+                    organization=self.organization,
+                    task=OnboardingTask.SESSION_REPLAY,
+                    status=OnboardingTaskStatus.COMPLETE,
+                )
+                is not None
+            )
+            record_analytics.assert_called_with(
+                "first_replay.sent",
+                user_id=self.user.id,
+                organization_id=project.organization_id,
+                project_id=project.id,
+                platform=project.platform,
+            )
+
+            # Get real time notifications
+            slack_integration = self.create_integration("slack", 4321)
+            integration_added.send(
+                integration_id=slack_integration.id,
+                organization_id=self.organization.id,
+                user_id=self.user.id,
+                sender=None,
+            )
+            assert (
+                OrganizationOnboardingTask.objects.get(
+                    organization=self.organization,
+                    task=OnboardingTask.REAL_TIME_NOTIFICATIONS,
+                    status=OnboardingTaskStatus.COMPLETE,
+                )
+                is not None
+            )
+            record_analytics.assert_called_with(
+                "integration.added",
+                user_id=self.user.id,
+                default_user_id=self.organization.default_owner_id,
+                organization_id=self.organization.id,
+                provider=slack_integration.provider,
+                id=slack_integration.id,
+            )
+
+            # Add Sentry to other parts app
+            second_project = self.create_project(
+                first_event=timezone.now(), organization=self.organization
+            )
+            project_created.send(
+                project=second_project,
+                user=self.user,
+                sender=type(second_project),
+                default_rules=False,
+            )
+            assert (
+                OrganizationOnboardingTask.objects.get(
+                    organization=self.organization,
+                    task=OnboardingTask.SECOND_PLATFORM,
+                    status=OnboardingTaskStatus.COMPLETE,
+                )
+                is not None
+            )
+            record_analytics.call_args_list[
+                len(record_analytics.call_args_list) - 2
+            ].assert_called_with(
+                "second_platform.added",
+                user_id=self.user.id,
+                organization_id=self.organization.id,
+                project_id=second_project.id,
+            )
+
+            # Onboarding is complete
+            assert (
+                OrganizationOption.objects.filter(
+                    organization=self.organization, key="onboarding:complete"
+                ).count()
+                == 1
+            )
+            record_analytics.assert_called_with(
+                "onboarding.complete",
+                user_id=self.user.id,
+                organization_id=self.organization.id,
+                referrer="onboarding_tasks",
+            )
+
+    @patch("sentry.analytics.record")
+    def test_source_maps_as_required_task(self, record_analytics):
+        """
+        Test the new quick start happy path (with source maps)
+        """
+        with self.feature("organizations:quick-start-updates"):
+            # Create a project that can have source maps + create an issue alert
+            project = self.create_project(platform="javascript")
+            project_created.send(project=project, user=self.user, sender=type(project))
+
+            # Capture first transaction + release
+            transaction_event = load_data("transaction")
+            transaction_event.update({"release": "my-first-release", "tags": []})
+            event = self.store_event(data=transaction_event, project_id=project.id)
+            transaction_processed.send(project=project, event=event, sender=type(project))
+
+            #  Capture first error
+            error_event = self.store_event(
+                data={
+                    "event_id": "c" * 32,
+                    "message": "this is bad.",
+                    "timestamp": timezone.now().isoformat(),
+                    "type": "error",
+                    "release": "my-first-release",
+                },
+                project_id=project.id,
+            )
+            event_processed.send(project=project, event=error_event, sender=type(project))
+
+            # Invite your team
+            user = self.create_user(email="test@example.org")
+            member = self.create_member(
+                organization=self.organization, teams=[self.team], email=user.email
+            )
+            member_invited.send(member=member, user=user, sender=type(member))
+
+            # Member accepted the invite
+            member_joined.send(
+                organization_member_id=member.id,
+                organization_id=self.organization.id,
+                user_id=member.user_id,
+                sender=None,
+            )
+
+            # Link Sentry to source code
+            github_integration = self.create_integration("github", 1234)
+            integration_added.send(
+                integration_id=github_integration.id,
+                organization_id=self.organization.id,
+                user_id=self.user.id,
+                sender=None,
+            )
+
+            # Set up session replay
+            first_replay_received.send(project=project, sender=type(project))
+
+            # Get real time notifications
+            slack_integration = self.create_integration("slack", 4321)
+            integration_added.send(
+                integration_id=slack_integration.id,
+                organization_id=self.organization.id,
+                user_id=self.user.id,
+                sender=None,
+            )
+
+            # Add Sentry to other parts app
+            second_project = self.create_project(
+                first_event=timezone.now(), organization=self.organization
+            )
+            project_created.send(
+                project=second_project,
+                user=self.user,
+                sender=type(second_project),
+                default_rules=False,
+            )
+
+            # Onboarding is NOT yet complete
+            assert (
+                OrganizationOption.objects.filter(
+                    organization=self.organization, key="onboarding:complete"
+                ).count()
+                == 0
+            )
+
+            # Unminify your code
+            # Send event with source map
+            data = load_data("javascript")
+            data["exception"] = {
+                "values": [
+                    {
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "data": {
+                                        "sourcemap": "https://media.sentry.io/_static/29e365f8b0d923bc123e8afa38d890c3/sentry/dist/vendor.js.map"
+                                    }
+                                }
+                            ]
+                        },
+                        "type": "TypeError",
+                    }
+                ]
+            }
+
+            event_with_sourcemap = self.store_event(
+                project_id=project.id,
+                data=data,
+            )
+            event_processed.send(project=project, event=event_with_sourcemap, sender=type(project))
+            assert (
+                OrganizationOnboardingTask.objects.get(
+                    organization=self.organization,
+                    task=OnboardingTask.SOURCEMAPS,
+                    status=OnboardingTaskStatus.COMPLETE,
+                )
+                is not None
+            )
+            record_analytics.call_args_list[
+                len(record_analytics.call_args_list) - 2
+            ].assert_called_with(
+                "first_sourcemaps.sent",
+                user_id=self.user.id,
+                organization_id=self.organization.id,
+                project_id=project.id,
+                platform=event_with_sourcemap.platform,
+                project_platform=project.platform,
+                url=dict(event_with_sourcemap.tags).get("url", None),
+            )
+            record_analytics.assert_called_with(
+                "first_sourcemaps_for_project.sent",
+                user_id=self.user.id,
+                organization_id=self.organization.id,
+                project_id=project.id,
+                platform=event_with_sourcemap.platform,
+                project_platform=project.platform,
+                url=dict(event_with_sourcemap.tags).get("url", None),
+            )
+
+            # Onboarding is NOW complete
+            assert (
+                OrganizationOption.objects.filter(
+                    organization=self.organization, key="onboarding:complete"
+                ).count()
+                == 1
+            )

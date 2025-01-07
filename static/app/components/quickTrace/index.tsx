@@ -394,20 +394,20 @@ function EventNodeSelector({
     const hoverText = totalErrors ? (
       t('View the error for this Transaction')
     ) : (
-      <SingleEventHoverText event={events[0]} />
+      <SingleEventHoverText event={events[0]!} />
     );
     const target = errors.length
-      ? generateSingleErrorTarget(errors[0], organization, location, errorDest)
+      ? generateSingleErrorTarget(errors[0]!, organization, location, errorDest)
       : perfIssues.length
-        ? generateSingleErrorTarget(perfIssues[0], organization, location, errorDest)
+        ? generateSingleErrorTarget(perfIssues[0]!, organization, location, errorDest)
         : generateLinkToEventInTraceView({
             traceSlug,
-            eventId: events[0].event_id,
-            projectSlug: events[0].project_slug,
-            timestamp: events[0].timestamp,
+            eventId: events[0]!.event_id,
+            projectSlug: events[0]!.project_slug,
+            timestamp: events[0]!.timestamp,
             location,
             organization,
-            transactionName: events[0].transaction,
+            transactionName: events[0]!.transaction,
             type: transactionDest,
           });
     return (

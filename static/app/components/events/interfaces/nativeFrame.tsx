@@ -39,7 +39,7 @@ import type {PlatformKey} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
-import {SectionKey, useEventDetails} from 'sentry/views/issueDetails/streamline/context';
+import {SectionKey, useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {getFoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
@@ -80,7 +80,6 @@ function NativeFrame({
   frame,
   nextFrame,
   prevFrame,
-  includeSystemFrames,
   isUsedForGrouping,
   maxLengthOfRelativeAddress,
   image,
@@ -104,7 +103,7 @@ function NativeFrame({
 }: Props) {
   const traceEventDataSectionContext = useContext(TraceEventDataSectionContext);
 
-  const {sectionData} = useEventDetails();
+  const {sectionData} = useIssueDetails();
   const debugSectionConfig = sectionData[SectionKey.DEBUGMETA];
   const [_isCollapsed, setIsCollapsed] = useSyncedLocalStorageState(
     getFoldSectionKey(SectionKey.DEBUGMETA),
@@ -134,16 +133,13 @@ function NativeFrame({
     (hasStreamlinedUI ? !!debugSectionConfig : true);
 
   const leadsToApp = !frame.inApp && (nextFrame?.inApp || !nextFrame);
-  const expandable =
-    !leadsToApp || includeSystemFrames
-      ? isExpandable({
-          frame,
-          registers,
-          platform,
-          emptySourceNotation,
-          isOnlyFrame,
-        })
-      : false;
+  const expandable = isExpandable({
+    frame,
+    registers,
+    platform,
+    emptySourceNotation,
+    isOnlyFrame,
+  });
 
   const inlineFrame =
     prevFrame &&

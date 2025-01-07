@@ -9,12 +9,12 @@ from sentry.integrations.pagerduty.actions.notification import PagerDutyNotifySe
 from sentry.integrations.pagerduty.utils import add_service
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.silo.base import SiloMode
+from sentry.testutils.asserts import assert_halt_metric, assert_slo_metric
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
-from tests.sentry.integrations.utils.test_assert_metrics import assert_halt_metric
 
 pytestmark = [requires_snuba]
 
@@ -172,6 +172,18 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         assert data["payload"]["summary"] == group_event.occurrence.issue_title
         assert data["payload"]["custom_details"]["title"] == group_event.occurrence.issue_title
 
+    def test_render_label_without_severity(self):
+        rule_data = {
+            "account": self.integration.id,
+            "service": self.service["id"],
+        }
+        rule = self.get_rule(data=rule_data)
+
+        assert (
+            rule.render_label()
+            == "Send a notification to PagerDuty account Example and service Critical with default severity"
+        )
+
     def test_render_label(self):
         rule_data = {
             "account": self.integration.id,
@@ -182,16 +194,8 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
 
         assert (
             rule.render_label()
-            == "Send a notification to PagerDuty account Example and service Critical"
+            == "Send a notification to PagerDuty account Example and service Critical with warning severity"
         )
-
-        with self.feature("organizations:integrations-custom-alert-priorities"):
-            # reinitialize rule to utilize flag
-            rule = self.get_rule(data=rule_data)
-            assert (
-                rule.render_label()
-                == "Send a notification to PagerDuty account Example and service Critical with warning severity"
-            )
 
     def test_render_label_without_integration(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -206,16 +210,8 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
 
         assert (
             rule.render_label()
-            == "Send a notification to PagerDuty account [removed] and service [removed]"
+            == "Send a notification to PagerDuty account [removed] and service [removed] with default severity"
         )
-
-        with self.feature("organizations:integrations-custom-alert-priorities"):
-            # reinitialize rule to utilize flag
-            rule = self.get_rule(data=rule_data)
-            assert (
-                rule.render_label()
-                == "Send a notification to PagerDuty account [removed] and service [removed] with default severity"
-            )
 
     def test_valid_service_options(self):
         # create new org that has the same pd account but different a service added
@@ -329,8 +325,5 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         form = rule.get_form_instance()
         assert not form.is_valid()
         assert len(form.errors) == 1
-        assert len(mock_record.mock_calls) == 2
-        start, halt = mock_record.mock_calls
-        assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert halt.args[0] == EventLifecycleOutcome.HALTED
+        assert_slo_metric(mock_record, EventLifecycleOutcome.HALTED)
         assert_halt_metric(mock_record, OnCallIntegrationsHaltReason.INVALID_SERVICE.value)

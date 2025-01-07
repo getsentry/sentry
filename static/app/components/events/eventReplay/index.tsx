@@ -1,4 +1,4 @@
-import {lazy, useEffect} from 'react';
+import {lazy} from 'react';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {ReplayClipSection} from 'sentry/components/events/eventReplay/replayClipSection';
@@ -8,7 +8,6 @@ import type {Group} from 'sentry/types/group';
 import useEventCanShowReplayUpsell from 'sentry/utils/event/useEventCanShowReplayUpsell';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
-import useUrlParams from 'sentry/utils/useUrlParams';
 import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
 
 interface Props {
@@ -28,14 +27,6 @@ export default function EventReplay({event, group, projectSlug}: Props) {
     projectSlug,
   });
   const isSampleError = useIsSampleEvent();
-
-  const {setParamValue: setProjectId} = useUrlParams('project');
-
-  useEffect(() => {
-    if (canShowUpsell) {
-      setProjectId(upsellProjectId);
-    }
-  }, [upsellProjectId, setProjectId, canShowUpsell]);
 
   if (replayId) {
     return <ReplayClipSection event={event} replayId={replayId} group={group} />;

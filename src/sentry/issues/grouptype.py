@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import importlib
+import logging
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import timedelta
 from enum import Enum, StrEnum
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, ClassVar
 
 import sentry_sdk
 from django.apps import apps
@@ -21,11 +22,8 @@ from sentry.utils import metrics
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
     from sentry.models.project import Project
-    from sentry.users.models.user import User
-    from sentry.workflow_engine.processors.detector import DetectorHandler
-    from sentry.workflow_engine.endpoints.validators import BaseGroupTypeDetectorValidator
-
-import logging
+    from sentry.workflow_engine.endpoints.validators.base import BaseGroupTypeDetectorValidator
+    from sentry.workflow_engine.handlers.detector import DetectorHandler
 
 logger = logging.getLogger(__name__)
 
@@ -174,6 +172,10 @@ class GroupType:
     notification_config: NotificationConfig = NotificationConfig()
     detector_handler: type[DetectorHandler] | None = None
     detector_validator: type[BaseGroupTypeDetectorValidator] | None = None
+    # Controls whether status change (i.e. resolved, regressed) workflow notifications are enabled.
+    # Defaults to true to maintain the default workflow notification behavior as it exists for error group types.
+    enable_status_change_workflow_notifications: bool = True
+    detector_config_schema: ClassVar[dict[str, Any]] = {}
 
     def __init_subclass__(cls: type[GroupType], **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
@@ -188,13 +190,6 @@ class GroupType:
         valid_categories = [category.value for category in GroupCategory]
         if self.category not in valid_categories:
             raise ValueError(f"Category must be one of {valid_categories} from GroupCategory.")
-
-    @classmethod
-    def is_visible(cls, organization: Organization, user: User | None = None) -> bool:
-        if cls.released:
-            return True
-
-        return features.has(cls.build_visible_feature_name(), organization, actor=user)
 
     @classmethod
     def allow_ingest(cls, organization: Organization) -> bool:
@@ -266,6 +261,8 @@ class ErrorGroupType(GroupType):
     category = GroupCategory.ERROR.value
     default_priority = PriorityLevel.MEDIUM
     released = True
+    # TODO(cathy): add detector validator
+    detector_config_schema = {"type": "object", "additionalProperties": False}  # empty schema
 
 
 # used as an additional superclass for Performance GroupType defaults
@@ -635,6 +632,7 @@ class MetricIssuePOC(GroupType):
     default_priority = PriorityLevel.HIGH
     enable_auto_resolve = False
     enable_escalation_detection = False
+    enable_status_change_workflow_notifications = False
 
 
 def should_create_group(
@@ -669,7 +667,7 @@ def should_create_group(
         return False
 
 
-def import_grouptype():
+def import_grouptype() -> None:
     """
     Ensures that grouptype.py is imported in any apps that implement it. We do this to make sure that all implemented
     grouptypes are loaded and registered.

@@ -25,7 +25,7 @@ export default function useFlagSeries({query = {}, event}: FlagSeriesProps) {
   } = useOrganizationFlagLog({organization, query});
   const {selection} = usePageFilters();
 
-  if (!rawFlagData || isError || isPending) {
+  if (!rawFlagData || !rawFlagData.data.length || isError || isPending) {
     return {
       seriesName: t('Feature Flags'),
       markLine: {},
@@ -34,10 +34,18 @@ export default function useFlagSeries({query = {}, event}: FlagSeriesProps) {
   }
 
   const hydratedFlagData = hydrateToFlagSeries(rawFlagData);
-  const evaluatedFlagNames = event?.contexts.flags?.values.map(f => f.flag);
+  const evaluatedFlagNames = event?.contexts?.flags?.values?.map(f => f.flag);
   const intersectionFlags = hydratedFlagData.filter(f =>
     evaluatedFlagNames?.includes(f.name)
   );
+
+  if (!intersectionFlags.length) {
+    return {
+      seriesName: t('Feature Flags'),
+      markLine: {},
+      data: [],
+    };
+  }
 
   // create a markline series using hydrated flag data
   const markLine = MarkLine({

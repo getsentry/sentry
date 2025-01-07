@@ -34,6 +34,14 @@ jest.spyOn(window.Element.prototype, 'getBoundingClientRect').mockImplementation
 describe('EventFeatureFlagList', function () {
   beforeEach(function () {
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1/events/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/flags/logs/',
+      body: {data: []},
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/prompts-activity/',
       body: {data: {}},
     });
@@ -168,8 +176,8 @@ describe('EventFeatureFlagList', function () {
     // expect enableReplay to be preceding webVitalsFlag
     expect(
       screen
-        .getByText(webVitalsFlag.flag)
-        .compareDocumentPosition(screen.getByText(enableReplay.flag))
+        .getByText(webVitalsFlag!.flag)
+        .compareDocumentPosition(screen.getByText(enableReplay!.flag))
     ).toBe(document.DOCUMENT_POSITION_PRECEDING);
 
     const sortControl = screen.getByRole('button', {
@@ -181,8 +189,8 @@ describe('EventFeatureFlagList', function () {
     // expect enableReplay to be following webVitalsFlag
     expect(
       screen
-        .getByText(webVitalsFlag.flag)
-        .compareDocumentPosition(screen.getByText(enableReplay.flag))
+        .getByText(webVitalsFlag!.flag)
+        .compareDocumentPosition(screen.getByText(enableReplay!.flag))
     ).toBe(document.DOCUMENT_POSITION_FOLLOWING);
 
     await userEvent.click(sortControl);
@@ -191,8 +199,8 @@ describe('EventFeatureFlagList', function () {
     // expect enableReplay to be preceding webVitalsFlag, A-Z sort by default
     expect(
       screen
-        .getByText(webVitalsFlag.flag)
-        .compareDocumentPosition(screen.getByText(enableReplay.flag))
+        .getByText(webVitalsFlag!.flag)
+        .compareDocumentPosition(screen.getByText(enableReplay!.flag))
     ).toBe(document.DOCUMENT_POSITION_PRECEDING);
 
     await userEvent.click(sortControl);
@@ -201,8 +209,8 @@ describe('EventFeatureFlagList', function () {
     // expect enableReplay to be following webVitalsFlag
     expect(
       screen
-        .getByText(webVitalsFlag.flag)
-        .compareDocumentPosition(screen.getByText(enableReplay.flag))
+        .getByText(webVitalsFlag!.flag)
+        .compareDocumentPosition(screen.getByText(enableReplay!.flag))
     ).toBe(document.DOCUMENT_POSITION_FOLLOWING);
   });
 
@@ -215,7 +223,7 @@ describe('EventFeatureFlagList', function () {
     expect(search).not.toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Set Up Integration'})).toBeInTheDocument();
     expect(
-      screen.queryByText('No feature flags were found for this event')
+      screen.getByText('No feature flags were found for this event')
     ).toBeInTheDocument();
   });
 

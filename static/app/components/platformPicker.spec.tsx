@@ -88,6 +88,7 @@ describe('PlatformPicker', function () {
       'Nest.js',
       'Next.js',
       'Node.js',
+      'Nuxt',
       'PHP',
       'Python',
       'Rails',
@@ -103,7 +104,7 @@ describe('PlatformPicker', function () {
     const platformNames = screen.getAllByRole('heading', {level: 3});
 
     platformNames.forEach((platform, index) => {
-      expect(platform).toHaveTextContent(alphabeticallyOrderedPlatformNames[index]);
+      expect(platform).toHaveTextContent(alphabeticallyOrderedPlatformNames[index]!);
     });
   });
 

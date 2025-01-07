@@ -65,9 +65,12 @@ SnubaData = list[SnubaRow]
 
 
 class EventsMeta(TypedDict):
+    datasetReason: NotRequired[str]
     fields: dict[str, str]
     tips: NotRequired[dict[str, str | None]]
     isMetricsData: NotRequired[bool]
+    isMetricsExtractedData: NotRequired[bool]
+    discoverSplitDecision: NotRequired[str]
 
 
 class EventsResponse(TypedDict):
@@ -99,6 +102,9 @@ class SnubaParams:
 
         # Only used in the trend query builder
         self.aliases: dict[str, Alias] | None = {}
+
+    def __repr__(self) -> str:
+        return f"<SnubaParams: start={self.start},end={self.end},environments={self.environment_ids},projects={self.project_ids}>"
 
     def parse_stats_period(self) -> None:
         if self.stats_period is not None:

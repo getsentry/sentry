@@ -4,7 +4,12 @@ from unittest.mock import patch
 
 import pytest
 
-from fixtures.sdk_crash_detection.crash_event_android import get_apex_crash_event, get_crash_event
+from fixtures.sdk_crash_detection.crash_event_android import (
+    get_apex_crash_event,
+    get_crash_event,
+    get_exception,
+    get_frames,
+)
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.safe import get_path, set_path
@@ -148,31 +153,31 @@ def test_sdk_crash_is_reported_with_android_paths(
     [
         (
             "pthread_getcpuclockid",
-            "/apex/com.android.art/lib64/bionic/libc.so",
+            "/apex/com.android.runtime/lib64/bionic/libc.so",
             "/apex/com.android.art/lib64/libart.so",
             True,
         ),
         (
             "__pthread_getcpuclockid",
-            "/apex/com.android.art/lib64/bionic/libc.so",
+            "/apex/com.android.runtime/lib64/bionic/libc.so",
             "/apex/com.android.art/lib64/libart.so",
             True,
         ),
         (
             "pthread_getcpuclockid(void*)",
-            "/apex/com.android.art/lib64/bionic/libc.so",
+            "/apex/com.android.runtime/lib64/bionic/libc.so",
             "/apex/com.android.art/lib64/libart.so",
             True,
         ),
         (
             "pthread_getcpuclocki",
-            "/apex/com.android.art/lib64/bionic/libc.so",
+            "/apex/com.android.runtime/lib64/bionic/libc.so",
             "/apex/com.android.art/lib64/libart.so",
             False,
         ),
         (
             "pthread_getcpuclockid",
-            "/apex/com.android.art/lib64/bionic/libc.s",
+            "/apex/com.android.runtime/lib64/bionic/libc.s",
             "/apex/com.android.art/lib64/libart.so",
             False,
         ),
@@ -301,3 +306,95 @@ def test_too_low_min_sdk_version_not_detected(
     )
 
     assert mock_sdk_crash_reporter.report.call_count == 0
+
+
+@decorators
+def test_native_sdk_version_detected(mock_sdk_crash_reporter, mock_random, store_event, configs):
+    event_data = get_crash_event()
+    set_path(event_data, "sdk", "version", value="0.6.0")
+    set_path(event_data, "sdk", "name", value="sentry.native.android")
+    event = store_event(data=event_data)
+
+    configs[1].organization_allowlist = [event.project.organization_id]
+
+    sdk_crash_detection.detect_sdk_crash(
+        event=event,
+        configs=configs,
+    )
+
+    assert mock_sdk_crash_reporter.report.call_count == 1
+
+
+@decorators
+def test_native_sdk_version_too_low_not_detected(
+    mock_sdk_crash_reporter, mock_random, store_event, configs
+):
+    event_data = get_crash_event()
+    set_path(event_data, "sdk", "version", value="0.5.9")
+    set_path(event_data, "sdk", "name", value="sentry.native.android")
+    event = store_event(data=event_data)
+
+    configs[1].organization_allowlist = [event.project.organization_id]
+
+    sdk_crash_detection.detect_sdk_crash(
+        event=event,
+        configs=configs,
+    )
+
+    assert mock_sdk_crash_reporter.report.call_count == 0
+
+
+@decorators
+def test_anr_detected(mock_sdk_crash_reporter, mock_random, store_event, configs):
+    event_data = get_crash_event(
+        exception={
+            "values": [
+                get_exception(
+                    frames=get_frames(
+                        sdk_frame_module="io.sentry.Hub",
+                        system_frame_module="java.lang.reflect.Method",
+                    ),
+                    mechanism={"type": "ANR", "handled": True},
+                ),
+            ]
+        }
+    )
+
+    event = store_event(data=event_data)
+
+    configs[1].organization_allowlist = [event.project.organization_id]
+
+    sdk_crash_detection.detect_sdk_crash(
+        event=event,
+        configs=configs,
+    )
+
+    assert mock_sdk_crash_reporter.report.call_count == 1
+
+
+@decorators
+def test_appexitinfo_detected(mock_sdk_crash_reporter, mock_random, store_event, configs):
+    event_data = get_crash_event(
+        exception={
+            "values": [
+                get_exception(
+                    frames=get_frames(
+                        sdk_frame_module="io.sentry.Hub",
+                        system_frame_module="java.lang.reflect.Method",
+                    ),
+                    mechanism={"type": "AppExitInfo"},
+                ),
+            ]
+        }
+    )
+
+    event = store_event(data=event_data)
+
+    configs[1].organization_allowlist = [event.project.organization_id]
+
+    sdk_crash_detection.detect_sdk_crash(
+        event=event,
+        configs=configs,
+    )
+
+    assert mock_sdk_crash_reporter.report.call_count == 1

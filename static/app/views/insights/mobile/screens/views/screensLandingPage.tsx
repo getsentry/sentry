@@ -13,16 +13,17 @@ import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionT
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {NewQuery} from 'sentry/types/organization';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
+import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {PlatformSelector} from 'sentry/views/insights/mobile/screenload/components/platformSelector';
 import {SETUP_CONTENT as TTFD_SETUP} from 'sentry/views/insights/mobile/screenload/data/setupContent';
@@ -49,18 +50,22 @@ import {ModuleName} from 'sentry/views/insights/types';
 
 export function ScreensLandingPage() {
   const moduleName = ModuleName.MOBILE_SCREENS;
+  const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
   const {isProjectCrossPlatform, selectedPlatform} = useCrossPlatformProject();
 
   const handleProjectChange = useCallback(() => {
-    browserHistory.replace({
-      ...location,
-      query: {
-        ...omit(location.query, ['primaryRelease', 'secondaryRelease']),
+    navigate(
+      {
+        ...location,
+        query: {
+          ...omit(location.query, ['primaryRelease', 'secondaryRelease']),
+        },
       },
-    });
-  }, [location]);
+      {replace: true}
+    );
+  }, [location, navigate]);
   const {selection} = usePageFilters();
 
   const vitalItems: VitalItem[] = [
@@ -264,7 +269,7 @@ export function ScreensLandingPage() {
       item.dataset === DiscoverDatasets.METRICS ? metricsResult : spanMetricsResult;
 
     if (dataset.data) {
-      const row = dataset.data.data[0];
+      const row = dataset.data.data[0]!;
       const units = dataset.data.meta?.units;
       const fieldTypes = dataset.data.meta?.fields;
 
@@ -274,8 +279,8 @@ export function ScreensLandingPage() {
 
       return {
         type: fieldType,
-        unit: unit,
-        value: value,
+        unit,
+        value,
       };
     }
 
@@ -299,47 +304,49 @@ export function ScreensLandingPage() {
             headerActions={isProjectCrossPlatform && <PlatformSelector />}
             module={moduleName}
           />
-          <Layout.Body>
-            <Layout.Main fullWidth>
-              <Container>
-                <PageFilterBar condensed>
-                  <ProjectPageFilter onChange={handleProjectChange} />
-                  <EnvironmentPageFilter />
-                  <DatePageFilter />
-                </PageFilterBar>
-              </Container>
-              <PageAlert />
-              <ErrorBoundary mini>
+          <ModuleBodyUpsellHook moduleName={moduleName}>
+            <Layout.Body>
+              <Layout.Main fullWidth>
                 <Container>
-                  <Flex data-test-id="mobile-screens-top-metrics">
-                    {vitalItems.map(item => {
-                      const metricValue = metricValueFor(item);
-                      const status =
-                        (metricValue && item.getStatus(metricValue)) ?? STATUS_UNKNOWN;
-
-                      return (
-                        <VitalCard
-                          onClick={() => {
-                            setState({
-                              vital: item,
-                              status: status,
-                            });
-                          }}
-                          key={item.field}
-                          title={item.title}
-                          description={item.description}
-                          statusLabel={status.description}
-                          status={status.score}
-                          formattedValue={status.formattedValue}
-                        />
-                      );
-                    })}
-                  </Flex>
-                  <ScreensOverview />
+                  <PageFilterBar condensed>
+                    <ProjectPageFilter onChange={handleProjectChange} />
+                    <EnvironmentPageFilter />
+                    <DatePageFilter />
+                  </PageFilterBar>
                 </Container>
-              </ErrorBoundary>
-            </Layout.Main>
-          </Layout.Body>
+                <PageAlert />
+                <ErrorBoundary mini>
+                  <Container>
+                    <Flex data-test-id="mobile-screens-top-metrics">
+                      {vitalItems.map(item => {
+                        const metricValue = metricValueFor(item);
+                        const status =
+                          (metricValue && item.getStatus(metricValue)) ?? STATUS_UNKNOWN;
+
+                        return (
+                          <VitalCard
+                            onClick={() => {
+                              setState({
+                                vital: item,
+                                status,
+                              });
+                            }}
+                            key={item.field}
+                            title={item.title}
+                            description={item.description}
+                            statusLabel={status.description}
+                            status={status.score}
+                            formattedValue={status.formattedValue}
+                          />
+                        );
+                      })}
+                    </Flex>
+                    <ScreensOverview />
+                  </Container>
+                </ErrorBoundary>
+              </Layout.Main>
+            </Layout.Body>
+          </ModuleBodyUpsellHook>
           <VitalDetailPanel
             vital={state.vital}
             status={state.status}

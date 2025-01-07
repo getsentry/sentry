@@ -28,23 +28,11 @@ export default function useSuspectFlags({
 
   // map flag data to arrays of flag names
   const auditLogFlagNames = hydratedFlagData.map(f => f.name);
-  const evaluatedFlagNames = event?.contexts.flags?.values.map(f => f.flag);
+  const evaluatedFlagNames = event?.contexts?.flags?.values?.map(f => f.flag);
   const intersectionFlags = useMemo(
     () => intersection(auditLogFlagNames, evaluatedFlagNames),
     [auditLogFlagNames, evaluatedFlagNames]
   );
-
-  // no flags in common between event evaluations and audit log
-  useEffect(() => {
-    if (!intersectionFlags.length) {
-      trackAnalytics('flags.event_and_suspect_flags_found', {
-        numTotalFlags: hydratedFlagData.length,
-        numEventFlags: 0,
-        numSuspectFlags: 0,
-        organization,
-      });
-    }
-  }, [hydratedFlagData.length, intersectionFlags.length, organization]);
 
   // get all the audit log flag changes which happened prior to the first seen date
   const start = moment(firstSeen).subtract(1, 'year').format('YYYY-MM-DD HH:mm:ss');
@@ -63,13 +51,37 @@ export default function useSuspectFlags({
     {
       staleTime: 0,
       // if no intersection, then there are no suspect flags
-      enabled: Boolean(
-        organization.features.includes('feature-flag-ui') && intersectionFlags.length
-      ),
+      enabled: Boolean(intersectionFlags.length),
     }
   );
 
   const {data, isError, isPending} = apiQueryResponse;
+
+  // no flags in common between event evaluations and audit log
+  // only track this analytic if there is at least 1 flag recorded
+  // in either the audit log or the event context
+  useEffect(() => {
+    if (
+      !intersectionFlags.length &&
+      (hydratedFlagData.length || evaluatedFlagNames?.length) &&
+      !isPending &&
+      !isError
+    ) {
+      trackAnalytics('flags.event_and_suspect_flags_found', {
+        numTotalFlags: hydratedFlagData.length,
+        numEventFlags: 0,
+        numSuspectFlags: 0,
+        organization,
+      });
+    }
+  }, [
+    hydratedFlagData.length,
+    intersectionFlags.length,
+    organization,
+    evaluatedFlagNames?.length,
+    isPending,
+    isError,
+  ]);
 
   // remove duplicate flags - keeps the one closest to the firstSeen date
   // cap the number of suspect flags to the 3 closest to the firstSeen date
@@ -97,11 +109,11 @@ export default function useSuspectFlags({
       });
     }
   }, [
-    hydratedFlagData,
+    hydratedFlagData.length,
     isError,
     isPending,
-    suspectFlags,
-    intersectionFlags,
+    suspectFlags.length,
+    intersectionFlags.length,
     organization,
   ]);
 

@@ -62,9 +62,7 @@ describe('AutofixSteps', () => {
     render(<AutofixSteps {...defaultProps} />);
 
     expect(screen.getByText('Root cause 1')).toBeInTheDocument();
-    expect(
-      screen.getByPlaceholderText('(Optional) Provide any instructions for the fix...')
-    ).toBeInTheDocument();
+    expect(screen.getByText('Use suggested root cause')).toBeInTheDocument();
   });
 
   it('handles root cause selection', async () => {
@@ -75,6 +73,8 @@ describe('AutofixSteps', () => {
     });
 
     render(<AutofixSteps {...defaultProps} />);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Use suggested root cause'}));
 
     const input = screen.getByPlaceholderText(
       '(Optional) Provide any instructions for the fix...'
@@ -98,6 +98,7 @@ describe('AutofixSteps', () => {
 
     render(<AutofixSteps {...defaultProps} />);
 
+    await userEvent.click(screen.getByRole('button', {name: 'Use suggested root cause'}));
     await userEvent.click(screen.getByRole('button', {name: 'Find a Fix'}));
 
     await waitFor(() => {
@@ -107,8 +108,10 @@ describe('AutofixSteps', () => {
     });
   });
 
-  it('renders AutofixMessageBox with correct props', () => {
+  it('renders AutofixMessageBox with correct props', async () => {
     render(<AutofixSteps {...defaultProps} />);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Use suggested root cause'}));
 
     const messageBox = screen.getByPlaceholderText(
       '(Optional) Provide any instructions for the fix...'
@@ -150,7 +153,8 @@ describe('AutofixSteps', () => {
 
   it('handles iterating on changes step', async () => {
     MockApiClient.addMockResponse({
-      url: '/issues/group1/autofix/setup/',
+      url: '/issues/group1/autofix/setup/?check_write_access=true',
+      method: 'GET',
       body: {
         genAIConsent: {ok: true},
         integration: {ok: true},
@@ -194,7 +198,9 @@ describe('AutofixSteps', () => {
 
     render(<AutofixSteps {...propsWithChanges} />);
 
-    const input = screen.getByPlaceholderText('Share helpful context or feedback...');
+    await userEvent.click(screen.getByRole('button', {name: 'Iterate'}));
+
+    const input = screen.getByPlaceholderText('Share helpful context or directions...');
     await userEvent.type(input, 'Feedback on changes');
     await userEvent.click(screen.getByRole('button', {name: 'Send'}));
 

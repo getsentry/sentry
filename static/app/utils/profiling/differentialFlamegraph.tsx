@@ -183,7 +183,7 @@ export function diffFlamegraphTreeRecursive(
     // other node has children, add them to the removedFrames list
     if (!afterFrameChildrenLength && beforeFrameChildrenLength) {
       for (let i = 0; i < beforeFrameChildrenLength; i++) {
-        removedFrames = removedFrames.concat(getTreeNodes(beforeFrame.children[i]));
+        removedFrames = removedFrames.concat(getTreeNodes(beforeFrame.children[i]!));
       }
       return;
     }
@@ -192,7 +192,7 @@ export function diffFlamegraphTreeRecursive(
     // we mark the entire part of the tree as new
     if (!beforeFrameChildrenLength && afterFrameChildrenLength) {
       for (let i = 0; i < afterFrameChildrenLength; i++) {
-        newFrames = newFrames.concat(getTreeNodes(afterFrame.children[i]));
+        newFrames = newFrames.concat(getTreeNodes(afterFrame.children[i]!));
       }
       return;
     }
@@ -200,26 +200,26 @@ export function diffFlamegraphTreeRecursive(
     let j = 0;
     for (let i = 0; i < afterFrameChildrenLength; i++) {
       for (; j < beforeFrameChildrenLength; j++) {
-        const result = compareFrames(beforeFrame.children[j], afterFrame.children[i]);
+        const result = compareFrames(beforeFrame.children[j]!, afterFrame.children[i]!);
 
         if (result === 0) {
-          visit(beforeFrame.children[j], afterFrame.children[i]);
+          visit(beforeFrame.children[j]!, afterFrame.children[i]!);
           ++j;
           break;
         }
         if (result === -1) {
-          removedFrames = removedFrames.concat(getTreeNodes(beforeFrame.children[j]));
+          removedFrames = removedFrames.concat(getTreeNodes(beforeFrame.children[j]!));
           continue;
         }
         if (result === 1) {
-          newFrames = newFrames.concat(getTreeNodes(afterFrame.children[i]));
+          newFrames = newFrames.concat(getTreeNodes(afterFrame.children[i]!));
           break;
         }
       }
     }
 
     while (j < beforeFrameChildrenLength) {
-      removedFrames = removedFrames.concat(getTreeNodes(beforeFrame.children[j]));
+      removedFrames = removedFrames.concat(getTreeNodes(beforeFrame.children[j]!));
       j++;
     }
   }

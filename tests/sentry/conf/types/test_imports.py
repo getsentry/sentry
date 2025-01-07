@@ -13,6 +13,7 @@ ALLOWLIST = frozenset(
     (
         "sentry.conf",
         "sentry.conf.types",
+        "sentry.conf.types.kafka_definition",
         # these come from sentry.__init__ -- please don't make this longer!
         "sentry._importchecker",
         "sentry.monkey",

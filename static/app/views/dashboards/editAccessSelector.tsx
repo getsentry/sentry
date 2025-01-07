@@ -1,7 +1,8 @@
-import {useEffect, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
+import sortBy from 'lodash/sortBy';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import AvatarList from 'sentry/components/avatar/avatarList';
@@ -60,10 +61,13 @@ function EditAccessSelector({
   const teamIds: string[] = Object.values(teamsToRender).map(team => team.id);
 
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
+  const [stagedOptions, setStagedOptions] = useState<string[]>([]);
   const [isMenuOpen, setMenuOpen] = useState<boolean>(false);
   const {teams: selectedTeam} = useTeamsById({
     ids:
-      selectedOptions[1] && selectedOptions[1] !== 'allUsers' ? [selectedOptions[1]] : [],
+      selectedOptions[1] && selectedOptions[1] !== '_allUsers'
+        ? [selectedOptions[1]]
+        : [],
   });
 
   // Gets selected options for the dropdown from dashboard object
@@ -79,7 +83,7 @@ function EditAccessSelector({
             ) ?? []),
           ];
     setSelectedOptions(selectedOptionsFromDashboard);
-  }, [dashboard, teamsToRender]);
+  }, [dashboard, teamsToRender, isMenuOpen]); // isMenuOpen dependency ensures perms are 'refreshed'
 
   // Handles state change when dropdown options are selected
   const onSelectOptions = newSelectedOptions => {
@@ -119,31 +123,34 @@ function EditAccessSelector({
         ? []
         : selectedOptions
             .filter(option => option !== '_creator')
-            .map(teamId => parseInt(teamId, 10)),
+            .map(teamId => parseInt(teamId, 10))
+            .sort((a, b) => a - b),
     };
   }
 
-  // Dashboard creator option in the dropdown
-  const makeCreatorOption = () => ({
-    value: '_creator',
-    label: (
-      <UserBadge
-        avatarSize={18}
-        user={dashboardCreator}
-        displayName={
-          <StyledDisplayName>
-            {dashboardCreator?.id === currentUser.id
-              ? tct('You ([email])', {email: currentUser.email})
-              : dashboardCreator?.email ||
-                tct('You ([email])', {email: currentUser.email})}
-          </StyledDisplayName>
-        }
-        displayEmail={t('Creator')}
-      />
-    ),
-    textValue: `creator_${currentUser.email}`,
-    disabled: true,
-  });
+  const makeCreatorOption = useCallback(
+    () => ({
+      value: '_creator',
+      label: (
+        <UserBadge
+          avatarSize={18}
+          user={dashboardCreator}
+          displayName={
+            <StyledDisplayName>
+              {dashboardCreator?.id === currentUser.id
+                ? tct('You ([email])', {email: currentUser.email})
+                : dashboardCreator?.email ||
+                  tct('You ([email])', {email: currentUser.email})}
+            </StyledDisplayName>
+          }
+          displayEmail={t('Creator')}
+        />
+      ),
+      textValue: `creator_${currentUser.email}`,
+      disabled: true,
+    }),
+    [dashboardCreator, currentUser]
+  );
 
   // Single team option in the dropdown
   const makeTeamOption = (team: Team) => ({
@@ -159,6 +166,7 @@ function EditAccessSelector({
     ) : selectedOptions.length === 2 ? (
       // Case where we display 1 Creator Avatar + 1 Team Avatar
       <StyledAvatarList
+        listonly={listOnly}
         key="avatar-list-2-badges"
         typeAvatars="users"
         users={[dashboardCreator]}
@@ -172,6 +180,7 @@ function EditAccessSelector({
       // Case where we display 1 Creator Avatar + a Badge with no. of teams selected
       <StyledAvatarList
         key="avatar-list-many-teams"
+        listonly={listOnly}
         typeAvatars="users"
         users={Array(selectedOptions.length).fill(dashboardCreator)}
         maxVisibleAvatars={1}
@@ -180,26 +189,38 @@ function EditAccessSelector({
       />
     );
 
-  const allDropdownOptions = [
-    makeCreatorOption(),
-    {
-      value: '_all_users_section',
-      options: [
-        {
-          value: '_allUsers',
-          label: t('All users'),
-          disabled: !userCanEditDashboardPermissions,
-        },
-      ],
-    },
-    {
-      value: '_teams',
-      label: t('Teams'),
-      options: teamsToRender.map(makeTeamOption),
-      showToggleAllButton: userCanEditDashboardPermissions,
-      disabled: !userCanEditDashboardPermissions,
-    },
-  ];
+  // Sorting function for team options
+  const listSort = useCallback(
+    (team: Team) => [
+      !stagedOptions.includes(team.id), // selected teams are shown first
+      team.slug, // sort rest alphabetically
+    ],
+    [stagedOptions]
+  );
+
+  const allDropdownOptions = useMemo(
+    () => [
+      makeCreatorOption(),
+      {
+        value: '_all_users_section',
+        options: [
+          {
+            value: '_allUsers',
+            label: t('All users'),
+            disabled: !userCanEditDashboardPermissions,
+          },
+        ],
+      },
+      {
+        value: '_teams',
+        label: t('Teams'),
+        options: sortBy(teamsToRender, listSort).map(makeTeamOption),
+        showToggleAllButton: userCanEditDashboardPermissions,
+        disabled: !userCanEditDashboardPermissions,
+      },
+    ],
+    [userCanEditDashboardPermissions, teamsToRender, makeCreatorOption, listSort]
+  );
 
   // Save and Cancel Buttons
   const dropdownFooterButtons = (
@@ -230,7 +251,12 @@ function EditAccessSelector({
         priority="primary"
         disabled={
           !userCanEditDashboardPermissions ||
-          isEqual(getDashboardPermissions(), dashboard.permissions)
+          isEqual(getDashboardPermissions(), {
+            ...dashboard.permissions,
+            teamsWithEditAccess: dashboard.permissions?.teamsWithEditAccess?.sort(
+              (a, b) => a - b
+            ),
+          })
         }
       >
         {t('Save Changes')}
@@ -254,19 +280,19 @@ function EditAccessSelector({
           ? [triggerAvatars]
           : [
               <StyledFeatureBadge
-                key="beta-badge"
-                type="beta"
-                title={t('This feature is available for early adopters and may change')}
+                key="new-badge"
+                type="new"
                 tooltipProps={{position: 'left', delay: 1000, isHoverable: true}}
               />,
-              t('Edit Access:'),
+              <LabelContainer key="selector-label">{t('Edit Access:')}</LabelContainer>,
               triggerAvatars,
             ]
       }
-      triggerProps={{borderless: listOnly}}
+      triggerProps={{borderless: listOnly, style: listOnly ? {padding: 2} : {}}}
       searchPlaceholder={t('Search Teams')}
       isOpen={isMenuOpen}
       onOpenChange={() => {
+        setStagedOptions(selectedOptions);
         setMenuOpen(!isMenuOpen);
       }}
       menuFooter={dropdownFooterButtons}
@@ -304,9 +330,14 @@ const StyledDisplayName = styled('div')`
   font-weight: normal;
 `;
 
-const StyledAvatarList = styled(AvatarList)`
-  margin-left: 10px;
-  margin-right: -3px;
+const StyledAvatarList = styled(AvatarList)<{listonly: boolean}>`
+  margin-left: ${space(0.75)};
+  margin-right: ${p => (p.listonly ? 0 : -3)}px;
+  font-weight: normal;
+`;
+
+const LabelContainer = styled('div')`
+  margin-right: ${space(1)};
 `;
 
 const StyledFeatureBadge = styled(FeatureBadge)`
@@ -323,6 +354,7 @@ const StyledBadge = styled(Badge)<{size: number}>`
   display: flex;
   justify-content: center;
   align-items: center;
+  margin-left: 0px;
 `;
 
 const FilterButtons = styled(ButtonBar)`

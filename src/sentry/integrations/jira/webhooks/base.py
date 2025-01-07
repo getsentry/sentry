@@ -37,7 +37,7 @@ class JiraWebhookBase(Endpoint, abc.ABC):
     def dispatch(self, request: Request, *args, **kwargs) -> Response:
         return super().dispatch(request, *args, **kwargs)
 
-    def handle_exception(
+    def handle_exception_with_details(
         self,
         request: Request,
         exc: Exception,
@@ -108,7 +108,7 @@ class JiraWebhookBase(Endpoint, abc.ABC):
 
         # This will log the error locally, capture the exception and send it to Sentry, and create a
         # generic 500/Internal Error response
-        return super().handle_exception(request, exc, handler_context, scope)
+        return super().handle_exception_with_details(request, exc, handler_context, scope)
 
     def get_token(self, request: Request) -> str:
         try:

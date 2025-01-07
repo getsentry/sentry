@@ -9,6 +9,7 @@ from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.models.incident import IncidentStatus, IncidentTrigger
 from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.models import SnubaQuery
 from sentry.testutils.cases import BaseIncidentsTest, BaseMetricsTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 
@@ -134,6 +135,34 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         # 1 hour comparison_delta
         alert_rule = self.create_alert_rule(
             comparison_delta=60, detection_type=AlertRuleDetectionType.PERCENT
+        )
+        date_started = self.now
+        incident = self.create_incident(
+            self.organization,
+            title="Incident #1",
+            projects=[self.project],
+            alert_rule=alert_rule,
+            status=IncidentStatus.CLOSED.value,
+            date_started=date_started,
+        )
+        trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
+        self.create_alert_rule_trigger_action(
+            alert_rule_trigger=trigger, triggered_for_incident=incident
+        )
+        metric_value = 123.12
+        data = incident_attachment_info(incident, IncidentStatus.CRITICAL, metric_value)
+        assert (
+            data["text"]
+            == "Events 123% higher in the last 10 minutes compared to the same time one hour ago"
+        )
+
+    def test_percent_change_alert_rpc(self):
+        # 1 hour comparison_delta
+        alert_rule = self.create_alert_rule(
+            comparison_delta=60,
+            detection_type=AlertRuleDetectionType.PERCENT,
+            dataset=Dataset.EventsAnalyticsPlatform,
+            query_type=SnubaQuery.Type.PERFORMANCE,
         )
         date_started = self.now
         incident = self.create_incident(

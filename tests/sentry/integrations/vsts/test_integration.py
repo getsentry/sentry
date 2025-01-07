@@ -13,11 +13,11 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pipeline import ensure_integration
-from sentry.integrations.types import EventLifecycleOutcome
 from sentry.integrations.vsts import VstsIntegration, VstsIntegrationProvider
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import IntegrationError, IntegrationProviderError
 from sentry.silo.base import SiloMode
+from sentry.testutils.asserts import assert_failure_metric
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.users.models.identity import Identity
@@ -166,12 +166,6 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
             assert Repository.objects.get(id=accessible_repo.id).integration_id == integration.id
             assert Repository.objects.get(id=inaccessible_repo.id).integration_id is None
 
-    def assert_failure_metric(self, mock_record, error_msg):
-        (event_failures,) = (
-            call for call in mock_record.mock_calls if call.args[0] == EventLifecycleOutcome.FAILURE
-        )
-        assert event_failures.args[1] == error_msg
-
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_accounts_list_failure(self, mock_record):
         responses.replace(
@@ -192,7 +186,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
         assert resp.status_code == 200, resp.content
         assert b"No accounts found" in resp.content
 
-        self.assert_failure_metric(mock_record, "no_accounts")
+        assert_failure_metric(mock_record, "no_accounts")
 
     @patch("sentry.integrations.vsts.VstsIntegrationProvider.get_scopes", return_value=FULL_SCOPES)
     def test_webhook_subscription_created_once(self, mock_get_scopes):

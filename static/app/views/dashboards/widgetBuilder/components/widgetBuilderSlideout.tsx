@@ -1,32 +1,116 @@
+import {useEffect, useRef, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import isEqual from 'lodash/isEqual';
 
 import {Button} from 'sentry/components/button';
+import {openConfirmModal} from 'sentry/components/confirm';
 import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import useMedia from 'sentry/utils/useMedia';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
+import {
+  type DashboardDetails,
+  type DashboardFilters,
+  DisplayType,
+  type Widget,
+  WidgetType,
+} from 'sentry/views/dashboards/types';
 import WidgetBuilderDatasetSelector from 'sentry/views/dashboards/widgetBuilder/components/datasetSelector';
-import DevBuilder from 'sentry/views/dashboards/widgetBuilder/components/devBuilder';
 import WidgetBuilderFilterBar from 'sentry/views/dashboards/widgetBuilder/components/filtersBar';
+import WidgetBuilderGroupBySelector from 'sentry/views/dashboards/widgetBuilder/components/groupBySelector';
 import WidgetBuilderNameAndDescription from 'sentry/views/dashboards/widgetBuilder/components/nameAndDescFields';
+import {WidgetPreviewContainer} from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilder';
+import WidgetBuilderQueryFilterBuilder from 'sentry/views/dashboards/widgetBuilder/components/queryFilterBuilder';
+import RPCToggle from 'sentry/views/dashboards/widgetBuilder/components/rpcToggle';
+import SaveButton from 'sentry/views/dashboards/widgetBuilder/components/saveButton';
+import WidgetBuilderSortBySelector from 'sentry/views/dashboards/widgetBuilder/components/sortBySelector';
+import WidgetBuilderTypeSelector from 'sentry/views/dashboards/widgetBuilder/components/typeSelector';
+import Visualize from 'sentry/views/dashboards/widgetBuilder/components/visualize';
+import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 
 type WidgetBuilderSlideoutProps = {
+  dashboard: DashboardDetails;
+  dashboardFilters: DashboardFilters;
   isOpen: boolean;
+  isWidgetInvalid: boolean;
   onClose: () => void;
+  onQueryConditionChange: (valid: boolean) => void;
+  onSave: ({index, widget}: {index: number; widget: Widget}) => void;
+  setIsPreviewDraggable: (draggable: boolean) => void;
 };
 
-function WidgetBuilderSlideout({isOpen, onClose}: WidgetBuilderSlideoutProps) {
+function WidgetBuilderSlideout({
+  isOpen,
+  onClose,
+  onSave,
+  onQueryConditionChange,
+  dashboard,
+  dashboardFilters,
+  setIsPreviewDraggable,
+  isWidgetInvalid,
+}: WidgetBuilderSlideoutProps) {
+  const organization = useOrganization();
+  const {state} = useWidgetBuilderContext();
+  const [initialState] = useState(state);
+  const [error, setError] = useState<Record<string, any>>({});
+  const {widgetIndex} = useParams();
+  const theme = useTheme();
+
+  const isEditing = widgetIndex !== undefined;
+  const title = isEditing ? t('Edit Widget') : t('Create Custom Widget');
+  const isChartWidget =
+    state.displayType !== DisplayType.BIG_NUMBER &&
+    state.displayType !== DisplayType.TABLE;
+
+  const previewRef = useRef<HTMLDivElement>(null);
+
+  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.small})`);
+
+  const showSortByStep =
+    (isChartWidget && state.fields && state.fields.length > 0) ||
+    state.displayType === DisplayType.TABLE;
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsPreviewDraggable(!entry!.isIntersecting);
+      },
+      {threshold: 0}
+    );
+
+    if (previewRef.current) {
+      observer.observe(previewRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [setIsPreviewDraggable]);
+
   return (
-    <SlideOverPanel collapsed={!isOpen} slidePosition="left">
+    <SlideOverPanel
+      collapsed={!isOpen}
+      slidePosition="left"
+      data-test-id="widget-slideout"
+    >
       <SlideoutHeaderWrapper>
-        <SlideoutTitle>{t('Create Custom Widget')}</SlideoutTitle>
+        <SlideoutTitle>{title}</SlideoutTitle>
         <CloseButton
           priority="link"
           size="zero"
           borderless
           aria-label={t('Close Widget Builder')}
           icon={<IconClose size="sm" />}
-          onClick={onClose}
+          onClick={() => {
+            openConfirmModal({
+              bypass: isEqual(initialState, state),
+              message: t('You have unsaved changes. Are you sure you want to leave?'),
+              priority: 'danger',
+              onConfirm: onClose,
+            });
+          }}
         >
           {t('Close')}
         </CloseButton>
@@ -38,10 +122,49 @@ function WidgetBuilderSlideout({isOpen, onClose}: WidgetBuilderSlideoutProps) {
         <Section>
           <WidgetBuilderDatasetSelector />
         </Section>
+        {organization.features.includes('visibility-explore-dataset') &&
+          state.dataset === WidgetType.SPANS && (
+            <Section>
+              <RPCToggle />
+            </Section>
+          )}
         <Section>
-          <WidgetBuilderNameAndDescription />
+          <WidgetBuilderTypeSelector error={error} setError={setError} />
         </Section>
-        <DevBuilder />
+        <div ref={previewRef}>
+          {isSmallScreen && (
+            <Section>
+              <WidgetPreviewContainer
+                dashboard={dashboard}
+                dashboardFilters={dashboardFilters}
+                isWidgetInvalid={isWidgetInvalid}
+              />
+            </Section>
+          )}
+        </div>
+        <Section>
+          <Visualize />
+        </Section>
+        <Section>
+          <WidgetBuilderQueryFilterBuilder
+            onQueryConditionChange={onQueryConditionChange}
+            error={error}
+          />
+        </Section>
+        {isChartWidget && (
+          <Section>
+            <WidgetBuilderGroupBySelector />
+          </Section>
+        )}
+        {showSortByStep && (
+          <Section>
+            <WidgetBuilderSortBySelector />
+          </Section>
+        )}
+        <Section>
+          <WidgetBuilderNameAndDescription error={error} setError={setError} />
+        </Section>
+        <SaveButton isEditing={isEditing} onSave={onSave} setError={setError} />
       </SlideoutBodyWrapper>
     </SlideOverPanel>
   );

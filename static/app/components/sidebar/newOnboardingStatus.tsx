@@ -1,26 +1,24 @@
-import {Fragment, useCallback, useContext, useEffect, useMemo, useRef} from 'react';
+import {Fragment, useCallback, useContext, useEffect} from 'react';
 import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
 import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {NewOnboardingSidebar} from 'sentry/components/onboardingWizard/newSidebar';
 import {getMergedTasks} from 'sentry/components/onboardingWizard/taskConfig';
 import {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardingTasks';
-import {findCompleteTasks, taskIsDone} from 'sentry/components/onboardingWizard/utils';
+import {findCompleteTasks} from 'sentry/components/onboardingWizard/utils';
 import ProgressRing, {
   RingBackground,
   RingBar,
   RingText,
 } from 'sentry/components/progressRing';
 import {ExpandedContext} from 'sentry/components/sidebar/expandedContextProvider';
-import {t, tct} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 import theme from 'sentry/utils/theme';
-import useApi from 'sentry/utils/useApi';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -37,12 +35,10 @@ export function NewOnboardingStatus({
   hidePanel,
   onShowPanel,
 }: NewOnboardingStatusProps) {
-  const api = useApi();
   const organization = useOrganization();
   const onboardingContext = useContext(OnboardingContext);
   const {projects} = useProjects();
   const {shouldAccordionFloat} = useContext(ExpandedContext);
-  const hasMarkedUnseenTasksAsComplete = useRef(false);
   const [quickStartCompleted, setQuickStartCompleted] = useLocalStorageState(
     `quick-start:${organization.slug}:completed`,
     false
@@ -79,23 +75,6 @@ export function NewOnboardingStatus({
   const skipQuickStart =
     !organization.features?.includes('onboarding') || (allTasksCompleted && !isActive);
 
-  const unseenDoneTasks = useMemo(
-    () =>
-      allTasks
-        .filter(task => taskIsDone(task) && !task.completionSeen)
-        .map(task => task.task),
-    [allTasks]
-  );
-
-  const markDoneTaskAsComplete = useCallback(() => {
-    for (const unseenDoneTask of unseenDoneTasks) {
-      updateOnboardingTask(api, organization, {
-        task: unseenDoneTask,
-        completionSeen: true,
-      });
-    }
-  }, [api, organization, unseenDoneTasks]);
-
   const handleShowPanel = useCallback(() => {
     if (!walkthrough && !isActive === true) {
       trackAnalytics('quick_start.opened', {
@@ -104,10 +83,8 @@ export function NewOnboardingStatus({
       });
     }
 
-    markDoneTaskAsComplete();
-
     onShowPanel();
-  }, [onShowPanel, isActive, walkthrough, markDoneTaskAsComplete, organization]);
+  }, [onShowPanel, isActive, walkthrough, organization]);
 
   useEffect(() => {
     if (!allTasksCompleted || skipQuickStart || quickStartCompleted) {
@@ -115,7 +92,7 @@ export function NewOnboardingStatus({
     }
 
     trackAnalytics('quick_start.completed', {
-      organization: organization,
+      organization,
       referrer: 'onboarding_sidebar',
       new_experience: true,
     });
@@ -129,17 +106,6 @@ export function NewOnboardingStatus({
     allTasksCompleted,
   ]);
 
-  useEffect(() => {
-    if (pendingCompletionSeen && isActive && !hasMarkedUnseenTasksAsComplete.current) {
-      markDoneTaskAsComplete();
-      hasMarkedUnseenTasksAsComplete.current = true;
-    }
-
-    if (!pendingCompletionSeen || !isActive) {
-      hasMarkedUnseenTasksAsComplete.current = false;
-    }
-  }, [isActive, pendingCompletionSeen, markDoneTaskAsComplete]);
-
   if (skipQuickStart) {
     return null;
   }
@@ -151,6 +117,7 @@ export function NewOnboardingStatus({
         aria-label={label}
         onClick={handleShowPanel}
         isActive={isActive}
+        showText={!shouldAccordionFloat}
         onMouseEnter={() => {
           refetch();
         }}
@@ -171,15 +138,13 @@ export function NewOnboardingStatus({
         {!shouldAccordionFloat && (
           <div>
             <Heading>{label}</Heading>
-            <Remaining>
+            <Remaining role="status">
               {walkthrough
-                ? tct('[totalCompletedTasks] completed tours', {
-                    totalCompletedTasks: doneTasks.length,
-                  })
-                : tct('[totalCompletedTasks] completed tasks', {
-                    totalCompletedTasks: doneTasks.length,
-                  })}
-              {pendingCompletionSeen && <PendingSeenIndicator />}
+                ? tn('%s completed tour', '%s completed tours', doneTasks.length)
+                : tn('%s completed task', '%s completed tasks', doneTasks.length)}
+              {pendingCompletionSeen && (
+                <PendingSeenIndicator data-test-id="pending-seen-indicator" />
+              )}
             </Remaining>
           </div>
         )}
@@ -242,11 +207,11 @@ const hoverCss = (p: {theme: Theme}) => css`
   }
 `;
 
-const Container = styled('div')<{isActive: boolean}>`
-  padding: 9px 19px 9px 16px;
+const Container = styled('div')<{isActive: boolean; showText: boolean}>`
+  padding: 9px 16px;
   cursor: pointer;
   display: grid;
-  grid-template-columns: max-content 1fr;
+  grid-template-columns: ${p => (p.showText ? 'max-content 1fr' : 'max-content')};
   gap: ${space(1.5)};
   align-items: center;
   transition: background 100ms;

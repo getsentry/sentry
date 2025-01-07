@@ -5,11 +5,11 @@ import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionT
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeList, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSynchronizeCharts} from 'sentry/views/insights/common/components/chart';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
@@ -40,11 +40,14 @@ import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHead
 import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
 import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
+import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
+import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 
 export function HTTPLandingPage() {
   const organization = useOrganization();
+  const navigate = useNavigate();
   const location = useLocation();
   const {view} = useDomainViewFilters();
   const moduleTitle = useModuleTitle(ModuleName.HTTP);
@@ -87,7 +90,7 @@ export function HTTPLandingPage() {
       query: newDomain,
       source: ModuleName.HTTP,
     });
-    browserHistory.push({
+    navigate({
       ...location,
       query: {
         ...location.query,
@@ -167,15 +170,16 @@ export function HTTPLandingPage() {
     </Fragment>
   );
 
+  const headerProps = {
+    headerTitle,
+    module: ModuleName.HTTP,
+  };
+
   return (
     <React.Fragment>
-      {view === FRONTEND_LANDING_SUB_PATH && (
-        <FrontendHeader headerTitle={headerTitle} module={ModuleName.HTTP} />
-      )}
-
-      {view === BACKEND_LANDING_SUB_PATH && (
-        <BackendHeader headerTitle={headerTitle} module={ModuleName.HTTP} />
-      )}
+      {view === FRONTEND_LANDING_SUB_PATH && <FrontendHeader {...headerProps} />}
+      {view === BACKEND_LANDING_SUB_PATH && <BackendHeader {...headerProps} />}
+      {view === MOBILE_LANDING_SUB_PATH && <MobileHeader {...headerProps} />}
 
       <ModuleBodyUpsellHook moduleName={ModuleName.HTTP}>
         <Layout.Body>
@@ -196,7 +200,6 @@ export function HTTPLandingPage() {
                     series={throughputData['spm()']}
                     isLoading={isThroughputDataLoading}
                     error={throughputError}
-                    filters={chartFilters}
                   />
                 </ModuleLayout.Third>
 
@@ -205,7 +208,6 @@ export function HTTPLandingPage() {
                     series={[durationData[`avg(span.self_time)`]]}
                     isLoading={isDurationDataLoading}
                     error={durationError}
-                    filters={chartFilters}
                   />
                 </ModuleLayout.Third>
 
@@ -227,7 +229,6 @@ export function HTTPLandingPage() {
                     ]}
                     isLoading={isResponseCodeDataLoading}
                     error={responseCodeError}
-                    filters={chartFilters}
                   />
                 </ModuleLayout.Third>
 

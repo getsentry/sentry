@@ -164,7 +164,10 @@ export function useMetricChartSamples({
           const value = getSummaryValueForAggregation(sample.summary, aggregation);
           const yValue = value;
 
-          const [xPosition, yPosition] = fitToValueRect(xValue, yValue, valueRect);
+          const [xPosition, yPosition] = fitToValueRect(xValue, yValue, valueRect) as [
+            number,
+            number,
+          ];
 
           return {
             seriesName: sample.id,

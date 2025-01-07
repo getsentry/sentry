@@ -120,9 +120,13 @@ class ProfileFunctionsTimeseriesQueryBuilder(
     def process_results(self, results: Any) -> EventsResponse:
         # Calling `super().process_results(results)` on the timeseries data
         # mutates the data in such a way that breaks the zerofill later such
-        # as applying `transform_alias_to_input_format` setting.  So skip it.
+        # as applying `transform_alias_to_input_format` setting.  So only run
+        # it to get the correct meta.
         for row in results["data"]:
             self.process_profiling_function_columns(row)
+
+        results["meta"] = super().process_results(results)["meta"]
+
         return results
 
 

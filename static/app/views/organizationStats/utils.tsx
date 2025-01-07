@@ -90,7 +90,7 @@ export function abbreviateUsageNumber(n: number) {
   }
 
   if (n >= 1000) {
-    return (n / 1000).toFixed().toLocaleString() + 'K';
+    return (n / 1000).toLocaleString(undefined, {maximumFractionDigits: 1}) + 'K';
   }
 
   // Do not show decimals

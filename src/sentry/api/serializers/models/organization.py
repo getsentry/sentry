@@ -695,7 +695,13 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         if sample_rate is not None:
             context["planSampleRate"] = sample_rate
 
-        desired_sample_rate, _ = get_org_sample_rate(org_id=obj.id, default_sample_rate=sample_rate)
+        if is_project_mode_sampling(obj):
+            desired_sample_rate = None
+        else:
+            desired_sample_rate, _ = get_org_sample_rate(
+                org_id=obj.id, default_sample_rate=sample_rate
+            )
+
         if desired_sample_rate is not None:
             context["desiredSampleRate"] = desired_sample_rate
 

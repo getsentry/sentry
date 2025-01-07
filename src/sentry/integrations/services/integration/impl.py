@@ -12,11 +12,16 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.constants import SentryAppInstallationStatus
 from sentry.hybridcloud.rpc.pagination import RpcPaginationArgs, RpcPaginationResult
 from sentry.incidents.models.incident import INCIDENT_STATUS, IncidentStatus
+from sentry.integrations.messaging.metrics import (
+    MessagingInteractionEvent,
+    MessagingInteractionType,
+)
 from sentry.integrations.mixins import NotifyBasicMixin
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.msteams import MsTeamsClient
+from sentry.integrations.msteams.spec import MsTeamsMessagingSpec
 from sentry.integrations.services.integration import (
     IntegrationService,
     RpcIntegration,
@@ -37,7 +42,6 @@ from sentry.rules.actions.notify_event_service import find_alert_rule_action_ui_
 from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
-from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json, metrics
 from sentry.utils.sentry_apps import send_and_save_webhook_request
 
@@ -447,12 +451,18 @@ class DatabaseBackedIntegrationService(IntegrationService):
     ) -> bool:
         integration = Integration.objects.get(id=integration_id)
         client = MsTeamsClient(integration)
-        try:
-            client.send_card(channel, attachment)
-            return True
-        except ApiError:
-            logger.info("rule.fail.msteams_post", exc_info=True)
-        return False
+
+        with MessagingInteractionEvent(
+            interaction_type=MessagingInteractionType.SEND_INCIDENT_ALERT_NOTIFICATION,
+            spec=MsTeamsMessagingSpec(),
+        ).capture() as lifecycle:
+            try:
+                client.send_card(channel, attachment)
+                return True
+            except Exception as e:
+                lifecycle.add_extras({"integration_id": integration_id, "channel": channel})
+                lifecycle.record_failure(e)
+            return False
 
     def delete_integration(self, *, integration_id: int) -> None:
         try:

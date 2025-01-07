@@ -232,12 +232,12 @@ export function generateProfileRouteFromProfileReference({
 }): LocationDescriptor {
   if (typeof reference === 'string') {
     return generateProfileFlamechartRouteWithHighlightFrame({
-      orgSlug: orgSlug,
-      projectSlug: projectSlug,
+      orgSlug,
+      projectSlug,
       profileId: reference,
-      frameName: frameName,
-      framePackage: framePackage,
-      query: query,
+      frameName,
+      framePackage,
+      query,
     });
   }
 

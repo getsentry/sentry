@@ -1,12 +1,17 @@
 from __future__ import annotations
 
+from typing import cast
+from unittest import mock
+
 import pytest
 
 from sentry.eventstore.models import Event
+from sentry.grouping.fingerprinting import FingerprintRuleJSON
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
 from sentry.grouping.variants import CustomFingerprintVariant, expose_fingerprint_dict
 from sentry.models.project import Project
 from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import InstaSnapshotter, django_db_all
 from tests.sentry.grouping import (
     GROUPING_INPUTS_DIR,
@@ -18,6 +23,7 @@ from tests.sentry.grouping import (
 
 
 @with_grouping_inputs("grouping_input", GROUPING_INPUTS_DIR)
+@override_options({"grouping.experiments.parameterization.uniq_id": 0})
 @pytest.mark.parametrize(
     "config_name",
     set(CONFIGURATIONS.keys()) - {DEFAULT_GROUPING_CONFIG},
@@ -27,7 +33,7 @@ def test_variants_with_legacy_configs(
     config_name: str, grouping_input: GroupingInput, insta_snapshot: InstaSnapshotter
 ) -> None:
     """
-    Run the variant snapshot tests using an minimal (and much more performant) save process.
+    Run the variant snapshot tests using a minimal (and much more performant) save process.
 
     Because manually cherry-picking only certain parts of the save process to run makes us much more
     likely to fall out of sync with reality, for safety we only do this when testing legacy,
@@ -36,7 +42,7 @@ def test_variants_with_legacy_configs(
     event = grouping_input.create_event(config_name, use_full_ingest_pipeline=False)
 
     # This ensures we won't try to touch the DB when getting event variants
-    event.project = None  # type: ignore[assignment]
+    event.project = mock.Mock(id=11211231)
 
     _assert_and_snapshot_results(event, config_name, grouping_input.filename, insta_snapshot)
 
@@ -105,12 +111,18 @@ def test_old_event_with_no_fingerprint_rule_text():
     variant = CustomFingerprintVariant(
         ["dogs are great"],
         {
-            "matched_rule": {
-                "attributes": {},
-                "fingerprint": ["dogs are great"],
-                "matchers": [["message", "*dogs*"]],
-                # newer events have a `text` entry here
-            }
+            # Cast here to compensate for missing `text` entry. (This allows us to avoid creating
+            # another place we have to remember to update when this temporary test (and the
+            # temporary fix it tests) is removed.)
+            "matched_rule": cast(
+                FingerprintRuleJSON,
+                {
+                    "attributes": {},
+                    "fingerprint": ["dogs are great"],
+                    "matchers": [["message", "*dogs*"]],
+                    # newer events have a `text` entry here
+                },
+            )
         },
     )
     assert expose_fingerprint_dict(variant.values, variant.info) == {

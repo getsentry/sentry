@@ -78,7 +78,7 @@ export function FilterResultsStep({
     (queryIndex: number) => {
       return (field: string) => {
         const newQuery: WidgetQuery = {
-          ...queries[queryIndex],
+          ...queries[queryIndex]!,
           conditions: field,
         };
 
@@ -95,7 +95,7 @@ export function FilterResultsStep({
         setQueryConditionValidity(queryConditionValidity);
         onQueryConditionChange(!queryConditionValidity.some(validity => !validity));
         const newQuery: WidgetQuery = {
-          ...queries[queryIndex],
+          ...queries[queryIndex]!,
           conditions: field,
         };
         onQueryChange(queryIndex, newQuery);
@@ -193,7 +193,7 @@ export function FilterResultsStep({
                     placeholder={t('Legend Alias')}
                     onChange={event => {
                       const newQuery: WidgetQuery = {
-                        ...queries[queryIndex],
+                        ...queries[queryIndex]!,
                         name: event.target.value,
                       };
                       onQueryChange(queryIndex, newQuery);

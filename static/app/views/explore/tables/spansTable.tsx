@@ -1,14 +1,14 @@
 import type {Dispatch, SetStateAction} from 'react';
-import {Fragment, useEffect, useMemo} from 'react';
-import styled from '@emotion/styled';
+import {Fragment, useEffect, useMemo, useRef} from 'react';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import {GridResizer} from 'sentry/components/gridEditable/styles';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
-import type {NewQuery} from 'sentry/types/organization';
+import type {Confidence, NewQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {fieldAlignment, prettifyTagKey} from 'sentry/utils/discover/fields';
@@ -21,33 +21,41 @@ import {
   TableBodyCell,
   TableHead,
   TableHeadCell,
+  TableHeadCellContent,
   TableRow,
   TableStatus,
   useTableStyles,
 } from 'sentry/views/explore/components/table';
+import {
+  useExploreDataset,
+  useExploreFields,
+  useExploreQuery,
+  useExploreSortBys,
+  useExploreTitle,
+  useExploreVisualizes,
+  useSetExploreSortBys,
+} from 'sentry/views/explore/contexts/pageParamsContext';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {useAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
-import {useDataset} from 'sentry/views/explore/hooks/useDataset';
-import {useSampleFields} from 'sentry/views/explore/hooks/useSampleFields';
-import {useSorts} from 'sentry/views/explore/hooks/useSorts';
-import {useUserQuery} from 'sentry/views/explore/hooks/useUserQuery';
-import {useVisualizes} from 'sentry/views/explore/hooks/useVisualizes';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 
 import {FieldRenderer} from './fieldRenderer';
 
 interface SpansTableProps {
+  confidence: Confidence;
   setError: Dispatch<SetStateAction<string>>;
 }
 
-export function SpansTable({setError}: SpansTableProps) {
+export function SpansTable({confidence, setError}: SpansTableProps) {
   const {selection} = usePageFilters();
 
-  const [dataset] = useDataset({allowRPC: true});
-  const [fields] = useSampleFields();
-  const [sorts, setSorts] = useSorts({fields});
-  const [query] = useUserQuery();
-  const [visualizes] = useVisualizes();
+  const dataset = useExploreDataset();
+  const title = useExploreTitle();
+  const fields = useExploreFields();
+  const sortBys = useExploreSortBys();
+  const setSortBys = useSetExploreSortBys();
+  const query = useExploreQuery();
+  const visualizes = useExploreVisualizes();
   const organization = useOrganization();
 
   const visibleFields = useMemo(
@@ -76,16 +84,16 @@ export function SpansTable({setError}: SpansTableProps) {
       id: undefined,
       name: 'Explore - Span Samples',
       fields: queryFields,
-      orderby: sorts.map(sort => `${sort.kind === 'desc' ? '-' : ''}${sort.field}`),
+      orderby: sortBys.map(sort => `${sort.kind === 'desc' ? '-' : ''}${sort.field}`),
       query: search.formatString(),
       version: 2,
       dataset,
     };
 
     return EventView.fromNewQueryWithPageFilters(discoverQuery, selection);
-  }, [dataset, sorts, query, selection, visibleFields]);
+  }, [dataset, sortBys, query, selection, visibleFields]);
 
-  const columns = useMemo(() => eventView.getColumns(), [eventView]);
+  const columnsFromEventView = useMemo(() => eventView.getColumns(), [eventView]);
 
   const result = useSpansQuery({
     eventView,
@@ -99,6 +107,7 @@ export function SpansTable({setError}: SpansTableProps) {
   }, [setError, result.error?.message]);
 
   useAnalytics({
+    dataset,
     resultLength: result.data?.length,
     resultMode: 'span samples',
     resultStatus: result.status,
@@ -106,16 +115,12 @@ export function SpansTable({setError}: SpansTableProps) {
     organization,
     columns: fields,
     userQuery: query,
+    confidence,
+    title,
   });
 
-  const {tableStyles} = useTableStyles({
-    items: visibleFields.map(field => {
-      return {
-        label: field,
-        value: field,
-      };
-    }),
-  });
+  const tableRef = useRef<HTMLTableElement>(null);
+  const {initialTableStyles, onResizeMouseDown} = useTableStyles(visibleFields, tableRef);
 
   const meta = result.meta ?? {};
 
@@ -124,7 +129,7 @@ export function SpansTable({setError}: SpansTableProps) {
 
   return (
     <Fragment>
-      <Table style={tableStyles}>
+      <Table ref={tableRef} styles={initialTableStyles}>
         <TableHead>
           <TableRow>
             {visibleFields.map((field, i) => {
@@ -137,34 +142,41 @@ export function SpansTable({setError}: SpansTableProps) {
               const align = fieldAlignment(field, fieldType);
               const tag = stringTags[field] ?? numberTags[field] ?? null;
 
-              const direction = sorts.find(s => s.field === field)?.kind;
+              const direction = sortBys.find(s => s.field === field)?.kind;
 
               function updateSort() {
                 const kind = direction === 'desc' ? 'asc' : 'desc';
-                setSorts([{field, kind}]);
+                setSortBys([{field, kind}]);
               }
 
               return (
-                <StyledTableHeadCell
-                  align={align}
-                  key={i}
-                  isFirst={i === 0}
-                  onClick={updateSort}
-                >
-                  <span>{tag?.name ?? prettifyTagKey(field)}</span>
-                  {defined(direction) && (
-                    <IconArrow
-                      size="xs"
-                      direction={
-                        direction === 'desc'
-                          ? 'down'
-                          : direction === 'asc'
-                            ? 'up'
-                            : undefined
+                <TableHeadCell align={align} key={i} isFirst={i === 0}>
+                  <TableHeadCellContent onClick={updateSort}>
+                    <span>{tag?.name ?? prettifyTagKey(field)}</span>
+                    {defined(direction) && (
+                      <IconArrow
+                        size="xs"
+                        direction={
+                          direction === 'desc'
+                            ? 'down'
+                            : direction === 'asc'
+                              ? 'up'
+                              : undefined
+                        }
+                      />
+                    )}
+                  </TableHeadCellContent>
+                  {i !== visibleFields.length - 1 && (
+                    <GridResizer
+                      dataRows={
+                        !result.isError && !result.isPending && result.data
+                          ? result.data.length
+                          : 0
                       }
+                      onMouseDown={e => onResizeMouseDown(e, i)}
                     />
                   )}
-                </StyledTableHeadCell>
+                </TableHeadCell>
               );
             })}
           </TableRow>
@@ -185,7 +197,7 @@ export function SpansTable({setError}: SpansTableProps) {
                   return (
                     <TableBodyCell key={j}>
                       <FieldRenderer
-                        column={columns[j]}
+                        column={columnsFromEventView[j]!}
                         data={row}
                         unit={meta?.units?.[field]}
                         meta={meta}
@@ -208,7 +220,3 @@ export function SpansTable({setError}: SpansTableProps) {
     </Fragment>
   );
 }
-
-const StyledTableHeadCell = styled(TableHeadCell)`
-  cursor: pointer;
-`;

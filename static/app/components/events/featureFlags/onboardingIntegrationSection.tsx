@@ -1,40 +1,32 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'sentry/actionCreators/indicator';
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import {PROVIDER_OPTION_TO_URLS} from 'sentry/components/events/featureFlags/utils';
 import Input from 'sentry/components/input';
 import ExternalLink from 'sentry/components/links/externalLink';
 import TextCopyInput from 'sentry/components/textCopyInput';
-import {IconCheckmark} from 'sentry/icons';
+import {Tooltip} from 'sentry/components/tooltip';
+import {IconCheckmark, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
+import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-
-function usePostSecret({
-  orgSlug,
-  provider,
-}: {
-  orgSlug: string | undefined;
-  provider: string;
-}) {
-  const api = useApi();
-
-  const postSecret = async (secret: string) =>
-    await api.requestPromise(
-      `/organizations/${orgSlug}/flags/hooks/provider/${provider.toLowerCase()}/signing-secret/`,
-      {
-        method: 'POST',
-        data: {
-          secret: secret,
-        },
-      }
-    );
-
-  return {postSecret};
-}
+import {makeFetchSecretQueryKey} from 'sentry/views/settings/featureFlags';
+import type {
+  CreateSecretQueryVariables,
+  CreateSecretResponse,
+} from 'sentry/views/settings/featureFlags/newProviderForm';
 
 export default function OnboardingIntegrationSection({
   provider,
@@ -43,9 +35,45 @@ export default function OnboardingIntegrationSection({
   integration: string;
   provider: string;
 }) {
+  const api = useApi();
+  const queryClient = useQueryClient();
   const organization = useOrganization();
-  const [tokenSaved, setTokenSaved] = useState(false);
-  const {postSecret} = usePostSecret({provider, orgSlug: organization?.slug});
+
+  const {mutate: submitSecret, isPending} = useMutation<
+    CreateSecretResponse,
+    RequestError,
+    CreateSecretQueryVariables
+  >({
+    mutationFn: ({secret}) => {
+      addLoadingMessage();
+      return api.requestPromise(
+        `/organizations/${organization.slug}/flags/signing-secrets/`,
+        {
+          method: 'POST',
+          data: {
+            provider: provider.toLowerCase(),
+            secret,
+          },
+        }
+      );
+    },
+
+    onSuccess: () => {
+      addSuccessMessage(t('Added provider and secret.'));
+      setSecretSaved(true);
+      queryClient.invalidateQueries({
+        queryKey: makeFetchSecretQueryKey({orgSlug: organization.slug}),
+      });
+    },
+    onError: error => {
+      const message = t('Failed to add provider or secret.');
+      setSecretSaved(false);
+      handleXhrErrorResponse(message, error);
+      addErrorMessage(message);
+    },
+  });
+
+  const [secretSaved, setSecretSaved] = useState(false);
   const [secret, setSecret] = useState('');
   const [storedProvider, setStoredProvider] = useState(provider);
   const [storedIntegration, setStoredIntegration] = useState(integration);
@@ -54,8 +82,13 @@ export default function OnboardingIntegrationSection({
     setStoredProvider(provider);
     setStoredIntegration(integration);
     setSecret('');
-    setTokenSaved(false);
+    setSecretSaved(false);
   }
+
+  const canRead = hasEveryAccess(['org:read'], {organization});
+  const canWrite = hasEveryAccess(['org:write'], {organization});
+  const canAdmin = hasEveryAccess(['org:admin'], {organization});
+  const hasAccess = canRead || canWrite || canAdmin;
 
   return (
     <Fragment>
@@ -65,7 +98,9 @@ export default function OnboardingIntegrationSection({
           <div>
             {tct(
               "Create a webhook integration with your [link:feature flag service]. When you do so, you'll need to enter a URL, which you can find below.",
-              {link: <ExternalLink href={PROVIDER_OPTION_TO_URLS[provider]} />}
+              {
+                link: <ExternalLink href={PROVIDER_OPTION_TO_URLS[provider]} />,
+              }
             )}
           </div>
           <InputTitle>{t('Webhook URL')}</InputTitle>
@@ -86,25 +121,34 @@ export default function OnboardingIntegrationSection({
           <InputTitle>{t('Secret')}</InputTitle>
           <InputArea>
             <Input
+              maxLength={32}
+              minLength={32}
+              required
               value={secret}
               type="text"
               placeholder={t('Secret')}
               onChange={e => setSecret(e.target.value)}
             />
-            <Button
-              priority="default"
-              onClick={() => {
-                postSecret(secret);
-                setTokenSaved(true);
-              }}
-              disabled={secret === ''}
+            <Tooltip
+              title={t('You must be an organization member to add a secret.')}
+              disabled={hasAccess}
             >
-              {t('Save Secret')}
-            </Button>
+              <Button
+                priority="default"
+                onClick={() => submitSecret({provider, secret})}
+                disabled={secret.length < 32 || secret === '' || !hasAccess || isPending}
+              >
+                {t('Save Secret')}
+              </Button>
+            </Tooltip>
           </InputArea>
-          {tokenSaved ? (
+          {secretSaved ? (
             <StyledAlert showIcon type="success" icon={<IconCheckmark />}>
-              {t('Secret token verified.')}
+              {t('Secret verified.')}
+            </StyledAlert>
+          ) : secret ? (
+            <StyledAlert showIcon type="warning" icon={<IconWarning />}>
+              {t('Make sure the secret is 32 characters long.')}
             </StyledAlert>
           ) : null}
         </SubSection>

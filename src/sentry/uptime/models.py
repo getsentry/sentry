@@ -7,9 +7,11 @@ from django.db import models
 from django.db.models import Q
 from django.db.models.expressions import Value
 from django.db.models.functions import MD5, Coalesce
+from sentry_kafka_schemas.schema_types.uptime_configs_v1 import REGIONSCHEDULEMODE_ROUND_ROBIN
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
+    DefaultFieldsModel,
     DefaultFieldsModelExisting,
     FlexibleForeignKey,
     JSONField,
@@ -103,6 +105,26 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
                 MD5("headers"),
                 Coalesce(MD5("body"), Value("")),
                 name="uptime_uptimesubscription_unique_subscription_check",
+            ),
+        ]
+
+
+@region_silo_model
+class UptimeSubscriptionRegion(DefaultFieldsModel):
+    __relocation_scope__ = RelocationScope.Excluded
+
+    uptime_subscription = FlexibleForeignKey("uptime.UptimeSubscription", related_name="regions")
+    region_slug = models.CharField(max_length=255, db_index=True, db_default="")
+
+    class Meta:
+        app_label = "uptime"
+        db_table = "uptime_uptimesubscriptionregion"
+
+        constraints = [
+            models.UniqueConstraint(
+                "uptime_subscription",
+                "region_slug",
+                name="uptime_uptimesubscription_region_slug_unique",
             ),
         ]
 
@@ -205,3 +227,7 @@ def get_active_auto_monitor_count_for_org(organization: Organization) -> int:
             ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
         ],
     ).count()
+
+
+class UptimeRegionScheduleMode(enum.StrEnum):
+    ROUND_ROBIN = REGIONSCHEDULEMODE_ROUND_ROBIN

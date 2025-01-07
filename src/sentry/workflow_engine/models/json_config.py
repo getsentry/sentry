@@ -1,4 +1,3 @@
-from abc import abstractproperty
 from typing import Any
 
 from django.db import models
@@ -8,13 +7,9 @@ from jsonschema import ValidationError, validate
 class JSONConfigBase(models.Model):
     config = models.JSONField(db_default={})
 
-    @abstractproperty
-    def CONFIG_SCHEMA(self) -> dict[str, Any]:
-        pass
-
-    def validate_config(self) -> None:
+    def validate_config(self, schema: dict[str, Any]) -> None:
         try:
-            validate(self.config, self.CONFIG_SCHEMA)
+            validate(self.config, schema)
         except ValidationError as e:
             raise ValidationError(f"Invalid config: {e.message}")
 

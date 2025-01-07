@@ -51,10 +51,10 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
     case Token.VALUE_NUMBER_LIST:
       const items = token.value.items;
 
-      if (items.length === 1 && items[0].value) {
+      if (items.length === 1 && items[0]!.value) {
         return (
           <FilterValueSingleTruncatedValue>
-            {formatFilterValue(items[0].value)}
+            {formatFilterValue(items[0]!.value)}
           </FilterValueSingleTruncatedValue>
         );
       }
@@ -205,11 +205,13 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
   });
 
   const tokenHasError = 'invalid' in token && defined(token.invalid);
+  const tokenHasWarning = 'warning' in token && defined(token.warning);
 
   return (
     <FilterWrapper
       aria-label={token.text}
       aria-invalid={tokenHasError}
+      state={tokenHasError ? 'invalid' : tokenHasWarning ? 'warning' : 'valid'}
       ref={ref}
       {...modifiedRowProps}
     >
@@ -265,7 +267,7 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
   );
 }
 
-const FilterWrapper = styled('div')`
+const FilterWrapper = styled('div')<{state: 'invalid' | 'warning' | 'valid'}>`
   position: relative;
   border: 1px solid ${p => p.theme.innerBorder};
   border-radius: ${p => p.theme.borderRadius};
@@ -278,10 +280,18 @@ const FilterWrapper = styled('div')`
     outline: none;
   }
 
-  &[aria-invalid='true'] {
-    border-color: ${p => p.theme.red200};
-    background-color: ${p => p.theme.red100};
-  }
+  ${p =>
+    p.state === 'invalid'
+      ? `
+      border-color: ${p.theme.red200};
+      background-color: ${p.theme.red100};
+    `
+      : p.state === 'warning'
+        ? `
+      border-color: ${p.theme.gray300};
+      background-color: ${p.theme.gray100};
+    `
+        : ''}
 
   &[aria-selected='true'] {
     background-color: ${p => p.theme.gray100};

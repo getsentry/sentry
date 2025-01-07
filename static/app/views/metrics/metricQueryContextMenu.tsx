@@ -222,7 +222,7 @@ export function getCreateAlert(organization: Organization, metricsQuery: Metrics
     return undefined;
   }
   return function () {
-    openCreateAlertModal({metricsQuery: metricsQuery, organization});
+    openCreateAlertModal({metricsQuery, organization});
   };
 }
 
@@ -269,6 +269,8 @@ function useCreateDashboardWidget(
         selection,
         widget: convertToDashboardWidget([queryCopy], displayType),
         router,
+        // Previously undetected because the type relied on implicit any.
+        // @ts-expect-error
         widgetAsQueryParams,
         location: router.location,
         actions: ['add-and-open-dashboard', 'add-and-stay-on-current-page'],

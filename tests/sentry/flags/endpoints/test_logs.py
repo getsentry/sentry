@@ -16,7 +16,7 @@ class OrganizationFlagLogIndexEndpointTestCase(APITestCase):
 
     @property
     def features(self):
-        return {"organizations:feature-flag-ui": True}
+        return {}
 
     def test_get(self):
         model = FlagAuditLogModel(
@@ -80,10 +80,6 @@ class OrganizationFlagLogIndexEndpointTestCase(APITestCase):
             response = self.client.get(url)
             assert response.status_code == 403
 
-    # def test_get_feature_disabled(self):
-    #     response = self.client.get(self.url)
-    #     assert response.status_code == 404
-
     def test_get_stats_period(self):
         model = FlagAuditLogModel(
             action=0,
@@ -145,7 +141,7 @@ class OrganizationFlagLogDetailsEndpointTestCase(APITestCase):
 
     @property
     def features(self):
-        return {"organizations:feature-flag-ui": True}
+        return {}
 
     def test_get(self):
         with self.feature(self.features):
@@ -172,7 +168,3 @@ class OrganizationFlagLogDetailsEndpointTestCase(APITestCase):
         with self.feature(self.features):
             response = self.client.get(reverse(self.endpoint, args=(self.organization.id, 123)))
             assert response.status_code == 404
-
-    # def test_get_feature_disabled(self):
-    #     response = self.client.get(self.url)
-    #     assert response.status_code == 404

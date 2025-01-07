@@ -111,16 +111,20 @@ class ApiApplication(Model):
     def is_allowed_response_type(self, value):
         return value in ("code", "token")
 
-    def is_valid_redirect_uri(self, value):
+    def normalize_url(self, value):
         parts = urlparse(value)
         normalized_path = os.path.normpath(parts.path)
-        if value.endswith("/"):
+        if normalized_path == ".":
+            normalized_path = "/"
+        elif value.endswith("/") and not normalized_path.endswith("/"):
             normalized_path += "/"
-        value = urlunparse(parts._replace(path=normalized_path))
+        return urlunparse(parts._replace(path=normalized_path))
 
-        for ruri in self.redirect_uris.split("\n"):
-            if parts.netloc != urlparse(ruri).netloc:
-                continue
+    def is_valid_redirect_uri(self, value):
+        value = self.normalize_url(value)
+
+        for redirect_uri in self.redirect_uris.split("\n"):
+            ruri = self.normalize_url(redirect_uri)
             if value == ruri:
                 return True
             if value.startswith(ruri):

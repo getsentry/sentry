@@ -2,24 +2,22 @@ import copy
 from collections.abc import Callable
 from typing import Any, Literal, cast
 from unittest.mock import patch
-from uuid import uuid1
 
 import pytest
 
-from sentry import options
 from sentry.eventstore.models import Event
+from sentry.grouping.api import get_contributing_variant_and_component
+from sentry.grouping.variants import CustomFingerprintVariant
 from sentry.seer.similarity.utils import (
     BASE64_ENCODED_PREFIXES,
     MAX_FRAME_COUNT,
-    SEER_ELIGIBLE_PLATFORMS,
-    NoFilenameOrModuleException,
     ReferrerOptions,
     TooManyOnlySystemFramesException,
     _is_snipped_context_line,
-    event_content_is_seer_eligible,
     filter_null_from_string,
     get_stacktrace_string,
     get_stacktrace_string_with_metrics,
+    has_too_many_contributing_frames,
 )
 from sentry.testutils.cases import TestCase
 
@@ -302,7 +300,7 @@ class GetStacktraceStringTest(TestCase):
         }
     }
 
-    MOBILE_THREAD_DATA = {
+    MOBILE_THREAD_DATA: dict[str, Any] = {
         "app": {
             "type": "component",
             "description": "in-app thread stack-trace",
@@ -538,7 +536,7 @@ class GetStacktraceStringTest(TestCase):
         )
         assert stacktrace_str == expected_stacktrace_str
 
-    def test_chained_too_many_frames(self):
+    def test_chained_stacktrace_truncation(self):
         data_chained_exception = copy.deepcopy(self.CHAINED_APP_DATA)
         data_chained_exception["app"]["component"]["values"][0]["values"] = [
             self.create_exception(
@@ -563,7 +561,7 @@ class GetStacktraceStringTest(TestCase):
                 ),
             ),
         ]
-        stacktrace_str = get_stacktrace_string(data_chained_exception)
+        stacktrace_str = get_stacktrace_string(data_chained_exception, platform="javascript")
 
         # The stacktrace string should be:
         #    25 frames from OuterExcepton (with lines counting up from 1 to 25), followed by
@@ -584,7 +582,7 @@ class GetStacktraceStringTest(TestCase):
         )
         assert stacktrace_str == expected
 
-    def test_chained_too_many_frames_all_minified_js(self):
+    def test_chained_stacktrace_truncation_all_minified_js(self):
         data_chained_exception = copy.deepcopy(self.CHAINED_APP_DATA)
         data_chained_exception["app"]["component"]["values"][0]["values"] = [
             self.create_exception(
@@ -615,7 +613,7 @@ class GetStacktraceStringTest(TestCase):
                 ),
             ),
         ]
-        stacktrace_str = get_stacktrace_string(data_chained_exception)
+        stacktrace_str = get_stacktrace_string(data_chained_exception, platform="javascript")
 
         # The stacktrace string should be:
         #    15 frames from OuterExcepton (with lines counting up from 1 to 15), followed by
@@ -636,7 +634,7 @@ class GetStacktraceStringTest(TestCase):
         )
         assert stacktrace_str == expected
 
-    def test_chained_too_many_frames_minified_js_frame_limit(self):
+    def test_chained_stacktrace_truncation_minified_js_frame_limit_is_lower(self):
         """Test that we restrict fully-minified stacktraces to 20 frames, and all other stacktraces to 30 frames."""
         for minified_frames, expected_frame_count in [("all", 20), ("some", 30), ("none", 30)]:
             data_chained_exception = copy.deepcopy(self.CHAINED_APP_DATA)
@@ -669,7 +667,7 @@ class GetStacktraceStringTest(TestCase):
                     ),
                 ),
             ]
-            stacktrace_str = get_stacktrace_string(data_chained_exception)
+            stacktrace_str = get_stacktrace_string(data_chained_exception, platform="javascript")
 
             assert (
                 stacktrace_str.count("outer line")
@@ -678,7 +676,7 @@ class GetStacktraceStringTest(TestCase):
                 == expected_frame_count
             )
 
-    def test_chained_too_many_exceptions(self):
+    def test_chained_exception_limit(self):
         """Test that we restrict number of chained exceptions to MAX_FRAME_COUNT."""
         data_chained_exception = copy.deepcopy(self.CHAINED_APP_DATA)
         data_chained_exception["app"]["component"]["values"][0]["values"] = [
@@ -689,7 +687,7 @@ class GetStacktraceStringTest(TestCase):
             )
             for i in range(1, MAX_FRAME_COUNT + 2)
         ]
-        stacktrace_str = get_stacktrace_string(data_chained_exception)
+        stacktrace_str = get_stacktrace_string(data_chained_exception, platform="javascript")
         for i in range(2, MAX_FRAME_COUNT + 2):
             assert f"exception {i} message!" in stacktrace_str
         assert "exception 1 message!" not in stacktrace_str
@@ -719,7 +717,7 @@ class GetStacktraceStringTest(TestCase):
         stacktrace_str = get_stacktrace_string(data)
         assert stacktrace_str == ""
 
-    def test_too_many_system_frames_single_exception(self):
+    def test_stacktrace_length_filter_single_exception(self):
         data_system = copy.deepcopy(self.BASE_APP_DATA)
         data_system["system"] = data_system.pop("app")
         data_system["system"]["component"]["values"][0]["values"][0][
@@ -729,20 +727,17 @@ class GetStacktraceStringTest(TestCase):
         with pytest.raises(TooManyOnlySystemFramesException):
             get_stacktrace_string(data_system, platform="java")
 
-    def test_too_many_system_frames_single_exception_invalid_platform(self):
+    def test_stacktrace_length_filter_single_exception_invalid_platform(self):
         data_system = copy.deepcopy(self.BASE_APP_DATA)
         data_system["system"] = data_system.pop("app")
         data_system["system"]["component"]["values"][0]["values"][0][
             "values"
         ] += self.create_frames(MAX_FRAME_COUNT + 1, True)
 
-        stacktrace_string = get_stacktrace_string(data_system)
+        stacktrace_string = get_stacktrace_string(data_system, "python")
         assert stacktrace_string is not None and stacktrace_string != ""
 
-        stacktrace_string = get_stacktrace_string(data_system, platform="python")
-        assert stacktrace_string is not None and stacktrace_string != ""
-
-    def test_too_many_system_frames_chained_exception(self):
+    def test_stacktrace_length_filter_chained_exception(self):
         data_system = copy.deepcopy(self.CHAINED_APP_DATA)
         data_system["system"] = data_system.pop("app")
         # Split MAX_FRAME_COUNT across the two exceptions
@@ -756,7 +751,7 @@ class GetStacktraceStringTest(TestCase):
         with pytest.raises(TooManyOnlySystemFramesException):
             get_stacktrace_string(data_system, platform="java")
 
-    def test_too_many_system_frames_chained_exception_invalid_platform(self):
+    def test_stacktrace_length_filter_chained_exception_invalid_platform(self):
         data_system = copy.deepcopy(self.CHAINED_APP_DATA)
         data_system["system"] = data_system.pop("app")
         # Split MAX_FRAME_COUNT across the two exceptions
@@ -767,16 +762,13 @@ class GetStacktraceStringTest(TestCase):
             "values"
         ] += self.create_frames(MAX_FRAME_COUNT // 2, True)
 
-        stacktrace_string = get_stacktrace_string(data_system)
+        stacktrace_string = get_stacktrace_string(data_system, "python")
         assert stacktrace_string is not None and stacktrace_string != ""
 
-        stacktrace_string = get_stacktrace_string(data_system, platform="python")
-        assert stacktrace_string is not None and stacktrace_string != ""
-
-    def test_too_many_in_app_contributing_frames(self):
+    def test_stacktrace_truncation_uses_in_app_contributing_frames(self):
         """
         Check that when there are over MAX_FRAME_COUNT contributing frames, the last MAX_FRAME_COUNT
-        are included.
+        is included.
         """
         data_frames = copy.deepcopy(self.BASE_APP_DATA)
         # Create 30 contributing frames, 1-20 -> last 10 should be included
@@ -791,7 +783,7 @@ class GetStacktraceStringTest(TestCase):
         data_frames["app"]["component"]["values"][0]["values"][0]["values"] += self.create_frames(
             20, True, 41
         )
-        stacktrace_str = get_stacktrace_string(data_frames)
+        stacktrace_str = get_stacktrace_string(data_frames, platform="javascript")
 
         num_frames = 0
         for i in range(1, 11):
@@ -806,7 +798,7 @@ class GetStacktraceStringTest(TestCase):
             assert ("test = " + str(i) + "!") in stacktrace_str
         assert num_frames == MAX_FRAME_COUNT
 
-    def test_too_many_frames_minified_js_frame_limit(self):
+    def test_stacktrace_truncation_minified_js_frame_limit_is_lower(self):
         """Test that we restrict fully-minified stacktraces to 20 frames, and all other stacktraces to 30 frames."""
         for minified_frames, expected_frame_count in [("all", 20), ("some", 30), ("none", 30)]:
             data_frames = copy.deepcopy(self.BASE_APP_DATA)
@@ -819,7 +811,7 @@ class GetStacktraceStringTest(TestCase):
                     ),
                 ),
             ]
-            stacktrace_str = get_stacktrace_string(data_frames)
+            stacktrace_str = get_stacktrace_string(data_frames, platform="javascript")
 
             assert stacktrace_str.count("context line") == expected_frame_count
 
@@ -861,97 +853,240 @@ class GetStacktraceStringTest(TestCase):
             == 'ZeroDivisionError: division by zero\n  File "__main__", function divide_by_zero\n    divide = 1/0'
         )
 
-    @patch("sentry.seer.similarity.utils.metrics")
-    def test_no_filename_or_module(self, mock_metrics):
+    def test_no_filename_or_module(self):
         exception = copy.deepcopy(self.BASE_APP_DATA)
         # delete module from the exception
         del exception["app"]["component"]["values"][0]["values"][0]["values"][0]["values"][0]
         # delete filename from the exception
         del exception["app"]["component"]["values"][0]["values"][0]["values"][0]["values"][0]
-        with pytest.raises(NoFilenameOrModuleException):
-            get_stacktrace_string(exception)
-
-        stacktrace_string = get_stacktrace_string_with_metrics(
-            exception, "python", ReferrerOptions.INGEST
-        )
-        sample_rate = options.get("seer.similarity.metrics_sample_rate")
-        assert stacktrace_string is None
-        mock_metrics.incr.assert_called_with(
-            "grouping.similarity.did_call_seer",
-            sample_rate=sample_rate,
-            tags={
-                "call_made": False,
-                "blocker": "no-module-or-filename",
-            },
+        stacktrace_string = get_stacktrace_string(exception)
+        assert (
+            stacktrace_string
+            == 'ZeroDivisionError: division by zero\n  File "None", function divide_by_zero\n    divide = 1/0'
         )
 
-
-class EventContentIsSeerEligibleTest(TestCase):
-    def get_eligible_event_data(self) -> dict[str, Any]:
-        return {
-            "title": "FailedToFetchError('Charlie didn't bring the ball back')",
-            "exception": {
-                "values": [
-                    {
-                        "type": "FailedToFetchError",
-                        "value": "Charlie didn't bring the ball back",
-                        "stacktrace": {
-                            "frames": [
-                                {
-                                    "function": "play_fetch",
-                                    "filename": "dogpark.py",
-                                    "context_line": "raise FailedToFetchError('Charlie didn't bring the ball back')",
-                                }
-                            ]
-                        },
-                    }
-                ]
-            },
-            "platform": "python",
-        }
-
-    def test_no_stacktrace(self):
-        good_event_data = self.get_eligible_event_data()
-        good_event = Event(
-            project_id=self.project.id,
-            event_id=uuid1().hex,
-            data=good_event_data,
-        )
-
-        bad_event_data = self.get_eligible_event_data()
-        del bad_event_data["exception"]
-        bad_event = Event(
-            project_id=self.project.id,
-            event_id=uuid1().hex,
-            data=bad_event_data,
-        )
-
-        assert event_content_is_seer_eligible(good_event) is True
-        assert event_content_is_seer_eligible(bad_event) is False
-
-    def test_platform_filter(self):
-        good_event_data = self.get_eligible_event_data()
-        good_event = Event(
-            project_id=self.project.id,
-            event_id=uuid1().hex,
-            data=good_event_data,
-        )
-
-        bad_event_data = self.get_eligible_event_data()
-        bad_event_data["platform"] = "other"
-        bad_event = Event(
-            project_id=self.project.id,
-            event_id=uuid1().hex,
-            data=bad_event_data,
-        )
-
-        assert good_event_data["platform"] in SEER_ELIGIBLE_PLATFORMS
-        assert bad_event_data["platform"] not in SEER_ELIGIBLE_PLATFORMS
-        assert event_content_is_seer_eligible(good_event) is True
-        assert event_content_is_seer_eligible(bad_event) is False
+    @patch("sentry.seer.similarity.utils.metrics")
+    def test_no_header_one_frame_no_filename(self, mock_metrics):
+        exception = copy.deepcopy(self.MOBILE_THREAD_DATA)
+        # Remove filename
+        exception["app"]["component"]["values"][0]["values"][0]["values"][0]["values"][1][
+            "values"
+        ] = []
+        assert get_stacktrace_string(exception) == ""
 
 
 class SeerUtilsTest(TestCase):
     def test_filter_null_from_string(self):
         string_with_null = 'String with null \x00, "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" is null'
         assert filter_null_from_string(string_with_null) == 'String with null , "" is null'
+
+
+class HasTooManyFramesTest(TestCase):
+    def setUp(self):
+        # The `in_app` and `contributes` values of these frames will be determined by the project
+        # stacktrace rules we'll add below
+        self.contributing_system_frame = {
+            "function": "handleRequest",
+            "filename": "/node_modules/express/router.js",
+            "context_line": "return handler(request);",
+        }
+        self.non_contributing_system_frame = {
+            "function": "runApp",
+            "filename": "/node_modules/express/app.js",
+            "context_line": "return server.serve(port);",
+        }
+        self.contributing_in_app_frame = {
+            "function": "playFetch",
+            "filename": "/dogApp/dogpark.js",
+            "context_line": "raise FailedToFetchError('Charlie didn't bring the ball back');",
+        }
+        self.non_contributing_in_app_frame = {
+            "function": "recordMetrics",
+            "filename": "/dogApp/metrics.js",
+            "context_line": "return withMetrics(handler, metricName, tags);",
+        }
+        self.exception_value = {
+            "type": "FailedToFetchError",
+            "value": "Charlie didn't bring the ball back",
+        }
+        self.event = Event(
+            event_id="12312012041520130908201311212012",
+            project_id=self.project.id,
+            data={
+                "title": "FailedToFetchError('Charlie didn't bring the ball back')",
+                "exception": {"values": [self.exception_value]},
+            },
+        )
+        self.project.update_option(
+            "sentry:grouping_enhancements",
+            "\n".join(
+                [
+                    "stack.function:runApp -app -group",
+                    "stack.function:handleRequest -app +group",
+                    "stack.function:recordMetrics +app -group",
+                    "stack.function:playFetch +app +group",
+                ]
+            ),
+        )
+
+    def test_single_exception_simple(self):
+        for stacktrace_length, expected_result in [
+            (MAX_FRAME_COUNT - 1, False),
+            (MAX_FRAME_COUNT + 1, True),
+        ]:
+            self.event.data["platform"] = "java"
+            self.event.data["exception"]["values"][0]["stacktrace"] = {
+                "frames": [self.contributing_in_app_frame] * stacktrace_length
+            }
+
+            # `normalize_stacktraces=True` forces the custom stacktrace enhancements to run
+            variants = self.event.get_grouping_variants(normalize_stacktraces=True)
+
+            assert (
+                has_too_many_contributing_frames(self.event, variants, ReferrerOptions.INGEST)
+                is expected_result
+            )
+
+    def test_single_exception_bypassed_platform(self):
+        # Regardless of the number of frames, we never flag it as being too long
+        for stacktrace_length, expected_result in [
+            (MAX_FRAME_COUNT - 1, False),
+            (MAX_FRAME_COUNT + 1, False),
+        ]:
+            self.event.data["platform"] = "python"
+            self.event.data["exception"]["values"][0]["stacktrace"] = {
+                "frames": [self.contributing_in_app_frame] * stacktrace_length
+            }
+
+            # `normalize_stacktraces=True` forces the custom stacktrace enhancements to run
+            variants = self.event.get_grouping_variants(normalize_stacktraces=True)
+
+            assert (
+                has_too_many_contributing_frames(self.event, variants, ReferrerOptions.INGEST)
+                is expected_result
+            )
+
+    def test_chained_exception_simple(self):
+        for total_frames, expected_result in [
+            (MAX_FRAME_COUNT - 2, False),
+            (MAX_FRAME_COUNT + 2, True),
+        ]:
+            self.event.data["platform"] = "java"
+            self.event.data["exception"]["values"] = [
+                {**self.exception_value},
+                {**self.exception_value},
+            ]
+            self.event.data["exception"]["values"][0]["stacktrace"] = {
+                "frames": [self.contributing_in_app_frame] * (total_frames // 2)
+            }
+            self.event.data["exception"]["values"][1]["stacktrace"] = {
+                "frames": [self.contributing_in_app_frame] * (total_frames // 2)
+            }
+
+            # `normalize_stacktraces=True` forces the custom stacktrace enhancements to run
+            variants = self.event.get_grouping_variants(normalize_stacktraces=True)
+
+            assert (
+                has_too_many_contributing_frames(self.event, variants, ReferrerOptions.INGEST)
+                is expected_result
+            )
+
+    def test_chained_exception_bypassed_platform(self):
+        # Regardless of the number of frames, we never flag it as being too long
+        for total_frames, expected_result in [
+            (MAX_FRAME_COUNT - 2, False),
+            (MAX_FRAME_COUNT + 2, False),
+        ]:
+            self.event.data["platform"] = "python"
+            self.event.data["exception"]["values"] = [
+                {**self.exception_value},
+                {**self.exception_value},
+            ]
+            self.event.data["exception"]["values"][0]["stacktrace"] = {
+                "frames": [self.contributing_in_app_frame] * (total_frames // 2)
+            }
+            self.event.data["exception"]["values"][1]["stacktrace"] = {
+                "frames": [self.contributing_in_app_frame] * (total_frames // 2)
+            }
+
+            # `normalize_stacktraces=True` forces the custom stacktrace enhancements to run
+            variants = self.event.get_grouping_variants(normalize_stacktraces=True)
+
+            assert (
+                has_too_many_contributing_frames(self.event, variants, ReferrerOptions.INGEST)
+                is expected_result
+            )
+
+    def test_ignores_non_contributing_frames(self):
+        self.event.data["platform"] = "java"
+        self.event.data["exception"]["values"][0]["stacktrace"] = {
+            "frames": (
+                # Taken together, there are too many frames
+                [self.contributing_in_app_frame] * (MAX_FRAME_COUNT - 1)
+                + [self.non_contributing_in_app_frame] * 2
+            )
+        }
+
+        # `normalize_stacktraces=True` forces the custom stacktrace enhancements to run
+        variants = self.event.get_grouping_variants(normalize_stacktraces=True)
+
+        assert (
+            has_too_many_contributing_frames(self.event, variants, ReferrerOptions.INGEST)
+            is False  # Not flagged as too many because only contributing frames are counted
+        )
+
+    def test_prefers_app_frames(self):
+        self.event.data["platform"] = "java"
+        self.event.data["exception"]["values"][0]["stacktrace"] = {
+            "frames": (
+                [self.contributing_in_app_frame] * (MAX_FRAME_COUNT - 1)  # Under the limit
+                + [self.contributing_system_frame] * (MAX_FRAME_COUNT + 1)  # Over the limit
+            )
+        }
+
+        # `normalize_stacktraces=True` forces the custom stacktrace enhancements to run
+        variants = self.event.get_grouping_variants(normalize_stacktraces=True)
+
+        assert (
+            has_too_many_contributing_frames(self.event, variants, ReferrerOptions.INGEST)
+            is False  # Not flagged as too many because only in-app frames are counted
+        )
+
+    @pytest.mark.skip(reason="wonky behavior with -app +group rules")
+    def test_uses_app_or_system_variants(self):
+        for frame, expected_variant_name in [
+            (self.contributing_in_app_frame, "app"),
+            (self.contributing_system_frame, "system"),
+        ]:
+            self.event.data["platform"] = "java"
+            self.event.data["exception"]["values"][0]["stacktrace"] = {
+                "frames": [frame] * (MAX_FRAME_COUNT + 1)
+            }
+
+            # `normalize_stacktraces=True` forces the custom stacktrace enhancements to run
+            variants = self.event.get_grouping_variants(normalize_stacktraces=True)
+
+            contributing_variant, _ = get_contributing_variant_and_component(variants)
+            assert contributing_variant.variant_name == expected_variant_name
+
+            assert (
+                has_too_many_contributing_frames(self.event, variants, ReferrerOptions.INGEST)
+                is True
+            )
+
+    def test_ignores_events_not_grouped_on_stacktrace(self):
+        self.event.data["platform"] = "java"
+        self.event.data["exception"]["values"][0]["stacktrace"] = {
+            "frames": ([self.contributing_system_frame] * (MAX_FRAME_COUNT + 1))  # Over the limit
+        }
+        self.event.data["fingerprint"] = ["dogs_are_great"]
+
+        # `normalize_stacktraces=True` forces the custom stacktrace enhancements to run
+        variants = self.event.get_grouping_variants(normalize_stacktraces=True)
+        contributing_variant, _ = get_contributing_variant_and_component(variants)
+        assert isinstance(contributing_variant, CustomFingerprintVariant)
+
+        assert (
+            has_too_many_contributing_frames(self.event, variants, ReferrerOptions.INGEST)
+            is False  # Not flagged as too many because it's grouped by fingerprint
+        )

@@ -33,12 +33,12 @@ from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.tasks.commit_context import PR_COMMENT_WINDOW, process_commit_context
+from sentry.testutils.asserts import assert_halt_metric
 from sentry.testutils.cases import IntegrationTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.committers import get_frame_paths
-from tests.sentry.integrations.utils.test_assert_metrics import assert_halt_metric
 
 pytestmark = [requires_snuba]
 

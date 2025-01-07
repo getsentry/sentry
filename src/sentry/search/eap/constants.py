@@ -1,5 +1,9 @@
+from typing import Literal
+
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter
+
+from sentry.search.events.constants import DurationUnit, SizeUnit
 
 OPERATOR_MAP = {
     "=": ComparisonFilter.OP_EQUALS,
@@ -13,6 +17,18 @@ OPERATOR_MAP = {
 }
 IN_OPERATORS = ["IN", "NOT IN"]
 
+SearchType = (
+    SizeUnit
+    | DurationUnit
+    | Literal[
+        "duration",
+        "integer",
+        "number",
+        "percentage",
+        "string",
+    ]
+)
+
 STRING = AttributeKey.TYPE_STRING
 BOOLEAN = AttributeKey.TYPE_BOOLEAN
 FLOAT = AttributeKey.TYPE_FLOAT
@@ -20,9 +36,54 @@ INT = AttributeKey.TYPE_INT
 
 # TODO: we need a datetime type
 # Maps search types back to types for the proto
-TYPE_MAP = {
+TYPE_MAP: dict[SearchType, AttributeKey.Type.ValueType] = {
+    "bit": FLOAT,
+    "byte": FLOAT,
+    "kibibyte": FLOAT,
+    "mebibyte": FLOAT,
+    "gibibyte": FLOAT,
+    "tebibyte": FLOAT,
+    "pebibyte": FLOAT,
+    "exbibyte": FLOAT,
+    "kilobyte": FLOAT,
+    "megabyte": FLOAT,
+    "gigabyte": FLOAT,
+    "terabyte": FLOAT,
+    "petabyte": FLOAT,
+    "exabyte": FLOAT,
+    "nanosecond": FLOAT,
+    "microsecond": FLOAT,
+    "millisecond": FLOAT,
+    "second": FLOAT,
+    "minute": FLOAT,
+    "hour": FLOAT,
+    "day": FLOAT,
+    "week": FLOAT,
+    "duration": FLOAT,
+    "integer": INT,
     # TODO:  need to update these to float once the proto supports float arrays
     "number": INT,
-    "duration": FLOAT,
+    "percentage": FLOAT,
     "string": STRING,
 }
+
+# https://github.com/getsentry/snuba/blob/master/snuba/web/rpc/v1/endpoint_time_series.py
+# The RPC limits us to 2016 points per timeseries
+MAX_ROLLUP_POINTS = 2016
+# Copied from snuba, a number of total seconds
+VALID_GRANULARITIES = frozenset(
+    {
+        15,
+        30,
+        60,  # seconds
+        2 * 60,
+        5 * 60,
+        10 * 60,
+        15 * 60,
+        30 * 60,  # minutes
+        1 * 3600,
+        3 * 3600,
+        12 * 3600,
+        24 * 3600,  # hours
+    }
+)

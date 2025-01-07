@@ -53,7 +53,7 @@ export function useDragNDropColumns({columns, setColumns}: UseDragAndDropColumns
   function updateColumnAtIndex(i: number, column: string) {
     setEditableColumns(oldEditableColumns => {
       const newEditableColumns = [...oldEditableColumns];
-      newEditableColumns[i].column = column;
+      newEditableColumns[i]!.column = column;
 
       setColumns(extractColumns(newEditableColumns));
 

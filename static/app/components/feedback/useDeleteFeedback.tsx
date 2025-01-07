@@ -26,7 +26,7 @@ export const useDeleteFeedback = (feedbackIds, projectId) => {
           api,
           {
             orgId: organization.slug,
-            projectId: projectId,
+            projectId,
             itemIds: feedbackIds,
           },
           {

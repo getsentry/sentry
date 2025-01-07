@@ -2,6 +2,7 @@ from unittest import mock
 
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.models import DataConditionGroup
+from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.processors.data_condition_group import (
     evaluate_condition_group,
     get_data_conditions_for_group,
@@ -31,7 +32,7 @@ class TestProcessDataConditionGroup(TestCase):
     def test_process_data_condition_group__exists__fails(self):
         data_condition_group = self.create_data_condition_group()
         self.create_data_condition(
-            condition_group=data_condition_group, condition="gt", comparison="5"
+            condition_group=data_condition_group, type=Condition.GREATER, comparison=5
         )
 
         assert process_data_condition_group(data_condition_group.id, 1) == (False, [])
@@ -40,8 +41,8 @@ class TestProcessDataConditionGroup(TestCase):
         data_condition_group = self.create_data_condition_group()
         self.create_data_condition(
             condition_group=data_condition_group,
-            condition="gt",
-            comparison="5",
+            type=Condition.GREATER,
+            comparison=5,
             condition_result=DetectorPriorityLevel.HIGH,
         )
         assert process_data_condition_group(data_condition_group.id, 10) == (
@@ -57,15 +58,15 @@ class TestEvaluateConditionGroupTypeAny(TestCase):
         )
 
         self.data_condition = self.create_data_condition(
-            condition="gt",
-            comparison="5",
+            type=Condition.GREATER,
+            comparison=5,
             condition_result=DetectorPriorityLevel.HIGH,
             condition_group=self.data_condition_group,
         )
 
         self.data_condition_two = self.create_data_condition(
-            condition="gt",
-            comparison="3",
+            type=Condition.GREATER,
+            comparison=3,
             condition_result=DetectorPriorityLevel.LOW,
             condition_group=self.data_condition_group,
         )
@@ -116,15 +117,15 @@ class TestEvaluateConditionGroupTypeAnyShortCircuit(TestCase):
         )
 
         self.data_condition = self.create_data_condition(
-            condition="gt",
-            comparison="5",
+            comparison=5,
+            type=Condition.GREATER,
             condition_result=True,
             condition_group=self.data_condition_group,
         )
 
         self.data_condition_two = self.create_data_condition(
-            condition="gt",
-            comparison="3",
+            comparison=3,
+            type=Condition.GREATER,
             condition_result=True,
             condition_group=self.data_condition_group,
         )
@@ -169,15 +170,15 @@ class TestEvaluateConditionGroupTypeAll(TestCase):
         )
 
         self.data_condition = self.create_data_condition(
-            condition="gt",
-            comparison="5",
+            comparison=5,
+            type=Condition.GREATER,
             condition_result=DetectorPriorityLevel.HIGH,
             condition_group=self.data_condition_group,
         )
 
         self.data_condition_two = self.create_data_condition(
-            condition="gt",
-            comparison="3",
+            comparison=3,
+            type=Condition.GREATER,
             condition_result=DetectorPriorityLevel.LOW,
             condition_group=self.data_condition_group,
         )
@@ -219,15 +220,15 @@ class TestEvaluateConditionGroupTypeNone(TestCase):
         )
 
         self.data_condition = self.create_data_condition(
-            condition="gt",
-            comparison="5",
+            comparison=5,
+            type=Condition.GREATER,
             condition_result=DetectorPriorityLevel.HIGH,
             condition_group=self.data_condition_group,
         )
 
         self.data_condition_two = self.create_data_condition(
-            condition="gt",
-            comparison="3",
+            comparison=3,
+            type=Condition.GREATER,
             condition_result=DetectorPriorityLevel.LOW,
             condition_group=self.data_condition_group,
         )

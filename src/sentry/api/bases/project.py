@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import http
 from collections.abc import Mapping
 from typing import Any
 
@@ -8,7 +9,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
-from sentry.api.exceptions import ProjectMoved, ResourceDoesNotExist
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
 from sentry.api.permissions import StaffPermissionMixin
 from sentry.api.utils import get_date_range_from_params
@@ -23,6 +24,13 @@ from .organization import OrganizationPermission
 
 class ProjectEventsError(Exception):
     pass
+
+
+class ProjectMoved(Exception):
+    def __init__(self, new_url: str, slug: str):
+        self.new_url = new_url
+        self.slug = slug
+        super().__init__(new_url, slug)
 
 
 class ProjectPermission(OrganizationPermission):
@@ -40,6 +48,7 @@ class ProjectPermission(OrganizationPermission):
         if has_org_scope and request.access.has_project_access(project):
             return has_org_scope
 
+        assert request.method is not None
         allowed_scopes = set(self.scope_map.get(request.method, []))
         return request.access.has_any_project_scope(project, allowed_scopes)
 
@@ -145,8 +154,7 @@ class ProjectEndpoint(Endpoint):
             try:
                 # Project may have been renamed
                 # This will only happen if the passed in project_id_or_slug is a slug and not an id
-                redirect = ProjectRedirect.objects.select_related("project")
-                redirect = redirect.get(
+                redirect = ProjectRedirect.objects.select_related("project").get(
                     organization__slug__id_or_slug=organization_id_or_slug,
                     redirect_slug=project_id_or_slug,
                 )
@@ -178,7 +186,7 @@ class ProjectEndpoint(Endpoint):
 
         bind_organization_context(project.organization)
 
-        request._request.organization = project.organization
+        request._request.organization = project.organization  # type: ignore[attr-defined]  # XXX: we should not be stuffing random attributes into HttpRequest
 
         kwargs["project"] = project
         return (args, kwargs)
@@ -199,7 +207,7 @@ class ProjectEndpoint(Endpoint):
 
         return params
 
-    def handle_exception(
+    def handle_exception_with_details(
         self,
         request: Request,
         exc: Exception,
@@ -208,9 +216,9 @@ class ProjectEndpoint(Endpoint):
     ) -> Response:
         if isinstance(exc, ProjectMoved):
             response = Response(
-                {"slug": exc.detail["detail"]["extra"]["slug"], "detail": exc.detail["detail"]},
-                status=exc.status_code,
+                {"slug": exc.slug, "detail": {"extra": {"url": exc.new_url, "slug": exc.slug}}},
+                status=http.HTTPStatus.FOUND.value,
             )
-            response["Location"] = exc.detail["detail"]["extra"]["url"]
+            response["Location"] = exc.new_url
             return response
-        return super().handle_exception(request, exc, handler_context, scope)
+        return super().handle_exception_with_details(request, exc, handler_context, scope)

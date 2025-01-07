@@ -13,7 +13,7 @@ describe('ProjectDetail', function () {
   beforeEach(() => {
     PageFiltersStore.reset();
     ProjectsStore.reset();
-    // eslint-disable-next-line no-console
+
     jest.spyOn(console, 'error').mockImplementation(jest.fn());
 
     MockApiClient.addMockResponse({

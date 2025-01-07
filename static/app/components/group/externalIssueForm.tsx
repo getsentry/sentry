@@ -1,5 +1,5 @@
+import type {Span} from '@sentry/core';
 import * as Sentry from '@sentry/react';
-import type {Span} from '@sentry/types';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';

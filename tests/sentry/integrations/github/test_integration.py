@@ -30,7 +30,6 @@ from sentry.integrations.source_code_management.commit_context import (
     FileBlameInfo,
     SourceLineInfo,
 )
-from sentry.integrations.types import EventLifecycleOutcome
 from sentry.integrations.utils.code_mapping import Repo, RepoTree
 from sentry.models.project import Project
 from sentry.models.repository import Repository
@@ -39,6 +38,7 @@ from sentry.plugins.base import plugins
 from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
+from sentry.testutils.asserts import assert_failure_metric
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.helpers.integrations import get_installation_of_type
 from sentry.testutils.helpers.options import override_options
@@ -111,12 +111,6 @@ class GitHubIntegrationTest(IntegrationTestCase):
         responses.reset()
         plugins.unregister(GitHubPlugin)
         super().tearDown()
-
-    def assert_failure_metric(self, mock_record, error_msg):
-        (event_failures,) = (
-            call for call in mock_record.mock_calls if call.args[0] == EventLifecycleOutcome.FAILURE
-        )
-        assert event_failures.args[1] == error_msg
 
     @pytest.fixture(autouse=True)
     def stub_get_jwt(self):
@@ -372,7 +366,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
                 f', "{generate_organization_url(self.organization_2.slug)}");'.encode()
                 in resp.content
             )
-            self.assert_failure_metric(mock_record, GitHubInstallationError.INSTALLATION_EXISTS)
+            assert_failure_metric(mock_record, GitHubInstallationError.INSTALLATION_EXISTS)
 
         # Delete the Integration
         integration = Integration.objects.get(external_id=self.installation_id)
@@ -413,7 +407,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             )
         )
         assert b"Invalid state" in resp.content
-        self.assert_failure_metric(mock_record, GitHubInstallationError.INVALID_STATE)
+        assert_failure_metric(mock_record, GitHubInstallationError.INVALID_STATE)
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -474,7 +468,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             assert resp.status_code == 200
             assert b'window.opener.postMessage({"success":false' in resp.content
             assert b"Authenticated user is not the same as who installed the app" in resp.content
-            self.assert_failure_metric(mock_record, GitHubInstallationError.USER_MISMATCH)
+            assert_failure_metric(mock_record, GitHubInstallationError.USER_MISMATCH)
 
     @responses.activate
     def test_disable_plugin_when_fully_migrated(self):
@@ -763,7 +757,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             in resp.content
         )
 
-        self.assert_failure_metric(mock_record, GitHubInstallationError.PENDING_DELETION)
+        assert_failure_metric(mock_record, GitHubInstallationError.PENDING_DELETION)
 
         # Delete the original Integration
         oi.delete()

@@ -68,7 +68,7 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
   const {setPageError} = usePageAlert();
   const theme = useTheme();
 
-  const colors = [...theme.charts.getColorPalette(5)].reverse();
+  const colors = [...(theme.charts.getColorPalette(5) ?? [])].reverse();
 
   const listQuery = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
     () => ({
@@ -245,7 +245,7 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
           });
 
       const displayedField = 'count()';
-      const rightValue = listItem[displayedField];
+      const rightValue = listItem[displayedField]!;
 
       return (
         <Fragment key={i}>

@@ -1,9 +1,7 @@
 from __future__ import annotations
 
-import random
 from copy import deepcopy
 from datetime import datetime, timezone
-from functools import lru_cache
 from time import time
 from typing import Any, TypedDict
 from uuid import UUID
@@ -21,8 +19,6 @@ from sentry.lang.native.utils import native_images_from_data
 from sentry.models.eventerror import EventError
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.models.projectkey import ProjectKey, UseCase
-from sentry.profiles.device import classify_device
 from sentry.profiles.java import (
     convert_android_methods_to_jvm_frames,
     deobfuscate_signature,
@@ -34,6 +30,7 @@ from sentry.profiles.utils import (
     apply_stack_trace_rules_to_profile,
     get_from_profiling_service,
 )
+from sentry.search.utils import DEVICE_CLASS
 from sentry.signals import first_profile_received
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -41,20 +38,16 @@ from sentry.utils import json, metrics
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.sdk import set_measurement
 
-
-class VroomTimeout(Exception):
-    pass
+REVERSE_DEVICE_CLASS = {next(iter(tags)): label for label, tags in DEVICE_CLASS.items()}
 
 
 @instrumented_task(
     name="sentry.profiles.task.process_profile",
-    queue="profiles.process",
-    autoretry_for=(VroomTimeout,),  # Retry when vroom returns a GCS timeout
     retry_backoff=True,
-    retry_backoff_max=60,  # up to 1 min
+    retry_backoff_max=20,
     retry_jitter=True,
     default_retry_delay=5,  # retries after 5s
-    max_retries=5,
+    max_retries=2,
     acks_late=True,
     task_time_limit=60,
     task_acks_on_failure_or_timeout=False,
@@ -158,30 +151,7 @@ def process_profile_task(
         set_measurement("profile.stacks.processed", len(profile["profile"]["stacks"]))
         set_measurement("profile.frames.processed", len(profile["profile"]["frames"]))
 
-    if (
-        profile.get("version") in ["1", "2"]
-        and options.get("profiling.generic_metrics.functions_ingestion.enabled")
-        and (
-            organization.id
-            in options.get("profiling.generic_metrics.functions_ingestion.allowed_org_ids")
-            or random.random()
-            < options.get("profiling.generic_metrics.functions_ingestion.rollout_rate")
-        )
-        and project.id
-        not in options.get("profiling.generic_metrics.functions_ingestion.denied_proj_ids")
-    ):
-        try:
-            with metrics.timer("process_profile.get_metrics_dsn"):
-                dsn = get_metrics_dsn(project.id)
-            profile["options"] = {
-                "dsn": dsn,
-            }
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
-
-    if options.get("profiling.stack_trace_rules.enabled") and project.id in options.get(
-        "profiling.stack_trace_rules.allowed_project_ids"
-    ):
+    if options.get("profiling.stack_trace_rules.enabled"):
         try:
             with metrics.timer("process_profile.apply_stack_trace_rules"):
                 rules_config = project.get_option("sentry:grouping_enhancements")
@@ -375,34 +345,12 @@ def _normalize(profile: Profile, organization: Organization) -> None:
     if platform not in {"cocoa", "android"} or version == "2":
         return
 
-    classification_options = dict()
+    classification = profile.get("transaction_tags", {}).get("device.class", None)
 
-    if platform == "android":
-        classification_options.update(
-            {
-                "cpu_frequencies": profile["device_cpu_frequencies"],
-                "physical_memory_bytes": profile["device_physical_memory_bytes"],
-            }
-        )
+    if not classification:
+        return
 
-    if version == "1":
-        classification_options.update(
-            {
-                "model": profile["device"]["model"],
-                "os_name": profile["os"]["name"],
-                "is_emulator": profile["device"]["is_emulator"],
-            }
-        )
-    elif version is None:
-        classification_options.update(
-            {
-                "model": profile["device_model"],
-                "os_name": profile["device_os_name"],
-                "is_emulator": profile["device_is_emulator"],
-            }
-        )
-
-    classification = str(classify_device(**classification_options))
+    classification = REVERSE_DEVICE_CLASS.get(classification, "unknown")
 
     if version == "1":
         profile["device"]["classification"] = classification
@@ -517,7 +465,10 @@ def symbolicate(
             classes=[],
         )
     return symbolicator.process_payload(
-        platform=platform, stacktraces=stacktraces, modules=modules, apply_source_context=False
+        platform=platform,
+        stacktraces=stacktraces,
+        modules=modules,
+        apply_source_context=False,
     )
 
 
@@ -912,26 +863,6 @@ def get_data_category(profile: Profile) -> DataCategory:
 
 
 @metrics.wraps("process_profile.track_outcome")
-def _track_outcome_legacy(
-    profile: Profile,
-    project: Project,
-    outcome: Outcome,
-    reason: str | None = None,
-) -> None:
-    track_outcome(
-        org_id=project.organization_id,
-        project_id=project.id,
-        key_id=None,
-        outcome=outcome,
-        reason=reason,
-        timestamp=datetime.now(timezone.utc),
-        event_id=get_event_id(profile),
-        category=get_data_category(profile),
-        quantity=1,
-    )
-
-
-@metrics.wraps("process_profile.track_outcome")
 def _track_outcome(
     profile: Profile,
     project: Project,
@@ -978,29 +909,27 @@ def _insert_vroom_profile(profile: Profile) -> bool:
             path = "/chunk" if "profiler_id" in profile else "/profile"
             response = get_from_profiling_service(method="POST", path=path, json_data=profile)
 
+            sentry_sdk.set_tag("vroom.response.status_code", str(response.status))
+
+            reason = "bad status"
+
             if response.status == 204:
                 return True
             elif response.status == 429:
-                raise VroomTimeout
+                reason = "gcs timeout"
             elif response.status == 412:
-                metrics.incr(
-                    "process_profile.insert_vroom_profile.error",
-                    tags={
-                        "platform": profile["platform"],
-                        "reason": "duplicate profile",
-                    },
-                    sample_rate=1.0,
-                )
-                return False
-            else:
-                metrics.incr(
-                    "process_profile.insert_vroom_profile.error",
-                    tags={"platform": profile["platform"], "reason": "bad status"},
-                    sample_rate=1.0,
-                )
-                return False
-        except VroomTimeout:
-            raise
+                reason = "duplicate profile"
+
+            metrics.incr(
+                "process_profile.insert_vroom_profile.error",
+                tags={
+                    "platform": profile["platform"],
+                    "reason": reason,
+                    "status_code": response.status,
+                },
+                sample_rate=1.0,
+            )
+            return False
         except Exception as e:
             sentry_sdk.capture_exception(e)
             metrics.incr(
@@ -1042,22 +971,6 @@ def clean_android_js_profile(profile: Profile) -> None:
 class _ProjectKeyKwargs(TypedDict):
     project_id: int
     use_case: str
-
-
-@lru_cache(maxsize=100)
-def get_metrics_dsn(project_id: int) -> str:
-    kwargs: _ProjectKeyKwargs = {
-        "project_id": project_id,
-        "use_case": UseCase.PROFILING.value,
-    }
-    try:
-        project_key, _ = ProjectKey.objects.get_or_create(**kwargs)
-    except ProjectKey.MultipleObjectsReturned:
-        # See https://docs.djangoproject.com/en/5.0/ref/models/querysets/#get-or-create
-        project_key_first = ProjectKey.objects.filter(**kwargs).order_by("pk").first()
-        assert project_key_first is not None
-        project_key = project_key_first
-    return project_key.get_dsn(public=True)
 
 
 @metrics.wraps("process_profile.track_outcome")

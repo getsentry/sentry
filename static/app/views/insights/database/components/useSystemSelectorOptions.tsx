@@ -9,9 +9,9 @@ import {
 import {SpanMetricsField} from 'sentry/views/insights/types';
 
 export function useSystemSelectorOptions() {
-  const [selectedSystem, setSelectedSystem] = useLocalStorageState<string>(
+  const [selectedSystem, setSelectedSystem] = useLocalStorageState<string | undefined>(
     'insights-db-system-selector',
-    ''
+    undefined
   );
 
   const {data, isPending, isError} = useSpanMetrics(
@@ -43,12 +43,12 @@ export function useSystemSelectorOptions() {
 
   // Edge case: Invalid DB system was retrieved from localStorage
   if (!options.find(option => selectedSystem === option.value) && options.length > 0) {
-    setSelectedSystem(options[0].value);
+    setSelectedSystem(options[0]!.value);
   }
 
   // Edge case: No current system is saved in localStorage
   if (!selectedSystem && options.length > 0) {
-    setSelectedSystem(options[0].value);
+    setSelectedSystem(options[0]!.value);
   }
 
   return {selectedSystem, setSelectedSystem, options, isLoading: isPending, isError};

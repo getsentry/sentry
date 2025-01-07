@@ -200,7 +200,7 @@ export function getTraceInfo(
 }
 
 export function shortenErrorTitle(title: string): string {
-  return title.split(':')[0];
+  return title.split(':')[0]!;
 }
 
 export function isRootTransaction(trace: TraceFullDetailed): boolean {

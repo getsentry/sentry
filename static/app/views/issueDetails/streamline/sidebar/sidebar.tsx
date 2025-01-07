@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {StreamlinedExternalIssueList} from 'sentry/components/group/externalIssuesList/streamlinedExternalIssueList';
 import * as Layout from 'sentry/components/layouts/thirds';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {space} from 'sentry/styles/space';
@@ -14,6 +13,7 @@ import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import StreamlinedActivitySection from 'sentry/views/issueDetails/streamline/sidebar/activitySection';
+import {ExternalIssueList} from 'sentry/views/issueDetails/streamline/sidebar/externalIssueList';
 import FirstLastSeenSection from 'sentry/views/issueDetails/streamline/sidebar/firstLastSeenSection';
 import {MergedIssuesSidebarSection} from 'sentry/views/issueDetails/streamline/sidebar/mergedSidebarSection';
 import PeopleSection from 'sentry/views/issueDetails/streamline/sidebar/peopleSection';
@@ -62,7 +62,7 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
       )}
       {event && (
         <ErrorBoundary mini>
-          <StreamlinedExternalIssueList group={group} event={event} project={project} />
+          <ExternalIssueList group={group} event={event} project={project} />
           <StyledBreak style={{marginBottom: space(0.5)}} />
         </ErrorBoundary>
       )}
@@ -107,4 +107,7 @@ export const SidebarSectionTitle = styled(SidebarSection.Title)`
 const Side = styled(Layout.Side)`
   position: relative;
   padding: ${space(1.5)} ${space(2)};
+  @media (max-width: ${p => p.theme.breakpoints.large}) {
+    border-top: 1px solid ${p => p.theme.border};
+  }
 `;

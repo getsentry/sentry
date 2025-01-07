@@ -1,9 +1,0 @@
----
-source: tests/sentry/grouping/test_variants.py
----
-default:
-  hash: "e02854e73673e108fe54768e0f19317b"
-  component:
-    default*
-      message* (stripped event-specific values)
-        "Error key1=<quoted_str> key2=<int> key3=False key4=<date> other_date=datetime.datetime(<int>, <int>, <int>, <int>, <int>, tzinfo=d..."

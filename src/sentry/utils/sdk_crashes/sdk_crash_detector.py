@@ -28,11 +28,12 @@ class SDKCrashDetector:
         sdk_name: str,
         sdk_version: str,
     ) -> bool:
-        if sdk_name not in self.config.sdk_names:
+        minimum_sdk_version_string = self.config.sdk_names.get(sdk_name)
+        if not minimum_sdk_version_string:
             return False
 
         try:
-            minimum_sdk_version = Version(self.config.min_sdk_version)
+            minimum_sdk_version = Version(minimum_sdk_version_string)
             actual_sdk_version = Version(sdk_version)
 
             if actual_sdk_version < minimum_sdk_version:
@@ -47,6 +48,13 @@ class SDKCrashDetector:
     ) -> bool:
         if not self.is_sdk_supported(sdk_name, sdk_version):
             return False
+
+        mechanism_type = get_path(event_data, "exception", "values", -1, "mechanism", "type")
+        if mechanism_type and mechanism_type in self.config.ignore_mechanism_type:
+            return False
+
+        if mechanism_type and mechanism_type in self.config.allow_mechanism_type:
+            return True
 
         is_unhandled = (
             get_path(event_data, "exception", "values", -1, "mechanism", "handled") is False
