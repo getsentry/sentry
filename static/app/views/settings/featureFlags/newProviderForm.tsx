@@ -116,7 +116,10 @@ export default function NewProviderForm({
         value={selectedProvider}
         placeholder={t('Select a provider')}
         name="provider"
-        options={[{value: 'LaunchDarkly', label: 'LaunchDarkly'}]}
+        options={[
+          {value: 'LaunchDarkly', label: 'LaunchDarkly'},
+          {value: 'Generic', label: 'Generic'},
+        ]}
         help={t(
           'If you have already linked this provider, pasting a new secret will override the existing secret.'
         )}

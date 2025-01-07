@@ -98,7 +98,9 @@ export default function OnboardingIntegrationSection({
           <div>
             {tct(
               "Create a webhook integration with your [link:feature flag service]. When you do so, you'll need to enter a URL, which you can find below.",
-              {link: <ExternalLink href={PROVIDER_OPTION_TO_URLS[provider]} />}
+              {
+                link: <ExternalLink href={PROVIDER_OPTION_TO_URLS[provider]} />,
+              }
             )}
           </div>
           <InputTitle>{t('Webhook URL')}</InputTitle>
