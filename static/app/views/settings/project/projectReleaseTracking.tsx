@@ -61,7 +61,6 @@ function ProjectReleaseTracking({organization, project, plugins}: Props) {
   const {projectId} = useParams<{projectId: string}>();
   const queryClient = useQueryClient();
 
-  // Custom useQuery to access the status code
   const {
     data: releaseTokenData = placeholderData,
     isFetching,
