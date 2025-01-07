@@ -54,7 +54,7 @@ describe('celery onboarding docs', function () {
 
     // Does render transaction profiling config
     expect(
-      screen.queryByText(textWithMarkupMatcher(/profiles_sample_rate=1\.0,/))
+      screen.getByText(textWithMarkupMatcher(/profiles_sample_rate=1\.0,/))
     ).toBeInTheDocument();
   });
 
@@ -78,10 +78,10 @@ describe('celery onboarding docs', function () {
 
     // Does render continuous profiling config
     expect(
-      screen.queryByText(textWithMarkupMatcher(/sentry_sdk.profiler.start_profiler\(\)/))
+      screen.getByText(textWithMarkupMatcher(/sentry_sdk.profiler.start_profiler\(\)/))
     ).toBeInTheDocument();
     expect(
-      screen.queryByText(textWithMarkupMatcher(/sentry_sdk.profiler.stop_profiler\(\)/))
+      screen.getByText(textWithMarkupMatcher(/sentry_sdk.profiler.stop_profiler\(\)/))
     ).toBeInTheDocument();
   });
 });

@@ -81,7 +81,7 @@ describe('FullSpanDescription', function () {
       {organization}
     );
 
-    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     const queryCodeSnippet = await screen.findByText(
       /select users from my_table limit 1;/i
@@ -127,7 +127,7 @@ describe('FullSpanDescription', function () {
       organization,
     });
 
-    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     const queryCodeSnippet = screen.getByText(
       /\{ "insert": "my_cool_collection😎", "a": \{\} \}/i
@@ -173,7 +173,7 @@ describe('FullSpanDescription', function () {
       organization,
     });
 
-    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     // The last truncated entry will have a null value assigned and the JSON document is properly closed
     const queryCodeSnippet = screen.getByText(

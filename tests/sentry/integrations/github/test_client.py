@@ -555,7 +555,7 @@ class GithubProxyClientTest(TestCase):
                 if is_proxy:
                     assert request.headers[PROXY_OI_HEADER] is not None
 
-        expected_proxy_path = "repos/test-repo/issues"
+        expected_proxy_path = "repos/test-repo/issues/123"
         control_proxy_responses = add_control_silo_proxy_response(
             method=responses.GET,
             path=expected_proxy_path,
@@ -572,7 +572,7 @@ class GithubProxyClientTest(TestCase):
 
         with override_settings(SILO_MODE=SiloMode.MONOLITH):
             client = GithubProxyTestClient(integration=self.integration)
-            client.get_issues("test-repo")
+            client.get_issue("test-repo", "123")
             request = responses.calls[0].request
 
             assert github_responses.call_count == 1
@@ -583,7 +583,7 @@ class GithubProxyClientTest(TestCase):
         responses.calls.reset()
         with override_settings(SILO_MODE=SiloMode.CONTROL):
             client = GithubProxyTestClient(integration=self.integration)
-            client.get_issues("test-repo")
+            client.get_issue("test-repo", "123")
             request = responses.calls[0].request
 
             assert github_responses.call_count == 2
@@ -595,7 +595,7 @@ class GithubProxyClientTest(TestCase):
         assert control_proxy_responses.call_count == 0
         with override_settings(SILO_MODE=SiloMode.REGION):
             client = GithubProxyTestClient(integration=self.integration)
-            client.get_issues("test-repo")
+            client.get_issue("test-repo", "123")
             request = responses.calls[0].request
 
             assert control_proxy_responses.call_count == 1

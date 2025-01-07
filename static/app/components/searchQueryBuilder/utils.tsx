@@ -113,7 +113,7 @@ export function makeTokenKey(token: ParseResultToken, allTokens: ParseResult | n
 
 export function parseTokenKey(key: string) {
   const [tokenType, indexStr] = key.split(':');
-  const index = parseInt(indexStr, 10);
+  const index = parseInt(indexStr!, 10);
   return {tokenType, index};
 }
 
@@ -144,7 +144,7 @@ export function collapseTextTokens(tokens: ParseResult | null) {
       return [token];
     }
 
-    const lastToken = acc[acc.length - 1];
+    const lastToken = acc[acc.length - 1]!;
 
     if (isSimpleTextToken(token) && isSimpleTextToken(lastToken)) {
       const freeTextToken = lastToken as TokenResult<Token.FREE_TEXT>;

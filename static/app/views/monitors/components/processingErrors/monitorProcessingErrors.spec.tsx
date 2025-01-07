@@ -8,7 +8,7 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
-import MonitorProcessingErrors from 'sentry/views/monitors/components/processingErrors/monitorProcessingErrors';
+import {MonitorProcessingErrors} from 'sentry/views/monitors/components/processingErrors/monitorProcessingErrors';
 
 describe('MonitorProcessingErrors', () => {
   it('should group errors by type', async () => {

@@ -65,7 +65,6 @@ from sentry.seer.anomaly_detection.types import (
 )
 from sentry.seer.anomaly_detection.utils import has_anomaly, translate_direction
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.indexer.postgres.models import MetricsKeyIndexer
 from sentry.sentry_metrics.utils import resolve_tag_key
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
@@ -3715,7 +3714,6 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
     def test_ensure_case_when_no_metrics_index_not_found_is_handled_gracefully(
         self, helper_metrics
     ):
-        MetricsKeyIndexer.objects.all().delete()
         rule = self.crash_rate_alert_rule
         subscription = rule.snuba_query.subscriptions.filter(project=self.project).get()
         processor = SubscriptionProcessor(subscription)

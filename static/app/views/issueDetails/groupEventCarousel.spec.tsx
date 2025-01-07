@@ -2,16 +2,18 @@ import {ConfigFixture} from 'sentry-fixture/config';
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import * as useMedia from 'sentry/utils/useMedia';
 import {GroupEventCarousel} from 'sentry/views/issueDetails/groupEventCarousel';
 
 describe('GroupEventCarousel', () => {
+  const router = RouterFixture();
+
   const testEvent = EventFixture({
     id: 'event-id',
     size: 7,
@@ -66,12 +68,12 @@ describe('GroupEventCarousel', () => {
     it('can navigate to the oldest event', async () => {
       jest.spyOn(useMedia, 'default').mockReturnValue(true);
 
-      render(<GroupEventCarousel {...defaultProps} />);
+      render(<GroupEventCarousel {...defaultProps} />, {router});
 
       await userEvent.click(screen.getByRole('button', {name: /recommended/i}));
       await userEvent.click(screen.getByRole('option', {name: /oldest/i}));
 
-      expect(browserHistory.push).toHaveBeenCalledWith({
+      expect(router.push).toHaveBeenCalledWith({
         pathname: '/organizations/org-slug/issues/group-id/events/oldest/',
         query: {referrer: 'oldest-event'},
       });
@@ -80,30 +82,27 @@ describe('GroupEventCarousel', () => {
     it('can navigate to the latest event', async () => {
       jest.spyOn(useMedia, 'default').mockReturnValue(true);
 
-      render(<GroupEventCarousel {...defaultProps} />);
+      render(<GroupEventCarousel {...defaultProps} />, {router});
 
       await userEvent.click(screen.getByRole('button', {name: /recommended/i}));
       await userEvent.click(screen.getByRole('option', {name: /latest/i}));
 
-      expect(browserHistory.push).toHaveBeenCalledWith({
+      expect(router.push).toHaveBeenCalledWith({
         pathname: '/organizations/org-slug/issues/group-id/events/latest/',
         query: {referrer: 'latest-event'},
       });
     });
 
     it('can navigate to the recommended event', async () => {
+      const newRouter = RouterFixture({params: {eventId: 'latest'}});
       jest.spyOn(useMedia, 'default').mockReturnValue(true);
 
-      render(<GroupEventCarousel {...defaultProps} />, {
-        router: {
-          params: {eventId: 'latest'},
-        },
-      });
+      render(<GroupEventCarousel {...defaultProps} />, {router: newRouter});
 
       await userEvent.click(screen.getByRole('button', {name: /latest/i}));
       await userEvent.click(screen.getByRole('option', {name: /recommended/i}));
 
-      expect(browserHistory.push).toHaveBeenCalledWith({
+      expect(newRouter.push).toHaveBeenCalledWith({
         pathname: '/organizations/org-slug/issues/group-id/events/recommended/',
         query: {referrer: 'recommended-event'},
       });

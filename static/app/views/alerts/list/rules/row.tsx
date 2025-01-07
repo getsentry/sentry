@@ -65,7 +65,7 @@ function RuleListRow({
     rule.type === CombinedAlertType.METRIC && rule.monitorType === MonitorType.ACTIVATED;
   const isUptime = rule.type === CombinedAlertType.UPTIME;
 
-  const slug = isUptime ? rule.projectSlug : rule.projects[0];
+  const slug = isUptime ? rule.projectSlug : rule.projects[0]!;
 
   const editKey = {
     [CombinedAlertType.ISSUE]: 'rules',
@@ -174,7 +174,7 @@ function RuleListRow({
     }))
     .concat(unassignedOption);
 
-  const teamId = assignee?.split(':')[1];
+  const teamId = assignee?.split(':')[1]!;
   const teamName = filteredProjectTeams.find(team => team.id === teamId);
 
   const assigneeTeamActor = assignee && {

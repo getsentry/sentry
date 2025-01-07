@@ -237,6 +237,10 @@ class EndpointRegressionDetector(RegressionDetector):
     escalation_rel_threshold = 0.75
 
     @classmethod
+    def min_throughput_threshold(cls) -> int:
+        return options.get("statistical_detectors.throughput.threshold.transactions")
+
+    @classmethod
     def detector_algorithm_factory(cls) -> DetectorAlgorithm:
         return MovingAverageRelativeChangeDetector(
             source=cls.source,
@@ -277,6 +281,10 @@ class FunctionRegressionDetector(RegressionDetector):
     buffer_period = timedelta(days=1)
     resolution_rel_threshold = 0.1
     escalation_rel_threshold = 0.75
+
+    @classmethod
+    def min_throughput_threshold(cls) -> int:
+        return options.get("statistical_detectors.throughput.threshold.functions")
 
     @classmethod
     def detector_algorithm_factory(cls) -> DetectorAlgorithm:

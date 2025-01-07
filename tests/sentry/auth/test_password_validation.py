@@ -84,10 +84,7 @@ class PasswordValidationTestCase(TestCase):
             "https://api.pwnedpasswords.com/range/74BA3",
             body=PWNED_PASSWORDS_RESPONSE_MOCK,
         )
-        try:
-            validate_password("hiphophouse")
-        except ValidationError:
-            assert False, "ValidationError was thrown"
+        validate_password("hiphophouse")  # should not raise
 
     @responses.activate
     @override_settings(
@@ -101,7 +98,4 @@ class PasswordValidationTestCase(TestCase):
             "https://api.pwnedpasswords.com/range/74BA3",
             body="corrupted_content_with_no_colon",
         )
-        try:
-            validate_password("hiphophouse")
-        except ValidationError:
-            assert False, "ValidationError was thrown"
+        validate_password("hiphophouse")  # should not raise

@@ -37,7 +37,7 @@ def test_multiprocessing_strategy():
     )
 
     def _commit(offsets: Mapping[Partition, int], force: bool = False) -> None:
-        return None
+        raise NotImplementedError
 
     # Assert the multi-processing step does not fail to initialize.
     task = factory.create_with_partitions(_commit, {})

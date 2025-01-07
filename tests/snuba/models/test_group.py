@@ -11,7 +11,7 @@ from sentry.eventstore.models import GroupEvent
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileFileIOGroupType
 from sentry.models.group import Group
 from sentry.testutils.cases import PerformanceIssueTestCase, SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -41,7 +41,7 @@ class GroupTestSnuba(TestCase, SnubaTestCase, PerformanceIssueTestCase, Occurren
             data={
                 "event_id": "a" * 32,
                 "environment": "production",
-                "timestamp": iso_format(before_now(minutes=3)),
+                "timestamp": before_now(minutes=3).isoformat(),
                 "fingerprint": ["group-1"],
             },
             project_id=project.id,
@@ -50,7 +50,7 @@ class GroupTestSnuba(TestCase, SnubaTestCase, PerformanceIssueTestCase, Occurren
             data={
                 "event_id": "b" * 32,
                 "environment": "production",
-                "timestamp": iso_format(before_now(minutes=2)),
+                "timestamp": before_now(minutes=2).isoformat(),
                 "fingerprint": ["group-1"],
             },
             project_id=project.id,
@@ -58,7 +58,7 @@ class GroupTestSnuba(TestCase, SnubaTestCase, PerformanceIssueTestCase, Occurren
         self.store_event(
             data={
                 "event_id": "c" * 32,
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "fingerprint": ["group-1"],
             },
             project_id=project.id,
@@ -80,7 +80,7 @@ class GroupTestSnuba(TestCase, SnubaTestCase, PerformanceIssueTestCase, Occurren
         event_all_helpful_params = self.store_event(
             data={
                 "event_id": "a" * 32,
-                "timestamp": iso_format(before_now(minutes=3)),
+                "timestamp": before_now(minutes=3).isoformat(),
                 "fingerprint": ["group-1"],
                 "contexts": {
                     "replay": {"replay_id": replay_id},
@@ -98,7 +98,7 @@ class GroupTestSnuba(TestCase, SnubaTestCase, PerformanceIssueTestCase, Occurren
         self.store_event(
             data={
                 "event_id": "b" * 32,
-                "timestamp": iso_format(before_now(minutes=2)),
+                "timestamp": before_now(minutes=2).isoformat(),
                 "fingerprint": ["group-1"],
                 "contexts": {
                     "replay": {"replay_id": replay_id},
@@ -111,7 +111,7 @@ class GroupTestSnuba(TestCase, SnubaTestCase, PerformanceIssueTestCase, Occurren
         event_none_helpful_params = self.store_event(
             data={
                 "event_id": "c" * 32,
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "fingerprint": ["group-1"],
             },
             project_id=project.id,
@@ -134,7 +134,7 @@ class GroupTestSnuba(TestCase, SnubaTestCase, PerformanceIssueTestCase, Occurren
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
-                "timestamp": iso_format(outside_retention_date),
+                "timestamp": outside_retention_date.isoformat(),
                 "fingerprint": ["group-1"],
                 "contexts": {},
                 "errors": [],
@@ -189,7 +189,7 @@ class GroupTestSnubaErrorIssue(TestCase, SnubaTestCase):
         self.event_a = self.store_event(
             data={
                 "event_id": "a" * 32,
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "environment": "staging",
                 "fingerprint": ["group-1"],
                 "message": "Error: Division by zero",
@@ -199,7 +199,7 @@ class GroupTestSnubaErrorIssue(TestCase, SnubaTestCase):
         self.event_b = self.store_event(
             data={
                 "event_id": "b" * 32,
-                "timestamp": iso_format(before_now(minutes=2)),
+                "timestamp": before_now(minutes=2).isoformat(),
                 "fingerprint": ["group-1"],
                 "environment": "production",
                 "contexts": {
@@ -217,7 +217,7 @@ class GroupTestSnubaErrorIssue(TestCase, SnubaTestCase):
         self.event_c = self.store_event(
             data={
                 "event_id": "c" * 32,
-                "timestamp": iso_format(before_now(minutes=3)),
+                "timestamp": before_now(minutes=3).isoformat(),
                 "fingerprint": ["group-1"],
                 "tags": {"organization.slug": "sentry"},
                 "environment": "staging",
@@ -487,7 +487,7 @@ class GroupTestSnubaOccurrenceIssue(TestCase, SnubaTestCase, OccurrenceTestMixin
             project_id=self.project.id,
             event_id="a" * 32,
             event_data={
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "fingerprint": ["group-1"],
                 "environment": "staging",
                 "contexts": {
@@ -500,7 +500,7 @@ class GroupTestSnubaOccurrenceIssue(TestCase, SnubaTestCase, OccurrenceTestMixin
             project_id=self.project.id,
             event_id="b" * 32,
             event_data={
-                "timestamp": iso_format(before_now(minutes=2)),
+                "timestamp": before_now(minutes=2).isoformat(),
                 "fingerprint": ["group-1"],
                 "environment": "production",
                 "contexts": {
@@ -519,7 +519,7 @@ class GroupTestSnubaOccurrenceIssue(TestCase, SnubaTestCase, OccurrenceTestMixin
             project_id=self.project.id,
             event_id="c" * 32,
             event_data={
-                "timestamp": iso_format(before_now(minutes=3)),
+                "timestamp": before_now(minutes=3).isoformat(),
                 "fingerprint": ["group-1"],
                 "environment": "staging",
                 "tags": {"organization.slug": "sentry"},

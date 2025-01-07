@@ -1,10 +1,13 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
+import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import ReplayRageClickSdkVersionBanner from 'sentry/components/replays/replayRageClickSdkVersionBanner';
-import {t} from 'sentry/locale';
+import {IconInfo} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import {MIN_DEAD_RAGE_CLICK_SDK} from 'sentry/utils/replays/sdkVersions';
@@ -33,7 +36,8 @@ export default function ListContent() {
     projectId: projects.map(String),
   });
 
-  const {allMobileProj} = useAllMobileProj();
+  const {allMobileProj} = useAllMobileProj({replayPlatforms: true});
+  const mobileBetaOrg = organization.features.includes('mobile-replay-beta-orgs');
 
   const [widgetIsOpen, setWidgetIsOpen] = useState(true);
 
@@ -93,6 +97,19 @@ export default function ListContent() {
           )}
         </SearchWrapper>
       </FiltersContainer>
+      {allMobileProj && mobileBetaOrg ? (
+        <StyledAlert icon={<IconInfo />} showIcon>
+          {tct(
+            `[strong:Mobile Replay is now generally available.] Orgs that participated in the beta will have a two month grace period of unlimited usage until March 6. After that, you will be billed for [link:additional replays not included in your plan].`,
+            {
+              strong: <strong />,
+              link: (
+                <ExternalLink href="https://docs.sentry.io/pricing/#replays-pricing" />
+              ),
+            }
+          )}
+        </StyledAlert>
+      ) : null}
       {widgetIsOpen && !allMobileProj ? <DeadRageSelectorCards /> : null}
       <ReplaysList />
     </Fragment>
@@ -109,4 +126,8 @@ const FiltersContainer = styled('div')`
 const SearchWrapper = styled(FiltersContainer)`
   flex-grow: 1;
   flex-wrap: nowrap;
+`;
+
+const StyledAlert = styled(Alert)`
+  margin: 0;
 `;

@@ -20,7 +20,7 @@ describe('updateQueryWithSeriesFilter', () => {
       MetricSeriesFilterUpdateType.ADD
     );
 
-    expect(updatedQuery.query).toEqual('project:"1"');
+    expect(updatedQuery.query).toBe('project:"1"');
     expect(updatedQuery.groupBy).toEqual([]);
   });
 
@@ -38,7 +38,7 @@ describe('updateQueryWithSeriesFilter', () => {
       MetricSeriesFilterUpdateType.ADD
     );
 
-    expect(updatedQuery.query).toEqual(
+    expect(updatedQuery.query).toBe(
       '( release:latest AND ( environment:production OR environment:staging ) ) project:"1"'
     );
     expect(updatedQuery.groupBy).toEqual([]);
@@ -58,7 +58,7 @@ describe('updateQueryWithSeriesFilter', () => {
       MetricSeriesFilterUpdateType.EXCLUDE
     );
 
-    expect(updatedQuery.query).toEqual('!project:"1"');
+    expect(updatedQuery.query).toBe('!project:"1"');
     expect(updatedQuery.groupBy).toEqual([]);
   });
 
@@ -76,7 +76,7 @@ describe('updateQueryWithSeriesFilter', () => {
       MetricSeriesFilterUpdateType.EXCLUDE
     );
 
-    expect(updatedQuery.query).toEqual(
+    expect(updatedQuery.query).toBe(
       '( environment:prod1 OR environment:prod2 ) !project:"2"'
     );
     expect(updatedQuery.groupBy).toEqual([]);
@@ -96,7 +96,7 @@ describe('updateQueryWithSeriesFilter', () => {
       MetricSeriesFilterUpdateType.ADD
     );
 
-    expect(updatedQuery.query).toEqual('project:"1" release:"latest"');
+    expect(updatedQuery.query).toBe('project:"1" release:"latest"');
     expect(updatedQuery.groupBy).toEqual(['environment']);
   });
 
@@ -114,30 +114,30 @@ describe('updateQueryWithSeriesFilter', () => {
       MetricSeriesFilterUpdateType.ADD
     );
 
-    expect(updatedQuery.query).toEqual('project:""');
+    expect(updatedQuery.query).toBe('project:""');
     expect(updatedQuery.groupBy).toEqual([]);
   });
 });
 
 describe('ensureQuotedTextFilters', () => {
   it('returns a query with all text filters quoted', () => {
-    expect(ensureQuotedTextFilters('transaction:/{organization_slug}/')).toEqual(
+    expect(ensureQuotedTextFilters('transaction:/{organization_slug}/')).toBe(
       'transaction:"/{organization_slug}/"'
     );
 
     // transaction.duration defaults to a number filter
-    expect(ensureQuotedTextFilters('transaction.duration:100')).toEqual(
+    expect(ensureQuotedTextFilters('transaction.duration:100')).toBe(
       'transaction.duration:100'
     );
   });
 
   it('handles negated filters', () => {
-    expect(ensureQuotedTextFilters('!transaction:/{organization_slug}/')).toEqual(
+    expect(ensureQuotedTextFilters('!transaction:/{organization_slug}/')).toBe(
       '!transaction:"/{organization_slug}/"'
     );
 
     // transaction.duration defaults to a number filter
-    expect(ensureQuotedTextFilters('!transaction.duration:100')).toEqual(
+    expect(ensureQuotedTextFilters('!transaction.duration:100')).toBe(
       '!transaction.duration:100'
     );
   });
@@ -147,12 +147,12 @@ describe('ensureQuotedTextFilters', () => {
       ensureQuotedTextFilters('transaction:100', {
         numericKeys: new Set(['transaction']),
       })
-    ).toEqual('transaction:100');
+    ).toBe('transaction:100');
 
     expect(
       ensureQuotedTextFilters('transaction.duration:100', {
         numericKeys: new Set([]),
       })
-    ).toEqual('transaction.duration:"100"');
+    ).toBe('transaction.duration:"100"');
   });
 });

@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import isEqual from 'lodash/isEqual';
 import * as qs from 'query-string';
 
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
@@ -41,7 +42,6 @@ import useApi from 'sentry/utils/useApi';
 import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
@@ -223,8 +223,6 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
   const organization = useOrganization();
   const router = useRouter();
   const params = router.params;
-  const navigate = useNavigate();
-  const defaultIssueEvent = useDefaultIssueEvent();
 
   const [allProjectChanged, setAllProjectChanged] = useState<boolean>(false);
 
@@ -236,7 +234,6 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
   const {
     data: event,
     isPending: loadingEvent,
-    isError: isEventError,
     refetch: refetchEvent,
   } = useGroupEvent({
     groupId,
@@ -251,27 +248,6 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
     error: groupError,
     refetch: refetchGroupCall,
   } = useGroup({groupId});
-
-  useEffect(() => {
-    const eventIdUrl = params.eventId ?? defaultIssueEvent;
-    const isLatestOrRecommendedEvent =
-      eventIdUrl === 'latest' || eventIdUrl === 'recommended';
-
-    if (isLatestOrRecommendedEvent && isEventError && router.location.query.query) {
-      // If we get an error from the helpful event endpoint, it probably means
-      // the query failed validation. We should remove the query to try again.
-      navigate(
-        {
-          ...router.location,
-          query: {
-            ...router.location.query,
-            query: undefined,
-          },
-        },
-        {replace: true}
-      );
-    }
-  }, [defaultIssueEvent, isEventError, navigate, router.location, params.eventId]);
 
   /**
    * Allows the GroupEventHeader to display the previous event while the new event is loading.
@@ -288,7 +264,43 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
     [event]
   );
 
-  const group = groupData ?? null;
+  // If the environment changes, we need to refetch the group, but we can
+  // still display the previous group while the new group is loading.
+  const previousGroupData = useMemoWithPrevious<{
+    cachedGroup: typeof groupData | null;
+    previousEnvironments: typeof environments | null;
+    previousGroupData: typeof groupData | null;
+  }>(
+    previousInstance => {
+      // Preserve the previous group if:
+      // - New group is not yet available
+      // - Previously we had group data
+      // - The previous group id is the same as the current group id
+      // - The previous environments are not the same as the current environments
+      if (
+        !groupData &&
+        previousInstance?.cachedGroup &&
+        previousInstance.cachedGroup.id === groupId &&
+        !isEqual(previousInstance.previousEnvironments, environments)
+      ) {
+        return {
+          previousGroupData: previousInstance.previousGroupData,
+          previousEnvironments: previousInstance.previousEnvironments,
+          cachedGroup: previousInstance.cachedGroup,
+        };
+      }
+
+      // If group data is available, store in memo for comparison later
+      return {
+        cachedGroup: groupData,
+        previousEnvironments: environments,
+        previousGroupData: null,
+      };
+    },
+    [groupData, environments, groupId]
+  );
+
+  const group = groupData ?? previousGroupData.cachedGroup ?? null;
 
   useEffect(() => {
     if (defined(group)) {
@@ -775,13 +787,7 @@ function GroupDetails(props: GroupDetailsProps) {
           shouldForceProject
         >
           {config?.showFeedbackWidget && <FloatingFeedbackWidget />}
-          <GroupDetailsPageContent
-            {...props}
-            {...{
-              group,
-              ...fetchGroupDetailsProps,
-            }}
-          />
+          <GroupDetailsPageContent {...props} {...fetchGroupDetailsProps} group={group} />
         </PageFiltersContainer>
       </SentryDocumentTitle>
     </Fragment>

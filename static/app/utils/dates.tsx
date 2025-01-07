@@ -91,7 +91,11 @@ export function setDateToTime(
   timeStr: string,
   {local}: {local?: boolean} = {}
 ): Date {
-  const [hours, minutes, seconds] = timeStr.split(':').map(t => parseInt(t, 10));
+  const [hours, minutes, seconds] = timeStr.split(':').map(t => parseInt(t, 10)) as [
+    number,
+    number,
+    number,
+  ];
 
   const date = new Date(+dateObj);
 

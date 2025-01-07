@@ -108,7 +108,7 @@ function parseDemoEventSlug(
   }
 
   const [project_slug, event_id] = demoEventSlug.split(':');
-  return {project_slug, event_id};
+  return {project_slug: project_slug!, event_id: event_id!};
 }
 
 function makeTraceFromTransaction(

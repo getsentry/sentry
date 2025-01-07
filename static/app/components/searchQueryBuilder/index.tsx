@@ -303,6 +303,7 @@ export function SearchQueryBuilder({
         }
         ref={wrapperRef}
         aria-disabled={disabled}
+        data-test-id="search-query-builder"
       >
         <PanelProvider>
           <SearchIndicator

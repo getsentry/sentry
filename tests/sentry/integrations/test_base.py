@@ -9,7 +9,7 @@ class TestIntegration(IntegrationInstallation):
     __test__ = False
 
     def get_client(self):
-        pass
+        raise NotImplementedError
 
 
 @all_silo_test

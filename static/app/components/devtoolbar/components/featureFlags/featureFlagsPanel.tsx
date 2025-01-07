@@ -178,7 +178,7 @@ function FlagTable({prefilter, searchTerm}: {prefilter: Prefilter; searchTerm: s
       >
         {names?.map(name => (
           <AnalyticsProvider key={name} keyVal="flag-item" nameVal="Flag Item">
-            <FeatureFlagItem flag={{name, ...filtered[name]}} />
+            <FeatureFlagItem flag={{name, ...filtered[name]!}} />
           </AnalyticsProvider>
         ))}
       </PanelTable>

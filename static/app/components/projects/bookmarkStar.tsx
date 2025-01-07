@@ -24,20 +24,20 @@ function BookmarkStar({className, organization, project, onToggle}: Props) {
   const [isBookmarked, setIsBookmarked] = useState(project.isBookmarked);
 
   const {mutate: handleBookmarkToggle, isPending: isBookmarking} = useMutation({
-    mutationFn: () => {
+    mutationFn: (variables: {isBookmarked: boolean}) => {
       return update(api, {
         orgId: organization.slug,
         projectId: project.slug,
-        data: {isBookmarked: !isBookmarked},
+        data: {isBookmarked: variables.isBookmarked},
       });
     },
-    onMutate: () => {
-      onToggle?.(isBookmarked);
-      setIsBookmarked(current => !current);
+    onMutate: variables => {
+      onToggle?.(variables.isBookmarked);
+      setIsBookmarked(variables.isBookmarked);
     },
-    onError: () => {
+    onError: (_data, variables) => {
       addErrorMessage(t('Unable to toggle bookmark for %s', project.slug));
-      setIsBookmarked(current => !current);
+      setIsBookmarked(!variables.isBookmarked);
     },
   });
 
@@ -49,7 +49,7 @@ function BookmarkStar({className, organization, project, onToggle}: Props) {
       aria-label={label}
       aria-pressed={isBookmarked}
       busy={isBookmarking}
-      onClick={() => handleBookmarkToggle()}
+      onClick={() => handleBookmarkToggle({isBookmarked: !isBookmarked})}
       size="zero"
       borderless
       className={className}
