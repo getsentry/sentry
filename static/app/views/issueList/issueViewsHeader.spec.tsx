@@ -73,6 +73,11 @@ describe('IssueViewsHeader', () => {
         method: 'GET',
         body: getRequestViews,
       });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues-count/`,
+        method: 'GET',
+        body: {},
+      });
     });
 
     it('renders all tabs, selects the first one by default, and replaces the query params accordingly', async () => {
@@ -120,6 +125,11 @@ describe('IssueViewsHeader', () => {
           },
         ],
       });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues-count/`,
+        method: 'GET',
+        body: {},
+      });
 
       render(<IssueViewsIssueListHeader {...defaultProps} />, {router: defaultRouter});
 
@@ -152,6 +162,11 @@ describe('IssueViewsHeader', () => {
             querySort: IssueSortOptions.DATE,
           },
         ],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues-count/`,
+        method: 'GET',
+        body: {},
       });
 
       render(<IssueViewsIssueListHeader {...defaultProps} router={queryOnlyRouter} />, {
@@ -277,6 +292,11 @@ describe('IssueViewsHeader', () => {
           },
         ],
       });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues-count/`,
+        method: 'GET',
+        body: {},
+      });
 
       const defaultTabDifferentQueryRouter = RouterFixture({
         location: LocationFixture({
@@ -319,6 +339,11 @@ describe('IssueViewsHeader', () => {
         url: `/organizations/${organization.slug}/group-search-views/`,
         method: 'GET',
         body: getRequestViews,
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues-count/`,
+        method: 'GET',
+        body: {},
       });
     });
 
@@ -452,6 +477,11 @@ describe('IssueViewsHeader', () => {
         url: `/organizations/${organization.slug}/group-search-views/`,
         method: 'GET',
         body: getRequestViews,
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues-count/`,
+        method: 'GET',
+        body: {},
       });
     });
 
@@ -790,6 +820,97 @@ describe('IssueViewsHeader', () => {
           })
         );
       });
+    });
+  });
+
+  describe('Issue views query counts', () => {
+    it('should render the correct count for a single view', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/group-search-views/`,
+        method: 'GET',
+        body: [getRequestViews[0]],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues-count/`,
+        method: 'GET',
+        query: {
+          query: getRequestViews[0]!.query,
+        },
+        body: {
+          [getRequestViews[0]!.query]: 42,
+        },
+      });
+
+      render(<IssueViewsIssueListHeader {...defaultProps} />, {router: defaultRouter});
+
+      expect(await screen.findByText('42')).toBeInTheDocument();
+    });
+
+    it('should render the correct count for multiple views', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/group-search-views/`,
+        method: 'GET',
+        body: getRequestViews,
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues-count/`,
+        method: 'GET',
+        body: {
+          [getRequestViews[0]!.query]: 42,
+          [getRequestViews[1]!.query]: 6,
+          [getRequestViews[2]!.query]: 98,
+        },
+      });
+
+      render(<IssueViewsIssueListHeader {...defaultProps} />, {router: defaultRouter});
+
+      expect(await screen.findByText('42')).toBeInTheDocument();
+      expect(screen.getByText('6')).toBeInTheDocument();
+      expect(screen.getByText('98')).toBeInTheDocument();
+    });
+
+    it('should show a max count of 99+ if the count is greater than 99', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/group-search-views/`,
+        method: 'GET',
+        body: [getRequestViews[0]],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues-count/`,
+        method: 'GET',
+        query: {
+          query: getRequestViews[0]!.query,
+        },
+        body: {
+          [getRequestViews[0]!.query]: 101,
+        },
+      });
+
+      render(<IssueViewsIssueListHeader {...defaultProps} />, {router: defaultRouter});
+
+      expect(await screen.findByText('99+')).toBeInTheDocument();
+    });
+
+    it('should show stil show a 0 query count if the count is 0', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/group-search-views/`,
+        method: 'GET',
+        body: [getRequestViews[0]],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues-count/`,
+        method: 'GET',
+        query: {
+          query: getRequestViews[0]!.query,
+        },
+        body: {
+          [getRequestViews[0]!.query]: 0,
+        },
+      });
+
+      render(<IssueViewsIssueListHeader {...defaultProps} />, {router: defaultRouter});
+
+      expect(await screen.findByText('0')).toBeInTheDocument();
     });
   });
 });
