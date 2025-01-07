@@ -876,6 +876,33 @@ describe('useWidgetBuilderState', () => {
 
       expect(result.current.state.sort).toEqual([{field: 'newSortField', kind: 'desc'}]);
     });
+
+    it('does not reset the table sort for issue widgets', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            dataset: WidgetType.ISSUE,
+            field: ['testField'],
+            sort: ['-notInFields'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.sort).toEqual([{field: 'notInFields', kind: 'desc'}]);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_FIELDS,
+          payload: [{field: 'testField', kind: FieldValueKind.FIELD}],
+        });
+      });
+
+      expect(result.current.state.sort).toEqual([{field: 'notInFields', kind: 'desc'}]);
+    });
   });
 
   describe('yAxis', () => {
