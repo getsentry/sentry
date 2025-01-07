@@ -92,7 +92,7 @@ def get_provider(
 class LaunchDarklyItemSerializer(serializers.Serializer):
     accesses = serializers.ListField(required=True)
     date = serializers.IntegerField(required=True)
-    member = serializers.DictField(required=True)
+    member = serializers.DictField(required=False, allow_null=True)
     name = serializers.CharField(max_length=100, required=True)
     description = serializers.CharField(allow_blank=True, required=True)
 
@@ -136,13 +136,18 @@ class LaunchDarklyProvider:
         if access["action"] not in SUPPORTED_LAUNCHDARKLY_ACTIONS:
             return []
 
+        if result.get("member"):
+            created_by = result["member"]["email"]
+        else:
+            created_by = "unknown"
+
         return [
             {
                 "action": _handle_launchdarkly_actions(access["action"]),
                 "created_at": datetime.datetime.fromtimestamp(
                     result["date"] / 1000.0, datetime.UTC
                 ),
-                "created_by": result["member"]["email"],
+                "created_by": created_by,
                 "created_by_type": CREATED_BY_TYPE_MAP["email"],
                 "flag": result["name"],
                 "organization_id": self.organization_id,
