@@ -1809,6 +1809,31 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert other["order"] == 5
         assert [{"count": 1}] in [attrs for _, attrs in other["data"]]
 
+    def test_transactions_top_events_with_issue(self):
+        # delete a group to make sure if this happens the value becomes unknown
+        event_group = self.events[0].group
+        event_group.delete()
+
+        with self.feature(self.enabled_features):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": self.day_ago.isoformat(),
+                    "end": (self.day_ago + timedelta(hours=2)).isoformat(),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["-count()"],
+                    "field": ["count()", "message", "issue"],
+                    "topEvents": "5",
+                    "query": "!event.type:transaction",
+                    "dataset": "transactions",
+                },
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+        # Just asserting that this doesn't fail, issue on transactions dataset doesn't mean anything
+
     def test_top_events_with_transaction_status(self):
         with self.feature(self.enabled_features):
             response = self.client.get(
