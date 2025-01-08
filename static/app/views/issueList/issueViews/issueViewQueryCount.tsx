@@ -39,7 +39,11 @@ export function IssueViewQueryCount({view}: IssueViewQueryCountProps) {
 
   // TODO(msun): Once page filters are saved to views, remember to use the view's specific
   // page filters here instead of the global pageFilters, if they exist.
-  const {data: queryCount, isFetching: queryCountFetching} = useFetchIssueCounts({
+  const {
+    data: queryCount,
+    isLoading,
+    isFetching,
+  } = useFetchIssueCounts({
     orgSlug: organization.slug,
     query: [view.unsavedChanges ? view.unsavedChanges[0] : view.query],
     project: pageFilters.selection.projects,
@@ -54,7 +58,7 @@ export function IssueViewQueryCount({view}: IssueViewQueryCountProps) {
     <QueryCountBubble
       layout="size"
       animate={{
-        backgroundColor: queryCountFetching
+        backgroundColor: isFetching
           ? [theme.surface400, theme.surface100, theme.surface400]
           : `#00000000`,
       }}
@@ -64,15 +68,15 @@ export function IssueViewQueryCount({view}: IssueViewQueryCountProps) {
         },
         default: {
           duration: 2,
-          repeat: queryCountFetching ? Infinity : 0,
+          repeat: isFetching ? Infinity : 0,
           ease: 'easeInOut',
         },
       }}
     >
       <motion.span
         layout="position"
-        initial={{opacity: 0}}
-        animate={{opacity: queryCountFetching ? 0 : 1}}
+        initial={{opacity: isLoading ? 0 : 1}}
+        animate={{opacity: isFetching ? 0 : 1}}
         transition={{duration: 0.15}}
       >
         {displayedCount > TAB_MAX_COUNT ? `${TAB_MAX_COUNT}+` : displayedCount}
