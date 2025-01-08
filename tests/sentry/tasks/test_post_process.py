@@ -60,7 +60,6 @@ from sentry.tasks.merge import merge_groups
 from sentry.tasks.post_process import (
     HIGHER_ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT,
     ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT,
-    _get_event_id_from_cache_key,
     feedback_filter_decorator,
     locks,
     post_process_group,
@@ -2769,7 +2768,6 @@ class ProcessingStoreTransactionEmptyTestcase(TestCase):
 
     @patch("sentry.tasks.post_process.logger")
     @patch("sentry.utils.metrics.incr")
-    @override_options({"transactions.do_post_process_in_save": 1.0})
     def test_logger_called_when_empty_option_on(self, mock_metric_incr, mock_logger):
         post_process_group(
             is_new=False,
@@ -2784,7 +2782,6 @@ class ProcessingStoreTransactionEmptyTestcase(TestCase):
         mock_metric_incr.assert_called_with("post_process.skipped_do_post_process_in_save")
 
     @patch("sentry.tasks.post_process.logger")
-    @override_options({"transactions.do_post_process_in_save": 1.0})
     def test_logger_called_when_empty_option_on_invalid_cache_key(self, mock_logger):
         post_process_group(
             is_new=False,
@@ -2798,10 +2795,6 @@ class ProcessingStoreTransactionEmptyTestcase(TestCase):
         mock_logger.info.assert_called_with(
             "post_process.skipped", extra={"cache_key": "invalidhehe", "reason": "missing_cache"}
         )
-
-    def test_get_event_id_from_cache_key(self):
-        assert _get_event_id_from_cache_key("e:1:2") == "1"
-        assert _get_event_id_from_cache_key("invalid") is None
 
 
 class PostProcessGroupGenericTest(

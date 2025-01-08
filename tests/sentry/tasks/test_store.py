@@ -14,7 +14,6 @@ from sentry.tasks.store import (
     save_event,
     save_event_transaction,
 )
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 
 EVENT_ID = "cc3e6c2bb6b6498097f336d1e6979f4b"
@@ -396,7 +395,6 @@ def test_store_consumer_type(
 
 
 @django_db_all
-@override_options({"transactions.do_post_process_in_save": 1.0})
 def test_transactions_do_post_process_in_save_deletes_from_processing_store(
     default_project,
     mock_transaction_processing_store,
