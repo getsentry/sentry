@@ -1,6 +1,8 @@
 from django.db.migrations import Migration, RunSQL, SeparateDatabaseAndState
 from django_zero_downtime_migrations.backends.postgres.schema import UnsafeOperationException
 
+from sentry.new_migrations.monkey.special import SafeRunSQL
+
 
 class CheckedMigration(Migration):
     """
@@ -35,7 +37,7 @@ def validate_operation(op, allow_run_sql):
     if allow_run_sql:
         return
 
-    if isinstance(op, RunSQL):
+    if isinstance(op, RunSQL) and not isinstance(op, SafeRunSQL):
         raise UnsafeOperationException(
             "Using RunSQL is unsafe because our migrations safety framework can't detect problems with the "
             "migration. If you need to use RunSQL, set `allow_run_sql = True` and get approval from "
