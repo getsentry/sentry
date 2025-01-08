@@ -5,6 +5,7 @@ import Placeholder from 'sentry/components/placeholder';
 import {space} from 'sentry/styles/space';
 import {TagPreviewDistribution} from 'sentry/views/issueDetails/groupTags/tagDistribution';
 import {useGroupTagsReadable} from 'sentry/views/issueDetails/groupTags/useGroupTags';
+import {useEventQuery} from 'sentry/views/issueDetails/streamline/eventSearch';
 
 export default function IssueTagsPreview({
   groupId,
@@ -13,6 +14,8 @@ export default function IssueTagsPreview({
   environments: string[];
   groupId: string;
 }) {
+  const searchQuery = useEventQuery({groupId});
+
   const {
     isError,
     isPending,
@@ -20,7 +23,6 @@ export default function IssueTagsPreview({
   } = useGroupTagsReadable({
     groupId,
     environment: environments,
-    limit: 3,
   });
   const tagsToPreview = useMemo(() => {
     const priorityTags = ['browser.name', 'os.name', 'runtime.name', 'environment'];
@@ -41,7 +43,7 @@ export default function IssueTagsPreview({
     );
   }
 
-  if (isError || !tagsToPreview || tagsToPreview.length === 0) {
+  if (isError || !tagsToPreview || searchQuery || tagsToPreview.length === 0) {
     return null;
   }
 
