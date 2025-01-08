@@ -648,6 +648,68 @@ describe('Visualize', () => {
     expect(screen.getAllByText('epm')).toHaveLength(1);
   });
 
+  it('shows appropriate error messages for non-chart widget queries', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize
+          error={{
+            queries: [
+              {
+                fields: ['this field has an error'],
+                aggregates: ['this aggregate has an error'],
+              },
+            ],
+          }}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.BIG_NUMBER,
+            },
+          }),
+        }),
+      }
+    );
+
+    expect(await screen.findByText('this field has an error')).toBeInTheDocument();
+    expect(screen.queryByText('this aggregate has an error')).not.toBeInTheDocument();
+  });
+
+  it('shows appropriate error messages for chart type widget queries', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize
+          error={{
+            queries: [
+              {
+                fields: ['this field has an error'],
+                aggregates: ['this aggregate has an error'],
+              },
+            ],
+          }}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.LINE,
+            },
+          }),
+        }),
+      }
+    );
+
+    expect(await screen.findByText('this aggregate has an error')).toBeInTheDocument();
+    expect(screen.queryByText('this field has an error')).not.toBeInTheDocument();
+  });
+
   describe('spans', () => {
     beforeEach(() => {
       jest.mocked(useSpanTags).mockImplementation((type?: 'string' | 'number') => {
