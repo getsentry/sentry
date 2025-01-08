@@ -19,11 +19,12 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
 import type {DashboardFilters, Widget, WidgetType} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
+import {WidgetCardPanel} from 'sentry/views/dashboards/widgetCard/widgetCardPanel';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 
 import {IndexedEventsSelectionAlert} from '../../indexedEventsSelectionAlert';
 import {getDashboardFiltersFromURL} from '../../utils';
-import WidgetCard, {WidgetCardPanel} from '../../widgetCard';
+import WidgetCard from '../../widgetCard';
 import type WidgetLegendSelectionState from '../../widgetLegendSelectionState';
 import {displayTypes} from '../utils';
 
