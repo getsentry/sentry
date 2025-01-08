@@ -74,9 +74,38 @@ class ResolvedColumn(ResolvedAttribute):
         )
 
 
+SIZE_TYPE: set[constants.SearchType] = {
+    "bit",
+    "byte",
+    "kibibyte",
+    "mebibyte",
+    "gibibyte",
+    "tebibyte",
+    "pebibyte",
+    "exbibyte",
+    "kilobyte",
+    "megabyte",
+    "gigabyte",
+    "terabyte",
+    "petabyte",
+    "exabyte",
+}
+
+DURATION_TYPE: set[constants.SearchType] = {
+    "nanosecond",
+    "microsecond",
+    "millisecond",
+    "second",
+    "minute",
+    "hour",
+    "day",
+    "week",
+}
+
+
 @dataclass
 class ArgumentDefinition:
-    argument_types: list[constants.SearchType] | None = None
+    argument_types: set[constants.SearchType] | None = None
     # The public alias for the default arg, the SearchResolver will resolve this value
     default_arg: str | None = None
     # Whether this argument is completely ignored, used for `count()`
@@ -505,7 +534,7 @@ SPAN_FUNCTION_DEFINITIONS = {
         default_search_type="duration",
         arguments=[
             ArgumentDefinition(
-                argument_types=["byte", "duration", "millisecond", "number"],
+                argument_types={"duration", "number", *SIZE_TYPE, *DURATION_TYPE},
                 default_arg="span.duration",
             )
         ],
@@ -515,7 +544,7 @@ SPAN_FUNCTION_DEFINITIONS = {
         default_search_type="duration",
         arguments=[
             ArgumentDefinition(
-                argument_types=["byte", "duration", "millisecond", "number", "percentage"],
+                argument_types={"duration", "number", "percentage", *SIZE_TYPE, *DURATION_TYPE},
                 default_arg="span.duration",
             )
         ],
@@ -525,7 +554,7 @@ SPAN_FUNCTION_DEFINITIONS = {
         default_search_type="duration",
         arguments=[
             ArgumentDefinition(
-                argument_types=["byte", "duration", "millisecond", "number", "percentage"],
+                argument_types={"duration", "number", "percentage", *SIZE_TYPE, *DURATION_TYPE},
                 default_arg="span.duration",
             )
         ],
@@ -537,7 +566,7 @@ SPAN_FUNCTION_DEFINITIONS = {
         default_search_type="integer",
         arguments=[
             ArgumentDefinition(
-                argument_types=["byte", "duration", "millisecond", "number"],
+                argument_types={"duration", "number", *SIZE_TYPE, *DURATION_TYPE},
                 default_arg="span.duration",
             )
         ],
@@ -548,7 +577,7 @@ SPAN_FUNCTION_DEFINITIONS = {
         default_search_type="integer",
         arguments=[
             ArgumentDefinition(
-                argument_types=["byte", "duration", "millisecond", "number"],
+                argument_types={"duration", "number", *SIZE_TYPE, *DURATION_TYPE},
                 default_arg="span.duration",
             )
         ],
@@ -559,7 +588,7 @@ SPAN_FUNCTION_DEFINITIONS = {
         default_search_type="duration",
         arguments=[
             ArgumentDefinition(
-                argument_types=["byte", "duration", "millisecond", "number"],
+                argument_types={"duration", "number", *SIZE_TYPE, *DURATION_TYPE},
                 default_arg="span.duration",
             )
         ],
@@ -569,7 +598,7 @@ SPAN_FUNCTION_DEFINITIONS = {
         default_search_type="duration",
         arguments=[
             ArgumentDefinition(
-                argument_types=["byte", "duration", "millisecond", "number"],
+                argument_types={"duration", "number", *SIZE_TYPE, *DURATION_TYPE},
                 default_arg="span.duration",
             )
         ],
@@ -580,7 +609,7 @@ SPAN_FUNCTION_DEFINITIONS = {
         default_search_type="duration",
         arguments=[
             ArgumentDefinition(
-                argument_types=["byte", "duration", "millisecond", "number"],
+                argument_types={"duration", "number", *SIZE_TYPE, *DURATION_TYPE},
                 default_arg="span.duration",
             )
         ],
@@ -590,7 +619,7 @@ SPAN_FUNCTION_DEFINITIONS = {
         default_search_type="duration",
         arguments=[
             ArgumentDefinition(
-                argument_types=["byte", "duration", "millisecond", "number"],
+                argument_types={"duration", "number", *SIZE_TYPE, *DURATION_TYPE},
                 default_arg="span.duration",
             )
         ],
@@ -600,7 +629,7 @@ SPAN_FUNCTION_DEFINITIONS = {
         default_search_type="duration",
         arguments=[
             ArgumentDefinition(
-                argument_types=["byte", "duration", "millisecond", "number"],
+                argument_types={"duration", "number", *SIZE_TYPE, *DURATION_TYPE},
                 default_arg="span.duration",
             )
         ],
@@ -610,7 +639,7 @@ SPAN_FUNCTION_DEFINITIONS = {
         default_search_type="duration",
         arguments=[
             ArgumentDefinition(
-                argument_types=["byte", "duration", "millisecond", "number"],
+                argument_types={"duration", "number", *SIZE_TYPE, *DURATION_TYPE},
                 default_arg="span.duration",
             )
         ],
@@ -620,7 +649,7 @@ SPAN_FUNCTION_DEFINITIONS = {
         default_search_type="duration",
         arguments=[
             ArgumentDefinition(
-                argument_types=["byte", "duration", "millisecond", "number"],
+                argument_types={"duration", "number", *SIZE_TYPE, *DURATION_TYPE},
                 default_arg="span.duration",
             )
         ],
@@ -630,7 +659,7 @@ SPAN_FUNCTION_DEFINITIONS = {
         default_search_type="duration",
         arguments=[
             ArgumentDefinition(
-                argument_types=["byte", "duration", "millisecond", "number", "percentage"],
+                argument_types={"duration", "number", "percentage", *SIZE_TYPE, *DURATION_TYPE},
                 default_arg="span.duration",
             )
         ],
@@ -640,7 +669,7 @@ SPAN_FUNCTION_DEFINITIONS = {
         default_search_type="duration",
         arguments=[
             ArgumentDefinition(
-                argument_types=["byte", "duration", "millisecond", "number", "percentage"],
+                argument_types={"duration", "number", "percentage", *SIZE_TYPE, *DURATION_TYPE},
                 default_arg="span.duration",
             )
         ],
@@ -650,7 +679,7 @@ SPAN_FUNCTION_DEFINITIONS = {
         default_search_type="number",
         arguments=[
             ArgumentDefinition(
-                argument_types=["string"],
+                argument_types={"string"},
             )
         ],
     ),
