@@ -1,6 +1,6 @@
 import * as Layout from 'sentry/components/layouts/thirds';
 import {useDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {WorkflowEngineActions as Actions} from 'sentry/components/workflowEngine/layout/actions';
+import {ActionsFromContext} from 'sentry/components/workflowEngine/layout/actions';
 
 export interface WorkflowEngineListLayoutProps {
   /** The main content for this page */
@@ -19,7 +19,7 @@ function WorkflowEngineListLayout({children}: WorkflowEngineListLayoutProps) {
         <Layout.HeaderContent>
           <Layout.Title>{title}</Layout.Title>
         </Layout.HeaderContent>
-        <Actions />
+        <ActionsFromContext />
       </Layout.Header>
       <Layout.Body>
         <Layout.Main fullWidth>{children}</Layout.Main>

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {Flex} from 'sentry/components/container/flex';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {useDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {WorkflowEngineActions as Actions} from 'sentry/components/workflowEngine/layout/actions';
+import {ActionsFromContext} from 'sentry/components/workflowEngine/layout/actions';
 import {BreadcrumbsFromContext} from 'sentry/components/workflowEngine/layout/breadcrumbs';
 import {space} from 'sentry/styles/space';
 
@@ -27,7 +27,7 @@ function DetailLayout({children}: WorkflowEngineDetailLayoutProps) {
           <BreadcrumbsFromContext />
           <Layout.Title>{title}</Layout.Title>
         </Layout.HeaderContent>
-        <Actions />
+        <ActionsFromContext />
       </Layout.Header>
       <StyledBody>{children}</StyledBody>
     </StyledPage>

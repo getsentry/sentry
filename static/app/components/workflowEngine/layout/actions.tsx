@@ -5,7 +5,7 @@ import {HeaderActions} from 'sentry/components/layouts/thirds';
 
 const ActionContext = createContext<React.ReactNode | undefined>(undefined);
 
-export function WorkflowEngineActionProvider({
+export function ActionsProvider({
   children,
   actions,
 }: {
@@ -19,7 +19,7 @@ export function WorkflowEngineActionProvider({
  * Automatically displays action buttons in the page header
  * if populated through ActionContext
  */
-export function WorkflowEngineActions() {
+export function ActionsFromContext() {
   const actions = useContext(ActionContext);
   if (!actions) {
     return null;

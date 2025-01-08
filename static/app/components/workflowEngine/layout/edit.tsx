@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {useDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {WorkflowEngineActions as Actions} from 'sentry/components/workflowEngine/layout/actions';
+import {ActionsFromContext} from 'sentry/components/workflowEngine/layout/actions';
 import {BreadcrumbsFromContext} from 'sentry/components/workflowEngine/layout/breadcrumbs';
 import {space} from 'sentry/styles/space';
 
@@ -26,7 +26,7 @@ function EditLayout({children}: WorkflowEngineEditLayoutProps) {
           <BreadcrumbsFromContext />
           <Layout.Title>{title}</Layout.Title>
         </Layout.HeaderContent>
-        <Actions />
+        <ActionsFromContext />
       </StyledHeader>
       <Body>{children}</Body>
     </Layout.Page>
