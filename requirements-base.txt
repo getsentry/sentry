@@ -17,7 +17,7 @@ django-pg-zero-downtime-migrations>=0.16
 Django>=5.1.1
 djangorestframework>=3.15.1
 drf-spectacular>=0.26.3
-email-reply-parser>=0.5.12
+sentry-forked-email-reply-parser>=0.5.12.post1
 google-api-core>=2.19.1
 google-auth>=2.29.0
 google-cloud-bigtable>=2.26.0
@@ -49,7 +49,7 @@ python-rapidjson>=1.4
 psutil>=5.9.2
 psycopg2-binary>=2.9.10
 PyJWT>=2.4.0
-pydantic>=1.10.18,<2
+pydantic>=1.10.20,<2
 python-dateutil>=2.9.0
 pymemcache
 python-u2flib-server>=5.0.0
@@ -97,7 +97,7 @@ cryptography>=38.0.3
 # Note, grpcio>1.30.0 requires setting GRPC_POLL_STRATEGY=epoll1
 # See https://github.com/grpc/grpc/issues/23796 and
 # https://github.com/grpc/grpc/blob/v1.35.x/doc/core/grpc-polling-engines.md#polling-engine-implementations-in-grpc
-grpcio>=1.66.1
+grpcio>=1.67
 
 # not directly used, but provides a speedup for redis
 hiredis>=2.3.2

@@ -116,6 +116,96 @@ class OrganizationFlagsWebHookSigningSecretsEndpointTestCase(APITestCase):
             response = self.client.post(url, data={})
             assert response.status_code == 403, response.content
 
+    def test_update_same_creator(self):
+        new_user = self.create_user("test@test.com")
+        member = self.create_member(organization=self.organization, user=new_user)
+        self.login_as(user=member)
+
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                data={"secret": "41271af8b9804cd99a4c787a28274991", "provider": "generic"},
+            )
+            assert response.status_code == 201, response.content
+
+        models = FlagWebHookSigningSecretModel.objects.filter(provider="generic").all()
+        assert len(models) == 1
+        assert models[0].secret == "41271af8b9804cd99a4c787a28274991"
+
+        # update secret should be allowed since the creator is the same
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                data={"secret": "31271af8b9804cd99a4c787a28274993", "provider": "generic"},
+            )
+            assert response.status_code == 201, response.content
+
+        models = FlagWebHookSigningSecretModel.objects.filter(provider="generic").all()
+        assert len(models) == 1
+        assert models[0].secret == "31271af8b9804cd99a4c787a28274993"
+
+    def test_update_no_access(self):
+        FlagWebHookSigningSecretModel.objects.create(
+            created_by="12314124",
+            organization=self.organization,
+            provider="generic",
+            secret="41271af8b9804cd99a4c787a28274991",
+        )
+
+        models = FlagWebHookSigningSecretModel.objects.filter(provider="generic").all()
+        assert len(models) == 1
+        assert models[0].secret == "41271af8b9804cd99a4c787a28274991"
+
+        # update secret should not allowed since the creator is not the same
+        new_user = self.create_user("test@test.com")
+        member = self.create_member(organization=self.organization, user=new_user)
+        self.login_as(user=member)
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                data={"secret": "31271af8b9804cd99a4c787a28274993", "provider": "generic"},
+            )
+            assert response.status_code == 403, response.content
+            assert (
+                response.data
+                == "You must be an organization owner or manager, or the creator of this secret in order to perform this action."
+            )
+
+        models = FlagWebHookSigningSecretModel.objects.filter(provider="generic").all()
+        assert len(models) == 1
+        assert models[0].secret == "41271af8b9804cd99a4c787a28274991"
+
+    def test_update_has_scope(self):
+        FlagWebHookSigningSecretModel.objects.create(
+            created_by="12314124",
+            organization=self.organization,
+            provider="generic",
+            secret="41271af8b9804cd99a4c787a28274991",
+        )
+
+        models = FlagWebHookSigningSecretModel.objects.filter(provider="generic").all()
+        assert len(models) == 1
+        assert models[0].secret == "41271af8b9804cd99a4c787a28274991"
+
+        # update secret should be allowed due to proper scope
+        new_user = self.create_user("test@test.com")
+        owner = self.create_member(
+            organization=self.organization,
+            user=new_user,
+            role="owner",
+        )
+        self.login_as(user=owner)
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                data={"secret": "31271af8b9804cd99a4c787a28274993", "provider": "generic"},
+            )
+            assert response.status_code == 201, response.content
+
+        models = FlagWebHookSigningSecretModel.objects.filter(provider="generic").all()
+        assert len(models) == 1
+        assert models[0].secret == "31271af8b9804cd99a4c787a28274993"
+
 
 class OrganizationFlagsWebHookSigningSecretEndpointTestCase(APITestCase):
     endpoint = "sentry-api-0-organization-flag-hooks-signing-secret"
