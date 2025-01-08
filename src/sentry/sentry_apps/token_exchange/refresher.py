@@ -38,7 +38,7 @@ class Refresher:
 
                 self._record_analytics()
                 return self._create_new_token()
-            except APIUnauthorized:
+            except APIUnauthorized as e:
                 logger.info(
                     "refresher.context",
                     extra={
@@ -46,7 +46,7 @@ class Refresher:
                         "refresh_token": self.refresh_token[-4:],
                     },
                 )
-                raise
+                raise SentryAppIntegratorError(e) from e
 
     def _record_analytics(self) -> None:
         analytics.record(
@@ -59,7 +59,9 @@ class Refresher:
         Validator(install=self.install, client_id=self.client_id, user=self.user).run()
 
         if self.token.application != self.application:
-            raise SentryAppIntegratorError("Token does not belong to the application")
+            raise SentryAppIntegratorError(
+                APIUnauthorized("Token does not belong to the application")
+            )
 
     def _create_new_token(self) -> ApiToken:
         token = ApiToken.objects.create(
@@ -79,18 +81,18 @@ class Refresher:
         try:
             return ApiToken.objects.get(refresh_token=self.refresh_token)
         except ApiToken.DoesNotExist:
-            raise SentryAppIntegratorError("Token does not exist")
+            raise SentryAppIntegratorError(APIUnauthorized("Token does not exist"))
 
     @cached_property
     def application(self) -> ApiApplication:
         try:
             return ApiApplication.objects.get(client_id=self.client_id)
         except ApiApplication.DoesNotExist:
-            raise SentryAppIntegratorError("Application does not exist")
+            raise SentryAppIntegratorError(APIUnauthorized("Application does not exist"))
 
     @property
     def sentry_app(self) -> SentryApp:
         try:
             return self.application.sentry_app
         except SentryApp.DoesNotExist:
-            raise SentryAppIntegratorError("Sentry App does not exist")
+            raise SentryAppIntegratorError(APIUnauthorized("Sentry App does not exist"))

@@ -159,6 +159,7 @@ class TestSentryAppAuthorizations(APITestCase):
         )
 
         assert response.status_code == 400
+        assert response.data == {"detail": "{'refresh_token': ['This field may not be null.']}"}
 
         # This is rejected by the base `SentryAppAuthorizationBaseEndpoint`
         # class's authentication, so expect an unauthorized error.
@@ -166,3 +167,12 @@ class TestSentryAppAuthorizations(APITestCase):
             code=None, refresh_token=refresh_token, grant_type="refresh_token", client_id=None
         )
         assert response.status_code == 401
+
+    def test_authorization_serializer(self):
+        response = self.get_error_response(
+            client_id=self.sentry_app.application.client_id,
+            code=None,
+            grant_type="authorization_code",
+        )
+        assert response.status_code == 400
+        assert response.data == {"detail": "{'code': ['This field may not be null.']}"}

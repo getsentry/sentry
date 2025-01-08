@@ -50,7 +50,8 @@ class GrantExchanger:
                         "grant_id": self.grant.id,
                     },
                 )
-                raise SentryAppIntegratorError("Failed to exchange grant") from e
+
+                raise SentryAppIntegratorError(e) from e
         self.record_analytics()
 
         return token
@@ -66,10 +67,12 @@ class GrantExchanger:
         Validator(install=self.install, client_id=self.client_id, user=self.user).run()
 
         if not self._grant_belongs_to_install() or not self._sentry_app_user_owns_grant():
-            raise SentryAppIntegratorError("Forbidden grant")
+            raise SentryAppIntegratorError(APIUnauthorized("Forbidden grant"))
 
         if not self._grant_is_active():
-            raise SentryAppIntegratorError("Grant has already expired", status_code=403)
+            raise SentryAppIntegratorError(
+                APIUnauthorized("Grant has already expired"), status_code=403
+            )
 
     def _grant_belongs_to_install(self) -> bool:
         return self.grant.sentry_app_installation.id == self.install.id
@@ -109,18 +112,18 @@ class GrantExchanger:
                 .get(code=self.code)
             )
         except ApiGrant.DoesNotExist:
-            raise SentryAppIntegratorError("Could not find grant", status_code=403)
+            raise SentryAppIntegratorError(APIUnauthorized("Could not find grant"), status_code=403)
 
     @property
     def application(self) -> ApiApplication:
         try:
             return self.grant.application
         except ApiApplication.DoesNotExist:
-            raise SentryAppIntegratorError("Could not find application")
+            raise SentryAppIntegratorError(APIUnauthorized("Could not find application"))
 
     @property
     def sentry_app(self) -> SentryApp:
         try:
             return self.application.sentry_app
         except SentryApp.DoesNotExist:
-            raise SentryAppIntegratorError("Could not find sentry app")
+            raise SentryAppIntegratorError(APIUnauthorized("Could not find sentry app"))
