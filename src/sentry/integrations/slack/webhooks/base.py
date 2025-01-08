@@ -20,14 +20,9 @@ from sentry.integrations.messaging.commands import (
 from sentry.integrations.messaging.metrics import MessageCommandHaltReason
 from sentry.integrations.messaging.spec import MessagingIntegrationSpec
 from sentry.integrations.slack.message_builder.help import SlackHelpMessageBuilder
-from sentry.integrations.slack.metrics import (
-    SLACK_WEBHOOK_DM_ENDPOINT_FAILURE_DATADOG_METRIC,
-    SLACK_WEBHOOK_DM_ENDPOINT_SUCCESS_DATADOG_METRIC,
-)
 from sentry.integrations.slack.requests.base import SlackDMRequest, SlackRequestError
 from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.types import EventLifecycleOutcome, IntegrationResponse
-from sentry.utils import metrics
 
 LINK_USER_MESSAGE = (
     "<{associate_url}|Link your Slack identity> to your Sentry account to receive notifications. "
@@ -46,9 +41,6 @@ logger = logging.getLogger(__name__)
 
 class SlackDMEndpoint(Endpoint, abc.ABC):
     slack_request_class = SlackDMRequest
-
-    _METRICS_SUCCESS_KEY = SLACK_WEBHOOK_DM_ENDPOINT_SUCCESS_DATADOG_METRIC
-    _METRIC_FAILURE_KEY = SLACK_WEBHOOK_DM_ENDPOINT_FAILURE_DATADOG_METRIC
 
     def post_dispatcher(self, request: SlackDMRequest) -> Response:
         """
@@ -80,7 +72,6 @@ class SlackDMEndpoint(Endpoint, abc.ABC):
 
         if not (slack_request.integration and slack_request.user_id and slack_request.channel_id):
             logger.error(".link-user.bad_request.error", extra={"slack_request": slack_request})
-            metrics.incr(self._METRIC_FAILURE_KEY + "link_user.bad_request", sample_rate=1.0)
             raise SlackRequestError(status=status.HTTP_400_BAD_REQUEST)
 
         associate_url = build_linking_url(
@@ -90,23 +81,15 @@ class SlackDMEndpoint(Endpoint, abc.ABC):
             response_url=slack_request.response_url,
         )
 
-        metrics.incr(self._METRICS_SUCCESS_KEY + ".link_user", sample_rate=1.0)
-
         return self.reply(slack_request, LINK_USER_MESSAGE.format(associate_url=associate_url))
 
     def unlink_user(self, slack_request: SlackDMRequest) -> Response:
         from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
 
         if not slack_request.has_identity:
-            logger.error(".unlink-user.no-identity.error", extra={"slack_request": slack_request})
-            metrics.incr(self._METRIC_FAILURE_KEY + "unlink_user.no_identity", sample_rate=1.0)
-
             return self.reply(slack_request, NOT_LINKED_MESSAGE)
 
         if not (slack_request.integration and slack_request.user_id and slack_request.channel_id):
-            logger.error(".unlink-user.bad_request.error", extra={"slack_request": slack_request})
-            metrics.incr(self._METRIC_FAILURE_KEY + "unlink_user.bad_request", sample_rate=1.0)
-
             raise SlackRequestError(status=status.HTTP_400_BAD_REQUEST)
 
         associate_url = build_unlinking_url(
@@ -115,8 +98,6 @@ class SlackDMEndpoint(Endpoint, abc.ABC):
             channel_id=slack_request.channel_id,
             response_url=slack_request.response_url,
         )
-
-        metrics.incr(self._METRICS_SUCCESS_KEY + ".unlink_user", sample_rate=1.0)
 
         return self.reply(slack_request, UNLINK_USER_MESSAGE.format(associate_url=associate_url))
 
