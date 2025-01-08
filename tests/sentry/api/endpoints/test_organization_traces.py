@@ -313,7 +313,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
         assert response.status_code == 400, response.data
         assert response.data == {
             "detail": ErrorDetail(
-                string="Invalid per_page value. Cannot exceed 100.", code="parse_error"
+                string="Invalid per_page value. Must be between 1 and 100.", code="parse_error"
             ),
         }
 
