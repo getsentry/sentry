@@ -33,10 +33,12 @@ import {TagDistribution} from 'sentry/views/issueDetails/groupTags/tagDistributi
 import {useGroupTags} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
+import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
 export function GroupTagsDrawer({group}: {group: Group}) {
   const location = useLocation();
   const organization = useOrganization();
+  const environments = useEnvironmentsFromUrl();
   const {tagKey} = useParams<{tagKey: string}>();
   const drawerRef = useRef<HTMLDivElement>(null);
   const {projects} = useProjects();
@@ -62,7 +64,7 @@ export function GroupTagsDrawer({group}: {group: Group}) {
     refetch,
   } = useGroupTags({
     groupId: group.id,
-    environment: location.query.environment as string[] | string | undefined,
+    environment: environments,
   });
 
   const tagValues = useMemo(
