@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from sentry.issues.grouptype import GroupCategory
 from sentry.rules.filters.issue_category import IssueCategoryFilter
 from sentry.workflow_engine.models.data_condition import Condition
@@ -67,3 +69,9 @@ class TestIssueCategoryCondition(ConditionTestCase):
         self.dc.update(comparison={"value": GroupCategory.ERROR.value})
         self.assert_passes(self.dc, WorkflowJob({"event": self.event}))
         self.assert_passes(self.dc, WorkflowJob({"event": group_event}))
+
+    @patch("sentry.issues.grouptype.GroupTypeRegistry.get_by_type_id")
+    def test_invalid_issue_category(self, mock_get_by_type_id):
+        mock_get_by_type_id.side_effect = ValueError("Invalid group type")
+
+        self.assert_does_not_pass(self.dc, WorkflowJob({"event": self.event}))
