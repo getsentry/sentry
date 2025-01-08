@@ -132,7 +132,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
       : WidgetEmptyStateWarning;
   }
 
-  const field = props.fields[0];
+  const field = props.fields[0]!;
 
   if (props.fields.length !== 1 && !canHaveIntegrationEmptyState) {
     throw new Error(
@@ -420,17 +420,17 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             ) {
               eventView.additionalConditions.addFilterValue(
                 SpanMetricsField.SPAN_DOMAIN,
-                provided.widgetData.list.data[selectedListIndex][
+                provided.widgetData.list.data[selectedListIndex]![
                   SpanMetricsField.SPAN_DOMAIN
-                ].toString(),
+                ]!.toString(),
                 false
               );
             } else {
               eventView.additionalConditions.addFilterValue(
                 SpanMetricsField.SPAN_GROUP,
-                provided.widgetData.list.data[selectedListIndex][
+                provided.widgetData.list.data[selectedListIndex]![
                   SpanMetricsField.SPAN_GROUP
-                ].toString()
+                ]!.toString()
               );
             }
 
@@ -579,7 +579,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                 <ListClose
                   setSelectListIndex={setSelectListIndex}
                   onClick={() =>
-                    excludeTransaction(listItem.transaction, {
+                    excludeTransaction(listItem.transaction!, {
                       eventView: props.eventView,
                       location,
                     })
@@ -596,14 +596,14 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
               </GrowLink>
               <RightAlignedCell>
                 {tct('[count] errors', {
-                  count: <Count value={rightValue} />,
+                  count: <Count value={rightValue!} />,
                 })}
               </RightAlignedCell>
               {!props.withStaticFilters && (
                 <ListClose
                   setSelectListIndex={setSelectListIndex}
                   onClick={() =>
-                    excludeTransaction(listItem.transaction, {
+                    excludeTransaction(listItem.transaction!, {
                       eventView: props.eventView,
                       location,
                     })
@@ -617,7 +617,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             <Fragment>
               <StyledTextOverflow>
                 <DomainCell
-                  projectId={listItem[SpanMetricsField.PROJECT_ID].toString()}
+                  projectId={listItem[SpanMetricsField.PROJECT_ID]!.toString()}
                   domain={listItem[SpanMetricsField.SPAN_DOMAIN] as any}
                 />
               </StyledTextOverflow>
@@ -634,7 +634,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                 <ListClose
                   setSelectListIndex={setSelectListIndex}
                   onClick={() =>
-                    excludeTransaction(listItem.transaction, {
+                    excludeTransaction(listItem.transaction!, {
                       eventView: props.eventView,
                       location,
                     })
@@ -677,7 +677,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                 <ListClose
                   setSelectListIndex={setSelectListIndex}
                   onClick={() =>
-                    excludeTransaction(listItem.transaction, {
+                    excludeTransaction(listItem.transaction!, {
                       eventView: props.eventView,
                       location,
                     })
@@ -691,7 +691,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           const cacheMissRate = listItem[fieldString] as any;
 
           const target = normalizeUrl(
-            `/${moduleRoute}/?${qs.stringify({transaction: transaction, project: listItem['project.id']})}`
+            `/${moduleRoute}/?${qs.stringify({transaction, project: listItem['project.id']})}`
           );
 
           return (
@@ -704,7 +704,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                 <ListClose
                   setSelectListIndex={setSelectListIndex}
                   onClick={() =>
-                    excludeTransaction(listItem.transaction, {
+                    excludeTransaction(listItem.transaction!, {
                       eventView: props.eventView,
                       location,
                     })
@@ -727,7 +727,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                   <ListClose
                     setSelectListIndex={setSelectListIndex}
                     onClick={() =>
-                      excludeTransaction(listItem.transaction, {
+                      excludeTransaction(listItem.transaction!, {
                         eventView: props.eventView,
                         location,
                       })
@@ -747,7 +747,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                 <ListClose
                   setSelectListIndex={setSelectListIndex}
                   onClick={() =>
-                    excludeTransaction(listItem.transaction, {
+                    excludeTransaction(listItem.transaction!, {
                       eventView: props.eventView,
                       location,
                     })

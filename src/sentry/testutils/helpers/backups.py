@@ -668,18 +668,15 @@ class ExhaustiveFixtures(Fixtures):
             organization=org,
         )
 
-        send_notification_action = self.create_action(type=Action.Type.NOTIFICATION, data="")
+        send_notification_action = self.create_action(type=Action.Type.SLACK, data="")
         self.create_data_condition_group_action(
             action=send_notification_action,
             condition_group=notification_condition_group,
         )
 
-        # TODO @saponifi3d: Update comparison to be DetectorState.Critical
         data_condition = self.create_data_condition(
-            condition="eq",
-            comparison="critical",
-            type="WorkflowCondition",
-            condition_result="True",
+            comparison=75,
+            condition_result=True,
             condition_group=notification_condition_group,
         )
 
@@ -695,16 +692,13 @@ class ExhaustiveFixtures(Fixtures):
             organization=org,
         )
 
-        # TODO @saponifi3d: Create or define trigger workflow action type
         trigger_workflows_action = self.create_action(type=Action.Type.WEBHOOK, data="")
         self.create_data_condition_group_action(
             action=trigger_workflows_action, condition_group=detector_conditions
         )
         self.create_data_condition(
-            condition="eq",
-            comparison="critical",
-            type="DetectorCondition",
-            condition_result="True",
+            comparison=75,
+            condition_result=True,
             condition_group=detector_conditions,
         )
         detector.workflow_condition_group = detector_conditions

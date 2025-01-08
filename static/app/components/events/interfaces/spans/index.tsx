@@ -1,5 +1,4 @@
 import {Fragment, useMemo} from 'react';
-// eslint-disable-next-line no-restricted-imports
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 

@@ -53,7 +53,7 @@ class OrganizationFlagsWebHookSigningSecretsEndpointTestCase(APITestCase):
         response = self.client.get(self.url)
         assert response.status_code == 404
 
-    def test_post(self):
+    def test_post_launchdarkly(self):
         with self.feature(self.features):
             response = self.client.post(
                 self.url,
@@ -61,7 +61,31 @@ class OrganizationFlagsWebHookSigningSecretsEndpointTestCase(APITestCase):
             )
             assert response.status_code == 201, response.content
 
-        models = FlagWebHookSigningSecretModel.objects.all()
+        models = FlagWebHookSigningSecretModel.objects.filter(provider="launchdarkly").all()
+        assert len(models) == 1
+        assert models[0].secret == "41271af8b9804cd99a4c787a28274991"
+
+    def test_post_generic(self):
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                data={"secret": "41271af8b9804cd99a4c787a28274991", "provider": "generic"},
+            )
+            assert response.status_code == 201, response.content
+
+        models = FlagWebHookSigningSecretModel.objects.filter(provider="generic").all()
+        assert len(models) == 1
+        assert models[0].secret == "41271af8b9804cd99a4c787a28274991"
+
+    def test_post_unleash(self):
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                data={"secret": "41271af8b9804cd99a4c787a28274991", "provider": "unleash"},
+            )
+            assert response.status_code == 201, response.content
+
+        models = FlagWebHookSigningSecretModel.objects.filter(provider="unleash").all()
         assert len(models) == 1
         assert models[0].secret == "41271af8b9804cd99a4c787a28274991"
 

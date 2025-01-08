@@ -7,7 +7,6 @@ from django.db import router, transaction
 
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.models.options.project_option import ProjectOption
-from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey, ProjectKeyStatus
 from sentry.relay.projectconfig_cache.redis import RedisProjectConfigCache
 from sentry.relay.projectconfig_debounce_cache.redis import RedisProjectConfigDebounceCache
@@ -26,15 +25,6 @@ from sentry.testutils.pytest.fixtures import django_db_all
 def _cache_keys_for_project(project):
     for key in ProjectKey.objects.filter(project_id=project.id):
         yield key.public_key
-
-
-def _cache_keys_for_org(org):
-    # The `ProjectKey` model doesn't have any attribute we can use to filter by
-    # org, and the `Project` model doesn't have a project key exposed. So using
-    # the org we fetch the project, and then the project key.
-    for proj in Project.objects.filter(organization_id=org.id):
-        for key in ProjectKey.objects.filter(project_id=proj.id):
-            yield key.public_key
 
 
 @pytest.fixture(autouse=True)

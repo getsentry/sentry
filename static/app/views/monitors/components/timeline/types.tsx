@@ -52,6 +52,7 @@ export interface TimeWindowConfig {
 }
 
 export type MonitorBucket = [timestamp: number, envData: MonitorBucketEnvMapping];
+export type MonitorBucketWithStats = [timestamp: number, stats: StatsBucket];
 
 export interface JobTickData {
   endTs: number;
@@ -59,6 +60,15 @@ export interface JobTickData {
   roundedLeft: boolean;
   roundedRight: boolean;
   startTs: number;
+  width: number;
+}
+
+export interface JobTickDataWithStats {
+  endTs: number;
+  roundedLeft: boolean;
+  roundedRight: boolean;
+  startTs: number;
+  stats: StatsBucket;
   width: number;
 }
 

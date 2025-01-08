@@ -4,12 +4,12 @@ import {TeamFixture} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
-  findByLabelText,
   render,
   renderGlobalModal,
   screen,
   userEvent,
   waitFor,
+  within,
 } from 'sentry-test/reactTestingLibrary';
 
 import OrganizationStore from 'sentry/stores/organizationStore';
@@ -17,7 +17,6 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Project} from 'sentry/types/project';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {
@@ -91,8 +90,10 @@ function TestComponent({
 describe('Performance > TransactionSummary', function () {
   let eventStatsMock: jest.Mock;
   beforeEach(function () {
-    // eslint-disable-next-line no-console
     jest.spyOn(console, 'error').mockImplementation(jest.fn());
+
+    // Small screen size will hide search bar trailing items like warning icon
+    Object.defineProperty(Element.prototype, 'clientWidth', {value: 1000});
 
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -528,6 +529,10 @@ describe('Performance > TransactionSummary', function () {
     MockApiClient.clearMockResponses();
     ProjectsStore.reset();
     jest.clearAllMocks();
+
+    // Cleanup clientWidth mock
+    // @ts-expect-error
+    delete HTMLElement.prototype.clientWidth;
   });
 
   describe('with events', function () {
@@ -556,7 +561,9 @@ describe('Performance > TransactionSummary', function () {
       ).toBeInTheDocument();
 
       // It shows a searchbar
-      expect(screen.getByLabelText('Search events')).toBeInTheDocument();
+      expect(
+        screen.getByPlaceholderText('Search for events, users, tags, and more')
+      ).toBeInTheDocument();
 
       // It shows a table
       expect(screen.getByTestId('transactions-table')).toBeInTheDocument();
@@ -820,14 +827,18 @@ describe('Performance > TransactionSummary', function () {
       );
 
       // Fill out the search box, and submit it.
-      await userEvent.type(
-        screen.getByLabelText('Search events'),
-        'user.email:uhoh*{enter}'
+      await userEvent.click(
+        screen.getByPlaceholderText('Search for events, users, tags, and more')
       );
+      await userEvent.paste('user.email:uhoh*');
+      await userEvent.keyboard('{enter}');
+
+      await waitFor(() => {
+        expect(router.push).toHaveBeenCalledTimes(1);
+      });
 
       // Check the navigation.
-      expect(browserHistory.push).toHaveBeenCalledTimes(1);
-      expect(browserHistory.push).toHaveBeenCalledWith({
+      expect(router.push).toHaveBeenCalledWith({
         pathname: '/',
         query: {
           transaction: '/performance',
@@ -896,10 +907,10 @@ describe('Performance > TransactionSummary', function () {
         screen.getByRole('button', {name: 'Filter Slow Transactions (p95)'})
       );
 
-      await userEvent.click(screen.getAllByText('Slow Transactions (p95)')[1]);
+      await userEvent.click(screen.getAllByText('Slow Transactions (p95)')[1]!);
 
       // Check the navigation.
-      expect(browserHistory.push).toHaveBeenCalledWith({
+      expect(router.push).toHaveBeenCalledWith({
         pathname: '/',
         query: {
           transaction: '/performance',
@@ -928,14 +939,14 @@ describe('Performance > TransactionSummary', function () {
       await screen.findByText('Transaction Summary');
 
       const pagination = await screen.findByTestId('pagination');
-      expect(await findByLabelText(pagination, 'Previous')).toBeInTheDocument();
-      expect(await findByLabelText(pagination, 'Next')).toBeInTheDocument();
+      expect(await within(pagination).findByLabelText('Previous')).toBeInTheDocument();
+      expect(await within(pagination).findByLabelText('Next')).toBeInTheDocument();
 
       // Click the 'next' button
-      await userEvent.click(await findByLabelText(pagination, 'Next'));
+      await userEvent.click(await within(pagination).findByLabelText('Next'));
 
       // Check the navigation.
-      expect(browserHistory.push).toHaveBeenCalledWith({
+      expect(router.push).toHaveBeenCalledWith({
         pathname: '/',
         query: {
           transaction: '/performance',
@@ -1047,8 +1058,8 @@ describe('Performance > TransactionSummary', function () {
 
       await userEvent.click(screen.getByTestId('status-ok'));
 
-      expect(browserHistory.push).toHaveBeenCalledTimes(1);
-      expect(browserHistory.push).toHaveBeenCalledWith(
+      expect(router.push).toHaveBeenCalledTimes(1);
+      expect(router.push).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
             query: expect.stringContaining('transaction.status:ok'),
@@ -1342,7 +1353,9 @@ describe('Performance > TransactionSummary', function () {
       // Renders Failure Rate widget
       expect(screen.getByRole('heading', {name: 'Failure Rate'})).toBeInTheDocument();
       expect(screen.getByTestId('failure-rate-summary-value')).toHaveTextContent('100%');
-      expect(screen.getByTestId('search-metrics-fallback-warning')).toBeInTheDocument();
+      expect(
+        await screen.findByTestId('search-metrics-fallback-warning')
+      ).toBeInTheDocument();
     });
   });
 });

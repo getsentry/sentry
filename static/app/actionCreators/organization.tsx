@@ -21,6 +21,7 @@ import {
 } from 'sentry/utils/featureFlags';
 import {getPreloadedDataPromise} from 'sentry/utils/getPreloadedData';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import type RequestError from 'sentry/utils/requestError/requestError';
 
 async function fetchOrg(
   api: Client,
@@ -143,7 +144,7 @@ export function fetchOrganizationDetails(
     PageFiltersStore.onReset();
   }
 
-  const getErrorMessage = err => {
+  const getErrorMessage = (err: RequestError) => {
     if (typeof err.responseJSON?.detail === 'string') {
       return err.responseJSON?.detail;
     }

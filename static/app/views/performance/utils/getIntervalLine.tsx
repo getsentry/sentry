@@ -21,14 +21,14 @@ export function getIntervalLine(
   transaction?: NormalizedTrendsTransaction,
   useRegressionFormat?: boolean
 ): LineChartSeries[] {
-  if (!transaction || !series.length || !series[0].data || !series[0].data.length) {
+  if (!transaction || !series.length || !series[0]!.data || !series[0]!.data.length) {
     return [];
   }
 
   const transformedTransaction = transformTransaction(transaction);
 
-  const seriesStart = parseInt(series[0].data[0].name as string, 10);
-  const seriesEnd = parseInt(series[0].data.slice(-1)[0].name as string, 10);
+  const seriesStart = parseInt(series[0]!.data[0]!.name as string, 10);
+  const seriesEnd = parseInt(series[0]!.data.slice(-1)[0]!.name as string, 10);
 
   if (seriesEnd < seriesStart) {
     return [];

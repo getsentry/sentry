@@ -59,7 +59,7 @@ export function FlamegraphChartTooltip({
               />
               {p.name}:&nbsp;
               <FlamegraphTooltipTimelineInfo>
-                {chart.tooltipFormatter(p.points[0].y)}
+                {chart.tooltipFormatter(p.points[0]!.y)}
               </FlamegraphTooltipTimelineInfo>
             </FlamegraphTooltipFrameMainInfo>
           </React.Fragment>

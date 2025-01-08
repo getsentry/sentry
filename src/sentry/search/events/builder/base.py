@@ -1182,9 +1182,9 @@ class BaseQueryBuilder:
 
     def resolve_measurement_value(self, unit: str, value: float) -> float:
         if unit in constants.SIZE_UNITS:
-            return constants.SIZE_UNITS[unit] * value
+            return constants.SIZE_UNITS[cast(constants.SizeUnit, unit)] * value
         elif unit in constants.DURATION_UNITS:
-            return constants.DURATION_UNITS[unit] * value
+            return constants.DURATION_UNITS[cast(constants.DurationUnit, unit)] * value
         return value
 
     def convert_aggregate_filter_to_condition(

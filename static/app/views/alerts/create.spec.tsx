@@ -173,7 +173,7 @@ describe('ProjectAlertsCreate', function () {
         'The issue is older or newer than...',
       ]);
 
-      await userEvent.click(screen.getAllByLabelText('Delete Node')[1]);
+      await userEvent.click(screen.getAllByLabelText('Delete Node')[1]!);
 
       await userEvent.click(screen.getByText('Save Rule'));
 
@@ -208,7 +208,7 @@ describe('ProjectAlertsCreate', function () {
         body: ProjectAlertRuleFixture(),
       });
       // delete node
-      await userEvent.click(screen.getAllByLabelText('Delete Node')[0]);
+      await userEvent.click(screen.getAllByLabelText('Delete Node')[0]!);
 
       // Change name of alert rule
       await userEvent.type(screen.getByPlaceholderText('Enter Alert Name'), 'myname');
@@ -275,7 +275,7 @@ describe('ProjectAlertsCreate', function () {
         'Send a notification to all legacy integrations',
       ]);
 
-      await userEvent.click(screen.getAllByLabelText('Delete Node')[1]);
+      await userEvent.click(screen.getAllByLabelText('Delete Node')[1]!);
 
       await userEvent.click(screen.getByText('Save Rule'));
 
@@ -428,7 +428,7 @@ describe('ProjectAlertsCreate', function () {
         await userEvent.click(screen.getByPlaceholderText('Enter Alert Name'));
         await userEvent.paste('myname');
         // delete one condition
-        await userEvent.click(screen.getAllByLabelText('Delete Node')[0]);
+        await userEvent.click(screen.getAllByLabelText('Delete Node')[0]!);
 
         // Add a new filter
         await selectEvent.select(screen.getByText('Add optional filter...'), [
@@ -523,7 +523,7 @@ describe('ProjectAlertsCreate', function () {
       const groups = GroupsFixture();
       const date = new Date();
       for (let i = 0; i < groups.length; i++) {
-        groups[i].lastTriggered = String(date);
+        groups[i]!.lastTriggered = String(date);
       }
       const mock = MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/rules/preview/',
@@ -573,7 +573,7 @@ describe('ProjectAlertsCreate', function () {
       });
       createWrapper();
       // delete existion conditions
-      await userEvent.click(screen.getAllByLabelText('Delete Node')[0]);
+      await userEvent.click(screen.getAllByLabelText('Delete Node')[0]!);
 
       await waitFor(() => {
         expect(mock).toHaveBeenCalled();
@@ -616,7 +616,7 @@ describe('ProjectAlertsCreate', function () {
 
     it('shows error for incompatible conditions', async () => {
       createWrapper();
-      await userEvent.click(screen.getAllByLabelText('Delete Node')[0]);
+      await userEvent.click(screen.getAllByLabelText('Delete Node')[0]!);
 
       await selectEvent.select(screen.getByText('Add optional trigger...'), [
         'A new issue is created',
@@ -636,13 +636,13 @@ describe('ProjectAlertsCreate', function () {
         'true'
       );
 
-      await userEvent.click(screen.getAllByLabelText('Delete Node')[0]);
+      await userEvent.click(screen.getAllByLabelText('Delete Node')[0]!);
       expect(screen.queryByText(errorText)).not.toBeInTheDocument();
     });
 
     it('test any filterMatch', async () => {
       createWrapper();
-      await userEvent.click(screen.getAllByLabelText('Delete Node')[0]);
+      await userEvent.click(screen.getAllByLabelText('Delete Node')[0]!);
 
       await selectEvent.select(screen.getByText('Add optional trigger...'), [
         'A new issue is created',
@@ -663,7 +663,7 @@ describe('ProjectAlertsCreate', function () {
 
       expect(screen.getByText(errorText)).toBeInTheDocument();
 
-      await userEvent.click(screen.getAllByLabelText('Delete Node')[1]);
+      await userEvent.click(screen.getAllByLabelText('Delete Node')[1]!);
       await userEvent.clear(screen.getByDisplayValue('10'));
       await userEvent.click(document.body);
 
@@ -691,7 +691,7 @@ describe('ProjectAlertsCreate', function () {
       body: ProjectAlertRuleFixture(),
     });
     createWrapper();
-    await userEvent.click((await screen.findAllByLabelText('Delete Node'))[0]);
+    await userEvent.click((await screen.findAllByLabelText('Delete Node'))[0]!);
 
     await selectEvent.select(screen.getByText('Add action...'), [
       'Suggested Assignees, Team, or Member',
@@ -723,7 +723,7 @@ describe('ProjectAlertsCreate', function () {
 
   it('does not display noisy alert banner for legacy integrations', async function () {
     createWrapper();
-    await userEvent.click((await screen.findAllByLabelText('Delete Node'))[0]);
+    await userEvent.click((await screen.findAllByLabelText('Delete Node'))[0]!);
 
     await selectEvent.select(screen.getByText('Add action...'), [
       'Send a notification to all legacy integrations',

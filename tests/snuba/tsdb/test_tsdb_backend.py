@@ -9,7 +9,7 @@ from sentry.models.group import Group
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.release import Release
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.tsdb.base import TSDBModel
 from sentry.tsdb.snuba import SnubaTSDB
 from sentry.utils.dates import to_datetime
@@ -21,7 +21,7 @@ def timestamp(d):
     return t - (t % 3600)
 
 
-def has_shape(data, shape, allow_empty=False):
+def has_shape(data, shape):
     """
     Determine if a data object has the provided shape
 
@@ -33,18 +33,16 @@ def has_shape(data, shape, allow_empty=False):
     A tuple is the same shape if it has the same length as `shape` and all the
     values have the same shape as the corresponding value in `shape`
     Any other object simply has to have the same type.
-    If `allow_empty` is set, lists and dicts in `data` will pass even if they are empty.
     """
-    if not isinstance(data, type(shape)):
-        return False
+    assert isinstance(data, type(shape))
     if isinstance(data, dict):
         return (
-            (allow_empty or len(data) > 0)
+            len(data) > 0
             and all(has_shape(k, list(shape.keys())[0]) for k in data.keys())
             and all(has_shape(v, list(shape.values())[0]) for v in data.values())
         )
     elif isinstance(data, list):
-        return (allow_empty or len(data) > 0) and all(has_shape(v, shape[0]) for v in data)
+        return len(data) > 0 and all(has_shape(v, shape[0]) for v in data)
     elif isinstance(data, tuple):
         return len(data) == len(shape) and all(
             has_shape(data[i], shape[i]) for i in range(len(data))
@@ -85,7 +83,7 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
                     "fingerprint": [["group-1"], ["group-2"]][
                         (r // 600) % 2
                     ],  # Switch every 10 mins
-                    "timestamp": iso_format(self.now + timedelta(seconds=r)),
+                    "timestamp": (self.now + timedelta(seconds=r)).isoformat(),
                     "tags": {
                         "foo": "bar",
                         "baz": "quux",
@@ -142,7 +140,7 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
                     "message": "message 1",
                     "platform": "python",
                     "fingerprint": ["group-1"],
-                    "timestamp": iso_format(self.now + timedelta(seconds=r)),
+                    "timestamp": (self.now + timedelta(seconds=r)).isoformat(),
                     "tags": {
                         "foo": "bar",
                         "baz": "quux",
@@ -485,31 +483,6 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
             == {}
         )
 
-    def test_most_frequent(self):
-        assert self.db.get_most_frequent(
-            TSDBModel.frequent_issues_by_project,
-            [self.proj1.id],
-            self.now,
-            self.now + timedelta(hours=4),
-            rollup=3600,
-            tenant_ids={"referrer": "r", "organization_id": 1234},
-        ) in [
-            {self.proj1.id: [(self.proj1group1.id, 2.0), (self.proj1group2.id, 1.0)]},
-            {self.proj1.id: [(self.proj1group2.id, 2.0), (self.proj1group1.id, 1.0)]},
-        ]  # Both issues equally frequent
-
-        assert (
-            self.db.get_most_frequent(
-                TSDBModel.frequent_issues_by_project,
-                [],
-                self.now,
-                self.now + timedelta(hours=4),
-                rollup=3600,
-                tenant_ids={"referrer": "r", "organization_id": 1234},
-            )
-            == {}
-        )
-
     def test_frequency_series(self):
         dts = [self.now + timedelta(hours=i) for i in range(4)]
         assert self.db.get_frequency_series(
@@ -557,81 +530,45 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
         project_id = self.proj1.id
         dts = [self.now + timedelta(hours=i) for i in range(4)]
 
-        results = self.db.get_most_frequent(
-            TSDBModel.frequent_issues_by_project,
-            [project_id],
-            dts[0],
-            dts[0],
-            tenant_ids={"referrer": "r", "organization_id": 1234},
-        )
-        assert has_shape(results, {1: [(1, 1.0)]})
-
-        results = self.db.get_most_frequent_series(
-            TSDBModel.frequent_issues_by_project,
-            [project_id],
-            dts[0],
-            dts[0],
-            tenant_ids={"referrer": "r", "organization_id": 1234},
-        )
-        assert has_shape(results, {1: [(1, {1: 1.0})]})
-
         items = {
             # {project_id: (issue_id, issue_id, ...)}
             project_id: (self.proj1group1.id, self.proj1group2.id)
         }
-        results = self.db.get_frequency_series(
+        results1 = self.db.get_frequency_series(
             TSDBModel.frequent_issues_by_project,
             items,
             dts[0],
             dts[-1],
             tenant_ids={"referrer": "r", "organization_id": 1234},
         )
-        assert has_shape(results, {1: [(1, {1: 1})]})
+        assert has_shape(results1, {1: [(1, {1: 1})]})
 
-        results = self.db.get_frequency_totals(
-            TSDBModel.frequent_issues_by_project,
-            items,
-            dts[0],
-            dts[-1],
-            tenant_ids={"referrer": "r", "organization_id": 1234},
-        )
-        assert has_shape(results, {1: {1: 1}})
-
-        results = self.db.get_range(
+        results2 = self.db.get_range(
             TSDBModel.project,
             [project_id],
             dts[0],
             dts[-1],
             tenant_ids={"referrer": "r", "organization_id": 1234},
         )
-        assert has_shape(results, {1: [(1, 1)]})
+        assert has_shape(results2, {1: [(1, 1)]})
 
-        results = self.db.get_distinct_counts_series(
+        results3 = self.db.get_distinct_counts_series(
             TSDBModel.users_affected_by_project,
             [project_id],
             dts[0],
             dts[-1],
             tenant_ids={"referrer": "r", "organization_id": 1234},
         )
-        assert has_shape(results, {1: [(1, 1)]})
+        assert has_shape(results3, {1: [(1, 1)]})
 
-        results = self.db.get_distinct_counts_totals(
+        results4 = self.db.get_distinct_counts_totals(
             TSDBModel.users_affected_by_project,
             [project_id],
             dts[0],
             dts[-1],
             tenant_ids={"referrer": "r", "organization_id": 1234},
         )
-        assert has_shape(results, {1: 1})
-
-        results = self.db.get_distinct_counts_union(
-            TSDBModel.users_affected_by_project,
-            [project_id],
-            dts[0],
-            dts[-1],
-            tenant_ids={"referrer": "r", "organization_id": 1234},
-        )
-        assert has_shape(results, 1)
+        assert has_shape(results4, {1: 1})
 
     def test_calculated_limit(self):
 

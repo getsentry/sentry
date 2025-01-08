@@ -7,7 +7,6 @@ import type {Client} from 'sentry/api';
 import type {BadgeProps} from 'sentry/components/badge/badge';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {isWidgetViewerPath} from 'sentry/components/modals/widgetViewerModal/utils';
-import Panel from 'sentry/components/panels/panel';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
@@ -32,6 +31,7 @@ import withSentryRouter from 'sentry/utils/withSentryRouter';
 import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/dashboard';
 import {useDiscoverSplitAlert} from 'sentry/views/dashboards/discoverSplitAlert';
 import {MetricWidgetCard} from 'sentry/views/dashboards/metrics/widgetCard';
+import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 
 import type {DashboardFilters, Widget} from '../types';
 import {DisplayType, OnDemandExtractionState, WidgetType} from '../types';
@@ -43,7 +43,6 @@ import {WidgetFrame} from '../widgets/common/widgetFrame';
 import {WidgetViewerContext} from '../widgetViewer/widgetViewerContext';
 
 import {useDashboardsMEPContext} from './dashboardsMEPContext';
-import WidgetCardChartContainer from './widgetCardChartContainer';
 import {getMenuOptions, useIndexedEventsWarning} from './widgetCardContextMenu';
 import {WidgetCardDataLoader} from './widgetCardDataLoader';
 
@@ -67,6 +66,7 @@ type Props = WithRouterProps & {
   widget: Widget;
   widgetLegendState: WidgetLegendSelectionState;
   widgetLimitReached: boolean;
+  borderless?: boolean;
   dashboardFilters?: DashboardFilters;
   disableFullscreen?: boolean;
   hasEditAccess?: boolean;
@@ -138,7 +138,7 @@ function WidgetCard(props: Props) {
       ...query,
       // Use the last aggregate because that's where the y-axis is stored
       aggregates: query.aggregates.length
-        ? [query.aggregates[query.aggregates.length - 1]]
+        ? [query.aggregates[query.aggregates.length - 1]!]
         : [],
     }));
     widget.queries = queries;
@@ -269,12 +269,12 @@ function WidgetCard(props: Props) {
               const tableMeta = tableResults?.[0]?.meta as Meta | undefined;
               const fields = Object.keys(tableMeta?.fields ?? {});
 
-              let field = fields[0];
+              let field = fields[0]!;
               let selectedField = field;
 
-              if (defined(widget.queries[0].selectedAggregate)) {
-                const index = widget.queries[0].selectedAggregate;
-                selectedField = widget.queries[0].aggregates[index];
+              if (defined(widget.queries[0]!.selectedAggregate)) {
+                const index = widget.queries[0]!.selectedAggregate;
+                selectedField = widget.queries[0]!.aggregates[index]!;
                 if (fields.includes(selectedField)) {
                   field = selectedField;
                 }
@@ -301,6 +301,7 @@ function WidgetCard(props: Props) {
                   meta={tableMeta}
                   error={widgetQueryError || errorMessage || undefined}
                   preferredPolarity="-"
+                  borderless={props.borderless}
                 />
               );
             }}
@@ -316,6 +317,7 @@ function WidgetCard(props: Props) {
             actionsMessage={actionsMessage}
             actions={actions}
             onFullScreenViewClick={disableFullscreen ? undefined : onFullScreenViewClick}
+            borderless={props.borderless}
           >
             <WidgetCardChartContainer
               location={location}
@@ -390,40 +392,6 @@ const ErrorCard = styled(Placeholder)`
   color: ${p => p.theme.alert.error.textLight};
   border-radius: ${p => p.theme.borderRadius};
   margin-bottom: ${space(2)};
-`;
-
-export const WidgetCardContextMenuContainer = styled('div')`
-  opacity: 1;
-  transition: opacity 0.1s;
-`;
-
-export const WidgetCardPanel = styled(Panel, {
-  shouldForwardProp: prop => prop !== 'isDragging',
-})<{
-  isDragging: boolean;
-}>`
-  margin: 0;
-  visibility: ${p => (p.isDragging ? 'hidden' : 'visible')};
-  /* If a panel overflows due to a long title stretch its grid sibling */
-  height: 100%;
-  min-height: 96px;
-  display: flex;
-  flex-direction: column;
-
-  &:not(:hover):not(:focus-within) {
-    ${WidgetCardContextMenuContainer} {
-      opacity: 0;
-      ${p => p.theme.visuallyHidden}
-    }
-  }
-
-  :hover {
-    background-color: ${p => p.theme.surface200};
-    transition:
-      background-color 100ms linear,
-      box-shadow 100ms linear;
-    box-shadow: ${p => p.theme.dropShadowLight};
-  }
 `;
 
 export const WidgetTitleRow = styled('span')`

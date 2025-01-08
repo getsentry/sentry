@@ -54,8 +54,8 @@ function _parseMRI(mri: string): ParsedMRI {
 
   return {
     type: metricType as MetricType,
-    name: parseName(name, useCase as UseCase),
-    unit,
+    name: parseName(name!, useCase as UseCase),
+    unit: unit!,
     useCase: useCase as UseCase,
   };
 }

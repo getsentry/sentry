@@ -36,12 +36,7 @@ from sentry.integrations.slack.utils.escape import escape_slack_markdown_text, e
 from sentry.integrations.time_utils import get_approx_start_time, time_since
 from sentry.integrations.types import ExternalProviders
 from sentry.issues.endpoints.group_details import get_group_global_count
-from sentry.issues.grouptype import (
-    GroupCategory,
-    NotificationContextField,
-    PerformanceP95EndpointRegressionGroupType,
-    ProfileFunctionRegressionType,
-)
+from sentry.issues.grouptype import GroupCategory, NotificationContextField
 from sentry.models.commit import Commit
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
@@ -106,11 +101,6 @@ SUPPORTED_CONTEXT_DATA: dict[NotificationContextField, Callable] = {
     ),  # format moment into YYYY-mm-dd h:m:s
 }
 
-
-REGRESSION_PERFORMANCE_ISSUE_TYPES = [
-    PerformanceP95EndpointRegressionGroupType,
-    ProfileFunctionRegressionType,
-]
 
 logger = logging.getLogger(__name__)
 
@@ -455,13 +445,6 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         self.is_unfurl = is_unfurl
         self.skip_fallback = skip_fallback
         self.notes = notes
-
-    @property
-    def escape_text(self) -> bool:
-        """
-        Returns True if we need to escape the text in the message.
-        """
-        return True
 
     def get_title_block(
         self,

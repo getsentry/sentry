@@ -453,7 +453,7 @@ export class VirtualizedViewManager {
       const scale = 1 - event.deltaY * 0.01 * -1;
       const x = offsetX > 0 ? event.clientX - offsetX : event.offsetX;
       const configSpaceCursor = this.view.getConfigSpaceCursor({
-        x: x,
+        x,
         y: 0,
       });
 
@@ -663,15 +663,15 @@ export class VirtualizedViewManager {
   maybeInitializeTraceViewFromQS(fov: string): void {
     const [x, width] = fov.split(',').map(parseFloat);
 
-    if (isNaN(x) || isNaN(width)) {
+    if (isNaN(x!) || isNaN(width!)) {
       return;
     }
 
-    if (width <= 0 || width > this.view.trace_space.width) {
+    if (width! <= 0 || width! > this.view.trace_space.width) {
       return;
     }
 
-    if (x < 0 || x > this.view.trace_space.width) {
+    if (x! < 0 || x! > this.view.trace_space.width) {
       return;
     }
 
@@ -933,7 +933,7 @@ export class VirtualizedViewManager {
     let innerMostNode: TraceTreeNode<any> | undefined;
 
     for (let i = 5; i < this.columns.span_list.column_refs.length - 5; i++) {
-      const width = this.row_measurer.cache.get(this.columns.list.column_nodes[i]);
+      const width = this.row_measurer.cache.get(this.columns.list.column_nodes[i]!);
       if (width === undefined) {
         // this is unlikely to happen, but we should trigger a sync measure event if it does
         continue;
@@ -943,7 +943,7 @@ export class VirtualizedViewManager {
       max = Math.max(max, width);
       innerMostNode =
         !innerMostNode ||
-        TraceTree.Depth(this.columns.list.column_nodes[i]) <
+        TraceTree.Depth(this.columns.list.column_nodes[i]!) <
           TraceTree.Depth(innerMostNode)
           ? this.columns.list.column_nodes[i]
           : innerMostNode;
@@ -1122,8 +1122,8 @@ export class VirtualizedViewManager {
     const text_width = this.text_measurer.measure(text);
 
     const timestamps = getIconTimestamps(node, span_space, icon_width_config_space);
-    const text_left = Math.min(span_space[0], timestamps[0]);
-    const text_right = Math.max(span_space[0] + span_space[1], timestamps[1]);
+    const text_left = Math.min(span_space[0], timestamps[0]!);
+    const text_right = Math.max(span_space[0] + span_space[1], timestamps[1]!);
 
     // precompute all anchor points aot, so we make the control flow more readable.
     /// |---| text
@@ -1449,7 +1449,7 @@ export class VirtualizedViewManager {
 
   drawVerticalIndicators() {
     for (const key in this.vertical_indicators) {
-      this.drawVerticalIndicator(this.vertical_indicators[key]);
+      this.drawVerticalIndicator(this.vertical_indicators[key]!);
     }
   }
 
@@ -1616,7 +1616,7 @@ export class VirtualizedViewManager {
 
       if (text) {
         const [inside, text_transform] = this.computeSpanTextPlacement(
-          this.columns.list.column_nodes[i],
+          this.columns.list.column_nodes[i]!,
           text.space,
           text.text
         );

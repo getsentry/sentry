@@ -336,14 +336,23 @@ class BaseEvent(metaclass=abc.ABCMeta):
         """
 
         variants = self.get_grouping_variants(config)
+        hashes_by_variant = {
+            variant_name: variant.get_hash() for variant_name, variant in variants.items()
+        }
+
         # Sort the variants so that the system variant (if any) is always last, in order to resolve
         # ambiguities when choosing primary_hash for Snuba
-        sorted_variants = sorted(
-            variants.items(),
-            key=lambda name_and_variant: 1 if name_and_variant[0] == "system" else 0,
+        sorted_variant_names = sorted(
+            variants,
+            key=lambda variant_name: 1 if variant_name == "system" else 0,
         )
+
         # Get each variant's hash value, filtering out Nones
-        hashes = list({variant.get_hash() for _, variant in sorted_variants} - {None})
+        hashes = [
+            hashes_by_variant[variant_name]
+            for variant_name in sorted_variant_names
+            if hashes_by_variant[variant_name] is not None
+        ]
 
         # Write to event before returning
         self.data["hashes"] = hashes

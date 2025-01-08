@@ -59,6 +59,8 @@ import {
 import WidgetBuilderV2 from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilder';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
+import {getDefaultWidget} from 'sentry/views/dashboards/widgetBuilder/utils/getDefaultWidget';
+import {DATA_SET_TO_WIDGET_TYPE} from 'sentry/views/dashboards/widgetBuilder/widgetBuilder';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import {MetricsDataSwitcherAlert} from 'sentry/views/performance/landing/metricsDataSwitcherAlert';
 
@@ -157,7 +159,7 @@ export function handleUpdateDashboardSplit({
   );
 
   if (widgetIndex >= 0) {
-    updatedDashboard.widgets[widgetIndex].widgetType = splitDecision;
+    updatedDashboard.widgets[widgetIndex]!.widgetType = splitDecision;
   }
   onDashboardUpdate?.(updatedDashboard);
 
@@ -698,7 +700,9 @@ class DashboardDetail extends Component<Props, State> {
               pathname,
               query: {
                 ...location.query,
-                dataset,
+                ...convertWidgetToBuilderStateParams(
+                  getDefaultWidget(DATA_SET_TO_WIDGET_TYPE[dataset ?? DataSet.ERRORS])
+                ),
               },
             })
           );
@@ -815,6 +819,7 @@ class DashboardDetail extends Component<Props, State> {
 
   handleCloseWidgetBuilder = () => {
     const {organization, router, location, params} = this.props;
+
     this.setState({isWidgetBuilderOpen: false});
     router.push(
       getDashboardLocation({

@@ -35,10 +35,10 @@ function WidgetPreview({
   const widget = convertBuilderStateToWidget(state);
 
   const widgetLegendState = new WidgetLegendSelectionState({
-    location: location,
+    location,
     organization,
-    dashboard: dashboard,
-    router: router,
+    dashboard,
+    router,
   });
 
   // TODO: The way we create the widget here does not propagate a widget ID
@@ -51,6 +51,7 @@ function WidgetPreview({
   return (
     <WidgetCard
       disableFullscreen
+      borderless
       isWidgetInvalid={isWidgetInvalid}
       shouldResize={state.displayType !== DisplayType.TABLE}
       organization={organization}

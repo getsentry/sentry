@@ -12,7 +12,6 @@ import SpanSummaryButton from 'sentry/components/events/interfaces/spans/spanSum
 import FileSize from 'sentry/components/fileSize';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {CustomMetricsEventData} from 'sentry/components/metrics/customMetricsEventData';
 import Pill from 'sentry/components/pill';
 import Pills from 'sentry/components/pills';
 import {TransactionToProfileButton} from 'sentry/components/profiling/transactionToProfileButton';
@@ -580,13 +579,6 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
               })}
             </tbody>
           </table>
-          {span._metrics_summary ? (
-            <CustomMetricsEventData
-              projectId={event.projectID}
-              metricsSummary={span._metrics_summary}
-              startTimestamp={span.start_timestamp}
-            />
-          ) : null}
         </SpanDetails>
       </Fragment>
     );
@@ -607,7 +599,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
 
 function SpanHTTPInfo({span}: {span: RawSpanType}) {
   if (span.op === 'http.client' && span.description) {
-    const [method, url] = span.description.split(' ');
+    const [method, url] = span.description.split(' ') as [string, string];
 
     const parsedURL = safeURL(url);
     const queryString = qs.parse(parsedURL?.search ?? '');

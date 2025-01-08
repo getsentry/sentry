@@ -68,7 +68,7 @@ export default function WebVitalMeters({
   const webVitalsConfig = WEB_VITALS_METERS_CONFIG;
 
   const webVitals = Object.keys(webVitalsConfig) as WebVitals[];
-  const colors = theme.charts.getColorPalette(3);
+  const colors = theme.charts.getColorPalette(3) ?? [];
 
   const renderVitals = () => {
     return webVitals.map((webVital, index) => {
@@ -87,7 +87,7 @@ export default function WebVitalMeters({
           showTooltip={showTooltip}
           score={score}
           meterValue={meterValue}
-          color={colors[index]}
+          color={colors[index]!}
           onClick={onClick}
         />
       );

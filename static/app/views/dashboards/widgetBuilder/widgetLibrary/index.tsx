@@ -53,9 +53,9 @@ export function WidgetLibrary({
       <Header>{t('Widget Library')}</Header>
       <WidgetLibraryWrapper>
         {defaultWidgets.map((widget, index) => {
-          const iconColor = theme.charts.getColorPalette(defaultWidgets.length - 2)[
+          const iconColor = theme.charts.getColorPalette(defaultWidgets.length - 2)?.[
             index
-          ];
+          ]!;
 
           const displayType =
             widget.displayType === DisplayType.TOP_N
@@ -66,7 +66,7 @@ export function WidgetLibrary({
             displayType,
             queries: widget.queries,
             widgetType: widget.widgetType,
-            organization: organization,
+            organization,
           });
 
           const newWidget = {

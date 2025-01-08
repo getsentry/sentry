@@ -124,6 +124,7 @@ type Props = {
   placeholder?: string;
   projectIds?: number[] | Readonly<number[]>;
   query?: string;
+  recentSearches?: SavedSearchType;
   searchSource?: string;
   supportedTags?: TagCollection | undefined;
 };
@@ -194,7 +195,7 @@ function ResultsSearchQueryBuilder(props: Props) {
               search: query,
               projectIds: projectIdStrings,
               // allows searching for tags on transactions as well
-              includeTransactions: includeTransactions,
+              includeTransactions,
               // allows searching for tags on sessions as well
               includeSessions: includeSessionTagsValues,
               dataset: dataset ? DiscoverDatasetsToDatasetMap[dataset] : undefined,
@@ -289,7 +290,7 @@ function ResultsSearchQueryBuilder(props: Props) {
       searchSource={props.searchSource || 'eventsv2'}
       filterKeySections={filterKeySections}
       getTagValues={getEventFieldValues}
-      recentSearches={SavedSearchType.EVENT}
+      recentSearches={props.recentSearches ?? SavedSearchType.EVENT}
       showUnsubmittedIndicator
     />
   );

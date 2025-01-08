@@ -17,6 +17,7 @@ export type TimeseriesData = {
   data: TimeSeriesItem[];
   field: string;
   color?: string;
+  meta?: Meta;
 };
 
 export type ErrorProp = Error | string;
@@ -33,3 +34,5 @@ export type Release = {
   timestamp: string;
   version: string;
 };
+
+export type Aliases = Record<string, string>;

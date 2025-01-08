@@ -163,7 +163,7 @@ export function constructWidgetFromQuery(query?: Query): Widget | undefined {
       const {columns, aggregates} = getColumnsAndAggregates(queryFields);
       queryConditions.forEach((condition, index) => {
         queries.push({
-          name: queryNames[index],
+          name: queryNames[index]!,
           conditions: condition,
           fields: queryFields,
           columns,
@@ -264,7 +264,7 @@ export function getWidgetDiscoverUrl(
   index: number = 0,
   isMetricsData: boolean = false
 ) {
-  const eventView = eventViewFromWidget(widget.title, widget.queries[index], selection);
+  const eventView = eventViewFromWidget(widget.title, widget.queries[index]!, selection);
   const discoverLocation = eventView.getResultsViewUrlTarget(
     organization.slug,
     false,
@@ -277,7 +277,7 @@ export function getWidgetDiscoverUrl(
   const yAxisOptions = eventView.getYAxisOptions().map(({value}) => value);
   discoverLocation.query.yAxis = [
     ...new Set(
-      widget.queries[0].aggregates.filter(aggregate => yAxisOptions.includes(aggregate))
+      widget.queries[0]!.aggregates.filter(aggregate => yAxisOptions.includes(aggregate))
     ),
   ].slice(0, 3);
 
@@ -289,9 +289,9 @@ export function getWidgetDiscoverUrl(
     case DisplayType.TOP_N:
       discoverLocation.query.display = DisplayModes.TOP5;
       // Last field is used as the yAxis
-      const aggregates = widget.queries[0].aggregates;
+      const aggregates = widget.queries[0]!.aggregates;
       discoverLocation.query.yAxis = aggregates[aggregates.length - 1];
-      if (aggregates.slice(0, -1).includes(aggregates[aggregates.length - 1])) {
+      if (aggregates.slice(0, -1).includes(aggregates[aggregates.length - 1]!)) {
         discoverLocation.query.field = aggregates.slice(0, -1);
       }
       break;
@@ -305,7 +305,7 @@ export function getWidgetDiscoverUrl(
       ? discoverLocation.query.field
       : [discoverLocation.query.field];
 
-  const query = widget.queries[0];
+  const query = widget.queries[0]!;
   const queryFields = defined(query.fields)
     ? query.fields
     : [...query.columns, ...query.aggregates];
@@ -386,7 +386,7 @@ export function getWidgetMetricsUrl(
     project,
     environment: selection.environments,
     widgets: _widget.queries.map(query => {
-      const parsed = parseField(query.aggregates[0]);
+      const parsed = parseField(query.aggregates[0]!);
 
       return {
         mri: parsed?.mri,
@@ -647,7 +647,7 @@ export function appendQueryDatasetParam(
   queryDataset?: SavedQueryDatasets
 ) {
   if (hasDatasetSelector(organization) && queryDataset) {
-    return {queryDataset: queryDataset};
+    return {queryDataset};
   }
   return {};
 }

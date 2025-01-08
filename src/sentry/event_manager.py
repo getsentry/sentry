@@ -346,7 +346,7 @@ class EventManager:
             grouping_config = config.get("grouping_config")
         # if we still don't have a grouping also try the project
         if grouping_config is None and project is not None:
-            grouping_config = get_grouping_config_dict_for_project(self._project)
+            grouping_config = get_grouping_config_dict_for_project(project)
         self._grouping_config = grouping_config
         self._client_ip = client_ip
         self._user_agent = user_agent
@@ -2376,7 +2376,7 @@ def save_attachment(
         return
     from sentry import ratelimits as ratelimiter
 
-    is_limited, num_requests, reset_time = ratelimiter.backend.is_limited_with_value(
+    is_limited, _, _ = ratelimiter.backend.is_limited_with_value(
         key="event_attachment.save_per_sec",
         limit=options.get("sentry.save-event-attachments.project-per-sec-limit"),
         project=project,
@@ -2384,7 +2384,7 @@ def save_attachment(
     )
     rate_limit_tag = "per_sec"
     if not is_limited:
-        is_limited, num_requests, reset_time = ratelimiter.backend.is_limited_with_value(
+        is_limited, _, _ = ratelimiter.backend.is_limited_with_value(
             key="event_attachment.save_5_min",
             limit=options.get("sentry.save-event-attachments.project-per-5-minute-limit"),
             project=project,

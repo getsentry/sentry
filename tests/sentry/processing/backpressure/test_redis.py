@@ -68,7 +68,7 @@ def test_redis_unhealthy_state():
     unhealthy_services = check_service_health(services=services)
     redis_services = unhealthy_services.get("redis")
     assert isinstance(redis_services, list)
-    assert len(redis_services) == 6
+    assert len(redis_services) == 3
 
     usage = list(iter_cluster_memory_usage(services["redis"].cluster))
     for memory in usage:

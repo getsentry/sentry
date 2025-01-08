@@ -52,7 +52,10 @@ import {useParams} from 'sentry/utils/useParams';
 import {traceAnalytics} from '../../traceAnalytics';
 import {useTransaction} from '../../traceApi/useTransaction';
 import {useDrawerContainerRef} from '../../traceDrawer/details/drawerContainerRefContext';
-import {makeTraceContinuousProfilingLink} from '../../traceDrawer/traceProfilingLink';
+import {
+  makeTraceContinuousProfilingLink,
+  makeTransactionProfilingLink,
+} from '../../traceDrawer/traceProfilingLink';
 import {
   isAutogroupedNode,
   isMissingInstrumentationNode,
@@ -69,15 +72,23 @@ import type {TraceTreeNode} from '../../traceModels/traceTreeNode';
 import {useTraceState, useTraceStateDispatch} from '../../traceState/traceStateProvider';
 import {useHasTraceNewUi} from '../../useHasTraceNewUi';
 
-const DetailContainer = styled('div')<{hasNewTraceUi?: boolean}>`
+const BodyContainer = styled('div')<{hasNewTraceUi?: boolean}>`
   display: flex;
   flex-direction: column;
   gap: ${p => (p.hasNewTraceUi ? 0 : space(2))};
-  padding: ${p => (p.hasNewTraceUi ? `${space(1)} ${space(2)}` : space(1))};
+  padding: ${p => (p.hasNewTraceUi ? `${space(0.5)} ${space(2)}` : space(1))};
+  height: calc(100% - 52px);
+  overflow: auto;
 
   ${DataSection} {
     padding: 0;
   }
+`;
+
+const DetailContainer = styled('div')`
+  height: 100%;
+  overflow: hidden;
+  padding-bottom: ${space(1)};
 `;
 
 const FlexBox = styled('div')`
@@ -210,6 +221,7 @@ const IconBorder = styled('div')<{backgroundColor: string; errored?: boolean}>`
 `;
 
 const LegacyHeaderContainer = styled(FlexBox)`
+  margin: ${space(1)};
   justify-content: space-between;
   gap: ${space(3)};
   container-type: inline-size;
@@ -234,7 +246,9 @@ const HeaderContainer = styled(FlexBox)`
   align-items: baseline;
   justify-content: space-between;
   gap: ${space(3)};
-  margin-bottom: ${space(1.5)};
+  padding: ${space(0.25)} 0 ${space(0.5)} 0;
+  margin: 0 ${space(2)} ${space(1)} ${space(2)};
+  border-bottom: 1px solid ${p => p.theme.border};
 `;
 
 const DURATION_COMPARISON_STATUS_COLORS: {
@@ -463,43 +477,37 @@ const StyledPanel = styled(Panel)`
 
 function HighLightsOpsBreakdown({event}: {event: EventTransaction}) {
   const breakdown = generateStats(event, {type: 'no_filter'});
-  const spansCount =
-    event.entries?.find(entry => entry.type === 'spans')?.data?.length ?? 0;
 
   return (
     <HighlightsOpsBreakdownWrapper>
       <HighlightsSpanCount>
-        {tct('This transaction contains [spansCount] spans', {
-          spansCount,
-        })}
+        {t('Most frequent span ops for this transaction are')}
       </HighlightsSpanCount>
-      {breakdown.slice(0, 5).map(currOp => {
-        const {name, percentage} = currOp;
+      <TopOpsList>
+        {breakdown.slice(0, 3).map(currOp => {
+          const {name, percentage} = currOp;
 
-        const operationName = typeof name === 'string' ? name : t('Other');
-        const color = pickBarColor(operationName);
-        const pctLabel = isFinite(percentage) ? Math.round(percentage * 100) : '∞';
+          const operationName = typeof name === 'string' ? name : t('Other');
+          const color = pickBarColor(operationName);
+          const pctLabel = isFinite(percentage) ? Math.round(percentage * 100) : '∞';
 
-        return (
-          <HighlightsOpRow key={operationName}>
-            <IconCircleFill size="xs" color={color as Color} />
-            {operationName}
-            <HighlightsOpPct>{pctLabel}%</HighlightsOpPct>
-          </HighlightsOpRow>
-        );
-      })}
-      {breakdown.length > 5 ? (
-        <HighlightsOpsBreakdownMoreCount>
-          {tct('+ [moreCount] more', {moreCount: breakdown.length - 5})}
-        </HighlightsOpsBreakdownMoreCount>
-      ) : null}
+          return (
+            <HighlightsOpRow key={operationName}>
+              <IconCircleFill size="xs" color={color as Color} />
+              {operationName}
+              <HighlightsOpPct>{pctLabel}%</HighlightsOpPct>
+            </HighlightsOpRow>
+          );
+        })}
+      </TopOpsList>
     </HighlightsOpsBreakdownWrapper>
   );
 }
 
-const HighlightsOpsBreakdownMoreCount = styled('div')`
-  font-size: 12px;
-  color: ${p => p.theme.subText};
+const TopOpsList = styled('div')`
+  display: flex;
+  flex-direction: row;
+  gap: ${space(1)};
 `;
 
 const HighlightsOpPct = styled('div')`
@@ -576,7 +584,6 @@ const HighlightsWrapper = styled('div')`
   align-items: stretch;
   gap: ${space(1)};
   width: 100%;
-  overflow: hidden;
   margin: ${space(1)} 0;
 `;
 
@@ -794,30 +801,44 @@ function NodeActions(props: {
     organization,
   });
 
-  const profilerId: string = useMemo(() => {
-    if (isTransactionNode(props.node)) {
-      return props.node.value.profiler_id;
+  const transactionProfileTarget = useMemo(() => {
+    const profileId = isTransactionNode(props.node)
+      ? props.node.value.profile_id
+      : isSpanNode(props.node)
+        ? props.node.event?.contexts?.profile?.profile_id ?? ''
+        : '';
+    if (!profileId) {
+      return null;
     }
-    if (isSpanNode(props.node)) {
-      return props.node.value.sentry_tags?.profiler_id ?? '';
-    }
-    return '';
-  }, [props]);
+    return makeTransactionProfilingLink(profileId, {
+      orgSlug: props.organization.slug,
+      projectSlug: props.node.metadata.project_slug ?? '',
+    });
+  }, [props.node, props.organization]);
 
-  const profileLink = makeTraceContinuousProfilingLink(props.node, profilerId, {
-    orgSlug: props.organization.slug,
-    projectSlug: props.node.metadata.project_slug ?? '',
-    traceId: params.traceSlug ?? '',
-    threadId: getThreadIdFromNode(props.node, transaction),
-  });
+  const continuousProfileTarget = useMemo(() => {
+    const profilerId = isTransactionNode(props.node)
+      ? props.node.value.profiler_id
+      : isSpanNode(props.node)
+        ? props.node.value.sentry_tags?.profiler_id ?? null
+        : null;
+    if (!profilerId) {
+      return null;
+    }
+    return makeTraceContinuousProfilingLink(props.node, profilerId, {
+      orgSlug: props.organization.slug,
+      projectSlug: props.node.metadata.project_slug ?? '',
+      traceId: params.traceSlug ?? '',
+      threadId: getThreadIdFromNode(props.node, transaction),
+    });
+  }, [params.traceSlug, props.node, props.organization, transaction]);
 
   if (!hasNewTraceUi) {
     return (
       <LegacyNodeActions
         {...props}
-        profileLink={profileLink}
-        profilerId={profilerId}
-        transaction={transaction}
+        continuousProfileTarget={continuousProfileTarget}
+        transactionProfileTarget={transactionProfileTarget}
       />
     );
   }
@@ -846,11 +867,23 @@ function NodeActions(props: {
           />
         </Tooltip>
       ) : null}
-      {profileLink ? (
-        <Tooltip title={t('Continuous Profile')}>
+      {continuousProfileTarget ? (
+        <Tooltip title={t('Profile')}>
           <ActionButton
+            onClick={() => traceAnalytics.trackViewContinuousProfile(props.organization)}
+            to={continuousProfileTarget}
             size="xs"
-            aria-label={t('Continuous Profile')}
+            aria-label={t('Profile')}
+            icon={<IconProfiling size="xs" />}
+          />
+        </Tooltip>
+      ) : transactionProfileTarget ? (
+        <Tooltip title={t('Profile')}>
+          <ActionButton
+            onClick={() => traceAnalytics.trackViewTransactionProfile(props.organization)}
+            to={transactionProfileTarget}
+            size="xs"
+            aria-label={t('Profile')}
             icon={<IconProfiling size="xs" />}
           />
         </Tooltip>
@@ -884,6 +917,7 @@ const ActionWrapper = styled('div')`
 `;
 
 function LegacyNodeActions(props: {
+  continuousProfileTarget: LocationDescriptor | null;
   node: TraceTreeNode<any>;
   onTabScrollToNode: (
     node:
@@ -892,20 +926,18 @@ function LegacyNodeActions(props: {
       | SiblingAutogroupNode
       | MissingInstrumentationNode
   ) => void;
-  profileLink: LocationDescriptor | null;
-  profilerId: string;
-  transaction: EventTransaction | undefined;
+  organization: Organization;
+  transactionProfileTarget: LocationDescriptor | null;
   eventSize?: number | undefined;
 }) {
   const navigate = useNavigate();
-  const organization = useOrganization();
 
   const items = useMemo((): MenuItemProps[] => {
     const showInView: MenuItemProps = {
       key: 'show-in-view',
       label: t('Show in View'),
       onAction: () => {
-        traceAnalytics.trackShowInView(organization);
+        traceAnalytics.trackShowInView(props.organization);
         props.onTabScrollToNode(props.node);
       },
     };
@@ -921,9 +953,9 @@ function LegacyNodeActions(props: {
     const jsonDetails: MenuItemProps = {
       key: 'json-details',
       onAction: () => {
-        traceAnalytics.trackViewEventJSON(organization);
+        traceAnalytics.trackViewEventJSON(props.organization);
         window.open(
-          `/api/0/projects/${organization.slug}/${projectSlug}/events/${eventId}/json/`,
+          `/api/0/projects/${props.organization.slug}/${projectSlug}/events/${eventId}/json/`,
           '_blank'
         );
       },
@@ -932,28 +964,37 @@ function LegacyNodeActions(props: {
         (typeof eventSize === 'number' ? ` (${formatBytesBase10(eventSize, 0)})` : ''),
     };
 
-    const continuousProfileLink: MenuItemProps | null = props.profileLink
+    const profileLink: MenuItemProps | null = props.continuousProfileTarget
       ? {
-          key: 'continuous-profile',
+          key: 'profile',
           onAction: () => {
-            traceAnalytics.trackViewContinuousProfile(organization);
-            navigate(props.profileLink!);
+            traceAnalytics.trackViewContinuousProfile(props.organization);
+            navigate(props.continuousProfileTarget!);
           },
-          label: t('Continuous Profile'),
+          label: t('View Profile'),
         }
-      : null;
+      : props.transactionProfileTarget
+        ? {
+            key: 'profile',
+            onAction: () => {
+              traceAnalytics.trackViewTransactionProfile(props.organization);
+              navigate(props.transactionProfileTarget!);
+            },
+            label: t('View Profile'),
+          }
+        : null;
 
     if (isTransactionNode(props.node)) {
-      return [showInView, jsonDetails, continuousProfileLink].filter(TypeSafeBoolean);
+      return [showInView, jsonDetails, profileLink].filter(TypeSafeBoolean);
     }
     if (isSpanNode(props.node)) {
-      return [showInView, continuousProfileLink].filter(TypeSafeBoolean);
+      return [showInView, profileLink].filter(TypeSafeBoolean);
     }
     if (isMissingInstrumentationNode(props.node)) {
-      return [showInView, continuousProfileLink].filter(TypeSafeBoolean);
+      return [showInView, profileLink].filter(TypeSafeBoolean);
     }
     if (isTraceErrorNode(props.node)) {
-      return [showInView, continuousProfileLink].filter(TypeSafeBoolean);
+      return [showInView, profileLink].filter(TypeSafeBoolean);
     }
     if (isRootNode(props.node)) {
       return [showInView];
@@ -963,20 +1004,24 @@ function LegacyNodeActions(props: {
     }
 
     return [showInView];
-  }, [props, navigate, organization]);
+  }, [props, navigate]);
 
   return (
     <ActionsContainer>
       <Actions className="Actions">
-        {props.profileLink ? (
-          <LinkButton size="xs" to={props.profileLink}>
-            {t('Continuous Profile')}
+        {props.continuousProfileTarget ? (
+          <LinkButton size="xs" to={props.continuousProfileTarget}>
+            {t('View Profile')}
+          </LinkButton>
+        ) : props.transactionProfileTarget ? (
+          <LinkButton size="xs" to={props.transactionProfileTarget}>
+            {t('View Profile')}
           </LinkButton>
         ) : null}
         <Button
           size="xs"
           onClick={_e => {
-            traceAnalytics.trackShowInView(organization);
+            traceAnalytics.trackShowInView(props.organization);
             props.onTabScrollToNode(props.node);
           }}
         >
@@ -987,8 +1032,8 @@ function LegacyNodeActions(props: {
           <LinkButton
             size="xs"
             icon={<IconOpen />}
-            onClick={() => traceAnalytics.trackViewEventJSON(organization)}
-            href={`/api/0/projects/${organization.slug}/${props.node.value.project_slug}/events/${props.node.value.event_id}/json/`}
+            onClick={() => traceAnalytics.trackViewEventJSON(props.organization)}
+            href={`/api/0/projects/${props.organization.slug}/${props.node.value.project_slug}/events/${props.node.value.event_id}/json/`}
             external
           >
             {t('JSON')} (<FileSize bytes={props.eventSize ?? 0} />)
@@ -1173,6 +1218,7 @@ export const CardContentSubject = styled('div')`
 
 const TraceDrawerComponents = {
   DetailContainer,
+  BodyContainer,
   FlexBox,
   Title: TitleWithTestId,
   Type,

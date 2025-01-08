@@ -1,8 +1,10 @@
 /**
- * Replace item at `index` in `array` with `obj`
+ * Replace item at `index` in `array` with `obj` without mutating `array`
  */
-export default function replaceAtArrayIndex<T>(array: T[], index: number, obj: T): T[] {
-  const newArray = [...array];
-  newArray.splice(index, 1, obj);
-  return newArray;
+export default function replaceAtArrayIndex<T>(
+  array: Readonly<T[]>,
+  index: number,
+  obj: T
+): T[] {
+  return array.toSpliced(index, 1, obj);
 }

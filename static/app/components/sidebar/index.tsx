@@ -644,7 +644,7 @@ function Sidebar() {
 
             <SidebarSection hasNewNav={hasNewNav} centeredItems={horizontal}>
               {HookStore.get('sidebar:bottom-items').length > 0 &&
-                HookStore.get('sidebar:bottom-items')[0]({
+                HookStore.get('sidebar:bottom-items')[0]!({
                   orientation,
                   collapsed,
                   hasPanel,

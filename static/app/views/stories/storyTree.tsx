@@ -72,7 +72,7 @@ function toTree(files: string[]): TreeMapping {
       if (!(part in tree)) {
         tree[part] = {};
       }
-      tree = tree[part];
+      tree = tree[part]!;
     }
   }
   return root;

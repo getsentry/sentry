@@ -118,7 +118,7 @@ export abstract class FlamegraphRenderer {
 
       // Descend into the rest of the children
       for (let i = 0; i < frame.children.length; i++) {
-        queue.push(frame.children[i]);
+        queue.push(frame.children[i]!);
       }
     }
     return hoveredNode;

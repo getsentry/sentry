@@ -36,7 +36,7 @@ from sentry.testutils.cases import (
     SpanTestCase,
 )
 from sentry.testutils.helpers import parse_link_header
-from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.discover import user_misery_formula
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json
@@ -56,7 +56,7 @@ class OrganizationEventsEndpointTestBase(APITransactionTestCase, SnubaTestCase, 
         super().setUp()
         self.nine_mins_ago = before_now(minutes=9)
         self.ten_mins_ago = before_now(minutes=10)
-        self.ten_mins_ago_iso = iso_format(self.ten_mins_ago)
+        self.ten_mins_ago_iso = self.ten_mins_ago.replace(microsecond=0).isoformat()
         self.eleven_mins_ago = before_now(minutes=11)
         self.eleven_mins_ago_iso = self.eleven_mins_ago.isoformat()
         self.transaction_data = load_data("transaction", timestamp=self.ten_mins_ago)
@@ -198,6 +198,26 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             == "Parse error at 'hi \n ther' (column 4). This is commonly caused by unmatched parentheses. Enclose any text in double quotes."
         )
 
+    def test_invalid_field(self):
+        self.features["organizations:performance-discover-dataset-selector"] = True
+        self.create_project()
+        query: dict[str, Any] = {"field": ["foo[…]bar"], "dataset": "transactions"}
+        model = DiscoverSavedQuery.objects.create(
+            organization=self.organization,
+            created_by_id=self.user.id,
+            name="query name",
+            query=query,
+            version=2,
+            date_created=before_now(minutes=10),
+            date_updated=before_now(minutes=10),
+            dataset=DiscoverSavedQueryTypes.TRANSACTION_LIKE,
+        )
+        query["discoverSavedQueryId"] = model.id
+
+        response = self.do_request(query)
+        assert response.status_code == 400, response.content
+        assert response.data["detail"] == "Invalid characters in field foo[…]bar"
+
     def test_invalid_trace_span(self):
         self.create_project()
 
@@ -325,6 +345,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["id"] == "a" * 32
 
+    @pytest.mark.xfail(reason="Started failing after getsentry/snuba#6711")
     def test_parent_span_id_in_context(self):
         self.store_event(
             data={
@@ -3041,9 +3062,13 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         result = {r["any(user.display)"] for r in data}
         assert result == {"cathy@example.com"}
         result = {r["any(timestamp.to_day)"][:19] for r in data}
-        assert result == {iso_format(day_ago.replace(hour=0, minute=0, second=0, microsecond=0))}
+        assert result == {
+            day_ago.replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=None).isoformat()
+        }
         result = {r["any(timestamp.to_hour)"][:19] for r in data}
-        assert result == {iso_format(day_ago.replace(minute=0, second=0, microsecond=0))}
+        assert result == {
+            day_ago.replace(minute=0, second=0, microsecond=0, tzinfo=None).isoformat()
+        }
 
     def test_field_aliases_in_conflicting_functions(self):
         self.store_event(
@@ -3334,7 +3359,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 1
-        assert self.ten_mins_ago_iso[:-5] in data[0]["last_seen()"]
+        assert self.ten_mins_ago_iso == data[0]["last_seen()"]
         assert data[0]["latest_event()"] == event.event_id
 
         query = {
@@ -6623,35 +6648,6 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
             "performance_score(measurements.score.lcp)": 0.7923076923076923,
         }
 
-    def test_weighted_performance_score(self):
-        self.transaction_data["measurements"] = {
-            "score.lcp": {"value": 0.03},
-            "score.weight.lcp": {"value": 0.3},
-            "score.total": {"value": 0.03},
-        }
-        self.store_event(self.transaction_data, self.project.id)
-        self.transaction_data["measurements"] = {
-            "score.lcp": {"value": 1.0},
-            "score.weight.lcp": {"value": 1.0},
-            "score.total": {"value": 1.0},
-        }
-        self.store_event(self.transaction_data, self.project.id)
-        self.transaction_data["measurements"] = {
-            "score.total": {"value": 0.0},
-        }
-        self.store_event(self.transaction_data, self.project.id)
-        query = {
-            "field": [
-                "weighted_performance_score(measurements.score.lcp)",
-            ]
-        }
-        response = self.do_request(query)
-        assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 1
-        assert response.data["data"][0] == {
-            "weighted_performance_score(measurements.score.lcp)": 0.3433333333333333,
-        }
-
     def test_invalid_performance_score_column(self):
         self.transaction_data["measurements"] = {
             "score.total": {"value": 0.0},
@@ -6660,19 +6656,6 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
         query = {
             "field": [
                 "performance_score(measurements.score.fp)",
-            ]
-        }
-        response = self.do_request(query)
-        assert response.status_code == 400, response.content
-
-    def test_invalid_weighted_performance_score_column(self):
-        self.transaction_data["measurements"] = {
-            "score.total": {"value": 0.0},
-        }
-        self.store_event(self.transaction_data, self.project.id)
-        query = {
-            "field": [
-                "weighted_performance_score(measurements.score.fp)",
             ]
         }
         response = self.do_request(query)

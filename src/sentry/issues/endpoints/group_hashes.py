@@ -9,6 +9,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import EventSerializer, SimpleEventSerializer, serialize
+from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
 from sentry.tasks.unmerge import unmerge
 from sentry.utils import metrics
@@ -22,7 +23,7 @@ class GroupHashesEndpoint(GroupEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: Request, group) -> Response:
+    def get(self, request: Request, group: Group) -> Response:
         """
         List an Issue's Hashes
         ``````````````````````
@@ -59,7 +60,7 @@ class GroupHashesEndpoint(GroupEndpoint):
             paginator=GenericOffsetPaginator(data_fn=data_fn),
         )
 
-    def put(self, request: Request, group) -> Response:
+    def put(self, request: Request, group: Group) -> Response:
         """
         Perform an unmerge by reassigning events with hash values corresponding to the given
         grouphash ids from being part of the given group to being part of a new group.

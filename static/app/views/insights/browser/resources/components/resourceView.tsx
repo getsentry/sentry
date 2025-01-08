@@ -5,8 +5,8 @@ import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getResourceTypeFilter} from 'sentry/views/insights/browser/common/queries/useResourcesQuery';
 import RenderBlockingSelector from 'sentry/views/insights/browser/resources/components/renderBlockingSelector';
@@ -80,6 +80,7 @@ function ResourceView() {
 }
 
 function ResourceTypeSelector({value}: {value?: string}) {
+  const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
   const hasImageView = organization.features.includes('insights-initial-modules');
@@ -113,7 +114,7 @@ function ResourceTypeSelector({value}: {value?: string}) {
           organization,
           filter: newValue?.value,
         });
-        browserHistory.push({
+        navigate({
           ...location,
           query: {
             ...location.query,

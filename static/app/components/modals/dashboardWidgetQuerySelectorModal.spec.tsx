@@ -2,13 +2,20 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import DashboardWidgetQuerySelectorModal from 'sentry/components/modals/dashboardWidgetQuerySelectorModal';
+import type {Widget} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
 
 const stubEl: any = (props: any) => <div>{props.children}</div>;
 
 const api = new MockApiClient();
 
-function renderModal({initialData, widget}) {
+function renderModal({
+  initialData,
+  widget,
+}: {
+  initialData: ReturnType<typeof initializeOrg>;
+  widget: Widget;
+}) {
   return render(
     <DashboardWidgetQuerySelectorModal
       Header={stubEl}
@@ -32,8 +39,8 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     router: {},
     projects: [],
   });
-  let mockQuery;
-  let mockWidget;
+  let mockQuery!: Widget['queries'][number];
+  let mockWidget!: Widget;
 
   beforeEach(function () {
     mockQuery = {
@@ -41,7 +48,6 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       fields: ['count()', 'failure_count()'],
       aggregates: ['count()', 'failure_count()'],
       columns: [],
-      id: '1',
       name: 'Query Name',
       orderby: '',
     };
@@ -93,12 +99,10 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     mockWidget.queries.push({
       ...mockQuery,
       conditions: 'title:/organizations/:orgId/performance/',
-      id: '2',
     });
     mockWidget.queries.push({
       ...mockQuery,
       conditions: 'title:/organizations/:orgId/',
-      id: '3',
     });
     renderModal({initialData, widget: mockWidget});
     const queryFields = screen.getAllByRole('textbox');

@@ -76,7 +76,7 @@ describe('ContextCard', function () {
         project={project}
       />
     );
-    expect(iconSpy.mock.calls[0][0]).toBe(browserContext.name);
+    expect(iconSpy.mock.calls[0]![0]).toBe(browserContext.name);
     expect(screen.getByRole('img')).toBeInTheDocument();
 
     iconSpy.mockReset();

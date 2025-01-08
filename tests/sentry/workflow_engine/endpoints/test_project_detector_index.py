@@ -13,6 +13,7 @@ from sentry.snuba.models import (
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup, DataSource, Detector
+from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import data_source_type_registry
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
@@ -69,7 +70,7 @@ class ProjectDetectorIndexPostTest(ProjectDetectorIndexBaseTest):
             },
             "data_conditions": [
                 {
-                    "condition": "gt",
+                    "type": Condition.GREATER,
                     "comparison": 100,
                     "result": DetectorPriorityLevel.HIGH,
                 }
@@ -109,7 +110,7 @@ class ProjectDetectorIndexPostTest(ProjectDetectorIndexBaseTest):
             )
             assert response.data == {"groupType": ["Group type not compatible with detectors"]}
 
-    @mock.patch("sentry.workflow_engine.endpoints.validators.create_audit_entry")
+    @mock.patch("sentry.workflow_engine.endpoints.validators.base.create_audit_entry")
     def test_valid_creation(self, mock_audit):
         with self.tasks():
             response = self.get_success_response(
@@ -153,7 +154,7 @@ class ProjectDetectorIndexPostTest(ProjectDetectorIndexBaseTest):
         conditions = list(DataCondition.objects.filter(condition_group=condition_group))
         assert len(conditions) == 1
         condition = conditions[0]
-        assert condition.condition == "gt"
+        assert condition.type == Condition.GREATER
         assert condition.comparison == 100
         assert condition.condition_result == DetectorPriorityLevel.HIGH
 

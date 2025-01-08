@@ -12,10 +12,11 @@ jest.mock('sentry/utils/useNavigate', () => ({
 }));
 
 const mockUseNavigate = jest.mocked(useNavigate);
+const mockSetError = jest.fn();
 
 describe('TypeSelector', () => {
-  let router;
-  let organization;
+  let router!: ReturnType<typeof RouterFixture>;
+  let organization!: ReturnType<typeof OrganizationFixture>;
   beforeEach(function () {
     router = RouterFixture();
     organization = OrganizationFixture({});
@@ -27,7 +28,7 @@ describe('TypeSelector', () => {
 
     render(
       <WidgetBuilderProvider>
-        <TypeSelector />
+        <TypeSelector error={{}} setError={mockSetError} />
       </WidgetBuilderProvider>,
       {
         router,
@@ -46,5 +47,19 @@ describe('TypeSelector', () => {
         query: expect.objectContaining({displayType: 'bar'}),
       })
     );
+  });
+
+  it('displays error message when there is an error', async function () {
+    render(
+      <WidgetBuilderProvider>
+        <TypeSelector
+          error={{displayType: 'Please select a type'}}
+          setError={mockSetError}
+        />
+      </WidgetBuilderProvider>,
+      {router, organization}
+    );
+
+    expect(await screen.findByText('Please select a type')).toBeInTheDocument();
   });
 });

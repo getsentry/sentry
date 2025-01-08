@@ -29,7 +29,6 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleThresholdType,
     AlertRuleTrigger,
     AlertRuleTriggerActionMethod,
-    invoke_alert_subscription_callback,
 )
 from sentry.incidents.models.alert_rule_activations import AlertRuleActivations
 from sentry.incidents.models.incident import (
@@ -47,7 +46,10 @@ from sentry.incidents.utils.process_update_helpers import (
     get_aggregation_value_helper,
     get_crash_rate_alert_metrics_aggregation_value_helper,
 )
-from sentry.incidents.utils.types import QuerySubscriptionUpdate
+from sentry.incidents.utils.types import (
+    DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+    QuerySubscriptionUpdate,
+)
 from sentry.models.project import Project
 from sentry.search.eap.utils import add_start_end_conditions
 from sentry.seer.anomaly_detection.get_anomaly_data import get_anomaly_data_from_seer
@@ -62,6 +64,8 @@ from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.snuba.subscriptions import delete_snuba_subscription
 from sentry.utils import metrics, redis, snuba_rpc
 from sentry.utils.dates import to_datetime
+from sentry.workflow_engine.models import DataPacket
+from sentry.workflow_engine.processors.data_packet import process_data_packets
 
 logger = logging.getLogger(__name__)
 REDIS_TTL = int(timedelta(days=7).total_seconds())
@@ -248,7 +252,7 @@ class SubscriptionProcessor:
                     rpc_time_series_request, start, end
                 )
 
-                rpc_response = snuba_rpc.timeseries_rpc(rpc_time_series_request)
+                rpc_response = snuba_rpc.timeseries_rpc([rpc_time_series_request])[0]
                 if len(rpc_response.result_timeseries):
                     comparison_aggregate = rpc_response.result_timeseries[0].data_points[0].data
 
@@ -384,6 +388,15 @@ class SubscriptionProcessor:
             metrics.incr("incidents.alert_rules.skipping_already_processed_update")
             return
 
+        if features.has(
+            "organizations:workflow-engine-metric-alert-processing",
+            self.subscription.project.organization,
+        ):
+            data_packet = DataPacket[QuerySubscriptionUpdate](
+                query_id=self.subscription.id, packet=subscription_update
+            )
+            process_data_packets([data_packet], DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION)
+
         self.last_update = subscription_update["timestamp"]
 
         if (
@@ -446,16 +459,6 @@ class SubscriptionProcessor:
                     },
                 )
                 return
-
-        # Trigger callbacks for any AlertRules that may need to know about the subscription update
-        # Current callback will update the activation metric values & delete querysubscription on finish
-        # TODO: register over/under triggers as alert rule callbacks as well
-        invoke_alert_subscription_callback(
-            AlertRuleMonitorTypeInt(self.alert_rule.monitor_type),
-            subscription=self.subscription,
-            alert_rule=self.alert_rule,
-            value=aggregation_value,
-        )
 
         if aggregation_value is None:
             metrics.incr("incidents.alert_rules.skipping_update_invalid_aggregation_value")

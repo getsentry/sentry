@@ -98,7 +98,7 @@ describe('AutofixMessageBox Analytics', () => {
       <AutofixMessageBox {...defaultProps} onSend={onSendMock} isRootCauseSelectionStep />
     );
 
-    await userEvent.click(screen.getAllByText('Propose your own root cause')[0]);
+    await userEvent.click(screen.getAllByText('Propose your own root cause')[0]!);
     const customInput = screen.getByPlaceholderText('Propose your own root cause...');
     await userEvent.type(customInput, 'Custom root cause');
 

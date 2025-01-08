@@ -6,7 +6,7 @@ from sentry.flags.models import ACTION_MAP, CREATED_BY_TYPE_MAP
 from sentry.flags.providers import (
     DeserializationError,
     LaunchDarklyItemSerializer,
-    handle_provider_event,
+    LaunchDarklyProvider,
 )
 
 default_timezone = timezone.get_default_timezone()
@@ -147,7 +147,7 @@ def test_launchdarkly_create():
             },
         },
     }
-    res = handle_provider_event("launchdarkly", request_data, 123)
+    res = LaunchDarklyProvider(123, None).handle(request_data)
     assert len(res) == 1
     flag_row = res[0]
     assert flag_row["action"] == ACTION_MAP["created"]
@@ -345,7 +345,7 @@ def test_launchdarkly_update():
         },
     }
 
-    res = handle_provider_event("launchdarkly", request_data, 123)
+    res = LaunchDarklyProvider(123, None).handle(request_data)
     assert len(res) == 1
     flag_row = res[0]
     assert flag_row["action"] == ACTION_MAP["updated"]
@@ -379,7 +379,7 @@ def test_launchdarkly_delete_and_update():
         "title": "Michelle deleted the flag [test flag](https://app.launchdarkly.com/default/test/features/test-flag) in `Test`",
     }
 
-    res = handle_provider_event("launchdarkly", request_data, 123)
+    res = LaunchDarklyProvider(123, None).handle(request_data)
     assert len(res) == 1
     flag_row_delete = res[0]
     assert flag_row_delete["action"] == ACTION_MAP["deleted"]
@@ -419,7 +419,7 @@ def test_launchdarkly_no_valid_action():
         "title": "Michelle deleted the flag [test flag](https://app.launchdarkly.com/default/test/features/test-flag) in `Test`",
     }
 
-    res = handle_provider_event("launchdarkly", request_data, 123)
+    res = LaunchDarklyProvider(123, None).handle(request_data)
     assert len(res) == 0
 
 
@@ -454,5 +454,4 @@ def test_bad_launchdarkly_data():
     with pytest.raises(
         DeserializationError,
     ):
-
-        handle_provider_event("launchdarkly", request_data, 123)
+        LaunchDarklyProvider(123, None).handle(request_data)
