@@ -85,11 +85,6 @@ class BaseRequestParser:
                 }
             )
             if SiloMode.get_current_mode() != SiloMode.CONTROL:
-                lifecycle.record_failure(
-                    SiloLimit.AvailabilityError(
-                        "Integration Request Parsers should only be run on the control silo."
-                    )
-                )
                 raise SiloLimit.AvailabilityError(
                     "Integration Request Parsers should only be run on the control silo."
                 )
