@@ -14,7 +14,6 @@ from sentry.workflow_engine.models import (
     DetectorWorkflow,
     Workflow,
     WorkflowDataConditionGroup,
-    workflow,
 )
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
@@ -162,44 +161,32 @@ def migrate_alert_rule(
 
 def update_migrated_alert_rule(alert_rule: AlertRule, updated_fields: dict[str, Any]) -> (
     tuple[
-        DataSource,
-        DataConditionGroup,  # ???
-        Workflow,  # ???
+        DetectorState,
         Detector,
     ]
     | None
 ):
-    # TODO: figure out how to handle DataConditionGroups (once Colleen's changes to that land)
     # TODO: maybe pull this into a helper method?
     try:
         alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=alert_rule)
-        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=alert_rule)
     except AlertRuleDetector.DoesNotExist:
-        logger.exception(
-            "AlertRuleDetector does not exist",
-            extra={"alert_rule_id": AlertRule.id},
-        )
-    except AlertRuleWorkflow.DoesNotExist:
-        logger.exception(
-            "AlertRuleWorkflow does not exist",
-            extra={"alert_rule_id": AlertRule.id},
-        )
+        # logger.exception(
+        #     "AlertRuleDetector does not exist",
+        #     extra={"alert_rule_id": AlertRule.id},
+        # )
         return None
 
     detector = alert_rule_detector.detector
-    workflow = alert_rule_workflow.workflow
+
     try:
         detector_state = DetectorState.objects.get(detector=detector)
     except DetectorState.DoesNotExist:
-        logger.exception(
-            "DetectorState does not exist",
-            extra={"alert_rule_id": AlertRule.id, "detector_id": detector.id},
-        )
+        # logger.exception(
+        #     "DetectorState does not exist",
+        #     extra={"alert_rule_id": AlertRule.id, "detector_id": detector.id},
+        # )
         return None
 
-    # data condition group ??
-
-    # TODO: pull this into a helper
     updated_detector_fields: dict[str:Any] = {}
     config = detector.config.copy()
 
@@ -224,5 +211,14 @@ def update_migrated_alert_rule(alert_rule: AlertRule, updated_fields: dict[str, 
 
     detector.update(**updated_detector_fields)
 
+    # reset detector status, as the rule was updated
+    updated_status = {
+        "active": False,
+        "state": DetectorPriorityLevel.OK,
+    }
+    detector_state.update(**updated_status)
+
+    # TODO: if the user updated resolve_threshold, then we also need to update some DataCondition
+
     # TODO: do we need to create an audit log entry here?
-    return detector
+    return detector_state, detector
