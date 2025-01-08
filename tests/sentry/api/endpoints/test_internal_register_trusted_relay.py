@@ -3,48 +3,41 @@ from datetime import datetime, timezone
 from django.urls import reverse
 
 from sentry.models.options.organization_option import OrganizationOption
-from sentry.models.orgauthtoken import OrgAuthToken
-from sentry.silo.base import SiloMode
+from sentry.models.organizationmember import OrganizationMember
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
-from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
+from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test
 
 
-@region_silo_test
+@control_silo_test
 class InternalRegisterTrustedRelayTest(APITestCase):
     endpoint = "sentry-api-0-internal-register-trusted-relay"
 
     def setUp(self):
         super().setUp()
-
-        self.login_as(user=self.user)
         self.org = self.create_organization(owner=self.user)
-        self.url = reverse(self.endpoint)
 
-        self.valid_token_str = self.generate_org_token(self.org.id, self.org.slug)
+        self.url = reverse(self.endpoint)
         self.valid_payload = {
             "publicKey": "EfuxZmOtiknvFJpmITKaSnX2fzkZoH612nrjZJnbbm8",
             "name": "relay_test",
             "description": "Test relay description",
         }
 
-    def generate_org_token(self, org_id, org_slug):
-        token = generate_token(org_slug, "")
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            OrgAuthToken.objects.create(
-                organization_id=org_id,
-                name="test token",
-                token_hashed=hash_token(token),
-                token_last_characters=token[-4:],
-                scope_list=["org:ci"],  # Required scope for relay operations
-                date_last_used=None,
+    def generate_user_auth_token(self, scope_list):
+        """
+        Generates a user auth token.
+        """
+        org_user = self.create_user()
+        with assume_test_silo_mode_of(OrganizationMember):
+            OrganizationMember.objects.create(
+                user_id=org_user.id, organization_id=self.org.id, role="member"
             )
 
-        return token
+        return self.create_user_auth_token(user=org_user, scope_list=scope_list).token
 
-    def test_post_with_no_token(self):
+    def test_post_with_no_auth(self):
         """
-        Test that attempting to register a relay without an auth token
+        Test that attempting to register a relay without authentication fails
         """
         response = self.client.post(self.url, self.valid_payload)
         assert response.status_code == 401
@@ -54,8 +47,9 @@ class InternalRegisterTrustedRelayTest(APITestCase):
         Test that attempting to register a relay without the relay feature returns 400
         """
         with self.feature({"organizations:relay": False}):
+            auth_token = self.generate_user_auth_token(["org:write"])
             response = self.client.post(
-                self.url, self.valid_payload, HTTP_AUTHORIZATION=f"Bearer {self.valid_token_str}"
+                self.url, self.valid_payload, HTTP_AUTHORIZATION=f"Bearer {auth_token}"
             )
             assert response.status_code == 400
             assert (
@@ -68,8 +62,9 @@ class InternalRegisterTrustedRelayTest(APITestCase):
         Test that attempting to register a relay with invalid data returns 400
         """
         with self.feature({"organizations:relay": True}):
+            auth_token = self.generate_user_auth_token(["org:write"])
             response = self.client.post(
-                self.url, {"invalid": "data"}, HTTP_AUTHORIZATION=f"Bearer {self.valid_token_str}"
+                self.url, {"invalid": "data"}, HTTP_AUTHORIZATION=f"Bearer {auth_token}"
             )
             assert response.status_code == 400
 
@@ -78,10 +73,10 @@ class InternalRegisterTrustedRelayTest(APITestCase):
         Test successful registration of a new relay when no relays exist
         """
         with self.feature({"organizations:relay": True}):
+            auth_token = self.generate_user_auth_token(["org:write"])
             response = self.client.post(
-                self.url, self.valid_payload, HTTP_AUTHORIZATION=f"Bearer {self.valid_token_str}"
+                self.url, self.valid_payload, HTTP_AUTHORIZATION=f"Bearer {auth_token}"
             )
-
             assert response.status_code == 201
 
             # Verify response data
@@ -115,8 +110,9 @@ class InternalRegisterTrustedRelayTest(APITestCase):
         )
 
         with self.feature({"organizations:relay": True}):
+            auth_token = self.generate_user_auth_token(["org:write"])
             response = self.client.post(
-                self.url, self.valid_payload, HTTP_AUTHORIZATION=f"Bearer {self.valid_token_str}"
+                self.url, self.valid_payload, HTTP_AUTHORIZATION=f"Bearer {auth_token}"
             )
 
             assert response.status_code == 201
@@ -146,8 +142,9 @@ class InternalRegisterTrustedRelayTest(APITestCase):
         )
 
         with self.feature({"organizations:relay": True}):
+            auth_token = self.generate_user_auth_token(["org:write"])
             response = self.client.post(
-                self.url, self.valid_payload, HTTP_AUTHORIZATION=f"Bearer {self.valid_token_str}"
+                self.url, self.valid_payload, HTTP_AUTHORIZATION=f"Bearer {auth_token}"
             )
 
             assert response.status_code == 201
@@ -195,8 +192,9 @@ class InternalRegisterTrustedRelayTest(APITestCase):
 
         with self.feature({"organizations:relay": True}):
             # Add a new relay
+            auth_token = self.generate_user_auth_token(["org:write"])
             response = self.client.post(
-                self.url, self.valid_payload, HTTP_AUTHORIZATION=f"Bearer {self.valid_token_str}"
+                self.url, self.valid_payload, HTTP_AUTHORIZATION=f"Bearer {auth_token}"
             )
             assert response.status_code == 201
 
@@ -215,9 +213,7 @@ class InternalRegisterTrustedRelayTest(APITestCase):
                 "name": "updated_relay1",
                 "description": "Updated relay 1",
             }
-            response = self.client.post(
-                self.url, update_payload, HTTP_AUTHORIZATION=f"Bearer {self.valid_token_str}"
-            )
+            response = self.client.post(self.url, update_payload)
             assert response.status_code == 201
 
             # Verify the update

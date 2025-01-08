@@ -7,8 +7,8 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.authentication import OrgAuthTokenAuthentication
-from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.authentication import UserAuthTokenAuthentication
+from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.serializers.models.organization import TrustedRelaySerializer
 from sentry.models.options.organization_option import OrganizationOption
@@ -18,19 +18,19 @@ from sentry.models.organization import Organization
 class TrustedRelayPermission(OrganizationPermission):
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin"],
-        "POST": ["org:write", "org:admin", "org:ci"],
+        "POST": ["org:write", "org:admin"],
         "PUT": ["org:write", "org:admin"],
         "DELETE": ["org:admin"],
     }
 
 
-@region_silo_endpoint
+@control_silo_endpoint
 class InternalRegisterTrustedRelayEndpoint(Endpoint):
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.OWNERS_INGEST
-    authentication_classes = (OrgAuthTokenAuthentication,)
+    authentication_classes = (UserAuthTokenAuthentication,)
     permission_classes = (TrustedRelayPermission,)
 
     def post(self, request: Request) -> Response:
@@ -38,10 +38,11 @@ class InternalRegisterTrustedRelayEndpoint(Endpoint):
         Register a new trusted relay for an organization.
         If a relay with the given public key already exists, update it.
         """
-        organization_id = getattr(request.auth, "organization_id", None)
+        organization_id = request.auth.organization_id
         if not organization_id:
             return Response(
-                {"detail": "Organization not found"}, status=status.HTTP_400_BAD_REQUEST
+                {"detail": "Organization not found in the request"},
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         try:
