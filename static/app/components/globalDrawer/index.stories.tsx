@@ -12,10 +12,17 @@ import JSXNode from '../stories/jsxNode';
 export default storyBook('GlobalDrawer', story => {
   story('Getting Started', () => (
     <Fragment>
-      <JSXNode name="GlobalDrawer" /> is a way to show a slide-out drawer on the right
-      side of the UI. It's an application-wide singleton component, which means that only
-      one drawer can be open at any given time and its position is always the same. The
-      drawer is opened and closed via React hooks.
+      <p>
+        <JSXNode name="GlobalDrawer" /> is a way to show a slide-out drawer on the right
+        side of the UI. It's an application-wide singleton component, which means that
+        only one drawer can be open at any given time and its position is always the same.
+        The drawer is opened and closed via React hooks.
+      </p>
+      <p>
+        By default the drawer can be closed with an "Escape" key press, with an outside
+        click, or on URL location change. This behavior can be changed by passing in
+        options to <code>openDrawer</code>. More on this below.
+      </p>
     </Fragment>
   ));
 
@@ -24,11 +31,6 @@ export default storyBook('GlobalDrawer', story => {
       <CodeSnippet language="js">
         {`import useDrawer from 'sentry/components/globalDrawer';\nconst {openDrawer, closeDrawer} = useDrawer();`}
       </CodeSnippet>
-      <p>
-        By default the drawer can be closed with an 'escape' press, or an outside click.
-        It also closes by default on location change. This behavior can be changed by
-        passing in options to <code>openDrawer</code>.
-      </p>
     </Fragment>
   ));
 
