@@ -5,7 +5,7 @@ import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import getDuration from 'sentry/utils/duration/getDuration';
 import useRouter from 'sentry/utils/useRouter';
 
-import {useMonitorDates} from './useMonitorDates';
+import {usePageFilterDates} from './useMonitorDates';
 
 export interface DateNavigation {
   /**
@@ -30,7 +30,7 @@ export interface DateNavigation {
 
 export function useDateNavigation(): DateNavigation {
   const router = useRouter();
-  const {since, until, nowRef} = useMonitorDates();
+  const {since, until, nowRef} = usePageFilterDates();
 
   const windowMs = until.getTime() - since.getTime();
 

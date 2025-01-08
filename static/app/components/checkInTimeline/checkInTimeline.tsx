@@ -3,21 +3,36 @@ import styled from '@emotion/styled';
 
 import {DateTime} from 'sentry/components/dateTime';
 import {Tooltip} from 'sentry/components/tooltip';
-import {CheckInStatus} from 'sentry/views/monitors/types';
-import {getTickStyle} from 'sentry/views/monitors/utils';
 
 import {getAggregateStatus} from './utils/getAggregateStatus';
+import {getTickStyle} from './utils/getTickStyle';
 import {mergeBuckets} from './utils/mergeBuckets';
 import {CheckInTooltip} from './checkInTooltip';
-import type {MonitorBucket, TimeWindowConfig} from './types';
+import type {CheckInBucket, TickStyle, TimeWindowConfig} from './types';
 
-interface TimelineProps {
+interface CheckInTimelineConfig<Status extends string> {
+  /**
+   * Maps the job tick status to a human readable label
+   */
+  statusLabel: Record<Status, string>;
+  /**
+   * Configures the priority of check-in statuses. Higher priority statuses
+   * will will show in bucketed ticks.
+   */
+  statusPrecedent: Status[];
+  /**
+   * Configures the styling of the tooltip labels
+   */
+  statusStyle: Record<Status, TickStyle>;
   timeWindowConfig: TimeWindowConfig;
 }
 
-export interface CheckInTimelineProps extends TimelineProps {
-  bucketedData: MonitorBucket[];
-  environment: string;
+export interface CheckInTimelineProps<Status extends string>
+  extends CheckInTimelineConfig<Status> {
+  /**
+   * Represents each check-in tick as bucketed check-in data.
+   */
+  bucketedData: CheckInBucket<Status>[];
 }
 
 function getBucketedCheckInsPosition(
@@ -29,38 +44,40 @@ function getBucketedCheckInsPosition(
   return elapsedSinceStart / msPerPixel;
 }
 
-export function CheckInTimeline(props: CheckInTimelineProps) {
-  const {bucketedData, timeWindowConfig, environment} = props;
+export function CheckInTimeline<Status extends string>({
+  bucketedData,
+  timeWindowConfig,
+  statusLabel,
+  statusStyle,
+  statusPrecedent,
+}: CheckInTimelineProps<Status>) {
   const {start, end, timelineWidth} = timeWindowConfig;
 
   const elapsedMs = end.getTime() - start.getTime();
   const msPerPixel = elapsedMs / timelineWidth;
 
-  const jobTicks = mergeBuckets(bucketedData, environment);
+  const jobTicks = mergeBuckets(statusPrecedent, bucketedData);
 
   return (
     <TimelineContainer>
       {jobTicks.map(jobTick => {
-        const {
-          startTs,
-          width: tickWidth,
-          envMapping,
-          roundedLeft,
-          roundedRight,
-        } = jobTick;
+        const {startTs, width: tickWidth, stats, roundedLeft, roundedRight} = jobTick;
         const timestampMs = startTs * 1000;
         const left = getBucketedCheckInsPosition(timestampMs, start, msPerPixel);
+        const status = getAggregateStatus(statusPrecedent, stats)!;
 
         return (
           <CheckInTooltip
             jobTick={jobTick}
+            statusStyle={statusStyle}
+            statusLabel={statusLabel}
             timeWindowConfig={timeWindowConfig}
             skipWrapper
             key={startTs}
           >
             <JobTick
               style={{left, width: tickWidth}}
-              status={getAggregateStatus(envMapping)!}
+              css={theme => getTickStyle(statusStyle, status, theme)}
               roundedLeft={roundedLeft}
               roundedRight={roundedRight}
               data-test-id="monitor-checkin-tick"
@@ -72,14 +89,21 @@ export function CheckInTimeline(props: CheckInTimelineProps) {
   );
 }
 
-export interface MockCheckInTimelineProps extends TimelineProps {
+export interface MockCheckInTimelineProps<Status extends string>
+  extends CheckInTimelineConfig<Status> {
   mockTimestamps: Date[];
+  /**
+   * The status to use for each mocked tick
+   */
+  status: Status;
 }
 
-export function MockCheckInTimeline({
+export function MockCheckInTimeline<Status extends string>({
   mockTimestamps,
   timeWindowConfig,
-}: MockCheckInTimelineProps) {
+  status,
+  statusStyle,
+}: MockCheckInTimelineProps<Status>) {
   const {start, end} = timeWindowConfig;
   const elapsedMs = end.getTime() - start.getTime();
   const msPerPixel = elapsedMs / timeWindowConfig.timelineWidth;
@@ -100,7 +124,7 @@ export function MockCheckInTimeline({
           >
             <JobTick
               style={{left}}
-              status={CheckInStatus.IN_PROGRESS}
+              css={theme => getTickStyle(statusStyle, status, theme)}
               roundedLeft
               roundedRight
               data-test-id="monitor-checkin-tick"
@@ -120,7 +144,6 @@ const TimelineContainer = styled('div')`
 const JobTick = styled('div')<{
   roundedLeft: boolean;
   roundedRight: boolean;
-  status: CheckInStatus;
 }>`
   position: absolute;
   top: calc(50% + 1px);
@@ -128,8 +151,6 @@ const JobTick = styled('div')<{
   height: 14px;
   transform: translateY(-50%);
   opacity: 0.7;
-
-  ${p => getTickStyle(p.status, p.theme)};
 
   ${p =>
     p.roundedLeft &&

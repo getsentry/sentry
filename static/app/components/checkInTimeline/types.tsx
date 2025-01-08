@@ -1,5 +1,5 @@
 import type {DateTimeProps} from 'sentry/components/dateTime';
-import type {CheckInStatus} from 'sentry/views/monitors/types';
+import type {ColorOrAlias} from 'sentry/utils/theme';
 
 export type TimeWindow = '1h' | '24h' | '7d' | '30d';
 
@@ -51,34 +51,34 @@ export interface TimeWindowConfig {
   timelineWidth: number;
 }
 
-export type MonitorBucket = [timestamp: number, envData: MonitorBucketEnvMapping];
-export type MonitorBucketWithStats = [timestamp: number, stats: StatsBucket];
+export interface TickStyle {
+  /**
+   * The color of the tooltip label
+   */
+  labelColor: ColorOrAlias;
+  /**
+   * The color of the tick
+   */
+  tickColor: ColorOrAlias;
+  /**
+   * Use a cross hatch fill for the tick instead of a solid color. The tick
+   * color will be used as the border color
+   */
+  hatchTick?: ColorOrAlias;
+}
 
-export interface JobTickData {
+export type CheckInBucket<Status extends string> = [
+  timestamp: number,
+  stats: StatsBucket<Status>,
+];
+
+export interface JobTickData<Status extends string> {
   endTs: number;
-  envMapping: MonitorBucketEnvMapping;
   roundedLeft: boolean;
   roundedRight: boolean;
   startTs: number;
+  stats: StatsBucket<Status>;
   width: number;
 }
 
-export interface JobTickDataWithStats {
-  endTs: number;
-  roundedLeft: boolean;
-  roundedRight: boolean;
-  startTs: number;
-  stats: StatsBucket;
-  width: number;
-}
-
-export type StatsBucket = {
-  [CheckInStatus.IN_PROGRESS]: number;
-  [CheckInStatus.OK]: number;
-  [CheckInStatus.MISSED]: number;
-  [CheckInStatus.TIMEOUT]: number;
-  [CheckInStatus.ERROR]: number;
-  [CheckInStatus.UNKNOWN]: number;
-};
-
-export type MonitorBucketEnvMapping = Record<string, StatsBucket>;
+export type StatsBucket<Status extends string> = Record<Status, number>;

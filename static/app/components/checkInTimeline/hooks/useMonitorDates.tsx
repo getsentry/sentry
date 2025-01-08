@@ -7,7 +7,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 /**
  * Computes since and until values from the current page filters
  */
-export function useMonitorDates() {
+export function usePageFilterDates() {
   const nowRef = useRef<Date>(moment().startOf('minute').add(1, 'minutes').toDate());
   const {selection} = usePageFilters();
   const {start, end, period} = selection.datetime;

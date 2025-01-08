@@ -7,26 +7,38 @@ import type {TooltipProps} from 'sentry/components/tooltip';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {CheckInStatus} from 'sentry/views/monitors/types';
-import {statusToText, tickStyle} from 'sentry/views/monitors/utils';
+import type {ColorOrAlias} from 'sentry/utils/theme';
 
-import type {JobTickData, TimeWindowConfig} from './types';
+import type {JobTickData, TickStyle, TimeWindowConfig} from './types';
 
-interface Props extends Omit<TooltipProps, 'title'> {
-  jobTick: JobTickData;
+interface CheckInTooltipProps<Status extends string> extends Omit<TooltipProps, 'title'> {
+  /**
+   * The tick that the tooltip is rendered for
+   */
+  jobTick: JobTickData<Status>;
+  /**
+   * Maps the job tick status to a human readable label
+   */
+  statusLabel: Record<Status, string>;
+  /**
+   * Configures the styling of the tooltip labels
+   */
+  statusStyle: Record<Status, TickStyle>;
   timeWindowConfig: TimeWindowConfig;
 }
 
-export function CheckInTooltip({jobTick, timeWindowConfig, children, ...props}: Props) {
-  const {startTs, endTs, envMapping} = jobTick;
+export function CheckInTooltip<Status extends string>({
+  jobTick,
+  timeWindowConfig,
+  statusStyle,
+  statusLabel,
+  children,
+  ...props
+}: CheckInTooltipProps<Status>) {
+  const {startTs, endTs, stats} = jobTick;
   const {dateLabelFormat} = timeWindowConfig;
-  const capturedEnvs = Object.keys(envMapping);
   const representsSingleJob =
-    capturedEnvs.length === 1 &&
-    Object.values(envMapping[capturedEnvs[0]!]!).reduce(
-      (sum, count) => sum + count,
-      0
-    ) === 1;
+    (Object.values(stats) as number[]).reduce((sum, count) => sum + count, 0) === 1;
 
   const tooltipTitle = (
     <Fragment>
@@ -49,19 +61,16 @@ export function CheckInTooltip({jobTick, timeWindowConfig, children, ...props}: 
           </tr>
         </HiddenHeader>
         <tbody>
-          {Object.entries(envMapping).map(([envName, statusCounts]) =>
-            Object.entries(statusCounts).map(
-              ([status, count]) =>
-                count > 0 && (
-                  <tr key={`${envName}:${status}`}>
-                    {/* TODO(davidenwang): fix types to remove "as" here */}
-                    <StatusLabel status={status as CheckInStatus}>
-                      {statusToText[status]}
-                    </StatusLabel>
-                    <StatusCount>{count}</StatusCount>
-                  </tr>
-                )
-            )
+          {(Object.entries(stats) as Array<[Status, number]>).map(
+            ([status, count]) =>
+              count > 0 && (
+                <tr key={status}>
+                  <StatusLabel labelColor={statusStyle[status]?.labelColor ?? 'disabled'}>
+                    {statusLabel[status]}
+                  </StatusLabel>
+                  <StatusCount>{count}</StatusCount>
+                </tr>
+              )
           )}
         </tbody>
       </StatusCountContainer>
@@ -93,8 +102,8 @@ const HiddenHeader = styled('thead')`
   width: 0;
 `;
 
-const StatusLabel = styled('td')<{status: CheckInStatus}>`
-  color: ${p => p.theme[tickStyle[p.status].labelColor]};
+const StatusLabel = styled('td')<{labelColor: ColorOrAlias}>`
+  color: ${p => p.theme[p.labelColor]};
   text-align: left;
 `;
 

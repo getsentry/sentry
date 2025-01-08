@@ -1,8 +1,9 @@
+import type {TimeWindowConfig} from 'sentry/components/checkInTimeline/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 
-import type {MonitorBucket, TimeWindowConfig} from '../types';
+import type {MonitorBucket} from '../types';
 
 interface Options {
   /**

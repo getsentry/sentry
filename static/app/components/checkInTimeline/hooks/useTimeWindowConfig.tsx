@@ -2,7 +2,7 @@ import {useMemo} from 'react';
 
 import {getConfigFromTimeRange} from '../utils/getConfigFromTimeRange';
 
-import {useMonitorDates} from './useMonitorDates';
+import {usePageFilterDates} from './useMonitorDates';
 
 interface Options {
   /**
@@ -12,7 +12,7 @@ interface Options {
 }
 
 export function useTimeWindowConfig({timelineWidth}: Options) {
-  const {since, until} = useMonitorDates();
+  const {since, until} = usePageFilterDates();
 
   return useMemo(
     () => getConfigFromTimeRange(since, until, timelineWidth),

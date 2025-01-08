@@ -8,13 +8,16 @@ import {DateTime} from 'sentry/components/dateTime';
 import {space} from 'sentry/styles/space';
 import useRouter from 'sentry/utils/useRouter';
 
-import {CronServiceIncidents} from './serviceIncidents';
 import {useTimelineCursor} from './timelineCursor';
 import {useTimelineZoom} from './timelineZoom';
 import type {TimeWindowConfig} from './types';
 
 interface Props {
   timeWindowConfig: TimeWindowConfig;
+  /**
+   * Render additional UI coomponents inside of the grid lines overlay
+   */
+  additionalUi?: React.ReactNode;
   /**
    * Enable zoom selection
    */
@@ -24,10 +27,6 @@ interface Props {
    * Enable the timeline cursor
    */
   showCursor?: boolean;
-  /**
-   * Render sentry service incidents as an overlay
-   */
-  showIncidents?: boolean;
   /**
    * Enabling causes the cursor tooltip to stick to the top of the viewport.
    */
@@ -121,7 +120,7 @@ export function GridLineLabels({timeWindowConfig, className}: Props) {
 export function GridLineOverlay({
   timeWindowConfig,
   showCursor,
-  showIncidents,
+  additionalUi,
   stickyCursor,
   allowZoom,
   className,
@@ -176,7 +175,7 @@ export function GridLineOverlay({
     <Overlay aria-hidden ref={overlayRef} className={className}>
       {timelineCursor}
       {timelineSelector}
-      {showIncidents && <CronServiceIncidents timeWindowConfig={timeWindowConfig} />}
+      {additionalUi}
       <GridLineContainer>
         {markers.map(({date, position}) => (
           <Gridline key={date.getTime()} left={position} />
