@@ -71,7 +71,6 @@ export default function SpanSummary(props: Props) {
       organization,
       location,
       transaction: {name: transactionName, project: project?.id ?? ''},
-      tab: Tab.SPANS,
       spanSlug,
       view,
     }),

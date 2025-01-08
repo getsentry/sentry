@@ -5,7 +5,9 @@ import Breadcrumbs from 'sentry/components/breadcrumbs';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
+import {decodeScalar} from 'sentry/utils/queryString';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
+import {vitalDetailRouteWithQuery} from 'sentry/views/performance/vitalDetail/utils';
 
 import type Tab from './transactionSummary/tabs';
 import {transactionSummaryRouteWithQuery} from './transactionSummary/utils';
@@ -81,12 +83,12 @@ export const getTabCrumbs = ({
   eventSlug,
   traceSlug,
   view,
+  vitalName,
 }: {
   location: Location;
   organization: Organization;
   eventSlug?: string;
   spanSlug?: SpanSlug;
-  tab?: Tab;
   traceSlug?: string;
   transaction?: {
     name: string;
@@ -96,6 +98,21 @@ export const getTabCrumbs = ({
   vitalName?: string;
 }) => {
   const crumbs: Crumb[] = [];
+
+  if (vitalName) {
+    const webVitalsTarget = vitalDetailRouteWithQuery({
+      orgSlug: organization.slug,
+      vitalName: 'fcp',
+      projectID: decodeScalar(location.query.project),
+      query: location.query,
+    });
+    crumbs.push({
+      to: webVitalsTarget,
+      label: t('Vital Detail'),
+      preservePageFilters: true,
+    });
+    return crumbs;
+  }
 
   if (!transaction) {
     return crumbs;
