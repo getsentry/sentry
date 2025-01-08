@@ -496,7 +496,7 @@ function AutofixMessageBox({
 
   function BranchButton({change}: {change: AutofixCodebaseChange}) {
     const {onClick} = useCopyToClipboard({
-      text: `git switch ${change.branch_name}`,
+      text: `git fetch --all && git switch ${change.branch_name}`,
       successMessage: t('Command copied. Next stop: your terminal.'),
     });
 
@@ -507,7 +507,7 @@ function AutofixMessageBox({
         priority="primary"
         onClick={onClick}
         aria-label={t('Check out in %s', change.repo_name)}
-        title={t('git switch %s', change.branch_name)}
+        title={t('git fetch --all && git switch %s', change.branch_name)}
         icon={<IconCopy size="xs" />}
       >
         {t('Check out in %s', change.repo_name)}

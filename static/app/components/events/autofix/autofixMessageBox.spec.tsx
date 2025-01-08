@@ -323,7 +323,7 @@ describe('AutofixMessageBox', () => {
 
     expect(screen.getByText('Push the above changes to a branch?')).toBeInTheDocument();
 
-    const createPRsButton = screen.getByRole('button', {name: 'Draft PRs'});
+    const createPRsButton = screen.getByRole('button', {name: 'Draft PR'});
     expect(createPRsButton).toBeInTheDocument();
 
     renderGlobalModal();
