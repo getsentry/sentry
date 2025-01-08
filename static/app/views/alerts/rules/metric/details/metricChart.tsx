@@ -639,6 +639,7 @@ class MetricChart extends PureComponent<Props, State> {
         partial={false}
         queryExtras={queryExtras}
         referrer="api.alerts.alert-rule-chart"
+        useRpc={dataset === Dataset.EVENTS_ANALYTICS_PLATFORM}
         useOnDemandMetrics
       >
         {({loading, timeseriesData, comparisonTimeseriesData}) => (
