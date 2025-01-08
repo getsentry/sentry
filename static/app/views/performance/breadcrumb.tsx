@@ -38,7 +38,6 @@ function Breadcrumb(props: Props) {
       spanSlug,
       eventSlug,
       traceSlug,
-      tab,
     } = props;
 
     const performanceTarget: LocationDescriptor = {
@@ -65,7 +64,6 @@ function Breadcrumb(props: Props) {
         spanSlug,
         eventSlug,
         traceSlug,
-        tab,
       })
     );
 
