@@ -1,4 +1,5 @@
 import {useCallback, useEffect} from 'react';
+import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import useDrawer from 'sentry/components/globalDrawer';
@@ -62,7 +63,7 @@ export function useSamplesDrawer({
       source: moduleName,
     });
 
-    openDrawer(() => Component, {
+    openDrawer(() => <FullHeightWrapper>{Component}</FullHeightWrapper>, {
       ariaLabel: t('Samples'),
       onClose,
       transitionProps: {stiffness: 1000},
@@ -91,3 +92,9 @@ export function useSamplesDrawer({
     }
   }, [shouldDrawerOpen, openSamplesDrawer, closeDrawer]);
 }
+
+const FullHeightWrapper = styled('div')`
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+`;
