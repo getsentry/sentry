@@ -6,7 +6,9 @@ from urllib.parse import urlencode, urlparse, urlunparse
 from uuid import uuid4
 
 from django.utils.functional import cached_property
+from jsonschema import ValidationError
 
+from sentry.coreapi import APIError
 from sentry.http import safe_urlread
 from sentry.sentry_apps.external_requests.utils import send_and_save_sentry_app_request, validate
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation
@@ -78,7 +80,9 @@ class SelectRequester:
 
             logger.info(message, extra=extra)
             raise SentryAppIntegratorError(
-                f"Something went wrong while getting SelectFields from {self.sentry_app.slug}"
+                APIError(
+                    f"Something went wrong while getting SelectFields from {self.sentry_app.slug}"
+                )
             ) from e
 
         if not self._validate_response(response):
@@ -93,7 +97,9 @@ class SelectRequester:
                 },
             )
             raise SentryAppIntegratorError(
-                f"Invalid response format for SelectField in {self.sentry_app.slug} from uri: {self.uri}"
+                ValidationError(
+                    f"Invalid response format for SelectField in {self.sentry_app.slug} from uri: {self.uri}"
+                )
             )
         return self._format_response(response)
 
@@ -137,7 +143,7 @@ class SelectRequester:
                     },
                 )
                 raise SentryAppIntegratorError(
-                    "Missing `value` or `label` in option data for SelectField"
+                    ValidationError("Missing `value` or `label` in option data for SelectField")
                 )
 
             choices.append([option["value"], option["label"]])
