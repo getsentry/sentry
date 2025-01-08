@@ -1,9 +1,8 @@
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from sentry.tempest.models import MessageType
-from sentry.tempest.tasks import fetch_latest_item_id, poll_tempest_crashes
+from sentry.tempest.tasks import fetch_latest_item_id, poll_tempest, poll_tempest_crashes
 from sentry.testutils.cases import TestCase
-from sentry.utils import json
 
 
 class TempestTasksTest(TestCase):
@@ -14,7 +13,10 @@ class TempestTasksTest(TestCase):
 
     @patch("sentry.tempest.tasks.fetch_latest_id_from_tempest")
     def test_fetch_latest_item_id_task(self, mock_fetch):
-        mock_fetch.return_value = "20001"
+        mock_response = Mock()
+        mock_response.text = "20001"
+        mock_fetch.return_value = mock_response
+
         fetch_latest_item_id(self.credentials.id)
 
         self.credentials.refresh_from_db()
@@ -25,7 +27,9 @@ class TempestTasksTest(TestCase):
 
     @patch("sentry.tempest.tasks.fetch_latest_id_from_tempest")
     def test_fetch_latest_item_id_error(self, mock_fetch):
-        mock_fetch.return_value = "Invalid credentials"
+        mock_response = Mock()
+        mock_response.text = "Invalid credentials"
+        mock_fetch.return_value = mock_response
 
         fetch_latest_item_id(self.credentials.id)
 
@@ -36,7 +40,9 @@ class TempestTasksTest(TestCase):
 
     @patch("sentry.tempest.tasks.fetch_latest_id_from_tempest")
     def test_fetch_latest_item_id_ip_not_allowlisted(self, mock_fetch):
-        mock_fetch.return_value = "IP address not allow-listed"
+        mock_response = Mock()
+        mock_response.text = "IP address not allow-listed"
+        mock_fetch.return_value = mock_response
 
         fetch_latest_item_id(self.credentials.id)
 
@@ -71,7 +77,8 @@ class TempestTasksTest(TestCase):
 
     @patch("sentry.tempest.tasks.fetch_items_from_tempest")
     def test_poll_tempest_crashes_task(self, mock_fetch):
-        mock_fetch.return_value = json.dumps({"latest_id": 20002})
+        mock_fetch.return_value = Mock()
+        mock_fetch.return_value.json.return_value = {"latest_id": 20002}
 
         # Set this value since the test assumes that there is already an ID in the DB
         self.credentials.latest_fetched_item_id = "42"
@@ -85,7 +92,8 @@ class TempestTasksTest(TestCase):
 
     @patch("sentry.tempest.tasks.fetch_items_from_tempest")
     def test_poll_tempest_crashes_invalid_json(self, mock_fetch):
-        mock_fetch.return_value = "not valid json"
+        mock_fetch.return_value = Mock()
+        mock_fetch.return_value.json.return_value = "no valid json"
 
         # Set this value since the test assumes that there is already an ID in the DB
         self.credentials.latest_fetched_item_id = "42"
@@ -114,3 +122,29 @@ class TempestTasksTest(TestCase):
         # Should log error but not crash
         mock_fetch.assert_called_once()
         assert "Fetching the crashes failed." in cm.output[0]
+
+    @patch("sentry.tempest.tasks.fetch_latest_item_id")
+    @patch("sentry.tempest.tasks.poll_tempest_crashes")
+    def test_poll_tempest_no_latest_id(self, mock_poll_crashes, mock_fetch_latest):
+        # Ensure latest_fetched_item_id is None
+        self.credentials.latest_fetched_item_id = None
+        self.credentials.save()
+
+        poll_tempest()
+
+        # Should call fetch_latest_item_id.delay() and not poll_tempest_crashes
+        mock_fetch_latest.delay.assert_called_once_with(self.credentials.id)
+        mock_poll_crashes.delay.assert_not_called()
+
+    @patch("sentry.tempest.tasks.fetch_latest_item_id")
+    @patch("sentry.tempest.tasks.poll_tempest_crashes")
+    def test_poll_tempest_with_latest_id(self, mock_poll_crashes, mock_fetch_latest):
+        # Set an existing ID
+        self.credentials.latest_fetched_item_id = "42"
+        self.credentials.save()
+
+        poll_tempest()
+
+        # Should call poll_tempest_crashes.delay() and not fetch_latest_item_id
+        mock_poll_crashes.delay.assert_called_once_with(self.credentials.id)
+        mock_fetch_latest.delay.assert_not_called()

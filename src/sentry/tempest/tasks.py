@@ -1,13 +1,14 @@
 import logging
+import os
 
 from sentry import http
 from sentry.models.projectkey import ProjectKey, UseCase
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.tempest.models import TempestCredentials
-from sentry.utils import json
 
-TEMPEST_URL = ""  # FIXME: Set this value once we have it
+# This is the URL to the tempest service
+TEMPEST_URL = os.getenv("TEMPEST", "http://127.0.0.1:9130")
 POLL_LIMIT = 348  # 348 every 5 min ~ 100k a day
 
 
@@ -45,12 +46,13 @@ def fetch_latest_item_id(credentials_id: int) -> None:
     client_id = credentials.client_id
 
     try:
-        response_text = fetch_latest_id_from_tempest(
+        response = fetch_latest_id_from_tempest(
             org_id=org_id,
             project_id=project_id,
             client_id=client_id,
             client_secret=credentials.client_secret,
         )
+        response_text = response.text
 
         if response_text.isdigit():  # If response is a number the fetch was a success
             credentials.latest_fetched_item_id = response_text
@@ -69,12 +71,23 @@ def fetch_latest_item_id(credentials_id: int) -> None:
 
         logger.info(
             "Fetching the latest item id failed.",
-            extra={"org_id": org_id, "project_id": project_id, "client_id": client_id},
+            extra={
+                "org_id": org_id,
+                "project_id": project_id,
+                "client_id": client_id,
+                "status_code": response.status_code,
+                "response_text": response.text,
+            },
         )
-    except Exception:
+    except Exception as e:
         logger.info(
             "Fetching the latest item id failed.",
-            extra={"org_id": org_id, "project_id": project_id, "client_id": client_id},
+            extra={
+                "org_id": org_id,
+                "project_id": project_id,
+                "client_id": client_id,
+                "error": str(e),
+            },
         )
 
 
@@ -86,46 +99,29 @@ def fetch_latest_item_id(credentials_id: int) -> None:
     time_limit=4 * 60 + 5,
 )
 def poll_tempest_crashes(credentials_id: int) -> None:
-    # FIXME: Try catch this later
     credentials = TempestCredentials.objects.select_related("project").get(id=credentials_id)
     project_id = credentials.project.id
-    org_id = credentials.project.organization_id  # this should work?
+    org_id = credentials.project.organization_id
     client_id = credentials.client_id
 
     try:
-        # This does generate a dsn not sure if it will work in the grand scheme of things though.
+        # This should generate a dsn explicitly for using with Tempest.
         dsn = ProjectKey.objects.get_or_create(
             use_case=UseCase.TEMPEST, project=credentials.project
         )[0].get_dsn()
-        response_text = fetch_items_from_tempest(
+        response = fetch_items_from_tempest(
             org_id=org_id,
             project_id=project_id,
             client_id=client_id,
             client_secret=credentials.client_secret,
             dsn=dsn,
-            offset=int(
-                credentials.latest_fetched_item_id
-            ),  # Need to convert here because it is a char in the DB
+            offset=int(credentials.latest_fetched_item_id),
         )
 
-        try:
-            result = json.loads(response_text)
-            credentials.latest_fetched_item_id = result[
-                "latest_id"
-            ]  # TODO: Not sure why this conversion works
-            credentials.save(update_fields=["latest_fetched_item_id"])
-        except json.JSONDecodeError:
-            logger.info(
-                "Fetching the crashes failed.",
-                extra={
-                    "org_id": org_id,
-                    "project_id": project_id,
-                    "client_id": client_id,
-                    "latest_id": credentials.latest_fetched_item_id,
-                    "error": response_text,
-                },
-            )
-    except Exception:
+        result = response.json()
+        credentials.latest_fetched_item_id = result["latest_id"]
+        credentials.save(update_fields=["latest_fetched_item_id"])
+    except Exception as e:
         logger.info(
             "Fetching the crashes failed.",
             extra={
@@ -133,6 +129,7 @@ def poll_tempest_crashes(credentials_id: int) -> None:
                 "project_id": project_id,
                 "client_id": client_id,
                 "latest_id": credentials.latest_fetched_item_id,
+                "error": str(e),
             },
         )
 
@@ -153,7 +150,7 @@ def fetch_latest_id_from_tempest(
         headers={"Content-Type": "application/json"},
         json=payload,
     )
-    return response.text
+    return response
 
 
 def fetch_items_from_tempest(
@@ -185,4 +182,4 @@ def fetch_items_from_tempest(
         json=payload,
         timeout=time_out,
     )
-    return response.text
+    return response
