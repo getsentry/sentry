@@ -49,33 +49,123 @@ export default storyBook('GlobalDrawer', story => {
     );
   });
 
-  story('Usage Details', () => (
-    <Fragment>
-      <p>
-        A common way to open the drawer is imperatively via a UI action like a button
-        click.
-      </p>
+  story('Closing The Drawer', () => {
+    const {openDrawer, closeDrawer} = useDrawer();
+    return (
+      <Fragment>
+        <p>There are several ways to control when the drawer is closed.</p>
+        <p>
+          One way is to provide UI that manually closes it, by using{' '}
+          <code>closeDrawer</code>. The close button can be inside or outside the drawer.
+        </p>
 
-      <CodeSnippet language="jsx">
-        {`import useDrawer from 'sentry/components/globalDrawer';
-
-function OverviewPage() {
+        <CodeSnippet language="jsx">
+          {`function MyPage() {
   const {openDrawer, closeDrawer} = useDrawer();
 
-  const handleClick = () => {
-    openDrawer(() => <ModalContent />);
+  const showDetails = () => {
+    openDrawer(() => <p>Details</p>, {ariaLabel: "Details"});
   }
 
-  return <button onClick={handleClick}>See More</button>;
-}
+  const closeDetails = () => {
+    closeDrawer();
+  }
 
-function ModalContent() {
-  return <p>Hello!</p>;
-}
-`}
-      </CodeSnippet>
+  return <button onClick={closeDetails} />;
+}`}
+        </CodeSnippet>
 
-      <p>Another way is to open the drawer based on the current URL.</p>
+        <LeftButton
+          onClick={() =>
+            openDrawer(() => null, {
+              ariaLabel: 'test drawer',
+              closeOnOutsideClick: false,
+            })
+          }
+        >
+          Open Drawer
+        </LeftButton>
+        <LeftButton onClick={closeDrawer}>Close Drawer</LeftButton>
+
+        <p>
+          Another is clicking outside the drawer . You can control this behavior with the{' '}
+          <code>closeOnOutsideClick</code> and <code>shouldCloseOnInteractOutside</code>{' '}
+          props. <code>closeOnOutsideClick</code> is a boolean. If <code>true</code>,
+          clicking anywhere outside the drawer will close it.{' '}
+          <code>shouldCloseOnInteractOutside</code> is a function that accepts the element
+          that was interacted with. Returning <code>false</code> will prevent the drawer
+          close.
+        </p>
+
+        <CodeSnippet language="jsx">
+          {`<Button onClick={() => openDrawer(() => null, {
+    ariaLabel: 'My Drawer',
+    closeOnOutsideClick: true, // or false
+    shouldCloseOnInteractOutside: (element) => element.tagName !== 'A';
+})}>
+  Open Drawer
+</Button>`}
+        </CodeSnippet>
+
+        <LeftButton
+          onClick={() =>
+            openDrawer(() => <DrawerHeader>My Drawer</DrawerHeader>, {
+              ariaLabel: 'test drawer',
+              closeOnOutsideClick: false,
+            })
+          }
+        >
+          Open Drawer. Does not close on click outside.
+        </LeftButton>
+
+        <p>
+          Another is URL change. By default, the drawer will automatically close if the
+          URL changes. This applies to the pathname, query, and hash. You can control this
+          with the <code>shouldCloseOnLocationChange</code> prop.{' '}
+          <code>shouldCloseOnLocationChange</code> is a function that accepts the new{' '}
+          <code>Location</code> object. Based on its contents you can decide whether the
+          drawer should close or stay open.
+        </p>
+
+        <LeftButton
+          onClick={() =>
+            openDrawer(() => <DrawerHeader>My Drawer</DrawerHeader>, {
+              ariaLabel: 'test drawer',
+              closeOnEscapeKeypress: false,
+              closeOnOutsideClick: false,
+            })
+          }
+        >
+          Open Drawer. Does not close on URL change.
+        </LeftButton>
+
+        <p>
+          Finally, "Escape" key press. You can control this with the{' '}
+          <code>closeOnEscapeKeypress</code> prop.
+        </p>
+
+        <LeftButton
+          onClick={() =>
+            openDrawer(() => <DrawerHeader>My Drawer</DrawerHeader>, {
+              ariaLabel: 'test drawer',
+              closeOnOutsideClick: false,
+            })
+          }
+        >
+          Open Drawer. Does not close on "Escape".
+        </LeftButton>
+      </Fragment>
+    );
+  });
+
+  story('Automatically Opening Drawer on URLs', () => (
+    <Fragment>
+      <p>
+        It's good practice to represent the drawer state in the URL. If a page opens a
+        details drawer, that should update the URL. Opening that URL should open the
+        drawer. The simplest way to do this is via <code>useEffect</code> and checking the
+        URL.
+      </p>
 
       <CodeSnippet language="jsx">
         {`import {useEffect} from 'react';
@@ -107,57 +197,15 @@ function ModalContent() {
 }
           `}
       </CodeSnippet>
+
+      <p>
+        You don't need to worry about closing the drawer, since it'll close automatically
+        on URL change. If the drawer contents rely on the URL and change it, you'll need
+        to specify <code>shouldCloseOnLocationChange</code> to prevent the drawer from
+        closing (or re-triggering) unnecessarily.
+      </p>
     </Fragment>
   ));
-
-  story('openDrawer() Options Example', () => {
-    const {openDrawer} = useDrawer();
-    return (
-      <Fragment>
-        <CodeSnippet language="jsx">
-          {`<Button onClick={() => openDrawer(() => null, {
-  ariaLabel: 'test drawer',
-  closeOnEscapeKeypress: false, // defaults to true
-  closeOnOutsideClick: false, // defaults to true
-  shouldCloseOnLocationChange: (newLocation) => !newLocation.pathname.includes('tags'),
-})}>
-  Open Drawer
-</Button>`}
-        </CodeSnippet>
-        <LeftButton
-          onClick={() =>
-            openDrawer(() => null, {
-              ariaLabel: 'test drawer',
-              closeOnEscapeKeypress: false,
-            })
-          }
-        >
-          No Escape Key
-        </LeftButton>
-        <LeftButton
-          onClick={() =>
-            openDrawer(() => null, {
-              ariaLabel: 'test drawer',
-              closeOnOutsideClick: false,
-            })
-          }
-        >
-          No Outside Click
-        </LeftButton>
-        <LeftButton
-          onClick={() =>
-            openDrawer(() => null, {
-              ariaLabel: 'test drawer',
-              closeOnEscapeKeypress: false,
-              closeOnOutsideClick: false,
-            })
-          }
-        >
-          Neither, must click Close Button
-        </LeftButton>
-      </Fragment>
-    );
-  });
 
   story('Helper Components Example', () => {
     const {openDrawer} = useDrawer();
