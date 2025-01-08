@@ -42,16 +42,3 @@ class MiddlewareOperationEvent(EventLifecycleMetric):
             "integration_name": self.get_integration_name(),
             "region": self.get_region(),
         }
-
-
-class MiddlewareFailureReason(StrEnum):
-    """Common reasons why a middleware request may fail."""
-
-    MISSING_DATA = "missing_data"
-    INVALID_STATE = "invalid_state"
-
-
-class MiddlewareHaltReason(StrEnum):
-    """Common reasons why a middleware request may halt."""
-
-    MISSING_ACTION = "missing_action"
