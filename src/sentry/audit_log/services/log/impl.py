@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import datetime
+import logging
 
-import sentry_sdk
 from django.db import IntegrityError, router, transaction
 
 from sentry import options
@@ -14,6 +14,8 @@ from sentry.models.auditlogentry import AuditLogEntry
 from sentry.silo.safety import unguarded_write
 from sentry.users.models.user import User
 from sentry.users.models.userip import UserIP
+
+logger = logging.getLogger("sentry.audit_log_rpc_service")
 
 
 class DatabaseBackedLogService(LogService):
@@ -96,9 +98,7 @@ class DatabaseBackedLogService(LogService):
                     break
 
         if not list_valid:
-            sentry_sdk.capture_message(
-                f"Invalid audit_log skip list. Verify that the '{self.event_id_skip_list_option}' option is a list of ints."
-            )
+            logger.error("audit_log.invalid_audit_log_pass_list", extra={"pass_list": pass_list})
             return []
 
         return pass_list
