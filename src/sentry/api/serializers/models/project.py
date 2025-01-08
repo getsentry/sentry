@@ -45,6 +45,7 @@ from sentry.release_health.base import CurrentAndPreviousCrashFreeRate
 from sentry.roles import organization_roles
 from sentry.search.events.types import SnubaParams
 from sentry.snuba import discover
+from sentry.tempest.utils import has_tempest_access
 from sentry.users.models.user import User
 
 STATUS_LABELS = {
@@ -1072,6 +1073,11 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             )
 
         data["isDynamicallySampled"] = sample_rate is not None and sample_rate < 1.0
+
+        if has_tempest_access(obj.organization, user):
+            data["tempestFetchScreenshots"] = attrs["options"].get(
+                "sentry:tempest_fetch_screenshots", False
+            )
 
         return data
 

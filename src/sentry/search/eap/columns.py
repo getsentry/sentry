@@ -141,7 +141,9 @@ def simple_sentry_field(field) -> ResolvedColumn:
 
 
 def simple_measurements_field(
-    field, search_type: constants.SearchType = "number"
+    field,
+    search_type: constants.SearchType = "number",
+    secondary_alias: bool = False,
 ) -> ResolvedColumn:
     """For a good number of fields, the public alias matches the internal alias
     with the `measurements.` prefix. This helper functions makes defining them easier"""
@@ -149,6 +151,7 @@ def simple_measurements_field(
         public_alias=f"measurements.{field}",
         internal_name=field,
         search_type=search_type,
+        secondary_alias=secondary_alias,
     )
 
 
@@ -319,11 +322,58 @@ SPAN_COLUMN_DEFINITIONS = {
             search_type="string",
             processor=datetime_processor,
         ),
+        ResolvedColumn(
+            public_alias="mobile.frames_delay",
+            internal_name="frames.delay",
+            search_type="second",
+        ),
+        ResolvedColumn(
+            public_alias="mobile.frames_slow",
+            internal_name="frames.slow",
+            search_type="number",
+        ),
+        ResolvedColumn(
+            public_alias="mobile.frames_frozen",
+            internal_name="frames.frozen",
+            search_type="number",
+        ),
+        ResolvedColumn(
+            public_alias="mobile.frames_total",
+            internal_name="frames.total",
+            search_type="number",
+        ),
+        # These fields are extracted from span measurements but were accessed
+        # 2 ways, with + without the measurements. prefix. So expose both for compatibility.
+        simple_measurements_field("cache.item_size", secondary_alias=True),
+        ResolvedColumn(
+            public_alias="cache.item_size",
+            internal_name="cache.item_size",
+            search_type="byte",
+        ),
+        simple_measurements_field("messaging.message.body.size", secondary_alias=True),
+        ResolvedColumn(
+            public_alias="messaging.message.body.size",
+            internal_name="messaging.message.body.size",
+            search_type="byte",
+        ),
+        simple_measurements_field("messaging.message.receive.latency", secondary_alias=True),
+        ResolvedColumn(
+            public_alias="messaging.message.receive.latency",
+            internal_name="messaging.message.receive.latency",
+            search_type="millisecond",
+        ),
+        simple_measurements_field("messaging.message.retry.count", secondary_alias=True),
+        ResolvedColumn(
+            public_alias="messaging.message.retry.count",
+            internal_name="messaging.message.retry.count",
+            search_type="number",
+        ),
         simple_sentry_field("browser.name"),
         simple_sentry_field("environment"),
         simple_sentry_field("messaging.destination.name"),
         simple_sentry_field("messaging.message.id"),
         simple_sentry_field("platform"),
+        simple_sentry_field("raw_domain"),
         simple_sentry_field("release"),
         simple_sentry_field("sdk.name"),
         simple_sentry_field("sdk.version"),
@@ -374,10 +424,6 @@ SPAN_COLUMN_DEFINITIONS = {
         simple_measurements_field("score.weight.inp"),
         simple_measurements_field("score.weight.lcp"),
         simple_measurements_field("score.weight.ttfb"),
-        simple_measurements_field("cache.item_size"),
-        simple_measurements_field("messaging.message.body.size"),
-        simple_measurements_field("messaging.message.receive.latency"),
-        simple_measurements_field("messaging.message.retry.count"),
     ]
 }
 
@@ -465,7 +511,7 @@ SPAN_FUNCTION_DEFINITIONS = {
         ],
     ),
     "avg": FunctionDefinition(
-        internal_function=Function.FUNCTION_AVERAGE,
+        internal_function=Function.FUNCTION_AVG,
         default_search_type="duration",
         arguments=[
             ArgumentDefinition(
@@ -475,7 +521,7 @@ SPAN_FUNCTION_DEFINITIONS = {
         ],
     ),
     "avg_sample": FunctionDefinition(
-        internal_function=Function.FUNCTION_AVERAGE,
+        internal_function=Function.FUNCTION_AVG,
         default_search_type="duration",
         arguments=[
             ArgumentDefinition(
