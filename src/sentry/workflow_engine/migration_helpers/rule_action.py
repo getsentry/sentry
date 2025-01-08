@@ -128,8 +128,9 @@ def build_notification_actions_from_rule_data_actions(
             target_type=target_type,
         )
 
-        notification_action.save()
-
         notification_actions.append(notification_action)
+
+    # Bulk create the actions, note: this won't call save(), not sure if we need to
+    Action.objects.bulk_create(notification_actions)
 
     return notification_actions
