@@ -67,7 +67,7 @@ export function IssueViewQueryCount({view}: IssueViewQueryCountProps) {
           duration: 0.2,
         },
         default: {
-          duration: 2,
+          duration: isFetching ? 2 : 0,
           repeat: isFetching ? Infinity : 0,
           ease: 'easeInOut',
         },
