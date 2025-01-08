@@ -2969,12 +2969,18 @@ class OrganizationEventsStatsTopNEventsProfileFunctionDatasetEndpointTest(
             timestamp=self.two_days_ago,
         )
 
+        y_axes = [
+            "cpm()",
+            "p95(function.duration)",
+            "all_examples()",
+        ]
+
         data = {
             "dataset": "profileFunctions",
             "field": ["function", "count()"],
             "start": self.three_days_ago.isoformat(),
             "end": self.one_day_ago.isoformat(),
-            "yAxis": ["cpm()", "p95(function.duration)"],
+            "yAxis": y_axes,
             "interval": "1d",
             "topEvents": "2",
             "excludeOther": "1",
@@ -2999,6 +3005,17 @@ class OrganizationEventsStatsTopNEventsProfileFunctionDatasetEndpointTest(
         assert any(
             row[1][0]["count"] > 0 for row in response.data["bar"]["p95(function.duration)"]["data"]
         )
+
+        for func in ["foo", "bar"]:
+            for y_axis in y_axes:
+                assert response.data[func][y_axis]["meta"]["units"] == {
+                    "time": None,
+                    "count": None,
+                    "cpm": None,
+                    "function": None,
+                    "p95_function_duration": "nanosecond",
+                    "all_examples": None,
+                }
 
 
 class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
