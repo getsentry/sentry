@@ -115,12 +115,12 @@ export const getTabCrumbs = ({
     preservePageFilters: true,
   });
 
-  if (transaction && spanSlug) {
+  if (spanSlug) {
     crumbs.push({
       to: '',
       label: t('Span Summary'),
     });
-  } else if (transaction && eventSlug) {
+  } else if (eventSlug) {
     crumbs.push({
       to: '',
       label: t('Event Details'),
