@@ -1854,14 +1854,16 @@ class MetricsDatasetConfig(DatasetConfig):
                         "isZeroOrNull",
                         [
                             Function(
-                                "countIf",
+                                "sumIf",
                                 [
                                     Column("value"),
                                     Function(
                                         "equals",
                                         [
                                             Column("metric_id"),
-                                            self.resolve_metric(f"measurements.score.{vital}"),
+                                            self.resolve_metric(
+                                                f"measurements.score.weight.{vital}"
+                                            ),
                                         ],
                                     ),
                                 ],
