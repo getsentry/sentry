@@ -133,7 +133,6 @@ class IntegrationDomain(StrEnum):
     SOURCE_CODE_MANAGEMENT = "source_code_management"
     ON_CALL_SCHEDULING = "on_call_scheduling"
     IDENTITY = "identity"  # for identity pipelines
-    MIDDLEWARE = "middleware"
 
 
 class IntegrationProviderSlug(StrEnum):
