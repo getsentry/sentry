@@ -1,10 +1,10 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import {getUtcDateString} from 'sentry/utils/dates';
-import theme from 'sentry/utils/theme';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {IssueView} from 'sentry/views/issueList/issueViews/issueViews';
@@ -35,6 +35,7 @@ interface IssueViewQueryCountProps {
 export function IssueViewQueryCount({view}: IssueViewQueryCountProps) {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
+  const theme = useTheme();
 
   // TODO(msun): Once page filters are saved to views, remember to use the view's specific
   // page filters here instead of the global pageFilters, if they exist.
@@ -54,15 +55,15 @@ export function IssueViewQueryCount({view}: IssueViewQueryCountProps) {
       layout="size"
       animate={{
         backgroundColor: queryCountFetching
-          ? [theme.gray100, theme.translucentSurface100, theme.gray100]
-          : 'transparent',
+          ? [theme.surface400, theme.surface100, theme.surface400]
+          : `#00000000`,
       }}
       transition={{
         layout: {
-          duration: 0.1,
+          duration: 0.2,
         },
         default: {
-          duration: 2.5,
+          duration: 2,
           repeat: queryCountFetching ? Infinity : 0,
           ease: 'easeInOut',
         },
@@ -72,7 +73,7 @@ export function IssueViewQueryCount({view}: IssueViewQueryCountProps) {
         layout="position"
         initial={{opacity: 0}}
         animate={{opacity: queryCountFetching ? 0 : 1}}
-        transition={{duration: 0.1}}
+        transition={{duration: 0.15}}
       >
         {displayedCount > TAB_MAX_COUNT ? `${TAB_MAX_COUNT}+` : displayedCount}
       </motion.span>
