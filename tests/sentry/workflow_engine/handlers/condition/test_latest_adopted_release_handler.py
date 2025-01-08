@@ -1,7 +1,10 @@
 from datetime import UTC, datetime, timedelta
+from unittest.mock import patch
 
 import pytest
 
+from sentry.models.environment import Environment
+from sentry.models.release import Release
 from sentry.rules.filters.latest_adopted_release_filter import (
     LatestAdoptedReleaseFilter,
     get_first_last_release_for_group_cache_key,
@@ -222,29 +225,42 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
 
         self.create_group_release(group=self.event.group, release=self.newest_release)
         self.assert_passes(self.dc, self.job)
-        cache_key = get_first_last_release_for_group_cache_key(
-            self.event.group.id, "oldest", LatestReleaseOrders.SEMVER
-        )
         assert cache.get(cache_key) is not None
 
-        self.create_group_release(group=self.event.group, release=self.oldest_release)
         # ensure we clear the cache after creating a new release
-        cache_key = get_first_last_release_for_group_cache_key(
-            self.event.group.id, "oldest", LatestReleaseOrders.SEMVER
+        oldest_group_release = self.create_group_release(
+            group=self.event.group, release=self.oldest_release
         )
         assert cache.get(cache_key) is None
 
         self.assert_does_not_pass(self.dc, self.job)
-        cache_key = get_first_last_release_for_group_cache_key(
-            self.event.group.id, "oldest", LatestReleaseOrders.SEMVER
-        )
         assert cache.get(cache_key) is not None
 
         # ensure we clear the cache when a release is deleted
-        self.oldest_release.safe_delete()
-        cache_key = get_first_last_release_for_group_cache_key(
-            self.event.group.id, "oldest", LatestReleaseOrders.SEMVER
-        )
+        oldest_group_release.delete()
         assert cache.get(cache_key) is None
 
         self.assert_passes(self.dc, self.job)
+
+    def test_release_does_not_exist(self):
+        with patch(
+            "sentry.search.utils.get_first_last_release_for_group", side_effect=Release.DoesNotExist
+        ):
+            self.assert_does_not_pass(self.dc, self.job)
+
+        with patch(
+            "sentry.workflow_engine.handlers.condition.latest_release_handler.get_latest_release_for_env",
+            return_value=None,
+        ):
+            self.assert_does_not_pass(self.dc, self.job)
+
+        with patch(
+            "sentry.workflow_engine.handlers.condition.latest_adopted_release_handler.get_first_last_release_for_env",
+            return_value=None,
+        ):
+            self.assert_does_not_pass(self.dc, self.job)
+
+    def test_environment_does_not_exist(self):
+        with patch("sentry.models.environment.Environment.get_for_organization_id") as mock_get_env:
+            mock_get_env.side_effect = Environment.DoesNotExist
+            self.assert_does_not_pass(self.dc, self.job)
