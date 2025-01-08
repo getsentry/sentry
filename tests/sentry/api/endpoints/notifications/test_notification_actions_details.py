@@ -24,6 +24,22 @@ from tests.sentry.integrations.slack.utils.test_mock_slack_response import mock_
 ActionRegistrationT = TypeVar("ActionRegistrationT", bound=ActionRegistration)
 
 
+def _mock_register(
+    data: MutableMapping[str, Any]
+) -> Callable[[type[ActionRegistrationT]], type[ActionRegistrationT]]:
+    trigger_type = ActionTrigger.get_value(data["triggerType"])
+    service_type = ActionService.get_value(data["serviceType"])
+    target_type = ActionTarget.get_value(data["targetType"])
+
+    assert trigger_type is not None, "triggerType must exist"
+    assert service_type is not None, "serviceType must exist"
+    assert target_type is not None, "targetType must exist"
+
+    return NotificationAction.register_action(
+        trigger_type=target_type, service_type=service_type, target_type=target_type
+    )
+
+
 class NotificationActionsDetailsEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-notification-actions-details"
 
@@ -47,22 +63,6 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
             "targetIdentifier": "555",
         }
 
-        def mock_register(
-            data: MutableMapping[str, Any]
-        ) -> Callable[[type[ActionRegistrationT]], type[ActionRegistrationT]]:
-            triggerType = ActionTrigger.get_value(data["triggerType"])
-            serviceType = ActionService.get_value(data["serviceType"])
-            targetType = ActionTarget.get_value(data["targetType"])
-
-            assert triggerType is not None, "triggerType must exist"
-            assert serviceType is not None, "serviceType must exist"
-            assert targetType is not None, "targetType must exist"
-
-            return NotificationAction.register_action(
-                trigger_type=triggerType, service_type=serviceType, target_type=targetType
-            )
-
-        self.mock_register = mock_register
         self.login_as(user=self.user)
 
     def mock_msg_schedule_response(self, channel_id, result_name="channel"):
@@ -233,7 +233,7 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
                 raise NotImplementedError
 
         registration = MockActionRegistration
-        self.mock_register(self.base_data)(registration)
+        _mock_register(self.base_data)(registration)
 
         response = self.get_error_response(
             self.organization.slug,
@@ -262,7 +262,7 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
             "targetDisplay": f"#{channel_name}",
         }
 
-        self.mock_register(data)(MockActionRegistration)
+        _mock_register(data)(MockActionRegistration)
 
         with self.mock_msg_schedule_response(channel_id):
             with self.mock_msg_delete_scheduled_response(channel_id):
@@ -298,7 +298,7 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
             "targetDisplay": "incorrect_service_name",
         }
 
-        self.mock_register(data)(MockActionRegistration)
+        _mock_register(data)(MockActionRegistration)
 
         # Didn't provide a targetIdentifier key
         response = self.get_error_response(
@@ -347,17 +347,18 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
         assert response.data["targetIdentifier"] == service["id"]
         assert response.data["targetDisplay"] == service["service_name"]
 
-    @patch("sentry.notifications.models.notificationaction.ActionRegistration.validate_action")
     @patch.dict(NotificationAction._registry, {})
-    def test_put_simple(self, validate_action):
+    def test_put_simple(self):
         class MockActionRegistration(ActionRegistration):
+            validate_action = MagicMock()
+
             def fire(self, data: Any) -> None:
                 raise NotImplementedError
 
-        self.mock_register(self.base_data)(MockActionRegistration)
+        _mock_register(self.base_data)(MockActionRegistration)
 
         data = {**self.base_data}
-        assert not validate_action.called
+        MockActionRegistration.validate_action.assert_not_called()
         response = self.get_success_response(
             self.organization.slug,
             self.notif_action.id,
@@ -368,7 +369,7 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
         # Response contains input data
         assert data.items() <= response.data.items()
         # Database reflects changes
-        assert validate_action.called
+        MockActionRegistration.validate_action.assert_called()
         self.notif_action.refresh_from_db()
         assert response.data == serialize(self.notif_action)
         # Relation table has been updated
