@@ -1,20 +1,31 @@
+import type {Location} from 'history';
 import {EventFixture} from 'sentry-fixture/event';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
+import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
 import type {EventViewOptions} from 'sentry/utils/discover/eventView';
 import EventView from 'sentry/utils/discover/eventView';
-import {DisplayType} from 'sentry/views/dashboards/types';
+import {DisplayModes} from 'sentry/utils/discover/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {
+  constructAddQueryToDashboardLink,
   decodeColumnOrder,
   downloadAsCsv,
   eventViewToWidgetQuery,
   generateFieldOptions,
   getExpandedResults,
+  handleAddQueryToDashboard,
   pushEventViewToLocation,
 } from 'sentry/views/discover/utils';
+
+jest.mock('sentry/actionCreators/modal');
 
 const baseView: EventViewOptions = {
   display: undefined,
@@ -904,6 +915,353 @@ describe('generateFieldOptions', function () {
           },
         },
       },
+    });
+  });
+});
+
+describe('constructAddQueryToDashboardLink', function () {
+  let organization: Organization;
+  let location: Location;
+  describe('new widget builder', function () {
+    beforeEach(() => {
+      organization = OrganizationFixture({
+        features: ['dashboards-widget-builder-redesign'],
+      });
+      location = LocationFixture();
+    });
+
+    it('should construct a link with the correct params - total period', function () {
+      const eventView = new EventView({
+        ...baseView,
+        display: DisplayModes.DEFAULT,
+        name: 'best query',
+      });
+      const {query} = constructAddQueryToDashboardLink({
+        eventView,
+        organization,
+        location,
+        yAxis: ['count()', 'count_unique(user)'],
+        widgetType: WidgetType.TRANSACTIONS,
+      });
+      expect(query).toEqual({
+        start: undefined,
+        end: undefined,
+        description: '',
+        limit: undefined,
+        query: [''],
+        sort: [''],
+        legendAlias: [''],
+        field: [],
+        title: 'best query',
+        dataset: WidgetType.TRANSACTIONS,
+        displayType: DisplayType.AREA,
+        yAxis: ['count()', 'count_unique(user)'],
+      });
+    });
+    it('should construct a link with the correct params - topN', function () {
+      // This test assigns a grouping through the fields array in the event view
+      const eventView = new EventView({
+        ...baseView,
+        display: DisplayModes.TOP5,
+        name: 'best query',
+        fields: [{field: 'transaction', width: 420}, {field: 'project.id'}],
+      });
+      const {query} = constructAddQueryToDashboardLink({
+        eventView,
+        organization,
+        location,
+        yAxis: ['count()'],
+        widgetType: WidgetType.TRANSACTIONS,
+      });
+      expect(query).toEqual({
+        start: undefined,
+        end: undefined,
+        description: '',
+        query: [''],
+        sort: [''],
+        legendAlias: [''],
+        field: ['transaction', 'project.id'],
+        title: 'best query',
+        dataset: WidgetType.TRANSACTIONS,
+        displayType: DisplayType.AREA,
+        yAxis: ['count()'],
+        limit: 5,
+      });
+    });
+    it('should construct a link with the correct params - daily top N', function () {
+      // This test assigns a grouping through the fields array in the event view
+      const eventView = new EventView({
+        ...baseView,
+        display: DisplayModes.DAILYTOP5,
+        name: 'best query',
+        fields: [{field: 'transaction', width: 420}, {field: 'project.id'}],
+      });
+      const {query} = constructAddQueryToDashboardLink({
+        eventView,
+        organization,
+        location,
+        yAxis: ['count()'],
+        widgetType: WidgetType.TRANSACTIONS,
+      });
+      expect(query).toEqual({
+        start: undefined,
+        end: undefined,
+        description: '',
+        query: [''],
+        sort: [''],
+        legendAlias: [''],
+        field: ['transaction', 'project.id'],
+        title: 'best query',
+        dataset: WidgetType.TRANSACTIONS,
+        displayType: DisplayType.BAR,
+        yAxis: ['count()'],
+        limit: 5,
+      });
+    });
+  });
+});
+
+describe('handleAddQueryToDashboard', function () {
+  let organization: Organization;
+  let location: Location;
+  let router: InjectedRouter;
+  let mockedOpenAddToDashboardModal: jest.Mock;
+  beforeEach(() => {
+    organization = OrganizationFixture({});
+    location = LocationFixture();
+    router = RouterFixture();
+    mockedOpenAddToDashboardModal = jest.mocked(openAddToDashboardModal);
+  });
+
+  it('constructs the correct widget queries for the modal with single yAxis', function () {
+    const eventView = new EventView({
+      ...baseView,
+      display: DisplayModes.DEFAULT,
+      name: 'best query',
+    });
+    handleAddQueryToDashboard({
+      eventView,
+      organization,
+      location,
+      router,
+      widgetType: WidgetType.TRANSACTIONS,
+      yAxis: ['count()'],
+    });
+    expect(mockedOpenAddToDashboardModal).toHaveBeenCalledWith(
+      expect.objectContaining({
+        widget: {
+          title: 'best query',
+          displayType: DisplayType.AREA,
+          queries: [
+            {
+              name: '',
+              fields: ['count()'],
+              aggregates: ['count()'],
+              columns: [],
+              orderby: '',
+              conditions: '',
+            },
+          ],
+          interval: undefined,
+          limit: undefined,
+          widgetType: WidgetType.TRANSACTIONS,
+        },
+      })
+    );
+  });
+
+  it('constructs the correct widget queries for the modal with single yAxis top N', function () {
+    const eventView = new EventView({
+      ...baseView,
+      display: DisplayModes.TOP5,
+      name: 'best query',
+      fields: [{field: 'transaction'}],
+    });
+    handleAddQueryToDashboard({
+      eventView,
+      organization,
+      location,
+      router,
+      widgetType: WidgetType.TRANSACTIONS,
+      yAxis: ['count()'],
+    });
+    expect(mockedOpenAddToDashboardModal).toHaveBeenCalledWith(
+      expect.objectContaining({
+        widget: {
+          title: 'best query',
+          displayType: DisplayType.AREA,
+          queries: [
+            {
+              name: '',
+              aggregates: ['count()'],
+              columns: ['transaction'],
+              fields: ['transaction', 'count()'],
+              orderby: '',
+              conditions: '',
+            },
+          ],
+          interval: undefined,
+          limit: 5,
+          widgetType: WidgetType.TRANSACTIONS,
+        },
+      })
+    );
+  });
+
+  it('constructs the correct widget queries for the modal with multiple yAxes', function () {
+    const eventView = new EventView({
+      ...baseView,
+      display: DisplayModes.DEFAULT,
+      name: 'best query',
+    });
+    handleAddQueryToDashboard({
+      eventView,
+      organization,
+      location,
+      router,
+      widgetType: WidgetType.TRANSACTIONS,
+      yAxis: ['count()', 'count_unique(user)'],
+    });
+    expect(mockedOpenAddToDashboardModal).toHaveBeenCalledWith(
+      expect.objectContaining({
+        widget: {
+          title: 'best query',
+          displayType: DisplayType.AREA,
+          queries: [
+            {
+              name: '',
+              aggregates: ['count()', 'count_unique(user)'],
+              columns: [],
+              fields: ['count()', 'count_unique(user)'],
+              orderby: '',
+              conditions: '',
+            },
+          ],
+          interval: undefined,
+          limit: undefined,
+          widgetType: WidgetType.TRANSACTIONS,
+        },
+      })
+    );
+  });
+
+  describe('new widget builder', function () {
+    beforeEach(() => {
+      organization = OrganizationFixture({
+        features: ['dashboards-widget-builder-redesign'],
+      });
+    });
+
+    it('constructs the correct widget queries for the modal with single yAxis', function () {
+      const eventView = new EventView({
+        ...baseView,
+        display: DisplayModes.DEFAULT,
+        name: 'best query',
+      });
+      handleAddQueryToDashboard({
+        eventView,
+        organization,
+        location,
+        router,
+        widgetType: WidgetType.TRANSACTIONS,
+        yAxis: ['count()'],
+      });
+      expect(mockedOpenAddToDashboardModal).toHaveBeenCalledWith(
+        expect.objectContaining({
+          widget: {
+            title: 'best query',
+            displayType: DisplayType.AREA,
+            queries: [
+              {
+                name: '',
+                aggregates: ['count()'],
+                columns: [],
+                fields: [],
+                orderby: '',
+                conditions: '',
+              },
+            ],
+            interval: undefined,
+            limit: undefined,
+            widgetType: WidgetType.TRANSACTIONS,
+          },
+        })
+      );
+    });
+
+    it('constructs the correct widget queries for the modal with single yAxis top N', function () {
+      const eventView = new EventView({
+        ...baseView,
+        display: DisplayModes.TOP5,
+        name: 'best query',
+        fields: [{field: 'transaction'}],
+      });
+      handleAddQueryToDashboard({
+        eventView,
+        organization,
+        location,
+        router,
+        widgetType: WidgetType.TRANSACTIONS,
+        yAxis: ['count()'],
+      });
+      expect(mockedOpenAddToDashboardModal).toHaveBeenCalledWith(
+        expect.objectContaining({
+          widget: {
+            title: 'best query',
+            displayType: DisplayType.AREA,
+            queries: [
+              {
+                name: '',
+                aggregates: ['count()'],
+                columns: ['transaction'],
+                fields: ['transaction'],
+                orderby: '',
+                conditions: '',
+              },
+            ],
+            interval: undefined,
+            limit: 5,
+            widgetType: WidgetType.TRANSACTIONS,
+          },
+        })
+      );
+    });
+
+    it('constructs the correct widget queries for the modal with multiple yAxes', function () {
+      const eventView = new EventView({
+        ...baseView,
+        display: DisplayModes.DEFAULT,
+        name: 'best query',
+      });
+      handleAddQueryToDashboard({
+        eventView,
+        organization,
+        location,
+        router,
+        widgetType: WidgetType.TRANSACTIONS,
+        yAxis: ['count()', 'count_unique(user)'],
+      });
+      expect(mockedOpenAddToDashboardModal).toHaveBeenCalledWith(
+        expect.objectContaining({
+          widget: {
+            title: 'best query',
+            displayType: DisplayType.AREA,
+            queries: [
+              {
+                name: '',
+                aggregates: ['count()', 'count_unique(user)'],
+                columns: [],
+                fields: [],
+                orderby: '',
+                conditions: '',
+              },
+            ],
+            interval: undefined,
+            limit: undefined,
+            widgetType: WidgetType.TRANSACTIONS,
+          },
+        })
+      );
     });
   });
 });
