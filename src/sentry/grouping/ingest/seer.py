@@ -200,8 +200,21 @@ def _circuit_breaker_broken(event: Event, project: Project) -> bool:
 
 
 def _has_empty_stacktrace_string(event: Event, variants: dict[str, BaseVariant]) -> bool:
+    # For purposes of a temporary debug log - will be removed as soon as the mysterious behavior
+    # is sorted
+    logger_extra = {
+        "event_id": event.event_id,
+        "project_id": event.project_id,
+        "platform": event.platform,
+        "has_too_many_frames_result": has_too_many_contributing_frames(
+            event, variants, ReferrerOptions.INGEST, record_metrics=False
+        ),
+    }
     stacktrace_string = get_stacktrace_string_with_metrics(
-        get_grouping_info_from_variants(variants), event.platform, ReferrerOptions.INGEST
+        get_grouping_info_from_variants(variants),
+        event.platform,
+        ReferrerOptions.INGEST,
+        logger_extra=logger_extra,
     )
     if not stacktrace_string:
         if stacktrace_string == "":
