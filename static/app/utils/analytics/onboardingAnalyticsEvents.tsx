@@ -20,6 +20,9 @@ export type OnboardingEventParameters = {
     platform: string;
     project_id: string;
   };
+  'onboarding.dsn-copied': {
+    platform: string;
+  };
   'onboarding.js_loader_npm_docs_shown': {
     platform: string;
     project_id: string;
@@ -35,7 +38,6 @@ export type OnboardingEventParameters = {
     project_id: string;
     step: string;
   };
-  'onboarding.nextjs-dsn-copied': {};
   'onboarding.select_framework_modal_close_button_clicked': {
     platform: string;
   };
@@ -94,7 +96,7 @@ export const onboardingEventMap: Record<keyof OnboardingEventParameters, string>
     'Onboarding: Source Maps Wizard Copy Button Clicked',
   'onboarding.source_maps_wizard_selected_and_copied':
     'Onboarding: Source Maps Wizard Selected and Copied',
-  'onboarding.nextjs-dsn-copied': 'Onboarding: NextJS DSN Copied',
+  'onboarding.dsn-copied': 'Onboarding: DSN Copied',
   'onboarding.take_me_to_issues_clicked': 'Onboarding: Take Me to Issues Clicked',
   'onboarding.slack_setup_clicked': 'Onboarding: Slack Setup Clicked',
   'onboarding.next_step_clicked': 'Onboarding: Next Step Clicked',
