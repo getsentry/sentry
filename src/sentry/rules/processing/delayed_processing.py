@@ -1,11 +1,11 @@
 import logging
 import math
+import random
 import uuid
 from collections import defaultdict
 from collections.abc import Sequence
 from datetime import datetime, timedelta, timezone
 from itertools import islice
-from random import random
 from typing import Any, DefaultDict, NamedTuple
 
 from django.db.models import OuterRef, Subquery
