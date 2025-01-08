@@ -1,182 +1,160 @@
-import type {ComponentProps} from 'react';
-import {useMemo} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import Link from 'sentry/components/links/link';
-import {IconFile} from 'sentry/icons';
+import {IconChevron, IconFile} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
-import {useLocation} from 'sentry/utils/useLocation';
-import type {StoriesQuery} from 'sentry/views/stories/types';
 
-interface Props extends ComponentProps<'div'> {
-  files: string[];
+import type {StoryTreeNode} from './index';
+
+function folderFirst(a: [string, StoryTreeNode], b: [string, StoryTreeNode]) {
+  const aIsFolder = Object.keys(a[1].children).length > 0;
+  const bIsFolder = Object.keys(b[1].children).length > 0;
+
+  if (aIsFolder && !bIsFolder) {
+    return -1;
+  }
+
+  if (!aIsFolder && bIsFolder) {
+    return 1;
+  }
+
+  return a[0].localeCompare(b[0]);
+}
+interface Props extends React.HTMLAttributes<HTMLDivElement> {
+  nodes: StoryTreeNode[];
 }
 
-export default function StoryTree({files, style}: Props) {
-  const tree = useMemo(() => {
-    const fileTree = new StoryTreeModel();
-
-    for (const file of files) {
-      const parts = file.split('/');
-      let parent = fileTree.root;
-
-      for (const part of parts) {
-        if (!(part in parent.children)) {
-          parent.children[part] = new StoryTreeNode(part);
-        }
-
-        parent = parent.children[part]!;
-      }
-    }
-
-    return tree;
-  }, [files]);
-
+export default function StoryTree({nodes, ...htmlProps}: Props) {
   return (
-    <nav style={style}>
-      <FolderContent path="" content={tree} />
+    <nav {...htmlProps}>
+      <StoryList>
+        {nodes.map(node => {
+          return Object.entries(node.children).length === 0 ? (
+            <li key={node.name}>
+              <File node={node} />
+            </li>
+          ) : (
+            <Folder node={node} />
+          );
+        })}
+      </StoryList>
     </nav>
   );
 }
 
-function FolderContent({path, content}: {content: Tree; path: string}) {
-  const location = useLocation<StoriesQuery>();
-  const currentFile = location.query.name;
-
-  // sort folders to the top
-  const entries = Object.entries(content).sort(
-    (a, b) => Number(!!Object.keys(b[1]).length) - Number(!!Object.keys(a[1]).length)
-  );
+function Folder(props: {node: StoryTreeNode}) {
+  const [expanded, setExpanded] = useState(props.node.expanded);
 
   return (
-    <UnorderedList>
-      {entries.map(([name, children]) => {
-        const childPath = toPath(path, name);
-
-        if (Object.keys(children).length === 0) {
-          const isCurrent = childPath === currentFile ? true : undefined;
-          const to = `/stories/?name=${childPath}`;
-          return (
-            <ListItem key={name} aria-current={isCurrent}>
-              <FolderLink to={to}>
-                <IconFile size="xs" />
-                {name}
-              </FolderLink>
-            </ListItem>
-          );
-        }
-
-        return (
-          <ListItem key={name}>
-            <Folder open>
-              <FolderName>{name}</FolderName>
-              <FolderContent path={childPath} content={children} />
-            </Folder>
-          </ListItem>
-        );
-      })}
-    </UnorderedList>
+    <li>
+      <FolderName onClick={() => setExpanded(!expanded)}>
+        <IconChevron size="xs" direction={expanded ? 'down' : 'right'} />
+        {capitalize(props.node.name)}
+      </FolderName>
+      {expanded && Object.entries(props.node.children).length > 0 && (
+        <StoryList>
+          {Object.entries(props.node.children)
+            .sort(folderFirst)
+            .map(([name, child]) => {
+              return Object.keys(child.children).length === 0 ? (
+                <li>
+                  <File key={name} node={child} />
+                </li>
+              ) : (
+                <Folder key={name} node={child} />
+              );
+            })}
+        </StoryList>
+      )}
+    </li>
   );
 }
 
-class StoryTreeNode {
-  expanded = false;
-  children: Record<string, StoryTreeNode> = {};
-
-  constructor(public name: string) {}
-}
-class StoryTreeModel {
-  constructor() {
-    this.root = new StoryTreeNode('');
-  }
-
-  root: StoryTreeNode;
+function File(props: {node: StoryTreeNode}) {
+  return (
+    <FolderLink to={`/stories/?name=${props.node.path}`}>
+      {/* @TODO (JonasBadalic): Do file type icons make sense here? */}
+      <IconFile size="xs" />
+      {/* @TODO (JonasBadalic): Do we need to show the file extension? */}
+      {capitalize(props.node.name)}
+    </FolderLink>
+  );
 }
 
-function toPath(path: string, name: string) {
-  return [path, name].filter(Boolean).join('/');
+function capitalize(str: string) {
+  return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
-const UnorderedList = styled('ul')`
-  margin: 0;
-  padding: 0;
-  list-style: none;
-`;
-const ListItem = styled('li')`
-  position: relative;
+const StoryList = styled('ul')`
+  list-style-type: none;
+  padding-left: 10px;
 
-  &[aria-current] {
-    background: ${p => p.theme.blue300};
-    color: ${p => p.theme.white};
-    font-weight: ${p => p.theme.fontWeightBold};
-  }
-  &[aria-current] a:before {
-    background: ${p => p.theme.blue300};
-    content: '';
-    left: -100%;
-    position: absolute;
-    right: 0;
-    top: 0;
-    z-index: -1;
-    bottom: 0;
+  &:first-child {
+    padding-left: 0;
   }
 `;
 
-const Folder = styled('details')`
+const FolderName = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.75)};
+  padding: ${space(0.25)} 0;
   cursor: pointer;
-  padding-left: ${space(2)};
-  position: relative;
-
-  &:before {
-    content: '⏵';
-    position: absolute;
-    left: ${space(0.5)};
-    top: ${space(0.25)};
-  }
-  &[open]:before {
-    content: '⏷';
-  }
-`;
-
-const FolderName = styled('summary')`
-  padding: ${space(0.25)};
-
-  color: inherit;
-  &:hover {
-    color: inherit;
-  }
-  &:hover:before {
-    background: ${p => p.theme.blue100};
-    content: '';
-    left: -100%;
-    position: absolute;
-    right: 0;
-    top: 0;
-    z-index: -1;
-    bottom: 0;
-  }
 `;
 
 const FolderLink = styled(Link)`
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  align-items: baseline;
-  gap: ${space(0.5)};
-  padding: ${space(0.25)};
-  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  margin-left: ${space(0.5)};
+  gap: ${space(0.75)};
+  color: ${p => p.theme.textColor};
+  padding: ${space(0.25)} 0;
 
-  color: inherit;
   &:hover {
-    color: inherit;
+    color: ${p => p.theme.textColor};
   }
-  &:hover:before {
-    background: ${p => p.theme.blue100};
-    content: '';
-    left: -100%;
-    position: absolute;
-    right: 0;
-    top: 0;
-    z-index: -1;
-    bottom: 0;
+
+  svg {
+    flex-shrink: 0;
   }
 `;
+
+// function FolderContent({node}: {node: StoryTreeNode}) {
+//   const location = useLocation<StoriesQuery>();
+//   const currentFile = location.query.name;
+
+//   return (
+//     <StoryList>
+//       {Object.entries(node.children).map(([name, children]) => {
+//         // const childPath = toPath(path, name);
+
+//         if (Object.keys(children).length === 0) {
+//           // const isCurrent = childPath === currentFile ? true : undefined;
+//           // const to = `/stories/?name=${childPath}`;
+//           return (
+//             <ListItem key={name} aria-current={isCurrent}>
+//               <FolderLink to={to}>
+//                 <IconFile size="xs" />
+//                 {name}
+//               </FolderLink>
+//             </ListItem>
+//           );
+//         }
+
+//         return (
+//           <ListItem key={name}>
+//             <Folder open>
+//               <FolderName>{name}</FolderName>
+//               <FolderContent node={node} />
+//             </Folder>
+//           </ListItem>
+//         );
+//       })}
+//     </StoryList>
+//   );
+// }
+
+// function toPath(path: string, name: string) {
+//   return [path, name].filter(Boolean).join('/');
+// }
