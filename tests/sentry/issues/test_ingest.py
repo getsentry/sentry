@@ -8,7 +8,7 @@ from unittest.mock import patch
 from django.utils import timezone
 
 from sentry.constants import LOG_LEVELS_MAP
-from sentry.grouping.types import ErrorGroupType
+from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.grouptype import (
     FeedbackGroup,
     GroupCategory,

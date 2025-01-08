@@ -11,7 +11,7 @@ from sentry_kafka_schemas.schema_types.group_attributes_v1 import GroupAttribute
 from sentry import options
 from sentry.api.issue_search import convert_query_values, issue_search_config, parse_search_query
 from sentry.exceptions import InvalidSearchQuery
-from sentry.grouping.types import ErrorGroupType
+from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.grouptype import (
     FeedbackGroup,
     NoiseConfig,

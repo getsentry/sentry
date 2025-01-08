@@ -38,7 +38,7 @@ from sentry.event_manager import (
 from sentry.eventstore.models import Event
 from sentry.exceptions import HashDiscarded
 from sentry.grouping.api import GroupingConfig, load_grouping_config
-from sentry.grouping.types import ErrorGroupType
+from sentry.grouping.grouptype import ErrorGroupType
 from sentry.grouping.utils import hash_from_values
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.ingest.transaction_clusterer import ClustererNamespace

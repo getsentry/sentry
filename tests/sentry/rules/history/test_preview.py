@@ -5,7 +5,7 @@ from typing import Any
 
 from django.utils import timezone
 
-from sentry.grouping.types import ErrorGroupType
+from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.grouptype import (
     GroupCategory,
     PerformanceNPlusOneGroupType,

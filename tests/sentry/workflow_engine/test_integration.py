@@ -2,7 +2,7 @@ from datetime import datetime
 from unittest import mock
 
 from sentry.eventstream.types import EventStreamEventType
-from sentry.grouping.types import ErrorGroupType
+from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricAlertFire
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.issues.ingest import save_issue_occurrence

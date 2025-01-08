@@ -53,6 +53,7 @@ from sentry.grouping.api import (
     GroupingConfig,
     get_grouping_config_dict_for_project,
 )
+from sentry.grouping.grouptype import ErrorGroupType
 from sentry.grouping.ingest.config import is_in_transition, update_grouping_config_if_needed
 from sentry.grouping.ingest.hashing import (
     find_grouphash_with_group,
@@ -68,7 +69,6 @@ from sentry.grouping.ingest.utils import (
     check_for_group_creation_load_shed,
     is_non_error_type_group,
 )
-from sentry.grouping.types import ErrorGroupType
 from sentry.grouping.variants import BaseVariant
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.ingest.transaction_clusterer.datasource.redis import (

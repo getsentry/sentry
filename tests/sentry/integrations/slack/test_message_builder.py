@@ -9,7 +9,7 @@ from django.urls import reverse
 from urllib3.response import HTTPResponse
 
 from sentry.eventstore.models import Event
-from sentry.grouping.types import ErrorGroupType
+from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
 from sentry.incidents.models.alert_rule import (
     AlertRuleDetectionType,
