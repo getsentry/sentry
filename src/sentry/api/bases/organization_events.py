@@ -288,10 +288,11 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         return decision
 
     def handle_unit_meta(
-        self, meta: dict[str, str]
+        self, result_meta: dict[str, str]
     ) -> tuple[dict[str, str], dict[str, str | None]]:
         units: dict[str, str | None] = {}
-        for key, value in meta.items():
+        meta: dict[str, str] = result_meta.copy()
+        for key, value in result_meta.items():
             if value in SIZE_UNITS:
                 units[key] = value
                 meta[key] = "size"
