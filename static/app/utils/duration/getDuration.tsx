@@ -1,6 +1,15 @@
 import {t, tn} from 'sentry/locale';
 
-import {DAY, HOUR, MILLISECOND, MINUTE, MONTH, SECOND, WEEK} from '../formatters';
+import {
+  DAY,
+  HOUR,
+  MICROSECOND,
+  MILLISECOND,
+  MINUTE,
+  MONTH,
+  SECOND,
+  WEEK,
+} from '../formatters';
 
 function roundWithFixed(
   value: number,
@@ -44,6 +53,9 @@ const DURATION_LABELS = {
   ms: t('ms'),
   millisecond: t('millisecond'),
   milliseconds: t('milliseconds'),
+  us: 'μs', // SI units don't need a translation
+  microsecond: t('microsecond'),
+  microseconds: t('microseconds'),
 };
 
 export default function getDuration(
@@ -114,11 +126,19 @@ export default function getDuration(
     return `${label} ${tn('second', 'seconds', result)}`;
   }
 
-  const {label, result} = roundWithFixed(msValue, fixedDigits);
-
-  if (extraShort || abbreviation) {
-    return `${label}${DURATION_LABELS.ms}`;
+  if (absValue >= MILLISECOND || minimumUnit === MILLISECOND) {
+    const {label, result} = roundWithFixed(msValue / MILLISECOND, fixedDigits);
+    if (extraShort || abbreviation) {
+      return `${label}${DURATION_LABELS.ms}`;
+    }
+    return `${label} ${tn('millisecond', 'milliseconds', result)}`;
   }
 
-  return `${label} ${tn('millisecond', 'milliseconds', result)}`;
+  const {label, result} = roundWithFixed(msValue / MICROSECOND, fixedDigits);
+
+  if (extraShort || abbreviation) {
+    return `${label}${DURATION_LABELS.us}`;
+  }
+
+  return `${label} ${tn('microsecond', 'microseconds', result)}`;
 }

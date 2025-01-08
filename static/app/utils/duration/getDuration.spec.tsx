@@ -1,9 +1,12 @@
 import getDuration from 'sentry/utils/duration/getDuration';
 
-import {MINUTE, MONTH} from '../formatters';
+import {MICROSECOND, MINUTE, MONTH} from '../formatters';
 
 describe('getDuration()', () => {
   it('should format durations', () => {
+    expect(getDuration(0.0001, 0, false, false, false, MICROSECOND)).toBe(
+      '100 microseconds'
+    );
     expect(getDuration(0.1)).toBe('100 milliseconds');
     expect(getDuration(0.1, 2)).toBe('100.00 milliseconds');
     expect(getDuration(1)).toBe('1 second');
@@ -23,6 +26,9 @@ describe('getDuration()', () => {
   });
 
   it('should format negative durations', () => {
+    expect(getDuration(-0.0001, 0, false, false, false, MICROSECOND)).toBe(
+      '-100 microseconds'
+    );
     expect(getDuration(-0.1)).toBe('-100 milliseconds');
     expect(getDuration(-0.1, 2)).toBe('-100.00 milliseconds');
     expect(getDuration(-1)).toBe('-1 second');
@@ -41,6 +47,7 @@ describe('getDuration()', () => {
   });
 
   it('should format numbers and abbreviate units', () => {
+    expect(getDuration(0, 2, true, false, false, MICROSECOND)).toBe('0.00μs');
     expect(getDuration(0, 2, true)).toBe('0.00ms');
     expect(getDuration(0, 0, true)).toBe('0ms');
     expect(getDuration(0.1, 0, true)).toBe('100ms');
@@ -57,6 +64,7 @@ describe('getDuration()', () => {
   });
 
   it('should format numbers and abbreviate units with one letter', () => {
+    expect(getDuration(0, 2, false, true, false, MICROSECOND)).toBe('0.00μs');
     expect(getDuration(0, 2, false, true)).toBe('0.00ms');
     expect(getDuration(0, 0, false, true)).toBe('0ms');
     expect(getDuration(0.1, 0, false, true)).toBe('100ms');
