@@ -308,7 +308,6 @@ module = [
     "sentry_plugins.bitbucket.mixins",
     "sentry_plugins.github.plugin",
     "sentry_plugins.jira.plugin",
-    "tests.sentry.api.endpoints.notifications.test_notification_actions_details",
     "tests.sentry.api.endpoints.notifications.test_notification_actions_index",
     "tests.sentry.api.helpers.test_group_index",
     "tests.sentry.api.test_base",
