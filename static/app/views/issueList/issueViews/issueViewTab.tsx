@@ -52,6 +52,7 @@ export function IssueViewTab({
         viewId: newViewId,
       },
     });
+    tabListState?.setSelectedKey(newViewId);
   };
 
   const handleDiscardChanges = () => {
