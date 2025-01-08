@@ -7,7 +7,18 @@ import useDrawer from 'sentry/components/globalDrawer';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import storyBook from 'sentry/stories/storyBook';
 
+import JSXNode from '../stories/jsxNode';
+
 export default storyBook('GlobalDrawer', story => {
+  story('Getting Started', () => (
+    <Fragment>
+      <JSXNode name="GlobalDrawer" /> is a way to show a slide-out drawer on the right
+      side of the UI. It's an application-wide singleton component, which means that only
+      one drawer can be open at any given time and its position is always the same. The
+      drawer is opened and closed via React hooks.
+    </Fragment>
+  ));
+
   story('Usage', () => (
     <Fragment>
       <CodeSnippet language="js">
