@@ -1,6 +1,8 @@
 import logging
 import os
 
+from rest_framework.response import Response
+
 from sentry import http
 from sentry.models.projectkey import ProjectKey, UseCase
 from sentry.silo.base import SiloMode
@@ -136,7 +138,7 @@ def poll_tempest_crashes(credentials_id: int) -> None:
 
 def fetch_latest_id_from_tempest(
     org_id: int, project_id: int, client_id: str, client_secret: str
-) -> str:
+) -> Response:
     payload = {
         "org_id": org_id,
         "project_id": project_id,
@@ -163,7 +165,7 @@ def fetch_items_from_tempest(
     limit: int = POLL_LIMIT,
     attach_screenshot: bool = False,
     time_out: int = 120,
-) -> str:
+) -> Response:
     payload = {
         "org_id": org_id,
         "project_id": project_id,
