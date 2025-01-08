@@ -13,7 +13,7 @@ class ActionGroupStatus(DefaultFieldsModel):
     ACTIVE = 0
     INACTIVE = 1
 
-    __relocation_scope__ = RelocationScope.Organization
+    __relocation_scope__ = RelocationScope.Excluded
 
     action = FlexibleForeignKey("workflow_engine.Action", on_delete=models.CASCADE)
     group = FlexibleForeignKey("sentry.Group")
