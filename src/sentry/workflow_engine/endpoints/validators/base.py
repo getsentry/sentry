@@ -1,5 +1,4 @@
-from collections.abc import Callable
-from typing import Generic, TypeVar
+from typing import TYPE_CHECKING, TypeVar
 
 from django.db import router, transaction
 from rest_framework import serializers
@@ -9,7 +8,6 @@ from sentry import audit_log
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.db.models import Model
 from sentry.issues import grouptype
-from sentry.issues.grouptype import GroupType
 from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.models import (
     DataConditionGroup,
@@ -18,25 +16,16 @@ from sentry.workflow_engine.models import (
     Detector,
 )
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
-from sentry.workflow_engine.registry import data_source_type_registry
-from sentry.workflow_engine.types import DataSourceTypeHandler, DetectorPriorityLevel
+from sentry.workflow_engine.types import DetectorPriorityLevel
 
 T = TypeVar("T", bound=Model)
 
-
-class DataSourceCreator(Generic[T]):
-    def __init__(self, create_fn: Callable[[], T]):
-        self._create_fn = create_fn
-        self._instance: T | None = None
-
-    def create(self) -> T:
-        if self._instance is None:
-            self._instance = self._create_fn()
-        return self._instance
+if TYPE_CHECKING:
+    from sentry.issues.grouptype import GroupType
+    from sentry.workflow_engine.endpoints.validators.base_data_source import BaseDataSourceValidator
 
 
 class BaseDataConditionValidator(CamelSnakeSerializer):
-
     type = serializers.CharField(
         required=True,
         max_length=200,
@@ -57,11 +46,11 @@ class BaseDataConditionValidator(CamelSnakeSerializer):
 
 
 class NumericComparisonConditionValidator(BaseDataConditionValidator):
-
     comparison = serializers.FloatField(
         required=True,
         help_text="Comparison value to be compared against value from data.",
     )
+
     result = serializers.ChoiceField(
         choices=[
             (DetectorPriorityLevel.HIGH, "High"),
@@ -96,21 +85,6 @@ class NumericComparisonConditionValidator(BaseDataConditionValidator):
         if result not in self.supported_results:
             raise serializers.ValidationError("Unsupported condition result")
         return result
-
-
-class BaseDataSourceValidator(CamelSnakeSerializer, Generic[T]):
-    @property
-    def data_source_type_handler(self) -> type[DataSourceTypeHandler]:
-        raise NotImplementedError
-
-    def validate(self, attrs):
-        attrs = super().validate(attrs)
-        attrs["_creator"] = DataSourceCreator[T](lambda: self.create_source(attrs))
-        attrs["data_source_type"] = data_source_type_registry.get_key(self.data_source_type_handler)
-        return attrs
-
-    def create_source(self, validated_data) -> T:
-        raise NotImplementedError
 
 
 class BaseGroupTypeDetectorValidator(CamelSnakeSerializer):

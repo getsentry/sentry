@@ -14,12 +14,12 @@ from sentry.snuba.models import (
 )
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.workflow_engine.endpoints.validators.base import (
-    BaseDataSourceValidator,
     BaseGroupTypeDetectorValidator,
     NumericComparisonConditionValidator,
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
+from sentry.workflow_enigne.endpoints.validators.base_data_source import BaseDataSourceValidator
 
 
 class SnubaQueryDataSourceValidator(BaseDataSourceValidator[QuerySubscription]):

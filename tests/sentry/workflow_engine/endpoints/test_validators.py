@@ -24,10 +24,12 @@ from sentry.snuba.models import (
 )
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.endpoints.validators.base import (
-    BaseDataSourceValidator,
     BaseGroupTypeDetectorValidator,
-    DataSourceCreator,
     NumericComparisonConditionValidator,
+)
+from sentry.workflow_engine.endpoints.validators.base_data_source import (
+    BaseDataSourceValidator,
+    DataSourceCreator,
 )
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup, DataSource
 from sentry.workflow_engine.models.data_condition import Condition
