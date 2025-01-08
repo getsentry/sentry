@@ -17,11 +17,13 @@ function getPath(sdkName: string | null | undefined) {
       return 'android'; // https://docs.sentry.io/platforms/android/session-replay/
     case 'sentry.dart.flutter':
       return 'flutter'; // https://docs.sentry.io/platforms/flutter/session-replay/
+    case 'npm:@sentry/react-native':
+    case 'sentry.cocoa.react-native':
     case 'sentry.javascript.react-native':
       return 'react-native'; // https://docs.sentry.io/platforms/react-native/session-replay/
     default:
       Sentry.captureMessage(`Unknown mobile platform in configure card: ${sdkName}`);
-      return 'react-native';
+      return null;
   }
 }
 
@@ -53,6 +55,10 @@ export default function ConfigureMobileReplayCard({
   replayRecord: ReplayRecord | undefined;
 }) {
   const path = getPath(replayRecord?.sdk.name);
+
+  if (!path) {
+    return null;
+  }
 
   return (
     <ClassNames>
