@@ -107,18 +107,25 @@ def poll_tempest_crashes(credentials_id: int) -> None:
     client_id = credentials.client_id
 
     try:
-        # This should generate a dsn explicitly for using with Tempest.
-        dsn = ProjectKey.objects.get_or_create(
-            use_case=UseCase.TEMPEST, project=credentials.project
-        )[0].get_dsn()
-        response = fetch_items_from_tempest(
-            org_id=org_id,
-            project_id=project_id,
-            client_id=client_id,
-            client_secret=credentials.client_secret,
-            dsn=dsn,
-            offset=int(credentials.latest_fetched_item_id),
-        )
+        if credentials.latest_fetched_item_id is not None:
+            # This should generate a dsn explicitly for using with Tempest.
+            dsn = ProjectKey.objects.get_or_create(
+                use_case=UseCase.TEMPEST, project=credentials.project
+            )[0].get_dsn()
+            response = fetch_items_from_tempest(
+                org_id=org_id,
+                project_id=project_id,
+                client_id=client_id,
+                client_secret=credentials.client_secret,
+                dsn=dsn,
+                offset=int(credentials.latest_fetched_item_id),
+            )
+        else:
+            raise ValueError(
+                f"Unexpected None latest_fetched_item_id for credentials {credentials_id}. "
+                "This should never happen as poll_tempest_crashes should only be called "
+                "when latest_fetched_item_id is set."
+            )
 
         result = response.json()
         credentials.latest_fetched_item_id = result["latest_id"]
