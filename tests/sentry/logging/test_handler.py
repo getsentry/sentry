@@ -47,6 +47,22 @@ def filter_context(
             logger.removeFilter(f)
 
 
+@contextmanager
+def level_context(level: int):
+    curr_level = logging.getLogger().level
+    logging.basicConfig(level=level)
+    try:
+        yield
+    finally:
+        logging.basicConfig(level=curr_level)
+
+
+@pytest.fixture
+def set_level_debug():
+    with level_context(logging.DEBUG):
+        yield
+
+
 def make_logrecord(
     *,
     name: str = "name",
@@ -155,54 +171,50 @@ def test_gke_emit() -> None:
 
 
 @mock.patch("random.random", lambda: 0.1)
-def test_sampling_filter_pass(caplog):
+def test_sampling_filter_pass(caplog, debug_level):
     logger = logging.getLogger(__name__)
     with filter_context(logger, [SamplingFilter(0.2)]):
-        with caplog.at_level(logging.DEBUG, __name__):
-            logger.info("msg1")
-            logger.info("message.2")
+        logger.info("msg1")
+        logger.info("message.2")
 
     captured_msgs = list(map(lambda r: r.msg, caplog.records))
     assert sorted(captured_msgs) == ["message.2", "msg1"]
 
 
 @mock.patch("random.random", lambda: 0.1)
-def test_sampling_filter_filter(caplog):
+def test_sampling_filter_filter(caplog, debug_level):
     logger = logging.getLogger(__name__)
     with filter_context(logger, [SamplingFilter(0.05)]):
-        with caplog.at_level(logging.DEBUG, __name__):
-            logger.info("msg1")
-            logger.info("message.2")
+        logger.info("msg1")
+        logger.info("message.2")
 
     captured_msgs = list(map(lambda r: r.msg, caplog.records))
     assert captured_msgs == []
 
 
 @mock.patch("random.random", lambda: 0.1)
-def test_sampling_filter_level(caplog):
+def test_sampling_filter_level(caplog, debug_level):
     logger = logging.getLogger(__name__)
     with filter_context(logger, [SamplingFilter(0.05, level=logging.WARNING)]):
-        with caplog.at_level(logging.DEBUG, __name__):
-            logger.debug("debug")
-            logger.info("info")
-            logger.warning("warning")
-            logger.error("error")
-            logger.critical("critical")
+        logger.debug("debug")
+        logger.info("info")
+        logger.warning("warning")
+        logger.error("error")
+        logger.critical("critical")
 
     captured_msgs = list(map(lambda r: r.msg, caplog.records))
     assert sorted(captured_msgs) == ["critical", "error"]
 
 
 @mock.patch("random.random", lambda: 0.1)
-def test_sampling_filter_level_default(caplog):
+def test_sampling_filter_level_default(caplog, debug_level):
     logger = logging.getLogger(__name__)
     with filter_context(logger, [SamplingFilter(0.05)]):
-        with caplog.at_level(logging.DEBUG, __name__):
-            logger.debug("debug")
-            logger.info("info")
-            logger.warning("warning")
-            logger.error("error")
-            logger.critical("critical")
+        logger.debug("debug")
+        logger.info("info")
+        logger.warning("warning")
+        logger.error("error")
+        logger.critical("critical")
 
     captured_msgs = list(map(lambda r: r.msg, caplog.records))
     assert sorted(captured_msgs) == ["critical", "error", "warning"]
