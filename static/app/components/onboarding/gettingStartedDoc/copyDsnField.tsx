@@ -19,8 +19,9 @@ export function CopyDsnField({params}: {params: DocsParams<any>}) {
       </p>
       <TextCopyInput
         onCopy={() =>
-          trackAnalytics('onboarding.nextjs-dsn-copied', {
+          trackAnalytics('onboarding.dsn-copied', {
             organization: params.organization,
+            platform: params.platformKey,
           })
         }
       >
