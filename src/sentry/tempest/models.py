@@ -46,8 +46,5 @@ class TempestCredentials(DefaultFieldsModel):
     def get_audit_log_data(self) -> dict:
         return {
             "project_id": self.project.id,
-            "message": self.message,
-            "message_type": self.message_type,
             "client_id": self.client_id,
-            "client_secret": self.client_secret,
         }
