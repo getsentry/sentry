@@ -1,6 +1,6 @@
 import unittest
 from unittest import mock
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 import pytest
 from django.core.cache import cache
@@ -10,14 +10,11 @@ from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleActivity,
     AlertRuleActivityType,
-    AlertRuleMonitorTypeInt,
     AlertRuleStatus,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
 )
 from sentry.incidents.models.incident import IncidentStatus
-from sentry.incidents.utils.types import AlertRuleActivationConditionType
-from sentry.snuba.models import QuerySubscription
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.alert_rule import TemporaryAlertRuleTriggerActionRegistry
 from sentry.users.services.user.service import user_service
@@ -140,74 +137,6 @@ class IncidentAlertRuleRelationTest(TestCase):
         all_alert_rules = list(AlertRule.objects.all())
         assert self.alert_rule not in all_alert_rules
         assert self.incident.alert_rule.id == self.alert_rule.id
-
-
-class AlertRuleTest(TestCase):
-    @patch("sentry.incidents.models.alert_rule.bulk_create_snuba_subscriptions")
-    def test_subscribes_projects_to_alert_rule(self, mock_bulk_create_snuba_subscriptions):
-        # eg. creates QuerySubscription's/SnubaQuery's for AlertRule + Project
-        alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorTypeInt.ACTIVATED)
-        assert mock_bulk_create_snuba_subscriptions.call_count == 0
-
-        alert_rule.subscribe_projects(
-            projects=[self.project],
-            monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
-            activator="testing",
-            activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
-        )
-        assert mock_bulk_create_snuba_subscriptions.call_count == 1
-
-    def test_conditionally_subscribe_project_to_alert_rules(self):
-        query_extra = "foo:bar"
-        project = self.create_project(name="foo")
-        self.create_alert_rule(
-            projects=[project],
-            monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
-            activation_condition=AlertRuleActivationConditionType.DEPLOY_CREATION,
-        )
-        with self.tasks():
-            created_subscriptions = (
-                AlertRule.objects.conditionally_subscribe_project_to_alert_rules(
-                    project=project,
-                    activation_condition=AlertRuleActivationConditionType.DEPLOY_CREATION,
-                    query_extra=query_extra,
-                    origin="test",
-                    activator="testing",
-                )
-            )
-            assert len(created_subscriptions) == 1
-
-            sub = created_subscriptions[0]
-            fetched_sub = QuerySubscription.objects.get(id=sub.id)
-            assert fetched_sub.subscription_id is not None
-
-    def test_conditionally_subscribing_project_initializes_activation(self):
-        query_extra = "foo:bar"
-        project = self.create_project(name="foo")
-        alert_rule = self.create_alert_rule(
-            projects=[project],
-            monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
-            activation_condition=AlertRuleActivationConditionType.DEPLOY_CREATION,
-        )
-
-        with self.tasks():
-            created_subscriptions = (
-                AlertRule.objects.conditionally_subscribe_project_to_alert_rules(
-                    project=project,
-                    activation_condition=AlertRuleActivationConditionType.DEPLOY_CREATION,
-                    query_extra=query_extra,
-                    origin="test",
-                    activator="testing",
-                )
-            )
-            assert len(created_subscriptions) == 1
-
-            sub = created_subscriptions[0]
-            activations = alert_rule.activations.all()
-            assert len(activations) == 1
-            current_activation = activations[0]
-            assert current_activation.query_subscription == sub
-            assert current_activation.is_complete() is False
 
 
 class AlertRuleFetchForOrganizationTest(TestCase):
