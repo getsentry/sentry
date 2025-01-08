@@ -18,6 +18,7 @@ from sentry.workflow_engine.migration_helpers.alert_rule import (
     migrate_alert_rule,
     migrate_metric_action,
     migrate_metric_data_condition,
+    migrate_resolve_threshold_data_condition,
 )
 from sentry.workflow_engine.models import (
     Action,
@@ -68,7 +69,7 @@ class AlertRuleMigrationHelpersTest(APITestCase):
             self.org_integration.config = {"team_table": [self.og_team]}
             self.org_integration.save()
 
-        self.metric_alert = self.create_alert_rule()
+        self.metric_alert = self.create_alert_rule(resolve_threshold=2)
         self.alert_rule_trigger_warning = self.create_alert_rule_trigger(
             alert_rule=self.metric_alert, label="warning"
         )
@@ -199,36 +200,52 @@ class AlertRuleMigrationHelpersTest(APITestCase):
         migrate_alert_rule(self.metric_alert, self.rpc_user)
         migrate_metric_data_condition(self.alert_rule_trigger_warning)
         migrate_metric_data_condition(self.alert_rule_trigger_critical)
+        migrate_resolve_threshold_data_condition(self.metric_alert)
 
-        alert_rule_trigger_data_conditions = AlertRuleTriggerDataCondition.objects.filter(
-            alert_rule_trigger__in=[
-                self.alert_rule_trigger_critical,
-                self.alert_rule_trigger_warning,
-            ]
+        assert (
+            AlertRuleTriggerDataCondition.objects.filter(
+                alert_rule_trigger__in=[
+                    self.alert_rule_trigger_critical,
+                    self.alert_rule_trigger_warning,
+                ]
+            ).count()
+            == 2
         )
-        assert len(alert_rule_trigger_data_conditions) == 2
+
         data_conditions = DataCondition.objects.filter(
             comparison__in=[
                 self.alert_rule_trigger_warning.alert_threshold,
                 self.alert_rule_trigger_critical.alert_threshold,
+                self.metric_alert.resolve_threshold,
             ]
         )
-        assert len(data_conditions) == 2
-        assert data_conditions[0].type == Condition.GREATER
-        assert data_conditions[0].comparison == self.alert_rule_trigger_warning.alert_threshold
-        assert data_conditions[0].condition_result == DetectorPriorityLevel.MEDIUM
-        assert data_conditions[0].condition_group == data_conditions[0].condition_group
+        assert len(data_conditions) == 3
+        warning_data_condition = data_conditions[0]
+        critical_data_condition = data_conditions[1]
+        resolve_data_condition = data_conditions[2]
+
+        assert warning_data_condition.type == Condition.GREATER
+        assert warning_data_condition.comparison == self.alert_rule_trigger_warning.alert_threshold
+        assert warning_data_condition.condition_result == DetectorPriorityLevel.MEDIUM
+        assert warning_data_condition.condition_group == warning_data_condition.condition_group
         assert WorkflowDataConditionGroup.objects.filter(
-            condition_group=data_conditions[0].condition_group
+            condition_group=warning_data_condition.condition_group
         ).exists()
 
-        assert data_conditions[1].type == Condition.GREATER
-        assert data_conditions[1].comparison == self.alert_rule_trigger_critical.alert_threshold
-        assert data_conditions[1].condition_result == DetectorPriorityLevel.HIGH
-        assert data_conditions[1].condition_group == data_conditions[1].condition_group
+        assert critical_data_condition.type == Condition.GREATER
+        assert (
+            critical_data_condition.comparison == self.alert_rule_trigger_critical.alert_threshold
+        )
+        assert critical_data_condition.condition_result == DetectorPriorityLevel.HIGH
+        assert critical_data_condition.condition_group == critical_data_condition.condition_group
         assert WorkflowDataConditionGroup.objects.filter(
-            condition_group=data_conditions[1].condition_group
+            condition_group=critical_data_condition.condition_group
         ).exists()
+
+        assert resolve_data_condition.type == Condition.LESS
+        assert resolve_data_condition.comparison == self.metric_alert.resolve_threshold
+        assert resolve_data_condition.condition_result == DetectorPriorityLevel.OK
+        assert resolve_data_condition.condition_group == resolve_data_condition.condition_group
 
     def test_create_metric_alert_trigger_action(self):
         """

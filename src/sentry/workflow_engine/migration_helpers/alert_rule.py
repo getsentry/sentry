@@ -141,6 +141,36 @@ def migrate_metric_data_condition(
     return data_condition, alert_rule_trigger_data_condition
 
 
+def migrate_resolve_threshold_data_condition(alert_rule: AlertRule) -> DataCondition:
+    """
+    Create data conditions for rules with a resolve threshold
+    """
+    data_condition_group = DataConditionGroup.objects.create(
+        organization_id=alert_rule.organization_id
+    )
+    alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=alert_rule)
+    WorkflowDataConditionGroup.objects.create(
+        condition_group=data_condition_group,
+        workflow=alert_rule_workflow.workflow,
+    )
+    threshold_type = (
+        Condition.LESS
+        if alert_rule.threshold_type == AlertRuleThresholdType.ABOVE.value
+        else Condition.GREATER
+    )
+    # XXX: we set the resolve trigger's threshold_type to whatever the opposite of the rule's threshold_type is
+    # e.g. if the rule has a critical trigger ABOVE some number, the resolve threshold is automatically set to BELOW
+
+    data_condition = DataCondition.objects.create(
+        comparison=alert_rule.resolve_threshold,
+        condition_result=DetectorPriorityLevel.OK,
+        type=threshold_type,
+        condition_group=data_condition_group,
+    )
+    # XXX: can't make an AlertRuleTriggerDataCondition since this isn't really a trigger
+    return data_condition
+
+
 def create_metric_alert_lookup_tables(
     alert_rule: AlertRule,
     detector: Detector,
@@ -252,7 +282,7 @@ def migrate_alert_rule(
     detector_state = DetectorState.objects.create(
         detector=detector,
         active=False,
-        state=DetectorPriorityLevel.OK,
+        state=DetectorPriorityLevel.OK,  # TODO this should be determined based on whether or not the rule has an active incident
     )
     alert_rule_detector, alert_rule_workflow, detector_workflow = create_metric_alert_lookup_tables(
         alert_rule, detector, workflow
