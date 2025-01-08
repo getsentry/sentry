@@ -24,7 +24,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("workflow_engine", "0020_rm_legacy_notification_type"),
+        ("workflow_engine", "0021_drop_legacy_notification_type"),
     ]
 
     operations = [
