@@ -2951,6 +2951,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "uptime-configs": "default",
     "uptime-results": "default",
     "uptime-configs": "default",
+    "snuba-uptime-results": "default",
     "generic-events": "default",
     "snuba-generic-events-commit-log": "default",
     "group-attributes": "default",
