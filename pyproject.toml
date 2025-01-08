@@ -442,6 +442,7 @@ module = [
     "sentry.issues.endpoints.related_issues",
     "sentry.issues.endpoints.shared_group_details",
     "sentry.issues.endpoints.team_groups_old",
+    "sentry.issues.escalating",
     "sentry.issues.escalating_group_forecast",
     "sentry.issues.escalating_issues_alg",
     "sentry.issues.forecasts",
