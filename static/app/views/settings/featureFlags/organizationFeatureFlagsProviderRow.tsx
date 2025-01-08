@@ -10,8 +10,8 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import useUserFromId from 'sentry/utils/useUserFromId';
 import type {Secret} from 'sentry/views/settings/featureFlags';
-import useUserFromId from 'sentry/views/settings/featureFlags/useUserFromId';
 
 export function OrganizationFeatureFlagsProviderRow({
   isRemoving,

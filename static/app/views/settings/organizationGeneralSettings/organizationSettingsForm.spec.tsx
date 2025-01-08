@@ -76,7 +76,7 @@ describe('OrganizationSettingsForm', function () {
       'name'
     );
 
-    const model = saveOnBlur.mock.calls[0][1];
+    const model = saveOnBlur.mock.calls[0]![1];
 
     // Test "undo" call undo directly
     expect(model.getValue('name')).toBe('New Name');

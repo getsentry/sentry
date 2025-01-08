@@ -13,13 +13,13 @@ import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionT
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {NewQuery} from 'sentry/types/organization';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
@@ -50,18 +50,22 @@ import {ModuleName} from 'sentry/views/insights/types';
 
 export function ScreensLandingPage() {
   const moduleName = ModuleName.MOBILE_SCREENS;
+  const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
   const {isProjectCrossPlatform, selectedPlatform} = useCrossPlatformProject();
 
   const handleProjectChange = useCallback(() => {
-    browserHistory.replace({
-      ...location,
-      query: {
-        ...omit(location.query, ['primaryRelease', 'secondaryRelease']),
+    navigate(
+      {
+        ...location,
+        query: {
+          ...omit(location.query, ['primaryRelease', 'secondaryRelease']),
+        },
       },
-    });
-  }, [location]);
+      {replace: true}
+    );
+  }, [location, navigate]);
   const {selection} = usePageFilters();
 
   const vitalItems: VitalItem[] = [
@@ -265,7 +269,7 @@ export function ScreensLandingPage() {
       item.dataset === DiscoverDatasets.METRICS ? metricsResult : spanMetricsResult;
 
     if (dataset.data) {
-      const row = dataset.data.data[0];
+      const row = dataset.data.data[0]!;
       const units = dataset.data.meta?.units;
       const fieldTypes = dataset.data.meta?.fields;
 
@@ -275,8 +279,8 @@ export function ScreensLandingPage() {
 
       return {
         type: fieldType,
-        unit: unit,
-        value: value,
+        unit,
+        value,
       };
     }
 
@@ -324,7 +328,7 @@ export function ScreensLandingPage() {
                             onClick={() => {
                               setState({
                                 vital: item,
-                                status: status,
+                                status,
                               });
                             }}
                             key={item.field}

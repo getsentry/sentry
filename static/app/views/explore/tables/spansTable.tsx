@@ -31,6 +31,7 @@ import {
   useExploreFields,
   useExploreQuery,
   useExploreSortBys,
+  useExploreTitle,
   useExploreVisualizes,
   useSetExploreSortBys,
 } from 'sentry/views/explore/contexts/pageParamsContext';
@@ -49,6 +50,7 @@ export function SpansTable({confidence, setError}: SpansTableProps) {
   const {selection} = usePageFilters();
 
   const dataset = useExploreDataset();
+  const title = useExploreTitle();
   const fields = useExploreFields();
   const sortBys = useExploreSortBys();
   const setSortBys = useSetExploreSortBys();
@@ -114,6 +116,7 @@ export function SpansTable({confidence, setError}: SpansTableProps) {
     columns: fields,
     userQuery: query,
     confidence,
+    title,
   });
 
   const tableRef = useRef<HTMLTableElement>(null);
@@ -194,7 +197,7 @@ export function SpansTable({confidence, setError}: SpansTableProps) {
                   return (
                     <TableBodyCell key={j}>
                       <FieldRenderer
-                        column={columnsFromEventView[j]}
+                        column={columnsFromEventView[j]!}
                         data={row}
                         unit={meta?.units?.[field]}
                         meta={meta}

@@ -53,8 +53,8 @@ function AutofixBreadcrumbSnippet({breadcrumb}: AutofixBreadcrumbSnippetProps) {
   const rawCrumb = {
     message: breadcrumb.body,
     category: breadcrumb.category,
-    type: type,
-    level: level,
+    type,
+    level,
   };
 
   return (

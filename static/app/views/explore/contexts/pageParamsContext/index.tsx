@@ -1,10 +1,13 @@
 import type React from 'react';
 import {createContext, useCallback, useContext, useMemo} from 'react';
+import type {Location} from 'history';
 
+import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
-import type {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import {
   defaultDataset,
@@ -24,6 +27,7 @@ import {
   getSortBysFromLocation,
   updateLocationWithSortBys,
 } from './sortBys';
+import {defaultTitle, getTitleFromLocation, updateLocationWithTitle} from './title';
 import {
   defaultVisualizes,
   getVisualizesFromLocation,
@@ -32,13 +36,14 @@ import {
 } from './visualizes';
 
 interface ReadablePageParams {
-  dataset: DiscoverDatasets;
+  dataset: DiscoverDatasets | undefined;
   fields: string[];
   groupBys: string[];
   mode: Mode;
   query: string;
   sortBys: Sort[];
   visualizes: Visualize[];
+  title?: string;
 }
 
 interface WritablePageParams {
@@ -48,7 +53,18 @@ interface WritablePageParams {
   mode?: Mode | null;
   query?: string | null;
   sortBys?: Sort[] | null;
+  title?: string | null;
   visualizes?: Omit<Visualize, 'label'>[] | null;
+}
+
+export interface SuggestedQuery {
+  fields: string[];
+  groupBys: string[];
+  mode: Mode;
+  query: string;
+  sortBys: Sort[];
+  title: string;
+  visualizes: Omit<Visualize, 'label'>[];
 }
 
 function defaultPageParams(): ReadablePageParams {
@@ -58,6 +74,7 @@ function defaultPageParams(): ReadablePageParams {
   const mode = defaultMode();
   const query = defaultQuery();
   const visualizes = defaultVisualizes();
+  const title = defaultTitle();
   const sortBys = defaultSortBys(mode, fields, visualizes);
 
   return {
@@ -67,6 +84,7 @@ function defaultPageParams(): ReadablePageParams {
     mode,
     query,
     sortBys,
+    title,
     visualizes,
   };
 }
@@ -88,6 +106,7 @@ export function PageParamsProvider({children}: PageParamsProviderProps) {
     const query = getQueryFromLocation(location);
     const visualizes = getVisualizesFromLocation(location);
     const sortBys = getSortBysFromLocation(location, mode, fields, groupBys, visualizes);
+    const title = getTitleFromLocation(location);
 
     return {
       dataset,
@@ -96,6 +115,7 @@ export function PageParamsProvider({children}: PageParamsProviderProps) {
       mode,
       query,
       sortBys,
+      title,
       visualizes,
     };
   }, [location]);
@@ -110,8 +130,16 @@ export function useExplorePageParams(): ReadablePageParams {
 }
 
 export function useExploreDataset(): DiscoverDatasets {
+  const organization = useOrganization();
   const pageParams = useExplorePageParams();
-  return pageParams.dataset;
+
+  if (defined(pageParams.dataset)) {
+    return pageParams.dataset;
+  }
+
+  return organization.features.includes('visibility-explore-rpc')
+    ? DiscoverDatasets.SPANS_EAP_RPC
+    : DiscoverDatasets.SPANS_EAP;
 }
 
 export function useExploreFields(): string[] {
@@ -139,9 +167,30 @@ export function useExploreSortBys(): Sort[] {
   return pageParams.sortBys;
 }
 
+export function useExploreTitle(): string | undefined {
+  const pageParams = useExplorePageParams();
+  return pageParams.title;
+}
+
 export function useExploreVisualizes(): Visualize[] {
   const pageParams = useExplorePageParams();
   return pageParams.visualizes;
+}
+
+export function newExploreTarget(
+  location: Location,
+  pageParams: WritablePageParams
+): Location {
+  const target = {...location, query: {...location.query}};
+  updateLocationWithDataset(target, pageParams.dataset);
+  updateLocationWithFields(target, pageParams.fields);
+  updateLocationWithGroupBys(target, pageParams.groupBys);
+  updateLocationWithMode(target, pageParams.mode);
+  updateLocationWithQuery(target, pageParams.query);
+  updateLocationWithSortBys(target, pageParams.sortBys);
+  updateLocationWithVisualizes(target, pageParams.visualizes);
+  updateLocationWithTitle(target, pageParams.title);
+  return target;
 }
 
 export function useSetExplorePageParams() {
@@ -150,14 +199,7 @@ export function useSetExplorePageParams() {
 
   return useCallback(
     (pageParams: WritablePageParams) => {
-      const target = {...location, query: {...location.query}};
-      updateLocationWithDataset(target, pageParams.dataset);
-      updateLocationWithFields(target, pageParams.fields);
-      updateLocationWithGroupBys(target, pageParams.groupBys);
-      updateLocationWithMode(target, pageParams.mode);
-      updateLocationWithQuery(target, pageParams.query);
-      updateLocationWithSortBys(target, pageParams.sortBys);
-      updateLocationWithVisualizes(target, pageParams.visualizes);
+      const target = newExploreTarget(location, pageParams);
       navigate(target);
     },
     [location, navigate]

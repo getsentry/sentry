@@ -1,7 +1,5 @@
 from datetime import datetime, timedelta, timezone
 
-DATASET_BUCKET = 3600
-
 
 def _make_stats(start, rollup, buckets, default=0):
     rv = []

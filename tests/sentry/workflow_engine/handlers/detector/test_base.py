@@ -10,6 +10,7 @@ from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.handlers.detector import DetectorEvaluationResult, DetectorHandler
 from sentry.workflow_engine.handlers.detector.stateful import StatefulDetectorHandler
 from sentry.workflow_engine.models import DataPacket, Detector
+from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel
 from tests.sentry.issues.test_grouptype import BaseGroupTypeTest
 
@@ -127,7 +128,7 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
             type=type,
         )
         self.create_data_condition(
-            condition="gt",
+            type=Condition.GREATER,
             comparison=5,
             condition_result=DetectorPriorityLevel.HIGH,
             condition_group=detector.workflow_condition_group,

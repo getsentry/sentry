@@ -63,7 +63,7 @@ type Props = Pick<RouteComponentProps<{eventSlug: string}, {}>, 'params' | 'loca
 
 function EventDetailsContent(props: Props) {
   const [isSidebarVisible, setIsSidebarVisible] = useState<boolean>(true);
-  const projectId = props.eventSlug.split(':')[0];
+  const projectId = props.eventSlug.split(':')[0]!;
   const {organization, eventSlug, location} = props;
 
   const {

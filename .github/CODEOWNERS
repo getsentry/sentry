@@ -28,6 +28,8 @@
 /src/sentry/snuba/metrics/query.py                       @getsentry/owners-snuba @getsentry/telemetry-experience
 /src/sentry/snuba/metrics_layer/                         @getsentry/owners-snuba
 /src/sentry/search/events/datasets/metrics_layer.py      @getsentry/owners-snuba
+/tests/snuba/test_snql_snuba.py                          @getsentry/owners-snuba
+/tests/snuba/test_snuba.py                               @getsentry/owners-snuba
 
 ## Event Ingestion
 /src/sentry/attachments/                                 @getsentry/ingest
@@ -66,6 +68,7 @@
 
 ## Dev
 /devenv/                                                 @getsentry/owners-sentry-dev @getsentry/dev-infra
+/devservices/                                            @getsentry/owners-sentry-dev @getsentry/dev-infra
 /.github/                                                @getsentry/owners-sentry-dev
 /config/hooks/                                           @getsentry/owners-sentry-dev
 /scripts/                                                @getsentry/owners-sentry-dev
@@ -122,6 +125,7 @@ pyproject.toml                                           @getsentry/owners-pytho
 babel.config.*                                           @getsentry/owners-js-build
 biome.json                                               @getsentry/owners-js-build
 build-utils/                                             @getsentry/owners-js-build
+eslint.config.mjs                                        @getsentry/owners-js-build
 jest.config.ts                                           @getsentry/owners-js-build
 tsconfig.*                                               @getsentry/owners-js-build
 webpack.config.*                                         @getsentry/owners-js-build
@@ -357,10 +361,12 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 ## End of DevToolbar
 
 
-## Misc Replay
-/static/app/components/analyticsArea.tsx       @getsentry/replay-frontend
-/static/app/components/analyticsArea.spec.tsx  @getsentry/replay-frontend
-## End of Misc Replay
+## Frontend
+/static/app/components/analyticsArea.spec.tsx  @getsentry/app-frontend
+/static/app/components/analyticsArea.tsx       @getsentry/app-frontend
+/static/app/components/events/interfaces/      @getsentry/app-frontend
+/static/app/components/forms/                  @getsentry/app-frontend
+## End of Frontend
 
 
 ## Integrations

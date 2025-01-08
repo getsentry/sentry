@@ -480,4 +480,20 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
     ],
     supportedSdks: ['android', 'flutter', 'apple-ios', 'react-native'],
   },
+  // XXX(epurkhiser): Crons does not use the insights onboarding component.
+  crons: {
+    description: null,
+    heading: null,
+    imageSrc: null,
+    valuePropDescription: null,
+    valuePropPoints: [],
+  },
+  // XXX(epurkhiser): Uptime does not use the insights onboarding component.
+  uptime: {
+    description: null,
+    heading: null,
+    imageSrc: null,
+    valuePropDescription: null,
+    valuePropPoints: [],
+  },
 };

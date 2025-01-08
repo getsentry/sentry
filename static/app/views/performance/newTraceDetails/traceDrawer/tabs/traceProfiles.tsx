@@ -90,7 +90,7 @@ export function TraceProfiles({
                 start: new Date(node.space[0]).toISOString(),
                 end: new Date(node.space[0] + node.space[1]).toISOString(),
                 projectSlug: node.metadata.project_slug as string,
-                query: query,
+                query,
               })
             : generateProfileFlamechartRouteWithQuery({
                 orgSlug: organization.slug,

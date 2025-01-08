@@ -3,9 +3,9 @@ import type {ComponentProps} from 'react';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {MobileCursors} from 'sentry/views/insights/mobile/screenload/constants';
 import {ModuleName} from 'sentry/views/insights/types';
@@ -21,6 +21,7 @@ export function DeviceClassSelector({
   clearSpansTableCursor,
   moduleName = ModuleName.OTHER,
 }: Props) {
+  const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
 
@@ -52,7 +53,7 @@ export function DeviceClassSelector({
             filter: newValue.value,
           });
         }
-        browserHistory.push({
+        navigate({
           ...location,
           query: {
             ...location.query,

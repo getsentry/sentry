@@ -28,8 +28,8 @@ const TRACE_PREFERENCES_DROPDOWN_OPTIONS: SelectOption<string>[] = [
     ),
   },
   {
-    label: t('Missing Instrumentation'),
-    value: 'missing-instrumentation',
+    label: t('No Instrumentation'),
+    value: 'no-instrumentation',
     details: t(
       'Shows when there is more than 100ms of unaccounted elapsed time between two spans.'
     ),
@@ -43,7 +43,7 @@ export function TracePreferencesDropdown(props: TracePreferencesDropdownProps) {
       value.push('autogroup');
     }
     if (props.missingInstrumentation) {
-      value.push('missing-instrumentation');
+      value.push('no-instrumentation');
     }
     return value;
   }, [props.autogroup, props.missingInstrumentation]);
@@ -60,7 +60,7 @@ export function TracePreferencesDropdown(props: TracePreferencesDropdownProps) {
         if (newOption === 'autogroup') {
           onAutogroupChange();
         }
-        if (newOption === 'missing-instrumentation') {
+        if (newOption === 'no-instrumentation') {
           onMissingInstrumentationChange();
         }
       }
@@ -70,7 +70,7 @@ export function TracePreferencesDropdown(props: TracePreferencesDropdownProps) {
         if (removedOption === 'autogroup') {
           onAutogroupChange();
         }
-        if (removedOption === 'missing-instrumentation') {
+        if (removedOption === 'no-instrumentation') {
           onMissingInstrumentationChange();
         }
       }

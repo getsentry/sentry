@@ -1,4 +1,4 @@
-import {createRef, memo, useEffect, useState} from 'react';
+import {memo, useEffect, useRef, useState} from 'react';
 import {Observer} from 'mobx-react';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -26,10 +26,10 @@ type Props = {
 };
 
 function TraceView(props: Props) {
-  const traceViewRef = createRef<HTMLDivElement>();
-  const traceViewHeaderRef = createRef<HTMLDivElement>();
-  const virtualScrollBarContainerRef = createRef<HTMLDivElement>();
-  const minimapInteractiveRef = createRef<HTMLDivElement>();
+  const traceViewRef = useRef<HTMLDivElement>(null);
+  const traceViewHeaderRef = useRef<HTMLDivElement>(null);
+  const virtualScrollBarContainerRef = useRef<HTMLDivElement>(null);
+  const minimapInteractiveRef = useRef<HTMLDivElement>(null);
 
   const [isMounted, setIsMounted] = useState(false);
 

@@ -474,7 +474,7 @@ const docs: Docs<PlatformOptions> = {
   crashReportOnboarding,
   platformOptions,
   profilingOnboarding,
-  featureFlagOnboarding: featureFlagOnboarding,
+  featureFlagOnboarding,
 };
 
 export default docs;

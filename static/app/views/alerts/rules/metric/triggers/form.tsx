@@ -214,7 +214,7 @@ class TriggerFormContainer extends Component<TriggerFormContainerProps> {
       <Fragment>
         {triggers.map((trigger, index) => {
           const isCritical = index === 0;
-          // eslint-disable-next-line no-use-before-define
+
           return (
             <TriggerFormItem
               key={index}

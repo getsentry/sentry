@@ -70,7 +70,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
   }
 
   get provider() {
-    return this.state.information.providers[0];
+    return this.state.information.providers[0]!;
   }
 
   get description() {
@@ -82,7 +82,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
   }
 
   get alerts() {
-    const provider = this.provider;
+    const provider = this.provider!;
     const metadata = this.metadata;
     // The server response for integration installations includes old icon CSS classes
     // We map those to the currently in use values to their react equivalents
@@ -111,7 +111,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
   }
 
   get metadata() {
-    return this.provider.metadata;
+    return this.provider!.metadata;
   }
 
   get isEnabled() {
@@ -136,7 +136,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
   }
 
   get integrationName() {
-    return this.provider.name;
+    return this.provider!.name;
   }
 
   get featureData() {
@@ -145,7 +145,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
 
   renderTabs() {
     // TODO: Convert to styled component
-    const tabs = integrationFeatures.includes(this.provider.key)
+    const tabs = integrationFeatures.includes(this.provider!.key)
       ? this.tabs
       : this.tabs.filter(tab => tab !== 'features');
 
@@ -240,7 +240,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
   }
 
   renderTopButton(disabledFromFeatures: boolean, userHasAccess: boolean) {
-    const provider = this.provider;
+    const provider = this.provider!;
     const location = this.props.location;
     const queryParams = new URLSearchParams(location.search);
     const referrer = queryParams.get('referrer');
@@ -255,7 +255,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
     return (
       <IntegrationContext.Provider
         value={{
-          provider: provider,
+          provider,
           type: this.integrationType,
           installStatus: this.installationStatus,
           analyticsParams: {
@@ -298,7 +298,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
             <PanelItem key={integration.id}>
               <InstalledIntegration
                 organization={organization}
-                provider={provider}
+                provider={provider!}
                 integration={integration}
                 onRemove={this.onRemove}
                 onDisable={this.onDisable}

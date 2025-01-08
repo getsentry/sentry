@@ -24,4 +24,4 @@ def a_function_that_calls_erroring_get_dog():
     except TypeError:
         return "Well, we tried."
 
-    return "We shouldn't ever get here"
+    raise AssertionError("We shouldn't ever get here")

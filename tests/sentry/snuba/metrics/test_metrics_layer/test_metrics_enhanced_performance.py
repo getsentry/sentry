@@ -530,7 +530,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             )
 
         with pytest.raises(InvalidParams):
-            metrics_query = self.build_metrics_query(
+            self.build_metrics_query(
                 before_now="1h",
                 granularity="1h",
                 select=[
@@ -549,12 +549,6 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 limit=Limit(limit=3),
                 offset=Offset(offset=0),
                 include_series=False,
-            )
-            get_series(
-                [self.project],
-                metrics_query=metrics_query,
-                include_meta=True,
-                use_case_id=UseCaseID.TRANSACTIONS,
             )
 
     def test_query_with_sum_if_column(self):
