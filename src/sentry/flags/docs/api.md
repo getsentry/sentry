@@ -29,15 +29,15 @@ Retrieve a collection of flag logs.
 
 **Attributes**
 
-| Column        | Type           | Description                                                   |
-| ------------- | -------------- | ------------------------------------------------------------- |
-| action        | string         | Enum of `created`, `updated`, or `deleted`.                   |
-| createdAt     | string         | ISO-8601 timestamp of when the flag was changed.              |
-| createdBy     | string or null | The user responsible for the change.                          |
+| Column        | Type             | Description                                                   |
+| ------------- | ---------------- | ------------------------------------------------------------- |
+| action        | string           | Enum of `created`, `updated`, or `deleted`.                   |
+| createdAt     | string           | ISO-8601 timestamp of when the flag was changed.              |
+| createdBy     | string or null   | The user responsible for the change.                          |
 | createdByType | optional[string] | Enum of `email`, `id`, or `name`.                             |
-| flag          | string         | The name of the flag changed. Maps to flag_log_id in the URI. |
-| id            | number         | A unique identifier for the log entry.                        |
-| tags          | object         | A collection of provider-specified scoping metadata.          |
+| flag          | string           | The name of the flag changed. Maps to flag_log_id in the URI. |
+| id            | number           | A unique identifier for the log entry.                        |
+| tags          | object           | A collection of provider-specified scoping metadata.          |
 
 - Response 200
 
