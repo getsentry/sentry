@@ -29,6 +29,7 @@ class Condition(models.TextChoices):
     EXISTING_HIGH_PRIORITY_ISSUE = "existing_high_priority_issue"
     FIRST_SEEN_EVENT = "first_seen_event"
     ISSUE_CATEGORY = "issue_category"
+    ISSUE_OCCURRENCES = "issue_occurrences"
     LEVEL = "level"
     NEW_HIGH_PRIORITY_ISSUE = "new_high_priority_issue"
     REGRESSION_EVENT = "regression_event"
