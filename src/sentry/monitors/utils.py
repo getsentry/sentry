@@ -44,9 +44,7 @@ def check_and_signal_first_monitor_created(project: Project, user, from_upsert: 
         )
 
 
-def signal_monitor_created(
-    project: Project, user, from_upsert: bool, monitor: Monitor, request: Request | None
-):
+def signal_monitor_created(project: Project, user, from_upsert: bool, monitor: Monitor, request):
     cron_monitor_created.send_robust(
         project=project, user=user, from_upsert=from_upsert, sender=Project
     )
