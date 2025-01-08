@@ -3025,61 +3025,73 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         self.store_transaction_metric(
             0.5,
             metric="measurements.score.inp",
-            tags={"transaction": "foo_transaction"},
+            tags={"transaction": "foo_transaction", "browser.name": "Safari"},
             timestamp=self.min_ago,
         )
         self.store_transaction_metric(
             1.0,
             metric="measurements.score.weight.inp",
-            tags={"transaction": "foo_transaction"},
+            tags={"transaction": "foo_transaction", "browser.name": "Safari"},
             timestamp=self.min_ago,
         )
         self.store_transaction_metric(
             0.2,
             metric="measurements.score.inp",
-            tags={"transaction": "foo_transaction"},
+            tags={"transaction": "foo_transaction", "browser.name": "Safari"},
             timestamp=self.min_ago,
         )
         self.store_transaction_metric(
             1.0,
             metric="measurements.score.weight.inp",
-            tags={"transaction": "foo_transaction"},
+            tags={"transaction": "foo_transaction", "browser.name": "Safari"},
             timestamp=self.min_ago,
         )
         self.store_transaction_metric(
             0.2,
             metric="measurements.score.inp",
-            tags={"transaction": "foo_transaction"},
+            tags={"transaction": "foo_transaction", "browser.name": "Safari"},
             timestamp=self.min_ago,
         )
         self.store_transaction_metric(
             0.5,
             metric="measurements.score.weight.inp",
-            tags={"transaction": "foo_transaction"},
+            tags={"transaction": "foo_transaction", "browser.name": "Safari"},
             timestamp=self.min_ago,
         )
         self.store_transaction_metric(
             0.1,
             metric="measurements.score.lcp",
-            tags={"transaction": "foo_transaction"},
+            tags={"transaction": "foo_transaction", "browser.name": "Firefox"},
             timestamp=self.min_ago,
         )
         self.store_transaction_metric(
             0.3,
             metric="measurements.score.weight.lcp",
-            tags={"transaction": "foo_transaction"},
+            tags={"transaction": "foo_transaction", "browser.name": "Firefox"},
             timestamp=self.min_ago,
         )
         self.store_transaction_metric(
             0.2,
             metric="measurements.score.inp",
-            tags={"transaction": "bar_transaction"},
+            tags={"transaction": "bar_transaction", "browser.name": "Safari"},
             timestamp=self.min_ago,
         )
         self.store_transaction_metric(
             0.5,
             metric="measurements.score.weight.inp",
-            tags={"transaction": "bar_transaction"},
+            tags={"transaction": "bar_transaction", "browser.name": "Safari"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            0.5,
+            metric="measurements.score.total",
+            tags={"transaction": "foo_transaction", "browser.name": "Safari"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            0.5,
+            metric="measurements.score.total",
+            tags={"transaction": "bar_transaction", "browser.name": "Safari"},
             timestamp=self.min_ago,
         )
 
@@ -3090,7 +3102,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
                         "transaction",
                         "total_opportunity_score()",
                     ],
-                    "query": "event.type:transaction",
+                    "query": 'event.type:transaction transaction.op:[pageload,""] (browser.name:Safari OR browser.name:Firefox) avg(measurements.score.total):>0',
                     "orderby": "transaction",
                     "dataset": "metrics",
                     "per_page": 50,
