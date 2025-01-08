@@ -80,8 +80,6 @@ const TEMPLATE_TABLE_COLUMN: TableColumn<string> = {
   width: COL_WIDTH_UNDEFINED,
 };
 
-// TODO(mark) these types are coupled to the gridEditable component types and
-// I'd prefer the types to be more general purpose but that will require a second pass.
 export function decodeColumnOrder(fields: Readonly<Field[]>): TableColumn<string>[] {
   return fields.map((f: Field) => {
     const column: TableColumn<string> = {...TEMPLATE_TABLE_COLUMN};

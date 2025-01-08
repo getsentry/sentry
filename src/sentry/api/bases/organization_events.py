@@ -367,8 +367,6 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
         first_row = results[0]
 
-        # TODO(mark) move all of this result formatting into discover.query()
-        # once those APIs are used across the application.
         if "transaction.status" in first_row:
             for row in results:
                 if "transaction.status" in row and type(row["transaction.status"]) is int:
