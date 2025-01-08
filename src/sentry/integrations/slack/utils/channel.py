@@ -121,6 +121,8 @@ def validate_channel_id(name: str, integration_id: int | None, input_channel_id:
 
         if unpack_slack_api_error(e) == CHANNEL_NOT_FOUND:
             raise ValidationError("Channel not found. Invalid ID provided.") from e
+        elif unpack_slack_api_error(e) == RATE_LIMITED:
+            raise ValidationError("Rate limited") from e
 
         raise ValidationError("Could not retrieve Slack channel information.") from e
 
