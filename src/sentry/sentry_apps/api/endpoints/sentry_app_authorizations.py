@@ -82,7 +82,7 @@ class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
                 ).run()
             else:
                 raise SentryAppIntegratorError(
-                    "Invalid grant type", status_code=status.HTTP_403_FORBIDDEN
+                    APIUnauthorized("Invalid grant type"), status_code=status.HTTP_403_FORBIDDEN
                 )
 
         except APIUnauthorized as e:
