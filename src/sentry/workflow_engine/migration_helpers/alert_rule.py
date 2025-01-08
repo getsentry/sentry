@@ -7,6 +7,7 @@ from sentry.users.services.user import RpcUser
 from sentry.workflow_engine.models import (
     AlertRuleDetector,
     AlertRuleWorkflow,
+    DataCondition,
     DataConditionGroup,
     DataSource,
     Detector,
@@ -176,7 +177,7 @@ def update_migrated_alert_rule(alert_rule: AlertRule, updated_fields: dict[str, 
         # )
         return None
 
-    detector = alert_rule_detector.detector
+    detector: Detector = alert_rule_detector.detector
 
     try:
         detector_state = DetectorState.objects.get(detector=detector)
@@ -209,6 +210,35 @@ def update_migrated_alert_rule(alert_rule: AlertRule, updated_fields: dict[str, 
         config["comparison_delta"] = updated_fields["comparison_delta"]
     updated_detector_fields["config"] = config
 
+    # if the user updated resolve_threshold or threshold_type, then we also need to update the Detector's DataConditions
+    """
+    type:
+    - get all data conditions associated with the alert rule
+    - for each data condition, update the threshold type
+
+    resolve threshold:
+    - figure out which data condition maps to resolve (how?)
+    - we can get to detector DCG and then look for condition result OK
+    - update the comparison field
+    """
+    if "threshold_type" in updated_fields or "resolve_threshold" in updated_fields:
+        data_condition_group = detector.workflow_condition_group
+        if data_condition_group is None:
+            # this shouldn't be possible due to the way we dual write
+            # logger.error(
+            #     "AlertRuleDetector has no associated DataConditionGroup",
+            #     extra={"alert_rule_id": AlertRule.id},
+            # )
+            return None
+        data_conditions = DataCondition.objects.filter(condition_group=data_condition_group)
+        if "threshold_type" in updated_fields:
+            for dc in data_conditions:
+                dc.update(**{"type": updated_fields["threshold_type"]})
+        if "resolve_threshold" in updated_fields:
+            # we must have this, I think
+            resolve_condition = data_conditions.filter(condition_result=DetectorPriorityLevel.OK)
+            resolve_condition.update(**{"comparison": updated_fields["resolve_threshold"]})
+
     detector.update(**updated_detector_fields)
 
     # reset detector status, as the rule was updated
@@ -217,8 +247,6 @@ def update_migrated_alert_rule(alert_rule: AlertRule, updated_fields: dict[str, 
         "state": DetectorPriorityLevel.OK,
     }
     detector_state.update(**updated_status)
-
-    # TODO: if the user updated resolve_threshold or threshold_type, then we also need to update the DataConditions
 
     # TODO: do we need to create an audit log entry here?
     return detector_state, detector
