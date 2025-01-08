@@ -140,25 +140,27 @@ def test_skip_list_when_invalid_data_passed() -> None:
 
 @django_db_all
 @control_silo_test(include_monolith_run=True)
-@mock.patch("sentry_sdk.capture_message")
-def test_invalid_skip_list(mock_capture_message: MagicMock) -> None:
+@mock.patch("sentry.audit_log.services.log.impl.logger")
+def test_invalid_skip_list(mock_logger: MagicMock) -> None:
     with override_options({"hybrid_cloud.audit_log_event_id_invalid_pass_list": [100, "foo"]}):
         with pytest.raises(AssertionError):
             log_service.record_audit_log(event=AuditLogEvent(event_id=100))
 
-    mock_capture_message.assert_called_once()
-    mock_capture_message.assert_called_with(
-        "Invalid audit_log skip list. Verify that the 'hybrid_cloud.audit_log_event_id_invalid_pass_list' option is a list of ints."
+    mock_logger.error.assert_called_once()
+    mock_logger.error.assert_called_with(
+        "audit_log.invalid_audit_log_pass_list",
+        extra={"pass_list": [100, "foo"]},
     )
-    mock_capture_message.reset_mock()
+    mock_logger.reset_mock()
 
     with override_options({"hybrid_cloud.audit_log_event_id_invalid_pass_list": None}):
         with pytest.raises(AssertionError):
             log_service.record_audit_log(event=AuditLogEvent(event_id=100))
 
-    mock_capture_message.assert_called_once()
-    mock_capture_message.assert_called_with(
-        "Invalid audit_log skip list. Verify that the 'hybrid_cloud.audit_log_event_id_invalid_pass_list' option is a list of ints."
+    mock_logger.error.assert_called_once()
+    mock_logger.error.assert_called_with(
+        "audit_log.invalid_audit_log_pass_list",
+        extra={"pass_list": None},
     )
 
 
