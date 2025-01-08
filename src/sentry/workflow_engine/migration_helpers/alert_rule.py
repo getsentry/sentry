@@ -218,7 +218,7 @@ def update_migrated_alert_rule(alert_rule: AlertRule, updated_fields: dict[str, 
     }
     detector_state.update(**updated_status)
 
-    # TODO: if the user updated resolve_threshold, then we also need to update some DataCondition
+    # TODO: if the user updated resolve_threshold or threshold_type, then we also need to update the DataConditions
 
     # TODO: do we need to create an audit log entry here?
     return detector_state, detector
