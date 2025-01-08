@@ -47,8 +47,8 @@ describe('Dashboards util', () => {
     it('returns a widget when given a valid query', () => {
       const widget = constructWidgetFromQuery(baseQuery);
       expect(widget?.displayType).toEqual(DisplayType.LINE);
-      expect(widget?.interval).toEqual('5m');
-      expect(widget?.title).toEqual('Widget Title');
+      expect(widget?.interval).toBe('5m');
+      expect(widget?.title).toBe('Widget Title');
       expect(widget?.queries).toEqual([
         {
           name: '1',
@@ -67,7 +67,7 @@ describe('Dashboards util', () => {
           orderby: '',
         },
       ]);
-      expect(widget?.widgetType).toEqual('discover');
+      expect(widget?.widgetType).toBe('discover');
     });
     it('returns undefined if query is missing title', () => {
       baseQuery.title = '';
@@ -90,8 +90,8 @@ describe('Dashboards util', () => {
       baseQuery.queryAggregates = 'count()';
       const widget = constructWidgetFromQuery(baseQuery);
       expect(widget?.displayType).toEqual(DisplayType.LINE);
-      expect(widget?.interval).toEqual('5m');
-      expect(widget?.title).toEqual('Widget Title');
+      expect(widget?.interval).toBe('5m');
+      expect(widget?.title).toBe('Widget Title');
       expect(widget?.queries).toEqual([
         {
           name: '1',
@@ -127,7 +127,7 @@ describe('Dashboards util', () => {
     it('handles sorts in function format', () => {
       const query = {...widget.queries[0]!, orderby: '-count()'};
       const eventView = eventViewFromWidget(widget.title, query, selection);
-      expect(eventView.fields[0]!.field).toEqual('count()');
+      expect(eventView.fields[0]!.field).toBe('count()');
       expect(eventView.sorts).toEqual([{field: 'count', kind: 'desc'}]);
     });
   });
@@ -170,7 +170,7 @@ describe('Dashboards util', () => {
     });
     it('returns the discover url of the widget query', () => {
       const url = getWidgetDiscoverUrl(widget, selection, OrganizationFixture());
-      expect(url).toEqual(
+      expect(url).toBe(
         '/organizations/org-slug/discover/results/?field=count%28%29&name=Test%20Query&query=&statsPeriod=7d&yAxis=count%28%29'
       );
     });
@@ -192,7 +192,7 @@ describe('Dashboards util', () => {
         },
       };
       const url = getWidgetDiscoverUrl(widget, selection, OrganizationFixture());
-      expect(url).toEqual(
+      expect(url).toBe(
         '/organizations/org-slug/discover/results/?display=top5&field=error.type&field=count%28%29&name=Test%20Query&query=error.unhandled%3Atrue&sort=-count&statsPeriod=7d&yAxis=count%28%29'
       );
     });
@@ -219,7 +219,7 @@ describe('Dashboards util', () => {
     });
     it('returns the issue url of the widget query', () => {
       const url = getWidgetIssueUrl(widget, selection, OrganizationFixture());
-      expect(url).toEqual(
+      expect(url).toBe(
         '/organizations/org-slug/issues/?query=is%3Aunresolved&sort=date&statsPeriod=7d'
       );
     });
@@ -384,25 +384,25 @@ describe('isWidgetUsingTransactionName', () => {
 
   it('returns false when widget does not use transaction', () => {
     const widget = constructWidgetFromQuery(baseQuery)!;
-    expect(isWidgetUsingTransactionName(widget)).toEqual(false);
+    expect(isWidgetUsingTransactionName(widget)).toBe(false);
   });
 
   it('returns true when widget uses transaction as a selected field', () => {
     (baseQuery.queryFields as string[]).push('transaction');
     const widget = constructWidgetFromQuery(baseQuery)!;
-    expect(isWidgetUsingTransactionName(widget)).toEqual(true);
+    expect(isWidgetUsingTransactionName(widget)).toBe(true);
   });
 
   it('returns true when widget uses transaction as part of the query filter', () => {
     baseQuery.queryConditions = ['transaction:test'];
     const widget = constructWidgetFromQuery(baseQuery)!;
-    expect(isWidgetUsingTransactionName(widget)).toEqual(true);
+    expect(isWidgetUsingTransactionName(widget)).toBe(true);
   });
 
   describe('isUsingPerformanceScore', () => {
     it('returns false when widget does not use performance_score', () => {
       const widget = constructWidgetFromQuery(baseQuery)!;
-      expect(isUsingPerformanceScore(widget)).toEqual(false);
+      expect(isUsingPerformanceScore(widget)).toBe(false);
     });
 
     it('returns true when widget uses performance_score as aggregate', () => {
@@ -410,7 +410,7 @@ describe('isWidgetUsingTransactionName', () => {
         'performance_score(measurements.score.total)'
       );
       const widget = constructWidgetFromQuery(baseQuery)!;
-      expect(isUsingPerformanceScore(widget)).toEqual(true);
+      expect(isUsingPerformanceScore(widget)).toBe(true);
     });
 
     it('returns true when widget uses performance_score as condition', () => {
@@ -418,7 +418,7 @@ describe('isWidgetUsingTransactionName', () => {
         'performance_score(measurements.score.total):>0.5'
       );
       const widget = constructWidgetFromQuery(baseQuery)!;
-      expect(isUsingPerformanceScore(widget)).toEqual(true);
+      expect(isUsingPerformanceScore(widget)).toBe(true);
     });
   });
 });

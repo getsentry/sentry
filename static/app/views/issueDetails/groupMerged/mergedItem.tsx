@@ -20,7 +20,7 @@ interface Props {
   totalFingerprint: number;
 }
 
-export function MergedItem({fingerprint, totalFingerprint}: Props) {
+function MergedItem({fingerprint, totalFingerprint}: Props) {
   const organization = useOrganization();
   const location = useLocation();
   const [busy, setBusy] = useState(false);

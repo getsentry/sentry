@@ -148,13 +148,6 @@ export interface MonitorStat {
 
 export interface CheckIn {
   /**
-   * Attachment ID for attachments sent via the legacy attachment HTTP
-   * endpoint. This will likely be removed in the future.
-   *
-   * @deprecated
-   */
-  attachmentId: number | null;
-  /**
    * Date the opening check-in was sent
    */
   dateCreated: string;
@@ -188,6 +181,19 @@ export interface CheckIn {
    */
   groups?: {id: number; shortId: string}[];
 }
+
+type StatsBucket = {
+  [CheckInStatus.IN_PROGRESS]: number;
+  [CheckInStatus.OK]: number;
+  [CheckInStatus.MISSED]: number;
+  [CheckInStatus.TIMEOUT]: number;
+  [CheckInStatus.ERROR]: number;
+  [CheckInStatus.UNKNOWN]: number;
+};
+
+type MonitorBucketEnvMapping = Record<string, StatsBucket>;
+
+export type MonitorBucket = [timestamp: number, envData: MonitorBucketEnvMapping];
 
 /**
  * Object used to store config for the display next to an environment in the

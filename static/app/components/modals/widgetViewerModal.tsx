@@ -1,10 +1,9 @@
-import {Fragment, memo, useEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, memo, useEffect, useMemo, useState} from 'react';
 import {components} from 'react-select';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {truncate} from '@sentry/utils';
-import type {DataZoomComponentOption} from 'echarts';
 import type {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
@@ -84,8 +83,7 @@ import {
   SESSION_DURATION_ALERT,
   WidgetDescription,
 } from 'sentry/views/dashboards/widgetCard';
-import type {AugmentedEChartDataZoomHandler} from 'sentry/views/dashboards/widgetCard/chart';
-import WidgetCardChart, {SLIDER_HEIGHT} from 'sentry/views/dashboards/widgetCard/chart';
+import WidgetCardChart from 'sentry/views/dashboards/widgetCard/chart';
 import {
   DashboardsMEPProvider,
   useDashboardsMEPContext,
@@ -140,19 +138,10 @@ const shouldWidgetCardChartMemo = (prevProps, props) => {
   const sortMatches =
     props.location.query[WidgetViewerQueryField.SORT] ===
     prevProps.location.query[WidgetViewerQueryField.SORT];
-  const chartZoomOptionsMatches = isEqual(
-    props.chartZoomOptions,
-    prevProps.chartZoomOptions
-  );
   const isNotTopNWidget =
     props.widget.displayType !== DisplayType.TOP_N && !defined(props.widget.limit);
   const legendMatches = isEqual(props.legendOptions, prevProps.legendOptions);
-  return (
-    selectionMatches &&
-    chartZoomOptionsMatches &&
-    (sortMatches || isNotTopNWidget) &&
-    legendMatches
-  );
+  return selectionMatches && (sortMatches || isNotTopNWidget) && legendMatches;
 };
 
 // WidgetCardChartContainer and WidgetCardChart rerenders if selection was changed.
@@ -210,7 +199,6 @@ function WidgetViewerModal(props: Props) {
   const location = useLocation();
   const {projects} = useProjects();
   const navigate = useNavigate();
-  const shouldShowSlider = organization.features.includes('widget-viewer-modal-minimap');
   // TODO(Tele-Team): Re-enable this when we have a better way to determine if the data is transaction only
   // let widgetContentLoadingStatus: boolean | undefined = undefined;
   // Get widget zoom from location
@@ -234,33 +222,15 @@ function WidgetViewerModal(props: Props) {
 
   const [chartUnmodified, setChartUnmodified] = useState<boolean>(true);
 
-  const [chartZoomOptions, setChartZoomOptions] = useState<DataZoomComponentOption>({
-    start: 0,
-    end: 100,
-  });
-
-  // We wrap the modalChartSelection in a useRef because we do not want to recalculate this value
-  // (which would cause an unnecessary rerender on calculation) except for the initial load.
-  // We use this for when a user visit a widget viewer url directly.
-  const [modalTableSelection, setModalTableSelection] =
-    useState<PageFilters>(locationPageFilter);
-  const modalChartSelection = useRef(modalTableSelection);
+  const [modalSelection, setModalSelection] = useState<PageFilters>(locationPageFilter);
 
   // Detect when a user clicks back and set the PageFilter state to match the location
-  // We need to use useEffect to prevent infinite looping rerenders due to the setModalTableSelection call
+  // We need to use useEffect to prevent infinite looping rerenders due to the setModalSelection call
   useEffect(() => {
     if (location.action === 'POP') {
-      setModalTableSelection(locationPageFilter);
-      if (start && end) {
-        setChartZoomOptions({
-          startValue: moment.utc(start).unix() * 1000,
-          endValue: moment.utc(end).unix() * 1000,
-        });
-      } else {
-        setChartZoomOptions({start: 0, end: 100});
-      }
+      setModalSelection(locationPageFilter);
     }
-  }, [end, location, locationPageFilter, start]);
+  }, [location, locationPageFilter]);
 
   const [totalResults, setTotalResults] = useState<string | undefined>();
 
@@ -399,7 +369,7 @@ function WidgetViewerModal(props: Props) {
   const eventView = eventViewFromWidget(
     tableWidget.title,
     tableWidget.queries[0]!,
-    modalTableSelection
+    modalSelection
   );
 
   let columnOrder = decodeColumnOrder(
@@ -712,33 +682,15 @@ function WidgetViewerModal(props: Props) {
     );
   };
 
-  const onZoom: AugmentedEChartDataZoomHandler = (evt, chart) => {
-    // @ts-expect-error getModel() is private but we need this to retrieve datetime values of zoomed in region
+  const onZoom = (_evt, chart) => {
     const model = chart.getModel();
-    const {seriesStart, seriesEnd} = evt;
-    let startValue, endValue;
-    startValue = model._payload.batch?.[0].startValue;
-    endValue = model._payload.batch?.[0].endValue;
-    const seriesStartTime = seriesStart ? new Date(seriesStart).getTime() : undefined;
-    const seriesEndTime = seriesEnd ? new Date(seriesEnd).getTime() : undefined;
-    // Slider zoom events don't contain the raw date time value, only the percentage
-    // We use the percentage with the start and end of the series to calculate the adjusted zoom
-    if (startValue === undefined || endValue === undefined) {
-      if (seriesStartTime && seriesEndTime) {
-        const diff = seriesEndTime - seriesStartTime;
-        startValue = diff * model._payload.start * 0.01 + seriesStartTime;
-        endValue = diff * model._payload.end * 0.01 + seriesStartTime;
-      } else {
-        return;
-      }
-    }
-    setChartZoomOptions({startValue, endValue});
+    const {startValue, endValue} = model._payload.batch[0];
     const newStart = getUtcDateString(moment.utc(startValue));
     const newEnd = getUtcDateString(moment.utc(endValue));
-    setModalTableSelection({
-      ...modalTableSelection,
+    setModalSelection({
+      ...modalSelection,
       datetime: {
-        ...modalTableSelection.datetime,
+        ...modalSelection.datetime,
         start: newStart,
         end: newEnd,
         period: null,
@@ -776,7 +728,7 @@ function WidgetViewerModal(props: Props) {
             api={api}
             organization={organization}
             widget={tableWidget}
-            selection={modalTableSelection}
+            selection={modalSelection}
             limit={
               widget.displayType === DisplayType.TABLE
                 ? FULL_TABLE_ITEM_LIMIT
@@ -801,7 +753,7 @@ function WidgetViewerModal(props: Props) {
             api={api}
             organization={organization}
             widget={tableWidget}
-            selection={modalTableSelection}
+            selection={modalSelection}
             limit={
               widget.displayType === DisplayType.TABLE
                 ? FULL_TABLE_ITEM_LIMIT
@@ -829,7 +781,7 @@ function WidgetViewerModal(props: Props) {
             api={api}
             organization={organization}
             widget={tableWidget}
-            selection={modalTableSelection}
+            selection={modalSelection}
             limit={
               widget.displayType === DisplayType.TABLE
                 ? FULL_TABLE_ITEM_LIMIT
@@ -857,16 +809,14 @@ function WidgetViewerModal(props: Props) {
 
   const currentUser = useUser();
   const {teams: userTeams} = useUserTeams();
-  let hasEditAccess = true;
-  if (organization.features.includes('dashboards-edit-access')) {
-    hasEditAccess = checkUserHasEditAccess(
-      currentUser,
-      userTeams,
-      organization,
-      dashboardPermissions,
-      dashboardCreator
-    );
-  }
+  const hasEditAccess = checkUserHasEditAccess(
+    currentUser,
+    userTeams,
+    organization,
+    dashboardPermissions,
+    dashboardCreator
+  );
+
   function renderWidgetViewer() {
     return (
       <Fragment>
@@ -875,16 +825,7 @@ function WidgetViewerModal(props: Props) {
           <Container
             height={
               widget.displayType !== DisplayType.BIG_NUMBER
-                ? HALF_CONTAINER_HEIGHT +
-                  (shouldShowSlider &&
-                  [
-                    DisplayType.AREA,
-                    DisplayType.LINE,
-                    DisplayType.BAR,
-                    DisplayType.TOP_N,
-                  ].includes(widget.displayType)
-                    ? SLIDER_HEIGHT
-                    : 0)
+                ? HALF_CONTAINER_HEIGHT
                 : BIG_NUMBER_HEIGHT
             }
           >
@@ -899,15 +840,16 @@ function WidgetViewerModal(props: Props) {
                 widget={widget}
                 selection={selection}
                 organization={organization}
-                onZoom={onZoom}
+                onZoom={(_evt, chart) => {
+                  onZoom(_evt, chart);
+                  setChartUnmodified(false);
+                }}
                 onLegendSelectChanged={onLegendSelectChanged}
                 legendOptions={{
                   selected: widgetLegendState.getWidgetSelectionState(widget),
                 }}
                 expandNumbers
-                showSlider={shouldShowSlider}
                 noPadding
-                chartZoomOptions={chartZoomOptions}
                 widgetLegendState={widgetLegendState}
               />
             ) : (
@@ -915,7 +857,7 @@ function WidgetViewerModal(props: Props) {
                 location={location}
                 api={api}
                 organization={organization}
-                selection={modalChartSelection.current}
+                selection={modalSelection}
                 dashboardFilters={dashboardFilters}
                 // Top N charts rely on the orderby of the table
                 widget={primaryWidget}
@@ -925,9 +867,7 @@ function WidgetViewerModal(props: Props) {
                   selected: widgetLegendState.getWidgetSelectionState(widget),
                 }}
                 expandNumbers
-                showSlider={shouldShowSlider}
                 noPadding
-                chartZoomOptions={chartZoomOptions}
                 widgetLegendState={widgetLegendState}
               />
             )}
@@ -1096,7 +1036,7 @@ function WidgetViewerModal(props: Props) {
                           <OpenButton
                             widget={primaryWidget}
                             organization={organization}
-                            selection={modalTableSelection}
+                            selection={modalSelection}
                             selectedQueryIndex={selectedQueryIndex}
                             disabled={isUsingPerformanceScore(widget)}
                             disabledTooltip={

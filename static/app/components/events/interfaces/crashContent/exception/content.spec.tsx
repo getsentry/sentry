@@ -273,7 +273,7 @@ describe('Exception Content', function () {
       render(<Content {...defaultProps} />);
 
       // There are 4 values, but 1 should be hidden
-      expect(screen.getAllByTestId('exception-value').length).toBe(3);
+      expect(screen.getAllByTestId('exception-value')).toHaveLength(3);
       expect(screen.queryByRole('heading', {name: 'ValueError'})).not.toBeInTheDocument();
 
       await userEvent.click(
@@ -281,7 +281,7 @@ describe('Exception Content', function () {
       );
 
       // After expanding, ValueError should be visible
-      expect(screen.getAllByTestId('exception-value').length).toBe(4);
+      expect(screen.getAllByTestId('exception-value')).toHaveLength(4);
       expect(screen.getByRole('heading', {name: 'ValueError'})).toBeInTheDocument();
 
       await userEvent.click(
@@ -289,7 +289,7 @@ describe('Exception Content', function () {
       );
 
       // After collapsing, ValueError should be gone again
-      expect(screen.getAllByTestId('exception-value').length).toBe(3);
+      expect(screen.getAllByTestId('exception-value')).toHaveLength(3);
       expect(screen.queryByRole('heading', {name: 'ValueError'})).not.toBeInTheDocument();
     });
 
