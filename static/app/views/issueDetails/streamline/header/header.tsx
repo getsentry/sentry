@@ -23,6 +23,7 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getMessage, getTitle} from 'sentry/utils/events';
+import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -67,6 +68,7 @@ export default function StreamlinedGroupHeader({
 
   const statusProps = getBadgeProperties(group.status, group.substatus);
   const shareUrl = group?.shareId ? getShareUrl(group) : null;
+  const issueTypeConfig = getConfigForIssueType(group, project);
 
   const [showLearnMore, setShowLearnMore] = useLocalStorageState(
     'issue-details-learn-more',
@@ -141,6 +143,7 @@ export default function StreamlinedGroupHeader({
               icon={<IconInfo />}
               analyticsEventKey="issue_details.streamline_ui_learn_more"
               analyticsEventName="Issue Details: Streamline UI Learn More"
+              analyticsParams={{show_learn_more: showLearnMore}}
               onClick={() => setShowLearnMore(false)}
             >
               {showLearnMore ? t("See What's New") : null}
@@ -169,24 +172,27 @@ export default function StreamlinedGroupHeader({
             </SecondaryTitle>
           </Flex>
           <StatTitle>
-            <StatLink
-              to={`${baseUrl}events/${location.search}`}
-              aria-label={t('View events')}
-            >
-              {t('Events')}
-            </StatLink>
-          </StatTitle>
-          <StatTitle>
-            {userCount === 0 ? (
-              t('Users')
-            ) : (
+            {issueTypeConfig.eventAndUserCounts.enabled && (
               <StatLink
-                to={`${baseUrl}tags/user/${location.search}`}
-                aria-label={t('View affected users')}
+                to={`${baseUrl}events/${location.search}`}
+                aria-label={t('View events')}
               >
-                {t('Users')}
+                {t('Events')}
               </StatLink>
             )}
+          </StatTitle>
+          <StatTitle>
+            {issueTypeConfig.eventAndUserCounts.enabled &&
+              (userCount === 0 ? (
+                t('Users')
+              ) : (
+                <StatLink
+                  to={`${baseUrl}tags/user/${location.search}`}
+                  aria-label={t('View affected users')}
+                >
+                  {t('Users')}
+                </StatLink>
+              ))}
           </StatTitle>
           <Flex gap={space(1)} align="center" justify="flex-start">
             <ErrorLevel level={group.level} size={'10px'} />
@@ -211,10 +217,14 @@ export default function StreamlinedGroupHeader({
             <UserFeedbackBadge group={group} project={project} />
             <ReplayBadge group={group} project={project} />
           </Flex>
-          <StatCount value={eventCount} aria-label={t('Event count')} />
-          <GuideAnchor target="issue_header_stats">
-            <StatCount value={userCount} aria-label={t('User count')} />
-          </GuideAnchor>
+          {issueTypeConfig.eventAndUserCounts.enabled && (
+            <Fragment>
+              <StatCount value={eventCount} aria-label={t('Event count')} />
+              <GuideAnchor target="issue_header_stats">
+                <StatCount value={userCount} aria-label={t('User count')} />
+              </GuideAnchor>
+            </Fragment>
+          )}
         </HeaderGrid>
       </Header>
       <ActionBar isComplete={isComplete} role="banner">
