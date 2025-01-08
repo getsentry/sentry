@@ -14,7 +14,6 @@ from sentry.tasks.store import (
     save_event,
     save_event_transaction,
 )
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 
 EVENT_ID = "cc3e6c2bb6b6498097f336d1e6979f4b"
@@ -370,37 +369,6 @@ def test_store_consumer_type(
         project_id=default_project.id,
     )
 
-    transaction_data = {
-        "project": default_project.id,
-        "platform": "transaction",
-        "event_id": EVENT_ID,
-        "extra": {"foo": "bar"},
-        "timestamp": time(),
-        "start_timestamp": time() - 1,
-    }
-
-    mock_transaction_processing_store.get.return_value = transaction_data
-    mock_transaction_processing_store.store.return_value = "tx:3"
-
-    with mock.patch("sentry.event_manager.EventManager.save", return_value=None):
-        save_event_transaction(
-            cache_key="tx:3",
-            data=None,
-            start_time=1,
-            event_id=EVENT_ID,
-            project_id=default_project.id,
-        )
-
-    mock_transaction_processing_store.get.assert_called_once_with("tx:3")
-    mock_transaction_processing_store.delete_by_key.assert_not_called()
-
-
-@django_db_all
-@override_options({"transactions.do_post_process_in_save": 1.0})
-def test_transactions_do_post_process_in_save_deletes_from_processing_store(
-    default_project,
-    mock_transaction_processing_store,
-):
     transaction_data = {
         "project": default_project.id,
         "platform": "transaction",
