@@ -2,7 +2,8 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import StrEnum
 
-from sentry.integrations.utils.metrics import EventLifecycleMetric, EventLifecycleOutcome
+from sentry.integrations.types import EventLifecycleOutcome
+from sentry.integrations.utils.metrics import EventLifecycleMetric
 
 
 class MiddlewareOperationType(StrEnum):

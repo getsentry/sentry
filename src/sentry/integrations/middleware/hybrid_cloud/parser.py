@@ -264,12 +264,7 @@ class BaseRequestParser:
             operation_type=MiddlewareOperationType.GET_RESPONSE_FROM_ALL_REGIONS,
             integration_name=self.provider,
         ).capture() as lifecycle:
-            lifecycle.add_extras(
-                {
-                    "path": self.request.path,
-                    "regions": regions,
-                }
-            )
+            lifecycle.add_extra("path", self.request.path)
             if len(successful_responses) == 0:
                 error_map_str = ", ".join(
                     f"{region}: {result.error}" for region, result in response_map.items()
