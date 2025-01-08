@@ -1163,16 +1163,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert query(TSDBModel.project, project.id, environment_id=environment_id) == 1
         assert query(TSDBModel.group, event.group.id, environment_id=environment_id) == 1
 
-    @pytest.mark.xfail
-    def test_record_frequencies(self) -> None:
-        project = self.project
-        manager = EventManager(make_event())
-        event = manager.save(project.id)
-
-        assert tsdb.backend.get_most_frequent(
-            TSDBModel.frequent_issues_by_project, (event.project.id,), event.datetime
-        ) == {event.project.id: [(event.group_id, 1.0)]}
-
     def test_event_user(self) -> None:
         event_id = uuid.uuid4().hex
         manager = EventManager(
