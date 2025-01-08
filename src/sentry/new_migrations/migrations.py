@@ -1,4 +1,4 @@
-from django.db.migrations import Migration, RunSQL
+from django.db.migrations import Migration, RunSQL, SeparateDatabaseAndState
 from django_zero_downtime_migrations.backends.postgres.schema import UnsafeOperationException
 
 
@@ -26,11 +26,22 @@ class CheckedMigration(Migration):
         if self.checked:
             schema_editor.safe = True
         for op in self.operations:
-            if not self.allow_run_sql and type(op) is RunSQL:
-                raise UnsafeOperationException(
-                    "Using RunSQL is unsafe because our migrations safety framework can't detect problems with the "
-                    "migration. If you need to use RunSQL, set `allow_run_sql = True` and get approval from "
-                    "`owners-migrations` to make sure that it's safe."
-                )
+            validate_operation(op, self.allow_run_sql)
 
         return super().apply(project_state, schema_editor, collect_sql)
+
+
+def validate_operation(op, allow_run_sql):
+    if allow_run_sql:
+        return
+
+    if isinstance(op, RunSQL):
+        raise UnsafeOperationException(
+            "Using RunSQL is unsafe because our migrations safety framework can't detect problems with the "
+            "migration. If you need to use RunSQL, set `allow_run_sql = True` and get approval from "
+            "`owners-migrations` to make sure that it's safe."
+        )
+
+    if isinstance(op, SeparateDatabaseAndState):
+        for db_op in op.database_operations:
+            validate_operation(db_op, allow_run_sql)
