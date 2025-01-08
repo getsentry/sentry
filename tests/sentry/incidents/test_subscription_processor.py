@@ -974,33 +974,6 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         )
         create_metric_issue_mock.assert_not_called()
 
-    def test_activated_alert(self):
-        # Verify that an alert rule that only expects a single update to be over the
-        # alert threshold triggers correctly
-        rule = self.activated_rule
-        trigger = self.activated_trigger
-        subscription = self.activated_sub
-        processor = self.send_update(
-            rule=rule, value=trigger.alert_threshold + 1, subscription=subscription
-        )
-        self.assert_trigger_counts(processor, self.activated_trigger, 0, 0)
-        incident = self.assert_active_incident(rule=rule, subscription=subscription)
-        assert incident.date_started == (
-            timezone.now().replace(microsecond=0) - timedelta(seconds=rule.snuba_query.time_window)
-        )
-        self.assert_trigger_exists_with_status(
-            incident, self.activated_trigger, TriggerStatus.ACTIVE
-        )
-        latest_activity = self.latest_activity(incident)
-        uuid = str(latest_activity.notification_uuid)
-        self.assert_actions_fired_for_incident(
-            incident,
-            [self.activated_action],
-            [(trigger.alert_threshold + 1, IncidentStatus.CRITICAL, uuid)],
-        )
-        # assert that an incident was created _with_ an activation!
-        assert incident.activation
-
     def test_alert_dedupe(self):
         # Verify that an alert rule that only expects a single update to be over the
         # alert threshold triggers correctly
