@@ -26,10 +26,63 @@ export default storyBook('GlobalDrawer', story => {
     </Fragment>
   ));
 
-  story('Usage', () => (
+  story('Usage Details', () => (
     <Fragment>
-      <CodeSnippet language="js">
-        {`import useDrawer from 'sentry/components/globalDrawer';\nconst {openDrawer, closeDrawer} = useDrawer();`}
+      <p>
+        A common way to open the drawer is imperatively via a UI action like a button
+        click.
+      </p>
+
+      <CodeSnippet language="jsx">
+        {`import useDrawer from 'sentry/components/globalDrawer';
+
+function OverviewPage() {
+  const {openDrawer, closeDrawer} = useDrawer();
+
+  const handleClick = () => {
+    openDrawer(() => <ModalContent />);
+  }
+
+  return <button onClick={handleClick}>See More</button>;
+}
+
+function ModalContent() {
+  return <p>Hello!</p>;
+}
+`}
+      </CodeSnippet>
+
+      <p>Another way is to open the drawer based on the current URL.</p>
+
+      <CodeSnippet language="jsx">
+        {`import {useEffect} from 'react';
+import useDrawer from 'sentry/components/globalDrawer';
+import {useLocation} from 'sentry/utils/useLocation';
+
+function OverviewPage() {
+  const location = useLocation();
+  const {openDrawer, isDrawerOpen} = useDrawer();
+
+  useEffect(() => {
+    if (!isDrawerOpen && location.query.drawer) {
+      openDrawer(
+        () => {
+          return <ModalContent />;
+        },
+        {
+          ariaLabel: 'Hello Modal',
+        }
+      );
+    }
+  }, [isDrawerOpen, location.query.drawer, openDrawer]);
+
+  return <p>Hello</p>;
+}
+
+function ModalContent() {
+  return <p>Ahoy there</p>;
+}
+          `}
       </CodeSnippet>
     </Fragment>
   ));
