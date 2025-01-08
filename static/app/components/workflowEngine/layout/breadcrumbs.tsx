@@ -1,31 +1,45 @@
-import {createContext, useContext, useRef} from 'react';
+import {createContext, useContext} from 'react';
 
 import type {Crumb, CrumbDropdown} from 'sentry/components/breadcrumbs';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {useDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 
 export interface BreadcrumbsContextValue {
-  crumbs: React.RefObject<(Crumb | CrumbDropdown)[]>;
+  crumbs: (Crumb | CrumbDropdown)[];
 }
 export const BreadcrumbsContext = createContext<BreadcrumbsContextValue>({
-  crumbs: {current: []},
+  crumbs: [],
 });
 
-export function BreadcrumbsProvider({children}: {children: React.ReactNode}) {
-  const crumbs = useRef<(Crumb | CrumbDropdown)[]>([]);
+export function BreadcrumbsProvider({
+  children,
+  crumb,
+}: {
+  children: React.ReactNode;
+  crumb: Crumb | CrumbDropdown;
+}) {
+  const context = useContext(BreadcrumbsContext);
   return (
-    <BreadcrumbsContext.Provider value={{crumbs}}>{children}</BreadcrumbsContext.Provider>
+    <BreadcrumbsContext.Provider value={{crumbs: [...context.crumbs, crumb]}}>
+      {children}
+    </BreadcrumbsContext.Provider>
   );
 }
 
+/**
+ * Automatically render Breadcrumbs from the <BreadcrumbsProvider /> and <SentryDocumentTitle /> contexts
+ */
 export function BreadcrumbsFromContext() {
-  const context = useContext(BreadcrumbsContext);
+  const {crumbs = []} = useContext(BreadcrumbsContext);
   const documentTitle = useDocumentTitle();
-  if (!context.crumbs.current || context.crumbs.current.length === 0) {
+  if (crumbs.length === 0) {
     throw new Error(
       `<BreadcrumbsFromContext> was not rendered inside of <BreadcrumbsProvider>!`
     );
   }
-
-  return <Breadcrumbs crumbs={[...context.crumbs.current, {label: documentTitle}]} />;
+  const allCrumbs = [...crumbs];
+  if (documentTitle) {
+    allCrumbs.push({label: documentTitle});
+  }
+  return <Breadcrumbs crumbs={allCrumbs} />;
 }
