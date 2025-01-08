@@ -43,10 +43,13 @@ const onboarding: OnboardingConfig = {
         <Fragment>
           <p>
             {tct(
-              "Download the latest plugin sources from the [link:Releases] page and place it in the project's 'Plugins' directory. On the next project launch, UE will prompt to build Sentry module.",
+              "We recommend downloading the latest plugin sources from the [releasesPage: GitHub Releases page], but we also support [installMethods: alternate installation methods]. To integrate Sentry into your Unreal Engine project using the GitHub package, select the artifact that matches your Unreal Engine version and includes `github` in its name. Place the extracted files in your project's 'Plugins' directory. On the next project launch, UE will prompt to build Sentry module.",
               {
-                link: (
+                releasesPage: (
                   <ExternalLink href="https://github.com/getsentry/sentry-unreal/releases" />
+                ),
+                installMethods: (
+                  <ExternalLink href="https://docs.sentry.io/platforms/unreal/#install" />
                 ),
               }
             )}
@@ -103,7 +106,7 @@ const onboarding: OnboardingConfig = {
     {
       title: t('Crash Reporter Client'),
       description: tct(
-        'For Windows and Mac, [link:Crash Reporter Client] provided along with Unreal Engine has to be configured in order to capture errors automatically.',
+        'In Unreal Engine versions prior to UE 5.2 to automatically capture errors on desktop platforms [link:Crash Reporter Client] has to be configured.',
         {
           link: (
             <ExternalLink href="https://docs.sentry.io/platforms/unreal/setup-crashreporter/" />
@@ -133,26 +136,10 @@ const onboarding: OnboardingConfig = {
         {
           description: (
             <Fragment>
-              <h5>{t('Debug Information')}</h5>
-              {t(
-                'To get the most out of Sentry, crash reports must include debug information. In order for Sentry to be able to process the crash report and translate memory addresses to meaningful information like function names, module names, and line numbers, the crash itself must include debug information. In addition, symbols need to be uploaded to Sentry.'
-              )}
-              <p>
-                {tct(
-                  "The option is also located under [strong:Project > Packaging]; select 'show advanced' followed by checking the box for 'Include Debug Files'.",
-                  {strong: <strong />}
-                )}
-              </p>
-            </Fragment>
-          ),
-        },
-        {
-          description: (
-            <Fragment>
               <h5>{t('Configure the Crash Reporter Endpoint')}</h5>
               <p>
                 {tct(
-                  "Now that the crash reporter and debug files are included, UE needs to know where to send the crash. For that, add the Sentry 'Unreal Engine Endpoint' from the 'Client Keys' settings page to the game's configuration file. This will include which project in Sentry you want to see crashes displayed in. That's accomplished by configuring the [code:CrashReportClient] in the [italic:DefaultEngine.ini] file. Changing the engine is necessary for this to work. Edit the file:",
+                  "Now that the crash reporter is included, UE needs to know where to send the crash. For that, add the Sentry 'Unreal Engine Endpoint' from the 'Client Keys' settings page to the game's configuration file. This will include which project in Sentry you want to see crashes displayed in. That's accomplished by configuring the [code:CrashReportClient] in the [italic:DefaultEngine.ini] file. Changing the engine is necessary for this to work. Edit the file:",
                   {
                     code: <code />,
                     italic: <i />,
@@ -188,9 +175,11 @@ const onboarding: OnboardingConfig = {
         <Fragment>
           <p>
             {tct(
-              'To allow Sentry to fully process native crashes and provide you with symbolicated stack traces, you need to upload [italic:debug information files] (sometimes also referred to as [italic:debug symbols] or just [italic:symbols]). We recommend uploading debug information during your build or release process.',
+              'To allow Sentry to fully process native crashes and provide you with symbolicated stack traces, you need to upload [link:debug information files] (sometimes also referred to as [italic:debug symbols] or just [italic:symbols]). We recommend uploading debug information during your build or release process.',
               {
-                italic: <i />,
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/platforms/unreal/configuration/debug-symbols/" />
+                ),
               }
             )}
           </p>
