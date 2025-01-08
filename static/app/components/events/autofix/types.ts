@@ -148,6 +148,7 @@ export type AutofixCodebaseChange = {
   diff: FilePatch[];
   repo_name: string;
   title: string;
+  branch_name?: string;
   diff_str?: string;
   pull_request?: AutofixPullRequestDetails;
   repo_external_id?: string;

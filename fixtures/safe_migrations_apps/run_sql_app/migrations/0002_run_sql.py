@@ -8,6 +8,7 @@ class Migration(CheckedMigration):
     dependencies = [
         ("run_sql_app", "0001_initial"),
     ]
+    allow_run_sql = True
 
     operations = [
         migrations.SeparateDatabaseAndState(
