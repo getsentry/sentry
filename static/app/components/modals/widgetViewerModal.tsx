@@ -809,16 +809,14 @@ function WidgetViewerModal(props: Props) {
 
   const currentUser = useUser();
   const {teams: userTeams} = useUserTeams();
-  let hasEditAccess = true;
-  if (organization.features.includes('dashboards-edit-access')) {
-    hasEditAccess = checkUserHasEditAccess(
-      currentUser,
-      userTeams,
-      organization,
-      dashboardPermissions,
-      dashboardCreator
-    );
-  }
+  const hasEditAccess = checkUserHasEditAccess(
+    currentUser,
+    userTeams,
+    organization,
+    dashboardPermissions,
+    dashboardCreator
+  );
+
   function renderWidgetViewer() {
     return (
       <Fragment>

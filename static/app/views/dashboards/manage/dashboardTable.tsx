@@ -119,9 +119,7 @@ function DashboardTable({
     {key: ResponseKeys.NAME, name: t('Name'), width: COL_WIDTH_UNDEFINED},
     {key: ResponseKeys.WIDGETS, name: t('Widgets'), width: COL_WIDTH_UNDEFINED},
     {key: ResponseKeys.OWNER, name: t('Owner'), width: COL_WIDTH_UNDEFINED},
-    ...(organization.features.includes('dashboards-edit-access')
-      ? [{key: ResponseKeys.ACCESS, name: t('Access'), width: COL_WIDTH_UNDEFINED}]
-      : []),
+    {key: ResponseKeys.ACCESS, name: t('Access'), width: COL_WIDTH_UNDEFINED},
     {key: ResponseKeys.CREATED, name: t('Created'), width: COL_WIDTH_UNDEFINED},
   ];
 
@@ -246,10 +244,7 @@ function DashboardTable({
       );
     }
 
-    if (
-      column.key === ResponseKeys.ACCESS &&
-      organization.features.includes('dashboards-edit-access')
-    ) {
+    if (column.key === ResponseKeys.ACCESS) {
       /* Handles POST request for Edit Access Selector Changes */
       const onChangeEditAccess = (newDashboardPermissions: DashboardPermissions) => {
         const dashboardCopy = cloneDeep(dataRow);

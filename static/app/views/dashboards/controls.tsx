@@ -151,16 +151,13 @@ function Controls({
     ? DataSet.ERRORS
     : DataSet.EVENTS;
 
-  let hasEditAccess = true;
-  if (organization.features.includes('dashboards-edit-access')) {
-    hasEditAccess = checkUserHasEditAccess(
-      currentUser,
-      userTeams,
-      organization,
-      dashboard.permissions,
-      dashboard.createdBy
-    );
-  }
+  const hasEditAccess = checkUserHasEditAccess(
+    currentUser,
+    userTeams,
+    organization,
+    dashboard.permissions,
+    dashboard.createdBy
+  );
 
   return (
     <StyledButtonBar gap={1} key="controls">
@@ -213,12 +210,10 @@ function Controls({
               </Feature>
             )}
             {dashboard.id !== 'default-overview' && (
-              <Feature features="dashboards-edit-access">
-                <EditAccessSelector
-                  dashboard={dashboard}
-                  onChangeEditAccess={onChangeEditAccess}
-                />
-              </Feature>
+              <EditAccessSelector
+                dashboard={dashboard}
+                onChangeEditAccess={onChangeEditAccess}
+              />
             )}
             <Button
               data-test-id="dashboard-edit"
