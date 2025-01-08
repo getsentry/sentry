@@ -83,10 +83,10 @@ describe('IssueViewsHeader', () => {
     it('renders all tabs, selects the first one by default, and replaces the query params accordingly', async () => {
       render(<IssueViewsIssueListHeader {...defaultProps} />, {router: defaultRouter});
 
-      expect(await screen.findByRole('tab', {name: 'High Priority'})).toBeInTheDocument();
-      expect(screen.getByRole('tab', {name: 'Medium Priority'})).toBeInTheDocument();
-      expect(screen.getByRole('tab', {name: 'Low Priority'})).toBeInTheDocument();
-      expect(screen.getByRole('tab', {name: 'High Priority'})).toHaveAttribute(
+      expect(await screen.findByRole('tab', {name: /High Priority/})).toBeInTheDocument();
+      expect(screen.getByRole('tab', {name: /Medium Priority/})).toBeInTheDocument();
+      expect(screen.getByRole('tab', {name: /Low Priority/})).toBeInTheDocument();
+      expect(screen.getByRole('tab', {name: /High Priority/})).toHaveAttribute(
         'aria-selected',
         'true'
       );
@@ -133,8 +133,8 @@ describe('IssueViewsHeader', () => {
 
       render(<IssueViewsIssueListHeader {...defaultProps} />, {router: defaultRouter});
 
-      expect(await screen.findByRole('tab', {name: 'Prioritized'})).toBeInTheDocument();
-      expect(screen.getByRole('tab', {name: 'Prioritized'})).toHaveAttribute(
+      expect(await screen.findByRole('tab', {name: /Prioritized/})).toBeInTheDocument();
+      expect(screen.getByRole('tab', {name: /Prioritized/})).toHaveAttribute(
         'aria-selected',
         'true'
       );
@@ -173,9 +173,9 @@ describe('IssueViewsHeader', () => {
         router: queryOnlyRouter,
       });
 
-      expect(await screen.findByRole('tab', {name: 'Prioritized'})).toBeInTheDocument();
-      expect(await screen.findByRole('tab', {name: 'Unsaved'})).toBeInTheDocument();
-      expect(screen.getByRole('tab', {name: 'Unsaved'})).toHaveAttribute(
+      expect(await screen.findByRole('tab', {name: /Prioritized/})).toBeInTheDocument();
+      expect(await screen.findByRole('tab', {name: /Unsaved/})).toBeInTheDocument();
+      expect(screen.getByRole('tab', {name: /Unsaved/})).toHaveAttribute(
         'aria-selected',
         'true'
       );
@@ -204,7 +204,7 @@ describe('IssueViewsHeader', () => {
         router: specificTabRouter,
       });
 
-      expect(await screen.findByRole('tab', {name: 'Medium Priority'})).toHaveAttribute(
+      expect(await screen.findByRole('tab', {name: /Medium Priority/})).toHaveAttribute(
         'aria-selected',
         'true'
       );
@@ -225,13 +225,13 @@ describe('IssueViewsHeader', () => {
         router: queryOnlyRouter,
       });
 
-      expect(await screen.findByRole('tab', {name: 'High Priority'})).toBeInTheDocument();
-      expect(screen.getByRole('tab', {name: 'Medium Priority'})).toBeInTheDocument();
-      expect(screen.getByRole('tab', {name: 'Low Priority'})).toBeInTheDocument();
+      expect(await screen.findByRole('tab', {name: /High Priority/})).toBeInTheDocument();
+      expect(screen.getByRole('tab', {name: /Medium Priority/})).toBeInTheDocument();
+      expect(screen.getByRole('tab', {name: /Low Priority/})).toBeInTheDocument();
 
-      expect(screen.getByRole('tab', {name: 'Unsaved'})).toBeInTheDocument();
+      expect(screen.getByRole('tab', {name: /Unsaved/})).toBeInTheDocument();
 
-      expect(screen.getByRole('tab', {name: 'Unsaved'})).toHaveAttribute(
+      expect(screen.getByRole('tab', {name: /Unsaved/})).toHaveAttribute(
         'aria-selected',
         'true'
       );
@@ -258,13 +258,13 @@ describe('IssueViewsHeader', () => {
         router: specificTabRouter,
       });
 
-      expect(await screen.findByRole('tab', {name: 'High Priority'})).toBeInTheDocument();
-      expect(screen.getByRole('tab', {name: 'Medium Priority'})).toBeInTheDocument();
-      expect(screen.getByRole('tab', {name: 'Low Priority'})).toBeInTheDocument();
+      expect(await screen.findByRole('tab', {name: /High Priority/})).toBeInTheDocument();
+      expect(screen.getByRole('tab', {name: /Medium Priority/})).toBeInTheDocument();
+      expect(screen.getByRole('tab', {name: /Low Priority/})).toBeInTheDocument();
 
-      expect(screen.getByRole('tab', {name: 'Unsaved'})).toBeInTheDocument();
+      expect(screen.getByRole('tab', {name: /Unsaved/})).toBeInTheDocument();
 
-      expect(screen.getByRole('tab', {name: 'Unsaved'})).toHaveAttribute(
+      expect(screen.getByRole('tab', {name: /Unsaved/})).toHaveAttribute(
         'aria-selected',
         'true'
       );
@@ -317,9 +317,9 @@ describe('IssueViewsHeader', () => {
           router: defaultTabDifferentQueryRouter,
         }
       );
-      expect(await screen.findByRole('tab', {name: 'Prioritized'})).toBeInTheDocument();
+      expect(await screen.findByRole('tab', {name: /Prioritized/})).toBeInTheDocument();
       expect(screen.getByTestId('unsaved-changes-indicator')).toBeInTheDocument();
-      expect(screen.queryByRole('tab', {name: 'Unsaved'})).not.toBeInTheDocument();
+      expect(screen.queryByRole('tab', {name: /Unsaved/})).not.toBeInTheDocument();
 
       expect(defaultTabDifferentQueryRouter.replace).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -350,7 +350,7 @@ describe('IssueViewsHeader', () => {
     it('switches tabs when clicked, and updates the query params accordingly', async () => {
       render(<IssueViewsIssueListHeader {...defaultProps} />, {router: defaultRouter});
 
-      await userEvent.click(await screen.findByRole('tab', {name: 'Medium Priority'}));
+      await userEvent.click(await screen.findByRole('tab', {name: /Medium Priority/}));
 
       // This test inexplicably fails on the lines below. which ensure the Medium Priority tab is selected when clicked
       // and the High Priority tab is unselected. This behavior exists in other tests and in browser, so idk why it fails here.
@@ -384,11 +384,11 @@ describe('IssueViewsHeader', () => {
       });
       expect(await screen.findByTestId('unsaved-changes-indicator')).toBeInTheDocument();
 
-      await userEvent.click(await screen.findByRole('tab', {name: 'Medium Priority'}));
+      await userEvent.click(await screen.findByRole('tab', {name: /Medium Priority/}));
       expect(screen.queryByTestId('unsaved-changes-indicator')).not.toBeInTheDocument();
 
-      await userEvent.click(await screen.findByRole('tab', {name: 'High Priority'}));
-      expect(await screen.findByRole('tab', {name: 'High Priority'})).toHaveAttribute(
+      await userEvent.click(await screen.findByRole('tab', {name: /High Priority/}));
+      expect(await screen.findByRole('tab', {name: /High Priority/})).toHaveAttribute(
         'aria-selected',
         'true'
       );
@@ -414,7 +414,7 @@ describe('IssueViewsHeader', () => {
         {router: goodViewIdChangedQueryRouter}
       );
 
-      expect(await screen.findByRole('tab', {name: 'Medium Priority'})).toHaveAttribute(
+      expect(await screen.findByRole('tab', {name: /Medium Priority/})).toHaveAttribute(
         'aria-selected',
         'true'
       );
@@ -451,7 +451,7 @@ describe('IssueViewsHeader', () => {
         {router: goodViewIdChangedSortRouter}
       );
 
-      expect(await screen.findByRole('tab', {name: 'Medium Priority'})).toHaveAttribute(
+      expect(await screen.findByRole('tab', {name: /Medium Priority/})).toHaveAttribute(
         'aria-selected',
         'true'
       );
