@@ -35,13 +35,13 @@ def validate_operation(op, allow_run_sql):
     if allow_run_sql:
         return
 
-    if type(op) is RunSQL:
+    if isinstance(op, RunSQL):
         raise UnsafeOperationException(
             "Using RunSQL is unsafe because our migrations safety framework can't detect problems with the "
             "migration. If you need to use RunSQL, set `allow_run_sql = True` and get approval from "
             "`owners-migrations` to make sure that it's safe."
         )
 
-    if type(op) is SeparateDatabaseAndState:
+    if isinstance(op, SeparateDatabaseAndState):
         for db_op in op.database_operations:
             validate_operation(db_op, allow_run_sql)
