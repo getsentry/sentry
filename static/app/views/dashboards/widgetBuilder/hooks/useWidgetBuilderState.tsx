@@ -25,7 +25,7 @@ export type WidgetBuilderStateQueryParams = {
   dataset?: WidgetType;
   description?: string;
   displayType?: DisplayType;
-  field?: (string | undefined)[];
+  field?: string[];
   legendAlias?: string[];
   limit?: number;
   query?: string[];

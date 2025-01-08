@@ -176,7 +176,7 @@ describe('Discover > SaveQueryButtonGroup', function () {
       expect(openAddToDashboardModal).toHaveBeenCalledWith(
         expect.objectContaining({
           widget: {
-            displayType: 'line',
+            displayType: 'area',
             interval: undefined,
             limit: undefined,
             queries: [
@@ -198,7 +198,7 @@ describe('Discover > SaveQueryButtonGroup', function () {
             defaultTitle: 'Errors by Title',
             defaultWidgetQuery:
               'name=&aggregates=count()%2Cfailure_count()&columns=&fields=count()%2Cfailure_count()&conditions=event.type%3Aerror&orderby=-count()',
-            displayType: 'line',
+            displayType: 'area',
             end: undefined,
             limit: undefined,
             source: 'discoverv2',
