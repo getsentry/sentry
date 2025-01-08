@@ -15,7 +15,7 @@ remote_subscriptions: 0003_drop_remote_subscription
 
 replays: 0004_index_together
 
-sentry: 0806_remove_monitor_attachment_id_pt1
+sentry: 0807_remove_monitor_attachment_id_pt2
 
 social_auth: 0002_default_auto_field
 
