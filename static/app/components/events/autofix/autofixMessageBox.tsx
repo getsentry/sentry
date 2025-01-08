@@ -198,7 +198,7 @@ function CreateBranchButton({
       analyticsEventKey="autofix.push_to_branch_clicked"
       analyticsParams={{group_id: groupId}}
     >
-      Checkout Locally
+      Check Out Locally
     </Button>
   );
 }
@@ -231,7 +231,7 @@ function SetupAndCreatePRsButton({
         analyticsParams={{group_id: groupId}}
         title={t('Enable write access to create pull requests')}
       >
-        {t('Draft PRs')}
+        Draft PR{changes.length > 1 ? 's' : ''}
       </Button>
     );
   }
@@ -266,7 +266,7 @@ function SetupAndCreateBranchButton({
         analyticsParams={{group_id: groupId}}
         title={t('Enable write access to create branches')}
       >
-        {t('Checkout Locally')}
+        {t('Check Out Locally')}
       </Button>
     );
   }
@@ -506,11 +506,11 @@ function AutofixMessageBox({
         size="xs"
         priority="primary"
         onClick={onClick}
-        aria-label={t('Checkout in %s', change.repo_name)}
+        aria-label={t('Check out in %s', change.repo_name)}
         title={t('git switch %s', change.branch_name)}
         icon={<IconCopy size="xs" />}
       >
-        {t('Checkout in %s', change.repo_name)}
+        {t('Check out in %s', change.repo_name)}
       </Button>
     );
   }
@@ -675,7 +675,7 @@ function AutofixMessageBox({
                   )}
                 </StyledScrollCarousel>
               ) : isChangesStep && branchesMade ? (
-                <StyledScrollCarousel aria-label={t('Checkout branches')}>
+                <StyledScrollCarousel aria-label={t('Check out branches')}>
                   {changes.map(
                     change =>
                       change.branch_name && (
