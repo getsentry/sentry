@@ -5,6 +5,7 @@ from collections.abc import Sequence
 from functools import wraps
 from typing import Any
 
+import sentry_sdk
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
@@ -26,7 +27,11 @@ from sentry.organizations.services.organization import (
 )
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.services.app import RpcSentryApp, app_service
-from sentry.sentry_apps.utils.errors import SentryAppError, SentryAppIntegratorError
+from sentry.sentry_apps.utils.errors import (
+    SentryAppError,
+    SentryAppIntegratorError,
+    SentryAppSentryError,
+)
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
@@ -125,12 +130,19 @@ class IntegrationPlatformEndpoint(Endpoint):
         ) or super().handle_exception_with_details(request, exc, handler_context, scope)
 
     def _handle_sentry_app_exception(self, exception: Exception):
-        # If the error_type attr exists we know the error is one of SentryAppError or SentryAppIntegratorError
         if isinstance(exception, SentryAppIntegratorError) or isinstance(exception, SentryAppError):
             response = Response({"detail": str(exception)}, status=exception.status_code)
             response.exception = True
             return response
 
+        elif isinstance(exception, SentryAppSentryError):
+            error_id = sentry_sdk.capture_exception(exception)
+            return Response(
+                {
+                    "detail": f"An issue occured during the integration platform process. Sentry error ID: {error_id}"
+                },
+                status=500,
+            )
         # If not an audited sentry app error then default to using default error handler
         return None
 
