@@ -14,6 +14,7 @@ from sentry.rules.filters.age_comparison import AgeComparisonFilter
 from sentry.rules.filters.assigned_to import AssignedToFilter
 from sentry.rules.filters.event_attribute import EventAttributeFilter
 from sentry.rules.filters.issue_category import IssueCategoryFilter
+from sentry.rules.filters.issue_occurrences import IssueOccurrencesFilter
 from sentry.rules.filters.level import LevelFilter
 from sentry.rules.filters.tagged_event import TaggedEventFilter
 from sentry.rules.match import MatchType
@@ -199,12 +200,30 @@ def create_assigned_to_data_condition(
 def create_issue_category_data_condition(
     data: dict[str, Any], dcg: DataConditionGroup
 ) -> DataCondition:
+    # TODO: Add comparison validation (error if not enough information)
     comparison = {
         "value": data["value"],
     }
 
     return DataCondition.objects.create(
         type=Condition.ISSUE_CATEGORY,
+        comparison=comparison,
+        condition_result=True,
+        condition_group=dcg,
+    )
+
+
+@data_condition_translator_registry.register(IssueOccurrencesFilter.id)
+def create_issue_occurrences_data_condition(
+    data: dict[str, Any], dcg: DataConditionGroup
+) -> DataCondition:
+    # TODO: Add comparison validation (error if not enough information)
+    comparison = {
+        "value": data["value"],
+    }
+
+    return DataCondition.objects.create(
+        type=Condition.ISSUE_OCCURRENCES,
         comparison=comparison,
         condition_result=True,
         condition_group=dcg,
