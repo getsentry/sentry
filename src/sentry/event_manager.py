@@ -47,7 +47,6 @@ from sentry.eventstream.base import GroupState
 from sentry.eventtypes import EventType
 from sentry.eventtypes.transaction import TransactionEvent
 from sentry.exceptions import HashDiscarded
-from sentry.features.rollout import in_rollout_group
 from sentry.grouping.api import (
     NULL_GROUPHASH_INFO,
     GroupHashInfo,
@@ -2529,8 +2528,6 @@ def _record_transaction_info(jobs: Sequence[Job], projects: ProjectsMapping) -> 
     for job in jobs:
         try:
             event = job["event"]
-            if not in_rollout_group("transactions.do_post_process_in_save", event.event_id):
-                continue
 
             project = event.project
             with sentry_sdk.start_span(op="event_manager.record_transaction_name_for_clustering"):
