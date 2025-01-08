@@ -119,6 +119,7 @@ from sentry.workflow_engine.models import (
     AlertRuleTriggerDataCondition,
     AlertRuleWorkflow,
     DataConditionGroup,
+    WorkflowGroupStatus,
 )
 
 __all__ = [
@@ -659,6 +660,7 @@ class ExhaustiveFixtures(Fixtures):
 
         # Setup a test 'Issue Rule' and 'Automation'
         workflow = self.create_workflow(organization=org)
+        WorkflowGroupStatus.objects.create(workflow=workflow, group=group)
         detector = self.create_detector(project=project)
         self.create_detector_workflow(detector=detector, workflow=workflow)
         self.create_detector_state(detector=detector)
