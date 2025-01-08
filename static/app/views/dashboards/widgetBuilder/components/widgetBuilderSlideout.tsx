@@ -143,7 +143,7 @@ function WidgetBuilderSlideout({
           )}
         </div>
         <Section>
-          <Visualize />
+          <Visualize error={error} setError={setError} />
         </Section>
         <Section>
           <WidgetBuilderQueryFilterBuilder
