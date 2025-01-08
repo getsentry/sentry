@@ -16,7 +16,8 @@ export default storyBook('GlobalDrawer', story => {
         <JSXNode name="GlobalDrawer" /> is a way to show a slide-out drawer on the right
         side of the UI. It's an application-wide singleton component, which means that
         only one drawer can be open at any given time and its position is always the same.
-        The drawer is opened and closed via React hooks.
+        The drawer is opened and closed via React hooks. The contents of the drawer are
+        unstyled.
       </p>
       <p>
         By default the drawer can be closed with an "Escape" key press, with an outside
@@ -25,6 +26,28 @@ export default storyBook('GlobalDrawer', story => {
       </p>
     </Fragment>
   ));
+
+  story('Example', () => {
+    const {openDrawer, closeDrawer} = useDrawer();
+    return (
+      <Fragment>
+        <CodeSnippet language="jsx">
+          {`<Button onClick={() => openDrawer(() => <h1>Hello</h1>, {ariaLabel: 'test drawer'})}>
+  Open Drawer
+</Button>
+
+<Button onClick={closeDrawer}>Close Drawer</Button>
+`}
+        </CodeSnippet>
+        <LeftButton
+          onClick={() => openDrawer(() => <h1>Hello!</h1>, {ariaLabel: 'test drawer'})}
+        >
+          Open Drawer
+        </LeftButton>
+        <LeftButton onClick={closeDrawer}>Close Drawer</LeftButton>
+      </Fragment>
+    );
+  });
 
   story('Usage Details', () => (
     <Fragment>
@@ -86,26 +109,6 @@ function ModalContent() {
       </CodeSnippet>
     </Fragment>
   ));
-
-  story('Empty Example', () => {
-    const {openDrawer, closeDrawer} = useDrawer();
-    return (
-      <Fragment>
-        <CodeSnippet language="jsx">
-          {`<Button onClick={() => openDrawer(() => null, {ariaLabel: 'test drawer'})}>
-  Open Drawer
-</Button>`}
-        </CodeSnippet>
-        <LeftButton onClick={() => openDrawer(() => null, {ariaLabel: 'test drawer'})}>
-          Open Drawer
-        </LeftButton>
-        <CodeSnippet language="jsx">
-          {`<Button onClick={closeDrawer}>Close Drawer</Button>`}
-        </CodeSnippet>
-        <LeftButton onClick={closeDrawer}>Close Drawer</LeftButton>
-      </Fragment>
-    );
-  });
 
   story('openDrawer() Options Example', () => {
     const {openDrawer} = useDrawer();
