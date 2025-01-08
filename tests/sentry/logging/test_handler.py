@@ -171,9 +171,13 @@ def test_gke_emit() -> None:
 
 
 @mock.patch("random.random", lambda: 0.1)
-def test_sampling_filter_pass(caplog, debug_level):
+def test_sampling_filter(caplog, set_level_debug):
     logger = logging.getLogger(__name__)
     with filter_context(logger, [SamplingFilter(0.2)]):
+        logger.info("msg1")
+        logger.info("message.2")
+
+    with filter_context(logger, [SamplingFilter(0.05)]):
         logger.info("msg1")
         logger.info("message.2")
 
@@ -182,18 +186,7 @@ def test_sampling_filter_pass(caplog, debug_level):
 
 
 @mock.patch("random.random", lambda: 0.1)
-def test_sampling_filter_filter(caplog, debug_level):
-    logger = logging.getLogger(__name__)
-    with filter_context(logger, [SamplingFilter(0.05)]):
-        logger.info("msg1")
-        logger.info("message.2")
-
-    captured_msgs = list(map(lambda r: r.msg, caplog.records))
-    assert captured_msgs == []
-
-
-@mock.patch("random.random", lambda: 0.1)
-def test_sampling_filter_level(caplog, debug_level):
+def test_sampling_filter_level(caplog, set_level_debug):
     logger = logging.getLogger(__name__)
     with filter_context(logger, [SamplingFilter(0.05, level=logging.WARNING)]):
         logger.debug("debug")
@@ -207,7 +200,7 @@ def test_sampling_filter_level(caplog, debug_level):
 
 
 @mock.patch("random.random", lambda: 0.1)
-def test_sampling_filter_level_default(caplog, debug_level):
+def test_sampling_filter_level_default(caplog, set_level_debug):
     logger = logging.getLogger(__name__)
     with filter_context(logger, [SamplingFilter(0.05)]):
         logger.debug("debug")
