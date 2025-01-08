@@ -15,6 +15,7 @@ import type {
   OrganizationSummary,
 } from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {defined} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {EventData} from 'sentry/utils/discover/eventView';
@@ -35,6 +36,7 @@ import {
   getColumnsAndAggregates,
   getEquation,
   isAggregateEquation,
+  isAggregateFieldOrEquation,
   isEquation,
   isMeasurement,
   isSpanOperationBreakdownField,
@@ -42,16 +44,18 @@ import {
   PROFILING_FIELDS,
   TRACING_FIELDS,
 } from 'sentry/utils/discover/fields';
-import {type DisplayModes, SavedQueryDatasets, TOP_N} from 'sentry/utils/discover/types';
+import {DisplayModes, SavedQueryDatasets, TOP_N} from 'sentry/utils/discover/types';
 import {getTitle} from 'sentry/utils/events';
 import {DISCOVER_FIELDS, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import localStorage from 'sentry/utils/localStorage';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
+import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 
 import {
   DashboardWidgetSource,
   DisplayType,
+  type Widget,
   type WidgetQuery,
   WidgetType,
 } from '../dashboards/types';
@@ -737,6 +741,12 @@ export function handleAddQueryToDashboard({
         {
           ...defaultWidgetQuery,
           aggregates: [...(typeof yAxis === 'string' ? [yAxis] : yAxis ?? ['count()'])],
+          fields: widgetAsQueryParams?.field ?? [],
+          columns: widgetAsQueryParams?.field
+            ? widgetAsQueryParams.field.filter(
+                column => !isAggregateFieldOrEquation(column)
+              )
+            : [],
         },
       ],
       interval: eventView.interval!,
@@ -817,6 +827,46 @@ export function constructAddQueryToDashboardLink({
 
   const defaultTitle =
     query?.name ?? (eventView.name !== 'All Events' ? eventView.name : undefined);
+
+  if (organization.features.includes('dashboards-widget-builder-redesign')) {
+    const widget: Widget = {
+      title: defaultTitle!,
+      displayType: displayType === DisplayType.TOP_N ? DisplayType.AREA : displayType,
+      interval: eventView.interval!,
+      queries: [
+        {
+          ...defaultWidgetQuery,
+          aggregates: [...(typeof yAxis === 'string' ? [yAxis] : yAxis ?? ['count()'])],
+          fields: eventView.getFields(),
+          columns:
+            widgetType === WidgetType.SPANS ||
+            displayType === DisplayType.TOP_N ||
+            eventView.display === DisplayModes.DAILYTOP5
+              ? eventView
+                  .getFields()
+                  .filter(
+                    column => defined(column) && !isAggregateFieldOrEquation(column)
+                  )
+              : [],
+        },
+      ],
+      limit:
+        displayType === DisplayType.TOP_N
+          ? Number(eventView.topEvents) || TOP_N
+          : undefined,
+      widgetType,
+    };
+    return {
+      pathname: `/organizations/${organization.slug}/dashboards/new/widget-builder/widget/new/`,
+      query: {
+        ...location?.query,
+        start: eventView.start,
+        end: eventView.end,
+        statsPeriod: eventView.statsPeriod,
+        ...convertWidgetToBuilderStateParams(widget),
+      },
+    };
+  }
 
   return {
     pathname: `/organizations/${organization.slug}/dashboards/new/widget/new/`,
