@@ -324,6 +324,7 @@ def has_too_many_contributing_frames(
     event: Event | GroupEvent,
     variants: dict[str, BaseVariant],
     referrer: ReferrerOptions,
+    record_metrics: bool = True,
 ) -> bool:
     platform = event.platform
     shared_tags = {"referrer": referrer.value, "platform": platform}
@@ -351,11 +352,12 @@ def has_too_many_contributing_frames(
     # with the existing data, we turn off the filter for them (instead their stacktraces will be
     # truncated)
     if platform in EVENT_PLATFORMS_BYPASSING_FRAME_COUNT_CHECK:
-        metrics.incr(
-            "grouping.similarity.frame_count_filter",
-            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            tags={**shared_tags, "outcome": "bypass"},
-        )
+        if record_metrics:
+            metrics.incr(
+                "grouping.similarity.frame_count_filter",
+                sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+                tags={**shared_tags, "outcome": "bypass"},
+            )
         return False
 
     stacktrace_type = "in_app" if contributing_variant.variant_name == "app" else "system"
@@ -363,18 +365,20 @@ def has_too_many_contributing_frames(
     shared_tags["stacktrace_type"] = stacktrace_type
 
     if contributing_component.frame_counts[key] > MAX_FRAME_COUNT:
+        if record_metrics:
+            metrics.incr(
+                "grouping.similarity.frame_count_filter",
+                sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+                tags={**shared_tags, "outcome": "block"},
+            )
+        return True
+
+    if record_metrics:
         metrics.incr(
             "grouping.similarity.frame_count_filter",
             sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            tags={**shared_tags, "outcome": "block"},
+            tags={**shared_tags, "outcome": "pass"},
         )
-        return True
-
-    metrics.incr(
-        "grouping.similarity.frame_count_filter",
-        sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-        tags={**shared_tags, "outcome": "pass"},
-    )
     return False
 
 
