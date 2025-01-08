@@ -21,7 +21,7 @@ export function MonitorHeader({monitor, orgSlug, onUpdate}: Props) {
       preservePageFilters: true,
     },
     {
-      label: t('Cron Monitor Details'),
+      label: t('Cron Monitor'),
     },
   ];
 

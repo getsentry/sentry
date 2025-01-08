@@ -36,7 +36,7 @@ describe('UptimeAlertDetails', function () {
       />,
       {organization}
     );
-    expect(await screen.findAllByText('Uptime Test Rule')).toHaveLength(2);
+    expect(await screen.findByText('Uptime Test Rule')).toBeInTheDocument();
   });
 
   it('shows a message for invalid uptime alert', async function () {

@@ -77,8 +77,7 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
                 to: `/organizations/${organization.slug}/alerts/rules/`,
               },
               {
-                label: uptimeRule.name,
-                to: null,
+                label: t('Uptime Monitor'),
               },
             ]}
           />

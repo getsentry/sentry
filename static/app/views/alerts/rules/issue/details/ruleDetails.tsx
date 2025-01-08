@@ -382,8 +382,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
                 to: `/organizations/${organization.slug}/alerts/rules/`,
               },
               {
-                label: rule.name,
-                to: null,
+                label: t('Issue Alert'),
               },
             ]}
           />
