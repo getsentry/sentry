@@ -77,10 +77,13 @@ export default storyBook('GlobalDrawer', story => {
 
         <LeftButton
           onClick={() =>
-            openDrawer(() => null, {
-              ariaLabel: 'test drawer',
-              closeOnOutsideClick: false,
-            })
+            openDrawer(
+              () => <LeftButton onClick={closeDrawer}>Close Drawer</LeftButton>,
+              {
+                ariaLabel: 'test drawer',
+                closeOnOutsideClick: false,
+              }
+            )
           }
         >
           Open Drawer
@@ -131,8 +134,7 @@ export default storyBook('GlobalDrawer', story => {
           onClick={() =>
             openDrawer(() => <DrawerHeader>My Drawer</DrawerHeader>, {
               ariaLabel: 'test drawer',
-              closeOnEscapeKeypress: false,
-              closeOnOutsideClick: false,
+              shouldCloseOnLocationChange: () => false,
             })
           }
         >
@@ -148,7 +150,7 @@ export default storyBook('GlobalDrawer', story => {
           onClick={() =>
             openDrawer(() => <DrawerHeader>My Drawer</DrawerHeader>, {
               ariaLabel: 'test drawer',
-              closeOnOutsideClick: false,
+              closeOnEscapeKeypress: false,
             })
           }
         >
