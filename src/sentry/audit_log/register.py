@@ -292,6 +292,14 @@ default_manager.add(
 )
 default_manager.add(
     AuditLogEvent(
+        event_id=213,
+        name="UPSERT_MONITOR_ADD",
+        api_name="upsert_monitor.add",
+        template="added upsert monitor {name}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
         event_id=121,
         name="MONITOR_EDIT",
         api_name="monitor.edit",

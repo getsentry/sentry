@@ -393,6 +393,13 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
 
                 monitor.update(**result)
                 updated.append(monitor)
+            self.create_audit_entry(
+                request=request,
+                organization=organization,
+                target_object=monitor.id,
+                event=audit_log.get_event_id("MONITOR_EDIT"),
+                data=monitor.get_audit_log_data(),
+            )
 
         return self.respond(
             {
