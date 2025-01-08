@@ -212,9 +212,14 @@ class Chart extends Component<ChartProps, State> {
 
     const data = [
       ...(currentSeriesNames.length > 0 ? currentSeriesNames : [t('Current')]),
-      ...(previousSeriesNames.length > 0 ? previousSeriesNames : [t('Previous')]),
       ...(additionalSeries ? additionalSeries.map(series => series.name as string) : []),
     ];
+
+    if (defined(previousTimeseriesData)) {
+      data.push(
+        ...(previousSeriesNames.length > 0 ? previousSeriesNames : [t('Previous')])
+      );
+    }
 
     const releasesLegend = t('Releases');
 
@@ -223,7 +228,7 @@ class Chart extends Component<ChartProps, State> {
       data.push('Other');
     }
 
-    if (Array.isArray(releaseSeries)) {
+    if (Array.isArray(releaseSeries) && releaseSeries.length > 0) {
       data.push(releasesLegend);
     }
 
