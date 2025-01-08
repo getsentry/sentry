@@ -623,9 +623,7 @@ class TriggersChart extends PureComponent<Props, State> {
       );
     }
 
-    const useRpc =
-      organization.features.includes('eap-alerts-ui-uses-rpc') &&
-      dataset === Dataset.EVENTS_ANALYTICS_PLATFORM;
+    const useRpc = dataset === Dataset.EVENTS_ANALYTICS_PLATFORM;
 
     const baseProps = {
       api,
