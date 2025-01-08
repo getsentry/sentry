@@ -1399,8 +1399,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             "id": "7136",
         }
 
-        with self.feature({"organizations:dashboards-edit-access": True}):
-            response = self.do_request("post", self.url, data=data)
+        response = self.do_request("post", self.url, data=data)
         assert response.status_code == 201, response.content
         assert response.data["permissions"]["isEditableByEveryone"] is False
         assert response.data["permissions"]["teamsWithEditAccess"] == [team1.id, team2.id]
@@ -1431,8 +1430,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             "id": "7136",
         }
 
-        with self.feature({"organizations:dashboards-edit-access": True}):
-            response = self.do_request("post", self.url, data=data)
+        response = self.do_request("post", self.url, data=data)
         assert response.status_code == 201
 
         response = self.do_request("get", self.url)
