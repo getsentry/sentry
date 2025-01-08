@@ -24,8 +24,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "0806_remove_monitor_attachment_id_pt1"),
-        ("workflow_engine", "0019_drop_dataconditions_condition"),
+        ("workflow_engine", "0020_rm_legacy_notification_type"),
     ]
 
     operations = [
