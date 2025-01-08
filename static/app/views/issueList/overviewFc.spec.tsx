@@ -823,7 +823,9 @@ describe('IssueList', function () {
 
       rerender(<IssueListWithStores {...merge({}, routerProps, {location: pushArgs})} />);
 
-      expect(screen.getByRole('button', {name: 'Previous'})).toBeEnabled();
+      await waitFor(() => {
+        expect(screen.getByRole('button', {name: 'Previous'})).toBeEnabled();
+      });
 
       // Click next again
       await userEvent.click(screen.getByRole('button', {name: 'Next'}));
@@ -1044,7 +1046,7 @@ describe('IssueList', function () {
       expect(await screen.findByTestId('loading-error')).toBeInTheDocument();
     });
 
-    it('displays congrats robots animation with only default query', async function () {
+    it('displays "Get out there and write some broken code" with default query', async function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
         body: [],
@@ -1055,11 +1057,11 @@ describe('IssueList', function () {
       render(<IssueListOverview {...routerProps} {...props} />, {router});
 
       expect(
-        await screen.findByText(/We couldn't find any issues that matched your filters/i)
+        await screen.findByText(/Get out there and write some broken code!/i)
       ).toBeInTheDocument();
     });
 
-    it('displays an empty resultset with a non-default query', async function () {
+    it('displays "no issues match your search" with a non-default query', async function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
         body: [],
@@ -1068,15 +1070,34 @@ describe('IssueList', function () {
         },
       });
 
-      render(<IssueListOverview {...routerProps} {...props} />, {router});
+      const {rerender} = render(<IssueListOverview {...routerProps} {...props} />, {
+        router,
+      });
 
       await screen.findByRole('grid', {name: 'Create a search query'});
       await userEvent.click(getSearchInput());
       await userEvent.keyboard('foo{enter}');
 
-      expect(
-        await screen.findByText(/We couldn't find any issues that matched your filters/i)
-      ).toBeInTheDocument();
+      await waitFor(() => {
+        expect(router.push).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            query: expect.objectContaining({
+              query: 'is:unresolved issue.priority:[high, medium] foo',
+            }),
+          })
+        );
+      });
+
+      rerender(
+        <IssueListOverview
+          {...props}
+          {...merge({}, routerProps, {
+            location: {query: {query: 'is:unresolved issue.priority:[high, medium] foo'}},
+          })}
+        />
+      );
+
+      expect(await screen.findByText(/No issues match your search/i)).toBeInTheDocument();
     });
   });
 
