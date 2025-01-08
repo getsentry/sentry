@@ -750,10 +750,7 @@ export function handleAddQueryToDashboard({
         },
       ],
       interval: eventView.interval!,
-      limit:
-        displayType === DisplayType.TOP_N
-          ? Number(eventView.topEvents) || TOP_N
-          : undefined,
+      limit: widgetAsQueryParams?.limit,
       widgetType,
     },
     router,
@@ -828,11 +825,18 @@ export function constructAddQueryToDashboardLink({
   const defaultTitle =
     query?.name ?? (eventView.name !== 'All Events' ? eventView.name : undefined);
 
+  const limit =
+    displayType === DisplayType.TOP_N || eventView.display === DisplayModes.DAILYTOP5
+      ? Number(eventView.topEvents) || TOP_N
+      : undefined;
+
   if (organization.features.includes('dashboards-widget-builder-redesign')) {
     const widget: Widget = {
       title: defaultTitle!,
       displayType: displayType === DisplayType.TOP_N ? DisplayType.AREA : displayType,
-      interval: eventView.interval!,
+      widgetType,
+      limit,
+      interval: eventView.interval ?? '',
       queries: [
         {
           ...defaultWidgetQuery,
@@ -850,11 +854,6 @@ export function constructAddQueryToDashboardLink({
               : [],
         },
       ],
-      limit:
-        displayType === DisplayType.TOP_N
-          ? Number(eventView.topEvents) || TOP_N
-          : undefined,
-      widgetType,
     };
     return {
       pathname: `/organizations/${organization.slug}/dashboards/new/widget-builder/widget/new/`,
@@ -882,10 +881,7 @@ export function constructAddQueryToDashboardLink({
       displayType: displayType === DisplayType.TOP_N ? DisplayType.AREA : displayType,
       dataset: widgetType,
       field: eventView.getFields(),
-      limit:
-        displayType === DisplayType.TOP_N
-          ? Number(eventView.topEvents) || TOP_N
-          : undefined,
+      limit,
     },
   };
 }
