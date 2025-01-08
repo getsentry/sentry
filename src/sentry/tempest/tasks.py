@@ -1,7 +1,7 @@
 import logging
 import os
 
-from rest_framework.response import Response
+from requests import Response
 
 from sentry import http
 from sentry.models.projectkey import ProjectKey, UseCase
