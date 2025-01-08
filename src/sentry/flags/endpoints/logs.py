@@ -21,8 +21,8 @@ class FlagAuditLogModelSerializerResponse(TypedDict):
     id: int
     action: str
     createdAt: datetime
-    createdBy: str
-    createdByType: str
+    createdBy: str | None
+    createdByType: str | None
     flag: str
     tags: dict[str, Any]
 
@@ -35,7 +35,11 @@ class FlagAuditLogModelSerializer(Serializer):
             "action": ActionEnum.to_string(obj.action),
             "createdAt": obj.created_at.isoformat(),
             "createdBy": obj.created_by,
-            "createdByType": CreatedByTypeEnum.to_string(obj.created_by_type),
+            "createdByType": (
+                None
+                if obj.created_by_type is None
+                else CreatedByTypeEnum.to_string(obj.created_by_type)
+            ),
             "flag": obj.flag,
             "tags": obj.tags,
         }
