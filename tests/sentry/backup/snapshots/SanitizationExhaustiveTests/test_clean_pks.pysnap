@@ -1,5 +1,5 @@
 ---
-created: '2025-01-08T19:55:46.708623+00:00'
+created: '2025-01-08T21:55:03.599828+00:00'
 creator: sentry
 source: tests/sentry/backup/test_sanitize.py
 ---
@@ -553,6 +553,10 @@ source: tests/sentry/backup/test_sanitize.py
   ordinal: 2
   sanitized_fields:
   - date_added
+- model_name: sentry.snubaquery
+  ordinal: 3
+  sanitized_fields:
+  - date_added
 - model_name: sentry.sentryapp
   ordinal: 1
   sanitized_fields:
@@ -578,6 +582,16 @@ source: tests/sentry/backup/test_sanitize.py
   - date_updated
 - model_name: sentry.querysubscription
   ordinal: 2
+  sanitized_fields:
+  - date_added
+  - date_updated
+- model_name: sentry.querysubscription
+  ordinal: 3
+  sanitized_fields:
+  - date_added
+  - date_updated
+- model_name: sentry.querysubscription
+  ordinal: 4
   sanitized_fields:
   - date_added
   - date_updated
@@ -713,6 +727,12 @@ source: tests/sentry/backup/test_sanitize.py
   - date_added
   - date_modified
   - name
+- model_name: sentry.alertrule
+  ordinal: 3
+  sanitized_fields:
+  - date_added
+  - date_modified
+  - name
 - model_name: workflow_engine.workflowdataconditiongroup
   ordinal: 1
   sanitized_fields:
@@ -738,6 +758,9 @@ source: tests/sentry/backup/test_sanitize.py
   sanitized_fields: []
 - model_name: sentry.snubaqueryeventtype
   ordinal: 2
+  sanitized_fields: []
+- model_name: sentry.snubaqueryeventtype
+  ordinal: 3
   sanitized_fields: []
 - model_name: sentry.sentryappinstallation
   ordinal: 1
@@ -778,6 +801,10 @@ source: tests/sentry/backup/test_sanitize.py
   ordinal: 1
   sanitized_fields:
   - date_added
+- model_name: sentry.alertruletrigger
+  ordinal: 2
+  sanitized_fields:
+  - date_added
 - model_name: sentry.alertruleprojects
   ordinal: 1
   sanitized_fields:
@@ -786,12 +813,24 @@ source: tests/sentry/backup/test_sanitize.py
   ordinal: 2
   sanitized_fields:
   - date_added
+- model_name: sentry.alertruleprojects
+  ordinal: 3
+  sanitized_fields:
+  - date_added
 - model_name: sentry.alertruleactivity
   ordinal: 1
   sanitized_fields:
   - date_added
 - model_name: sentry.alertruleactivity
   ordinal: 2
+  sanitized_fields:
+  - date_added
+- model_name: sentry.alertruleactivity
+  ordinal: 3
+  sanitized_fields:
+  - date_added
+- model_name: sentry.alertruleactivationcondition
+  ordinal: 1
   sanitized_fields:
   - date_added
 - model_name: workflow_engine.alertruletriggerdatacondition
@@ -827,6 +866,10 @@ source: tests/sentry/backup/test_sanitize.py
   - date_modified
 - model_name: sentry.alertruletriggeraction
   ordinal: 1
+  sanitized_fields:
+  - date_added
+- model_name: sentry.alertruletriggeraction
+  ordinal: 2
   sanitized_fields:
   - date_added
 - model_name: sentry.timeseriessnapshot
