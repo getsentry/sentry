@@ -23,7 +23,6 @@ export default function IssueTagsPreview({
   } = useGroupTagsReadable({
     groupId,
     environment: environments,
-    limit: 3,
   });
   const tagsToPreview = useMemo(() => {
     const priorityTags = ['browser.name', 'os.name', 'runtime.name', 'environment'];
