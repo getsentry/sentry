@@ -5,6 +5,7 @@ from collections.abc import Sequence
 from functools import wraps
 from typing import Any
 
+import sentry_sdk
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
@@ -26,7 +27,11 @@ from sentry.organizations.services.organization import (
 )
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.services.app import RpcSentryApp, app_service
-from sentry.sentry_apps.utils.errors import SentryAppError, SentryAppIntegratorError
+from sentry.sentry_apps.utils.errors import (
+    SentryAppError,
+    SentryAppIntegratorError,
+    SentryAppSentryError,
+)
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
@@ -131,6 +136,14 @@ class IntegrationPlatformEndpoint(Endpoint):
             response.exception = True
             return response
 
+        elif isinstance(exception, SentryAppSentryError):
+            error_id = sentry_sdk.capture_exception(exception)
+            return Response(
+                {
+                    "error": f"An issue occured during the Sentry App process. Sentry error ID: {error_id}"
+                },
+                status=500,
+            )
         # If not an audited sentry app error then default to using default error handler
         return None
 
