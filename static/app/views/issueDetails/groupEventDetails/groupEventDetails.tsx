@@ -57,7 +57,6 @@ function GroupEventDetails() {
   } = useGroupEvent({
     groupId: params.groupId,
     eventId: params.eventId,
-    environments,
   });
 
   const {
