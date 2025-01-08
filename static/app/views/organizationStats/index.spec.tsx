@@ -498,6 +498,35 @@ describe('OrganizationStats', function () {
     // Should show Profiles (transaction) option
     expect(screen.getByRole('option', {name: 'Profiles'})).toBeInTheDocument();
   });
+
+  it('denies access on no projects', async function () {
+    act(() => ProjectsStore.loadInitialData([]));
+
+    render(<OrganizationStats {...defaultProps} />, {
+      router,
+    });
+
+    expect(
+      await screen.findByText('You need at least one project to use this view')
+    ).toBeInTheDocument();
+  });
+
+  it('denies access without project membership', async function () {
+    const newOrg = initializeOrg({
+      organization: {
+        openMembership: false,
+      },
+    });
+    act(() => ProjectsStore.loadInitialData([ProjectFixture({isMember: false})]));
+
+    render(<OrganizationStats {...defaultProps} organization={newOrg.organization} />, {
+      router: newOrg.router,
+    });
+
+    expect(
+      await screen.findByText('You need at least one project to use this view')
+    ).toBeInTheDocument();
+  });
 });
 
 const mockStatsResponse = {
