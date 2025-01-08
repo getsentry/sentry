@@ -164,7 +164,7 @@ describe('AutofixMessageBox Analytics', () => {
 
     // Find the last call to Button that matches our Setup button
     const setupButtonCall = mockButton.mock.calls.find(
-      call => call[0].children === 'Draft PRs'
+      call => call[0].children === 'Draft PR'
     );
     expect(setupButtonCall?.[0]).toEqual(
       expect.objectContaining({

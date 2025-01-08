@@ -231,7 +231,7 @@ function SetupAndCreatePRsButton({
         analyticsParams={{group_id: groupId}}
         title={t('Enable write access to create pull requests')}
       >
-        Draft PR{changes.length > 1 ? 's' : ''}
+        {t('Draft PR')}
       </Button>
     );
   }
