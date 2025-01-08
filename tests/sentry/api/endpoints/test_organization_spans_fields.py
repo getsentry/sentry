@@ -840,6 +840,26 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
             assert response.status_code == 200, response.data
             assert response.data == []
 
+    def test_invalid_query(self):
+        timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
+        self.store_segment(
+            self.project.id,
+            uuid4().hex,
+            uuid4().hex,
+            span_id=uuid4().hex[:16],
+            organization_id=self.organization.id,
+            parent_span_id=None,
+            timestamp=timestamp,
+            transaction="foo",
+            duration=100,
+            exclusive_time=100,
+            tags={"tag": "foo"},
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request("tag", {"query": '"'})
+        assert response.status_code == 400, response.data
+
 
 class OrganizationEAPSpansTagKeyValuesEndpointTest(OrganizationSpansTagKeyValuesEndpointTest):
     is_eap = True
