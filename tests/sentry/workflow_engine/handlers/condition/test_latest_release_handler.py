@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from unittest.mock import patch
 
 import pytest
 
@@ -151,4 +152,20 @@ class TestLatestReleaseCondition(ConditionTestCase):
         self.assert_passes(self.dc, self.job)
 
         self.event.data["tags"] = (("release", other_env_release.version),)
+        self.assert_does_not_pass(self.dc, self.job)
+
+    @patch("sentry.search.utils.get_latest_release")
+    def test_release_does_not_exist(self, mock_get_latest_release):
+        mock_get_latest_release.side_effect = Release.DoesNotExist
+        self.assert_does_not_pass(self.dc, self.job)
+
+    @patch.object(Release.objects, "get", return_value=None)
+    def test_no_release_object(self, mock_get):
+        newRelease = Release.objects.create(
+            organization_id=self.organization.id,
+            version="2",
+            date_added=datetime(2020, 9, 2, 3, 8, 24, 880386, tzinfo=UTC),
+        )
+        newRelease.add_project(self.project)
+
         self.assert_does_not_pass(self.dc, self.job)
