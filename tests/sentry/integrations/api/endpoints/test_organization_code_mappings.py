@@ -261,6 +261,11 @@ class OrganizationCodeMappingsTest(APITestCase):
         response = self.make_post({"stackRoot": "", "sourceRoot": ""})
         assert response.status_code == 201, response.content
 
+    def test_invalid_project_id(self):
+        response = self.make_post({"projectId": "dogs_are_great"})
+        assert response.status_code == 400, response.content
+        assert response.data == "Invalid projectId param. Expected an integer."
+
     def test_project_does_not_exist(self):
         bad_org = self.create_organization()
         bad_project = self.create_project(organization=bad_org)
