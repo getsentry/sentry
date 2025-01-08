@@ -130,7 +130,7 @@ describe('AutofixMessageBox Analytics', () => {
 
     render(<AutofixMessageBox {...changesStepProps} />);
 
-    await userEvent.click(screen.getByRole('button', {name: 'Take it from here'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Use this code'}));
 
     // Find the last call to Button that matches our Create PR button
     const createPRButtonCall = mockButton.mock.calls.find(
@@ -160,7 +160,7 @@ describe('AutofixMessageBox Analytics', () => {
 
     render(<AutofixMessageBox {...changesStepProps} />);
 
-    await userEvent.click(screen.getByRole('button', {name: 'Take it from here'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Use this code'}));
 
     // Find the last call to Button that matches our Setup button
     const setupButtonCall = mockButton.mock.calls.find(

@@ -112,7 +112,6 @@ function CreatePRsButton({
           payload: {
             type: 'create_pr',
             repo_external_id: change.repo_external_id,
-            repo_id: change.repo_id, // The repo_id is only here for temporary backwards compatibility for LA customers, and we should remove it soon.
           },
         },
       });
@@ -172,7 +171,6 @@ function CreateBranchButton({
           payload: {
             type: 'create_branch',
             repo_external_id: change.repo_external_id,
-            repo_id: change.repo_id, // The repo_id is only here for temporary backwards compatibility for LA customers, and we should remove it soon.
           },
         },
       });
@@ -596,7 +594,7 @@ function AutofixMessageBox({
                     {key: 'give_feedback', label: t('Iterate')},
                     {
                       key: 'create_prs',
-                      label: t('Take it from here'),
+                      label: t('Use this code'),
                       active: true,
                     },
                   ]}

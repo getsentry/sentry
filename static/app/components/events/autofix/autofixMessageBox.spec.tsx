@@ -204,7 +204,7 @@ describe('AutofixMessageBox', () => {
     render(<AutofixMessageBox {...changesStepProps} />);
 
     expect(screen.getByRole('button', {name: 'Iterate'})).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Take it from here'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Use this code'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Add tests'})).toBeInTheDocument();
   });
 
@@ -234,7 +234,7 @@ describe('AutofixMessageBox', () => {
 
     render(<AutofixMessageBox {...changesStepProps} />);
 
-    await userEvent.click(screen.getByRole('button', {name: 'Take it from here'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Use this code'}));
 
     expect(screen.getByText('Push the above changes to a branch?')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Draft PR'})).toBeInTheDocument();
@@ -263,7 +263,7 @@ describe('AutofixMessageBox', () => {
 
     render(<AutofixMessageBox {...multipleChangesProps} />);
 
-    await userEvent.click(screen.getByRole('button', {name: 'Take it from here'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Use this code'}));
 
     expect(screen.getByText('Push the above changes to 2 branches?')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Draft PRs'})).toBeInTheDocument();
@@ -319,7 +319,7 @@ describe('AutofixMessageBox', () => {
 
     render(<AutofixMessageBox {...changesStepProps} />);
 
-    await userEvent.click(screen.getByRole('button', {name: 'Take it from here'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Use this code'}));
 
     expect(screen.getByText('Push the above changes to a branch?')).toBeInTheDocument();
 
@@ -338,7 +338,7 @@ describe('AutofixMessageBox', () => {
   it('shows option buttons for changes step', () => {
     render(<AutofixMessageBox {...changesStepProps} />);
 
-    expect(screen.getByRole('button', {name: 'Take it from here'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Use this code'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Iterate'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Add tests'})).toBeInTheDocument();
   });
