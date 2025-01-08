@@ -207,10 +207,18 @@ function ModalContent() {
     </Fragment>
   ));
 
-  story('Helper Components Example', () => {
+  story('Helper Components', () => {
     const {openDrawer} = useDrawer();
     return (
       <Fragment>
+        <p>
+          <JSXNode name="DrawerHeader" /> and <JSXNode name="DrawerBody" /> are helper
+          components. You can use them to make your drawers look consistent with the rest
+          of the application. <JSXNode name="DrawerHeader" /> includes a "Close" button
+          and a spot to render a title. <JSXNode name="DrawerBody" /> specifies correct
+          padding, scrolling, and overflow.
+        </p>
+
         <CodeSnippet language="jsx">
           {`import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 
