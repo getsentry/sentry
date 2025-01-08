@@ -14,6 +14,7 @@ import type {Series} from 'sentry/types/echarts';
 import type {MetricsApiResponse} from 'sentry/types/metrics';
 import type {Organization, SessionApiResponse} from 'sentry/types/organization';
 import type {Release} from 'sentry/types/release';
+import {defined} from 'sentry/utils';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {stripDerivedMetricsPrefix} from 'sentry/utils/discover/fields';
 import {TOP_N} from 'sentry/utils/discover/types';
@@ -146,7 +147,7 @@ export function requiresCustomReleaseSorting(query: WidgetQuery): boolean {
 
 class ReleaseWidgetQueries extends Component<Props, State> {
   state: State = {
-    loading: true,
+    loading: false,
     errorMessage: undefined,
     releases: undefined,
   };
@@ -154,6 +155,18 @@ class ReleaseWidgetQueries extends Component<Props, State> {
   componentDidMount() {
     this._isMounted = true;
     if (requiresCustomReleaseSorting(this.props.widget.queries[0]!)) {
+      this.fetchReleases();
+      return;
+    }
+  }
+
+  componentDidUpdate(prevProps: Readonly<Props>): void {
+    if (
+      !requiresCustomReleaseSorting(prevProps.widget.queries[0]!) &&
+      requiresCustomReleaseSorting(this.props.widget.queries[0]!) &&
+      !this.state.loading &&
+      !defined(this.state.releases)
+    ) {
       this.fetchReleases();
       return;
     }

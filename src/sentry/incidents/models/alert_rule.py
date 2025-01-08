@@ -3,9 +3,8 @@ from __future__ import annotations
 import abc
 import logging
 from collections.abc import Callable, Collection, Iterable
-from datetime import timedelta
 from enum import Enum, IntEnum, StrEnum
-from typing import TYPE_CHECKING, Any, ClassVar, Protocol, Self
+from typing import TYPE_CHECKING, Any, ClassVar, Self
 
 from django.conf import settings
 from django.core.cache import cache
@@ -42,7 +41,7 @@ from sentry.notifications.models.notificationaction import (
 )
 from sentry.seer.anomaly_detection.delete_rule import delete_rule_in_seer
 from sentry.snuba.models import QuerySubscription
-from sentry.snuba.subscriptions import bulk_create_snuba_subscriptions, delete_snuba_subscription
+from sentry.snuba.subscriptions import bulk_create_snuba_subscriptions
 from sentry.types.actor import Actor
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
@@ -53,34 +52,6 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
-
-
-class SubscriptionCallback(Protocol):
-    def __call__(self, subscription: QuerySubscription, *args: Any, **kwargs: Any) -> bool: ...
-
-
-alert_subscription_callback_registry: dict[AlertRuleMonitorTypeInt, SubscriptionCallback] = {}
-
-
-def register_alert_subscription_callback(
-    monitor_type: AlertRuleMonitorTypeInt,
-) -> Callable[[Callable], Callable]:
-    def decorator(func: Callable) -> Callable:
-        alert_subscription_callback_registry[monitor_type] = func
-        return func
-
-    return decorator
-
-
-def invoke_alert_subscription_callback(
-    monitor_type: AlertRuleMonitorTypeInt, subscription: QuerySubscription, **kwargs: Any
-) -> bool:
-    try:
-        callback = alert_subscription_callback_registry[monitor_type]
-    except KeyError:
-        return False
-
-    return callback(subscription, **kwargs)
 
 
 class AlertRuleStatus(Enum):
@@ -728,41 +699,6 @@ class AlertRuleActivity(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_alertruleactivity"
-
-
-@register_alert_subscription_callback(AlertRuleMonitorTypeInt.ACTIVATED)
-def update_alert_activations(
-    subscription: QuerySubscription, alert_rule: AlertRule, value: float
-) -> bool:
-    if subscription.snuba_query is None:
-        return False
-
-    now = timezone.now()
-    subscription_end = subscription.date_added + timedelta(
-        seconds=subscription.snuba_query.time_window
-    )
-
-    if now > subscription_end:
-        logger.info(
-            "alert activation monitor finishing",
-            extra={
-                "subscription_window": subscription.snuba_query.time_window,
-                "date_added": subscription.date_added,
-                "now": now,
-            },
-        )
-
-        alert_rule.activations.filter(finished_at=None, query_subscription=subscription).update(
-            metric_value=value, finished_at=now
-        )
-        # NOTE: QuerySubscription deletion will set fk to null on the activation
-        delete_snuba_subscription(subscription)
-    else:
-        alert_rule.activations.filter(finished_at=None, query_subscription=subscription).update(
-            metric_value=value
-        )
-
-    return True
 
 
 post_delete.connect(AlertRuleManager.clear_subscription_cache, sender=QuerySubscription)
