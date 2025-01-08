@@ -741,12 +741,15 @@ export function handleAddQueryToDashboard({
         {
           ...defaultWidgetQuery,
           aggregates: [...(typeof yAxis === 'string' ? [yAxis] : yAxis ?? ['count()'])],
-          fields: widgetAsQueryParams?.field ?? [],
-          columns: widgetAsQueryParams?.field
-            ? widgetAsQueryParams.field.filter(
-                column => !isAggregateFieldOrEquation(column)
-              )
-            : [],
+          ...(organization.features.includes('dashboards-widget-builder-redesign')
+            ? {
+                // The widget query params filters out aggregate fields
+                // so we can use the fields as columns. This is so yAxes
+                // can be grouped by the fields.
+                fields: widgetAsQueryParams?.field ?? [],
+                columns: widgetAsQueryParams?.field ?? [],
+              }
+            : {}),
         },
       ],
       interval: eventView.interval!,
