@@ -378,7 +378,8 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
             "owner": f"user:{self.user.id}",
             "config": {"schedule_type": "crontab", "schedule": "@daily"},
         }
-        response = self.get_success_response(self.organization.slug, **data)
+        with outbox_runner():
+            response = self.get_success_response(self.organization.slug, **data)
 
         monitor = Monitor.objects.get(slug=response.data["slug"])
         assert monitor.organization_id == self.organization.id
@@ -396,6 +397,11 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
             "failure_issue_threshold": None,
             "recovery_threshold": None,
         }
+        assert_org_audit_log_exists(
+            organization=self.organization,
+            event=audit_log.get_event_id("MONITOR_ADD"),
+            data=monitor.get_audit_log_data(),
+        )
 
         self.project.refresh_from_db()
         assert self.project.flags.has_cron_monitors

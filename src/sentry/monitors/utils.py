@@ -5,6 +5,7 @@ from django.db import router, transaction
 from django.utils import timezone
 from rest_framework.request import Request
 
+from sentry import audit_log
 from sentry.api.serializers.rest_framework.rule import RuleSerializer
 from sentry.db.models import BoundedPositiveIntegerField
 from sentry.models.group import Group
@@ -20,6 +21,7 @@ from sentry.signals import (
     first_cron_monitor_created,
 )
 from sentry.users.models.user import User
+from sentry.utils.audit import create_audit_entry, create_system_audit_entry
 from sentry.utils.auth import AuthenticatedHttpRequest
 
 
@@ -42,11 +44,29 @@ def check_and_signal_first_monitor_created(project: Project, user, from_upsert: 
         )
 
 
-def signal_monitor_created(project: Project, user, from_upsert: bool):
+def signal_monitor_created(
+    project: Project, user, from_upsert: bool, monitor: Monitor, request: Request | None
+):
     cron_monitor_created.send_robust(
         project=project, user=user, from_upsert=from_upsert, sender=Project
     )
     check_and_signal_first_monitor_created(project, user, from_upsert)
+
+    if from_upsert:
+        create_system_audit_entry(
+            organization_id=project.organization_id,
+            target_object=monitor.id,
+            event=audit_log.get_event_id("UPSERT_MONITOR_ADD"),
+            data=monitor.get_audit_log_data(),
+        )
+    else:
+        create_audit_entry(
+            request=request,
+            organization=project.organization,
+            target_object=monitor.id,
+            event=audit_log.get_event_id("MONITOR_ADD"),
+            data=monitor.get_audit_log_data(),
+        )
 
 
 def get_max_runtime(max_runtime: int | None) -> timedelta:

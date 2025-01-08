@@ -308,16 +308,8 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
         if seat_outcome != Outcome.ACCEPTED:
             monitor.update(status=ObjectStatus.DISABLED)
 
-        self.create_audit_entry(
-            request=request,
-            organization=organization,
-            target_object=monitor.id,
-            event=audit_log.get_event_id("MONITOR_ADD"),
-            data=monitor.get_audit_log_data(),
-        )
-
         project = result["project"]
-        signal_monitor_created(project, request.user, False)
+        signal_monitor_created(project, request.user, False, monitor, request)
 
         validated_issue_alert_rule = result.get("alert_rule")
         if validated_issue_alert_rule:

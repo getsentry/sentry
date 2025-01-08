@@ -22,7 +22,7 @@ from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.ingest_monitors_v1 import IngestMonitorMessage
 from sentry_sdk.tracing import Span, Transaction
 
-from sentry import audit_log, quotas, ratelimits
+from sentry import quotas, ratelimits
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.constants import DataCategory, ObjectStatus
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
@@ -76,7 +76,6 @@ from sentry.monitors.utils import (
 from sentry.monitors.validators import ConfigValidator, MonitorCheckInValidator
 from sentry.types.actor import parse_and_validate_actor
 from sentry.utils import json, metrics
-from sentry.utils.audit import create_system_audit_entry
 from sentry.utils.dates import to_datetime
 from sentry.utils.outcomes import Outcome, track_outcome
 
@@ -162,7 +161,7 @@ def _ensure_monitor_with_config(
             },
         )
         if created:
-            signal_monitor_created(project, None, True)
+            signal_monitor_created(project, None, True, monitor, None)
 
     # Update existing monitor
     if monitor and not created:
@@ -588,12 +587,6 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
         seat_outcome = quotas.backend.assign_monitor_seat(monitor)
         if seat_outcome != Outcome.ACCEPTED:
             monitor.update(status=ObjectStatus.DISABLED)
-        create_system_audit_entry(
-            organization_id=project.organization_id,
-            target_object=monitor.id,
-            event=audit_log.get_event_id("UPSERT_MONITOR_ADD"),
-            data=monitor.get_audit_log_data(),
-        )
 
     if not monitor:
         metrics.incr(
