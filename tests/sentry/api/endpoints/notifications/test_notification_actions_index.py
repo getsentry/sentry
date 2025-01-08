@@ -1,3 +1,5 @@
+from collections.abc import Callable, MutableMapping
+from typing import Any, TypedDict, TypeVar
 from unittest.mock import MagicMock, patch
 
 import responses
@@ -20,6 +22,34 @@ from sentry.testutils.helpers.slack import install_slack
 from sentry.testutils.silo import assume_test_silo_mode
 from tests.sentry.integrations.slack.utils.test_mock_slack_response import mock_slack_response
 
+ActionRegistrationT = TypeVar("ActionRegistrationT", bound=ActionRegistration)
+
+
+class _Query(TypedDict, total=False):
+    triggerType: str
+    project: int
+
+
+class _QueryResult(TypedDict):
+    query: _Query
+    result: set[NotificationAction]
+
+
+def _mock_register(
+    data: MutableMapping[str, Any]
+) -> Callable[[type[ActionRegistrationT]], type[ActionRegistrationT]]:
+    trigger_type = ActionTrigger.get_value(data["triggerType"])
+    service_type = ActionService.get_value(data["serviceType"])
+    target_type = ActionTarget.get_value(data["targetType"])
+
+    assert trigger_type is not None, "triggerType must exist"
+    assert service_type is not None, "serviceType must exist"
+    assert target_type is not None, "targetType must exist"
+
+    return NotificationAction.register_action(
+        trigger_type=trigger_type, service_type=service_type, target_type=target_type
+    )
+
 
 class NotificationActionsIndexEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-notification-actions"
@@ -36,18 +66,13 @@ class NotificationActionsIndexEndpointTest(APITestCase):
             self.create_project(name="greenpath", organization=self.organization),
             self.create_project(name="dirtmouth", organization=self.organization),
         ]
-        self.base_data = {
+        self.base_data: MutableMapping[str, Any] = {
             "serviceType": "email",
             "triggerType": "audit-log",
             "targetType": "specific",
             "targetDisplay": "@hollowknight",
             "targetIdentifier": "THK",
         }
-        self.mock_register = lambda data: NotificationAction.register_action(
-            trigger_type=ActionTrigger.get_value(data["triggerType"]),
-            service_type=ActionService.get_value(data["serviceType"]),
-            target_type=ActionTarget.get_value(data["targetType"]),
-        )
         self.login_as(user=self.user)
 
     def test_get_simple(self):
@@ -102,7 +127,7 @@ class NotificationActionsIndexEndpointTest(APITestCase):
             trigger_type=1,
         )
 
-        query_data = {
+        query_data: dict[str, _QueryResult] = {
             "checks projects by default": {"query": {}, "result": {na1, na2, na3, na4}},
             "regular project": {
                 "query": {"project": project.id},
@@ -118,7 +143,7 @@ class NotificationActionsIndexEndpointTest(APITestCase):
             },
             "empty result": {
                 "query": {"triggerType": "beast"},
-                "result": {},
+                "result": set(),
             },
             "not member": {"query": {"triggerType": "watcher"}, "result": {na3}},
             "not member but has access": {
@@ -251,7 +276,10 @@ class NotificationActionsIndexEndpointTest(APITestCase):
         class MockActionRegistration(ActionRegistration):
             validate_action = MagicMock(side_effect=serializers.ValidationError(error_message))
 
-        self.mock_register(self.base_data)(MockActionRegistration)
+            def fire(self, data: Any) -> None:
+                raise NotImplementedError
+
+        _mock_register(self.base_data)(MockActionRegistration)
 
         response = self.get_error_response(
             self.organization.slug,
@@ -270,7 +298,8 @@ class NotificationActionsIndexEndpointTest(APITestCase):
     @mock_slack_response("chat_deleteScheduledMessage", body={"ok": True})
     def test_post_with_slack_validation(self, mock_delete, mock_schedule):
         class MockActionRegistration(ActionRegistration):
-            pass
+            def fire(self, data: Any) -> None:
+                raise NotImplementedError
 
         channel_name = "journal"
         channel_id = "CABC123"
@@ -284,7 +313,7 @@ class NotificationActionsIndexEndpointTest(APITestCase):
             "targetDisplay": f"#{channel_name}",
         }
 
-        self.mock_register(data)(MockActionRegistration)
+        _mock_register(data)(MockActionRegistration)
 
         response = self.get_success_response(
             self.organization.slug,
@@ -297,7 +326,8 @@ class NotificationActionsIndexEndpointTest(APITestCase):
     @patch.dict(NotificationAction._registry, {})
     def test_post_with_pagerduty_validation(self):
         class MockActionRegistration(ActionRegistration):
-            pass
+            def fire(self, data: Any) -> None:
+                raise NotImplementedError
 
         service_name = "palace"
 
@@ -316,7 +346,7 @@ class NotificationActionsIndexEndpointTest(APITestCase):
             "targetDisplay": "incorrect_service_name",
         }
 
-        self.mock_register(data)(MockActionRegistration)
+        _mock_register(data)(MockActionRegistration)
 
         # Didn't provide a targetIdentifier key
         response = self.get_error_response(
@@ -328,6 +358,7 @@ class NotificationActionsIndexEndpointTest(APITestCase):
         assert "Did not recieve PagerDuty service id" in str(response.data["targetIdentifier"])
         with assume_test_silo_mode(SiloMode.CONTROL):
             org_integration = second_integration.organizationintegration_set.first()
+            assert org_integration is not None, "org integration needs to exist!"
             service = add_service(
                 org_integration,
                 service_name=service_name,
@@ -343,6 +374,8 @@ class NotificationActionsIndexEndpointTest(APITestCase):
         assert "ensure Sentry has access" in str(response.data["targetIdentifier"])
         with assume_test_silo_mode(SiloMode.CONTROL):
             org_integration = integration.organizationintegration_set.first()
+            assert org_integration is not None, "org integration needs to exist!"
+
             service = add_service(
                 org_integration,
                 service_name=service_name,
@@ -360,22 +393,21 @@ class NotificationActionsIndexEndpointTest(APITestCase):
 
     @patch.dict(NotificationAction._registry, {})
     def test_post_simple(self):
+
         class MockActionRegistration(ActionRegistration):
             validate_action = MagicMock()
 
+            def fire(self, data: Any) -> None:
+                raise NotImplementedError
+
         registration = MockActionRegistration
-        NotificationAction.register_action(
-            trigger_type=ActionTrigger.get_value(self.base_data["triggerType"]),
-            service_type=ActionService.get_value(self.base_data["serviceType"]),
-            target_type=ActionTarget.get_value(self.base_data["targetType"]),
-        )(registration)
+        _mock_register(self.base_data)(registration)
 
         data = {
             **self.base_data,
             "projects": [p.slug for p in self.projects],
         }
-
-        assert not registration.validate_action.called
+        registration.validate_action.assert_not_called()
         response = self.get_success_response(
             self.organization.slug,
             status_code=status.HTTP_201_CREATED,
@@ -383,7 +415,7 @@ class NotificationActionsIndexEndpointTest(APITestCase):
             **data,
         )
         # Database reflects changes
-        assert registration.validate_action.called
+        registration.validate_action.assert_called()
         notif_action = NotificationAction.objects.get(id=response.data.get("id"))
         assert response.data == serialize(notif_action)
         # Relation table has been updated
@@ -425,12 +457,11 @@ class NotificationActionsIndexEndpointTest(APITestCase):
         class MockActionRegistration(ActionRegistration):
             validate_action = MagicMock()
 
+            def fire(self, data: Any) -> None:
+                raise NotImplementedError
+
         registration = MockActionRegistration
-        NotificationAction.register_action(
-            trigger_type=ActionTrigger.get_value(self.base_data["triggerType"]),
-            service_type=ActionService.get_value(self.base_data["serviceType"]),
-            target_type=ActionTarget.get_value(self.base_data["targetType"]),
-        )(registration)
+        _mock_register(self.base_data)(registration)
 
         data = {
             **self.base_data,
