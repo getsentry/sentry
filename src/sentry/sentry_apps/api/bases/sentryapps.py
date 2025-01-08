@@ -130,7 +130,6 @@ class IntegrationPlatformEndpoint(Endpoint):
         ) or super().handle_exception_with_details(request, exc, handler_context, scope)
 
     def _handle_sentry_app_exception(self, exception: Exception):
-        # If the error_type attr exists we know the error is one of SentryAppError or SentryAppIntegratorError
         if isinstance(exception, SentryAppIntegratorError) or isinstance(exception, SentryAppError):
             response = Response({"detail": str(exception)}, status=exception.status_code)
             response.exception = True
@@ -140,7 +139,7 @@ class IntegrationPlatformEndpoint(Endpoint):
             error_id = sentry_sdk.capture_exception(exception)
             return Response(
                 {
-                    "error": f"An issue occured during the Sentry App process. Sentry error ID: {error_id}"
+                    "detail": f"An issue occured during the integration platform process. Sentry error ID: {error_id}"
                 },
                 status=500,
             )
