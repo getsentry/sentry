@@ -29,16 +29,16 @@ class SnubaTest(TestCase, SnubaTestCase):
                     "datetime": ts.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
                     "data": {"received": time.mktime(ts.timetuple())},
                 },
+                {},
             )
         )
 
-    @pytest.mark.xfail(reason="Started failing after getsentry/snuba#6711")
     def test(self) -> None:
         "This is just a simple 'hello, world' example test."
 
         now = datetime.now()
 
-        events = [
+        self.snuba_insert(
             (
                 2,
                 "insert",
@@ -52,10 +52,9 @@ class SnubaTest(TestCase, SnubaTestCase):
                     "datetime": now.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
                     "data": {"received": time.mktime(now.timetuple())},
                 },
+                {},
             )
-        ]
-
-        self.snuba_insert(events)
+        )
         assert snuba.query(
             start=now - timedelta(days=1),
             end=now + timedelta(days=1),
@@ -76,7 +75,6 @@ class SnubaTest(TestCase, SnubaTestCase):
                 referrer="testing.test",
             )
 
-    @pytest.mark.xfail(reason="Started failing after getsentry/snuba#6711")
     def test_organization_retention_respected(self) -> None:
         base_time = timezone.now()
 
