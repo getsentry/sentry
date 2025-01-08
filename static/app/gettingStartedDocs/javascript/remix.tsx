@@ -3,7 +3,7 @@ import {Fragment} from 'react';
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
-import {CopyDnsField} from 'sentry/components/onboarding/gettingStartedDoc/copyDnsField';
+import {CopyDsnField} from 'sentry/components/onboarding/gettingStartedDoc/copyDsnField';
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
 import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
@@ -126,7 +126,7 @@ const onboarding: OnboardingConfig = {
           ),
         },
         {
-          description: <CopyDnsField params={params} />,
+          description: <CopyDsnField params={params} />,
         },
       ],
     },

@@ -6,7 +6,7 @@ import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
-export function CopyDnsField({params}: {params: DocsParams<any>}) {
+export function CopyDsnField({params}: {params: DocsParams<any>}) {
   return (
     <Wrapper>
       <p>
