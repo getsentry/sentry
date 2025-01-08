@@ -87,6 +87,7 @@ export function TracePreferencesDropdown(props: TracePreferencesDropdownProps) {
       triggerProps={CompactSelectTriggerProps}
       options={TRACE_PREFERENCES_DROPDOWN_OPTIONS}
       onChange={onChange}
+      menuWidth={300}
     />
   );
 }
