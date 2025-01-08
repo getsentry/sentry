@@ -8,25 +8,27 @@ import {useEventQuery} from 'sentry/views/issueDetails/streamline/eventSearch';
 import {
   getGroupEventQueryKey,
   useDefaultIssueEvent,
+  useEnvironmentsFromUrl,
   useHasStreamlinedUI,
 } from 'sentry/views/issueDetails/utils';
 
 export const RESERVED_EVENT_IDS = new Set(['recommended', 'latest', 'oldest']);
 interface UseGroupEventOptions {
-  environments: string[];
   eventId: string | undefined;
   groupId: string;
+  options?: {enabled?: boolean};
 }
 
 export function useGroupEvent({
   groupId,
   eventId: eventIdProp,
-  environments,
+  options,
 }: UseGroupEventOptions) {
   const organization = useOrganization();
   const location = useLocation<{query?: string}>();
   const defaultIssueEvent = useDefaultIssueEvent();
   const hasStreamlinedUI = useHasStreamlinedUI();
+  const environments = useEnvironmentsFromUrl();
   const eventQuery = useEventQuery({groupId});
   const eventId = eventIdProp ?? defaultIssueEvent;
 
@@ -58,6 +60,7 @@ export function useGroupEvent({
 
   return useApiQuery<Event>(queryKey, {
     staleTime: hasStreamlinedUI ? streamlineStaleTime : staleTime,
+    enabled: options?.enabled && !!eventId,
     retry: false,
   });
 }
