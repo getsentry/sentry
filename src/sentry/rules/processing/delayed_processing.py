@@ -250,7 +250,7 @@ def build_group_to_groupevent(
                         "group_id": group.id if group else None,
                     },
                 )
-                continue
+            continue
 
         group_event = event.for_group(group)
         if occurrence_id:
