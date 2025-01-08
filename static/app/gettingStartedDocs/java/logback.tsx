@@ -41,11 +41,11 @@ const platformOptions = {
     label: t('OpenTelemetry'),
     items: [
       {
-        label: t('Combine Sentry with OpenTelemetry'),
+        label: t('With OpenTelemetry'),
         value: YesNo.YES,
       },
       {
-        label: t('Do not use OpenTelemetry'),
+        label: t('Without OpenTelemetry'),
         value: YesNo.NO,
       },
     ],
@@ -323,15 +323,19 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
             'The following example configures a ConsoleAppender that logs to standard out at the INFO level, and a SentryAppender that logs to the Sentry server at the ERROR level. This only an example of a non-Sentry appender set to a different logging threshold, similar to what you may already have in your project.'
           ),
           code: getConsoleAppenderSnippet(params),
-          additionalInfo: tct(
-            "You'll also need to configure your DSN (client key) if it's not already in the [code:logback.xml] configuration. Learn more in [link:our documentation for DSN configuration].",
-            {
-              code: <code />,
-              link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/java/guides/logback/#dsn-configuration/" />
-              ),
-            }
-          ),
+          ...(params.platformOptions.opentelemetry === YesNo.YES
+            ? {}
+            : {
+                additionalInfo: tct(
+                  "You'll also need to configure your DSN (client key) if it's not already in the [code:logback.xml] configuration. Learn more in [link:our documentation for DSN configuration].",
+                  {
+                    code: <code />,
+                    link: (
+                      <ExternalLink href="https://docs.sentry.io/platforms/java/guides/logback/#dsn-configuration/" />
+                    ),
+                  }
+                ),
+              }),
         },
         {
           description: tct(

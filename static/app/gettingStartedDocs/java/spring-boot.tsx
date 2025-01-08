@@ -45,11 +45,11 @@ const platformOptions = {
     label: t('OpenTelemetry'),
     items: [
       {
-        label: t('Combine Sentry with OpenTelemetry'),
+        label: t('With OpenTelemetry'),
         value: YesNo.YES,
       },
       {
-        label: t('Do not use OpenTelemetry'),
+        label: t('Without OpenTelemetry'),
         value: YesNo.NO,
       },
     ],

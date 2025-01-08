@@ -63,11 +63,11 @@ const platformOptions = {
     label: t('OpenTelemetry'),
     items: [
       {
-        label: t('Combine Sentry with OpenTelemetry'),
+        label: t('With OpenTelemetry'),
         value: YesNo.YES,
       },
       {
-        label: t('Do not use OpenTelemetry'),
+        label: t('Without OpenTelemetry'),
         value: YesNo.NO,
       },
     ],
@@ -149,6 +149,10 @@ const getMavenInstallSnippet = (params: Params) => `
 
 const getOpenTelemetryRunSnippet = (params: Params) => `
 SENTRY_AUTO_INIT=false java -javaagent:sentry-opentelemetry-agent-${getPackageVersion(params, 'sentry.java.opentelemetry-agent', '8.0.0')}.jar -jar your-application.jar
+`;
+
+const getOpenTelemetryApplicationServerSnippet = (params: Params) => `
+JAVA_OPTS="$\{JAVA_OPTS} -javaagent:/somewhere/sentry-opentelemetry-agent-${getPackageVersion(params, 'sentry.java.opentelemetry-agent', '8.0.0')}.jar"
 `;
 
 const getJavaConfigSnippet = (params: Params) => `
@@ -280,7 +284,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
           ? [
               {
                 description: tct(
-                  "When running your application, please add our [code:sentry-opentelemetry-agent] to the [code:java] command. You can download the latest version of the [code:sentry-opentelemetry-agent.jar] from [linkMC:MavenCentral]. It's also available as a [code:ZIP] containing the [code:JAR] used on this page on [linkGH:GitHub].",
+                  "When running your application, please add our [code:sentry-opentelemetry-agent] to the [code:java] command. In case you are using an application server to run your [code:.WAR] file, please add it to the [code:JAVA_OPTS] of your application server. You can download the latest version of the [code:sentry-opentelemetry-agent.jar] from [linkMC:MavenCentral]. It's also available as a [code:ZIP] containing the [code:JAR] used on this page on [linkGH:GitHub].",
                   {
                     code: <code />,
                     linkMC: (
@@ -293,6 +297,17 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
                 ),
                 language: 'bash',
                 code: getOpenTelemetryRunSnippet(params),
+              },
+            ]
+          : []),
+        ...(params.platformOptions.opentelemetry === YesNo.YES
+          ? [
+              {
+                description: t(
+                  'In case of an application server, adding the Agent might look more like the following:'
+                ),
+                language: 'bash',
+                code: getOpenTelemetryApplicationServerSnippet(params),
               },
             ]
           : []),

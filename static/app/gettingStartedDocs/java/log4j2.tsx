@@ -41,11 +41,11 @@ const platformOptions = {
     label: t('OpenTelemetry'),
     items: [
       {
-        label: t('Combine Sentry with OpenTelemetry'),
+        label: t('With OpenTelemetry'),
         value: YesNo.YES,
       },
       {
-        label: t('Do not use OpenTelemetry'),
+        label: t('Without OpenTelemetry'),
         value: YesNo.NO,
       },
     ],
@@ -325,15 +325,19 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
             }
           ),
           code: getConsoleAppenderSnippet(params),
-          additionalInfo: tct(
-            "You'll also need to configure your DSN (client key) if it's not already in the [code:log4j2.xml] configuration. Learn more in [link:our documentation for DSN configuration].",
-            {
-              code: <code />,
-              link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/java/guides/log4j2/#dsn-configuration" />
-              ),
-            }
-          ),
+          ...(params.platformOptions.opentelemetry === YesNo.YES
+            ? {}
+            : {
+                additionalInfo: tct(
+                  "You'll also need to configure your DSN (client key) if it's not already in the [code:log4j2.xml] configuration. Learn more in [link:our documentation for DSN configuration].",
+                  {
+                    code: <code />,
+                    link: (
+                      <ExternalLink href="https://docs.sentry.io/platforms/java/guides/log4j2/#dsn-configuration" />
+                    ),
+                  }
+                ),
+              }),
         },
         {
           description: tct(
