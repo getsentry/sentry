@@ -27,14 +27,6 @@ SLACK_WEBHOOK_GROUP_ACTIONS_FAILURE_DATADOG_METRIC = (
     "sentry.integrations.slack.group_actions.failure"
 )
 
-# Slack Commands
-SLACK_COMMANDS_ENDPOINT_SUCCESS_DATADOG_METRIC = (
-    "sentry.integrations.slack.commands_endpoint.success"
-)
-SLACK_COMMANDS_ENDPOINT_FAILURE_DATADOG_METRIC = (
-    "sentry.integrations.slack.commands_endpoint.failure"
-)
-
 # Sending messages upon linking/unlinking
 SLACK_LINK_IDENTITY_MSG_SUCCESS_DATADOG_METRIC = (
     "sentry.integrations.slack.link_identity_msg.success"
