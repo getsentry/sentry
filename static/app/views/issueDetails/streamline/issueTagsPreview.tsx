@@ -43,7 +43,7 @@ export default function IssueTagsPreview({
     );
   }
 
-  if (isError || !tagsToPreview || searchQuery) {
+  if (isError || !tagsToPreview || searchQuery || tagsToPreview.length === 0) {
     return null;
   }
 
