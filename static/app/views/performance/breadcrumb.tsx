@@ -84,18 +84,23 @@ export const getTabCrumbs = ({
 }: {
   location: Location;
   organization: Organization;
-  transaction: {
-    name: string;
-    project: string;
-  };
   eventSlug?: string;
   spanSlug?: SpanSlug;
   tab?: Tab;
   traceSlug?: string;
+  transaction?: {
+    name: string;
+    project: string;
+  };
   view?: DomainView;
   vitalName?: string;
 }) => {
   const crumbs: Crumb[] = [];
+
+  if (!transaction) {
+    return crumbs;
+  }
+
   const routeQuery = {
     orgSlug: organization.slug,
     transaction: transaction.name,
