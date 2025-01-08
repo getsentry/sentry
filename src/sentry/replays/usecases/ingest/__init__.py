@@ -13,6 +13,7 @@ from sentry_sdk.tracing import Span
 
 from sentry import options
 from sentry.constants import DataCategory
+from sentry.logging.handlers import SamplingFilter
 from sentry.models.project import Project
 from sentry.replays.lib.storage import (
     RecordingSegmentStorageMeta,
@@ -25,10 +26,12 @@ from sentry.signals import first_replay_received
 from sentry.utils import json, metrics
 from sentry.utils.outcomes import Outcome, track_outcome
 
-logger = logging.getLogger("sentry.replays")
-
 CACHE_TIMEOUT = 3600
 COMMIT_FREQUENCY_SEC = 1
+LOG_SAMPLE_RATE = 0.01
+
+logger = logging.getLogger("sentry.replays")
+logger.addFilter(SamplingFilter(LOG_SAMPLE_RATE))
 
 
 class ReplayRecordingSegment(TypedDict):

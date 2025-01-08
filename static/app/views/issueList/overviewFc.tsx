@@ -12,7 +12,6 @@ import * as qs from 'query-string';
 
 import {addMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
-import type {Request} from 'sentry/api';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
@@ -156,9 +155,6 @@ function IssueListOverviewFc({
     {}
   );
   const undoRef = useRef(false);
-  const lastRequestRef = useRef<Request | null>(null);
-  const lastStatsRequestRef = useRef<Request | null>(null);
-  const lastFetchCountsRequestRef = useRef<Request | null>(null);
   const pollerRef = useRef<CursorPoller | undefined>(undefined);
   const actionTakenRef = useRef(false);
 
@@ -327,6 +323,7 @@ function IssueListOverviewFc({
 
   const loadFromCache = useCallback((): boolean => {
     const cache = IssueListCacheStore.getFromCache(requestParams);
+
     if (!cache) {
       return false;
     }
@@ -336,13 +333,7 @@ function IssueListOverviewFc({
     setQueryMaxCount(cache.queryMaxCount);
     setPageLinks(cache.pageLinks);
 
-    // Handle this in the next tick to avoid being overwritten by GroupStore.reset
-    // Group details clears the GroupStore at the same time this component mounts
-    setTimeout(() => {
-      GroupStore.add(cache.groups);
-      // Clear cache after loading
-      IssueListCacheStore.reset();
-    }, 0);
+    GroupStore.add(cache.groups);
 
     return true;
   }, [requestParams]);
@@ -436,42 +427,37 @@ function IssueListOverviewFc({
           countsRequestParams.statsPeriod = DEFAULT_STATS_PERIOD;
         }
 
-        lastFetchCountsRequestRef.current = api.request(
-          `/organizations/${organization.slug}/issues-count/`,
-          {
-            method: 'GET',
-            data: qs.stringify(countsRequestParams),
+        api.request(`/organizations/${organization.slug}/issues-count/`, {
+          method: 'GET',
+          data: qs.stringify(countsRequestParams),
 
-            success: data => {
-              if (!data) {
-                return;
-              }
-              // Counts coming from the counts endpoint is limited to 100, for >= 100 we display 99+
-              newQueryCounts = {
-                ...queryCounts,
-                ...mapValues(data, (count: number) => ({
-                  count,
-                  hasMore: count > TAB_MAX_COUNT,
-                })),
-              };
-            },
-            error: () => {
-              setQueryCounts({});
-            },
-            complete: () => {
-              lastFetchCountsRequestRef.current = null;
-
-              setQueryCounts(newQueryCounts);
-            },
-          }
-        );
+          success: data => {
+            if (!data) {
+              return;
+            }
+            // Counts coming from the counts endpoint is limited to 100, for >= 100 we display 99+
+            newQueryCounts = {
+              ...queryCounts,
+              ...mapValues(data, (count: number) => ({
+                count,
+                hasMore: count > TAB_MAX_COUNT,
+              })),
+            };
+          },
+          error: () => {
+            setQueryCounts({});
+          },
+          complete: () => {
+            setQueryCounts(newQueryCounts);
+          },
+        });
       }
     },
     [api, getEndpointParams, organization.slug, queryCounts]
   );
 
   const fetchStats = useCallback(
-    (newGroupIds: string[]) => {
+    async (newGroupIds: string[]) => {
       // If we have no groups to fetch, just skip stats
       if (!newGroupIds.length) {
         return;
@@ -485,34 +471,30 @@ function IssueListOverviewFc({
         statsRequestParams.statsPeriod = DEFAULT_STATS_PERIOD;
       }
 
-      lastStatsRequestRef.current = api.request(
-        `/organizations/${organization.slug}/issues-stats/`,
-        {
-          method: 'GET',
-          data: qs.stringify(statsRequestParams),
-          success: data => {
-            if (!data) {
-              return;
-            }
-            GroupStore.onPopulateStats(newGroupIds, data);
-            trackTabViewed(newGroupIds, data, queryCount);
-          },
-          error: err => {
-            setError(parseApiError(err));
-          },
-          complete: () => {
-            lastStatsRequestRef.current = null;
+      try {
+        const data = await api.requestPromise(
+          `/organizations/${organization.slug}/issues-stats/`,
+          {
+            method: 'GET',
+            data: qs.stringify(statsRequestParams),
+          }
+        );
 
-            // End navigation transaction to prevent additional page requests from impacting page metrics.
-            // Other transactions include stacktrace preview request
-            const currentSpan = Sentry.getActiveSpan();
-            const rootSpan = currentSpan ? Sentry.getRootSpan(currentSpan) : undefined;
-            if (rootSpan && Sentry.spanToJSON(rootSpan).op === 'navigation') {
-              rootSpan.end();
-            }
-          },
+        if (data) {
+          GroupStore.onPopulateStats(newGroupIds, data);
+          trackTabViewed(newGroupIds, data, queryCount);
         }
-      );
+      } catch (e) {
+        setError(parseApiError(e));
+      } finally {
+        // End navigation transaction to prevent additional page requests from impacting page metrics.
+        // Other transactions include stacktrace preview request
+        const currentSpan = Sentry.getActiveSpan();
+        const rootSpan = currentSpan ? Sentry.getRootSpan(currentSpan) : undefined;
+        if (rootSpan && Sentry.spanToJSON(rootSpan).op === 'navigation') {
+          rootSpan.end();
+        }
+      }
     },
     [getEndpointParams, api, organization.slug, trackTabViewed, queryCount]
   );
@@ -532,113 +514,99 @@ function IssueListOverviewFc({
 
       setError(null);
 
-      if (lastRequestRef.current) {
-        lastRequestRef.current.cancel();
-      }
-      if (lastStatsRequestRef.current) {
-        lastStatsRequestRef.current.cancel();
-      }
-      if (lastFetchCountsRequestRef.current) {
-        lastFetchCountsRequestRef.current.cancel();
-      }
-
+      api.clear();
       pollerRef.current?.disable();
 
-      lastRequestRef.current = api.request(
-        `/organizations/${organization.slug}/issues/`,
-        {
-          method: 'GET',
-          data: qs.stringify(requestParams),
-          success: (data, _, resp) => {
-            if (!resp) {
-              return;
+      api.request(`/organizations/${organization.slug}/issues/`, {
+        method: 'GET',
+        data: qs.stringify(requestParams),
+        success: async (data, _, resp) => {
+          if (!resp) {
+            return;
+          }
+
+          // If this is a direct hit, we redirect to the intended result directly.
+          if (resp.getResponseHeader('X-Sentry-Direct-Hit') === '1') {
+            let redirect: string;
+            if (data[0]?.matchingEventId) {
+              const {id, matchingEventId} = data[0];
+              redirect = `/organizations/${organization.slug}/issues/${id}/events/${matchingEventId}/`;
+            } else {
+              const {id} = data[0];
+              redirect = `/organizations/${organization.slug}/issues/${id}/`;
             }
 
-            // If this is a direct hit, we redirect to the intended result directly.
-            if (resp.getResponseHeader('X-Sentry-Direct-Hit') === '1') {
-              let redirect: string;
-              if (data[0]?.matchingEventId) {
-                const {id, matchingEventId} = data[0];
-                redirect = `/organizations/${organization.slug}/issues/${id}/events/${matchingEventId}/`;
-              } else {
-                const {id} = data[0];
-                redirect = `/organizations/${organization.slug}/issues/${id}/`;
-              }
+            browserHistory.replace(
+              normalizeUrl({
+                pathname: redirect,
+                query: {
+                  referrer: 'issue-list',
+                  ...extractSelectionParameters(location.query),
+                },
+              })
+            );
+            return;
+          }
 
-              browserHistory.replace(
-                normalizeUrl({
-                  pathname: redirect,
-                  query: {
-                    referrer: 'issue-list',
-                    ...extractSelectionParameters(location.query),
-                  },
-                })
-              );
-              return;
-            }
+          if (undoRef.current) {
+            GroupStore.loadInitialData(data);
+          }
+          GroupStore.add(data);
 
-            if (undoRef.current) {
-              GroupStore.loadInitialData(data);
-            }
-            GroupStore.add(data);
+          await fetchStats(data.map((group: BaseGroup) => group.id));
 
-            fetchStats(data.map((group: BaseGroup) => group.id));
+          const hits = resp.getResponseHeader('X-Hits');
+          const newQueryCount =
+            typeof hits !== 'undefined' && hits ? parseInt(hits, 10) || 0 : 0;
+          const maxHits = resp.getResponseHeader('X-Max-Hits');
+          const newQueryMaxCount =
+            typeof maxHits !== 'undefined' && maxHits ? parseInt(maxHits, 10) || 0 : 0;
+          const newPageLinks = resp.getResponseHeader('Link');
 
-            const hits = resp.getResponseHeader('X-Hits');
-            const newQueryCount =
-              typeof hits !== 'undefined' && hits ? parseInt(hits, 10) || 0 : 0;
-            const maxHits = resp.getResponseHeader('X-Max-Hits');
-            const newQueryMaxCount =
-              typeof maxHits !== 'undefined' && maxHits ? parseInt(maxHits, 10) || 0 : 0;
-            const newPageLinks = resp.getResponseHeader('Link');
+          fetchCounts(newQueryCount, fetchAllCounts);
 
-            fetchCounts(newQueryCount, fetchAllCounts);
+          setError(null);
+          setIssuesLoading(false);
+          setQueryCount(newQueryCount);
+          setQueryMaxCount(newQueryMaxCount);
+          setPageLinks(newPageLinks !== null ? newPageLinks : '');
 
-            setError(null);
-            setIssuesLoading(false);
-            setQueryCount(newQueryCount);
-            setQueryMaxCount(newQueryMaxCount);
-            setPageLinks(newPageLinks !== null ? newPageLinks : '');
+          IssueListCacheStore.save(requestParams, {
+            groups: GroupStore.getState() as Group[],
+            queryCount: newQueryCount,
+            queryMaxCount: newQueryMaxCount,
+            pageLinks: newPageLinks ?? '',
+          });
 
-            IssueListCacheStore.save(requestParams, {
-              groups: GroupStore.getState() as Group[],
-              queryCount: newQueryCount,
-              queryMaxCount: newQueryMaxCount,
-              pageLinks: newPageLinks ?? '',
-            });
-
-            if (data.length === 0) {
-              trackAnalytics('issue_search.empty', {
-                organization,
-                search_type: 'issues',
-                search_source: 'main_search',
-                query,
-              });
-            }
-          },
-          error: err => {
-            trackAnalytics('issue_search.failed', {
+          if (data.length === 0) {
+            trackAnalytics('issue_search.empty', {
               organization,
               search_type: 'issues',
               search_source: 'main_search',
-              error: parseApiError(err),
+              query,
             });
+          }
+        },
+        error: err => {
+          trackAnalytics('issue_search.failed', {
+            organization,
+            search_type: 'issues',
+            search_source: 'main_search',
+            error: parseApiError(err),
+          });
 
-            setError(parseApiError(err));
-            setIssuesLoading(false);
-          },
-          complete: () => {
-            lastRequestRef.current = null;
+          setError(parseApiError(err));
+          setIssuesLoading(false);
+        },
+        complete: () => {
+          resumePolling();
 
-            resumePolling();
-
-            if (!realtimeActive) {
-              actionTakenRef.current = false;
-              undoRef.current = false;
-            }
-          },
-        }
-      );
+          if (!realtimeActive) {
+            actionTakenRef.current = false;
+            undoRef.current = false;
+          }
+        },
+      });
     },
     [
       api,
@@ -704,14 +672,6 @@ function IssueListOverviewFc({
     // reload data.
     if (!isEqual(previousRequestParams, requestParams)) {
       fetchData(selectionChanged);
-    } else if (
-      !lastRequestRef.current &&
-      previousIssuesLoading === false &&
-      issuesLoading
-    ) {
-      // Reload if we issues are loading or their loading state changed.
-      // This can happen when transitionTo is called
-      fetchData();
     }
   }, [
     fetchData,
@@ -913,15 +873,7 @@ function IssueListOverviewFc({
     const projectIds = selection?.projects?.map(p => p.toString());
     const endpoint = `/organizations/${organization.slug}/issues/`;
 
-    if (lastRequestRef.current) {
-      lastRequestRef.current.cancel();
-    }
-    if (lastStatsRequestRef.current) {
-      lastStatsRequestRef.current.cancel();
-    }
-    if (lastFetchCountsRequestRef.current) {
-      lastFetchCountsRequestRef.current.cancel();
-    }
+    api.clear();
 
     api.request(endpoint, {
       method: 'PUT',

@@ -6,6 +6,13 @@ import {
   setEnvironmentIsMuted,
   updateMonitor,
 } from 'sentry/actionCreators/monitors';
+import {DateNavigator} from 'sentry/components/checkInTimeline/dateNavigator';
+import {
+  GridLineLabels,
+  GridLineOverlay,
+} from 'sentry/components/checkInTimeline/gridLines';
+import {useDateNavigation} from 'sentry/components/checkInTimeline/hooks/useDateNavigation';
+import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
 import Panel from 'sentry/components/panels/panel';
 import {Sticky} from 'sentry/components/sticky';
 import {space} from 'sentry/styles/space';
@@ -17,10 +24,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import type {Monitor} from 'sentry/views/monitors/types';
 import {makeMonitorListQueryKey} from 'sentry/views/monitors/utils';
 
-import {DateNavigator} from '../timeline/dateNavigator';
-import {GridLineLabels, GridLineOverlay} from '../timeline/gridLines';
-import {useDateNavigation} from '../timeline/hooks/useDateNavigation';
-import {useTimeWindowConfig} from '../timeline/hooks/useTimeWindowConfig';
+import {CronServiceIncidents} from '../serviceIncidents';
 
 import {OverviewRow} from './overviewRow';
 import {SortSelector} from './sortSelector';
@@ -142,7 +146,7 @@ export function OverviewTimeline({monitorList}: Props) {
         stickyCursor
         allowZoom
         showCursor
-        showIncidents
+        additionalUi={<CronServiceIncidents timeWindowConfig={timeWindowConfig} />}
         timeWindowConfig={timeWindowConfig}
       />
 

@@ -98,8 +98,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:dashboards-span-metrics", OrganizationFeature, FeatureHandlerStrategy.OPTIONS, api_expose=False)
     # Enable table view on dashboards landing page
     manager.add("organizations:dashboards-table-view", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable access protected editing of dashboards
-    manager.add("organizations:dashboards-edit-access", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable share links for dashboards for sharing outside the org
     manager.add("organizations:dashboards-share", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable favouriting dashboards
@@ -340,8 +338,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:project-templates", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable the new quick start guide
     manager.add("organizations:quick-start-updates", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable new small design changes for the quick start guide GA
-    manager.add("organizations:quick-start-updates-ga", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=True, api_expose=True)
     # Enable the new Related Events feature
     manager.add("organizations:related-events", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable related issues feature
