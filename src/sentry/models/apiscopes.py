@@ -29,7 +29,9 @@ class ApiScopes(Sequence):
 
     org = (("org:read"), ("org:write"), ("org:integrations"), ("org:admin"))
 
-    member = (("member:read"), ("member:write"), ("member:admin"))
+    member = (("member:read"), ("member:write"), ("member:admin"), ("member:invite"))
+
+    alerts = (("alerts:read"), ("alerts:write"))
 
     def __init__(self):
         self.scopes = (
@@ -38,6 +40,7 @@ class ApiScopes(Sequence):
             + self.__class__.event
             + self.__class__.org
             + self.__class__.member
+            + self.__class__.alerts
         )
 
     def __getitem__(self, value):
@@ -79,6 +82,9 @@ class HasApiScopes(models.Model):
             "member:write": bool,
             "member:admin": bool,
             "org:integrations": bool,
+            "alerts:read": bool,
+            "alerts:write": bool,
+            "member:invite": bool,
         },
     )
     assert set(ScopesDict.__annotations__) == set(ApiScopes())

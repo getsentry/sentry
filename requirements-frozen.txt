@@ -58,8 +58,8 @@ google-resumable-media==2.7.0
 googleapis-common-protos==1.63.2
 grpc-google-iam-v1==0.13.1
 grpc-stubs==1.53.0.5
-grpcio==1.66.1
-grpcio-status==1.66.1
+grpcio==1.67.0
+grpcio-status==1.67.0
 h11==0.14.0
 h2==4.1.0
 hiredis==2.3.2
@@ -100,7 +100,7 @@ pyasn1==0.4.5
 pyasn1-modules==0.2.4
 pycountry==17.5.14
 pycparser==2.21
-pydantic==1.10.18
+pydantic==1.10.20
 pyjwt==2.4.0
 pymemcache==4.0.0
 python-dateutil==2.9.0
@@ -126,7 +126,7 @@ rpds-py==0.20.0
 rsa==4.8
 s3transfer==0.10.0
 sentry-arroyo==2.19.9
-sentry-kafka-schemas==0.1.125
+sentry-kafka-schemas==0.1.126
 sentry-ophio==1.0.0
 sentry-protos==0.1.39
 sentry-redis-tools==0.1.7

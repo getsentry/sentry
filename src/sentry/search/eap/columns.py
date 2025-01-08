@@ -511,7 +511,7 @@ SPAN_FUNCTION_DEFINITIONS = {
         ],
     ),
     "avg": FunctionDefinition(
-        internal_function=Function.FUNCTION_AVERAGE,
+        internal_function=Function.FUNCTION_AVG,
         default_search_type="duration",
         arguments=[
             ArgumentDefinition(
@@ -521,7 +521,7 @@ SPAN_FUNCTION_DEFINITIONS = {
         ],
     ),
     "avg_sample": FunctionDefinition(
-        internal_function=Function.FUNCTION_AVERAGE,
+        internal_function=Function.FUNCTION_AVG,
         default_search_type="duration",
         arguments=[
             ArgumentDefinition(

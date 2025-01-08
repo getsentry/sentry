@@ -39,6 +39,7 @@ from sentry.uptime.models import (
     UptimeStatus,
     UptimeSubscription,
 )
+from sentry.utils import json
 from tests.sentry.uptime.subscriptions.test_tasks import ProducerTestMixin
 
 
@@ -96,6 +97,7 @@ class ProcessResultTest(ProducerTestMixin):
                             "status_reason": "timeout",
                             "status": "failure",
                             "mode": "auto_detected_active",
+                            "uptime_region": "us-west",
                         },
                         sample_rate=1.0,
                     ),
@@ -121,6 +123,7 @@ class ProcessResultTest(ProducerTestMixin):
                             "status_reason": "timeout",
                             "status": "failure",
                             "mode": "auto_detected_active",
+                            "uptime_region": "us-west",
                         },
                         sample_rate=1.0,
                     ),
@@ -134,6 +137,41 @@ class ProcessResultTest(ProducerTestMixin):
         assert assignee and (assignee.id == self.user.id)
         self.project_subscription.refresh_from_db()
         assert self.project_subscription.uptime_status == UptimeStatus.FAILED
+
+    def test_no_uptime_region_default(self):
+        result = self.create_uptime_result(
+            self.subscription.subscription_id,
+            scheduled_check_time=datetime.now() - timedelta(minutes=5),
+            uptime_region=None,
+        )
+        with (
+            mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
+            self.feature("organizations:uptime-create-issues"),
+            mock.patch(
+                "sentry.uptime.consumers.results_consumer.ACTIVE_FAILURE_THRESHOLD",
+                new=2,
+            ),
+        ):
+            self.send_result(result)
+            metrics.incr.assert_has_calls(
+                [
+                    call(
+                        "uptime.result_processor.handle_result_for_project",
+                        tags={
+                            "status_reason": "timeout",
+                            "status": "failure",
+                            "mode": "auto_detected_active",
+                            "uptime_region": "default",
+                        },
+                        sample_rate=1.0,
+                    ),
+                    call(
+                        "uptime.result_processor.active.under_threshold",
+                        sample_rate=1.0,
+                        tags={"status": "failure"},
+                    ),
+                ]
+            )
 
     def test_restricted_host_provider_id(self):
         """
@@ -160,7 +198,7 @@ class ProcessResultTest(ProducerTestMixin):
                     call(
                         "uptime.result_processor.restricted_by_provider",
                         sample_rate=1.0,
-                        tags={"host_provider_id": "TEST"},
+                        tags={"host_provider_id": "TEST", "uptime_region": "us-west"},
                     ),
                 ],
                 any_order=True,
@@ -194,6 +232,7 @@ class ProcessResultTest(ProducerTestMixin):
                             "status_reason": "timeout",
                             "status": "failure",
                             "mode": "auto_detected_active",
+                            "uptime_region": "us-west",
                         },
                         sample_rate=1.0,
                     ),
@@ -220,6 +259,7 @@ class ProcessResultTest(ProducerTestMixin):
                             "status_reason": "timeout",
                             "status": "success",
                             "mode": "auto_detected_active",
+                            "uptime_region": "us-west",
                         },
                         sample_rate=1.0,
                     ),
@@ -240,6 +280,7 @@ class ProcessResultTest(ProducerTestMixin):
                             "status_reason": "timeout",
                             "status": "failure",
                             "mode": "auto_detected_active",
+                            "uptime_region": "us-west",
                         },
                         sample_rate=1.0,
                     ),
@@ -275,6 +316,7 @@ class ProcessResultTest(ProducerTestMixin):
                             "status_reason": "timeout",
                             "status": "failure",
                             "mode": "auto_detected_active",
+                            "uptime_region": "us-west",
                         },
                         sample_rate=1.0,
                     )
@@ -310,6 +352,7 @@ class ProcessResultTest(ProducerTestMixin):
                             "status_reason": "timeout",
                             "status": "failure",
                             "mode": "auto_detected_active",
+                            "uptime_region": "us-west",
                         },
                         sample_rate=1.0,
                     ),
@@ -330,6 +373,7 @@ class ProcessResultTest(ProducerTestMixin):
                             "status_reason": "timeout",
                             "status": "failure",
                             "mode": "auto_detected_active",
+                            "uptime_region": "us-west",
                         },
                         sample_rate=1.0,
                     ),
@@ -361,6 +405,7 @@ class ProcessResultTest(ProducerTestMixin):
                             "status_reason": "timeout",
                             "status": "success",
                             "mode": "auto_detected_active",
+                            "uptime_region": "us-west",
                         },
                         sample_rate=1.0,
                     )
@@ -380,7 +425,13 @@ class ProcessResultTest(ProducerTestMixin):
         ):
             self.send_result(result)
             metrics.incr.assert_has_calls(
-                [call("uptime.result_processor.subscription_not_found", sample_rate=1.0)]
+                [
+                    call(
+                        "uptime.result_processor.subscription_not_found",
+                        tags={"uptime_region": "us-west"},
+                        sample_rate=1.0,
+                    )
+                ]
             )
             self.assert_producer_calls((subscription_id, kafka_definition.Topic.UPTIME_CONFIGS))
 
@@ -403,12 +454,17 @@ class ProcessResultTest(ProducerTestMixin):
                             "status_reason": "timeout",
                             "status": "failure",
                             "mode": "auto_detected_active",
+                            "uptime_region": "us-west",
                         },
                         sample_rate=1.0,
                     ),
                     call(
                         "uptime.result_processor.skipping_already_processed_update",
-                        tags={"status": CHECKSTATUS_FAILURE, "mode": "auto_detected_active"},
+                        tags={
+                            "status": CHECKSTATUS_FAILURE,
+                            "mode": "auto_detected_active",
+                            "uptime_region": "us-west",
+                        },
                         sample_rate=1.0,
                     ),
                 ]
@@ -434,6 +490,7 @@ class ProcessResultTest(ProducerTestMixin):
                     "status": CHECKSTATUS_MISSED_WINDOW,
                     "mode": "auto_detected_active",
                     "status_reason": "timeout",
+                    "uptime_region": "us-west",
                 },
                 sample_rate=1.0,
             )
@@ -470,6 +527,7 @@ class ProcessResultTest(ProducerTestMixin):
                             "status": CHECKSTATUS_FAILURE,
                             "mode": "auto_detected_onboarding",
                             "status_reason": "timeout",
+                            "uptime_region": "us-west",
                         },
                         sample_rate=1.0,
                     ),
@@ -503,12 +561,16 @@ class ProcessResultTest(ProducerTestMixin):
                             "status": CHECKSTATUS_FAILURE,
                             "mode": "auto_detected_onboarding",
                             "status_reason": "timeout",
+                            "uptime_region": "us-west",
                         },
                         sample_rate=1.0,
                     ),
                     call(
                         "uptime.result_processor.autodetection.failed_onboarding",
-                        tags={"failure_reason": CHECKSTATUSREASONTYPE_TIMEOUT},
+                        tags={
+                            "failure_reason": CHECKSTATUSREASONTYPE_TIMEOUT,
+                            "uptime_region": "us-west",
+                        },
                         sample_rate=1.0,
                     ),
                 ]
@@ -550,6 +612,7 @@ class ProcessResultTest(ProducerTestMixin):
                             "status_reason": "timeout",
                             "status": "success",
                             "mode": "auto_detected_onboarding",
+                            "uptime_region": "us-west",
                         },
                         sample_rate=1.0,
                     ),
@@ -590,11 +653,13 @@ class ProcessResultTest(ProducerTestMixin):
                             "status_reason": "timeout",
                             "status": "success",
                             "mode": "auto_detected_onboarding",
+                            "uptime_region": "us-west",
                         },
                         sample_rate=1.0,
                     ),
                     call(
                         "uptime.result_processor.autodetection.graduated_onboarding",
+                        tags={"uptime_region": "us-west"},
                         sample_rate=1.0,
                     ),
                 ]
@@ -702,6 +767,26 @@ class ProcessResultTest(ProducerTestMixin):
         group_2 = mock_process_group.mock_calls[1].args[0]
         assert group_1 == [result_1, result_2]
         assert group_2 == [result_3]
+
+    @mock.patch("sentry.uptime.consumers.results_consumer._snuba_uptime_checks_producer.produce")
+    @override_options({"uptime.snuba_uptime_results.enabled": True})
+    def test_produces_snuba_uptime_results(self, mock_produce) -> None:
+        """
+        Validates that the consumer produces a message to Snuba's Kafka topic for uptime check results
+        """
+        result = self.create_uptime_result(
+            self.subscription.subscription_id,
+            scheduled_check_time=datetime.now() - timedelta(minutes=5),
+        )
+        self.send_result(result)
+        mock_produce.assert_called_once()
+
+        assert mock_produce.call_args.args[0].name == "snuba-uptime-results"
+
+        parsed_value = json.loads(mock_produce.call_args.args[1].value)
+        assert parsed_value["organization_id"] == self.project.organization_id
+        assert parsed_value["project_id"] == self.project.id
+        assert parsed_value["retention_days"] == 90
 
     @mock.patch("random.random")
     def test_check_and_update_regions(self, mock_random):

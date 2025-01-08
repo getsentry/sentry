@@ -85,10 +85,10 @@ class GetSentryAppDetailsTest(SentryAppDetailsTest):
     def test_internal_integrations_are_not_public(self):
         # User not in Org who owns the Integration
         self.login_as(self.create_user())
-        self.get_error_response(self.internal_integration.slug, status_code=404)
+        self.get_error_response(self.internal_integration.slug, status_code=400)
 
     def test_users_do_not_see_unowned_unpublished_apps(self):
-        self.get_error_response(self.unowned_unpublished_app.slug, status_code=404)
+        self.get_error_response(self.unowned_unpublished_app.slug, status_code=400)
 
 
 @control_silo_test
@@ -444,7 +444,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             app.slug,
             name="NewName",
             webhookUrl="https://newurl.com",
-            status_code=404,
+            status_code=400,
         )
 
     def test_superuser_can_update_popularity(self):
@@ -741,9 +741,12 @@ class DeleteSentryAppDetailsTest(SentryAppDetailsTest):
         self.login_as(staff_user, staff=False)
         response = self.get_error_response(
             self.unpublished_app.slug,
-            status_code=404,
+            status_code=400,
         )
-        assert response.data["detail"] == "Not found."
+        assert (
+            response.data["detail"]
+            == "User must be in the app owner's organization for unpublished apps"
+        )
 
         assert not AuditLogEntry.objects.filter(
             event=audit_log.get_event_id("SENTRY_APP_REMOVE")

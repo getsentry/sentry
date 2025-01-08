@@ -71,8 +71,8 @@ google-resumable-media==2.7.0
 googleapis-common-protos==1.63.2
 grpc-google-iam-v1==0.13.1
 grpc-stubs==1.53.0.5
-grpcio==1.66.1
-grpcio-status==1.66.1
+grpcio==1.67.0
+grpcio-status==1.67.0
 h11==0.13.0
 h2==4.1.0
 hiredis==2.3.2
@@ -142,7 +142,7 @@ pyasn1-modules==0.2.4
 pycodestyle==2.11.0
 pycountry==17.5.14
 pycparser==2.21
-pydantic==1.10.18
+pydantic==1.10.20
 pyflakes==3.2.0
 pyjwt==2.4.0
 pymemcache==4.0.0
@@ -187,7 +187,7 @@ sentry-covdefaults-disable-branch-coverage==1.0.2
 sentry-devenv==1.14.2
 sentry-forked-django-stubs==5.1.1.post1
 sentry-forked-djangorestframework-stubs==3.15.2.post1
-sentry-kafka-schemas==0.1.125
+sentry-kafka-schemas==0.1.126
 sentry-ophio==1.0.0
 sentry-protos==0.1.39
 sentry-redis-tools==0.1.7
