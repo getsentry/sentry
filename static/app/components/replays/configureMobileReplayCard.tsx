@@ -1,4 +1,5 @@
 import {ClassNames} from '@emotion/react';
+import * as Sentry from '@sentry/react';
 
 import {Button} from 'sentry/components/button';
 import {Hovercard} from 'sentry/components/hovercard';
@@ -17,8 +18,10 @@ function getPath(sdkName: string | null | undefined) {
     case 'sentry.dart.flutter':
       return 'flutter'; // https://docs.sentry.io/platforms/flutter/session-replay/
     case 'sentry.javascript.react-native':
-    default:
       return 'react-native'; // https://docs.sentry.io/platforms/react-native/session-replay/
+    default:
+      Sentry.captureMessage(`Unknown mobile platform in configure card: ${sdkName}`);
+      return 'react-native';
   }
 }
 
