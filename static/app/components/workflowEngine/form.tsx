@@ -10,7 +10,7 @@ export const StickyFooter = styled('div')`
   padding: ${space(2)} ${space(4)};
   background: ${p => p.theme.background};
   border-top: 1px solid ${p => p.theme.translucentGray200};
-  box-shadow: 0px -4px 24px 0px rgba(43, 34, 51, 0.12);
+  box-shadow: ${p => p.theme.dropShadowHeavyTop};
   display: flex;
   align-items: center;
   justify-content: space-between;
