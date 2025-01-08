@@ -31,8 +31,18 @@ class Action(DefaultFieldsModel):
     class Type(models.TextChoices):
         EMAIL = "email"
         SLACK = "slack"
+        DISCORD = "discord"
+        MSTEAMS = "msteams"
         PAGERDUTY = "pagerduty"
+        OPSGENIE = "opsgenie"
+        GITHUB = "github"
+        GITHUB_ENTERPRISE = "github_enterprise"
+        JIRA = "jira"
+        JIRA_SERVER = "jira_server"
+        AZURE_DEVOPS = "azure_devops"
         WEBHOOK = "webhook"
+        PLUGIN = "plugin"
+        SENTRY_APP = "sentry_app"
 
     class LegacyNotificationType(models.TextChoices):
         ISSUE_ALERT = "issue"
