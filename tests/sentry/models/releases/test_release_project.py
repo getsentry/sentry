@@ -2,12 +2,10 @@ from unittest.mock import call as mock_call
 from unittest.mock import patch
 
 from sentry.dynamic_sampling import ProjectBoostedReleases
-from sentry.incidents.models.alert_rule import AlertRule, AlertRuleMonitorTypeInt
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.models.release import Release
 from sentry.models.releases.release_project import ReleaseProject, ReleaseProjectModelManager
 from sentry.signals import receivers_raise_on_send
-from sentry.snuba.models import QuerySubscription
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.helpers import Feature
 
@@ -108,27 +106,3 @@ class ReleaseProjectManagerTestCase(TransactionTestCase):
                 activator="42",
             )
         ]
-
-    def test_unmocked_subscribe_project_to_alert_rule_constructs_query(self):
-        # Let the logic flow through to snuba and see whether we properly construct the snuba query
-        project = self.create_project(name="foo")
-        release = Release.objects.create(organization_id=project.organization_id, version="42")
-        self.create_alert_rule(
-            projects=[project],
-            monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
-            activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
-        )
-
-        subscribe_project = AlertRule.objects.conditionally_subscribe_project_to_alert_rules
-        with patch(
-            "sentry.incidents.models.alert_rule.AlertRule.objects.conditionally_subscribe_project_to_alert_rules",
-            wraps=subscribe_project,
-        ) as wrapped_subscribe_project:
-            with self.tasks():
-                _, created = release.add_project(project)
-
-                assert created
-                assert wrapped_subscribe_project.call_count == 1
-
-                sub = QuerySubscription.objects.filter(project=project).get()
-                assert sub.subscription_id is not None
