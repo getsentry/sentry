@@ -204,6 +204,7 @@
   "sentry.apiauthorization",
   "sentry.alertrule",
   "hybridcloud.apitokenreplica",
+  "workflow_engine.workflowgroupstatus",
   "workflow_engine.workflowdataconditiongroup",
   "workflow_engine.detectorworkflow",
   "workflow_engine.detectorstate",

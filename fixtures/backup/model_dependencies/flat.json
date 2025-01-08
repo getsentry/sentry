@@ -929,5 +929,9 @@
   "workflow_engine.workflowdataconditiongroup": [
     "workflow_engine.dataconditiongroup",
     "workflow_engine.workflow"
+  ],
+  "workflow_engine.workflowgroupstatus": [
+    "sentry.group",
+    "workflow_engine.workflow"
   ]
 }
