@@ -1,4 +1,4 @@
-from collections.abc import Callable, Mapping, MutableMapping
+from collections.abc import Callable, MutableMapping
 from typing import Any, TypedDict, TypeVar
 from unittest.mock import MagicMock, patch
 
@@ -35,6 +35,22 @@ class _QueryResult(TypedDict):
     result: set[NotificationAction]
 
 
+def _mock_register(
+    data: MutableMapping[str, Any]
+) -> Callable[[type[ActionRegistrationT]], type[ActionRegistrationT]]:
+    trigger_type = ActionTrigger.get_value(data["triggerType"])
+    service_type = ActionService.get_value(data["serviceType"])
+    target_type = ActionTarget.get_value(data["targetType"])
+
+    assert trigger_type is not None, "triggerType must exist"
+    assert service_type is not None, "serviceType must exist"
+    assert target_type is not None, "targetType must exist"
+
+    return NotificationAction.register_action(
+        trigger_type=trigger_type, service_type=service_type, target_type=target_type
+    )
+
+
 class NotificationActionsIndexEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-notification-actions"
 
@@ -57,23 +73,6 @@ class NotificationActionsIndexEndpointTest(APITestCase):
             "targetDisplay": "@hollowknight",
             "targetIdentifier": "THK",
         }
-
-        def mock_register(
-            data: MutableMapping[str, Any]
-        ) -> Callable[[type[ActionRegistrationT]], type[ActionRegistrationT]]:
-            triggerType = ActionTrigger.get_value(data["triggerType"])
-            serviceType = ActionService.get_value(data["serviceType"])
-            targetType = ActionTarget.get_value(data["targetType"])
-
-            assert triggerType is not None, "triggerType must exist"
-            assert serviceType is not None, "serviceType must exist"
-            assert targetType is not None, "targetType must exist"
-
-            return NotificationAction.register_action(
-                trigger_type=triggerType, service_type=serviceType, target_type=targetType
-            )
-
-        self.mock_register = mock_register
         self.login_as(user=self.user)
 
     def test_get_simple(self):
@@ -128,7 +127,7 @@ class NotificationActionsIndexEndpointTest(APITestCase):
             trigger_type=1,
         )
 
-        query_data: Mapping[str, _QueryResult] = {
+        query_data: dict[str, _QueryResult] = {
             "checks projects by default": {"query": {}, "result": {na1, na2, na3, na4}},
             "regular project": {
                 "query": {"project": project.id},
@@ -280,7 +279,7 @@ class NotificationActionsIndexEndpointTest(APITestCase):
             def fire(self, data: Any) -> None:
                 raise NotImplementedError
 
-        self.mock_register(self.base_data)(MockActionRegistration)
+        _mock_register(self.base_data)(MockActionRegistration)
 
         response = self.get_error_response(
             self.organization.slug,
@@ -314,7 +313,7 @@ class NotificationActionsIndexEndpointTest(APITestCase):
             "targetDisplay": f"#{channel_name}",
         }
 
-        self.mock_register(data)(MockActionRegistration)
+        _mock_register(data)(MockActionRegistration)
 
         response = self.get_success_response(
             self.organization.slug,
@@ -347,7 +346,7 @@ class NotificationActionsIndexEndpointTest(APITestCase):
             "targetDisplay": "incorrect_service_name",
         }
 
-        self.mock_register(data)(MockActionRegistration)
+        _mock_register(data)(MockActionRegistration)
 
         # Didn't provide a targetIdentifier key
         response = self.get_error_response(
@@ -392,22 +391,23 @@ class NotificationActionsIndexEndpointTest(APITestCase):
         assert response.data["targetIdentifier"] == service["id"]
         assert response.data["targetDisplay"] == service["service_name"]
 
-    @patch("sentry.notifications.models.notificationaction.ActionRegistration.validate_action")
     @patch.dict(NotificationAction._registry, {})
-    def test_post_simple(self, validate_action):
+    def test_post_simple(self):
 
         class MockActionRegistration(ActionRegistration):
+            validate_action = MagicMock()
+
             def fire(self, data: Any) -> None:
                 raise NotImplementedError
 
         registration = MockActionRegistration
-        self.mock_register(self.base_data)(registration)
+        _mock_register(self.base_data)(registration)
 
         data = {
             **self.base_data,
             "projects": [p.slug for p in self.projects],
         }
-        assert not validate_action.called
+        registration.validate_action.assert_not_called()
         response = self.get_success_response(
             self.organization.slug,
             status_code=status.HTTP_201_CREATED,
@@ -415,7 +415,7 @@ class NotificationActionsIndexEndpointTest(APITestCase):
             **data,
         )
         # Database reflects changes
-        assert validate_action.called
+        registration.validate_action.assert_called()
         notif_action = NotificationAction.objects.get(id=response.data.get("id"))
         assert response.data == serialize(notif_action)
         # Relation table has been updated
@@ -461,7 +461,7 @@ class NotificationActionsIndexEndpointTest(APITestCase):
                 raise NotImplementedError
 
         registration = MockActionRegistration
-        self.mock_register(self.base_data)(registration)
+        _mock_register(self.base_data)(registration)
 
         data = {
             **self.base_data,
