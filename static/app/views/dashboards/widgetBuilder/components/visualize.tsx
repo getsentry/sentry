@@ -692,4 +692,5 @@ const StyledArithmeticInput = styled(ArithmeticInput)`
 const StyledFieldGroup = styled(FieldGroup)`
   width: 100%;
   padding: 0px;
+  border-bottom: none;
 `;
