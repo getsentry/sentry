@@ -1,5 +1,6 @@
 from unittest.mock import Mock, patch
 
+from sentry.models.projectkey import ProjectKey, UseCase
 from sentry.tempest.models import MessageType
 from sentry.tempest.tasks import fetch_latest_item_id, poll_tempest, poll_tempest_crashes
 from sentry.testutils.cases import TestCase
@@ -148,3 +149,32 @@ class TempestTasksTest(TestCase):
         # Should call poll_tempest_crashes.delay() and not fetch_latest_item_id
         mock_poll_crashes.delay.assert_called_once_with(self.credentials.id)
         mock_fetch_latest.delay.assert_not_called()
+
+    def test_tempest_project_key(self):
+        project = self.create_project()
+        project_key_1, created = ProjectKey.objects.get_or_create(
+            use_case=UseCase.TEMPEST, project=project
+        )
+
+        assert created
+        assert project_key_1.use_case == UseCase.TEMPEST
+
+        project_key_2, created = ProjectKey.objects.get_or_create(
+            use_case=UseCase.TEMPEST, project=project
+        )
+
+        assert not created
+        assert (
+            project_key_2.use_case == "UseCase.TEMPEST"
+        )  # Since the use_case is stored as a string in the DB
+        assert project_key_1.id == project_key_2.id
+
+    def test_tempest_screenshot_option(self):
+        # Default should be False
+        assert self.project.get_option("sentry:tempest_fetch_screenshots") is False
+
+        self.project.update_option("sentry:tempest_fetch_screenshots", True)
+        assert self.project.get_option("sentry:tempest_fetch_screenshots") is True
+
+        self.project.update_option("sentry:tempest_fetch_screenshots", False)
+        assert self.project.get_option("sentry:tempest_fetch_screenshots") is False

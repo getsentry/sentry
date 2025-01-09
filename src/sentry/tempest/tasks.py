@@ -44,7 +44,7 @@ def fetch_latest_item_id(credentials_id: int) -> None:
     # FIXME: Try catch this later
     credentials = TempestCredentials.objects.select_related("project").get(id=credentials_id)
     project_id = credentials.project.id
-    org_id = credentials.project.organization_id  # this should work?
+    org_id = credentials.project.organization_id
     client_id = credentials.client_id
 
     try:
@@ -108,10 +108,11 @@ def poll_tempest_crashes(credentials_id: int) -> None:
 
     try:
         if credentials.latest_fetched_item_id is not None:
-            # This should generate a dsn explicitly for using with Tempest.
-            dsn = ProjectKey.objects.get_or_create(
+            # This should generate/fetch a dsn explicitly for using with Tempest.
+            project_key, _ = ProjectKey.objects.get_or_create(
                 use_case=UseCase.TEMPEST, project=credentials.project
-            )[0].get_dsn()
+            )
+            dsn = project_key.get_dsn()
 
             # Check if we should attach screenshots (opt-in feature)
             attach_screenshot = credentials.project.get_option("sentry:tempest_fetch_screenshots")
