@@ -39,7 +39,7 @@ type Stats = {
 
 function SentryApplicationDashboard() {
   const organization = useOrganization();
-  const {appSlug} = useParams();
+  const {appSlug} = useParams<{appSlug: string}>();
 
   // Default time range for now: 90 days ago to now
   const now = Math.floor(new Date().getTime() / 1000);
