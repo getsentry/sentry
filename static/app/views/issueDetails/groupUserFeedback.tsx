@@ -67,11 +67,12 @@ function GroupUserFeedback() {
   }
 
   const pageLinks = getResponseHeader?.('Link');
+  const hasUserFeedback = group.project.hasUserReports;
 
   return (
     <StyledLayoutBody hasStreamlinedUI={hasStreamlinedUI}>
       <Layout.Main fullWidth>
-        {hasStreamlinedUI && (
+        {hasStreamlinedUI && hasUserFeedback && (
           <FilterMessage>
             {t('The feedback shown below is not subject to search filters.')}
             <StyledBreak />
