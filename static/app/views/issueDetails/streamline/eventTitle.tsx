@@ -316,7 +316,7 @@ const JsonButtonWrapper = styled('div')`
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${space(0.5)};
 
   @media (max-width: ${p => p.theme.breakpoints.xsmall}) {
     display: none;
