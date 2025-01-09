@@ -9,7 +9,6 @@ from typing import TYPE_CHECKING, Any, ClassVar, Self
 from django.conf import settings
 from django.core.cache import cache
 from django.db import models
-from django.db.models import QuerySet
 from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 from django.utils.translation import gettext_lazy
@@ -157,59 +156,6 @@ class AlertRuleManager(BaseManager["AlertRule"]):
                         "rule_id": instance.id,
                     },
                 )
-
-    def conditionally_subscribe_project_to_alert_rules(
-        self,
-        project: Project,
-        activation_condition: AlertRuleActivationConditionType,
-        query_extra: str,
-        origin: str,
-        activator: str,
-    ) -> list[QuerySubscription]:
-        """
-        Subscribes a project to an alert rule given activation condition
-        Initializes an AlertRule activation instance
-        """
-        try:
-            project_alert_rules: QuerySet[AlertRule] = self.filter(
-                projects=project,
-                monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
-            )
-            created_subscriptions = []
-            for alert_rule in project_alert_rules:
-                # an alert rule should only ever have a single condition
-                if alert_rule.activation_condition.filter(
-                    condition_type=activation_condition.value
-                ).exists():
-                    # if an activated alert rule exists with the passed condition
-                    logger.info(
-                        "Attempt subscribe project to activated alert rule",
-                        extra={
-                            "origin": origin,
-                            "query_extra": query_extra,
-                            "condition": activation_condition,
-                        },
-                    )
-                    # attempt to subscribe the alert rule
-                    created_subscriptions.extend(
-                        alert_rule.subscribe_projects(
-                            projects=[project],
-                            monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
-                            query_extra=query_extra,
-                            activation_condition=activation_condition,
-                            activator=activator,
-                        )
-                    )
-            return created_subscriptions
-        except Exception as e:
-            logger.exception(
-                "Failed to subscribe project to activated alert rule",
-                extra={
-                    "origin": origin,
-                    "exception": e,
-                },
-            )
-        return []
 
 
 @region_silo_model
