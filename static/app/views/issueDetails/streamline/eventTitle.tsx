@@ -326,6 +326,7 @@ const JsonLinkWrapper = styled('div')`
 const JsonLink = styled(ExternalLink)`
   color: ${p => p.theme.gray300};
   text-decoration: underline;
+  text-decoration-color: ${p => p.theme.translucentGray200};
 
   :hover {
     color: ${p => p.theme.gray300};
