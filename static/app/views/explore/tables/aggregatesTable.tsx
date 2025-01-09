@@ -50,11 +50,11 @@ import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery'
 import {FieldRenderer} from './fieldRenderer';
 
 interface AggregatesTableProps {
-  confidence: Confidence;
+  confidences: Confidence[];
   setError: Dispatch<SetStateAction<string>>;
 }
 
-export function AggregatesTable({confidence, setError}: AggregatesTableProps) {
+export function AggregatesTable({confidences, setError}: AggregatesTableProps) {
   const {selection} = usePageFilters();
   const topEvents = useTopEvents();
   const organization = useOrganization();
@@ -133,7 +133,7 @@ export function AggregatesTable({confidence, setError}: AggregatesTableProps) {
     organization,
     columns: groupBys,
     userQuery: query,
-    confidence,
+    confidences,
     title,
   });
 

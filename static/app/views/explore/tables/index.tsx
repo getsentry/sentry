@@ -23,7 +23,7 @@ import {SpansTable} from 'sentry/views/explore/tables/spansTable';
 import {TracesTable} from 'sentry/views/explore/tables/tracesTable/index';
 
 interface ExploreTablesProps {
-  confidence: Confidence;
+  confidences: Confidence[];
   setError: Dispatch<SetStateAction<string>>;
 }
 

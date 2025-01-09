@@ -80,7 +80,7 @@ function ExploreContentImpl({}: ExploreContentProps) {
     });
   }, [location, navigate]);
 
-  const [confidence, setConfidence] = useState<Confidence>(null);
+  const [confidences, setConfidences] = useState<Confidence[]>([]);
   const [chartError, setChartError] = useState<string>('');
   const [tableError, setTableError] = useState<string>('');
 
@@ -174,10 +174,10 @@ function ExploreContentImpl({}: ExploreContentProps) {
               )}
               <ExploreCharts
                 query={query}
-                setConfidence={setConfidence}
+                setConfidences={setConfidences}
                 setError={setChartError}
               />
-              <ExploreTables confidence={confidence} setError={setTableError} />
+              <ExploreTables confidences={confidences} setError={setTableError} />
             </MainSection>
           </Body>
         </Layout.Page>
