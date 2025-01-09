@@ -5,7 +5,7 @@ import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {TabList, Tabs} from 'sentry/components/tabs';
+import {TabList} from 'sentry/components/tabs';
 import type {TabListItemProps} from 'sentry/components/tabs/item';
 import {IconBusiness} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
@@ -85,7 +85,7 @@ export function DomainViewHeader({
             {additonalHeaderActions}
           </ButtonBar>
         </Layout.HeaderActions>
-        <Tabs value={tabValue} onChange={tabs?.onTabChange}>
+        <Layout.HeaderTabs value={tabValue} onChange={tabs?.onTabChange}>
           {!hideDefaultTabs && (
             <TabList hideBorder>
               {tabList.map(tab => (
@@ -94,7 +94,7 @@ export function DomainViewHeader({
             </TabList>
           )}
           {hideDefaultTabs && tabs && tabs.tabList}
-        </Tabs>
+        </Layout.HeaderTabs>
       </Layout.Header>
     </Fragment>
   );
