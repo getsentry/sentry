@@ -56,7 +56,7 @@ export function SamplingModeField({initialTargetRate}: Props) {
                   title={
                     hasAccess &&
                     tct(
-                      'Automatic mode allows you to set a target sample rate for your organization. Sentry automatically adjusts individual project rates to boost small projects and ensure equal visibility. [link:Learn more]',
+                      'In automatic mode, sample rates will be adjusted continuously to account for changes in event volume over time. [link:Read the docs]',
                       {
                         link: (
                           <ExternalLink href="https://docs.sentry.io/product/performance/retention-priorities/" />
@@ -76,7 +76,7 @@ export function SamplingModeField({initialTargetRate}: Props) {
                   title={
                     hasAccess &&
                     tct(
-                      'Manual mode allows you to set fixed sample rates for each project. [link:Learn more]',
+                      'Manually specify the percentage of incoming traffic that should be stored for each project. [link:Read the docs]',
                       {
                         link: (
                           <ExternalLink href="https://docs.sentry.io/product/performance/retention-priorities/" />

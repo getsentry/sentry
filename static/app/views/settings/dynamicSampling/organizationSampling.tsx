@@ -8,7 +8,7 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {Tooltip} from 'sentry/components/tooltip';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {OnRouteLeave} from 'sentry/utils/reactRouter6Compat/onRouteLeave';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -104,20 +104,12 @@ export function OrganizationSampling() {
         </FormActions>
 
         <HeadingRow>
-          <h4>{t('Project Preview')}</h4>
+          <h4>{t('Preview of Dynamic Sampling in Action')}</h4>
           <ProjectionPeriodControl period={period} onChange={setPeriod} />
         </HeadingRow>
         <p>
-          {tct(
-            'This table gives you a preview of how your projects will be affected by the target sample rate. The [strong:estimated rates] are based on recent span volume and change continuously.',
-            {
-              strong: <strong />,
-            }
-          )}
-        </p>
-        <p>
           {t(
-            'Rates apply to all spans in traces that start in each project, including a portion of spans in connected other projects.'
+            'This table is a preview of how your projects will be affected by your chosen target sample rate. Estimated rates are based on recent span volume and change accordingly.'
           )}
         </p>
         {sampleCountsQuery.isError ? (

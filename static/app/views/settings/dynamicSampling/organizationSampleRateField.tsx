@@ -20,7 +20,7 @@ export function OrganizationSampleRateField({}) {
       required
       label={t('Target Sample Rate')}
       help={t(
-        'Sentry automatically adapts the sample rates of your projects based on this organization-wide target.'
+        'Set a global sample rate for your entire organization. This will determine how much incoming traffic should be stored across all your projects.'
       )}
     >
       <InputWrapper
