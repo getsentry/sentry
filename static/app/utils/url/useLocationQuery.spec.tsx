@@ -2,7 +2,12 @@ import type {Location} from 'history';
 
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
-import {decodeInteger, decodeList, decodeScalar} from 'sentry/utils/queryString';
+import {
+  decodeInteger,
+  decodeList,
+  decodeScalar,
+  type QueryValue,
+} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 
@@ -80,7 +85,7 @@ describe('useLocationQuery', () => {
 
     type Title = 'Mr' | 'Ms' | 'Mx';
 
-    const titlesDecoder = (value): Title[] | undefined => {
+    const titlesDecoder = (value: QueryValue): Title[] | undefined => {
       const decodedValue = decodeList(value);
 
       const validTitles = decodedValue.filter(v => {

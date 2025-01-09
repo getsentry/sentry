@@ -6,16 +6,22 @@ import {
   type decodeList,
   decodeScalar,
   type decodeSorts,
+  type QueryValue,
 } from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 
 type Scalar = string | boolean | number | undefined;
-export type Decoder =
+
+type KnownDecoder =
   | typeof decodeInteger
   | typeof decodeList
   | typeof decodeScalar
   | typeof decodeSorts
   | typeof decodeBoolean;
+
+type GenericDecoder<T = unknown> = (query: QueryValue) => T;
+
+export type Decoder = KnownDecoder | GenericDecoder;
 
 /**
  * Select and memoize query params from location.
@@ -34,7 +40,10 @@ export type Decoder =
  * ```
  */
 export default function useLocationQuery<
-  InferredRequestShape extends Record<string, Scalar | Scalar[] | Decoder>,
+  InferredRequestShape extends Record<
+    string,
+    Scalar | Scalar[] | KnownDecoder | GenericDecoder
+  >,
   InferredResponseShape extends {
     readonly [Property in keyof InferredRequestShape]: InferredRequestShape[Property] extends Decoder
       ? ReturnType<InferredRequestShape[Property]>
