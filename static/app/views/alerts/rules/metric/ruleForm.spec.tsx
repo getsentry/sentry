@@ -4,7 +4,6 @@ import {MetricRuleFixture} from 'sentry-fixture/metricRule';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
-import selectEvent from 'sentry-test/selectEvent';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type FormModel from 'sentry/components/forms/model';
@@ -48,7 +47,7 @@ describe('Incident Rules Form', () => {
 
   beforeEach(() => {
     const initialData = initializeOrg({
-      organization: {features: ['metric-alert-threshold-period', 'change-alerts']},
+      organization: {features: ['change-alerts']},
     });
     organization = initialData.organization;
     project = initialData.project;
@@ -201,9 +200,6 @@ describe('Incident Rules Form', () => {
         'Incident Rule'
       );
 
-      // Set thresholdPeriod
-      await selectEvent.select(screen.getAllByText('For 1 minute')[0]!, 'For 10 minutes');
-
       await userEvent.click(screen.getByLabelText('Save Rule'));
 
       expect(createRule).toHaveBeenCalledWith(
@@ -213,7 +209,6 @@ describe('Incident Rules Form', () => {
             name: 'Incident Rule',
             projects: ['project-slug'],
             eventTypes: ['default'],
-            thresholdPeriod: 10,
           }),
         })
       );
@@ -401,9 +396,6 @@ describe('Incident Rules Form', () => {
         'EAP Incident Rule'
       );
 
-      // Set thresholdPeriod
-      await selectEvent.select(screen.getAllByText('For 1 minute')[0]!, 'For 10 minutes');
-
       await userEvent.click(screen.getByLabelText('Save Rule'));
 
       expect(createRule).toHaveBeenCalledWith(
@@ -413,7 +405,6 @@ describe('Incident Rules Form', () => {
             name: 'EAP Incident Rule',
             projects: ['project-slug'],
             eventTypes: [],
-            thresholdPeriod: 10,
             alertType: 'eap_metrics',
             dataset: 'events_analytics_platform',
           }),
@@ -473,7 +464,6 @@ describe('Incident Rules Form', () => {
         name: 'Query Rule',
         projects: ['project-slug'],
         eventTypes: ['num_errors'],
-        thresholdPeriod: 10,
         query: 'is:unresolved',
         rule,
         ruleId: rule.id,
