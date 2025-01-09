@@ -131,7 +131,10 @@ def test_do_not_enable_sso_if_equivalent_provider_exists() -> None:
     assert auth_provider_query.count() == 1
 
     auth_service.enable_partner_sso(
-        organization_id=org.id, provider_key=provider_key, provider_config=provider_config
+        organization_id=org.id,
+        provider_key=provider_key,
+        provider_config=provider_config,
+        equivalent_providers=[equivalent_provider_key],
     )
     auth_provider_query = AuthProvider.objects.filter(
         organization_id=org.id, provider=provider_key, config=provider_config
@@ -164,7 +167,11 @@ def test_create_auth_identity_for_equivalent_provider() -> None:
 
     ident = "x456x"
     auth_service.create_auth_identity(
-        provider=provider_key, config=provider_config, user_id=user.id, ident=ident
+        provider=provider_key,
+        config=provider_config,
+        user_id=user.id,
+        ident=ident,
+        equivalent_providers=[equivalent_provider_key],
     )
     assert AuthIdentity.objects.filter(auth_provider=equivalent_auth_provider, ident=ident)
     assert not AuthProvider.objects.filter(organization_id=org.id, provider=provider_key).exists()
