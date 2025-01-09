@@ -78,7 +78,7 @@ class GroupHashMetadata(Model):
     seer_model = models.CharField(null=True)
     # The `GroupHash` record representing the match Seer sent back as a match (if any)
     seer_matched_grouphash = FlexibleForeignKey(
-        "sentry.GroupHash", related_name="seer_matchees", on_delete=models.DO_NOTHING, null=True
+        "sentry.GroupHash", related_name="seer_matchees", on_delete=models.SET_NULL, null=True
     )
     # The similarity between this hash's stacktrace and the parent (matched) hash's stacktrace
     seer_match_distance = models.FloatField(null=True)
