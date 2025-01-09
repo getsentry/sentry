@@ -28,23 +28,45 @@ export default storyBook('GlobalDrawer', story => {
   ));
 
   story('Example', () => {
-    const {openDrawer, closeDrawer} = useDrawer();
+    const {openDrawer} = useDrawer();
+
     return (
       <Fragment>
         <CodeSnippet language="jsx">
-          {`<Button onClick={() => openDrawer(() => <h1>Hello</h1>, {ariaLabel: 'test drawer'})}>
-  Open Drawer
-</Button>
+          {`import useDrawer from 'sentry/components/globalDrawer';
+import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 
-<Button onClick={closeDrawer}>Close Drawer</Button>
+function MyPage() {
+  const {openDrawer} = useDrawer();
+
+  const showDetails = () => {
+    openDrawer(() => <MyDrawer />, {ariaLabel: 'Details'});
+  };
+
+  return (
+    <div>
+      <button onClick={showDetails}>Open Drawer</button>
+    </div>
+  );
+}
+
+function MyDrawer() {
+  return (
+    <div>
+      <DrawerHeader>My Drawer</DrawerHeader>
+      <DrawerBody>Lorem, ipsum...</DrawerBody>
+    </div>
+  );
+}
 `}
         </CodeSnippet>
-        <LeftButton
-          onClick={() => openDrawer(() => <h1>Hello!</h1>, {ariaLabel: 'test drawer'})}
-        >
-          Open Drawer
-        </LeftButton>
-        <LeftButton onClick={closeDrawer}>Close Drawer</LeftButton>
+        <div>
+          <LeftButton
+            onClick={() => openDrawer(() => <MyDrawer />, {ariaLabel: 'Details'})}
+          >
+            Open Drawer
+          </LeftButton>
+        </div>
       </Fragment>
     );
   });
@@ -261,6 +283,15 @@ function ModalContent() {
     );
   });
 });
+
+function MyDrawer() {
+  return (
+    <div>
+      <DrawerHeader>My Drawer</DrawerHeader>
+      <DrawerBody>Lorem, ipsum...</DrawerBody>
+    </div>
+  );
+}
 
 const LeftButton = styled(Button)`
   margin: 12px 0;
