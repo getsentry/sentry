@@ -18,10 +18,10 @@ from sentry.models.organization import Organization
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from sentry.api.serializers.rest_framework.notification_action import (
+    from sentry.integrations.services.integration import RpcIntegration
+    from sentry.notifications.api.serializers.notification_action_request import (
         NotificationActionInputData,
     )
-    from sentry.integrations.services.integration import RpcIntegration
 
 
 class FlexibleIntEnum(IntEnum):
