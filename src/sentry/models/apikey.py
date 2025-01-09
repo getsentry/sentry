@@ -1,10 +1,13 @@
+from __future__ import annotations
+
 import secrets
-from typing import Any, ClassVar, Self
+from typing import TYPE_CHECKING, Any, ClassVar, Self, TypeGuard
 
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
+from sentry.auth.services.auth import AuthenticatedToken
 from sentry.backup.dependencies import NormalizedModelName, get_model_name
 from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import RelocationScope
@@ -15,6 +18,9 @@ from sentry.hybridcloud.outbox.base import ReplicatedControlModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.hybridcloud.services.replica import region_replica_service
 from sentry.models.apiscopes import HasApiScopes
+
+if TYPE_CHECKING:
+    from sentry.hybridcloud.models.apikeyreplica import ApiKeyReplica
 
 
 # TODO(dcramer): pull in enum library
@@ -96,9 +102,8 @@ class ApiKey(ReplicatedControlModel, HasApiScopes):
         sanitizer.set_name(json, SanitizableField(model_name, "label"))
 
 
-def is_api_key_auth(auth: object) -> bool:
+def is_api_key_auth(auth: object) -> TypeGuard[AuthenticatedToken | ApiKey | ApiKeyReplica]:
     """:returns True when an API Key is hitting the API."""
-    from sentry.auth.services.auth import AuthenticatedToken
     from sentry.hybridcloud.models.apikeyreplica import ApiKeyReplica
 
     if isinstance(auth, AuthenticatedToken):
