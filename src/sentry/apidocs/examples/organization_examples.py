@@ -390,6 +390,7 @@ class OrganizationExamples:
                         "hasSessions": False,
                         "hasProfiles": False,
                         "hasReplays": False,
+                        "hasFlags": False,
                         "hasFeedbacks": False,
                         "hasNewFeedbacks": False,
                         "hasCustomMetrics": False,
