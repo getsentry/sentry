@@ -552,7 +552,6 @@ from .endpoints.organization_sdk_updates import (
 )
 from .endpoints.organization_search_details import OrganizationSearchDetailsEndpoint
 from .endpoints.organization_sessions import OrganizationSessionsEndpoint
-from .endpoints.organization_slugs import SlugsUpdateEndpoint
 from .endpoints.organization_spans_fields import (
     OrganizationSpansFieldsEndpoint,
     OrganizationSpansFieldValuesEndpoint,
@@ -1301,11 +1300,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/data-scrubbing-selector-suggestions/$",
         DataScrubbingSelectorSuggestionsEndpoint.as_view(),
         name="sentry-api-0-data-scrubbing-selector-suggestions",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/slugs/$",
-        SlugsUpdateEndpoint.as_view(),
-        name="sentry-api-0-short-ids-update",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/access-requests/$",
