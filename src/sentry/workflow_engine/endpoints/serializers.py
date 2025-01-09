@@ -197,17 +197,18 @@ class WorkflowSerializer(Serializer):
         }
         for item in item_list:
             attrs[item]["condition_group"] = condition_group_map.get(
-                str(item.workflow_condition_group_id)
+                str(item.when_condition_group_id)
             )
         return attrs
 
     def serialize(self, obj: Workflow, attrs: Mapping[str, Any], user, **kwargs) -> dict[str, Any]:
+        # WHAT TO DO ABOUT CONFIG?
         return {
             "id": str(obj.id),
             "organizationId": str(obj.organization_id),
-            "enabled": str(obj.enabled),
+            "enabled": obj.enabled,
             "dateCreated": obj.date_added,
             "dateUpdated": obj.date_updated,
-            "whenConditionGroup": attrs.get("condition_group"),
-            "environment": "",  # TODO: environment serializer?
+            "conditionGroup": attrs.get("condition_group"),
+            "environment": obj.environment.name if obj.environment else None,
         }

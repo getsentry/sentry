@@ -17,6 +17,7 @@ from sentry.workflow_engine.models import (
     DataConditionGroup,
     DataSource,
     Detector,
+    Workflow,
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import data_source_type_registry
@@ -263,3 +264,67 @@ class TestActionSerializer(TestCase):
         result = serialize(action)
 
         assert result == {"id": str(action.id), "type": "slack", "data": '{"foo":"bar"}'}
+
+
+class TestWorkflowSerializer(TestCase):
+    def test_serialize_simple(self):
+        workflow = Workflow.objects.create(
+            name="hojicha",
+            organization_id=self.organization.id,
+            config={},
+        )
+
+        result = serialize(workflow)
+
+        assert result == {
+            "id": str(workflow.id),
+            "organizationId": str(self.organization.id),
+            "enabled": True,
+            "dateCreated": workflow.date_added,
+            "dateUpdated": workflow.date_updated,
+            "conditionGroup": None,
+            "environment": None,
+        }
+
+    def test_serialize_full(self):
+        condition_group = DataConditionGroup.objects.create(
+            organization_id=self.organization.id,
+            logic_type=DataConditionGroup.Type.ANY,
+        )
+        condition = DataCondition.objects.create(
+            condition_group=condition_group,
+            type=Condition.GREATER,
+            comparison=100,
+            condition_result=DetectorPriorityLevel.HIGH,
+        )
+        workflow = Workflow.objects.create(
+            name="hojicha",
+            organization_id=self.organization.id,
+            config={},
+            when_condition_group=condition_group,
+            environment=self.environment,
+        )
+
+        result = serialize(workflow)
+
+        assert result == {
+            "id": str(workflow.id),
+            "organizationId": str(self.organization.id),
+            "enabled": True,
+            "dateCreated": workflow.date_added,
+            "dateUpdated": workflow.date_updated,
+            "conditionGroup": {
+                "id": str(condition_group.id),
+                "organizationId": str(self.organization.id),
+                "logicType": DataConditionGroup.Type.ANY,
+                "conditions": [
+                    {
+                        "id": str(condition.id),
+                        "condition": Condition.GREATER,
+                        "comparison": 100,
+                        "result": DetectorPriorityLevel.HIGH,
+                    }
+                ],
+            },
+            "environment": self.environment.name,
+        }
