@@ -186,7 +186,19 @@ class DetectorSerializer(Serializer):
 class WorkflowSerializer(Serializer):
     def get_attrs(self, item_list, user, **kwargs):
         attrs: MutableMapping[Workflow, dict[str, Any]] = defaultdict(dict)
-        # TODO: return the needed attributes for the frontend
+        condition_groups = list(
+            DataConditionGroup.objects.filter(
+                id__in=[w.when_condition_group_id for w in item_list if w.when_condition_group_id]
+            )
+        )
+        condition_group_map = {
+            str(group.id): serialized
+            for group, serialized in zip(condition_groups, serialize(condition_groups, user=user))
+        }
+        for item in item_list:
+            attrs[item]["condition_group"] = condition_group_map.get(
+                str(item.workflow_condition_group_id)
+            )
         return attrs
 
     def serialize(self, obj: Workflow, attrs: Mapping[str, Any], user, **kwargs) -> dict[str, Any]:
@@ -196,6 +208,6 @@ class WorkflowSerializer(Serializer):
             "enabled": str(obj.enabled),
             "dateCreated": obj.date_added,
             "dateUpdated": obj.date_updated,
-            "whenConditionGroup": "",  # TODO: this in get_attrs
-            "environment": "",  # TODO: what info do we need to get from this field?
+            "whenConditionGroup": attrs.get("condition_group"),
+            "environment": "",  # TODO: environment serializer?
         }
