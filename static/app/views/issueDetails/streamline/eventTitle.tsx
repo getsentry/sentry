@@ -6,9 +6,10 @@ import {Button, LinkButton} from 'sentry/components/button';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {useActionableItems} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import TimeSince from 'sentry/components/timeSince';
-import {IconJson, IconWarning} from 'sentry/icons';
+import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -88,9 +89,10 @@ export const EventTitle = forwardRef<HTMLDivElement, EventNavigationProps>(
       font-weight: ${theme.fontWeightNormal};
     `;
 
+    const host = organization.links.regionUrl;
+    const jsonUrl = `${host}/api/0/projects/${organization.slug}/${group.project.slug}/events/${event.id}/json/`;
+
     const downloadJson = () => {
-      const host = organization.links.regionUrl;
-      const jsonUrl = `${host}/api/0/projects/${organization.slug}/${group.project.slug}/events/${event.id}/json/`;
       window.open(jsonUrl);
       trackAnalytics('issue_details.event_json_clicked', {
         organization,
@@ -167,17 +169,21 @@ export const EventTitle = forwardRef<HTMLDivElement, EventNavigationProps>(
               css={grayText}
               aria-label={t('Event timestamp')}
             />
-            <JsonButtonWrapper>
+            <JsonLinkWrapper className="hidden-xs">
               <Divider />
-              <ViewJsonButton
-                borderless
-                size="zero"
-                onClick={downloadJson}
-                icon={<IconJson />}
+              <JsonLink
+                href={jsonUrl}
+                onClick={() =>
+                  trackAnalytics('issue_details.event_json_clicked', {
+                    organization,
+                    group_id: parseInt(`${event.groupID}`, 10),
+                    streamline: true,
+                  })
+                }
               >
-                {t('View JSON')}
-              </ViewJsonButton>
-            </JsonButtonWrapper>
+                {t('JSON')}
+              </JsonLink>
+            </JsonLinkWrapper>
             {hasEventError && (
               <Fragment>
                 <Divider />
@@ -312,19 +318,16 @@ const ProcessingErrorButton = styled(Button)`
   }
 `;
 
-const ViewJsonButton = styled(Button)`
-  color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeightNormal};
-  font-size: ${p => p.theme.fontSizeSmall};
+const JsonLinkWrapper = styled('div')`
+  display: flex;
+  gap: ${space(0.5)};
 `;
 
-const JsonButtonWrapper = styled('div')`
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: ${space(0.5)};
+const JsonLink = styled(ExternalLink)`
+  color: ${p => p.theme.gray300};
+  text-decoration: underline;
 
-  @media (max-width: ${p => p.theme.breakpoints.xsmall}) {
-    display: none;
+  :hover {
+    color: ${p => p.theme.gray300};
   }
 `;
