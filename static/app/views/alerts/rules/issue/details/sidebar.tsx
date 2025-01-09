@@ -215,7 +215,7 @@ const StepContent = styled('div')`
     position: absolute;
     height: 100%;
     top: 28px;
-    left: ${space(1)};
+    left: ${space(0.75)};
     border-right: 1px ${p => p.theme.gray200} dashed;
   }
 `;
