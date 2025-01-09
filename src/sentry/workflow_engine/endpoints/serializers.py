@@ -21,7 +21,7 @@ from sentry.workflow_engine.types import DataSourceTypeHandler
 class ActionSerializer(Serializer):
     def get_attrs(self, item_list: Sequence[Action], user: Any, **kwargs: Any):
         attrs: MutableMapping[Action, dict[str, Any]] = defaultdict(dict)
-        # TODO: get the action's attributes (what is this doing?)
+        # TODO: return the needed attributes for the frontend
         return attrs
 
     def serialize(self, obj: Action, attrs, user, **kwargs):

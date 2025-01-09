@@ -3,10 +3,14 @@ from datetime import timedelta
 from sentry.api.serializers import serialize
 from sentry.incidents.grouptype import MetricAlertFire
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
+from sentry.integrations.models.integration import Integration
+from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscriptionDataSourceHandler, SnubaQuery
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import TestCase
+from sentry.testutils.factories import ActionTarget
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.workflow_engine.models import (
     Action,
     DataCondition,
@@ -239,3 +243,23 @@ class TestActionSerializer(TestCase):
         result = serialize(action)
 
         assert result == {"id": str(action.id), "type": "email", "data": '{"foo":"bar"}'}
+
+    def test_serialize_with_legacy_fields(self):
+        """
+        Legacy fields should not be serialized.
+        """
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = Integration.objects.create(
+                provider="slack", name="example-integration", external_id="123-id", metadata={}
+            )
+        action = Action.objects.create(
+            type=Action.Type.SLACK,
+            data={"foo": "bar"},
+            integration_id=integration.id,
+            target_display="freddy frog",
+            target_type=ActionTarget.USER,
+        )
+
+        result = serialize(action)
+
+        assert result == {"id": str(action.id), "type": "slack", "data": '{"foo":"bar"}'}
