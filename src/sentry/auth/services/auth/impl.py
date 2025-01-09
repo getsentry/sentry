@@ -47,10 +47,14 @@ class DatabaseBackedAuthService(AuthService):
         provider_config: dict[str, Any],
         user_id: int | None = None,
         sender: str | None = None,
+        equivalent_providers: list[str] | None = None,
     ) -> None:
         with enforce_constraints(transaction.atomic(router.db_for_write(AuthProvider))):
+            possible_providers = [provider_key] + (equivalent_providers or [])
             auth_provider_query = AuthProvider.objects.filter(
-                organization_id=organization_id, provider=provider_key, config=provider_config
+                organization_id=organization_id,
+                provider__in=possible_providers,
+                config=provider_config,
             )
             if not auth_provider_query.exists():
                 auth_provider = AuthProvider.objects.create(
@@ -76,10 +80,19 @@ class DatabaseBackedAuthService(AuthService):
                     )
 
     def create_auth_identity(
-        self, *, provider: str, config: Mapping[str, Any], user_id: int, ident: str
+        self,
+        *,
+        provider: str,
+        config: Mapping[str, Any],
+        user_id: int,
+        ident: str,
+        equivalent_providers: list[str] | None = None,
     ) -> None:
         with enforce_constraints(transaction.atomic(router.db_for_write(AuthIdentity))):
-            auth_provider = AuthProvider.objects.filter(provider=provider, config=config).first()
+            possible_providers = [provider] + (equivalent_providers or [])
+            auth_provider = AuthProvider.objects.filter(
+                provider__in=possible_providers, config=config
+            ).first()
             if auth_provider is None:
                 return
             # Add Auth identity for partner's SSO if it doesn't exist

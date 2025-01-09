@@ -90,13 +90,20 @@ class AuthService(RpcService):
         provider_config: Mapping[str, Any],
         user_id: int | None = None,
         sender: str | None = None,
+        equivalent_providers: list[str] | None = None,
     ) -> None:
         pass
 
     @rpc_method
     @abc.abstractmethod
     def create_auth_identity(
-        self, *, provider: str, config: Mapping[str, Any], user_id: int, ident: str
+        self,
+        *,
+        provider: str,
+        config: Mapping[str, Any],
+        user_id: int,
+        ident: str,
+        equivalent_providers: list[str] | None = None,
     ) -> None:
         pass
 
