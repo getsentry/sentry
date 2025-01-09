@@ -41,7 +41,7 @@ class TestTempestCredentials(APITestCase):
         self.get_error_response(self.project.organization.slug, self.project.slug)
 
     @patch(
-        "sentry.tempest.endpoints.tempest_credentials.TempestCredentialsDetailsEndpoint.create_audit_entry"
+        "sentry.tempest.endpoints.tempest_credentials.TempestCredentialsEndpoint.create_audit_entry"
     )
     def test_create_tempest_credentials(self, create_audit_entry):
         with Feature({"organizations:tempest-access": True}):
