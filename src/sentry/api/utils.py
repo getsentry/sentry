@@ -16,7 +16,7 @@ from django.utils import timezone
 from rest_framework.exceptions import APIException, ParseError
 from rest_framework.request import Request
 from sentry_sdk import Scope
-from urllib3.exceptions import MaxRetryError, ReadTimeoutError
+from urllib3.exceptions import MaxRetryError, ReadTimeoutError, TimeoutError
 
 from sentry import options
 from sentry.auth.staff import is_active_staff
@@ -57,6 +57,7 @@ from sentry.utils.snuba import (
     SnubaError,
     UnqualifiedQueryError,
 )
+from sentry.utils.snuba_rpc import SnubaRPCError
 
 logger = logging.getLogger(__name__)
 
@@ -367,6 +368,13 @@ def handle_query_errors() -> Generator[None]:
         message = str(error)
         sentry_sdk.set_tag("query.error_reason", f"Metric Error: {message}")
         raise ParseError(detail=message)
+    except SnubaRPCError as error:
+        message = "Internal error. Please try again."
+        arg = error.args[0] if len(error.args) > 0 else None
+        if isinstance(arg, TimeoutError):
+            sentry_sdk.set_tag("query.error_reason", "Timeout")
+            raise ParseError(detail=TIMEOUT_ERROR_MESSAGE)
+        raise APIException(detail=message)
     except SnubaError as error:
         message = "Internal error. Please try again."
         arg = error.args[0] if len(error.args) > 0 else None
