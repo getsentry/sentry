@@ -9,6 +9,7 @@ from sentry import options
 from sentry import ratelimits as ratelimiter
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.eventstore.models import Event
+from sentry.grouping.api import get_contributing_variant_and_component
 from sentry.grouping.grouping_info import get_grouping_info_from_variants
 from sentry.grouping.variants import BaseVariant
 from sentry.models.grouphash import GroupHash
@@ -210,6 +211,10 @@ def _has_empty_stacktrace_string(event: Event, variants: dict[str, BaseVariant])
             event, variants, ReferrerOptions.INGEST, record_metrics=False
         ),
     }
+    _, contributing_component = get_contributing_variant_and_component(variants)
+    if contributing_component is not None and hasattr(contributing_component, "frame_counts"):
+        logger_extra["frame_counts"] = contributing_component.frame_counts
+
     stacktrace_string = get_stacktrace_string_with_metrics(
         get_grouping_info_from_variants(variants),
         event.platform,
