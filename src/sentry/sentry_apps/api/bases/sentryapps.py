@@ -141,7 +141,7 @@ class IntegrationPlatformEndpoint(Endpoint):
             error_id = sentry_sdk.capture_exception(exception)
             return Response(
                 {
-                    "detail": f"An issue occured during the integration platform process. Sentry error ID: {error_id}"
+                    "detail": f"An issue occurred during the integration platform process. Sentry error ID: {error_id}"
                 },
                 status=500,
             )
