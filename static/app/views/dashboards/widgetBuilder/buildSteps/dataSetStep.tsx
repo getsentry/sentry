@@ -99,7 +99,7 @@ export function DataSetStep({
         {t('Spans')}{' '}
         <FeatureBadge
           type="beta"
-          title={t('This feature is available for early adopters and the UX may change.')}
+          title={t('This feature is available for early adopters and the UX may change')}
         />
       </FeatureBadgeAlignmentWrapper>
     );
