@@ -153,7 +153,7 @@ jobs:
         id: setup
 
       - name: Bring up devservices
-        run: devservices up --mode migrations
+        run: devservices up
 
       - name: run tests
         run: |
