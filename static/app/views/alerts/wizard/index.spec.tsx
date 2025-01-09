@@ -73,7 +73,7 @@ describe('AlertWizard', () => {
     expect(screen.getByText('Uptime Monitoring')).toBeInTheDocument();
     expect(screen.getByText('Custom')).toBeInTheDocument();
     const alertGroups = screen.getAllByRole('radiogroup');
-    expect(alertGroups).toHaveLength(6);
+    expect(alertGroups).toHaveLength(5);
   });
 
   it('should only render alerts for errors in self-hosted errors only', () => {
