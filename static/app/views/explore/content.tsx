@@ -5,6 +5,7 @@ import type {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
@@ -80,7 +81,7 @@ function ExploreContentImpl({}: ExploreContentProps) {
     });
   }, [location, navigate]);
 
-  const [confidence, setConfidence] = useState<Confidence>(null);
+  const [confidences, setConfidences] = useState<Confidence[]>([]);
   const [chartError, setChartError] = useState<string>('');
   const [tableError, setTableError] = useState<string>('');
 
@@ -100,6 +101,12 @@ function ExploreContentImpl({}: ExploreContentProps) {
                     'Find problematic spans/traces or compute real-time metrics via aggregation.'
                   )}
                   linkLabel={t('Read the Discussion')}
+                />
+                <FeatureBadge
+                  title={t(
+                    'This feature is available for early adopters and the UX may change'
+                  )}
+                  type="beta"
                 />
               </Layout.Title>
             </Layout.HeaderContent>
@@ -174,10 +181,10 @@ function ExploreContentImpl({}: ExploreContentProps) {
               )}
               <ExploreCharts
                 query={query}
-                setConfidence={setConfidence}
+                setConfidences={setConfidences}
                 setError={setChartError}
               />
-              <ExploreTables confidence={confidence} setError={setTableError} />
+              <ExploreTables confidences={confidences} setError={setTableError} />
             </MainSection>
           </Body>
         </Layout.Page>
