@@ -1,5 +1,4 @@
 import logging
-import traceback
 from collections.abc import Mapping, Sequence
 from enum import StrEnum
 from typing import Any, TypedDict, TypeVar
@@ -288,8 +287,6 @@ def get_stacktrace_string_with_metrics(
         )
         if referrer == ReferrerOptions.INGEST:
             # Temporary log to debug how we're still landing here, which we shouldn't be anymore
-            logger_extra = logger_extra or {}
-            logger_extra.update({"current_stacktrace": "".join(traceback.format_stack())})
             logger.info(
                 "record_did_call_seer_metric.over-threshold-frames",
                 extra=logger_extra,
