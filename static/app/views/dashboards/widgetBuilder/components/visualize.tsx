@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
@@ -64,6 +64,7 @@ function Visualize({error, setError}: VisualizeProps) {
   const {state, dispatch} = useWidgetBuilderContext();
   let tags = useTags();
   const {customMeasurements} = useCustomMeasurements();
+  const [selectedAggregateSet, setSelectedAggregateSet] = useState(false);
 
   const isChartWidget =
     state.displayType !== DisplayType.TABLE &&
@@ -247,13 +248,14 @@ function Visualize({error, setError}: VisualizeProps) {
                     aria-label="aggregate-selector"
                   >
                     <Radio
-                      checked={index === (state.selectedAggregate ?? fields.length - 1)}
+                      checked={index === state.selectedAggregate}
                       onChange={() => {
                         dispatch({
                           type: BuilderStateAction.SET_SELECTED_AGGREGATE,
                           payload: index,
                         });
                       }}
+                      onClick={() => setSelectedAggregateSet(true)}
                       aria-label={'field' + index}
                     />
                   </RadioLineItem>
@@ -504,8 +506,11 @@ function Visualize({error, setError}: VisualizeProps) {
                         payload: fields?.filter((_field, i) => i !== index) ?? [],
                       });
 
-                      if (state.displayType === DisplayType.BIG_NUMBER) {
-                        // Only change the selected aggregate if it's the last one
+                      if (
+                        state.displayType === DisplayType.BIG_NUMBER &&
+                        selectedAggregateSet
+                      ) {
+                        // Only explicitly change the selected aggregate if it's the last one
                         if (state.selectedAggregate === fields.length - 1) {
                           dispatch({
                             type: BuilderStateAction.SET_SELECTED_AGGREGATE,
