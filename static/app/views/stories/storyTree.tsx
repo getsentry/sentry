@@ -1,5 +1,6 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
+import * as qs from 'query-string';
 
 import Link from 'sentry/components/links/link';
 import {IconChevron, IconFile} from 'sentry/icons';
@@ -10,15 +11,10 @@ import type {StoryTreeNode} from './index';
 
 function folderOrSearchScoreFirst(a: StoryTreeNode, b: StoryTreeNode) {
   if (a.result && b.result) {
+    if (a.result.score === b.result.score) {
+      return a.name.localeCompare(b.name);
+    }
     return b.result.score - a.result.score;
-  }
-
-  if (!a.visible) {
-    return 1;
-  }
-
-  if (!b.visible) {
-    return -1;
   }
 
   const aIsFolder = Object.keys(a.children).length > 0;
@@ -65,7 +61,7 @@ export default function StoryTree({nodes, ...htmlProps}: Props) {
               <File node={node} />
             </li>
           ) : (
-            <Folder node={node} />
+            <Folder node={node} key={node.name} />
           );
         })}
       </StoryList>
@@ -119,10 +115,11 @@ function Folder(props: {node: StoryTreeNode}) {
 
 function File(props: {node: StoryTreeNode}) {
   const location = useLocation();
+  const query = qs.stringify({...location.query, name: props.node.path});
 
   return (
     <FolderLink
-      to={`/stories/?name=${props.node.path}`}
+      to={`/stories/?${query}`}
       active={location.query.name === props.node.path}
     >
       {/* @TODO (JonasBadalic): Do file type icons make sense here? */}

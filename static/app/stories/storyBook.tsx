@@ -60,7 +60,6 @@ export default function storyBook(
 }
 
 const BookTitle = styled('h3')`
-  grid-area: header-title;
   margin: 0;
 `;
 

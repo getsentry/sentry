@@ -135,6 +135,7 @@ function useStoryTree(query: string, files: string[]) {
       for (const node of root) {
         node.visible = true;
         node.expanded = false;
+        node.result = null;
       }
       return Object.values(root.children);
     }
@@ -150,8 +151,8 @@ function useStoryTree(query: string, files: string[]) {
 
     for (const {node, path} of root.files()) {
       const match = fzf(node.name, lowerCaseQuery, false);
-      node.visible = match.score > 0;
       node.result = match;
+      node.visible = match.score > 0;
 
       if (node.visible) {
         // @TODO (JonasBadalic): We can trip this when we find a visible node if we reverse iterate
@@ -217,7 +218,7 @@ export class StoryTreeNode {
     while (queue.length > 0) {
       const node = queue.pop();
       if (node) {
-        yield node
+        yield node;
       }
 
       const nodeChildren = Object.values(node?.children ?? {});
