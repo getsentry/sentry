@@ -253,7 +253,7 @@ describe('WidgetBuilderSlideout', () => {
     expect(screen.getByText('Create Custom Widget')).toBeInTheDocument();
   });
 
-  it('clears the alias when dataset or display type changes', async () => {
+  it('clears the alias when dataset changes', async () => {
     render(
       <WidgetBuilderProvider>
         <WidgetBuilderSlideout
@@ -286,6 +286,36 @@ describe('WidgetBuilderSlideout', () => {
     await userEvent.click(screen.getByText('Errors'));
 
     expect(await screen.findByPlaceholderText('Add Alias')).toHaveValue('');
+  });
+
+  it('clears the alias when display type changes', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderSlideout
+          dashboard={DashboardFixture([])}
+          dashboardFilters={{release: undefined}}
+          isWidgetInvalid
+          onClose={jest.fn()}
+          onQueryConditionChange={jest.fn()}
+          onSave={jest.fn()}
+          setIsPreviewDraggable={jest.fn()}
+          isOpen
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              field: ['count()'],
+              yAxis: [],
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.TABLE,
+            },
+          }),
+        }),
+      }
+    );
 
     await userEvent.type(
       await screen.findByPlaceholderText('Add Alias'),
