@@ -4,9 +4,11 @@ import cloneDeep from 'lodash/cloneDeep';
 
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import Input from 'sentry/components/input';
+import Radio from 'sentry/components/radio';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -238,6 +240,24 @@ function Visualize({error, setError}: VisualizeProps) {
 
             return (
               <FieldRow key={index}>
+                {fields.length > 1 && state.displayType === DisplayType.BIG_NUMBER && (
+                  <RadioLineItem
+                    index={index}
+                    role="radio"
+                    aria-label="aggregate-selector"
+                  >
+                    <Radio
+                      checked={index === (state.selectedAggregate ?? fields.length - 1)}
+                      onChange={() => {
+                        dispatch({
+                          type: BuilderStateAction.SET_SELECTED_AGGREGATE,
+                          payload: index,
+                        });
+                      }}
+                      aria-label={'field' + index}
+                    />
+                  </RadioLineItem>
+                )}
                 <FieldBar data-testid={'field-bar'}>
                   {field.kind === FieldValueKind.EQUATION ? (
                     <StyledArithmeticInput
@@ -478,12 +498,22 @@ function Visualize({error, setError}: VisualizeProps) {
                     icon={<IconDelete />}
                     size="zero"
                     disabled={fields.length <= 1}
-                    onClick={() =>
+                    onClick={() => {
                       dispatch({
                         type: updateAction,
                         payload: fields?.filter((_field, i) => i !== index) ?? [],
-                      })
-                    }
+                      });
+
+                      if (state.displayType === DisplayType.BIG_NUMBER) {
+                        // Only change the selected aggregate if it's the last one
+                        if (state.selectedAggregate === fields.length - 1) {
+                          dispatch({
+                            type: BuilderStateAction.SET_SELECTED_AGGREGATE,
+                            payload: Math.max(0, state.selectedAggregate - 1),
+                          });
+                        }
+                      }
+                    }}
                     aria-label={t('Remove field')}
                   />
                 </FieldExtras>

@@ -42,6 +42,14 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
       ? _formatSort(state.sort[0]!)
       : defaultSort;
 
+  // The selected aggregate is the last aggregate for big number widgets
+  // if it hasn't been explicitly set
+  const selectedAggregate =
+    state.displayType === DisplayType.BIG_NUMBER &&
+    defined(aggregates) &&
+    aggregates.length > 1
+      ? state.selectedAggregate ?? aggregates.length - 1
+      : undefined;
   const widgetQueries: WidgetQuery[] = queries.map((query, index) => {
     return {
       ...defaultQuery,
@@ -52,7 +60,7 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
       orderby: sort,
       fieldAliases: fieldAliases ?? [],
       name: legendAlias[index] ?? '',
-      selectedAggregate: state.selectedAggregate,
+      selectedAggregate,
     };
   });
 
