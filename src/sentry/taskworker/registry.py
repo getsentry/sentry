@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import datetime
 import logging
-import time
 from collections.abc import Callable
 from functools import cached_property
 from typing import Any
@@ -140,8 +139,7 @@ class TaskNamespace:
             KafkaPayload(key=None, value=activation.SerializeToString(), headers=[]),
         )
         if wait_for_delivery:
-            while not produce_future.is_done():
-                time.sleep(0.1)
+            produce_future.result(timeout=None)
 
 
 class TaskRegistry:
