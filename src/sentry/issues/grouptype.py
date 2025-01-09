@@ -253,18 +253,6 @@ def get_group_type_by_type_id(id: int) -> type[GroupType]:
     return registry.get_by_type_id(id)
 
 
-@dataclass(frozen=True)
-class ErrorGroupType(GroupType):
-    type_id = 1
-    slug = "error"
-    description = "Error"
-    category = GroupCategory.ERROR.value
-    default_priority = PriorityLevel.MEDIUM
-    released = True
-    # TODO(cathy): add detector validator
-    detector_config_schema = {"type": "object", "additionalProperties": False}  # empty schema
-
-
 # used as an additional superclass for Performance GroupType defaults
 class PerformanceGroupTypeDefaults:
     noise_config = NoiseConfig()

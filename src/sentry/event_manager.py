@@ -53,6 +53,7 @@ from sentry.grouping.api import (
     GroupingConfig,
     get_grouping_config_dict_for_project,
 )
+from sentry.grouping.grouptype import ErrorGroupType
 from sentry.grouping.ingest.config import is_in_transition, update_grouping_config_if_needed
 from sentry.grouping.ingest.hashing import (
     find_grouphash_with_group,
@@ -74,7 +75,6 @@ from sentry.ingest.transaction_clusterer.datasource.redis import (
     record_transaction_name as record_transaction_name_for_clustering,
 )
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
-from sentry.issues.grouptype import ErrorGroupType
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.killswitches import killswitch_matches_context

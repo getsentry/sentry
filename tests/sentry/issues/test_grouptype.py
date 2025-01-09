@@ -2,10 +2,10 @@ from dataclasses import dataclass
 from datetime import timedelta
 from unittest.mock import patch
 
+from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.grouptype import (
     DEFAULT_EXPIRY_TIME,
     DEFAULT_IGNORE_LIMIT,
-    ErrorGroupType,
     GroupCategory,
     GroupType,
     GroupTypeRegistry,

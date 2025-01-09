@@ -1,4 +1,4 @@
-from sentry.issues.grouptype import ErrorGroupType
+from sentry.grouping.grouptype import ErrorGroupType
 from sentry.rules.age import AgeComparisonType
 from sentry.rules.conditions.reappeared_event import ReappearedEventCondition
 from sentry.rules.conditions.regression_event import RegressionEventCondition

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 
-from sentry.issues.grouptype import ErrorGroupType
+from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.workflow_engine.handlers.detector import DetectorEvaluationResult
