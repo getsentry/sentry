@@ -1047,10 +1047,10 @@ def delete_alert_rule(
             )
         else:
             RegionScheduledDeletion.schedule(instance=alert_rule, days=0, actor=user)
-            # NOTE: we want to run the dual delete regardless of whether the user is flagged into dual writes:
-            # the user could be removed from the dual write flag for whatever reason, and we need to make sure
-            # that the extra table data is deleted. If the rows don't exist, we'll exit early.
-            dual_delete_migrated_alert_rule(alert_rule=alert_rule, user=user)
+        # NOTE: we want to run the dual delete regardless of whether the user is flagged into dual writes:
+        # the user could be removed from the dual write flag for whatever reason, and we need to make sure
+        # that the extra table data is deleted. If the rows don't exist, we'll exit early.
+        dual_delete_migrated_alert_rule(alert_rule=alert_rule, user=user)
 
         bulk_delete_snuba_subscriptions(subscriptions)
         schedule_update_project_config(alert_rule, [sub.project for sub in subscriptions])

@@ -198,11 +198,10 @@ def dual_delete_migrated_alert_rule(
 
     data_source = get_data_source(alert_rule=alert_rule)
     if data_source is None:
-        logger.error(
+        logger.info(
             "DataSource does not exist",
             extra={"alert_rule_id": AlertRule.id},
         )
-        return
     # NOTE: for migrated alert rules, each workflow is associated with a single detector
     # make sure there are no other detectors associated with the workflow, then delete it if so
     if DetectorWorkflow.objects.filter(workflow=workflow).count() == 1:
@@ -212,6 +211,7 @@ def dual_delete_migrated_alert_rule(
     RegionScheduledDeletion.schedule(instance=detector, days=0, actor=user)
     if data_condition_group:
         RegionScheduledDeletion.schedule(instance=data_condition_group, days=0, actor=user)
-    RegionScheduledDeletion.schedule(instance=data_source, days=0, actor=user)
+    if data_source:
+        RegionScheduledDeletion.schedule(instance=data_source, days=0, actor=user)
 
     return
