@@ -1,3 +1,6 @@
+from dataclasses import dataclass
+from datetime import datetime, timedelta
+from typing import Any
 from uuid import uuid4
 
 from sentry.incidents.models.incident import Incident, IncidentStatus
@@ -9,6 +12,22 @@ from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import GroupStatus
 from sentry.models.project import Project
 from sentry.types.group import PriorityLevel
+
+
+@dataclass
+class OpenPeriod:
+    start: datetime
+    end: datetime | None
+    duration: timedelta | None
+    is_open: bool
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "start": self.start,
+            "end": self.end,
+            "duration": self.duration,
+            "isOpen": self.is_open,
+        }
 
 
 def _build_occurrence_from_incident(

@@ -1,7 +1,7 @@
 import functools
 import logging
 from collections.abc import Sequence
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
@@ -24,11 +24,12 @@ from sentry.api.serializers import GroupSerializer, GroupSerializerSnuba, serial
 from sentry.api.serializers.models.group_stream import get_actions, get_available_issue_plugins
 from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.api.serializers.models.team import TeamSerializer
+from sentry.incidents.utils.metric_issue_poc import OpenPeriod
 from sentry.integrations.api.serializers.models.external_issue import ExternalIssueSerializer
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.issues.constants import get_issue_tsdb_group_model
 from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
-from sentry.issues.grouptype import GroupCategory
+from sentry.issues.grouptype import GroupCategory, MetricIssuePOC
 from sentry.models.activity import Activity
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.group import Group
@@ -45,6 +46,7 @@ from sentry.sentry_apps.api.serializers.platform_external_issue import (
 )
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.tasks.post_process import fetch_buffered_group_stats
+from sentry.types.activity import ActivityType
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
@@ -86,6 +88,45 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
     def _get_seen_by(self, request: Request, group: Group):
         seen_by = list(GroupSeen.objects.filter(group=group).order_by("-last_seen"))
         return [seen for seen in serialize(seen_by, request.user) if seen is not None]
+
+    def _get_open_periods_for_group(self, group: Group) -> list[OpenPeriod]:
+        if group.type != MetricIssuePOC.type_id:
+            return []
+
+        activities = Activity.objects.filter(
+            group=group,
+            type__in=[ActivityType.SET_UNRESOLVED.value, ActivityType.SET_RESOLVED.value],
+            datetime__gte=timezone.now() - timedelta(days=90),
+        ).order_by("datetime")
+
+        open_periods = []
+        start: datetime | None = group.first_seen
+
+        for activity in activities:
+            if activity.type == ActivityType.SET_RESOLVED.value and start:
+                open_periods.append(
+                    OpenPeriod(
+                        start=start,
+                        end=activity.datetime,
+                        duration=activity.datetime - start,
+                        is_open=False,
+                    )
+                )
+                start = None
+            elif activity.type == ActivityType.SET_UNRESOLVED.value and not start:
+                start = activity.datetime
+
+        if start:
+            open_periods.append(
+                OpenPeriod(
+                    start=start,
+                    end=None,
+                    duration=None,
+                    is_open=True,
+                )
+            )
+
+        return open_periods[::-1]
 
     def _get_context_plugins(self, request: Request, group: Group):
         project = group.project
@@ -164,6 +205,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
 
             # TODO: these probably should be another endpoint
             activity = Activity.objects.get_activities_for_group(group, 100)
+            open_periods = self._get_open_periods_for_group(group)
             seen_by = self._get_seen_by(request, group)
 
             if "release" not in collapse:
@@ -261,6 +303,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             data.update(
                 {
                     "activity": serialize(activity, request.user),
+                    "openPeriods": [open_period.to_dict() for open_period in open_periods],
                     "seenBy": seen_by,
                     "pluginActions": get_actions(request, group),
                     "pluginIssues": get_available_issue_plugins(request, group),

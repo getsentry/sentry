@@ -7,7 +7,7 @@ from django.utils import timezone
 from sentry import audit_log, buffer, tsdb
 from sentry.buffer.redis import RedisBuffer
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
-from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
+from sentry.issues.grouptype import MetricIssuePOC, PerformanceSlowDBQueryGroupType
 from sentry.models.activity import Activity
 from sentry.models.apikey import ApiKey
 from sentry.models.auditlogentry import AuditLogEntry
@@ -309,6 +309,116 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             assert response.status_code == 200, response.content
             assert response.data["id"] == str(group.id)
             assert response.data["count"] == "16"
+
+    def test_open_periods_non_metric(self) -> None:
+        self.login_as(user=self.user)
+        group = self.create_group()
+        url = f"/api/0/issues/{group.id}/"
+
+        # open periods are not supported for non-metric issue groups
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200, response.content
+        assert response.data["openPeriods"] == []
+
+    def test_open_periods_new_group(self) -> None:
+        self.login_as(user=self.user)
+        group = self.create_group()
+        url = f"/api/0/issues/{group.id}/"
+
+        # test a new group has an open period
+        group.type = MetricIssuePOC.type_id
+        group.save()
+
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200, response.content
+        assert response.data["openPeriods"] == [
+            {"start": group.first_seen, "end": None, "duration": None, "isOpen": True}
+        ]
+
+    def test_open_periods_resolved_group(self) -> None:
+        self.login_as(user=self.user)
+        group = self.create_group()
+        url = f"/api/0/issues/{group.id}/"
+
+        # test a new group has an open period
+        group.type = MetricIssuePOC.type_id
+        group.save()
+
+        group.status = GroupStatus.RESOLVED
+        group.save()
+        resolved_time = timezone.now()
+        Activity.objects.create(
+            group=group,
+            project=group.project,
+            type=ActivityType.SET_RESOLVED.value,
+            datetime=resolved_time,
+        )
+
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200, response.content
+        assert response.data["openPeriods"] == [
+            {
+                "start": group.first_seen,
+                "end": resolved_time,
+                "duration": resolved_time - group.first_seen,
+                "isOpen": False,
+            }
+        ]
+
+    def test_open_periods_unresolved_group(self) -> None:
+        self.login_as(user=self.user)
+        group = self.create_group()
+        url = f"/api/0/issues/{group.id}/"
+
+        group.type = MetricIssuePOC.type_id
+        group.save()
+
+        group.status = GroupStatus.RESOLVED
+        group.save()
+        resolved_time = timezone.now()
+        Activity.objects.create(
+            group=group,
+            project=group.project,
+            type=ActivityType.SET_RESOLVED.value,
+            datetime=resolved_time,
+        )
+
+        # test that another open period is created
+        unresolved_time = timezone.now()
+        group.status = GroupStatus.UNRESOLVED
+        group.save()
+        Activity.objects.create(
+            group=group,
+            project=group.project,
+            type=ActivityType.SET_UNRESOLVED.value,
+            datetime=unresolved_time,
+        )
+
+        second_resolved_time = timezone.now()
+        group.status = GroupStatus.RESOLVED
+        group.save()
+        Activity.objects.create(
+            group=group,
+            project=group.project,
+            type=ActivityType.SET_RESOLVED.value,
+            datetime=second_resolved_time,
+        )
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200, response.content
+        assert response.data["openPeriods"] == [
+            {
+                "start": unresolved_time,
+                "end": second_resolved_time,
+                "duration": second_resolved_time - unresolved_time,
+                "isOpen": False,
+            },
+            {
+                "start": group.first_seen,
+                "end": resolved_time,
+                "duration": resolved_time - group.first_seen,
+                "isOpen": False,
+            },
+        ]
 
 
 class GroupUpdateTest(APITestCase):
