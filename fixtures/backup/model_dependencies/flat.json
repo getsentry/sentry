@@ -874,6 +874,10 @@
   "workflow_engine.action": [
     "sentry.integration"
   ],
+  "workflow_engine.actiongroupstatus": [
+    "sentry.group",
+    "workflow_engine.action"
+  ],
   "workflow_engine.alertruledetector": [
     "sentry.alertrule",
     "sentry.rule",

@@ -6352,6 +6352,34 @@
     "table_name": "workflow_engine_action",
     "uniques": []
   },
+  "workflow_engine.actiongroupstatus": {
+    "dangling": false,
+    "foreign_keys": {
+      "action": {
+        "kind": "FlexibleForeignKey",
+        "model": "workflow_engine.action",
+        "nullable": false
+      },
+      "group": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.group",
+        "nullable": false
+      }
+    },
+    "model": "workflow_engine.actiongroupstatus",
+    "relocation_dependencies": [],
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "workflow_engine_actiongroupstatus",
+    "uniques": [
+      [
+        "action",
+        "group"
+      ]
+    ]
+  },
   "workflow_engine.alertruledetector": {
     "dangling": true,
     "foreign_keys": {
