@@ -34,7 +34,7 @@ export class VirtualizedTreeNode<T> {
 
       if (next.expanded) {
         for (let i = 0; i < next.children.length; i++) {
-          queue.push(next.children[i]);
+          queue.push(next.children[i]!);
         }
       }
       count++;
@@ -73,12 +73,12 @@ export class VirtualizedTreeNode<T> {
       }
 
       for (let i = 0; i < node.children.length; i++) {
-        visit(node.children[i]);
+        visit(node.children[i]!);
       }
     }
 
     for (let i = 0; i < this.children.length; i++) {
-      visit(this.children[i]);
+      visit(this.children[i]!);
     }
 
     return list;

@@ -31,7 +31,6 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleThresholdType,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
-    alert_subscription_callback_registry,
 )
 from sentry.incidents.models.incident import (
     Incident,
@@ -65,7 +64,6 @@ from sentry.seer.anomaly_detection.types import (
 )
 from sentry.seer.anomaly_detection.utils import has_anomaly, translate_direction
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.indexer.postgres.models import MetricsKeyIndexer
 from sentry.sentry_metrics.utils import resolve_tag_key
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
@@ -975,33 +973,6 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             [(trigger.alert_threshold + 1, IncidentStatus.CRITICAL, uuid)],
         )
         create_metric_issue_mock.assert_not_called()
-
-    def test_activated_alert(self):
-        # Verify that an alert rule that only expects a single update to be over the
-        # alert threshold triggers correctly
-        rule = self.activated_rule
-        trigger = self.activated_trigger
-        subscription = self.activated_sub
-        processor = self.send_update(
-            rule=rule, value=trigger.alert_threshold + 1, subscription=subscription
-        )
-        self.assert_trigger_counts(processor, self.activated_trigger, 0, 0)
-        incident = self.assert_active_incident(rule=rule, subscription=subscription)
-        assert incident.date_started == (
-            timezone.now().replace(microsecond=0) - timedelta(seconds=rule.snuba_query.time_window)
-        )
-        self.assert_trigger_exists_with_status(
-            incident, self.activated_trigger, TriggerStatus.ACTIVE
-        )
-        latest_activity = self.latest_activity(incident)
-        uuid = str(latest_activity.notification_uuid)
-        self.assert_actions_fired_for_incident(
-            incident,
-            [self.activated_action],
-            [(trigger.alert_threshold + 1, IncidentStatus.CRITICAL, uuid)],
-        )
-        # assert that an incident was created _with_ an activation!
-        assert incident.activation
 
     def test_alert_dedupe(self):
         # Verify that an alert rule that only expects a single update to be over the
@@ -2960,15 +2931,6 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_trigger_exists_with_status(new_incident, trigger, TriggerStatus.ACTIVE)
         self.assert_incident_is_latest_for_rule(new_incident)
 
-    def test_invoke_alert_subscription_callback(self):
-        mock = Mock()
-        alert_subscription_callback_registry[AlertRuleMonitorTypeInt.CONTINUOUS] = mock
-
-        self.send_update(self.rule, 1, subscription=self.sub)
-
-        assert mock.call_count == 1
-        assert mock.call_args[0][0] == self.sub
-
     @with_feature("organizations:metric-issue-poc")
     @mock.patch("sentry.incidents.utils.metric_issue_poc.produce_occurrence_to_kafka")
     def test_alert_creates_metric_issue(self, mock_produce_occurrence_to_kafka):
@@ -3715,7 +3677,6 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
     def test_ensure_case_when_no_metrics_index_not_found_is_handled_gracefully(
         self, helper_metrics
     ):
-        MetricsKeyIndexer.objects.all().delete()
         rule = self.crash_rate_alert_rule
         subscription = rule.snuba_query.subscriptions.filter(project=self.project).get()
         processor = SubscriptionProcessor(subscription)

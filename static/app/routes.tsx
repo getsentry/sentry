@@ -25,7 +25,7 @@ import {ModuleName} from 'sentry/views/insights/types';
 import {GroupEventDetailsLoading} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsLoading';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import IssueListContainer from 'sentry/views/issueList';
-import IssueListOverview from 'sentry/views/issueList/overview';
+import {OverviewWrapper} from 'sentry/views/issueList/overviewWrapper';
 import OrganizationContainer from 'sentry/views/organizationContainer';
 import OrganizationLayout from 'sentry/views/organizationLayout';
 import OrganizationRoot from 'sentry/views/organizationRoot';
@@ -736,7 +736,7 @@ function buildRoutes() {
         name={t('Auth Providers')}
         component={make(() => import('sentry/views/settings/organizationAuth'))}
       />
-      <Redirect from="members/requests" to="members/" />
+      <Redirect from="members/requests" to="../members/" />
       <Route path="members/" name={t('Members')}>
         <IndexRoute
           component={make(
@@ -1462,10 +1462,6 @@ function buildRoutes() {
     </Fragment>
   );
 
-  // TODO(mark) Long term this /queries route should go away and /discover
-  // should be the canonical route for discover2. We have a redirect right now
-  // as /discover was for discover 1 and most of the application is linking to
-  // /discover/queries and not /discover
   const discoverRoutes = (
     <Route
       path="/discover/"
@@ -1515,7 +1511,7 @@ function buildRoutes() {
           <Redirect
             key={moduleBaseURL}
             from={`${moduleBaseURL}/*`}
-            to={`/${DOMAIN_VIEW_BASE_URL}/${getModuleView(moduleUrlToModule[moduleBaseURL])}${moduleBaseURL}/:splat`}
+            to={`/${DOMAIN_VIEW_BASE_URL}/${getModuleView(moduleUrlToModule[moduleBaseURL]!)}${moduleBaseURL}/:splat`}
           />
         )
     )
@@ -1737,6 +1733,11 @@ function buildRoutes() {
           )}
         />
       </Route>
+      <Route path={`${MODULE_BASE_URLS[ModuleName.UPTIME]}/`}>
+        <IndexRoute
+          component={make(() => import('sentry/views/insights/uptime/views/overview'))}
+        />
+      </Route>
       <Route path={`${MODULE_BASE_URLS[ModuleName.AI]}/`}>
         <IndexRoute
           component={make(
@@ -1750,6 +1751,11 @@ function buildRoutes() {
             () =>
               import('sentry/views/insights/llmMonitoring/views/llmMonitoringDetailsPage')
           )}
+        />
+      </Route>
+      <Route path={`${MODULE_BASE_URLS[ModuleName.CRONS]}/`}>
+        <IndexRoute
+          component={make(() => import('sentry/views/insights/crons/views/overview'))}
         />
       </Route>
     </Fragment>
@@ -1898,8 +1904,8 @@ function buildRoutes() {
 
   const issueListRoutes = (
     <Route path="/issues" component={errorHandler(IssueListContainer)} withOrgPath>
-      <IndexRoute component={errorHandler(IssueListOverview)} />
-      <Route path="searches/:searchId/" component={errorHandler(IssueListOverview)} />
+      <IndexRoute component={errorHandler(OverviewWrapper)} />
+      <Route path="searches/:searchId/" component={errorHandler(OverviewWrapper)} />
     </Route>
   );
 

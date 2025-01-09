@@ -51,8 +51,7 @@ class BaseWorkflowIntegrationTest(BaseWorkflowTest):
         self.occurrence, group_info = save_issue_occurrence(occurrence_data, self.event)
         assert group_info is not None
 
-        self.group = Group.objects.filter(grouphash__hash=self.occurrence.fingerprint[0]).first()
-        assert self.group is not None
+        self.group = Group.objects.get(grouphash__hash=self.occurrence.fingerprint[0])
         assert self.group.type == MetricAlertFire.type_id
 
     def call_post_process_group(
@@ -135,9 +134,6 @@ class TestWorkflowEngineIntegrationFromIssuePlatform(BaseWorkflowIntegrationTest
         """
         self.create_event(self.project.id, datetime.utcnow(), str(self.detector.id))
 
-        if not self.group:
-            assert False, "Group not created"
-
         with mock.patch(
             "sentry.workflow_engine.processors.workflow.process_workflows"
         ) as mock_process_workflow:
@@ -160,10 +156,7 @@ class TestWorkflowEngineIntegrationFromIssuePlatform(BaseWorkflowIntegrationTest
         )
 
         self.occurrence, group_info = save_issue_occurrence(occurrence_data, error_event)
-        self.group = Group.objects.filter(grouphash__hash=self.occurrence.fingerprint[0]).first()
-
-        if not self.group:
-            assert False, "Group not created"
+        self.group = Group.objects.get(grouphash__hash=self.occurrence.fingerprint[0])
 
         with mock.patch(
             "sentry.workflow_engine.processors.workflow.process_workflows"
@@ -176,8 +169,7 @@ class TestWorkflowEngineIntegrationFromIssuePlatform(BaseWorkflowIntegrationTest
     def test_workflow_engine__workflows__no_flag(self):
         self.create_event(self.project.id, datetime.utcnow(), str(self.detector.id))
 
-        if not self.group:
-            assert False, "Group not created"
+        assert self.group
 
         with mock.patch(
             "sentry.workflow_engine.processors.workflow.process_workflows"

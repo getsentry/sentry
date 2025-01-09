@@ -89,7 +89,7 @@ export function getHiddenFrameIndices({
       const index = parseInt(indexString, 10);
       const indicesToBeAdded: number[] = [];
       let i = 1;
-      let numHidden = frameCountMap[index];
+      let numHidden = frameCountMap[index]!;
       while (numHidden > 0) {
         if (!repeatedIndeces.includes(index - i)) {
           indicesToBeAdded.push(index - i);
@@ -305,7 +305,7 @@ export function parseAssembly(assembly: string | null) {
   }
 
   for (let i = 1; i < pieces.length; i++) {
-    const [key, value] = pieces[i].trim().split('=');
+    const [key, value] = pieces[i]!.trim().split('=');
 
     // eslint-disable-next-line default-case
     switch (key) {

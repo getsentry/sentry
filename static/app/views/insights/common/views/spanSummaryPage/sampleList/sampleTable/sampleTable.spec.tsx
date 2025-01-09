@@ -1,5 +1,6 @@
 import {
   render,
+  screen,
   waitFor,
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
@@ -39,7 +40,7 @@ describe('SampleTable', function () {
 
   describe('When all data is available', () => {
     it('should finsh loading', async () => {
-      const container = render(
+      render(
         <SampleTable
           groupId="groupId123"
           moduleName={ModuleName.OTHER}
@@ -48,11 +49,11 @@ describe('SampleTable', function () {
         />
       );
 
-      await waitForElementToBeRemoved(() => container.queryByTestId('loading-indicator'));
+      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
     });
 
     it('should never show no results', async () => {
-      const container = render(
+      render(
         <SampleTable
           groupId="groupId123"
           moduleName={ModuleName.OTHER}
@@ -61,12 +62,12 @@ describe('SampleTable', function () {
         />
       );
 
-      await expectNever(() => container.getByText('No results found for your query'));
-      expect(container.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+      await expectNever(() => screen.getByText('No results found for your query'));
+      expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
     });
 
     it('should show span IDs by default', async () => {
-      const container = render(
+      render(
         <SampleTable
           groupId="groupId123"
           moduleName={ModuleName.OTHER}
@@ -76,19 +77,17 @@ describe('SampleTable', function () {
       );
 
       await waitFor(() =>
-        expect(container.queryByTestId('loading-indicator')).not.toBeInTheDocument()
+        expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument()
       );
 
-      expect(container.queryAllByTestId('grid-head-cell')[0]).toHaveTextContent(
-        'Span ID'
-      );
-      expect(container.queryAllByTestId('grid-body-cell')[0]).toHaveTextContent(
+      expect(screen.queryAllByTestId('grid-head-cell')[0]).toHaveTextContent('Span ID');
+      expect(screen.queryAllByTestId('grid-body-cell')[0]).toHaveTextContent(
         'span-id123'
       );
     });
 
     it('should show transaction IDs instead of span IDs when in columnOrder', async () => {
-      const container = render(
+      render(
         <SampleTable
           groupId="groupId123"
           moduleName={ModuleName.OTHER}
@@ -115,13 +114,11 @@ describe('SampleTable', function () {
       );
 
       await waitFor(() =>
-        expect(container.queryByTestId('loading-indicator')).not.toBeInTheDocument()
+        expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument()
       );
 
-      expect(container.queryAllByTestId('grid-head-cell')[0]).toHaveTextContent(
-        'Event ID'
-      );
-      expect(container.queryAllByTestId('grid-body-cell')[0]).toHaveTextContent(
+      expect(screen.queryAllByTestId('grid-head-cell')[0]).toHaveTextContent('Event ID');
+      expect(screen.queryAllByTestId('grid-body-cell')[0]).toHaveTextContent(
         'transaction-id123'.slice(0, 8)
       );
     });
@@ -137,7 +134,7 @@ describe('SampleTable', function () {
         },
       });
 
-      const container = render(
+      render(
         <SampleTable
           groupId="groupId123"
           moduleName={ModuleName.OTHER}
@@ -145,10 +142,8 @@ describe('SampleTable', function () {
           transactionName="/endpoint"
         />
       );
-      await waitForElementToBeRemoved(() => container.queryByTestId('loading-indicator'));
-      expect(
-        container.queryByText('No results found for your query')
-      ).toBeInTheDocument();
+      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+      expect(screen.getByText('No results found for your query')).toBeInTheDocument();
     });
   });
 });

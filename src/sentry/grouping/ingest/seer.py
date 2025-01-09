@@ -1,5 +1,4 @@
 import logging
-from collections.abc import Mapping
 from dataclasses import asdict
 from typing import Any
 
@@ -22,6 +21,7 @@ from sentry.seer.similarity.utils import (
     event_content_has_stacktrace,
     filter_null_from_string,
     get_stacktrace_string_with_metrics,
+    has_too_many_contributing_frames,
     killswitch_enabled,
     record_did_call_seer_metric,
 )
@@ -32,7 +32,7 @@ from sentry.utils.safe import get_path
 logger = logging.getLogger("sentry.events.grouping")
 
 
-def should_call_seer_for_grouping(event: Event, variants: Mapping[str, BaseVariant]) -> bool:
+def should_call_seer_for_grouping(event: Event, variants: dict[str, BaseVariant]) -> bool:
     """
     Use event content, feature flags, rate limits, killswitches, seer health, etc. to determine
     whether a call to Seer should be made.
@@ -48,6 +48,7 @@ def should_call_seer_for_grouping(event: Event, variants: Mapping[str, BaseVaria
 
     if (
         _has_customized_fingerprint(event, variants)
+        or _has_too_many_contributing_frames(event, variants)
         or killswitch_enabled(project.id, ReferrerOptions.INGEST, event)
         or _circuit_breaker_broken(event, project)
         # The rate limit check has to be last (see below) but rate-limiting aside, call this after other checks
@@ -96,6 +97,14 @@ def _event_content_is_seer_eligible(event: Event) -> bool:
     return True
 
 
+def _has_too_many_contributing_frames(event: Event, variants: dict[str, BaseVariant]) -> bool:
+    if has_too_many_contributing_frames(event, variants, ReferrerOptions.INGEST):
+        record_did_call_seer_metric(call_made=False, blocker="excess-frames")
+        return True
+
+    return False
+
+
 def _project_has_similarity_grouping_enabled(project: Project) -> bool:
     # TODO: This is a hack to get ingest to turn on for projects as soon as they're backfilled. When
     # the backfill script completes, we turn on this option, enabling ingest immediately rather than
@@ -116,7 +125,7 @@ def _project_has_similarity_grouping_enabled(project: Project) -> bool:
 # combined with some other value). To the extent to which we're then using this function to decide
 # whether or not to call Seer, this means that the calculations giving rise to the default part of
 # the value never involve Seer input. In the long run, we probably want to change that.
-def _has_customized_fingerprint(event: Event, variants: Mapping[str, BaseVariant]) -> bool:
+def _has_customized_fingerprint(event: Event, variants: dict[str, BaseVariant]) -> bool:
     fingerprint = event.data.get("fingerprint", [])
 
     if "{{ default }}" in fingerprint:
@@ -190,9 +199,22 @@ def _circuit_breaker_broken(event: Event, project: Project) -> bool:
     return circuit_broken
 
 
-def _has_empty_stacktrace_string(event: Event, variants: Mapping[str, BaseVariant]) -> bool:
+def _has_empty_stacktrace_string(event: Event, variants: dict[str, BaseVariant]) -> bool:
+    # For purposes of a temporary debug log - will be removed as soon as the mysterious behavior
+    # is sorted
+    logger_extra = {
+        "event_id": event.event_id,
+        "project_id": event.project_id,
+        "platform": event.platform,
+        "has_too_many_frames_result": has_too_many_contributing_frames(
+            event, variants, ReferrerOptions.INGEST, record_metrics=False
+        ),
+    }
     stacktrace_string = get_stacktrace_string_with_metrics(
-        get_grouping_info_from_variants(variants), event.platform, ReferrerOptions.INGEST
+        get_grouping_info_from_variants(variants),
+        event.platform,
+        ReferrerOptions.INGEST,
+        logger_extra=logger_extra,
     )
     if not stacktrace_string:
         if stacktrace_string == "":
@@ -206,7 +228,7 @@ def _has_empty_stacktrace_string(event: Event, variants: Mapping[str, BaseVarian
 
 def get_seer_similar_issues(
     event: Event,
-    variants: Mapping[str, BaseVariant],
+    variants: dict[str, BaseVariant],
     num_neighbors: int = 1,
 ) -> tuple[dict[str, Any], GroupHash | None]:
     """
@@ -282,7 +304,7 @@ def get_seer_similar_issues(
 
 
 def maybe_check_seer_for_matching_grouphash(
-    event: Event, variants: Mapping[str, BaseVariant], all_grouphashes: list[GroupHash]
+    event: Event, variants: dict[str, BaseVariant], all_grouphashes: list[GroupHash]
 ) -> GroupHash | None:
     seer_matched_grouphash = None
 

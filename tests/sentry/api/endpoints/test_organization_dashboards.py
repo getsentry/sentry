@@ -175,6 +175,13 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         values = [int(row["createdBy"]["id"]) for row in response.data if row["dateCreated"]]
         assert values == [self.user.id, self.user.id, user_1.id, user_2.id]
 
+        with self.feature("organizations:dashboards-table-view"):
+            response = self.client.get(self.url, data={"sort": "mydashboards"})
+            assert response.status_code == 200, response.content
+
+            values = [int(row["createdBy"]["id"]) for row in response.data if row["dateCreated"]]
+            assert values == [self.user.id, self.user.id, user_2.id, user_1.id]
+
     def test_get_sortby_mydashboards_and_recently_viewed(self):
         user_1 = self.create_user(username="user_1")
         self.create_member(organization=self.organization, user=user_1)
@@ -218,6 +225,59 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             "Dashboard 4",
             "Dashboard 3",
         ]
+
+    def test_get_sortby_mydashboards_with_owner_name(self):
+        user_1 = self.create_user(username="user_1", name="Cat")
+        self.create_member(organization=self.organization, user=user_1)
+
+        user_2 = self.create_user(username="user_2", name="Pineapple")
+        self.create_member(organization=self.organization, user=user_2)
+
+        user_3 = self.create_user(username="user_3", name="Banana")
+        self.create_member(organization=self.organization, user=user_3)
+
+        user_4 = self.create_user(username="user_4", name="Aapple")
+        self.create_member(organization=self.organization, user=user_4)
+
+        Dashboard.objects.create(title="A", created_by_id=user_1.id, organization=self.organization)
+        Dashboard.objects.create(title="B", created_by_id=user_2.id, organization=self.organization)
+        Dashboard.objects.create(title="C", created_by_id=user_3.id, organization=self.organization)
+        Dashboard.objects.create(title="D", created_by_id=user_4.id, organization=self.organization)
+        Dashboard.objects.create(title="E", created_by_id=user_2.id, organization=self.organization)
+        Dashboard.objects.create(title="F", created_by_id=user_1.id, organization=self.organization)
+
+        self.login_as(user_1)
+        with self.feature("organizations:dashboards-table-view"):
+            response = self.client.get(self.url, data={"sort": "mydashboards"})
+            assert response.status_code == 200, response.content
+
+            values = [row["createdBy"]["name"] for row in response.data if row["dateCreated"]]
+            assert values == [
+                "Cat",
+                "Cat",
+                "admin@localhost",  # name is empty
+                "admin@localhost",
+                "Aapple",
+                "Banana",
+                "Pineapple",
+                "Pineapple",
+            ]
+
+            # descending
+            response = self.client.get(self.url, data={"sort": "-mydashboards"})
+            assert response.status_code == 200, response.content
+
+            values = [row["createdBy"]["name"] for row in response.data if row["dateCreated"]]
+            assert values == [
+                "Cat",
+                "Cat",
+                "Pineapple",
+                "Pineapple",
+                "Banana",
+                "Aapple",
+                "admin@localhost",  # name is empty
+                "admin@localhost",
+            ]
 
     def test_get_only_favorites_no_sort(self):
         user_1 = self.create_user(username="user_1")
@@ -1339,8 +1399,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             "id": "7136",
         }
 
-        with self.feature({"organizations:dashboards-edit-access": True}):
-            response = self.do_request("post", self.url, data=data)
+        response = self.do_request("post", self.url, data=data)
         assert response.status_code == 201, response.content
         assert response.data["permissions"]["isEditableByEveryone"] is False
         assert response.data["permissions"]["teamsWithEditAccess"] == [team1.id, team2.id]
@@ -1371,8 +1430,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             "id": "7136",
         }
 
-        with self.feature({"organizations:dashboards-edit-access": True}):
-            response = self.do_request("post", self.url, data=data)
+        response = self.do_request("post", self.url, data=data)
         assert response.status_code == 201
 
         response = self.do_request("get", self.url)

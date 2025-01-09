@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import copy
 import logging
-import os
 import sys
 from collections.abc import Generator, Mapping, Sequence
 from types import FrameType
@@ -446,8 +445,6 @@ def configure_sdk():
         "schedule-digests",
     ]
 
-    enable_cache_spans = os.getenv("SENTRY_URL_PREFIX") == "sentry.my.sentry.io"
-
     sentry_sdk.init(
         # set back the sentry4sentry_dsn popped above since we need a default dsn on the client
         # for dynamic sampling context public_key population
@@ -455,7 +452,7 @@ def configure_sdk():
         transport=MultiplexingTransport(),
         integrations=[
             DjangoAtomicIntegration(),
-            DjangoIntegration(signals_spans=False, cache_spans=enable_cache_spans),
+            DjangoIntegration(signals_spans=False, cache_spans=True),
             CeleryIntegration(monitor_beat_tasks=True, exclude_beat_tasks=exclude_beat_tasks),
             # This makes it so all levels of logging are recorded as breadcrumbs,
             # but none are captured as events (that's handled by the `internal`

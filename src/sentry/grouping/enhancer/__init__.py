@@ -265,7 +265,7 @@ class Enhancements:
 
     @classmethod
     @sentry_sdk.tracing.trace
-    def from_config_string(self, s, bases=None, id=None) -> Enhancements:
+    def from_config_string(cls, s, bases=None, id=None) -> Enhancements:
         rust_enhancements = parse_rust_enhancements("config_string", s)
 
         rules = parse_enhancements(s)

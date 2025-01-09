@@ -3,8 +3,16 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import ModalStore from 'sentry/stores/modalStore';
 import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import WidgetBuilderSlideout from 'sentry/views/dashboards/widgetBuilder/components/widgetBuilderSlideout';
@@ -13,9 +21,10 @@ import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 
 jest.mock('sentry/utils/useCustomMeasurements');
 jest.mock('sentry/views/explore/contexts/spanTagsContext');
+jest.mock('sentry/actionCreators/indicator');
 
 describe('WidgetBuilderSlideout', () => {
-  let organization;
+  let organization!: ReturnType<typeof OrganizationFixture>;
   beforeEach(() => {
     organization = OrganizationFixture();
 
@@ -28,6 +37,19 @@ describe('WidgetBuilderSlideout', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',
     });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/widgets/',
+      method: 'POST',
+      body: {
+        title: 'Title is required during creation',
+      },
+      statusCode: 400,
+    });
+  });
+
+  afterEach(() => {
+    ModalStore.reset();
   });
 
   it('should show the sort by step if the widget is a chart and there are fields selected', async () => {
@@ -134,5 +156,100 @@ describe('WidgetBuilderSlideout', () => {
 
     expect(await screen.findByText('count')).toBeInTheDocument();
     expect(screen.queryByText('Sort by')).not.toBeInTheDocument();
+  });
+
+  it('should show the confirm modal if the widget is unsaved', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderSlideout
+          dashboard={DashboardFixture([])}
+          dashboardFilters={{release: undefined}}
+          isWidgetInvalid={false}
+          onClose={jest.fn()}
+          onQueryConditionChange={jest.fn()}
+          onSave={jest.fn()}
+          setIsPreviewDraggable={jest.fn()}
+          isOpen
+        />
+      </WidgetBuilderProvider>,
+      {organization}
+    );
+    renderGlobalModal();
+
+    await userEvent.type(await screen.findByPlaceholderText('Name'), 'some name');
+    await userEvent.click(await screen.findByText('Close'));
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(
+      screen.getByText('You have unsaved changes. Are you sure you want to leave?')
+    ).toBeInTheDocument();
+  });
+
+  it('should not show the confirm modal if the widget is unsaved', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderSlideout
+          dashboard={DashboardFixture([])}
+          dashboardFilters={{release: undefined}}
+          isWidgetInvalid={false}
+          onClose={jest.fn()}
+          onQueryConditionChange={jest.fn()}
+          onSave={jest.fn()}
+          setIsPreviewDraggable={jest.fn()}
+          isOpen
+        />
+      </WidgetBuilderProvider>,
+      {organization}
+    );
+
+    renderGlobalModal();
+
+    await userEvent.click(await screen.findByText('Close'));
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+    expect(
+      screen.queryByText('You have unsaved changes. Are you sure you want to leave?')
+    ).not.toBeInTheDocument();
+  });
+
+  it('should not save and close the widget builder if the widget is invalid', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderSlideout
+          dashboard={DashboardFixture([])}
+          dashboardFilters={{release: undefined}}
+          isWidgetInvalid
+          onClose={jest.fn()}
+          onQueryConditionChange={jest.fn()}
+          onSave={jest.fn()}
+          setIsPreviewDraggable={jest.fn()}
+          isOpen
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              field: [],
+              yAxis: ['count()'],
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.LINE,
+              title: undefined,
+            },
+          }),
+        }),
+      }
+    );
+
+    await userEvent.click(await screen.findByText('Add Widget'));
+
+    await waitFor(() => {
+      expect(addErrorMessage).toHaveBeenCalledWith('Unable to save widget');
+    });
+
+    expect(screen.getByText('Create Custom Widget')).toBeInTheDocument();
   });
 });

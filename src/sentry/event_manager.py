@@ -47,7 +47,6 @@ from sentry.eventstream.base import GroupState
 from sentry.eventtypes import EventType
 from sentry.eventtypes.transaction import TransactionEvent
 from sentry.exceptions import HashDiscarded
-from sentry.features.rollout import in_rollout_group
 from sentry.grouping.api import (
     NULL_GROUPHASH_INFO,
     GroupHashInfo,
@@ -2376,7 +2375,7 @@ def save_attachment(
         return
     from sentry import ratelimits as ratelimiter
 
-    is_limited, num_requests, reset_time = ratelimiter.backend.is_limited_with_value(
+    is_limited, _, _ = ratelimiter.backend.is_limited_with_value(
         key="event_attachment.save_per_sec",
         limit=options.get("sentry.save-event-attachments.project-per-sec-limit"),
         project=project,
@@ -2384,7 +2383,7 @@ def save_attachment(
     )
     rate_limit_tag = "per_sec"
     if not is_limited:
-        is_limited, num_requests, reset_time = ratelimiter.backend.is_limited_with_value(
+        is_limited, _, _ = ratelimiter.backend.is_limited_with_value(
             key="event_attachment.save_5_min",
             limit=options.get("sentry.save-event-attachments.project-per-5-minute-limit"),
             project=project,
@@ -2529,8 +2528,6 @@ def _record_transaction_info(jobs: Sequence[Job], projects: ProjectsMapping) -> 
     for job in jobs:
         try:
             event = job["event"]
-            if not in_rollout_group("transactions.do_post_process_in_save", event.event_id):
-                continue
 
             project = event.project
             with sentry_sdk.start_span(op="event_manager.record_transaction_name_for_clustering"):

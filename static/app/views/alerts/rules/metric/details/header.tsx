@@ -58,7 +58,7 @@ function DetailsHeader({
         <Breadcrumbs
           crumbs={[
             {label: t('Alerts'), to: `/organizations/${organization.slug}/alerts/rules/`},
-            {label: ruleTitle},
+            {label: t('Metric Alert')},
           ]}
         />
         <RuleTitle data-test-id="incident-rule-title" loading={!isRuleReady}>

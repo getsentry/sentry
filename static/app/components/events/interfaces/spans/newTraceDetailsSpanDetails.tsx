@@ -599,7 +599,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
 
 function SpanHTTPInfo({span}: {span: RawSpanType}) {
   if (span.op === 'http.client' && span.description) {
-    const [method, url] = span.description.split(' ');
+    const [method, url] = span.description.split(' ') as [string, string];
 
     const parsedURL = safeURL(url);
     const queryString = qs.parse(parsedURL?.search ?? '');

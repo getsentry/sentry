@@ -190,8 +190,8 @@ export function normalizeQueries({
 
     const queryOrderBy =
       widgetType === WidgetType.RELEASE
-        ? stripDerivedMetricsPrefix(queries[0].orderby)
-        : queries[0].orderby;
+        ? stripDerivedMetricsPrefix(queries[0]!.orderby)
+        : queries[0]!.orderby;
     const rawOrderBy = trimStart(queryOrderBy, '-');
 
     const resetOrderBy =
@@ -211,8 +211,8 @@ export function normalizeQueries({
         ? queryOrderBy ?? IssueSortOptions.DATE
         : generateOrderOptions({
             widgetType: widgetType ?? WidgetType.DISCOVER,
-            columns: queries[0].columns,
-            aggregates: queries[0].aggregates,
+            columns: queries[0]!.columns,
+            aggregates: queries[0]!.aggregates,
           })[0]?.value);
 
     if (!orderBy) {
@@ -263,7 +263,7 @@ export function normalizeQueries({
   if (isTimeseriesChart) {
     // For timeseries widget, all queries must share identical set of fields.
 
-    const referenceAggregates = [...queries[0].aggregates];
+    const referenceAggregates = [...queries[0]!.aggregates];
 
     queryLoop: for (const query of queries) {
       if (referenceAggregates.length >= 3) {

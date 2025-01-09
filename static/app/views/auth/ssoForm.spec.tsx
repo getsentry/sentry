@@ -1,6 +1,7 @@
+import {RouterFixture} from 'sentry-fixture/routerFixture';
+
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {browserHistory} from 'sentry/utils/browserHistory';
 import SsoForm from 'sentry/views/auth/ssoForm';
 
 describe('SsoForm', function () {
@@ -54,6 +55,7 @@ describe('SsoForm', function () {
   });
 
   it('handles success', async function () {
+    const router = RouterFixture();
     const mockRequest = MockApiClient.addMockResponse({
       url: '/auth/sso-locate/',
       method: 'POST',
@@ -63,11 +65,9 @@ describe('SsoForm', function () {
       },
     });
 
-    render(<SsoForm authConfig={emptyAuthConfig} />);
+    render(<SsoForm authConfig={emptyAuthConfig} />, {router});
     await doSso(mockRequest);
 
-    await waitFor(() =>
-      expect(browserHistory.push).toHaveBeenCalledWith({pathname: '/next/'})
-    );
+    await waitFor(() => expect(router.push).toHaveBeenCalledWith({pathname: '/next/'}));
   });
 });

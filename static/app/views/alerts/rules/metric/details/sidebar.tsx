@@ -90,7 +90,7 @@ function TriggerDescription({
           timeWindow,
           comparisonDelta: (
             COMPARISON_DELTA_OPTIONS.find(({value}) => value === rule.comparisonDelta) ??
-            COMPARISON_DELTA_OPTIONS[0]
+            COMPARISON_DELTA_OPTIONS[0]!
           ).label,
         }
       )

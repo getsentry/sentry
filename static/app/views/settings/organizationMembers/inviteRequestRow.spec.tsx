@@ -192,11 +192,11 @@ describe('InviteRequestRow', function () {
     );
 
     // Select role from first select input
-    await selectEvent.select(screen.getAllByRole('textbox')[0], 'Member');
+    await selectEvent.select(screen.getAllByRole('textbox')[0]!, 'Member');
     expect(mockUpdate).toHaveBeenCalledWith({role: 'member'});
 
     // Select teams from first select input
-    await selectEvent.select(screen.getAllByRole('textbox')[1], ['#one']);
+    await selectEvent.select(screen.getAllByRole('textbox')[1]!, ['#one']);
     expect(mockUpdate).toHaveBeenCalledWith({teams: ['one']});
 
     TeamStore.reset();

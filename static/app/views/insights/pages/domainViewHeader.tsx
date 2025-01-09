@@ -19,7 +19,7 @@ import {
   DOMAIN_VIEW_BASE_TITLE,
   OVERVIEW_PAGE_TITLE,
 } from 'sentry/views/insights/pages/settings';
-import {isModuleEnabled, isModuleHidden} from 'sentry/views/insights/pages/utils';
+import {isModuleEnabled, isModuleVisible} from 'sentry/views/insights/pages/utils';
 import type {ModuleName} from 'sentry/views/insights/types';
 
 export type Props = {
@@ -70,8 +70,6 @@ export function DomainViewHeader({
     ...additionalBreadCrumbs,
   ];
 
-  const showModuleTabs = organization.features.includes('insights-entry-points');
-
   const tabValue =
     hideDefaultTabs && tabs?.value ? tabs.value : selectedModule ?? OVERVIEW_PAGE_TITLE;
 
@@ -81,21 +79,14 @@ export function DomainViewHeader({
       children: OVERVIEW_PAGE_TITLE,
       to: domainBaseUrl,
     },
+    ...modules
+      .filter(moduleName => isModuleVisible(moduleName, organization))
+      .map(moduleName => ({
+        key: moduleName,
+        children: <TabLabel moduleName={moduleName} />,
+        to: `${moduleURLBuilder(moduleName as RoutableModuleNames)}/`,
+      })),
   ];
-
-  if (showModuleTabs) {
-    tabList.push(
-      ...modules.map(
-        moduleName =>
-          ({
-            key: moduleName,
-            children: <TabLabel moduleName={moduleName} />,
-            to: `${moduleURLBuilder(moduleName as RoutableModuleNames)}/`,
-            hidden: isModuleHidden(moduleName, organization),
-          }) satisfies TabListItemProps
-      )
-    );
-  }
 
   return (
     <Fragment>
@@ -107,8 +98,8 @@ export function DomainViewHeader({
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <ButtonBar gap={1}>
-            {additonalHeaderActions}
             <FeedbackWidgetButton />
+            {additonalHeaderActions}
           </ButtonBar>
         </Layout.HeaderActions>
         <Tabs value={tabValue} onChange={tabs?.onTabChange}>

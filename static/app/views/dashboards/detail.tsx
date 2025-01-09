@@ -159,7 +159,7 @@ export function handleUpdateDashboardSplit({
   );
 
   if (widgetIndex >= 0) {
-    updatedDashboard.widgets[widgetIndex].widgetType = splitDecision;
+    updatedDashboard.widgets[widgetIndex]!.widgetType = splitDecision;
   }
   onDashboardUpdate?.(updatedDashboard);
 
@@ -187,7 +187,6 @@ export function checkUserHasEditAccess(
   dashboardCreator?: User
 ): boolean {
   if (
-    !organization.features.includes('dashboards-edit-access') ||
     hasEveryAccess(['org:write'], {organization}) || // Managers and Owners
     !dashboardPermissions ||
     dashboardPermissions.isEditableByEveryone ||
@@ -819,6 +818,7 @@ class DashboardDetail extends Component<Props, State> {
 
   handleCloseWidgetBuilder = () => {
     const {organization, router, location, params} = this.props;
+
     this.setState({isWidgetBuilderOpen: false});
     router.push(
       getDashboardLocation({

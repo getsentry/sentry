@@ -6,6 +6,7 @@ import {
   explodeField,
   generateFieldAsString,
   isAggregateFieldOrEquation,
+  type QueryFieldValue,
   type Sort,
 } from 'sentry/utils/discover/fields';
 import {
@@ -24,7 +25,8 @@ export type WidgetBuilderStateQueryParams = {
   dataset?: WidgetType;
   description?: string;
   displayType?: DisplayType;
-  field?: (string | undefined)[];
+  field?: string[];
+  legendAlias?: string[];
   limit?: number;
   query?: string[];
   sort?: string[];
@@ -42,6 +44,7 @@ export const BuilderStateAction = {
   SET_QUERY: 'SET_QUERY',
   SET_SORT: 'SET_SORT',
   SET_LIMIT: 'SET_LIMIT',
+  SET_LEGEND_ALIAS: 'SET_LEGEND_ALIAS',
 } as const;
 
 type WidgetAction =
@@ -53,13 +56,15 @@ type WidgetAction =
   | {payload: Column[]; type: typeof BuilderStateAction.SET_Y_AXIS}
   | {payload: string[]; type: typeof BuilderStateAction.SET_QUERY}
   | {payload: Sort[]; type: typeof BuilderStateAction.SET_SORT}
-  | {payload: number; type: typeof BuilderStateAction.SET_LIMIT};
+  | {payload: number; type: typeof BuilderStateAction.SET_LIMIT}
+  | {payload: string[]; type: typeof BuilderStateAction.SET_LEGEND_ALIAS};
 
 export interface WidgetBuilderState {
   dataset?: WidgetType;
   description?: string;
   displayType?: DisplayType;
   fields?: Column[];
+  legendAlias?: string[];
   limit?: number;
   query?: string[];
   sort?: Sort[];
@@ -98,6 +103,7 @@ function useWidgetBuilderState(): {
   const [query, setQuery] = useQueryParamState<string[]>({
     fieldName: 'query',
     decoder: decodeList,
+    deserializer: deserializeQuery,
   });
   const [sort, setSort] = useQueryParamState<Sort[]>({
     fieldName: 'sort',
@@ -109,10 +115,36 @@ function useWidgetBuilderState(): {
     decoder: decodeScalar,
     deserializer: deserializeLimit,
   });
+  const [legendAlias, setLegendAlias] = useQueryParamState<string[]>({
+    fieldName: 'legendAlias',
+    decoder: decodeList,
+  });
 
   const state = useMemo(
-    () => ({title, description, displayType, dataset, fields, yAxis, query, sort, limit}),
-    [title, description, displayType, dataset, fields, yAxis, query, sort, limit]
+    () => ({
+      title,
+      description,
+      displayType,
+      dataset,
+      fields,
+      yAxis,
+      query,
+      sort,
+      limit,
+      legendAlias,
+    }),
+    [
+      title,
+      description,
+      displayType,
+      dataset,
+      fields,
+      yAxis,
+      query,
+      sort,
+      limit,
+      legendAlias,
+    ]
   );
 
   const dispatch = useCallback(
@@ -126,16 +158,38 @@ function useWidgetBuilderState(): {
           break;
         case BuilderStateAction.SET_DISPLAY_TYPE:
           setDisplayType(action.payload);
-          if (action.payload === DisplayType.BIG_NUMBER) {
-            setSort([]);
-          }
           const [aggregates, columns] = partition(fields, field => {
             const fieldString = generateFieldAsString(field);
             return isAggregateFieldOrEquation(fieldString);
           });
           if (action.payload === DisplayType.TABLE) {
             setYAxis([]);
-            setFields([...columns, ...aggregates, ...(yAxis ?? [])]);
+            setLegendAlias([]);
+
+            const newFields = [...columns, ...aggregates, ...(yAxis ?? [])];
+            setFields(newFields);
+
+            // Keep the sort if it's already contained in the new fields
+            // Otherwise, reset sorting to the first field
+            if (
+              newFields.length > 0 &&
+              !newFields.find(field => generateFieldAsString(field) === sort?.[0]?.field)
+            ) {
+              setSort([
+                {
+                  kind: 'desc',
+                  field: generateFieldAsString(newFields[0] as QueryFieldValue),
+                },
+              ]);
+            }
+          } else if (action.payload === DisplayType.BIG_NUMBER) {
+            // TODO: Reset the selected aggregate here for widgets with equations
+            setSort([]);
+            setYAxis([]);
+            setLegendAlias([]);
+            // Columns are ignored for big number widgets because there is no grouping
+            setFields([...aggregates, ...(yAxis ?? [])]);
+            setQuery(query?.slice(0, 1));
           } else {
             setFields(columns);
             setYAxis([
@@ -147,20 +201,27 @@ function useWidgetBuilderState(): {
         case BuilderStateAction.SET_DATASET:
           setDataset(action.payload);
 
-          let newDisplayType;
+          let nextDisplayType = displayType;
           if (action.payload === WidgetType.ISSUE) {
             // Issues only support table display type
             setDisplayType(DisplayType.TABLE);
-            newDisplayType = DisplayType.TABLE;
+            nextDisplayType = DisplayType.TABLE;
           }
 
           const config = getDatasetConfig(action.payload);
           setFields(
             config.defaultWidgetQuery.fields?.map(field => explodeField({field}))
           );
-          if (newDisplayType === DisplayType.TABLE) {
+          if (
+            nextDisplayType === DisplayType.TABLE ||
+            nextDisplayType === DisplayType.BIG_NUMBER
+          ) {
             setYAxis([]);
+            setFields(
+              config.defaultWidgetQuery.fields?.map(field => explodeField({field}))
+            );
           } else {
+            setFields([]);
             setYAxis(
               config.defaultWidgetQuery.aggregates?.map(aggregate =>
                 explodeField({field: aggregate})
@@ -172,6 +233,51 @@ function useWidgetBuilderState(): {
           break;
         case BuilderStateAction.SET_FIELDS:
           setFields(action.payload);
+          const isRemoved = action.payload.length < (fields?.length ?? 0);
+          if (
+            displayType === DisplayType.TABLE &&
+            action.payload.length > 0 &&
+            !action.payload.find(
+              field => generateFieldAsString(field) === sort?.[0]?.field
+            )
+          ) {
+            if (dataset === WidgetType.ISSUE) {
+              // Issue widgets can sort their tables by limited fields that aren't
+              // in the fields array.
+              return;
+            }
+
+            if (isRemoved) {
+              setSort([
+                {
+                  kind: 'desc',
+                  field: generateFieldAsString(action.payload[0] as QueryFieldValue),
+                },
+              ]);
+            } else {
+              // Find the index of the first field that doesn't match the old fields.
+              const changedFieldIndex = action.payload.findIndex(
+                field =>
+                  !fields?.find(
+                    originalField =>
+                      generateFieldAsString(originalField) ===
+                      generateFieldAsString(field)
+                  )
+              );
+              if (changedFieldIndex !== -1) {
+                // At this point, we can assume the fields are the same length so
+                // using the changedFieldIndex in action.payload is safe.
+                setSort([
+                  {
+                    kind: sort?.[0]?.kind ?? 'desc',
+                    field: generateFieldAsString(
+                      action.payload[changedFieldIndex] as QueryFieldValue
+                    ),
+                  },
+                ]);
+              }
+            }
+          }
           break;
         case BuilderStateAction.SET_Y_AXIS:
           setYAxis(action.payload);
@@ -184,6 +290,9 @@ function useWidgetBuilderState(): {
           break;
         case BuilderStateAction.SET_LIMIT:
           setLimit(action.payload);
+          break;
+        case BuilderStateAction.SET_LEGEND_ALIAS:
+          setLegendAlias(action.payload);
           break;
         default:
           break;
@@ -199,8 +308,13 @@ function useWidgetBuilderState(): {
       setQuery,
       setSort,
       setLimit,
+      setLegendAlias,
       fields,
       yAxis,
+      displayType,
+      query,
+      sort,
+      dataset,
     ]
   );
 
@@ -276,6 +390,17 @@ function serializeSorts(sorts: Sort[]): string[] {
  */
 function deserializeLimit(value: string): number {
   return decodeInteger(value, DEFAULT_RESULTS_LIMIT);
+}
+
+/**
+ * Decodes the query from the query params
+ * Returns an array with an empty string if the query is empty
+ */
+function deserializeQuery(queries: string[]): string[] {
+  if (queries.length === 0) {
+    return [''];
+  }
+  return queries;
 }
 
 export default useWidgetBuilderState;

@@ -69,9 +69,9 @@ function AvatarList({
 
   if (numCollapsedAvatars === 1) {
     if (visibleTeamAvatars.length < teams.length) {
-      visibleTeamAvatars.unshift(teams[teams.length - 1]);
+      visibleTeamAvatars.unshift(teams[teams.length - 1]!);
     } else if (visibleUserAvatars.length < users.length) {
-      visibleUserAvatars.unshift(users[users.length - 1]);
+      visibleUserAvatars.unshift(users[users.length - 1]!);
     }
     numCollapsedAvatars = 0;
   }

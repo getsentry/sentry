@@ -122,7 +122,7 @@ function useCreateDashboardWidget(
   formulaWidget: MetricsEquationWidget,
   formulaDependencies: ReturnType<typeof useFormulaDependencies>
 ) {
-  const {dependencies, isError} = formulaDependencies[formulaWidget.id];
+  const {dependencies, isError} = formulaDependencies[formulaWidget.id]!;
 
   const widgetArray = useMemo(() => [formulaWidget], [formulaWidget]);
   const createDashboard = useCreateDashboard(widgetArray, formulaDependencies, false);

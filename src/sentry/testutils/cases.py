@@ -132,7 +132,7 @@ from sentry.snuba.metrics.extraction import OnDemandMetricSpec
 from sentry.snuba.metrics.naming_layer.public import TransactionMetricKey
 from sentry.tagstore.snuba.backend import SnubaTagStorage
 from sentry.testutils.factories import get_fixture_path
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.slack import install_slack
 from sentry.testutils.pytest.selenium import Browser
@@ -2126,7 +2126,7 @@ class BaseIncidentsTest(SnubaTestCase):
         data = {
             "event_id": event_id,
             "fingerprint": [fingerprint],
-            "timestamp": iso_format(timestamp),
+            "timestamp": timestamp.isoformat(),
             "type": "error",
             # This is necessary because event type error should not exist without
             # an exception being in the payload
@@ -3113,11 +3113,15 @@ class UptimeTestCase(UptimeTestCaseMixin, TestCase):
         subscription_id: str | None = None,
         status: str = CHECKSTATUS_FAILURE,
         scheduled_check_time: datetime | None = None,
+        uptime_region: str | None = "us-west",
     ) -> CheckResult:
         if subscription_id is None:
             subscription_id = uuid.uuid4().hex
         if scheduled_check_time is None:
             scheduled_check_time = datetime.now().replace(microsecond=0)
+        optional_fields = {}
+        if uptime_region is not None:
+            optional_fields["region"] = uptime_region
         return {
             "guid": uuid.uuid4().hex,
             "subscription_id": subscription_id,
@@ -3132,6 +3136,7 @@ class UptimeTestCase(UptimeTestCaseMixin, TestCase):
             "actual_check_time_ms": int(datetime.now().replace(microsecond=0).timestamp() * 1000),
             "duration_ms": 100,
             "request_info": {"request_type": REQUESTTYPE_HEAD, "http_status_code": 500},
+            **optional_fields,
         }
 
 
@@ -3388,7 +3393,7 @@ class TraceTestCase(SpanTestCase):
         start, _ = self.get_start_end_from_day_ago(1000)
         return self.store_event(
             {
-                "timestamp": iso_format(start),
+                "timestamp": start.isoformat(),
                 "contexts": {
                     "trace": {
                         "type": "trace",
