@@ -152,6 +152,12 @@ export const EventTitle = forwardRef<HTMLDivElement, EventNavigationProps>(
                   label: t('Copy Event Link'),
                   onAction: copyLink,
                 },
+                {
+                  key: 'view-json',
+                  label: t('View JSON'),
+                  onAction: downloadJson,
+                  className: 'hidden-sm hidden-md hidden-lg',
+                },
               ]}
             />
             <StyledTimeSince
