@@ -1,6 +1,6 @@
-from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from unittest import mock
 
+from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.incidents.grouptype import MetricAlertFire
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.integrations.models.integration import Integration
@@ -11,10 +11,6 @@ from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.users.services.user.service import user_service
 from sentry.workflow_engine.migration_helpers.alert_rule import (
     dual_delete_migrated_alert_rule,
-    create_data_condition_group,
-    create_data_source,
-    create_detector,
-    create_workflow,
     migrate_alert_rule,
     migrate_metric_action,
     migrate_metric_data_condition,
@@ -25,8 +21,8 @@ from sentry.workflow_engine.models import (
     AlertRuleDetector,
     AlertRuleTriggerDataCondition,
     AlertRuleWorkflow,
-    DataConditionGroup,
     DataCondition,
+    DataConditionGroup,
     DataConditionGroupAction,
     DataSource,
     DataSourceDetector,
