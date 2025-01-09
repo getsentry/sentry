@@ -14,12 +14,16 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers.base import serialize
-from sentry.api.serializers.models.notification_action import OutgoingNotificationActionSerializer
-from sentry.api.serializers.rest_framework.notification_action import NotificationActionSerializer
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
 from sentry.apidocs.examples.notification_examples import NotificationActionExamples
 from sentry.apidocs.parameters import GlobalParams, NotificationParams, OrganizationParams
 from sentry.models.organization import Organization
+from sentry.notifications.api.serializers.notification_action_request import (
+    NotificationActionSerializer,
+)
+from sentry.notifications.api.serializers.notification_action_response import (
+    OutgoingNotificationActionSerializer,
+)
 from sentry.notifications.models.notificationaction import NotificationAction
 
 logger = logging.getLogger(__name__)
