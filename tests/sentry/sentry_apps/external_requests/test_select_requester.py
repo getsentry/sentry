@@ -137,7 +137,7 @@ class TestSelectRequester(TestCase):
             ).run()
         assert (
             str(exception_info.value)
-            == f"Something went wrong while getting SelectFields from {self.sentry_app.slug}"
+            == f"Something went wrong while fetching Select FormField options from {self.sentry_app.slug}"
         )
 
     @responses.activate
@@ -160,11 +160,12 @@ class TestSelectRequester(TestCase):
 
         assert (
             str(exception_info.value)
-            == f"Invalid response format for SelectField in {self.sentry_app.slug} from uri: {uri}"
+            == f"Invalid response format for Select FormField options in {self.sentry_app.slug} from uri: {uri}"
         )
 
     @responses.activate
     def test_validation_error_message_missing_field(self):
+        uri = "/get-issues"
         responses.add(
             method=responses.GET,
             url=f"https://example.com/get-issues?installationId={self.install.uuid}&projectSlug={self.project.slug}",
@@ -176,9 +177,10 @@ class TestSelectRequester(TestCase):
             SelectRequester(
                 install=self.install,
                 project_slug=self.project.slug,
-                uri="/get-issues",
+                uri=uri,
             ).run()
 
         assert (
-            str(exception_info.value) == "Missing `value` or `label` in option data for SelectField"
+            str(exception_info.value)
+            == f"Missing `value` or `label` in options data for uri: {uri}"
         )
