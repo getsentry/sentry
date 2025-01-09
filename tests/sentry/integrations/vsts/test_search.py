@@ -6,6 +6,7 @@ import responses
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.integrations.vsts.integration import VstsIntegration
+from sentry.testutils.asserts import assert_middleware_metrics
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.integrations import get_installation_of_type
 from sentry.testutils.silo import control_silo_test
@@ -87,10 +88,12 @@ class VstsSearchTest(APITestCase):
         assert resp.data == [
             {"label": "(2) Title", "value": "2"},
         ]
-        assert len(mock_record.mock_calls) == 4
-        start1, start2, halt1, halt2 = (
-            mock_record.mock_calls
-        )  # calls get, which calls handle_search_issues
+        assert len(mock_record.mock_calls) == 8
+        middleware_calls = mock_record.mock_calls[:3] + mock_record.mock_calls[-1:]
+        assert_middleware_metrics(middleware_calls)
+        product_calls = mock_record.mock_calls[3:-1]
+        start1, start2, halt1, halt2 = product_calls  # calls get, which calls handle_search_issues
+        assert start1.args[0] == EventLifecycleOutcome.STARTED
         assert start1.args[0] == EventLifecycleOutcome.STARTED
         assert start2.args[0] == EventLifecycleOutcome.STARTED
         assert halt1.args[0] == EventLifecycleOutcome.SUCCESS
