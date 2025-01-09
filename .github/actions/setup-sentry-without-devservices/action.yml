@@ -101,7 +101,7 @@ runs:
         # We need to install editable otherwise things like check migration will fail.
         python3 -m tools.fast_editable --path .
 
-    - name: Start devservices
+    - name: Initialize sentry
       shell: bash --noprofile --norc -eo pipefail -ux {0}
       env:
         WORKDIR: ${{ inputs.workdir }}
@@ -111,8 +111,6 @@ runs:
 
         # have tests listen on the docker gateway ip so loopback can occur
         echo "DJANGO_LIVE_TEST_SERVER_ADDRESS=$(docker network inspect bridge --format='{{(index .IPAM.Config 0).Gateway}}')" >> "$GITHUB_ENV"
-
-        docker ps -a
 
         # This is necessary when other repositories (e.g. relay) want to take advantage of this workflow
         # without needing to fork it. The path needed is the one where tools are located

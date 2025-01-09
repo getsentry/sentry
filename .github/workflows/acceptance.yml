@@ -19,6 +19,9 @@ concurrency:
 env:
   SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
   NODE_OPTIONS: '--max-old-space-size=4096'
+  # Disables sentry reporting for devservices
+  DISABLE_SENTRY: 1
+  CHARTCUTERIE_CONFIG_PATH: ${{ github.workspace }}/config/chartcuterie
 
 jobs:
   files-changed:
@@ -110,12 +113,13 @@ jobs:
           make build-chartcuterie-config
 
       - name: Setup sentry env
-        uses: ./.github/actions/setup-sentry
+        # TODO(hubertdeng): Rename to setup-sentry when all repos are no longer using ./.github/actions/setup-sentry
+        uses: ./.github/actions/setup-sentry-without-devservices
         id: setup
-        with:
-          snuba: true
-          chartcuterie: true
-          pg-version: ${{ matrix.pg-version }}
+
+      - name: Bring up devservices
+        run: |
+          devservices up --mode acceptance-ci
 
       - name: Run acceptance tests (#${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         run: make run-acceptance
@@ -141,6 +145,11 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           commit_sha: ${{ github.event.pull_request.head.sha }}
+
+      - name: Inspect failure
+        if: failure()
+        run: |
+          devservices logs
 
   acceptance-required-checks:
     # this is a required check so we need this job to always run and report a status.
