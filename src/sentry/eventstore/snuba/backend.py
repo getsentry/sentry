@@ -464,6 +464,8 @@ class SnubaEventStorage(EventStorage):
         app_id = "eventstore"
         referrer = "eventstore.get_next_or_prev_event_id_snql"
         tenant_ids = {"organization_id": organization_id}
+        if not conditions:
+            conditions = []
 
         def make_constant_conditions():
             environment_conditions = []

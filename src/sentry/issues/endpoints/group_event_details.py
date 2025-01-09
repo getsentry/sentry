@@ -231,8 +231,7 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
         data = wrap_event_response(
             request_user=request.user,
             event=event,
-            # We've already filtered by environments in the conditions list
-            environments=None,
+            environments=environments,
             include_full_release_data="fullRelease" not in collapse,
             conditions=conditions,
         )
