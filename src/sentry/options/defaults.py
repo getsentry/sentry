@@ -816,6 +816,14 @@ register(
 )
 
 
+register(
+    "issues.details.streamline_rollout_rate",
+    type=Float,
+    default=0.5,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+
 # Killswitch for issue priority
 register(
     "issues.priority.enabled",

@@ -52,6 +52,7 @@ from sentry.constants import (
     SAMPLING_MODE_DEFAULT,
     SCRAPE_JAVASCRIPT_DEFAULT,
     SENSITIVE_FIELDS_DEFAULT,
+    STREAMLINE_UI_ONLY,
     TARGET_SAMPLE_RATE_DEFAULT,
     UPTIME_AUTODETECTION,
     ObjectStatus,
@@ -635,6 +636,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 "rollbackEnabled": bool(
                     obj.get_option("sentry:rollback_enabled", ROLLBACK_ENABLED_DEFAULT)
                 ),
+                "streamlineOnly": obj.get_option("sentry:streamline_ui_only", STREAMLINE_UI_ONLY),
             }
         )
 
