@@ -1837,6 +1837,3 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
     @pytest.mark.xfail(reason="wip: rate not implemented yet")
     def test_spm(self):
         super().test_spm()
-
-    def test_simple_measurements(self):
-        super().test_simple_measurements()
