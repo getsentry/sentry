@@ -618,18 +618,16 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         """
         has_valid_api_key = False
         if is_api_key_auth(request.auth):
-            if request.auth.organization_id != organization.id:  # type: ignore[union-attr]
+            if request.auth.organization_id != organization.id:
                 return []
-            has_valid_api_key = request.auth.has_scope(  # type: ignore[union-attr]
+            has_valid_api_key = request.auth.has_scope(
                 "project:releases"
-            ) or request.auth.has_scope(  # type: ignore[union-attr]
-                "project:write"
-            )
+            ) or request.auth.has_scope("project:write")
 
         if is_org_auth_token_auth(request.auth):
-            if request.auth.organization_id != organization.id:  # type: ignore[union-attr]
+            if request.auth.organization_id != organization.id:
                 return []
-            has_valid_api_key = request.auth.has_scope("org:ci")  # type: ignore[union-attr]
+            has_valid_api_key = request.auth.has_scope("org:ci")
 
         if not (
             has_valid_api_key or (getattr(request, "user", None) and request.user.is_authenticated)
