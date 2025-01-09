@@ -34,10 +34,6 @@ class Action(DefaultFieldsModel):
         PAGERDUTY = "pagerduty"
         WEBHOOK = "webhook"
 
-    class LegacyNotificationType(models.TextChoices):
-        ISSUE_ALERT = "issue"
-        METRIC_ALERT = "metric"
-
     # The type field is used to denote the type of action we want to trigger
     type = models.TextField(choices=Type.choices)
     data = models.JSONField(default=dict)
