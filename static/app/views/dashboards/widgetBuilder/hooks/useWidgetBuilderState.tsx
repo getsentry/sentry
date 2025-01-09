@@ -162,11 +162,23 @@ function useWidgetBuilderState(): {
             const fieldString = generateFieldAsString(field);
             return isAggregateFieldOrEquation(fieldString);
           });
+          const columnsWithoutAlias = columns.map(column => {
+            return {...column, alias: undefined};
+          });
+          const aggregatesWithoutAlias = aggregates.map(aggregate => {
+            return {...aggregate, alias: undefined};
+          });
+          const yAxisWithoutAlias = yAxis?.map(axis => {
+            return {...axis, alias: undefined};
+          });
           if (action.payload === DisplayType.TABLE) {
             setYAxis([]);
             setLegendAlias([]);
-
-            const newFields = [...columns, ...aggregates, ...(yAxis ?? [])];
+            const newFields = [
+              ...columnsWithoutAlias,
+              ...aggregatesWithoutAlias,
+              ...(yAxisWithoutAlias ?? []),
+            ];
             setFields(newFields);
 
             // Keep the sort if it's already contained in the new fields
@@ -188,13 +200,13 @@ function useWidgetBuilderState(): {
             setYAxis([]);
             setLegendAlias([]);
             // Columns are ignored for big number widgets because there is no grouping
-            setFields([...aggregates, ...(yAxis ?? [])]);
+            setFields([...aggregatesWithoutAlias, ...(yAxisWithoutAlias ?? [])]);
             setQuery(query?.slice(0, 1));
           } else {
-            setFields(columns);
+            setFields(columnsWithoutAlias);
             setYAxis([
-              ...aggregates.slice(0, MAX_NUM_Y_AXES),
-              ...(yAxis?.slice(0, MAX_NUM_Y_AXES) ?? []),
+              ...aggregatesWithoutAlias.slice(0, MAX_NUM_Y_AXES),
+              ...(yAxisWithoutAlias?.slice(0, MAX_NUM_Y_AXES) ?? []),
             ]);
           }
           break;
