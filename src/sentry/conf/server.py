@@ -3452,8 +3452,6 @@ SEER_SIMILARITY_CIRCUIT_BREAKER_KEY = "seer.similarity"
 SEER_ANOMALY_DETECTION_VERSION = "v1"
 SEER_ANOMALY_DETECTION_STORE_DATA_URL = f"/{SEER_ANOMALY_DETECTION_VERSION}/anomaly-detection/store"
 
-SIMILARITY_BACKFILL_COHORT_MAP: dict[str, list[int]] = {}
-
 UPTIME_REGIONS = [
     UptimeRegionConfig(
         slug="default",

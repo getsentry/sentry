@@ -2,7 +2,6 @@ import logging
 from typing import Any
 
 import sentry_sdk
-from django.conf import settings
 
 from sentry import options
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -338,10 +337,7 @@ def call_next_backfill(
             )
             return
 
-        if isinstance(cohort, str):
-            cohort_projects = settings.SIMILARITY_BACKFILL_COHORT_MAP.get(cohort, [])
-        else:
-            cohort_projects = cohort
+        cohort_projects = cohort
 
         batch_project_id, last_processed_project_index = get_project_for_batch(
             last_processed_project_index, cohort_projects
