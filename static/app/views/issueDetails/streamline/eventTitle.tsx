@@ -8,7 +8,7 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {useActionableItems} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import TimeSince from 'sentry/components/timeSince';
-import {IconWarning} from 'sentry/icons';
+import {IconJson, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -152,11 +152,6 @@ export const EventTitle = forwardRef<HTMLDivElement, EventNavigationProps>(
                   label: t('Copy Event Link'),
                   onAction: copyLink,
                 },
-                {
-                  key: 'view-json',
-                  label: t('View JSON'),
-                  onAction: downloadJson,
-                },
               ]}
             />
             <StyledTimeSince
@@ -166,6 +161,15 @@ export const EventTitle = forwardRef<HTMLDivElement, EventNavigationProps>(
               css={grayText}
               aria-label={t('Event timestamp')}
             />
+            <Divider />
+            <ViewJsonButton
+              borderless
+              size="zero"
+              onClick={downloadJson}
+              icon={<IconJson />}
+            >
+              {t('View JSON')}
+            </ViewJsonButton>
             {hasEventError && (
               <Fragment>
                 <Divider />
@@ -298,4 +302,10 @@ const ProcessingErrorButton = styled(Button)`
   :hover {
     color: ${p => p.theme.red300};
   }
+`;
+
+const ViewJsonButton = styled(Button)`
+  color: ${p => p.theme.subText};
+  font-weight: ${p => p.theme.fontWeightNormal};
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
