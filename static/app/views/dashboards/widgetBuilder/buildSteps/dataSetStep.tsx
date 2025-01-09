@@ -96,7 +96,15 @@ export function DataSetStep({
     datasetChoices.set(
       DataSet.SPANS,
       <FeatureBadgeAlignmentWrapper aria-label={t('Spans')}>
-        {t('Spans')} <FeatureBadge type="alpha" />
+        {t('Spans')}{' '}
+        <FeatureBadge
+          type="beta"
+          tooltipProps={{
+            title: t(
+              'This feature is available for early adopters and the UX may change.'
+            ),
+          }}
+        />
       </FeatureBadgeAlignmentWrapper>
     );
   }
