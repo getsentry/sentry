@@ -55,10 +55,6 @@ class RegionResult:
 class BaseRequestParser:
     """Base Class for Integration Request Parsers"""
 
-    _METRIC_SUCCESS_KEY = "integrations.middleware.request_parser.success"
-    _METRIC_FAILURE_KEY = "integrations.middleware.request_parser.failure"
-    _METRICS_INFO_KEY = "integrations.middleware.request_parser.info"
-
     # abstract
     provider: ClassVar[str]
     webhook_identifier: ClassVar[WebhookProviderIdentifier]
@@ -71,12 +67,15 @@ class BaseRequestParser:
             self.view_class = self.match.func.view_class
         self.response_handler = response_handler
 
+    def get_provider(self) -> str:
+        return getattr(self, "provider", "")
+
     # Common Helpers
 
     def ensure_control_silo(self):
         with MiddlewareOperationEvent(
             operation_type=MiddlewareOperationType.ENSURE_CONTROL_SILO,
-            integration_name=self.provider,
+            integration_name=self.get_provider(),
         ).capture() as lifecycle:
             lifecycle.add_extras(
                 {
@@ -104,7 +103,7 @@ class BaseRequestParser:
 
         with MiddlewareOperationEvent(
             operation_type=MiddlewareOperationType.GET_RESPONSE_FROM_CONTROL_SILO,
-            integration_name=self.provider,
+            integration_name=self.get_provider(),
         ).capture() as lifecycle:
             lifecycle.add_extra("path", self.request.path)
             response = self.response_handler(self.request)
@@ -119,7 +118,7 @@ class BaseRequestParser:
             region_client = RegionSiloClient(region, retry=True)
             with MiddlewareOperationEvent(
                 operation_type=MiddlewareOperationType.GET_RESPONSE_FROM_REGION_SILO,
-                integration_name=self.provider,
+                integration_name=self.get_provider(),
                 region=region.name,
             ).capture() as lifecycle:
                 lifecycle.add_extras(
@@ -300,7 +299,7 @@ class BaseRequestParser:
         """
         with MiddlewareOperationEvent(
             operation_type=MiddlewareOperationType.GET_ORGANIZATIONS_FROM_INTEGRATION,
-            integration_name=self.provider,
+            integration_name=self.get_provider(),
         ).capture() as lifecycle:
             lifecycle.add_extras(
                 {
