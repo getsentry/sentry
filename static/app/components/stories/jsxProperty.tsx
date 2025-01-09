@@ -1,5 +1,7 @@
 import {isValidElement} from 'react';
 
+import JSXNode from 'sentry/components/stories/jsxNode';
+
 interface Props {
   name: string;
   value: unknown;
@@ -34,6 +36,9 @@ export default function JSXProperty({name, value}: Props) {
     );
   }
   if (isValidElement(value)) {
+    if (value.type === JSXNode) {
+      return <code data-property="element">{[`${name}={`, value, '}']}</code>;
+    }
     return <code data-property="element">{`${name}=${value}`}</code>;
   }
   return <code data-property="object">{`${name}={${JSON.stringify(value)}}`}</code>;
