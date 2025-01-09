@@ -1513,7 +1513,9 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
     is_eap = True
     use_rpc = True
 
-    @mock.patch("sentry.utils.snuba_rpc", side_effect=urllib3.exceptions.TimeoutError)
+    @mock.patch(
+        "sentry.utils.snuba_rpc._snuba_pool.urlopen", side_effect=urllib3.exceptions.TimeoutError
+    )
     def test_timeout(self, mock_rpc):
         response = self.do_request(
             {
