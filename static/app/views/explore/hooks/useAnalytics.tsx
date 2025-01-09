@@ -19,11 +19,11 @@ export function useAnalytics({
   organization,
   columns,
   userQuery,
-  confidence,
+  confidences,
   title,
 }: {
   columns: string[];
-  confidence: Confidence;
+  confidences: Confidence[];
   dataset: DiscoverDatasets;
   organization: Organization;
   resultLength: number | undefined;
@@ -49,7 +49,7 @@ export function useAnalytics({
       organization,
       columns,
       columns_count: columns.filter(Boolean).length,
-      confidence,
+      confidences,
       dataset,
       query_status: resultStatus,
       result_length: resultLength || 0,
@@ -75,7 +75,7 @@ export function useAnalytics({
     visualizes,
     columns,
     userQuery,
-    confidence,
+    confidences,
     dataset,
     title,
   ]);

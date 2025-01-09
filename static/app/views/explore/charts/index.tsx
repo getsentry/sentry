@@ -10,6 +10,7 @@ import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {IconClock, IconGraph} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Series} from 'sentry/types/echarts';
 import type {Confidence, NewQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
@@ -49,7 +50,7 @@ import {TOP_EVENTS_LIMIT, useTopEvents} from '../hooks/useTopEvents';
 
 interface ExploreChartsProps {
   query: string;
-  setConfidence: Dispatch<SetStateAction<Confidence>>;
+  setConfidences: Dispatch<SetStateAction<Confidence[]>>;
   setError: Dispatch<SetStateAction<string>>;
 }
 
@@ -70,7 +71,7 @@ const exploreChartTypeOptions = [
 
 export const EXPLORE_CHART_GROUP = 'explore-charts_group';
 
-export function ExploreCharts({query, setConfidence, setError}: ExploreChartsProps) {
+export function ExploreCharts({query, setConfidences, setError}: ExploreChartsProps) {
   const dataset = useExploreDataset();
   const visualizes = useExploreVisualizes();
   const setVisualizes = useSetExploreVisualizes();
@@ -157,47 +158,6 @@ export function ExploreCharts({query, setConfidence, setError}: ExploreChartsPro
   const timeSeriesResult = useSortedTimeSeries(options, 'api.explorer.stats', dataset);
   const previousTimeSeriesResult = usePrevious(timeSeriesResult);
 
-  const resultConfidence = useMemo(() => {
-    if (dataset !== DiscoverDatasets.SPANS_EAP_RPC) {
-      return null;
-    }
-
-    const {lowConfidence, highConfidence, nullConfidence} = Object.values(
-      timeSeriesResult.data
-    ).reduce(
-      (acc, series) => {
-        for (const s of series) {
-          if (s.confidence === 'low') {
-            acc.lowConfidence += 1;
-          } else if (s.confidence === 'high') {
-            acc.highConfidence += 1;
-          } else {
-            acc.nullConfidence += 1;
-          }
-        }
-        return acc;
-      },
-      {lowConfidence: 0, highConfidence: 0, nullConfidence: 0}
-    );
-
-    if (lowConfidence <= 0 && highConfidence <= 0 && nullConfidence >= 0) {
-      return null;
-    }
-
-    if (lowConfidence / (lowConfidence + highConfidence) > 0.5) {
-      return 'low';
-    }
-
-    return 'high';
-  }, [dataset, timeSeriesResult.data]);
-
-  useEffect(() => {
-    // only update the confidence once the result has loaded
-    if (!timeSeriesResult.isPending) {
-      setConfidence(resultConfidence);
-    }
-  }, [setConfidence, resultConfidence, timeSeriesResult.isPending]);
-
   useEffect(() => {
     setError(timeSeriesResult.error?.message ?? '');
   }, [setError, timeSeriesResult.error?.message]);
@@ -243,6 +203,54 @@ export function ExploreCharts({query, setConfidence, setError}: ExploreChartsPro
     [canUsePreviousResults, timeSeriesResult, previousTimeSeriesResult]
   );
 
+  const chartInfos = useMemo(() => {
+    return visualizes.map(visualize => {
+      const dedupedYAxes = dedupeArray(visualize.yAxes);
+
+      const formattedYAxes = dedupedYAxes.map(yaxis => {
+        const func = parseFunction(yaxis);
+        return func ? prettifyParsedFunction(func) : undefined;
+      });
+
+      const chartIcon =
+        visualize.chartType === ChartType.LINE
+          ? 'line'
+          : visualize.chartType === ChartType.AREA
+            ? 'area'
+            : 'bar';
+
+      const {data, error, loading} = getSeries(dedupedYAxes, formattedYAxes);
+
+      const outputTypes = new Set(
+        formattedYAxes.filter(Boolean).map(aggregateOutputType)
+      );
+
+      const confidence = combineConfidenceForSeries(
+        dedupedYAxes.flatMap(yAxis => timeSeriesResult.data[yAxis]).filter(defined)
+      );
+
+      return {
+        chartIcon: <IconGraph type={chartIcon} />,
+        chartType: visualize.chartType,
+        label: visualize.label,
+        yAxes: visualize.yAxes,
+        formattedYAxes,
+        data,
+        error,
+        loading,
+        outputTypes,
+        confidence,
+      };
+    });
+  }, [getSeries, timeSeriesResult.data, visualizes]);
+
+  useEffect(() => {
+    // only update the confidence once the result has loaded
+    if (!timeSeriesResult.isPending) {
+      setConfidences(chartInfos.map(info => info.confidence));
+    }
+  }, [setConfidences, chartInfos, timeSeriesResult.isPending]);
+
   const handleChartTypeChange = useCallback(
     (chartType: ChartType, index: number) => {
       const newVisualizes = visualizes.slice();
@@ -262,45 +270,26 @@ export function ExploreCharts({query, setConfidence, setError}: ExploreChartsPro
 
   return (
     <Fragment>
-      {visualizes.map((visualize, index) => {
-        const dedupedYAxes = dedupeArray(visualize.yAxes);
-
-        const formattedYAxes = dedupedYAxes.map(yaxis => {
-          const func = parseFunction(yaxis);
-          return func ? prettifyParsedFunction(func) : undefined;
-        });
-
-        const {chartType, label, yAxes: visualizeYAxes} = visualize;
-        const chartIcon =
-          chartType === ChartType.LINE
-            ? 'line'
-            : chartType === ChartType.AREA
-              ? 'area'
-              : 'bar';
-
-        const {data, error, loading} = getSeries(dedupedYAxes, formattedYAxes);
-
-        const outputTypes = new Set(
-          formattedYAxes.filter(Boolean).map(aggregateOutputType)
-        );
-
+      {chartInfos.map((chartInfo, index) => {
         return (
           <ChartContainer key={index}>
             <ChartPanel>
               <ChartHeader>
-                {shouldRenderLabel && <ChartLabel>{label}</ChartLabel>}
-                <ChartTitle>{formattedYAxes.filter(Boolean).join(', ')}</ChartTitle>
+                {shouldRenderLabel && <ChartLabel>{chartInfo.label}</ChartLabel>}
+                <ChartTitle>
+                  {chartInfo.formattedYAxes.filter(Boolean).join(', ')}
+                </ChartTitle>
                 <Tooltip
                   title={t('Type of chart displayed in this visualization (ex. line)')}
                 >
                   <CompactSelect
                     triggerProps={{
-                      icon: <IconGraph type={chartIcon} />,
+                      icon: chartInfo.chartIcon,
                       borderless: true,
                       showChevron: false,
                       size: 'sm',
                     }}
-                    value={chartType}
+                    value={chartInfo.chartType}
                     menuTitle="Type"
                     options={exploreChartTypeOptions}
                     onChange={option => handleChartTypeChange(option.value, index)}
@@ -323,7 +312,7 @@ export function ExploreCharts({query, setConfidence, setError}: ExploreChartsPro
                   />
                 </Tooltip>
                 <ChartContextMenu
-                  visualizeYAxes={visualizeYAxes}
+                  visualizeYAxes={chartInfo.yAxes}
                   query={query}
                   interval={interval}
                   visualizeIndex={index}
@@ -342,15 +331,17 @@ export function ExploreCharts({query, setConfidence, setError}: ExploreChartsPro
                   itemGap: 24,
                   top: '4px',
                 }}
-                data={data}
-                error={error}
-                loading={loading}
+                data={chartInfo.data}
+                error={chartInfo.error}
+                loading={chartInfo.loading}
                 chartGroup={EXPLORE_CHART_GROUP}
                 // TODO Abdullah: Make chart colors dynamic, with changing topN events count and overlay count.
                 chartColors={CHART_PALETTE[TOP_EVENTS_LIMIT - 1]}
-                type={chartType}
+                type={chartInfo.chartType}
                 aggregateOutputFormat={
-                  outputTypes.size === 1 ? outputTypes.keys().next().value : undefined
+                  chartInfo.outputTypes.size === 1
+                    ? chartInfo.outputTypes.keys().next().value
+                    : undefined
                 }
                 showLegend
               />
@@ -358,7 +349,7 @@ export function ExploreCharts({query, setConfidence, setError}: ExploreChartsPro
                 <ChartFooter>
                   {!defined(extrapolationMetaResults.data?.[0]?.['count_sample()'])
                     ? t('* Extrapolated from \u2026')
-                    : resultConfidence === 'low'
+                    : chartInfo.confidence === 'low'
                       ? tct(
                           '* Extrapolated from [sampleCount] samples ([insufficientSamples])',
                           {
@@ -436,6 +427,32 @@ function useExtrapolationMeta({
     referrer: 'api.explore.spans-extrapolation-meta',
     enabled: dataset === DiscoverDatasets.SPANS_EAP_RPC,
   });
+}
+
+function combineConfidenceForSeries(series: Series[]): Confidence {
+  let lows = 0;
+  let highs = 0;
+  let nulls = 0;
+
+  for (const s of series) {
+    if (s.confidence === 'low') {
+      lows += 1;
+    } else if (s.confidence === 'high') {
+      highs += 1;
+    } else {
+      nulls += 1;
+    }
+  }
+
+  if (lows <= 0 && highs <= 0 && nulls >= 0) {
+    return null;
+  }
+
+  if (lows / (lows + highs) > 0.5) {
+    return 'low';
+  }
+
+  return 'high';
 }
 
 const ChartContainer = styled('div')`

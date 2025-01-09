@@ -53,11 +53,11 @@ import {
 } from 'sentry/views/explore/tables/tracesTable/styles';
 
 interface TracesTableProps {
-  confidence: Confidence;
+  confidences: Confidence[];
   setError: Dispatch<SetStateAction<string>>;
 }
 
-export function TracesTable({confidence, setError}: TracesTableProps) {
+export function TracesTable({confidences, setError}: TracesTableProps) {
   const title = useExploreTitle();
   const dataset = useExploreDataset();
   const query = useExploreQuery();
@@ -96,7 +96,7 @@ export function TracesTable({confidence, setError}: TracesTableProps) {
       'timestamp',
     ],
     userQuery: query,
-    confidence,
+    confidences,
     title,
   });
 
