@@ -37,6 +37,7 @@ export type IssueTypeConfig = {
    * Custom copy for actions and other UI elements
    */
   customCopy: {
+    allEvents: string;
     resolution: string;
   };
   /**

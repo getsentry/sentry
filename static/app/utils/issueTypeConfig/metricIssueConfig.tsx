@@ -15,6 +15,7 @@ const metricIssueConfig: IssueCategoryConfigMapping = {
     },
     customCopy: {
       resolution: t('Back to baseline'),
+      allEvents: t('All Open Periods'),
     },
     attachments: {enabled: false},
     eventAndUserCounts: {enabled: false},

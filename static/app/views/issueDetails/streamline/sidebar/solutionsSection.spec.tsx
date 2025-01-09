@@ -63,6 +63,7 @@ describe('SolutionsSection', () => {
       },
       customCopy: {
         resolution: 'Resolved',
+        allEvents: 'All Events',
       },
       attachments: {enabled: false},
       autofix: true,
