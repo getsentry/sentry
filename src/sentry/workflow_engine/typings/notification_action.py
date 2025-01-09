@@ -27,7 +27,7 @@ INTEGRATION_ACTION_TYPES = [
     Action.Type.AZURE_DEVOPS,
 ]
 
-ACTION_TYPE_2_TARGET_TYPE_RULE_REGISTRY: dict[Action.Type, ActionTarget] = {
+ACTION_TYPE_TO_TARGET_TYPE_RULE_REGISTRY: dict[Action.Type, ActionTarget] = {
     Action.Type.SLACK: ActionTarget.SPECIFIC,
     Action.Type.DISCORD: ActionTarget.SPECIFIC,
     Action.Type.MSTEAMS: ActionTarget.SPECIFIC,
@@ -44,7 +44,7 @@ ACTION_TYPE_2_TARGET_TYPE_RULE_REGISTRY: dict[Action.Type, ActionTarget] = {
     Action.Type.WEBHOOK: ActionTarget.USER,
 }
 
-INTEGRATION_PROVIDER_2_RULE_REGISTRY_ID: dict[Action.Type, str] = {
+INTEGRATION_PROVIDER_TO_RULE_REGISTRY_ID: dict[Action.Type, str] = {
     Action.Type.SLACK: "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
     Action.Type.DISCORD: "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction",
     Action.Type.MSTEAMS: "sentry.integrations.msteams.notify_action.MsTeamsNotifyServiceAction",
@@ -61,11 +61,11 @@ INTEGRATION_PROVIDER_2_RULE_REGISTRY_ID: dict[Action.Type, str] = {
     Action.Type.WEBHOOK: "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
 }
 
-RULE_REGISTRY_ID_2_INTEGRATION_PROVIDER: dict[str, Action.Type] = {
-    v: k for k, v in INTEGRATION_PROVIDER_2_RULE_REGISTRY_ID.items()
+RULE_REGISTRY_ID_TO_INTEGRATION_PROVIDER: dict[str, Action.Type] = {
+    v: k for k, v in INTEGRATION_PROVIDER_TO_RULE_REGISTRY_ID.items()
 }
 
-ACTION_TYPE_2_INTEGRATION_ID_KEY: dict[Action.Type, str] = {
+ACTION_TYPE_TO_INTEGRATION_ID_KEY: dict[Action.Type, str] = {
     Action.Type.SLACK: "workspace",
     Action.Type.DISCORD: "server",
     Action.Type.MSTEAMS: "team",
@@ -78,12 +78,12 @@ ACTION_TYPE_2_INTEGRATION_ID_KEY: dict[Action.Type, str] = {
     Action.Type.AZURE_DEVOPS: "integration",
 }
 
-INTEGRATION_ID_KEY_2_ACTION_TYPE: dict[str, Action.Type] = {
-    v: k for k, v in ACTION_TYPE_2_INTEGRATION_ID_KEY.items()
+INTEGRATION_ID_KEY_TO_ACTION_TYPE: dict[str, Action.Type] = {
+    v: k for k, v in ACTION_TYPE_TO_INTEGRATION_ID_KEY.items()
 }
 
 
-ACTION_TYPE_2_TARGET_IDENTIFIER_KEY: dict[Action.Type, str] = {
+ACTION_TYPE_TO_TARGET_IDENTIFIER_KEY: dict[Action.Type, str] = {
     Action.Type.SLACK: "channel_id",
     Action.Type.DISCORD: "channel_id",
     Action.Type.MSTEAMS: "channel_id",
@@ -91,17 +91,17 @@ ACTION_TYPE_2_TARGET_IDENTIFIER_KEY: dict[Action.Type, str] = {
     Action.Type.OPSGENIE: "team",
 }
 
-TARGET_IDENTIFIER_KEY_2_ACTION_TYPE: dict[str, Action.Type] = {
-    v: k for k, v in ACTION_TYPE_2_TARGET_IDENTIFIER_KEY.items()
+TARGET_IDENTIFIER_KEY_TO_ACTION_TYPE: dict[str, Action.Type] = {
+    v: k for k, v in ACTION_TYPE_TO_TARGET_IDENTIFIER_KEY.items()
 }
 
-ACTION_TYPE_2_TARGET_DISPLAY_KEY: dict[Action.Type, str] = {
+ACTION_TYPE_TO_TARGET_DISPLAY_KEY: dict[Action.Type, str] = {
     Action.Type.SLACK: "channel",
     Action.Type.MSTEAMS: "channel",
 }
 
-TARGET_DISPLAY_KEY_2_ACTION_TYPE: dict[str, Action.Type] = {
-    v: k for k, v in ACTION_TYPE_2_TARGET_DISPLAY_KEY.items()
+TARGET_DISPLAY_KEY_TO_ACTION_TYPE: dict[str, Action.Type] = {
+    v: k for k, v in ACTION_TYPE_TO_TARGET_DISPLAY_KEY.items()
 }
 
 
