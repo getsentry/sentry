@@ -143,20 +143,6 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
     ],
     illustration: diagramCustomMetrics,
   },
-  llm_tokens: {
-    description: t(
-      'Receive an alert when the total number of tokens used by your LLMs reaches a limit.'
-    ),
-    examples: [t('When there are more than 100,000 tokens used within an hour')],
-    illustration: diagramCustomMetrics,
-  },
-  llm_cost: {
-    description: t(
-      'Receive an alert when the total cost of tokens used by your LLMs reaches a limit.'
-    ),
-    examples: [t('When there are more than $100 used by LLM  within an hour')],
-    illustration: diagramCustomMetrics,
-  },
   crash_free_sessions: {
     description: t(
       'A session begins when a user starts the application and ends when it’s closed or sent to the background. A crash is when a session ends due to an error and this type of alert lets you monitor when those crashed sessions exceed a threshold. This lets you get a better picture of the health of your app.'
