@@ -4,12 +4,12 @@ from sentry.api.serializers import serialize
 from sentry.incidents.grouptype import MetricAlertFire
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.integrations.models.integration import Integration
+from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscriptionDataSourceHandler, SnubaQuery
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import TestCase
-from sentry.testutils.factories import ActionTarget
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.workflow_engine.models import (
     Action,
