@@ -114,6 +114,24 @@ export function getErrorMessage(
           meta: metaData,
         },
       ];
+    case NativeProcessingErrors.NATIVE_SYMBOLICATOR_FAILED:
+      return [
+        {
+          title: t('Failed to process native stacktraces'),
+          desc: null,
+          data: errorData,
+          meta: metaData,
+        },
+      ];
+    case NativeProcessingErrors.NATIVE_INTERNAL_FAILURE:
+      return [
+        {
+          title: t('Internal failure when attempting to symbolicate'),
+          desc: null,
+          data: errorData,
+          meta: metaData,
+        },
+      ];
     case JavascriptProcessingErrors.JS_MISSING_SOURCES_CONTENT:
       return [
         {
@@ -228,7 +246,7 @@ interface ExpandableErrorListProps {
 
 function ExpandableErrorList({handleExpandClick, errorList}: ExpandableErrorListProps) {
   const [expanded, setExpanded] = useState(false);
-  const firstError = errorList[0];
+  const firstError = errorList[0]!;
   const {title, desc, type} = firstError;
   const numErrors = errorList.length;
   const errorDataList = errorList.map(error => error.data ?? {});
@@ -273,7 +291,6 @@ function ExpandableErrorList({handleExpandClick, errorList}: ExpandableErrorList
         });
     });
     return cleaned;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [errorDataList]);
 
   return (

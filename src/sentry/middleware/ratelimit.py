@@ -140,12 +140,12 @@ class RatelimitMiddleware:
                     response["X-Sentry-Rate-Limit-Remaining"] = rate_limit_metadata.remaining
                     response["X-Sentry-Rate-Limit-Limit"] = rate_limit_metadata.limit
                     response["X-Sentry-Rate-Limit-Reset"] = rate_limit_metadata.reset_time
-                    response[
-                        "X-Sentry-Rate-Limit-ConcurrentRemaining"
-                    ] = rate_limit_metadata.concurrent_remaining
-                    response[
-                        "X-Sentry-Rate-Limit-ConcurrentLimit"
-                    ] = rate_limit_metadata.concurrent_limit
+                    response["X-Sentry-Rate-Limit-ConcurrentRemaining"] = (
+                        rate_limit_metadata.concurrent_remaining
+                    )
+                    response["X-Sentry-Rate-Limit-ConcurrentLimit"] = (
+                        rate_limit_metadata.concurrent_limit
+                    )
                 if hasattr(request, "rate_limit_key") and hasattr(request, "rate_limit_uid"):
                     finish_request(request.rate_limit_key, request.rate_limit_uid)
             except Exception:

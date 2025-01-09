@@ -1,7 +1,4 @@
 from sentry.api.serializers import serialize
-from sentry.incidents.endpoints.serializers.alert_rule_trigger import (
-    DetailedAlertRuleTriggerSerializer,
-)
 from sentry.incidents.logic import create_alert_rule_trigger
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType, AlertRuleThresholdType
 from sentry.testutils.cases import TestCase
@@ -52,20 +49,3 @@ class AlertRuleTriggerSerializerTest(BaseAlertRuleTriggerSerializerTest, TestCas
         trigger = create_alert_rule_trigger(alert_rule, "hi", 80)
         result = serialize(trigger)
         self.assert_alert_rule_trigger_serialized(trigger, result, 20)
-
-
-class DetailedAlertRuleTriggerSerializerTest(BaseAlertRuleTriggerSerializerTest, TestCase):
-    def test_simple(self):
-        alert_rule = self.create_alert_rule(resolve_threshold=200)
-        trigger = create_alert_rule_trigger(alert_rule, "hi", 1000)
-        result = serialize(trigger, serializer=DetailedAlertRuleTriggerSerializer())
-        self.assert_alert_rule_trigger_serialized(trigger, result)
-        assert result["excludedProjects"] == []
-
-    def test_excluded_projects(self):
-        excluded = [self.create_project()]
-        alert_rule = self.create_alert_rule(projects=excluded, resolve_threshold=200)
-        trigger = create_alert_rule_trigger(alert_rule, "hi", 1000, excluded_projects=excluded)
-        result = serialize(trigger, serializer=DetailedAlertRuleTriggerSerializer())
-        self.assert_alert_rule_trigger_serialized(trigger, result)
-        assert result["excludedProjects"] == [p.slug for p in excluded]

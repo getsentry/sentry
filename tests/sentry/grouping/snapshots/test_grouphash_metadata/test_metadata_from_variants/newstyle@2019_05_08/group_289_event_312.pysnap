@@ -1,0 +1,100 @@
+---
+created: '2024-12-17T22:50:12.798172+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+hashing_metadata: {
+  "num_stacktraces": 1,
+  "stacktrace_location": "exception",
+  "stacktrace_type": "system"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "stacktrace",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.stacktrace": {
+    "chained_exception": "False",
+    "stacktrace_location": "exception",
+    "stacktrace_type": "system"
+  }
+}
+---
+contributing variants:
+  system*
+    hash: "94d5c188bc82790c397f7f97d5239ee0"
+    contributing component: exception
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              filename*
+                "thread.cpp"
+              function*
+                "boost::thread::start_thread_noexcept"
+            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+              function*
+                "thread_start"
+            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+              function*
+                "_pthread_start"
+            frame*
+              filename*
+                "thread.cpp"
+              function*
+                "boost::`anonymous namespace'::thread_proxy"
+            frame*
+              function*
+                "stripped_application_code"
+            frame*
+              filename*
+                "function_template.hpp"
+              function*
+                "boost::function0<T>::operator()"
+            frame*
+              function*
+                "stripped_application_code"
+            frame*
+              filename*
+                "function_template.hpp"
+              function*
+                "boost::function0<T>::operator()"
+            frame*
+              function*
+                "stripped_application_code"
+            frame*
+              function*
+                "glDeleteTextures_Exec"
+            frame*
+              function*
+                "gleUnbindDeleteHashNamesAndObjects"
+            frame*
+              function*
+                "gleUnbindTextureObject"
+            frame*
+              function*
+                "gldUpdateDispatch"
+            frame*
+              function*
+                "gpusSubmitDataBuffers"
+            frame*
+              function*
+                "gldCreateDevice"
+            frame*
+              function*
+                "gpusGenerateCrashLog"
+            frame*
+              function*
+                "gpusGenerateCrashLog.cold.1"
+            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+              function*
+                "abort"
+            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+              function*
+                "__abort"
+            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+              function*
+                "__pthread_kill"

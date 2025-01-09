@@ -3,7 +3,7 @@ from datetime import datetime
 from django.urls import reverse
 
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import create_test_regions, region_silo_test
 
 
@@ -16,7 +16,7 @@ class GroupTagExportTest(TestCase, SnubaTestCase):
         self.value = "b\xe4r"
         self.project = self.create_project()
 
-        event_timestamp = iso_format(before_now(seconds=1))
+        event_timestamp = before_now(seconds=1).replace(microsecond=0).isoformat()
 
         self.event = self.store_event(
             data={
@@ -30,9 +30,7 @@ class GroupTagExportTest(TestCase, SnubaTestCase):
 
         self.group = self.event.group
 
-        self.first_seen = datetime.strptime(event_timestamp, "%Y-%m-%dT%H:%M:%S").strftime(
-            "%Y-%m-%dT%H:%M:%S.%fZ"
-        )
+        self.first_seen = datetime.fromisoformat(event_timestamp).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         self.last_seen = self.first_seen
         self.login_as(user=self.user)
 
@@ -80,7 +78,7 @@ class GroupTagExportTest(TestCase, SnubaTestCase):
         self.url = f"{url}?environment={self.environment.name}"
 
         response = self.client.get(
-            self.url, SERVER_NAME=f"{self.project.organization.slug}.testserver"
+            self.url, HTTP_HOST=f"{self.project.organization.slug}.testserver"
         )
         self.verify_test(response)
 

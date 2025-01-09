@@ -222,9 +222,9 @@ class MetricsAPIQueryResultsTransformer(QueryResultsTransformer[Mapping[str, Any
                     order=query_result.order.value if query_result.order else None,
                     limit=query_result.limit,
                     has_more=query_result.has_more,
-                    unit_family=query_result.unit_family.value
-                    if query_result.unit_family
-                    else None,
+                    unit_family=(
+                        query_result.unit_family.value if query_result.unit_family else None
+                    ),
                     unit=query_result.unit,
                     scaling_factor=query_result.scaling_factor,
                 )

@@ -8,7 +8,6 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventThroughput} from 'sentry/components/events/eventStatisticalDetector/eventThroughput';
 import AssignedTo from 'sentry/components/group/assignedTo';
 import ExternalIssueList from 'sentry/components/group/externalIssuesList';
-import {StreamlinedExternalIssueList} from 'sentry/components/group/externalIssuesList/streamlinedExternalIssueList';
 import GroupReleaseStats from 'sentry/components/group/releaseStats';
 import TagFacets, {
   BACKEND_TAGS,
@@ -40,6 +39,8 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useUser} from 'sentry/utils/useUser';
 import {ParticipantList} from 'sentry/views/issueDetails/participantList';
+import {ExternalIssueList as StreamlinedExternalIssueList} from 'sentry/views/issueDetails/streamline/sidebar/externalIssueList';
+import SolutionsSection from 'sentry/views/issueDetails/streamline/sidebar/solutionsSection';
 import {makeFetchGroupQueryKey} from 'sentry/views/issueDetails/useGroup';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
@@ -51,7 +52,10 @@ type Props = {
   event?: Event;
 };
 
-function useFetchAllEnvsGroupData(organization: OrganizationSummary, group: Group) {
+export function useFetchAllEnvsGroupData(
+  organization: OrganizationSummary,
+  group: Group
+) {
   return useApiQuery<Group>(
     makeFetchGroupQueryKey({
       organizationSlug: organization.slug,
@@ -255,6 +259,15 @@ export default function GroupSidebar({
 
   return (
     <Container>
+      {((organization.features.includes('gen-ai-features') &&
+        issueTypeConfig.issueSummary.enabled &&
+        !organization.hideAiFeatures) ||
+        issueTypeConfig.resources) && (
+        <SolutionsSectionContainer>
+          <SolutionsSection group={group} project={project} event={event} />
+        </SolutionsSectionContainer>
+      )}
+
       {hasStreamlinedUI && event && (
         <ErrorBoundary mini>
           <StreamlinedExternalIssueList group={group} event={event} project={project} />
@@ -279,7 +292,7 @@ export default function GroupSidebar({
         </ErrorBoundary>
       )}
       {!hasStreamlinedUI && renderPluginIssue()}
-      {issueTypeConfig.tags.enabled && (
+      {issueTypeConfig.tagsTab.enabled && (
         <TagFacets
           environments={environments}
           groupId={group.id}
@@ -304,6 +317,12 @@ export default function GroupSidebar({
     </Container>
   );
 }
+
+const SolutionsSectionContainer = styled('div')`
+  margin-bottom: ${space(2)};
+  border-bottom: 1px solid ${p => p.theme.border};
+  padding-bottom: ${space(2)};
+`;
 
 const Container = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};

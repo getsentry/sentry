@@ -125,7 +125,7 @@ function SentryAppExternalInstallationContent({params, ...props}: Props) {
     }
     if (organizations.length === 1) {
       // auto select the org if there is only one
-      onSelectOrg(organizations[0].slug);
+      onSelectOrg(organizations[0]!.slug);
     }
 
     // now check the subomdain and use that org slug if it exists
@@ -294,7 +294,7 @@ type SingleOrgProps = {
   sentryApp: SentryApp;
 };
 function SingleOrgView({organizations, sentryApp}: SingleOrgProps) {
-  const organizationName = organizations[0].name;
+  const organizationName = organizations[0]!.name;
   return (
     <div>
       <p>

@@ -1,4 +1,5 @@
 import type {ComponentProps} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
@@ -17,14 +18,14 @@ const SizingWindow = styled(NegativeSpaceContainer)<StyleProps>`
 
   ${p =>
     p.display === 'block'
-      ? `
-        display: block;
-        overflow: auto;
-      `
-      : `
-        display: flex;
-        overflow: hidden;
-      `}
+      ? css`
+          display: block;
+          overflow: auto;
+        `
+      : css`
+          display: flex;
+          overflow: hidden;
+        `}
 `;
 
 export type SizingWindowProps = ComponentProps<typeof SizingWindow>;

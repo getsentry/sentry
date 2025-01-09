@@ -10,12 +10,11 @@ from django.db.models import Q
 from google.api_core.exceptions import DeadlineExceeded, ServiceUnavailable
 from snuba_sdk import Column, Condition, Entity, Limit, Op, Query, Request
 
-from sentry import features, nodestore, options
+from sentry import nodestore, options
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.eventstore.models import Event
-from sentry.grouping.grouping_info import get_grouping_info
-from sentry.issues.grouptype import ErrorGroupType
-from sentry.issues.occurrence_consumer import EventLookupError
+from sentry.grouping.grouping_info import get_grouping_info_from_variants
+from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.seer.similarity.grouping_records import (
@@ -32,29 +31,30 @@ from sentry.seer.similarity.types import (
     SimilarHashNotFoundError,
 )
 from sentry.seer.similarity.utils import (
+    ReferrerOptions,
     event_content_has_stacktrace,
     filter_null_from_string,
-    get_stacktrace_string,
+    get_stacktrace_string_with_metrics,
+    has_too_many_contributing_frames,
 )
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.delete_seer_grouping_records import delete_seer_grouping_records_by_hash
+from sentry.tasks.embeddings_grouping.constants import (
+    BACKFILL_BULK_DELETE_METADATA_CHUNK_SIZE,
+    BACKFILL_NAME,
+    PROJECT_BACKFILL_COMPLETED,
+)
 from sentry.utils import json, metrics
 from sentry.utils.iterators import chunked
 from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.safe import get_path
 from sentry.utils.snuba import QueryTooManySimultaneous, RateLimitExceeded, bulk_snuba_queries
 
-BACKFILL_NAME = "backfill_grouping_records"
-BULK_DELETE_METADATA_CHUNK_SIZE = 100
 SNUBA_RETRY_EXCEPTIONS = (RateLimitExceeded, QueryTooManySimultaneous)
 NODESTORE_RETRY_EXCEPTIONS = (ServiceUnavailable, DeadlineExceeded)
 
 logger = logging.getLogger(__name__)
-
-
-class FeatureError(Exception):
-    pass
 
 
 class GroupEventRow(TypedDict):
@@ -98,7 +98,11 @@ def filter_snuba_results(snuba_results, groups_to_backfill_with_no_embedding, pr
     return filtered_snuba_results, groups_to_backfill_with_no_embedding_has_snuba_row
 
 
-def create_project_cohort(worker_number: int, last_processed_project_id: int | None) -> list[int]:
+def create_project_cohort(
+    worker_number: int,
+    skip_processed_projects: bool,
+    last_processed_project_id: int | None,
+) -> list[int]:
     """
     Create project cohort by the following calculation: project_id % threads == worker_number
     to assign projects uniquely to available threads
@@ -109,9 +113,11 @@ def create_project_cohort(worker_number: int, last_processed_project_id: int | N
     total_worker_count = options.get("similarity.backfill_total_worker_count")
     cohort_size = options.get("similarity.backfill_project_cohort_size")
 
+    query = Project.objects.filter(project_id_filter)
+    if skip_processed_projects:
+        query = query.exclude(projectoption__key=PROJECT_BACKFILL_COMPLETED)
     project_cohort_list = (
-        Project.objects.filter(project_id_filter)
-        .values_list("id", flat=True)
+        query.values_list("id", flat=True)
         .extra(where=["id %% %s = %s"], params=[total_worker_count, worker_number])
         .order_by("id")[:cohort_size]
     )
@@ -132,8 +138,6 @@ def initialize_backfill(
         },
     )
     project = Project.objects.get_from_cache(id=project_id)
-    if not features.has("projects:similarity-embeddings-backfill", project):
-        raise FeatureError("Project does not have feature")
 
     last_processed_project_index_ret = (
         last_processed_project_index if last_processed_project_index else 0
@@ -212,7 +216,7 @@ def get_current_batch_groups_from_postgres(
                 "backfill_seer_grouping_records.enable_ingestion",
                 extra={"project_id": project.id},
             )
-            project.update_option("sentry:similarity_backfill_completed", int(time.time()))
+            project.update_option(PROJECT_BACKFILL_COMPLETED, int(time.time()))
 
         return (
             groups_to_backfill_batch,
@@ -353,15 +357,18 @@ def get_events_from_nodestore(
     bulk_event_ids = set()
     for group_id, event in nodestore_events.items():
         event._project_cache = project
-        if (
-            event
-            and event.data
-            and event.data.get("exception")
-            and event_content_has_stacktrace(event)
-        ):
-            grouping_info = get_grouping_info(None, project=project, event=event)
-            stacktrace_string = get_stacktrace_string(grouping_info)
-            if stacktrace_string == "":
+        stacktrace_string = None
+
+        if event and event_content_has_stacktrace(event):
+            variants = event.get_grouping_variants(normalize_stacktraces=True)
+
+            if not has_too_many_contributing_frames(event, variants, ReferrerOptions.BACKFILL):
+                grouping_info = get_grouping_info_from_variants(variants)
+                stacktrace_string = get_stacktrace_string_with_metrics(
+                    grouping_info, event.platform, ReferrerOptions.BACKFILL
+                )
+
+            if not stacktrace_string:
                 invalid_event_group_ids.append(group_id)
                 continue
             primary_hash = event.get_primary_hash()
@@ -564,26 +571,13 @@ def update_groups(project, seer_response, group_id_batch_filtered, group_hashes_
 
 
 def _make_nodestore_call(project, node_keys):
-    try:
-        bulk_data = _retry_operation(
-            nodestore.backend.get_multi,
-            node_keys,
-            retries=3,
-            delay=2,
-            exceptions=NODESTORE_RETRY_EXCEPTIONS,
-        )
-    except NODESTORE_RETRY_EXCEPTIONS as e:
-        extra = {
-            "organization_id": project.organization.id,
-            "project_id": project.id,
-            "node_keys": json.dumps(node_keys),
-            "error": e.message,
-        }
-        logger.exception(
-            "tasks.backfill_seer_grouping_records.bulk_event_lookup_exception",
-            extra=extra,
-        )
-        raise
+    bulk_data = _retry_operation(
+        nodestore.backend.get_multi,
+        node_keys,
+        retries=3,
+        delay=2,
+        exceptions=NODESTORE_RETRY_EXCEPTIONS,
+    )
 
     return bulk_data
 
@@ -694,16 +688,6 @@ def _retry_operation(operation, *args, retries, delay, exceptions, **kwargs):
                 raise
 
 
-# TODO: delete this and its tests
-def lookup_event(project_id: int, event_id: str, group_id: int) -> Event:
-    data = nodestore.backend.get(Event.generate_node_id(project_id, event_id))
-    if data is None:
-        raise EventLookupError(f"Failed to lookup event({event_id}) for project_id({project_id})")
-    event = Event(event_id=event_id, project_id=project_id, group_id=group_id)
-    event.data = data
-    return event
-
-
 def delete_seer_grouping_records(
     project_id: int,
 ):
@@ -721,7 +705,7 @@ def delete_seer_grouping_records(
         RangeQuerySetWrapper(
             Group.objects.filter(project_id=project_id, type=ErrorGroupType.type_id)
         ),
-        BULK_DELETE_METADATA_CHUNK_SIZE,
+        BACKFILL_BULK_DELETE_METADATA_CHUNK_SIZE,
     ):
         groups_with_seer_metadata = [
             group

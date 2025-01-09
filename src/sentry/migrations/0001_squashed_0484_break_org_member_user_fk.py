@@ -54,6 +54,8 @@ class Migration(CheckedMigration):
     #   change, it's completely safe to run the operation after the code has deployed.
     is_post_deployment = False
 
+    allow_run_sql = True
+
     replaces = [
         ("sentry", "0001_squashed_0200_release_indices"),
         ("sentry", "0201_semver_package"),

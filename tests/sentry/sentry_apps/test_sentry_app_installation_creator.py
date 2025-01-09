@@ -127,7 +127,10 @@ class TestCreator(TestCase):
     @responses.activate
     @patch("sentry.analytics.record")
     def test_records_analytics(self, record):
-        SentryAppInstallationCreator(organization_id=self.org.id, slug="nulldb",).run(
+        SentryAppInstallationCreator(
+            organization_id=self.org.id,
+            slug="nulldb",
+        ).run(
             user=self.user,
             request=self.make_request(user=self.user, method="GET"),
         )

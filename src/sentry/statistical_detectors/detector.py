@@ -63,19 +63,21 @@ class RegressionDetector(ABC):
     escalation_rel_threshold: float
 
     @classmethod
+    @abstractmethod
+    def min_throughput_threshold(cls) -> int: ...
+
+    @classmethod
     def configure_tags(cls):
         sentry_sdk.set_tag("regression.source", cls.source)
         sentry_sdk.set_tag("regression.kind", cls.source)
 
     @classmethod
     @abstractmethod
-    def detector_algorithm_factory(cls) -> DetectorAlgorithm:
-        ...
+    def detector_algorithm_factory(cls) -> DetectorAlgorithm: ...
 
     @classmethod
     @abstractmethod
-    def detector_store_factory(cls) -> DetectorStore:
-        ...
+    def detector_store_factory(cls) -> DetectorStore: ...
 
     @classmethod
     def all_payloads(
@@ -98,8 +100,7 @@ class RegressionDetector(ABC):
         cls,
         projects: list[Project],
         start: datetime,
-    ) -> Iterable[DetectorPayload]:
-        ...
+    ) -> Iterable[DetectorPayload]: ...
 
     @classmethod
     def detect_trends(
@@ -108,20 +109,28 @@ class RegressionDetector(ABC):
         unique_project_ids: set[int] = set()
 
         total_count = 0
+        skipped_count = 0
         regressed_count = 0
         improved_count = 0
 
         algorithm = cls.detector_algorithm_factory()
         store = cls.detector_store_factory()
 
-        for payloads in chunked(cls.all_payloads(projects, start), batch_size):
-            total_count += len(payloads)
+        for raw_payloads in chunked(cls.all_payloads(projects, start), batch_size):
+            total_count += len(raw_payloads)
 
-            raw_states = store.bulk_read_states(payloads)
+            raw_states = store.bulk_read_states(raw_payloads)
 
+            payloads = []
             states = []
 
-            for raw_state, payload in zip(raw_states, payloads):
+            for raw_state, payload in zip(raw_states, raw_payloads):
+                # If the number of events is too low, then we skip updating
+                # to minimize false positives
+                if payload.count <= cls.min_throughput_threshold():
+                    skipped_count += 1
+                    continue
+
                 metrics.distribution(
                     "statistical_detectors.objects.throughput",
                     value=payload.count,
@@ -136,6 +145,7 @@ class RegressionDetector(ABC):
                 elif trend_type == TrendType.Improved:
                     improved_count += 1
 
+                payloads.append(payload)
                 states.append(None if new_state is None else new_state.to_redis_dict())
 
                 yield TrendBundle(
@@ -145,7 +155,8 @@ class RegressionDetector(ABC):
                     state=new_state,
                 )
 
-            store.bulk_write_states(payloads, states)
+            if payloads and states:
+                store.bulk_write_states(payloads, states)
 
         metrics.incr(
             "statistical_detectors.projects.active",
@@ -157,6 +168,13 @@ class RegressionDetector(ABC):
         metrics.incr(
             "statistical_detectors.objects.total",
             amount=total_count,
+            tags={"source": cls.source, "kind": cls.kind},
+            sample_rate=1.0,
+        )
+
+        metrics.incr(
+            "statistical_detectors.objects.skipped",
+            amount=skipped_count,
             tags={"source": cls.source, "kind": cls.kind},
             sample_rate=1.0,
         )
@@ -195,8 +213,7 @@ class RegressionDetector(ABC):
         objects: list[tuple[Project, int | str]],
         start: datetime,
         function: str,
-    ) -> Iterable[tuple[int, int | str, SnubaTSResult]]:
-        ...
+    ) -> Iterable[tuple[int, int | str, SnubaTSResult]]: ...
 
     @classmethod
     def detect_regressions(

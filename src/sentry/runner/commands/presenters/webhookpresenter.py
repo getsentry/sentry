@@ -53,9 +53,7 @@ class WebhookPresenter(OptionsPresenter):
         region: str | None = (
             settings.SENTRY_REGION
             if settings.SENTRY_REGION
-            else settings.CUSTOMER_ID
-            if settings.CUSTOMER_ID
-            else settings.SILO_MODE
+            else settings.CUSTOMER_ID if settings.CUSTOMER_ID else settings.SILO_MODE
         )
 
         json_data = {

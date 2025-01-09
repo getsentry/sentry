@@ -9,7 +9,6 @@ from typing import Any
 
 import orjson
 import sentry_sdk
-from django.conf import settings
 from sentry_relay.processing import StoreNormalizer
 
 from sentry import options, reprocessing2
@@ -18,6 +17,7 @@ from sentry.constants import DEFAULT_STORE_NORMALIZER_ARGS
 from sentry.datascrubbing import scrub_data
 from sentry.eventstore import processing
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, create_feedback_issue
+from sentry.ingest.types import ConsumerType
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.symbolicator import SymbolicatorTaskKind
 from sentry.models.organization import Organization
@@ -26,6 +26,7 @@ from sentry.silo.base import SiloMode
 from sentry.stacktraces.processing import process_stacktraces, should_process_for_stacktraces
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
+from sentry.utils.event_tracker import TransactionStageStatus, track_sampled_event
 from sentry.utils.safe import safe_execute
 from sentry.utils.sdk import set_current_event_project
 
@@ -125,7 +126,6 @@ def _do_preprocess_event(
     from sentry.tasks.symbolication import (
         get_symbolication_function_for_platform,
         get_symbolication_platforms,
-        should_demote_symbolication,
         submit_symbolicate,
     )
 
@@ -156,6 +156,12 @@ def _do_preprocess_event(
     # one after the other, so we handle mixed stacktraces.
     stacktraces = find_stacktraces_in_data(data)
     symbolicate_platforms = get_symbolication_platforms(data, stacktraces)
+    metrics.incr(
+        "events.to-symbolicate",
+        tags={platform.value: True for platform in symbolicate_platforms},
+        skip_internal=False,
+    )
+
     should_symbolicate = len(symbolicate_platforms) > 0
     if should_symbolicate:
         first_platform = symbolicate_platforms.pop(0)
@@ -175,11 +181,9 @@ def _do_preprocess_event(
         ):
             reprocessing2.backup_unprocessed_event(data=original_data)
 
-            is_low_priority = should_demote_symbolication(first_platform, project_id)
             submit_symbolicate(
                 SymbolicatorTaskKind(
                     platform=first_platform,
-                    is_low_priority=is_low_priority,
                     is_reprocessing=from_reprocessing,
                 ),
                 cache_key=cache_key,
@@ -493,6 +497,7 @@ def _do_save_event(
     event_id: str | None = None,
     project_id: int | None = None,
     has_attachments: bool = False,
+    consumer_type: str | None = None,
     **kwargs: Any,
 ) -> None:
     """
@@ -506,8 +511,13 @@ def _do_save_event(
 
     event_type = "none"
 
+    if consumer_type and consumer_type == ConsumerType.Transactions:
+        processing_store = processing.transaction_processing_store
+    else:
+        processing_store = processing.event_processing_store
+
     if cache_key and data is None:
-        data = processing.event_processing_store.get(cache_key)
+        data = processing_store.get(cache_key)
         if data is not None:
             event_type = data.get("type") or "none"
 
@@ -560,19 +570,35 @@ def _do_save_event(
             )
             # Put the updated event back into the cache so that post_process
             # has the most recent data.
-            data = manager.get_data()
-            if not isinstance(data, dict):
-                data = dict(data.items())
-            processing.event_processing_store.store(data)
+
+            # We don't need to update the event in the processing_store for transaction events
+            # because they're not used in post_process.
+            if consumer_type != ConsumerType.Transactions:
+                data = manager.get_data()
+                if not isinstance(data, dict):
+                    data = dict(data.items())
+                processing_store.store(data)
+
         except HashDiscarded:
             # Delete the event payload from cache since it won't show up in post-processing.
             if cache_key:
-                processing.event_processing_store.delete_by_key(cache_key)
+                processing_store.delete_by_key(cache_key)
         except Exception:
             metrics.incr("events.save_event.exception", tags={"event_type": event_type})
             raise
 
         finally:
+            if consumer_type == ConsumerType.Transactions and event_id:
+                # we won't use the transaction data in post_process
+                # so we can delete it from the cache now.
+                if cache_key:
+                    processing_store.delete_by_key(cache_key)
+                    track_sampled_event(
+                        data["event_id"],
+                        ConsumerType.Transactions,
+                        TransactionStageStatus.REDIS_DELETED,
+                    )
+
             reprocessing2.mark_event_reprocessed(data)
             if cache_key and has_attachments:
                 attachment_cache.delete(cache_key)
@@ -588,58 +614,6 @@ def _do_save_event(
                         ),
                     },
                 )
-
-            time_synthetic_monitoring_event(data, project_id, start_time)
-
-
-def time_synthetic_monitoring_event(
-    data: Mapping[str, Any], project_id: int, start_time: float | None
-) -> bool:
-    """
-    For special events produced by the recurring synthetic monitoring
-    functions, emit timing metrics for:
-
-    - "events.synthetic-monitoring.time-to-ingest-total" - Total time with
-    the client submission latency included. Rely on timestamp provided by
-    client as part of the event payload.
-
-    - "events.synthetic-monitoring.time-to-process" - Processing time inside
-    by sentry. `start_time` is added to the payload by the system entrypoint
-    (relay).
-
-    If an event was produced by synthetic monitoring and metrics emitted,
-    returns `True` otherwise returns `False`.
-    """
-    sm_project_id = getattr(settings, "SENTRY_SYNTHETIC_MONITORING_PROJECT_ID", None)
-    if sm_project_id is None or project_id != sm_project_id:
-        return False
-
-    extra = data.get("extra", {}).get("_sentry_synthetic_monitoring")
-    if not extra:
-        return False
-
-    now = time()
-    tags = {
-        "target": extra["target"],
-        "source_region": extra["source_region"],
-        "source": extra["source"],
-    }
-
-    metrics.timing(
-        "events.synthetic-monitoring.time-to-ingest-total",
-        now - data["timestamp"],
-        tags=tags,
-        sample_rate=1.0,
-    )
-
-    if start_time:
-        metrics.timing(
-            "events.synthetic-monitoring.time-to-process",
-            now - start_time,
-            tags=tags,
-            sample_rate=1.0,
-        )
-    return True
 
 
 @instrumented_task(
@@ -657,12 +631,19 @@ def save_event(
     project_id: int | None = None,
     **kwargs: Any,
 ) -> None:
-    _do_save_event(cache_key, data, start_time, event_id, project_id, **kwargs)
+    _do_save_event(
+        cache_key,
+        data,
+        start_time,
+        event_id,
+        project_id,
+        consumer_type=ConsumerType.Events,
+        **kwargs,
+    )
 
 
 @instrumented_task(
     name="sentry.tasks.store.save_event_transaction",
-    queue="events.save_event_transaction",
     time_limit=65,
     soft_time_limit=60,
     silo_mode=SiloMode.REGION,
@@ -675,7 +656,23 @@ def save_event_transaction(
     project_id: int | None = None,
     **kwargs: Any,
 ) -> None:
-    _do_save_event(cache_key, data, start_time, event_id, project_id, **kwargs)
+    if event_id:
+        track_sampled_event(
+            event_id, ConsumerType.Transactions, TransactionStageStatus.SAVE_TXN_STARTED
+        )
+    _do_save_event(
+        cache_key,
+        data,
+        start_time,
+        event_id,
+        project_id,
+        consumer_type=ConsumerType.Transactions,
+        **kwargs,
+    )
+    if event_id:
+        track_sampled_event(
+            event_id, ConsumerType.Transactions, TransactionStageStatus.SAVE_TXN_FINISHED
+        )
 
 
 @instrumented_task(
@@ -712,23 +709,12 @@ def save_event_attachments(
     **kwargs: Any,
 ) -> None:
     _do_save_event(
-        cache_key, data, start_time, event_id, project_id, has_attachments=True, **kwargs
+        cache_key,
+        data,
+        start_time,
+        event_id,
+        project_id,
+        consumer_type=ConsumerType.Attachments,
+        has_attachments=True,
+        **kwargs,
     )
-
-
-# TODO(swatinem): remove this (and related queue) once the backing worker deployment is gone
-@instrumented_task(
-    name="sentry.tasks.store.save_event_highcpu",
-    queue="events.save_event_highcpu",
-    time_limit=65,
-    soft_time_limit=60,
-)
-def save_event_highcpu(
-    cache_key: str | None = None,
-    data: MutableMapping[str, Any] | None = None,
-    start_time: float | None = None,
-    event_id: str | None = None,
-    project_id: int | None = None,
-    **kwargs: Any,
-) -> None:
-    _do_save_event(cache_key, data, start_time, event_id, project_id, **kwargs)

@@ -47,9 +47,9 @@ import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withSavedSearches from 'sentry/utils/withSavedSearches';
-import CustomViewsIssueListHeader from 'sentry/views/issueList/customViewsHeader';
 import IssueListTable from 'sentry/views/issueList/issueListTable';
 import {IssuesDataConsentBanner} from 'sentry/views/issueList/issuesDataConsentBanner';
+import IssueViewsIssueListHeader from 'sentry/views/issueList/issueViewsHeader';
 import SavedIssueSearches from 'sentry/views/issueList/savedIssueSearches';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {NewTabContextProvider} from 'sentry/views/issueList/utils/newTabContext';
@@ -163,7 +163,7 @@ class IssueListOverview extends Component<Props, State> {
   componentDidMount() {
     this._performanceObserver = makeIssuesINPObserver();
     this._poller = new CursorPoller({
-      linkPreviousHref: parseLinkHeader(this.state.pageLinks)?.previous?.href,
+      linkPreviousHref: parseLinkHeader(this.state.pageLinks)?.previous!?.href,
       success: this.onRealtimePoll,
     });
 
@@ -735,7 +735,7 @@ class IssueListOverview extends Component<Props, State> {
 
     // Only resume polling if we're on the first page of results
     const links = parseLinkHeader(this.state.pageLinks);
-    if (links && !links.previous.results && this.state.realtimeActive) {
+    if (links && !links.previous!.results && this.state.realtimeActive) {
       this._poller.setEndpoint(links?.previous?.href);
       this._poller.enable();
     }
@@ -883,7 +883,7 @@ class IssueListOverview extends Component<Props, State> {
     }
 
     const links = parseLinkHeader(this.state.pageLinks);
-    return links && !links.previous.results && !links.next.results;
+    return links && !links.previous!.results && !links.next!.results;
   }
 
   transitionTo = (
@@ -1121,7 +1121,7 @@ class IssueListOverview extends Component<Props, State> {
       // If we run out of issues on the last page, navigate back a page to
       // avoid showing an empty state - if not on the last page, just show a spinner
       const shouldGoBackAPage = links?.previous?.results && !links?.next?.results;
-      this.transitionTo({cursor: shouldGoBackAPage ? links.previous.cursor : undefined});
+      this.transitionTo({cursor: shouldGoBackAPage ? links.previous!.cursor : undefined});
       this.fetchCounts(queryCount, true);
     } else {
       this.fetchData(true);
@@ -1191,8 +1191,7 @@ class IssueListOverview extends Component<Props, State> {
         <Layout.Page>
           {organization.features.includes('issue-stream-custom-views') ? (
             <ErrorBoundary message={'Failed to load custom tabs'} mini>
-              <CustomViewsIssueListHeader
-                organization={organization}
+              <IssueViewsIssueListHeader
                 router={router}
                 selectedProjectIds={selection.projects}
                 realtimeActive={realtimeActive}
@@ -1260,8 +1259,11 @@ class IssueListOverview extends Component<Props, State> {
                 pageLinks={pageLinks}
                 onCursor={this.onCursorChange}
                 paginationAnalyticsEvent={this.paginationAnalyticsEvent}
-                savedSearches={this.props.savedSearches?.filter(
+                personalSavedSearches={this.props.savedSearches?.filter(
                   search => search.visibility === 'owner'
+                )}
+                organizationSavedSearches={this.props.savedSearches?.filter(
+                  search => search.visibility === 'organization'
                 )}
               />
             </StyledMain>

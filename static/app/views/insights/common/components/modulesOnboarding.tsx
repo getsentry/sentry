@@ -11,6 +11,7 @@ import queriesPreviewImg from 'sentry-images/insights/module-upsells/insights-qu
 import queuesPreviewImg from 'sentry-images/insights/module-upsells/insights-queues-module-charts.svg';
 import requestPreviewImg from 'sentry-images/insights/module-upsells/insights-requests-module-charts.svg';
 import screenLoadsPreviewImg from 'sentry-images/insights/module-upsells/insights-screen-loads-module-charts.svg';
+import screenRenderingPreviewImg from 'sentry-images/insights/module-upsells/insights-screen-rendering-module-charts.svg';
 import webVitalsPreviewImg from 'sentry-images/insights/module-upsells/insights-web-vitals-module-charts.svg';
 import emptyStateImg from 'sentry-images/spot/performance-waiting-for-span.svg';
 
@@ -30,6 +31,7 @@ import {
   MODULE_DATA_TYPES,
   MODULE_DATA_TYPES_PLURAL,
   MODULE_PRODUCT_DOC_LINKS,
+  MODULE_TITLES,
 } from 'sentry/views/insights/settings';
 import {ModuleName} from 'sentry/views/insights/types';
 import PerformanceOnboarding from 'sentry/views/performance/onboarding';
@@ -368,7 +370,7 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
     imageSrc: requestPreviewImg,
   },
   resource: {
-    heading: t('Is your favourite animated gif worth the time it takes to load?'),
+    heading: t('Is your favorite animated gif worth the time it takes to load?'),
     description: tct(
       'Find large and slow-to-load [dataTypePlurl] used by your application and understand their impact on page performance.',
       {dataTypePlurl: MODULE_DATA_TYPES_PLURAL[ModuleName.RESOURCE].toLocaleLowerCase()}
@@ -457,5 +459,41 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
     ],
     imageSrc: screenLoadsPreviewImg,
     supportedSdks: ['android', 'flutter', 'apple-ios', 'react-native'],
+  },
+  'screen-rendering': {
+    description: t(
+      'Screen Rendering identifies slow and frozen interactions, helping you find and fix problems that might cause users to complain, or uninstall.'
+    ),
+    heading: t('Fast-loading apps can still be janky'),
+    imageSrc: screenRenderingPreviewImg,
+    valuePropDescription: tct('With [moduleTitle]:', {
+      moduleTitle: MODULE_TITLES[ModuleName.SCREEN_RENDERING],
+    }),
+    valuePropPoints: [
+      tct('Find and debug slow rendering interactions.', {
+        dataType: MODULE_DATA_TYPES[ModuleName.SCREEN_RENDERING].toLowerCase(),
+      }),
+      t('Compare render performance between releases.'),
+      tct('Correlate [dataType] performance with real-user metrics.', {
+        dataType: MODULE_DATA_TYPES[ModuleName.SCREEN_RENDERING].toLowerCase(),
+      }),
+    ],
+    supportedSdks: ['android', 'flutter', 'apple-ios', 'react-native'],
+  },
+  // XXX(epurkhiser): Crons does not use the insights onboarding component.
+  crons: {
+    description: null,
+    heading: null,
+    imageSrc: null,
+    valuePropDescription: null,
+    valuePropPoints: [],
+  },
+  // XXX(epurkhiser): Uptime does not use the insights onboarding component.
+  uptime: {
+    description: null,
+    heading: null,
+    imageSrc: null,
+    valuePropDescription: null,
+    valuePropPoints: [],
   },
 };

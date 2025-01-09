@@ -19,7 +19,7 @@ import {
 import type {SpanResult} from 'sentry/views/traces/hooks/useTraceSpans';
 
 describe('Renderers', function () {
-  let context;
+  let context: ReturnType<typeof initializeOrg>;
 
   const organization = OrganizationFixture({
     features: ['trace-view-v1'], // only testing against new trace view
@@ -77,7 +77,7 @@ describe('Renderers', function () {
 
   describe('SpanDescriptionRenderer', function () {
     it('renders op then description', function () {
-      const span = makeSpan(projects[0]);
+      const span = makeSpan(projects[0]!);
 
       render(<SpanDescriptionRenderer span={span} />);
 
@@ -89,7 +89,7 @@ describe('Renderers', function () {
     it.each(['unknown', 'foobar'])(
       'does not render span status %s',
       function (spanStatus) {
-        const span = makeSpan(projects[0], {'span.status': spanStatus});
+        const span = makeSpan(projects[0]!, {'span.status': spanStatus});
 
         render(<SpanDescriptionRenderer span={span} />);
 
@@ -100,7 +100,7 @@ describe('Renderers', function () {
     );
 
     it.each(['ok', 'internal_error'])('renders span status %s', function (spanStatus) {
-      const span = makeSpan(projects[0], {'span.status': spanStatus});
+      const span = makeSpan(projects[0]!, {'span.status': spanStatus});
 
       render(<SpanDescriptionRenderer span={span} />);
 
@@ -112,13 +112,13 @@ describe('Renderers', function () {
 
   describe('ProjectsRenderer', function () {
     it('renders one project', function () {
-      render(<ProjectsRenderer projectSlugs={[projects[0].slug]} />, context);
+      render(<ProjectsRenderer projectSlugs={[projects[0]!.slug]} />, context);
       expect(screen.getAllByRole('img')).toHaveLength(1);
     });
 
     it('renders two projects', function () {
       render(
-        <ProjectsRenderer projectSlugs={[projects[0].slug, projects[1].slug]} />,
+        <ProjectsRenderer projectSlugs={[projects[0]!.slug, projects[1]!.slug]} />,
         context
       );
       expect(screen.getAllByRole('img')).toHaveLength(2);
@@ -135,9 +135,9 @@ describe('Renderers', function () {
 
   describe('ProjectRenderer', function () {
     it('renders project badge with name', function () {
-      render(<ProjectRenderer projectSlug={projects[0].slug} />);
+      render(<ProjectRenderer projectSlug={projects[0]!.slug} />);
       expect(screen.getByRole('img')).toBeInTheDocument();
-      expect(screen.getByText(projects[0].slug)).toBeInTheDocument();
+      expect(screen.getByText(projects[0]!.slug)).toBeInTheDocument();
     });
   });
 
@@ -146,7 +146,7 @@ describe('Renderers', function () {
       const onClickHandler = jest.fn();
 
       const traceId = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
-      const span = makeSpan(projects[0]);
+      const span = makeSpan(projects[0]!);
 
       render(
         <SpanIdRenderer
@@ -204,13 +204,15 @@ describe('Renderers', function () {
 
   describe('TransactionRenderer', function () {
     it('renders transaction with link', function () {
-      render(<TransactionRenderer projectSlug={projects[0].slug} transaction="foobar" />);
+      render(
+        <TransactionRenderer projectSlug={projects[0]!.slug} transaction="foobar" />
+      );
 
       const link = screen.getByText('foobar');
       expect(link).toBeInTheDocument();
       expect(link).toHaveAttribute(
         'href',
-        `/organizations/${organization.slug}/performance/summary/?project=${projects[0].id}&referrer=performance-transaction-summary&transaction=foobar&unselectedSeries=p100%28%29&unselectedSeries=avg%28%29`
+        `/organizations/${organization.slug}/performance/summary/?project=${projects[0]!.id}&referrer=performance-transaction-summary&transaction=foobar&unselectedSeries=p100%28%29&unselectedSeries=avg%28%29`
       );
     });
   });
@@ -229,7 +231,7 @@ describe('Renderers', function () {
             numErrors: 0,
             numOccurrences: 0,
             numSpans: 2,
-            project: projects[0].slug,
+            project: projects[0]!.slug,
             slices: 40,
             trace: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
           }}
@@ -255,7 +257,7 @@ describe('Renderers', function () {
             numErrors: 50,
             numOccurrences: 50,
             numSpans: 2,
-            project: projects[0].slug,
+            project: projects[0]!.slug,
             slices: 40,
             trace: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
           }}
@@ -281,7 +283,7 @@ describe('Renderers', function () {
             numErrors: 5,
             numOccurrences: 5,
             numSpans: 2,
-            project: projects[0].slug,
+            project: projects[0]!.slug,
             slices: 40,
             trace: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
           }}

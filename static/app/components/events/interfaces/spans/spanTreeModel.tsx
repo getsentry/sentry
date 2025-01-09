@@ -262,11 +262,11 @@ class SpanTreeModel {
       // we will need to reconstruct the tree depth information. This is only neccessary
       // when the span group chain is hidden/collapsed.
       if (spanNestedGrouping.length === 1) {
-        const treeDepthEntry = isOrphanSpan(spanNestedGrouping[0].span)
-          ? ({type: 'orphan', depth: spanNestedGrouping[0].treeDepth} as OrphanTreeDepth)
-          : spanNestedGrouping[0].treeDepth;
+        const treeDepthEntry = isOrphanSpan(spanNestedGrouping[0]!.span)
+          ? ({type: 'orphan', depth: spanNestedGrouping[0]!.treeDepth} as OrphanTreeDepth)
+          : spanNestedGrouping[0]!.treeDepth;
 
-        if (!spanNestedGrouping[0].isLastSibling) {
+        if (!spanNestedGrouping[0]!.isLastSibling) {
           continuingTreeDepths = [...continuingTreeDepths, treeDepthEntry];
         }
       }
@@ -330,7 +330,7 @@ class SpanTreeModel {
 
     const groupedDescendants: DescendantGroup[] = [];
     // Used to number sibling groups in case there are multiple groups with the same op and description
-    const siblingGroupOccurrenceMap = {};
+    const siblingGroupOccurrenceMap: Record<string, number> = {};
 
     const addGroupToMap = (prevSpanModel: SpanTreeModel, group: SpanTreeModel[]) => {
       if (!group.length) {
@@ -352,11 +352,11 @@ class SpanTreeModel {
     };
 
     if (descendantsSource?.length >= MIN_SIBLING_GROUP_SIZE) {
-      let prevSpanModel = descendantsSource[0];
+      let prevSpanModel = descendantsSource[0]!;
       let currentGroup = [prevSpanModel];
 
       for (let i = 1; i < descendantsSource.length; i++) {
-        const currSpanModel = descendantsSource[i];
+        const currSpanModel = descendantsSource[i]!;
 
         // We want to group siblings only if they share the same op and description, and if they have no children
         if (
@@ -438,7 +438,7 @@ class SpanTreeModel {
           return acc;
         }
 
-        const key = getSiblingGroupKey(group[0].span, occurrence);
+        const key = getSiblingGroupKey(group[0]!.span, occurrence);
         if (this.expandedSiblingGroups.has(key)) {
           // This check is needed here, since it is possible that a user could be filtering for a specific span ID.
           // In this case, we must add only the specified span into the accumulator's descendants
@@ -482,7 +482,7 @@ class SpanTreeModel {
               });
 
               const gapSpan = this.generateSpanGap(
-                group[0].span,
+                group[0]!.span,
                 event,
                 acc.previousSiblingEndTimestamp,
                 treeDepth + 1,
@@ -512,7 +512,7 @@ class SpanTreeModel {
         // if the spans are filtered or out of bounds here
 
         if (
-          this.isSpanFilteredOut(props, group[0]) ||
+          this.isSpanFilteredOut(props, group[0]!) ||
           groupShouldBeHidden(group, focusedSpanIds)
         ) {
           group.forEach(spanModel => {
@@ -525,8 +525,8 @@ class SpanTreeModel {
         }
 
         const bounds = generateBounds({
-          startTimestamp: group[0].span.start_timestamp,
-          endTimestamp: group[group.length - 1].span.timestamp,
+          startTimestamp: group[0]!.span.start_timestamp,
+          endTimestamp: group[group.length - 1]!.span.timestamp,
         });
 
         if (!bounds.isSpanVisibleInView) {
@@ -540,7 +540,7 @@ class SpanTreeModel {
         }
 
         const gapSpan = this.generateSpanGap(
-          group[0].span,
+          group[0]!.span,
           event,
           acc.previousSiblingEndTimestamp,
           treeDepth + 1,
@@ -590,7 +590,7 @@ class SpanTreeModel {
         };
 
         acc.previousSiblingEndTimestamp =
-          wrappedSiblings[wrappedSiblings.length - 1].span.timestamp;
+          wrappedSiblings[wrappedSiblings.length - 1]!.span.timestamp;
 
         acc.descendants.push(groupedSiblingsSpan);
         return acc;
@@ -678,14 +678,14 @@ class SpanTreeModel {
       spanNestedGrouping.length === 1
     ) {
       if (!isNestedSpanGroupExpanded) {
-        const parentSpan = spanNestedGrouping[0].span;
+        const parentSpan = spanNestedGrouping[0]!.span;
         const parentSpanBounds = generateBounds({
           startTimestamp: parentSpan.start_timestamp,
           endTimestamp: parentSpan.timestamp,
         });
         const isParentSpanOutOfView = !parentSpanBounds.isSpanVisibleInView;
         if (!isParentSpanOutOfView) {
-          return [spanNestedGrouping[0], wrappedSpan, ...descendants];
+          return [spanNestedGrouping[0]!, wrappedSpan, ...descendants];
         }
       }
 

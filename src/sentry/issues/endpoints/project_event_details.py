@@ -1,16 +1,25 @@
 from datetime import datetime
 from typing import Any
 
+import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
+from snuba_sdk import Condition
 
-from sentry import eventstore
+from sentry import eventstore, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import IssueEventSerializer, serialize
+from sentry.api.serializers.models.event import IssueEventSerializerResponse
 from sentry.eventstore.models import Event, GroupEvent
+from sentry.models.project import Project
+
+
+class GroupEventDetailsResponse(IssueEventSerializerResponse):
+    nextEventID: str | None
+    previousEventID: str | None
 
 
 def wrap_event_response(
@@ -18,7 +27,8 @@ def wrap_event_response(
     event: Event | GroupEvent,
     environments: list[str],
     include_full_release_data: bool = False,
-):
+    conditions: list[Condition] | None = None,
+) -> GroupEventDetailsResponse:
     event_data = serialize(
         event,
         request_user,
@@ -30,17 +40,31 @@ def wrap_event_response(
     next_event_id = None
     prev_event_id = None
 
-    if event.group_id:
+    if conditions is None:
         conditions = []
-        if environments:
-            conditions.append(["environment", "IN", environments])
-        _filter = eventstore.Filter(
-            conditions=conditions,
-            project_ids=[event.project_id],
-            group_ids=[event.group_id],
-        )
 
-        prev_ids, next_ids = eventstore.backend.get_adjacent_event_ids(event, filter=_filter)
+    if event.group_id:
+        if options.get("eventstore.adjacent_event_ids_use_snql"):
+            prev_ids, next_ids = eventstore.backend.get_adjacent_event_ids_snql(
+                organization_id=event.organization.id,
+                project_id=event.project_id,
+                group_id=event.group_id,
+                environments=environments,
+                event=event,
+                conditions=conditions,
+            )
+        else:
+            legacy_conditions = []
+            if environments:
+                legacy_conditions.append(["environment", "IN", environments])
+
+            _filter = eventstore.Filter(
+                conditions=legacy_conditions,
+                project_ids=[event.project_id],
+                group_ids=[event.group_id],
+            )
+
+            prev_ids, next_ids = eventstore.backend.get_adjacent_event_ids(event, filter=_filter)
 
         next_event_id = next_ids[1] if next_ids else None
         prev_event_id = prev_ids[1] if prev_ids else None
@@ -57,7 +81,7 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
 
-    def get(self, request: Request, project, event_id) -> Response:
+    def get(self, request: Request, project: Project, event_id: str) -> Response:
         """
         Retrieve an Event for a Project
         ```````````````````````````````
@@ -105,7 +129,7 @@ class EventJsonEndpoint(ProjectEndpoint):
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
 
-    def get(self, request: Request, project, event_id) -> Response:
+    def get(self, request: Request, project: Project, event_id: str) -> Response:
         event = eventstore.backend.get_event_by_id(project.id, event_id)
 
         if not event:
@@ -114,5 +138,24 @@ class EventJsonEndpoint(ProjectEndpoint):
         event_dict = event.as_dict()
         if isinstance(event_dict["datetime"], datetime):
             event_dict["datetime"] = event_dict["datetime"].isoformat()
+
+        try:
+            scrub_ip_addresses = project.organization.get_option(
+                "sentry:require_scrub_ip_address", False
+            ) or project.get_option("sentry:scrub_ip_address", False)
+
+            if scrub_ip_addresses:
+                if "spans" in event_dict:
+                    for span in event_dict["spans"]:
+                        if "sentry_tags" not in span:
+                            continue
+                        if "user.ip" in span["sentry_tags"]:
+                            del span["sentry_tags"]["user.ip"]
+                        if "user" in span["sentry_tags"] and span["sentry_tags"]["user"].startswith(
+                            "ip:"
+                        ):
+                            span["sentry_tags"]["user"] = "ip:[ip]"
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
 
         return Response(event_dict, status=200)

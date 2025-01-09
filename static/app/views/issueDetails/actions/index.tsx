@@ -1,13 +1,11 @@
 import type {MouseEvent} from 'react';
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
-import type {Query} from 'history';
 
 import {bulkDelete, bulkUpdate} from 'sentry/actionCreators/group';
 import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal, openReprocessEventModal} from 'sentry/actionCreators/modal';
-import type {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import ArchiveActions, {getArchiveActions} from 'sentry/components/actions/archive';
@@ -28,11 +26,10 @@ import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group, GroupStatusResolution, MarkReviewed} from 'sentry/types/group';
-import {GroupStatus, GroupSubstatus, IssueCategory} from 'sentry/types/group';
-import type {Organization, SavedQueryVersions} from 'sentry/types/organization';
+import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
+import type {SavedQueryVersions} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {getUtcDateString} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets, SavedQueryDatasets} from 'sentry/utils/discover/types';
@@ -41,10 +38,10 @@ import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {uniqueId} from 'sentry/utils/guid';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {getAnalyicsDataForProject} from 'sentry/utils/projects';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import withApi from 'sentry/utils/withApi';
-import withOrganization from 'sentry/utils/withOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {NewIssueExperienceButton} from 'sentry/views/issueDetails/actions/newIssueExperienceButton';
 import {Divider} from 'sentry/views/issueDetails/divider';
@@ -63,36 +60,31 @@ const isResolutionStatus = (data: UpdateData): data is GroupStatusResolution => 
   return (data as GroupStatusResolution).status !== undefined;
 };
 
-type Props = {
-  api: Client;
+interface GroupActionsProps {
   disabled: boolean;
   event: Event | null;
   group: Group;
-  organization: Organization;
   project: Project;
-  query?: Query;
-};
+}
 
-export function Actions(props: Props) {
-  const {api, group, project, organization, disabled, event, query = {}} = props;
-  const {status, isBookmarked} = group;
+export function GroupActions({group, project, disabled, event}: GroupActionsProps) {
+  const api = useApi({persistInFlight: true});
+  const organization = useOrganization();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const hasStreamlinedUI = useHasStreamlinedUI();
 
-  const bookmarkKey = isBookmarked ? 'unbookmark' : 'bookmark';
-  const bookmarkTitle = isBookmarked ? t('Remove bookmark') : t('Bookmark');
+  const bookmarkKey = group.isBookmarked ? 'unbookmark' : 'bookmark';
+  const bookmarkTitle = group.isBookmarked ? t('Remove bookmark') : t('Bookmark');
   const hasRelease = !!project.features?.includes('releases');
-  const isResolved = status === 'resolved';
+  const isResolved = group.status === 'resolved';
   const isAutoResolved =
     group.status === 'resolved' ? group.statusDetails.autoResolved : undefined;
-  const isIgnored = status === 'ignored';
+  const isIgnored = group.status === 'ignored';
 
   const hasDeleteAccess = organization.access.includes('event:admin');
 
   const config = useMemo(() => getConfigForIssueType(group, project), [group, project]);
-
-  const hasStreamlinedUI = useHasStreamlinedUI();
-
-  const org = useOrganization();
-  const hasIssuePlatformDeletionUI = org.features.includes('issue-platform-deletion-ui');
 
   const {
     actions: {
@@ -100,12 +92,17 @@ export function Actions(props: Props) {
       delete: deleteCap,
       deleteAndDiscard: deleteDiscardCap,
       share: shareCap,
+      resolve: resolveCap,
       resolveInRelease: resolveInReleaseCap,
     },
+    customCopy: {resolution: resolvedCopyCap},
     discover: discoverCap,
   } = config;
 
   // Update the deleteCap to be enabled if the feature flag is present
+  const hasIssuePlatformDeletionUI = organization.features.includes(
+    'issue-platform-deletion-ui'
+  );
   const updatedDeleteCap = {
     ...deleteCap,
     enabled: hasIssuePlatformDeletionUI || deleteCap.enabled,
@@ -114,9 +111,6 @@ export function Actions(props: Props) {
 
   const getDiscoverUrl = () => {
     const {title, type, shortId} = group;
-
-    const groupIsOccurrenceBacked =
-      group.issueCategory === IssueCategory.PERFORMANCE && !!event?.occurrence;
 
     const discoverQuery = {
       id: undefined,
@@ -127,10 +121,7 @@ export function Actions(props: Props) {
       projects: [Number(project.id)],
       version: 2 as SavedQueryVersions,
       range: '90d',
-      dataset:
-        config.usesIssuePlatform || groupIsOccurrenceBacked
-          ? DiscoverDatasets.ISSUE_PLATFORM
-          : undefined,
+      dataset: config.usesIssuePlatform ? DiscoverDatasets.ISSUE_PLATFORM : undefined,
     };
 
     const discoverView = EventView.fromSavedQuery(discoverQuery);
@@ -154,7 +145,7 @@ export function Actions(props: Props) {
     substatus?: GroupSubstatus | null,
     statusDetailsKey?: string
   ) => {
-    const {alert_date, alert_rule_id, alert_type} = query;
+    const {alert_date, alert_rule_id, alert_type} = location.query;
     trackAnalytics('issue_details.action_clicked', {
       organization,
       action_type: action,
@@ -184,12 +175,10 @@ export function Actions(props: Props) {
         complete: () => {
           clearIndicators();
 
-          browserHistory.push(
-            normalizeUrl({
-              pathname: `/organizations/${organization.slug}/issues/`,
-              query: {project: project.id},
-            })
-          );
+          navigate({
+            pathname: `/organizations/${organization.slug}/issues/`,
+            query: {project: project.id},
+          });
         },
       }
     );
@@ -262,12 +251,10 @@ export function Actions(props: Props) {
       data: {discard: true},
       success: response => {
         GroupStore.onDiscardSuccess(id, group.id, response);
-        browserHistory.push(
-          normalizeUrl({
-            pathname: `/organizations/${organization.slug}/issues/`,
-            query: {project: project.id},
-          })
-        );
+        navigate({
+          pathname: `/organizations/${organization.slug}/issues/`,
+          query: {project: project.id},
+        });
       },
       error: error => {
         GroupStore.onDiscardError(id, group.id, error);
@@ -380,26 +367,28 @@ export function Actions(props: Props) {
           <ResolvedActionWapper>
             <ResolvedWrapper>
               <IconCheckmark />
-              {isResolved ? t('Resolved') : t('Archived')}
+              {isResolved ? resolvedCopyCap || t('Resolved') : t('Archived')}
             </ResolvedWrapper>
             <Divider />
-            <Button
-              size="sm"
-              disabled={disabled || isAutoResolved}
-              onClick={() =>
-                onUpdate({
-                  status: GroupStatus.UNRESOLVED,
-                  statusDetails: {},
-                  substatus: GroupSubstatus.ONGOING,
-                })
-              }
-            >
-              {isResolved ? t('Unresolve') : t('Unarchive')}
-            </Button>
+            {resolveCap.enabled && (
+              <Button
+                size="sm"
+                disabled={disabled || isAutoResolved}
+                onClick={() =>
+                  onUpdate({
+                    status: GroupStatus.UNRESOLVED,
+                    statusDetails: {},
+                    substatus: GroupSubstatus.ONGOING,
+                  })
+                }
+              >
+                {isResolved ? t('Unresolve') : t('Unarchive')}
+              </Button>
+            )}
           </ResolvedActionWapper>
         ) : (
           <Fragment>
-            <GuideAnchor target="resolve" position="bottom" offset={20}>
+            {resolveCap.enabled && (
               <ResolveActions
                 disableResolveInRelease={!resolveInReleaseCap.enabled}
                 disabled={disabled}
@@ -413,20 +402,17 @@ export function Actions(props: Props) {
                 size="sm"
                 priority="primary"
               />
-            </GuideAnchor>
+            )}
             <ArchiveActions
-              className="hidden-xs"
+              className={hasStreamlinedUI ? undefined : 'hidden-xs'}
               size="sm"
               isArchived={isIgnored}
               onUpdate={onUpdate}
               disabled={disabled}
               disableArchiveUntilOccurrence={!archiveUntilOccurrenceCap.enabled}
             />
-            {!hasStreamlinedUI && (
-              <EnvironmentPageFilter position="bottom-end" size="sm" />
-            )}
             <SubscribeAction
-              className="hidden-xs"
+              className={hasStreamlinedUI ? undefined : 'hidden-xs'}
               disabled={disabled}
               disablePriority
               group={group}
@@ -436,7 +422,6 @@ export function Actions(props: Props) {
             />
           </Fragment>
         ))}
-      {hasStreamlinedUI && <NewIssueExperienceButton />}
       <DropdownMenu
         triggerProps={{
           'aria-label': t('More Actions'),
@@ -445,12 +430,15 @@ export function Actions(props: Props) {
           size: 'sm',
         }}
         items={[
-          ...(isIgnored
+          // XXX: Never show for streamlined UI
+          ...(isIgnored || hasStreamlinedUI
             ? []
             : [
                 {
                   key: 'Archive',
-                  className: 'hidden-sm hidden-md hidden-lg',
+                  className: hasStreamlinedUI
+                    ? undefined
+                    : 'hidden-sm hidden-md hidden-lg',
                   label: t('Archive'),
                   isSubmenu: true,
                   disabled,
@@ -459,18 +447,24 @@ export function Actions(props: Props) {
               ]),
           {
             key: 'open-in-discover',
-            className: 'hidden-sm hidden-md hidden-lg',
+            // XXX: Always show for streamlined UI
+            className: hasStreamlinedUI ? undefined : 'hidden-sm hidden-md hidden-lg',
             label: t('Open in Discover'),
             to: disabled ? '' : getDiscoverUrl(),
             onAction: () => trackIssueAction('open_in_discover'),
           },
-          {
-            key: group.isSubscribed ? 'unsubscribe' : 'subscribe',
-            className: 'hidden-sm hidden-md hidden-lg',
-            label: group.isSubscribed ? t('Unsubscribe') : t('Subscribe'),
-            disabled: disabled || group.subscriptionDetails?.disabled,
-            onAction: onToggleSubscribe,
-          },
+          // We don't hide the subscribe button for streamlined UI
+          ...(hasStreamlinedUI
+            ? []
+            : [
+                {
+                  key: group.isSubscribed ? 'unsubscribe' : 'subscribe',
+                  className: 'hidden-sm hidden-md hidden-lg',
+                  label: group.isSubscribed ? t('Unsubscribe') : t('Subscribe'),
+                  disabled: disabled || group.subscriptionDetails?.disabled,
+                  onAction: onToggleSubscribe,
+                },
+              ]),
           {
             key: 'mark-review',
             label: t('Mark reviewed'),
@@ -544,9 +538,7 @@ export function Actions(props: Props) {
                 onClick={() => trackIssueAction('open_in_discover')}
                 size="sm"
               >
-                <GuideAnchor target="open_in_discover">
-                  {t('Open in Discover')}
-                </GuideAnchor>
+                {t('Open in Discover')}
               </LinkButton>
             </Feature>
           )}
@@ -582,21 +574,23 @@ export function Actions(props: Props) {
                 disabled={disabled}
                 disableArchiveUntilOccurrence={!archiveUntilOccurrenceCap.enabled}
               />
-              <GuideAnchor target="resolve" position="bottom" offset={20}>
-                <ResolveActions
-                  disableResolveInRelease={!resolveInReleaseCap.enabled}
-                  disabled={disabled}
-                  disableDropdown={disabled}
-                  hasRelease={hasRelease}
-                  latestRelease={project.latestRelease}
-                  onUpdate={onUpdate}
-                  projectSlug={project.slug}
-                  isResolved={isResolved}
-                  isAutoResolved={isAutoResolved}
-                  size="sm"
-                  priority="primary"
-                />
-              </GuideAnchor>
+              {resolveCap.enabled && (
+                <GuideAnchor target="resolve" position="bottom" offset={20}>
+                  <ResolveActions
+                    disableResolveInRelease={!resolveInReleaseCap.enabled}
+                    disabled={disabled}
+                    disableDropdown={disabled}
+                    hasRelease={hasRelease}
+                    latestRelease={project.latestRelease}
+                    onUpdate={onUpdate}
+                    projectSlug={project.slug}
+                    isResolved={isResolved}
+                    isAutoResolved={isAutoResolved}
+                    size="sm"
+                    priority="primary"
+                  />
+                </GuideAnchor>
+              )}
             </Fragment>
           )}
         </Fragment>
@@ -625,5 +619,3 @@ const ResolvedActionWapper = styled('div')`
   gap: ${space(1)};
   align-items: center;
 `;
-
-export default withApi(withOrganization(Actions));

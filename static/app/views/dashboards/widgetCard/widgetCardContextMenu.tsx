@@ -21,15 +21,19 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {
-  MEPConsumer,
   MEPState,
+  useMEPSettingContext,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import useOrganization from 'sentry/utils/useOrganization';
 import {
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
   getWidgetMetricsUrl,
   hasDatasetSelector,
+  isUsingPerformanceScore,
+  performanceScoreTooltip,
 } from 'sentry/views/dashboards/utils';
+import {getWidgetExploreUrl} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 
 import type {Widget} from '../types';
 import {WidgetType} from '../types';
@@ -45,6 +49,7 @@ type Props = {
   widget: Widget;
   widgetLimitReached: boolean;
   description?: string;
+  hasEditAccess?: boolean;
   index?: string;
   isPreview?: boolean;
   onDelete?: () => void;
@@ -59,11 +64,25 @@ type Props = {
   totalIssuesCount?: string;
 };
 
+export const useIndexedEventsWarning = (): string | null => {
+  const {isMetricsData} = useDashboardsMEPContext();
+  const organization = useOrganization();
+  const metricSettingContext = useMEPSettingContext();
+
+  return !organization.features.includes('performance-mep-bannerless-ui') &&
+    isMetricsData === false &&
+    metricSettingContext &&
+    metricSettingContext.metricSettingState !== MEPState.TRANSACTIONS_ONLY
+    ? t('Indexed')
+    : null;
+};
+
 function WidgetCardContextMenu({
   organization,
   selection,
   widget,
   widgetLimitReached,
+  hasEditAccess,
   onDelete,
   onDuplicate,
   onEdit,
@@ -80,14 +99,12 @@ function WidgetCardContextMenu({
   description,
   title,
 }: Props) {
+  const indexedEventsWarning = useIndexedEventsWarning();
   const {isMetricsData} = useDashboardsMEPContext();
 
   if (!showContextMenu) {
     return null;
   }
-
-  const menuOptions: MenuItemProps[] = [];
-  const disabledKeys: string[] = [];
 
   const openWidgetViewerPath = (id: string | undefined) => {
     if (!isWidgetViewerPath(location.pathname)) {
@@ -104,86 +121,162 @@ function WidgetCardContextMenu({
     return (
       <WidgetViewerContext.Consumer>
         {({setData}) => (
-          <MEPConsumer>
-            {metricSettingContext => (
-              <ContextWrapper>
-                {!organization.features.includes('performance-mep-bannerless-ui') &&
-                  isMetricsData === false &&
-                  metricSettingContext &&
-                  metricSettingContext.metricSettingState !==
-                    MEPState.TRANSACTIONS_ONLY && (
-                    <SampledTag
-                      tooltipText={t('This widget is only applicable to indexed events.')}
-                    >
-                      {t('Indexed')}
-                    </SampledTag>
-                  )}
-                {title && (
-                  <Tooltip
-                    title={
-                      <span>
-                        <WidgetTooltipTitle>{title}</WidgetTooltipTitle>
-                        {description && (
-                          <WidgetTooltipDescription>
-                            {description}
-                          </WidgetTooltipDescription>
-                        )}
-                      </span>
-                    }
-                    containerDisplayMode="grid"
-                    isHoverable
-                  >
-                    <WidgetTooltipButton
-                      aria-label={t('Widget description')}
-                      borderless
-                      size="xs"
-                      icon={<IconInfo />}
-                    />
-                  </Tooltip>
-                )}
-                <StyledDropdownMenuControl
-                  items={[
-                    {
-                      key: 'preview',
-                      label: t(
-                        'This is a preview only. To edit, you must add this dashboard.'
-                      ),
-                    },
-                  ]}
-                  triggerProps={{
-                    'aria-label': t('Widget actions'),
-                    size: 'xs',
-                    borderless: true,
-                    showChevron: false,
-                    icon: <IconEllipsis direction="down" size="sm" />,
-                  }}
-                  position="bottom-end"
-                  disabledKeys={[...disabledKeys, 'preview']}
-                />
-                <Button
-                  aria-label={t('Open Widget Viewer')}
+          <ContextWrapper>
+            {indexedEventsWarning ? (
+              <SampledTag tooltipText={indexedEventsWarning}>{t('Indexed')}</SampledTag>
+            ) : null}
+            {title && (
+              <Tooltip
+                title={
+                  <span>
+                    <WidgetTooltipTitle>{title}</WidgetTooltipTitle>
+                    {description && (
+                      <WidgetTooltipDescription>{description}</WidgetTooltipDescription>
+                    )}
+                  </span>
+                }
+                containerDisplayMode="grid"
+                isHoverable
+              >
+                <WidgetTooltipButton
+                  aria-label={t('Widget description')}
                   borderless
                   size="xs"
-                  icon={<IconExpand />}
-                  onClick={() => {
-                    (seriesData || tableData) &&
-                      setData({
-                        seriesData,
-                        tableData,
-                        pageLinks,
-                        totalIssuesCount,
-                        seriesResultsType,
-                      });
-                    openWidgetViewerPath(index);
-                  }}
+                  icon={<IconInfo />}
                 />
-              </ContextWrapper>
+              </Tooltip>
             )}
-          </MEPConsumer>
+            <StyledDropdownMenuControl
+              items={[
+                {
+                  key: 'preview',
+                  label: t(
+                    'This is a preview only. To edit, you must add this dashboard.'
+                  ),
+                  disabled: true,
+                },
+              ]}
+              triggerProps={{
+                'aria-label': t('Widget actions'),
+                size: 'xs',
+                borderless: true,
+                showChevron: false,
+                icon: <IconEllipsis direction="down" size="sm" />,
+              }}
+              position="bottom-end"
+            />
+            <Button
+              aria-label={t('Open Widget Viewer')}
+              borderless
+              size="xs"
+              icon={<IconExpand />}
+              onClick={() => {
+                (seriesData || tableData) &&
+                  setData({
+                    seriesData,
+                    tableData,
+                    pageLinks,
+                    totalIssuesCount,
+                    seriesResultsType,
+                  });
+                openWidgetViewerPath(index);
+              }}
+            />
+          </ContextWrapper>
         )}
       </WidgetViewerContext.Consumer>
     );
   }
+
+  const menuOptions = getMenuOptions(
+    organization,
+    selection,
+    widget,
+    Boolean(isMetricsData),
+    widgetLimitReached,
+    hasEditAccess,
+    onDelete,
+    onDuplicate,
+    onEdit
+  );
+
+  if (!menuOptions.length) {
+    return null;
+  }
+
+  return (
+    <WidgetViewerContext.Consumer>
+      {({setData}) => (
+        <ContextWrapper>
+          {indexedEventsWarning ? (
+            <SampledTag tooltipText={indexedEventsWarning}>{t('Indexed')}</SampledTag>
+          ) : null}
+          {title && (
+            <Tooltip
+              title={
+                <span>
+                  <WidgetTooltipTitle>{title}</WidgetTooltipTitle>
+                  {description && (
+                    <WidgetTooltipDescription>{description}</WidgetTooltipDescription>
+                  )}
+                </span>
+              }
+              containerDisplayMode="grid"
+              isHoverable
+            >
+              <WidgetTooltipButton
+                aria-label={t('Widget description')}
+                borderless
+                size="xs"
+                icon={<IconInfo />}
+              />
+            </Tooltip>
+          )}
+          <StyledDropdownMenuControl
+            items={menuOptions}
+            triggerProps={{
+              'aria-label': t('Widget actions'),
+              size: 'xs',
+              borderless: true,
+              showChevron: false,
+              icon: <IconEllipsis direction="down" size="sm" />,
+            }}
+            position="bottom-end"
+          />
+          <Button
+            aria-label={t('Open Widget Viewer')}
+            borderless
+            size="xs"
+            icon={<IconExpand />}
+            onClick={() => {
+              setData({
+                seriesData,
+                tableData,
+                pageLinks,
+                totalIssuesCount,
+                seriesResultsType,
+              });
+              openWidgetViewerPath(widget.id ?? index);
+            }}
+          />
+        </ContextWrapper>
+      )}
+    </WidgetViewerContext.Consumer>
+  );
+}
+
+export function getMenuOptions(
+  organization: Organization,
+  selection: PageFilters,
+  widget: Widget,
+  isMetricsData: boolean,
+  widgetLimitReached: boolean,
+  hasEditAccess: boolean = true,
+  onDelete?: () => void,
+  onDuplicate?: () => void,
+  onEdit?: () => void
+) {
+  const menuOptions: MenuItemProps[] = [];
 
   if (
     organization.features.includes('discover-basic') &&
@@ -193,7 +286,8 @@ function WidgetCardContextMenu({
     )
   ) {
     const optionDisabled =
-      hasDatasetSelector(organization) && widget.widgetType === WidgetType.DISCOVER;
+      (hasDatasetSelector(organization) && widget.widgetType === WidgetType.DISCOVER) ||
+      isUsingPerformanceScore(widget);
     // Open Widget in Discover
     if (widget.queries.length) {
       const discoverPath = getWidgetDiscoverUrl(
@@ -211,9 +305,11 @@ function WidgetCardContextMenu({
           : widget.queries.length === 1
             ? discoverPath
             : undefined,
-        tooltip: t(
-          'We are splitting datasets to make them easier to digest. Please confirm the dataset for this widget by clicking Edit Widget.'
-        ),
+        tooltip: isUsingPerformanceScore(widget)
+          ? performanceScoreTooltip
+          : t(
+              'We are splitting datasets to make them easier to digest. Please confirm the dataset for this widget by clicking Edit Widget.'
+            ),
         tooltipOptions: {disabled: !optionDisabled},
         disabled: optionDisabled,
         showDetailsInOverlay: true,
@@ -234,6 +330,14 @@ function WidgetCardContextMenu({
         },
       });
     }
+  }
+
+  if (widget.widgetType === WidgetType.SPANS) {
+    menuOptions.push({
+      key: 'open-in-explore',
+      label: t('Open in Explore'),
+      to: getWidgetExploreUrl(widget, selection, organization),
+    });
   }
 
   if (widget.widgetType === WidgetType.ISSUE) {
@@ -261,13 +365,14 @@ function WidgetCardContextMenu({
       key: 'duplicate-widget',
       label: t('Duplicate Widget'),
       onAction: () => onDuplicate?.(),
+      disabled: widgetLimitReached || !hasEditAccess,
     });
-    widgetLimitReached && disabledKeys.push('duplicate-widget');
 
     menuOptions.push({
       key: 'edit-widget',
       label: t('Edit Widget'),
       onAction: () => onEdit?.(),
+      disabled: !hasEditAccess,
     });
 
     menuOptions.push({
@@ -281,85 +386,11 @@ function WidgetCardContextMenu({
           onConfirm: () => onDelete?.(),
         });
       },
+      disabled: !hasEditAccess,
     });
   }
 
-  if (!menuOptions.length) {
-    return null;
-  }
-
-  return (
-    <WidgetViewerContext.Consumer>
-      {({setData}) => (
-        <MEPConsumer>
-          {metricSettingContext => (
-            <ContextWrapper>
-              {!organization.features.includes('performance-mep-bannerless-ui') &&
-                isMetricsData === false &&
-                metricSettingContext &&
-                metricSettingContext.metricSettingState !==
-                  MEPState.TRANSACTIONS_ONLY && (
-                  <SampledTag
-                    tooltipText={t('This widget is only applicable to indexed events.')}
-                  >
-                    {t('Indexed')}
-                  </SampledTag>
-                )}
-              {title && (
-                <Tooltip
-                  title={
-                    <span>
-                      <WidgetTooltipTitle>{title}</WidgetTooltipTitle>
-                      {description && (
-                        <WidgetTooltipDescription>{description}</WidgetTooltipDescription>
-                      )}
-                    </span>
-                  }
-                  containerDisplayMode="grid"
-                  isHoverable
-                >
-                  <WidgetTooltipButton
-                    aria-label={t('Widget description')}
-                    borderless
-                    size="xs"
-                    icon={<IconInfo />}
-                  />
-                </Tooltip>
-              )}
-              <StyledDropdownMenuControl
-                items={menuOptions}
-                triggerProps={{
-                  'aria-label': t('Widget actions'),
-                  size: 'xs',
-                  borderless: true,
-                  showChevron: false,
-                  icon: <IconEllipsis direction="down" size="sm" />,
-                }}
-                position="bottom-end"
-                disabledKeys={[...disabledKeys]}
-              />
-              <Button
-                aria-label={t('Open Widget Viewer')}
-                borderless
-                size="xs"
-                icon={<IconExpand />}
-                onClick={() => {
-                  setData({
-                    seriesData,
-                    tableData,
-                    pageLinks,
-                    totalIssuesCount,
-                    seriesResultsType,
-                  });
-                  openWidgetViewerPath(widget.id ?? index);
-                }}
-              />
-            </ContextWrapper>
-          )}
-        </MEPConsumer>
-      )}
-    </WidgetViewerContext.Consumer>
-  );
+  return menuOptions;
 }
 
 export default WidgetCardContextMenu;

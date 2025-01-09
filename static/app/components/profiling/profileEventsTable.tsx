@@ -14,6 +14,7 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {DURATION_UNITS} from 'sentry/utils/discover/fieldRenderers';
@@ -28,9 +29,12 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
+import {
+  type DomainView,
+  useDomainViewFilters,
+} from 'sentry/views/insights/pages/useFilters';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
-
-import {ProfilingTransactionHovercard} from './profilingTransactionHovercard';
+import {profilesRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionProfiles/utils';
 
 interface ProfileEventsTableProps<F extends FieldType> {
   columns: readonly F[];
@@ -47,6 +51,7 @@ export function ProfileEventsTable<F extends FieldType>(
   const location = useLocation();
   const organization = useOrganization();
   const {projects} = useProjects();
+  const domainViewFilters = useDomainViewFilters();
 
   const generateSortLink = useCallback(
     (column: F) => () => {
@@ -81,7 +86,7 @@ export function ProfileEventsTable<F extends FieldType>(
         }),
         renderBodyCell: renderTableBody(
           props.data?.meta ?? ({fields: {}, units: {}} as EventsResults<F>['meta']),
-          {location, organization, projects}
+          {location, organization, projects, view: domainViewFilters?.view}
         ),
       }}
     />
@@ -92,6 +97,7 @@ type RenderBagger = {
   location: Location;
   organization: Organization;
   projects: Project[];
+  view?: DomainView;
 };
 
 function renderTableBody<F extends FieldType>(
@@ -176,6 +182,7 @@ function ProfileEventsCell<F extends FieldType>(props: ProfileEventsCellProps<F>
             dateSelection: dataSelection,
             timestamp,
             location: props.baggage.location,
+            view: props.baggage.view,
           })}
         >
           {getShortEventId(traceId)}
@@ -229,13 +236,26 @@ function ProfileEventsCell<F extends FieldType>(props: ProfileEventsCellProps<F>
     const project = getProjectForRow(props.baggage, props.dataRow);
 
     if (defined(project)) {
+      const linkToSummary = profilesRouteWithQuery({
+        query: props.baggage.location.query,
+        orgSlug: props.baggage.organization.slug,
+        projectID: project.id,
+        transaction: props.dataRow.transaction,
+      });
+
       return (
         <Container>
-          <ProfilingTransactionHovercard
-            transaction={value}
-            project={project}
-            organization={props.baggage.organization}
-          />
+          <Link
+            to={linkToSummary}
+            onClick={() =>
+              trackAnalytics('profiling_views.go_to_transaction', {
+                organization: props.baggage.organization,
+                source: 'profiling.landing.transaction_table',
+              })
+            }
+          >
+            {props.dataRow.transaction}
+          </Link>
         </Container>
       );
     }
@@ -316,43 +336,40 @@ function getProjectForRow<F extends FieldType>(
   return project ?? null;
 }
 
-const FIELDS = [
-  'id',
-  'profile.id',
-  'profiler.id',
-  'thread.id',
-  'trace.transaction',
-  'trace',
-  'transaction',
-  'transaction.duration',
-  'precise.start_ts',
-  'precise.finish_ts',
-  'profile.duration',
-  'project',
-  'project.id',
-  'project.name',
-  'environment',
-  'timestamp',
-  'release',
-  'platform.name',
-  'device.arch',
-  'device.classification',
-  'device.locale',
-  'device.manufacturer',
-  'device.model',
-  'os.build',
-  'os.name',
-  'os.version',
-  'last_seen()',
-  'p50()',
-  'p75()',
-  'p95()',
-  'p99()',
-  'count()',
-  'user_misery()',
-] as const;
-
-type FieldType = (typeof FIELDS)[number];
+type FieldType =
+  | 'id'
+  | 'profile.id'
+  | 'profiler.id'
+  | 'thread.id'
+  | 'trace.transaction'
+  | 'trace'
+  | 'transaction'
+  | 'transaction.duration'
+  | 'precise.start_ts'
+  | 'precise.finish_ts'
+  | 'profile.duration'
+  | 'project'
+  | 'project.id'
+  | 'project.name'
+  | 'environment'
+  | 'timestamp'
+  | 'release'
+  | 'platform.name'
+  | 'device.arch'
+  | 'device.classification'
+  | 'device.locale'
+  | 'device.manufacturer'
+  | 'device.model'
+  | 'os.build'
+  | 'os.name'
+  | 'os.version'
+  | 'last_seen()'
+  | 'p50()'
+  | 'p75()'
+  | 'p95()'
+  | 'p99()'
+  | 'count()'
+  | 'user_misery()';
 
 const RIGHT_ALIGNED_FIELDS = new Set<FieldType>([
   'transaction.duration',

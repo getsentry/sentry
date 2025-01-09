@@ -1,39 +1,41 @@
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {
   BigNumberWidgetVisualization,
-  type Props as BigNumberWidgetVisualizationProps,
+  type BigNumberWidgetVisualizationProps,
 } from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
 import {
-  type Props as WidgetFrameProps,
   WidgetFrame,
+  type WidgetFrameProps,
 } from 'sentry/views/dashboards/widgets/common/widgetFrame';
 
-import {MISSING_DATA_MESSAGE, NON_FINITE_NUMBER_MESSAGE} from '../common/settings';
-import type {DataProps, StateProps} from '../common/types';
+import {
+  DEFAULT_FIELD,
+  MISSING_DATA_MESSAGE,
+  NON_FINITE_NUMBER_MESSAGE,
+  X_GUTTER,
+  Y_GUTTER,
+} from '../common/settings';
+import type {StateProps} from '../common/types';
 
 import {DEEMPHASIS_COLOR_NAME, LOADING_PLACEHOLDER} from './settings';
 
-interface Props
-  extends DataProps,
-    StateProps,
+export interface BigNumberWidgetProps
+  extends StateProps,
     Omit<WidgetFrameProps, 'children'>,
-    Omit<BigNumberWidgetVisualizationProps, 'value' | 'previousPeriodValue'> {}
+    Partial<BigNumberWidgetVisualizationProps> {}
 
-export function BigNumberWidget(props: Props) {
-  const {data, previousPeriodData} = props;
-
-  // TODO: Instrument getting more than one data key back as an error
-  // e.g., with data that looks like `[{'apdex()': 0.8}] this pulls out `"apdex()"` or `undefined`
-  const field = Object.keys(data?.[0] ?? {})[0];
-  const value = data?.[0]?.[field];
-  const previousPeriodValue = previousPeriodData?.[0]?.[field];
+export function BigNumberWidget(props: BigNumberWidgetProps) {
+  const {value, previousPeriodValue, field} = props;
 
   if (props.isLoading) {
     return (
-      <WidgetFrame title={props.title} description={props.description}>
+      <WidgetFrame
+        title={props.title}
+        description={props.description}
+        borderless={props.borderless}
+      >
         <LoadingPlaceholder>{LOADING_PLACEHOLDER}</LoadingPlaceholder>
       </WidgetFrame>
     );
@@ -43,7 +45,10 @@ export function BigNumberWidget(props: Props) {
 
   if (!defined(value)) {
     parsingError = MISSING_DATA_MESSAGE;
-  } else if (!Number.isFinite(value) || Number.isNaN(value)) {
+  } else if (
+    (typeof value === 'number' && !Number.isFinite(value)) ||
+    Number.isNaN(value)
+  ) {
     parsingError = NON_FINITE_NUMBER_MESSAGE;
   }
 
@@ -54,19 +59,28 @@ export function BigNumberWidget(props: Props) {
       title={props.title}
       description={props.description}
       actions={props.actions}
+      actionsDisabled={props.actionsDisabled}
+      actionsMessage={props.actionsMessage}
+      badgeProps={props.badgeProps}
+      onFullScreenViewClick={props.onFullScreenViewClick}
+      warnings={props.warnings}
       error={error}
       onRetry={props.onRetry}
+      borderless={props.borderless}
     >
-      <BigNumberResizeWrapper>
-        <BigNumberWidgetVisualization
-          value={Number(value)}
-          previousPeriodValue={Number(previousPeriodValue)}
-          field={field}
-          maximumValue={props.maximumValue}
-          preferredPolarity={props.preferredPolarity}
-          meta={props.meta}
-        />
-      </BigNumberResizeWrapper>
+      {defined(value) && (
+        <BigNumberResizeWrapper>
+          <BigNumberWidgetVisualization
+            value={value}
+            previousPeriodValue={previousPeriodValue}
+            field={field ?? DEFAULT_FIELD}
+            maximumValue={props.maximumValue}
+            preferredPolarity={props.preferredPolarity}
+            meta={props.meta}
+            thresholds={props.thresholds}
+          />
+        </BigNumberResizeWrapper>
+      )}
     </WidgetFrame>
   );
 }
@@ -74,10 +88,10 @@ export function BigNumberWidget(props: Props) {
 const BigNumberResizeWrapper = styled('div')`
   position: relative;
   flex-grow: 1;
-  margin-top: ${space(1)};
 `;
 
 const LoadingPlaceholder = styled('span')`
   color: ${p => p.theme[DEEMPHASIS_COLOR_NAME]};
+  padding: ${X_GUTTER} ${Y_GUTTER};
   font-size: ${p => p.theme.fontSizeLarge};
 `;

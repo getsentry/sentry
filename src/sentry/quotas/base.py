@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from sentry.models.project import Project
     from sentry.models.projectkey import ProjectKey
     from sentry.monitors.models import Monitor
-    from sentry.profiles.task import Profile
+    from sentry.profiles.utils import Profile
 
 
 @unique
@@ -455,6 +455,12 @@ class Quota(Service):
                 id="paa",
                 option="project-abuse-quota.attachment-limit",
                 categories=[DataCategory.ATTACHMENT],
+                scope=QuotaScope.PROJECT,
+            ),
+            AbuseQuota(
+                id="paai",
+                option="project-abuse-quota.attachment-item-limit",
+                categories=[DataCategory.ATTACHMENT_ITEM],
                 scope=QuotaScope.PROJECT,
             ),
             AbuseQuota(

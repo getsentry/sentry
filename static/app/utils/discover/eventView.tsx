@@ -45,8 +45,10 @@ import {getSavedQueryDatasetFromLocationOrDataset} from 'sentry/views/discover/s
 import type {TableColumn, TableColumnSort} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
+import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import type {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import type {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
+import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 
 import type {WebVital} from '../fields';
 import {MutableSearch} from '../tokenizeSearch';
@@ -193,7 +195,7 @@ function stringifyQueryParams(
       if (query[field].length === 1) {
         query[field] = query[field][0];
       }
-      if (query[field].length === 0) {
+      if (query[field]!.length === 0) {
         query[field] = undefined;
       }
     } else {
@@ -905,7 +907,7 @@ class EventView {
     updatedColumn: Column,
     tableMeta: MetaType | undefined
   ): EventView {
-    const columnToBeUpdated = this.fields[columnIndex];
+    const columnToBeUpdated = this.fields[columnIndex]!;
     const fieldAsString = generateFieldAsString(updatedColumn);
 
     const updateField = columnToBeUpdated.field !== fieldAsString;
@@ -935,7 +937,7 @@ class EventView {
     );
 
     if (needleSortIndex >= 0) {
-      const needleSort = this.sorts[needleSortIndex];
+      const needleSort = this.sorts[needleSortIndex]!;
 
       const numOfColumns = this.fields.reduce((sum, currentField) => {
         if (isSortEqualToField(needleSort, currentField, tableMeta)) {
@@ -982,7 +984,7 @@ class EventView {
           );
           if (sortableFieldIndex >= 0) {
             const fieldToBeSorted = newEventView.fields[sortableFieldIndex];
-            const sort = fieldToSort(fieldToBeSorted, tableMeta)!;
+            const sort = fieldToSort(fieldToBeSorted!, tableMeta)!;
             newEventView.sorts = [sort];
           }
         }
@@ -1013,21 +1015,21 @@ class EventView {
     // To ensure a well formed table results.
     const hasAutoIndex = fields.find(field => field.width === COL_WIDTH_UNDEFINED);
     if (!hasAutoIndex) {
-      newEventView.fields[0].width = COL_WIDTH_UNDEFINED;
+      newEventView.fields[0]!.width = COL_WIDTH_UNDEFINED;
     }
 
     // if the deleted column is one of the sorted columns, we need to remove
     // it from the list of sorts
     const columnToBeDeleted = this.fields[columnIndex];
     const needleSortIndex = this.sorts.findIndex(sort =>
-      isSortEqualToField(sort, columnToBeDeleted, tableMeta)
+      isSortEqualToField(sort, columnToBeDeleted!, tableMeta)
     );
 
     if (needleSortIndex >= 0) {
       const needleSort = this.sorts[needleSortIndex];
 
       const numOfColumns = this.fields.reduce((sum, field) => {
-        if (isSortEqualToField(needleSort, field, tableMeta)) {
+        if (isSortEqualToField(needleSort!, field, tableMeta)) {
           return sum + 1;
         }
 
@@ -1048,7 +1050,7 @@ class EventView {
           );
 
           if (sortableFieldIndex >= 0) {
-            const fieldToBeSorted = newEventView.fields[sortableFieldIndex];
+            const fieldToBeSorted = newEventView.fields[sortableFieldIndex]!;
             const sort = fieldToSort(fieldToBeSorted, tableMeta)!;
             newEventView.sorts = [sort];
           }
@@ -1175,7 +1177,7 @@ class EventView {
         ? undefined
         : this.sorts.length > 1
           ? encodeSorts(this.sorts)
-          : encodeSort(this.sorts[0]);
+          : encodeSort(this.sorts[0]!);
     const fields = this.getFields();
     const team = this.team.map(proj => String(proj));
     const project = this.project.map(proj => String(proj));
@@ -1198,9 +1200,17 @@ class EventView {
         sort,
         per_page: DEFAULT_PER_PAGE,
         query: queryString,
-        dataset: this.dataset,
+        dataset:
+          this.dataset === DiscoverDatasets.SPANS_EAP_RPC
+            ? DiscoverDatasets.SPANS_EAP
+            : this.dataset,
+        useRpc: this.dataset === DiscoverDatasets.SPANS_EAP_RPC ? '1' : undefined,
       }
     ) as EventQuery & LocationQuery;
+
+    if (eventQuery.useRpc !== '1') {
+      delete eventQuery.useRpc;
+    }
 
     if (eventQuery.team && !eventQuery.team.length) {
       delete eventQuery.team;
@@ -1225,7 +1235,7 @@ class EventView {
     }
     return {
       pathname: normalizeUrl(`/organizations/${slug}/discover/${target}/`),
-      query: query,
+      query,
     };
   }
 
@@ -1250,6 +1260,7 @@ class EventView {
     options: {
       breakdown?: SpanOperationBreakdownFilter;
       showTransactions?: EventsDisplayFilterName;
+      view?: DomainView;
       webVital?: WebVital;
     }
   ): {pathname: string; query: Query} {
@@ -1274,7 +1285,9 @@ class EventView {
 
     const query = cloneDeep(output as any);
     return {
-      pathname: normalizeUrl(`/organizations/${slug}/performance/summary/events/`),
+      pathname: normalizeUrl(
+        `${getTransactionSummaryBaseUrl(slug, options.view)}/events/`
+      ),
       query,
     };
   }
@@ -1304,7 +1317,7 @@ class EventView {
     if (needleIndex >= 0) {
       const newEventView = this.clone();
 
-      const currentSort = this.sorts[needleIndex];
+      const currentSort = this.sorts[needleIndex]!;
 
       const sorts = [...newEventView.sorts];
       sorts[needleIndex] = kind
@@ -1356,7 +1369,7 @@ class EventView {
     const yAxisOptions = this.getYAxisOptions();
 
     const yAxis = this.yAxis;
-    const defaultOption = yAxisOptions[0].value;
+    const defaultOption = yAxisOptions[0]!.value;
 
     if (!yAxis) {
       return defaultOption;
@@ -1368,7 +1381,7 @@ class EventView {
     );
 
     if (result >= 0) {
-      return typeof yAxis === 'string' ? yAxis : yAxis[0];
+      return typeof yAxis === 'string' ? yAxis : yAxis[0]!;
     }
 
     return defaultOption;

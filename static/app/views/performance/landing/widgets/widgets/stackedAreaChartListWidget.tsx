@@ -39,7 +39,12 @@ import {
 } from '../components/selectableList';
 import {transformDiscoverToList} from '../transforms/transformDiscoverToList';
 import {transformEventsRequestToStackedArea} from '../transforms/transformEventsToStackedBars';
-import type {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
+import type {
+  GenericPerformanceWidgetProps,
+  PerformanceWidgetProps,
+  QueryDefinition,
+  WidgetDataResult,
+} from '../types';
 import {
   eventsRequestQueryProps,
   getMEPParamsIfApplicable,
@@ -51,6 +56,10 @@ type DataType = {
   list: WidgetDataResult & ReturnType<typeof transformDiscoverToList>;
 };
 
+type ComponentData = React.ComponentProps<
+  GenericPerformanceWidgetProps<DataType>['Visualizations'][0]['component']
+>;
+
 export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
   const location = useLocation();
   const mepSetting = useMEPSettingContext();
@@ -59,7 +68,7 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
   const {setPageError} = usePageAlert();
   const theme = useTheme();
 
-  const colors = [...theme.charts.getColorPalette(5)].reverse();
+  const colors = [...(theme.charts.getColorPalette(5) ?? [])].reverse();
 
   const listQuery = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
     () => ({
@@ -178,17 +187,17 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
     chart: chartQuery,
   };
 
-  const assembleAccordionItems = provided =>
+  const assembleAccordionItems = (provided: ComponentData) =>
     getHeaders(provided).map(header => ({header, content: getAreaChart(provided)}));
 
-  const getAreaChart = provided => {
-    const durationUnit = getDurationUnit(provided.widgetData.chart.data);
+  const getAreaChart = (provided: ComponentData) => {
+    const durationUnit = getDurationUnit(provided.widgetData.chart.data ?? []);
     return (
       <StackedAreaChart
         {...provided.widgetData.chart}
-        {...provided}
+        {...(provided as any)}
         colors={colors}
-        series={provided.widgetData.chart.data}
+        series={provided.widgetData.chart.data ?? []}
         animation
         isGroupedByDate
         showTimeInTooltip
@@ -198,7 +207,7 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
             formatter(value: number) {
               return axisLabelFormatter(
                 value,
-                aggregateOutputType(provided.widgetData.chart.data[0].seriesName),
+                aggregateOutputType(provided.widgetData.chart.data?.[0].seriesName),
                 undefined,
                 durationUnit
               );
@@ -217,7 +226,7 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
     );
   };
 
-  const getHeaders = provided =>
+  const getHeaders = (provided: ComponentData) =>
     provided.widgetData.list.data.map((listItem, i) => {
       const transaction = (listItem.transaction as string | undefined) ?? '';
 
@@ -236,7 +245,7 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
           });
 
       const displayedField = 'count()';
-      const rightValue = listItem[displayedField];
+      const rightValue = listItem[displayedField]!;
 
       return (
         <Fragment key={i}>

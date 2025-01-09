@@ -70,7 +70,6 @@ function MergedList({
           {fingerprintsWithLatestEvent.map(fingerprint => (
             <MergedItem
               key={fingerprint.id}
-              organization={organization}
               fingerprint={fingerprint}
               totalFingerprint={fingerprintsWithLatestEvent.length}
             />

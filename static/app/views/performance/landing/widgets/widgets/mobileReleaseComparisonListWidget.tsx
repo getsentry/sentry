@@ -40,6 +40,7 @@ import {GrowLink, WidgetEmptyStateWarning} from '../components/selectableList';
 import {transformDiscoverToList} from '../transforms/transformDiscoverToList';
 import type {transformEventsRequestToArea} from '../transforms/transformEventsToArea';
 import type {
+  GenericPerformanceWidgetProps,
   PerformanceWidgetProps,
   QueryDefinition,
   QueryDefinitionWithKey,
@@ -60,6 +61,10 @@ type DataType = {
   list: WidgetDataResult & ReturnType<typeof transformDiscoverToList>;
 };
 
+type ComponentData = React.ComponentProps<
+  GenericPerformanceWidgetProps<DataType>['Visualizations'][0]['component']
+>;
+
 export function transformEventsChartRequest<T extends WidgetDataConstraint>(
   widgetProps: WidgetPropUnion<T>,
   results: RenderProps,
@@ -75,7 +80,7 @@ export function transformEventsChartRequest<T extends WidgetDataConstraint>(
     ...results,
     isLoading: results.loading || results.reloading,
     isErrored: results.errored,
-    hasData: defined(data) && !!data.length && !!data[0].data.length,
+    hasData: defined(data) && !!data.length && !!data[0]!.data.length,
     data,
     previousData: results.previousTimeseriesData ?? undefined,
 
@@ -103,7 +108,7 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
   const {InteractiveTitle} = props;
   const {setPageError} = usePageAlert();
 
-  const field = props.fields[0];
+  const field = props.fields[0]!;
 
   const listQuery = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
     () => ({
@@ -117,13 +122,15 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
         let extraQueryParams = getMEPParamsIfApplicable(mepSetting, props.chartSetting);
 
         // Set fields
-        const sortField = {
-          [PerformanceWidgetSetting.SLOW_SCREENS_BY_TTID]: 'count()',
-          [PerformanceWidgetSetting.SLOW_SCREENS_BY_COLD_START]:
-            'count_starts(measurements.app_start_cold)',
-          [PerformanceWidgetSetting.SLOW_SCREENS_BY_WARM_START]:
-            'count_starts(measurements.app_start_warm)',
-        }[props.chartSetting];
+        const sortField: string = (
+          {
+            [PerformanceWidgetSetting.SLOW_SCREENS_BY_TTID]: 'count()',
+            [PerformanceWidgetSetting.SLOW_SCREENS_BY_COLD_START]:
+              'count_starts(measurements.app_start_cold)',
+            [PerformanceWidgetSetting.SLOW_SCREENS_BY_WARM_START]:
+              'count_starts(measurements.app_start_warm)',
+          } as any
+        )[props.chartSetting];
         eventView.fields = [{field: 'transaction'}, {field}, {field: sortField}];
         eventView.sorts = [
           {
@@ -195,7 +202,7 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
           const partialDataParam = true;
 
           eventView.additionalConditions.setFilterValues('transaction', [
-            provided.widgetData.list.data[selectedListIndex].transaction as string,
+            provided.widgetData.list.data[selectedListIndex]!.transaction as string,
           ]);
 
           eventView.dataset = DiscoverDatasets.METRICS;
@@ -256,10 +263,10 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
     chart: chartQuery,
   };
 
-  const assembleAccordionItems = provided =>
+  const assembleAccordionItems = (provided: ComponentData) =>
     getItems(provided).map(item => ({header: item, content: getChart(provided)}));
 
-  const getChart = provided => {
+  const getChart = (provided: ComponentData) => {
     const transformedReleaseSeries: {
       [releaseVersion: string]: Series;
     } = {};
@@ -304,6 +311,7 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
           valueFormatter: value =>
             tooltipFormatterUsingAggregateOutputType(value, 'duration'),
         }}
+        // @ts-expect-error error does not exist on chart?
         error={provided.widgetData.chart.error}
         disableXAxis
         showLegend={false}
@@ -328,7 +336,7 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
             : 'warm',
       }
     : {};
-  const getItems = provided =>
+  const getItems = (provided: ComponentData) =>
     provided.widgetData.list.data.map((listItem, i) => {
       const transaction = (listItem.transaction as string | undefined) ?? '';
 
@@ -351,14 +359,15 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
           </GrowLink>
           <RightAlignedCell>
             <StyledDurationWrapper>
-              <PerformanceDuration milliseconds={listItem[field]} abbreviation />
+              {/* milliseconds expects a number */}
+              <PerformanceDuration milliseconds={listItem[field] as any} abbreviation />
             </StyledDurationWrapper>
           </RightAlignedCell>
         </Fragment>
       );
     });
 
-  const Visualizations = [
+  const Visualizations: GenericPerformanceWidgetProps<DataType>['Visualizations'] = [
     {
       component: provided =>
         isLoadingReleases || provided.widgetData.chart.loading ? (

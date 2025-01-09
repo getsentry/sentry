@@ -1,6 +1,7 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {updateDashboardFavorite} from 'sentry/actionCreators/dashboards';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {Button} from 'sentry/components/button';
@@ -9,22 +10,27 @@ import Confirm from 'sentry/components/confirm';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import {Hovercard} from 'sentry/components/hovercard';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconAdd, IconDownload, IconEdit} from 'sentry/icons';
+import {IconAdd, IconDownload, IconEdit, IconStar} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {hasCustomMetrics} from 'sentry/utils/metrics/features';
+import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
+import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {AddWidgetButton} from 'sentry/views/dashboards/addWidget';
+import EditAccessSelector from 'sentry/views/dashboards/editAccessSelector';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
-import {UNSAVED_FILTERS_MESSAGE} from './detail';
+import {checkUserHasEditAccess, UNSAVED_FILTERS_MESSAGE} from './detail';
 import exportDashboard from './exportDashboard';
-import type {DashboardListItem} from './types';
+import type {DashboardDetails, DashboardListItem, DashboardPermissions} from './types';
 import {DashboardState, MAX_WIDGETS} from './types';
 
 type Props = {
+  dashboard: DashboardDetails;
   dashboardState: DashboardState;
   dashboards: DashboardListItem[];
   onAddWidget: (dataset: DataSet) => void;
@@ -35,19 +41,24 @@ type Props = {
   organization: Organization;
   widgetLimitReached: boolean;
   hasUnsavedFilters?: boolean;
+  onChangeEditAccess?: (newDashboardPermissions: DashboardPermissions) => void;
 };
 
 function Controls({
   dashboardState,
+  dashboard,
   dashboards,
   hasUnsavedFilters,
   widgetLimitReached,
+  onChangeEditAccess,
   onEdit,
   onCommit,
   onDelete,
   onCancel,
   onAddWidget,
 }: Props) {
+  const [isFavorited, setIsFavorited] = useState(dashboard.isFavorited);
+
   function renderCancelButton(label = t('Cancel')) {
     return (
       <Button
@@ -64,7 +75,9 @@ function Controls({
   }
 
   const organization = useOrganization();
-
+  const currentUser = useUser();
+  const {teams: userTeams} = useUserTeams();
+  const api = useApi();
   if ([DashboardState.EDIT, DashboardState.PENDING_DELETE].includes(dashboardState)) {
     return (
       <StyledButtonBar gap={1} key="edit-controls">
@@ -138,12 +151,20 @@ function Controls({
     ? DataSet.ERRORS
     : DataSet.EVENTS;
 
+  const hasEditAccess = checkUserHasEditAccess(
+    currentUser,
+    userTeams,
+    organization,
+    dashboard.permissions,
+    dashboard.createdBy
+  );
+
   return (
     <StyledButtonBar gap={1} key="controls">
+      <FeedbackWidgetButton />
       <DashboardEditFeature>
         {hasFeature => (
           <Fragment>
-            <FeedbackWidgetButton />
             <Feature features="dashboards-import">
               <Button
                 data-test-id="dashboard-export"
@@ -158,6 +179,42 @@ function Controls({
                 {t('Export Dashboard')}
               </Button>
             </Feature>
+            {dashboard.id !== 'default-overview' && (
+              <Feature features="dashboards-favourite">
+                <Button
+                  size="sm"
+                  aria-label={'dashboards-favourite'}
+                  icon={
+                    <IconStar
+                      color={isFavorited ? 'yellow300' : 'gray300'}
+                      isSolid={isFavorited}
+                      aria-label={isFavorited ? t('UnFavorite') : t('Favorite')}
+                      data-test-id={isFavorited ? 'yellow-star' : 'empty-star'}
+                    />
+                  }
+                  onClick={async () => {
+                    try {
+                      setIsFavorited(!isFavorited);
+                      await updateDashboardFavorite(
+                        api,
+                        organization.slug,
+                        dashboard.id,
+                        !isFavorited
+                      );
+                    } catch (error) {
+                      // If the api call fails, revert the state
+                      setIsFavorited(isFavorited);
+                    }
+                  }}
+                />
+              </Feature>
+            )}
+            {dashboard.id !== 'default-overview' && (
+              <EditAccessSelector
+                dashboard={dashboard}
+                onChangeEditAccess={onChangeEditAccess}
+              />
+            )}
             <Button
               data-test-id="dashboard-edit"
               onClick={e => {
@@ -165,8 +222,12 @@ function Controls({
                 onEdit();
               }}
               icon={<IconEdit />}
-              disabled={!hasFeature || hasUnsavedFilters}
-              title={hasUnsavedFilters && UNSAVED_FILTERS_MESSAGE}
+              disabled={!hasFeature || hasUnsavedFilters || !hasEditAccess}
+              title={
+                !hasEditAccess
+                  ? t('You do not have permission to edit this dashboard')
+                  : hasUnsavedFilters && UNSAVED_FILTERS_MESSAGE
+              }
               priority="default"
               size="sm"
             >
@@ -192,7 +253,7 @@ function Controls({
                     data-test-id="add-widget-library"
                     priority="primary"
                     size="sm"
-                    disabled={widgetLimitReached}
+                    disabled={widgetLimitReached || !hasEditAccess}
                     icon={<IconAdd isCircled />}
                     onClick={() => {
                       trackAnalytics('dashboards_views.widget_library.opened', {
@@ -200,6 +261,10 @@ function Controls({
                       });
                       onAddWidget(defaultDataset);
                     }}
+                    title={
+                      !hasEditAccess &&
+                      t('You do not have permission to edit this dashboard')
+                    }
                   >
                     {t('Add Widget')}
                   </Button>

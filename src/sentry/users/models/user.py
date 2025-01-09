@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 import secrets
-import warnings
 from collections.abc import Mapping
 from string import ascii_letters, digits
 from typing import Any, ClassVar
@@ -228,14 +227,6 @@ class User(Model, AbstractBaseUser):
                 outbox.save()
             return result
 
-    def has_perm(self, perm_name: str) -> bool:
-        warnings.warn("User.has_perm is deprecated", DeprecationWarning)
-        return self.is_superuser
-
-    def has_module_perms(self, app_label: str) -> bool:
-        warnings.warn("User.has_module_perms is deprecated", DeprecationWarning)
-        return self.is_superuser
-
     def has_2fa(self) -> bool:
         return Authenticator.objects.filter(
             user_id=self.id, type__in=[a.type for a in available_authenticators(ignore_backup=True)]
@@ -252,6 +243,9 @@ class User(Model, AbstractBaseUser):
 
     def has_unverified_emails(self) -> bool:
         return self.get_unverified_emails().exists()
+
+    def has_verified_primary_email(self) -> bool:
+        return self.emails.filter(is_verified=True, email=self.email).exists()
 
     def has_usable_password(self) -> bool:
         if self.password == "" or self.password is None:

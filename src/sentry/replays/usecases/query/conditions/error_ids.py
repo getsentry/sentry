@@ -4,6 +4,7 @@ This module demonstrates what's already present in other files but in a more dir
 way.  The "SumOfErrorIdsArray" visitor composes the "ErrorIdsArray" visitor and asks if the
 aggregated result "contains" or "does not contain" a matching value.
 """
+
 from __future__ import annotations
 
 from uuid import UUID

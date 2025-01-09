@@ -1,7 +1,6 @@
 import {useCallback, useMemo} from 'react';
 import orderBy from 'lodash/orderBy';
 
-// eslint-disable-next-line no-restricted-imports
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import {
   SearchQueryBuilder,
@@ -18,7 +17,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {mergeAndSortTagValues} from 'sentry/views/issueDetails/utils';
 import {makeGetIssueTagValues} from 'sentry/views/issueList/utils/getIssueTagValues';
-import {useFetchIssueTags} from 'sentry/views/issueList/utils/useFetchIssueTags';
+import {useIssueListFilterKeys} from 'sentry/views/issueList/utils/useIssueListFilterKeys';
 
 const getFilterKeySections = (tags: TagCollection): FilterKeySection[] => {
   const allTags: Tag[] = Object.values(tags).filter(
@@ -71,18 +70,7 @@ function IssueListSearchBar({
 }: Props) {
   const api = useApi();
   const {selection: pageFilters} = usePageFilters();
-  const {tags: issueTags} = useFetchIssueTags({
-    org: organization,
-    projectIds: pageFilters.projects.map(id => id.toString()),
-    keepPreviousData: true,
-    start: pageFilters.datetime.start
-      ? getUtcDateString(pageFilters.datetime.start)
-      : undefined,
-    end: pageFilters.datetime.end
-      ? getUtcDateString(pageFilters.datetime.end)
-      : undefined,
-    statsPeriod: pageFilters.datetime.period,
-  });
+  const filterKeys = useIssueListFilterKeys();
 
   const tagValueLoader = useCallback(
     async (key: string, search: string) => {
@@ -141,15 +129,15 @@ function IssueListSearchBar({
   );
 
   const filterKeySections = useMemo(() => {
-    return getFilterKeySections(issueTags);
-  }, [issueTags]);
+    return getFilterKeySections(filterKeys);
+  }, [filterKeys]);
 
   return (
     <SearchQueryBuilder
       initialQuery={initialQuery}
       getTagValues={getTagValues}
       filterKeySections={filterKeySections}
-      filterKeys={issueTags}
+      filterKeys={filterKeys}
       recentSearches={SavedSearchType.ISSUE}
       disallowLogicalOperators
       showUnsubmittedIndicator

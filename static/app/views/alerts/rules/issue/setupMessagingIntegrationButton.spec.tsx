@@ -13,88 +13,98 @@ import SetupMessagingIntegrationButton, {
 jest.mock('sentry/actionCreators/modal');
 
 describe('SetupAlertIntegrationButton', function () {
-  const organization = OrganizationFixture({
-    features: ['messaging-integration-onboarding'],
-  });
+  const organization = OrganizationFixture();
   const project = ProjectFixture();
   const providers = (providerKey: string) => [
     GitHubIntegrationProviderFixture({key: providerKey}),
   ];
-  const providerKey = 'slack';
+  const providerKeys = ['slack', 'discord', 'msteams'];
+  let mockResponses: jest.Mock<any>[] = [];
 
   const getComponent = () => (
     <SetupMessagingIntegrationButton
-      projectSlug={project.slug}
+      projectId={project.id}
       refetchConfigs={jest.fn()}
-      analyticsParams={{view: MessagingIntegrationAnalyticsView.ALERT_RULE_CREATION}}
+      analyticsView={MessagingIntegrationAnalyticsView.ALERT_RULE_CREATION}
     />
   );
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/config/integrations/?provider_key=${providerKey}`,
-      body: {providers: providers(providerKey)},
+    mockResponses = [];
+    providerKeys.forEach(providerKey => {
+      mockResponses.push(
+        MockApiClient.addMockResponse({
+          url: `/organizations/${organization.slug}/config/integrations/?provider_key=${providerKey}`,
+          body: {providers: providers(providerKey)},
+        })
+      );
     });
-    jest.clearAllMocks();
   });
 
   it('renders when no integration is installed', async function () {
-    MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/`,
-      body: {
-        ...project,
-        hasAlertIntegrationInstalled: false,
-      },
+    mockResponses.push(
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/integrations/?integrationType=messaging`,
+        body: [{status: 'disabled'}, {status: 'disabled'}, {status: 'disabled'}],
+      })
+    );
+    render(getComponent(), {organization});
+    mockResponses.forEach(mock => {
+      expect(mock).toHaveBeenCalled();
     });
-    render(getComponent(), {organization: organization});
     await screen.findByRole('button', {name: /connect to messaging/i});
   });
 
   it('does not render button if alert integration installed', function () {
-    MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/`,
-      body: {
-        ...project,
-        hasAlertIntegrationInstalled: true,
-      },
+    mockResponses.push(
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/integrations/?integrationType=messaging`,
+        body: [{status: 'active'}, {status: 'disabled'}, {status: 'disabled'}],
+      })
+    );
+    render(getComponent(), {organization});
+    mockResponses.forEach(mock => {
+      expect(mock).toHaveBeenCalled();
     });
-    render(getComponent(), {organization: organization});
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
   it('opens modal when clicked', async function () {
-    MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/`,
-      body: {
-        ...project,
-        hasAlertIntegrationInstalled: false,
-      },
+    mockResponses.push(
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/integrations/?integrationType=messaging`,
+        body: [{status: 'disabled'}, {status: 'disabled'}, {status: 'disabled'}],
+      })
+    );
+    render(getComponent(), {organization});
+    mockResponses.forEach(mock => {
+      expect(mock).toHaveBeenCalled();
     });
-    render(getComponent(), {organization: organization});
     const button = await screen.findByRole('button', {name: /connect to messaging/i});
     await userEvent.click(button);
     expect(openModal).toHaveBeenCalled();
   });
 
-  it('does not render button if project is loading', function () {
-    MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/`,
-      statusCode: 400,
-      body: {error: 'internal error'},
-    });
-    render(getComponent(), {organization: organization});
+  it('does not render button if API errors', function () {
+    mockResponses.push(
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/integrations/?integrationType=messaging`,
+        statusCode: 400,
+        body: {error: 'internal error'},
+      })
+    );
+    render(getComponent(), {organization});
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
   it('disables button if user does not have integration feature', async function () {
-    MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/`,
-      body: {
-        ...project,
-        hasAlertIntegrationInstalled: false,
-      },
-    });
+    mockResponses.push(
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/integrations/?integrationType=messaging`,
+        body: [{status: 'disabled'}, {status: 'disabled'}, {status: 'disabled'}],
+      })
+    );
 
     HookStore.add('integrations:feature-gates', () => {
       return {
@@ -109,7 +119,10 @@ describe('SetupAlertIntegrationButton', function () {
       };
     });
 
-    render(getComponent(), {organization: organization});
+    render(getComponent(), {organization});
+    mockResponses.forEach(mock => {
+      expect(mock).toHaveBeenCalled();
+    });
     await screen.findByRole('button', {name: /connect to messaging/i});
     expect(screen.getByRole('button')).toBeDisabled();
   });

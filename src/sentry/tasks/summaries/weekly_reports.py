@@ -181,15 +181,6 @@ def prepare_organization_report(
                     (e["events.group_id"], e["count()"]) for e in key_errors
                 ]
 
-                if ctx.organization.slug == "sentry":
-                    logger.info(
-                        "project_key_errors.results",
-                        extra={
-                            "batch_id": str(batch_id),
-                            "project_id": project.id,
-                            "num_key_errors": len(key_errors),
-                        },
-                    )
             key_transactions_this_week = project_key_transactions_this_week(ctx, project)
             if key_transactions_this_week:
                 project_ctx.key_transactions = [
@@ -320,7 +311,7 @@ class OrganizationReportBatch:
                 user_project_count=template_ctx["user_project_count"],
             )
 
-            # TODO see if we can use the UUID to track if the email was sent or not
+            # TODO: see if we can use the UUID to track if the email was sent or not
             logger.info(
                 "weekly_report.send_email",
                 extra={
@@ -626,36 +617,9 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
         }
 
     def key_errors():
-        # TODO(Steve): Remove debug logging for Sentry
         def all_key_errors():
-            if ctx.organization.slug == "sentry":
-                logger.info(
-                    "render_template_context.all_key_errors.num_projects",
-                    extra={
-                        "user_id": user_id if user_id else "",
-                        "num_user_projects": len(user_projects),
-                    },
-                )
             for project_ctx in user_projects:
-                if ctx.organization.slug == "sentry":
-                    logger.info(
-                        "render_template_context.all_key_errors.project",
-                        extra={
-                            "user_id": user_id,
-                            "project_id": project_ctx.project.id,
-                        },
-                    )
                 for group, count in project_ctx.key_errors_by_group:
-                    if ctx.organization.slug == "sentry":
-                        logger.info(
-                            "render_template_context.all_key_errors.found_error",
-                            extra={
-                                "group_id": group.id,
-                                "user_id": user_id,
-                                "project_id": project_ctx.project.id,
-                            },
-                        )
-
                     (
                         substatus,
                         substatus_color,

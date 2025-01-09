@@ -1,6 +1,7 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import type {FormFieldProps} from 'sentry/components/forms/formField';
 import FormField from 'sentry/components/forms/formField';
@@ -11,7 +12,7 @@ import type {Project} from 'sentry/types/project';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {explodeFieldString, generateFieldAsString} from 'sentry/utils/discover/fields';
 import {hasCustomMetrics} from 'sentry/utils/metrics/features';
-import InsightsMetricField from 'sentry/views/alerts/rules/metric/insightsMetricField';
+import EAPField from 'sentry/views/alerts/rules/metric/eapField';
 import MriField from 'sentry/views/alerts/rules/metric/mriField';
 import type {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import type {AlertType} from 'sentry/views/alerts/wizard/options';
@@ -22,11 +23,11 @@ import {
 import {QueryField} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
-import {hasInsightsAlerts} from 'sentry/views/insights/common/utils/hasInsightsAlerts';
+import {hasEAPAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 
 import {getFieldOptionConfig} from './metricField';
 
-type MenuOption = {label: string; value: AlertType};
+type MenuOption = {label: React.ReactNode; value: AlertType};
 type GroupedMenuOption = {label: string; options: Array<MenuOption>};
 
 type Props = Omit<FormFieldProps, 'children'> & {
@@ -118,11 +119,21 @@ export default function WizardField({
               },
             ]
           : []),
-        ...(hasInsightsAlerts(organization)
+        ...(hasEAPAlerts(organization)
           ? [
               {
-                label: AlertWizardAlertNames.insights_metrics,
-                value: 'insights_metrics' as const,
+                label: (
+                  <span>
+                    {AlertWizardAlertNames.eap_metrics}
+                    <FeatureBadge
+                      type="beta"
+                      title={t(
+                        'This feature is available for early adopters and the UX may change'
+                      )}
+                    />
+                  </span>
+                ),
+                value: 'eap_metrics' as const,
               },
             ]
           : []),
@@ -198,9 +209,8 @@ export default function WizardField({
                 aggregate={aggregate}
                 onChange={newAggregate => onChange(newAggregate, {})}
               />
-            ) : alertType === 'insights_metrics' ? (
-              <InsightsMetricField
-                project={project}
+            ) : alertType === 'eap_metrics' ? (
+              <EAPField
                 aggregate={aggregate}
                 onChange={newAggregate => {
                   return onChange(newAggregate, {});

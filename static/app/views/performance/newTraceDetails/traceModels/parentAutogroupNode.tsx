@@ -1,5 +1,3 @@
-import {isSpanNode} from '../traceGuards';
-
 import type {TraceTree} from './traceTree';
 import {TraceTreeNode} from './traceTreeNode';
 
@@ -55,11 +53,7 @@ export function computeCollapsedBarSpace(
     return [];
   }
 
-  const first = nodes[0];
-
-  if (!isSpanNode(first)) {
-    throw new Error('Autogrouped node must have span children');
-  }
+  const first = nodes[0]!;
 
   const segments: [number, number][] = [];
 
@@ -68,11 +62,7 @@ export function computeCollapsedBarSpace(
   let i = 1;
 
   while (i < nodes.length) {
-    const next = nodes[i];
-
-    if (!isSpanNode(next)) {
-      throw new Error('Autogrouped node must have span children');
-    }
+    const next = nodes[i]!;
 
     if (next.space[0] > end) {
       segments.push([start, end - start]);

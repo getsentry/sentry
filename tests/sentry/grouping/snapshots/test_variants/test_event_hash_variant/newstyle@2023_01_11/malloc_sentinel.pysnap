@@ -1,14 +1,15 @@
 ---
-created: '2023-12-12T15:28:01.679476Z'
+created: '2024-12-17T22:47:16.681320+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
+  contributing component: null
   component:
     app (exception of system takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
-        stacktrace
+        stacktrace (ignored because it contains no in-app frames)
           frame (non app frame)
             function*
               "_pthread_start"
@@ -100,6 +101,7 @@ app:
 --------------------------------------------------------------------------
 system:
   hash: "70b7b816193e06eb5d6649989fbaf605"
+  contributing component: exception
   component:
     system*
       exception*

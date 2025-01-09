@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import logging
-from collections import defaultdict, namedtuple
-from collections.abc import Sequence
+from collections import defaultdict
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -25,13 +25,12 @@ from sentry.users.models.user import User
 from sentry.utils import json
 
 logger = logging.getLogger(__name__)
-ActivityInfo = namedtuple("ActivityInfo", ("activity_type", "activity_data"))
 
 
 def infer_substatus(
     new_status: int | None,
     new_substatus: int | None,
-    status_details: dict[str, Any],
+    status_details: Mapping[str, Any],
     group_list: Sequence[Group],
 ) -> int | None:
     if new_substatus is not None:
@@ -67,19 +66,17 @@ def infer_substatus(
 def handle_status_update(
     group_list: Sequence[Group],
     projects: Sequence[Project],
-    project_lookup: dict[int, Project],
+    project_lookup: Mapping[int, Project],
     new_status: int,
     new_substatus: int | None,
     is_bulk: bool,
     status_details: dict[str, Any],
     acting_user: User | None,
     sender: Any,
-) -> ActivityInfo:
+) -> None:
     """
     Update the status for a list of groups and create entries for Activity and GroupHistory.
     This currently handles unresolving or ignoring groups.
-
-    Returns a tuple of (activity_type, activity_data) for the activity that was created.
     """
     activity_data = {}
     activity_type = (
@@ -173,5 +170,3 @@ def handle_status_update(
                 created=False,
                 update_fields=["status", "substatus"],
             )
-
-    return ActivityInfo(activity_type, activity_data)

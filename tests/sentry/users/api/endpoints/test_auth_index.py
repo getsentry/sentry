@@ -287,7 +287,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
                     "superuserAccessCategory": "for_unit_test",
                     "superuserReason": "for testing",
                 },
-                SERVER_NAME=f"{other_org.slug}.testserver",
+                HTTP_HOST=f"{other_org.slug}.testserver",
                 HTTP_REFERER=referrer,
             )
             # status code of 401 means invalid SSO session

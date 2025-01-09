@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {OnDemandWarningIcon} from 'sentry/components/alerts/onDemandMetricAlert';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import AlertBadge from 'sentry/components/badge/alertBadge';
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Button} from 'sentry/components/button';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {DateTime} from 'sentry/components/dateTime';
@@ -89,12 +90,12 @@ function TriggerDescription({
           timeWindow,
           comparisonDelta: (
             COMPARISON_DELTA_OPTIONS.find(({value}) => value === rule.comparisonDelta) ??
-            COMPARISON_DELTA_OPTIONS[0]
+            COMPARISON_DELTA_OPTIONS[0]!
           ).label,
         }
       )
     : rule.detectionType === AlertRuleComparisonType.DYNAMIC
-      ? 'Dynamic threshold is reached'
+      ? 'Anomaly detection threshold is reached'
       : tct('[metric] is [condition] in [timeWindow]', {
           metric: metricName,
           condition: `${thresholdTypeText} ${threshold}`,
@@ -110,7 +111,16 @@ function TriggerDescription({
       <TriggerStep>
         <TriggerTitleText>{t('When')}</TriggerTitleText>
         <TriggerActions>
-          <TriggerText>{thresholdText}</TriggerText>
+          <TriggerText>
+            {thresholdText}
+            {rule.detectionType === AlertRuleComparisonType.DYNAMIC ? (
+              <FeatureBadge
+                type="alpha"
+                title="Anomaly detection is in alpha and may produce inaccurate results"
+                tooltipProps={{isHoverable: true}}
+              />
+            ) : null}
+          </TriggerText>
         </TriggerActions>
       </TriggerStep>
       <TriggerStep>
@@ -146,7 +156,7 @@ export function MetricDetailsSidebar({
 
   const ownerId = rule.owner?.split(':')[1];
   const teamActor = ownerId && {type: 'team' as Actor['type'], id: ownerId, name: ''};
-  let conditionType;
+  let conditionType: React.ReactNode;
   const activationCondition =
     rule.monitorType === MonitorType.ACTIVATED &&
     typeof rule.activationCondition !== 'undefined' &&

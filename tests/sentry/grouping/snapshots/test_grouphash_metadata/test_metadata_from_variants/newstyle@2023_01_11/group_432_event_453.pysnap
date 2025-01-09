@@ -1,0 +1,50 @@
+---
+created: '2024-12-17T22:50:37.684154+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+hashing_metadata: {
+  "num_stacktraces": 1,
+  "stacktrace_location": "exception",
+  "stacktrace_type": "system"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "stacktrace",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.stacktrace": {
+    "chained_exception": "False",
+    "stacktrace_location": "exception",
+    "stacktrace_type": "system"
+  }
+}
+---
+contributing variants:
+  system*
+    hash: "1056f62d72ff8b4d0c3842d696dbb10a"
+    contributing component: exception
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              function*
+                "stripped_application_code"
+            frame*
+              function*
+                "stripped_application_code"
+            frame*
+              function*
+                "stripped_application_code"
+            frame*
+              function*
+                "stripped_application_code"
+            frame*
+              function*
+                "stripped_application_code"
+            frame*
+              function*
+                "abort"

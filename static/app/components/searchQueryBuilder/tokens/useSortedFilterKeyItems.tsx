@@ -1,9 +1,8 @@
-import {useMemo} from 'react';
+import {type ReactNode, useMemo} from 'react';
 import type Fuse from 'fuse.js';
 
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import type {
-  FilterValueItem,
   KeySectionItem,
   SearchKeyItem,
 } from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/types';
@@ -15,6 +14,7 @@ import {
 import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
 import type {Tag} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
+import {FieldKey} from 'sentry/utils/fields';
 import {useFuzzySearch} from 'sentry/utils/fuzzySearch';
 
 type FilterKeySearchItem = {
@@ -29,7 +29,7 @@ type FilterKeySearchItem = {
 const FUZZY_SEARCH_OPTIONS: Fuse.IFuseOptions<FilterKeySearchItem> = {
   keys: [
     {name: 'key', weight: 10},
-    {name: 'value', weight: 5},
+    {name: 'value', weight: 7},
     {name: 'keywords', weight: 2},
     {name: 'description', weight: 1},
   ],
@@ -53,10 +53,10 @@ function getFilterSearchValues(
     const fieldDef = getFieldDefinition(key.key);
     const values = key.values ?? fieldDef?.values ?? [];
 
-    const addItem = (value: string) => {
+    const addItem = (value: string, description: ReactNode = '') => {
       acc.push({
         value,
-        description: '',
+        description: typeof description === 'string' ? description : '',
         keywords: [],
         type: 'value',
         item: key,
@@ -70,12 +70,12 @@ function getFilterSearchValues(
         if (value.children.length) {
           for (const child of value.children) {
             if (child.value) {
-              addItem(child.value);
+              addItem(child.value, child.desc ?? child.documentation);
             }
           }
         } else {
           if (value.value) {
-            addItem(value.value);
+            addItem(value.value, value.desc ?? value.documentation);
           }
         }
       }
@@ -86,22 +86,19 @@ function getFilterSearchValues(
 }
 
 // Returns a section of suggested filter values.
-// This will suggest a maximum of 3 options, and only if they
-// are more relevant than any of the key suggestions.
+// This will suggest a maximum of 3 options and will display them
+// at the top only if the score is better than any of the keys.
 function getValueSuggestionsFromSearchResult(
   results: Fuse.FuseResult<FilterKeySearchItem>[]
 ) {
-  const suggestions: FilterValueItem[] = [];
-
-  for (const result of results) {
-    if (result.item.type === 'key' || suggestions.length >= 3) {
-      break;
-    }
-
-    suggestions.push(
-      createFilterValueItem(result.item.item.key, result.item.value ?? '')
-    );
-  }
+  const suggestions = results
+    .filter(result => result.item.type === 'value')
+    // Sort HAS suggestions below others because they are less valuable
+    .sort((a, b) =>
+      a.item.item.key === FieldKey.HAS && b.item.item.key !== FieldKey.HAS ? 1 : -1
+    )
+    .map(result => createFilterValueItem(result.item.item.key, result.item.value ?? ''))
+    .slice(0, 3);
 
   const suggestedFiltersSection: KeySectionItem = {
     key: 'suggested-filters',
@@ -111,7 +108,13 @@ function getValueSuggestionsFromSearchResult(
     type: 'section',
   };
 
-  return suggestions.length ? [suggestedFiltersSection] : [];
+  const topItemIsValueSuggestion = results[0]?.item?.type === 'value';
+  const hasValueSuggestions = suggestions.length > 0;
+
+  return {
+    shouldShowAtTop: topItemIsValueSuggestion,
+    suggestedFiltersSection: hasValueSuggestions ? suggestedFiltersSection : null,
+  };
 }
 
 export function useSortedFilterKeyItems({
@@ -177,7 +180,7 @@ export function useSortedFilterKeyItems({
       .map(({item}) => item)
       .filter(item => item.type === 'key' && filterKeys[item.item.key])
       .map(({item}) => {
-        return createItem(filterKeys[item.key], getFieldDefinition(item.key));
+        return createItem(filterKeys[item.key]!, getFieldDefinition(item.key));
       });
 
     if (includeSuggestions) {
@@ -203,10 +206,14 @@ export function useSortedFilterKeyItems({
         type: 'section',
       };
 
+      const {shouldShowAtTop, suggestedFiltersSection} =
+        getValueSuggestionsFromSearchResult(searched);
+
       return [
-        ...getValueSuggestionsFromSearchResult(searched),
+        ...(shouldShowAtTop && suggestedFiltersSection ? [suggestedFiltersSection] : []),
         ...(shouldIncludeRawSearch ? [rawSearchSection] : []),
         keyItemsSection,
+        ...(!shouldShowAtTop && suggestedFiltersSection ? [suggestedFiltersSection] : []),
       ];
     }
 

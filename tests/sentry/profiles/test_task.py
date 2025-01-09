@@ -3,7 +3,6 @@ from __future__ import annotations
 import zipfile
 from io import BytesIO
 from os.path import join
-from tempfile import TemporaryFile
 from typing import Any
 from unittest.mock import patch
 
@@ -11,30 +10,29 @@ import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
+from sentry.constants import DataCategory
 from sentry.lang.javascript.processing import _handles_frame as is_valid_javascript_frame
 from sentry.models.files.file import File
 from sentry.models.project import Project
-from sentry.models.projectkey import ProjectKey, UseCase
 from sentry.models.release import Release
 from sentry.models.releasefile import ReleaseFile
 from sentry.profiles.task import (
-    Profile,
     _calculate_profile_duration_ms,
     _deobfuscate,
-    _deobfuscate_locally,
     _deobfuscate_using_symbolicator,
     _normalize,
     _process_symbolicator_results_for_sample,
     _set_frames_platform,
     _symbolicate_profile,
-    get_metrics_dsn,
     process_profile_task,
 )
+from sentry.profiles.utils import Profile
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.factories import Factories, get_fixture_path
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_symbolicator
 from sentry.utils import json
+from sentry.utils.outcomes import Outcome
 
 PROFILES_FIXTURES_PATH = get_fixture_path("profiles")
 
@@ -85,26 +83,6 @@ def load_profile(name):
     path = join(PROFILES_FIXTURES_PATH, name)
     with open(path) as f:
         return json.loads(f.read())
-
-
-def load_proguard(project, proguard_uuid, proguard_source):
-    with TemporaryFile() as tf:
-        tf.write(proguard_source)
-        tf.seek(0)
-        file = Factories.create_file(
-            name=proguard_uuid,
-            type="project.dif",
-            headers={"Content-Type": "proguard"},
-        )
-        file.putfile(tf)
-
-    return Factories.create_dif_file(
-        project,
-        file=file,
-        debug_id=proguard_uuid,
-        object_name="proguard-mapping",
-        data={"features": ["mapping"]},
-    )
 
 
 @pytest.fixture
@@ -289,157 +267,38 @@ def sample_v2_profile():
     )
 
 
-@pytest.fixture
-def proguard_file_basic(project):
-    return load_proguard(project, PROGUARD_UUID, PROGUARD_SOURCE)
+@django_db_all
+def test_normalize_sample_v1_profile(organization, sample_v1_profile):
+    sample_v1_profile["transaction_tags"] = {"device.class": "1"}
 
+    _normalize(profile=sample_v1_profile, organization=organization)
 
-@pytest.fixture
-def proguard_file_inline(project):
-    return load_proguard(project, PROGUARD_INLINE_UUID, PROGUARD_INLINE_SOURCE)
-
-
-@pytest.fixture
-def proguard_file_bug(project):
-    return load_proguard(project, PROGUARD_BUG_UUID, PROGUARD_BUG_SOURCE)
+    assert sample_v1_profile.get("os", {}).get("build_number")
+    assert sample_v1_profile.get("device", {}).get("classification")
+    assert sample_v1_profile["device"]["classification"] == "low"
 
 
 @django_db_all
 def test_normalize_ios_profile(organization, ios_profile):
+    ios_profile["transaction_tags"] = {"device.class": "1"}
+
     _normalize(profile=ios_profile, organization=organization)
     for k in ["device_os_build_number", "device_classification"]:
         assert k in ios_profile
 
+    assert ios_profile["device_classification"] == "low"
+
 
 @django_db_all
 def test_normalize_android_profile(organization, android_profile):
+    android_profile["transaction_tags"] = {"device.class": "1"}
+
     _normalize(profile=android_profile, organization=organization)
     for k in ["android_api_level", "device_classification"]:
         assert k in android_profile
 
     assert isinstance(android_profile["android_api_level"], int)
-
-
-@django_db_all
-def test_basic_deobfuscation(project, proguard_file_basic, android_profile):
-    android_profile.update(
-        {
-            "build_id": PROGUARD_UUID,
-            "project_id": project.id,
-            "profile": {
-                "methods": [
-                    {
-                        "abs_path": None,
-                        "class_name": "org.a.b.g$a",
-                        "name": "a",
-                        "signature": "()V",
-                        "source_file": None,
-                        "source_line": 67,
-                    },
-                    {
-                        "abs_path": None,
-                        "class_name": "org.a.b.g$a",
-                        "name": "a",
-                        "signature": "()V",
-                        "source_file": None,
-                        "source_line": 69,
-                    },
-                ],
-            },
-        }
-    )
-    _deobfuscate_locally(android_profile, project, PROGUARD_UUID)
-    frames = android_profile["profile"]["methods"]
-
-    assert frames[0]["name"] == "getClassContext"
-    assert frames[0]["class_name"] == "org.slf4j.helpers.Util$ClassContextSecurityManager"
-    assert frames[1]["name"] == "getExtraClassContext"
-    assert frames[1]["class_name"] == "org.slf4j.helpers.Util$ClassContextSecurityManager"
-
-
-@django_db_all
-def test_inline_deobfuscation(project, proguard_file_inline, android_profile):
-    android_profile.update(
-        {
-            "build_id": PROGUARD_INLINE_UUID,
-            "project_id": project.id,
-            "profile": {
-                "methods": [
-                    {
-                        "abs_path": None,
-                        "class_name": "e.a.c.a",
-                        "name": "onClick",
-                        "signature": "()V",
-                        "source_file": None,
-                        "source_line": 2,
-                    },
-                    {
-                        "abs_path": None,
-                        "class_name": "io.sentry.sample.MainActivity",
-                        "name": "t",
-                        "signature": "()V",
-                        "source_file": "MainActivity.java",
-                        "source_line": 1,
-                    },
-                ],
-            },
-        }
-    )
-
-    project = Project.objects.get_from_cache(id=android_profile["project_id"])
-    _deobfuscate_locally(android_profile, project, PROGUARD_INLINE_UUID)
-    frames = android_profile["profile"]["methods"]
-
-    assert sum(len(f.get("inline_frames", [])) for f in frames) == 3
-
-    assert frames[0]["name"] == "onClick"
-    assert frames[0]["class_name"] == "io.sentry.sample.-$$Lambda$r3Avcbztes2hicEObh02jjhQqd4"
-
-    assert frames[1]["inline_frames"][0]["name"] == "onClickHandler"
-    assert frames[1]["inline_frames"][0]["source_line"] == 40
-    assert frames[1]["inline_frames"][0]["source_file"] == "MainActivity.java"
-    assert frames[1]["inline_frames"][0]["class_name"] == "io.sentry.sample.MainActivity"
-    assert frames[1]["inline_frames"][0]["signature"] == "()"
-    assert frames[1]["inline_frames"][1]["name"] == "foo"
-    assert frames[1]["inline_frames"][1]["source_line"] == 44
-    assert frames[1]["inline_frames"][2]["source_file"] == "MainActivity.java"
-    assert frames[1]["inline_frames"][2]["class_name"] == "io.sentry.sample.MainActivity"
-    assert frames[1]["inline_frames"][2]["name"] == "bar"
-    assert frames[1]["inline_frames"][2]["source_line"] == 54
-
-
-@django_db_all
-def test_error_on_resolving(project, proguard_file_bug, android_profile):
-    android_profile.update(
-        {
-            "build_id": PROGUARD_BUG_UUID,
-            "project_id": project.id,
-            "profile": {
-                "methods": [
-                    {
-                        "name": "a",
-                        "abs_path": None,
-                        "class_name": "org.a.b.g$a",
-                        "source_file": None,
-                        "source_line": 67,
-                    },
-                    {
-                        "name": "a",
-                        "abs_path": None,
-                        "class_name": "org.a.b.g$a",
-                        "source_file": None,
-                        "source_line": 69,
-                    },
-                ],
-            },
-        }
-    )
-
-    project = Project.objects.get_from_cache(id=android_profile["project_id"])
-    obfuscated_frames = android_profile["profile"]["methods"].copy()
-    _deobfuscate(android_profile, project)
-
-    assert android_profile["profile"]["methods"] == obfuscated_frames
+    assert android_profile["device_classification"] == "low"
 
 
 def test_process_symbolicator_results_for_sample():
@@ -524,7 +383,10 @@ def test_process_symbolicator_results_for_sample():
     ]
 
     _process_symbolicator_results_for_sample(
-        profile, stacktraces, set(range(len(profile["profile"]["frames"]))), profile["platform"]
+        profile,
+        stacktraces,
+        set(range(len(profile["profile"]["frames"]))),
+        profile["platform"],
     )
 
     assert profile["profile"]["stacks"] == [[0, 1, 2, 3, 4, 5]]
@@ -837,6 +699,42 @@ class DeobfuscationViaSymbolicator(TransactionTestCase):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
+    def test_error_on_resolving(self):
+        self.upload_proguard_mapping(PROGUARD_BUG_UUID, PROGUARD_BUG_SOURCE)
+        android_profile = load_profile("valid_android_profile.json")
+        android_profile.update(
+            {
+                "build_id": PROGUARD_BUG_UUID,
+                "project_id": self.project.id,
+                "profile": {
+                    "methods": [
+                        {
+                            "name": "a",
+                            "abs_path": None,
+                            "class_name": "org.a.b.g$a",
+                            "source_file": None,
+                            "source_line": 67,
+                        },
+                        {
+                            "name": "a",
+                            "abs_path": None,
+                            "class_name": "org.a.b.g$a",
+                            "source_file": None,
+                            "source_line": 69,
+                        },
+                    ],
+                },
+            }
+        )
+
+        project = Project.objects.get_from_cache(id=android_profile["project_id"])
+        obfuscated_frames = android_profile["profile"]["methods"].copy()
+        _deobfuscate(android_profile, project)
+
+        assert android_profile["profile"]["methods"] == obfuscated_frames
+
+    @requires_symbolicator
+    @pytest.mark.symbolicator
     def test_js_symbolication_set_symbolicated_field(self):
         release = Release.objects.create(
             organization_id=self.project.organization_id, version="nodeprof123"
@@ -907,14 +805,6 @@ def test_set_frames_platform_android():
     assert platforms == ["android", "android"]
 
 
-@django_db_all
-def test_get_metrics_dsn(default_project):
-    key1 = ProjectKey.objects.create(project=default_project, use_case=UseCase.PROFILING.value)
-    ProjectKey.objects.create(project_id=default_project.id, use_case=UseCase.PROFILING.value)
-
-    assert get_metrics_dsn(default_project.id) == key1.get_dsn(public=True)
-
-
 @patch("sentry.profiles.task._track_outcome")
 @patch("sentry.profiles.task._track_duration_outcome")
 @patch("sentry.profiles.task._symbolicate_profile")
@@ -948,8 +838,14 @@ def test_process_profile_task_should_emit_profile_duration_outcome(
 
     assert _track_duration_outcome.call_count == 1
 
-    if profile.get("version") != "2":
+    if "profiler_id" not in profile:
         assert _track_outcome.call_count == 1
+        _track_outcome.assert_called_with(
+            profile=profile,
+            project=project,
+            categories=[DataCategory.PROFILE, DataCategory.PROFILE_INDEXED],
+            outcome=Outcome.ACCEPTED,
+        )
     else:
         assert _track_outcome.call_count == 0
 
@@ -994,7 +890,14 @@ def test_process_profile_task_should_not_emit_profile_duration_outcome(
         organization=organization, profile=profile
     )
 
-    if profile.get("version") != "2":
+    if "profiler_id" not in profile:
         assert _track_outcome.call_count == 1
+        _track_outcome.assert_called_with(
+            profile=profile,
+            project=project,
+            categories=[DataCategory.PROFILE, DataCategory.PROFILE_INDEXED],
+            outcome=Outcome.ACCEPTED,
+        )
+
     else:
         assert _track_outcome.call_count == 0

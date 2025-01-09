@@ -2,8 +2,7 @@ import {Component} from 'react';
 import type {Location} from 'history';
 
 import type {Client, RequestOptions} from 'sentry/api';
-import DropdownLink from 'sentry/components/dropdownLink';
-import MenuItem from 'sentry/components/menuItem';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import Pagination from 'sentry/components/pagination';
 import {IconSearch} from 'sentry/icons';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -31,43 +30,44 @@ class Filter extends Component<FilterProps> {
     return this.props.name + ': ' + 'Any';
   }
 
-  getDefaultItem() {
-    const query = {...this.props.location.query, cursor: ''};
-    delete query[this.props.queryKey];
-
+  getSelector = () => {
     return (
-      <MenuItem
-        key=""
-        isActive={this.props.value === '' || !this.props.value}
-        to={{pathname: this.props.path, query}}
-      >
-        Any
-      </MenuItem>
+      <CompactSelect
+        triggerProps={{
+          size: 'sm',
+          borderless: true,
+        }}
+        triggerLabel={this.getCurrentLabel()}
+        options={[
+          {
+            value: 'any',
+            label: 'Any',
+          },
+          ...this.props.options.map(([value, label]) => ({
+            value,
+            label,
+          })),
+        ]}
+        value={this.props.value ?? 'any'}
+        onChange={({value}) => {
+          if (value === 'any') {
+            const query = {...this.props.location.query, cursor: undefined};
+            delete query[this.props.queryKey];
+            browserHistory.push({pathname: this.props.path, query});
+          } else {
+            browserHistory.push({
+              pathname: this.props.path,
+              query: {
+                ...this.props.location.query,
+                [this.props.queryKey]: value,
+                cursor: undefined,
+              },
+            });
+          }
+        }}
+      />
     );
-  }
-
-  getSelector = () => (
-    <DropdownLink title={this.getCurrentLabel()}>
-      {this.getDefaultItem()}
-      {this.props.options.map(([value, label]) => {
-        const filterQuery = {
-          [this.props.queryKey]: value,
-          cursor: '',
-        };
-
-        const query = {...this.props.location.query, ...filterQuery};
-        return (
-          <MenuItem
-            key={value}
-            isActive={this.props.value === value}
-            to={{pathname: this.props.path, query}}
-          >
-            {label}
-          </MenuItem>
-        );
-      })}
-    </DropdownLink>
-  );
+  };
 
   render() {
     return (
@@ -96,20 +96,26 @@ class SortBy extends Component<SortByProps> {
 
   getSortBySelector() {
     return (
-      <DropdownLink title={this.getCurrentSortLabel()} className="sorted-by">
-        {this.props.options.map(([value, label]) => {
-          const query = {...this.props.location.query, sortBy: value, cursor: ''};
-          return (
-            <MenuItem
-              isActive={this.props.value === value}
-              key={value}
-              to={{pathname: this.props.path, query}}
-            >
-              {label}
-            </MenuItem>
-          );
-        })}
-      </DropdownLink>
+      <div className="sort-options">
+        <CompactSelect
+          triggerLabel={this.getCurrentSortLabel()}
+          triggerProps={{
+            size: 'sm',
+            borderless: true,
+          }}
+          options={this.props.options.map(option => ({
+            value: option[0],
+            label: option[1],
+          }))}
+          onChange={({value}) => {
+            browserHistory.push({
+              pathname: this.props.path,
+              query: {...this.props.location.query, sortBy: value, cursor: undefined},
+            });
+          }}
+          value={this.props.value}
+        />
+      </div>
     );
   }
 
@@ -120,7 +126,7 @@ class SortBy extends Component<SortByProps> {
 
     return (
       <div className="sort-options">
-        Showing results sorted by
+        Showing results sorted by{' '}
         {this.props.options.length === 1 ? (
           <strong className="sorted-by">{this.getCurrentSortLabel()}</strong>
         ) : (
@@ -193,12 +199,12 @@ class ResultGrid extends Component<Props, State> {
     this.fetchData();
   }
 
-  UNSAFE_componentWillReceiveProps() {
-    const queryParams = this.query;
+  UNSAFE_componentWillReceiveProps(nextProps: Props) {
+    const queryParams = {...nextProps.location.query} as Record<string, string>;
     this.setState(
       {
         query: queryParams.query ?? '',
-        sortBy: queryParams.sortBy ?? this.props.defaultSort,
+        sortBy: queryParams.sortBy ?? this.props.defaultSort!,
         filters: {...queryParams},
         pageLinks: null,
         loading: true,
@@ -352,7 +358,7 @@ class ResultGrid extends Component<Props, State> {
             <Filter
               key={filterKey}
               queryKey={filterKey}
-              value={this.state.filters[filterKey]}
+              value={this.state.filters[filterKey]!}
               path={path ?? ''}
               location={location}
               {...(filters?.[filterKey] as FilterConfig)}

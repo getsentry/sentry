@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {Alert} from 'sentry/components/alert';
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -26,9 +25,10 @@ import {generateAggregateFields} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withPageFilters from 'sentry/utils/withPageFilters';
+import {TrendsHeader} from 'sentry/views/performance/trends/trendsHeader';
 import getSelectedQueryKey from 'sentry/views/performance/trends/utils/getSelectedQueryKey';
 
-import {getPerformanceLandingUrl, getTransactionSearchQuery} from '../utils';
+import {getTransactionSearchQuery} from '../utils';
 
 import ChangedTransactions from './changedTransactions';
 import type {TrendFunctionField, TrendView} from './types';
@@ -90,7 +90,7 @@ class TrendsContent extends Component<Props, State> {
   handleTrendFunctionChange = (field: string) => {
     const {organization, location} = this.props;
 
-    const offsets = {};
+    const offsets: Record<string, undefined> = {};
 
     Object.values(TrendChangeType).forEach(trendChangeType => {
       const queryKey = getSelectedQueryKey(trendChangeType);
@@ -166,26 +166,6 @@ class TrendsContent extends Component<Props, State> {
     return '';
   }
 
-  getPerformanceLink() {
-    const {location} = this.props;
-
-    const newQuery = {
-      ...location.query,
-    };
-    const query = decodeScalar(location.query.query, '');
-    const conditions = new MutableSearch(query);
-
-    // This stops errors from occurring when navigating to other views since we are appending aggregates to the trends view
-    conditions.removeFilter('tpm()');
-    conditions.removeFilter('confidence()');
-    conditions.removeFilter('transaction.duration');
-    newQuery.query = conditions.formatString();
-    return {
-      pathname: getPerformanceLandingUrl(this.props.organization),
-      query: newQuery,
-    };
-  }
-
   render() {
     const {organization, eventView, location, projects} = this.props;
     const {previousTrendFunction} = this.state;
@@ -235,22 +215,7 @@ class TrendsContent extends Component<Props, State> {
           datetime: defaultTrendsSelectionDate,
         }}
       >
-        <Layout.Header>
-          <Layout.HeaderContent>
-            <Breadcrumbs
-              crumbs={[
-                {
-                  label: 'Performance',
-                  to: this.getPerformanceLink(),
-                },
-                {
-                  label: 'Trends',
-                },
-              ]}
-            />
-            <Layout.Title>{t('Trends')}</Layout.Title>
-          </Layout.HeaderContent>
-        </Layout.Header>
+        <TrendsHeader />
         <Layout.Body>
           <Layout.Main fullWidth>
             <DefaultTrends location={location} eventView={eventView} projects={projects}>
@@ -265,7 +230,7 @@ class TrendsContent extends Component<Props, State> {
                     organization={organization}
                     eventView={trendView}
                     onSearch={this.handleSearch}
-                    query={this.getFreeTextFromQuery(query)}
+                    query={this.getFreeTextFromQuery(query)!}
                   />
                 ) : (
                   <StyledSearchBar

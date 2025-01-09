@@ -14,13 +14,15 @@ type TracePreferencesAction =
     }
   | {payload: number; type: 'set list width'}
   | {payload: boolean; type: 'minimize drawer'}
-  | {payload: boolean; type: 'set autogrouping'};
+  | {payload: boolean; type: 'set missing instrumentation'}
+  | {payload: boolean; type: 'set autogrouping'}
+  | {payload: number; type: 'set trace context height'};
 
 type TraceDrawerPreferences = {
   layoutOptions: TraceLayoutPreferences[];
   minimized: boolean;
   sizes: {
-    [key in TraceLayoutPreferences]: number;
+    [key in TraceLayoutPreferences | 'trace context height']: number;
   };
 };
 
@@ -34,12 +36,14 @@ export type TracePreferencesState = {
   list: {
     width: number;
   };
+  missing_instrumentation: boolean;
 };
 
 export const TRACE_DRAWER_DEFAULT_SIZES: TraceDrawerPreferences['sizes'] = {
   'drawer left': 0.33,
   'drawer right': 0.33,
   'drawer bottom': 0.5,
+  'trace context height': 150,
 };
 
 export const DEFAULT_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
@@ -49,6 +53,7 @@ export const DEFAULT_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
       'drawer left': 0.33,
       'drawer right': 0.33,
       'drawer bottom': 0.5,
+      'trace context height': 150,
     },
     layoutOptions: ['drawer left', 'drawer right', 'drawer bottom'],
   },
@@ -56,6 +61,7 @@ export const DEFAULT_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
     parent: true,
     sibling: true,
   },
+  missing_instrumentation: true,
   layout: 'drawer right',
   list: {
     width: 0.5,
@@ -118,6 +124,15 @@ function isValidAutogrouping(
   return true;
 }
 
+function isValidMissingInstrumentation(
+  state: TracePreferencesState
+): state is TracePreferencesState & {missing_instrumentation: undefined} {
+  if (typeof state.missing_instrumentation !== 'boolean') {
+    return false;
+  }
+  return true;
+}
+
 export function loadTraceViewPreferences(key: string): TracePreferencesState | null {
   const stored = localStorage.getItem(key);
 
@@ -132,6 +147,10 @@ export function loadTraceViewPreferences(key: string): TracePreferencesState | n
         // Correct old preferences that are missing autogrouping
         if (!isValidAutogrouping(parsed)) {
           parsed.autogroup = {...DEFAULT_TRACE_VIEW_PREFERENCES.autogroup};
+        }
+        if (!isValidMissingInstrumentation(parsed)) {
+          parsed.missing_instrumentation =
+            DEFAULT_TRACE_VIEW_PREFERENCES.missing_instrumentation;
         }
         return parsed;
       }
@@ -173,11 +192,27 @@ export function tracePreferencesReducer(
         autogroup: {sibling: action.payload, parent: action.payload},
       };
     }
+    case 'set missing instrumentation':
+      return {
+        ...state,
+        missing_instrumentation: action.payload,
+      };
     case 'set list width':
       return {
         ...state,
         list: {
           width: clamp(action.payload, 0.1, 0.9),
+        },
+      };
+    case 'set trace context height':
+      return {
+        ...state,
+        drawer: {
+          ...state.drawer,
+          sizes: {
+            ...state.drawer.sizes,
+            'trace context height': action.payload,
+          },
         },
       };
     default:

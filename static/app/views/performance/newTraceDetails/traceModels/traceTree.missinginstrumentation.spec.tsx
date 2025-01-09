@@ -9,7 +9,7 @@ import {isMissingInstrumentationNode} from './../traceGuards';
 import {TraceTree} from './traceTree';
 
 const start = new Date('2024-02-29T00:00:00Z').getTime() / 1e3;
-const traceMetadata = {replayRecord: null, meta: null};
+const traceMetadata = {replay: null, meta: null};
 
 const singleTransactionTrace = makeTrace({
   transactions: [
@@ -59,28 +59,24 @@ describe('missing instrumentation', () => {
   it('adds missing instrumentation between sibling spans', () => {
     const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
     TraceTree.FromSpans(
-      tree.root.children[0].children[0],
+      tree.root.children[0]!.children[0]!,
       missingInstrumentationSpans,
-      makeEventTransaction(),
-      {
-        sdk: undefined,
-      }
+      makeEventTransaction()
     );
 
+    TraceTree.DetectMissingInstrumentation(tree.root);
     expect(tree.build().serialize()).toMatchSnapshot();
   });
 
   it('adds missing instrumentation between children spans', () => {
     const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
     TraceTree.FromSpans(
-      tree.root.children[0].children[0],
+      tree.root.children[0]!.children[0]!,
       childrenMissingInstrumentationSpans,
-      makeEventTransaction(),
-      {
-        sdk: undefined,
-      }
+      makeEventTransaction()
     );
 
+    TraceTree.DetectMissingInstrumentation(tree.root);
     expect(tree.build().serialize()).toMatchSnapshot();
   });
 
@@ -97,7 +93,7 @@ describe('missing instrumentation', () => {
     );
 
     TraceTree.FromSpans(
-      tree.root.children[0].children[0],
+      tree.root.children[0]!.children[0]!,
       [
         makeSpan({
           op: 'http',
@@ -124,25 +120,46 @@ describe('missing instrumentation', () => {
           timestamp: start + 4,
         }),
       ],
-      makeEventTransaction(),
-      {
-        sdk: undefined,
-      }
+      makeEventTransaction()
     );
 
+    TraceTree.DetectMissingInstrumentation(tree.root);
+    expect(tree.build().serialize()).toMatchSnapshot();
+  });
+
+  it('removes missing instrumentation nodes', () => {
+    const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
+    TraceTree.FromSpans(
+      tree.root.children[0]!.children[0]!,
+      missingInstrumentationSpans,
+      makeEventTransaction()
+    );
+
+    const snapshot = tree.build().serialize();
+
+    TraceTree.DetectMissingInstrumentation(tree.root);
+
+    // Assert that missing instrumentation nodes exist
+    expect(
+      TraceTree.Find(tree.root, c => isMissingInstrumentationNode(c))
+    ).not.toBeNull();
+
+    // Remove it and assert that the tree is back to the original state
+    TraceTree.RemoveMissingInstrumentationNodes(tree.root);
+
+    expect(tree.build().serialize()).toEqual(snapshot);
     expect(tree.build().serialize()).toMatchSnapshot();
   });
 
   it('does not add missing instrumentation for browser SDKs', () => {
     const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
     TraceTree.FromSpans(
-      tree.root.children[0].children[0],
+      tree.root.children[0]!.children[0]!,
       missingInstrumentationSpans,
-      makeEventTransaction(),
-      {
-        sdk: 'sentry.javascript.browser',
-      }
+      makeEventTransaction({sdk: {name: 'sentry.javascript.browser', version: '1.0.0'}})
     );
+
+    TraceTree.DetectMissingInstrumentation(tree.root);
 
     expect(TraceTree.Find(tree.root, c => isMissingInstrumentationNode(c))).toBeNull();
     expect(tree.build().serialize()).toMatchSnapshot();
@@ -154,16 +171,13 @@ describe('missing instrumentation', () => {
   ])('idempotent - %s', (_type, setup) => {
     const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
     TraceTree.FromSpans(
-      tree.root.children[0].children[0],
+      tree.root.children[0]!.children[0]!,
       setup,
-      makeEventTransaction(),
-      {
-        sdk: undefined,
-      }
+      makeEventTransaction()
     );
 
+    TraceTree.DetectMissingInstrumentation(tree.root);
     const initial = tree.build().serialize();
-    TraceTree.DetectMissingInstrumentation(tree.root, 100, undefined);
     expect(tree.build().serialize()).toMatchSnapshot();
     expect(tree.build().serialize()).toEqual(initial);
   });

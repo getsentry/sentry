@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import ExternalLink from 'sentry/components/links/externalLink';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {Tooltip} from 'sentry/components/tooltip';
 import Truncate from 'sentry/components/truncate';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
@@ -18,8 +19,6 @@ import {isUrl} from 'sentry/utils/string/isUrl';
 import {FunctionName} from '../functionName';
 import GroupingIndicator from '../groupingIndicator';
 import {getPlatform, isDotnet, trimPackage} from '../utils';
-
-import OriginalSourceInfo from './originalSourceInfo';
 
 type Props = {
   frame: Frame;
@@ -194,17 +193,25 @@ function DefaultTitle({
     );
   }
 
-  if (defined(frame.origAbsPath)) {
+  if (defined(frame.origAbsPath) && (frame.mapUrl || frame.map)) {
+    const text = (frame.mapUrl ?? frame.map) as string;
     title.push(
-      <Tooltip
+      <StyledQuestionTooltip
         key="info-tooltip"
-        title={<OriginalSourceInfo mapUrl={frame.mapUrl} map={frame.map} />}
+        isHoverable
+        size="xs"
         delay={tooltipDelay}
-      >
-        <a className="in-at original-src">
-          <IconQuestion size="xs" />
-        </a>
-      </Tooltip>
+        overlayStyle={{maxWidth: 400, wordBreak: 'break-all'}}
+        skipWrapper
+        title={
+          <Fragment>
+            <div>
+              <strong>{t('Source Map')}</strong>
+            </div>
+            {text}
+          </Fragment>
+        }
+      />
     );
   }
 
@@ -230,4 +237,8 @@ const InFramePosition = styled('span')`
 
 const StyledGroupingIndicator = styled(GroupingIndicator)`
   margin-left: ${space(0.75)};
+`;
+
+const StyledQuestionTooltip = styled(QuestionTooltip)`
+  margin-left: ${space(0.5)};
 `;

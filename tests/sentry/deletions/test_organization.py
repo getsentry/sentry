@@ -316,6 +316,8 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin):
 
         alert_rule.refresh_from_db()
         assert AlertRule.objects.fetch_for_project(project).count() == 1
+        assert alert_rule.snuba_query is not None
+        assert alert_rule.snuba_query.environment is not None
         assert alert_rule.snuba_query.environment.id != environment.id
         assert (
             alert_rule.snuba_query.environment.name

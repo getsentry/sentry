@@ -4,6 +4,7 @@ This module demonstrates how funky condition visitors can become.  We're perform
 row-wise operations against a complex type and aggregating the result into a single integer before
 asking whether any row in the aggregation set contained a result.
 """
+
 from __future__ import annotations
 
 from snuba_sdk import Column, Condition, Function, Op

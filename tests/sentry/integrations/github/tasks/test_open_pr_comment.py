@@ -24,7 +24,7 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.pullrequest import CommentType, PullRequest, PullRequestComment
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import IntegrationTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
 from tests.sentry.integrations.github.tasks.test_pr_comment import GithubCommentTestCase
@@ -46,7 +46,7 @@ class CreateEventTestCase(TestCase):
         if culprit is None:
             culprit = "issue0"
         if timestamp is None:
-            timestamp = iso_format(before_now(seconds=5))
+            timestamp = before_now(seconds=5).isoformat()
         if filenames is None:
             filenames = ["foo.py", "baz.py"]
         if function_names is None:
@@ -529,7 +529,7 @@ class TestGetCommentIssues(CreateEventTestCase):
 
     def test_event_too_old(self):
         group_id = self._create_event(
-            timestamp=iso_format(before_now(days=15)), filenames=["bar.py", "baz.py"]
+            timestamp=before_now(days=15).isoformat(), filenames=["bar.py", "baz.py"]
         ).group.id
 
         top_5_issues = get_top_5_issues_by_count_for_file([self.project], ["baz.py"], ["world"])

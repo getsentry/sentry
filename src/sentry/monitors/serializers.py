@@ -10,6 +10,7 @@ from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializer
 from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.monitors.models import (
+    MONITOR_ENVIRONMENT_ORDERING,
     Monitor,
     MonitorCheckIn,
     MonitorEnvBrokenDetection,
@@ -198,7 +199,8 @@ class MonitorSerializer(Serializer):
 
         monitor_environments_qs = (
             MonitorEnvironment.objects.filter(monitor__in=item_list)
-            .order_by("-last_checkin")
+            .annotate(status_ordering=MONITOR_ENVIRONMENT_ORDERING)
+            .order_by("status_ordering", "-last_checkin", "environment_id")
             .exclude(
                 status__in=[MonitorStatus.PENDING_DELETION, MonitorStatus.DELETION_IN_PROGRESS]
             )
@@ -275,7 +277,6 @@ class MonitorCheckInSerializerResponse(MonitorCheckInSerializerResponseOptional)
     status: str
     duration: int
     dateCreated: datetime
-    attachmentId: str
     expectedTime: datetime
     monitorConfig: Any
 
@@ -337,7 +338,6 @@ class MonitorCheckInSerializer(Serializer):
             "status": obj.get_status_display(),
             "duration": obj.duration,
             "dateCreated": obj.date_added,
-            "attachmentId": obj.attachment_id,
             "expectedTime": obj.expected_time,
             "monitorConfig": obj.monitor_config or {},
         }

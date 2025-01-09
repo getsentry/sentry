@@ -1,26 +1,28 @@
 ---
-created: '2021-02-11T15:54:24.675584Z'
+created: '2024-12-17T22:46:36.331018+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
+  contributing component: null
   component:
     app (exception of system takes precedence)
       exception (ignored because hash matches system variant)
         type*
           "iOS_Swift.SampleError"
         value*
-          "Code=0 Description=The operation couldn\u2019t be completed. (iOS_Swift.SampleError error 0.)"
+          "Code=0 Description=The operation couldn’t be completed. (iOS_Swift.SampleError error 0.)"
       threads (ignored because contains 11 threads)
 --------------------------------------------------------------------------
 system:
   hash: "a4846fd651dcaae1c580fb24af561567"
+  contributing component: exception
   component:
     system*
       exception*
         type*
           "iOS_Swift.SampleError"
         value*
-          "Code=0 Description=The operation couldn\u2019t be completed. (iOS_Swift.SampleError error 0.)"
+          "Code=0 Description=The operation couldn’t be completed. (iOS_Swift.SampleError error 0.)"
       threads (ignored because contains 11 threads)

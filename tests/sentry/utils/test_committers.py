@@ -10,7 +10,6 @@ from django.utils import timezone
 from sentry.integrations.github.integration import GitHubIntegration
 from sentry.integrations.models.integration import Integration
 from sentry.models.commit import Commit
-from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.grouprelease import GroupRelease
@@ -19,7 +18,7 @@ from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils.committers import (
     _get_commit_file_changes,
@@ -48,20 +47,6 @@ class CommitTestCase(TestCase):
             key=uuid4().hex,
             author=author,
         )
-
-    def create_commit_with_author(self, user=None, commit=None):
-        if not user:
-            user = self.create_user(name="Sentry", email="sentry@sentry.io")
-
-        author = CommitAuthor.objects.create(
-            organization_id=self.organization.id,
-            name=user.name,
-            email=user.email,
-            external_id=user.id,
-        )
-        if not commit:
-            commit = self.create_commit(author)
-        return commit
 
     def create_commitfilechange(self, commit=None, filename=None, type=None):
         return CommitFileChange.objects.create(
@@ -689,7 +674,7 @@ class GetEventFileCommitters(CommitTestCase):
             data={
                 "message": "Kaboom!",
                 "platform": "python",
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "stacktrace": {
                     "frames": [
                         {
@@ -763,7 +748,7 @@ class GetEventFileCommitters(CommitTestCase):
             data={
                 "message": "Kaboom!",
                 "platform": "python",
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "stacktrace": {
                     "frames": frames,
                 },
@@ -807,7 +792,7 @@ class GetEventFileCommitters(CommitTestCase):
             data={
                 "message": "Kaboom!",
                 "platform": "python",
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "stacktrace": {
                     "frames": [
                         {
@@ -948,7 +933,7 @@ class GetEventFileCommitters(CommitTestCase):
     def test_no_commits(self):
         event = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "message": "Kaboom!",
                 "stacktrace": {
                     "frames": [
@@ -989,7 +974,7 @@ class GetEventFileCommitters(CommitTestCase):
             data={
                 "message": "Kaboom!",
                 "platform": "python",
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "stacktrace": {
                     "frames": [
                         {

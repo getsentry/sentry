@@ -1,0 +1,73 @@
+---
+created: '2024-12-17T22:50:27.905648+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+hashing_metadata: {
+  "num_stacktraces": 1,
+  "stacktrace_location": "exception",
+  "stacktrace_type": "in_app"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "stacktrace",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.stacktrace": {
+    "chained_exception": "False",
+    "stacktrace_location": "exception",
+    "stacktrace_type": "in_app"
+  }
+}
+---
+contributing variants:
+  app*
+    hash: "4ef1fb44d656c3be2a146971f2a222dc"
+    contributing component: exception
+    component:
+      app*
+        exception*
+          stacktrace*
+            frame*
+              function*
+                "stripped_application_code"
+            frame*
+              function*
+                "stripped_application_code"
+            frame*
+              function*
+                "stripped_application_code"
+          type*
+            "<redacted>"
+          ns-error*
+            "<redacted>"
+            2
+  system*
+    hash: "47481871aa8d5ab5729cf2db78ce3032"
+    contributing component: exception
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              function*
+                "-[UIApplication _run]"
+            frame*
+              function*
+                "stripped_application_code"
+            frame*
+              function*
+                "stripped_application_code"
+            frame*
+              function*
+                "stripped_application_code"
+            frame*
+              function*
+                "stripped_application_code"
+          type*
+            "<redacted>"
+          ns-error*
+            "<redacted>"
+            2

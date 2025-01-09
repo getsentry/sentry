@@ -17,7 +17,7 @@ import type {OnboardingTask, OnboardingTaskKey} from 'sentry/types/onboarding';
 import type {Organization} from 'sentry/types/organization';
 import type {AvatarUser} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {isDemoWalkthrough} from 'sentry/utils/demoMode';
+import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 import testableTransition from 'sentry/utils/testableTransition';
 import useRouter from 'sentry/utils/useRouter';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -35,6 +35,7 @@ const recordAnalytics = (
     todo_id: task.task,
     todo_title: task.title,
     action,
+    new_experience: false,
   });
 
 type Props = {
@@ -70,7 +71,7 @@ function Task(props: Props) {
     recordAnalytics(task, organization, 'clickthrough');
     e.stopPropagation();
 
-    if (isDemoWalkthrough()) {
+    if (isDemoModeEnabled()) {
       DemoWalkthroughStore.activateGuideAnchor(task.task);
     }
 
@@ -127,7 +128,7 @@ function Task(props: Props) {
     <Tooltip
       containerDisplayMode="block"
       title={tct('[requisite] before completing this task', {
-        requisite: task.requisiteTasks[0].title,
+        requisite: task.requisiteTasks[0]!.title,
       })}
     >
       <IconLock color="pink400" locked />

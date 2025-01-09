@@ -1,5 +1,6 @@
 from collections import namedtuple
 from functools import cached_property
+from unittest.mock import patch
 from urllib.parse import parse_qs, parse_qsl, urlparse
 
 import responses
@@ -10,6 +11,8 @@ import sentry.identity
 from sentry.identity.oauth2 import OAuth2CallbackView, OAuth2LoginView
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.identity.providers.dummy import DummyProvider
+from sentry.integrations.types import EventLifecycleOutcome
+from sentry.testutils.asserts import assert_failure_metric, assert_slo_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -17,6 +20,8 @@ MockResponse = namedtuple("MockResponse", ["headers", "content"])
 
 
 @control_silo_test
+@patch("sentry.integrations.base.INTEGRATION_PROVIDER_TO_TYPE", return_value={"dummy": "dummy"})
+@patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
 class OAuth2CallbackViewTest(TestCase):
     def setUp(self):
         sentry.identity.register(DummyProvider)
@@ -37,7 +42,11 @@ class OAuth2CallbackViewTest(TestCase):
         )
 
     @responses.activate
-    def test_exchange_token_success(self):
+    def test_exchange_token_success(
+        self,
+        mock_record,
+        mock_integration_const,
+    ):
         responses.add(
             responses.POST, "https://example.org/oauth/token", json={"token": "a-fake-token"}
         )
@@ -59,8 +68,10 @@ class OAuth2CallbackViewTest(TestCase):
             "redirect_uri": "http://testserver/extensions/default/setup/",
         }
 
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
+
     @responses.activate
-    def test_exchange_token_success_customer_domains(self):
+    def test_exchange_token_success_customer_domains(self, mock_record, mock_integration_const):
         responses.add(
             responses.POST, "https://example.org/oauth/token", json={"token": "a-fake-token"}
         )
@@ -82,8 +93,10 @@ class OAuth2CallbackViewTest(TestCase):
             "redirect_uri": "http://testserver/extensions/default/setup/",
         }
 
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
+
     @responses.activate
-    def test_exchange_token_ssl_error(self):
+    def test_exchange_token_ssl_error(self, mock_record, mock_integration_const):
         def ssl_error(request):
             raise SSLError("Could not build connection")
 
@@ -98,8 +111,10 @@ class OAuth2CallbackViewTest(TestCase):
         assert "error_description" in result
         assert "SSL" in result["error_description"]
 
+        assert_failure_metric(mock_record, "ssl_error")
+
     @responses.activate
-    def test_connection_error(self):
+    def test_connection_error(self, mock_record, mock_integration_const):
         def connection_error(request):
             raise ConnectionError("Name or service not known")
 
@@ -114,8 +129,10 @@ class OAuth2CallbackViewTest(TestCase):
         assert "connect" in result["error"]
         assert "error_description" in result
 
+        assert_failure_metric(mock_record, "connection_error")
+
     @responses.activate
-    def test_exchange_token_no_json(self):
+    def test_exchange_token_no_json(self, mock_record, mock_integration_const):
         responses.add(responses.POST, "https://example.org/oauth/token", body="")
         pipeline = IdentityProviderPipeline(request=self.request, provider_key="dummy")
         code = "auth-code"
@@ -124,6 +141,8 @@ class OAuth2CallbackViewTest(TestCase):
         assert "error" in result
         assert "error_description" in result
         assert "JSON" in result["error_description"]
+
+        assert_failure_metric(mock_record, "json_error")
 
 
 @control_silo_test

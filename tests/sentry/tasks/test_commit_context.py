@@ -12,10 +12,13 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.source_code_management.commit_context import (
+    CommitContextIntegration,
     CommitInfo,
     FileBlameInfo,
     SourceLineInfo,
 )
+from sentry.integrations.source_code_management.metrics import CommitContextHaltReason
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
@@ -29,13 +32,10 @@ from sentry.models.pullrequest import (
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
-from sentry.tasks.commit_context import (
-    PR_COMMENT_WINDOW,
-    process_commit_context,
-    queue_comment_task_if_needed,
-)
+from sentry.tasks.commit_context import PR_COMMENT_WINDOW, process_commit_context
+from sentry.testutils.asserts import assert_halt_metric
 from sentry.testutils.cases import IntegrationTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.committers import get_frame_paths
@@ -73,7 +73,7 @@ class TestCommitContextIntegration(TestCase):
             data={
                 "message": "Kaboom!",
                 "platform": "python",
-                "timestamp": iso_format(before_now(seconds=10)),
+                "timestamp": before_now(seconds=10).isoformat(),
                 "stacktrace": {
                     "frames": [
                         {
@@ -423,7 +423,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             data={
                 "message": "Kaboom!",
                 "platform": "python",
-                "timestamp": iso_format(before_now(seconds=10)),
+                "timestamp": before_now(seconds=10).isoformat(),
                 "stacktrace": {
                     "frames": [
                         {
@@ -1186,9 +1186,12 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
             assert not mock_comment_workflow.called
             assert len(PullRequestCommit.objects.all()) == 0
 
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_gh_comment_debounces(self, get_jwt, mock_comment_workflow, mock_get_commit_context):
+    def test_gh_comment_debounces(
+        self, get_jwt, mock_record, mock_comment_workflow, mock_get_commit_context
+    ):
         mock_get_commit_context.return_value = [self.blame]
         self.add_responses()
         assert not GroupOwner.objects.filter(group=self.event.group).exists()
@@ -1209,20 +1212,35 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
         assert integration
 
         install = integration.get_installation(organization_id=self.code_mapping.organization_id)
+        assert isinstance(install, CommitContextIntegration)
 
         with self.tasks():
-            queue_comment_task_if_needed(
-                commit=self.commit, group_owner=groupowner, repo=self.repo, installation=install
+            install.queue_comment_task_if_needed(
+                project=self.project,
+                commit=self.commit,
+                group_owner=groupowner,
+                group_id=self.event.group_id,
             )
-            queue_comment_task_if_needed(
-                commit=self.commit, group_owner=groupowner, repo=self.repo, installation=install
+            install.queue_comment_task_if_needed(
+                project=self.project,
+                commit=self.commit,
+                group_owner=groupowner,
+                group_id=self.event.group_id,
             )
             assert mock_comment_workflow.call_count == 1
 
+        start_1, success_1, start_2, halt_2 = mock_record.mock_calls
+        assert start_1.args[0] == EventLifecycleOutcome.STARTED
+        assert success_1.args[0] == EventLifecycleOutcome.SUCCESS
+        assert start_2.args[0] == EventLifecycleOutcome.STARTED
+        assert halt_2.args[0] == EventLifecycleOutcome.HALTED
+        assert_halt_metric(mock_record, CommitContextHaltReason.ALREADY_QUEUED)
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_gh_comment_multiple_comments(
-        self, get_jwt, mock_comment_workflow, mock_get_commit_context
+        self, get_jwt, mock_record, mock_comment_workflow, mock_get_commit_context
     ):
         self.add_responses()
 
@@ -1244,6 +1262,7 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
         assert integration
 
         install = integration.get_installation(organization_id=self.code_mapping.organization_id)
+        assert isinstance(install, CommitContextIntegration)
 
         # open PR comment
         PullRequestComment.objects.create(
@@ -1256,10 +1275,23 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
         )
 
         with self.tasks():
-            queue_comment_task_if_needed(
-                commit=self.commit, group_owner=groupowner, repo=self.repo, installation=install
+            install.queue_comment_task_if_needed(
+                project=self.project,
+                commit=self.commit,
+                group_owner=groupowner,
+                group_id=self.event.group_id,
             )
-            queue_comment_task_if_needed(
-                commit=self.commit, group_owner=groupowner, repo=self.repo, installation=install
+            install.queue_comment_task_if_needed(
+                project=self.project,
+                commit=self.commit,
+                group_owner=groupowner,
+                group_id=self.event.group_id,
             )
             assert mock_comment_workflow.call_count == 1
+
+        start_1, success_1, start_2, halt_2 = mock_record.mock_calls
+        assert start_1.args[0] == EventLifecycleOutcome.STARTED
+        assert success_1.args[0] == EventLifecycleOutcome.SUCCESS
+        assert start_2.args[0] == EventLifecycleOutcome.STARTED
+        assert halt_2.args[0] == EventLifecycleOutcome.HALTED
+        assert_halt_metric(mock_record, CommitContextHaltReason.ALREADY_QUEUED)

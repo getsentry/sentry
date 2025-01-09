@@ -1,11 +1,13 @@
 import re
 from collections.abc import Sequence
 
+import sentry_sdk
 from django.db.models import Count, Max, QuerySet
 from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 from rest_framework.serializers import ListField
 
+from sentry import features
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.utils import get_date_range_from_params
 from sentry.constants import ALL_ACCESS_PROJECTS
@@ -16,9 +18,12 @@ from sentry.discover.models import (
     TeamKeyTransaction,
 )
 from sentry.exceptions import InvalidParams, InvalidSearchQuery
+from sentry.models.organization import Organization
 from sentry.models.team import Team
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
+from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
+from sentry.users.models import User
 from sentry.utils.dates import parse_stats_period, validate_interval
 from sentry.utils.snuba import SENTRY_SNUBA_MAP
 
@@ -159,8 +164,11 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
     )
     queryDataset = serializers.ChoiceField(
         choices=DiscoverSavedQueryTypes.as_text_choices(),
-        default=DiscoverSavedQueryTypes.get_type_name(DiscoverSavedQueryTypes.DISCOVER),
-        help_text="The dataset you would like to query.",
+        default=DiscoverSavedQueryTypes.get_type_name(DiscoverSavedQueryTypes.ERROR_EVENTS),
+        help_text="""The dataset you would like to query. Allowed values are:
+- error-events
+- transaction-like
+""",
     )
     start = serializers.DateTimeField(
         required=False, allow_null=True, help_text="The saved start time for this saved query."
@@ -253,10 +261,57 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
         2: {"groupby", "rollup", "aggregations", "conditions", "limit"},
     }
 
+    def get_metrics_features(
+        self, organization: Organization | None, user: User | None
+    ) -> dict[str, bool | None]:
+        if organization is None or user is None:
+            return {}
+
+        feature_names = [
+            "organizations:mep-rollout-flag",
+            "organizations:dynamic-sampling",
+            "organizations:performance-use-metrics",
+            "organizations:dashboards-mep",
+        ]
+        batch_features = features.batch_has(
+            feature_names,
+            organization=organization,
+            actor=user,
+        )
+
+        return (
+            batch_features.get(f"organization:{organization.id}", {})
+            if batch_features is not None
+            else {
+                feature_name: features.has(feature_name, organization=organization, actor=user)
+                for feature_name in feature_names
+            }
+        )
+
     def validate_projects(self, projects):
         from sentry.api.validators import validate_project_ids
 
         return validate_project_ids(projects, self.context["params"]["project_id"])
+
+    def validate_queryDataset(self, value):
+        dataset = DiscoverSavedQueryTypes.get_id_for_type_name(value)
+        if dataset == DiscoverSavedQueryTypes.DISCOVER or dataset is None:
+            sentry_sdk.set_context(
+                "discover",
+                {
+                    "org_slug": self.context["organization"].slug,
+                },
+            )
+            sentry_sdk.capture_message("Created or updated saved query with discover dataset.")
+            if features.has(
+                "organizations:deprecate-discover-widget-type",
+                self.context["organization"],
+                actor=self.context["user"],
+            ):
+                raise serializers.ValidationError(
+                    "Attribute value `discover` is deprecated. Please use `error-events` or `transaction-like`"
+                )
+        return dataset
 
     def validate(self, data):
         query = {}
@@ -305,6 +360,18 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
                     0,
                 )
             try:
+                batch_features = self.get_metrics_features(
+                    self.context.get("organization"), self.context.get("user")
+                )
+                use_metrics = bool(
+                    (
+                        batch_features.get("organizations:mep-rollout-flag", False)
+                        and batch_features.get("organizations:dynamic-sampling", False)
+                    )
+                    or batch_features.get("organizations:performance-use-metrics", False)
+                    or batch_features.get("organizations:dashboards-mep", False)
+                )
+
                 equations, columns = categorize_columns(query["fields"])
                 builder = DiscoverQueryBuilder(
                     dataset=Dataset.Discover,
@@ -313,19 +380,18 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
                     selected_columns=columns,
                     equations=equations,
                     orderby=query.get("orderby"),
+                    config=QueryBuilderConfig(has_metrics=use_metrics),
                 )
                 builder.get_snql_query().validate()
             except (InvalidSearchQuery, ArithmeticError) as err:
                 raise serializers.ValidationError(f"Cannot save invalid query: {err}")
-
-        dataset = DiscoverSavedQueryTypes.get_id_for_type_name(data["queryDataset"])
 
         return {
             "name": data["name"],
             "project_ids": data["projects"],
             "query": query,
             "version": version,
-            "query_dataset": dataset,
+            "query_dataset": data["queryDataset"],
         }
 
     def validate_version_fields(self, version, query):

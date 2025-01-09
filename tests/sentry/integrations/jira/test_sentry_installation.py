@@ -3,7 +3,7 @@ from unittest.mock import patch
 from jwt import ExpiredSignatureError
 
 from sentry.integrations.jira.views import UNABLE_TO_VERIFY_INSTALLATION
-from sentry.integrations.utils import AtlassianConnectValidationError
+from sentry.integrations.utils.atlassian_connect import AtlassianConnectValidationError
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils.http import absolute_uri

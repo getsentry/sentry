@@ -6,7 +6,6 @@ from django.utils import timezone
 from sentry.models.userreport import UserReport
 from sentry.tasks.update_user_reports import update_user_reports
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.datetime import iso_format
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.dates import epoch
 
@@ -19,7 +18,7 @@ class UpdateUserReportTest(TestCase):
     ):
         event_dt = event_dt or timezone.now()
         report_dt = report_dt or timezone.now()
-        event = self.store_event(data={"timestamp": iso_format(event_dt)}, project_id=project_id)
+        event = self.store_event(data={"timestamp": event_dt.isoformat()}, project_id=project_id)
         report = UserReport.objects.create(
             project_id=project_id, event_id=event.event_id, date_added=report_dt
         )

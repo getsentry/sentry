@@ -15,9 +15,12 @@ jest.mock('sentry/utils/useProjects');
 jest.mock('sentry/views/insights/common/queries/useOnboardingProject');
 
 describe('HTTPLandingPage', function () {
-  const organization = OrganizationFixture();
+  const organization = OrganizationFixture({
+    features: ['insights-initial-modules', 'insights-entry-points'],
+  });
 
-  let spanListRequestMock, spanChartsRequestMock;
+  let spanListRequestMock!: jest.Mock;
+  let spanChartsRequestMock!: jest.Mock;
 
   jest.mocked(useOnboardingProject).mockReturnValue(undefined);
 
@@ -39,7 +42,7 @@ describe('HTTPLandingPage', function () {
   });
 
   jest.mocked(useLocation).mockReturnValue({
-    pathname: '',
+    pathname: '/insights/backend/http/',
     search: '',
     query: {statsPeriod: '10d', 'span.domain': 'git', project: '1'},
     hash: '',
@@ -280,9 +283,10 @@ describe('HTTPLandingPage', function () {
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
-    expect(screen.getByRole('heading', {level: 1})).toHaveTextContent(
-      'Outbound API Requests'
-    );
+    expect(screen.getByRole('heading', {level: 1})).toHaveTextContent('Backend');
+    const tab = screen.getByRole('tab', {name: 'Outbound API Requests'});
+    expect(tab).toBeInTheDocument();
+    expect(tab).toHaveAttribute('aria-selected', 'true');
 
     expect(screen.getByRole('table', {name: 'Domains'})).toBeInTheDocument();
 
@@ -300,13 +304,14 @@ describe('HTTPLandingPage', function () {
     expect(screen.getByRole('cell', {name: '*.sentry.io'})).toBeInTheDocument();
     expect(screen.getByRole('link', {name: '*.sentry.io'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/insights/http/domains/?domain=%2A.sentry.io&project=1&statsPeriod=10d'
+      '/organizations/org-slug/insights/backend/http/domains/?domain=%2A.sentry.io&project=1&statsPeriod=10d'
     );
-    expect(screen.getByRole('cell', {name: 'backend'})).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'backend'})).toHaveAttribute(
-      'href',
-      '/organizations/org-slug/projects/backend/?project=1'
-    );
+    expect(
+      screen.getAllByRole('cell', {name: 'View Project Details'})[0]
+    ).toBeInTheDocument();
+    expect(
+      screen.getAllByRole('link', {name: 'View Project Details'})[0]
+    ).toHaveAttribute('href', '/organizations/org-slug/projects/backend/?project=1');
     expect(screen.getByRole('cell', {name: '40.8K/s'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: '0.04%'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: '39.32%'})).toBeInTheDocument();

@@ -1,7 +1,7 @@
 import {cloneElement, Fragment, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
@@ -39,6 +39,7 @@ type Props = {
   hideIcon?: boolean;
   hideSourceMapDebugger?: boolean;
   isHoverPreviewed?: boolean;
+  isStackTracePreview?: boolean;
   lockAddress?: string;
   maxDepth?: number;
   mechanism?: StackTraceMechanism | null;
@@ -83,9 +84,9 @@ function Content({
   }
 
   function setInitialFrameMap(): {[frameIndex: number]: boolean} {
-    const indexMap = {};
+    const indexMap: Record<string, boolean> = {};
     (data.frames ?? []).forEach((frame, frameIdx) => {
-      const nextFrame = (data.frames ?? [])[frameIdx + 1];
+      const nextFrame = (data.frames ?? [])[frameIdx + 1]!;
       const repeatedFrame = isRepeatedFrame(frame, nextFrame);
       if (frameIsVisible(frame, nextFrame) && !repeatedFrame && !frame.inApp) {
         indexMap[frameIdx] = false;
@@ -96,9 +97,9 @@ function Content({
 
   function getInitialFrameCounts(): {[frameIndex: number]: number} {
     let count = 0;
-    const countMap = {};
+    const countMap: Record<string, number> = {};
     (data.frames ?? []).forEach((frame, frameIdx) => {
-      const nextFrame = (data.frames ?? [])[frameIdx + 1];
+      const nextFrame = (data.frames ?? [])[frameIdx + 1]!;
       const repeatedFrame = isRepeatedFrame(frame, nextFrame);
       if (frameIsVisible(frame, nextFrame) && !repeatedFrame && !frame.inApp) {
         countMap[frameIdx] = count;
@@ -117,8 +118,8 @@ function Content({
       return false;
     }
 
-    const lastFrame = frames[frames.length - 1];
-    const penultimateFrame = frames[frames.length - 2];
+    const lastFrame = frames[frames.length - 1]!;
+    const penultimateFrame = frames[frames.length - 2]!;
 
     return penultimateFrame.inApp && !lastFrame.inApp;
   }
@@ -204,7 +205,7 @@ function Content({
   let convertedFrames = frames
     .map((frame, frameIndex) => {
       const prevFrame = frames[frameIndex - 1];
-      const nextFrame = frames[frameIndex + 1];
+      const nextFrame = frames[frameIndex + 1]!;
       const repeatedFrame = isRepeatedFrame(frame, nextFrame);
 
       if (repeatedFrame) {
@@ -283,7 +284,7 @@ function Content({
 
   if (convertedFrames.length > 0 && registers) {
     const lastFrame = convertedFrames.length - 1;
-    convertedFrames[lastFrame] = cloneElement(convertedFrames[lastFrame], {
+    convertedFrames[lastFrame] = cloneElement(convertedFrames[lastFrame]!, {
       registers,
     });
   }
@@ -300,16 +301,15 @@ function Content({
 
   return (
     <Wrapper>
-      {!hideIcon && <StacktracePlatformIcon platform={platformIcon} />}
+      {hideIcon ? null : <StacktracePlatformIcon platform={platformIcon} />}
       <StackTraceContentPanel
         className={wrapperClassName}
         data-test-id="stack-trace-content"
+        hideIcon={hideIcon}
       >
-        <GuideAnchor target="stack_trace">
-          <StyledList data-test-id="frames">
-            {!newestFirst ? convertedFrames : [...convertedFrames].reverse()}
-          </StyledList>
-        </GuideAnchor>
+        <StyledList data-test-id="frames">
+          {!newestFirst ? convertedFrames : [...convertedFrames].reverse()}
+        </StyledList>
       </StackTraceContentPanel>
     </Wrapper>
   );
@@ -319,10 +319,18 @@ const Wrapper = styled('div')`
   position: relative;
 `;
 
-export const StackTraceContentPanel = styled(Panel)`
+export const StackTraceContentPanel = styled(Panel)<{hideIcon?: boolean}>`
   position: relative;
-  border-top-left-radius: 0;
   overflow: hidden;
+
+  ${p =>
+    !p.hideIcon &&
+    css`
+      border-top-left-radius: 0;
+      @media (max-width: ${p.theme.breakpoints.medium}) {
+        border-top-left-radius: ${p.theme.borderRadius};
+      }
+    `}
 `;
 
 const StyledList = styled('ul')`

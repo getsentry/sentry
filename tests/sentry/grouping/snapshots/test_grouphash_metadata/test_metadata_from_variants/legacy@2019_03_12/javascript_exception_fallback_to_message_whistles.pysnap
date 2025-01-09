@@ -1,0 +1,33 @@
+---
+created: '2024-12-17T22:50:03.181974+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: message
+hashing_metadata: {
+  "message_parameterized": false,
+  "message_source": "exception"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "message",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.message": {
+    "message_parameterized": "False",
+    "message_source": "exception"
+  }
+}
+---
+contributing variants:
+  system*
+    hash: "6de7447e45ffb49fd4fa5728aebdd488"
+    contributing component: exception
+    component:
+      system*
+        exception*
+          type*
+            "Error"
+          value*
+            "Wed Apr 17 22:31:45 2019: foobar.bazblafasel@example.invalid logged in (error 42) time spent 1234.33 --- correlation id 88ee7c66-29a9-4a4a-bc26-c72d76c5de14, checksum da39a3ee5e6b4b0d3255bfef95601890afd80709 (md5 d41d8cd98f00b204e9800998ecf8427e); payload timestamp 2019-04-17T20:29:05Z (submitted from 127.0.0.1 via 2001:0db8:85a3:0000:0000:8a2e:0370:7334 via ::1) at offset 0xfeedbeef"

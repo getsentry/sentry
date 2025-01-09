@@ -27,6 +27,7 @@ import {
   getReplayConfigureDescription,
   getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
+import {featureFlagOnboarding} from 'sentry/gettingStartedDocs/javascript/javascript';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -100,7 +101,7 @@ export default app;
 
 const getVerifySnippet = () => `
 // SomeComponent.svelte
-<button type="button" on:click="{unknownFunction}">
+<button type="button" on:click="{() => {throw new Error("This is your first error!");}}">
   Break the world
 </button>`;
 
@@ -306,12 +307,19 @@ const crashReportOnboarding: OnboardingConfig = {
   nextSteps: () => [],
 };
 
+const profilingOnboarding: OnboardingConfig = {
+  ...onboarding,
+  introduction: params => <MaybeBrowserProfilingBetaWarning {...params} />,
+};
+
 const docs: Docs = {
   onboarding,
   feedbackOnboardingNpm: feedbackOnboarding,
   replayOnboarding,
   customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
   crashReportOnboarding,
+  profilingOnboarding,
+  featureFlagOnboarding,
 };
 
 export default docs;

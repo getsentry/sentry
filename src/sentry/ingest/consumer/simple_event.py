@@ -14,7 +14,10 @@ logger = logging.getLogger(__name__)
 
 
 def process_simple_event_message(
-    raw_message: Message[KafkaPayload], consumer_type: str, reprocess_only_stuck_events: bool
+    raw_message: Message[KafkaPayload],
+    consumer_type: str,
+    reprocess_only_stuck_events: bool,
+    no_celery_mode: bool = False,
 ) -> None:
     """
     Processes a single Kafka Message containing a "simple" Event payload.
@@ -28,6 +31,8 @@ def process_simple_event_message(
     - Store the JSON payload in the event processing store, and pass it on to
       `preprocess_event`, which will schedule a followup task such as
       `symbolicate_event` or `process_event`.
+
+    No celery mode only applies to the transactions consumer.
     """
 
     raw_payload = raw_message.payload.value
@@ -51,10 +56,15 @@ def process_simple_event_message(
             with metrics.timer("ingest_consumer.fetch_project"):
                 project = Project.objects.get_from_cache(id=project_id)
         except Project.DoesNotExist:
-            logger.exception("Project for ingested event does not exist: %s", project_id)
             return
 
-        return process_event(message, project, reprocess_only_stuck_events)
+        return process_event(
+            consumer_type,
+            message,
+            project,
+            reprocess_only_stuck_events,
+            no_celery_mode,
+        )
 
     except Exception as exc:
         # If the retriable exception was raised, we should not DLQ

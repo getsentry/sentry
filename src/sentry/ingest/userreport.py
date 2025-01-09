@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from datetime import timedelta
 
+import sentry_sdk
 from django.db import IntegrityError, router
 from django.utils import timezone
 
@@ -38,6 +39,28 @@ def save_userreport(
             return
         if should_filter_user_report(report["comments"]):
             return
+
+        max_comment_length = UserReport._meta.get_field("comments").max_length
+        if max_comment_length and len(report["comments"]) > max_comment_length:
+            metrics.distribution(
+                "feedback.large_message",
+                len(report["comments"]),
+                tags={
+                    "entrypoint": "save_userreport",
+                    "referrer": source.value,
+                },
+            )
+            logger.info(
+                "Feedback message exceeds max size.",
+                extra={
+                    "project_id": project.id,
+                    "entrypoint": "save_userreport",
+                    "referrer": source.value,
+                },
+            )
+            # Sentry will capture `feedback_message` in local variables (truncated).
+            sentry_sdk.capture_message("Feedback message exceeds max size.", "warning")
+            report["comments"] = report["comments"][:max_comment_length]
 
         if start_time is None:
             start_time = timezone.now()
@@ -87,7 +110,6 @@ def save_userreport(
                 name=report.get("name", ""),
                 email=report["email"],
                 comments=report["comments"],
-                date_added=timezone.now(),
             )
             report_instance = existing_report
 

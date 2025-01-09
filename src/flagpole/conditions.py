@@ -20,7 +20,7 @@ class ConditionOperatorKind(str, Enum):
     """Provided a single value, check if the property (a list) is not included"""
 
     EQUALS = "equals"
-    """Comprare a value to another. Values are compared with types"""
+    """Compare a value to another. Values are compared with types"""
 
     NOT_EQUALS = "not_equals"
     """Compare a value to not be equal to another. Values are compared with types"""

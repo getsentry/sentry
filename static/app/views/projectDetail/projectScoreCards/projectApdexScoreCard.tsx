@@ -13,6 +13,8 @@ import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
 
 import MissingPerformanceButtons from '../missingFeatureButtons/missingPerformanceButtons';
 
+import {ActionWrapper} from './actionWrapper';
+
 type Props = {
   isProjectStabilized: boolean;
   organization: Organization;
@@ -59,7 +61,7 @@ const useApdex = (props: Props) => {
         },
       },
     ],
-    {staleTime: 0, enabled: isEnabled}
+    {staleTime: Infinity, enabled: isEnabled}
   );
 
   const isPreviousPeriodEnabled = shouldFetchPreviousPeriod({
@@ -80,7 +82,7 @@ const useApdex = (props: Props) => {
       },
     ],
     {
-      staleTime: 0,
+      staleTime: Infinity,
       enabled: isEnabled && isPreviousPeriodEnabled,
     }
   );
@@ -114,7 +116,9 @@ function ProjectApdexScoreCard(props: Props) {
   if (!hasTransactions || !organization.features.includes('performance-view')) {
     return (
       <WidgetFrame title={cardTitle} description={cardHelp}>
-        <MissingPerformanceButtons organization={organization} />
+        <ActionWrapper>
+          <MissingPerformanceButtons organization={organization} />
+        </ActionWrapper>
       </WidgetFrame>
     );
   }
@@ -123,16 +127,9 @@ function ProjectApdexScoreCard(props: Props) {
     <BigNumberWidget
       title={cardTitle}
       description={cardHelp}
-      data={[
-        {
-          'apdex()': apdex,
-        },
-      ]}
-      previousPeriodData={[
-        {
-          'apdex()': previousApdex,
-        },
-      ]}
+      value={apdex}
+      previousPeriodValue={previousApdex}
+      field="apdex()"
       meta={{
         fields: {
           'apdex()': 'number',

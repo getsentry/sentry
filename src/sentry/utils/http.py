@@ -5,7 +5,6 @@ from urllib.parse import quote, urljoin, urlparse
 
 from django.conf import settings
 from django.http import HttpRequest
-from rest_framework.request import Request
 
 from sentry import options
 
@@ -37,19 +36,17 @@ def query_string(request: HttpRequest) -> str:
     return qs
 
 
-def create_redirect_url(request: Request, redirect_url: str) -> str:
+def create_redirect_url(request: HttpRequest, redirect_url: str) -> str:
     qs = query_string(request)
     return f"{redirect_url}{qs}"
 
 
 @overload
-def origin_from_url(url: str) -> str:
-    ...
+def origin_from_url(url: str) -> str: ...
 
 
 @overload
-def origin_from_url(url: None) -> None:
-    ...
+def origin_from_url(url: None) -> None: ...
 
 
 def origin_from_url(url: str | None) -> str | None:

@@ -5,14 +5,12 @@ import hmac
 import logging
 from hashlib import sha256
 
-from django.http import HttpResponse
-from rest_framework.request import Request
+from django.http import HttpRequest, HttpResponse
 
 from sentry.integrations.base import FeatureDescription, IntegrationFeatures
 from sentry.models.apikey import ApiKey
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.repository import Repository
-from sentry.plugins.base.configuration import react_plugin_config
 from sentry.plugins.bases.releasetracking import ReleaseTrackingPlugin
 from sentry.plugins.interfaces.releasehook import ReleaseHook
 from sentry.users.services.user.service import user_service
@@ -51,7 +49,7 @@ class HerokuReleaseHook(ReleaseHook):
 
         return hmac.compare_digest(heroku_hmac, computed_hmac)
 
-    def handle(self, request: Request) -> HttpResponse | None:
+    def handle(self, request: HttpRequest) -> HttpResponse | None:
         heroku_hmac = request.headers.get("Heroku-Webhook-Hmac-SHA256")
 
         if not self.is_valid_signature(request.body.decode("utf-8"), heroku_hmac):
@@ -152,9 +150,6 @@ class HerokuPlugin(CorePluginMixin, ReleaseTrackingPlugin):
             IntegrationFeatures.DEPLOYMENT,
         )
     ]
-
-    def configure(self, project, request):
-        return react_plugin_config(self, project, request)
 
     def can_enable_for_projects(self):
         return True

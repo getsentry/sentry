@@ -1,3 +1,4 @@
+import {openHelpSearchModal} from 'sentry/actionCreators/modal';
 import type {NavConfig} from 'sentry/components/nav/utils';
 import {
   IconDashboard,
@@ -5,16 +6,32 @@ import {
   IconIssues,
   IconLightning,
   IconProject,
+  IconQuestion,
   IconSearch,
   IconSettings,
   IconSiren,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
-import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
-import {MODULE_SIDEBAR_TITLE as MODULE_TITLE_HTTP} from 'sentry/views/insights/http/settings';
-import {INSIGHTS_BASE_URL, MODULE_TITLES} from 'sentry/views/insights/settings';
+import {
+  AI_LANDING_SUB_PATH,
+  AI_SIDEBAR_LABEL,
+} from 'sentry/views/insights/pages/ai/settings';
+import {
+  BACKEND_LANDING_SUB_PATH,
+  BACKEND_SIDEBAR_LABEL,
+} from 'sentry/views/insights/pages/backend/settings';
+import {
+  FRONTEND_LANDING_SUB_PATH,
+  FRONTEND_SIDEBAR_LABEL,
+} from 'sentry/views/insights/pages/frontend/settings';
+import {
+  MOBILE_LANDING_SUB_PATH,
+  MOBILE_SIDEBAR_LABEL,
+} from 'sentry/views/insights/pages/mobile/settings';
+import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
 import {getSearchForIssueGroup, IssueGroup} from 'sentry/views/issueList/utils';
 
 /**
@@ -25,13 +42,13 @@ import {getSearchForIssueGroup, IssueGroup} from 'sentry/views/issueList/utils';
  */
 export function createNavConfig({organization}: {organization: Organization}): NavConfig {
   const prefix = `organizations/${organization.slug}`;
-  const insightsPrefix = `${prefix}/${INSIGHTS_BASE_URL}`;
 
   return {
     main: [
       {
         label: t('Issues'),
         icon: <IconIssues />,
+        analyticsKey: 'issues',
         submenu: [
           {
             label: t('All'),
@@ -56,10 +73,16 @@ export function createNavConfig({organization}: {organization: Organization}): N
           {label: t('Feedback'), to: `/${prefix}/feedback/`},
         ],
       },
-      {label: t('Projects'), to: `/${prefix}/projects/`, icon: <IconProject />},
+      {
+        label: t('Projects'),
+        analyticsKey: 'projects',
+        to: `/${prefix}/projects/`,
+        icon: <IconProject />,
+      },
       {
         label: t('Explore'),
         icon: <IconSearch />,
+        analyticsKey: 'explore',
         submenu: [
           {
             label: t('Traces'),
@@ -103,48 +126,31 @@ export function createNavConfig({organization}: {organization: Organization}): N
       {
         label: t('Insights'),
         icon: <IconGraph />,
-        feature: {features: 'insights-entry-points'},
+        analyticsKey: 'insights-domains',
+        feature: {features: ['performance-view']},
         submenu: [
           {
-            label: MODULE_TITLE_HTTP,
-            to: `/${insightsPrefix}/${MODULE_BASE_URLS.http}/`,
-          },
-          {label: MODULE_TITLES.db, to: `/${insightsPrefix}/${MODULE_BASE_URLS.db}/`},
-          {
-            label: MODULE_TITLES.resource,
-            to: `/${insightsPrefix}/${MODULE_BASE_URLS.resource}/`,
+            label: FRONTEND_SIDEBAR_LABEL,
+            to: `/${prefix}/${DOMAIN_VIEW_BASE_URL}/${FRONTEND_LANDING_SUB_PATH}/`,
           },
           {
-            label: MODULE_TITLES.app_start,
-            to: `/${insightsPrefix}/${MODULE_BASE_URLS.app_start}/`,
+            label: BACKEND_SIDEBAR_LABEL,
+            to: `/${prefix}/${DOMAIN_VIEW_BASE_URL}/${BACKEND_LANDING_SUB_PATH}/`,
           },
           {
-            label: MODULE_TITLES['mobile-screens'],
-            to: `/${insightsPrefix}/${MODULE_BASE_URLS['mobile-screens']}/`,
-            feature: {features: 'insights-mobile-screens-module'},
+            label: MOBILE_SIDEBAR_LABEL,
+            to: `/${prefix}/${DOMAIN_VIEW_BASE_URL}/${MOBILE_LANDING_SUB_PATH}/`,
           },
           {
-            label: MODULE_TITLES.vital,
-            to: `/${insightsPrefix}/${MODULE_BASE_URLS.vital}/`,
-          },
-          {
-            label: MODULE_TITLES.cache,
-            to: `/${insightsPrefix}/${MODULE_BASE_URLS.cache}/`,
-          },
-          {
-            label: MODULE_TITLES.queue,
-            to: `/${insightsPrefix}/${MODULE_BASE_URLS.queue}/`,
-          },
-          {
-            label: MODULE_TITLES.ai,
-            to: `/${insightsPrefix}/${MODULE_BASE_URLS.ai}/`,
-            feature: {features: 'insights-entry-points'},
+            label: AI_SIDEBAR_LABEL,
+            to: `/${prefix}/${DOMAIN_VIEW_BASE_URL}/${AI_LANDING_SUB_PATH}/`,
           },
         ],
       },
       {
         label: t('Perf.'),
         to: '/performance/',
+        analyticsKey: 'performance',
         icon: <IconLightning />,
         feature: {
           features: 'performance-view',
@@ -153,6 +159,7 @@ export function createNavConfig({organization}: {organization: Organization}): N
       },
       {
         label: t('Boards'),
+        analyticsKey: 'customizable-dashboards',
         to: '/dashboards/',
         icon: <IconDashboard />,
         feature: {
@@ -161,11 +168,46 @@ export function createNavConfig({organization}: {organization: Organization}): N
           requireAll: false,
         },
       },
-      {label: t('Alerts'), to: `/${prefix}/alerts/rules/`, icon: <IconSiren />},
+      {
+        label: t('Alerts'),
+        analyticsKey: 'alerts',
+        to: `/${prefix}/alerts/rules/`,
+        icon: <IconSiren />,
+      },
     ],
     footer: [
       {
+        label: t('Help'),
+        icon: <IconQuestion />,
+        analyticsKey: 'help',
+        dropdown: [
+          {
+            key: 'search',
+            label: t('Search Support, Docs and More'),
+            onAction() {
+              openHelpSearchModal({organization});
+            },
+          },
+          {
+            key: 'help',
+            label: t('Visit Help Center'),
+            to: 'https://sentry.zendesk.com/hc/en-us',
+          },
+          {
+            key: 'discord',
+            label: t('Join our Discord'),
+            to: 'https://discord.com/invite/sentry',
+          },
+          {
+            key: 'support',
+            label: t('Contact Support'),
+            to: `mailto:${ConfigStore.get('supportEmail')}`,
+          },
+        ],
+      },
+      {
         label: t('Settings'),
+        analyticsKey: 'settings',
         to: `/settings/${organization.slug}/`,
         icon: <IconSettings />,
       },

@@ -7,17 +7,6 @@ import {DEFAULT_EVENT_VIEW} from 'sentry/views/discover/data';
 import {useTransactionData} from 'sentry/views/replays/detail/trace/replayTransactionContext';
 import Trace from 'sentry/views/replays/detail/trace/trace';
 
-jest.mock('screenfull', () => ({
-  enabled: true,
-  get isFullscreen() {
-    return false;
-  },
-  request: jest.fn(),
-  exit: jest.fn(),
-  on: jest.fn(),
-  off: jest.fn(),
-}));
-
 jest.mock('sentry/views/replays/detail/trace/replayTransactionContext');
 
 const mockUseTransactionData = jest.mocked(useTransactionData);
@@ -47,7 +36,7 @@ describe('trace', () => {
   it('should show the blank screen if there is no replayRecord', () => {
     setMockTransactionState({});
 
-    render(<Trace replayRecord={undefined} />);
+    render(<Trace replay={undefined} />);
 
     const placeholder = screen.getByTestId('loading-placeholder');
     expect(placeholder).toBeInTheDocument();
@@ -57,7 +46,7 @@ describe('trace', () => {
   it('should show the blank screen if the hook has not initialized yet', () => {
     setMockTransactionState({});
 
-    render(<Trace replayRecord={ReplayRecordFixture()} />);
+    render(<Trace replay={ReplayRecordFixture()} />);
 
     const placeholder = screen.getByTestId('loading-placeholder');
     expect(placeholder).toBeInTheDocument();
@@ -67,7 +56,7 @@ describe('trace', () => {
   it('should show a loading spinner if the hook is fetching, but there are no traces returned yet', () => {
     setMockTransactionState({didInit: true, isFetching: true});
 
-    render(<Trace replayRecord={ReplayRecordFixture()} />);
+    render(<Trace replay={ReplayRecordFixture()} />);
 
     const placeholder = screen.getByTestId('loading-placeholder');
     expect(placeholder).toBeInTheDocument();
@@ -82,7 +71,7 @@ describe('trace', () => {
       errors: [new Error('Something went wrong')],
     });
 
-    render(<Trace replayRecord={ReplayRecordFixture()} />);
+    render(<Trace replay={ReplayRecordFixture()} />);
 
     const emptyState = screen.getByTestId('empty-state');
     expect(emptyState).toHaveTextContent('Unable to retrieve traces');
@@ -96,7 +85,7 @@ describe('trace', () => {
       errors: [],
     });
 
-    render(<Trace replayRecord={ReplayRecordFixture()} />);
+    render(<Trace replay={ReplayRecordFixture()} />);
 
     const emptyState = screen.getByTestId('empty-state');
     expect(emptyState).toHaveTextContent('No traces found');

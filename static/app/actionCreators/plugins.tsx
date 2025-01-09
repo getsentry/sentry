@@ -9,7 +9,7 @@ import {t} from 'sentry/locale';
 import PluginsStore from 'sentry/stores/pluginsStore';
 import type {Plugin} from 'sentry/types/integrations';
 
-const activeFetch = {};
+const activeFetch: Record<string, Promise<any> | null> = {};
 // PluginsStore always exists, so api client should be independent of component lifecycle
 const api = new Client();
 

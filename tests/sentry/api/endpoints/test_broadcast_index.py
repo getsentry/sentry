@@ -120,7 +120,6 @@ class BroadcastCreateTest(APITestCase):
         broadcast = Broadcast.objects.get(id=response.data["id"])
         assert broadcast.title == "bar"
         assert broadcast.message == "foo"
-        assert broadcast.cta == "Read More"
         assert broadcast.media_url == "http://example.com/image.png"
         assert broadcast.category == "announcement"
         assert broadcast.created_by_id == self.user

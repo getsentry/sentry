@@ -17,7 +17,7 @@ from sentry.search.events.types import SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.factories import Factories
-from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.users.models.user import User
@@ -46,7 +46,6 @@ class DiscoverSavedQueryDatasetSplitTestCase(TestCase, SnubaTestCase):
 
         self.nine_mins_ago = before_now(minutes=9)
         self.ten_mins_ago = before_now(minutes=10)
-        self.ten_mins_ago_iso = iso_format(self.ten_mins_ago)
         self.dry_run = False
 
     def test_errors_query(self):
@@ -554,6 +553,101 @@ class DiscoverSavedQueryDatasetSplitTestCase(TestCase, SnubaTestCase):
         if not self.dry_run:
             assert errors_query.dataset_source == DatasetSourcesTypes.FORCED.value
 
+    def test_saved_query_org_with_no_projects(self):
+        # An org with no projects
+        self.organization = self.create_organization()
+
+        errors_query = DiscoverSavedQuery.objects.create(
+            organization_id=self.organization.id,
+            name="",
+            query={
+                "environment": [],
+                "query": "stack.filename:'../../sentry/scripts/views.js'",
+                "fields": ["title", "issue", "project", "release", "count()", "count_unique(user)"],
+                "range": "90d",
+                "orderby": "-count",
+            },
+            version=2,
+            dataset=0,
+            dataset_source=0,
+            is_homepage=True,
+        )
+
+        _get_and_save_split_decision_for_query(errors_query, self.dry_run)
+        saved_query = DiscoverSavedQuery.objects.get(id=errors_query.id)
+        assert saved_query.dataset == 0 if self.dry_run else saved_query.dataset == 1
+
+    def test_dashboard_split_transaction_status_error_events_dataset(self):
+        transaction_query = DiscoverSavedQuery.objects.create(
+            organization_id=self.organization.id,
+            name="",
+            query={
+                "environment": [],
+                "fields": ["transaction", "p75(transaction.duration)", "total.count"],
+                "query": "event.type:transaction transaction.status:ok",
+                "range": "90d",
+            },
+            version=2,
+            dataset=0,
+            dataset_source=0,
+        )
+
+        _get_and_save_split_decision_for_query(transaction_query, self.dry_run)
+        transaction_query.refresh_from_db()
+        assert transaction_query.dataset == 0 if self.dry_run else transaction_query.dataset == 2
+        if not self.dry_run:
+            assert transaction_query.dataset_source == DatasetSourcesTypes.FORCED.value
+
+    def test_unhandled_filter_sets_error_events_dataset(self):
+        error_query = DiscoverSavedQuery.objects.create(
+            organization_id=self.organization.id,
+            name="",
+            query={
+                "environment": [],
+                "fields": [
+                    "equation|count() / total.count * 100",
+                    "release",
+                    "error_event",
+                    "count()",
+                    "total.count",
+                ],
+                "query": "error.unhandled:false",
+                "range": "90d",
+            },
+            version=2,
+            dataset=0,
+            dataset_source=0,
+        )
+
+        _get_and_save_split_decision_for_query(error_query, self.dry_run)
+        error_query.refresh_from_db()
+        assert error_query.dataset == 0 if self.dry_run else error_query.dataset == 1
+        if not self.dry_run:
+            assert error_query.dataset_source == DatasetSourcesTypes.FORCED.value
+
+    def test_empty_equation_is_filtered_out(self):
+        error_query = DiscoverSavedQuery.objects.create(
+            organization_id=self.organization.id,
+            name="",
+            query={
+                "fields": [
+                    "count()",
+                    "equation|",
+                ],
+                "query": 'message:"Testing"',
+                "range": "90d",
+            },
+            version=2,
+            dataset=0,
+            dataset_source=0,
+        )
+
+        _get_and_save_split_decision_for_query(error_query, self.dry_run)
+        error_query.refresh_from_db()
+        assert error_query.dataset == 0 if self.dry_run else error_query.dataset == 1
+        if not self.dry_run:
+            assert error_query.dataset_source == DatasetSourcesTypes.INFERRED.value
+
 
 class DiscoverSavedQueryDatasetSplitDryRunTestCase(DiscoverSavedQueryDatasetSplitTestCase):
     def setUp(self):
@@ -562,12 +656,12 @@ class DiscoverSavedQueryDatasetSplitDryRunTestCase(DiscoverSavedQueryDatasetSpli
 
 
 @pytest.fixture
-def owner() -> None:
+def owner() -> User:
     return Factories.create_user()
 
 
 @pytest.fixture
-def organization(owner: User) -> None:
+def organization(owner: User) -> Organization:
     return Factories.create_organization(owner=owner)
 
 

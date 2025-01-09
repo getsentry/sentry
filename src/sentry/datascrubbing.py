@@ -125,9 +125,9 @@ def _merge_pii_configs(prefixes_and_configs: list[tuple[str, dict[str, Any]]]) -
         rules = partial_config.get("rules") or {}
         for rule_name, rule in rules.items():
             prefixed_rule_name = f"{prefix}{rule_name}"
-            merged_config.setdefault("rules", {})[
-                prefixed_rule_name
-            ] = _prefix_rule_references_in_rule(rules, rule, prefix)
+            merged_config.setdefault("rules", {})[prefixed_rule_name] = (
+                _prefix_rule_references_in_rule(rules, rule, prefix)
+            )
 
         for selector, applications in (partial_config.get("applications") or {}).items():
             merged_applications = merged_config.setdefault("applications", {}).setdefault(

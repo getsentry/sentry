@@ -13,9 +13,16 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.constants import ObjectStatus
+from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.mixins.issues import IssueSyncIntegration
+from sentry.integrations.project_management.metrics import (
+    ProjectManagementActionType,
+    ProjectManagementEvent,
+    ProjectManagementHaltReason,
+)
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.utils import sync_group_assignee_inbound
+from sentry.integrations.utils.metrics import IntegrationWebhookEvent, IntegrationWebhookEventType
+from sentry.integrations.utils.sync import sync_group_assignee_inbound
 from sentry.utils.email import parse_email
 
 if TYPE_CHECKING:
@@ -67,7 +74,12 @@ class WorkItemWebhook(Endpoint):
             if not check_webhook_secret(request, integration, event_type):
                 return self.respond(status=status.HTTP_401_UNAUTHORIZED)
 
-            handle_updated_workitem(data, integration)
+            with IntegrationWebhookEvent(
+                interaction_type=IntegrationWebhookEventType.INBOUND_SYNC,
+                domain=IntegrationDomain.SOURCE_CODE_MANAGEMENT,
+                provider_key="vsts",
+            ).capture():
+                handle_updated_workitem(data, integration)
 
         return self.respond()
 
@@ -122,31 +134,48 @@ def handle_assign_to(
     )
 
 
+# TODO(Gabe): Consolidate this with Jira's implementation, create DTO for status
+# changes.
 def handle_status_change(
     integration: RpcIntegration,
     external_issue_key: str,
     status_change: Mapping[str, str] | None,
     project: str | None,
 ) -> None:
-    if status_change is None:
-        return
+    with ProjectManagementEvent(
+        action_type=ProjectManagementActionType.INBOUND_STATUS_SYNC, integration=integration
+    ).capture() as lifecycle:
+        if status_change is None:
+            return
 
-    org_integrations = integration_service.get_organization_integrations(
-        integration_id=integration.id
-    )
+        org_integrations = integration_service.get_organization_integrations(
+            integration_id=integration.id
+        )
 
-    for org_integration in org_integrations:
-        installation = integration.get_installation(organization_id=org_integration.organization_id)
-        if isinstance(installation, IssueSyncIntegration):
-            installation.sync_status_inbound(
-                external_issue_key,
-                {
-                    "new_state": status_change["newValue"],
-                    # old_state is None when the issue is New
-                    "old_state": status_change.get("oldValue"),
-                    "project": project,
-                },
+        logging_context = {
+            "org_integration_ids": [oi.id for oi in org_integrations],
+            "integration_id": integration.id,
+            "status_change": status_change,
+        }
+        for org_integration in org_integrations:
+            installation = integration.get_installation(
+                organization_id=org_integration.organization_id
             )
+            if isinstance(installation, IssueSyncIntegration):
+                installation.sync_status_inbound(
+                    external_issue_key,
+                    {
+                        "new_state": status_change["newValue"],
+                        # old_state is None when the issue is New
+                        "old_state": status_change.get("oldValue"),
+                        "project": project,
+                    },
+                )
+            else:
+                lifecycle.record_halt(
+                    ProjectManagementHaltReason.SYNC_NON_SYNC_INTEGRATION_PROVIDED,
+                    extra=logging_context,
+                )
 
 
 def handle_updated_workitem(data: Mapping[str, Any], integration: RpcIntegration) -> None:

@@ -569,6 +569,39 @@ default_manager.add(
         template="removed uptime monitor {name}",
     )
 )
+default_manager.add(
+    AuditLogEvent(
+        event_id=210,
+        name="WORKFLOW_ENGINE_DETECTOR_ADD",
+        api_name="workflow_engine_detector.add",
+        template="added workflow engine detector {name}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=211,
+        name="WORKFLOW_ENGINE_DETECTOR_EDIT",
+        api_name="workflow_engine_detector.edit",
+        template="edited workflow engine detector {name}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=212,
+        name="WORKFLOW_ENGINE_DETECTOR_REMOVE",
+        api_name="workflow_engine_detector.remove",
+        template="removed workflow engine detector {name}",
+    )
+)
+
+default_manager.add(
+    AuditLogEvent(
+        event_id=204,
+        name="MEMBER_REINVITE",
+        api_name="member.reinvite",
+        template="reinvited member {email}",
+    )
+)
 
 default_manager.add(events.DataSecrecyWaivedAuditLogEvent())
 
@@ -577,5 +610,22 @@ default_manager.add(
         event_id=1142,
         name="DATA_SECRECY_REINSTATED",
         api_name="data-secrecy.reinstated",
+    )
+)
+
+default_manager.add(
+    AuditLogEvent(
+        event_id=1152,
+        name="TEMPEST_CLIENT_ID_ADD",
+        api_name="playstation-client-id.create",
+        template="added playstation client id {client_id}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=1153,
+        name="TEMPEST_CLIENT_ID_REMOVE",
+        api_name="playstation-client-id.remove",
+        template="removed playstation client id {client_id}",
     )
 )

@@ -2,6 +2,7 @@ import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Button} from 'sentry/components/button';
 import type {RadioGroupProps} from 'sentry/components/forms/controls/radioGroup';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
@@ -79,7 +80,7 @@ export function DataSetStep({
     ]);
   }
 
-  const datasetChoices = new Map<string, string>();
+  const datasetChoices = new Map<string, string | React.ReactNode>();
 
   if (hasDatasetSelectorFeature) {
     // TODO: Finalize description copy
@@ -90,6 +91,20 @@ export function DataSetStep({
   if (!hasDatasetSelectorFeature) {
     datasetChoices.set(DataSet.EVENTS, t('Errors and Transactions'));
   }
+
+  if (organization.features.includes('dashboards-eap')) {
+    datasetChoices.set(
+      DataSet.SPANS,
+      <FeatureBadgeAlignmentWrapper aria-label={t('Spans')}>
+        {t('Spans')}{' '}
+        <FeatureBadge
+          type="beta"
+          title={t('This feature is available for early adopters and the UX may change')}
+        />
+      </FeatureBadgeAlignmentWrapper>
+    );
+  }
+
   datasetChoices.set(DataSet.ISSUES, t('Issues (States, Assignment, Time, etc.)'));
 
   datasetChoices.set(DataSet.RELEASES, t('Releases (Sessions, Crash rates)'));
@@ -140,5 +155,12 @@ const StyledCloseButton = styled(Button)`
   &:focus {
     background-color: transparent;
     opacity: 1;
+  }
+`;
+
+const FeatureBadgeAlignmentWrapper = styled('div')`
+  ${FeatureBadge} {
+    position: relative;
+    top: -1px;
   }
 `;

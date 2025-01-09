@@ -13,9 +13,11 @@ import Panel from 'sentry/components/panels/panel';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {IconGraph, IconSettings, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {DataCategoryInfo} from 'sentry/types/core';
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import type {Project} from 'sentry/types/project';
+// eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 
 import {formatUsageWithUnits, getFormatUsageOptions} from './utils';
@@ -30,10 +32,12 @@ type Props = {
   isEmpty?: boolean;
   isError?: boolean;
   isLoading?: boolean;
+  showStoredOutcome?: boolean;
 } & WithRouterProps<{}, {}>;
 
 export type TableStat = {
   accepted: number;
+  accepted_stored: number;
   filtered: number;
   invalid: number;
   project: Project;
@@ -70,8 +74,9 @@ class UsageTable extends Component<Props> {
   }
 
   renderTableRow(stat: TableStat & {project: Project}) {
-    const {dataCategory} = this.props;
-    const {project, total, accepted, filtered, invalid, rate_limited} = stat;
+    const {dataCategory, showStoredOutcome} = this.props;
+    const {project, total, accepted, accepted_stored, filtered, invalid, rate_limited} =
+      stat;
 
     return [
       <CellProject key={0}>
@@ -97,6 +102,15 @@ class UsageTable extends Component<Props> {
           accepted,
           dataCategory.plural,
           getFormatUsageOptions(dataCategory.plural)
+        )}
+        {showStoredOutcome && (
+          <SubText>
+            {`(${formatUsageWithUnits(
+              accepted_stored,
+              dataCategory.plural,
+              getFormatUsageOptions(dataCategory.plural)
+            )})`}
+          </SubText>
         )}
       </CellStat>,
       <CellStat key={3}>
@@ -168,7 +182,6 @@ export default withSentryRouter(UsageTable);
 
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: repeat(7, auto);
-
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: 1fr repeat(6, minmax(0, auto));
   }
@@ -189,4 +202,9 @@ const StyledIdBadge = styled(IdBadge)`
   overflow: hidden;
   white-space: nowrap;
   flex-shrink: 1;
+`;
+
+const SubText = styled('span')`
+  color: ${p => p.theme.subText};
+  margin-left: ${space(0.5)};
 `;

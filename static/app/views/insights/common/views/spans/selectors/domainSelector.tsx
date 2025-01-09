@@ -4,15 +4,15 @@ import type {Location} from 'history';
 import debounce from 'lodash/debounce';
 import omit from 'lodash/omit';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {CompactSelect, type SelectOption} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniq} from 'sentry/utils/array/uniq';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {EMPTY_OPTION_VALUE} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
@@ -45,6 +45,7 @@ export function DomainSelector({
   emptyOptionLocation = 'bottom',
   domainAlias,
 }: Props) {
+  const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
   const pageFilters = usePageFilters();
@@ -115,16 +116,17 @@ export function DomainSelector({
     }
   }, [additionalQuery, clearDomainOptionsCache]);
 
-  const emptyOption = {
+  const emptyOption: SelectOption<string> = {
     value: EMPTY_OPTION_VALUE,
     label: (
       <EmptyContainer>
         {t('(No %s)', domainAlias ?? LABEL_FOR_MODULE_NAME[moduleName])}
       </EmptyContainer>
     ),
+    textValue: t('(No %s)', domainAlias ?? LABEL_FOR_MODULE_NAME[moduleName]),
   };
 
-  const options = [
+  const options: SelectOption<string>[] = [
     {value: '', label: 'All'},
     ...(emptyOptionLocation === 'top' ? [emptyOption] : []),
     ...domainOptions,
@@ -155,7 +157,7 @@ export function DomainSelector({
           organization,
           source: moduleName,
         });
-        browserHistory.push({
+        navigate({
           ...location,
           query: {
             ...location.query,
@@ -181,6 +183,9 @@ const LABEL_FOR_MODULE_NAME: {[key in ModuleName]: ReactNode} = {
   resource: t('Resource'),
   other: t('Domain'),
   ai: t('Domain'),
+  crons: t('Domain'),
+  uptime: t('Domain'),
+  'screen-rendering': t('Domain'),
   'mobile-ui': t('Domain'),
   'mobile-screens': t('Domain'),
 };

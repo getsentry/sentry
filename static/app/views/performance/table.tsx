@@ -1,4 +1,4 @@
-import {Component, useEffect} from 'react';
+import {Component, type ReactNode, useEffect} from 'react';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptorObject} from 'history';
 
@@ -31,6 +31,10 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
+import {
+  type DomainViewFilters,
+  useDomainViewFilters,
+} from 'sentry/views/insights/pages/useFilters';
 import {getLandingDisplayFromParam} from 'sentry/views/performance/landing/utils';
 
 import {getMEPQueryParams} from './landing/widgets/utils';
@@ -51,6 +55,15 @@ import {
   UNPARAMETERIZED_TRANSACTION,
 } from './utils';
 
+type ColumnTitle = {
+  title: string | ReactNode;
+  tooltip?: string | ReactNode;
+};
+
+const COLUMN_TITLES_OPTIONAL_TOOLTIP = COLUMN_TITLES.map(title => {
+  return {title};
+});
+
 type Props = {
   eventView: EventView;
   location: Location;
@@ -58,7 +71,8 @@ type Props = {
   projects: Project[];
   setError: (msg: string | undefined) => void;
   withStaticFilters: boolean;
-  columnTitles?: string[];
+  columnTitles?: ColumnTitle[];
+  domainViewFilters?: DomainViewFilters;
   summaryConditions?: string;
 };
 
@@ -82,7 +96,7 @@ function getProjectFirstEventGroup(project: Project): '14d' | '30d' | '>30d' {
   return '>30d';
 }
 
-function _TrackHasDataAnalytics({
+function TrackHasDataAnalytics({
   children,
   isLoading,
   tableData,
@@ -175,7 +189,7 @@ class _Table extends Component<Props, State> {
       });
 
       if (action === Actions.EDIT_THRESHOLD) {
-        const project_threshold = dataRow.project_threshold_config;
+        const project_threshold = dataRow.project_threshold_config!;
         const transactionName = dataRow.transaction as string;
         const projectID = getProjectID(dataRow, projects);
 
@@ -276,6 +290,8 @@ class _Table extends Component<Props, State> {
         this.sendUnparameterizedAnalytic(project);
         this.unparameterizedMetricSet = true;
       }
+      const {isInDomainView, view} = this.props.domainViewFilters ?? {};
+
       const target = isUnparameterizedRow
         ? createUnnamedTransactionsDiscoverTarget({
             organization,
@@ -286,6 +302,7 @@ class _Table extends Component<Props, State> {
             transaction: String(dataRow.transaction) || '',
             query: summaryView.generateQueryStringObject(),
             projectID,
+            view: (isInDomainView && view) || undefined,
           });
 
       return (
@@ -394,7 +411,7 @@ class _Table extends Component<Props, State> {
   renderHeadCell(
     tableMeta: TableData['meta'],
     column: TableColumn<keyof TableDataRow>,
-    title: React.ReactNode
+    title: ColumnTitle
   ): React.ReactNode {
     const {eventView, location} = this.props;
 
@@ -429,7 +446,7 @@ class _Table extends Component<Props, State> {
     const sortLink = (
       <SortLink
         align={align}
-        title={title || field.field}
+        title={title.title || field.field}
         direction={currentSortKind}
         canSort={canSort}
         generateSortLink={generateSortLink}
@@ -437,19 +454,36 @@ class _Table extends Component<Props, State> {
       />
     );
     if (field.field.startsWith('user_misery')) {
+      if (title.tooltip) {
+        return (
+          <GuideAnchor target="project_transaction_threshold" position="top">
+            <Tooltip isHoverable title={title.tooltip} showUnderline>
+              {sortLink}
+            </Tooltip>
+          </GuideAnchor>
+        );
+      }
       return (
         <GuideAnchor target="project_transaction_threshold" position="top">
           {sortLink}
         </GuideAnchor>
       );
     }
-    return sortLink;
+
+    if (!title.tooltip) {
+      return sortLink;
+    }
+    return (
+      <Tooltip isHoverable title={title.tooltip} showUnderline>
+        {sortLink}
+      </Tooltip>
+    );
   }
 
   renderHeadCellWithMeta = (tableMeta: TableData['meta']) => {
-    const columnTitles = this.props.columnTitles ?? COLUMN_TITLES;
+    const columnTitles = this.props.columnTitles ?? COLUMN_TITLES_OPTIONAL_TOOLTIP;
     return (column: TableColumn<keyof TableDataRow>, index: number): React.ReactNode =>
-      this.renderHeadCell(tableMeta, column, columnTitles[index]);
+      this.renderHeadCell(tableMeta, column, columnTitles[index]!);
   };
 
   renderPrependCellWithData = (tableData: TableData | null) => {
@@ -471,7 +505,9 @@ class _Table extends Component<Props, State> {
               />
             </TeamKeyTransactionWrapper>
           );
-          return [this.renderHeadCell(tableData?.meta, teamKeyTransactionColumn, star)];
+          return [
+            this.renderHeadCell(tableData?.meta, teamKeyTransactionColumn, {title: star}),
+          ];
         }
         return [this.renderBodyCell(tableData, teamKeyTransactionColumn, dataRow)];
       }
@@ -549,7 +585,7 @@ class _Table extends Component<Props, State> {
                   queryExtras={getMEPQueryParams(value)}
                 >
                   {({pageLinks, isLoading, tableData}) => (
-                    <_TrackHasDataAnalytics isLoading={isLoading} tableData={tableData}>
+                    <TrackHasDataAnalytics isLoading={isLoading} tableData={tableData}>
                       <VisuallyCompleteWithData
                         id="PerformanceTable"
                         hasData={
@@ -562,6 +598,7 @@ class _Table extends Component<Props, State> {
                           data={tableData ? tableData.data : []}
                           columnOrder={columnOrder}
                           columnSortBy={columnSortBy}
+                          bodyStyle={{overflow: 'visible'}}
                           grid={{
                             onResizeColumn: this.handleResizeColumn,
                             renderHeadCell: this.renderHeadCellWithMeta(
@@ -579,7 +616,7 @@ class _Table extends Component<Props, State> {
                         pageLinks={pageLinks}
                         paginationAnalyticsEvent={this.paginationAnalyticsEvent}
                       />
-                    </_TrackHasDataAnalytics>
+                    </TrackHasDataAnalytics>
                   )}
                 </DiscoverQuery>
               );
@@ -595,7 +632,15 @@ function Table(props: Omit<Props, 'summaryConditions'> & {summaryConditions?: st
   const summaryConditions =
     props.summaryConditions ?? props.eventView.getQueryWithAdditionalConditions();
 
-  return <_Table {...props} summaryConditions={summaryConditions} />;
+  const domainViewFilters = useDomainViewFilters();
+
+  return (
+    <_Table
+      {...props}
+      summaryConditions={summaryConditions}
+      domainViewFilters={domainViewFilters}
+    />
+  );
 }
 
 // Align the contained IconStar with the IconStar buttons in individual table

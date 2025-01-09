@@ -1,4 +1,4 @@
-import type {LocationRange} from 'pegjs';
+import type {LocationRange} from 'peggy';
 
 import {t} from 'sentry/locale';
 
@@ -54,7 +54,7 @@ export class TokenConverter {
 
   tokenTerm = (maybeFactor: Expression, remainingAdds: Array<Operation>): Expression => {
     if (remainingAdds.length > 0) {
-      remainingAdds[0].lhs = maybeFactor;
+      remainingAdds[0]!.lhs = maybeFactor;
       return flatten(remainingAdds);
     }
     return maybeFactor;
@@ -75,7 +75,7 @@ export class TokenConverter {
   };
 
   tokenFactor = (primary: Expression, remaining: Array<Operation>): Operation => {
-    remaining[0].lhs = primary;
+    remaining[0]!.lhs = primary;
     return flatten(remaining);
   };
 

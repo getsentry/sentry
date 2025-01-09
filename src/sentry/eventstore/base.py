@@ -130,6 +130,7 @@ class EventStorage(Service):
         "get_events_snql",
         "get_unfetched_events",
         "get_adjacent_event_ids",
+        "get_adjacent_event_ids_snql",
         "bind_nodes",
         "get_unfetched_transactions",
     )
@@ -234,8 +235,7 @@ class EventStorage(Service):
         occurrence_id: str | None = None,
         *,
         skip_transaction_groupevent: Literal[True],
-    ) -> Event | None:
-        ...
+    ) -> Event | None: ...
 
     @overload
     def get_event_by_id(
@@ -247,8 +247,7 @@ class EventStorage(Service):
         occurrence_id: str | None = None,
         *,
         skip_transaction_groupevent: bool = False,
-    ) -> Event | GroupEvent | None:
-        ...
+    ) -> Event | GroupEvent | None: ...
 
     def get_event_by_id(
         self,
@@ -272,6 +271,17 @@ class EventStorage(Service):
         """
         raise NotImplementedError
 
+    def get_adjacent_event_ids_snql(
+        self,
+        organization_id: int,
+        project_id: int,
+        group_id: int,
+        environments: list[str],
+        event: Event | GroupEvent,
+        conditions: list[Condition] | None = None,
+    ):
+        raise NotImplementedError
+
     def get_adjacent_event_ids(self, event, filter):
         """
         Gets the previous and next event IDs given a current event and some conditions/filters.
@@ -283,7 +293,7 @@ class EventStorage(Service):
         """
         raise NotImplementedError
 
-    def create_event(self, project_id=None, event_id=None, group_id=None, data=None):
+    def create_event(self, *, project_id: int, event_id=None, group_id=None, data=None):
         """
         Returns an Event from processed data
         """

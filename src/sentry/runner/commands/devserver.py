@@ -30,6 +30,7 @@ _DEFAULT_DAEMONS = {
     "worker": ["sentry", "run", "worker", "-c", "1", "--autoreload"],
     "celery-beat": ["sentry", "run", "cron", "--autoreload"],
     "server": ["sentry", "run", "web"],
+    "taskworker": ["sentry", "run", "taskworker"],
 }
 
 _SUBSCRIPTION_RESULTS_CONSUMERS = [
@@ -37,6 +38,7 @@ _SUBSCRIPTION_RESULTS_CONSUMERS = [
     "transactions-subscription-results",
     "generic-metrics-subscription-results",
     "metrics-subscription-results",
+    "eap-spans-subscription-results",
 ]
 
 
@@ -137,6 +139,11 @@ def _get_daemon(name: str) -> tuple[str, list[str]]:
     type=click.Choice(["control", "region"]),
     help="The silo mode to run this devserver instance in. Choices are control, region, none",
 )
+@click.option(
+    "--taskworker/--no-taskworker",
+    default=False,
+    help="Run kafka-based task workers",
+)
 @click.argument(
     "bind",
     default=None,
@@ -163,6 +170,7 @@ def devserver(
     client_hostname: str,
     ngrok: str | None,
     silo: str | None,
+    taskworker: bool,
 ) -> NoReturn:
     "Starts a lightweight web server for development."
     if bind is None:
@@ -231,6 +239,9 @@ def devserver(
 
     daemons: MutableSequence[tuple[str, Sequence[str]]] = []
     kafka_consumers: set[str] = set()
+    containers: set[str] = set()
+    with get_docker_client() as docker:
+        containers = {c.name for c in docker.containers.list(filters={"status": "running"})}
 
     if experimental_spa:
         os.environ["SENTRY_UI_DEV_ONLY"] = "1"
@@ -282,6 +293,9 @@ def devserver(
         click.echo("--ingest was provided, implicitly enabling --workers")
         workers = True
 
+    if taskworker:
+        daemons.append(_get_daemon("taskworker"))
+
     if workers and not celery_beat:
         click.secho(
             "If you want to run periodic tasks from celery (celerybeat), you need to also pass --celery-beat.",
@@ -323,7 +337,9 @@ def devserver(
             kafka_consumers.add("uptime-configs")
 
         if settings.SENTRY_USE_RELAY:
-            daemons += [("relay", ["sentry", "devservices", "attach", "relay"])]
+            # TODO: Remove this once we have a better way to check if relay is running for new devservices
+            if "relay-relay-1" not in containers:
+                daemons += [("relay", ["sentry", "devservices", "attach", "relay"])]
 
             kafka_consumers.add("ingest-events")
             kafka_consumers.add("ingest-attachments")
@@ -333,6 +349,7 @@ def devserver(
 
             kafka_consumers.add("monitors-clock-tick")
             kafka_consumers.add("monitors-clock-tasks")
+            kafka_consumers.add("monitors-incident-occurrences")
 
             if settings.SENTRY_USE_PROFILING:
                 kafka_consumers.add("ingest-profiles")
@@ -347,9 +364,19 @@ def devserver(
 
     # Create all topics if the Kafka eventstream is selected
     if kafka_consumers:
-        with get_docker_client() as docker:
-            containers = {c.name for c in docker.containers.list(filters={"status": "running"})}
-        if "sentry_kafka" not in containers:
+        use_new_devservices = os.environ.get("USE_NEW_DEVSERVICES") == "1"
+        valid_kafka_container_names = ["kafka-kafka-1", "sentry_kafka"]
+        kafka_container_name = "kafka-kafka-1" if use_new_devservices else "sentry_kafka"
+        kafka_container_warning_message = (
+            f"""
+Devserver is configured to work with the revamped devservices. Looks like the `{kafka_container_name}` container is not running.
+Please run `devservices up` to start it. If you would like to use devserver with `sentry devservices`, set `USE_NEW_DEVSERVICES=0` in your environment."""
+            if use_new_devservices
+            else f"""
+Devserver is configured to work with `sentry devservices`. Looks like the `{kafka_container_name}` container is not running.
+Please run `sentry devservices up kafka` to start it. If you would like to use devserver with the revamped devservices, set `USE_NEW_DEVSERVICES=1` in your environment."""
+        )
+        if not any(name in containers for name in valid_kafka_container_names):
             raise click.ClickException(
                 f"""
 Devserver is configured to start some kafka consumers, but Kafka
@@ -365,10 +392,10 @@ or:
 
     SENTRY_EVENTSTREAM = "sentry.eventstream.kafka.KafkaEventStream"
 
-and run `sentry devservices up kafka`.
+{kafka_container_warning_message}
 
 Alternatively, run without --workers.
-"""
+        """
             )
 
         from sentry.conf.types.kafka_definition import Topic

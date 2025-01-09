@@ -294,10 +294,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
     @project.setter
     def project(self, project: Project) -> None:
-        if project is None:
-            self.project_id = None
-        else:
-            self.project_id = project.id
+        self.project_id = project.id
         self._project_cache = project
 
     @cached_property
@@ -305,12 +302,10 @@ class BaseEvent(metaclass=abc.ABCMeta):
         return get_interfaces(self.data)
 
     @overload
-    def get_interface(self, name: Literal["user"]) -> User:
-        ...
+    def get_interface(self, name: Literal["user"]) -> User: ...
 
     @overload
-    def get_interface(self, name: str) -> Interface | None:
-        ...
+    def get_interface(self, name: str) -> Interface | None: ...
 
     def get_interface(self, name: str) -> Interface | None:
         return self.interfaces.get(name)
@@ -341,14 +336,23 @@ class BaseEvent(metaclass=abc.ABCMeta):
         """
 
         variants = self.get_grouping_variants(config)
+        hashes_by_variant = {
+            variant_name: variant.get_hash() for variant_name, variant in variants.items()
+        }
+
         # Sort the variants so that the system variant (if any) is always last, in order to resolve
         # ambiguities when choosing primary_hash for Snuba
-        sorted_variants = sorted(
-            variants.items(),
-            key=lambda name_and_variant: 1 if name_and_variant[0] == "system" else 0,
+        sorted_variant_names = sorted(
+            variants,
+            key=lambda variant_name: 1 if variant_name == "system" else 0,
         )
+
         # Get each variant's hash value, filtering out Nones
-        hashes = list({variant.get_hash() for _, variant in sorted_variants} - {None})
+        hashes = [
+            hashes_by_variant[variant_name]
+            for variant_name in sorted_variant_names
+            if hashes_by_variant[variant_name] is not None
+        ]
 
         # Write to event before returning
         self.data["hashes"] = hashes
@@ -574,6 +578,11 @@ class Event(BaseEvent):
         state.pop("_groups_cache", None)
         return state
 
+    def __repr__(self):
+        return "<sentry.eventstore.models.Event at 0x{:x}: event_id={}>".format(
+            id(self), self.event_id
+        )
+
     @property
     def data(self) -> NodeData:
         return self._data
@@ -602,7 +611,7 @@ class Event(BaseEvent):
     def group_id(self, value: int | None) -> None:
         self._group_id = value
 
-    # TODO We need a better way to cache these properties. functools
+    # TODO: We need a better way to cache these properties. functools
     # doesn't quite do the trick as there is a reference bug with unsaved
     # models. But the current _group_cache thing is also clunky because these
     # properties need to be stripped out in __getstate__.

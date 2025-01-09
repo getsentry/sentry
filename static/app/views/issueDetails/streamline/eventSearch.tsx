@@ -22,8 +22,14 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {ALL_EVENTS_EXCLUDED_TAGS} from 'sentry/views/issueDetails/groupEvents';
-import {useGroupTags} from 'sentry/views/issueDetails/groupTags/useGroupTags';
-import {mergeAndSortTagValues} from 'sentry/views/issueDetails/utils';
+import {
+  type GroupTag,
+  useGroupTags,
+} from 'sentry/views/issueDetails/groupTags/useGroupTags';
+import {
+  mergeAndSortTagValues,
+  useHasStreamlinedUI,
+} from 'sentry/views/issueDetails/utils';
 import {makeGetIssueTagValues} from 'sentry/views/issueList/utils/getIssueTagValues';
 
 interface EventSearchProps {
@@ -35,7 +41,7 @@ interface EventSearchProps {
   queryBuilderProps?: Partial<SearchQueryBuilderProps>;
 }
 
-export function useEventQuery({group}: {group: Group}): string {
+export function useEventQuery({groupId}: {groupId: string}): string {
   const {selection} = usePageFilters();
   const location = useLocation();
   const environments = selection.environments;
@@ -49,7 +55,7 @@ export function useEventQuery({group}: {group: Group}): string {
   }
 
   const {data = []} = useGroupTags({
-    groupId: group.id,
+    groupId,
     environment: environments,
   });
   const filterKeys = useEventSearchFilterKeys(data);
@@ -78,7 +84,7 @@ export function useEventQuery({group}: {group: Group}): string {
   return joinQuery(validQuery, false, true);
 }
 
-function useEventSearchFilterKeys(data) {
+function useEventSearchFilterKeys(data: GroupTag[]): TagCollection {
   const filterKeys = useMemo<TagCollection>(() => {
     const tags = [
       ...data.map(tag => ({...tag, kind: FieldKind.TAG})),
@@ -135,6 +141,7 @@ export function EventSearch({
 }: EventSearchProps) {
   const api = useApi();
   const organization = useOrganization();
+  const hasStreamlinedUI = useHasStreamlinedUI();
 
   const {data = []} = useGroupTags({
     groupId: group.id,
@@ -186,9 +193,9 @@ export function EventSearch({
       filterKeys={filterKeys}
       filterKeySections={filterKeySections}
       getTagValues={getTagValues}
-      placeholder={t('Search events...')}
-      label={t('Search events')}
-      searchSource="issue_events_tab"
+      placeholder={hasStreamlinedUI ? t('Filter events\u2026') : t('Search events\u2026')}
+      label={hasStreamlinedUI ? t('Filter events\u2026') : t('Search events')}
+      searchSource={hasStreamlinedUI ? 'issue_details_header' : 'issue_events_tab'}
       className={className}
       showUnsubmittedIndicator
       {...queryBuilderProps}

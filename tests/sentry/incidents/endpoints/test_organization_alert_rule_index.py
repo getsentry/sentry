@@ -30,7 +30,6 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTrigger,
     AlertRuleTriggerAction,
 )
-from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.integrations.slack.tasks.find_channel_id_for_alert_rule import (
     find_channel_id_for_alert_rule,
 )
@@ -47,7 +46,7 @@ from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.factories import EventType
-from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
@@ -178,43 +177,16 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase):
         resp = self.get_response(self.organization.slug)
         assert resp.status_code == 404
 
-    def test_filter_by_monitor_type(self):
-        self.create_team(organization=self.organization, members=[self.user])
-        alert_rule1 = self.create_alert_rule(monitor_type=AlertRuleMonitorTypeInt.ACTIVATED)
-        alert_rule2 = self.create_alert_rule(monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS)
-        self.login_as(self.user)
-
-        params = {"monitor_type": 1}
-        with self.feature("organizations:incidents"):
-            resp = self.get_response(self.organization.slug, **params)
-
-        assert serialize([alert_rule2]) not in resp.data
-        assert resp.data == serialize([alert_rule1])
-
     def test_response_headers(self):
         self.create_team(organization=self.organization, members=[self.user])
-        self.create_alert_rule(monitor_type=AlertRuleMonitorTypeInt.ACTIVATED)
         self.create_alert_rule(monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS)
         self.login_as(self.user)
 
         with self.feature("organizations:incidents"):
             resp = self.get_response(self.organization.slug)
 
-        assert resp[ALERT_RULES_COUNT_HEADER] == "2"
+        assert resp[ALERT_RULES_COUNT_HEADER] == "1"
         assert resp[MAX_QUERY_SUBSCRIPTIONS_HEADER] == "1000"
-
-    def test_simple_with_activation(self):
-        self.create_team(organization=self.organization, members=[self.user])
-        alert_rule = self.create_alert_rule()
-        self.create_alert_rule_activation(
-            alert_rule=alert_rule, monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS
-        )
-
-        self.login_as(self.user)
-        with self.feature("organizations:incidents"):
-            resp = self.get_success_response(self.organization.slug)
-
-        assert resp.data == serialize([alert_rule])
 
 
 @freeze_time()
@@ -309,29 +281,28 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         seer_return_value: StoreDataResponse = {"success": True}
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
         two_weeks_ago = before_now(days=14).replace(hour=10, minute=0, second=0, microsecond=0)
-        with self.options({"issues.group_attributes.send_kafka": True}):
-            self.store_event(
-                data={
-                    "event_id": "a" * 32,
-                    "message": "super duper bad",
-                    "timestamp": iso_format(two_weeks_ago + timedelta(minutes=1)),
-                    "fingerprint": ["group1"],
-                    "tags": {"sentry:user": self.user.email},
-                },
-                default_event_type=EventType.ERROR,
-                project_id=self.project.id,
-            )
-            self.store_event(
-                data={
-                    "event_id": "b" * 32,
-                    "message": "super bad",
-                    "timestamp": iso_format(two_weeks_ago + timedelta(days=10)),
-                    "fingerprint": ["group2"],
-                    "tags": {"sentry:user": self.user.email},
-                },
-                default_event_type=EventType.ERROR,
-                project_id=self.project.id,
-            )
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "super duper bad",
+                "timestamp": (two_weeks_ago + timedelta(minutes=1)).isoformat(),
+                "fingerprint": ["group1"],
+                "tags": {"sentry:user": self.user.email},
+            },
+            default_event_type=EventType.ERROR,
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "super bad",
+                "timestamp": (two_weeks_ago + timedelta(days=10)).isoformat(),
+                "fingerprint": ["group2"],
+                "tags": {"sentry:user": self.user.email},
+            },
+            default_event_type=EventType.ERROR,
+            project_id=self.project.id,
+        )
 
         with outbox_runner():
             resp = self.get_success_response(
@@ -425,37 +396,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             )
         assert not AlertRule.objects.filter(detection_type=AlertRuleDetectionType.DYNAMIC).exists()
         assert resp.data[0] == INVALID_TIME_WINDOW
-
-    def test_monitor_type_with_condition(self):
-        data = {
-            **self.alert_rule_dict,
-            "monitorType": AlertRuleMonitorTypeInt.ACTIVATED,
-            "activationCondition": AlertRuleActivationConditionType.RELEASE_CREATION.value,
-        }
-        with (
-            outbox_runner(),
-            self.feature(["organizations:incidents"]),
-        ):
-            err_resp = self.get_error_response(
-                self.organization.slug,
-                method=responses.POST,
-                status_code=status.HTTP_400_BAD_REQUEST,
-                **data,
-            ).json()
-        assert err_resp == {"monitorType": ["Invalid monitor type"]}
-
-        with (
-            outbox_runner(),
-            self.feature(["organizations:incidents", "organizations:activated-alert-rules"]),
-        ):
-            resp = self.get_success_response(
-                self.organization.slug,
-                status_code=201,
-                **data,
-            )
-        assert "id" in resp.data
-        alert_rule = AlertRule.objects.get(id=resp.data["id"])
-        assert resp.data == serialize(alert_rule, self.user)
 
     def test_multiple_projects(self):
         new_project = self.create_project()
@@ -924,12 +864,38 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             resp = self.get_error_response(
                 self.organization.slug, status_code=400, **rule_one_trigger_only_critical_no_action
             )
-        assert resp.data == [
-            ErrorDetail(
-                string="Each trigger must have an associated action for this alert to fire.",
-                code="invalid",
+        assert resp.data == {
+            "nonFieldErrors": [
+                "Each trigger must have an associated action for this alert to fire."
+            ]
+        }
+
+    def test_critical_trigger_action_no_target_id(self):
+        rule_one_trigger_no_target_id = {
+            "aggregate": "count()",
+            "query": "",
+            "timeWindow": "300",
+            "projects": [self.project.slug],
+            "name": "OneTriggerOnlyCritical",
+            "owner": self.user.id,
+            "resolveThreshold": 200,
+            "thresholdType": 1,
+            "triggers": [
+                {
+                    "label": "critical",
+                    "alertThreshold": 100,
+                    "actions": [{"type": "email", "targetType": "team", "targetIdentifier": ""}],
+                }
+            ],
+        }
+
+        with self.feature("organizations:incidents"):
+            resp = self.get_error_response(
+                self.organization.slug, status_code=400, **rule_one_trigger_no_target_id
             )
-        ]
+        assert resp.data[0] == ErrorDetail(
+            string="One or more of your actions is missing a target identifier.", code="invalid"
+        )
 
     def test_invalid_projects(self):
         with self.feature("organizations:incidents"):
@@ -988,6 +954,63 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         assert resp.status_code == 403
 
         self.login_as(self.user)
+        resp = self.get_response(self.organization.slug, **self.alert_rule_dict)
+        assert resp.status_code == 403
+
+    def test_team_admin_create(self):
+        team_admin_user = self.create_user()
+        self.create_member(
+            team_roles=[(self.team, "admin")],
+            user=team_admin_user,
+            role="member",
+            organization=self.organization,
+        )
+
+        member_user = self.create_user()
+        self.create_member(
+            user=member_user, organization=self.organization, role="member", teams=[self.team]
+        )
+
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.login_as(team_admin_user)
+        with self.feature("organizations:incidents"):
+            resp = self.get_success_response(self.organization.slug, **self.alert_rule_dict)
+        assert resp.status_code == 201
+
+        # verify that a team admin cannot create an alert for a project their team doesn't own
+        with self.feature("organizations:incidents"):
+            resp = self.get_error_response(
+                self.organization.slug,
+                status_code=400,
+                projects=[
+                    self.create_project(organization=self.create_organization()).slug,
+                ],
+                name="an alert",
+                owner=team_admin_user.id,
+                thresholdType=1,
+                query="hi",
+                aggregate="count()",
+                timeWindow=10,
+                alertThreshold=1000,
+                resolveThreshold=100,
+                triggers=[
+                    {
+                        "label": "critical",
+                        "alertThreshold": 200,
+                        "actions": [
+                            {
+                                "type": "email",
+                                "targetType": "team",
+                                "targetIdentifier": self.team.id,
+                            }
+                        ],
+                    }
+                ],
+            )
+            assert resp.json() == {"projects": ["Invalid project"]}
+
+        # verify that a regular team member cannot create an alert
+        self.login_as(member_user)
         resp = self.get_response(self.organization.slug, **self.alert_rule_dict)
         assert resp.status_code == 403
 
@@ -1316,6 +1339,18 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
                 self.organization.slug, status_code=400, **alert_rule_dict
             )
         assert resp.data["name"][0] == "Ensure this field has no more than 256 characters."
+
+    @patch("sentry.analytics.record")
+    def test_performance_alert(self, record_analytics):
+        valid_alert_rule = {
+            **self.alert_rule_dict,
+            "queryType": 1,
+            "dataset": "transactions",
+            "eventTypes": ["transaction"],
+        }
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            resp = self.get_response(self.organization.slug, **valid_alert_rule)
+            assert resp.status_code == 201
 
 
 @freeze_time()

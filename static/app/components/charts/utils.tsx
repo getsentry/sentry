@@ -56,7 +56,7 @@ export function truncationFormatter(
 /**
  * Use a shorter interval if the time difference is <= 24 hours.
  */
-function computeShortInterval(datetimeObj: DateTimeObject): boolean {
+export function computeShortInterval(datetimeObj: DateTimeObject): boolean {
   const diffInMinutes = getDiffInMinutes(datetimeObj);
   return diffInMinutes <= TWENTY_FOUR_HOURS;
 }
@@ -102,7 +102,7 @@ export class GranularityLadder {
   }
 }
 
-export type Fidelity = 'high' | 'medium' | 'low' | 'metrics';
+export type Fidelity = 'high' | 'medium' | 'low' | 'metrics' | 'issues';
 
 export function getInterval(datetimeObj: DateTimeObject, fidelity: Fidelity = 'medium') {
   const diffInMinutes = getDiffInMinutes(datetimeObj);
@@ -112,6 +112,7 @@ export function getInterval(datetimeObj: DateTimeObject, fidelity: Fidelity = 'm
     medium: mediumFidelityLadder,
     low: lowFidelityLadder,
     metrics: metricsFidelityLadder,
+    issues: issuesFidelityLadder,
   }[fidelity].getInterval(diffInMinutes);
 }
 
@@ -145,6 +146,18 @@ const metricsFidelityLadder = new GranularityLadder([
   [THIRTY_DAYS, '12h'],
   [TWO_WEEKS, '4h'],
   [TWENTY_FOUR_HOURS, '30m'],
+  [SIX_HOURS, '5m'],
+  [ONE_HOUR, '1m'],
+  [0, '1m'],
+]);
+
+const issuesFidelityLadder = new GranularityLadder([
+  [SIXTY_DAYS, '1d'],
+  [THIRTY_DAYS, '12h'],
+  [TWO_WEEKS, '4h'],
+  [ONE_WEEK, '2h'],
+  [FORTY_EIGHT_HOURS, '1h'],
+  [TWENTY_FOUR_HOURS, '20m'],
   [SIX_HOURS, '5m'],
   [ONE_HOUR, '1m'],
   [0, '1m'],
@@ -260,7 +273,7 @@ export const getDimensionValue = (dimension?: number | string | null) => {
 };
 
 const RGB_LIGHTEN_VALUE = 30;
-export const lightenHexToRgb = (colors: string[]) =>
+export const lightenHexToRgb = (colors: ReadonlyArray<string>) =>
   colors.map(hex => {
     const rgb = [
       Math.min(parseInt(hex.slice(1, 3), 16) + RGB_LIGHTEN_VALUE, 255),
@@ -279,7 +292,7 @@ export const processTableResults = (tableResults?: TableDataWithTitle[]) => {
     return DEFAULT_GEO_DATA;
   }
 
-  const tableResult = tableResults[0];
+  const tableResult = tableResults[0]!;
 
   const {data} = tableResult;
 
@@ -287,7 +300,7 @@ export const processTableResults = (tableResults?: TableDataWithTitle[]) => {
     return DEFAULT_GEO_DATA;
   }
 
-  const preAggregate = Object.keys(data[0]).find(column => {
+  const preAggregate = Object.keys(data[0]!).find(column => {
     return column !== 'geo.country_code';
   });
 
@@ -296,7 +309,7 @@ export const processTableResults = (tableResults?: TableDataWithTitle[]) => {
   }
 
   return {
-    title: tableResult.title ?? '',
+    title: tableResult!.title ?? '',
     data: data.map(row => {
       return {
         name: row['geo.country_code'] as string,

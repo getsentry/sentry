@@ -1,12 +1,8 @@
 import React, {Fragment, useEffect} from 'react';
 import keyBy from 'lodash/keyBy';
 
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import ButtonBar from 'sentry/components/buttonBar';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {t} from 'sentry/locale';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {
@@ -26,16 +22,12 @@ import {
   TransactionsTable,
 } from 'sentry/views/insights/cache/components/tables/transactionsTable';
 import {Referrer} from 'sentry/views/insights/cache/referrers';
-import {
-  BASE_FILTERS,
-  MODULE_DESCRIPTION,
-  MODULE_DOC_LINK,
-  MODULE_TITLE,
-} from 'sentry/views/insights/cache/settings';
+import {BASE_FILTERS, MODULE_DOC_LINK} from 'sentry/views/insights/cache/settings';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
+import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {
   useMetrics,
   useSpanMetrics,
@@ -43,11 +35,9 @@ import {
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
-import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
-import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
 
 const {CACHE_MISS_RATE} = SpanFunction;
@@ -67,7 +57,6 @@ const SDK_UPDATE_ALERT = (
 const CACHE_ERROR_MESSAGE = 'Column cache.hit was not found in metrics indexer';
 
 export function CacheLandingPage() {
-  const {isInDomainView} = useDomainViewFilters();
   const location = useLocation();
   const {setPageInfo, pageAlert} = usePageAlert();
 
@@ -173,79 +162,60 @@ export function CacheLandingPage() {
     transactionsList?.map(transaction => ({
       ...transaction,
       'avg(transaction.duration)':
-        transactionDurationsMap[transaction.transaction]?.['avg(transaction.duration)'],
+        transactionDurationsMap[transaction.transaction]?.['avg(transaction.duration)']!,
     })) || [];
 
   const meta = combineMeta(transactionsListMeta, transactionDurationMeta);
 
   addCustomMeta(meta);
 
-  const crumbs = useModuleBreadcrumbs('cache');
-
   return (
     <React.Fragment>
-      {!isInDomainView && (
-        <Layout.Header>
-          <Layout.HeaderContent>
-            <Breadcrumbs crumbs={crumbs} />
+      <BackendHeader module={ModuleName.CACHE} />
 
-            <Layout.Title>
-              {MODULE_TITLE}
-              <PageHeadingQuestionTooltip
-                docsUrl={MODULE_DOC_LINK}
-                title={MODULE_DESCRIPTION}
-              />
-            </Layout.Title>
-          </Layout.HeaderContent>
-          <Layout.HeaderActions>
-            <ButtonBar gap={1}>
-              <FeedbackWidgetButton />
-            </ButtonBar>
-          </Layout.HeaderActions>
-        </Layout.Header>
-      )}
-
-      {isInDomainView && <BackendHeader module={ModuleName.CACHE} />}
-
-      <Layout.Body>
-        <Layout.Main fullWidth>
-          <PageAlert />
-          <ModuleLayout.Layout>
-            <ModuleLayout.Full>
-              <ModulePageFilterBar moduleName={ModuleName.CACHE} />
-            </ModuleLayout.Full>
-            <ModulesOnboarding moduleName={ModuleName.CACHE}>
-              <ModuleLayout.Half>
-                <CacheHitMissChart
-                  series={{
-                    seriesName: DataTitles[`${CACHE_MISS_RATE}()`],
-                    data: cacheMissRateData[`${CACHE_MISS_RATE}()`]?.data,
-                  }}
-                  isLoading={isCacheMissRateLoading}
-                  error={cacheMissRateError}
-                />
-              </ModuleLayout.Half>
-              <ModuleLayout.Half>
-                <ThroughputChart
-                  series={throughputData['spm()']}
-                  isLoading={isThroughputDataLoading}
-                  error={throughputError}
-                />
-              </ModuleLayout.Half>
+      <ModuleBodyUpsellHook moduleName={ModuleName.CACHE}>
+        <Layout.Body>
+          <Layout.Main fullWidth>
+            <PageAlert />
+            <ModuleLayout.Layout>
               <ModuleLayout.Full>
-                <TransactionsTable
-                  data={transactionsListWithDuration}
-                  isLoading={isTransactionsListFetching || isTransactionDurationFetching}
-                  sort={sort}
-                  error={transactionsListError || transactionDurationError}
-                  meta={meta}
-                  pageLinks={transactionsListPageLinks}
-                />
+                <ModulePageFilterBar moduleName={ModuleName.CACHE} />
               </ModuleLayout.Full>
-            </ModulesOnboarding>
-          </ModuleLayout.Layout>
-        </Layout.Main>
-      </Layout.Body>
+              <ModulesOnboarding moduleName={ModuleName.CACHE}>
+                <ModuleLayout.Half>
+                  <CacheHitMissChart
+                    series={{
+                      seriesName: DataTitles[`${CACHE_MISS_RATE}()`],
+                      data: cacheMissRateData[`${CACHE_MISS_RATE}()`]?.data,
+                    }}
+                    isLoading={isCacheMissRateLoading}
+                    error={cacheMissRateError}
+                  />
+                </ModuleLayout.Half>
+                <ModuleLayout.Half>
+                  <ThroughputChart
+                    series={throughputData['spm()']}
+                    isLoading={isThroughputDataLoading}
+                    error={throughputError}
+                  />
+                </ModuleLayout.Half>
+                <ModuleLayout.Full>
+                  <TransactionsTable
+                    data={transactionsListWithDuration}
+                    isLoading={
+                      isTransactionsListFetching || isTransactionDurationFetching
+                    }
+                    sort={sort}
+                    error={transactionsListError || transactionDurationError}
+                    meta={meta}
+                    pageLinks={transactionsListPageLinks}
+                  />
+                </ModuleLayout.Full>
+              </ModulesOnboarding>
+            </ModuleLayout.Layout>
+          </Layout.Main>
+        </Layout.Body>
+      </ModuleBodyUpsellHook>
       <CacheSamplePanel />
     </React.Fragment>
   );
@@ -253,11 +223,7 @@ export function CacheLandingPage() {
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders
-      moduleName="cache"
-      features="insights-addon-modules"
-      analyticEventName="insight.page_loads.cache"
-    >
+    <ModulePageProviders moduleName="cache" analyticEventName="insight.page_loads.cache">
       <PageAlertProvider>
         <CacheLandingPage />
       </PageAlertProvider>
@@ -288,7 +254,7 @@ const combineMeta = (
 
 // TODO - this should come from the backend
 const addCustomMeta = (meta?: EventsMetaType) => {
-  if (meta) {
+  if (meta?.fields) {
     meta.fields[`avg(${CACHE_ITEM_SIZE})`] = 'size';
     meta.units[`avg(${CACHE_ITEM_SIZE})`] = 'byte';
   }

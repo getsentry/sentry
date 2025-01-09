@@ -7,13 +7,13 @@ import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {RATE_UNIT_TITLE, RateUnit} from 'sentry/utils/discover/fields';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {SpanDescriptionCell} from 'sentry/views/insights/common/components/tableCells/spanDescriptionCell';
@@ -80,16 +80,17 @@ interface Props {
     pageLinks?: string;
   };
   sort: ValidSort;
-  system: string;
+  system?: string;
 }
 
 export function QueriesTable({response, sort, system}: Props) {
   const {data, isLoading, meta, pageLinks} = response;
+  const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
 
   const handleCursor: CursorHandler = (newCursor, pathname, query) => {
-    browserHistory.push({
+    navigate({
       pathname,
       query: {...query, [QueryParameterNames.SPANS_CURSOR]: newCursor},
     });
@@ -145,7 +146,7 @@ function renderBodyCell(
   meta: EventsMetaType | undefined,
   location: Location,
   organization: Organization,
-  system: string
+  system?: string
 ) {
   if (column.key === 'span.description') {
     return (

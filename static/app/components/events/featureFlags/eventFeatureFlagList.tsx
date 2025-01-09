@@ -1,37 +1,38 @@
-import {useCallback, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import {CompactSelect} from 'sentry/components/compactSelect';
-import DropdownButton from 'sentry/components/dropdownButton';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {
-  ALPHA_OPTIONS,
   CardContainer,
-  EVAL_ORDER_OPTIONS,
   FeatureFlagDrawer,
-  FlagControlOptions,
-  FlagSort,
-  getDefaultFlagSort,
-  getFlagSortLabel,
-  getSortGroupLabel,
-  SORT_GROUP_OPTIONS,
-  sortedFlags,
-  SortGroup,
 } from 'sentry/components/events/featureFlags/featureFlagDrawer';
+import FeatureFlagInlineCTA from 'sentry/components/events/featureFlags/featureFlagInlineCTA';
+import FeatureFlagSort from 'sentry/components/events/featureFlags/featureFlagSort';
+import {useFeatureFlagOnboarding} from 'sentry/components/events/featureFlags/useFeatureFlagOnboarding';
+import useIssueEvents from 'sentry/components/events/featureFlags/useIssueEvents';
+import {
+  FlagControlOptions,
+  OrderBy,
+  SortBy,
+  sortedFlags,
+} from 'sentry/components/events/featureFlags/utils';
 import useDrawer from 'sentry/components/globalDrawer';
-import KeyValueData, {
-  type KeyValueDataContentProps,
-} from 'sentry/components/keyValueData';
-import {IconMegaphone, IconSearch, IconSort} from 'sentry/icons';
+import KeyValueData from 'sentry/components/keyValueData';
+import {featureFlagOnboardingPlatforms} from 'sentry/data/platformCategories';
+import {IconMegaphone, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event, FeatureFlag} from 'sentry/types/event';
-import type {Group} from 'sentry/types/group';
+import {type Group, IssueCategory} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
+import {useOrganizationFlagLog} from 'sentry/views/issueDetails/streamline/hooks/useOrganizationFlagLog';
+import useSuspectFlags from 'sentry/views/issueDetails/streamline/hooks/useSuspectFlags';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 export function EventFeatureFlagList({
@@ -63,29 +64,94 @@ export function EventFeatureFlagList({
     </Button>
   ) : null;
 
-  const [flagSort, setFlagSort] = useState<FlagSort>(FlagSort.NEWEST);
-  const [sortGroup, setSortGroup] = useState<SortGroup>(SortGroup.EVAL_ORDER);
+  const [sortBy, setSortBy] = useState<SortBy>(SortBy.EVAL_ORDER);
+  const [orderBy, setOrderBy] = useState<OrderBy>(OrderBy.NEWEST);
   const {closeDrawer, isDrawerOpen, openDrawer} = useDrawer();
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
   const organization = useOrganization();
+  const eventView = useIssueDetailsEventView({group});
+  const {data: rawFlagData} = useOrganizationFlagLog({
+    organization,
+    query: {
+      start: eventView.start,
+      end: eventView.end,
+      statsPeriod: eventView.statsPeriod,
+    },
+  });
 
-  // Transform the flags array into something readable by the key-value component
-  const hydrateFlags = (flags: FeatureFlag[] | undefined): KeyValueDataContentProps[] => {
-    if (!flags) {
-      return [];
-    }
-    return flags.map(f => {
+  const {
+    data: relatedEvents,
+    isPending: isRelatedEventsPending,
+    isError: isRelatedEventsError,
+  } = useIssueEvents({issueId: group.id});
+
+  const {activateSidebarSkipConfigure} = useFeatureFlagOnboarding();
+
+  const {
+    suspectFlags,
+    isError: isSuspectError,
+    isPending: isSuspectPending,
+  } = useSuspectFlags({
+    organization,
+    firstSeen: group.firstSeen,
+    rawFlagData,
+    event,
+  });
+
+  const suspectFlagNames: Set<string> = useMemo(() => {
+    return isSuspectError || isSuspectPending
+      ? new Set()
+      : new Set(suspectFlags.map(f => f.flag));
+  }, [isSuspectError, isSuspectPending, suspectFlags]);
+
+  const hasFlagContext = Boolean(event.contexts?.flags?.values);
+  const anyEventHasContext =
+    isRelatedEventsPending || isRelatedEventsError
+      ? false
+      : relatedEvents.filter(e => Boolean(e.contexts?.flags?.values)).length > 0;
+
+  const eventFlags: Required<FeatureFlag>[] = useMemo(() => {
+    // At runtime there's no type guarantees on the event flags. So we have to
+    // explicitly validate against SDK developer error or user-provided contexts.
+    const rawFlags = event.contexts?.flags?.values ?? [];
+    return rawFlags.filter(
+      (f): f is Required<FeatureFlag> =>
+        f &&
+        typeof f === 'object' &&
+        typeof f.flag === 'string' &&
+        typeof f.result === 'boolean'
+    );
+  }, [event]);
+
+  const hasFlags = hasFlagContext && eventFlags.length > 0;
+
+  const showCTA =
+    !hasFlagContext &&
+    !anyEventHasContext &&
+    featureFlagOnboardingPlatforms.includes(project.platform ?? 'other') &&
+    organization.features.includes('feature-flag-cta');
+
+  const hydratedFlags = useMemo(() => {
+    // Transform the flags array into something readable by the key-value component.
+    // Reverse the flags to show newest at the top by default.
+    return eventFlags.toReversed().map(f => {
       return {
-        item: {key: f.flag, subject: f.flag, value: f.result.toString()},
+        item: {
+          key: f.flag,
+          subject: f.flag,
+          value: suspectFlagNames.has(f.flag) ? (
+            <ValueWrapper>
+              {f.result.toString()}
+              <SuspectLabel>{t('Suspect')}</SuspectLabel>
+            </ValueWrapper>
+          ) : (
+            f.result.toString()
+          ),
+        },
+        isSuspectFlag: suspectFlagNames.has(f.flag),
       };
     });
-  };
-
-  // Reverse the flags to show newest at the top by default
-  const hydratedFlags = useMemo(
-    () => hydrateFlags(event.contexts?.flags?.values.reverse()),
-    [event]
-  );
+  }, [suspectFlagNames, eventFlags]);
 
   const onViewAllFlags = useCallback(
     (focusControl?: FlagControlOptions) => {
@@ -99,8 +165,8 @@ export function EventFeatureFlagList({
             event={event}
             project={project}
             hydratedFlags={hydratedFlags}
-            initialSortGroup={sortGroup}
-            initialFlagSort={flagSort}
+            initialSortBy={sortBy}
+            initialOrderBy={orderBy}
             focusControl={focusControl}
           />
         ),
@@ -119,74 +185,78 @@ export function EventFeatureFlagList({
         }
       );
     },
-    [openDrawer, event, group, project, hydratedFlags, organization, flagSort, sortGroup]
+    [openDrawer, event, group, project, hydratedFlags, organization, sortBy, orderBy]
   );
 
-  if (!hydratedFlags.length) {
+  useEffect(() => {
+    if (hasFlags) {
+      trackAnalytics('flags.table_rendered', {
+        organization,
+        numFlags: hydratedFlags.length,
+      });
+    }
+  }, [hasFlags, hydratedFlags.length, organization]);
+
+  if (group.issueCategory !== IssueCategory.ERROR) {
+    return null;
+  }
+
+  if (showCTA) {
+    return <FeatureFlagInlineCTA projectId={event.projectID} />;
+  }
+
+  // if contexts.flags is not set, hide the section
+  if (!hasFlagContext) {
     return null;
   }
 
   const actions = (
     <ButtonBar gap={1}>
       {feedbackButton}
-      <Button
-        aria-label={t('Open Feature Flag Search')}
-        icon={<IconSearch size="xs" />}
-        size="xs"
-        title={t('Open Search')}
-        onClick={() => onViewAllFlags(FlagControlOptions.SEARCH)}
-      />
-      <Button
-        size="xs"
-        aria-label={t('View All')}
-        ref={viewAllButtonRef}
-        title={t('View All Flags')}
-        onClick={() => {
-          isDrawerOpen ? closeDrawer() : onViewAllFlags();
-        }}
-      >
-        {t('View All')}
-      </Button>
-      <CompactSelect
-        value={sortGroup}
-        options={SORT_GROUP_OPTIONS}
-        triggerProps={{
-          'aria-label': t('Sort Group'),
-        }}
-        onChange={selection => {
-          setFlagSort(getDefaultFlagSort(selection.value));
-          setSortGroup(selection.value);
-        }}
-        trigger={triggerProps => (
-          <DropdownButton {...triggerProps} size="xs">
-            {getSortGroupLabel(sortGroup)}
-          </DropdownButton>
+      <Fragment>
+        <Button
+          aria-label={t('Set Up Integration')}
+          size="xs"
+          onClick={mouseEvent => {
+            activateSidebarSkipConfigure(mouseEvent, project.id);
+          }}
+        >
+          {t('Set Up Integration')}
+        </Button>
+        {hasFlags && (
+          <Fragment>
+            <Button
+              size="xs"
+              aria-label={t('View All')}
+              ref={viewAllButtonRef}
+              title={t('View All Flags')}
+              onClick={() => {
+                isDrawerOpen ? closeDrawer() : onViewAllFlags();
+              }}
+            >
+              {t('View All')}
+            </Button>
+            <Button
+              aria-label={t('Open Feature Flag Search')}
+              icon={<IconSearch size="xs" />}
+              size="xs"
+              title={t('Open Search')}
+              onClick={() => onViewAllFlags(FlagControlOptions.SEARCH)}
+            />
+            <FeatureFlagSort
+              orderBy={orderBy}
+              sortBy={sortBy}
+              setSortBy={setSortBy}
+              setOrderBy={setOrderBy}
+            />
+          </Fragment>
         )}
-      />
-      <CompactSelect
-        value={flagSort}
-        options={sortGroup === SortGroup.EVAL_ORDER ? EVAL_ORDER_OPTIONS : ALPHA_OPTIONS}
-        triggerProps={{
-          'aria-label': t('Flag Sort Type'),
-        }}
-        onChange={selection => {
-          setFlagSort(selection.value);
-          trackAnalytics('flags.sort-flags', {
-            organization,
-            sortMethod: selection.value,
-          });
-        }}
-        trigger={triggerProps => (
-          <DropdownButton {...triggerProps} size="xs" icon={<IconSort />}>
-            {getFlagSortLabel(flagSort)}
-          </DropdownButton>
-        )}
-      />
+      </Fragment>
     </ButtonBar>
   );
 
   // Split the flags list into two columns for display
-  const truncatedItems = sortedFlags({flags: hydratedFlags, sort: flagSort}).slice(0, 20);
+  const truncatedItems = sortedFlags({flags: hydratedFlags, sort: orderBy}).slice(0, 20);
   const columnOne = truncatedItems.slice(0, 10);
   let columnTwo: typeof truncatedItems = [];
   if (truncatedItems.length > 10) {
@@ -194,21 +264,42 @@ export function EventFeatureFlagList({
   }
 
   return (
-    <ErrorBoundary mini message={t('There was a problem loading feature flags.')}>
-      <InterimSection
-        help={t(
-          "The last 10 flags evaluated in the user's session leading up to this event."
-        )}
-        isHelpHoverable
-        title={t('Feature Flags')}
-        type={SectionKey.FEATURE_FLAGS}
-        actions={actions}
-      >
+    <InterimSection
+      help={t(
+        "The last 100 flags evaluated in the user's session leading up to this event."
+      )}
+      isHelpHoverable
+      title={t('Feature Flags')}
+      type={SectionKey.FEATURE_FLAGS}
+      actions={actions}
+    >
+      {hasFlags ? (
         <CardContainer numCols={columnTwo.length ? 2 : 1}>
-          <KeyValueData.Card contentItems={columnOne} />
-          <KeyValueData.Card contentItems={columnTwo} />
+          <KeyValueData.Card expandLeft contentItems={columnOne} />
+          <KeyValueData.Card expandLeft contentItems={columnTwo} />
         </CardContainer>
-      </InterimSection>
-    </ErrorBoundary>
+      ) : (
+        <StyledEmptyStateWarning withIcon>
+          {t('No feature flags were found for this event')}
+        </StyledEmptyStateWarning>
+      )}
+    </InterimSection>
   );
 }
+
+const SuspectLabel = styled('div')`
+  color: ${p => p.theme.subText};
+`;
+
+const ValueWrapper = styled('div')`
+  display: flex;
+  justify-content: space-between;
+`;
+
+const StyledEmptyStateWarning = styled(EmptyStateWarning)`
+  border: ${p => p.theme.border} solid 1px;
+  border-radius: ${p => p.theme.borderRadius};
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+`;

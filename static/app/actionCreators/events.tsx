@@ -51,14 +51,17 @@ type Options = {
   project?: Readonly<number[]>;
   query?: string;
   queryBatching?: QueryBatching;
-  queryExtras?: Record<string, string>;
+  queryExtras?: Record<string, string | boolean | number>;
   referrer?: string;
   start?: DateString;
   team?: Readonly<string | string[]>;
   topEvents?: number;
+  useRpc?: boolean;
   withoutZerofill?: boolean;
   yAxis?: string | string[];
 };
+
+export type EventsStatsOptions<T extends boolean> = {includeAllArgs?: T} & Options;
 
 /**
  * Make requests to `events-stats` endpoint
@@ -107,7 +110,8 @@ export const doEventsRequest = <IncludeAllArgsType extends boolean = false>(
     excludeOther,
     includeAllArgs,
     dataset,
-  }: {includeAllArgs?: IncludeAllArgsType} & Options
+    useRpc,
+  }: EventsStatsOptions<IncludeAllArgsType>
 ): IncludeAllArgsType extends true
   ? Promise<
       [EventsStats | MultiSeriesEventsStats, string | undefined, ResponseMeta | undefined]
@@ -135,6 +139,7 @@ export const doEventsRequest = <IncludeAllArgsType extends boolean = false>(
       referrer: referrer ? referrer : 'api.organization-event-stats',
       excludeOther: excludeOther ? '1' : undefined,
       dataset,
+      useRpc: useRpc ? '1' : undefined,
     }).filter(([, value]) => typeof value !== 'undefined')
   );
 
@@ -173,6 +178,7 @@ export type EventQuery = {
   referrer?: string;
   sort?: string | string[];
   team?: string | string[];
+  useRpc?: '1';
 };
 
 export type TagSegment = {
@@ -233,7 +239,7 @@ export function fetchTotalCount(
 type FetchEventAttachmentParameters = {
   eventId: string;
   orgSlug: string;
-  projectSlug: string;
+  projectSlug: string | undefined;
 };
 
 type FetchEventAttachmentResponse = IssueAttachment[];
@@ -257,8 +263,9 @@ export const useFetchEventAttachments = (
       staleTime: Infinity,
       ...options,
       enabled:
-        (organization.features?.includes('event-attachments') ?? false) &&
-        options.enabled !== false,
+        (organization.features.includes('event-attachments') ?? false) &&
+        options.enabled !== false &&
+        params.projectSlug !== undefined,
     }
   );
 };

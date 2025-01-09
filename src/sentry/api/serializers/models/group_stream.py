@@ -170,7 +170,7 @@ class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
         stats_period_start=None,
         stats_period_end=None,
     ):
-        super().__init__(environment_func)
+        super().__init__(environment_func=environment_func)
 
         if stats_period is not None:
             assert stats_period in self.STATS_PERIOD_CHOICES or stats_period == "auto"
@@ -279,9 +279,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                 attrs = {item: seen_stats.get(item, {}) for item in item_list}
             else:
                 attrs = {item: {} for item in item_list}
-            if len(item_list) > 0 and features.has(
-                "organizations:issue-stream-performance", item_list[0].project.organization
-            ):
+            if len(item_list) > 0:
                 unhandled_stats = self._get_group_snuba_stats(item_list, seen_stats)
 
                 if unhandled_stats is not None:

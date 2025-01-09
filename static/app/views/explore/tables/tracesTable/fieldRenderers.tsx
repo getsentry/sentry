@@ -21,7 +21,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import type {SpanIndexedField, SpanIndexedResponse} from 'sentry/views/insights/types';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
@@ -56,73 +56,67 @@ export function SpanDescriptionRenderer({span}: {span: SpanResult<Field>}) {
 
 interface ProjectsRendererProps {
   projectSlugs: string[];
+  disableLink?: boolean;
   maxVisibleProjects?: number;
+  onProjectClick?: (projectSlug: string) => void;
+  visibleAvatarSize?: number;
 }
 
 export function ProjectsRenderer({
   projectSlugs,
+  visibleAvatarSize,
   maxVisibleProjects = 2,
+  onProjectClick,
+  disableLink,
 }: ProjectsRendererProps) {
   const organization = useOrganization();
+  const {projects} = useProjects({slugs: projectSlugs, orgId: organization.slug});
+  // ensure that projectAvatars is in the same order as the projectSlugs prop
+  const projectAvatars = projectSlugs.map(slug => {
+    return projects.find(project => project.slug === slug) ?? {slug};
+  });
+  const numProjects = projectAvatars.length;
+  const numVisibleProjects =
+    maxVisibleProjects - numProjects >= 0 ? numProjects : maxVisibleProjects - 1;
+  const visibleProjectAvatars = projectAvatars.slice(0, numVisibleProjects).reverse();
+  const collapsedProjectAvatars = projectAvatars.slice(numVisibleProjects);
+  const numCollapsedProjects = collapsedProjectAvatars.length;
 
   return (
-    <Projects orgId={organization.slug} slugs={projectSlugs}>
-      {({projects}) => {
-        const projectAvatars =
-          projects.length > 0 ? projects : projectSlugs.map(slug => ({slug}));
-        const numProjects = projectAvatars.length;
-        const numVisibleProjects =
-          maxVisibleProjects - numProjects >= 0 ? numProjects : maxVisibleProjects - 1;
-        const visibleProjectAvatars = projectAvatars
-          .slice(0, numVisibleProjects)
-          .reverse();
-        const collapsedProjectAvatars = projectAvatars.slice(numVisibleProjects);
-        const numCollapsedProjects = collapsedProjectAvatars.length;
-
-        return (
-          <ProjectList>
-            {numCollapsedProjects > 0 && (
-              <Tooltip
-                skipWrapper
-                title={
-                  <CollapsedProjects>
-                    {tn(
-                      'This trace contains %s more project.',
-                      'This trace contains %s more projects.',
-                      numCollapsedProjects
-                    )}
-                    {collapsedProjectAvatars.map(project => (
-                      <ProjectBadge
-                        key={project.slug}
-                        project={project}
-                        avatarSize={16}
-                      />
-                    ))}
-                  </CollapsedProjects>
-                }
-              >
-                <CollapsedBadge
-                  size={20}
-                  fontSize={10}
-                  data-test-id="collapsed-projects-badge"
-                >
-                  +{numCollapsedProjects}
-                </CollapsedBadge>
-              </Tooltip>
-            )}
-            {visibleProjectAvatars.map(project => (
-              <StyledProjectBadge
-                key={project.slug}
-                hideName
-                project={project}
-                avatarSize={16}
-                avatarProps={{hasTooltip: true, tooltip: project.slug}}
-              />
-            ))}
-          </ProjectList>
-        );
-      }}
-    </Projects>
+    <ProjectList>
+      {numCollapsedProjects > 0 && (
+        <Tooltip
+          skipWrapper
+          title={
+            <CollapsedProjects>
+              {tn(
+                'This trace contains %s more project.',
+                'This trace contains %s more projects.',
+                numCollapsedProjects
+              )}
+              {collapsedProjectAvatars.map(project => (
+                <ProjectBadge key={project.slug} project={project} avatarSize={16} />
+              ))}
+            </CollapsedProjects>
+          }
+        >
+          <CollapsedBadge size={20} fontSize={10} data-test-id="collapsed-projects-badge">
+            +{numCollapsedProjects}
+          </CollapsedBadge>
+        </Tooltip>
+      )}
+      {visibleProjectAvatars.map(project => (
+        <StyledProjectBadge
+          hideName
+          key={project.slug}
+          onClick={() => onProjectClick?.(project.slug)}
+          disableLink={disableLink}
+          project={project}
+          avatarSize={visibleAvatarSize ?? 16}
+          avatarProps={{hasTooltip: true, tooltip: project.slug}}
+        />
+      ))}
+    </ProjectList>
   );
 }
 
@@ -221,14 +215,23 @@ const RectangleTraceBreakdown = styled(RowRectangle)<{
   position: relative;
   width: 100%;
   height: 15px;
-  ${p => `
+  ${p => css`
     filter: var(--highlightedSlice-${p.sliceName}-saturate, var(--defaultSlice-saturate));
   `}
-  ${p => `
-    opacity: var(--highlightedSlice-${p.sliceName ?? ''}-opacity, var(--defaultSlice-opacity, 1.0));
+  ${p => css`
+    opacity: var(
+      --highlightedSlice-${p.sliceName ?? ''}-opacity,
+      var(--defaultSlice-opacity, 1)
+    );
   `}
-  ${p => `
-    transform: var(--hoveredSlice-${p.offset}-translateY, var(--highlightedSlice-${p.sliceName ?? ''}-transform, var(--defaultSlice-transform, 1.0)));
+  ${p => css`
+    transform: var(
+      --hoveredSlice-${p.offset}-translateY,
+      var(
+        --highlightedSlice-${p.sliceName ?? ''}-transform,
+        var(--defaultSlice-transform, 1)
+      )
+    );
   `}
   transition: filter,opacity,transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 `;
@@ -299,7 +302,6 @@ export function SpanBreakdownSliceRenderer({
   onMouseEnter,
   offset,
 }: {
-  onMouseEnter: () => void;
   sliceEnd: number;
   sliceName: string | null;
   sliceSecondaryName: string | null;
@@ -307,6 +309,7 @@ export function SpanBreakdownSliceRenderer({
   theme: Theme;
   trace: TraceResult;
   offset?: number;
+  onMouseEnter?: () => void;
   sliceDurationReal?: number;
   sliceNumberStart?: number;
   sliceNumberWidth?: number;
@@ -430,7 +433,7 @@ interface TraceIdRendererProps {
   location: Location;
   timestamp: number; // in milliseconds
   traceId: string;
-  onClick?: () => void;
+  onClick?: React.ComponentProps<typeof Link>['onClick'];
   transactionId?: string;
 }
 

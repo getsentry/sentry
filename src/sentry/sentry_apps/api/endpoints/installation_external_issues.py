@@ -51,6 +51,7 @@ class SentryAppInstallationExternalIssuesEndpoint(ExternalIssueBaseEndpoint):
                 project=data["project"],
                 identifier=data["identifier"],
             ).run()
+
             return Response(
                 serialize(
                     objects=external_issue, serializer=ResponsePlatformExternalIssueSerializer()

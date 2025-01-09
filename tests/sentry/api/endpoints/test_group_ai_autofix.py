@@ -13,10 +13,15 @@ from sentry.utils.samples import load_data
 pytestmark = [requires_snuba]
 
 
-@apply_feature_flag_on_cls("organizations:autofix")
+@apply_feature_flag_on_cls("organizations:gen-ai-features")
 class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
     def _get_url(self, group_id: int):
         return f"/api/0/issues/{group_id}/autofix/"
+
+    def setUp(self):
+        super().setUp()
+
+        self.organization.update_option("sentry:gen_ai_consent_v2024_11_14", True)
 
     @patch("sentry.api.endpoints.group_ai_autofix.get_autofix_state")
     def test_ai_autofix_get_endpoint_with_autofix(self, mock_get_autofix_state):
@@ -24,7 +29,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         mock_get_autofix_state.return_value = AutofixState(
             run_id=123,
             request={"project_id": 456, "issue": {"id": 789}},
-            updated_at=datetime.strptime("2023-07-18T12:00:00Z", "%Y-%m-%dT%H:%M:%SZ"),
+            updated_at=datetime.fromisoformat("2023-07-18T12:00:00Z"),
             status=AutofixStatus.PROCESSING,
         )
 
@@ -59,7 +64,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         mock_get_autofix_state.return_value = AutofixState(
             run_id=123,
             request={"project_id": 456, "issue": {"id": 789}},
-            updated_at=datetime.strptime("2023-07-18T12:00:00Z", "%Y-%m-%dT%H:%M:%SZ"),
+            updated_at=datetime.fromisoformat("2023-07-18T12:00:00Z"),
             status=AutofixStatus.PROCESSING,
         )
 

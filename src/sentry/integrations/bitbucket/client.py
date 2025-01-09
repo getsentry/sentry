@@ -11,7 +11,7 @@ from sentry.integrations.base import IntegrationFeatureNotImplementedError
 from sentry.integrations.client import ApiClient
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.source_code_management.repository import RepositoryClient
-from sentry.integrations.utils import get_query_hash
+from sentry.integrations.utils.atlassian_connect import get_query_hash
 from sentry.models.repository import Repository
 from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.utils import jwt
@@ -88,9 +88,6 @@ class BitbucketApiClient(ApiClient, RepositoryClient):
 
     def get_issue(self, repo, issue_id):
         return self.get(BitbucketAPIPath.issue.format(repo=repo, issue_id=issue_id))
-
-    def get_issues(self, repo):
-        return self.get(BitbucketAPIPath.issues.format(repo=repo))
 
     def create_issue(self, repo, data):
         return self.post(path=BitbucketAPIPath.issues.format(repo=repo), data=data)

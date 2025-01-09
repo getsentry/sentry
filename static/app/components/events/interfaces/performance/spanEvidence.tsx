@@ -62,7 +62,11 @@ export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
         hasSetting && (
           <LinkButton
             data-test-id="span-evidence-settings-btn"
-            to={`/settings/projects/${projectSlug}/performance/?issueType=${issueType}#${sanitizedIssueTitle}`}
+            to={{
+              pathname: `/settings/${organization.slug}/projects/${projectSlug}/performance/`,
+              query: {issueType},
+              hash: sanitizedIssueTitle,
+            }}
             size="xs"
             icon={<IconSettings />}
           >

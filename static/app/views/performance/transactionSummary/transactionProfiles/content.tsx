@@ -21,7 +21,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DeepPartial} from 'sentry/types/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
@@ -41,14 +40,15 @@ import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
 import {
   FlamegraphProvider,
   useFlamegraph,
 } from 'sentry/views/profiling/flamegraphProvider';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 
+import {TraceViewSources} from '../../newTraceDetails/traceHeader/breadcrumbs';
 import {generateProfileLink} from '../utils';
 
 const DEFAULT_FLAMEGRAPH_PREFERENCES: DeepPartial<FlamegraphState> = {
@@ -100,9 +100,9 @@ function isEmpty(resp: Profiling.Schema) {
   return false;
 }
 
-function ProfileVisualization({query}: TransactionProfilesContentProps) {
-  const {data, isPending, isError} = useAggregateFlamegraphQuery({
-    query,
+function ProfileVisualization(props: TransactionProfilesContentProps) {
+  const {data, status} = useAggregateFlamegraphQuery({
+    query: props.query,
   });
 
   const [frameFilter, setFrameFilter] = useLocalStorageState<
@@ -115,6 +115,10 @@ function ProfileVisualization({query}: TransactionProfilesContentProps) {
     },
     [setFrameFilter]
   );
+
+  const onResetFrameFilter = useCallback(() => {
+    setFrameFilter('all');
+  }, [setFrameFilter]);
 
   const flamegraphFrameFilter: ((frame: Frame) => boolean) | undefined = useMemo(() => {
     if (frameFilter === 'all') {
@@ -164,6 +168,9 @@ function ProfileVisualization({query}: TransactionProfilesContentProps) {
               <FlamegraphContainer>
                 {visualization === 'flamegraph' ? (
                   <AggregateFlamegraph
+                    status={status}
+                    filter={frameFilter}
+                    onResetFilter={onResetFrameFilter}
                     canvasPoolManager={canvasPoolManager}
                     scheduler={scheduler}
                   />
@@ -177,11 +184,11 @@ function ProfileVisualization({query}: TransactionProfilesContentProps) {
                   />
                 )}
               </FlamegraphContainer>
-              {isPending ? (
+              {status === 'pending' ? (
                 <RequestStateMessageContainer>
                   <LoadingIndicator />
                 </RequestStateMessageContainer>
-              ) : isError ? (
+              ) : status === 'error' ? (
                 <RequestStateMessageContainer>
                   {t('There was an error loading the flamegraph.')}
                 </RequestStateMessageContainer>
@@ -280,16 +287,11 @@ const ALL_DIGESTS = [
 ] satisfies ProfilingFieldType[];
 
 function ProfileDigest({query}: TransactionProfilesContentProps) {
-  const organization = useOrganization();
-
   const profilesSummary = useProfileEvents<ProfilingFieldType>({
     fields: ALL_DIGESTS,
     query,
     sort: {key: 'last_seen()', order: 'desc'},
     referrer: 'api.profiling.profile-summary-table',
-    continuousProfilingCompat: organization.features.includes(
-      'continuous-profiling-compat'
-    ),
   });
 
   const digestData = profilesSummary.data?.data?.[0];
@@ -358,6 +360,7 @@ const PROFILES_SORT = 'profilesSort';
 const PROFILES_CURSOR = 'profilesCursor';
 
 function ProfileList({query: userQuery, transaction}: TransactionProfilesContentProps) {
+  const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
 
@@ -412,14 +415,11 @@ function ProfileList({query: userQuery, transaction}: TransactionProfilesContent
     referrer: 'api.profiling.profile-summary-table',
     cursor,
     limit: 10,
-    continuousProfilingCompat: organization.features.includes(
-      'continuous-profiling-compat'
-    ),
   });
 
   const handleSort = useCallback(
     (value: {value: SortOption}) => {
-      browserHistory.push({
+      navigate({
         ...location,
         query: {
           ...location.query,
@@ -428,15 +428,18 @@ function ProfileList({query: userQuery, transaction}: TransactionProfilesContent
         },
       });
     },
-    [location]
+    [location, navigate]
   );
 
-  const handleCursor = useCallback((newCursor, pathname, query) => {
-    browserHistory.push({
-      pathname,
-      query: {...query, [PROFILES_CURSOR]: newCursor},
-    });
-  }, []);
+  const handleCursor = useCallback(
+    (newCursor, pathname, query) => {
+      navigate({
+        pathname,
+        query: {...query, [PROFILES_CURSOR]: newCursor},
+      });
+    },
+    [navigate]
+  );
 
   return (
     <ProfileListContainer>
@@ -531,11 +534,10 @@ const TransactionProfilesContentContainer = styled('div')`
   /* false positive for grid layout */
   /* stylelint-disable */
   grid-template-areas: 'visualization digest';
-  grid-template-columns: 1fr 250px;
+  grid-template-columns: 1fr min-content;
   flex: 1;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  overflow: hidden;
 `;
 
 const ProfileVisualizationContainer = styled('div')`
@@ -547,7 +549,6 @@ const ProfileVisualizationContainer = styled('div')`
 `;
 
 const FlamegraphContainer = styled('div')`
-  overflow: hidden;
   display: flex;
 `;
 

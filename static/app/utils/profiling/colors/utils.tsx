@@ -11,11 +11,11 @@ function uniqueCountBy<T>(
   arr: ReadonlyArray<T>,
   predicate: (t: T) => string | boolean
 ): number {
-  const visited = {};
+  const visited: Record<string, number> = {};
 
   let count = 0;
   for (let i = 0; i < arr.length; i++) {
-    const key = predicate(arr[i]);
+    const key = predicate(arr[i]!);
 
     if (key === true) {
       count++;
@@ -48,7 +48,7 @@ function uniqueBy<T>(arr: ReadonlyArray<T>, predicate: (t: T) => unknown): Array
       continue;
     }
     seen.add(key);
-    set.push(item);
+    set.push(item!);
   }
 
   return set;
@@ -75,10 +75,10 @@ export function makeColorBufferForNodes(
 
     for (let i = 0; i < 6; i++) {
       const offset = index * 6 * 4 + i * 4;
-      colorBuffer[offset] = colorWithAlpha[0];
-      colorBuffer[offset + 1] = colorWithAlpha[1];
-      colorBuffer[offset + 2] = colorWithAlpha[2];
-      colorBuffer[offset + 3] = colorWithAlpha[3];
+      colorBuffer[offset] = colorWithAlpha[0]!;
+      colorBuffer[offset + 1] = colorWithAlpha[1]!;
+      colorBuffer[offset + 2] = colorWithAlpha[2]!;
+      colorBuffer[offset + 3] = colorWithAlpha[3]!;
     }
   }
 
@@ -106,10 +106,10 @@ export function makeColorBuffer(
 
     for (let i = 0; i < 6; i++) {
       const offset = index * 6 * 4 + i * 4;
-      colorBuffer[offset] = colorWithAlpha[0];
-      colorBuffer[offset + 1] = colorWithAlpha[1];
-      colorBuffer[offset + 2] = colorWithAlpha[2];
-      colorBuffer[offset + 3] = colorWithAlpha[3];
+      colorBuffer[offset] = colorWithAlpha[0]!;
+      colorBuffer[offset + 1] = colorWithAlpha[1]!;
+      colorBuffer[offset + 2] = colorWithAlpha[2]!;
+      colorBuffer[offset + 3] = colorWithAlpha[3]!;
     }
   }
 
@@ -189,7 +189,7 @@ export function makeColorMapBySymbolName(
   const uniqueCount = uniqueCountBy(sortedFrames, t => defaultFrameKey(t));
 
   for (let i = 0; i < sortedFrames.length; i++) {
-    const frame = sortedFrames[i];
+    const frame = sortedFrames[i]!;
 
     const key = defaultFrameKey(frame);
 
@@ -215,7 +215,7 @@ export function makeColorMapByRecursion(
   const uniqueCount = uniqueCountBy(sortedFrames, t => !!t.node.recursive);
 
   for (let i = 0; i < sortedFrames.length; i++) {
-    if (!sortedFrames[i].node.recursive) {
+    if (!sortedFrames[i]!.node.recursive) {
       continue;
     }
     const frame = sortedFrames[i]!;
@@ -246,7 +246,7 @@ export function makeColorMapByLibrary(
   const uniqueCount = uniqueCountBy(sortedFrames, t => frameLibraryKey(t));
 
   for (let i = 0; i < sortedFrames.length; i++) {
-    const frame = sortedFrames[i];
+    const frame = sortedFrames[i]!;
 
     const key = frameLibraryKey(frame);
 
@@ -277,17 +277,17 @@ export function makeColorMapBySystemFrame(
 
   const uniqueCount = uniqueCountBy(sortedFrames, t => defaultFrameKey(t));
   for (let i = 0; i < sortedFrames.length; i++) {
-    if (sortedFrames[i].frame.is_application) {
+    if (sortedFrames[i]!.frame.is_application) {
       continue;
     }
 
-    const key = defaultFrameKey(sortedFrames[i]);
+    const key = defaultFrameKey(sortedFrames[i]!);
     if (!colorCache.has(key)) {
       const color = colorBucket(Math.floor((255 * i) / uniqueCount) / 256);
       colorCache.set(key, color);
     }
 
-    colors.set(sortedFrames[i].key, colorCache.get(key)!);
+    colors.set(sortedFrames[i]!.key, colorCache.get(key)!);
   }
 
   return colors;
@@ -306,15 +306,15 @@ export function makeColorMapBySystemVsApplicationFrame(
   });
 
   for (let i = 0; i < sortedFrames.length; i++) {
-    const key = defaultFrameKey(sortedFrames[i]);
+    const key = defaultFrameKey(sortedFrames[i]!);
 
-    if (sortedFrames[i].frame.is_application) {
+    if (sortedFrames[i]!.frame.is_application) {
       colorCache.set(key, theme.COLORS.FRAME_APPLICATION_COLOR);
     } else {
       colorCache.set(key, theme.COLORS.FRAME_SYSTEM_COLOR);
     }
 
-    colors.set(sortedFrames[i].key, colorCache.get(key)!);
+    colors.set(sortedFrames[i]!.key, colorCache.get(key)!);
   }
 
   return colors;
@@ -333,17 +333,17 @@ export function makeColorMapByApplicationFrame(
 
   const uniqueCount = uniqueCountBy(sortedFrames, t => defaultFrameKey(t));
   for (let i = 0; i < sortedFrames.length; i++) {
-    if (!sortedFrames[i].frame.is_application) {
+    if (!sortedFrames[i]!.frame.is_application) {
       continue;
     }
 
-    const key = defaultFrameKey(sortedFrames[i]);
+    const key = defaultFrameKey(sortedFrames[i]!);
     if (!colorCache.has(key)) {
       const color = colorBucket(Math.floor((255 * i) / uniqueCount) / 256);
       colorCache.set(key, color);
     }
 
-    colors.set(sortedFrames[i].key, colorCache.get(key)!);
+    colors.set(sortedFrames[i]!.key, colorCache.get(key)!);
   }
 
   return colors;
@@ -393,7 +393,7 @@ export function makeSpansColorMapByOpAndDescription(
   const uniqueSpans = uniqueBy(spans, s => s.node.span.op ?? '');
 
   for (let i = 0; i < uniqueSpans.length; i++) {
-    const key = uniqueSpans[i].node.span.op ?? '';
+    const key = uniqueSpans[i]!.node.span.op ?? '';
     if (key === 'missing span instrumentation') {
       continue;
     }
@@ -401,7 +401,7 @@ export function makeSpansColorMapByOpAndDescription(
   }
 
   for (let i = 0; i < spans.length; i++) {
-    colors.set(spans[i].node.span.span_id, colors.get(spans[i].node.span.op ?? '')!);
+    colors.set(spans[i]!.node.span.span_id, colors.get(spans[i]!.node.span.op ?? '')!);
   }
 
   return colors;
@@ -409,7 +409,7 @@ export function makeSpansColorMapByOpAndDescription(
 
 // Convert color component from 0-1 to 0-255 range
 export function colorComponentsToRGBA(color: number[]): string {
-  return `rgba(${Math.floor(color[0] * 255)}, ${Math.floor(color[1] * 255)}, ${Math.floor(
-    color[2] * 255
+  return `rgba(${Math.floor(color[0]! * 255)}, ${Math.floor(color[1]! * 255)}, ${Math.floor(
+    color[2]! * 255
   )}, ${color[3] ?? 1})`;
 }

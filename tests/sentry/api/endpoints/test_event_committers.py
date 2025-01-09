@@ -5,7 +5,7 @@ from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import EventType
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.samples import load_data
 
@@ -20,7 +20,7 @@ class EventCommittersTest(APITestCase):
         project = self.create_project()
 
         release = self.create_release(project, self.user)
-        min_ago = iso_format(before_now(minutes=1))
+        min_ago = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={
                 "fingerprint": ["group1"],
@@ -54,7 +54,7 @@ class EventCommittersTest(APITestCase):
 
         project = self.create_project()
 
-        min_ago = iso_format(before_now(minutes=1))
+        min_ago = before_now(minutes=1).isoformat()
         event_data = load_data("transaction")
         event_data["start_timestamp"] = min_ago
         event_data["timestamp"] = min_ago
@@ -79,7 +79,7 @@ class EventCommittersTest(APITestCase):
 
         project = self.create_project()
 
-        min_ago = iso_format(before_now(minutes=1))
+        min_ago = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={"fingerprint": ["group1"], "timestamp": min_ago}, project_id=project.id
         )
@@ -104,7 +104,7 @@ class EventCommittersTest(APITestCase):
 
         release = self.create_release(project, self.user)
 
-        min_ago = iso_format(before_now(minutes=1))
+        min_ago = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={
                 "fingerprint": ["group1"],
@@ -156,7 +156,7 @@ class EventCommittersTest(APITestCase):
         event = self.store_event(
             data={
                 "fingerprint": ["group1"],
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
             },
             project_id=self.project.id,
         )
@@ -216,7 +216,7 @@ class EventCommittersTest(APITestCase):
         event = self.store_event(
             data={
                 "fingerprint": ["group1"],
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
             },
             project_id=self.project.id,
         )

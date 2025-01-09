@@ -1,12 +1,13 @@
-import {useEffect} from 'react';
-
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {PageFilters} from 'sentry/types/core';
-import {trackAnalytics} from 'sentry/utils/analytics';
+import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
+import {parseError} from 'sentry/utils/discover/genericDiscoverQuery';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
 
 export const BREAKDOWN_SLICES = 40;
 
@@ -41,6 +42,7 @@ export interface TraceResult {
   numOccurrences: number;
   numSpans: number;
   project: string | null;
+  rootDuration: number | null;
   slices: number;
   start: number;
   trace: string;
@@ -54,15 +56,29 @@ interface TraceResults {
 }
 
 interface UseTracesOptions {
+  cursor?: string;
+  dataset?: DiscoverDatasets;
   datetime?: PageFilters['datetime'];
   enabled?: boolean;
   limit?: number;
   query?: string | string[];
+  sort?: 'timestamp' | '-timestamp';
 }
 
-export function useTraces({datetime, enabled, limit, query}: UseTracesOptions) {
+type UseTracesResult = Omit<UseApiQueryResult<TraceResults, RequestError>, 'error'> & {
+  error: QueryError | null;
+};
+
+export function useTraces({
+  cursor,
+  dataset,
+  datetime,
+  enabled,
+  limit,
+  query,
+  sort,
+}: UseTracesOptions): UseTracesResult {
   const organization = useOrganization();
-  const {projects} = useProjects();
   const {selection} = usePageFilters();
 
   const path = `/organizations/${organization.slug}/traces/`;
@@ -72,31 +88,18 @@ export function useTraces({datetime, enabled, limit, query}: UseTracesOptions) {
       project: selection.projects,
       environment: selection.environments,
       ...normalizeDateTimeParams(datetime ?? selection.datetime),
+      // RPC not supported here yet, fall back to EAP directly
+      dataset:
+        dataset === DiscoverDatasets.SPANS_EAP_RPC ? DiscoverDatasets.SPANS_EAP : dataset,
       query,
+      sort, // only has an effect when `dataset` is `EAPSpans`
       per_page: limit,
+      cursor,
       breakdownSlices: BREAKDOWN_SLICES,
     },
   };
 
-  const serializedEndpointOptions = JSON.stringify(endpointOptions);
-
-  let queries: string[] = [];
-  if (Array.isArray(query)) {
-    queries = query;
-  } else if (query !== undefined) {
-    queries = [query];
-  }
-
-  useEffect(() => {
-    trackAnalytics('trace_explorer.search_request', {
-      organization,
-      queries,
-    });
-    // `queries` is already included as a dep in serializedEndpointOptions
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [serializedEndpointOptions, organization]);
-
-  const result = useApiQuery<TraceResults>([path, endpointOptions], {
+  const {error, ...rest} = useApiQuery<TraceResults>([path, endpointOptions], {
     staleTime: 0,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
@@ -104,38 +107,8 @@ export function useTraces({datetime, enabled, limit, query}: UseTracesOptions) {
     enabled,
   });
 
-  useEffect(() => {
-    if (result.status === 'success') {
-      const project_slugs = [...new Set(result.data.data.map(trace => trace.project))];
-      const project_platforms = projects
-        .filter(p => project_slugs.includes(p.slug))
-        .map(p => p.platform ?? '');
-
-      trackAnalytics('trace_explorer.search_success', {
-        organization,
-        queries,
-        has_data: result.data.data.length > 0,
-        num_traces: result.data.data.length,
-        num_missing_trace_root: result.data.data.filter(trace => trace.name === null)
-          .length,
-        project_platforms,
-      });
-    } else if (result.status === 'error') {
-      const response = result.error.responseJSON;
-      const error =
-        typeof response?.detail === 'string'
-          ? response?.detail
-          : response?.detail?.message;
-      trackAnalytics('trace_explorer.search_failure', {
-        organization,
-        queries,
-        error: error ?? '',
-      });
-    }
-    // result.status is tied to result.data. No need to explicitly
-    // include result.data as an additional dep.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [serializedEndpointOptions, result.status, organization]);
-
-  return result;
+  return {
+    ...rest,
+    error: parseError(error),
+  };
 }

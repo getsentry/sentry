@@ -42,15 +42,15 @@ export function RecursiveStructuredData({
   withOnlyFormattedText = false,
 }: Props) {
   let i = 0;
-
-  const formattedObjectKey = objectKey ? (
-    <Fragment>
-      <ValueObjectKey>
-        {config?.renderObjectKeys?.(objectKey) ?? objectKey}
-      </ValueObjectKey>
-      <span>{': '}</span>
-    </Fragment>
-  ) : null;
+  const formattedObjectKey =
+    objectKey !== undefined ? (
+      <Fragment>
+        <ValueObjectKey>
+          {config?.renderObjectKeys?.(objectKey) ?? objectKey}
+        </ValueObjectKey>
+        <span>{': '}</span>
+      </Fragment>
+    ) : null;
 
   function Wrapper({children}: {children: React.ReactNode}) {
     return (
@@ -207,16 +207,16 @@ export function RecursiveStructuredData({
   const keys = Object.keys(value);
   keys.sort(naturalCaseInsensitiveSort);
   for (i = 0; i < keys.length; i++) {
-    const key = keys[i];
+    const key = keys[i]!;
 
     children.push(
       <div key={key}>
         <RecursiveStructuredData
           config={config}
-          meta={meta?.[key]}
+          meta={meta?.[key]!}
           objectKey={key}
           path={path + '.' + key}
-          value={value[key]}
+          value={value[key]!}
           withAnnotatedText={withAnnotatedText}
         />
         {i < keys.length - 1 ? <span>{','}</span> : null}
@@ -245,11 +245,17 @@ const ValueString = styled('span')`
   color: var(--prism-selector);
 `;
 
-const ValueMultiLineString = styled('span')`
+/**
+ * Multi-line strings have preformatted text that includes newlines.
+ * We use a <pre> tag to preserve the newlines.
+ */
+const ValueMultiLineString = styled('pre')`
   display: block;
   overflow: auto;
   border-radius: 4px;
   padding: 2px 4px;
+  background-color: transparent;
+  color: ${p => p.theme.textColor};
 `;
 
 const ValueStrippedString = styled('span')`

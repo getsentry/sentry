@@ -6,7 +6,7 @@ from sentry.integrations.messaging.spec import (
     MessagingIdentityLinkViewSet,
     MessagingIntegrationSpec,
 )
-from sentry.models.notificationaction import ActionService
+from sentry.notifications.models.notificationaction import ActionService
 from sentry.rules.actions import IntegrationEventAction
 
 PROVIDER = "msteams"

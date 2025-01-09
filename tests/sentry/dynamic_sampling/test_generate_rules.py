@@ -15,6 +15,7 @@ from sentry.dynamic_sampling.rules.utils import (
     RESERVED_IDS,
     RuleType,
 )
+from sentry.dynamic_sampling.types import DynamicSamplingMode
 from sentry.models.dynamicsampling import (
     CUSTOM_RULE_DATE_FORMAT,
     CUSTOM_RULE_START,
@@ -723,7 +724,7 @@ def test_generate_rules_return_custom_rules(get_blended_sample_rate, default_old
 
     # no custom rule requests ==> no custom rules
     rules = generate_rules(default_old_project)
-    # only the BOOST_LOW_VOLUME_PROJECTS_RULE should be around (allways on)
+    # only the BOOST_LOW_VOLUME_PROJECTS_RULE should be around (always on)
     assert len(rules) == 1
     assert rules[0]["id"] == 1000
 
@@ -793,3 +794,32 @@ def test_generate_rules_return_custom_rules(get_blended_sample_rate, default_old
     assert rules[2]["id"] == 1000
 
     _validate_rules(default_old_project)
+
+
+@django_db_all
+@patch("sentry.dynamic_sampling.rules.base.get_enabled_user_biases")
+@patch("sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate")
+def test_generate_rules_project_mode(
+    get_blended_sample_rate, get_enabled_user_biases, default_old_project
+):
+    # Ensure only the project base rate is generated
+    get_enabled_user_biases.return_value = {}
+
+    default_old_project.organization.update_option(
+        "sentry:sampling_mode", DynamicSamplingMode.PROJECT
+    )
+    default_old_project.update_option("sentry:target_sample_rate", 0.2)
+
+    with Feature(
+        {"organizations:ds-org-recalibration": True, "organizations:dynamic-sampling-custom": True}
+    ):
+        assert generate_rules(default_old_project) == [
+            {
+                "condition": {"inner": [], "op": "and"},
+                "id": 1000,
+                "samplingValue": {"type": "sampleRate", "value": 0.2},
+                "type": "trace",
+            },
+        ]
+        assert not get_blended_sample_rate.called
+        _validate_rules(default_old_project)

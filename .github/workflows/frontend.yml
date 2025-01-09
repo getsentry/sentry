@@ -20,7 +20,7 @@ env:
 jobs:
   files-changed:
     name: detect what files changed
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 3
     # Map a step output to a job output
     outputs:
@@ -43,7 +43,7 @@ jobs:
     if: needs.files-changed.outputs.frontend_all == 'true'
     needs: files-changed
     name: typescript
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
@@ -81,7 +81,7 @@ jobs:
     name: Jest
     # If you change the runs-on image, you must also change the runner in jest-balance.yml
     # so that the balancer runs in the same environment as the tests.
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     strategy:
       # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
@@ -129,7 +129,11 @@ jobs:
           # This quiets up the logs quite a bit.
           DEBUG_PRINT_LIMIT: 0
         run: |
-          JEST_TESTS=$(yarn -s jest --listTests --json) yarn test-ci --forceExit
+          if [ ${{ github.ref }} = 'refs/heads/master' ]; then
+            JEST_TESTS=$(yarn -s jest --listTests --json) yarn test-ci --forceExit --coverage
+          else
+            JEST_TESTS=$(yarn -s jest --listTests --json) yarn test-ci --forceExit
+          fi
 
       # We only upload coverage data for FE changes since it conflicts with
       # codecov's carry forward functionality.
@@ -152,7 +156,7 @@ jobs:
     name: Frontend
     # This is necessary since a failed/skipped dependent job would cause this job to be skipped
     if: always()
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       # If any jobs we depend on fail, we will fail since this is a required check
       # NOTE: A timeout is considered a failure

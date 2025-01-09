@@ -25,7 +25,6 @@ import {
   useMutation,
   useQueryClient,
 } from 'sentry/utils/queryClient';
-import {decodeScalar} from 'sentry/utils/queryString';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import useApi from 'sentry/utils/useApi';
@@ -49,14 +48,9 @@ function makeDebugFilesQueryKey({
 }: {
   orgSlug: string;
   projectSlug: string;
-  query: string;
+  query: {cursor: string | undefined; query: string | undefined};
 }): ApiQueryKey {
-  return [
-    `/projects/${orgSlug}/${projectSlug}/files/dsyms/`,
-    {
-      query: {query},
-    },
-  ];
+  return [`/projects/${orgSlug}/${projectSlug}/files/dsyms/`, {query}];
 }
 
 function makeSymbolSourcesQueryKey({orgSlug}: {orgSlug: string}): ApiQueryKey {
@@ -69,7 +63,8 @@ function ProjectDebugSymbols({organization, project, location, router, params}: 
   const queryClient = useQueryClient();
   const [showDetails, setShowDetails] = useState(false);
 
-  const query = decodeScalar(location.query.query, '');
+  const query = location.query.query as string | undefined;
+  const cursor = location.query.cursor as string | undefined;
   const hasSymbolSourcesFeatureFlag = organization.features.includes('symbol-sources');
 
   const {
@@ -82,7 +77,7 @@ function ProjectDebugSymbols({organization, project, location, router, params}: 
     makeDebugFilesQueryKey({
       projectSlug: params.projectId,
       orgSlug: organization.slug,
-      query,
+      query: {query, cursor},
     }),
     {
       staleTime: 0,
@@ -134,7 +129,7 @@ function ProjectDebugSymbols({organization, project, location, router, params}: 
         queryKey: makeDebugFilesQueryKey({
           projectSlug: params.projectId,
           orgSlug: organization.slug,
-          query,
+          query: {query, cursor},
         }),
       });
 

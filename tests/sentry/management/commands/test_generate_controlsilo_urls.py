@@ -11,7 +11,7 @@ from sentry.testutils.cases import TestCase
 class TestGenerateControlsiloUrls(TestCase):
     def call_command(self, *args, **kwargs):
         out = StringIO()
-        call_command("generate_controlsilo_urls", *args, stdout=out, stderr=StringIO, **kwargs)
+        call_command("generate_controlsilo_urls", *args, stdout=out, stderr=StringIO(), **kwargs)
         return out.getvalue()
 
     def test_skip_includes(self):

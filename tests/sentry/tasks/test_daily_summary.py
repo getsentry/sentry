@@ -29,9 +29,10 @@ from sentry.testutils.cases import (
     SnubaTestCase,
 )
 from sentry.testutils.factories import EventType
-from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.types.activity import ActivityType
+from sentry.types.actor import Actor
 from sentry.types.group import GroupSubStatus
 from sentry.users.services.user_option import user_option_service
 from sentry.utils.outcomes import Outcome
@@ -51,44 +52,44 @@ class DailySummaryTest(
         resolve=True,
         level="error",
     ):
-        with self.options({"issues.group_attributes.send_kafka": True}):
-            if category == DataCategory.ERROR:
-                data = {
-                    "timestamp": iso_format(timestamp),
-                    "fingerprint": [fingerprint],
-                    "level": level,
-                    "exception": {
-                        "values": [
-                            {
-                                "type": "IntegrationError",
-                                "value": "Identity not found.",
-                            }
-                        ]
-                    },
-                }
-                if release:
-                    data["release"] = release
-
-                event = self.store_event(
-                    data=data,
-                    project_id=project_id,
-                    assert_no_errors=False,
-                    default_event_type=EventType.DEFAULT,
-                )
-            elif category == DataCategory.TRANSACTION:
-                event = self.create_performance_issue()
-
-            self.store_outcomes(
-                {
-                    "org_id": self.organization.id,
-                    "project_id": project_id,
-                    "outcome": Outcome.ACCEPTED,
-                    "category": category,
-                    "timestamp": timestamp,
-                    "key_id": 1,
+        if category == DataCategory.ERROR:
+            data = {
+                "timestamp": timestamp.isoformat(),
+                "fingerprint": [fingerprint],
+                "level": level,
+                "exception": {
+                    "values": [
+                        {
+                            "type": "IntegrationError",
+                            "value": "Identity not found.",
+                        }
+                    ]
                 },
-                num_times=1,
+            }
+            if release:
+                data["release"] = release
+
+            event = self.store_event(
+                data=data,
+                project_id=project_id,
+                assert_no_errors=False,
+                default_event_type=EventType.DEFAULT,
             )
+        elif category == DataCategory.TRANSACTION:
+            event = self.create_performance_issue()
+
+        self.store_outcomes(
+            {
+                "org_id": self.organization.id,
+                "project_id": project_id,
+                "outcome": Outcome.ACCEPTED,
+                "category": category,
+                "timestamp": timestamp,
+                "key_id": 1,
+            },
+            num_times=1,
+        )
+
         group = event.group
         if resolve:
             group.status = GroupStatus.RESOLVED
@@ -122,6 +123,7 @@ class DailySummaryTest(
                 self.three_days_ago,
                 fingerprint="group-1",
                 category=DataCategory.ERROR,
+                resolve=False,
             )
         for _ in range(4):
             self.store_event_and_outcomes(
@@ -129,6 +131,7 @@ class DailySummaryTest(
                 self.two_days_ago,
                 fingerprint="group-1",
                 category=DataCategory.ERROR,
+                resolve=False,
             )
         for _ in range(3):
             self.store_event_and_outcomes(
@@ -136,6 +139,7 @@ class DailySummaryTest(
                 self.now,
                 fingerprint="group-1",
                 category=DataCategory.ERROR,
+                resolve=False,
             )
 
         # create an issue first seen in the release and set it to regressed
@@ -188,6 +192,7 @@ class DailySummaryTest(
                 self.now,
                 fingerprint="group-4",
                 category=DataCategory.ERROR,
+                resolve=False,
             )
         if performance_issues:
             # store some performance issues
@@ -289,33 +294,32 @@ class DailySummaryTest(
 
     @pytest.mark.skip(reason="flaky and part of a dead project")
     def test_build_summary_data_filter_to_unresolved(self):
-        with self.options({"issues.group_attributes.send_kafka": True}):
-            for _ in range(3):
-                group1 = self.store_event_and_outcomes(
-                    self.project.id,
-                    self.now,
-                    fingerprint="group-1",
-                    category=DataCategory.ERROR,
-                    resolve=False,
-                )
+        for _ in range(3):
+            group1 = self.store_event_and_outcomes(
+                self.project.id,
+                self.now,
+                fingerprint="group-1",
+                category=DataCategory.ERROR,
+                resolve=False,
+            )
 
-            for _ in range(3):
-                group2 = self.store_event_and_outcomes(
-                    self.project.id,
-                    self.now,
-                    fingerprint="group-2",
-                    category=DataCategory.ERROR,
-                    resolve=False,
-                )
+        for _ in range(3):
+            group2 = self.store_event_and_outcomes(
+                self.project.id,
+                self.now,
+                fingerprint="group-2",
+                category=DataCategory.ERROR,
+                resolve=False,
+            )
 
-            for _ in range(3):
-                self.store_event_and_outcomes(
-                    self.project.id,
-                    self.now,
-                    fingerprint="group-3",
-                    category=DataCategory.ERROR,
-                    resolve=True,
-                )
+        for _ in range(3):
+            self.store_event_and_outcomes(
+                self.project.id,
+                self.now,
+                fingerprint="group-3",
+                category=DataCategory.ERROR,
+                resolve=True,
+            )
 
         summary = build_summary_data(
             timestamp=self.now.timestamp(),
@@ -336,30 +340,29 @@ class DailySummaryTest(
     @pytest.mark.skip(reason="flaky and part of a dead project")
     def test_build_summary_data_filter_to_error_level(self):
         """Test that non-error level issues are filtered out of the results"""
-        with self.options({"issues.group_attributes.send_kafka": True}):
-            for _ in range(3):
-                group1 = self.store_event_and_outcomes(
-                    self.project.id,
-                    self.now,
-                    fingerprint="group-1",
-                    category=DataCategory.ERROR,
-                    resolve=False,
-                    level="info",
-                )
-                group2 = self.store_event_and_outcomes(
-                    self.project.id,
-                    self.now,
-                    fingerprint="group-2",
-                    category=DataCategory.ERROR,
-                    resolve=False,
-                )
-                group3 = self.store_event_and_outcomes(
-                    self.project.id,
-                    self.now,
-                    fingerprint="group-3",
-                    category=DataCategory.ERROR,
-                    resolve=False,
-                )
+        for _ in range(3):
+            group1 = self.store_event_and_outcomes(
+                self.project.id,
+                self.now,
+                fingerprint="group-1",
+                category=DataCategory.ERROR,
+                resolve=False,
+                level="info",
+            )
+            group2 = self.store_event_and_outcomes(
+                self.project.id,
+                self.now,
+                fingerprint="group-2",
+                category=DataCategory.ERROR,
+                resolve=False,
+            )
+            group3 = self.store_event_and_outcomes(
+                self.project.id,
+                self.now,
+                fingerprint="group-3",
+                category=DataCategory.ERROR,
+                resolve=False,
+            )
 
         summary = build_summary_data(
             timestamp=self.now.timestamp(),
@@ -440,7 +443,7 @@ class DailySummaryTest(
         project_context_map = cast(
             DailySummaryProjectContext, summary.projects_context_map[project_id]
         )
-        assert project_context_map.escalated_today == [self.group2, self.group3]
+        assert project_context_map.escalated_today == [self.group3, self.group2]
         assert project_context_map.regressed_today == []
 
     def test_build_summary_data_group_regressed_twice_and_escalated(self):
@@ -483,7 +486,7 @@ class DailySummaryTest(
         project_context_map = cast(
             DailySummaryProjectContext, summary.projects_context_map[project_id]
         )
-        assert project_context_map.escalated_today == [self.group2, self.group3]
+        assert project_context_map.escalated_today == [self.group3, self.group2]
         assert project_context_map.regressed_today == []
 
     def test_build_summary_data_group_regressed_escalated_in_the_past(self):
@@ -638,7 +641,7 @@ class DailySummaryTest(
         with self.tasks():
             DailySummaryNotification(
                 organization=ctx.organization,
-                recipient=self.user,
+                recipient=Actor.from_object(self.user),
                 provider=ExternalProviders.SLACK,
                 project_context=top_projects_context_map,
             ).send()
@@ -701,7 +704,7 @@ class DailySummaryTest(
         with self.tasks():
             DailySummaryNotification(
                 organization=ctx.organization,
-                recipient=self.user,
+                recipient=Actor.from_object(self.user),
                 provider=ExternalProviders.SLACK,
                 project_context=top_projects_context_map,
             ).send()
@@ -735,7 +738,7 @@ class DailySummaryTest(
     def test_slack_notification_contents_newline(self):
         type_string = '"""\nTraceback (most recent call last):\nFile /\'/usr/hb/meow/\''
         data = {
-            "timestamp": iso_format(self.now),
+            "timestamp": self.now.isoformat(),
             "fingerprint": ["group-5"],
             "exception": {
                 "values": [
@@ -746,24 +749,23 @@ class DailySummaryTest(
                 ]
             },
         }
-        with self.options({"issues.group_attributes.send_kafka": True}):
-            self.store_event(
-                data=data,
-                project_id=self.project.id,
-                assert_no_errors=False,
-                default_event_type=EventType.DEFAULT,
-            )
-            self.store_outcomes(
-                {
-                    "org_id": self.organization.id,
-                    "project_id": self.project.id,
-                    "outcome": Outcome.ACCEPTED,
-                    "category": DataCategory.ERROR,
-                    "timestamp": self.now,
-                    "key_id": 1,
-                },
-                num_times=1,
-            )
+        self.store_event(
+            data=data,
+            project_id=self.project.id,
+            assert_no_errors=False,
+            default_event_type=EventType.DEFAULT,
+        )
+        self.store_outcomes(
+            {
+                "org_id": self.organization.id,
+                "project_id": self.project.id,
+                "outcome": Outcome.ACCEPTED,
+                "category": DataCategory.ERROR,
+                "timestamp": self.now,
+                "key_id": 1,
+            },
+            num_times=1,
+        )
 
         ctx = build_summary_data(
             timestamp=self.now.timestamp(),
@@ -775,7 +777,7 @@ class DailySummaryTest(
         with self.tasks():
             DailySummaryNotification(
                 organization=ctx.organization,
-                recipient=self.user,
+                recipient=Actor.from_object(self.user),
                 provider=ExternalProviders.SLACK,
                 project_context=top_projects_context_map,
             ).send()
@@ -784,7 +786,7 @@ class DailySummaryTest(
 
     def test_slack_notification_contents_newline_no_attachment_text(self):
         data = {
-            "timestamp": iso_format(self.now),
+            "timestamp": self.now.isoformat(),
             "fingerprint": ["group-5"],
             "exception": {
                 "values": [
@@ -795,24 +797,23 @@ class DailySummaryTest(
                 ]
             },
         }
-        with self.options({"issues.group_attributes.send_kafka": True}):
-            self.store_event(
-                data=data,
-                project_id=self.project.id,
-                assert_no_errors=False,
-                default_event_type=EventType.DEFAULT,
-            )
-            self.store_outcomes(
-                {
-                    "org_id": self.organization.id,
-                    "project_id": self.project.id,
-                    "outcome": Outcome.ACCEPTED,
-                    "category": DataCategory.ERROR,
-                    "timestamp": self.now,
-                    "key_id": 1,
-                },
-                num_times=1,
-            )
+        self.store_event(
+            data=data,
+            project_id=self.project.id,
+            assert_no_errors=False,
+            default_event_type=EventType.DEFAULT,
+        )
+        self.store_outcomes(
+            {
+                "org_id": self.organization.id,
+                "project_id": self.project.id,
+                "outcome": Outcome.ACCEPTED,
+                "category": DataCategory.ERROR,
+                "timestamp": self.now,
+                "key_id": 1,
+            },
+            num_times=1,
+        )
 
         ctx = build_summary_data(
             timestamp=self.now.timestamp(),
@@ -824,7 +825,7 @@ class DailySummaryTest(
         with self.tasks():
             DailySummaryNotification(
                 organization=ctx.organization,
-                recipient=self.user,
+                recipient=Actor.from_object(self.user),
                 provider=ExternalProviders.SLACK,
                 project_context=top_projects_context_map,
             ).send()
@@ -833,7 +834,7 @@ class DailySummaryTest(
 
     def test_slack_notification_contents_truncate_text(self):
         data = {
-            "timestamp": iso_format(self.now),
+            "timestamp": self.now.isoformat(),
             "fingerprint": ["group-5"],
             "exception": {
                 "values": [
@@ -844,24 +845,23 @@ class DailySummaryTest(
                 ]
             },
         }
-        with self.options({"issues.group_attributes.send_kafka": True}):
-            self.store_event(
-                data=data,
-                project_id=self.project.id,
-                assert_no_errors=False,
-                default_event_type=EventType.DEFAULT,
-            )
-            self.store_outcomes(
-                {
-                    "org_id": self.organization.id,
-                    "project_id": self.project.id,
-                    "outcome": Outcome.ACCEPTED,
-                    "category": DataCategory.ERROR,
-                    "timestamp": self.now,
-                    "key_id": 1,
-                },
-                num_times=1,
-            )
+        self.store_event(
+            data=data,
+            project_id=self.project.id,
+            assert_no_errors=False,
+            default_event_type=EventType.DEFAULT,
+        )
+        self.store_outcomes(
+            {
+                "org_id": self.organization.id,
+                "project_id": self.project.id,
+                "outcome": Outcome.ACCEPTED,
+                "category": DataCategory.ERROR,
+                "timestamp": self.now,
+                "key_id": 1,
+            },
+            num_times=1,
+        )
 
         ctx = build_summary_data(
             timestamp=self.now.timestamp(),
@@ -873,7 +873,7 @@ class DailySummaryTest(
         with self.tasks():
             DailySummaryNotification(
                 organization=ctx.organization,
-                recipient=self.user,
+                recipient=Actor.from_object(self.user),
                 provider=ExternalProviders.SLACK,
                 project_context=top_projects_context_map,
             ).send()
@@ -888,12 +888,14 @@ class DailySummaryTest(
             name="barf", organization=self.organization, teams=[self.team]
         )
         project3.first_event = self.three_days_ago
+        project3.save()
         for _ in range(15):
             self.store_event_and_outcomes(
                 project3.id,
                 self.now,
                 fingerprint="group-1",
                 category=DataCategory.ERROR,
+                resolve=False,
             )
         context = build_summary_data(
             timestamp=self.now.timestamp(),
@@ -905,7 +907,7 @@ class DailySummaryTest(
         with self.tasks():
             DailySummaryNotification(
                 organization=context.organization,
-                recipient=self.user,
+                recipient=Actor.from_object(self.user),
                 provider=ExternalProviders.SLACK,
                 project_context=top_projects_context_map,
             ).send()
@@ -927,7 +929,7 @@ class DailySummaryTest(
         with self.tasks():
             DailySummaryNotification(
                 organization=ctx.organization,
-                recipient=self.user,
+                recipient=Actor.from_object(self.user),
                 provider=ExternalProviders.SLACK,
                 project_context=top_projects_context_map,
             ).send()
@@ -953,7 +955,7 @@ class DailySummaryTest(
         with self.tasks():
             DailySummaryNotification(
                 organization=ctx.organization,
-                recipient=self.user,
+                recipient=Actor.from_object(self.user),
                 provider=ExternalProviders.SLACK,
                 project_context=top_projects_context_map,
             ).send()
@@ -1000,7 +1002,7 @@ class DailySummaryTest(
         with self.tasks():
             DailySummaryNotification(
                 organization=ctx.organization,
-                recipient=self.user,
+                recipient=Actor.from_object(self.user),
                 provider=ExternalProviders.SLACK,
                 project_context=top_projects_context_map,
             ).send()

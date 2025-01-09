@@ -14,7 +14,7 @@ describe('PageOverview', function () {
     features: ['insights-initial-modules'],
   });
 
-  let eventsMock;
+  let eventsMock: jest.Mock;
 
   beforeEach(function () {
     jest.mocked(useLocation).mockReturnValue({
@@ -54,7 +54,15 @@ describe('PageOverview', function () {
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/spans-aggregation/`,
-      body: {},
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/tags/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/recent-searches/`,
+      body: [],
     });
   });
 

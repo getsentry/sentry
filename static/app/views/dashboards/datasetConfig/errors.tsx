@@ -1,5 +1,3 @@
-import trimStart from 'lodash/trimStart';
-
 import {doEventsRequest} from 'sentry/actionCreators/events';
 import type {Client} from 'sentry/api';
 import type {PageFilters} from 'sentry/types/core';
@@ -18,21 +16,22 @@ import {
   ERROR_FIELDS,
   ERRORS_AGGREGATION_FUNCTIONS,
   getAggregations,
-  isEquation,
-  isEquationAlias,
+  type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDiscoverQuery';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
-import {DiscoverDatasets, TOP_N} from 'sentry/utils/discover/types';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {AggregationKey} from 'sentry/utils/fields';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
+import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
+import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
 
 import type {Widget, WidgetQuery} from '../types';
 import {DisplayType} from '../types';
-import {eventViewFromWidget, getNumEquations, getWidgetInterval} from '../utils';
+import {eventViewFromWidget} from '../utils';
 import {EventsSearchBar} from '../widgetBuilder/buildSteps/filterResultsStep/eventsSearchBar';
 
 import {type DatasetConfig, handleOrderByReset} from './base';
@@ -58,14 +57,18 @@ const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   orderby: '-count()',
 };
 
+const DEFAULT_FIELD: QueryFieldValue = {
+  function: ['count', '', undefined, undefined],
+  kind: FieldValueKind.FUNCTION,
+};
+
 export type SeriesWithOrdering = [order: number, series: Series];
 
-// TODO: Commented out functions will be given implementations
-// to be able to make events-stats requests
 export const ErrorsConfig: DatasetConfig<
   EventsStats | MultiSeriesEventsStats,
   TableData | EventsTableData
 > = {
+  defaultField: DEFAULT_FIELD,
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   enableEquations: true,
   getCustomFieldRenderer: getCustomEventsFieldRenderer,
@@ -205,93 +208,13 @@ function getErrorsSeriesRequest(
   referrer?: string,
   _mepSetting?: MEPState | null
 ) {
-  const widgetQuery = widget.queries[queryIndex];
-  const {displayType, limit} = widget;
-  const {environments, projects} = pageFilters;
-  const {start, end, period: statsPeriod} = pageFilters.datetime;
-  const interval = getWidgetInterval(
-    displayType,
-    {start, end, period: statsPeriod},
-    '1m'
+  const requestData = getSeriesRequestData(
+    widget,
+    queryIndex,
+    organization,
+    pageFilters,
+    DiscoverDatasets.ERRORS,
+    referrer
   );
-
-  let requestData;
-  if (displayType === DisplayType.TOP_N) {
-    requestData = {
-      organization,
-      interval,
-      start,
-      end,
-      project: projects,
-      environment: environments,
-      period: statsPeriod,
-      query: widgetQuery.conditions,
-      yAxis: widgetQuery.aggregates[widgetQuery.aggregates.length - 1],
-      includePrevious: false,
-      referrer,
-      partial: true,
-      field: [...widgetQuery.columns, ...widgetQuery.aggregates],
-      includeAllArgs: true,
-      topEvents: TOP_N,
-      dataset: DiscoverDatasets.ERRORS,
-    };
-    if (widgetQuery.orderby) {
-      requestData.orderby = widgetQuery.orderby;
-    }
-  } else {
-    requestData = {
-      organization,
-      interval,
-      start,
-      end,
-      project: projects,
-      environment: environments,
-      period: statsPeriod,
-      query: widgetQuery.conditions,
-      yAxis: widgetQuery.aggregates,
-      orderby: widgetQuery.orderby,
-      includePrevious: false,
-      referrer,
-      partial: true,
-      includeAllArgs: true,
-      dataset: DiscoverDatasets.ERRORS,
-    };
-    if (widgetQuery.columns?.length !== 0) {
-      requestData.topEvents = limit ?? TOP_N;
-      requestData.field = [...widgetQuery.columns, ...widgetQuery.aggregates];
-
-      // Compare field and orderby as aliases to ensure requestData has
-      // the orderby selected
-      // If the orderby is an equation alias, do not inject it
-      const orderby = trimStart(widgetQuery.orderby, '-');
-      if (
-        widgetQuery.orderby &&
-        !isEquationAlias(orderby) &&
-        !requestData.field.includes(orderby)
-      ) {
-        requestData.field.push(orderby);
-      }
-
-      // The "Other" series is only included when there is one
-      // y-axis and one widgetQuery
-      requestData.excludeOther =
-        widgetQuery.aggregates.length !== 1 || widget.queries.length !== 1;
-
-      if (isEquation(trimStart(widgetQuery.orderby, '-'))) {
-        const nextEquationIndex = getNumEquations(widgetQuery.aggregates);
-        const isDescending = widgetQuery.orderby.startsWith('-');
-        const prefix = isDescending ? '-' : '';
-
-        // Construct the alias form of the equation and inject it into the request
-        requestData.orderby = `${prefix}equation[${nextEquationIndex}]`;
-        requestData.field = [
-          ...widgetQuery.columns,
-          ...widgetQuery.aggregates,
-          trimStart(widgetQuery.orderby, '-'),
-        ];
-      }
-    }
-  }
-
   return doEventsRequest<true>(api, requestData);
 }

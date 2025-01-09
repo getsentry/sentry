@@ -40,7 +40,7 @@ class SentryAppInstallationSerializer(Serializer):
         access = kwargs.get("access")
         data = {
             "app": {"uuid": attrs["sentry_app"].uuid, "slug": attrs["sentry_app"].slug},
-            "organization": {"slug": attrs["organization"].slug},
+            "organization": {"slug": attrs["organization"].slug, "id": attrs["organization"].id},
             "uuid": obj.uuid,
             "status": SentryAppInstallationStatus.as_str(obj.status),
         }

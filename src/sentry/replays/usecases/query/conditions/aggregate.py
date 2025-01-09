@@ -25,7 +25,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from snuba_sdk import And, Condition, Function, Op, Or
+from snuba_sdk import And, Condition, Or
 from snuba_sdk.expressions import Expression
 
 from sentry.replays.lib.new_query.conditions import (
@@ -38,6 +38,14 @@ from sentry.replays.lib.new_query.conditions import (
     UUIDScalar,
 )
 from sentry.replays.lib.new_query.utils import contains, does_not_contain
+
+
+def _nonempty_str(expression: Expression) -> Condition:
+    return StringScalar.visit_neq(expression, "")
+
+
+def _nonnull_ipv4(expression: Expression) -> Condition:
+    return IPv4Scalar.visit_neq(expression, None)
 
 
 class SumOfIntegerIdScalar(GenericBase):
@@ -61,65 +69,75 @@ class SumOfIntegerIdScalar(GenericBase):
 class SumOfIPv4Scalar(GenericBase):
     @staticmethod
     def visit_eq(expression: Expression, value: str | None) -> Condition:
+        if value is None:
+            return does_not_contain(_nonnull_ipv4(expression))
         return contains(IPv4Scalar.visit_eq(expression, value))
 
     @staticmethod
     def visit_neq(expression: Expression, value: str | None) -> Condition:
+        if value is None:
+            return contains(_nonnull_ipv4(expression))
         return does_not_contain(IPv4Scalar.visit_eq(expression, value))
 
     @staticmethod
     def visit_in(expression: Expression, value_list: list[str | None]) -> Condition:
+        nonempty_case = contains(
+            IPv4Scalar.visit_in(expression, [v for v in value_list if v is not None])
+        )
         if None in value_list:
-            contains_cond = contains(
-                IPv4Scalar.visit_in(expression, [v for v in value_list if v is not None])
-            )
-            return Or(
-                conditions=[
-                    contains_cond,
-                    Condition(Function("isNull", parameters=[expression]), Op.EQ, 1),
-                ]
-            )
-        return contains(IPv4Scalar.visit_in(expression, value_list))
+            return Or(conditions=[SumOfIPv4Scalar.visit_eq(expression, None), nonempty_case])
+        return nonempty_case
 
     @staticmethod
     def visit_not_in(expression: Expression, value_list: list[str | None]) -> Condition:
+        nonempty_case = does_not_contain(
+            IPv4Scalar.visit_in(expression, [v for v in value_list if v is not None])
+        )
         if None in value_list:
-            does_not_contain_cond = does_not_contain(
-                IPv4Scalar.visit_in(expression, [v for v in value_list if v is not None])
-            )
-            return And(
-                conditions=[
-                    does_not_contain_cond,
-                    Condition(Function("isNull", parameters=[expression]), Op.EQ, 0),
-                ]
-            )
-        return does_not_contain(IPv4Scalar.visit_in(expression, value_list))
+            return And(conditions=[SumOfIPv4Scalar.visit_neq(expression, None), nonempty_case])
+        return nonempty_case
 
 
 class SumOfStringScalar(GenericBase):
     @staticmethod
     def visit_eq(expression: Expression, value: str) -> Condition:
+        if value == "":
+            return does_not_contain(_nonempty_str(expression))
         return contains(StringScalar.visit_eq(expression, value))
 
     @staticmethod
     def visit_neq(expression: Expression, value: str) -> Condition:
+        if value == "":
+            return contains(_nonempty_str(expression))
         return does_not_contain(StringScalar.visit_eq(expression, value))
 
     @staticmethod
     def visit_match(expression: Expression, value: str) -> Condition:
+        # Assumes this is only called on wildcard strings, so `value` is non-empty.
         return contains(StringScalar.visit_match(expression, value))
 
     @staticmethod
     def visit_not_match(expression: Expression, value: str) -> Condition:
+        # Assumes this is only called on wildcard strings, so `value` is non-empty.
         return does_not_contain(StringScalar.visit_match(expression, value))
 
     @staticmethod
-    def visit_in(expression: Expression, value: list[str]) -> Condition:
-        return contains(StringScalar.visit_in(expression, value))
+    def visit_in(expression: Expression, value_list: list[str]) -> Condition:
+        nonempty_case = contains(
+            StringScalar.visit_in(expression, [v for v in value_list if v != ""])
+        )
+        if "" in value_list:
+            return Or(conditions=[SumOfStringScalar.visit_eq(expression, ""), nonempty_case])
+        return nonempty_case
 
     @staticmethod
-    def visit_not_in(expression: Expression, value: list[str]) -> Condition:
-        return does_not_contain(StringScalar.visit_in(expression, value))
+    def visit_not_in(expression: Expression, value_list: list[str]) -> Condition:
+        nonempty_case = does_not_contain(
+            StringScalar.visit_in(expression, [v for v in value_list if v != ""])
+        )
+        if "" in value_list:
+            return And(conditions=[SumOfStringScalar.visit_neq(expression, ""), nonempty_case])
+        return nonempty_case
 
 
 class SumOfStringArray(GenericBase):

@@ -289,8 +289,9 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
     def test_new_identity_with_existing_om_idp_flags(self, mock_messages):
         user = self.set_up_user()
         with assume_test_silo_mode(SiloMode.REGION):
-            with assume_test_silo_mode(SiloMode.REGION), outbox_context(
-                transaction.atomic(using=router.db_for_write(OrganizationMember))
+            with (
+                assume_test_silo_mode(SiloMode.REGION),
+                outbox_context(transaction.atomic(using=router.db_for_write(OrganizationMember))),
             ):
                 existing_om = OrganizationMember.objects.create(
                     user_id=user.id,

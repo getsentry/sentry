@@ -29,13 +29,11 @@ def ensure_aware(value: datetime) -> datetime:
 
 
 @overload
-def to_datetime(value: None) -> None:
-    ...
+def to_datetime(value: None) -> None: ...
 
 
 @overload
-def to_datetime(value: float | int) -> datetime:
-    ...
+def to_datetime(value: float | int) -> datetime: ...
 
 
 def to_datetime(value: float | int | None) -> datetime | None:

@@ -5,18 +5,15 @@ import * as qs from 'query-string';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Button} from 'sentry/components/button';
 import {CompactSelect, type SelectOption} from 'sentry/components/compactSelect';
-import SearchBar from 'sentry/components/events/searchBar';
 import Link from 'sentry/components/links/link';
 import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DurationUnit, SizeUnit} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -31,9 +28,10 @@ import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {AverageValueMarkLine} from 'sentry/views/insights/common/utils/averageValueMarkLine';
 import {useSampleScatterPlotSeries} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart/useSampleScatterPlotSeries';
-import {DurationChart} from 'sentry/views/insights/http/components/charts/durationChart';
+import {DurationChartWithSamples} from 'sentry/views/insights/http/components/charts/durationChartWithSamples';
 import {useSpanSamples} from 'sentry/views/insights/http/queries/useSpanSamples';
 import {useDebouncedState} from 'sentry/views/insights/http/utils/useDebouncedState';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {MessageSpanSamplesTable} from 'sentry/views/insights/queues/components/tables/messageSpanSamplesTable';
 import {useQueuesMetricsQuery} from 'sentry/views/insights/queues/queries/useQueuesMetricsQuery';
 import {Referrer} from 'sentry/views/insights/queues/referrers';
@@ -51,7 +49,7 @@ import {
   SpanIndexedField,
   type SpanMetricsResponse,
 } from 'sentry/views/insights/types';
-import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
+import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 import {Subtitle} from 'sentry/views/profiling/landing/styles';
 
 export function MessageSpanSamplesPanel() {
@@ -70,16 +68,11 @@ export function MessageSpanSamplesPanel() {
   });
   const {projects} = useProjects();
   const {selection} = usePageFilters();
-  const {data: supportedTags} = useSpanFieldSupportedTags({
-    excludedTags: [
-      SpanIndexedField.TRACE_STATUS,
-      SpanIndexedField.MESSAGING_MESSAGE_RETRY_COUNT,
-    ],
-  });
 
   const project = projects.find(p => query.project === p.id);
 
   const organization = useOrganization();
+  const {view} = useDomainViewFilters();
 
   const [highlightedSpanId, setHighlightedSpanId] = useDebouncedState<string | undefined>(
     undefined,
@@ -280,14 +273,12 @@ export function MessageSpanSamplesPanel() {
                 </Subtitle>
                 <Title>
                   <Link
-                    to={normalizeUrl(
-                      `/organizations/${organization.slug}/performance/summary?${qs.stringify(
-                        {
-                          project: query.project,
-                          transaction: query.transaction,
-                        }
-                      )}`
-                    )}
+                    to={`${getTransactionSummaryBaseUrl(organization.slug, view)}?${qs.stringify(
+                      {
+                        project: query.project,
+                        transaction: query.transaction,
+                      }
+                    )}`}
                   >
                     {query.transaction}
                   </Link>
@@ -337,7 +328,7 @@ export function MessageSpanSamplesPanel() {
           </ModuleLayout.Full>
 
           <ModuleLayout.Full>
-            <DurationChart
+            <DurationChartWithSamples
               series={[
                 {
                   ...durationData[`avg(span.duration)`],
@@ -358,34 +349,17 @@ export function MessageSpanSamplesPanel() {
               }}
               isLoading={isDurationDataFetching}
               error={durationError}
-              filters={timeseriesFilters.getFilterKeys().reduce((acc, key) => {
-                acc[key] = timeseriesFilters.getFilterValues(key)[0];
-                return acc;
-              }, {})}
             />
           </ModuleLayout.Full>
 
           <ModuleLayout.Full>
-            {organization.features.includes('search-query-builder-performance') ? (
-              <SpanSearchQueryBuilder
-                searchSource={`${ModuleName.QUEUE}-sample-panel`}
-                initialQuery={query.spanSearchQuery}
-                onSearch={handleSearch}
-                placeholder={t('Search for span attributes')}
-                projects={selection.projects}
-              />
-            ) : (
-              <SearchBar
-                searchSource={`${ModuleName.QUEUE}-sample-panel`}
-                query={query.spanSearchQuery}
-                onSearch={handleSearch}
-                placeholder={t('Search for span attributes')}
-                organization={organization}
-                supportedTags={supportedTags}
-                dataset={DiscoverDatasets.SPANS_INDEXED}
-                projectIds={selection.projects}
-              />
-            )}
+            <SpanSearchQueryBuilder
+              searchSource={`${ModuleName.QUEUE}-sample-panel`}
+              initialQuery={query.spanSearchQuery}
+              onSearch={handleSearch}
+              placeholder={t('Search for span attributes')}
+              projects={selection.projects}
+            />
           </ModuleLayout.Full>
 
           <ModuleLayout.Full>

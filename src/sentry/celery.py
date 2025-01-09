@@ -14,7 +14,6 @@ LEGACY_PICKLE_TASKS = frozenset(
     [
         # basic tasks that must be passed models still
         "sentry.tasks.process_buffer.process_incr",
-        "sentry.sentry_apps.tasks.sentry_apps.process_resource_change_bound",
         "sentry.sentry_apps.tasks.sentry_apps.send_alert_event",
         "sentry.tasks.unmerge",
         "src.sentry.notifications.utils.async_send_notification",
@@ -37,12 +36,12 @@ def holds_bad_pickle_object(value, memo=None):
 
     if isinstance(value, (tuple, list)):
         for item in value:
-            bad_object = holds_bad_pickle_object(item)
+            bad_object = holds_bad_pickle_object(item, memo)
             if bad_object is not None:
                 return bad_object
     elif isinstance(value, dict):
         for item in value.values():
-            bad_object = holds_bad_pickle_object(item)
+            bad_object = holds_bad_pickle_object(item, memo)
             if bad_object is not None:
                 return bad_object
 

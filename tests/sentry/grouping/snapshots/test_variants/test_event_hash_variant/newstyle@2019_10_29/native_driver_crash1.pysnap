@@ -1,14 +1,15 @@
 ---
-created: '2021-04-02T10:31:47.508066Z'
+created: '2024-12-17T22:47:05.428507+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
+  contributing component: null
   component:
     app (exception of system takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
-        stacktrace
+        stacktrace (ignored because it contains no in-app frames)
           frame (non app frame)
             function*
               "CUseCountedObject<T>::UCDestroy"
@@ -35,6 +36,7 @@ app:
 --------------------------------------------------------------------------
 system:
   hash: "a6befffdc310c28b165bbceb1c0f59a8"
+  contributing component: exception
   component:
     system*
       exception*

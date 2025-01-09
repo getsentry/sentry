@@ -1,0 +1,507 @@
+---
+created: '2024-12-17T22:50:03.060882+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+hashing_metadata: {
+  "num_stacktraces": 3,
+  "stacktrace_location": "exception",
+  "stacktrace_type": "in_app"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "stacktrace",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.stacktrace": {
+    "chained_exception": "True",
+    "stacktrace_location": "exception",
+    "stacktrace_type": "in_app"
+  }
+}
+---
+contributing variants:
+  app*
+    hash: "ca1e356d85bc74d82d4ae8f3f8bfbbf7"
+    contributing component: chained-exception
+    component:
+      app*
+        chained-exception*
+          exception*
+            stacktrace*
+              frame* (frame considered in-app because no frame is in-app)
+                module*
+                  "io.sentry.example.Application"
+                function*
+                  "main"
+              frame* (frame considered in-app because no frame is in-app)
+                module*
+                  "org.springframework.boot.SpringApplication"
+                function*
+                  "run"
+              frame* (frame considered in-app because no frame is in-app)
+                module*
+                  "org.springframework.boot.SpringApplication"
+                function*
+                  "run"
+              frame* (frame considered in-app because no frame is in-app)
+                module*
+                  "org.springframework.boot.SpringApplication"
+                function*
+                  "run"
+              frame* (frame considered in-app because no frame is in-app)
+                module*
+                  "org.springframework.boot.SpringApplication"
+                function*
+                  "refreshContext"
+              frame* (frame considered in-app because no frame is in-app)
+                module*
+                  "org.springframework.boot.SpringApplication"
+                function*
+                  "refresh"
+              frame* (frame considered in-app because no frame is in-app)
+                module*
+                  "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
+                function*
+                  "refresh"
+              frame* (frame considered in-app because no frame is in-app)
+                module*
+                  "org.springframework.context.support.AbstractApplicationContext"
+                function*
+                  "refresh"
+              frame* (frame considered in-app because no frame is in-app)
+                module*
+                  "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
+                function*
+                  "finishRefresh"
+              frame* (frame considered in-app because no frame is in-app)
+                module*
+                  "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
+                function*
+                  "startEmbeddedServletContainer"
+              frame* (frame considered in-app because no frame is in-app)
+                module*
+                  "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"
+                function*
+                  "start"
+              frame* (frame considered in-app because no frame is in-app)
+                module*
+                  "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"
+                function*
+                  "addPreviouslyRemovedConnectors"
+              frame* (frame considered in-app because no frame is in-app)
+                module*
+                  "org.apache.catalina.core.StandardService"
+                function*
+                  "addConnector"
+              frame* (frame considered in-app because no frame is in-app)
+                module*
+                  "org.apache.catalina.util.LifecycleBase"
+                function*
+                  "start"
+              frame* (frame considered in-app because no frame is in-app)
+                module*
+                  "org.apache.catalina.connector.Connector"
+                function*
+                  "startInternal"
+              frame* (frame considered in-app because no frame is in-app)
+                module*
+                  "org.apache.coyote.AbstractProtocol"
+                function*
+                  "start"
+              frame* (frame considered in-app because no frame is in-app)
+                module*
+                  "org.apache.tomcat.util.net.AbstractEndpoint"
+                function*
+                  "start"
+              frame* (frame considered in-app because no frame is in-app)
+                module*
+                  "org.apache.tomcat.util.net.NioEndpoint"
+                function*
+                  "bind"
+              frame* (frame considered in-app because no frame is in-app)
+                module*
+                  "sun.nio.ch.ServerSocketAdaptor"
+                function*
+                  "bind"
+              frame* (frame considered in-app because no frame is in-app)
+                module*
+                  "sun.nio.ch.ServerSocketChannelImpl"
+                function*
+                  "bind"
+              frame* (frame considered in-app because no frame is in-app)
+                module*
+                  "sun.nio.ch.Net"
+                function*
+                  "bind"
+              frame* (frame considered in-app because no frame is in-app)
+                module*
+                  "sun.nio.ch.Net"
+                function*
+                  "bind"
+              frame* (frame considered in-app because no frame is in-app)
+                module*
+                  "sun.nio.ch.Net"
+                function*
+                  "bind0"
+            type*
+              "BindException"
+          exception*
+            stacktrace*
+              frame* (frame considered in-app because no frame is in-app)
+                module*
+                  "io.sentry.example.Application"
+                function*
+                  "main"
+              frame* (frame considered in-app because no frame is in-app)
+                module*
+                  "org.springframework.boot.SpringApplication"
+                function*
+                  "run"
+              frame* (frame considered in-app because no frame is in-app)
+                module*
+                  "org.springframework.boot.SpringApplication"
+                function*
+                  "run"
+              frame* (frame considered in-app because no frame is in-app)
+                module*
+                  "org.springframework.boot.SpringApplication"
+                function*
+                  "run"
+              frame* (frame considered in-app because no frame is in-app)
+                module*
+                  "org.springframework.boot.SpringApplication"
+                function*
+                  "refreshContext"
+              frame* (frame considered in-app because no frame is in-app)
+                module*
+                  "org.springframework.boot.SpringApplication"
+                function*
+                  "refresh"
+              frame* (frame considered in-app because no frame is in-app)
+                module*
+                  "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
+                function*
+                  "refresh"
+              frame* (frame considered in-app because no frame is in-app)
+                module*
+                  "org.springframework.context.support.AbstractApplicationContext"
+                function*
+                  "refresh"
+              frame* (frame considered in-app because no frame is in-app)
+                module*
+                  "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
+                function*
+                  "finishRefresh"
+              frame* (frame considered in-app because no frame is in-app)
+                module*
+                  "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
+                function*
+                  "startEmbeddedServletContainer"
+              frame* (frame considered in-app because no frame is in-app)
+                module*
+                  "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"
+                function*
+                  "start"
+              frame* (frame considered in-app because no frame is in-app)
+                module*
+                  "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"
+                function*
+                  "addPreviouslyRemovedConnectors"
+              frame* (frame considered in-app because no frame is in-app)
+                module*
+                  "org.apache.catalina.core.StandardService"
+                function*
+                  "addConnector"
+              frame* (frame considered in-app because no frame is in-app)
+                module*
+                  "org.apache.catalina.util.LifecycleBase"
+                function*
+                  "start"
+              frame* (frame considered in-app because no frame is in-app)
+                module*
+                  "org.apache.catalina.connector.Connector"
+                function*
+                  "startInternal"
+            type*
+              "LifecycleException"
+  system*
+    hash: "8924849495809d42431719c2b9ab65c8"
+    contributing component: chained-exception
+    component:
+      system*
+        chained-exception*
+          exception*
+            stacktrace*
+              frame*
+                module*
+                  "io.sentry.example.Application"
+                function*
+                  "main"
+              frame*
+                module*
+                  "org.springframework.boot.SpringApplication"
+                function*
+                  "run"
+              frame*
+                module*
+                  "org.springframework.boot.SpringApplication"
+                function*
+                  "run"
+              frame*
+                module*
+                  "org.springframework.boot.SpringApplication"
+                function*
+                  "run"
+              frame*
+                module*
+                  "org.springframework.boot.SpringApplication"
+                function*
+                  "refreshContext"
+              frame*
+                module*
+                  "org.springframework.boot.SpringApplication"
+                function*
+                  "refresh"
+              frame*
+                module*
+                  "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
+                function*
+                  "refresh"
+              frame*
+                module*
+                  "org.springframework.context.support.AbstractApplicationContext"
+                function*
+                  "refresh"
+              frame*
+                module*
+                  "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
+                function*
+                  "finishRefresh"
+              frame*
+                module*
+                  "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
+                function*
+                  "startEmbeddedServletContainer"
+              frame*
+                module*
+                  "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"
+                function*
+                  "start"
+              frame*
+                module*
+                  "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"
+                function*
+                  "addPreviouslyRemovedConnectors"
+              frame*
+                module*
+                  "org.apache.catalina.core.StandardService"
+                function*
+                  "addConnector"
+              frame*
+                module*
+                  "org.apache.catalina.util.LifecycleBase"
+                function*
+                  "start"
+              frame*
+                module*
+                  "org.apache.catalina.connector.Connector"
+                function*
+                  "startInternal"
+              frame*
+                module*
+                  "org.apache.coyote.AbstractProtocol"
+                function*
+                  "start"
+              frame*
+                module*
+                  "org.apache.tomcat.util.net.AbstractEndpoint"
+                function*
+                  "start"
+              frame*
+                module*
+                  "org.apache.tomcat.util.net.NioEndpoint"
+                function*
+                  "bind"
+              frame*
+                module*
+                  "sun.nio.ch.ServerSocketAdaptor"
+                function*
+                  "bind"
+              frame*
+                module*
+                  "sun.nio.ch.ServerSocketChannelImpl"
+                function*
+                  "bind"
+              frame*
+                module*
+                  "sun.nio.ch.Net"
+                function*
+                  "bind"
+              frame*
+                module*
+                  "sun.nio.ch.Net"
+                function*
+                  "bind"
+              frame*
+                module*
+                  "sun.nio.ch.Net"
+                function*
+                  "bind0"
+            type*
+              "BindException"
+          exception*
+            stacktrace*
+              frame*
+                module*
+                  "io.sentry.example.Application"
+                function*
+                  "main"
+              frame*
+                module*
+                  "org.springframework.boot.SpringApplication"
+                function*
+                  "run"
+              frame*
+                module*
+                  "org.springframework.boot.SpringApplication"
+                function*
+                  "run"
+              frame*
+                module*
+                  "org.springframework.boot.SpringApplication"
+                function*
+                  "run"
+              frame*
+                module*
+                  "org.springframework.boot.SpringApplication"
+                function*
+                  "refreshContext"
+              frame*
+                module*
+                  "org.springframework.boot.SpringApplication"
+                function*
+                  "refresh"
+              frame*
+                module*
+                  "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
+                function*
+                  "refresh"
+              frame*
+                module*
+                  "org.springframework.context.support.AbstractApplicationContext"
+                function*
+                  "refresh"
+              frame*
+                module*
+                  "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
+                function*
+                  "finishRefresh"
+              frame*
+                module*
+                  "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
+                function*
+                  "startEmbeddedServletContainer"
+              frame*
+                module*
+                  "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"
+                function*
+                  "start"
+              frame*
+                module*
+                  "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"
+                function*
+                  "addPreviouslyRemovedConnectors"
+              frame*
+                module*
+                  "org.apache.catalina.core.StandardService"
+                function*
+                  "addConnector"
+              frame*
+                module*
+                  "org.apache.catalina.util.LifecycleBase"
+                function*
+                  "start"
+              frame*
+                module*
+                  "org.apache.catalina.connector.Connector"
+                function*
+                  "startInternal"
+            type*
+              "LifecycleException"
+          exception*
+            stacktrace*
+              frame*
+                module*
+                  "io.sentry.example.Application"
+                function*
+                  "main"
+              frame*
+                module*
+                  "org.springframework.boot.SpringApplication"
+                function*
+                  "run"
+              frame*
+                module*
+                  "org.springframework.boot.SpringApplication"
+                function*
+                  "run"
+              frame*
+                module*
+                  "org.springframework.boot.SpringApplication"
+                function*
+                  "run"
+              frame*
+                module*
+                  "org.springframework.boot.SpringApplication"
+                function*
+                  "refreshContext"
+              frame*
+                module*
+                  "org.springframework.boot.SpringApplication"
+                function*
+                  "refresh"
+              frame*
+                module*
+                  "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
+                function*
+                  "refresh"
+              frame*
+                module*
+                  "org.springframework.context.support.AbstractApplicationContext"
+                function*
+                  "refresh"
+              frame*
+                module*
+                  "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
+                function*
+                  "finishRefresh"
+              frame*
+                module*
+                  "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
+                function*
+                  "startEmbeddedServletContainer"
+              frame*
+                module*
+                  "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"
+                function*
+                  "start"
+              frame*
+                module*
+                  "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"
+                function*
+                  "addPreviouslyRemovedConnectors"
+              frame*
+                module*
+                  "org.apache.catalina.core.StandardService"
+                function*
+                  "addConnector"
+              frame*
+                module*
+                  "org.apache.catalina.util.LifecycleBase"
+                function*
+                  "start"
+            type*
+              "LifecycleException"

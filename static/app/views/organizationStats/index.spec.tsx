@@ -43,7 +43,7 @@ describe('OrganizationStats', function () {
     routeParams: {},
   };
 
-  let mockRequest;
+  let mockRequest: jest.Mock;
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -125,7 +125,7 @@ describe('OrganizationStats', function () {
         groupBy: ['outcome', 'reason'],
         project: [-1],
         field: ['sum(quantity)'],
-        category: 'error',
+        category: ['error'],
       },
       UsageStatsPerMin: {
         statsPeriod: '5m',
@@ -140,7 +140,7 @@ describe('OrganizationStats', function () {
         groupBy: ['outcome', 'project'],
         project: [-1],
         field: ['sum(quantity)'],
-        category: 'error',
+        category: ['error'],
       },
     };
     for (const query of Object.values(mockExpectations)) {
@@ -227,7 +227,7 @@ describe('OrganizationStats', function () {
   });
 
   it('does not leak query params onto next page links', async () => {
-    const dummyLocation = PAGE_QUERY_PARAMS.reduce(
+    const dummyLocation = PAGE_QUERY_PARAMS.reduce<{query: Record<string, string>}>(
       (location, param) => {
         location.query[param] = '';
         return location;
@@ -325,7 +325,7 @@ describe('OrganizationStats', function () {
           groupBy: ['outcome', 'reason'],
           project: selectedProjects,
           field: ['sum(quantity)'],
-          category: 'error',
+          category: ['error'],
         },
       })
     );
@@ -367,7 +367,7 @@ describe('OrganizationStats', function () {
           groupBy: ['outcome', 'reason'],
           project: selectedProject,
           field: ['sum(quantity)'],
-          category: 'error',
+          category: ['error'],
         },
       })
     );
@@ -382,7 +382,7 @@ describe('OrganizationStats', function () {
     });
     await userEvent.click(screen.getByTestId('proj-1'));
     expect(screen.queryByText('My Projects')).not.toBeInTheDocument();
-    expect(screen.getAllByText('proj-1').length).toBe(2);
+    expect(screen.getAllByText('proj-1')).toHaveLength(2);
   });
 
   /**
@@ -413,6 +413,119 @@ describe('OrganizationStats', function () {
       await act(tick);
       expect(screen.queryByText('My Projects')).not.toBeInTheDocument();
     }
+  });
+
+  /**
+   * Feature Flagging - Continuous Profiling
+   */
+  it('shows only profile duration category with continuous-profiling-stats feature', async () => {
+    const newOrg = initializeOrg({
+      organization: {
+        features: ['global-views', 'team-insights', 'continuous-profiling-stats'],
+      },
+    });
+
+    render(<OrganizationStats {...defaultProps} organization={newOrg.organization} />, {
+      router: newOrg.router,
+    });
+
+    await userEvent.click(await screen.findByText('Category'));
+
+    // Should show Profile Hours option
+    expect(screen.getByRole('option', {name: 'Profile Hours'})).toBeInTheDocument();
+    // Should not show Profiles (transaction) option
+    expect(screen.queryByRole('option', {name: 'Profiles'})).not.toBeInTheDocument();
+  });
+
+  it('shows both profile hours and profiles categories with continuous-profiling feature', async () => {
+    const newOrg = initializeOrg({
+      organization: {
+        features: ['global-views', 'team-insights', 'continuous-profiling'],
+      },
+    });
+
+    render(<OrganizationStats {...defaultProps} organization={newOrg.organization} />, {
+      router: newOrg.router,
+    });
+
+    await userEvent.click(await screen.findByText('Category'));
+
+    // Should show Profile Hours option
+    expect(screen.getByRole('option', {name: 'Profile Hours'})).toBeInTheDocument();
+    // Should show Profiles (transaction) option
+    expect(screen.getByRole('option', {name: 'Profiles'})).toBeInTheDocument();
+  });
+
+  it('shows only profile duration category when both profiling features are enabled', async () => {
+    const newOrg = initializeOrg({
+      organization: {
+        features: [
+          'global-views',
+          'team-insights',
+          'continuous-profiling-stats',
+          'continuous-profiling',
+        ],
+      },
+    });
+
+    render(<OrganizationStats {...defaultProps} organization={newOrg.organization} />, {
+      router: newOrg.router,
+    });
+
+    await userEvent.click(await screen.findByText('Category'));
+
+    // Should show Profile Hours option
+    expect(screen.getByRole('option', {name: 'Profile Hours'})).toBeInTheDocument();
+    // Should not show Profiles (transaction) option
+    expect(screen.queryByRole('option', {name: 'Profiles'})).not.toBeInTheDocument();
+  });
+
+  it('shows only Profiles category without profiling features', async () => {
+    const newOrg = initializeOrg({
+      organization: {
+        features: ['global-views', 'team-insights'],
+      },
+    });
+
+    render(<OrganizationStats {...defaultProps} organization={newOrg.organization} />, {
+      router: newOrg.router,
+    });
+
+    await userEvent.click(await screen.findByText('Category'));
+
+    // Should show Profile Hours option
+    expect(screen.queryByRole('option', {name: 'Profile Hours'})).not.toBeInTheDocument();
+    // Should show Profiles (transaction) option
+    expect(screen.getByRole('option', {name: 'Profiles'})).toBeInTheDocument();
+  });
+
+  it('denies access on no projects', async function () {
+    act(() => ProjectsStore.loadInitialData([]));
+
+    render(<OrganizationStats {...defaultProps} />, {
+      router,
+    });
+
+    expect(
+      await screen.findByText('You need at least one project to use this view')
+    ).toBeInTheDocument();
+  });
+
+  it('denies access without project membership', async function () {
+    const newOrg = initializeOrg({
+      organization: {
+        openMembership: false,
+      },
+    });
+    act(() => ProjectsStore.loadInitialData([ProjectFixture({isMember: false})]));
+
+    render(<OrganizationStats {...defaultProps} organization={newOrg.organization} />, {
+      router: newOrg.router,
+    });
+
+    expect(
+      await screen.findByText('You need at least one project to use this view')
+    ).toBeInTheDocument();
   });
 });
 

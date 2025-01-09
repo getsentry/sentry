@@ -1,3 +1,4 @@
+from sentry.constants import TARGET_SAMPLE_RATE_DEFAULT
 from sentry.projectoptions import register
 
 # This controls what sentry:option-epoch value is given to a project when it is created
@@ -184,3 +185,9 @@ register(
     key="sentry:loader_available_sdk_versions",
     epoch_defaults={1: ["8.x", "7.x", "6.x", "5.x", "4.x"], 11: ["8.x", "7.x"]},
 )
+
+# Dynamic sampling rate in project-level "manual" configuration mode
+register(key="sentry:target_sample_rate", default=TARGET_SAMPLE_RATE_DEFAULT)
+
+# Should tempest fetch screenshots for this project
+register(key="sentry:tempest_fetch_screenshots", default=False)

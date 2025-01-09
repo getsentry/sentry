@@ -108,4 +108,71 @@ describe('mapSeriesToChart func', function () {
       },
     ]);
   });
+
+  it('should correctly sum up the rate limited count', function () {
+    const mappedSeries = mapSeriesToChart({
+      orgStats: {
+        start: '2021-01-01T00:00:00Z',
+        end: '2021-01-07T00:00:00Z',
+        intervals: [
+          '2021-01-01T00:00:00Z',
+          '2021-01-02T00:00:00Z',
+          '2021-01-03T00:00:00Z',
+        ],
+        groups: [
+          {
+            by: {
+              outcome: 'accepted',
+            },
+            totals: {
+              'sum(quantity)': 99,
+            },
+            series: {
+              'sum(quantity)': [99],
+            },
+          },
+          {
+            by: {
+              outcome: 'rate_limited',
+            },
+            totals: {
+              'sum(quantity)': 6,
+            },
+            series: {
+              'sum(quantity)': [1, 2, 3],
+            },
+          },
+          {
+            by: {
+              outcome: 'abuse',
+            },
+            totals: {
+              'sum(quantity)': 2,
+            },
+            series: {
+              'sum(quantity)': [1, 1],
+            },
+          },
+          {
+            by: {
+              outcome: 'cardinality_limited',
+            },
+            totals: {
+              'sum(quantity)': 3,
+            },
+            series: {
+              'sum(quantity)': [1, 2],
+            },
+          },
+        ],
+      },
+      chartDateInterval: '1h',
+      chartDateUtc: true,
+      dataCategory: 'transactions',
+      endpointQuery: {},
+    });
+
+    // sums up rate limited, abuse, and cardinality limited
+    expect(mappedSeries.cardStats.rateLimited).toBe('11');
+  });
 });

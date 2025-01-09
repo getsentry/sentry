@@ -82,7 +82,7 @@ const LEGACY_BROWSER_SUBFILTERS = {
   chrome: {
     icon: iconChrome,
     title: 'Chrome',
-    helpText: 'Version 62 and lower',
+    helpText: 'Version 63 and lower',
     legacy: false,
   },
   safari: {
@@ -204,18 +204,20 @@ type RowState = {
 };
 
 class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
-  constructor(props) {
+  constructor(props: RowProps) {
     super(props);
 
     let initialSubfilters;
     if (props.data.active === true) {
       initialSubfilters = new Set(
         Object.keys(LEGACY_BROWSER_SUBFILTERS).filter(
-          key => !LEGACY_BROWSER_SUBFILTERS[key].legacy
+          key =>
+            !LEGACY_BROWSER_SUBFILTERS[key as keyof typeof LEGACY_BROWSER_SUBFILTERS]
+              .legacy
         )
       );
     } else if (props.data.active === false) {
-      initialSubfilters = new Set();
+      initialSubfilters = new Set<string>();
     } else {
       initialSubfilters = new Set(props.data.active);
     }
@@ -227,13 +229,15 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
     };
   }
 
-  handleToggleSubfilters = (subfilter, e) => {
+  handleToggleSubfilters = (subfilter: boolean, e: React.MouseEvent) => {
     let {subfilters} = this.state;
 
     if (subfilter === true) {
       subfilters = new Set(
         Object.keys(LEGACY_BROWSER_SUBFILTERS).filter(
-          key => !LEGACY_BROWSER_SUBFILTERS[key].legacy
+          key =>
+            !LEGACY_BROWSER_SUBFILTERS[key as keyof typeof LEGACY_BROWSER_SUBFILTERS]
+              .legacy
         )
       );
     } else if (subfilter === false) {
@@ -371,7 +375,7 @@ function CustomFilters({project, disabled}: {disabled: boolean; project: Project
           {hasFeature && project.options?.['filters:error_messages'] && (
             <PanelAlert type="warning" data-test-id="error-message-disclaimer">
               {t(
-                "Minidumps, errors in the minified production build of React, and Internet Explorer's i18n errors cannot be filtered by message."
+                "Minidumps, obfuscated or minified exceptions (ProGuard, errors in the minified production build of React), and Internet Explorer's i18n errors cannot be filtered by message."
               )}
             </PanelAlert>
           )}
@@ -543,7 +547,7 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                         {
                           replaySettings: (
                             <Link
-                              to={`/settings/projects/${project.slug}/replays/#sentry-replay_hydration_error_issues_help`}
+                              to={`/settings/${organization.slug}/projects/${project.slug}/replays/#sentry-replay_hydration_error_issues_help`}
                             />
                           ),
                         }

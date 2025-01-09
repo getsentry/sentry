@@ -1,24 +1,15 @@
 from __future__ import annotations
 
-import time
 from datetime import UTC, datetime, timedelta
 
 import time_machine
 
-__all__ = ["iso_format", "before_now", "timestamp_format"]
-
-
-def iso_format(date):
-    return date.isoformat()[:19]
+__all__ = ["before_now"]
 
 
 def before_now(**kwargs: float) -> datetime:
     date = datetime.now(UTC) - timedelta(**kwargs)
     return date - timedelta(microseconds=date.microsecond % 1000)
-
-
-def timestamp_format(datetime):
-    return time.mktime(datetime.utctimetuple()) + datetime.microsecond / 1e6
 
 
 class MockClock:

@@ -65,7 +65,7 @@ async function fetchTraceMetaInBatches(
   filters: Partial<PageFilters> = {}
 ) {
   const clonedTraceIds = [...replayTraces];
-  const metaResults: TraceMeta = {
+  const meta: TraceMeta = {
     errors: 0,
     performance_issues: 0,
     projects: 0,
@@ -84,55 +84,39 @@ async function fetchTraceMetaInBatches(
       })
     );
 
-    const updatedData = results.reduce(
-      (acc, result) => {
-        if (result.status === 'fulfilled') {
-          const {
-            errors,
-            performance_issues,
-            projects,
-            transactions,
-            transaction_child_count_map,
-          } = result.value;
-          acc.errors += errors;
-          acc.performance_issues += performance_issues;
-          acc.projects = Math.max(acc.projects, projects);
-          acc.transactions += transactions;
+    results.reduce((acc, result) => {
+      if (result.status === 'fulfilled') {
+        acc.errors += result.value.errors;
+        acc.performance_issues += result.value.performance_issues;
+        acc.projects = Math.max(acc.projects, result.value.projects);
+        acc.transactions += result.value.transactions;
 
-          // Turn the transaction_child_count_map array into a map of transaction id to child count
-          // for more efficient lookups.
-          transaction_child_count_map.forEach(({'transaction.id': id, count}) => {
+        // Turn the transaction_child_count_map array into a map of transaction id to child count
+        // for more efficient lookups.
+        result.value.transaction_child_count_map.forEach(
+          ({'transaction.id': id, count}) => {
             acc.transactiontoSpanChildrenCount[id] = count;
-          });
-        } else {
-          apiErrors.push(new Error(result.reason));
-        }
-        return acc;
-      },
-      {...metaResults}
-    );
-
-    metaResults.errors = updatedData.errors;
-    metaResults.performance_issues = updatedData.performance_issues;
-    metaResults.projects = Math.max(updatedData.projects, metaResults.projects);
-    metaResults.transactions = updatedData.transactions;
-    metaResults.transactiontoSpanChildrenCount =
-      updatedData.transactiontoSpanChildrenCount;
+          }
+        );
+      } else {
+        apiErrors.push(new Error(result?.reason));
+      }
+      return acc;
+    }, meta);
   }
 
-  return {metaResults, apiErrors};
+  return {meta, apiErrors};
 }
 
 export type TraceMetaQueryResults = {
   data: TraceMeta | undefined;
   errors: Error[];
-  isLoading: boolean;
   status: QueryStatus;
 };
 
 export function useTraceMeta(replayTraces: ReplayTrace[]): TraceMetaQueryResults {
-  const filters = usePageFilters();
   const api = useApi();
+  const filters = usePageFilters();
   const organization = useOrganization();
 
   const normalizedParams = useMemo(() => {
@@ -140,17 +124,16 @@ export function useTraceMeta(replayTraces: ReplayTrace[]): TraceMetaQueryResults
     return normalizeDateTimeParams(query, {
       allowAbsolutePageDatetime: true,
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // demo has the format ${projectSlug}:${eventId}
   // used to query a demo transaction event from the backend.
   const mode = decodeScalar(normalizedParams.demo) ? 'demo' : undefined;
 
-  const {data, isPending, status} = useQuery<
+  const query = useQuery<
     {
       apiErrors: Error[];
-      metaResults: TraceMeta;
+      meta: TraceMeta;
     },
     Error
   >({
@@ -168,12 +151,12 @@ export function useTraceMeta(replayTraces: ReplayTrace[]): TraceMetaQueryResults
 
   const results = useMemo(() => {
     return {
-      data: data?.metaResults,
-      errors: data?.apiErrors || [],
-      isLoading: isPending,
-      status,
+      data: query.data?.meta,
+      errors: query.data?.apiErrors ?? [],
+      status:
+        query.data?.apiErrors?.length === replayTraces.length ? 'error' : query.status,
     };
-  }, [data, isPending, status]);
+  }, [query, replayTraces.length]);
 
   // When projects don't have performance set up, we allow them to view a sample transaction.
   // The backend creates the sample transaction, however the trace is created async, so when the
@@ -181,7 +164,7 @@ export function useTraceMeta(replayTraces: ReplayTrace[]): TraceMetaQueryResults
   // When this happens, we assemble a fake trace response to only include the transaction that had already been
   // created and stored already so that the users can visualize in the context of a trace.
   // The trace meta query has to reflect this by returning a single transaction and project.
-  if (mode === 'demo') {
+  const demoResults = useMemo(() => {
     return {
       data: {
         errors: 0,
@@ -190,11 +173,10 @@ export function useTraceMeta(replayTraces: ReplayTrace[]): TraceMetaQueryResults
         transactions: 1,
         transactiontoSpanChildrenCount: {},
       },
-      isLoading: false,
       errors: [],
-      status: 'success',
+      status: 'success' as QueryStatus,
     };
-  }
+  }, []);
 
-  return results;
+  return mode === 'demo' ? demoResults : results;
 }

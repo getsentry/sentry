@@ -42,6 +42,9 @@ class MonitorClockTasksCheckTimeoutTest(TestCase):
             },
         )
         monitor_environment = MonitorEnvironment.objects.create(
+            # XXX(epurkhiser): Arbitrarily large id to make sure we can
+            # correctly use the monitor_environment.id as the partition key
+            id=62702371781194950,
             monitor=monitor,
             environment_id=self.environment.id,
             last_checkin=ts,
@@ -51,9 +54,6 @@ class MonitorClockTasksCheckTimeoutTest(TestCase):
         )
         # Checkin will timeout in 30 minutes
         checkin = MonitorCheckIn.objects.create(
-            # XXX(epurkhiser): Arbitrarily large id to make sure we can
-            # correctly use the monitor_environment.id as the partition key
-            id=62702371781194950,
             monitor=monitor,
             monitor_environment=monitor_environment,
             project_id=project.id,

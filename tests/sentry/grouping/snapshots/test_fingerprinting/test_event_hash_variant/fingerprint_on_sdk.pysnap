@@ -1,8 +1,7 @@
 ---
-created: '2024-01-09T23:55:15.059223Z'
+created: '2024-11-08T22:03:14.537139+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
-# Shows that the custom fingerprinting rule is applied when SDK is nextj
 ---
 config:
   rules:
@@ -12,14 +11,15 @@ config:
     matchers:
     - - sdk
       - sentry.javascript.nextjs
+    text: sdk:"sentry.javascript.nextjs" -> "sdk-nextjs"
   version: 1
 fingerprint:
 - sdk-nextjs
 title: Es Dee Kay
 variants:
-  custom-fingerprint:
+  custom_fingerprint:
     matched_rule: sdk:"sentry.javascript.nextjs" -> "sdk-nextjs"
-    type: custom-fingerprint
+    type: custom_fingerprint
     values:
     - sdk-nextjs
   default:

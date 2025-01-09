@@ -89,7 +89,7 @@ export function getDefaultDisplayForPlatform(projects: Project[], eventView?: Ev
   const defaultDisplay = LANDING_DISPLAYS.find(
     ({field}) => field === defaultDisplayField
   );
-  return defaultDisplay || LANDING_DISPLAYS[0];
+  return defaultDisplay || LANDING_DISPLAYS[0]!;
 }
 
 export function getCurrentLandingDisplay(
@@ -117,7 +117,7 @@ export function handleLandingDisplayChange(
   const searchConditions = new MutableSearch(query);
   searchConditions.removeFilter('transaction.op');
 
-  const queryWithConditions = {
+  const queryWithConditions: Record<string, string> & {query: string} = {
     ...omit(location.query, ['landingDisplay', 'sort']),
     query: searchConditions.formatString(),
   };
@@ -173,7 +173,8 @@ export function getDefaultDisplayFieldForPlatform(
   };
   const performanceType = platformToPerformanceType(projects, projectIds);
   const landingField =
-    performanceTypeToDisplay[performanceType] ?? LandingDisplayField.ALL;
+    performanceTypeToDisplay[performanceType as keyof typeof performanceTypeToDisplay] ??
+    LandingDisplayField.ALL;
   return landingField;
 }
 
@@ -250,7 +251,7 @@ export function getDisplayAxes(options: AxisOption[], location: Location) {
   };
 }
 
-export function checkIsReactNative(eventView) {
+export function checkIsReactNative(eventView: EventView) {
   // only react native should contain the stall percentage column
   return Boolean(
     eventView.getFields().find(field => field.includes('measurements.stall_percentage'))

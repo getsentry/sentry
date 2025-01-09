@@ -33,6 +33,7 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
@@ -119,7 +120,7 @@ class ProjectCharts extends Component<Props, State> {
       .map(urlKey => {
         return decodeScalar(
           location.query[urlKey],
-          this.defaultDisplayModes[visibleCharts.findIndex(value => value === urlKey)]
+          this.defaultDisplayModes[visibleCharts.findIndex(value => value === urlKey)]!
         );
       });
   }
@@ -406,6 +407,7 @@ class ProjectCharts extends Component<Props, State> {
                     interval={this.barChartInterval}
                     chartComponent={BarChart}
                     disableReleases
+                    dataset={DiscoverDatasets.ERRORS}
                   />
                 ) : (
                   <ProjectErrorsBasicChart
@@ -507,7 +509,7 @@ class ProjectCharts extends Component<Props, State> {
               <InlineContainer>
                 <OptionSelector
                   title={t('Display')}
-                  selected={displayMode}
+                  selected={displayMode!}
                   options={this.displayModes}
                   onChange={this.handleDisplayModeChange}
                 />

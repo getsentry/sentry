@@ -1,4 +1,5 @@
 from collections import defaultdict
+from typing import TypedDict
 
 import sentry_sdk
 from rest_framework.request import Request
@@ -11,7 +12,17 @@ from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors, update_snuba_params_with_timestamp
 from sentry.search.utils import DEVICE_CLASS
-from sentry.snuba import discover
+
+
+class _TopValue(TypedDict):
+    name: str
+    value: int | str
+    count: int
+
+
+class _KeyTopValues(TypedDict):
+    key: str
+    topValues: list[_TopValue]
 
 
 @region_silo_endpoint
@@ -31,10 +42,12 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsV2EndpointBase):
 
         update_snuba_params_with_timestamp(request, snuba_params, timestamp_key="traceTimestamp")
 
+        dataset = self.get_dataset(request)
+
         def data_fn(offset, limit):
             with sentry_sdk.start_span(op="discover.endpoint", name="discover_query"):
                 with handle_query_errors():
-                    facets = discover.get_facets(
+                    facets = dataset.get_facets(
                         query=request.GET.get("query"),
                         snuba_params=snuba_params,
                         referrer="api.organization-events-facets.top-tags",
@@ -44,6 +57,7 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsV2EndpointBase):
 
             with sentry_sdk.start_span(op="discover.endpoint", name="populate_results") as span:
                 span.set_data("facet_count", len(facets or []))
+                resp: dict[str, _KeyTopValues]
                 resp = defaultdict(lambda: {"key": "", "topValues": []})
                 for row in facets:
                     values = resp[row.key]
@@ -62,7 +76,7 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsV2EndpointBase):
                     projects = {p.id: p.slug for p in self.get_projects(request, organization)}
                     filtered_values = []
                     for v in resp["project"]["topValues"]:
-                        if v["value"] in projects:
+                        if isinstance(v["value"], int) and v["value"] in projects:
                             name = projects[v["value"]]
                             v.update({"name": name})
                             filtered_values.append(v)

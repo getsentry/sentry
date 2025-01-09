@@ -1,15 +1,23 @@
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/container/flex';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
+import {IconFilter} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {IssueAttachment} from 'sentry/types/group';
+import type {Group, IssueAttachment} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useEventQuery} from 'sentry/views/issueDetails/streamline/eventSearch';
+import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import GroupEventAttachmentsFilter, {
   EventAttachmentFilter,
@@ -20,19 +28,49 @@ import {useDeleteGroupEventAttachment} from './useDeleteGroupEventAttachment';
 import {useGroupEventAttachments} from './useGroupEventAttachments';
 
 type GroupEventAttachmentsProps = {
-  groupId: string;
+  group: Group;
   project: Project;
 };
 
-function GroupEventAttachments({project, groupId}: GroupEventAttachmentsProps) {
+const DEFAULT_ATTACHMENTS_TAB = EventAttachmentFilter.ALL;
+
+function GroupEventAttachments({project, group}: GroupEventAttachmentsProps) {
   const location = useLocation();
   const organization = useOrganization();
+  const hasStreamlinedUI = useHasStreamlinedUI();
+  const eventQuery = useEventQuery({groupId: group.id});
+  const eventView = useIssueDetailsEventView({group});
+  const navigate = useNavigate();
+  const [previouslyUsedAttachmentsTab, setPreviouslyUsedAttachmentsTab] =
+    useLocalStorageState(
+      `issue-details-attachments-default-tab-${project.id}`,
+      DEFAULT_ATTACHMENTS_TAB
+    );
+
   const activeAttachmentsTab =
     (location.query.attachmentFilter as EventAttachmentFilter | undefined) ??
-    EventAttachmentFilter.ALL;
+    previouslyUsedAttachmentsTab ??
+    DEFAULT_ATTACHMENTS_TAB;
+
+  // Persist the previously used attachments tab in the url if it's not already set
+  useEffect(() => {
+    if (
+      !location.query.attachmentFilter &&
+      previouslyUsedAttachmentsTab !== DEFAULT_ATTACHMENTS_TAB
+    ) {
+      navigate(
+        {
+          pathname: location.pathname,
+          query: {...location.query, attachmentFilter: previouslyUsedAttachmentsTab},
+        },
+        {replace: true}
+      );
+    }
+  }, [previouslyUsedAttachmentsTab, location, navigate]);
+
   const {attachments, isPending, isError, getResponseHeader, refetch} =
     useGroupEventAttachments({
-      groupId,
+      group,
       activeAttachmentsTab,
     });
 
@@ -41,12 +79,17 @@ function GroupEventAttachments({project, groupId}: GroupEventAttachmentsProps) {
   const handleDelete = (attachment: IssueAttachment) => {
     deleteAttachment({
       attachment,
-      groupId,
-      orgSlug: organization.slug,
-      activeAttachmentsTab,
       projectSlug: project.slug,
+      activeAttachmentsTab,
+      group,
+      orgSlug: organization.slug,
       cursor: location.query.cursor as string | undefined,
-      environment: location.query.environment as string[] | string | undefined,
+      // We only want to filter by date/query/environment if we're using the Streamlined UI
+      environment: hasStreamlinedUI ? (eventView.environment as string[]) : undefined,
+      start: hasStreamlinedUI ? eventView.start : undefined,
+      end: hasStreamlinedUI ? eventView.end : undefined,
+      statsPeriod: hasStreamlinedUI ? eventView.statsPeriod : undefined,
+      eventQuery: hasStreamlinedUI ? eventQuery : undefined,
     });
   };
 
@@ -60,12 +103,12 @@ function GroupEventAttachments({project, groupId}: GroupEventAttachmentsProps) {
         isLoading={isPending}
         attachments={attachments}
         projectSlug={project.slug}
-        groupId={groupId}
+        groupId={group.id}
         onDelete={handleDelete}
         emptyMessage={
           activeAttachmentsTab === EventAttachmentFilter.CRASH_REPORTS
-            ? t('No crash reports found')
-            : t('No attachments found')
+            ? t('No matching crash reports found')
+            : t('No matching attachments found')
         }
       />
     );
@@ -83,18 +126,16 @@ function GroupEventAttachments({project, groupId}: GroupEventAttachmentsProps) {
     if (attachments.length > 0) {
       return (
         <ScreenshotGrid>
-          {attachments.map((screenshot, index) => {
+          {attachments.map(screenshot => {
             return (
               <ScreenshotCard
-                key={`${index}-${screenshot.id}`}
+                key={screenshot.id}
                 eventAttachment={screenshot}
                 eventId={screenshot.event_id}
                 projectSlug={project.slug}
-                groupId={groupId}
+                groupId={group.id}
                 onDelete={handleDelete}
-                pageLinks={getResponseHeader?.('Link')}
                 attachments={attachments}
-                attachmentIndex={index}
               />
             );
           })}
@@ -111,7 +152,19 @@ function GroupEventAttachments({project, groupId}: GroupEventAttachmentsProps) {
 
   return (
     <Wrapper>
-      <GroupEventAttachmentsFilter project={project} />
+      {hasStreamlinedUI ? (
+        <Flex justify="space-between">
+          <FilterMessage align="center" gap={space(1)}>
+            <IconFilter size="xs" />
+            {t('Results are filtered by the selections above.')}
+          </FilterMessage>
+          <GroupEventAttachmentsFilter
+            onChange={key => setPreviouslyUsedAttachmentsTab(key)}
+          />
+        </Flex>
+      ) : (
+        <GroupEventAttachmentsFilter />
+      )}
       {activeAttachmentsTab === EventAttachmentFilter.SCREENSHOT
         ? renderScreenshotGallery()
         : renderAttachmentsTable()}
@@ -132,7 +185,7 @@ const ScreenshotGrid = styled('div')`
     grid-template-columns: repeat(3, minmax(100px, 1fr));
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     grid-template-columns: repeat(4, minmax(100px, 1fr));
   }
 
@@ -150,3 +203,5 @@ const Wrapper = styled('div')`
   flex-direction: column;
   gap: ${space(2)};
 `;
+
+const FilterMessage = styled(Flex)``;

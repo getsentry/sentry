@@ -1,14 +1,15 @@
 ---
-created: '2021-04-02T10:31:45.454523Z'
+created: '2024-12-17T22:46:46.222069+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
+  contributing component: null
   component:
     app (exception of system takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
-        stacktrace
+        stacktrace (ignored because it contains no in-app frames)
           frame (non app frame)
             module*
               "com.android.internal.os.ZygoteInit"
@@ -770,7 +771,7 @@ app:
         value* (stripped event-specific values)
           "Application Not Responding for at least <int> ms."
       threads (ignored because this variant does not have a contributing stacktrace, but the system variant does)
-        stacktrace
+        stacktrace (ignored because it contains no in-app frames)
           frame (non app frame)
             module*
               "java.lang.Thread"
@@ -788,6 +789,7 @@ app:
 --------------------------------------------------------------------------
 system:
   hash: "2e41d71bc38b212d73f8d68415389f45"
+  contributing component: exception
   component:
     system*
       exception*

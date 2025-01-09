@@ -15,7 +15,7 @@ from sentry.users.models.userip import UserIP
 @control_silo_endpoint
 class UserIPsEndpoint(UserEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     @sudo_required

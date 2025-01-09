@@ -1,4 +1,9 @@
-import {EventType, type eventWithTime as TEventWithTime} from '@sentry-internal/rrweb';
+import {
+  EventType,
+  type eventWithTime as TEventWithTime,
+  IncrementalSource,
+  MouseInteractions,
+} from '@sentry-internal/rrweb';
 
 export type {serializedNodeWithId} from '@sentry-internal/rrweb-snapshot';
 export type {fullSnapshotEvent, incrementalSnapshotEvent} from '@sentry-internal/rrweb';
@@ -14,8 +19,6 @@ import type {
   ReplaySpanFrameEvent as TSpanFrameEvent,
 } from '@sentry/react';
 import invariant from 'invariant';
-
-import type {HydratedA11yFrame} from 'sentry/utils/replays/hydrateA11yFrame';
 
 export type Dimensions = {
   height: number;
@@ -69,6 +72,13 @@ type MobileBreadcrumbTypes =
       message: string;
       timestamp: number;
       type: string;
+    }
+  | {
+      category: 'ui.swipe';
+      data: any;
+      timestamp: number;
+      type: string;
+      message?: string;
     }
   | {
       category: 'device.battery';
@@ -132,6 +142,33 @@ export function isRecordingFrame(
   attachment: Record<string, any>
 ): attachment is RecordingFrame {
   return 'type' in attachment && 'timestamp' in attachment;
+}
+
+export function isRRWebChangeFrame(frame: RecordingFrame) {
+  return (
+    frame.type === EventType.FullSnapshot ||
+    (frame.type === EventType.IncrementalSnapshot &&
+      frame.data.source === IncrementalSource.Mutation)
+  );
+}
+export function isTouchStartFrame(frame: RecordingFrame) {
+  return (
+    frame.type === EventType.IncrementalSnapshot &&
+    'type' in frame.data &&
+    frame.data.type === MouseInteractions.TouchStart
+  );
+}
+
+export function isTouchEndFrame(frame: RecordingFrame) {
+  return (
+    frame.type === EventType.IncrementalSnapshot &&
+    'type' in frame.data &&
+    frame.data.type === MouseInteractions.TouchEnd
+  );
+}
+
+export function isMetaFrame(frame: RecordingFrame) {
+  return frame.type === EventType.Meta;
 }
 
 export function isBreadcrumbFrameEvent(
@@ -322,6 +359,7 @@ export type BackgroundFrame = HydratedBreadcrumb<'app.background'>;
 export type BlurFrame = HydratedBreadcrumb<'ui.blur'>;
 export type ClickFrame = HydratedBreadcrumb<'ui.click'>;
 export type TapFrame = HydratedBreadcrumb<'ui.tap'>;
+export type SwipeFrame = HydratedBreadcrumb<'ui.swipe'>;
 export type ConsoleFrame = HydratedBreadcrumb<'console'>;
 export type FocusFrame = HydratedBreadcrumb<'ui.focus'>;
 export type InputFrame = HydratedBreadcrumb<'ui.input'>;
@@ -358,6 +396,7 @@ export const BreadcrumbCategories = [
   'ui.blur',
   'ui.click',
   'ui.tap',
+  'ui.swipe',
   'ui.focus',
   'ui.input',
   'ui.keyDown',
@@ -444,7 +483,7 @@ export type ErrorFrame = Overwrite<
   }
 >;
 
-export type ReplayFrame = BreadcrumbFrame | ErrorFrame | SpanFrame | HydratedA11yFrame;
+export type ReplayFrame = BreadcrumbFrame | ErrorFrame | SpanFrame;
 
 interface VideoFrame {
   container: string;

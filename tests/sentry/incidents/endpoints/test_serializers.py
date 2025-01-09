@@ -120,7 +120,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
             "organization": self.organization,
             "access": self.access,
             "user": self.user,
-            "installations": app_service.get_installed_for_organization(
+            "installations": app_service.installations_for_organization(
                 organization_id=self.organization.id
             ),
             "integrations": integration_service.get_integrations(
@@ -428,6 +428,14 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         assert serializer.is_valid(), serializer.errors
 
     def test_boundary_off_by_one(self):
+        actions = [
+            {
+                "type": "slack",
+                "targetIdentifier": "my-channel",
+                "targetType": "specific",
+                "integration": self.integration.id,
+            }
+        ]
         self.run_fail_validation_test(
             {
                 "thresholdType": AlertRuleThresholdType.ABOVE.value,
@@ -436,7 +444,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
                     {
                         "label": "critical",
                         "alertThreshold": 0,
-                        "actions": [],
+                        "actions": actions,
                     },
                 ],
             },
@@ -457,7 +465,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
                     {
                         "label": "critical",
                         "alertThreshold": 2,
-                        "actions": [],
+                        "actions": actions,
                     },
                 ],
             },
@@ -719,8 +727,9 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         assert alert_rule.team_id is None
 
     def test_invalid_detection_type(self):
-        with self.feature("organizations:anomaly-detection-alerts"), self.feature(
-            "organizations:anomaly-detection-rollout"
+        with (
+            self.feature("organizations:anomaly-detection-alerts"),
+            self.feature("organizations:anomaly-detection-rollout"),
         ):
             params = self.valid_params.copy()
             params["detection_type"] = AlertRuleDetectionType.PERCENT  # requires comparison delta
@@ -858,17 +867,6 @@ class TestAlertRuleTriggerSerializer(TestAlertRuleSerializerBase):
         return self.create_alert_rule(projects=[self.project, self.other_project])
 
     @cached_property
-    def valid_params(self):
-        return {
-            "label": "something",
-            "threshold_type": 0,
-            "resolve_threshold": 1,
-            "alert_threshold": 0,
-            "excluded_projects": [self.project.slug],
-            "actions": [{"type": "email", "targetType": "team", "targetIdentifier": self.team.id}],
-        }
-
-    @cached_property
     def access(self):
         return from_user(self.user, self.organization)
 
@@ -879,13 +877,6 @@ class TestAlertRuleTriggerSerializer(TestAlertRuleSerializerBase):
             "access": self.access,
             "alert_rule": self.alert_rule,
         }
-
-    def run_fail_validation_test(self, params, errors):
-        base_params = self.valid_params.copy()
-        base_params.update(params)
-        serializer = AlertRuleTriggerSerializer(context=self.context, data=base_params)
-        assert not serializer.is_valid()
-        assert serializer.errors == errors
 
     def test_validation_no_params(self):
         serializer = AlertRuleTriggerSerializer(context=self.context, data={})
@@ -898,9 +889,6 @@ class TestAlertRuleTriggerSerializer(TestAlertRuleSerializerBase):
 
 
 class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
-    def mock_conversations_list(self, channels):
-        return mock_slack_response("conversations_list", body={"ok": True, "channels": channels})
-
     def mock_conversations_info(self, channel):
         return mock_slack_response(
             "conversations_info",
@@ -909,14 +897,11 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
         )
 
     def patch_msg_schedule_response(self, channel_id, result_name="channel"):
-        if channel_id == "channel_not_found":
-            body = {"ok": False, "error": "channel_not_found"}
-        else:
-            body = {
-                "ok": True,
-                result_name: channel_id,
-                "scheduled_message_id": "Q1298393284",
-            }
+        body = {
+            "ok": True,
+            result_name: channel_id,
+            "scheduled_message_id": "Q1298393284",
+        }
         return mock_slack_response("chat_scheduleMessage", body)
 
     @cached_property

@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from typing import Any
 from unittest import mock
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
@@ -24,7 +24,6 @@ from sentry.sentry_metrics.client.snuba import build_mri
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.testutils.cases import BaseMetricsTestCase, PerformanceIssueTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.helpers.features import with_feature
 from sentry.types.group import GroupSubStatus
 from sentry.utils.cache import cache
 from sentry.utils.snuba import to_start_of_hour
@@ -91,19 +90,14 @@ class HistoricGroupCounts(
             "project_id": event.project_id,
         }
 
-    @with_feature("organizations:escalating-issues-v2")
-    @mock.patch("sentry.issues.escalating.logger")
-    def test_query_single_group(self, mock_logger: MagicMock) -> None:
+    def test_query_single_group(self) -> None:
         event = self._create_events_for_group()
         assert query_groups_past_counts(Group.objects.all()) == [
             self._create_hourly_bucket(1, event)
         ]
-        assert mock_logger.info.call_count == 0
 
-    @with_feature("organizations:escalating-issues-v2")
     @freeze_time(TIME_YESTERDAY)
-    @mock.patch("sentry.issues.escalating.logger")
-    def test_query_different_group_categories(self, mock_logger: MagicMock) -> None:
+    def test_query_different_group_categories(self) -> None:
         from django.utils import timezone
 
         timestamp = timezone.now() - timedelta(minutes=1)
@@ -154,14 +148,10 @@ class HistoricGroupCounts(
             profile_issue_occurrence_bucket,
             self._create_hourly_bucket(1, perf_event),
         ]
-        assert mock_logger.info.call_count == 0
 
-    @with_feature("organizations:escalating-issues-v2")
     # This forces to test the iteration over the Snuba data
-    @mock.patch("sentry.issues.escalating.ELEMENTS_PER_SNUBA_METRICS_QUERY", new=4)
     @mock.patch("sentry.issues.escalating.ELEMENTS_PER_SNUBA_PAGE", new=4)
-    @mock.patch("sentry.issues.escalating.logger")
-    def test_pagination(self, mock_logger: MagicMock) -> None:
+    def test_pagination(self) -> None:
         events = []
         for i in range(20):
             event = self._create_events_for_group(count=1, hours_ago=2, group=f"group-{i}")
@@ -170,8 +160,6 @@ class HistoricGroupCounts(
         assert query_groups_past_counts(Group.objects.all()) == [
             self._create_hourly_bucket(1, event) for event in events
         ]
-
-        assert mock_logger.info.call_count == 0
 
     def test_query_optimization(self) -> None:
         px = self.create_project(organization=self.project.organization)
@@ -190,18 +178,18 @@ class HistoricGroupCounts(
 
         # Force pagination to only three elements per page
         # Once we get to Python 3.10+ the formating of this multiple with statement will not be an eye sore
-        with patch("sentry.issues.escalating._query_with_pagination") as query_mock, patch(
-            "sentry.issues.escalating.ELEMENTS_PER_SNUBA_PAGE", new=3
-        ), patch("sentry.issues.escalating.BUCKETS_PER_GROUP", new=2):
+        with (
+            patch("sentry.issues.escalating._query_with_pagination") as query_mock,
+            patch("sentry.issues.escalating.ELEMENTS_PER_SNUBA_PAGE", new=3),
+            patch("sentry.issues.escalating.BUCKETS_PER_GROUP", new=2),
+        ):
             query_groups_past_counts(groups)
             # Proj X will expect potentially 4 elements because it has two groups, thus, no other
             # project will be called with it.
             # Proj Y and Z will be grouped together
             assert query_mock.call_count == 2
 
-    @with_feature("organizations:escalating-issues-v2")
-    @mock.patch("sentry.issues.escalating.logger")
-    def test_query_multiple_projects(self, mock_logger: MagicMock) -> None:
+    def test_query_multiple_projects(self) -> None:
         proj_x = self.create_project(organization=self.project.organization)
         proj_y = self.create_project(organization=self.project.organization)
 
@@ -220,11 +208,7 @@ class HistoricGroupCounts(
             self._create_hourly_bucket(2, event_y_2),
         ]
 
-        assert mock_logger.info.call_count == 0
-
-    @with_feature("organizations:escalating-issues-v2")
-    @mock.patch("sentry.issues.escalating.logger")
-    def test_query_different_orgs(self, mock_logger: MagicMock) -> None:
+    def test_query_different_orgs(self) -> None:
         proj_a = self.create_project(organization=self.project.organization)
         org_b = self.create_organization()
         proj_b = self.create_project(organization=org_b)
@@ -237,7 +221,6 @@ class HistoricGroupCounts(
             self._create_hourly_bucket(1, event1),
             self._create_hourly_bucket(1, event_proj_org_b_1),
         ]
-        assert mock_logger.info.call_count == 0
 
     def test_query_no_groups(self) -> None:
         assert query_groups_past_counts([]) == []

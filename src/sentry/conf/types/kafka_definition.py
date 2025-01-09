@@ -26,6 +26,7 @@ class Topic(Enum):
     TRANSACTIONS_SUBSCRIPTIONS_RESULTS = "transactions-subscription-results"
     GENERIC_METRICS_SUBSCRIPTIONS_RESULTS = "generic-metrics-subscription-results"
     METRICS_SUBSCRIPTIONS_RESULTS = "metrics-subscription-results"
+    EAP_SPANS_SUBSCRIPTIONS_RESULTS = "eap-spans-subscription-results"
     INGEST_EVENTS = "ingest-events"
     INGEST_EVENTS_DLQ = "ingest-events-dlq"
     INGEST_FEEDBACK_EVENTS = "ingest-feedback-events"
@@ -34,6 +35,7 @@ class Topic(Enum):
     INGEST_ATTACHMENTS_DLQ = "ingest-attachments-dlq"
     INGEST_TRANSACTIONS = "ingest-transactions"
     INGEST_TRANSACTIONS_DLQ = "ingest-transactions-dlq"
+    INGEST_TRANSACTIONS_BACKLOG = "ingest-transactions-backlog"
     INGEST_METRICS = "ingest-metrics"
     INGEST_METRICS_DLQ = "ingest-metrics-dlq"
     SNUBA_METRICS = "snuba-metrics"
@@ -47,8 +49,9 @@ class Topic(Enum):
     INGEST_MONITORS = "ingest-monitors"
     MONITORS_CLOCK_TICK = "monitors-clock-tick"
     MONITORS_CLOCK_TASKS = "monitors-clock-tasks"
-    UPTIME_CONFIG = "uptime-configs"
+    MONITORS_INCIDENT_OCCURRENCES = "monitors-incident-occurrences"
     UPTIME_RESULTS = "uptime-results"
+    SNUBA_UPTIME_RESULTS = "snuba-uptime-results"
     UPTIME_CONFIGS = "uptime-configs"
     EVENTSTREAM_GENERIC = "generic-events"
     GENERIC_EVENTS_COMMIT_LOG = "snuba-generic-events-commit-log"
@@ -57,6 +60,7 @@ class Topic(Enum):
     SNUBA_SPANS = "snuba-spans"
     BUFFERED_SEGMENTS = "buffered-segments"
     BUFFERED_SEGMENTS_DLQ = "buffered-segments-dlq"
+    TASK_WORKER = "task-worker"
 
 
 class ConsumerDefinition(TypedDict, total=False):
@@ -83,6 +87,8 @@ class ConsumerDefinition(TypedDict, total=False):
     dlq_topic: Topic
     dlq_max_invalid_ratio: float | None
     dlq_max_consecutive_count: int | None
+
+    stale_topic: Topic
 
 
 def validate_consumer_definition(consumer_definition: ConsumerDefinition) -> None:

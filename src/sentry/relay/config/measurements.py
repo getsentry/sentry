@@ -1,6 +1,5 @@
 """ Relay configuration related to transaction measurements. """
 
-
 from collections.abc import Sequence
 from typing import Literal, TypedDict
 

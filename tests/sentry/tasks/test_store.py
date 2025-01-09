@@ -2,7 +2,6 @@ from time import time
 from unittest import mock
 
 import pytest
-from django.test.utils import override_settings
 
 from sentry import options, quotas
 from sentry.event_manager import EventManager
@@ -13,7 +12,7 @@ from sentry.tasks.store import (
     preprocess_event,
     process_event,
     save_event,
-    time_synthetic_monitoring_event,
+    save_event_transaction,
 )
 from sentry.testutils.pytest.fixtures import django_db_all
 
@@ -52,6 +51,12 @@ def mock_save_event():
 
 
 @pytest.fixture
+def mock_save_event_transaction():
+    with mock.patch("sentry.tasks.store.save_event_transaction") as m:
+        yield m
+
+
+@pytest.fixture
 def mock_process_event():
     with mock.patch("sentry.tasks.store.process_event") as m:
         yield m
@@ -70,14 +75,14 @@ def mock_event_processing_store():
 
 
 @pytest.fixture
-def mock_refund():
-    with mock.patch.object(quotas, "refund") as m:
+def mock_transaction_processing_store():
+    with mock.patch("sentry.eventstore.processing.transaction_processing_store") as m:
         yield m
 
 
 @pytest.fixture
-def mock_metrics_timing():
-    with mock.patch("sentry.tasks.store.metrics.timing") as m:
+def mock_refund():
+    with mock.patch.object(quotas, "refund") as m:
         yield m
 
 
@@ -230,7 +235,7 @@ def options_model(request, default_organization, default_project):
     elif request.param == "project":
         return default_project
     else:
-        raise ValueError(request.param)
+        raise AssertionError(request.param)
 
 
 @django_db_all
@@ -266,7 +271,7 @@ def test_scrubbing_after_processing(
             "sentry:relay_pii_config", '{"applications": {"extra.ooo": ["@anything:replace"]}}'
         )
     else:
-        raise ValueError(setting_method)
+        raise AssertionError(setting_method)
 
     data = {
         "project": default_project.id,
@@ -291,58 +296,6 @@ def test_scrubbing_after_processing(
     )
 
 
-def test_time_synthetic_monitoring_event_in_save_event_disabled(mock_metrics_timing):
-    data = {"project": 1}
-    with override_settings(SENTRY_SYNTHETIC_MONITORING_PROJECT_ID=None):
-        assert time_synthetic_monitoring_event(data, 1, time()) is False
-    assert mock_metrics_timing.call_count == 0
-
-
-def test_time_synthetic_monitoring_event_in_save_event_not_matching_project(mock_metrics_timing):
-    data = {"project": 1}
-    with override_settings(SENTRY_SYNTHETIC_MONITORING_PROJECT_ID=2):
-        assert time_synthetic_monitoring_event(data, 1, time()) is False
-    assert mock_metrics_timing.call_count == 0
-
-
-def test_time_synthetic_monitoring_event_in_save_event_missing_extra(mock_metrics_timing):
-    data = {"project": 1}
-    with override_settings(SENTRY_SYNTHETIC_MONITORING_PROJECT_ID=1):
-        assert time_synthetic_monitoring_event(data, 1, time()) is False
-    assert mock_metrics_timing.call_count == 0
-
-
-def test_time_synthetic_monitoring_event_in_save_event(mock_metrics_timing):
-    tags = {
-        "source_region": "region-1",
-        "target": "target.io",
-        "source": "source-1",
-    }
-    extra = {"key": "value", "another": "val"}
-    extra.update(tags)
-    data = {
-        "project": 1,
-        "timestamp": time(),
-        "extra": {"_sentry_synthetic_monitoring": extra},
-    }
-    with override_settings(SENTRY_SYNTHETIC_MONITORING_PROJECT_ID=1):
-        assert time_synthetic_monitoring_event(data, 1, time()) is True
-
-    to_ingest, to_process = mock_metrics_timing.mock_calls
-
-    assert to_ingest.args == (
-        "events.synthetic-monitoring.time-to-ingest-total",
-        mock.ANY,
-    )
-    assert to_ingest.kwargs == {"tags": tags, "sample_rate": 1.0}
-
-    assert to_process.args == (
-        "events.synthetic-monitoring.time-to-process",
-        mock.ANY,
-    )
-    assert to_process.kwargs == {"tags": tags, "sample_rate": 1.0}
-
-
 @django_db_all
 def test_killswitch():
     assert not is_process_disabled(1, "asdasdasd", "null")
@@ -351,3 +304,92 @@ def test_killswitch():
     options.set("store.load-shed-process-event-projects-gradual", {1: 1.0})
     assert is_process_disabled(1, "asdasdasd", "null")
     options.set("store.load-shed-process-event-projects-gradual", {})
+
+
+@django_db_all
+def test_transactions_store(default_project, register_plugin, mock_transaction_processing_store):
+    register_plugin(globals(), BasicPreprocessorPlugin)
+
+    data = {
+        "project": default_project.id,
+        "platform": "transaction",
+        "event_id": EVENT_ID,
+        "type": "transaction",
+        "transaction": "minimal_transaction",
+        "timestamp": time(),
+        "start_timestamp": time() - 1,
+    }
+
+    mock_transaction_processing_store.store.return_value = "e:1"
+    mock_transaction_processing_store.get.return_value = data
+    with mock.patch("sentry.event_manager.EventManager.save", return_value=None):
+        save_event_transaction(
+            cache_key="e:1",
+            data=None,
+            start_time=1,
+            event_id=EVENT_ID,
+            project_id=default_project.id,
+        )
+
+    mock_transaction_processing_store.get.assert_called_once_with("e:1")
+
+
+@django_db_all
+def test_store_consumer_type(
+    default_project,
+    mock_save_event,
+    mock_save_event_transaction,
+    register_plugin,
+    mock_event_processing_store,
+    mock_transaction_processing_store,
+):
+    register_plugin(globals(), BasicPreprocessorPlugin)
+
+    data = {
+        "project": default_project.id,
+        "platform": "python",
+        "logentry": {"formatted": "test"},
+        "event_id": EVENT_ID,
+        "extra": {"foo": "bar"},
+        "timestamp": time(),
+    }
+
+    mock_event_processing_store.get.return_value = data
+    mock_event_processing_store.store.return_value = "e:2"
+
+    process_event(cache_key="e:2", start_time=1)
+
+    mock_event_processing_store.get.assert_called_once_with("e:2")
+
+    mock_save_event.delay.assert_called_once_with(
+        cache_key="e:2",
+        data=None,
+        start_time=1,
+        event_id=EVENT_ID,
+        project_id=default_project.id,
+    )
+
+    transaction_data = {
+        "project": default_project.id,
+        "platform": "transaction",
+        "event_id": EVENT_ID,
+        "extra": {"foo": "bar"},
+        "timestamp": time(),
+        "start_timestamp": time() - 1,
+    }
+
+    mock_transaction_processing_store.get.return_value = transaction_data
+    mock_transaction_processing_store.store.return_value = "tx:3"
+
+    with mock.patch("sentry.event_manager.EventManager.save", return_value=None):
+        save_event_transaction(
+            cache_key="tx:3",
+            data=None,
+            start_time=1,
+            event_id=EVENT_ID,
+            project_id=default_project.id,
+        )
+
+    mock_transaction_processing_store.get.assert_called_once_with("tx:3")
+    mock_transaction_processing_store.delete_by_key.assert_called_once_with("tx:3")
+    mock_transaction_processing_store.store.assert_not_called()

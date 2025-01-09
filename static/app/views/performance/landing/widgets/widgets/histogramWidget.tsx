@@ -9,7 +9,11 @@ import {Chart as HistogramChart} from 'sentry/views/performance/landing/chart/hi
 
 import {GenericPerformanceWidget} from '../components/performanceWidget';
 import {transformHistogramQuery} from '../transforms/transformHistogramQuery';
-import type {PerformanceWidgetProps, WidgetDataResult} from '../types';
+import type {
+  GenericPerformanceWidgetProps,
+  PerformanceWidgetProps,
+  WidgetDataResult,
+} from '../types';
 import {getMEPQueryParams, QUERY_LIMIT_PARAM} from '../utils';
 
 type AreaDataType = {
@@ -22,14 +26,14 @@ export function HistogramWidget(props: PerformanceWidgetProps) {
   const {ContainerActions, InteractiveTitle} = props;
   const globalSelection = props.eventView.getPageFilters();
 
-  const Queries = useMemo(() => {
+  const Queries = useMemo((): GenericPerformanceWidgetProps<AreaDataType>['Queries'] => {
     return {
       chart: {
         fields: props.fields,
         component: provided => (
           <HistogramQuery
             limit={QUERY_LIMIT_PARAM}
-            {...provided}
+            {...(provided as any)}
             eventView={provided.eventView}
             location={location}
             numBuckets={20}
@@ -75,8 +79,8 @@ export function HistogramWidget(props: PerformanceWidgetProps) {
               isLoading={false}
               isErrored={false}
               onFilterChange={onFilterChange}
-              field={props.fields[0]}
-              chartData={provided.widgetData.chart?.data?.[props.fields[0]]}
+              field={props.fields[0]!}
+              chartData={provided.widgetData.chart?.data?.[props.fields[0]!]!}
               disableXAxis
               disableZoom
               disableChartPadding

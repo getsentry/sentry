@@ -46,7 +46,7 @@ describe('DisplayReprocessEventAction', function () {
             platform: undefined,
           });
 
-          event.entries[0].data.values[0].stacktrace.frames[0].platform = 'native';
+          event.entries[0]!.data.values[0].stacktrace.frames[0].platform = 'native';
 
           expect(displayReprocessEventAction(event)).toBe(true);
         });
@@ -56,7 +56,7 @@ describe('DisplayReprocessEventAction', function () {
             platform: undefined,
           });
 
-          event.entries[0].data.values[0].stacktrace.frames[0].platform = 'cocoa';
+          event.entries[0]!.data.values[0].stacktrace.frames[0].platform = 'cocoa';
 
           expect(displayReprocessEventAction(event)).toBe(true);
         });
@@ -68,8 +68,8 @@ describe('DisplayReprocessEventAction', function () {
         platform: undefined,
       });
 
-      event.entries[0].data.values[0] = {
-        ...event.entries[0].data.values[0],
+      event.entries[0]!.data.values[0] = {
+        ...event.entries[0]!.data.values[0],
         mechanism: {
           type: 'minidump',
         },
@@ -83,8 +83,8 @@ describe('DisplayReprocessEventAction', function () {
         platform: undefined,
       });
 
-      event.entries[0].data.values[0] = {
-        ...event.entries[0].data.values[0],
+      event.entries[0]!.data.values[0] = {
+        ...event.entries[0]!.data.values[0],
         mechanism: {
           type: 'applecrashreport',
         },

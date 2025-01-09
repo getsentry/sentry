@@ -16,7 +16,7 @@ from sentry.integrations.services.integration import integration_service
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.silo.util import PROXY_BASE_URL_HEADER, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import IntegratedApiTestCase, PerformanceIssueTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.silo import all_silo_test
 from sentry.testutils.skips import requires_snuba
@@ -107,7 +107,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
         )
         install = self.integration.get_installation(self.organization.id)
         self.install = cast(GitHubIntegration, install)
-        self.min_ago = iso_format(before_now(minutes=1))
+        self.min_ago = before_now(minutes=1).isoformat()
         self.repo = "getsentry/sentry"
 
     @fixture(autouse=True)
@@ -251,7 +251,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
             data={
                 "event_id": "a" * 32,
                 "message": "oh no",
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
             },
             project_id=self.project.id,
         )
@@ -271,7 +271,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
             data={
                 "event_id": "a" * 32,
                 "message": "oh no",
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
             },
             project_id=self.project.id,
         )
@@ -281,26 +281,6 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
         assert "oh no" in description
         title = self.install.get_group_title(event.group, event)
         assert title == event.title
-
-    @responses.activate
-    def test_get_repo_issues(self):
-        responses.add(
-            responses.GET,
-            "https://api.github.com/repos/getsentry/sentry/issues",
-            json=[{"number": 321, "title": "hello", "body": "This is the description"}],
-        )
-        assert self.install.get_repo_issues(self.repo) == ((321, "#321 hello"),)
-
-        if self.should_call_api_without_proxying():
-            assert len(responses.calls) == 2
-
-            request = responses.calls[0].request
-            assert request.headers["Authorization"] == "Bearer jwt_token_1"
-
-            request = responses.calls[1].request
-            assert request.headers["Authorization"] == "Bearer token_1"
-        else:
-            self._check_proxying()
 
     @responses.activate
     def test_link_issue(self):

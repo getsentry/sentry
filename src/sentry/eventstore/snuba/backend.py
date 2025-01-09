@@ -18,6 +18,7 @@ from snuba_sdk import (
     Limit,
     Offset,
     Op,
+    Or,
     OrderBy,
     Query,
     Request,
@@ -29,7 +30,7 @@ from sentry.models.group import Group
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
 from sentry.utils import snuba
-from sentry.utils.snuba import DATASETS, _prepare_start_end, raw_snql_query
+from sentry.utils.snuba import DATASETS, _prepare_start_end, bulk_snuba_queries, raw_snql_query
 from sentry.utils.validators import normalize_event_id
 
 EVENT_ID = Columns.EVENT_ID.value.alias
@@ -318,8 +319,7 @@ class SnubaEventStorage(EventStorage):
         occurrence_id: str | None = None,
         *,
         skip_transaction_groupevent: Literal[True],
-    ) -> Event | None:
-        ...
+    ) -> Event | None: ...
 
     @overload
     def get_event_by_id(
@@ -331,8 +331,7 @@ class SnubaEventStorage(EventStorage):
         occurrence_id: str | None = None,
         *,
         skip_transaction_groupevent: bool = False,
-    ) -> Event | GroupEvent | None:
-        ...
+    ) -> Event | GroupEvent | None: ...
 
     def get_event_by_id(
         self,
@@ -450,6 +449,134 @@ class SnubaEventStorage(EventStorage):
             return Dataset.Transactions
         else:
             return Dataset.Discover
+
+    def get_adjacent_event_ids_snql(
+        self, organization_id, project_id, group_id, environments, event, conditions=None
+    ):
+        """
+        Utility function for grabbing an event's adjascent events,
+        which are the ones with the closest timestamps before and after.
+        This function is only used in project_event_details at the moment,
+        so it's interface is tailored to that. We use SnQL and use the project_id
+        and toStartOfDay(timestamp) to efficently scan our table
+        """
+        dataset = self._get_dataset_for_event(event)
+        app_id = "eventstore"
+        referrer = "eventstore.get_next_or_prev_event_id_snql"
+        tenant_ids = {"organization_id": organization_id}
+        if not conditions:
+            conditions = []
+
+        def make_constant_conditions():
+            environment_conditions = []
+            if environments:
+                environment_conditions.append(Condition(Column("environment"), Op.IN, environments))
+
+            group_conditions = []
+            if group_id:
+                group_conditions.append(Condition(Column("group_id"), Op.EQ, group_id))
+            project_conditions = [Condition(Column("project_id"), Op.EQ, project_id)]
+            return [
+                *conditions,
+                *environment_conditions,
+                *group_conditions,
+                *project_conditions,
+            ]
+
+        def make_prev_timestamp_conditions(event):
+            return [
+                Condition(
+                    Column(DATASETS[dataset][Columns.TIMESTAMP.value.alias]),
+                    Op.GTE,
+                    event.datetime - timedelta(days=100),
+                ),
+                Condition(
+                    Column(DATASETS[dataset][Columns.TIMESTAMP.value.alias]),
+                    Op.LT,
+                    event.datetime + timedelta(seconds=1),
+                ),
+                Or(
+                    conditions=[
+                        Condition(
+                            Column(DATASETS[dataset][Columns.TIMESTAMP.value.alias]),
+                            Op.LT,
+                            event.datetime,
+                        ),
+                        Condition(Column("event_id"), Op.LT, event.event_id),
+                    ],
+                ),
+            ]
+
+        def make_next_timestamp_conditions(event):
+            return [
+                Condition(
+                    Column(DATASETS[dataset][Columns.TIMESTAMP.value.alias]),
+                    Op.LT,
+                    event.datetime + timedelta(days=100),
+                ),
+                Condition(
+                    Column(DATASETS[dataset][Columns.TIMESTAMP.value.alias]),
+                    Op.GTE,
+                    event.datetime,
+                ),
+                Or(
+                    conditions=[
+                        Condition(Column("event_id"), Op.GT, event.event_id),
+                        Condition(
+                            Column(DATASETS[dataset][Columns.TIMESTAMP.value.alias]),
+                            Op.GT,
+                            event.datetime,
+                        ),
+                    ],
+                ),
+            ]
+
+        def make_request(is_prev):
+            order_by_direction = Direction.DESC if is_prev else Direction.ASC
+            conditions = make_constant_conditions()
+            conditions.extend(
+                make_prev_timestamp_conditions(event)
+                if is_prev
+                else make_next_timestamp_conditions(event)
+            )
+            return Request(
+                dataset=dataset.value,
+                app_id=app_id,
+                query=Query(
+                    match=Entity(dataset.value),
+                    select=[Column("event_id"), Column("project_id")],
+                    where=conditions,
+                    orderby=[
+                        OrderBy(
+                            Column("project_id"),
+                            direction=order_by_direction,
+                        ),
+                        OrderBy(
+                            Function("toStartOfDay", [Column("timestamp")]),
+                            direction=order_by_direction,
+                        ),
+                        OrderBy(
+                            Column("timestamp"),
+                            direction=order_by_direction,
+                        ),
+                        OrderBy(
+                            Column("event_id"),
+                            direction=order_by_direction,
+                        ),
+                    ],
+                    limit=Limit(1),
+                ),
+                tenant_ids=tenant_ids,
+            )
+
+        snql_request_prev = make_request(is_prev=True)
+        snql_request_next = make_request(is_prev=False)
+
+        bulk_snql_results = bulk_snuba_queries(
+            [snql_request_prev, snql_request_next], referrer=referrer
+        )
+        event_ids = [self.__get_event_id_from_result(result) for result in bulk_snql_results]
+        return event_ids
 
     def get_adjacent_event_ids(self, event, filter):
         """

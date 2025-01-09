@@ -812,7 +812,7 @@ class SnubaTSDB(BaseTSDB):
         jitter_value: int | None = None,
         tenant_ids: dict[str, int | str] | None = None,
         referrer_suffix: str | None = None,
-        conditions: list[dict[str, Any]] | None = None,
+        conditions: list[tuple[str, str, str]] | None = None,
     ) -> dict[int, Any]:
         """
         Count distinct items during a time range with conditions.
@@ -831,88 +831,6 @@ class SnubaTSDB(BaseTSDB):
             referrer_suffix=referrer_suffix,
             conditions=conditions,
         )
-
-    def get_distinct_counts_union(
-        self, model, keys, start, end=None, rollup=None, environment_id=None, tenant_ids=None
-    ):
-        return self.get_data(
-            model,
-            keys,
-            start,
-            end,
-            rollup,
-            [environment_id] if environment_id is not None else None,
-            aggregation="uniq",
-            group_on_model=False,
-            tenant_ids=tenant_ids,
-        )
-
-    def get_most_frequent(
-        self,
-        model,
-        keys: Sequence[TSDBKey],
-        start,
-        end=None,
-        rollup=None,
-        limit=10,
-        environment_id=None,
-        tenant_ids=None,
-    ):
-        aggregation = f"topK({limit})"
-        result = self.get_data(
-            model,
-            keys,
-            start,
-            end,
-            rollup,
-            [environment_id] if environment_id is not None else None,
-            aggregation=aggregation,
-            tenant_ids=tenant_ids,
-        )
-        # convert
-        #    {group:[top1, ...]}
-        # into
-        #    {group: [(top1, score), ...]}
-        for k, top in result.items():
-            item_scores = [(v, float(i + 1)) for i, v in enumerate(reversed(top or []))]
-            result[k] = list(reversed(item_scores))
-
-        return result
-
-    def get_most_frequent_series(
-        self,
-        model,
-        keys,
-        start,
-        end=None,
-        rollup=None,
-        limit=10,
-        environment_id=None,
-        tenant_ids=None,
-    ):
-        aggregation = f"topK({limit})"
-        result = self.get_data(
-            model,
-            keys,
-            start,
-            end,
-            rollup,
-            [environment_id] if environment_id is not None else None,
-            aggregation=aggregation,
-            group_on_time=True,
-            tenant_ids=tenant_ids,
-        )
-        # convert
-        #    {group:{timestamp:[top1, ...]}}
-        # into
-        #    {group: [(timestamp, {top1: score, ...}), ...]}
-        return {
-            k: sorted(
-                (timestamp, {v: float(i + 1) for i, v in enumerate(reversed(topk or []))})
-                for (timestamp, topk) in result[k].items()
-            )
-            for k in result.keys()
-        }
 
     def get_frequency_series(
         self,
@@ -940,27 +858,6 @@ class SnubaTSDB(BaseTSDB):
         # into
         #    {group: [(timestamp, {agg: count, ...}), ...]}
         return {k: sorted(result[k].items()) for k in result}
-
-    def get_frequency_totals(
-        self,
-        model: TSDBModel,
-        items: Mapping[TSDBKey, Sequence[TSDBItem]],
-        start: datetime,
-        end: datetime | None = None,
-        rollup: int | None = None,
-        environment_id: int | None = None,
-        tenant_ids: dict[str, str | int] | None = None,
-    ) -> dict[TSDBKey, dict[TSDBItem, float]]:
-        return self.get_data(
-            model,
-            items,
-            start,
-            end,
-            rollup,
-            [environment_id] if environment_id is not None else None,
-            aggregation="count()",
-            tenant_ids=tenant_ids,
-        )
 
     def flatten_keys(self, items: Mapping | Sequence | Set) -> tuple[list, Sequence | None]:
         """

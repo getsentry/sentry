@@ -13,11 +13,11 @@ from sentry.models.grouplink import GroupLink
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.groupsnooze import GroupSnooze
 from sentry.models.groupsubscription import GroupSubscription
-from sentry.models.notificationsettingoption import NotificationSettingOption
+from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.notifications.types import NotificationSettingsOptionEnum
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.group import PriorityLevel
 from sentry.users.models.user_option import UserOption
@@ -361,16 +361,16 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         events = []
 
         for event_id, env, user_id, timestamp in [
-            ("a" * 32, environment, 1, iso_format(self.min_ago)),
-            ("b" * 32, environment, 2, iso_format(self.min_ago)),
-            ("c" * 32, environment2, 3, iso_format(self.week_ago)),
+            ("a" * 32, environment, 1, self.min_ago),
+            ("b" * 32, environment, 2, self.min_ago),
+            ("c" * 32, environment2, 3, self.week_ago),
         ]:
             events.append(
                 self.store_event(
                     data={
                         "event_id": event_id,
                         "fingerprint": ["put-me-in-group1"],
-                        "timestamp": timestamp,
+                        "timestamp": timestamp.isoformat(),
                         "environment": env.name,
                         "user": {"id": user_id},
                     },
@@ -390,7 +390,7 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         # should use group columns when no environments arg passed
         result = serialize(group, serializer=GroupSerializerSnuba(environment_ids=[]))
         assert result["count"] == "3"
-        assert iso_format(result["lastSeen"]) == iso_format(self.min_ago)
+        assert result["lastSeen"] == self.min_ago.replace(microsecond=0)
         assert result["firstSeen"] == group.first_seen
 
         # update this to something different to make sure it's being used
@@ -406,9 +406,10 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         )
         assert result["count"] == "3"
         # result is rounded down to nearest second
-        assert iso_format(result["lastSeen"]) == iso_format(self.min_ago)
-        assert iso_format(result["firstSeen"]) == iso_format(group_env.first_seen)
-        assert iso_format(group_env2.first_seen) > iso_format(group_env.first_seen)
+        assert result["lastSeen"] == self.min_ago.replace(microsecond=0)
+        assert result["firstSeen"] == group_env.first_seen
+        assert group_env2.first_seen is not None
+        assert group_env2.first_seen > group_env.first_seen
         assert result["userCount"] == 3
 
         result = serialize(
@@ -420,8 +421,8 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
             ),
         )
         assert result["userCount"] == 1
-        assert iso_format(result["lastSeen"]) == iso_format(self.week_ago)
-        assert iso_format(result["firstSeen"]) == iso_format(self.week_ago)
+        assert result["lastSeen"] == self.week_ago.replace(microsecond=0)
+        assert result["firstSeen"] == self.week_ago.replace(microsecond=0)
         assert result["count"] == "1"
 
     def test_get_start_from_seen_stats(self):
@@ -438,7 +439,7 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
                 }
             )
 
-            assert iso_format(start) == iso_format(before_now(days=expected))
+            assert start.replace(microsecond=0) == before_now(days=expected).replace(microsecond=0)
 
     def test_skipped_date_timestamp_filters(self):
         group = self.create_group()
@@ -480,7 +481,7 @@ class PerformanceGroupSerializerSnubaTest(
         proj = self.create_project()
 
         first_group_fingerprint = f"{PerformanceNPlusOneGroupType.type_id}-group1"
-        timestamp = timezone.now() - timedelta(days=5)
+        timestamp = (timezone.now() - timedelta(days=5)).replace(microsecond=0)
         times = 5
         for _ in range(0, times):
             event_data = load_data(
@@ -516,8 +517,8 @@ class PerformanceGroupSerializerSnubaTest(
         )
 
         assert result["userCount"] == 2
-        assert iso_format(result["lastSeen"]) == iso_format(timestamp + timedelta(minutes=2))
-        assert iso_format(result["firstSeen"]) == iso_format(timestamp + timedelta(minutes=1))
+        assert result["lastSeen"] == (timestamp + timedelta(minutes=2))
+        assert result["firstSeen"] == (timestamp + timedelta(minutes=1))
         assert result["count"] == str(times + 1)
 
 
@@ -531,7 +532,9 @@ class ProfilingGroupSerializerSnubaTest(
         environment = self.create_environment(project=proj)
 
         first_group_fingerprint = f"{ProfileFileIOGroupType.type_id}-group1"
-        timestamp = (timezone.now() - timedelta(days=5)).replace(hour=0, minute=0, second=0)
+        timestamp = (timezone.now() - timedelta(days=5)).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
         times = 5
         for incr in range(0, times):
             # for user_0 - user_4, first_group
@@ -565,6 +568,6 @@ class ProfilingGroupSerializerSnubaTest(
         )
 
         assert result["userCount"] == 6
-        assert iso_format(result["lastSeen"]) == iso_format(timestamp + timedelta(minutes=5))
-        assert iso_format(result["firstSeen"]) == iso_format(timestamp)
+        assert result["lastSeen"] == (timestamp + timedelta(minutes=5))
+        assert result["firstSeen"] == timestamp
         assert result["count"] == str(times + 1)

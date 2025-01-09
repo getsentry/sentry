@@ -7,6 +7,7 @@ import {fetchTagValues} from 'sentry/actionCreators/tags';
 import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -22,11 +23,11 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
-import SmartSearchBar from 'sentry/components/smartSearchBar';
-import {ItemType} from 'sentry/components/smartSearchBar/types';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
+import {ReleasesSortOption} from 'sentry/constants/releases';
 import {releaseHealth} from 'sentry/data/platformCategories';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -42,12 +43,10 @@ import {ReleaseStatus} from 'sentry/types/release';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import Projects from 'sentry/utils/projects';
-import routeTitleGen from 'sentry/utils/routeTitle';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
-import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 import Header from '../components/header';
 import ReleaseArchivedNotice from '../detail/overview/releaseArchivedNotice';
@@ -58,7 +57,7 @@ import ReleasesAdoptionChart from './releasesAdoptionChart';
 import ReleasesDisplayOptions, {ReleasesDisplayOption} from './releasesDisplayOptions';
 import ReleasesPromo from './releasesPromo';
 import ReleasesRequest from './releasesRequest';
-import ReleasesSortOptions, {ReleasesSortOption} from './releasesSortOptions';
+import ReleasesSortOptions from './releasesSortOptions';
 import ReleasesStatusOptions, {ReleasesStatusOption} from './releasesStatusOptions';
 
 type RouteParams = {
@@ -74,9 +73,9 @@ type Props = RouteComponentProps<RouteParams, {}> & {
 
 type State = {
   releases: Release[];
-} & DeprecatedAsyncView['state'];
+} & DeprecatedAsyncComponent['state'];
 
-class ReleasesList extends DeprecatedAsyncView<Props, State> {
+class ReleasesList extends DeprecatedAsyncComponent<Props, State> {
   shouldReload = true;
   shouldRenderBadRequests = true;
 
@@ -91,11 +90,7 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
     return acc;
   }, {});
 
-  getTitle() {
-    return routeTitleGen(t('Releases'), this.props.organization.slug, false);
-  }
-
-  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization, location} = this.props;
     const {statsPeriod} = location.query;
     const activeSort = this.getSort();
@@ -113,7 +108,7 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
           : ReleaseStatus.ACTIVE,
     };
 
-    const endpoints: ReturnType<DeprecatedAsyncView['getEndpoints']> = [
+    const endpoints: ReturnType<DeprecatedAsyncComponent['getEndpoints']> = [
       [
         'releases', // stateKey
         `/organizations/${organization.slug}/releases/`, // endpoint
@@ -188,6 +183,12 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
 
   getSelectedProject(): Project | undefined {
     const {selection, projects} = this.props;
+
+    // Return the first project when 'All Projects' is displayed.
+    // This ensures the onboarding panel is shown correctly, for example.
+    if (selection.projects.length === 0) {
+      return projects[0];
+    }
 
     const selectedProjectId =
       selection.projects && selection.projects.length === 1 && selection.projects[0];
@@ -509,7 +510,7 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
 
               {releases.map((release, index) => (
                 <ReleaseCard
-                  key={`${release.projects[0].slug}-${release.version}`}
+                  key={`${release.projects[0]!.slug}-${release.version}`}
                   activeDisplay={activeDisplay}
                   release={release}
                   organization={organization}
@@ -547,6 +548,7 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
 
     return (
       <PageFiltersContainer showAbsolute={false}>
+        <SentryDocumentTitle title={t('Releases')} orgSlug={organization.slug} />
         <NoProjectMessage organization={organization}>
           <Header />
           <Layout.Body>
@@ -568,35 +570,15 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
 
               {this.shouldShowQuickstart ? null : (
                 <SortAndFilterWrapper>
-                  {organization.features.includes('search-query-builder-releases') ? (
-                    <StyledSearchQueryBuilder
-                      onSearch={this.handleSearch}
-                      initialQuery={this.getQuery() || ''}
-                      filterKeys={this.filterKeys}
-                      getTagValues={this.getTagValues}
-                      placeholder={t('Search by version, build, package, or stage')}
-                      searchSource="releases"
-                      showUnsubmittedIndicator
-                    />
-                  ) : (
-                    <StyledSmartSearchBar
-                      searchSource="releases"
-                      query={this.getQuery()}
-                      placeholder={t('Search by version, build, package, or stage')}
-                      hasRecentSearches={false}
-                      maxMenuHeight={500}
-                      supportedTagType={ItemType.PROPERTY}
-                      onSearch={this.handleSearch}
-                      onGetTagValues={this.getTagValues}
-                      supportedTags={{
-                        ...SEMVER_TAGS,
-                        release: {
-                          key: 'release',
-                          name: 'release',
-                        },
-                      }}
-                    />
-                  )}
+                  <StyledSearchQueryBuilder
+                    onSearch={this.handleSearch}
+                    initialQuery={this.getQuery() || ''}
+                    filterKeys={this.filterKeys}
+                    getTagValues={this.getTagValues}
+                    placeholder={t('Search by version, build, package, or stage')}
+                    searchSource="releases"
+                    showUnsubmittedIndicator
+                  />
                   <ReleasesStatusOptions
                     selected={activeStatus}
                     onSelect={this.handleStatus}
@@ -663,12 +645,6 @@ const SortAndFilterWrapper = styled('div')`
   }
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: minmax(0, 1fr);
-  }
-`;
-
-const StyledSmartSearchBar = styled(SmartSearchBar)`
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
-    grid-column: 1 / -1;
   }
 `;
 

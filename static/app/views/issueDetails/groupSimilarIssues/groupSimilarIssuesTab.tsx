@@ -1,15 +1,21 @@
 import * as Layout from 'sentry/components/layouts/thirds';
+import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
 import GroupSimilarIssues from 'sentry/views/issueDetails/groupSimilarIssues/similarIssues';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
-import type SimilarStackTrace from './similarStackTrace';
+function GroupSimilarIssuesTab() {
+  const hasStreamlinedUI = useHasStreamlinedUI();
 
-type Props = React.ComponentProps<typeof SimilarStackTrace>;
+  // TODO(streamlined-ui): Remove this component and point router to GroupEventDetails
+  // Similar issues will open in a drawer
+  if (hasStreamlinedUI) {
+    return <GroupEventDetails />;
+  }
 
-function GroupSimilarIssuesTab(props: Props) {
   return (
     <Layout.Body>
       <Layout.Main fullWidth>
-        <GroupSimilarIssues {...props} />
+        <GroupSimilarIssues />
       </Layout.Main>
     </Layout.Body>
   );

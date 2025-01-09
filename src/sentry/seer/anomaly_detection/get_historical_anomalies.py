@@ -9,7 +9,7 @@ from sentry.conf.server import SEER_ANOMALY_DETECTION_ENDPOINT_URL
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleStatus
 from sentry.models.project import Project
 from sentry.net.http import connection_from_url
-from sentry.seer.anomaly_detection.store_data import _get_start_and_end_indices
+from sentry.seer.anomaly_detection.store_data import _get_start_index
 from sentry.seer.anomaly_detection.types import (
     AnomalyDetectionConfig,
     DetectAnomaliesRequest,
@@ -71,7 +71,7 @@ def handle_seer_error_responses(response, config, context, log_params):
         return True
 
     if not results.get("success"):
-        extra_data = {"message": results.get("message", "")}
+        extra_data = {"response_data": results.get("message", "")}
         log_statement("error", "Error when hitting Seer detect anomalies endpoint", extra_data)
         return True
 
@@ -99,12 +99,12 @@ def get_historical_anomaly_data_from_seer_preview(
     """
     # Check if historical data has at least seven days of data. Return early if not.
     MIN_DAYS = 7
-    data_start_index, data_end_index = _get_start_and_end_indices(historical_data)
+    data_start_index = _get_start_index(historical_data)
     if data_start_index == -1:
         return []
 
     data_start_time = datetime.fromtimestamp(historical_data[data_start_index]["timestamp"])
-    data_end_time = datetime.fromtimestamp(historical_data[data_end_index]["timestamp"])
+    data_end_time = datetime.fromtimestamp(historical_data[-1]["timestamp"])
     if data_end_time - data_start_time < timedelta(days=MIN_DAYS):
         return []
 
@@ -151,10 +151,18 @@ def get_historical_anomaly_data_from_seer(
     """
     if alert_rule.status == AlertRuleStatus.NOT_ENOUGH_DATA.value:
         return []
-    # don't think this can happen but mypy is yelling
+    # don't think these can happen but mypy is yelling
     if not alert_rule.snuba_query:
         logger.error(
             "No snuba query associated with alert rule",
+            extra={
+                "alert_rule_id": alert_rule.id,
+            },
+        )
+        return None
+    if not alert_rule.organization:
+        logger.error(
+            "No organization associated with alert rule",
             extra={
                 "alert_rule_id": alert_rule.id,
             },
@@ -175,7 +183,7 @@ def get_historical_anomaly_data_from_seer(
     end = datetime.fromisoformat(end_string)
     query_columns = get_query_columns([snuba_query.aggregate], snuba_query.time_window)
     historical_data = fetch_historical_data(
-        alert_rule=alert_rule,
+        organization=alert_rule.organization,
         snuba_query=snuba_query,
         query_columns=query_columns,
         project=project,

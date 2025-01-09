@@ -26,13 +26,13 @@ import {ErrorsConfig} from './errors';
 import {ErrorsAndTransactionsConfig} from './errorsAndTransactions';
 import {IssuesConfig} from './issues';
 import {ReleasesConfig} from './releases';
+import {SpansConfig} from './spans';
 import {TransactionsConfig} from './transactions';
 
 export type WidgetBuilderSearchBarProps = {
   getFilterWarning: SearchBarProps['getFilterWarning'];
   onClose: SearchBarProps['onClose'];
   onSearch: SearchBarProps['onSearch'];
-  organization: Organization;
   pageFilters: PageFilters;
   widgetQuery: WidgetQuery;
   dataset?: DiscoverDatasets;
@@ -45,10 +45,17 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
    */
   SearchBar: (props: WidgetBuilderSearchBarProps) => JSX.Element;
   /**
+   * Default field to add to the widget query when adding a new field.
+   */
+  defaultField: QueryFieldValue;
+  /**
    * Default query to display when dataset is selected in the
    * Widget Builder.
    */
   defaultWidgetQuery: WidgetQuery;
+  /**
+   * Whether or not the current dataset supports adding equations.
+   */
   enableEquations: boolean;
   /**
    * Field options to display in the Column selectors for
@@ -244,6 +251,8 @@ export function getDatasetConfig(
       return ErrorsConfig;
     case WidgetType.TRANSACTIONS:
       return TransactionsConfig;
+    case WidgetType.SPANS:
+      return SpansConfig;
     case WidgetType.DISCOVER:
     default:
       return ErrorsAndTransactionsConfig;

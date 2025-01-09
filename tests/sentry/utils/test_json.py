@@ -98,7 +98,10 @@ class JSONHelpersTest(TestCase):
         }
         keep_keys = ["dogs_are_great", "good_dogs"]
 
-        assert json.apply_key_filter(dog_data, keep_keys=keep_keys,) == {
+        assert json.apply_key_filter(
+            dog_data,
+            keep_keys=keep_keys,
+        ) == {
             "dogs_are_great": True,
             "good_dogs": "all",
         }
@@ -111,7 +114,10 @@ class JSONHelpersTest(TestCase):
         }
         keep_keys = ["dogs_are_great", "good_dogs"]
 
-        assert json.apply_key_filter(dog_data, key_filter=lambda key: key in keep_keys,) == {
+        assert json.apply_key_filter(
+            dog_data,
+            key_filter=lambda key: key in keep_keys,
+        ) == {
             "dogs_are_great": True,
             "good_dogs": "all",
         }
@@ -123,7 +129,9 @@ class JSONHelpersTest(TestCase):
             "bad_dogs": None,
         }
 
-        assert json.apply_key_filter(dog_data,) == {
+        assert json.apply_key_filter(
+            dog_data,
+        ) == {
             "dogs_are_great": True,
             "good_dogs": "all",
             "bad_dogs": None,

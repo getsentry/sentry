@@ -1,5 +1,4 @@
 import {GroupFixture} from 'sentry-fixture/group';
-import {MemberFixture} from 'sentry-fixture/member';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
@@ -15,19 +14,26 @@ import IndicatorStore from 'sentry/stores/indicatorStore';
 import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
+import type {Group} from 'sentry/types/group';
+import type {Team} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import type {User} from 'sentry/types/user';
 
 jest.mock('sentry/actionCreators/modal', () => ({
   openInviteMembersModal: jest.fn(),
 }));
 
 describe('DeprecatedAssigneeSelector', () => {
-  let assignMock;
-  let assignGroup2Mock;
-  let USER_1, USER_2, USER_3, USER_4;
-  let TEAM_1;
-  let PROJECT_1;
-  let GROUP_1;
-  let GROUP_2;
+  let assignMock: jest.Mock;
+  let assignGroup2Mock: jest.Mock;
+  let USER_1: User;
+  let USER_2: User;
+  let USER_3: User;
+  let USER_4: User;
+  let TEAM_1: Team;
+  let PROJECT_1: Project;
+  let GROUP_1: Group;
+  let GROUP_2: Group;
 
   beforeEach(() => {
     USER_1 = UserFixture({
@@ -45,7 +51,7 @@ describe('DeprecatedAssigneeSelector', () => {
       name: 'J J',
       email: 'jj@example.com',
     });
-    USER_4 = MemberFixture({
+    USER_4 = UserFixture({
       id: '4',
       name: 'Jane Doe',
       email: 'janedoe@example.com',
@@ -343,7 +349,7 @@ describe('DeprecatedAssigneeSelector', () => {
 
     const options = screen.getAllByTestId('assignee-option');
     expect(options[5]).toHaveTextContent('JD');
-    await userEvent.click(options[4]);
+    await userEvent.click(options[4]!);
 
     await waitFor(() => {
       expect(addMessageSpy).toHaveBeenCalledWith(
@@ -373,7 +379,7 @@ describe('DeprecatedAssigneeSelector', () => {
     const options = screen.getAllByTestId('assignee-option');
     // Suggested assignee initials
     expect(options[0]).toHaveTextContent('JB');
-    await userEvent.click(options[0]);
+    await userEvent.click(options[0]!);
 
     await waitFor(() =>
       expect(assignGroup2Mock).toHaveBeenCalledWith(

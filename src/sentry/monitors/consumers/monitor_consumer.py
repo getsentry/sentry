@@ -64,6 +64,7 @@ from sentry.monitors.processing_errors.errors import (
     ProcessingErrorType,
 )
 from sentry.monitors.processing_errors.manager import handle_processing_errors
+from sentry.monitors.system_incidents import update_check_in_volume
 from sentry.monitors.types import CheckinItem
 from sentry.monitors.utils import (
     get_new_timeout_at,
@@ -877,9 +878,9 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
                 # Note: We use `start_time` for received here since it's the time that this
                 # checkin was received by relay. Potentially, `ts` should be the client
                 # timestamp. If we change that, leave `received` the same.
-                mark_failed(check_in, ts=start_time, received=start_time)
+                mark_failed(check_in, failed_at=start_time, received=start_time)
             else:
-                mark_ok(check_in, ts=start_time)
+                mark_ok(check_in, succeeded_at=start_time)
 
             # track how much time it took for the message to make it through
             # relay into kafka. This should help us understand when missed
@@ -992,6 +993,9 @@ def process_batch(executor: ThreadPoolExecutor, message: Message[ValuesBatch[Kaf
         ]
         wait(futures)
 
+    # Update check in volume for the entire batch we've just processed
+    update_check_in_volume(item.timestamp for item in batch)
+
     # Attempt to trigger monitor tasks across processed partitions
     for partition, ts in latest_partition_ts.items():
         try:
@@ -1008,6 +1012,8 @@ def process_single(message: Message[KafkaPayload | FilteredPayload]):
         wrapper: IngestMonitorMessage = MONITOR_CODEC.decode(message.payload.value)
         ts = message.value.timestamp
         partition = message.value.partition.index
+
+        update_check_in_volume([ts])
 
         try:
             try_monitor_clock_tick(ts, partition)

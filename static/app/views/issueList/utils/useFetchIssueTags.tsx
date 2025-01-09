@@ -1,8 +1,11 @@
 import {useMemo} from 'react';
 
 import {useFetchOrganizationTags} from 'sentry/actionCreators/tags';
-import {ItemType, type SearchGroup} from 'sentry/components/smartSearchBar/types';
-import {escapeTagValue} from 'sentry/components/smartSearchBar/utils';
+import {
+  ItemType,
+  type SearchGroup,
+} from 'sentry/components/deprecatedSmartSearchBar/types';
+import {escapeTagValue} from 'sentry/components/deprecatedSmartSearchBar/utils';
 import {IconStar, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
@@ -23,6 +26,7 @@ import {
   FieldKey,
   FieldKind,
   IsFieldValues,
+  ISSUE_EVENT_FIELDS_THAT_MAY_CONFLICT_WITH_TAGS,
   ISSUE_EVENT_PROPERTY_FIELDS,
   ISSUE_FIELDS,
   ISSUE_PROPERTY_FIELDS,
@@ -53,6 +57,29 @@ const PREDEFINED_FIELDS = {
 
 // "environment" is excluded because it should be handled by the environment page filter
 const EXCLUDED_TAGS = ['environment'];
+
+/**
+ * Certain field keys may conflict with custom tags. In this case, the tag will be
+ * renamed, e.g. `platform` -> `tags[platform]`
+ */
+const renameConflictingTags = (tags: TagCollection): TagCollection => {
+  const renamedTags: TagCollection = {};
+
+  for (const [key, tag] of Object.entries(tags)) {
+    if (ISSUE_EVENT_FIELDS_THAT_MAY_CONFLICT_WITH_TAGS.has(key as FieldKey)) {
+      const newKey = `tags[${key}]`;
+      renamedTags[newKey] = {
+        ...tag,
+        key: newKey,
+        name: newKey,
+      };
+    } else {
+      renamedTags[key] = tag;
+    }
+  }
+
+  return renamedTags;
+};
 
 /**
  * Fetches the tags from both the Errors and IssuePlatform dataset
@@ -135,8 +162,8 @@ export const useFetchIssueTags = ({
 
     issuePlatformTags.forEach(tag => {
       if (allTagsCollection[tag.key]) {
-        allTagsCollection[tag.key].totalValues =
-          (allTagsCollection[tag.key].totalValues ?? 0) + (tag.totalValues ?? 0);
+        allTagsCollection[tag.key]!.totalValues =
+          (allTagsCollection[tag.key]!.totalValues ?? 0) + (tag.totalValues ?? 0);
       } else {
         allTagsCollection[tag.key] = {...tag, kind: FieldKind.TAG};
       }
@@ -146,13 +173,15 @@ export const useFetchIssueTags = ({
       delete allTagsCollection[excludedTag];
     }
 
-    const additionalTags = builtInIssuesFields(allTagsCollection, assignedValues, [
+    const renamedTags = renameConflictingTags(allTagsCollection);
+
+    const additionalTags = builtInIssuesFields(renamedTags, assignedValues, [
       'me',
       ...usernames,
     ]);
 
     return {
-      ...allTagsCollection,
+      ...renamedTags,
       ...additionalTags,
     };
   }, [eventsTagsQuery.data, issuePlatformTagsQuery.data, members, teams]);
@@ -211,20 +240,20 @@ function builtInIssuesFields(
       predefined: true,
     },
     [FieldKey.ASSIGNED_OR_SUGGESTED]: {
-      ...PREDEFINED_FIELDS[FieldKey.ASSIGNED_OR_SUGGESTED],
+      ...PREDEFINED_FIELDS[FieldKey.ASSIGNED_OR_SUGGESTED]!,
       name: 'Assigned or Suggested',
       isInput: true,
       values: assigneeFieldValues,
       predefined: true,
     },
     [FieldKey.BOOKMARKS]: {
-      ...PREDEFINED_FIELDS[FieldKey.BOOKMARKS],
+      ...PREDEFINED_FIELDS[FieldKey.BOOKMARKS]!,
       name: 'Bookmarked By',
       values: bookmarksValues,
       predefined: true,
     },
     [FieldKey.ISSUE_CATEGORY]: {
-      ...PREDEFINED_FIELDS[FieldKey.ISSUE_CATEGORY],
+      ...PREDEFINED_FIELDS[FieldKey.ISSUE_CATEGORY]!,
       name: 'Issue Category',
       values: [
         IssueCategory.ERROR,
@@ -236,7 +265,7 @@ function builtInIssuesFields(
       predefined: true,
     },
     [FieldKey.ISSUE_TYPE]: {
-      ...PREDEFINED_FIELDS[FieldKey.ISSUE_TYPE],
+      ...PREDEFINED_FIELDS[FieldKey.ISSUE_TYPE]!,
       name: 'Issue Type',
       values: [
         IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
@@ -263,31 +292,31 @@ function builtInIssuesFields(
       predefined: true,
     },
     [FieldKey.LAST_SEEN]: {
-      ...PREDEFINED_FIELDS[FieldKey.LAST_SEEN],
+      ...PREDEFINED_FIELDS[FieldKey.LAST_SEEN]!,
       name: 'Last Seen',
       values: [],
       predefined: false,
     },
     [FieldKey.FIRST_SEEN]: {
-      ...PREDEFINED_FIELDS[FieldKey.FIRST_SEEN],
+      ...PREDEFINED_FIELDS[FieldKey.FIRST_SEEN]!,
       name: 'First Seen',
       values: [],
       predefined: false,
     },
     [FieldKey.FIRST_RELEASE]: {
-      ...PREDEFINED_FIELDS[FieldKey.FIRST_RELEASE],
+      ...PREDEFINED_FIELDS[FieldKey.FIRST_RELEASE]!,
       name: 'First Release',
       values: ['latest'],
       predefined: true,
     },
     [FieldKey.EVENT_TIMESTAMP]: {
-      ...PREDEFINED_FIELDS[FieldKey.EVENT_TIMESTAMP],
+      ...PREDEFINED_FIELDS[FieldKey.EVENT_TIMESTAMP]!,
       name: 'Event Timestamp',
       values: [],
       predefined: true,
     },
     [FieldKey.TIMES_SEEN]: {
-      ...PREDEFINED_FIELDS[FieldKey.TIMES_SEEN],
+      ...PREDEFINED_FIELDS[FieldKey.TIMES_SEEN]!,
       name: 'Times Seen',
       isInput: true,
       // Below values are required or else SearchBar will attempt to get values
@@ -296,7 +325,7 @@ function builtInIssuesFields(
       predefined: true,
     },
     [FieldKey.ISSUE_PRIORITY]: {
-      ...PREDEFINED_FIELDS[FieldKey.ISSUE_PRIORITY],
+      ...PREDEFINED_FIELDS[FieldKey.ISSUE_PRIORITY]!,
       name: 'Issue Priority',
       values: [PriorityLevel.HIGH, PriorityLevel.MEDIUM, PriorityLevel.LOW],
       predefined: true,

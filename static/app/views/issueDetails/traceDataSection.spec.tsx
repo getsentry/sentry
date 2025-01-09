@@ -4,6 +4,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import AnalyticsArea from 'sentry/components/analyticsArea';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
@@ -63,7 +64,7 @@ describe('TraceDataSection', () => {
     culprit: 'n/a',
     'error.value': ['some-other-error-value', 'The last error value'],
     timestamp: firstEventTimestamp,
-    'issue.id': event['issue.id'],
+    'issue.id': (event as any)['issue.id'],
     project: project.slug,
     'project.name': project.name,
     title: event.title,
@@ -212,7 +213,15 @@ describe('TraceDataSection', () => {
       body: [],
     });
 
-    render(<TraceDataSection event={event} />, {organization});
+    // Wrapping with the issue_details area so we can test both the new and
+    // old (pre-Nov 2024) analytics are emitted. In the source code, this
+    // area is located in GroupEventDetails.
+    render(
+      <AnalyticsArea name="issue_details">
+        <TraceDataSection event={event} />
+      </AnalyticsArea>,
+      {organization}
+    );
 
     // Instead of a timeline, we should see the other related issue
     expect(await screen.findByText('Slow DB Query')).toBeInTheDocument(); // The title
@@ -230,17 +239,22 @@ describe('TraceDataSection', () => {
     expect(useRouteAnalyticsParams).toHaveBeenCalledWith({
       has_related_trace_issue: true,
     });
-    expect(trackAnalytics).toHaveBeenCalledTimes(1);
+    expect(trackAnalytics).toHaveBeenCalledTimes(2);
     expect(trackAnalytics).toHaveBeenCalledWith(
       'issue_details.related_trace_issue.trace_issue_clicked',
       {
-        group_id: issuePlatformBody.data[0]['issue.id'],
-        organization: organization,
+        group_id: issuePlatformBody.data[0]!['issue.id'],
+        organization,
       }
     );
+    expect(trackAnalytics).toHaveBeenCalledWith('one_other_related_trace_issue.clicked', {
+      group_id: issuePlatformBody.data[0]!['issue.id'],
+      organization,
+      area: 'issue_details',
+    });
   });
 
-  it('skips the timeline and shows NO related issues (only 1 issue)', async () => {
+  it('skips the timeline and shows NO related issues (only 1 issue)', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: emptyBody,
@@ -261,13 +275,13 @@ describe('TraceDataSection', () => {
     render(<TraceDataSection event={event} />, {organization});
 
     // We do not display any related issues because we only have 1 issue
-    expect(await screen.queryByText('Slow DB Query')).not.toBeInTheDocument();
+    expect(screen.queryByText('Slow DB Query')).not.toBeInTheDocument();
     expect(
-      await screen.queryByText('AttributeError: Something Failed')
+      screen.queryByText('AttributeError: Something Failed')
     ).not.toBeInTheDocument();
 
     // We do not display the timeline because we only have 1 event
-    expect(await screen.queryByLabelText('Current Event')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Current Event')).not.toBeInTheDocument();
     expect(useRouteAnalyticsParams).toHaveBeenCalledWith({});
   });
 
@@ -355,12 +369,12 @@ function createEvent({
   stack_function?: string[];
 }) {
   const event = {
-    culprit: culprit,
+    culprit,
     timestamp: '2024-01-24T09:09:04+00:00',
     'issue.id': 9999,
     project: 'foo',
     'project.name': 'bar',
-    title: title,
+    title,
     id: '12345',
     transaction: 'n/a',
     'event.type': event_type,
@@ -377,7 +391,7 @@ function createEvent({
   } else if (event['event.type'] === '') {
     return_event = {
       ...event,
-      message: message,
+      message,
     };
   } else {
     return_event = event;

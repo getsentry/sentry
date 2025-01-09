@@ -11,7 +11,7 @@ from django.db import connection
 from django.db.models import prefetch_related_objects
 from django.utils import timezone
 
-from sentry import features, options, projectoptions, release_health, roles
+from sentry import features, options, projectoptions, quotas, release_health, roles
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.api.serializers.models.team import get_org_roles
@@ -19,8 +19,13 @@ from sentry.api.serializers.types import OrganizationSerializerResponse, Seriali
 from sentry.app import env
 from sentry.auth.access import Access
 from sentry.auth.superuser import is_active_superuser
-from sentry.constants import ObjectStatus, StatsPeriod
+from sentry.constants import TARGET_SAMPLE_RATE_DEFAULT, ObjectStatus, StatsPeriod
 from sentry.digests import backend as digests
+from sentry.dynamic_sampling.utils import (
+    has_custom_dynamic_sampling,
+    has_dynamic_sampling,
+    is_project_mode_sampling,
+)
 from sentry.eventstore.models import DEFAULT_SUBJECT_TEMPLATE
 from sentry.features.base import ProjectFeature
 from sentry.ingest.inbound_filters import FilterTypes
@@ -40,6 +45,7 @@ from sentry.release_health.base import CurrentAndPreviousCrashFreeRate
 from sentry.roles import organization_roles
 from sentry.search.events.types import SnubaParams
 from sentry.snuba import discover
+from sentry.tempest.utils import has_tempest_access
 from sentry.users.models.user import User
 
 STATUS_LABELS = {
@@ -73,6 +79,8 @@ PROJECT_FEATURES_NOT_USED_ON_FRONTEND = {
     "first-event-severity-calculation",
     "alert-filters",
     "servicehooks",
+    "similarity-embeddings",
+    "similarity-embeddings-delete-by-hash",
 }
 
 
@@ -275,7 +283,7 @@ class ProjectSerializerResponse(ProjectSerializerBaseResponse):
     isPublic: bool
     avatar: SerializedAvatarFields
     color: str
-    status: str  # TODO enum/literal
+    status: str  # TODO: enum/literal
 
 
 @register(Project)
@@ -711,6 +719,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             attrs[item]["has_user_reports"] = item.id in projects_with_user_reports
             if not self._collapse(LATEST_DEPLOYS_KEY):
                 attrs[item]["deploys"] = deploys_by_project.get(item.id)
+            # TODO: remove this attribute and evenrything connected with it
             # check if the project is in LPQ for any platform
             # XXX(joshferge): determine if the frontend needs this flag at all
             # removing redis call as was causing problematic latency issues
@@ -764,14 +773,16 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
         )
         if not self._collapse(LATEST_DEPLOYS_KEY):
             context[LATEST_DEPLOYS_KEY] = attrs["deploys"]
-        if "stats" in attrs:
-            context.update(stats=attrs["stats"])
-        if "transactionStats" in attrs:
-            context.update(transactionStats=attrs["transactionStats"])
-        if "sessionStats" in attrs:
-            context.update(sessionStats=attrs["sessionStats"])
-        if "options" in attrs:
-            context.update(options=attrs["options"])
+
+        if attrs["has_access"] or user.is_staff:
+            if "stats" in attrs:
+                context.update(stats=attrs["stats"])
+            if "transactionStats" in attrs:
+                context.update(transactionStats=attrs["transactionStats"])
+            if "sessionStats" in attrs:
+                context.update(sessionStats=attrs["sessionStats"])
+            if "options" in attrs:
+                context.update(options=attrs["options"])
 
         return context
 
@@ -1047,6 +1058,26 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "symbolSources": serialized_sources,
             }
         )
+
+        sample_rate = None
+        if has_custom_dynamic_sampling(obj.organization):
+            if is_project_mode_sampling(obj.organization):
+                sample_rate = obj.get_option("sentry:target_sample_rate")
+            else:
+                sample_rate = obj.organization.get_option(
+                    "sentry:target_sample_rate", TARGET_SAMPLE_RATE_DEFAULT
+                )
+        elif has_dynamic_sampling(obj.organization):
+            sample_rate = quotas.backend.get_blended_sample_rate(
+                organization_id=obj.organization.id
+            )
+
+        data["isDynamicallySampled"] = sample_rate is not None and sample_rate < 1.0
+
+        if has_tempest_access(obj.organization, user):
+            data["tempestFetchScreenshots"] = attrs["options"].get(
+                "sentry:tempest_fetch_screenshots", False
+            )
 
         return data
 

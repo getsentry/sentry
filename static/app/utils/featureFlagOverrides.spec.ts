@@ -39,12 +39,12 @@ describe('FeatureFlagOverrides', () => {
       const inst = new FeatureFlagOverrides();
 
       inst.setStoredOverride('enable-replay', false);
-      expect(localStorageWrapper.getItem(LOCALSTORAGE_KEY)).toEqual(
+      expect(localStorageWrapper.getItem(LOCALSTORAGE_KEY)).toBe(
         '{"enable-issues":true,"enable-profiling":false,"enable-replay":false}'
       );
 
       inst.setStoredOverride('enable-replay', true);
-      expect(localStorageWrapper.getItem(LOCALSTORAGE_KEY)).toEqual(
+      expect(localStorageWrapper.getItem(LOCALSTORAGE_KEY)).toBe(
         '{"enable-issues":true,"enable-profiling":false,"enable-replay":true}'
       );
     });
@@ -54,7 +54,7 @@ describe('FeatureFlagOverrides', () => {
       const inst = new FeatureFlagOverrides();
 
       inst.setStoredOverride('enable-issues', false);
-      expect(localStorageWrapper.getItem(LOCALSTORAGE_KEY)).toEqual(
+      expect(localStorageWrapper.getItem(LOCALSTORAGE_KEY)).toBe(
         '{"enable-issues":false}'
       );
     });

@@ -1,24 +1,26 @@
-import type {Crumb} from 'sentry/components/breadcrumbs';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
-import {DomainViewHeader} from 'sentry/views/insights/pages/domainViewHeader';
+import {
+  DomainViewHeader,
+  type Props as HeaderProps,
+} from 'sentry/views/insights/pages/domainViewHeader';
 import {
   MOBILE_LANDING_SUB_PATH,
   MOBILE_LANDING_TITLE,
 } from 'sentry/views/insights/pages/mobile/settings';
 import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
+import {isModuleEnabled} from 'sentry/views/insights/pages/utils';
 import {ModuleName} from 'sentry/views/insights/types';
 
 type Props = {
-  breadcrumbs?: Crumb[];
-  headerActions?: React.ReactNode;
-  headerTitle?: React.ReactNode;
-  hideDefaultTabs?: boolean;
-  module?: ModuleName;
-  tabs?: {onTabChange: (key: string) => void; tabList: React.ReactNode; value: string};
+  breadcrumbs?: HeaderProps['additionalBreadCrumbs'];
+  headerActions?: HeaderProps['additonalHeaderActions'];
+  headerTitle?: HeaderProps['headerTitle'];
+  hideDefaultTabs?: HeaderProps['hideDefaultTabs'];
+  module?: HeaderProps['selectedModule'];
+  tabs?: HeaderProps['tabs'];
 };
 
-// TODO - add props to append to breadcrumbs and change title
 export function MobileHeader({
   module,
   hideDefaultTabs,
@@ -27,18 +29,33 @@ export function MobileHeader({
   tabs,
   breadcrumbs,
 }: Props) {
-  const {slug} = useOrganization();
+  const organization = useOrganization();
 
   const mobileBaseUrl = normalizeUrl(
-    `/organizations/${slug}/${DOMAIN_VIEW_BASE_URL}/${MOBILE_LANDING_SUB_PATH}/`
+    `/organizations/${organization.slug}/${DOMAIN_VIEW_BASE_URL}/${MOBILE_LANDING_SUB_PATH}/`
   );
 
-  const modules = [ModuleName.MOBILE_SCREENS];
+  const hasMobileScreens = isModuleEnabled(ModuleName.MOBILE_SCREENS, organization);
+  const hasMobileUi = isModuleEnabled(ModuleName.MOBILE_UI, organization);
+
+  const modules = hasMobileScreens
+    ? [ModuleName.MOBILE_SCREENS]
+    : [
+        ModuleName.APP_START,
+        ModuleName.SCREEN_LOAD,
+        ModuleName.SCREEN_RENDERING,
+        ModuleName.HTTP,
+      ];
+
+  if (!hasMobileScreens && hasMobileUi) {
+    modules.push(ModuleName.MOBILE_UI);
+  }
 
   return (
     <DomainViewHeader
       domainBaseUrl={mobileBaseUrl}
-      headerTitle={headerTitle || MOBILE_LANDING_TITLE}
+      domainTitle={MOBILE_LANDING_TITLE}
+      headerTitle={headerTitle}
       modules={modules}
       selectedModule={module}
       tabs={tabs}

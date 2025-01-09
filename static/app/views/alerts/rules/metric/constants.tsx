@@ -3,7 +3,7 @@ import type EventView from 'sentry/utils/discover/eventView';
 import type {AggregationKeyWithAlias, LooseFieldKey} from 'sentry/utils/discover/fields';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/discover/fields';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
-import {AggregationKey} from 'sentry/utils/fields';
+import {AggregationKey, MobileVital} from 'sentry/utils/fields';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import type {Trigger, UnsavedMetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {
@@ -130,7 +130,13 @@ export function getWizardAlertFieldConfig(
   const config: OptionConfig = {
     aggregations,
     fields: ['transaction.duration'],
-    measurementKeys: Object.keys(WEB_VITAL_DETAILS),
+    measurementKeys: [
+      ...Object.keys(WEB_VITAL_DETAILS),
+      MobileVital.APP_START_COLD,
+      MobileVital.APP_START_WARM,
+      MobileVital.TIME_TO_INITIAL_DISPLAY,
+      MobileVital.TIME_TO_FULL_DISPLAY,
+    ],
   };
 
   if ([Dataset.TRANSACTIONS, Dataset.GENERIC_METRICS].includes(dataset)) {
@@ -181,7 +187,7 @@ export function createDefaultRule(
   };
 }
 
-function getAlertTimeWindow(period: string | undefined): TimeWindow | undefined {
+export function getAlertTimeWindow(period: string | undefined): TimeWindow | undefined {
   if (!period) {
     return undefined;
   }
@@ -196,7 +202,7 @@ function getAlertTimeWindow(period: string | undefined): TimeWindow | undefined 
     .sort((a, b) => a - b);
 
   for (let index = 0; index < timeWindows.length; index++) {
-    const timeWindow = timeWindows[index];
+    const timeWindow = timeWindows[index]!;
     if (periodMinutes <= timeWindow) {
       return timeWindow;
     }
@@ -229,7 +235,7 @@ export function createRuleFromEventView(eventView: EventView): UnsavedMetricRule
     query: parsedQuery?.query ?? eventView.query,
     aggregate,
     timeWindow: getAlertTimeWindow(eventView.interval) ?? defaultRule.timeWindow,
-    environment: eventView.environment.length ? eventView.environment[0] : null,
+    environment: eventView.environment.length ? eventView.environment[0]! : null,
   };
 }
 

@@ -26,7 +26,11 @@ QUERY_TYPE_VALID_EVENT_TYPES = {
 }
 QUERY_TYPE_VALID_DATASETS = {
     SnubaQuery.Type.ERROR: {Dataset.Events},
-    SnubaQuery.Type.PERFORMANCE: {Dataset.Transactions, Dataset.PerformanceMetrics},
+    SnubaQuery.Type.PERFORMANCE: {
+        Dataset.Transactions,
+        Dataset.PerformanceMetrics,
+        Dataset.EventsAnalyticsPlatform,
+    },
     SnubaQuery.Type.CRASH_RATE: {Dataset.Metrics},
 }
 

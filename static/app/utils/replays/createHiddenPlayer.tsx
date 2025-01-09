@@ -26,16 +26,24 @@ export function createHiddenPlayer(rrwebEvents: RecordingFrame[]): {
     hiddenIframe.contentDocument.body.appendChild(domRoot);
   }
 
-  const replayer = new Replayer(rrwebEvents, {
-    root: domRoot,
-    loadTimeout: 1,
-    showWarning: false,
-    blockClass: 'sentry-block',
-    speed: 99999,
-    skipInactive: true,
-    triggerFocus: false,
-    mouseTail: false,
-  });
+  const replayer = new Replayer(
+    // We need to deep clone the events since `Replayer` can mutate the event
+    // objects. This means that having multiple Replayer instances (e.g. the
+    // Replay details player and a hidden player via `replayStepper`) can cause
+    // playback issues as the object references are the same, even though the
+    // arrays are not.
+    structuredClone(rrwebEvents),
+    {
+      root: domRoot,
+      loadTimeout: 1,
+      showWarning: false,
+      blockClass: 'sentry-block',
+      speed: 99999,
+      skipInactive: true,
+      triggerFocus: false,
+      mouseTail: false,
+    }
+  );
 
   const cleanupReplayer = () => {
     hiddenIframe.remove();

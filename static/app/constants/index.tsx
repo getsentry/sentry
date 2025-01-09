@@ -121,8 +121,8 @@ export type PermissionChoice = {
 
 type PermissionObj = {
   choices: {
-    admin: PermissionChoice;
     'no-access': PermissionChoice;
+    admin?: PermissionChoice;
     read?: PermissionChoice;
     write?: PermissionChoice;
   };
@@ -199,6 +199,15 @@ export const SENTRY_APP_PERMISSIONS: PermissionObj[] = [
       admin: {label: 'Admin', scopes: ['member:read', 'member:write', 'member:admin']},
     },
   },
+  {
+    resource: 'Alerts',
+    help: 'Manage Alerts',
+    choices: {
+      'no-access': {label: 'No Access', scopes: []},
+      read: {label: 'Read', scopes: ['alerts:read']},
+      write: {label: 'Read & Write', scopes: ['alerts:read', 'alerts:write']},
+    },
+  },
 ];
 
 export const DEFAULT_TOAST_DURATION = 6000;
@@ -256,6 +265,7 @@ export const DATA_CATEGORY_INFO = {
     titleName: t('Errors'),
     productName: t('Error Monitoring'),
     uid: 1,
+    isBilledCategory: true,
   },
   [DataCategoryExact.TRANSACTION]: {
     name: DataCategoryExact.TRANSACTION,
@@ -265,6 +275,7 @@ export const DATA_CATEGORY_INFO = {
     titleName: t('Transactions'),
     productName: t('Performance Monitoring'),
     uid: 2,
+    isBilledCategory: true,
   },
   [DataCategoryExact.ATTACHMENT]: {
     name: DataCategoryExact.ATTACHMENT,
@@ -274,6 +285,7 @@ export const DATA_CATEGORY_INFO = {
     titleName: t('Attachments'),
     productName: t('Attachments'),
     uid: 4,
+    isBilledCategory: true,
   },
   [DataCategoryExact.PROFILE]: {
     name: DataCategoryExact.PROFILE,
@@ -283,6 +295,7 @@ export const DATA_CATEGORY_INFO = {
     titleName: t('Profiles'),
     productName: t('Continuous Profiling'),
     uid: 6,
+    isBilledCategory: false,
   },
   [DataCategoryExact.REPLAY]: {
     name: DataCategoryExact.REPLAY,
@@ -292,6 +305,7 @@ export const DATA_CATEGORY_INFO = {
     titleName: t('Session Replays'),
     productName: t('Session Replay'),
     uid: 7,
+    isBilledCategory: true,
   },
   [DataCategoryExact.TRANSACTION_PROCESSED]: {
     name: DataCategoryExact.TRANSACTION_PROCESSED,
@@ -301,6 +315,7 @@ export const DATA_CATEGORY_INFO = {
     titleName: t('Transactions'),
     productName: t('Performance Monitoring'),
     uid: 8,
+    isBilledCategory: false,
   },
   [DataCategoryExact.TRANSACTION_INDEXED]: {
     name: DataCategoryExact.TRANSACTION_INDEXED,
@@ -310,6 +325,7 @@ export const DATA_CATEGORY_INFO = {
     titleName: t('Indexed Transactions'),
     productName: t('Performance Monitoring'),
     uid: 9,
+    isBilledCategory: false,
   },
   [DataCategoryExact.MONITOR]: {
     name: DataCategoryExact.MONITOR,
@@ -319,42 +335,47 @@ export const DATA_CATEGORY_INFO = {
     titleName: t('Monitor Check-Ins'),
     productName: t('Cron Monitoring'),
     uid: 10,
+    isBilledCategory: false,
   },
   [DataCategoryExact.SPAN]: {
     name: DataCategoryExact.SPAN,
     apiName: 'span',
     plural: 'spans',
-    displayName: 'spans',
-    titleName: t('Spans'),
+    displayName: 'span',
+    titleName: t('Spans'), // TODO(DS Spans): Update name
     productName: t('Tracing'),
     uid: 12,
+    isBilledCategory: true,
   },
   [DataCategoryExact.MONITOR_SEAT]: {
     name: DataCategoryExact.MONITOR_SEAT,
     apiName: 'monitorSeat',
     plural: 'monitorSeats',
-    displayName: 'cron monitors',
+    displayName: 'cron monitor',
     titleName: t('Cron Monitors'),
     productName: t('Cron Monitoring'),
     uid: 13,
+    isBilledCategory: true,
+  },
+  [DataCategoryExact.SPAN_INDEXED]: {
+    name: DataCategoryExact.SPAN_INDEXED,
+    apiName: 'span_indexed',
+    plural: 'spansIndexed',
+    displayName: 'stored span',
+    titleName: t('Stored Spans'),
+    productName: t('Tracing'),
+    uid: 16,
+    isBilledCategory: false,
   },
   [DataCategoryExact.PROFILE_DURATION]: {
     name: DataCategoryExact.PROFILE_DURATION,
     apiName: 'profile_duration',
     plural: 'profileDuration',
-    displayName: 'profile hours',
+    displayName: 'profile hour',
     titleName: t('Profile Hours'),
     productName: t('Continuous Profiling'),
     uid: 17,
-  },
-  [DataCategoryExact.METRIC_SECOND]: {
-    name: DataCategoryExact.METRIC_SECOND,
-    apiName: 'metricSecond',
-    plural: 'metricSeconds',
-    displayName: 'metric hours',
-    titleName: t('Metrics Hours'),
-    productName: t('Metrics'),
-    uid: 19,
+    isBilledCategory: false, // TODO(Continuous Profiling GA): make true for launch to show spend notification toggle
   },
 } as const satisfies Record<DataCategoryExact, DataCategoryInfo>;
 

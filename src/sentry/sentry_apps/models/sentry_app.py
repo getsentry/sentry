@@ -31,7 +31,7 @@ from sentry.db.models.paranoia import ParanoidManager, ParanoidModel
 from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.apiscopes import HasApiScopes
-from sentry.types.region import find_all_region_names
+from sentry.types.region import find_all_region_names, find_regions_for_sentry_app
 from sentry.utils import metrics
 
 # When a developer selects to receive "<Resource> Webhooks" it really means
@@ -234,8 +234,11 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
             for region_name in find_all_region_names()
         ]
 
+    def regions_with_installations(self) -> set[str]:
+        return find_regions_for_sentry_app(self)
+
     def delete(self, *args, **kwargs):
-        from sentry.models.avatars.sentry_app_avatar import SentryAppAvatar
+        from sentry.sentry_apps.models.sentry_app_avatar import SentryAppAvatar
 
         with outbox_context(transaction.atomic(using=router.db_for_write(SentryApp))):
             for outbox in self.outboxes_for_update():

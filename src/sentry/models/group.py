@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import math
 import re
 import warnings
 from collections import defaultdict, namedtuple
@@ -37,7 +36,7 @@ from sentry.db.models import (
 )
 from sentry.db.models.manager.base import BaseManager
 from sentry.eventstore.models import GroupEvent
-from sentry.issues.grouptype import ErrorGroupType, GroupCategory, get_group_type_by_type_id
+from sentry.issues.grouptype import GroupCategory, get_group_type_by_type_id
 from sentry.issues.priority import (
     PRIORITY_TO_GROUP_HISTORY_STATUS,
     PriorityChangeReason,
@@ -70,6 +69,8 @@ logger = logging.getLogger(__name__)
 
 _short_id_re = re.compile(r"^(?:issue+:)?(.*?)(?:[\s_-])([A-Za-z0-9]+)$")
 ShortId = namedtuple("ShortId", ["project_slug", "short_id"])
+
+DEFAULT_TYPE_ID = 1
 
 
 def parse_short_id(short_id_s: str) -> ShortId | None:
@@ -220,34 +221,43 @@ STATUS_UPDATE_CHOICES = {
 class EventOrdering(Enum):
     LATEST = ["-timestamp", "-event_id"]
     OLDEST = ["timestamp", "event_id"]
-    MOST_HELPFUL = [
+    RECOMMENDED = [
         "-replay.id",
-        "-profile.id",
-        "num_processing_errors",
         "-trace.sampled",
+        "num_processing_errors",
+        "-profile.id",
         "-timestamp",
         "-event_id",
     ]
 
 
-def get_oldest_or_latest_event_for_environments(
-    ordering: EventOrdering, environments: Sequence[str], group: Group
+def get_oldest_or_latest_event(
+    group: Group,
+    ordering: EventOrdering,
+    conditions: Sequence[Condition] | None = None,
+    start: datetime | None = None,
+    end: datetime | None = None,
 ) -> GroupEvent | None:
-    conditions = []
-
-    if len(environments) > 0:
-        conditions.append(["environment", "IN", environments])
 
     if group.issue_category == GroupCategory.ERROR:
         dataset = Dataset.Events
     else:
         dataset = Dataset.IssuePlatform
 
-    _filter = eventstore.Filter(
-        conditions=conditions, project_ids=[group.project_id], group_ids=[group.id]
-    )
-    events = eventstore.backend.get_events(
-        filter=_filter,
+    all_conditions = [
+        Condition(Column("project_id"), Op.IN, [group.project.id]),
+        Condition(Column("group_id"), Op.IN, [group.id]),
+    ]
+
+    if conditions:
+        all_conditions.extend(conditions)
+
+    events = eventstore.backend.get_events_snql(
+        organization_id=group.project.organization_id,
+        group_id=group.id,
+        start=start,
+        end=end,
+        conditions=all_conditions,
         limit=1,
         orderby=ordering.value,
         referrer="Group.get_latest",
@@ -261,32 +271,32 @@ def get_oldest_or_latest_event_for_environments(
     return None
 
 
-def get_recommended_event_for_environments(
-    environments: Sequence[Environment],
+def get_recommended_event(
     group: Group,
     conditions: Sequence[Condition] | None = None,
+    start: datetime | None = None,
+    end: datetime | None = None,
 ) -> GroupEvent | None:
     if group.issue_category == GroupCategory.ERROR:
         dataset = Dataset.Events
     else:
         dataset = Dataset.IssuePlatform
 
-    all_conditions = []
-    if len(environments) > 0:
-        all_conditions.append(
-            Condition(Column("environment"), Op.IN, [e.name for e in environments])
-        )
-    all_conditions.append(Condition(Column("project_id"), Op.IN, [group.project.id]))
-    all_conditions.append(Condition(Column("group_id"), Op.IN, [group.id]))
+    all_conditions = [
+        Condition(Column("project_id"), Op.IN, [group.project.id]),
+        Condition(Column("group_id"), Op.IN, [group.id]),
+    ]
 
     if conditions:
         all_conditions.extend(conditions)
 
-    end = group.last_seen + timedelta(minutes=1)
-    start = end - timedelta(days=7)
+    default_end = group.last_seen + timedelta(minutes=1)
+    default_start = default_end - timedelta(days=7)
 
     expired, _ = outside_retention_with_modified_start(
-        start, end, Organization(group.project.organization_id)
+        start=start if start else default_start,
+        end=end if end else default_end,
+        organization=Organization(group.project.organization_id),
     )
 
     if expired:
@@ -295,11 +305,11 @@ def get_recommended_event_for_environments(
     events = eventstore.backend.get_events_snql(
         organization_id=group.project.organization_id,
         group_id=group.id,
-        start=start,
-        end=end,
+        start=start if start else default_start,
+        end=end if end else default_end,
         conditions=all_conditions,
         limit=1,
-        orderby=EventOrdering.MOST_HELPFUL.value,
+        orderby=EventOrdering.RECOMMENDED.value,
         referrer="Group.get_helpful",
         dataset=dataset,
         tenant_ids={"organization_id": group.project.organization_id},
@@ -570,14 +580,13 @@ class Group(Model):
     active_at = models.DateTimeField(null=True, db_index=True)
     time_spent_total = BoundedIntegerField(default=0)
     time_spent_count = BoundedIntegerField(default=0)
-    score = BoundedIntegerField(default=0, null=True)
     # deprecated, do not use. GroupShare has superseded
     is_public = models.BooleanField(default=False, null=True)
     data: models.Field[dict[str, Any] | None, dict[str, Any]] = GzippedDictField(
         blank=True, null=True
     )
     short_id = BoundedBigIntegerField(null=True)
-    type = BoundedPositiveIntegerField(default=ErrorGroupType.type_id, db_index=True)
+    type = BoundedPositiveIntegerField(default=DEFAULT_TYPE_ID, db_index=True)
     priority = models.PositiveSmallIntegerField(null=True)
     priority_locked_at = models.DateTimeField(null=True)
 
@@ -624,9 +633,6 @@ class Group(Model):
             self.message = truncatechars(self.message.splitlines()[0], 255)
         if self.times_seen is None:
             self.times_seen = 1
-        self.score = type(self).calculate_score(
-            times_seen=self.times_seen, last_seen=self.last_seen
-        )
         super().save(*args, **kwargs)
 
     def get_absolute_url(
@@ -769,31 +775,87 @@ class Group(Model):
             # Otherwise it has not been shared yet.
             return None
 
-    def get_score(self):
-        return type(self).calculate_score(self.times_seen, self.last_seen)
-
-    def get_latest_event(self) -> GroupEvent | None:
-        if not hasattr(self, "_latest_event"):
-            self._latest_event = self.get_latest_event_for_environments()
-
-        return self._latest_event
+    def get_latest_event(
+        self,
+        conditions: Sequence[Condition] | None = None,
+        start: datetime | None = None,
+        end: datetime | None = None,
+    ) -> GroupEvent | None:
+        """
+        Returns the latest/newest event given the conditions and time range.
+        If no event is found, returns None.
+        """
+        return get_oldest_or_latest_event(
+            group=self,
+            ordering=EventOrdering.LATEST,
+            conditions=conditions,
+            start=start,
+            end=end,
+        )
 
     def get_latest_event_for_environments(
         self, environments: Sequence[str] = ()
     ) -> GroupEvent | None:
-        return get_oldest_or_latest_event_for_environments(
-            EventOrdering.LATEST,
-            environments,
-            self,
+        """
+        Legacy special case of `self.get_latest_event` for environments and no date range.
+        Kept for compatability, but it's advised to use `self.get_latest_event` directly.
+        """
+        conditions = (
+            [Condition(Column("environment"), Op.IN, environments)] if len(environments) > 0 else []
+        )
+        return self.get_latest_event(conditions=conditions)
+
+    def get_oldest_event(
+        self,
+        conditions: Sequence[Condition] | None = None,
+        start: datetime | None = None,
+        end: datetime | None = None,
+    ) -> GroupEvent | None:
+        """
+        Returns the oldest event given the conditions and time range.
+        If no event is found, returns None.
+        """
+        return get_oldest_or_latest_event(
+            group=self,
+            ordering=EventOrdering.OLDEST,
+            conditions=conditions,
+            start=start,
+            end=end,
         )
 
     def get_oldest_event_for_environments(
         self, environments: Sequence[str] = ()
     ) -> GroupEvent | None:
-        return get_oldest_or_latest_event_for_environments(
-            EventOrdering.OLDEST,
-            environments,
-            self,
+        """
+        Legacy special case of `self.get_oldest_event` for environments and no date range.
+        Kept for compatability, but it's advised to use `self.get_oldest_event` directly.
+        """
+        conditions = (
+            [Condition(Column("environment"), Op.IN, environments)] if len(environments) > 0 else []
+        )
+        return self.get_oldest_event(conditions=conditions)
+
+    def get_recommended_event(
+        self,
+        conditions: Sequence[Condition] | None = None,
+        start: datetime | None = None,
+        end: datetime | None = None,
+    ) -> GroupEvent | None:
+        """
+        Returns a recommended event given the conditions and time range.
+        If a helpful recommendation is not found, it will fallback to the latest event.
+        If neither are found, returns None.
+        """
+        maybe_event = get_recommended_event(
+            group=self,
+            conditions=conditions,
+            start=start,
+            end=end,
+        )
+        return (
+            maybe_event
+            if maybe_event
+            else self.get_latest_event(conditions=conditions, start=start, end=end)
         )
 
     def get_recommended_event_for_environments(
@@ -801,16 +863,16 @@ class Group(Model):
         environments: Sequence[Environment] = (),
         conditions: Sequence[Condition] | None = None,
     ) -> GroupEvent | None:
-        maybe_event = get_recommended_event_for_environments(
-            environments,
-            self,
-            conditions,
-        )
-        return (
-            maybe_event
-            if maybe_event
-            else self.get_latest_event_for_environments([env.name for env in environments])
-        )
+        """
+        Legacy special case of `self.get_recommended_event` for environments and no date range.
+        Kept for compatability, but it's advised to use `self.get_recommended_event` directly.
+        """
+        all_conditions: list[Condition] = list(conditions) if conditions else []
+        if len(environments) > 0:
+            all_conditions.append(
+                Condition(Column("environment"), Op.IN, [e.name for e in environments])
+            )
+        return self.get_recommended_event(conditions=all_conditions)
 
     def get_suspect_commit(self) -> Commit | None:
         from sentry.models.groupowner import GroupOwner, GroupOwnerType
@@ -912,19 +974,19 @@ class Group(Model):
     def get_email_subject(self):
         return f"{self.qualified_short_id} - {self.title}"
 
-    def count_users_seen(self, referrer=Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS.value):
+    def count_users_seen(
+        self,
+        referrer=Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS.value,
+        environment_ids: list[int] | None = None,
+    ):
         return tagstore.backend.get_groups_user_counts(
             [self.project_id],
             [self.id],
-            environment_ids=None,
+            environment_ids=environment_ids,
             start=self.first_seen,
             tenant_ids={"organization_id": self.project.organization_id},
             referrer=referrer,
         )[self.id]
-
-    @classmethod
-    def calculate_score(cls, times_seen, last_seen):
-        return math.log(float(times_seen or 1)) * 600 + float(last_seen.strftime("%s"))
 
     def get_assignee(self) -> Team | RpcUser | None:
         from sentry.models.groupassignee import GroupAssignee

@@ -1,4 +1,4 @@
-import type {LocationRange} from 'pegjs';
+import type {LocationRange} from 'peggy';
 
 import type {TokenResult} from './parser';
 import {allOperators, Token} from './parser';
@@ -104,6 +104,12 @@ export function treeResultLocator<T>({
         nodeVisitor(token.argsSpaceBefore);
         nodeVisitor(token.argsSpaceAfter);
         break;
+      case Token.KEY_EXPLICIT_NUMBER_TAG:
+        nodeVisitor(token.key);
+        break;
+      case Token.KEY_EXPLICIT_STRING_TAG:
+        nodeVisitor(token.key);
+        break;
       case Token.LOGIC_GROUP:
         token.inner.forEach(nodeVisitor);
         break;
@@ -172,6 +178,16 @@ export function treeTransformer({tree, transform}: TreeTransformerOpts) {
           argsSpaceBefore: nodeVisitor(token.argsSpaceBefore),
           argsSpaceAfter: nodeVisitor(token.argsSpaceAfter),
         });
+      case Token.KEY_EXPLICIT_NUMBER_TAG:
+        return transform({
+          ...token,
+          key: nodeVisitor(token.key),
+        });
+      case Token.KEY_EXPLICIT_STRING_TAG:
+        return transform({
+          ...token,
+          key: nodeVisitor(token.key),
+        });
       case Token.LOGIC_GROUP:
         return transform({
           ...token,
@@ -203,25 +219,47 @@ type GetKeyNameOpts = {
    * Include arguments in aggregate key names
    */
   aggregateWithArgs?: boolean;
+  /**
+   * Display explicit tags with `tags[name]` instead of `name`
+   */
+  showExplicitTagPrefix?: boolean;
 };
 
 /**
  * Utility to get the string name of any type of key.
  */
 export const getKeyName = (
-  key: TokenResult<Token.KEY_SIMPLE | Token.KEY_EXPLICIT_TAG | Token.KEY_AGGREGATE>,
+  key: TokenResult<
+    | Token.KEY_SIMPLE
+    | Token.KEY_EXPLICIT_TAG
+    | Token.KEY_AGGREGATE
+    | Token.KEY_EXPLICIT_NUMBER_TAG
+    | Token.KEY_EXPLICIT_STRING_TAG
+  >,
   options: GetKeyNameOpts = {}
 ) => {
-  const {aggregateWithArgs} = options;
+  const {aggregateWithArgs, showExplicitTagPrefix = false} = options;
   switch (key.type) {
     case Token.KEY_SIMPLE:
       return key.value;
     case Token.KEY_EXPLICIT_TAG:
+      if (showExplicitTagPrefix) {
+        return key.text;
+      }
       return key.key.value;
     case Token.KEY_AGGREGATE:
       return aggregateWithArgs
         ? `${key.name.value}(${key.args ? key.args.text : ''})`
         : key.name.value;
+    case Token.KEY_EXPLICIT_NUMBER_TAG:
+      // number tags always need to be expressed with the
+      // explicit tag prefix + type
+      return key.text;
+    case Token.KEY_EXPLICIT_STRING_TAG:
+      if (showExplicitTagPrefix) {
+        return key.text;
+      }
+      return key.key.value;
     default:
       return '';
   }
@@ -288,6 +326,10 @@ export function stringifyToken(token: TokenResult<Token>) {
       return token.text;
     case Token.KEY_EXPLICIT_TAG:
       return `${token.prefix}[${token.key.value}]`;
+    case Token.KEY_EXPLICIT_NUMBER_TAG:
+      return `${token.prefix}[${token.key.value},number]`;
+    case Token.KEY_EXPLICIT_STRING_TAG:
+      return `${token.prefix}[${token.key.value},string]`;
     case Token.VALUE_TEXT:
       return token.quoted ? `"${token.value}"` : token.value;
     case Token.VALUE_RELATIVE_DATE:

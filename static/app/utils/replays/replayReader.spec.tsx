@@ -32,6 +32,7 @@ describe('ReplayReader', () => {
     const missingAttachments = ReplayReader.factory({
       attachments: undefined,
       errors: [],
+      fetching: false,
       replayRecord,
     });
     expect(missingAttachments).toBeNull();
@@ -39,6 +40,7 @@ describe('ReplayReader', () => {
     const missingErrors = ReplayReader.factory({
       attachments: [],
       errors: undefined,
+      fetching: false,
       replayRecord,
     });
     expect(missingErrors).toBeNull();
@@ -46,6 +48,7 @@ describe('ReplayReader', () => {
     const missingRecord = ReplayReader.factory({
       attachments: [],
       errors: [],
+      fetching: false,
       replayRecord: undefined,
     });
     expect(missingRecord).toBeNull();
@@ -61,6 +64,7 @@ describe('ReplayReader', () => {
         ReplayConsoleEventFixture({timestamp: minuteTen}),
       ],
       errors: [],
+      fetching: false,
       replayRecord: ReplayRecordFixture({
         started_at: new Date('2023-12-25T00:01:00'),
         finished_at: new Date('2023-12-25T00:09:00'),
@@ -79,6 +83,7 @@ describe('ReplayReader', () => {
     const replay = ReplayReader.factory({
       attachments: [],
       errors: [],
+      fetching: false,
       replayRecord,
     });
 
@@ -211,6 +216,7 @@ describe('ReplayReader', () => {
       const replay = ReplayReader.factory({
         attachments,
         errors: [],
+        fetching: false,
         replayRecord,
       });
 
@@ -231,6 +237,7 @@ describe('ReplayReader', () => {
         }),
       ],
       errors: [],
+      fetching: false,
       replayRecord,
     });
 
@@ -253,6 +260,7 @@ describe('ReplayReader', () => {
           }),
         ],
         errors: [],
+        fetching: false,
         replayRecord,
       });
 
@@ -292,6 +300,7 @@ describe('ReplayReader', () => {
           }),
         ],
         errors: [],
+        fetching: false,
         replayRecord,
       });
 
@@ -320,6 +329,7 @@ describe('ReplayReader', () => {
     const replay = ReplayReader.factory({
       attachments,
       errors: [],
+      fetching: false,
       replayRecord,
     });
 
@@ -352,6 +362,7 @@ describe('ReplayReader', () => {
     const replay = ReplayReader.factory({
       attachments: [snapshot, increment],
       errors: [],
+      fetching: false,
       replayRecord,
     });
 
@@ -426,6 +437,7 @@ describe('ReplayReader', () => {
         breadcrumbAttachment3,
       ],
       errors: [error1, error2, error3],
+      fetching: false,
       replayRecord: ReplayRecordFixture({
         started_at: replayStartedAt,
         finished_at: replayFinishedAt,
@@ -438,7 +450,7 @@ describe('ReplayReader', () => {
 
     it('should adjust the end time and duration for the clip window', () => {
       // Duration should be between the clip start time and end time
-      expect(replay?.getDurationMs()).toEqual(10_000);
+      expect(replay?.getDurationMs()).toBe(10_000);
       // Start offset should be set
       expect(replay?.getStartOffsetMs()).toEqual(
         clipStartTimestamp.getTime() - replayStartedAt.getTime()

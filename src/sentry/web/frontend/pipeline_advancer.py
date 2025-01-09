@@ -1,5 +1,5 @@
 from django.contrib import messages
-from django.http import HttpResponseRedirect
+from django.http import HttpRequest, HttpResponseRedirect
 from django.http.response import HttpResponseBase
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
@@ -16,9 +16,6 @@ from sentry.web.frontend.base import BaseView
 PIPELINE_CLASSES = [IntegrationPipeline, IdentityProviderPipeline]
 
 
-from rest_framework.request import Request
-
-
 class PipelineAdvancerView(BaseView):
     """Gets the current pipeline from the request and executes the current step."""
 
@@ -26,7 +23,7 @@ class PipelineAdvancerView(BaseView):
 
     csrf_protect = False
 
-    def handle(self, request: Request, provider_id: str) -> HttpResponseBase:
+    def handle(self, request: HttpRequest, provider_id: str) -> HttpResponseBase:
         pipeline = None
 
         for pipeline_cls in PIPELINE_CLASSES:

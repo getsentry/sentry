@@ -35,6 +35,10 @@ import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useTeams} from 'sentry/utils/useTeams';
+import {
+  MultipleCheckboxOptions,
+  useCreateNotificationAction,
+} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 import IssueAlertOptions, {
   MetricValues,
   RuleAction,
@@ -82,14 +86,13 @@ function CreateProject() {
     undefined
   );
 
-  const frameworkSelectionEnabled = !!organization?.features.includes(
-    'onboarding-sdk-selection'
-  );
+  const {createNotificationAction, notificationProps} = useCreateNotificationAction();
 
   const createProject = useCallback(
     async (selectedFramework?: OnboardingSelectedSDK) => {
       const {slug} = organization;
       const {
+        shouldCreateRule,
         shouldCreateCustomRule,
         name,
         conditions,
@@ -121,7 +124,7 @@ function CreateProject() {
           },
         });
 
-        let ruleId: string | undefined;
+        const ruleIds: string[] = [];
         if (shouldCreateCustomRule) {
           const ruleData = await api.requestPromise(
             `/projects/${organization.slug}/${projectData.slug}/rules/`,
@@ -136,7 +139,18 @@ function CreateProject() {
               },
             }
           );
-          ruleId = ruleData.id;
+          ruleIds.push(ruleData.id);
+        }
+        const ruleData = await createNotificationAction({
+          shouldCreateRule,
+          name,
+          projectSlug: projectData.slug,
+          conditions,
+          actionMatch,
+          frequency,
+        });
+        if (ruleData) {
+          ruleIds.push(ruleData.id);
         }
         trackAnalytics('project_creation_page.created', {
           organization,
@@ -147,23 +161,20 @@ function CreateProject() {
               : 'No Rule',
           project_id: projectData.id,
           platform: selectedPlatform.key,
-          rule_id: ruleId || '',
+          rule_ids: ruleIds,
         });
 
         ProjectsStore.onCreateSuccess(projectData, organization.slug);
 
         if (team) {
-          addSuccessMessage(
-            tct('Created project [project]', {
-              project: `${projectData.slug}`,
-            })
-          );
+          addSuccessMessage(t('Created project %s', `${projectData.slug}`));
         } else {
           addSuccessMessage(
-            tct('Created [project] under new team [team]', {
-              project: `${projectData.slug}`,
-              team: `#${projectData.team_slug}`,
-            })
+            t(
+              'Created %s under new team %s',
+              `${projectData.slug}`,
+              `#${projectData.team_slug}`
+            )
           );
         }
 
@@ -175,11 +186,7 @@ function CreateProject() {
       } catch (err) {
         setInFlight(false);
         setErrors(err.responseJSON);
-        addErrorMessage(
-          tct('Failed to create project [project]', {
-            project: `${projectName}`,
-          })
-        );
+        addErrorMessage(t('Failed to create project %s', `${projectName}`));
 
         // Only log this if the error is something other than:
         // * The user not having access to create a project, or,
@@ -192,7 +199,15 @@ function CreateProject() {
         }
       }
     },
-    [api, alertRuleConfig, organization, platform, projectName, team]
+    [
+      api,
+      alertRuleConfig,
+      organization,
+      platform,
+      projectName,
+      team,
+      createNotificationAction,
+    ]
   );
 
   const handleProjectCreation = useCallback(async () => {
@@ -259,7 +274,7 @@ function CreateProject() {
     setProjectName(newName);
   }
 
-  const {shouldCreateCustomRule, conditions} = alertRuleConfig || {};
+  const {shouldCreateRule, shouldCreateCustomRule, conditions} = alertRuleConfig || {};
   const canUserCreateProject = canCreateProject(organization);
 
   const canCreateTeam = organization.access.includes('project:admin');
@@ -269,11 +284,18 @@ function CreateProject() {
   const isMissingProjectName = projectName === '';
   const isMissingAlertThreshold =
     shouldCreateCustomRule && !conditions?.every?.(condition => condition.value);
+  const isMissingMessagingIntegrationChannel =
+    shouldCreateRule &&
+    notificationProps.actions?.some(
+      action => action === MultipleCheckboxOptions.INTEGRATION
+    ) &&
+    !notificationProps.channel;
 
   const formErrorCount = [
     isMissingTeam,
     isMissingProjectName,
     isMissingAlertThreshold,
+    isMissingMessagingIntegrationChannel,
   ].filter(value => value).length;
 
   const canSubmitForm = !inFlight && canUserCreateProject && formErrorCount === 0;
@@ -285,7 +307,18 @@ function CreateProject() {
     submitTooltipText = t('Please provide a project name');
   } else if (isMissingAlertThreshold) {
     submitTooltipText = t('Please provide an alert threshold');
+  } else if (isMissingMessagingIntegrationChannel) {
+    submitTooltipText = t(
+      'Please provide an integration channel for alert notifications'
+    );
   }
+
+  const keyToErrorText = {
+    actions: t('Notify via integration'),
+    conditions: t('Alert conditions'),
+    name: t('Alert name'),
+    detail: t('Project details'),
+  };
 
   const alertFrequencyDefaultValues = useMemo(() => {
     if (!autoFill) {
@@ -301,14 +334,14 @@ function CreateProject() {
     }
 
     if (
-      alertRules?.[0].conditions?.[0].id?.endsWith('EventFrequencyCondition') ||
-      alertRules?.[0].conditions?.[0].id?.endsWith('EventUniqueUserFrequencyCondition')
+      alertRules?.[0]!.conditions?.[0]!.id?.endsWith('EventFrequencyCondition') ||
+      alertRules?.[0]!.conditions?.[0]!.id?.endsWith('EventUniqueUserFrequencyCondition')
     ) {
       return {
         alertSetting: String(RuleAction.CUSTOMIZED_ALERTS),
-        interval: String(alertRules?.[0].conditions?.[0].interval),
-        threshold: String(alertRules?.[0].conditions?.[0].value),
-        metric: alertRules?.[0].conditions?.[0].id?.endsWith('EventFrequencyCondition')
+        interval: String(alertRules?.[0]!.conditions?.[0]!.interval),
+        threshold: String(alertRules?.[0]!.conditions?.[0]!.value),
+        metric: alertRules?.[0]!.conditions?.[0]!.id?.endsWith('EventFrequencyCondition')
           ? MetricValues.ERRORS
           : MetricValues.USERS,
       };
@@ -348,13 +381,14 @@ function CreateProject() {
             {...alertFrequencyDefaultValues}
             platformLanguage={platform?.language as SupportedLanguages}
             onChange={updatedData => setAlertRuleConfig(updatedData)}
+            notificationProps={notificationProps}
           />
           <StyledListItem>{t('Name your project and assign it a team')}</StyledListItem>
           <CreateProjectForm
             onSubmit={(event: React.FormEvent<HTMLFormElement>) => {
               // Prevent the page from reloading
               event.preventDefault();
-              frameworkSelectionEnabled ? handleProjectCreation() : createProject();
+              handleProjectCreation();
             }}
           >
             <div>
@@ -407,7 +441,7 @@ function CreateProject() {
             <Alert type="error">
               {Object.keys(errors).map(key => (
                 <div key={key}>
-                  <strong>{startCase(key)}</strong>: {errors[key]}
+                  <strong>{keyToErrorText[key] ?? startCase(key)}</strong>: {errors[key]}
                 </div>
               ))}
             </Alert>

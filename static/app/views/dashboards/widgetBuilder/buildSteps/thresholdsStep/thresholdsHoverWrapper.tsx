@@ -5,28 +5,23 @@ import CircleIndicator from 'sentry/components/circleIndicator';
 import {Hovercard} from 'sentry/components/hovercard';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import theme from 'sentry/utils/theme';
 
 import type {ThresholdsConfig} from './thresholdsStep';
 
 type Props = {
   children: React.ReactNode;
-  tableData: TableDataWithTitle[];
   thresholds: ThresholdsConfig;
+  type?: string;
 };
 
-function ThresholdsHoverWrapper({children, thresholds, tableData}: Props) {
+export function ThresholdsHoverWrapper({children, thresholds, type}: Props) {
   const {
     unit,
     max_values: {max1, max2},
   } = thresholds;
-  const tableMeta = {...tableData[0].meta};
-  const fields = Object.keys(tableMeta);
-  const field = fields[0];
-  const dataType = tableMeta[field];
   const formattedUnit =
-    unit && (dataType === 'duration' ? `${unit}s` : `/${unit.split('/')[1]}`);
+    unit && (type === 'duration' ? `${unit}s` : `/${unit.split('/')[1]}`);
   const title = unit ? t(`Thresholds in %s`, formattedUnit) : t('Thresholds');
 
   const notSetMsg = t('Not set');
@@ -87,5 +82,3 @@ const ContextTitle = styled('h6')`
 const StyledIndicator = styled(CircleIndicator)`
   margin-right: ${space(1)};
 `;
-
-export default ThresholdsHoverWrapper;

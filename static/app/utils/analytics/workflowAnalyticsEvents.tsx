@@ -19,6 +19,8 @@ interface IssueDetailsWithAlert extends CommonGroupAnalyticsData {
 
 export type BaseEventAnalyticsParams = {
   event_id: string;
+  exception_group_height: number;
+  exception_group_width: number;
   has_commit: boolean;
   has_exception_group: boolean;
   has_local_variables: boolean;
@@ -47,6 +49,7 @@ export type BaseEventAnalyticsParams = {
   frames_without_source_maps_percent?: number;
   has_graphql_request?: boolean;
   has_otel?: boolean;
+  is_sample_event?: boolean;
   mobile?: boolean;
   release_user_agent?: string;
   sdk_name?: string;
@@ -103,7 +106,7 @@ export type TeamInsightsEventParameters = {
   'issue_details.attachment_tab.screenshot_modal_download': {};
   'issue_details.attachment_tab.screenshot_modal_opened': {};
   'issue_details.attachment_tab.screenshot_title_clicked': {};
-  'issue_details.event_json_clicked': {group_id: number};
+  'issue_details.event_json_clicked': {group_id: number; streamline: boolean};
   'issue_details.event_navigation_clicked': {button: string; project_id: number};
   'issue_details.issue_tab.screenshot_dropdown_deleted': {};
   'issue_details.issue_tab.screenshot_dropdown_download': {};
@@ -147,7 +150,7 @@ export type TeamInsightsEventParameters = {
     issue_alert: 'Default' | 'Custom' | 'No Rule';
     platform: string;
     project_id: string;
-    rule_id: string;
+    rule_ids: string[];
   };
   'project_detail.change_chart': {chart_index: number; metric: string};
   'project_detail.open_anr_issues': {};
@@ -160,6 +163,15 @@ export type TeamInsightsEventParameters = {
   'release_detail.pagination': {direction: string};
   'releases_list.click_add_release_health': {
     project_id: number;
+  };
+  trace_timeline_clicked: {
+    area: string;
+    event_id: string;
+    group_id: string;
+  };
+  trace_timeline_more_events_clicked: {
+    area: string;
+    num_hidden: number;
   };
 };
 
@@ -225,4 +237,6 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
   'project_detail.releases_tour.close': 'Project Detail: Releases Tour Close',
   'release_detail.pagination': 'Release Detail: Pagination',
   'releases_list.click_add_release_health': 'Releases List: Click Add Release Health',
+  trace_timeline_clicked: 'Trace Timeline Clicked',
+  trace_timeline_more_events_clicked: 'Trace Timeline More Events Clicked',
 };

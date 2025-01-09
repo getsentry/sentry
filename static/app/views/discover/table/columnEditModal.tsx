@@ -20,7 +20,7 @@ import {
   TRANSACTION_FIELDS,
 } from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {type AggregationKey, FieldKey} from 'sentry/utils/fields';
+import {AggregationKey, FieldKey} from 'sentry/utils/fields';
 import theme from 'sentry/utils/theme';
 import useTags from 'sentry/utils/useTags';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
@@ -136,8 +136,14 @@ function ColumnEditModal(props: Props) {
           filterAggregateParameters={option =>
             option.value.meta.name !== FieldKey.TOTAL_COUNT
           }
+          // Performance Score is not supported in Discover because
+          // INP is not stored on sampled transactions.
+          filterPrimaryOptions={option =>
+            option.value.meta.name !== AggregationKey.PERFORMANCE_SCORE
+          }
           onChange={setColumns}
           organization={organization}
+          supportsEquations
         />
       </Body>
       <Footer>

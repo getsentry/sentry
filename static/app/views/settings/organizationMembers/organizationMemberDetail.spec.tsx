@@ -18,7 +18,9 @@ import selectEvent from 'sentry-test/selectEvent';
 
 import {updateMember} from 'sentry/actionCreators/members';
 import TeamStore from 'sentry/stores/teamStore';
-import OrganizationMemberDetail from 'sentry/views/settings/organizationMembers/organizationMemberDetail';
+import type {Member} from 'sentry/types/organization';
+
+import OrganizationMemberDetail from './organizationMemberDetail';
 
 jest.mock('sentry/actionCreators/members', () => ({
   updateMember: jest.fn().mockReturnValue(new Promise(() => {})),
@@ -138,18 +140,18 @@ describe('OrganizationMemberDetail', function () {
     });
 
     it('changes org role to owner', async function () {
-      const {router, routerProps} = initializeOrg({organization});
+      const {router} = initializeOrg({
+        organization,
+        router: {params: {memberId: member.id}},
+      });
 
-      render(
-        <OrganizationMemberDetail {...routerProps} params={{memberId: member.id}} />,
-        {
-          router,
-          organization,
-        }
-      );
+      render(<OrganizationMemberDetail />, {
+        router,
+        organization,
+      });
 
-      // Should have 4 roles
-      const radios = screen.getAllByRole('radio');
+      // Should have 5 roles
+      const radios = await screen.findAllByRole('radio');
       expect(radios).toHaveLength(5);
 
       // Click last radio
@@ -170,18 +172,18 @@ describe('OrganizationMemberDetail', function () {
     });
 
     it('leaves a team', async function () {
-      const {router, routerProps} = initializeOrg({organization});
+      const {router} = initializeOrg({
+        organization,
+        router: {params: {memberId: member.id}},
+      });
 
-      render(
-        <OrganizationMemberDetail {...routerProps} params={{memberId: member.id}} />,
-        {
-          router,
-          organization,
-        }
-      );
+      render(<OrganizationMemberDetail />, {
+        router,
+        organization,
+      });
 
       // Remove our one team
-      await userEvent.click(screen.getByRole('button', {name: 'Remove'}));
+      await userEvent.click(await screen.findByRole('button', {name: 'Remove'}));
 
       // Save Member
       await userEvent.click(screen.getByRole('button', {name: 'Save Member'}));
@@ -196,36 +198,33 @@ describe('OrganizationMemberDetail', function () {
       );
     });
 
-    it('cannot leave idp-provisioned team', function () {
-      const {router, routerProps} = initializeOrg({organization});
+    it('cannot leave idp-provisioned team', async function () {
+      const {router} = initializeOrg({
+        organization,
+        router: {params: {memberId: idpTeamMember.id}},
+      });
 
-      render(
-        <OrganizationMemberDetail
-          {...routerProps}
-          params={{memberId: idpTeamMember.id}}
-        />,
-        {
-          router,
-          organization,
-        }
-      );
+      render(<OrganizationMemberDetail />, {
+        router,
+        organization,
+      });
 
-      expect(screen.getByRole('button', {name: 'Remove'})).toBeDisabled();
+      expect(await screen.findByRole('button', {name: 'Remove'})).toBeDisabled();
     });
 
     it('joins a team and assign a team-role', async function () {
-      const {router, routerProps} = initializeOrg({organization});
+      const {router} = initializeOrg({
+        organization,
+        router: {params: {memberId: member.id}},
+      });
 
-      render(
-        <OrganizationMemberDetail {...routerProps} params={{memberId: member.id}} />,
-        {
-          router,
-          organization,
-        }
-      );
+      render(<OrganizationMemberDetail />, {
+        router,
+        organization,
+      });
 
       // Should have one team enabled
-      expect(screen.getByTestId('team-row-for-member')).toBeInTheDocument();
+      expect(await screen.findByTestId('team-row-for-member')).toBeInTheDocument();
 
       // Select new team to join
       // Open the dropdown
@@ -234,7 +233,7 @@ describe('OrganizationMemberDetail', function () {
       await userEvent.click(screen.getByText('#new-team'));
 
       // Assign as admin to new team
-      const teamRoleSelect = screen.getAllByText('Contributor')[0];
+      const teamRoleSelect = screen.getAllByText('Contributor')[0]!;
       await selectEvent.select(teamRoleSelect, ['Team Admin']);
 
       // Save Member
@@ -254,17 +253,17 @@ describe('OrganizationMemberDetail', function () {
     });
 
     it('cannot join idp-provisioned team', async function () {
-      const {router, routerProps} = initializeOrg({organization});
+      const {router} = initializeOrg({
+        organization,
+        router: {params: {memberId: member.id}},
+      });
 
-      render(
-        <OrganizationMemberDetail {...routerProps} params={{memberId: member.id}} />,
-        {
-          router,
-          organization,
-        }
-      );
+      render(<OrganizationMemberDetail />, {
+        router,
+        organization,
+      });
 
-      await userEvent.click(screen.getByText('Add Team'));
+      await userEvent.click(await screen.findByText('Add Team'));
       await userEvent.hover(screen.getByText('#idp-member-team'));
       expect(
         await screen.findByText(
@@ -301,19 +300,19 @@ describe('OrganizationMemberDetail', function () {
       });
     });
 
-    it('can not change roles, teams, or save', function () {
-      const {router, routerProps} = initializeOrg({organization});
+    it('can not change roles, teams, or save', async function () {
+      const {router} = initializeOrg({
+        organization,
+        router: {params: {memberId: member.id}},
+      });
 
-      render(
-        <OrganizationMemberDetail {...routerProps} params={{memberId: member.id}} />,
-        {
-          router,
-          organization,
-        }
-      );
+      render(<OrganizationMemberDetail />, {
+        router,
+        organization,
+      });
 
       // Should have 4 roles
-      const radios = screen.getAllByRole('radio');
+      const radios = await screen.findAllByRole('radio');
       expect(radios.at(0)).toHaveAttribute('readonly');
 
       // Save Member
@@ -348,38 +347,36 @@ describe('OrganizationMemberDetail', function () {
       });
     });
 
-    it('display pending status', function () {
-      const {router, routerProps} = initializeOrg({organization});
+    it('display pending status', async function () {
+      const {router} = initializeOrg({
+        organization,
+        router: {params: {memberId: pendingMember.id}},
+      });
 
-      render(
-        <OrganizationMemberDetail
-          {...routerProps}
-          params={{memberId: pendingMember.id}}
-        />,
-        {
-          router,
-          organization,
-        }
+      render(<OrganizationMemberDetail />, {
+        router,
+        organization,
+      });
+
+      expect(await screen.findByTestId('member-status')).toHaveTextContent(
+        'Invitation Pending'
       );
-
-      expect(screen.getByTestId('member-status')).toHaveTextContent('Invitation Pending');
     });
 
-    it('display expired status', function () {
-      const {router, routerProps} = initializeOrg({organization});
+    it('display expired status', async function () {
+      const {router} = initializeOrg({
+        organization,
+        router: {params: {memberId: expiredMember.id}},
+      });
 
-      render(
-        <OrganizationMemberDetail
-          {...routerProps}
-          params={{memberId: expiredMember.id}}
-        />,
-        {
-          router,
-          organization,
-        }
+      render(<OrganizationMemberDetail />, {
+        router,
+        organization,
+      });
+
+      expect(await screen.findByTestId('member-status')).toHaveTextContent(
+        'Invitation Expired'
       );
-
-      expect(screen.getByTestId('member-status')).toHaveTextContent('Invitation Expired');
     });
   });
 
@@ -410,37 +407,34 @@ describe('OrganizationMemberDetail', function () {
       });
     });
 
-    it('shows for pending', function () {
-      const {router, routerProps} = initializeOrg({organization});
+    it('shows for pending', async function () {
+      const {router} = initializeOrg({
+        organization,
+        router: {params: {memberId: pendingMember.id}},
+      });
 
-      render(
-        <OrganizationMemberDetail
-          {...routerProps}
-          params={{memberId: pendingMember.id}}
-        />,
-        {
-          router,
-          organization,
-        }
-      );
+      render(<OrganizationMemberDetail />, {
+        router,
+        organization,
+      });
 
-      expect(screen.getByRole('button', {name: 'Resend Invite'})).toBeInTheDocument();
+      expect(
+        await screen.findByRole('button', {name: 'Resend Invite'})
+      ).toBeInTheDocument();
     });
 
-    it('does not show for expired', function () {
-      const {router, routerProps} = initializeOrg({organization});
+    it('does not show for expired', async function () {
+      const {router} = initializeOrg({
+        organization,
+        router: {params: {memberId: expiredMember.id}},
+      });
 
-      render(
-        <OrganizationMemberDetail
-          {...routerProps}
-          params={{memberId: expiredMember.id}}
-        />,
-        {
-          router,
-          organization,
-        }
-      );
+      render(<OrganizationMemberDetail />, {
+        router,
+        organization,
+      });
 
+      await screen.findAllByRole('radio');
       expect(
         screen.queryByRole('button', {name: 'Resend Invite'})
       ).not.toBeInTheDocument();
@@ -520,69 +514,79 @@ describe('OrganizationMemberDetail', function () {
       });
     });
 
-    const button = () =>
-      screen.queryByRole('button', {name: 'Reset two-factor authentication'});
     const tooltip = () => screen.queryByTestId('reset-2fa-tooltip');
 
-    const expectButtonEnabled = () => {
-      expect(button()).toHaveTextContent('Reset two-factor authentication');
-      expect(button()).toBeEnabled();
+    const expectButtonEnabled = async () => {
+      const button = await screen.findByRole('button', {
+        name: 'Reset two-factor authentication',
+      });
+      expect(button).toHaveTextContent('Reset two-factor authentication');
+      expect(button).toBeEnabled();
 
       expect(tooltip()).not.toBeInTheDocument();
     };
 
-    const expectButtonDisabled = async title => {
-      expect(button()).toHaveTextContent('Reset two-factor authentication');
-      expect(button()).toBeDisabled();
+    const expectButtonDisabled = async (title: string) => {
+      const button = await screen.findByRole('button', {
+        name: 'Reset two-factor authentication',
+      });
+      expect(button).toHaveTextContent('Reset two-factor authentication');
+      expect(button).toBeDisabled();
 
-      await userEvent.hover(button() as Element);
+      await userEvent.hover(button);
       expect(await screen.findByText(title)).toBeInTheDocument();
     };
 
-    it('does not show for pending member', function () {
-      const {router, routerProps} = initializeOrg({organization});
+    it('does not show for pending member', async function () {
+      const {router} = initializeOrg({
+        organization,
+        router: {params: {memberId: pendingMember.id}},
+      });
 
-      render(
-        <OrganizationMemberDetail
-          {...routerProps}
-          params={{memberId: pendingMember.id}}
-        />,
-        {
-          router,
-          organization,
-        }
-      );
-      expect(button()).not.toBeInTheDocument();
+      render(<OrganizationMemberDetail />, {
+        router,
+        organization,
+      });
+
+      expect(
+        await screen.findByRole('button', {name: 'Resend Invite'})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Reset two-factor authentication'})
+      ).not.toBeInTheDocument();
     });
 
     it('shows tooltip for joined member without permission to edit', async function () {
-      const {router, routerProps} = initializeOrg({organization});
+      const {router} = initializeOrg({
+        organization,
+        router: {params: {memberId: noAccess.id}},
+      });
 
-      render(
-        <OrganizationMemberDetail {...routerProps} params={{memberId: noAccess.id}} />,
-        {
-          router,
-          organization,
-        }
-      );
+      render(<OrganizationMemberDetail />, {
+        router,
+        organization,
+      });
       await expectButtonDisabled('You do not have permission to perform this action');
     });
 
     it('shows tooltip for member without 2fa', async function () {
-      const {router, routerProps} = initializeOrg({organization});
+      const {router} = initializeOrg({
+        organization,
+        router: {params: {memberId: no2fa.id}},
+      });
 
-      render(
-        <OrganizationMemberDetail {...routerProps} params={{memberId: no2fa.id}} />,
-        {
-          router,
-          organization,
-        }
-      );
+      render(<OrganizationMemberDetail />, {
+        router,
+        organization,
+      });
       await expectButtonDisabled('Not enrolled in two-factor authentication');
     });
 
     it('can reset member 2FA', async function () {
-      const {router, routerProps} = initializeOrg({organization});
+      const {router} = initializeOrg({
+        organization,
+        router: {params: {memberId: has2fa.id}},
+      });
 
       const deleteMocks = (has2fa.user?.authenticators || []).map(auth =>
         MockApiClient.addMockResponse({
@@ -591,17 +595,16 @@ describe('OrganizationMemberDetail', function () {
         })
       );
 
-      render(
-        <OrganizationMemberDetail {...routerProps} params={{memberId: has2fa.id}} />,
-        {
-          router,
-          organization,
-        }
-      );
+      render(<OrganizationMemberDetail />, {
+        router,
+        organization,
+      });
       renderGlobalModal();
 
-      expectButtonEnabled();
-      await userEvent.click(button() as Element);
+      await expectButtonEnabled();
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Reset two-factor authentication'})
+      );
 
       await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
@@ -611,18 +614,15 @@ describe('OrganizationMemberDetail', function () {
     });
 
     it('shows tooltip for member in multiple orgs', async function () {
-      const {router, routerProps} = initializeOrg({organization});
+      const {router} = initializeOrg({
+        organization,
+        router: {params: {memberId: multipleOrgs.id}},
+      });
 
-      render(
-        <OrganizationMemberDetail
-          {...routerProps}
-          params={{memberId: multipleOrgs.id}}
-        />,
-        {
-          router,
-          organization,
-        }
-      );
+      render(<OrganizationMemberDetail />, {
+        router,
+        organization,
+      });
       await expectButtonDisabled(
         'Cannot be reset since user is in more than one organization'
       );
@@ -630,19 +630,19 @@ describe('OrganizationMemberDetail', function () {
 
     it('shows tooltip for member in 2FA required org', async function () {
       organization.require2FA = true;
-      const {router, routerProps} = initializeOrg({organization});
+      const {router} = initializeOrg({
+        organization,
+        router: {params: {memberId: has2fa.id}},
+      });
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/members/${has2fa.id}/`,
         body: has2fa,
       });
 
-      render(
-        <OrganizationMemberDetail {...routerProps} params={{memberId: has2fa.id}} />,
-        {
-          router,
-          organization,
-        }
-      );
+      render(<OrganizationMemberDetail />, {
+        router,
+        organization,
+      });
       await expectButtonDisabled(
         'Cannot be reset since two-factor is required for this organization'
       );
@@ -696,29 +696,29 @@ describe('OrganizationMemberDetail', function () {
     });
 
     it('does not overwrite team-roles for org members', async () => {
-      const {router, routerProps} = initializeOrg({organization});
+      const {router} = initializeOrg({
+        organization,
+        router: {params: {memberId: member.id}},
+      });
 
-      render(
-        <OrganizationMemberDetail {...routerProps} params={{memberId: member.id}} />,
-        {
-          router,
-          organization,
-        }
-      );
+      render(<OrganizationMemberDetail />, {
+        router,
+        organization,
+      });
 
       // Role info box is hidden
       expect(screen.queryByTestId('alert-role-overwrite')).not.toBeInTheDocument();
 
       // Dropdown has correct value set
-      const teamRow = screen.getByTestId('team-row-for-member');
+      const teamRow = await screen.findByTestId('team-row-for-member');
       const teamRoleSelect = within(teamRow).getByText('Contributor');
 
       // Dropdown options are not visible
-      expect(screen.queryAllByText('...').length).toBe(0);
+      expect(screen.queryAllByText('...')).toHaveLength(0);
 
       // Dropdown can be opened
       await selectEvent.openMenu(teamRoleSelect);
-      expect(screen.queryAllByText('...').length).toBe(2);
+      expect(screen.queryAllByText('...')).toHaveLength(2);
 
       // Dropdown value can be changed
       await userEvent.click(screen.getByLabelText('Team Admin'));
@@ -726,34 +726,30 @@ describe('OrganizationMemberDetail', function () {
     });
 
     it('overwrite team-roles for org admin/manager/owner', async () => {
-      const {router, routerProps} = initializeOrg({organization});
-
-      async function testForOrgRole(testMember) {
+      async function testForOrgRole(testMember: Member) {
+        const {router} = initializeOrg({
+          organization,
+          router: {params: {memberId: testMember.id}},
+        });
         cleanup();
-        render(
-          <OrganizationMemberDetail
-            {...routerProps}
-            params={{memberId: testMember.id}}
-          />,
-          {
-            router,
-            organization,
-          }
-        );
+        render(<OrganizationMemberDetail />, {
+          router,
+          organization,
+        });
 
         // Role info box is showed
-        expect(screen.queryByTestId('alert-role-overwrite')).toBeInTheDocument();
+        expect(await screen.findByTestId('alert-role-overwrite')).toBeInTheDocument();
 
         // Dropdown has correct value set
         const teamRow = screen.getByTestId('team-row-for-member');
         const teamRoleSelect = within(teamRow).getByText('Team Admin');
 
         // Dropdown options are not visible
-        expect(screen.queryAllByText('...').length).toBe(0);
+        expect(screen.queryAllByText('...')).toHaveLength(0);
 
         // Dropdown cannot be opened
         await selectEvent.openMenu(teamRoleSelect);
-        expect(screen.queryAllByText('...').length).toBe(0);
+        expect(screen.queryAllByText('...')).toHaveLength(0);
       }
 
       for (const role of [admin, manager, owner]) {
@@ -762,22 +758,22 @@ describe('OrganizationMemberDetail', function () {
     });
 
     it('overwrites when changing from member to manager', async () => {
-      const {router, routerProps} = initializeOrg({organization});
+      const {router} = initializeOrg({
+        organization,
+        router: {params: {memberId: member.id}},
+      });
 
-      render(
-        <OrganizationMemberDetail {...routerProps} params={{memberId: member.id}} />,
-        {
-          router,
-          organization,
-        }
-      );
+      render(<OrganizationMemberDetail />, {
+        router,
+        organization,
+      });
+
+      // Dropdown has correct value set
+      const teamRow = await screen.findByTestId('team-row-for-member');
+      const teamRoleSelect = within(teamRow).getByText('Contributor');
 
       // Role info box is hidden
       expect(screen.queryByTestId('alert-role-overwrite')).not.toBeInTheDocument();
-
-      // Dropdown has correct value set
-      const teamRow = screen.getByTestId('team-row-for-member');
-      const teamRoleSelect = within(teamRow).getByText('Contributor');
 
       // Change member to owner
       const orgRoleRadio = screen.getAllByRole('radio');
@@ -786,17 +782,17 @@ describe('OrganizationMemberDetail', function () {
       expect(orgRoleRadio.at(-1)).toBeChecked();
 
       // Role info box is shown
-      expect(screen.queryByTestId('alert-role-overwrite')).toBeInTheDocument();
+      expect(screen.getByTestId('alert-role-overwrite')).toBeInTheDocument();
 
       // Dropdown has correct value set
       within(teamRow).getByText('Team Admin');
 
       // Dropdown options are not visible
-      expect(screen.queryAllByText('...').length).toBe(0);
+      expect(screen.queryAllByText('...')).toHaveLength(0);
 
       // Dropdown cannot be opened
       await selectEvent.openMenu(teamRoleSelect);
-      expect(screen.queryAllByText('...').length).toBe(0);
+      expect(screen.queryAllByText('...')).toHaveLength(0);
     });
   });
 });

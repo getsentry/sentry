@@ -62,6 +62,12 @@ class OrganizationMonitorIndexStatsTest(MonitorTestCase):
             env=self.env_debug,
             status=CheckInStatus.TIMEOUT,
         )
+        self.add_checkin(
+            self.monitor1,
+            offset={"hours": 1, "minutes": 2},
+            env=self.env_debug,
+            status=CheckInStatus.UNKNOWN,
+        )
 
         self.add_checkin(self.monitor2, env=self.env_prod_2, offset={"minutes": 1})
         self.add_checkin(self.monitor2, env=self.env_prod_2, offset={"minutes": 2})
@@ -84,15 +90,43 @@ class OrganizationMonitorIndexStatsTest(MonitorTestCase):
         assert hour_one == [
             1647846000,
             {
-                "production": {"in_progress": 1, "ok": 1, "error": 0, "missed": 0, "timeout": 0},
-                "debug": {"in_progress": 0, "ok": 1, "error": 0, "missed": 0, "timeout": 0},
+                "production": {
+                    "in_progress": 1,
+                    "ok": 1,
+                    "error": 0,
+                    "missed": 0,
+                    "timeout": 0,
+                    "unknown": 0,
+                },
+                "debug": {
+                    "in_progress": 0,
+                    "ok": 1,
+                    "error": 0,
+                    "missed": 0,
+                    "timeout": 0,
+                    "unknown": 0,
+                },
             },
         ]
         assert hour_two == [
             1647849600,
             {
-                "production": {"in_progress": 0, "ok": 0, "error": 0, "missed": 1, "timeout": 1},
-                "debug": {"in_progress": 0, "ok": 0, "error": 1, "missed": 0, "timeout": 1},
+                "production": {
+                    "in_progress": 0,
+                    "ok": 0,
+                    "error": 0,
+                    "missed": 1,
+                    "timeout": 1,
+                    "unknown": 0,
+                },
+                "debug": {
+                    "in_progress": 0,
+                    "ok": 0,
+                    "error": 1,
+                    "missed": 0,
+                    "timeout": 1,
+                    "unknown": 1,
+                },
             },
         ]
 
@@ -101,7 +135,14 @@ class OrganizationMonitorIndexStatsTest(MonitorTestCase):
         assert hour_one == [
             1647846000,
             {
-                "production": {"ok": 2, "error": 0, "missed": 0, "timeout": 0, "in_progress": 0},
+                "production": {
+                    "ok": 2,
+                    "error": 0,
+                    "missed": 0,
+                    "timeout": 0,
+                    "in_progress": 0,
+                    "unknown": 0,
+                },
             },
         ]
 
@@ -123,7 +164,14 @@ class OrganizationMonitorIndexStatsTest(MonitorTestCase):
         assert hour_one == [
             1647846000,
             {
-                "production": {"ok": 2, "error": 0, "missed": 0, "timeout": 0, "in_progress": 0},
+                "production": {
+                    "ok": 2,
+                    "error": 0,
+                    "missed": 0,
+                    "timeout": 0,
+                    "in_progress": 0,
+                    "unknown": 0,
+                },
             },
         ]
 
@@ -150,7 +198,14 @@ class OrganizationMonitorIndexStatsTest(MonitorTestCase):
         assert min_1 == [
             1647849480,
             {
-                "production": {"in_progress": 1, "ok": 1, "error": 0, "missed": 0, "timeout": 0},
+                "production": {
+                    "in_progress": 1,
+                    "ok": 1,
+                    "error": 0,
+                    "missed": 0,
+                    "timeout": 0,
+                    "unknown": 0,
+                },
             },
         ]
 
@@ -158,3 +213,29 @@ class OrganizationMonitorIndexStatsTest(MonitorTestCase):
             1647849540,
             {},
         ]
+
+    def test_disallow_stats_when_no_project_access(self):
+        # disable Open Membership
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        # user has no access to all the projects
+        user_no_team = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user_no_team, organization=self.organization, role="member", teams=[]
+        )
+        self.login_as(user_no_team)
+
+        resp = self.get_success_response(
+            self.organization.slug,
+            **{
+                "monitor": [
+                    str(self.monitor1.guid),
+                ],
+                "since": self.since.timestamp(),
+                "until": self.until.timestamp(),
+                "resolution": "1h",
+            },
+        )
+        assert resp.status_code == 200
+        assert resp.data == {}

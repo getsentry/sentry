@@ -2,16 +2,14 @@ import {Component} from 'react';
 import type {
   DataZoomComponentOption,
   ECharts,
-  InsideDataZoomComponentOption,
   ToolboxComponentOption,
   XAXisComponentOption,
 } from 'echarts';
-import moment from 'moment-timezone';
+import moment, {type MomentInput} from 'moment-timezone';
 import * as qs from 'query-string';
 
 import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import DataZoomInside from 'sentry/components/charts/components/dataZoomInside';
-import DataZoomSlider from 'sentry/components/charts/components/dataZoomSlider';
 import ToolBox from 'sentry/components/charts/components/toolBox';
 import type {DateString} from 'sentry/types/core';
 import type {
@@ -22,9 +20,10 @@ import type {
 } from 'sentry/types/echarts';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import {getUtcDateString, getUtcToLocalDateObject} from 'sentry/utils/dates';
+// eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 
-const getDate = date =>
+const getDate = (date: MomentInput) =>
   date ? moment.utc(date).format(moment.HTML5_FMT.DATETIME_LOCAL_SECONDS) : null;
 
 type Period = {
@@ -33,16 +32,15 @@ type Period = {
   start: DateString;
 };
 
-const ZoomPropKeys = [
-  'period',
-  'xAxis',
-  'onChartReady',
-  'onDataZoom',
-  'onRestore',
-  'onFinished',
-] as const;
+type ZoomPropKeys =
+  | 'period'
+  | 'xAxis'
+  | 'onChartReady'
+  | 'onDataZoom'
+  | 'onRestore'
+  | 'onFinished';
 
-export interface ZoomRenderProps extends Pick<Props, (typeof ZoomPropKeys)[number]> {
+export interface ZoomRenderProps extends Pick<Props, ZoomPropKeys> {
   dataZoom?: DataZoomComponentOption[];
   end?: Date;
   isGroupedByDate?: boolean;
@@ -54,7 +52,6 @@ export interface ZoomRenderProps extends Pick<Props, (typeof ZoomPropKeys)[numbe
 
 type Props = {
   children: (props: ZoomRenderProps) => React.ReactNode;
-  chartZoomOptions?: DataZoomComponentOption;
   disabled?: boolean;
   end?: DateString;
   onChartReady?: EChartChartReadyHandler;
@@ -65,7 +62,6 @@ type Props = {
   period?: string | null;
   router?: InjectedRouter;
   saveOnZoom?: boolean;
-  showSlider?: boolean;
   start?: DateString;
   usePageDate?: boolean;
   utc?: boolean | null;
@@ -243,7 +239,7 @@ class ChartZoom extends Component<Props> {
       return;
     }
 
-    this.setPeriod(this.history[0]);
+    this.setPeriod(this.history[0]!);
 
     // reset history
     this.history = [];
@@ -336,8 +332,6 @@ class ChartZoom extends Component<Props> {
       onChartReady: _onChartReady,
       onDataZoom: _onDataZoom,
       onFinished: _onFinished,
-      showSlider,
-      chartZoomOptions,
       ...props
     } = this.props;
 
@@ -360,18 +354,9 @@ class ChartZoom extends Component<Props> {
       utc,
       start,
       end,
-      dataZoom: showSlider
-        ? [
-            ...DataZoomSlider({xAxisIndex, ...chartZoomOptions}),
-            ...DataZoomInside({
-              xAxisIndex,
-              ...(chartZoomOptions as InsideDataZoomComponentOption),
-            }),
-          ]
-        : DataZoomInside({
-            xAxisIndex,
-            ...(chartZoomOptions as InsideDataZoomComponentOption),
-          }),
+      dataZoom: DataZoomInside({
+        xAxisIndex,
+      }),
       showTimeInTooltip: true,
       toolBox: ToolBox(
         {},

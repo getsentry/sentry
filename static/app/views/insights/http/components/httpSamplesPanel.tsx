@@ -5,7 +5,6 @@ import * as qs from 'query-string';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
-import SearchBar from 'sentry/components/events/searchBar';
 import Link from 'sentry/components/links/link';
 import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
@@ -13,7 +12,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {
@@ -21,7 +19,6 @@ import {
   escapeFilterValue,
   MutableSearch,
 } from 'sentry/utils/tokenizeSearch';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -47,7 +44,7 @@ import {
   getThroughputTitle,
 } from 'sentry/views/insights/common/views/spans/types';
 import {useSampleScatterPlotSeries} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart/useSampleScatterPlotSeries';
-import {DurationChart} from 'sentry/views/insights/http/components/charts/durationChart';
+import {DurationChartWithSamples} from 'sentry/views/insights/http/components/charts/durationChartWithSamples';
 import {ResponseCodeCountChart} from 'sentry/views/insights/http/components/charts/responseCodeCountChart';
 import {SpanSamplesTable} from 'sentry/views/insights/http/components/tables/spanSamplesTable';
 import {HTTP_RESPONSE_STATUS_CODES} from 'sentry/views/insights/http/data/definitions';
@@ -57,6 +54,7 @@ import {BASE_FILTERS} from 'sentry/views/insights/http/settings';
 import decodePanel from 'sentry/views/insights/http/utils/queryParameterDecoders/panel';
 import decodeResponseCodeClass from 'sentry/views/insights/http/utils/queryParameterDecoders/responseCodeClass';
 import {useDebouncedState} from 'sentry/views/insights/http/utils/useDebouncedState';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {
   ModuleName,
   SpanFunction,
@@ -64,8 +62,8 @@ import {
   SpanMetricsField,
   type SpanMetricsQueryFilters,
 } from 'sentry/views/insights/types';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
-import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 
 export function HTTPSamplesPanel() {
   const navigate = useNavigate();
@@ -85,10 +83,10 @@ export function HTTPSamplesPanel() {
   });
 
   const organization = useOrganization();
+  const {view} = useDomainViewFilters();
 
   const {projects} = useProjects();
   const {selection} = usePageFilters();
-  const {data: supportedTags} = useSpanFieldSupportedTags();
 
   const project = projects.find(p => query.project === p.id);
 
@@ -332,14 +330,12 @@ export function HTTPSamplesPanel() {
               )}
               <Title>
                 <Link
-                  to={normalizeUrl(
-                    `/organizations/${organization.slug}/performance/summary?${qs.stringify(
-                      {
-                        project: query.project,
-                        transaction: query.transaction,
-                      }
-                    )}`
-                  )}
+                  to={`${getTransactionSummaryBaseUrl(organization.slug, view)}?${qs.stringify(
+                    {
+                      project: query.project,
+                      transaction: query.transaction,
+                    }
+                  )}`}
                 >
                   {query.transaction &&
                   query.transactionMethod &&
@@ -397,7 +393,7 @@ export function HTTPSamplesPanel() {
                 value={domainTransactionMetrics?.[0]?.['sum(span.self_time)']}
                 unit={DurationUnit.MILLISECOND}
                 tooltip={getTimeSpentExplanation(
-                  domainTransactionMetrics?.[0]?.['time_spent_percentage()'],
+                  domainTransactionMetrics?.[0]!?.['time_spent_percentage()'],
                   'http.client'
                 )}
                 isLoading={areDomainTransactionMetricsFetching}
@@ -434,7 +430,7 @@ export function HTTPSamplesPanel() {
           {query.panel === 'duration' && (
             <Fragment>
               <ModuleLayout.Full>
-                <DurationChart
+                <DurationChartWithSamples
                   series={[
                     {
                       ...durationData[`avg(span.self_time)`],
@@ -462,7 +458,6 @@ export function HTTPSamplesPanel() {
                   }}
                   isLoading={isDurationDataFetching}
                   error={durationError}
-                  filters={filters}
                 />
               </ModuleLayout.Full>
             </Fragment>
@@ -481,26 +476,13 @@ export function HTTPSamplesPanel() {
           )}
 
           <ModuleLayout.Full>
-            {organization.features.includes('search-query-builder-performance') ? (
-              <SpanSearchQueryBuilder
-                projects={selection.projects}
-                initialQuery={query.spanSearchQuery}
-                onSearch={handleSearch}
-                placeholder={t('Search for span attributes')}
-                searchSource={`${ModuleName.HTTP}-sample-panel`}
-              />
-            ) : (
-              <SearchBar
-                searchSource={`${ModuleName.HTTP}-sample-panel`}
-                query={query.spanSearchQuery}
-                onSearch={handleSearch}
-                placeholder={t('Search for span attributes')}
-                organization={organization}
-                supportedTags={supportedTags}
-                dataset={DiscoverDatasets.SPANS_INDEXED}
-                projectIds={selection.projects}
-              />
-            )}
+            <SpanSearchQueryBuilder
+              projects={selection.projects}
+              initialQuery={query.spanSearchQuery}
+              onSearch={handleSearch}
+              placeholder={t('Search for span attributes')}
+              searchSource={`${ModuleName.HTTP}-sample-panel`}
+            />
           </ModuleLayout.Full>
 
           {query.panel === 'duration' && (

@@ -181,6 +181,7 @@ type UpdateStatus = StatusPageIncidentUpdate['status'];
 
 const indicatorColor: Record<UpdateStatus, ColorOrAlias> = {
   investigating: 'red200',
+  identified: 'blue200',
   monitoring: 'yellow200',
   resolved: 'green200',
 };

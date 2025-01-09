@@ -133,7 +133,7 @@ export function FrameworkSuggestionModal({
 }: Props) {
   const [selectedFramework, setSelectedFramework] = useState<
     OnboardingSelectedSDK | undefined
-  >(undefined);
+  >(selectedPlatform);
 
   const frameworks = platforms.filter(
     platform =>
@@ -225,7 +225,21 @@ export function FrameworkSuggestionModal({
     onSkip();
   }, [selectedPlatform, organization, onSkip, newOrg]);
 
-  const listEntries = [...topFrameworksOrdered, ...otherFrameworksSortedAlphabetically];
+  const listEntries: PlatformIntegration[] = [
+    ...topFrameworksOrdered,
+    ...otherFrameworksSortedAlphabetically,
+  ];
+
+  const listEntriesWithVanilla: PlatformIntegration[] = [
+    {
+      id: selectedPlatform.key,
+      type: selectedPlatform.type,
+      name: t('Nope, Vanilla'),
+      language: selectedPlatform.key,
+      link: selectedPlatform.link,
+    },
+    ...listEntries,
+  ];
 
   return (
     <Fragment>
@@ -238,53 +252,52 @@ export function FrameworkSuggestionModal({
         <Description>{languageDescriptions[selectedPlatform.key]}</Description>
         <StyledPanel>
           <StyledPanelBody>
-            <Frameworks>
-              {listEntries.map((framework, index) => {
-                const frameworkCategory =
+            <PlatformList>
+              {listEntriesWithVanilla.map((platform, index) => {
+                const platformCategory =
                   categoryList.find(category => {
-                    return category.platforms?.has(framework.id);
+                    return category.platforms?.has(platform.id);
                   })?.id ?? 'all';
 
                 return (
-                  <Framework key={framework.id}>
+                  <PlatformListItem key={platform.id}>
                     <RadioLabel
                       index={index}
                       onClick={() =>
                         setSelectedFramework({
-                          key: framework.id,
-                          type: framework.type,
-                          language: framework.language,
-                          category: frameworkCategory,
+                          key: platform.id,
+                          type: platform.type,
+                          language: platform.language,
+                          category: platformCategory,
+                          link: platform.link,
+                          name: platform.name,
                         })
                       }
                     >
                       <RadioBox
                         radioSize="small"
-                        checked={selectedFramework?.key === framework.id}
+                        checked={selectedFramework?.key === platform.id}
                         readOnly
                       />
-                      <FrameworkIcon size={24} platform={framework.id} />
-                      {framework.name}
+                      <PlatformListItemIcon size={24} platform={platform.id} />
+                      {platform.name}
                     </RadioLabel>
-                  </Framework>
+                  </PlatformListItem>
                 );
               })}
-            </Frameworks>
+            </PlatformList>
           </StyledPanelBody>
         </StyledPanel>
       </Body>
       <Footer>
-        <Actions>
-          <Button onClick={handleSkip}>{t('Skip')}</Button>
-          <Button
-            priority="primary"
-            onClick={handleConfigure}
-            disabled={!selectedFramework}
-            title={!selectedFramework ? t('Select a framework to configure') : undefined}
-          >
-            {t('Configure SDK')}
-          </Button>
-        </Actions>
+        <Button
+          priority="primary"
+          onClick={
+            selectedFramework?.key === selectedPlatform.key ? handleSkip : handleConfigure
+          }
+        >
+          {t('Configure SDK')}
+        </Button>
       </Footer>
     </Fragment>
   );
@@ -300,7 +313,7 @@ function TopFrameworksImage({frameworks}: {frameworks: PlatformIntegration[]}) {
     <TopFrameworksImageWrapper>
       <TopFrameworkIcon
         size={84}
-        platform={top3[1].id}
+        platform={top3[1]!.id}
         angle={-34}
         radius={8}
         offset={-74}
@@ -308,7 +321,7 @@ function TopFrameworksImage({frameworks}: {frameworks: PlatformIntegration[]}) {
       />
       <TopFrameworkIcon
         size={84}
-        platform={top3[2].id}
+        platform={top3[2]!.id}
         angle={34}
         radius={8}
         offset={+74}
@@ -316,7 +329,7 @@ function TopFrameworksImage({frameworks}: {frameworks: PlatformIntegration[]}) {
       />
       <TopFrameworkIcon
         size={84}
-        platform={top3[0].id}
+        platform={top3[0]!.id}
         angle={0}
         radius={8}
         offset={0}
@@ -363,7 +376,7 @@ const Description = styled(TextBlock)`
   text-align: center;
 `;
 
-const Frameworks = styled(List)`
+const PlatformList = styled(List)`
   display: block; /* Needed to prevent list item from stretching if the list is scrollable (Safari) */
   overflow-y: auto;
   max-height: 550px;
@@ -381,7 +394,7 @@ const StyledPanelBody = styled(PanelBody)`
   min-height: 0;
 `;
 
-const Framework = styled(ListItem)`
+const PlatformListItem = styled(ListItem)`
   min-height: 40px;
   display: grid;
   text-align: left;
@@ -391,7 +404,7 @@ const Framework = styled(ListItem)`
   }
 `;
 
-const FrameworkIcon = styled(PlatformIcon)`
+const PlatformListItemIcon = styled(PlatformIcon)`
   border: 1px solid ${p => p.theme.innerBorder};
 `;
 
@@ -408,13 +421,6 @@ const RadioLabel = styled(RadioLineItem)`
 
 const RadioBox = styled(Radio)`
   padding: ${space(0.5)};
-`;
-
-const Actions = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: ${space(1)};
-  width: 100%;
 `;
 
 // Style the modals document and section elements as flex containers

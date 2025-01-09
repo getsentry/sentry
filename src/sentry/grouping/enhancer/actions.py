@@ -21,7 +21,7 @@ ACTION_FLAGS = {
 REVERSE_ACTION_FLAGS = {v: k for k, v in ACTION_FLAGS.items()}
 
 
-class Action:
+class EnhancementAction:
     _is_modifier: bool
     _is_updater: bool
 
@@ -56,11 +56,11 @@ class Action:
     def _from_config_structure(cls, val, version: int):
         if isinstance(val, list):
             return VarAction(val[0], val[1])
-        flag, range = REVERSE_ACTION_FLAGS[val >> ACTION_BITSIZE]
-        return FlagAction(ACTIONS[val & 0xF], flag, range)
+        flag, range_direction = REVERSE_ACTION_FLAGS[val >> ACTION_BITSIZE]
+        return FlagAction(ACTIONS[val & 0xF], flag, range_direction)
 
 
-class FlagAction(Action):
+class FlagAction(EnhancementAction):
     def __init__(self, key: str, flag: bool, range: str | None) -> None:
         self.key = key
         self._is_updater = key in {"group", "app"}
@@ -135,7 +135,7 @@ class FlagAction(Action):
                 )
 
 
-class VarAction(Action):
+class VarAction(EnhancementAction):
     range = None
 
     _VALUE_PARSERS: dict[str, Callable[[Any], Any]] = {

@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {AriaTabListOptions} from '@react-aria/tabs';
 import {useTabList} from '@react-aria/tabs';
@@ -22,7 +23,6 @@ import {motion, Reorder} from 'framer-motion';
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import DropdownButton from 'sentry/components/dropdownButton';
-import {TabsContext} from 'sentry/components/tabs';
 import {type BaseTabProps, Tab} from 'sentry/components/tabs/tab';
 import {IconAdd, IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -33,6 +33,7 @@ import {useDimensions} from 'sentry/utils/useDimensions';
 import {useDimensionsMultiple} from 'sentry/utils/useDimensionsMultiple';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {IssueViewsContext} from 'sentry/views/issueList/issueViews/issueViews';
 
 import type {DraggableTabListItemProps} from './item';
 import {Item} from './item';
@@ -61,9 +62,9 @@ function useOverflowingTabs({state}: {state: TabListState<DraggableTabListItemPr
     const overflowing: Node<DraggableTabListItemProps>[] = [];
 
     for (let i = 0; i < tabsDimensions.length; i++) {
-      totalWidth += tabsDimensions[i].width + 1; // 1 extra pixel for the divider
+      totalWidth += tabsDimensions[i]!.width + 1; // 1 extra pixel for the divider
       if (totalWidth > availableWidth + 1) {
-        overflowing.push(persistentTabs[i]);
+        overflowing.push(persistentTabs[i]!);
       }
     }
 
@@ -125,6 +126,7 @@ function Tabs({
   state,
   className,
   onReorder,
+  onReorderComplete,
   tabVariant,
   setTabRefs,
   tabs,
@@ -148,10 +150,11 @@ function Tabs({
   disabled?: boolean;
   editingTabKey?: string;
   onChange?: (key: string | number) => void;
+  onReorderComplete?: () => void;
   tabVariant?: BaseTabProps['variant'];
   value?: string | number;
 }) {
-  const tabListRef = useRef<HTMLUListElement>(null);
+  const tabListRef = useRef<HTMLDivElement>(null);
   const {tabListProps} = useTabList({orientation, ...ariaProps}, state, tabListRef);
 
   const values = useMemo(() => [...state.collection], [state.collection]);
@@ -202,13 +205,7 @@ function Tabs({
 
   return (
     <TabListWrap {...tabListProps} className={className} ref={tabListRef}>
-      <ReorderGroup
-        axis="x"
-        values={values}
-        onReorder={onReorder}
-        as="div"
-        initial={false}
-      >
+      <ReorderGroup axis="x" values={values} onReorder={onReorder} initial={false}>
         {tabs.map((item, i) => (
           <Fragment key={item.key}>
             <TabItemWrap
@@ -225,15 +222,18 @@ function Tabs({
                 })
               }
               value={item}
-              as="div"
               data-key={item.key}
               dragConstraints={dragConstraints} // dragConstraints are the bounds that the tab can be dragged within
               dragElastic={0} // Prevents the tab from being dragged outside of the dragConstraints (w/o this you can drag it outside but it'll spring back)
               dragTransition={{bounceStiffness: 400, bounceDamping: 40}} // Recovers spring behavior thats lost when using dragElastic=0
+              transition={{duration: 0.1}}
               layout
               drag={item.key !== editingTabKey} // Disable dragging if the tab is being edited
               onDrag={() => setIsDragging(true)}
-              onDragEnd={() => setIsDragging(false)}
+              onDragEnd={() => {
+                setIsDragging(false);
+                onReorderComplete?.();
+              }}
               onHoverStart={() => setHoveringKey(item.key)}
               onHoverEnd={() => setHoveringKey(null)}
               initial={false}
@@ -245,9 +245,15 @@ function Tabs({
                 orientation={orientation}
                 overflowing={overflowingTabs.some(tab => tab.key === item.key)}
                 variant={tabVariant}
+                as="div"
               />
             </TabItemWrap>
-            <TabDivider isVisible={isTabDividerVisible(item.key)} initial={false} />
+            <TabDivider
+              layout="position"
+              transition={{duration: 0.1}}
+              isVisible={isTabDividerVisible(item.key)}
+              initial={false}
+            />
           </Fragment>
         ))}
       </ReorderGroup>
@@ -260,13 +266,14 @@ function BaseDraggableTabList({
   className,
   outerWrapStyles,
   onReorder,
+  onReorderComplete,
   onAddView,
   tabVariant = 'filled',
   ...props
 }: BaseDraggableTabListProps) {
   const navigate = useNavigate();
   const [hoveringKey, setHoveringKey] = useState<Key | null>(null);
-  const {rootProps, setTabListState} = useContext(TabsContext);
+  const {rootProps, setTabListState} = useContext(IssueViewsContext);
   const organization = useOrganization();
   const {
     value,
@@ -327,6 +334,7 @@ function BaseDraggableTabList({
         state={state}
         className={className}
         onReorder={onReorder}
+        onReorderComplete={onReorderComplete}
         tabVariant={tabVariant}
         setTabRefs={setTabElements}
         tabs={persistentTabs}
@@ -353,6 +361,7 @@ function BaseDraggableTabList({
           </AddViewButton>
         </AddViewMotionWrapper>
         <TabDivider
+          layout="position"
           isVisible={
             defined(tempTab) &&
             state?.selectedKey !== TEMPORARY_TAB_KEY &&
@@ -396,6 +405,7 @@ export interface DraggableTabListProps
   editingTabKey?: string;
   hideBorder?: boolean;
   onAddView?: React.MouseEventHandler;
+  onReorderComplete?: () => void;
   outerWrapStyles?: React.CSSProperties;
   showTempTab?: boolean;
   tabVariant?: BaseTabProps['variant'];
@@ -459,12 +469,12 @@ const TabDivider = styled(motion.div, {
 })<{isVisible: boolean}>`
   ${p =>
     p.isVisible &&
-    `
-    background-color: ${p.theme.gray200};
-    height: 16px;
-    width: 1px;
-    border-radius: 6px;
-  `}
+    css`
+      background-color: ${p.theme.gray200};
+      height: 16px;
+      width: 1px;
+      border-radius: 6px;
+    `}
 
   ${p => !p.isVisible && `margin-left: 1px;`}
 
@@ -494,7 +504,7 @@ const AddViewTempTabWrap = styled('div')`
   align-items: center;
 `;
 
-const TabListWrap = styled('ul')`
+const TabListWrap = styled('div')`
   padding: 0;
   margin: 0;
   list-style-type: none;
@@ -507,6 +517,9 @@ const ReorderGroup = styled(Reorder.Group<Node<DraggableTabListItemProps>>)`
   overflow: hidden;
   width: max-content;
   position: relative;
+  margin: 0;
+  padding: 0;
+  list-style-type: none;
 `;
 
 const AddViewButton = styled(Button)`

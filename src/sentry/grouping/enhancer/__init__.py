@@ -4,6 +4,7 @@ import base64
 import logging
 import os
 import zlib
+from collections import Counter
 from collections.abc import Sequence
 from typing import Any, Literal
 
@@ -15,14 +16,14 @@ from sentry_ophio.enhancers import Component as RustComponent
 from sentry_ophio.enhancers import Enhancements as RustEnhancements
 
 from sentry import projectoptions
-from sentry.grouping.component import GroupingComponent
+from sentry.grouping.component import FrameGroupingComponent, StacktraceGroupingComponent
 from sentry.stacktraces.functions import set_in_app
 from sentry.utils.safe import get_path, set_path
 
 from .exceptions import InvalidEnhancerConfig
 from .matchers import create_match_frame
 from .parser import parse_enhancements
-from .rules import Rule
+from .rules import EnhancementRule
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +33,18 @@ RUST_CACHE = RustCache(1_000)
 
 VERSIONS = [2]
 LATEST_VERSION = VERSIONS[-1]
+
+VALID_PROFILING_MATCHER_PREFIXES = (
+    "stack.abs_path",
+    "path",  # stack.abs_path alias
+    "stack.module",
+    "module",  # stack.module alias
+    "stack.function",
+    "function",  # stack.function alias
+    "stack.package",
+    "package",  # stack.package
+)
+VALID_PROFILING_ACTIONS_SET = frozenset(["+app", "-app"])
 
 
 def merge_rust_enhancements(
@@ -73,7 +86,7 @@ RustExceptionData = dict[str, bytes | None]
 
 
 def make_rust_exception_data(
-    exception_data: dict[str, Any],
+    exception_data: dict[str, Any] | None,
 ) -> RustExceptionData:
     e = exception_data or {}
     e = {
@@ -86,6 +99,31 @@ def make_rust_exception_data(
         if isinstance(value, str):
             e[key] = value.encode("utf-8")
     return e
+
+
+def is_valid_profiling_matcher(matchers: list[str]) -> bool:
+    for matcher in matchers:
+        if not matcher.startswith(VALID_PROFILING_MATCHER_PREFIXES):
+            return False
+    return True
+
+
+def is_valid_profiling_action(action: str) -> bool:
+    return action in VALID_PROFILING_ACTIONS_SET
+
+
+def keep_profiling_rules(config: str) -> str:
+    filtered_rules = []
+    if config is None or config == "":
+        return ""
+    for rule in config.splitlines():
+        rule = rule.strip()
+        if rule == "" or rule.startswith("#"):  # ignore comment lines
+            continue
+        *matchers, action = rule.split()
+        if is_valid_profiling_matcher(matchers) and is_valid_profiling_action(action):
+            filtered_rules.append(rule)
+    return "\n".join(filtered_rules)
 
 
 class Enhancements:
@@ -129,7 +167,13 @@ class Enhancements:
             if category is not None:
                 set_path(frame, "data", "category", value=category)
 
-    def assemble_stacktrace_component(self, components, frames, platform, exception_data=None):
+    def assemble_stacktrace_component(
+        self,
+        frame_components: list[FrameGroupingComponent],
+        frames: list[dict[str, Any]],
+        platform: str | None,
+        exception_data: dict[str, Any] | None = None,
+    ) -> StacktraceGroupingComponent:
         """
         This assembles a `stacktrace` grouping component out of the given
         `frame` components and source frames.
@@ -138,23 +182,30 @@ class Enhancements:
         """
         match_frames = [create_match_frame(frame, platform) for frame in frames]
 
-        rust_components = [RustComponent(contributes=c.contributes) for c in components]
+        rust_components = [RustComponent(contributes=c.contributes) for c in frame_components]
 
         rust_results = self.rust_enhancements.assemble_stacktrace_component(
             match_frames, make_rust_exception_data(exception_data), rust_components
         )
 
-        for py_component, rust_component in zip(components, rust_components):
-            py_component.update(contributes=rust_component.contributes, hint=rust_component.hint)
+        # Tally the number of each type of frame in the stacktrace. Later on, this will allow us to
+        # both collect metrics and use the information in decisions about whether to send the event
+        # to Seer
+        frame_counts: Counter[str] = Counter()
 
-        component = GroupingComponent(
-            id="stacktrace",
-            values=components,
+        for py_component, rust_component in zip(frame_components, rust_components):
+            py_component.update(contributes=rust_component.contributes, hint=rust_component.hint)
+            key = f"{"in_app" if py_component.in_app else "system"}_{"contributing" if py_component.contributes else "non_contributing"}_frames"
+            frame_counts[key] += 1
+
+        stacktrace_component = StacktraceGroupingComponent(
+            values=frame_components,
             hint=rust_results.hint,
             contributes=rust_results.contributes,
+            frame_counts=frame_counts,
         )
 
-        return component, rust_results.invert_stacktrace
+        return stacktrace_component
 
     def as_dict(self, with_rules=False):
         rv = {
@@ -187,7 +238,7 @@ class Enhancements:
         if version not in VERSIONS:
             raise ValueError("Unknown version")
         return cls(
-            rules=[Rule._from_config_structure(x, version=version) for x in rules],
+            rules=[EnhancementRule._from_config_structure(x, version=version) for x in rules],
             rust_enhancements=rust_enhancements,
             version=version,
             bases=bases,
@@ -214,7 +265,7 @@ class Enhancements:
 
     @classmethod
     @sentry_sdk.tracing.trace
-    def from_config_string(self, s, bases=None, id=None) -> Enhancements:
+    def from_config_string(cls, s, bases=None, id=None) -> Enhancements:
         rust_enhancements = parse_rust_enhancements("config_string", s)
 
         rules = parse_enhancements(s)

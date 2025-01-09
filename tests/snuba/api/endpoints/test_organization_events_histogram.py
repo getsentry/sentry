@@ -11,7 +11,7 @@ from rest_framework.exceptions import ErrorDetail
 
 from sentry.sentry_metrics.aggregation_option_registry import AggregationOption
 from sentry.testutils.cases import APITestCase, MetricsEnhancedPerformanceTestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import get_array_column_alias
 
@@ -27,7 +27,7 @@ ARRAY_COLUMNS = ["measurements", "span_op_breakdowns"]
 class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
-        self.min_ago = iso_format(before_now(minutes=1))
+        self.min_ago = before_now(minutes=1)
         self.data = load_data("transaction")
         self.features = {}
 
@@ -42,8 +42,8 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
                     measurement_name = suffix_key
                     breakdown_name = f"ops.{suffix_key}"
 
-                    data["timestamp"] = iso_format(start)
-                    data["start_timestamp"] = iso_format(start - timedelta(seconds=i))
+                    data["timestamp"] = start.isoformat()
+                    data["start_timestamp"] = (start - timedelta(seconds=i)).isoformat()
                     value = random.random() * (spec.end - spec.start) + spec.start
                     data["transaction"] = f"/measurement/{measurement_name}/value/{value}"
 
@@ -1032,7 +1032,7 @@ class OrganizationEventsMetricsEnhancedPerformanceHistogramEndpointTest(
 ):
     def setUp(self):
         super().setUp()
-        self.min_ago = iso_format(before_now(minutes=1))
+        self.min_ago = before_now(minutes=1)
         self.features = {}
 
     def populate_events(self, specs):

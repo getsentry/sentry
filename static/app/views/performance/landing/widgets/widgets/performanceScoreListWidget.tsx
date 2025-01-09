@@ -58,15 +58,18 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
   const {data: timeseriesData, isLoading: isTimeseriesQueryLoading} =
     useProjectWebVitalsScoresTimeseriesQuery({});
 
-  const assembleAccordionItems = provided =>
-    getHeaders(provided).map(header => ({header, content: getAreaChart(provided)}));
+  const assembleAccordionItems = () =>
+    getHeaders().map(header => ({header, content: getAreaChart()}));
 
   const order = ORDER;
 
-  const weightedTimeseriesData = applyStaticWeightsToTimeseries(timeseriesData);
+  const weightedTimeseriesData = applyStaticWeightsToTimeseries(
+    props.organization,
+    timeseriesData
+  );
 
-  const getAreaChart = _ => {
-    const segmentColors = theme.charts.getColorPalette(3).slice(0, 5);
+  const getAreaChart = () => {
+    const segmentColors = (theme.charts.getColorPalette(3) ?? []).slice(0, 5);
     return (
       <Chart
         stacked
@@ -74,7 +77,6 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
         data={formatTimeSeriesResultsToChartData(
           weightedTimeseriesData,
           segmentColors,
-          false,
           order
         )}
         type={ChartType.AREA}
@@ -95,7 +97,7 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
 
   const moduleURL = useModuleURL('vital');
 
-  const getHeaders = _ =>
+  const getHeaders = () =>
     transactionWebVitals.map((listItem, i) => {
       const transaction = (listItem.transaction as string | undefined) ?? '';
       const scoreCount = projectScoresData?.data?.[0]?.[
@@ -160,7 +162,7 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
       );
     });
 
-  const getContainerActions = _ => {
+  const getContainerActions = () => {
     return (
       <Fragment>
         <div>
@@ -180,7 +182,7 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
       {...props}
       location={location}
       Subtitle={() => <Subtitle>{props.subTitle}</Subtitle>}
-      HeaderActions={provided => getContainerActions(provided)}
+      HeaderActions={() => getContainerActions()}
       InteractiveTitle={
         InteractiveTitle
           ? provided => <InteractiveTitle {...provided.widgetData?.chart} />
@@ -230,11 +232,11 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
       }}
       Visualizations={[
         {
-          component: provided => (
+          component: () => (
             <Accordion
               expandedIndex={selectedListIndex}
               setExpandedIndex={setSelectListIndex}
-              items={assembleAccordionItems(provided)}
+              items={assembleAccordionItems()}
             />
           ),
           height: 124 + props.chartHeight,

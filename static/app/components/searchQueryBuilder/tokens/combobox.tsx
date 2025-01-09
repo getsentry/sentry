@@ -238,7 +238,6 @@ function useUpdateOverlayPositionOnContentChange({
       resizeObserverRef.current?.disconnect();
       resizeObserverRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useLayoutEffect(() => {
@@ -413,7 +412,7 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
             onExit?.();
             return;
           case 'Enter':
-            if (state.selectionManager.focusedKey) {
+            if (isOpen && state.selectionManager.focusedKey) {
               return;
             }
             state.close();

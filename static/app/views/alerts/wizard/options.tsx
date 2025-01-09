@@ -17,7 +17,7 @@ import {
 } from 'sentry/utils/fields';
 import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import {
-  DEFAULT_INSIGHTS_METRICS_ALERT_FIELD,
+  DEFAULT_EAP_METRICS_ALERT_FIELD,
   DEFAULT_METRIC_ALERT_FIELD,
 } from 'sentry/utils/metrics/mri';
 import {ON_DEMAND_METRICS_UNSUPPORTED_TAGS} from 'sentry/utils/onDemandMetrics/constants';
@@ -27,7 +27,7 @@ import {
   EventTypes,
   SessionsAggregate,
 } from 'sentry/views/alerts/rules/metric/types';
-import {hasInsightsAlerts} from 'sentry/views/insights/common/utils/hasInsightsAlerts';
+import {hasEAPAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 import {MODULE_TITLE as LLM_MONITORING_MODULE_TITLE} from 'sentry/views/insights/llmMonitoring/settings';
 
 export type AlertType =
@@ -47,8 +47,8 @@ export type AlertType =
   | 'custom_metrics'
   | 'llm_tokens'
   | 'llm_cost'
-  | 'insights_metrics'
-  | 'uptime_monitor';
+  | 'uptime_monitor'
+  | 'eap_metrics';
 
 export enum MEPAlertsQueryType {
   ERROR = 0,
@@ -72,6 +72,7 @@ export const DatasetMEPAlertQueryTypes: Record<
   [Dataset.TRANSACTIONS]: MEPAlertsQueryType.PERFORMANCE,
   [Dataset.GENERIC_METRICS]: MEPAlertsQueryType.PERFORMANCE,
   [Dataset.METRICS]: MEPAlertsQueryType.CRASH_RATE,
+  [Dataset.EVENTS_ANALYTICS_PLATFORM]: MEPAlertsQueryType.PERFORMANCE,
 };
 
 export const AlertWizardAlertNames: Record<AlertType, string> = {
@@ -91,8 +92,8 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
   crash_free_users: t('Crash Free User Rate'),
   llm_cost: t('LLM cost'),
   llm_tokens: t('LLM token usage'),
-  insights_metrics: t('Insights Metric'),
   uptime_monitor: t('Uptime Monitor'),
+  eap_metrics: t('Spans'),
 };
 
 /**
@@ -100,7 +101,12 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
  * for adding feature badges or other call-outs for newer alert types.
  */
 export const AlertWizardExtraContent: Partial<Record<AlertType, React.ReactNode>> = {
-  insights_metrics: <FeatureBadge type="alpha" />,
+  eap_metrics: (
+    <FeatureBadge
+      type="beta"
+      title={t('This feature is available for early adopters and the UX may change')}
+    />
+  ),
   uptime_monitor: <FeatureBadge type="beta" />,
 };
 
@@ -134,7 +140,7 @@ export const getAlertWizardCategories = (org: Organization) => {
         'fid',
         'cls',
         ...(hasCustomMetrics(org) ? (['custom_transactions'] satisfies AlertType[]) : []),
-        ...(hasInsightsAlerts(org) ? ['insights_metrics' as const] : []),
+        ...(hasEAPAlerts(org) ? ['eap_metrics' as const] : []),
       ],
     });
     if (org.features.includes('insights-addon-modules')) {
@@ -144,12 +150,10 @@ export const getAlertWizardCategories = (org: Organization) => {
       });
     }
 
-    if (org.features.includes('uptime-display-wizard-create')) {
-      result.push({
-        categoryHeading: t('Uptime Monitoring'),
-        options: ['uptime_monitor'],
-      });
-    }
+    result.push({
+      categoryHeading: t('Uptime Monitoring'),
+      options: ['uptime_monitor'],
+    });
     result.push({
       categoryHeading: hasCustomMetrics(org) ? t('Metrics') : t('Custom'),
       options: [hasCustomMetrics(org) ? 'custom_metrics' : 'custom_transactions'],
@@ -234,11 +238,6 @@ export const AlertWizardRuleTemplates: Record<
     dataset: Dataset.GENERIC_METRICS,
     eventTypes: EventTypes.TRANSACTION,
   },
-  insights_metrics: {
-    aggregate: DEFAULT_INSIGHTS_METRICS_ALERT_FIELD,
-    dataset: Dataset.GENERIC_METRICS,
-    eventTypes: EventTypes.TRANSACTION,
-  },
   crash_free_sessions: {
     aggregate: SessionsAggregate.CRASH_FREE_SESSIONS,
     dataset: Dataset.METRICS,
@@ -248,6 +247,11 @@ export const AlertWizardRuleTemplates: Record<
     aggregate: SessionsAggregate.CRASH_FREE_USERS,
     dataset: Dataset.METRICS,
     eventTypes: EventTypes.USER,
+  },
+  eap_metrics: {
+    aggregate: DEFAULT_EAP_METRICS_ALERT_FIELD,
+    dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+    eventTypes: EventTypes.TRANSACTION,
   },
 };
 

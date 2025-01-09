@@ -11,116 +11,22 @@ from sentry.profiles.flamegraph import FlamegraphExecutor
 from sentry.profiles.utils import proxy_profiling_service
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import APITestCase, ProfilesSnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import bulk_snuba_queries, raw_snql_query
-
-
-class OrganizationProfilingFlamegraphTestLegacy(APITestCase):
-    endpoint = "sentry-api-0-organization-profiling-flamegraph"
-    features = {"organizations:profiling": True}
-
-    def setUp(self):
-        self.login_as(user=self.user)
-        self.url = reverse(self.endpoint, args=(self.organization.slug,))
-
-    def do_request(self, query, features=None, compat=True, **kwargs):
-        if features is None:
-            features = self.features
-        with self.feature(features):
-            return self.client.get(
-                self.url,
-                query,
-                format="json",
-                **kwargs,
-            )
-
-    def test_more_than_one_project(self):
-        projects = [
-            self.create_project(),
-            self.create_project(),
-        ]
-        # Need this feature so we don't get the multiple project without global view error
-        with self.feature("organizations:global-views"):
-            response = self.do_request(
-                {
-                    "projects": [p.id for p in projects],
-                }
-            )
-        assert response.status_code == 400, response.data
-        assert response.data == {
-            "detail": ErrorDetail(
-                "You cannot get a flamegraph from multiple projects.",
-                code="parse_error",
-            ),
-        }
-
-    @patch("sentry.search.events.builder.base.raw_snql_query", wraps=raw_snql_query)
-    @patch("sentry.api.endpoints.organization_profiling_profiles.proxy_profiling_service")
-    def test_queries_functions(self, mock_proxy_profiling_service, mock_raw_snql_query):
-        mock_proxy_profiling_service.return_value = HttpResponse(status=200)
-
-        fingerprint = int(uuid4().hex[:8], 16)
-
-        response = self.do_request(
-            {
-                "project": [self.project.id],
-                "query": "transaction:foo",
-                "fingerprint": str(fingerprint),
-            },
-        )
-        assert response.status_code == 200, response.content
-
-        mock_raw_snql_query.assert_called_once()
-
-        call_args = mock_raw_snql_query.call_args.args
-        snql_request = call_args[0]
-
-        assert snql_request.dataset == Dataset.Functions.value
-        assert (
-            Condition(
-                Function("toUInt32", [Column("fingerprint")], "fingerprint"),
-                Op.EQ,
-                fingerprint,
-            )
-            in snql_request.query.where
-        )
-        assert Condition(Column("transaction_name"), Op.EQ, "foo") in snql_request.query.where
-
-    @patch("sentry.search.events.builder.base.raw_snql_query", wraps=raw_snql_query)
-    @patch("sentry.api.endpoints.organization_profiling_profiles.proxy_profiling_service")
-    def test_queries_transactions(self, mock_proxy_profiling_service, mock_raw_snql_query):
-        mock_proxy_profiling_service.return_value = HttpResponse(status=200)
-
-        response = self.do_request(
-            {
-                "project": [self.project.id],
-                "query": "transaction:foo",
-            },
-        )
-        assert response.status_code == 200, response.content
-
-        mock_raw_snql_query.assert_called_once()
-
-        call_args = mock_raw_snql_query.call_args.args
-        snql_request = call_args[0]
-
-        assert snql_request.dataset == Dataset.Discover.value
-        assert Condition(Column("profile_id"), Op.IS_NOT_NULL) in snql_request.query.where
-        assert Condition(Column("transaction"), Op.EQ, "foo") in snql_request.query.where
 
 
 class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase):
     endpoint = "sentry-api-0-organization-profiling-flamegraph"
     features = {
         "organizations:profiling": True,
-        "organizations:continuous-profiling-compat": True,
     }
 
     def setUp(self):
         self.login_as(user=self.user)
         self.url = reverse(self.endpoint, args=(self.organization.slug,))
         self.ten_mins_ago = before_now(minutes=10)
+        self.hour_ago = before_now(hours=1).replace(minute=0, second=0, microsecond=0)
 
     def do_request(self, query, features=None, compat=True, **kwargs):
         if features is None:
@@ -404,22 +310,24 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase):
 
             assert profiles_snql_request.dataset == Dataset.Profiles.value
 
+    @patch("sentry.profiles.flamegraph.bulk_snuba_queries", wraps=bulk_snuba_queries)
     @patch("sentry.search.events.builder.base.raw_snql_query", wraps=raw_snql_query)
     @patch("sentry.api.endpoints.organization_profiling_profiles.proxy_profiling_service")
     def test_queries_profile_candidates_from_functions_with_data(
         self,
         mock_proxy_profiling_service,
         mock_raw_snql_query,
+        mock_bulk_snuba_queries,
     ):
-        data = load_data("transaction", timestamp=self.ten_mins_ago)
+        data = load_data("transaction", timestamp=self.hour_ago)
         data["transaction"] = "foo"
         profile_id = uuid4().hex
         data.setdefault("contexts", {}).setdefault("profile", {})["profile_id"] = profile_id
 
-        stored = self.store_functions(
+        stored_1 = self.store_functions(
             [
                 {
-                    "self_times_ns": [100],
+                    "self_times_ns": [100_000_000],
                     "package": "foo",
                     "function": "bar",
                     "in_app": True,
@@ -427,17 +335,40 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase):
             ],
             project=self.project,
             transaction=data,
+            timestamp=self.hour_ago,
         )
+        stored_2 = self.store_functions_chunk(
+            [
+                {
+                    "self_times_ns": [100_000_000],
+                    "package": "foo",
+                    "function": "bar",
+                    "thread_id": "1",
+                    "in_app": True,
+                },
+            ],
+            project=self.project,
+            timestamp=self.hour_ago,
+        )
+
+        chunk = {
+            "project_id": self.project.id,
+            "profiler_id": stored_2["profiler_id"],
+            "chunk_id": stored_2["chunk_id"],
+            "start_timestamp": self.hour_ago.isoformat(),
+            "end_timestamp": (self.hour_ago + timedelta(microseconds=100_000)).isoformat(),
+        }
+
+        mock_bulk_snuba_queries.return_value = [{"data": [chunk]}]
 
         mock_proxy_profiling_service.return_value = HttpResponse(status=200)
 
-        fingerprint = stored["functions"][0]["fingerprint"]
+        fingerprint = stored_1["functions"][0]["fingerprint"]
 
         response = self.do_request(
             {
                 "project": [self.project.id],
                 "dataSource": "functions",
-                "query": "transaction:foo",
                 "fingerprint": str(fingerprint),
             },
         )
@@ -457,7 +388,6 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase):
             )
             in snql_request.query.where
         )
-        assert Condition(Column("transaction_name"), Op.EQ, "foo") in snql_request.query.where
 
         mock_proxy_profiling_service.assert_called_once_with(
             method="POST",
@@ -469,7 +399,18 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase):
                         "profile_id": profile_id,
                     },
                 ],
-                "continuous": [],
+                "continuous": [
+                    {
+                        "project_id": self.project.id,
+                        "profiler_id": stored_2["profiler_id"],
+                        "chunk_id": stored_2["chunk_id"],
+                        "thread_id": "1",
+                        "start": str(int(self.hour_ago.timestamp() * 1e9)),
+                        "end": str(
+                            int((self.hour_ago + timedelta(microseconds=100_000)).timestamp() * 1e9)
+                        ),
+                    },
+                ],
             },
         )
 
@@ -605,8 +546,7 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase):
         transaction = {
             "project.id": self.project.id,
             "profile.id": profile_id,
-            "timestamp": iso_format(datetime.fromtimestamp(profile_transaction["timestamp"]))
-            + "+00:00",
+            "timestamp": datetime.fromtimestamp(profile_transaction["timestamp"]).isoformat(),
             "profiler.id": None,
             "thread.id": None,
             "precise.start_ts": datetime.fromtimestamp(
@@ -705,6 +645,8 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase):
                             "project_id": self.project.id,
                             "profiler_id": profiler_id,
                             "chunk_id": chunk["chunk_id"],
+                            "start": str(int((start_timestamp - buffer).timestamp() * 1e9)),
+                            "end": str(int((finish_timestamp + buffer).timestamp() * 1e9)),
                         },
                     ],
                 },
@@ -726,8 +668,7 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase):
             "id": profile_transaction_id,
             "project.id": self.project.id,
             "profile.id": profile_id,
-            "timestamp": iso_format(datetime.fromtimestamp(profile_transaction["timestamp"]))
-            + "+00:00",
+            "timestamp": datetime.fromtimestamp(profile_transaction["timestamp"]).isoformat(),
             "profiler.id": None,
             "thread.id": None,
             "precise.start_ts": datetime.fromtimestamp(
@@ -753,8 +694,7 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase):
             "id": profiler_transaction_id,
             "project.id": self.project.id,
             "profile.id": None,
-            "timestamp": iso_format(datetime.fromtimestamp(profile_transaction["timestamp"]))
-            + "+00:00",
+            "timestamp": datetime.fromtimestamp(profile_transaction["timestamp"]).isoformat(),
             "profiler.id": profiler_id,
             "thread.id": thread_id,
             "precise.start_ts": datetime.fromtimestamp(

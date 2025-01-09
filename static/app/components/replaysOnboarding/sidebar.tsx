@@ -10,7 +10,6 @@ import {CompactSelect} from 'sentry/components/compactSelect';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {MobileBetaBanner} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import useCurrentProjectState from 'sentry/components/onboarding/gettingStartedDoc/utils/useCurrentProjectState';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import {PlatformOptionDropdown} from 'sentry/components/replaysOnboarding/platformOptionDropdown';
@@ -181,7 +180,7 @@ function OnboardingContent({
     value: PlatformKey;
     label?: ReactNode;
     textValue?: string;
-  }>(jsFrameworkSelectOptions[0]);
+  }>(jsFrameworkSelectOptions[0]!);
 
   const backendPlatform =
     currentProject.platform && replayBackendPlatforms.includes(currentProject.platform);
@@ -193,7 +192,7 @@ function OnboardingContent({
       .filter((p): p is PlatformKey => p !== 'javascript')
       .includes(currentProject.platform);
 
-  const defaultTab = backendPlatform ? 'jsLoader' : 'npm';
+  const defaultTab: string = 'jsLoader';
   const {getParamValue: setupMode, setParamValue: setSetupMode} = useUrlParams(
     'mode',
     defaultTab
@@ -215,7 +214,7 @@ function OnboardingContent({
     platform:
       showJsFrameworkInstructions && setupMode() === 'npm'
         ? replayJsFrameworkOptions().find(p => p.id === jsFramework.value) ??
-          replayJsFrameworkOptions()[0]
+          replayJsFrameworkOptions()[0]!
         : currentPlatform,
     projSlug: currentProject.slug,
     orgSlug: organization.slug,
@@ -226,7 +225,7 @@ function OnboardingContent({
   const {docs: jsFrameworkDocs} = useLoadGettingStarted({
     platform:
       replayJsFrameworkOptions().find(p => p.id === jsFramework.value) ??
-      replayJsFrameworkOptions()[0],
+      replayJsFrameworkOptions()[0]!,
     projSlug: currentProject.slug,
     orgSlug: organization.slug,
     productType: 'replay',
@@ -259,21 +258,18 @@ function OnboardingContent({
                       />
                     ),
                   })}
-                  {jsFrameworkDocs?.platformOptions &&
-                    tct('with [optionSelect]', {
-                      optionSelect: (
-                        <PlatformOptionDropdown
-                          platformOptions={jsFrameworkDocs?.platformOptions}
-                          disabled={setupMode() === 'jsLoader'}
-                        />
-                      ),
-                    })}
+                  {jsFrameworkDocs?.platformOptions && (
+                    <PlatformOptionDropdown
+                      platformOptions={jsFrameworkDocs?.platformOptions}
+                      disabled={setupMode() === 'jsLoader'}
+                    />
+                  )}
                 </PlatformSelect>
               ) : (
                 t('I use NPM or Yarn')
               ),
             ],
-            ['jsLoader', t('I use HTML templates')],
+            ['jsLoader', t('I use HTML templates (Loader Script)')],
           ]}
           value={setupMode()}
           onChange={setSetupMode}
@@ -329,8 +325,15 @@ function OnboardingContent({
     );
   }
 
-  // No platform, docs import failed, no DSN, or the platform doesn't have onboarding yet
-  if (!currentPlatform || !docs || !dsn || !hasDocs || !projectKeyId) {
+  // No platform, docs import failed, no DSN, ingestion is turned off, or the platform doesn't have onboarding yet
+  if (
+    !currentPlatform ||
+    !docs ||
+    !dsn ||
+    !hasDocs ||
+    !projectKeyId ||
+    organization.features.includes('session-replay-video-disabled')
+  ) {
     return (
       <Fragment>
         <div>
@@ -350,25 +353,6 @@ function OnboardingContent({
         </div>
       </Fragment>
     );
-  }
-
-  // if the org cannot ingest mobile replay events, don't show the onboarding
-  // TODO: remove once we GA mobile replay
-  if (organization.features.includes('session-replay-video-disabled')) {
-    if (['android', 'react-native'].includes(currentPlatform.language)) {
-      return (
-        <MobileBetaBanner
-          link={`https://docs.sentry.io/platforms/${currentPlatform.language}/session-replay/`}
-        />
-      );
-    }
-    if (currentPlatform.language === 'apple') {
-      return (
-        <MobileBetaBanner
-          link={`https://docs.sentry.io/platforms/apple/guides/ios/session-replay/`}
-        />
-      );
-    }
   }
 
   return (

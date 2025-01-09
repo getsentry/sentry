@@ -14,7 +14,7 @@ import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {OrgRole} from 'sentry/types/organization';
 
-import renderEmailValue from './renderEmailValue';
+import EmailValue from './emailValue';
 import type {InviteStatus} from './types';
 
 type SelectOption = SelectValue<string>;
@@ -23,13 +23,6 @@ type Props = {
   roleDisabledUnallowed: boolean;
   roleOptions: OrgRole[];
 };
-
-function ValueComponent(
-  props: MultiValueProps<SelectOption>,
-  inviteStatus: InviteStatus
-) {
-  return renderEmailValue(inviteStatus[props.data.value], props);
-}
 
 function mapToOptions(values: string[]): SelectOption[] {
   return values.map(value => ({value, label: value}));
@@ -55,7 +48,7 @@ function InviteRowControl({roleDisabledUnallowed, roleOptions}: Props) {
 
   const isTeamRolesAllowedForRole = useCallback<(roleId: string) => boolean>(
     roleId => {
-      const roleOptionsMap = roleOptions.reduce(
+      const roleOptionsMap = roleOptions.reduce<Record<string, OrgRole>>(
         (rolesMap, roleOption) => ({...rolesMap, [roleOption.id]: roleOption}),
         {}
       );
@@ -92,15 +85,17 @@ function InviteRowControl({roleDisabledUnallowed, roleOptions}: Props) {
   return (
     <RowWrapper>
       <div>
-        <Heading>Email addresses</Heading>
+        <Heading htmlFor="email-addresses">{t('Email addresses')}</Heading>
         <SelectControl
+          id="email-addresses"
           aria-label={t('Email Addresses')}
-          data-test-id="select-emails"
           placeholder={t('Enter one or more emails')}
           inputValue={inputValue}
           value={emails}
           components={{
-            MultiValue: props => ValueComponent(props, inviteStatus),
+            MultiValue: (props: MultiValueProps<SelectOption>) => (
+              <EmailValue status={inviteStatus[props.data.value]!} valueProps={props} />
+            ),
             DropdownIndicator: () => null,
           }}
           options={mapToOptions(emails)}
@@ -120,10 +115,10 @@ function InviteRowControl({roleDisabledUnallowed, roleOptions}: Props) {
       </div>
       <RoleTeamWrapper>
         <div>
-          <Heading>Role</Heading>
+          <Heading htmlFor="role">{t('Role')}</Heading>
           <RoleSelectControl
+            id="role"
             aria-label={t('Role')}
-            data-test-id="select-role"
             value={role}
             roles={roleOptions}
             disableUnallowed={roleDisabledUnallowed}
@@ -136,10 +131,10 @@ function InviteRowControl({roleDisabledUnallowed, roleOptions}: Props) {
           />
         </div>
         <div>
-          <Heading>Add to team</Heading>
+          <Heading htmlFor="team">{t('Add to team')}</Heading>
           <TeamSelector
+            id="team"
             aria-label={t('Add to Team')}
-            data-test-id="select-teams"
             disabled={!isTeamRolesAllowed}
             placeholder={isTeamRolesAllowed ? t('None') : t('Role cannot join teams')}
             value={isTeamRolesAllowed ? teams : []}
@@ -196,7 +191,7 @@ function getStyles(theme: Theme, inviteStatus: InviteStatus): StylesConfig {
   };
 }
 
-const Heading = styled('div')`
+const Heading = styled('label')`
   margin-bottom: ${space(1)};
   font-weight: ${p => p.theme.fontWeightBold};
   text-transform: uppercase;

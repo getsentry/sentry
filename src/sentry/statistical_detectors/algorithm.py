@@ -97,8 +97,7 @@ class DetectorAlgorithm(ABC):
         self,
         raw: Mapping[str | bytes, bytes | float | int | str],
         payload: DetectorPayload,
-    ) -> tuple[TrendType, float, DetectorState | None]:
-        ...
+    ) -> tuple[TrendType, float, DetectorState | None]: ...
 
 
 class MovingAverageRelativeChangeDetector(DetectorAlgorithm):

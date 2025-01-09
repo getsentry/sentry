@@ -1,10 +1,11 @@
 ---
-created: '2021-02-15T10:11:55.608178Z'
+created: '2024-12-17T22:47:06.257047+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: "c52ebcc2d9d0780a23c7d99831678830"
+  contributing component: chained-exception
   component:
     app*
       chained-exception*
@@ -18,7 +19,7 @@ app:
           value (ignored because stacktrace takes precedence)
             "hello world"
         exception*
-          stacktrace
+          stacktrace (ignored because it contains no in-app frames)
             frame (non app frame)
               filename*
                 "baz.py"
@@ -29,6 +30,7 @@ app:
 --------------------------------------------------------------------------
 system:
   hash: "669cb6664e0f5fed38665da04e464f7e"
+  contributing component: chained-exception
   component:
     system*
       chained-exception*

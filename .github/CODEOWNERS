@@ -28,6 +28,8 @@
 /src/sentry/snuba/metrics/query.py                       @getsentry/owners-snuba @getsentry/telemetry-experience
 /src/sentry/snuba/metrics_layer/                         @getsentry/owners-snuba
 /src/sentry/search/events/datasets/metrics_layer.py      @getsentry/owners-snuba
+/tests/snuba/test_snql_snuba.py                          @getsentry/owners-snuba
+/tests/snuba/test_snuba.py                               @getsentry/owners-snuba
 
 ## Event Ingestion
 /src/sentry/attachments/                                 @getsentry/ingest
@@ -66,6 +68,7 @@
 
 ## Dev
 /devenv/                                                 @getsentry/owners-sentry-dev @getsentry/dev-infra
+/devservices/                                            @getsentry/owners-sentry-dev @getsentry/dev-infra
 /.github/                                                @getsentry/owners-sentry-dev
 /config/hooks/                                           @getsentry/owners-sentry-dev
 /scripts/                                                @getsentry/owners-sentry-dev
@@ -97,7 +100,7 @@ Makefile                                                 @getsentry/owners-sentr
 /src/sentry/analytics/events/relocation_*.py             @getsentry/open-source
 /src/sentry/api/endpoints/organization_fork.py           @getsentry/open-source
 /src/sentry/api/endpoints/relocation/                    @getsentry/open-source
-/src/sentry/api/serialiers/models/relocation/            @getsentry/open-source
+/src/sentry/api/serializers/models/relocation/           @getsentry/open-source
 /src/sentry/models/relocation/                           @getsentry/open-source
 /src/sentry/relocation/                                  @getsentry/open-source
 /src/sentry/tasks/relocation.py                          @getsentry/open-source
@@ -122,6 +125,7 @@ pyproject.toml                                           @getsentry/owners-pytho
 babel.config.*                                           @getsentry/owners-js-build
 biome.json                                               @getsentry/owners-js-build
 build-utils/                                             @getsentry/owners-js-build
+eslint.config.mjs                                        @getsentry/owners-js-build
 jest.config.ts                                           @getsentry/owners-js-build
 tsconfig.*                                               @getsentry/owners-js-build
 webpack.config.*                                         @getsentry/owners-js-build
@@ -228,8 +232,6 @@ yarn.lock                                                @getsentry/owners-js-de
 /tests/snuba/api/endpoints/test_organization_events_vitals.py               @getsentry/visibility
 /tests/snuba/api/endpoints/test_organization_tagkey_values.py               @getsentry/visibility
 
-/src/sentry/api/endpoints/organization_transaction_anomaly_detection.py     @getsentry/data
-
 /src/sentry/spans/                                                          @getsentry/visibility
 /tests/sentry/spans/                                                        @getsentry/visibility
 
@@ -242,6 +244,7 @@ yarn.lock                                                @getsentry/owners-js-de
 /tests/snuba/search/test_backend.py                                         @getsentry/visibility
 
 /src/sentry/search/events/                                                  @getsentry/visibility
+/src/sentry/search/eap/                                                  @getsentry/visibility
 
 /src/sentry/utils/performance_issues/                                       @getsentry/performance
 
@@ -324,8 +327,9 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 
 
 ## Flags
-/src/sentry/flags/              @getsentry/replay-backend
-/tests/sentry/flags/            @getsentry/replay-backend
+/src/sentry/flags/                                          @getsentry/replay-backend
+/tests/sentry/flags/                                        @getsentry/replay-backend
+/static/app/components/events/featureFlags/                 @getsentry/replay-frontend
 ## End of Flags
 
 
@@ -347,8 +351,27 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 ## End of Feedback v2
 
 
+## DevToolbar
+/src/sentry/templates/sentry/toolbar/        @getsentry/replay
+/src/sentry/toolbar/                         @getsentry/replay
+/tests/sentry/toolbar/                       @getsentry/replay
+/static/app/components/devtoolbar/           @getsentry/replay-frontend
+/src/sentry/middleware/devtoolbar.py         @getsentry/replay-backend
+/tests/sentry/middleware/test_devtoolbar.py  @getsentry/replay-backend
+## End of DevToolbar
+
+
+## Frontend
+/static/app/components/analyticsArea.spec.tsx  @getsentry/app-frontend
+/static/app/components/analyticsArea.tsx       @getsentry/app-frontend
+/static/app/components/events/interfaces/      @getsentry/app-frontend
+/static/app/components/forms/                  @getsentry/app-frontend
+## End of Frontend
+
+
 ## Integrations
-/src/sentry/api/endpoints/sentry_app/                                @getsentry/product-owners-settings-integrations
+/src/sentry/sentry_apps/                                             @getsentry/product-owners-settings-integrations @getsentry/ecosystem
+/tests/sentry/sentry_apps                                            @getsentry/product-owners-settings-integrations @getsentry/ecosystem
 /src/sentry/api/endpoints/project_rule*.py                           @getsentry/alerts-notifications
 /src/sentry/api/serializers/models/rule.py                           @getsentry/alerts-notifications
 
@@ -374,8 +397,8 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 
 
 # To find matching files -> find . -name "*sentry_app*.py"
-*sentry_app*.py                                                      @getsentry/product-owners-settings-integrations
-*sentryapp*.py                                                       @getsentry/product-owners-settings-integrations
+*sentry_app*.py                                                      @getsentry/product-owners-settings-integrations @getsentry/ecosystem
+*sentryapp*.py                                                       @getsentry/product-owners-settings-integrations @getsentry/ecosystem
 *doc_integration*.py                                                 @getsentry/ecosystem
 *docintegration*.py                                                  @getsentry/ecosystem
 
@@ -451,20 +474,15 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 
 
 ## Telemetry Experience
-/src/sentry/api/endpoints/organization_ddm.py                                    @getsentry/telemetry-experience
-/tests/sentry/api/endpoints/test_organization_ddm_meta.py                        @getsentry/telemetry-experience
 /src/sentry/api/endpoints/organization_metric*                                   @getsentry/telemetry-experience
 /tests/sentry/api/endpoints/test_organization_metric*                            @getsentry/telemetry-experience
 /src/sentry/api/endpoints/organization_sessions.py                               @getsentry/telemetry-experience
 /tests/snuba/api/endpoints/test_organization_sessions.py                         @getsentry/telemetry-experience
-/src/sentry/api/endpoints/projects_metrics.py                                    @getsentry/telemetry-experience
 /tests/sentry/api/endpoints/test_projects_metrics_visibility.py                  @getsentry/telemetry-experience
 /src/sentry/api/endpoints/organization_onboarding*                               @getsentry/telemetry-experience
 /tests/sentry/api/endpoints/test_organization_onboarding*                        @getsentry/telemetry-experience
-/src/sentry/api/endpoints/project_metrics_extraction_rules*                      @getsentry/telemetry-experience
-/tests/sentry/api/endpoints/test_project_metrics_extraction_rules.py             @getsentry/telemetry-experience
-/src/sentry/api/serializers/models/metrics_extraction_rules.py                   @getsentry/telemetry-experience
-/src/sentry/sentry_metrics/models/spanattributeextractionrules.py                @getsentry/telemetry-experience
+/src/sentry/api/endpoints/organization_sampling_project_span_counts.py           @getsentry/telemetry-experience
+/tests/sentry/api/endpoints/test_organization_sampling_project_span_counts.py    @getsentry/telemetry-experience
 /src/sentry/dynamic_sampling/                                                    @getsentry/telemetry-experience
 /tests/sentry/dynamic_sampling/                                                  @getsentry/telemetry-experience
 /src/sentry/release_health/metrics_sessions_v2.py                                @getsentry/telemetry-experience
@@ -474,13 +492,9 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /tests/sentry/sentry_metrics/querying/                                           @getsentry/telemetry-experience
 /src/sentry/sentry_metrics/visibility/                                           @getsentry/telemetry-experience
 /tests/sentry/sentry_metrics/visibility/                                         @getsentry/telemetry-experience
-/src/sentry/sentry_metrics/span_attribute_extraction_rules.py                    @getsentry/telemetry-experience
 /src/sentry/sentry_metrics/extraction_rules.py                                   @getsentry/telemetry-experience
-/tests/sentry/sentry_metrics/test_extraction_rules.py                            @getsentry/telemetry-experience
 /src/sentry/snuba/metrics/                                                       @getsentry/telemetry-experience
 /tests/sentry/snuba/metrics/                                                     @getsentry/telemetry-experience
-/src/sentry/relay/config/metric_extraction.py                                    @getsentry/telemetry-experience
-/tests/sentry/relay/config/test_metric_extraction.py                             @getsentry/telemetry-experience
 
 /static/app/actionCreators/metrics.spec.tsx                                      @getsentry/telemetry-experience
 /static/app/actionCreators/metrics.tsx                                           @getsentry/telemetry-experience
@@ -492,9 +506,8 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /static/app/types/project.tsx                                                    @getsentry/telemetry-experience
 /static/app/utils/metrics/                                                       @getsentry/telemetry-experience
 /static/app/views/metrics/                                                       @getsentry/telemetry-experience
-/static/app/views/performance/landing/dynamicSamplingMetricsAccuracy.spec.tsx    @getsentry/telemetry-experience
-/static/app/views/performance/landing/dynamicSamplingMetricsAccuracyAlert.tsx    @getsentry/telemetry-experience
 /static/app/views/settings/project/dynamicSampling/                              @getsentry/telemetry-experience
+/static/app/views/settings/dynamicSampling/                                      @getsentry/telemetry-experience
 /static/app/views/settings/projectMetrics/*                                      @getsentry/telemetry-experience
 /static/app/views/onboarding*                                                    @getsentry/telemetry-experience
 
@@ -561,6 +574,7 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /tests/sentry/tasks/test_auto_ongoing_issues.py             @getsentry/issues
 /tests/sentry/tasks/test_auto_remove_inbox.py               @getsentry/issues
 /tests/sentry/tasks/test_auto_resolve_issues.py             @getsentry/issues
+/tests/sentry/tasks/test_backfill_seer_grouping_records.py  @getsentry/issues
 /tests/sentry/tasks/test_check_new_issue_threshold_met.py   @getsentry/issues
 /tests/sentry/tasks/test_clear_expired_resolutions.py       @getsentry/issues
 /tests/sentry/tasks/test_clear_expired_rulesnoozes.py       @getsentry/issues
@@ -613,10 +627,27 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /src/sentry/api/endpoints/organization_missing_org_members.py           @getsentry/ecosystem
 /src/sentry/tasks/invite_missing_org_members.py                         @getsentry/ecosystem
 /static/app/components/modals/inviteMissingMembersModal/                @getsentry/ecosystem
-/src/sentry/tasks/integrations/github/pr_comment.py                     @getsentry/ecosystem
+/src/sentry/integrations/github/tasks/pr_comment.py                     @getsentry/ecosystem
 ## End of Ecosystem
 
 ## Core Product Foundations
 /src/sentry/data_secrecy/                                             @getsentry/core-product-foundations
 /tests/sentry/data_secrecy/                                           @getsentry/core-product-foundations
 ## End of Core Product Foundations
+
+# Taskworkers
+/src/sentry/taskworker/                                       @getsentry/taskworker
+/tests/sentry/taskworker/                                     @getsentry/taskworker
+
+# Tempest
+/src/sentry/tempest/                                       @getsentry/gdx
+/tests/sentry/tempest/                                     @getsentry/gdx
+
+# Workflow engine
+/src/sentry/workflow_engine/                               @getsentry/alerts-create-issues
+/tests/sentry/workflow_engine/                             @getsentry/alerts-create-issues
+
+/static/app/components/workflowEngine/                     @getsentry/alerts-create-issues
+/static/app/views/automations/                             @getsentry/alerts-create-issues
+/static/app/views/detectors/                               @getsentry/alerts-create-issues
+# End of Workflow Engine (ACI)

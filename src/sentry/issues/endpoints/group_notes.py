@@ -11,6 +11,7 @@ from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.group_notes import NoteSerializer
 from sentry.models.activity import Activity
+from sentry.models.group import Group
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.signals import comment_created
@@ -25,7 +26,7 @@ class GroupNotesEndpoint(GroupEndpoint):
         "POST": ApiPublishStatus.UNKNOWN,
     }
 
-    def get(self, request: AuthenticatedHttpRequest, group) -> Response:
+    def get(self, request: AuthenticatedHttpRequest, group: Group) -> Response:
         notes = Activity.objects.filter(group=group, type=ActivityType.NOTE.value)
 
         return self.paginate(
@@ -36,7 +37,7 @@ class GroupNotesEndpoint(GroupEndpoint):
             on_results=lambda x: serialize(x, request.user),
         )
 
-    def post(self, request: AuthenticatedHttpRequest, group) -> Response:
+    def post(self, request: AuthenticatedHttpRequest, group: Group) -> Response:
         serializer = NoteSerializer(
             data=request.data,
             context={
@@ -61,7 +62,7 @@ class GroupNotesEndpoint(GroupEndpoint):
             datetime__gte=timezone.now() - timedelta(hours=1),
         ).exists():
             return Response(
-                '{"detail": "You have already posted that comment."}',
+                {"detail": "You have already posted that comment."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

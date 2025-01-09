@@ -1,16 +1,26 @@
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {TagsFixture} from 'sentry-fixture/tags';
+import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import MemberListStore from 'sentry/stores/memberListStore';
+import {DatasetSource} from 'sentry/utils/discover/types';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import Dashboard from 'sentry/views/dashboards/dashboard';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 
 import {OrganizationContext} from '../organizationContext';
+
+import WidgetLegendSelectionState from './widgetLegendSelectionState';
+
+jest.mock('sentry/components/lazyRender', () => ({
+  LazyRender: ({children}: {children: React.ReactNode}) => children,
+}));
 
 describe('Dashboards > Dashboard', () => {
   const organization = OrganizationFixture({
@@ -59,13 +69,25 @@ describe('Dashboards > Dashboard', () => {
     ],
   };
 
-  let initialData, tagsMock;
+  const widgetLegendState = new WidgetLegendSelectionState({
+    organization,
+    dashboard: mockDashboard,
+    router: RouterFixture(),
+    location: LocationFixture(),
+  });
+
+  let initialData: ReturnType<typeof initializeOrg>;
+  let tagsMock: jest.Mock;
 
   beforeEach(() => {
     initialData = initializeOrg({organization, router: {}, projects: []});
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/dashboards/widgets/`,
       method: 'POST',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/releases/stats/`,
       body: [],
     });
     MockApiClient.addMockResponse({
@@ -130,6 +152,7 @@ describe('Dashboards > Dashboard', () => {
         location={initialData.router.location}
         widgetLimitReached={false}
         isEditingDashboard={false}
+        widgetLegendState={widgetLegendState}
       />,
       {router: initialData.router}
     );
@@ -153,6 +176,7 @@ describe('Dashboards > Dashboard', () => {
         newWidget={newWidget}
         widgetLimitReached={false}
         onSetNewWidget={mockCallbackToUnsetNewWidget}
+        widgetLegendState={widgetLegendState}
       />,
       {router: initialData.router}
     );
@@ -176,6 +200,7 @@ describe('Dashboards > Dashboard', () => {
         location={initialData.router.location}
         widgetLimitReached={false}
         onSetNewWidget={mockCallbackToUnsetNewWidget}
+        widgetLegendState={widgetLegendState}
       />,
       {router: initialData.router}
     );
@@ -197,6 +222,7 @@ describe('Dashboards > Dashboard', () => {
         widgetLimitReached={false}
         onSetNewWidget={mockCallbackToUnsetNewWidget}
         newWidget={newWidget}
+        widgetLegendState={widgetLegendState}
       />
     );
     await waitFor(() => expect(mockHandleAddCustomWidget).toHaveBeenCalled());
@@ -219,11 +245,124 @@ describe('Dashboards > Dashboard', () => {
         location={initialData.router.location}
         widgetLimitReached={false}
         onSetNewWidget={mockCallbackToUnsetNewWidget}
+        widgetLegendState={widgetLegendState}
       />,
       {router: initialData.router}
     );
     expect(mockHandleAddCustomWidget).not.toHaveBeenCalled();
     expect(mockCallbackToUnsetNewWidget).not.toHaveBeenCalled();
+  });
+
+  it('updates the widget dataset split', async () => {
+    const splitWidget = {
+      ...newWidget,
+      widgetType: WidgetType.ERRORS,
+      datasetSource: DatasetSource.FORCED,
+    };
+    const splitWidgets = [splitWidget];
+    const dashboardWithOneWidget = {...mockDashboard, widgets: splitWidgets};
+
+    const mockOnUpdate = jest.fn();
+    const mockHandleUpdateWidgetList = jest.fn();
+
+    render(
+      <OrganizationContext.Provider value={initialData.organization}>
+        <MEPSettingProvider forceTransactions={false}>
+          <Dashboard
+            paramDashboardId="1"
+            dashboard={dashboardWithOneWidget}
+            organization={initialData.organization}
+            isEditingDashboard={false}
+            onUpdate={mockOnUpdate}
+            handleUpdateWidgetList={mockHandleUpdateWidgetList}
+            handleAddCustomWidget={() => undefined}
+            router={initialData.router}
+            location={initialData.router.location}
+            widgetLimitReached={false}
+            onSetNewWidget={() => undefined}
+            widgetLegendState={widgetLegendState}
+          />
+        </MEPSettingProvider>
+      </OrganizationContext.Provider>
+    );
+
+    await userEvent.hover(screen.getByLabelText('Widget warnings'));
+
+    expect(
+      await screen.findByText(/We're splitting our datasets up/)
+    ).toBeInTheDocument();
+
+    await userEvent.click(await screen.findByText(/Switch to Transactions/));
+    await waitFor(() => {
+      expect(mockOnUpdate).toHaveBeenCalled();
+    });
+    expect(mockHandleUpdateWidgetList).toHaveBeenCalled();
+  });
+
+  it('handles duplicate widget in view mode', async () => {
+    const mockOnUpdate = jest.fn();
+    const mockHandleUpdateWidgetList = jest.fn();
+
+    const dashboardWithOneWidget = {
+      ...mockDashboard,
+      widgets: [
+        WidgetFixture({
+          id: '1',
+          layout: {
+            h: 1,
+            w: 1,
+            x: 0,
+            y: 0,
+            minH: 1,
+          },
+        }),
+      ],
+    };
+
+    render(
+      <OrganizationContext.Provider value={initialData.organization}>
+        <MEPSettingProvider forceTransactions={false}>
+          <Dashboard
+            paramDashboardId="1"
+            dashboard={dashboardWithOneWidget}
+            organization={initialData.organization}
+            isEditingDashboard={false}
+            onUpdate={mockOnUpdate}
+            handleUpdateWidgetList={mockHandleUpdateWidgetList}
+            handleAddCustomWidget={() => undefined}
+            router={initialData.router}
+            location={initialData.router.location}
+            widgetLimitReached={false}
+            onSetNewWidget={() => undefined}
+            widgetLegendState={widgetLegendState}
+          />
+        </MEPSettingProvider>
+      </OrganizationContext.Provider>
+    );
+
+    await userEvent.click(await screen.findByLabelText('Widget actions'));
+    await userEvent.click(await screen.findByText('Duplicate Widget'));
+
+    // The new widget is inserted before the duplicated widget
+    const expectedWidgets = [
+      // New Widget
+      expect.objectContaining(
+        WidgetFixture({
+          id: undefined,
+          layout: expect.objectContaining({h: 1, w: 1, x: 0, y: 0, minH: 1}),
+        })
+      ),
+      // Duplicated Widget
+      expect.objectContaining(
+        WidgetFixture({
+          id: '1',
+          layout: expect.objectContaining({h: 1, w: 1, x: 0, y: 1, minH: 1}),
+        })
+      ),
+    ];
+
+    expect(mockHandleUpdateWidgetList).toHaveBeenCalledWith(expectedWidgets);
+    expect(mockOnUpdate).toHaveBeenCalledWith(expectedWidgets);
   });
 
   describe('Issue Widgets', () => {
@@ -246,6 +385,7 @@ describe('Dashboards > Dashboard', () => {
               router={initialData.router}
               location={initialData.router.location}
               widgetLimitReached={false}
+              widgetLegendState={widgetLegendState}
             />
           </MEPSettingProvider>
         </OrganizationContext.Provider>
@@ -302,6 +442,7 @@ describe('Dashboards > Dashboard', () => {
               location={location}
               widgetLimitReached={false}
               isPreview={isPreview}
+              widgetLegendState={widgetLegendState}
             />
           </MEPSettingProvider>
         </OrganizationContext.Provider>

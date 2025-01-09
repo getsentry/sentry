@@ -15,19 +15,19 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import type {FunctionTrend, TrendType} from 'sentry/utils/profiling/hooks/types';
 import {useCurrentProjectFromRouteParam} from 'sentry/utils/profiling/hooks/useCurrentProjectFromRouteParam';
 import {useProfileFunctionTrends} from 'sentry/utils/profiling/hooks/useProfileFunctionTrends';
 import {
   generateProfileDifferentialFlamegraphRouteWithQuery,
-  generateProfileFlamechartRouteWithQuery,
+  generateProfileRouteFromProfileReference,
 } from 'sentry/utils/profiling/routes';
 import {relativeChange} from 'sentry/utils/profiling/units/units';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {ProfilingSparklineChart} from './profilingSparklineChart';
@@ -48,16 +48,18 @@ function trendToPoints(trend: FunctionTrend): {timestamp: number; value: number}
   });
 }
 
-function findBreakPointIndex(breakpoint: number, worst: FunctionTrend['worst']): number {
+function findBreakPointIndex(
+  breakpoint: number,
+  examples: FunctionTrend['examples']
+): number {
   let low = 0;
-  let high = worst.length - 1;
+  let high = examples.length - 1;
   let mid = 0;
-  let bestMatch: number = worst.length;
+  let bestMatch: number = examples.length;
 
-  // eslint-disable-next-line
   while (low <= high) {
     mid = Math.floor((low + high) / 2);
-    const value = worst[mid][0];
+    const value = examples[mid]![0];
 
     if (breakpoint === value) {
       return mid;
@@ -78,39 +80,39 @@ function findBreakPointIndex(breakpoint: number, worst: FunctionTrend['worst']):
 }
 
 function findWorstProfileIDBeforeAndAfter(trend: FunctionTrend): {
-  after: string | null;
-  before: string | null;
+  after: Profiling.BaseProfileReference | null;
+  before: Profiling.BaseProfileReference | null;
 } {
-  const breakPointIndex = findBreakPointIndex(trend.breakpoint, trend.worst);
+  const breakPointIndex = findBreakPointIndex(trend.breakpoint, trend.examples);
 
-  let beforeProfileID: string | null = null;
-  let afterProfileID: string | null = null;
+  let beforeProfile: Profiling.BaseProfileReference | null = null;
+  let afterProfile: Profiling.BaseProfileReference | null = null;
 
   const STABILITY_WINDOW = 2 * 60 * 1000;
   for (let i = breakPointIndex; i >= 0; i--) {
-    if (!defined(trend.worst[i])) {
+    if (!defined(trend.examples[i])) {
       continue;
     }
-    if (trend.worst[i][0] < trend.breakpoint - STABILITY_WINDOW) {
+    if (trend.examples[i]![0] < trend.breakpoint - STABILITY_WINDOW) {
       break;
     }
 
-    beforeProfileID = trend.worst[i][1];
+    beforeProfile = trend.examples[i]![1];
   }
 
-  for (let i = breakPointIndex; i < trend.worst.length; i++) {
-    if (!defined(trend.worst[i])) {
+  for (let i = breakPointIndex; i < trend.examples.length; i++) {
+    if (!defined(trend.examples[i])) {
       continue;
     }
-    if (trend.worst[i][0] > trend.breakpoint + STABILITY_WINDOW) {
+    if (trend.examples[i]![0] > trend.breakpoint + STABILITY_WINDOW) {
       break;
     }
-    afterProfileID = trend.worst[i][1];
+    afterProfile = trend.examples[i]![1];
   }
 
   return {
-    before: beforeProfileID,
-    after: afterProfileID,
+    before: beforeProfile,
+    after: afterProfile,
   };
 }
 
@@ -121,6 +123,7 @@ interface MostRegressedProfileFunctionsProps {
 export function MostRegressedProfileFunctions(props: MostRegressedProfileFunctionsProps) {
   const organization = useOrganization();
   const project = useCurrentProjectFromRouteParam();
+  const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
 
@@ -129,12 +132,15 @@ export function MostRegressedProfileFunctions(props: MostRegressedProfileFunctio
     [location.query]
   );
 
-  const handleRegressedFunctionsCursor = useCallback((cursor, pathname, query) => {
-    browserHistory.push({
-      pathname,
-      query: {...query, [REGRESSED_FUNCTIONS_CURSOR]: cursor},
-    });
-  }, []);
+  const handleRegressedFunctionsCursor = useCallback(
+    (cursor, pathname, query) => {
+      navigate({
+        pathname,
+        query: {...query, [REGRESSED_FUNCTIONS_CURSOR]: cursor},
+      });
+    },
+    [navigate]
+  );
 
   const functionQuery = useMemo(() => {
     const conditions = new MutableSearch('');
@@ -237,8 +243,8 @@ export function MostRegressedProfileFunctions(props: MostRegressedProfileFunctio
                   aggregate_range_1={fn.aggregate_range_1}
                   aggregate_range_2={fn.aggregate_range_2}
                   breakpoint={fn.breakpoint}
-                  start={fn.stats.data[0][0]}
-                  end={fn.stats.data[fn.stats.data.length - 1][0]}
+                  start={fn.stats.data[0]![0]}
+                  end={fn.stats.data[fn.stats.data.length - 1]![0]}
                 />
               </RegressedFunctionSparklineContainer>
             </RegressedFunctionRow>
@@ -305,8 +311,8 @@ function RegressedFunctionDifferentialFlamegraph(
 }
 
 interface RegressedFunctionBeforeAfterProps {
-  after: string | null;
-  before: string | null;
+  after: Profiling.BaseProfileReference | null;
+  before: Profiling.BaseProfileReference | null;
   fn: FunctionTrend;
   organization: Organization;
   project: Project | null;
@@ -323,20 +329,19 @@ function RegressedFunctionBeforeAfterFlamechart(
   }, [props.organization]);
 
   let rendered = <TextTruncateOverflow>{props.fn.function}</TextTruncateOverflow>;
-  if (defined(props.fn['examples()']?.[0])) {
+  const example = props.fn['all_examples()']?.[0];
+  if (defined(example)) {
     rendered = (
       <Link
         onClick={onRegressedFunctionClick}
-        to={generateProfileFlamechartRouteWithQuery({
+        to={generateProfileRouteFromProfileReference({
           orgSlug: props.organization.slug,
           projectSlug: props.project?.slug ?? '',
-          profileId: (props.fn['examples()']?.[0] as string) ?? '',
-          query: {
-            // specify the frame to focus, the flamegraph will switch
-            // to the appropriate thread when these are specified
-            frameName: props.fn.function as string,
-            framePackage: props.fn.package as string,
-          },
+          reference: example,
+          // specify the frame to focus, the flamegraph will switch
+          // to the appropriate thread when these are specified
+          frameName: props.fn.function as string,
+          framePackage: props.fn.package as string,
         })}
       >
         {rendered}
@@ -354,16 +359,14 @@ function RegressedFunctionBeforeAfterFlamechart(
     before = (
       <Link
         onClick={onRegressedFunctionClick}
-        to={generateProfileFlamechartRouteWithQuery({
+        to={generateProfileRouteFromProfileReference({
           orgSlug: props.organization.slug,
           projectSlug: props.project?.slug ?? '',
-          profileId: props.before,
-          query: {
-            // specify the frame to focus, the flamegraph will switch
-            // to the appropriate thread when these are specified
-            frameName: props.fn.function as string,
-            framePackage: props.fn.package as string,
-          },
+          reference: props.before,
+          // specify the frame to focus, the flamegraph will switch
+          // to the appropriate thread when these are specified
+          frameName: props.fn.function as string,
+          framePackage: props.fn.package as string,
         })}
       >
         {before}
@@ -381,16 +384,14 @@ function RegressedFunctionBeforeAfterFlamechart(
     after = (
       <Link
         onClick={onRegressedFunctionClick}
-        to={generateProfileFlamechartRouteWithQuery({
+        to={generateProfileRouteFromProfileReference({
           orgSlug: props.organization.slug,
           projectSlug: props.project?.slug ?? '',
-          profileId: props.after,
-          query: {
-            // specify the frame to focus, the flamegraph will switch
-            // to the appropriate thread when these are specified
-            frameName: props.fn.function as string,
-            framePackage: props.fn.package as string,
-          },
+          reference: props.after,
+          // specify the frame to focus, the flamegraph will switch
+          // to the appropriate thread when these are specified
+          frameName: props.fn.function as string,
+          framePackage: props.fn.package as string,
         })}
       >
         {after}

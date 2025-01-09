@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 import logging
-from random import randint
 from typing import Any
 
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import REDIRECT_FIELD_NAME
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.http.response import HttpResponseBase
 from django.urls import reverse
 from django.utils.decorators import method_decorator
@@ -41,6 +40,7 @@ from sentry.utils.auth import (
 from sentry.utils.http import absolute_uri
 from sentry.utils.sdk import capture_exception
 from sentry.utils.urls import add_params_to_url
+from sentry.web.client_config import get_client_config
 from sentry.web.forms.accounts import AuthenticationForm, RegistrationForm
 from sentry.web.frontend.base import BaseView, control_silo_view
 
@@ -91,12 +91,12 @@ class AuthLoginView(BaseView):
     }
 
     @method_decorator(never_cache)
-    def handle(self, request: Request, *args, **kwargs) -> HttpResponseBase:
+    def handle(self, request: HttpRequest, *args, **kwargs) -> HttpResponseBase:
         """
         Hooks in to the django view dispatch which delegates request to GET/POST/PUT/DELETE.
         Base view overwrites dispatch to include functionality for csrf, superuser, customer domains, etc.
         """
-        return super().handle(request=request, *args, **kwargs)
+        return super().handle(request, *args, **kwargs)
 
     def get(self, request: Request, **kwargs) -> HttpResponseBase:
         next_uri = self.get_next_uri(request=request)
@@ -432,7 +432,7 @@ class AuthLoginView(BaseView):
         ]
         metrics.incr("login.attempt", instance="rate_limited", skip_internal=True, sample_rate=1.0)
 
-        context = {
+        context = self.get_default_context(request=request) | {
             "op": "login",
             "login_form": login_form,
             "referrer": request.GET.get("referrer"),
@@ -527,16 +527,14 @@ class AuthLoginView(BaseView):
         default_context = {
             "server_hostname": get_server_hostname(),
             "login_form": None,
-            "organization": kwargs.pop(
-                "organization", None
-            ),  # NOTE: not utilized in basic login page (only org login)
+            "organization": organization,  # NOTE: not utilized in basic login page (only org login)
             "register_form": None,
             "CAN_REGISTER": False,
+            "react_config": get_client_config(request, self.active_organization),
             "join_request_link": self.get_join_request_link(
                 organization=organization, request=request
             ),  # NOTE: not utilized in basic login page (only org login)
             "show_login_banner": settings.SHOW_LOGIN_BANNER,
-            "banner_choice": randint(0, 1),  # 2 possible banners
             "referrer": request.GET.get("referrer"),
         }
         default_context.update(additional_context.run_callbacks(request=request))
@@ -704,19 +702,11 @@ class AuthLoginView(BaseView):
                     "login.attempt", instance="failure", skip_internal=True, sample_rate=1.0
                 )
 
-        context = {
+        context = self.get_default_context(request=request, organization=organization) | {
             "op": op or "login",
-            "server_hostname": get_server_hostname(),
             "login_form": login_form,
-            "organization": organization,
             "register_form": register_form,
             "CAN_REGISTER": can_register,
-            "join_request_link": self.get_join_request_link(
-                organization=organization, request=request
-            ),
-            "show_login_banner": settings.SHOW_LOGIN_BANNER,
-            "banner_choice": randint(0, 1),  # 2 possible banners
-            "referrer": request.GET.get("referrer"),
         }
 
         context.update(additional_context.run_callbacks(request))

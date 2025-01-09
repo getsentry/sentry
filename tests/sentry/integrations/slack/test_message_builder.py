@@ -9,6 +9,7 @@ from django.urls import reverse
 from urllib3.response import HTTPResponse
 
 from sentry.eventstore.models import Event
+from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
 from sentry.incidents.models.alert_rule import (
     AlertRuleDetectionType,
@@ -33,7 +34,6 @@ from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricA
 from sentry.integrations.slack.message_builder.types import LEVEL_TO_COLOR
 from sentry.integrations.time_utils import time_since
 from sentry.issues.grouptype import (
-    ErrorGroupType,
     FeedbackGroup,
     MonitorIncidentType,
     PerformanceP95EndpointRegressionGroupType,
@@ -45,6 +45,7 @@ from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
+from sentry.models.rule import Rule as IssueAlertRule
 from sentry.models.team import Team
 from sentry.notifications.utils.actions import MessageAction
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
@@ -53,7 +54,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.factories import EventType
 from sentry.testutils.helpers import with_feature
-from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.actor import Actor
@@ -227,72 +228,6 @@ def build_test_message_blocks(
     }
 
 
-def build_test_message(
-    teams: set[Team],
-    users: set[User],
-    timestamp: datetime,
-    group: Group,
-    event: Event | None = None,
-    link_to_event: bool = False,
-) -> dict[str, Any]:
-    project = group.project
-
-    title = group.title
-    title_link = f"http://testserver/organizations/{project.organization.slug}/issues/{group.id}"
-    if event:
-        title = event.title
-        if link_to_event:
-            title_link += f"/events/{event.event_id}"
-    title_link += "/?referrer=slack"
-
-    return {
-        "text": "",
-        "color": "#E03E2F",  # red for error level
-        "actions": [
-            {"name": "status", "text": "Resolve", "type": "button", "value": "resolved"},
-            {
-                "name": "status",
-                "text": "Archive",
-                "type": "button",
-                "value": "archived",
-            },
-            {
-                "option_groups": [
-                    {
-                        "text": "Teams",
-                        "options": [
-                            {"text": f"#{team.slug}", "value": f"team:{team.id}"} for team in teams
-                        ],
-                    },
-                    {
-                        "text": "People",
-                        "options": [
-                            {
-                                "text": user.email,
-                                "value": f"user:{user.id}",
-                            }
-                            for user in users
-                        ],
-                    },
-                ],
-                "text": "Select Assignee...",
-                "selected_options": [],
-                "type": "select",
-                "name": "assign",
-            },
-        ],
-        "mrkdwn_in": ["text"],
-        "title": title,
-        "fields": [],
-        "footer": f"{project.slug.upper()}-1",
-        "ts": timestamp.timestamp(),
-        "title_link": title_link,
-        "callback_id": '{"issue":' + str(group.id) + "}",
-        "fallback": f"[{project.slug}] {title}",
-        "footer_icon": "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png",
-    }
-
-
 class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTestMixin):
     def test_build_group_block(self):
         release = self.create_release(project=self.project)
@@ -300,7 +235,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             data={
                 "event_id": "a" * 32,
                 "tags": {"escape": "`room`", "foo": "bar"},
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "logentry": {"formatted": "bar"},
                 "_meta": {"logentry": {"formatted": {"": {"err": ["some error"]}}}},
                 "release": release.version,
@@ -494,7 +429,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         event = self.store_event(
             data={
                 "fingerprint": ["group1"],
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "logentry": {"formatted": "bar"},
                 "_meta": {"logentry": {"formatted": {"": {"err": ["some error"]}}}},
             },
@@ -559,7 +494,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         event = self.store_event(
             data={
                 "fingerprint": ["group1"],
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "logentry": {"formatted": "bar"},
                 "_meta": {"logentry": {"formatted": {"": {"err": ["some error"]}}}},
             },
@@ -867,7 +802,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
                 reverse(
                     "sentry-metric-alert-details",
                     kwargs={
-                        "organization_slug": alert_rule.organization.slug,
+                        "organization_slug": self.organization.slug,
                         "alert_rule_id": alert_rule.id,
                     },
                 )
@@ -911,7 +846,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
                 reverse(
                     "sentry-metric-alert-details",
                     kwargs={
-                        "organization_slug": alert_rule.organization.slug,
+                        "organization_slug": self.organization.slug,
                         "alert_rule_id": alert_rule.id,
                     },
                 )
@@ -949,7 +884,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
                 reverse(
                     "sentry-metric-alert-details",
                     kwargs={
-                        "organization_slug": alert_rule.organization.slug,
+                        "organization_slug": self.organization.slug,
                         "alert_rule_id": alert_rule.id,
                     },
                 )
@@ -983,7 +918,7 @@ class BuildGroupAttachmentReplaysTest(TestCase):
                 "message": "Hello world",
                 "level": "error",
                 "contexts": {"replay": {"replay_id": replay1_id}},
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
             },
             project_id=self.project.id,
         )
@@ -1017,7 +952,7 @@ class BuildIncidentAttachmentTest(TestCase):
                 reverse(
                     "sentry-metric-alert-details",
                     kwargs={
-                        "organization_slug": alert_rule.organization.slug,
+                        "organization_slug": self.organization.slug,
                         "alert_rule_id": alert_rule.id,
                     },
                 )
@@ -1057,7 +992,7 @@ class BuildIncidentAttachmentTest(TestCase):
                 reverse(
                     "sentry-metric-alert-details",
                     kwargs={
-                        "organization_slug": alert_rule.organization.slug,
+                        "organization_slug": self.organization.slug,
                         "alert_rule_id": alert_rule.id,
                     },
                 )
@@ -1097,7 +1032,7 @@ class BuildIncidentAttachmentTest(TestCase):
                 reverse(
                     "sentry-metric-alert-details",
                     kwargs={
-                        "organization_slug": alert_rule.organization.slug,
+                        "organization_slug": self.organization.slug,
                         "alert_rule_id": alert_rule.id,
                     },
                 )
@@ -1150,7 +1085,7 @@ class BuildIncidentAttachmentTest(TestCase):
                 reverse(
                     "sentry-metric-alert-details",
                     kwargs={
-                        "organization_slug": alert_rule.organization.slug,
+                        "organization_slug": self.organization.slug,
                         "alert_rule_id": alert_rule.id,
                     },
                 )
@@ -1181,7 +1116,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
                 reverse(
                     "sentry-metric-alert-details",
                     kwargs={
-                        "organization_slug": alert_rule.organization.slug,
+                        "organization_slug": self.organization.slug,
                         "alert_rule_id": alert_rule.id,
                     },
                 )
@@ -1214,7 +1149,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
                 reverse(
                     "sentry-metric-alert-details",
                     kwargs={
-                        "organization_slug": alert_rule.organization.slug,
+                        "organization_slug": self.organization.slug,
                         "alert_rule_id": alert_rule.id,
                     },
                 )
@@ -1247,7 +1182,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
                 reverse(
                     "sentry-metric-alert-details",
                     kwargs={
-                        "organization_slug": alert_rule.organization.slug,
+                        "organization_slug": self.organization.slug,
                         "alert_rule_id": alert_rule.id,
                     },
                 )
@@ -1283,7 +1218,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
                 reverse(
                     "sentry-metric-alert-details",
                     kwargs={
-                        "organization_slug": alert_rule.organization.slug,
+                        "organization_slug": self.organization.slug,
                         "alert_rule_id": alert_rule.id,
                     },
                 )
@@ -1314,7 +1249,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
                 reverse(
                     "sentry-metric-alert-details",
                     kwargs={
-                        "organization_slug": alert_rule.organization.slug,
+                        "organization_slug": self.organization.slug,
                         "alert_rule_id": alert_rule.id,
                     },
                 )
@@ -1360,7 +1295,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
                 reverse(
                     "sentry-metric-alert-details",
                     kwargs={
-                        "organization_slug": alert_rule.organization.slug,
+                        "organization_slug": self.organization.slug,
                         "alert_rule_id": alert_rule.id,
                     },
                 )
@@ -1597,6 +1532,52 @@ class SlackNotificationConfigTest(TestCase, PerformanceIssueTestCase, Occurrence
         assert (
             context_with_error_user_count
             == f"Events: *3*   State: *Ongoing*   First Seen: *{time_since(group.first_seen)}*"
+        )
+
+    def test_get_context_users_affected(self):
+        env = self.create_environment(project=self.project)
+        env2 = self.create_environment(project=self.project)
+        rule = IssueAlertRule.objects.create(project=self.project, label="my rule")
+
+        event = [
+            self.store_event(
+                data={
+                    "user": {"id": i},
+                    "environment": env.name,
+                },
+                project_id=self.project.id,
+                assert_no_errors=False,
+            )
+            for i in range(5)
+        ][0]
+        [
+            self.store_event(
+                data={
+                    "user": {"id": i},
+                    "environment": env2.name,
+                },
+                project_id=self.project.id,
+                assert_no_errors=False,
+            )
+            for i in range(5, 7)
+        ]
+
+        group = event.group
+        assert group
+        group.update(type=1, substatus=GroupSubStatus.ONGOING, times_seen=3)
+
+        context = get_context(group, [rule])
+        assert (
+            context
+            == f"Events: *3*   Users Affected: *7*   State: *Ongoing*   First Seen: *{time_since(group.first_seen)}*"
+        )
+
+        # filter users affected by env
+        rule.update(environment_id=env.id)
+        context = get_context(group, [rule])
+        assert (
+            context
+            == f"Events: *3*   Users Affected: *5*   State: *Ongoing*   First Seen: *{time_since(group.first_seen)}*"
         )
 
     def test_get_tags(self):

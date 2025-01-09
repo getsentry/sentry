@@ -34,7 +34,7 @@ const commonQueryConditions = {
 };
 
 describe('Tags', function () {
-  function generateUrl(key, value) {
+  function generateUrl(key: string, value: string) {
     return `/endpoint/${key}/${value}`;
   }
 

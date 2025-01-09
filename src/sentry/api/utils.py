@@ -11,13 +11,12 @@ from typing import Any, Literal, overload
 
 import sentry_sdk
 from django.conf import settings
-from django.http import HttpRequest, HttpResponseNotAllowed
+from django.http import HttpRequest
 from django.utils import timezone
-from django.views.decorators.csrf import csrf_exempt
 from rest_framework.exceptions import APIException, ParseError
 from rest_framework.request import Request
 from sentry_sdk import Scope
-from urllib3.exceptions import MaxRetryError, ReadTimeoutError
+from urllib3.exceptions import MaxRetryError, ReadTimeoutError, TimeoutError
 
 from sentry import options
 from sentry.auth.staff import is_active_staff
@@ -58,6 +57,7 @@ from sentry.utils.snuba import (
     SnubaError,
     UnqualifiedQueryError,
 )
+from sentry.utils.snuba_rpc import SnubaRPCError
 
 logger = logging.getLogger(__name__)
 
@@ -92,8 +92,7 @@ def get_date_range_from_params(
     params: Mapping[str, Any],
     optional: Literal[False] = ...,
     default_stats_period: datetime.timedelta = ...,
-) -> tuple[datetime.datetime, datetime.datetime]:
-    ...
+) -> tuple[datetime.datetime, datetime.datetime]: ...
 
 
 @overload
@@ -101,8 +100,7 @@ def get_date_range_from_params(
     params: Mapping[str, Any],
     optional: bool = ...,
     default_stats_period: datetime.timedelta = ...,
-) -> tuple[None, None] | tuple[datetime.datetime, datetime.datetime]:
-    ...
+) -> tuple[None, None] | tuple[datetime.datetime, datetime.datetime]: ...
 
 
 def get_date_range_from_params(
@@ -165,8 +163,7 @@ def get_date_range_from_stats_period(
     params: dict[str, Any],
     optional: Literal[False] = ...,
     default_stats_period: datetime.timedelta = ...,
-) -> tuple[datetime.datetime, datetime.datetime]:
-    ...
+) -> tuple[datetime.datetime, datetime.datetime]: ...
 
 
 @overload
@@ -174,8 +171,7 @@ def get_date_range_from_stats_period(
     params: dict[str, Any],
     optional: bool = ...,
     default_stats_period: datetime.timedelta = ...,
-) -> tuple[None, None] | tuple[datetime.datetime, datetime.datetime]:
-    ...
+) -> tuple[None, None] | tuple[datetime.datetime, datetime.datetime]: ...
 
 
 def get_date_range_from_stats_period(
@@ -238,6 +234,35 @@ def get_date_range_from_stats_period(
     return start, end
 
 
+def clamp_date_range(
+    range: tuple[datetime.datetime, datetime.datetime], max_timedelta: datetime.timedelta
+) -> tuple[datetime.datetime, datetime.datetime]:
+    """
+    Accepts a date range and a maximum time delta. If the date range is shorter
+    than the max delta, returns the range as-is. If the date range is longer than the max delta, clamps the range range, anchoring to the end.
+
+    If any of the inputs are invalid (e.g., a negative range) returns the range
+    without modifying it.
+
+    :param range: A tuple of two `datetime.datetime` objects
+    :param max_timedelta: Maximum allowed range delta
+    :return: A tuple of two `datetime.datetime` objects
+    """
+
+    [start, end] = range
+    delta = end - start
+
+    # Ignore negative max time deltas
+    if max_timedelta < datetime.timedelta(0):
+        return (start, end)
+
+    # Ignore if delta is within acceptable range
+    if delta < max_timedelta:
+        return (start, end)
+
+    return (end - max_timedelta, end)
+
+
 # The wide typing allows us to move towards RpcUserOrganizationContext in the future to save RPC calls.
 # If you can use the wider more correct type, please do.
 def is_member_disabled_from_limit(
@@ -282,30 +307,6 @@ def generate_region_url(region_name: str | None = None) -> str:
     if not region_url_template or not region_name:
         return options.get("system.url-prefix")
     return region_url_template.replace("{region}", region_name)
-
-
-def method_dispatch(**dispatch_mapping):
-    """
-    Dispatches an incoming request to a different handler based on the HTTP method
-
-    >>> re_path('^foo$', method_dispatch(POST = post_handler, GET = get_handler)))
-    """
-
-    def invalid_method(request, *args, **kwargs):
-        return HttpResponseNotAllowed(dispatch_mapping.keys())
-
-    def dispatcher(request, *args, **kwargs):
-        handler = dispatch_mapping.get(request.method, invalid_method)
-        return handler(request, *args, **kwargs)
-
-    # This allows us to surface the mapping when iterating through the URL patterns
-    # Check `test_id_or_slug_path_params.py` for usage
-    dispatcher.dispatch_mapping = dispatch_mapping  # type: ignore[attr-defined]
-
-    if dispatch_mapping.get("csrf_exempt"):
-        return csrf_exempt(dispatcher)
-
-    return dispatcher
 
 
 def print_and_capture_handler_exception(
@@ -367,6 +368,13 @@ def handle_query_errors() -> Generator[None]:
         message = str(error)
         sentry_sdk.set_tag("query.error_reason", f"Metric Error: {message}")
         raise ParseError(detail=message)
+    except SnubaRPCError as error:
+        message = "Internal error. Please try again."
+        arg = error.args[0] if len(error.args) > 0 else None
+        if isinstance(arg, TimeoutError):
+            sentry_sdk.set_tag("query.error_reason", "Timeout")
+            raise ParseError(detail=TIMEOUT_ERROR_MESSAGE)
+        raise APIException(detail=message)
     except SnubaError as error:
         message = "Internal error. Please try again."
         arg = error.args[0] if len(error.args) > 0 else None

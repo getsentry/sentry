@@ -1,16 +1,15 @@
-import type {Location} from 'history';
 import {CommitFixture} from 'sentry-fixture/commit';
 import {CommitAuthorFixture} from 'sentry-fixture/commitAuthor';
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {SentryAppFixture} from 'sentry-fixture/sentryApp';
 import {SentryAppComponentFixture} from 'sentry-fixture/sentryAppComponent';
 import {SentryAppInstallationFixture} from 'sentry-fixture/sentryAppInstallation';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor, within} from 'sentry-test/reactTestingLibrary';
 
 import type {Event} from 'sentry/types/event';
@@ -20,16 +19,10 @@ import {IssueCategory, IssueType} from 'sentry/types/group';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type {QuickTraceEvent} from 'sentry/utils/performance/quickTrace/types';
-import type {GroupEventDetailsProps} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
 import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
-import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
-import {RouteContext} from 'sentry/views/routeContext';
 
 const TRACE_ID = '797cda4e24844bdc90e0efe741616047';
-
-jest.mock('screenfull', () => ({}));
 
 const makeDefaultMockData = (
   organization?: Organization,
@@ -42,15 +35,19 @@ const makeDefaultMockData = (
   project: Project;
   router: InjectedRouter;
 } => {
+  const group = GroupFixture();
+  const org = organization ?? OrganizationFixture();
+
   return {
-    organization: organization ?? initializeOrg().organization,
-    project: project ?? initializeOrg().project,
-    group: GroupFixture(),
+    project: project ?? ProjectFixture(),
+    organization: org,
     router: RouterFixture({
+      params: {orgId: org.slug, groupId: group.id},
       location: LocationFixture({
         query: query ?? {},
       }),
     }),
+    group,
     event: EventFixture({
       size: 1,
       dateCreated: '2019-03-20T00:00:00.000Z',
@@ -103,48 +100,6 @@ const makeDefaultMockData = (
     }),
   };
 };
-
-function TestComponent(
-  props: Partial<GroupEventDetailsProps> & {query?: Record<string, string | string[]>}
-) {
-  const {organization, project, group, event, router} = makeDefaultMockData(
-    props.organization,
-    props.project,
-    props.query ?? {environment: ['dev']}
-  );
-
-  const mergedProps: GroupEventDetailsProps = {
-    group,
-    event,
-    project,
-    organization,
-    params: {groupId: group.id, eventId: '1'},
-    router,
-    location: {} as Location<any>,
-    route: {},
-    eventError: props.eventError ?? false,
-    groupReprocessingStatus:
-      props.groupReprocessingStatus ?? ReprocessingStatus.NO_STATUS,
-    onRetry: props?.onRetry ?? jest.fn(),
-    loadingEvent: props.loadingEvent ?? false,
-    routes: [],
-    routeParams: {},
-    ...props,
-  };
-
-  return (
-    <RouteContext.Provider
-      value={{
-        router,
-        location: router.location,
-        params: router.params,
-        routes: router.routes,
-      }}
-    >
-      <GroupEventDetails {...mergedProps} />
-    </RouteContext.Provider>
-  );
-}
 
 const mockedTrace = (project: Project) => {
   return {
@@ -204,8 +159,21 @@ const mockGroupApis = (
   trace?: QuickTraceEvent
 ) => {
   MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/issues/1/events/',
+    body: [],
+  });
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/flags/logs/',
+    body: {data: []},
+  });
+  MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/issues/${group.id}/`,
     body: group,
+  });
+
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/issues/${group.id}/events/recommended/`,
+    body: event,
   });
 
   MockApiClient.addMockResponse({
@@ -377,33 +345,47 @@ describe('groupEventDetails', () => {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
-    jest.mocked(browserHistory.replace).mockClear();
   });
 
   it('redirects on switching to an invalid environment selection for event', async function () {
     const props = makeDefaultMockData();
+    props.router.params.eventId = props.event.id;
     mockGroupApis(props.organization, props.project, props.group, props.event);
 
-    const {rerender} = render(<TestComponent {...props} />);
-    expect(browserHistory.replace).not.toHaveBeenCalled();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${props.organization.slug}/issues/${props.group.id}/events/${props.event.id}/`,
+      body: props.event,
+    });
 
-    rerender(<TestComponent query={{environment: ['prod']}} />);
+    const {rerender} = render(<GroupEventDetails />, {
+      organization: props.organization,
+      router: props.router,
+    });
+    expect(await screen.findByTestId('group-event-details')).toBeInTheDocument();
+    expect(props.router.replace).not.toHaveBeenCalled();
 
-    await waitFor(() => expect(browserHistory.replace).toHaveBeenCalled());
+    props.router.location.query.environment = ['prod'];
+    rerender(<GroupEventDetails />);
+
+    await waitFor(() => expect(props.router.replace).toHaveBeenCalled());
   });
 
   it('does not redirect when switching to a valid environment selection for event', async function () {
     const props = makeDefaultMockData();
     mockGroupApis(props.organization, props.project, props.group, props.event);
 
-    const {rerender} = render(<TestComponent {...props} />);
+    const {rerender} = render(<GroupEventDetails />, {
+      organization: props.organization,
+      router: props.router,
+    });
 
-    expect(browserHistory.replace).not.toHaveBeenCalled();
-    rerender(<TestComponent query={{environment: []}} />);
+    expect(props.router.replace).not.toHaveBeenCalled();
+    props.router.location.query.environment = [];
+    rerender(<GroupEventDetails />);
 
     expect(await screen.findByTestId('group-event-details')).toBeInTheDocument();
 
-    expect(browserHistory.replace).not.toHaveBeenCalled();
+    expect(props.router.replace).not.toHaveBeenCalled();
   });
 
   it('displays error on event error', async function () {
@@ -424,39 +406,35 @@ describe('groupEventDetails', () => {
       })
     );
 
-    render(<TestComponent event={undefined} eventError />);
+    MockApiClient.addMockResponse({
+      url: `/organizations/${props.organization.slug}/issues/${props.group.id}/events/recommended/`,
+      statusCode: 500,
+    });
+
+    render(<GroupEventDetails />, {
+      organization: props.organization,
+      router: props.router,
+    });
 
     expect(
       await screen.findByText(/events for this issue could not be found/)
     ).toBeInTheDocument();
   });
 
-  it('renders the Span Evidence and Resources section for Performance Issues', async function () {
+  it('renders the Span Evidence section for Performance Issues', async function () {
     const props = makeDefaultMockData();
     const group: Group = GroupFixture({
       issueCategory: IssueCategory.PERFORMANCE,
       issueType: IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
     });
-    const transaction = EventFixture({
+    const transactionEvent = EventFixture({
       entries: [{type: EntryType.SPANS, data: []}],
     });
 
-    mockGroupApis(
-      props.organization,
-      props.project,
-      props.group,
-      EventFixture({
-        size: 1,
-        dateCreated: '2019-03-20T00:00:00.000Z',
-        errors: [],
-        entries: [],
-        tags: [{key: 'environment', value: 'dev'}],
-        previousEventID: 'prev-event-id',
-        nextEventID: 'next-event-id',
-      })
-    );
+    mockGroupApis(props.organization, props.project, group, transactionEvent);
 
-    render(<TestComponent group={group} event={transaction} />, {
+    render(<GroupEventDetails />, {
+      router: props.router,
       organization: props.organization,
     });
 
@@ -465,20 +443,15 @@ describe('groupEventDetails', () => {
         name: /span evidence/i,
       })
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole('heading', {
-        name: /resources/i,
-      })
-    ).toBeInTheDocument();
   });
 
-  it('renders the Function Evidence and Resources section for Profile Issues', async function () {
+  it('renders the Function Evidence section for Profile Issues', async function () {
     const props = makeDefaultMockData();
     const group: Group = GroupFixture({
       issueCategory: IssueCategory.PERFORMANCE,
       issueType: IssueType.PROFILE_FILE_IO_MAIN_THREAD,
     });
-    const transaction = EventFixture({
+    const transactionEvent = EventFixture({
       entries: [],
       occurrence: {
         evidenceDisplay: [],
@@ -489,31 +462,16 @@ describe('groupEventDetails', () => {
       },
     });
 
-    mockGroupApis(
-      props.organization,
-      props.project,
-      props.group,
-      EventFixture({
-        size: 1,
-        dateCreated: '2019-03-20T00:00:00.000Z',
-        errors: [],
-        entries: [],
-        tags: [{key: 'environment', value: 'dev'}],
-        previousEventID: 'prev-event-id',
-        nextEventID: 'next-event-id',
-      })
-    );
+    mockGroupApis(props.organization, props.project, group, transactionEvent);
 
-    render(<TestComponent group={group} event={transaction} />, {});
+    render(<GroupEventDetails />, {
+      organization: props.organization,
+      router: props.router,
+    });
 
     expect(
       await screen.findByRole('heading', {
         name: /function evidence/i,
-      })
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('heading', {
-        name: /resources/i,
       })
     ).toBeInTheDocument();
   });
@@ -521,7 +479,10 @@ describe('groupEventDetails', () => {
   it('renders event tags ui', async () => {
     const props = makeDefaultMockData();
     mockGroupApis(props.organization, props.project, props.group, props.event);
-    render(<TestComponent group={props.group} event={props.event} />, {});
+    render(<GroupEventDetails />, {
+      organization: props.organization,
+      router: props.router,
+    });
 
     expect(await screen.findByText('Event ID:')).toBeInTheDocument();
     expect(screen.queryByTestId('context-summary')).not.toBeInTheDocument();
@@ -546,7 +507,6 @@ describe('EventCause', () => {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
-    jest.mocked(browserHistory.replace).mockClear();
   });
 
   it('renders suspect commit', async function () {
@@ -582,14 +542,17 @@ describe('EventCause', () => {
       },
     });
 
-    render(<TestComponent project={props.project} />);
+    render(<GroupEventDetails />, {
+      organization: props.organization,
+      router: props.router,
+    });
 
     expect(await screen.findByTestId(/suspect-commit/)).toBeInTheDocument();
   });
 });
 
 describe('Platform Integrations', () => {
-  let componentsRequest;
+  let componentsRequest: jest.Mock;
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -649,7 +612,10 @@ describe('Platform Integrations', () => {
       match: [MockApiClient.matchQuery({projectId: props.project.id})],
     });
 
-    render(<TestComponent />);
+    render(<GroupEventDetails />, {
+      organization: props.organization,
+      router: props.router,
+    });
 
     expect(await screen.findByText('Sample App Issue')).toBeInTheDocument();
     expect(componentsRequest).toHaveBeenCalled();
@@ -670,8 +636,9 @@ describe('Platform Integrations', () => {
         mockedTrace(props.project)
       );
 
-      render(<TestComponent group={props.group} event={props.event} />, {
+      render(<GroupEventDetails />, {
         organization: props.organization,
+        router: props.router,
       });
 
       expect(
@@ -697,8 +664,9 @@ describe('Platform Integrations', () => {
         }
       );
 
-      render(<TestComponent group={props.group} event={props.event} />, {
+      render(<GroupEventDetails />, {
         organization: props.organization,
+        router: props.router,
       });
 
       // mechanism: ANR

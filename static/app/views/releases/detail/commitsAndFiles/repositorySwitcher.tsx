@@ -4,7 +4,7 @@ import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
 import {useLocation} from 'sentry/utils/useLocation';
-import useRouter from 'sentry/utils/useRouter';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 interface RepositorySwitcherProps {
   repositories: Repository[];
@@ -12,11 +12,11 @@ interface RepositorySwitcherProps {
 }
 
 function RepositorySwitcher({repositories, activeRepository}: RepositorySwitcherProps) {
-  const router = useRouter();
+  const navigate = useNavigate();
   const location = useLocation();
 
   const handleRepoFilterChange = (activeRepo: string) => {
-    router.push({
+    navigate({
       ...location,
       query: {...location.query, cursor: undefined, activeRepo},
     });

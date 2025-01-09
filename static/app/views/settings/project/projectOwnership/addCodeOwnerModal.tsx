@@ -153,7 +153,9 @@ class AddCodeOwnerModal extends DeprecatedAsyncComponent<Props, State> {
     const {errorJSON, codeMappingId, codeMappings} = this.state;
     const codeMapping = codeMappings.find(mapping => mapping.id === codeMappingId);
     const {integrationId, provider} = codeMapping as RepositoryProjectPathConfig;
-    const errActors = errorJSON?.raw?.[0].split('\n').map((el, i) => <p key={i}>{el}</p>);
+    const errActors = errorJSON?.raw?.[0]!.split('\n').map((el, i) => (
+      <p key={i}>{el}</p>
+    ));
     return (
       <Alert type="error" showIcon>
         {errActors}
@@ -265,7 +267,7 @@ class AddCodeOwnerModal extends DeprecatedAsyncComponent<Props, State> {
                 label={t('Apply an existing code mapping')}
                 options={codeMappings.map((cm: RepositoryProjectPathConfig) => ({
                   value: cm.id,
-                  label: cm.repoName,
+                  label: `Repo Name: ${cm.repoName}, Stack Trace Root: ${cm.stackRoot}, Source Code Root: ${cm.sourceRoot}`,
                 }))}
                 onChange={this.fetchFile}
                 required

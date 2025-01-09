@@ -1,10 +1,11 @@
 ---
-created: '2024-03-22T11:57:34.754351+00:00'
+created: '2024-12-17T22:46:46.662151+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: "7b230a2bb8a040d3e337c6205147e990"
+  contributing component: threads
   component:
     app*
       threads*
@@ -57,6 +58,7 @@ app:
 --------------------------------------------------------------------------
 default:
   hash: null
+  contributing component: null
   component:
     default (threads of app/system take precedence)
       message (threads of app/system take precedence)
@@ -64,6 +66,7 @@ default:
 --------------------------------------------------------------------------
 system:
   hash: "96df2174dd7e0ad3c31948a9de020fba"
+  contributing component: threads
   component:
     system*
       threads*

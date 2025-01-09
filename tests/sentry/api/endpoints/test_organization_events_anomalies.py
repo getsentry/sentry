@@ -19,7 +19,7 @@ from sentry.seer.anomaly_detection.types import (
 )
 from sentry.seer.anomaly_detection.utils import translate_direction
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.datetime import before_now, freeze_time, timestamp_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 
@@ -39,10 +39,10 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
         direction=translate_direction(AlertRuleThresholdType.ABOVE.value),
         expected_seasonality=AlertRuleSeasonality.AUTO.value,
     )
-    historical_timestamp_1 = timestamp_format(four_weeks_ago)
-    historical_timestamp_2 = timestamp_format(four_weeks_ago + timedelta(days=10))
-    current_timestamp_1 = timestamp_format(one_week_ago)
-    current_timestamp_2 = timestamp_format(one_week_ago + timedelta(minutes=10))
+    historical_timestamp_1 = four_weeks_ago.timestamp()
+    historical_timestamp_2 = (four_weeks_ago + timedelta(days=10)).timestamp()
+    current_timestamp_1 = one_week_ago.timestamp()
+    current_timestamp_2 = (one_week_ago + timedelta(minutes=10)).timestamp()
     data = {
         "project_id": 1,
         "config": config,
@@ -89,6 +89,47 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
     def test_simple(self, mock_seer_request):
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
+
+        seer_return_value = DetectAnomaliesResponse(
+            success=True,
+            message="",
+            timeseries=[
+                TimeSeriesPoint(
+                    timestamp=self.current_timestamp_1,
+                    value=2,
+                    anomaly=Anomaly(anomaly_score=-0.1, anomaly_type="none"),
+                ),
+                TimeSeriesPoint(
+                    timestamp=self.current_timestamp_2,
+                    value=3,
+                    anomaly=Anomaly(anomaly_score=-0.2, anomaly_type="none"),
+                ),
+            ],
+        )
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+
+        with outbox_runner():
+            resp = self.get_success_response(
+                self.organization.slug, status_code=200, raw_data=orjson.dumps(self.data)
+            )
+
+        assert mock_seer_request.call_count == 1
+        assert resp.data == seer_return_value["timeseries"]
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
+    @with_feature("organizations:incidents")
+    @patch(
+        "sentry.seer.anomaly_detection.get_historical_anomalies.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_member_permission(self, mock_seer_request):
+        """Test that even a member (lowest permissions) can access this endpoint"""
+        user = self.create_user(is_superuser=False)
+        member = self.create_member(
+            user=user, organization=self.organization, role="member", teams=[]
+        )
+        self.create_team(organization=self.organization, members=[member])
+        self.login_as(member)
 
         seer_return_value = DetectAnomaliesResponse(
             success=True,
@@ -263,7 +304,7 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
         mock_logger.error.assert_called_with(
             "Error when hitting Seer detect anomalies endpoint",
             extra={
-                "message": "I have revolted against my human overlords",
+                "response_data": "I have revolted against my human overlords",
                 "organization_id": self.organization.id,
                 "project_id": 1,
                 "config": self.config,

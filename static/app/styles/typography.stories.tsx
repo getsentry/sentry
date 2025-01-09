@@ -1,5 +1,6 @@
 import type {CSSProperties} from 'react';
 import {Fragment} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import LetterSpacingGraphic from 'sentry-images/stories/typography/letter-spacing.svg';
@@ -633,12 +634,12 @@ const ExamplePanel = styled(Panel)<{fontSize?: 'large'}>`
   padding: ${space(2)};
   ${p =>
     p.fontSize === 'large'
-      ? `
-        font-weight: ${p.theme.fontWeightBold};
-        font-size: 1.875rem;
-        line-height: 1.2;
-        letter-spacing: -0.016em;
-      `
+      ? css`
+          font-weight: ${p.theme.fontWeightBold};
+          font-size: 1.875rem;
+          line-height: 1.2;
+          letter-spacing: -0.016em;
+        `
       : ''}
 `;
 

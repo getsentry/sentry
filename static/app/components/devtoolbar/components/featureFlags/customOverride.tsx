@@ -1,6 +1,7 @@
 import {useContext, useState} from 'react';
+import {css} from '@emotion/react';
 
-import {Button} from 'sentry/components/button';
+import {resetButtonCss} from 'sentry/components/devtoolbar/styles/reset';
 import Input from 'sentry/components/input';
 import Switch from 'sentry/components/switchButton';
 import {IconAdd} from 'sentry/icons';
@@ -59,9 +60,18 @@ export default function CustomOverride({
         }}
         css={{background: 'white'}}
       />
-      <Button size="xs" type="submit" css={{width: '28px'}} disabled={!name.length}>
+      <button
+        type="submit"
+        css={[
+          resetButtonCss,
+          css`
+            width: 28px;
+          `,
+        ]}
+        disabled={!name.length}
+      >
         <IconAdd />
-      </Button>
+      </button>
     </form>
   );
 }

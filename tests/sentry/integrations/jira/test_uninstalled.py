@@ -5,7 +5,7 @@ import responses
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.integration import Integration
-from sentry.integrations.utils import get_query_hash
+from sentry.integrations.utils.atlassian_connect import get_query_hash
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase

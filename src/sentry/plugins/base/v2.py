@@ -8,20 +8,17 @@ from typing import TYPE_CHECKING, Any, Protocol
 from django.http import HttpResponseRedirect
 
 from sentry.plugins import HIDDEN_PLUGINS
-from sentry.plugins.base.configuration import default_plugin_config, default_plugin_options
 from sentry.plugins.base.response import DeferredResponse
 from sentry.plugins.config import PluginConfigMixin
 from sentry.plugins.interfaces.releasehook import ReleaseHook
 from sentry.plugins.status import PluginStatusMixin
-from sentry.utils.hashlib import md5_text
 
 if TYPE_CHECKING:
     from django.utils.functional import _StrPromise
 
 
 class EventPreprocessor(Protocol):
-    def __call__(self, data: MutableMapping[str, Any]) -> MutableMapping[str, Any] | None:
-        ...
+    def __call__(self, data: MutableMapping[str, Any]) -> MutableMapping[str, Any] | None: ...
 
 
 class PluginMount(type):
@@ -197,25 +194,6 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
         if project is not None:
             return self.project_conf_template
         return self.site_conf_template
-
-    def get_conf_options(self, project=None):
-        """
-        Returns a dict of all of the configured options for a project.
-
-        >>> plugin.get_conf_options(project)
-        """
-        return default_plugin_options(self, project)
-
-    def get_conf_version(self, project):
-        """
-        Returns a version string that represents the current configuration state.
-
-        If any option changes or new options added, the version will change.
-
-        >>> plugin.get_conf_version(project)
-        """
-        options = self.get_conf_options(project)
-        return md5_text("&".join(sorted("%s=%s" % o for o in options.items()))).hexdigest()[:3]
 
     def get_conf_title(self):
         """
@@ -438,10 +416,6 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
         def get_custom_contexts(self):
             return [MyContextType]
         """
-
-    def configure(self, project, request):
-        """Configures the plugin."""
-        return default_plugin_config(self, project, request)
 
     def get_url_module(self):
         """Allows a plugin to return the import path to a URL module."""

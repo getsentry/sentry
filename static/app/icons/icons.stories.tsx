@@ -407,17 +407,17 @@ const SECTIONS: TSection[] = [
         id: 'lock',
         groups: ['action', 'status'],
         keywords: ['secure'],
-        additionalProps: ['isSolid'],
+        additionalProps: ['locked'],
         name: 'Lock',
         defaultProps: {
-          isSolid: false,
+          locked: false,
         },
       },
       {
-        id: 'lock-isSolid',
+        id: 'lock-locked',
         name: 'Lock',
         defaultProps: {
-          isSolid: true,
+          locked: true,
         },
       },
       {
@@ -1118,6 +1118,18 @@ const SECTIONS: TSection[] = [
       {
         id: 'table',
         name: 'Table',
+        defaultProps: {},
+      },
+      {
+        id: 'grid',
+        name: 'Grid',
+        keywords: ['squares', 'layout'],
+        defaultProps: {},
+      },
+      {
+        id: 'globe',
+        name: 'Globe',
+        keywords: ['map', 'international'],
         defaultProps: {},
       },
     ],

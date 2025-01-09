@@ -70,6 +70,11 @@ type Props = {
 };
 
 /**
+ * Normalized props for feature configuration objects
+ */
+export type FeatureProps = Omit<Props, 'children' | 'config' | 'organization'>;
+
+/**
  * Common props passed to children and disabled render handlers.
  */
 type FeatureRenderProps = {
@@ -136,12 +141,12 @@ class Feature extends Component<Props> {
 
     const shouldMatchOnlyProject = feature.match(/^projects:(.+)/);
     if (shouldMatchOnlyProject) {
-      return project.includes(shouldMatchOnlyProject[1]);
+      return project.includes(shouldMatchOnlyProject[1]!);
     }
 
     const shouldMatchOnlyOrg = feature.match(/^organizations:(.+)/);
     if (shouldMatchOnlyOrg) {
-      return organization.includes(shouldMatchOnlyOrg[1]);
+      return organization.includes(shouldMatchOnlyOrg[1]!);
     }
 
     // default, check all feature arrays
@@ -181,7 +186,7 @@ class Feature extends Component<Props> {
       const hooks = HookStore.get(hookName);
 
       if (hooks.length > 0) {
-        customDisabledRender = hooks[0];
+        customDisabledRender = hooks[0]!;
       }
     }
     const renderProps = {

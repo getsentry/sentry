@@ -5,14 +5,14 @@ import responses
 from rest_framework import status
 
 from sentry.integrations.slack.webhooks.command import (
-    CHANNEL_ALREADY_LINKED_MESSAGE,
     INSUFFICIENT_ROLE_MESSAGE,
     LINK_FROM_CHANNEL_MESSAGE,
     LINK_USER_FIRST_MESSAGE,
     TEAM_NOT_LINKED_MESSAGE,
 )
-from sentry.integrations.utils.metrics import EventLifecycleOutcome
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.silo.base import SiloMode
+from sentry.testutils.asserts import assert_slo_metric
 from sentry.testutils.helpers import get_response_text, link_user
 from sentry.testutils.silo import assume_test_silo_mode
 from tests.sentry.integrations.slack.webhooks.commands import SlackCommandsTest
@@ -61,15 +61,13 @@ class SlackCommandsLinkTeamTest(SlackCommandsLinkTeamTestBase):
             }
         )
         data = orjson.loads(response.content)
-        assert CHANNEL_ALREADY_LINKED_MESSAGE in get_response_text(data)
+        assert "Link your Sentry team to this Slack channel!" in get_response_text(data)
 
-        assert len(mock_record.mock_calls) == 2
-        start, halt = mock_record.mock_calls
-        assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert halt.args[0] == EventLifecycleOutcome.HALTED
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
 
     @responses.activate
-    def test_link_team_from_dm(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_link_team_from_dm(self, mock_record):
         """
         Test that if a user types `/sentry link team` from a DM instead of a
         channel, we reply with an error message.
@@ -85,8 +83,11 @@ class SlackCommandsLinkTeamTest(SlackCommandsLinkTeamTestBase):
         data = orjson.loads(response.content)
         assert LINK_FROM_CHANNEL_MESSAGE in get_response_text(data)
 
+        assert_slo_metric(mock_record, EventLifecycleOutcome.HALTED)
+
     @responses.activate
-    def test_link_team_identity_does_not_exist(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_link_team_identity_does_not_exist(self, mock_record):
         """Test that get_identity fails if the user has no Identity and we reply with the LINK_USER_MESSAGE"""
         user2 = self.create_user()
         self.create_member(
@@ -96,8 +97,11 @@ class SlackCommandsLinkTeamTest(SlackCommandsLinkTeamTestBase):
         data = self.send_slack_message("link team", user_id=OTHER_SLACK_ID)
         assert LINK_USER_FIRST_MESSAGE in get_response_text(data)
 
+        assert_slo_metric(mock_record, EventLifecycleOutcome.HALTED)
+
     @responses.activate
-    def test_link_team_insufficient_role(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_link_team_insufficient_role(self, mock_record):
         """
         Test that when a user whose role is insufficient attempts to link a
         team, we reject them and reply with the INSUFFICIENT_ROLE_MESSAGE.
@@ -112,8 +116,11 @@ class SlackCommandsLinkTeamTest(SlackCommandsLinkTeamTestBase):
         data = self.send_slack_message("link team", user_id=OTHER_SLACK_ID)
         assert INSUFFICIENT_ROLE_MESSAGE in get_response_text(data)
 
+        assert_slo_metric(mock_record, EventLifecycleOutcome.HALTED)
+
     @responses.activate
-    def test_link_team_as_team_admin(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_link_team_as_team_admin(self, mock_record):
         """
         Test that when a user who is a team admin attempts to link a team we allow it.
         """
@@ -123,6 +130,8 @@ class SlackCommandsLinkTeamTest(SlackCommandsLinkTeamTestBase):
         data = self.send_slack_message("link team", user_id=OTHER_SLACK_ID)
         assert "Link your Sentry team to this Slack channel!" in get_response_text(data)
 
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
+
 
 class SlackCommandsUnlinkTeamTest(SlackCommandsLinkTeamTestBase):
     def setUp(self):
@@ -130,7 +139,8 @@ class SlackCommandsUnlinkTeamTest(SlackCommandsLinkTeamTestBase):
         self.link_team()
 
     @responses.activate
-    def test_unlink_team(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_unlink_team(self, mock_record):
         data = self.send_slack_message(
             "unlink team",
             channel_name=self.channel_name,
@@ -138,8 +148,11 @@ class SlackCommandsUnlinkTeamTest(SlackCommandsLinkTeamTestBase):
         )
         assert "Click here to unlink your team from this channel" in get_response_text(data)
 
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
+
     @responses.activate
-    def test_unlink_team_as_team_admin(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_unlink_team_as_team_admin(self, mock_record):
         """
         Test that when a user who is a team admin attempts to unlink a team we allow it.
         """
@@ -153,8 +166,11 @@ class SlackCommandsUnlinkTeamTest(SlackCommandsLinkTeamTestBase):
         )
         assert "Click here to unlink your team from this channel" in get_response_text(data)
 
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
+
     @responses.activate
-    def test_unlink_no_team(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_unlink_no_team(self, mock_record):
         """
         Test for when a user attempts to remove a link between a Slack channel
         and a Sentry team that does not exist.
@@ -166,8 +182,11 @@ class SlackCommandsUnlinkTeamTest(SlackCommandsLinkTeamTestBase):
         )
         assert TEAM_NOT_LINKED_MESSAGE in get_response_text(data)
 
+        assert_slo_metric(mock_record, EventLifecycleOutcome.HALTED)
+
     @responses.activate
-    def test_unlink_multiple_orgs(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_unlink_multiple_orgs(self, mock_record):
         # Create another organization and team for this user that is linked through `self.integration`.
         organization2 = self.create_organization(owner=self.user)
         team2 = self.create_team(organization=organization2, members=[self.user])
@@ -183,3 +202,5 @@ class SlackCommandsUnlinkTeamTest(SlackCommandsLinkTeamTestBase):
             channel_id=self.channel_id,
         )
         assert "Click here to unlink your team from this channel" in get_response_text(data)
+
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)

@@ -3,14 +3,12 @@ from __future__ import annotations
 import abc
 import logging
 from collections.abc import Callable, Collection, Iterable
-from datetime import timedelta
 from enum import Enum, IntEnum, StrEnum
-from typing import TYPE_CHECKING, Any, ClassVar, Protocol, Self
+from typing import TYPE_CHECKING, Any, ClassVar, Self
 
 from django.conf import settings
 from django.core.cache import cache
 from django.db import models
-from django.db.models import QuerySet
 from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 from django.utils.translation import gettext_lazy
@@ -32,13 +30,17 @@ from sentry.incidents.models.alert_rule_activations import AlertRuleActivations
 from sentry.incidents.models.incident import Incident, IncidentStatus, IncidentTrigger
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
-from sentry.models.notificationaction import AbstractNotificationAction, ActionService, ActionTarget
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
+from sentry.notifications.models.notificationaction import (
+    AbstractNotificationAction,
+    ActionService,
+    ActionTarget,
+)
 from sentry.seer.anomaly_detection.delete_rule import delete_rule_in_seer
 from sentry.snuba.models import QuerySubscription
-from sentry.snuba.subscriptions import bulk_create_snuba_subscriptions, delete_snuba_subscription
+from sentry.snuba.subscriptions import bulk_create_snuba_subscriptions
 from sentry.types.actor import Actor
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
@@ -49,35 +51,6 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
-
-
-class SubscriptionCallback(Protocol):
-    def __call__(self, subscription: QuerySubscription, *args: Any, **kwargs: Any) -> bool:
-        ...
-
-
-alert_subscription_callback_registry: dict[AlertRuleMonitorTypeInt, SubscriptionCallback] = {}
-
-
-def register_alert_subscription_callback(
-    monitor_type: AlertRuleMonitorTypeInt,
-) -> Callable[[Callable], Callable]:
-    def decorator(func: Callable) -> Callable:
-        alert_subscription_callback_registry[monitor_type] = func
-        return func
-
-    return decorator
-
-
-def invoke_alert_subscription_callback(
-    monitor_type: AlertRuleMonitorTypeInt, subscription: QuerySubscription, **kwargs: Any
-) -> bool:
-    try:
-        callback = alert_subscription_callback_registry[monitor_type]
-    except KeyError:
-        return False
-
-    return callback(subscription, **kwargs)
 
 
 class AlertRuleStatus(Enum):
@@ -184,79 +157,6 @@ class AlertRuleManager(BaseManager["AlertRule"]):
                     },
                 )
 
-    def conditionally_subscribe_project_to_alert_rules(
-        self,
-        project: Project,
-        activation_condition: AlertRuleActivationConditionType,
-        query_extra: str,
-        origin: str,
-        activator: str,
-    ) -> list[QuerySubscription]:
-        """
-        Subscribes a project to an alert rule given activation condition
-        Initializes an AlertRule activation instance
-        """
-        try:
-            project_alert_rules: QuerySet[AlertRule] = self.filter(
-                projects=project,
-                monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
-            )
-            created_subscriptions = []
-            for alert_rule in project_alert_rules:
-                # an alert rule should only ever have a single condition
-                if alert_rule.activation_condition.filter(
-                    condition_type=activation_condition.value
-                ).exists():
-                    # if an activated alert rule exists with the passed condition
-                    logger.info(
-                        "Attempt subscribe project to activated alert rule",
-                        extra={
-                            "origin": origin,
-                            "query_extra": query_extra,
-                            "condition": activation_condition,
-                        },
-                    )
-                    # attempt to subscribe the alert rule
-                    created_subscriptions.extend(
-                        alert_rule.subscribe_projects(
-                            projects=[project],
-                            monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
-                            query_extra=query_extra,
-                            activation_condition=activation_condition,
-                            activator=activator,
-                        )
-                    )
-            return created_subscriptions
-        except Exception as e:
-            logger.exception(
-                "Failed to subscribe project to activated alert rule",
-                extra={
-                    "origin": origin,
-                    "exception": e,
-                },
-            )
-        return []
-
-
-@region_silo_model
-class AlertRuleExcludedProjects(Model):
-    """
-    Excludes a specific project from an AlertRule
-
-    NOTE: This feature is not currently utilized.
-    """
-
-    __relocation_scope__ = RelocationScope.Organization
-
-    alert_rule = FlexibleForeignKey("sentry.AlertRule", db_index=False)
-    project = FlexibleForeignKey("sentry.Project", db_constraint=False)
-    date_added = models.DateTimeField(default=timezone.now)
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_alertruleexcludedprojects"
-        unique_together = (("alert_rule", "project"),)
-
 
 @region_silo_model
 class AlertRuleProjects(Model):
@@ -298,15 +198,6 @@ class AlertRule(Model):
 
     user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
     team = FlexibleForeignKey("sentry.Team", null=True, on_delete=models.SET_NULL)
-
-    excluded_projects = models.ManyToManyField(
-        "sentry.Project", related_name="alert_rule_exclusions", through=AlertRuleExcludedProjects
-    )  # NOTE: This feature is not currently utilized.
-    # Determines whether we include all current and future projects from this
-    # organization in this rule.
-    include_all_projects = models.BooleanField(
-        default=False
-    )  # NOTE: This feature is not currently utilized.
     name = models.TextField()
     status = models.SmallIntegerField(default=AlertRuleStatus.PENDING.value)
     threshold_type = models.SmallIntegerField(null=True)
@@ -477,24 +368,6 @@ class AlertRuleTrigger(Model):
         app_label = "sentry"
         db_table = "sentry_alertruletrigger"
         unique_together = (("alert_rule", "label"),)
-
-
-@region_silo_model
-class AlertRuleTriggerExclusion(Model):
-    """
-    Allows us to define a specific trigger to be excluded from a query subscription
-    """
-
-    __relocation_scope__ = RelocationScope.Organization
-
-    alert_rule_trigger = FlexibleForeignKey("sentry.AlertRuleTrigger", related_name="exclusions")
-    query_subscription = FlexibleForeignKey("sentry.QuerySubscription")
-    date_added = models.DateTimeField(default=timezone.now)
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_alertruletriggerexclusion"
-        unique_together = (("alert_rule_trigger", "query_subscription"),)
 
 
 class AlertRuleTriggerActionMethod(StrEnum):
@@ -772,41 +645,6 @@ class AlertRuleActivity(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_alertruleactivity"
-
-
-@register_alert_subscription_callback(AlertRuleMonitorTypeInt.ACTIVATED)
-def update_alert_activations(
-    subscription: QuerySubscription, alert_rule: AlertRule, value: float
-) -> bool:
-    if subscription.snuba_query is None:
-        return False
-
-    now = timezone.now()
-    subscription_end = subscription.date_added + timedelta(
-        seconds=subscription.snuba_query.time_window
-    )
-
-    if now > subscription_end:
-        logger.info(
-            "alert activation monitor finishing",
-            extra={
-                "subscription_window": subscription.snuba_query.time_window,
-                "date_added": subscription.date_added,
-                "now": now,
-            },
-        )
-
-        alert_rule.activations.filter(finished_at=None, query_subscription=subscription).update(
-            metric_value=value, finished_at=now
-        )
-        # NOTE: QuerySubscription deletion will set fk to null on the activation
-        delete_snuba_subscription(subscription)
-    else:
-        alert_rule.activations.filter(finished_at=None, query_subscription=subscription).update(
-            metric_value=value
-        )
-
-    return True
 
 
 post_delete.connect(AlertRuleManager.clear_subscription_cache, sender=QuerySubscription)

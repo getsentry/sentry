@@ -1,14 +1,15 @@
 ---
-created: '2023-11-28T16:01:06.243244Z'
+created: '2024-12-17T22:47:15.009899+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
+  contributing component: null
   component:
     app (exception of system takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
-        stacktrace
+        stacktrace (ignored because it contains no in-app frames)
           frame (marked out of app by stack trace rule (module:java.* -app))
             module*
               "java.lang.Thread"
@@ -401,6 +402,7 @@ app:
 --------------------------------------------------------------------------
 default:
   hash: null
+  contributing component: null
   component:
     default (exception of system takes precedence)
       message (exception of system takes precedence)
@@ -408,6 +410,7 @@ default:
 --------------------------------------------------------------------------
 system:
   hash: "ef2555bf7958ada8eefafbfdaed1c409"
+  contributing component: exception
   component:
     system*
       exception*

@@ -1,0 +1,161 @@
+---
+created: '2024-12-17T22:50:42.954035+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+hashing_metadata: {
+  "num_stacktraces": 1,
+  "stacktrace_location": "exception",
+  "stacktrace_type": "in_app"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "stacktrace",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.stacktrace": {
+    "chained_exception": "False",
+    "stacktrace_location": "exception",
+    "stacktrace_type": "in_app"
+  }
+}
+---
+contributing variants:
+  app*
+    hash: "73470e545e51eea9cff8a6c006f68f57"
+    contributing component: exception
+    component:
+      app*
+        exception*
+          stacktrace*
+            frame*
+              module*
+                "App"
+              context-line*
+                "<Button"
+            frame*
+              module*
+                "App"
+              context-line*
+                "<Button"
+          type*
+            "TypeError"
+  system*
+    hash: "ecd413627f0d90a5a25cb28d1ba9c39f"
+    contributing component: exception
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              module*
+                "react-native/Libraries/BatchedBridge/MessageQueue"
+              context-line*
+                "return this.flushedQueue();"
+            frame*
+              module*
+                "react-native/Libraries/BatchedBridge/MessageQueue"
+              context-line*
+                "this._inCall--;"
+            frame*
+              module*
+                "react-native/Libraries/BatchedBridge/MessageQueue"
+              context-line*
+                "return this.flushedQueue();"
+            frame*
+              module*
+                "react-native/Libraries/BatchedBridge/MessageQueue"
+              context-line*
+                "this._lastFlush = new Date().getTime();"
+            frame*
+              module*
+                "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+              context-line*
+                "_receiveRootNodeIDEvent(index, eventTopLevelType, i);"
+            frame*
+              module*
+                "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+              context-line*
+                "batchedUpdates(function() {"
+            frame*
+              module*
+                "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+              context-line*
+                "return _batchedUpdates(fn, bookkeeping);"
+            frame*
+              module*
+                "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+              context-line*
+                "return fn(a);"
+            frame*
+              module*
+                "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+              context-line*
+                "(forEachAccumulated(events, executeDispatchesAndReleaseTopLevel),"
+            frame*
+              module*
+                "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+              context-line*
+                "Array.isArray(arr) ? arr.forEach(cb, scope) : arr && cb.call(scope, arr);"
+            frame*
+              function*
+                "[native code] forEach"
+            frame*
+              module*
+                "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+              context-line*
+                "executeDispatch(e, !1, dispatchListeners, dispatchInstances);"
+            frame*
+              module*
+                "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+              context-line*
+                "ReactErrorUtils.invokeGuardedCallbackAndCatchFirstError("
+            frame*
+              module*
+                "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+              context-line*
+                "ReactErrorUtils.invokeGuardedCallback.apply(this, arguments);"
+            frame*
+              module*
+                "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+              context-line*
+                "invokeGuardedCallback.apply(ReactErrorUtils, arguments);"
+            frame*
+              module*
+                "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+              context-line*
+                "var funcArgs = Array.prototype.slice.call(arguments, 3);"
+            frame*
+              module*
+                "react-native/Libraries/Components/Touchable/Touchable"
+              context-line*
+                "touchableHandleResponderRelease: function(e) {"
+            frame*
+              module*
+                "react-native/Libraries/Components/Touchable/Touchable"
+              context-line*
+                "this._performSideEffectsForTransition(curState, nextState, signal, e);"
+            frame*
+              module*
+                "react-native/Libraries/Components/Touchable/Touchable"
+              context-line*
+                "this.touchableHandlePress(e);"
+            frame*
+              module*
+                "react-native/Libraries/Components/Touchable/TouchableNativeFeedback.android"
+              context-line*
+                "this.props.onPress && this.props.onPress(e);"
+            frame*
+              module*
+                "App"
+              context-line*
+                "<Button"
+            frame*
+              module*
+                "App"
+              context-line*
+                "<Button"
+          type*
+            "TypeError"

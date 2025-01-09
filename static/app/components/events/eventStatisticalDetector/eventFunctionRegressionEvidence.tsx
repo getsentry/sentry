@@ -1,10 +1,11 @@
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {KeyValueListData} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {getFormattedDate} from 'sentry/utils/dates';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 interface EventFunctionRegressionEvidenceProps {
   event: Event;
@@ -48,8 +49,8 @@ export function EventFunctionRegressionEvidence({
   ];
 
   return (
-    <EventDataSection title="Function Evidence" type="evidence">
+    <InterimSection title={t('Function Evidence')} type={SectionKey.EVIDENCE}>
       <KeyValueList data={data} shouldSort={false} />
-    </EventDataSection>
+    </InterimSection>
   );
 }

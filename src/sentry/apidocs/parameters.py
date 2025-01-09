@@ -20,6 +20,13 @@ def build_typed_list(type: Any):
 
 
 class GlobalParams:
+    USER_ID = OpenApiParameter(
+        name="user_id",
+        description="The ID of the user the resource belongs to.",
+        required=True,
+        type=str,
+        location="path",
+    )
     ORG_ID_OR_SLUG = OpenApiParameter(
         name="organization_id_or_slug",
         description="The ID or slug of the organization the resource belongs to.",
@@ -37,6 +44,13 @@ class GlobalParams:
     TEAM_ID_OR_SLUG = OpenApiParameter(
         name="team_id_or_slug",
         description="The ID or slug of the team the resource belongs to.",
+        required=True,
+        type=str,
+        location="path",
+    )
+    INTEGRATION_ID = OpenApiParameter(
+        name="integration_id",
+        description="The ID of the integration installed on the organization.",
         required=True,
         type=str,
         location="path",
@@ -90,6 +104,13 @@ For example, `24h`, to mean query data starting from 24 hours ago to now.""",
 
 
 class EnvironmentParams:
+    ENVIRONMENT = OpenApiParameter(
+        name="environment",
+        location="path",
+        required=True,
+        type=str,
+        description="The name of the environment.",
+    )
     VISIBILITY = OpenApiParameter(
         name="visibility",
         location="query",
@@ -180,6 +201,14 @@ Valid fields include:
         description="The ID of the external user object. This is returned when creating an external user.",
     )
 
+    EXTERNAL_TEAM_ID = OpenApiParameter(
+        name="external_team_id",
+        location="path",
+        required=True,
+        type=int,
+        description="The ID of the external team object. This is returned when creating an external team.",
+    )
+
 
 class ReleaseParams:
     VERSION = OpenApiParameter(
@@ -255,6 +284,14 @@ class SCIMParams:
 
 
 class IssueParams:
+    KEY = OpenApiParameter(
+        name="key",
+        location=OpenApiParameter.PATH,
+        type=OpenApiTypes.STR,
+        description="The tag key to look the values up for.",
+        required=True,
+    )
+
     ISSUES_OR_GROUPS = OpenApiParameter(
         name="var",
         location="path",
@@ -268,6 +305,15 @@ class IssueParams:
         required=True,
         type=int,
         description="The ID of the issue you'd like to query.",
+    )
+
+    SORT = OpenApiParameter(
+        name="sort",
+        location="query",
+        required=False,
+        type=str,
+        description="Sort order of the resulting tag values. Prefix with '-' for descending order. Default is '-id'.",
+        enum=["id", "date", "age", "count"],
     )
 
 
@@ -389,6 +435,13 @@ class UptimeParams:
         type=int,
         description="The ID of the uptime alert rule you'd like to query.",
     )
+    OWNER = OpenApiParameter(
+        name="owner",
+        location="query",
+        required=False,
+        type=str,
+        description="The owner of the uptime alert, in the format `user:id` or `team:id`. May be specified multiple times.",
+    )
 
 
 class EventParams:
@@ -414,6 +467,41 @@ class EventParams:
         required=True,
         type=int,
         description="Index of the exception that should be used for source map resolution.",
+    )
+
+    EVENT_ID_EXTENDED = OpenApiParameter(
+        name="event_id",
+        type=OpenApiTypes.STR,
+        location=OpenApiParameter.PATH,
+        description="The ID of the event to retrieve, or 'latest', 'oldest', or 'recommended'.",
+        required=True,
+        enum=["latest", "oldest", "recommended"],
+    )
+
+    FULL_PAYLOAD = OpenApiParameter(
+        name="full",
+        type=OpenApiTypes.BOOL,
+        location=OpenApiParameter.QUERY,
+        description="Specify true to include the full event body, including the stacktrace, in the event payload.",
+        required=False,
+        default=False,
+    )
+
+    SAMPLE = OpenApiParameter(
+        name="sample",
+        type=OpenApiTypes.BOOL,
+        location=OpenApiParameter.QUERY,
+        description="Return events in pseudo-random order. This is deterministic so an identical query will always return the same events in the same order.",
+        required=False,
+        default=False,
+    )
+
+    QUERY = OpenApiParameter(
+        name="query",
+        location=OpenApiParameter.QUERY,
+        type=OpenApiTypes.STR,
+        description="An optional search query for filtering events.",
+        required=False,
     )
 
 

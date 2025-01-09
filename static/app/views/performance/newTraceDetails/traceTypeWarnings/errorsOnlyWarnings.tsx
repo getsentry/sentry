@@ -11,15 +11,16 @@ import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {browserHistory} from 'sentry/utils/browserHistory';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
+import {getDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
 
 import {traceAnalytics} from '../traceAnalytics';
 import type {TraceTree} from '../traceModels/traceTree';
 import {TraceShape} from '../traceModels/traceTree';
 
 import {TraceWarningComponents} from './styles';
+import {usePerformanceSubscriptionDetails} from './usePerformanceSubscriptionDetails';
 import {usePerformanceUsageStats} from './usePerformanceUsageStats';
 
 type ErrorOnlyWarningsProps = {
@@ -33,7 +34,8 @@ function filterProjects(projects: Project[], tree: TraceTree) {
   const projectsWithOnboardingChecklist: Project[] = [];
 
   for (const project of projects) {
-    if (tree.project_ids.has(Number(project.id))) {
+    const hasProject = tree.projects.has(Number(project.id));
+    if (hasProject) {
       if (!project.firstTransactionEvent) {
         projectsWithNoPerformance.push(project);
         if (project.platform && withPerformanceOnboarding.has(project.platform)) {
@@ -98,7 +100,7 @@ function PerformanceSetupBanner({
     <TraceWarningComponents.Banner
       title={t('Your setup is incomplete')}
       description={t(
-        'Want to know why this string of errors happened? Configure tracing for your SDKs to see correlated events accross your services.'
+        'Want to know why this string of errors happened? Configure tracing for your SDKs to see correlated events across your services.'
       )}
       image={emptyTraceImg}
       onPrimaryButtonClick={() => {
@@ -124,58 +126,23 @@ function PerformanceSetupBanner({
   );
 }
 
-type Subscription = {
-  categories:
-    | {
-        transactions: {
-          usageExceeded: boolean;
-        };
-      }
-    | {
-        spans: {
-          usageExceeded: boolean;
-        };
-      };
-  planDetails: {
-    billingInterval: 'monthly' | 'annual';
-  };
-  onDemandBudgets?: {
-    enabled: boolean;
-  };
-};
-
 function PerformanceQuotaExceededWarning(props: ErrorOnlyWarningsProps) {
   const {data: performanceUsageStats} = usePerformanceUsageStats({
     organization: props.organization,
     tree: props.tree,
   });
 
-  const {data: subscription} = useApiQuery<Subscription>(
-    [`/subscriptions/${props.organization.slug}/`],
-    {
-      staleTime: Infinity,
-    }
-  );
+  const {
+    data: {hasExceededPerformanceUsageLimit, subscription},
+  } = usePerformanceSubscriptionDetails();
 
   // Check if events were dropped due to exceeding the transaction quota, around when the trace occurred.
   const droppedTransactionsCount = performanceUsageStats?.totals['sum(quantity)'] || 0;
 
-  // Check if the organization still has transaction quota maxed out.
-  const dataCategories = subscription?.categories;
-  let hasExceededTransactionLimit = false;
-
-  if (dataCategories) {
-    if ('transactions' in dataCategories) {
-      hasExceededTransactionLimit = dataCategories.transactions.usageExceeded || false;
-    } else if ('spans' in dataCategories) {
-      hasExceededTransactionLimit = dataCategories.spans.usageExceeded || false;
-    }
-  }
-
   const hideBanner =
     droppedTransactionsCount === 0 ||
     !props.organization.features.includes('trace-view-quota-exceeded-banner') ||
-    !hasExceededTransactionLimit;
+    !hasExceededPerformanceUsageLimit;
 
   useEffect(() => {
     if (hideBanner) {
@@ -191,7 +158,9 @@ function PerformanceQuotaExceededWarning(props: ErrorOnlyWarningsProps) {
 
   const title = tct("You've exceeded your [billingType]", {
     billingType: subscription?.onDemandBudgets?.enabled
-      ? t('pay-as-you-go budget')
+      ? ['am1', 'am2'].includes(subscription.planTier)
+        ? t('on-demand budget')
+        : t('pay-as-you-go budget')
       : t('quota'),
   });
 
@@ -223,13 +192,17 @@ function PerformanceQuotaExceededWarning(props: ErrorOnlyWarningsProps) {
           props.tree.shape
         );
         browserHistory.push({
-          pathname: `/settings/billing/checkout/`,
+          pathname: `/settings/billing/checkout/?referrer=trace-view`,
           query: {
             skipBundles: true,
           },
         });
       }}
-      docsRoute="https://docs.sentry.io/pricing/quotas/"
+      docsRoute={getDocsLinkForEventType(
+        subscription?.categories && 'spans' in subscription.categories
+          ? 'span'
+          : 'transaction'
+      )}
       primaryButtonText={ctaText}
     />
   );

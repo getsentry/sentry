@@ -26,7 +26,7 @@ import type {
 import {ProcessingErrorItem} from './processingErrorItem';
 import {ProcessingErrorTitle} from './processingErrorTitle';
 
-export default function MonitorProcessingErrors({
+export function MonitorProcessingErrors({
   checkinErrors,
   children,
   onDismiss,
@@ -56,6 +56,7 @@ export default function MonitorProcessingErrors({
     <StyledHovercard
       skipWrapper
       showUnderline
+      position="bottom"
       header={tct('Check-in on [datetime]', {datetime: <DateTime date={checkin.ts} />})}
       body={
         // Prevent clicks inside the hovercard from closing the expandable alert
@@ -65,6 +66,7 @@ export default function MonitorProcessingErrors({
             maxDefaultDepth={3}
             withAnnotatedText
             forceDefaultExpand
+            initialExpandedPaths={['$']}
           />
         </div>
       }
@@ -80,7 +82,7 @@ export default function MonitorProcessingErrors({
       const project = projects.find(({id}) => id === projectId);
       const projectEntries = Object.values(errorsByType).map((errors, index) => {
         const isExpanded = expanded === `${projectId}:${index}`;
-        const errortype = errors[0].error.type;
+        const errortype = errors[0]!.error.type;
         return (
           <ErrorGroup key={index}>
             <ErrorHeader>

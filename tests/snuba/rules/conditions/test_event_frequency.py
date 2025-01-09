@@ -6,6 +6,7 @@ from uuid import uuid4
 
 import pytest
 from django.utils import timezone
+from snuba_sdk import Op
 
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.models.group import Group
@@ -15,7 +16,9 @@ from sentry.rules.conditions.event_frequency import (
     EventFrequencyCondition,
     EventFrequencyPercentCondition,
     EventUniqueUserFrequencyCondition,
+    EventUniqueUserFrequencyConditionWithConditions,
 )
+from sentry.rules.match import MatchType
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import (
     BaseMetricsTestCase,
@@ -23,7 +26,8 @@ from sentry.testutils.cases import (
     RuleTestCase,
     SnubaTestCase,
 )
-from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.samples import load_data
 
@@ -68,7 +72,7 @@ class EventFrequencyQueryTestBase(SnubaTestCase, RuleTestCase, PerformanceIssueT
             data={
                 "event_id": "a" * 32,
                 "environment": self.environment.name,
-                "timestamp": iso_format(before_now(seconds=30)),
+                "timestamp": before_now(seconds=30).isoformat(),
                 "fingerprint": ["group-1"],
                 "user": {"id": uuid4().hex},
             },
@@ -78,7 +82,7 @@ class EventFrequencyQueryTestBase(SnubaTestCase, RuleTestCase, PerformanceIssueT
             data={
                 "event_id": "b" * 32,
                 "environment": self.environment.name,
-                "timestamp": iso_format(before_now(seconds=12)),
+                "timestamp": before_now(seconds=12).isoformat(),
                 "fingerprint": ["group-2"],
                 "user": {"id": uuid4().hex},
             },
@@ -89,7 +93,7 @@ class EventFrequencyQueryTestBase(SnubaTestCase, RuleTestCase, PerformanceIssueT
             data={
                 "event_id": "c" * 32,
                 "environment": self.environment2.name,
-                "timestamp": iso_format(before_now(seconds=12)),
+                "timestamp": before_now(seconds=12).isoformat(),
                 "fingerprint": ["group-3"],
                 "user": {"id": uuid4().hex},
             },
@@ -244,7 +248,7 @@ class EventFrequencyPercentConditionQueryTest(
 
 class ErrorEventMixin(SnubaTestCase):
     def add_event(self, data, project_id, timestamp):
-        data["timestamp"] = iso_format(timestamp)
+        data["timestamp"] = timestamp.isoformat()
         # Store an error event
         event = self.store_event(
             data=data,
@@ -274,7 +278,7 @@ class PerfIssuePlatformEventMixin(PerformanceIssueTestCase):
                 tag[1] = data.get("environment")
                 break
         else:
-            event_data["tags"].append(data.get("environment"))
+            raise AssertionError("expected `environment` tag")
 
         # Store a performance event
         event = self.create_performance_issue(
@@ -296,9 +300,6 @@ class StandardIntervalTestBase(SnubaTestCase, RuleTestCase, PerformanceIssueTest
         raise NotImplementedError
 
     def _run_test(self, minutes, data, passes, add_events=False):
-        if not self.environment:
-            self.environment = self.create_environment(name="prod")
-
         rule = self.get_rule(data=data, rule=Rule(environment_id=None))
         environment_rule = self.get_rule(data=data, rule=Rule(environment_id=self.environment.id))
 
@@ -527,6 +528,369 @@ class EventUniqueUserFrequencyConditionTestCase(StandardIntervalTestBase):
                 project_id=self.project.id,
                 timestamp=timestamp,
             )
+
+
+@apply_feature_flag_on_cls("organizations:event-unique-user-frequency-condition-with-conditions")
+class EventUniqueUserFrequencyConditionWithConditionsTestCase(StandardIntervalTestBase):
+    __test__ = Abstract(__module__, __qualname__)
+
+    rule_cls = EventUniqueUserFrequencyConditionWithConditions
+
+    def increment(self, event, count, environment=None, timestamp=None):
+        timestamp = timestamp if timestamp else before_now(minutes=1)
+        data = {"fingerprint": event.data["fingerprint"]}
+        if environment:
+            data["environment"] = environment
+
+        for _ in range(count):
+            event_data = deepcopy(data)
+            event_data["user"] = {"id": uuid4().hex}
+            self.add_event(
+                data=event_data,
+                project_id=self.project.id,
+                timestamp=timestamp,
+            )
+
+    def test_comparison(self):
+        # Test data is 4 events in the current period and 2 events in the comparison period, so
+        # a 100% increase.
+        event = self.add_event(
+            data={
+                "fingerprint": ["something_random"],
+                "user": {"id": uuid4().hex},
+            },
+            project_id=self.project.id,
+            timestamp=before_now(minutes=1),
+        )
+        self.increment(
+            event,
+            3,
+            timestamp=timezone.now() - timedelta(minutes=1),
+        )
+        self.increment(
+            event,
+            2,
+            timestamp=timezone.now() - timedelta(days=1, minutes=20),
+        )
+        data = {
+            "interval": "1h",
+            "value": 99,
+            "comparisonType": "percent",
+            "comparisonInterval": "1d",
+            "id": "EventFrequencyConditionWithConditions",
+        }
+
+        rule = self.get_rule(
+            data=data,
+            rule=Rule(
+                environment_id=None,
+                project_id=self.project.id,
+                data={
+                    "conditions": [data],
+                    "filter_match": "all",
+                },
+            ),
+        )
+        self.assertPasses(rule, event, is_new=False)
+
+        data = {
+            "interval": "1h",
+            "value": 101,
+            "comparisonType": "percent",
+            "comparisonInterval": "1d",
+            "id": "EventFrequencyConditionWithConditions",
+        }
+
+        rule = self.get_rule(
+            data=data,
+            rule=Rule(
+                environment_id=None,
+                project_id=self.project.id,
+                data={
+                    "conditions": [data],
+                    "filter_match": "all",
+                },
+            ),
+        )
+        self.assertDoesNotPass(rule, event, is_new=False)
+
+    def test_comparison_empty_comparison_period(self):
+        # Test data is 1 event in the current period and 0 events in the comparison period. This
+        # should always result in 0 and never fire.
+        event = self.add_event(
+            data={
+                "fingerprint": ["something_random"],
+                "user": {"id": uuid4().hex},
+            },
+            project_id=self.project.id,
+            timestamp=before_now(minutes=1),
+        )
+        data = {
+            "filter_match": "all",
+            "conditions": [
+                {
+                    "interval": "1h",
+                    "value": 0,
+                    "comparisonType": "percent",
+                    "comparisonInterval": "1d",
+                }
+            ],
+        }
+        rule = self.get_rule(
+            data=data, rule=Rule(environment_id=None, project_id=self.project.id, data=data)
+        )
+        self.assertDoesNotPass(rule, event, is_new=False)
+
+        data = {
+            "filter_match": "all",
+            "conditions": [
+                {
+                    "interval": "1h",
+                    "value": 100,
+                    "comparisonType": "percent",
+                    "comparisonInterval": "1d",
+                }
+            ],
+        }
+        rule = self.get_rule(
+            data=data, rule=Rule(environment_id=None, project_id=self.project.id, data=data)
+        )
+        self.assertDoesNotPass(rule, event, is_new=False)
+
+    def _run_test(self, minutes, data, passes, add_events=False):
+        data["filter_match"] = "all"
+        data["conditions"] = data.get("conditions", [])
+        rule = self.get_rule(
+            data=data,
+            rule=Rule(environment_id=None, project_id=self.project.id, data=data),
+        )
+        environment_rule = self.get_rule(
+            data=data,
+            rule=Rule(
+                environment_id=self.environment.id,
+                project_id=self.project.id,
+                data=data,
+            ),
+        )
+
+        event = self.add_event(
+            data={
+                "fingerprint": ["something_random"],
+                "user": {"id": uuid4().hex},
+            },
+            project_id=self.project.id,
+            timestamp=before_now(minutes=minutes),
+        )
+        if add_events:
+            self.increment(
+                event,
+                data["value"] + 1,
+                environment=self.environment.name,
+                timestamp=timezone.now() - timedelta(minutes=minutes),
+            )
+            self.increment(
+                event,
+                data["value"] + 1,
+                timestamp=timezone.now() - timedelta(minutes=minutes),
+            )
+
+        if passes:
+            self.assertPasses(rule, event, is_new=False)
+            self.assertPasses(environment_rule, event, is_new=False)
+        else:
+            self.assertDoesNotPass(rule, event, is_new=False)
+            self.assertDoesNotPass(environment_rule, event, is_new=False)
+
+
+def test_convert_rule_condition_to_snuba_condition():
+
+    # Test non-TaggedEventFilter condition
+    condition = {"id": "some.other.condition"}
+    assert (
+        EventUniqueUserFrequencyConditionWithConditions.convert_rule_condition_to_snuba_condition(
+            condition
+        )
+        is None
+    )
+
+    # Test TaggedEventFilter conditions
+    base_condition = {
+        "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
+        "key": "test_key",
+        "value": "test_value",
+    }
+
+    # Test equality
+    eq_condition = {**base_condition, "match": MatchType.EQUAL}
+    assert (
+        EventUniqueUserFrequencyConditionWithConditions.convert_rule_condition_to_snuba_condition(
+            eq_condition
+        )
+        == (
+            "tags[test_key]",
+            Op.EQ.value,
+            "test_value",
+        )
+    )
+
+    # Test inequality
+    ne_condition = {**base_condition, "match": MatchType.NOT_EQUAL}
+    assert (
+        EventUniqueUserFrequencyConditionWithConditions.convert_rule_condition_to_snuba_condition(
+            ne_condition
+        )
+        == (
+            "tags[test_key]",
+            Op.NEQ.value,
+            "test_value",
+        )
+    )
+
+    # Test starts with
+    sw_condition = {**base_condition, "match": MatchType.STARTS_WITH}
+    assert (
+        EventUniqueUserFrequencyConditionWithConditions.convert_rule_condition_to_snuba_condition(
+            sw_condition
+        )
+        == (
+            "tags[test_key]",
+            Op.LIKE.value,
+            "test_value%",
+        )
+    )
+
+    # Test not starts with
+    nsw_condition = {**base_condition, "match": MatchType.NOT_STARTS_WITH}
+    assert (
+        EventUniqueUserFrequencyConditionWithConditions.convert_rule_condition_to_snuba_condition(
+            nsw_condition
+        )
+        == (
+            "tags[test_key]",
+            Op.NOT_LIKE.value,
+            "test_value%",
+        )
+    )
+
+    # Test ends with
+    ew_condition = {**base_condition, "match": MatchType.ENDS_WITH}
+    assert (
+        EventUniqueUserFrequencyConditionWithConditions.convert_rule_condition_to_snuba_condition(
+            ew_condition
+        )
+        == (
+            "tags[test_key]",
+            Op.LIKE.value,
+            "%test_value",
+        )
+    )
+
+    # Test not ends with
+    new_condition = {**base_condition, "match": MatchType.NOT_ENDS_WITH}
+    assert (
+        EventUniqueUserFrequencyConditionWithConditions.convert_rule_condition_to_snuba_condition(
+            new_condition
+        )
+        == (
+            "tags[test_key]",
+            Op.NOT_LIKE.value,
+            "%test_value",
+        )
+    )
+
+    # Test contains
+    co_condition = {**base_condition, "match": MatchType.CONTAINS}
+    assert (
+        EventUniqueUserFrequencyConditionWithConditions.convert_rule_condition_to_snuba_condition(
+            co_condition
+        )
+        == (
+            "tags[test_key]",
+            Op.LIKE.value,
+            "%test_value%",
+        )
+    )
+
+    # Test not contains
+    nc_condition = {**base_condition, "match": MatchType.NOT_CONTAINS}
+    assert (
+        EventUniqueUserFrequencyConditionWithConditions.convert_rule_condition_to_snuba_condition(
+            nc_condition
+        )
+        == (
+            "tags[test_key]",
+            Op.NOT_LIKE.value,
+            "%test_value%",
+        )
+    )
+
+    # Test is set
+    is_condition = {**base_condition, "match": MatchType.IS_SET}
+    assert (
+        EventUniqueUserFrequencyConditionWithConditions.convert_rule_condition_to_snuba_condition(
+            is_condition
+        )
+        == (
+            "tags[test_key]",
+            Op.IS_NOT_NULL.value,
+            None,
+        )
+    )
+
+    # Test not set
+    ns_condition = {**base_condition, "match": MatchType.NOT_SET}
+    assert (
+        EventUniqueUserFrequencyConditionWithConditions.convert_rule_condition_to_snuba_condition(
+            ns_condition
+        )
+        == (
+            "tags[test_key]",
+            Op.IS_NULL.value,
+            None,
+        )
+    )
+
+    # Test is in
+    in_condition = {
+        "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
+        "key": "test_key",
+        "value": "test_value_1,test_value_2",
+        "match": MatchType.IS_IN,
+    }
+    assert (
+        EventUniqueUserFrequencyConditionWithConditions.convert_rule_condition_to_snuba_condition(
+            in_condition
+        )
+        == (
+            "tags[test_key]",
+            Op.IN.value,
+            ["test_value_1", "test_value_2"],
+        )
+    )
+
+    # Test not in
+    not_in_condition = {
+        "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
+        "key": "test_key",
+        "value": "test_value_1,test_value_2",
+        "match": MatchType.NOT_IN,
+    }
+    assert (
+        EventUniqueUserFrequencyConditionWithConditions.convert_rule_condition_to_snuba_condition(
+            not_in_condition
+        )
+        == (
+            "tags[test_key]",
+            Op.NOT_IN.value,
+            ["test_value_1", "test_value_2"],
+        )
+    )
+
+    # Test unsupported match type
+    with pytest.raises(ValueError, match="Unsupported match type: unsupported"):
+        EventUniqueUserFrequencyConditionWithConditions.convert_rule_condition_to_snuba_condition(
+            {**base_condition, "match": "unsupported"}
+        )
 
 
 class EventFrequencyPercentConditionTestCase(BaseEventFrequencyPercentTest, RuleTestCase):
@@ -765,6 +1129,16 @@ class PerfIssuePlatformIssueFrequencyConditionTestCase(
 class ErrorIssueUniqueUserFrequencyConditionTestCase(
     ErrorEventMixin,
     EventUniqueUserFrequencyConditionTestCase,
+):
+    pass
+
+
+@freeze_time(
+    (timezone.now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0)
+)
+class ErrorIssueUniqueUserFrequencyConditionWithConditionsTestCase(
+    ErrorEventMixin,
+    EventUniqueUserFrequencyConditionWithConditionsTestCase,
 ):
     pass
 

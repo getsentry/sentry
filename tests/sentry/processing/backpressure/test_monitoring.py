@@ -71,6 +71,7 @@ def test_record_consumer_health() -> None:
         "celery": [],
         "attachments-store": [],
         "processing-store": [],
+        "processing-store-transactions": [],
         "processing-locks": [],
         "post-process-locks": [],
     }

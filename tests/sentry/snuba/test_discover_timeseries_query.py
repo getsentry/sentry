@@ -9,7 +9,7 @@ from sentry.search.events.types import EventsResponse, SnubaParams
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
 
 ARRAY_COLUMNS = ["measurements", "span_op_breakdowns"]
@@ -26,7 +26,7 @@ class TimeseriesBase(SnubaTestCase, TestCase):
             data={
                 "event_id": "a" * 32,
                 "message": "very bad",
-                "timestamp": iso_format(self.day_ago + timedelta(hours=1)),
+                "timestamp": (self.day_ago + timedelta(hours=1)).isoformat(),
                 "fingerprint": ["group1"],
                 "tags": {"important": "yes"},
                 "user": {"id": 1},
@@ -37,7 +37,7 @@ class TimeseriesBase(SnubaTestCase, TestCase):
             data={
                 "event_id": "b" * 32,
                 "message": "oh my",
-                "timestamp": iso_format(self.day_ago + timedelta(hours=1, minutes=1)),
+                "timestamp": (self.day_ago + timedelta(hours=1, minutes=1)).isoformat(),
                 "fingerprint": ["group2"],
                 "tags": {"important": "no"},
             },
@@ -47,7 +47,7 @@ class TimeseriesBase(SnubaTestCase, TestCase):
             data={
                 "event_id": "c" * 32,
                 "message": "very bad",
-                "timestamp": iso_format(self.day_ago + timedelta(hours=2, minutes=1)),
+                "timestamp": (self.day_ago + timedelta(hours=2, minutes=1)).isoformat(),
                 "fingerprint": ["group2"],
                 "tags": {"important": "yes"},
             },
@@ -167,7 +167,7 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
     def test_comparison_aggregate_function(self):
         self.store_event(
             data={
-                "timestamp": iso_format(self.day_ago + timedelta(hours=1)),
+                "timestamp": (self.day_ago + timedelta(hours=1)).isoformat(),
                 "user": {"id": 1},
             },
             project_id=self.project.id,
@@ -191,21 +191,21 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
 
         self.store_event(
             data={
-                "timestamp": iso_format(self.day_ago + timedelta(days=-1, hours=1)),
+                "timestamp": (self.day_ago + timedelta(days=-1, hours=1)).isoformat(),
                 "user": {"id": 1},
             },
             project_id=self.project.id,
         )
         self.store_event(
             data={
-                "timestamp": iso_format(self.day_ago + timedelta(days=-1, hours=1, minutes=2)),
+                "timestamp": (self.day_ago + timedelta(days=-1, hours=1, minutes=2)).isoformat(),
                 "user": {"id": 2},
             },
             project_id=self.project.id,
         )
         self.store_event(
             data={
-                "timestamp": iso_format(self.day_ago + timedelta(days=-1, hours=2, minutes=1)),
+                "timestamp": (self.day_ago + timedelta(days=-1, hours=2, minutes=1)).isoformat(),
             },
             project_id=self.project.id,
         )
@@ -253,8 +253,8 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
         event_data = load_data("transaction")
         # Half of duration so we don't get weird rounding differences when comparing the results
         event_data["breakdowns"]["span_ops"]["ops.http"]["value"] = 300
-        event_data["start_timestamp"] = iso_format(self.day_ago + timedelta(minutes=30))
-        event_data["timestamp"] = iso_format(self.day_ago + timedelta(minutes=30, seconds=3))
+        event_data["start_timestamp"] = (self.day_ago + timedelta(minutes=30)).isoformat()
+        event_data["timestamp"] = (self.day_ago + timedelta(minutes=30, seconds=3)).isoformat()
         self.store_event(data=event_data, project_id=self.project.id)
         ProjectTransactionThreshold.objects.create(
             project=self.project,
@@ -294,8 +294,8 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
         event_data = load_data("transaction")
         # Half of duration so we don't get weird rounding differences when comparing the results
         event_data["breakdowns"]["span_ops"]["ops.http"]["value"] = 300
-        event_data["start_timestamp"] = iso_format(self.day_ago + timedelta(minutes=30))
-        event_data["timestamp"] = iso_format(self.day_ago + timedelta(minutes=30, seconds=3))
+        event_data["start_timestamp"] = (self.day_ago + timedelta(minutes=30)).isoformat()
+        event_data["timestamp"] = (self.day_ago + timedelta(minutes=30, seconds=3)).isoformat()
         self.store_event(data=event_data, project_id=self.project.id)
         ProjectTransactionThreshold.objects.create(
             project=self.project,
@@ -378,11 +378,11 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
         project3 = self.create_project(organization=self.organization)
 
         self.store_event(
-            data={"message": "hello", "timestamp": iso_format(self.one_min_ago)},
+            data={"message": "hello", "timestamp": self.one_min_ago.isoformat()},
             project_id=project2.id,
         )
         self.store_event(
-            data={"message": "hello", "timestamp": iso_format(self.one_min_ago)},
+            data={"message": "hello", "timestamp": self.one_min_ago.isoformat()},
             project_id=project3.id,
         )
 
@@ -407,19 +407,19 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
     def test_nested_conditional_filter(self):
         project2 = self.create_project(organization=self.organization)
         self.store_event(
-            data={"release": "a" * 32, "timestamp": iso_format(self.one_min_ago)},
+            data={"release": "a" * 32, "timestamp": self.one_min_ago.isoformat()},
             project_id=self.project.id,
         )
         self.event = self.store_event(
-            data={"release": "b" * 32, "timestamp": iso_format(self.one_min_ago)},
+            data={"release": "b" * 32, "timestamp": self.one_min_ago.isoformat()},
             project_id=self.project.id,
         )
         self.event = self.store_event(
-            data={"release": "c" * 32, "timestamp": iso_format(self.one_min_ago)},
+            data={"release": "c" * 32, "timestamp": self.one_min_ago.isoformat()},
             project_id=self.project.id,
         )
         self.event = self.store_event(
-            data={"release": "a" * 32, "timestamp": iso_format(self.one_min_ago)},
+            data={"release": "a" * 32, "timestamp": self.one_min_ago.isoformat()},
             project_id=project2.id,
         )
 
@@ -508,14 +508,14 @@ class TopEventsTimeseriesQueryTest(TimeseriesBase):
         top_events: EventsResponse = {
             "data": [
                 {
-                    "timestamp": iso_format(timestamp1),
-                    "timestamp.to_hour": iso_format(timestamp1.replace(minute=0, second=0)),
-                    "timestamp.to_day": iso_format(timestamp1.replace(hour=0, minute=0, second=0)),
+                    "timestamp": timestamp1,
+                    "timestamp.to_hour": timestamp1.replace(minute=0, second=0),
+                    "timestamp.to_day": timestamp1.replace(hour=0, minute=0, second=0),
                 },
                 {
-                    "timestamp": iso_format(timestamp2),
-                    "timestamp.to_hour": iso_format(timestamp2.replace(minute=0, second=0)),
-                    "timestamp.to_day": iso_format(timestamp2.replace(hour=0, minute=0, second=0)),
+                    "timestamp": timestamp2,
+                    "timestamp.to_hour": timestamp2.replace(minute=0, second=0),
+                    "timestamp.to_day": timestamp2.replace(hour=0, minute=0, second=0),
                 },
             ],
             "meta": {"fields": {}, "tips": {}},
@@ -541,24 +541,24 @@ class TopEventsTimeseriesQueryTest(TimeseriesBase):
                 # Each timestamp field should generated a nested condition.
                 # Within each, the conditions will be ORed together.
                 [
-                    ["timestamp", "=", iso_format(timestamp1)],
-                    ["timestamp", "=", iso_format(timestamp2)],
+                    ["timestamp", "=", timestamp1],
+                    ["timestamp", "=", timestamp2],
                 ],
                 [
                     [
                         to_day,
                         "=",
-                        iso_format(timestamp1.replace(hour=0, minute=0, second=0)),
+                        timestamp1.replace(hour=0, minute=0, second=0),
                     ],
                     [
                         to_day,
                         "=",
-                        iso_format(timestamp2.replace(hour=0, minute=0, second=0)),
+                        timestamp2.replace(hour=0, minute=0, second=0),
                     ],
                 ],
                 [
-                    [to_hour, "=", iso_format(timestamp1.replace(minute=0, second=0))],
-                    [to_hour, "=", iso_format(timestamp2.replace(minute=0, second=0))],
+                    [to_hour, "=", timestamp1.replace(minute=0, second=0)],
+                    [to_hour, "=", timestamp2.replace(minute=0, second=0)],
                 ],
             ],
             filter_keys={"project_id": [self.project.id]},

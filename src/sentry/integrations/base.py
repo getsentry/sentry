@@ -4,7 +4,7 @@ import abc
 import logging
 import sys
 from collections.abc import Mapping, MutableMapping, Sequence
-from enum import Enum
+from enum import Enum, StrEnum
 from functools import cached_property
 from typing import TYPE_CHECKING, Any, NamedTuple, NoReturn
 
@@ -127,16 +127,18 @@ class IntegrationFeatures(Enum):
 
 
 # Integration Types
-MESSAGING = "messaging"
-PROJECT_MANAGEMENT = "project_management"
-SOURCE_CODE_MANAGEMENT = "source_code_management"
-ON_CALL_SCHEDULING = "on_call_scheduling"
+class IntegrationDomain(StrEnum):
+    MESSAGING = "messaging"
+    PROJECT_MANAGEMENT = "project_management"
+    SOURCE_CODE_MANAGEMENT = "source_code_management"
+    ON_CALL_SCHEDULING = "on_call_scheduling"
+    IDENTITY = "identity"  # for identity pipelines
 
 
-class IntegrationProviderSlug(Enum):
+class IntegrationProviderSlug(StrEnum):
     SLACK = "slack"
     DISCORD = "discord"
-    MSTeams = "msteams"
+    MSTEAMS = "msteams"
     JIRA = "jira"
     JIRA_SERVER = "jira_server"
     AZURE_DEVOPS = "vsts"
@@ -144,35 +146,37 @@ class IntegrationProviderSlug(Enum):
     GITHUB_ENTERPRISE = "github_enterprise"
     GITLAB = "gitlab"
     BITBUCKET = "bitbucket"
+    BITBUCKET_SERVER = "bitbucket_server"
     PAGERDUTY = "pagerduty"
     OPSGENIE = "opsgenie"
 
 
 INTEGRATION_TYPE_TO_PROVIDER = {
-    MESSAGING: [
+    IntegrationDomain.MESSAGING: [
         IntegrationProviderSlug.SLACK,
         IntegrationProviderSlug.DISCORD,
-        IntegrationProviderSlug.MSTeams,
+        IntegrationProviderSlug.MSTEAMS,
     ],
-    PROJECT_MANAGEMENT: [
+    IntegrationDomain.PROJECT_MANAGEMENT: [
         IntegrationProviderSlug.JIRA,
         IntegrationProviderSlug.JIRA_SERVER,
-        IntegrationProviderSlug.GITHUB,
-        IntegrationProviderSlug.GITHUB_ENTERPRISE,
-        IntegrationProviderSlug.GITLAB,
-        IntegrationProviderSlug.AZURE_DEVOPS,
     ],
-    SOURCE_CODE_MANAGEMENT: [
+    IntegrationDomain.SOURCE_CODE_MANAGEMENT: [
         IntegrationProviderSlug.GITHUB,
         IntegrationProviderSlug.GITHUB_ENTERPRISE,
         IntegrationProviderSlug.GITLAB,
         IntegrationProviderSlug.BITBUCKET,
+        IntegrationProviderSlug.BITBUCKET_SERVER,
         IntegrationProviderSlug.AZURE_DEVOPS,
     ],
-    ON_CALL_SCHEDULING: [
+    IntegrationDomain.ON_CALL_SCHEDULING: [
         IntegrationProviderSlug.PAGERDUTY,
         IntegrationProviderSlug.OPSGENIE,
     ],
+}
+
+INTEGRATION_PROVIDER_TO_TYPE = {
+    v: k for k, values in INTEGRATION_TYPE_TO_PROVIDER.items() for v in values
 }
 
 
@@ -588,3 +592,11 @@ def disable_integration(
             data={"provider": rpc_integration.provider},
         )
     return None
+
+
+def get_integration_types(provider: str):
+    types = []
+    for integration_type, providers in INTEGRATION_TYPE_TO_PROVIDER.items():
+        if provider in providers:
+            types.append(integration_type)
+    return types

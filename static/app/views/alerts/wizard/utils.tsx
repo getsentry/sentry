@@ -1,6 +1,5 @@
 import {getUseCaseFromMRI, parseField} from 'sentry/utils/metrics/mri';
 import {Dataset, SessionsAggregate} from 'sentry/views/alerts/rules/metric/types';
-import {isInsightsMetricAlert} from 'sentry/views/alerts/rules/metric/utils/isInsightsMetricAlert';
 
 import type {MetricAlertType, WizardRuleTemplate} from './options';
 
@@ -39,6 +38,9 @@ const alertTypeIdentifiers: Record<
     crash_free_sessions: SessionsAggregate.CRASH_FREE_SESSIONS,
     crash_free_users: SessionsAggregate.CRASH_FREE_USERS,
   },
+  [Dataset.EVENTS_ANALYTICS_PLATFORM]: {
+    throughput: 'count(span.duration)',
+  },
 };
 
 /**
@@ -52,8 +54,8 @@ export function getAlertTypeFromAggregateDataset({
 }: Pick<WizardRuleTemplate, 'aggregate' | 'dataset'>): MetricAlertType {
   const {mri: mri} = parseField(aggregate) ?? {};
 
-  if (isInsightsMetricAlert(aggregate)) {
-    return 'insights_metrics';
+  if (dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
+    return 'eap_metrics';
   }
 
   if (mri && getUseCaseFromMRI(mri) === 'spans') {

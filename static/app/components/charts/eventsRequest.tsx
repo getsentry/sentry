@@ -70,10 +70,6 @@ type DefaultProps = {
    */
   includePrevious: boolean;
   /**
-   * Transform the response data to be something ingestible by charts
-   */
-  includeTransformedData: boolean;
-  /**
    * Interval to group results in
    *
    * e.g. 1d, 1h, 1m, 1s
@@ -95,6 +91,10 @@ type DefaultProps = {
    * Absolute end date for query
    */
   end?: DateString;
+  /**
+   * Transform the response data to be something ingestible by charts
+   */
+  includeTransformedData?: boolean;
   /**
    * Relative time period for query.
    *
@@ -189,7 +189,7 @@ type EventsRequestPartialProps = {
   /**
    * Extra query parameters to be added.
    */
-  queryExtras?: Record<string, string>;
+  queryExtras?: Record<string, string | boolean | number>;
   /**
    * A unique name for what's triggering this request, see organization_events_stats for an allowlist
    */
@@ -216,6 +216,10 @@ type EventsRequestPartialProps = {
    * This is a temporary flag to allow us to test on demand metrics
    */
   useOnDemandMetrics?: boolean;
+  /**
+   * Whether or not to use RPCs instead of SnQL requests in the backend.
+   */
+  useRpc?: boolean;
   /**
    * Whether or not to zerofill results
    */
@@ -421,7 +425,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
       seriesName: seriesName ?? 'Previous',
       data: this.calculateTotalsPerTimestamp(
         previous,
-        (_timestamp, _countArray, i) => current[i][0] * 1000
+        (_timestamp, _countArray, i) => current[i]![0] * 1000
       ),
       stack: 'previous',
     };
@@ -569,7 +573,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
             seriesName: string,
             index: number
           ): [number, Series, Series | null, AdditionalSeriesInfo] => {
-            const seriesData: EventsStats = timeseriesData[seriesName];
+            const seriesData: EventsStats = timeseriesData[seriesName]!;
             const processedData = this.processData(
               seriesData,
               index,
@@ -585,7 +589,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
             }
             return [
               seriesData.order || 0,
-              processedData.data[0],
+              processedData.data[0]!,
               processedData.previousData,
               {isMetricsData: processedData.isMetricsData},
             ];
@@ -594,7 +598,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
         .sort((a, b) => a[0] - b[0]);
       const timeseriesResultsTypes: Record<string, AggregationOutputType> = {};
       Object.keys(timeseriesData).forEach(key => {
-        const fieldsMeta = timeseriesData[key].meta?.fields[getAggregateAlias(key)];
+        const fieldsMeta = timeseriesData[key]!.meta?.fields[getAggregateAlias(key)];
         if (fieldsMeta) {
           timeseriesResultsTypes[key] = fieldsMeta;
         }

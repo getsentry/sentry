@@ -30,13 +30,13 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
         ]
 
     def check_valid_environments_response(self, response, monitor, expected_environments):
-        assert {
+        assert [
             monitor_environment.get_environment().name
             for monitor_environment in expected_environments
-        } == {
+        ] == [
             monitor_environment_resp["name"]
             for monitor_environment_resp in monitor.get("environments", [])
-        }
+        ]
 
     def test_simple(self):
         monitor = self._create_monitor()
@@ -209,6 +209,45 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
             self.organization.slug, sort="muted", environment=["prod"], asc="0"
         )
         self.check_valid_response(response, expected)
+
+    def test_environments_sorted(self):
+        last_checkin = datetime.now(UTC) - timedelta(minutes=1)
+
+        monitor = self._create_monitor(
+            status=ObjectStatus.ACTIVE,
+            name="A monitor",
+        )
+        env_error = self._create_monitor_environment(
+            monitor,
+            name="jungle",
+            last_checkin=last_checkin - timedelta(seconds=30),
+            status=MonitorStatus.ERROR,
+        )
+        env_muted = self._create_monitor_environment(
+            monitor,
+            name="tree",
+            last_checkin=last_checkin - timedelta(seconds=45),
+            status=MonitorStatus.OK,
+            is_muted=True,
+        )
+        env_ok_older = self._create_monitor_environment(
+            monitor,
+            name="vines",
+            last_checkin=last_checkin - timedelta(seconds=20),
+            status=MonitorStatus.OK,
+        )
+        env_ok_newer = self._create_monitor_environment(
+            monitor,
+            name="volcano",
+            last_checkin=last_checkin - timedelta(seconds=15),
+            status=MonitorStatus.OK,
+        )
+
+        response = self.get_success_response(self.organization.slug)
+        self.check_valid_response(response, [monitor])
+        self.check_valid_environments_response(
+            response, response.data[0], [env_error, env_ok_newer, env_ok_older, env_muted]
+        )
 
     def test_filter_owners(self):
         user_1 = self.create_user()
@@ -409,6 +448,18 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         assert slug.startswith("1234-")
         assert not slug.isdecimal()
 
+    def test_crontab_whitespace(self):
+        data = {
+            "project": self.project.slug,
+            "name": "1234",
+            "type": "cron_job",
+            "config": {"schedule_type": "crontab", "schedule": "  *\t* *     * * "},
+        }
+        response = self.get_success_response(self.organization.slug, **data, status_code=201)
+
+        schedule = response.data["config"]["schedule"]
+        assert schedule == "* * * * *"
+
     @override_settings(MAX_MONITORS_PER_ORG=2)
     def test_monitor_organization_limit(self):
         for i in range(settings.MAX_MONITORS_PER_ORG):
@@ -507,9 +558,8 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
             "project": self.project.slug,
             "name": "My Monitor",
             "type": "cron_job",
-            # XXX(epurkhiser): February 29th is problematic for croniter
-            # unfortunately
-            "config": {"schedule_type": "crontab", "schedule": "0 0 29 2 *"},
+            # There is no Febuary 31st
+            "config": {"schedule_type": "crontab", "schedule": "0 0 31 2 *"},
         }
         response = self.get_error_response(self.organization.slug, **data, status_code=400)
         assert response.data["config"]["schedule"][0] == "Schedule is invalid"
@@ -618,3 +668,28 @@ class BulkEditOrganizationMonitorTest(MonitorTestCase):
         monitor_two.refresh_from_db()
         assert monitor_one.status == ObjectStatus.DISABLED
         assert monitor_two.status == ObjectStatus.DISABLED
+
+    def test_disallow_when_no_open_membership(self):
+        monitor = self._create_monitor()
+
+        # disable Open Membership
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        # user has no access to all the projects
+        user_no_team = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user_no_team, organization=self.organization, role="member", teams=[]
+        )
+        self.login_as(user_no_team)
+
+        data = {
+            "ids": [monitor.guid],
+            "isMuted": True,
+        }
+        response = self.get_success_response(self.organization.slug, **data)
+        assert response.status_code == 200
+        assert response.data == {"updated": [], "errored": []}
+
+        monitor.refresh_from_db()
+        assert not monitor.is_muted

@@ -1,6 +1,11 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  waitFor,
+  waitForElementToBeRemoved,
+} from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -10,9 +15,10 @@ jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 
 describe('HTTPSummaryPage', function () {
-  const organization = OrganizationFixture();
+  const organization = OrganizationFixture({features: ['insights-initial-modules']});
 
-  let domainChartsRequestMock, domainTransactionsListRequestMock, spanFieldTagsMock;
+  let domainChartsRequestMock: jest.Mock;
+  let domainTransactionsListRequestMock: jest.Mock;
 
   jest.mocked(usePageFilters).mockReturnValue({
     isReady: true,
@@ -64,21 +70,6 @@ describe('HTTPSummaryPage', function () {
         },
       },
     });
-
-    spanFieldTagsMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/spans/fields/`,
-      method: 'GET',
-      body: [
-        {
-          key: 'api_key',
-          name: 'Api Key',
-        },
-        {
-          key: 'bytes.size',
-          name: 'Bytes.Size',
-        },
-      ],
-    });
   });
 
   afterAll(function () {
@@ -88,30 +79,32 @@ describe('HTTPSummaryPage', function () {
   it('fetches module data', async function () {
     render(<HTTPDomainSummaryPage />, {organization});
 
-    expect(domainChartsRequestMock).toHaveBeenNthCalledWith(
-      1,
-      `/organizations/${organization.slug}/events-stats/`,
-      expect.objectContaining({
-        method: 'GET',
-        query: {
-          cursor: undefined,
-          dataset: 'spansMetrics',
-          environment: [],
-          excludeOther: 0,
-          field: [],
-          interval: '30m',
-          orderby: undefined,
-          partial: 1,
-          per_page: 50,
-          project: [],
-          query: 'span.module:http span.op:http.client span.domain:"\\*.sentry.dev"',
-          referrer: 'api.performance.http.domain-summary-throughput-chart',
-          statsPeriod: '10d',
-          topEvents: undefined,
-          yAxis: 'spm()',
-        },
-      })
-    );
+    await waitFor(() => {
+      expect(domainChartsRequestMock).toHaveBeenNthCalledWith(
+        1,
+        `/organizations/${organization.slug}/events-stats/`,
+        expect.objectContaining({
+          method: 'GET',
+          query: {
+            cursor: undefined,
+            dataset: 'spansMetrics',
+            environment: [],
+            excludeOther: 0,
+            field: [],
+            interval: '30m',
+            orderby: undefined,
+            partial: 1,
+            per_page: 50,
+            project: [],
+            query: 'span.module:http span.op:http.client span.domain:"\\*.sentry.dev"',
+            referrer: 'api.performance.http.domain-summary-throughput-chart',
+            statsPeriod: '10d',
+            topEvents: undefined,
+            yAxis: 'spm()',
+          },
+        })
+      );
+    });
 
     expect(domainChartsRequestMock).toHaveBeenNthCalledWith(
       2,
@@ -224,19 +217,6 @@ describe('HTTPSummaryPage', function () {
       })
     );
 
-    expect(spanFieldTagsMock).toHaveBeenNthCalledWith(
-      1,
-      `/organizations/${organization.slug}/spans/fields/`,
-      expect.objectContaining({
-        method: 'GET',
-        query: {
-          project: [],
-          environment: [],
-          statsPeriod: '1h',
-        },
-      })
-    );
-
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
   });
 
@@ -296,7 +276,7 @@ describe('HTTPSummaryPage', function () {
     expect(screen.getByRole('cell', {name: 'GET /api/users'})).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'GET /api/users'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/insights/http/domains/?domain=%2A.sentry.dev&project=8&statsPeriod=10d&transaction=%2Fapi%2Fusers&transactionMethod=GET&transactionsCursor=0%3A20%3A0'
+      '/organizations/org-slug/insights/backend/http/domains/?domain=%2A.sentry.dev&project=8&statsPeriod=10d&transaction=%2Fapi%2Fusers&transactionMethod=GET&transactionsCursor=0%3A20%3A0'
     );
     expect(screen.getByRole('cell', {name: '17.9/s'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: '97%'})).toBeInTheDocument();

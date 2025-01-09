@@ -137,13 +137,22 @@ function ReplaysContent({
   organization: Organization;
   pageLinks: string | null;
 }) {
-  const location = useMemo(() => ({query: {}}) as Location<ReplayListLocationQuery>, []);
+  const location = useLocation();
+
+  if (!eventView.query) {
+    eventView.query = String(location.query.query ?? '');
+  }
+
+  const newLocation = useMemo(
+    () => ({query: {}}) as Location<ReplayListLocationQuery>,
+    []
+  );
   const theme = useTheme();
   const hasRoomForColumns = useMedia(`(min-width: ${theme.breakpoints.small})`);
 
   const {replays, isFetching, fetchError} = useReplayList({
     eventView,
-    location,
+    location: newLocation,
     organization,
     queryReferrer: 'transactionReplays',
   });
@@ -153,7 +162,7 @@ function ReplaysContent({
     events,
   });
 
-  const {allMobileProj} = useAllMobileProj();
+  const {allMobileProj} = useAllMobileProj({});
 
   return (
     <Layout.Main fullWidth>

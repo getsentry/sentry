@@ -55,6 +55,7 @@ export function useIntegrationExternalIssues({
     const actions = configurations
       .filter(config => config.externalIssues.length === 0)
       .map<ExternalIssueAction>(config => ({
+        id: config.id,
         name: config.name,
         nameSubText: config.domainName ?? undefined,
         disabled: config.status === 'disabled',
@@ -83,11 +84,11 @@ export function useIntegrationExternalIssues({
       ...configurations
         .filter(config => config.externalIssues.length > 0)
         .map<GroupIntegrationIssueResult['linkedIssues'][number]>(config => ({
-          key: config.externalIssues[0].id,
-          displayName: config.externalIssues[0].key,
+          key: config.externalIssues[0]!.id,
+          displayName: config.externalIssues[0]!.key,
           displayIcon,
-          url: config.externalIssues[0].url,
-          title: config.externalIssues[0].title,
+          url: config.externalIssues[0]!.url,
+          title: config.externalIssues[0]!.title,
           onUnlink: () => {
             // Currently we do not support a case where there is multiple external issues.
             // For example, we shouldn't have more than 1 jira ticket created for an issue for each jira configuration.
@@ -97,7 +98,7 @@ export function useIntegrationExternalIssues({
               `/organizations/${organization.slug}/issues/${group.id}/integrations/${config.id}/`,
               {
                 method: 'DELETE',
-                query: {externalIssue: issue.id},
+                query: {externalIssue: issue!.id},
                 success: () => {
                   addSuccessMessage(t('Successfully unlinked issue.'));
                   refetchIntegrations();

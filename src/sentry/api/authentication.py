@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 from collections.abc import Callable, Iterable
 from typing import Any, ClassVar
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
+from django.urls import resolve
 from django.utils.crypto import constant_time_compare
 from django.utils.encoding import force_str
 from rest_framework.authentication import (
@@ -33,6 +35,7 @@ from sentry.models.orgauthtoken import (
 )
 from sentry.models.projectkey import ProjectKey
 from sentry.models.relay import Relay
+from sentry.organizations.services.organization import organization_service
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.silo.base import SiloLimit, SiloMode
@@ -42,6 +45,8 @@ from sentry.users.services.user.service import user_service
 from sentry.utils.linksign import process_signature
 from sentry.utils.sdk import Scope
 from sentry.utils.security.orgauthtoken_token import SENTRY_ORG_AUTH_TOKEN_PREFIX, hash_token
+
+logger = logging.getLogger("sentry.api.authentication")
 
 
 class AuthenticationSiloLimit(SiloLimit):
@@ -288,11 +293,11 @@ class ClientIdSecretAuthentication(QuietBasicAuthentication):
     """
 
     def authenticate(self, request: Request):
-        if not request.json_body:
+        if not request.data:
             raise AuthenticationFailed("Invalid request")
 
-        client_id = request.json_body.get("client_id")
-        client_secret = request.json_body.get("client_secret")
+        client_id = request.data.get("client_id")
+        client_secret = request.data.get("client_secret")
 
         invalid_pair_error = AuthenticationFailed("Invalid Client ID / Secret pair")
 
@@ -417,6 +422,33 @@ class UserAuthTokenAuthentication(StandardAuthentication):
         if application_is_inactive:
             raise AuthenticationFailed("UserApplication inactive or deleted")
 
+        if token.scoping_organization_id:
+            # We need to make sure the organization to which the token has access is the same as the one in the URL
+            organization = None
+            organization_context = organization_service.get_organization_by_id(
+                id=token.organization_id, include_projects=False, include_teams=False
+            )
+            if organization_context:
+                organization = organization_context.organization
+
+            if organization:
+                resolved_url = resolve(request.path_info)
+                target_org_id_or_slug = resolved_url.kwargs.get("organization_id_or_slug")
+                if target_org_id_or_slug:
+                    if (
+                        organization.slug != target_org_id_or_slug
+                        and organization.id != target_org_id_or_slug
+                    ):
+                        raise AuthenticationFailed("Unauthorized organization access.")
+                # We want to limit org scoped tokens access to org level endpoints only
+                # Except some none-org level endpoints that we added special treatments for
+                elif resolved_url.url_name not in ["sentry-api-0-organizations"]:
+                    raise AuthenticationFailed(
+                        "This token access is limited to organization endpoints."
+                    )
+            else:
+                raise AuthenticationFailed("Cannot resolve organization from token.")
+
         return self.transform_auth(
             user,
             token,
@@ -483,7 +515,7 @@ class DSNAuthentication(StandardAuthentication):
         scope.set_tag("api_token_type", self.token_name)
         scope.set_tag("api_project_key", key.id)
 
-        return (AnonymousUser(), key)
+        return (AnonymousUser(), AuthenticatedToken.from_token(key))
 
 
 @AuthenticationSiloLimit(SiloMode.REGION)

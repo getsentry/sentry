@@ -16,6 +16,7 @@ from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.dynamic_sampling import DEFAULT_BIASES, RuleType
 from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
+from sentry.dynamic_sampling.types import DynamicSamplingMode
 from sentry.issues.highlights import get_highlight_preset_for_project
 from sentry.models.apitoken import ApiToken
 from sentry.models.auditlogentry import AuditLogEntry
@@ -36,72 +37,6 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature, with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
-
-
-def _dyn_sampling_data(multiple_uniform_rules=False, uniform_rule_last_position=True):
-    rules = [
-        {
-            "sampleRate": 0.7,
-            "type": "trace",
-            "active": True,
-            "condition": {
-                "op": "and",
-                "inner": [
-                    {"op": "eq", "name": "field1", "value": ["val"]},
-                    {"op": "glob", "name": "field1", "value": ["val"]},
-                ],
-            },
-            "id": -1,
-        },
-        {
-            "sampleRate": 0.8,
-            "type": "trace",
-            "active": True,
-            "condition": {
-                "op": "and",
-                "inner": [
-                    {"op": "eq", "name": "field1", "value": ["val"]},
-                ],
-            },
-            "id": -1,
-        },
-    ]
-    if uniform_rule_last_position:
-        rules.append(
-            {
-                "sampleRate": 0.8,
-                "type": "trace",
-                "active": True,
-                "condition": {
-                    "op": "and",
-                    "inner": [],
-                },
-                "id": -1,
-            },
-        )
-    if multiple_uniform_rules:
-        new_rule_1 = {
-            "sampleRate": 0.22,
-            "type": "trace",
-            "condition": {
-                "op": "and",
-                "inner": [],
-            },
-            "id": -1,
-        }
-        rules.insert(0, new_rule_1)
-
-    return {
-        "rules": rules,
-    }
-
-
-def _remove_ids_from_dynamic_rules(dynamic_rules):
-    if dynamic_rules.get("next_id") is not None:
-        del dynamic_rules["next_id"]
-    for rule in dynamic_rules["rules"]:
-        del rule["id"]
-    return dynamic_rules
 
 
 def first_symbol_source_id(sources_json):
@@ -257,6 +192,75 @@ class ProjectDetailsTest(APITestCase):
         assert resp.data["highlightPreset"] == expected_preset
         assert resp.data["highlightContext"] == expected_preset["context"]
         assert resp.data["highlightTags"] == expected_preset["tags"]
+
+    def test_is_dynamically_sampled_pan_rate(self):
+        # test with feature flags disabled
+        with self.feature("organizations:dynamic-sampling"):
+            with mock.patch(
+                "sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate",
+                return_value=0.5,
+            ):
+                resp = self.get_success_response(self.project.organization.slug, self.project.slug)
+                assert resp.data["isDynamicallySampled"]
+
+            with mock.patch(
+                "sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate",
+                return_value=1.0,
+            ):
+                resp = self.get_success_response(self.project.organization.slug, self.project.slug)
+                assert not resp.data["isDynamicallySampled"]
+
+            with mock.patch(
+                "sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate",
+                return_value=None,
+            ):
+                resp = self.get_success_response(self.project.organization.slug, self.project.slug)
+                assert not resp.data["isDynamicallySampled"]
+
+    def test_is_dynamically_sampled(self):
+        # test with feature flags disabled
+        with self.feature(
+            {
+                "organizations:dynamic-sampling": False,
+                "organizations:dynamic-sampling-custom": False,
+            }
+        ):
+            resp = self.get_success_response(self.project.organization.slug, self.project.slug)
+            assert not resp.data["isDynamicallySampled"]
+
+        # test with sampling_mode = organization
+        self.project.organization.update_option(
+            "sentry:sampling_mode", DynamicSamplingMode.ORGANIZATION.value
+        )
+
+        # test not sampled organization
+        self.project.organization.update_option("sentry:target_sample_rate", 1.0)
+        with self.feature("organizations:dynamic-sampling-custom"):
+            resp = self.get_success_response(self.project.organization.slug, self.project.slug)
+            assert not resp.data["isDynamicallySampled"]
+
+        # test dynamically sampled organization
+        self.project.organization.update_option("sentry:target_sample_rate", 0.1)
+        with self.feature("organizations:dynamic-sampling-custom"):
+            resp = self.get_success_response(self.project.organization.slug, self.project.slug)
+            assert resp.data["isDynamicallySampled"]
+
+        # test with sampling_mode = project
+        self.project.organization.update_option(
+            "sentry:sampling_mode", DynamicSamplingMode.PROJECT.value
+        )
+
+        # test with not sampled project
+        self.project.update_option("sentry:target_sample_rate", 1.0)
+        with self.feature("organizations:dynamic-sampling-custom"):
+            resp = self.get_success_response(self.project.organization.slug, self.project.slug)
+            assert not resp.data["isDynamicallySampled"]
+
+        # test with sampled project
+        self.project.update_option("sentry:target_sample_rate", 0.1)
+        with self.feature("organizations:dynamic-sampling-custom"):
+            resp = self.get_success_response(self.project.organization.slug, self.project.slug)
+            assert resp.data["isDynamicallySampled"]
 
 
 class ProjectUpdateTestTokenAuthenticated(APITestCase):
@@ -1342,6 +1346,42 @@ class ProjectUpdateTest(APITestCase):
         assert self.project.get_option("sentry:uptime_autodetection") is True
         assert resp.data["uptimeAutodetection"] is True
 
+    @with_feature({"organizations:dynamic-sampling-custom": False})
+    def test_target_sample_rate_without_feature(self):
+        self.project.update_option("sentry:target_sample_rate", 1.0)
+        self.get_error_response(
+            self.org_slug, self.proj_slug, targetSampleRate=0.1, status_code=400
+        )
+        assert self.project.get_option("sentry:target_sample_rate") == 1.0
+
+    @with_feature({"organizations:dynamic-sampling-custom": True})
+    def test_target_sample_rate_automatic_mode(self):
+        self.project.update_option("sentry:target_sample_rate", 1.0)
+        # automatic mode is called "organization" in code
+        self.organization.update_option(
+            "sentry:sampling_mode", DynamicSamplingMode.ORGANIZATION.value
+        )
+        self.get_error_response(
+            self.org_slug, self.proj_slug, targetSampleRate=0.1, status_code=400
+        )
+        assert self.project.get_option("sentry:target_sample_rate") == 1.0
+
+    @with_feature({"organizations:dynamic-sampling-custom": True})
+    def test_target_sample_rate_invalid(self):
+        self.project.update_option("sentry:target_sample_rate", 1.0)
+        self.organization.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT.value)
+        self.get_error_response(
+            self.org_slug, self.proj_slug, targetSampleRate=2.0, status_code=400
+        )
+        assert self.project.get_option("sentry:target_sample_rate") == 1.0
+
+    @with_feature({"organizations:dynamic-sampling-custom": True})
+    def test_target_sample_rate(self):
+        self.project.update_option("sentry:target_sample_rate", 1.0)
+        self.organization.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT.value)
+        self.get_success_response(self.org_slug, self.proj_slug, targetSampleRate=0.1)
+        assert self.project.get_option("sentry:target_sample_rate") == 0.1
+
 
 class CopyProjectSettingsTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
@@ -1918,3 +1958,32 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
             assert response.json()["dynamicSamplingBiases"][0]["non_field_errors"] == [
                 "Error: Only 'id' and 'active' fields are allowed for bias."
             ]
+
+    @with_feature("organizations:tempest-access")
+    def test_put_tempest_fetch_screenshots(self):
+        # assert default value is False, and that put request updates the value
+        assert self.project.get_option("sentry:tempest_fetch_screenshots") is False
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, method="put", tempestFetchScreenshots=True
+        )
+        assert response.data["tempestFetchScreenshots"] is True
+        assert self.project.get_option("sentry:tempest_fetch_screenshots") is True
+
+    def test_put_tempest_fetch_screenshots_without_feature_flag(self):
+        self.get_error_response(
+            self.organization.slug, self.project.slug, method="put", tempestFetchScreenshots=True
+        )
+
+    @with_feature("organizations:tempest-access")
+    def test_get_tempest_fetch_screenshots_options(self):
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, method="get"
+        )
+        assert "tempestFetchScreenshots" in response.data
+        assert response.data["tempestFetchScreenshots"] is False
+
+    def test_get_tempest_fetch_screenshots_options_without_feature_flag(self):
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, method="get"
+        )
+        assert "tempestFetchScreenshots" not in response.data

@@ -11,8 +11,8 @@ from uuid import uuid4
 import jsonschema
 from django.conf import settings
 from django.db import models
-from django.db.models import Q
-from django.db.models.signals import post_delete, pre_save
+from django.db.models import Case, IntegerField, Q, Value, When
+from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from django.utils import timezone
 
@@ -123,7 +123,11 @@ class MonitorStatus:
 
 class CheckInStatus:
     UNKNOWN = 0
-    """No status was passed"""
+    """
+    Checkin may have lost data and we cannot know the resulting status of the
+    check-in. This can happen when an incident is detected using clock-tick
+    volume anomoly detection.
+    """
 
     OK = 1
     """Checkin had no issues during execution"""
@@ -146,10 +150,13 @@ class CheckInStatus:
     status was reported by the monitor itself (was not synthetic)
     """
 
-    SYNTHETIC_TERMINAL_VALUES = (MISSED, TIMEOUT)
+    SYNTHETIC_TERMINAL_VALUES = (MISSED, TIMEOUT, UNKNOWN)
     """
     Values indicating the montior is in a terminal "synthetic" status. These
     status are not sent by the monitor themselve but are a side effect result.
+
+    For some values such as UNKNOWN it is possible for it to transition to a
+    USER_TERMINAL_VALUES.
     """
 
     FINISHED_VALUES = (OK, ERROR, MISSED, TIMEOUT)
@@ -167,6 +174,20 @@ class CheckInStatus:
             (cls.MISSED, "missed"),
             (cls.TIMEOUT, "timeout"),
         )
+
+
+DEFAULT_STATUS_ORDER = [
+    MonitorStatus.ERROR,
+    MonitorStatus.OK,
+    MonitorStatus.ACTIVE,
+    MonitorStatus.DISABLED,
+]
+
+MONITOR_ENVIRONMENT_ORDERING = Case(
+    When(is_muted=True, then=Value(len(DEFAULT_STATUS_ORDER) + 1)),
+    *[When(status=s, then=Value(i)) for i, s in enumerate(DEFAULT_STATUS_ORDER)],
+    output_field=IntegerField(),
+)
 
 
 class MonitorType:
@@ -512,8 +533,6 @@ class MonitorCheckIn(Model):
     that occurred during the check-in.
     """
 
-    attachment_id = BoundedBigIntegerField(null=True)
-
     objects: ClassVar[BaseManager[Self]] = BaseManager(cache_fields=("guid",))
 
     class Meta:
@@ -542,6 +561,8 @@ class MonitorCheckIn(Model):
             models.Index(fields=["monitor_environment", "status", "date_added"]),
             # used for timeout task
             models.Index(fields=["status", "timeout_at"]),
+            # used for dispatch_mark_unknown
+            models.Index(fields=["status", "date_added"]),
             # used for check-in list
             models.Index(fields=["trace_id"]),
         ]
@@ -559,16 +580,6 @@ class MonitorCheckIn(Model):
     # what we want to happen, so kill it here
     def _update_timestamps(self):
         pass
-
-
-def delete_file_for_monitorcheckin(instance: MonitorCheckIn, **kwargs):
-    if file_id := instance.attachment_id:
-        from sentry.models.files import File
-
-        File.objects.filter(id=file_id).delete()
-
-
-post_delete.connect(delete_file_for_monitorcheckin, sender=MonitorCheckIn)
 
 
 @region_silo_model

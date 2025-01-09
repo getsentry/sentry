@@ -78,6 +78,7 @@ instead of group deletion is:
 * Mark the group as deleted in Redis.
 * All reprocessed events are "just" inserted over the old ones.
 """
+
 from __future__ import annotations
 
 import logging
@@ -477,13 +478,11 @@ def pop_batched_events_from_redis(key: str) -> tuple[list[str], datetime | None,
 
 
 @overload
-def mark_event_reprocessed(data: MutableMapping[str, Any], *, num_events: int = 1) -> None:
-    ...
+def mark_event_reprocessed(data: MutableMapping[str, Any], *, num_events: int = 1) -> None: ...
 
 
 @overload
-def mark_event_reprocessed(*, group_id: int, project_id: int, num_events: int = 1) -> None:
-    ...
+def mark_event_reprocessed(*, group_id: int, project_id: int, num_events: int = 1) -> None: ...
 
 
 def mark_event_reprocessed(

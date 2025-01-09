@@ -3,16 +3,20 @@ import styled from '@emotion/styled';
 import Feature from 'sentry/components/acl/feature';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {NoAccess} from 'sentry/components/noAccess';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
+import {tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {canUseMetricsData} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {
+  canUseMetricsData,
+  useMEPSettingContext,
+} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PageAlert, usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -20,18 +24,26 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {useUserTeams} from 'sentry/utils/useUserTeams';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {ViewTrendsButton} from 'sentry/views/insights/common/components/viewTrendsButton';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
+import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
-import {OVERVIEW_PAGE_ALLOWED_OPS} from 'sentry/views/insights/pages/frontend/settings';
-import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
-import {generateFrontendOtherPerformanceEventView} from 'sentry/views/performance/data';
+import {
+  FRONTEND_LANDING_TITLE,
+  OVERVIEW_PAGE_ALLOWED_OPS,
+} from 'sentry/views/insights/pages/frontend/settings';
+import {
+  generateFrontendOtherPerformanceEventView,
+  USER_MISERY_TOOLTIP,
+} from 'sentry/views/performance/data';
 import {
   DoubleChartRow,
   TripleChartRow,
 } from 'sentry/views/performance/landing/widgets/components/widgetChartRow';
+import {filterAllowedChartsMetrics} from 'sentry/views/performance/landing/widgets/utils';
 import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 import Onboarding from 'sentry/views/performance/onboarding';
 import Table from 'sentry/views/performance/table';
@@ -40,16 +52,25 @@ import {
   ProjectPerformanceType,
 } from 'sentry/views/performance/utils';
 
+const DURATION_TOOLTIP = tct(
+  'A heuristic measuring when a pageload or navigation completes. Based on whether the initial load of the webpage has become idle. [link:Learn more.]',
+  {
+    link: (
+      <ExternalLink href="https://docs.sentry.io/platforms/javascript/tracing/instrumentation/automatic-instrumentation/#idletimeout" />
+    ),
+  }
+);
+
 export const FRONTEND_COLUMN_TITLES = [
-  'transaction',
-  'operation',
-  'project',
-  'tpm',
-  'p50()',
-  'p75()',
-  'p95()',
-  'users',
-  'user misery',
+  {title: 'transaction'},
+  {title: 'operation'},
+  {title: 'project'},
+  {title: 'tpm'},
+  {title: 'p50()', tooltip: DURATION_TOOLTIP},
+  {title: 'p75()', tooltip: DURATION_TOOLTIP},
+  {title: 'p95()', tooltip: DURATION_TOOLTIP},
+  {title: 'users'},
+  {title: 'user misery', tooltip: USER_MISERY_TOOLTIP},
 ];
 
 function FrontendOverviewPage() {
@@ -59,6 +80,8 @@ function FrontendOverviewPage() {
   const {projects} = useProjects();
   const onboardingProject = useOnboardingProject();
   const navigate = useNavigate();
+  const {teams} = useUserTeams();
+  const mepSetting = useMEPSettingContext();
 
   const withStaticFilters = canUseMetricsData(organization);
   const eventView = generateFrontendOtherPerformanceEventView(
@@ -94,15 +117,19 @@ function FrontendOverviewPage() {
     PerformanceWidgetSetting.SLOW_HTTP_OPS,
     PerformanceWidgetSetting.SLOW_RESOURCE_OPS,
   ];
-  const tripleChartRowCharts = [
-    PerformanceWidgetSetting.TPM_AREA,
-    PerformanceWidgetSetting.DURATION_HISTOGRAM,
-    PerformanceWidgetSetting.P50_DURATION_AREA,
-    PerformanceWidgetSetting.P75_DURATION_AREA,
-    PerformanceWidgetSetting.P95_DURATION_AREA,
-    PerformanceWidgetSetting.P99_DURATION_AREA,
-    PerformanceWidgetSetting.FAILURE_RATE_AREA,
-  ];
+  const tripleChartRowCharts = filterAllowedChartsMetrics(
+    organization,
+    [
+      PerformanceWidgetSetting.TPM_AREA,
+      PerformanceWidgetSetting.DURATION_HISTOGRAM,
+      PerformanceWidgetSetting.P50_DURATION_AREA,
+      PerformanceWidgetSetting.P75_DURATION_AREA,
+      PerformanceWidgetSetting.P95_DURATION_AREA,
+      PerformanceWidgetSetting.P99_DURATION_AREA,
+      PerformanceWidgetSetting.FAILURE_RATE_AREA,
+    ],
+    mepSetting
+  );
 
   if (organization.features.includes('insights-initial-modules')) {
     doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS);
@@ -144,11 +171,14 @@ function FrontendOverviewPage() {
 
   return (
     <Feature
-      features="insights-domain-view"
+      features="performance-view"
       organization={organization}
       renderDisabled={NoAccess}
     >
-      <FrontendHeader headerActions={<ViewTrendsButton />} />
+      <FrontendHeader
+        headerTitle={FRONTEND_LANDING_TITLE}
+        headerActions={<ViewTrendsButton />}
+      />
       <Layout.Body>
         <Layout.Main fullWidth>
           <ModuleLayout.Layout>
@@ -166,7 +196,7 @@ function FrontendOverviewPage() {
                     onSearch={(query: string) => {
                       handleSearch(query);
                     }}
-                    query={getFreeTextFromQuery(derivedQuery)}
+                    query={getFreeTextFromQuery(derivedQuery)!}
                   />
                 )}
               </ToolRibbon>
@@ -183,12 +213,19 @@ function FrontendOverviewPage() {
                     eventView={doubleChartRowEventView}
                   />
                   <TripleChartRow allowedCharts={tripleChartRowCharts} {...sharedProps} />
-                  <Table
-                    projects={projects}
-                    columnTitles={FRONTEND_COLUMN_TITLES}
-                    setError={setPageError}
-                    {...sharedProps}
-                  />
+                  <TeamKeyTransactionManager.Provider
+                    organization={organization}
+                    teams={teams}
+                    selectedTeams={['myteams']}
+                    selectedProjects={eventView.project.map(String)}
+                  >
+                    <Table
+                      projects={projects}
+                      columnTitles={FRONTEND_COLUMN_TITLES}
+                      setError={setPageError}
+                      {...sharedProps}
+                    />
+                  </TeamKeyTransactionManager.Provider>
                 </PerformanceDisplayProvider>
               )}
 
@@ -204,14 +241,10 @@ function FrontendOverviewPage() {
 }
 
 function FrontendOverviewPageWithProviders() {
-  const organization = useOrganization();
-
   return (
-    <PageFiltersContainer>
-      <SentryDocumentTitle title={OVERVIEW_PAGE_TITLE} orgSlug={organization.slug}>
-        <FrontendOverviewPage />
-      </SentryDocumentTitle>
-    </PageFiltersContainer>
+    <DomainOverviewPageProviders>
+      <FrontendOverviewPage />
+    </DomainOverviewPageProviders>
   );
 }
 

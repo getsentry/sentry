@@ -1,0 +1,44 @@
+---
+created: '2024-12-17T22:49:57.909917+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: message
+hashing_metadata: {
+  "message_parameterized": false,
+  "message_source": "exception"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "message",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.message": {
+    "message_parameterized": "False",
+    "message_source": "exception"
+  }
+}
+---
+contributing variants:
+  system*
+    hash: "4e10ac3b57fc5fc8bd77a31e5888f117"
+    contributing component: chained-exception
+    component:
+      system*
+        chained-exception*
+          exception*
+            type*
+              "System.Exception"
+            value*
+              "Some Inner Exception"
+          exception*
+            type*
+              "MyApp.Exception"
+            value*
+              "Test 1"
+          exception*
+            type*
+              "System.AggregateException"
+            value*
+              "One or more errors occurred."

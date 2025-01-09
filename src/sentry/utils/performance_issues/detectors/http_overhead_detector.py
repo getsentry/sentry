@@ -65,10 +65,12 @@ class HTTPOverheadDetector(PerformanceDetector):
 
         url = span_data.get("url", "")
         span_start = span.get("start_timestamp", 0) * 1000
-        request_start = span_data.get("http.request.request_start", 0) * 1000
+        request_start = span_data.get("http.request.request_start", 0)
 
         if not url or not span_start or not request_start:
             return
+
+        request_start *= 1000
 
         if url.startswith("/"):
             location = "/"

@@ -83,6 +83,9 @@ function IssueTitle(props: IssueTitleProps) {
 
 export function IssueSummary({data, event_id}: EventOrGroupHeaderProps) {
   const eventLocation = getLocation(data);
+  const organization = useOrganization();
+
+  const hasNewLayout = organization.features.includes('issue-stream-table-layout');
 
   return (
     <div data-test-id="event-issue-header">
@@ -90,12 +93,15 @@ export function IssueSummary({data, event_id}: EventOrGroupHeaderProps) {
         <IssueTitle data={data} event_id={event_id} />
       </Title>
       {eventLocation ? <Location>{eventLocation}</Location> : null}
-      <StyledEventMessage
-        level={'level' in data ? data.level : undefined}
-        message={getMessage(data)}
-        type={data.type}
-        levelIndicatorSize="9px"
-      />
+      {!hasNewLayout ? (
+        <StyledEventMessage
+          data={data}
+          level={'level' in data ? data.level : undefined}
+          message={getMessage(data)}
+          type={data.type}
+          levelIndicatorSize="9px"
+        />
+      ) : null}
     </div>
   );
 }
@@ -147,11 +153,11 @@ const IconWrapper = styled('span')`
 `;
 
 const TitleWithLink = styled(GlobalSelectionLink)`
-  display: inline-flex;
   align-items: center;
+  ${p => p.theme.overflowEllipsis}
 `;
 const TitleWithoutLink = styled('span')`
-  display: inline-flex;
+  ${p => p.theme.overflowEllipsis}
 `;
 
 const StyledEventOrGroupTitle = styled(EventOrGroupTitle)<{

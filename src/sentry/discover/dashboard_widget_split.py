@@ -26,7 +26,7 @@ from sentry.models.dashboard_widget import (
 from sentry.models.project import Project
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.builder.errors import ErrorsQueryBuilder
-from sentry.search.events.types import SnubaParams
+from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics_performance import query as metrics_query
 from sentry.snuba.query_sources import QuerySource
@@ -75,6 +75,8 @@ def _save_split_decision_for_widget(
 def _get_and_save_split_decision_for_dashboard_widget(
     widget_query: DashboardWidgetQuery, dry_run: bool
 ) -> tuple[int, bool]:
+    sentry_sdk.set_tag("dry_run", dry_run)
+
     widget: DashboardWidget = widget_query.widget
     dashboard: Dashboard = widget.dashboard
     # We use all projects for the clickhouse query but don't do anything
@@ -83,39 +85,102 @@ def _get_and_save_split_decision_for_dashboard_widget(
     projects = dashboard.projects.all() or Project.objects.filter(
         organization_id=dashboard.organization.id, status=ObjectStatus.ACTIVE
     )
+
+    # Handle cases where the organization has no projects at all.
+    # No projects means a downstream check will fail and we can default
+    # to the errors dataset.
+    if not projects.exists():
+        if not dry_run:
+            sentry_sdk.set_context(
+                "dashboard",
+                {
+                    "dashboard_id": dashboard.id,
+                    "widget_id": widget.id,
+                    "org_slug": dashboard.organization.slug,
+                },
+            )
+            sentry_sdk.capture_message(
+                "No projects found in organization for dashboard, defaulting to errors dataset"
+            )
+            _save_split_decision_for_widget(
+                widget,
+                DashboardWidgetTypes.ERROR_EVENTS,
+                DatasetSourcesTypes.FORCED,
+            )
+        return DashboardWidgetTypes.ERROR_EVENTS, False
+
     snuba_dataclass = _get_snuba_dataclass_for_dashboard_widget(widget, list(projects))
 
     selected_columns = _get_field_list(widget_query.fields or [])
-    equations = _get_equation_list(widget_query.fields or [])
+
+    # Empty equations are filtered out in the UI when making a query,
+    # do the same here to avoid unnecessary errors.
+    equations = [equation for equation in _get_equation_list(widget_query.fields or []) if equation]
     query = widget_query.conditions
 
     try:
-        # Optimizing the query we're running a little - we're omitting the order by
-        # and setting limit = 1 since the only check happening with the data returned
-        # is if data exists.
         errors_builder = ErrorsQueryBuilder(
-            Dataset.Events,
+            dataset=Dataset.Events,
             params={},
             snuba_params=snuba_dataclass,
             query=query,
             selected_columns=selected_columns,
             equations=equations,
             limit=1,
+            config=QueryBuilderConfig(
+                auto_aggregations=True,
+                equation_config={
+                    "auto_add": True,
+                },
+            ),
         )
-
-        transactions_builder = DiscoverQueryBuilder(
-            Dataset.Transactions,
-            params={},
-            snuba_params=snuba_dataclass,
-            query=query,
-            selected_columns=selected_columns,
-            equations=equations,
-            limit=1,
-        )
-    except (InvalidSearchQuery, InvalidQueryError):
+    except (
+        snuba.UnqualifiedQueryError,
+        InvalidSearchQuery,
+        InvalidQueryError,
+        snuba.QueryExecutionError,
+    ) as e:
+        sentry_sdk.capture_exception(e)
         if dry_run:
             logger.info(
-                "Split decision for %s: %s (forced)",
+                "Split decision for %s: %s (forced fallback)",
+                widget.id,
+                DashboardWidgetTypes.TRANSACTION_LIKE,
+            )
+        else:
+            _save_split_decision_for_widget(
+                widget,
+                DashboardWidgetTypes.TRANSACTION_LIKE,
+                DatasetSourcesTypes.FORCED,
+            )
+        return DashboardWidgetTypes.TRANSACTION_LIKE, False
+
+    try:
+        transactions_builder = DiscoverQueryBuilder(
+            dataset=Dataset.Transactions,
+            params={},
+            snuba_params=snuba_dataclass,
+            query=query,
+            selected_columns=selected_columns,
+            equations=equations,
+            limit=1,
+            config=QueryBuilderConfig(
+                auto_aggregations=True,
+                equation_config={
+                    "auto_add": True,
+                },
+            ),
+        )
+    except (
+        snuba.UnqualifiedQueryError,
+        InvalidSearchQuery,
+        InvalidQueryError,
+        snuba.QueryExecutionError,
+    ) as e:
+        sentry_sdk.capture_exception(e)
+        if dry_run:
+            logger.info(
+                "Split decision for %s: %s (forced fallback)",
                 widget.id,
                 DashboardWidgetTypes.ERROR_EVENTS,
             )

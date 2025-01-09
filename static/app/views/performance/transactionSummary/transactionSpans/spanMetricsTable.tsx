@@ -8,7 +8,6 @@ import Pagination, {type CursorHandler} from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {ColumnType} from 'sentry/utils/discover/fields';
 import {Container as TableCellContainer} from 'sentry/utils/discover/styles';
@@ -17,10 +16,15 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
+import {
+  type DomainView,
+  useDomainViewFilters,
+} from 'sentry/views/insights/pages/useFilters';
 import {
   SpanMetricsField,
   type SpanMetricsQueryFilters,
@@ -93,8 +97,10 @@ type Props = {
 export default function SpanMetricsTable(props: Props) {
   const {project, transactionName, query: search} = props;
   const organization = useOrganization();
+  const navigate = useNavigate();
   const location = useLocation();
   const sort = useSpansTabTableSort();
+  const domainViewFilters = useDomainViewFilters();
 
   const query = useLocationQuery({
     fields: {
@@ -111,7 +117,7 @@ export default function SpanMetricsTable(props: Props) {
   };
 
   const handleCursor: CursorHandler = (cursor, pathname, q) => {
-    browserHistory.push({
+    navigate({
       pathname,
       query: {...q, [QueryParameterNames.SPANS_CURSOR]: cursor},
     });
@@ -162,11 +168,15 @@ export default function SpanMetricsTable(props: Props) {
                 location,
                 sort,
               }),
+            // This is now caught by noUncheckedIndexedAccess, ignoring for now as
+            // it seems related to some nasty grid editable generic.
+            // @ts-ignore
             renderBodyCell: renderBodyCell(
               location,
               organization,
               transactionName,
-              project
+              project,
+              domainViewFilters?.view
             ),
           }}
         />
@@ -180,7 +190,8 @@ function renderBodyCell(
   location: Location,
   organization: Organization,
   transactionName: string,
-  project?: Project
+  project?: Project,
+  view?: DomainView
 ) {
   return function (column: Column, dataRow: DataRow): React.ReactNode {
     if (column.key === SpanMetricsField.SPAN_OP) {
@@ -190,6 +201,7 @@ function renderBodyCell(
         query: location.query,
         spanSlug: {op: dataRow['span.op'], group: ''},
         projectID: project?.id,
+        view,
       });
 
       return (
@@ -210,6 +222,7 @@ function renderBodyCell(
         query: location.query,
         spanSlug: {op: dataRow['span.op'], group: dataRow['span.group']},
         projectID: project?.id,
+        view,
       });
 
       return (

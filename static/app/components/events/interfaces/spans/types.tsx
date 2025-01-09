@@ -48,7 +48,6 @@ export type RawSpanType = {
   // this is essentially end_timestamp
   timestamp: number;
   trace_id: string;
-  _metrics_summary?: MetricsSummary;
   data?: SpanSourceCodeAttributes & SpanDatabaseAttributes & Record<string, any>;
   description?: string;
   exclusive_time?: number;
@@ -56,6 +55,7 @@ export type RawSpanType = {
   op?: string;
   origin?: string;
   parent_span_id?: string;
+  project_slug?: string;
   same_process_as_parent?: boolean;
   sentry_tags?: Record<string, string>;
   'span.averageResults'?: {
@@ -101,7 +101,6 @@ export const rawSpanKeys: Set<keyof RawSpanType> = new Set([
   'tags',
   'hash',
   'exclusive_time',
-  '_metrics_summary',
 ]);
 
 export type OrphanSpanType = RawSpanType & {

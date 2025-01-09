@@ -11,7 +11,6 @@ from sentry.search.events.fields import get_function_alias
 from sentry.snuba import metrics_performance
 
 COUNT_UNPARAM = "count_unparameterized_transactions()"
-COUNT_HAS_TXN = "count_has_transaction_name()"
 COUNT_NULL = "count_null_transactions()"
 
 
@@ -27,7 +26,7 @@ class OrganizationMetricsCompatibility(OrganizationEventsEndpointBase):
     """
 
     def get(self, request: Request, organization: Organization) -> Response:
-        data = {
+        data: dict[str, list[int]] = {
             "incompatible_projects": [],
             "compatible_projects": [],
         }
@@ -58,7 +57,7 @@ class OrganizationMetricsCompatibility(OrganizationEventsEndpointBase):
             )
             data["incompatible_projects"] = sorted(
                 list(set(original_project_ids) - set(data["compatible_projects"]))[
-                    : request.GET.get("per_page", 50)
+                    : int(request.GET.get("per_page", 50))
                 ]
             )
 

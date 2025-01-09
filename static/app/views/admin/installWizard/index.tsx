@@ -4,17 +4,17 @@ import styled from '@emotion/styled';
 import sentryPattern from 'sentry-images/pattern/sentry-pattern.png';
 
 import {Alert} from 'sentry/components/alert';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import ApiForm from 'sentry/components/forms/apiForm';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 import type {Field} from '../options';
 import {getForm, getOptionDefault, getOptionField} from '../options';
 
-export type InstallWizardProps = DeprecatedAsyncView['props'] & {
+export type InstallWizardProps = DeprecatedAsyncComponent['props'] & {
   onConfigured: () => void;
 };
 
@@ -26,15 +26,15 @@ export type InstallWizardOptions = Record<
   }
 >;
 
-type State = DeprecatedAsyncView['state'] & {
+type State = DeprecatedAsyncComponent['state'] & {
   data: null | InstallWizardOptions;
 };
 
-export default class InstallWizard extends DeprecatedAsyncView<
+export default class InstallWizard extends DeprecatedAsyncComponent<
   InstallWizardProps,
   State
 > {
-  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     return [['data', '/internal/options/?query=is:required']];
   }
 
@@ -42,7 +42,7 @@ export default class InstallWizard extends DeprecatedAsyncView<
     const options = this.state.data!;
 
     let missingOptions = new Set(
-      Object.keys(options).filter(option => !options[option].field.isSet)
+      Object.keys(options).filter(option => !options[option]!.field.isSet)
     );
     // This is to handle the initial installation case.
     // Even if all options are filled out, we want to prompt to confirm
@@ -54,10 +54,10 @@ export default class InstallWizard extends DeprecatedAsyncView<
     }
 
     // A mapping of option name to Field object
-    const fields = {};
+    const fields: Record<string, React.ReactNode> = {};
 
     for (const key of missingOptions) {
-      const option = options[key];
+      const option = options[key]!;
       if (option.field.disabled) {
         continue;
       }
@@ -71,7 +71,7 @@ export default class InstallWizard extends DeprecatedAsyncView<
     const options = this.state.data!;
     const data = {};
     Object.keys(options).forEach(optionName => {
-      const option = options[optionName];
+      const option = options[optionName]!;
       if (option.field.disabled) {
         return;
       }
@@ -95,14 +95,10 @@ export default class InstallWizard extends DeprecatedAsyncView<
     return data;
   }
 
-  getTitle() {
-    return t('Setup Sentry');
-  }
-
   render() {
     const version = ConfigStore.get('version');
     return (
-      <SentryDocumentTitle noSuffix title={this.getTitle()}>
+      <SentryDocumentTitle noSuffix title={t('Setup Sentry')}>
         <Wrapper>
           <Pattern />
           <SetupWizard>
@@ -135,7 +131,7 @@ export default class InstallWizard extends DeprecatedAsyncView<
     return (
       <ApiForm
         apiMethod="PUT"
-        apiEndpoint={this.getEndpoints()[0][1]}
+        apiEndpoint={this.getEndpoints()[0]![1]!}
         submitLabel={t('Continue')}
         initialData={this.getInitialData()}
         onSubmitSuccess={this.props.onConfigured}

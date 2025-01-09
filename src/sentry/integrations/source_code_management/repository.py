@@ -9,11 +9,14 @@ import sentry_sdk
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.services.repository import RpcRepository
+from sentry.integrations.source_code_management.metrics import (
+    SCMIntegrationInteractionEvent,
+    SCMIntegrationInteractionType,
+)
 from sentry.models.repository import Repository
 from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.users.models.identity import Identity
-from sentry.utils import metrics
 
 REPOSITORY_INTEGRATION_CHECK_FILE_METRIC = "repository_integration.check_file.{result}"
 REPOSITORY_INTEGRATION_GET_FILE_METRIC = "repository_integration.get_file.{result}"
@@ -94,10 +97,18 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
         """
         return []
 
+    def record_event(self, event: SCMIntegrationInteractionType):
+        return SCMIntegrationInteractionEvent(
+            interaction_type=event,
+            provider_key=self.integration_name,
+            organization=self.organization,
+            org_integration=self.org_integration,
+        )
+
     def check_file(self, repo: Repository, filepath: str, branch: str | None = None) -> str | None:
         """
         Calls the client's `check_file` method to see if the file exists.
-        Returns the link to the file if it's exists, otherwise return `None`.
+        Returns the link to the file if it exists, otherwise return `None`.
 
         So far only GitHub, GitLab and VSTS have this implemented, all of which give
         use back 404s. If for some reason an integration gives back a different
@@ -107,34 +118,27 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
         filepath: file from the stacktrace (string)
         branch: commitsha or default_branch (string)
         """
-        filepath = filepath.lstrip("/")
-        try:
-            client = self.get_client()
-        except (Identity.DoesNotExist, IntegrationError):
-            sentry_sdk.capture_exception()
-            return None
-        try:
-            response = client.check_file(repo, filepath, branch)
-            metrics.incr(
-                REPOSITORY_INTEGRATION_CHECK_FILE_METRIC.format(result="success"),
-                tags={"integration": self.integration_name},
-            )
-            if not response:
-                return None
-        except IdentityNotValid:
-            return None
-        except ApiError as e:
-            if e.code != 404:
-                metrics.incr(
-                    REPOSITORY_INTEGRATION_CHECK_FILE_METRIC.format(result="failure"),
-                    tags={"integration": self.integration_name},
-                )
+        with self.record_event(SCMIntegrationInteractionType.CHECK_FILE).capture():
+            filepath = filepath.lstrip("/")
+            try:
+                client = self.get_client()
+            except (Identity.DoesNotExist, IntegrationError):
                 sentry_sdk.capture_exception()
-                raise
+                return None
+            try:
+                response = client.check_file(repo, filepath, branch)
+                if not response:
+                    return None
+            except IdentityNotValid:
+                return None
+            except ApiError as e:
+                if e.code != 404:
+                    sentry_sdk.capture_exception()
+                    raise
 
-            return None
+                return None
 
-        return self.format_source_url(repo, filepath, branch)
+            return self.format_source_url(repo, filepath, branch)
 
     def get_stacktrace_link(
         self, repo: Repository, filepath: str, default: str, version: str | None
@@ -149,24 +153,35 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
         If no file was found return `None`, and re-raise for non-"Not Found"
         errors, like 403 "Account Suspended".
         """
-        scope = sentry_sdk.Scope.get_isolation_scope()
-        scope.set_tag("stacktrace_link.tried_version", False)
-        if version:
-            scope.set_tag("stacktrace_link.tried_version", True)
-            source_url = self.check_file(repo, filepath, version)
-            if source_url:
-                scope.set_tag("stacktrace_link.used_version", True)
-                return source_url
-        scope.set_tag("stacktrace_link.used_version", False)
-        source_url = self.check_file(repo, filepath, default)
+        with self.record_event(
+            SCMIntegrationInteractionType.GET_STACKTRACE_LINK
+        ).capture() as lifecycle:
+            lifecycle.add_extras(
+                {
+                    "filepath": filepath,
+                    "default": default,
+                    "version": version,
+                    "organization_id": repo.organization_id,
+                }
+            )
+            scope = sentry_sdk.Scope.get_isolation_scope()
+            scope.set_tag("stacktrace_link.tried_version", False)
+            if version:
+                scope.set_tag("stacktrace_link.tried_version", True)
+                source_url = self.check_file(repo, filepath, version)
+                if source_url:
+                    scope.set_tag("stacktrace_link.used_version", True)
+                    return source_url
+            scope.set_tag("stacktrace_link.used_version", False)
+            source_url = self.check_file(repo, filepath, default)
 
-        return source_url
+            return source_url
 
     def get_codeowner_file(
         self, repo: Repository, ref: str | None = None
     ) -> Mapping[str, str] | None:
         """
-        Find and get the contents of a CODEOWNERS file.
+        Find and get the contents of a CODEOWNERS file. Returns the link to the file if it exists, otherwise return `None`.
 
         args:
          * repo - Repository object
@@ -177,26 +192,27 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
          * filepath - full path of the file i.e. CODEOWNERS, .github/CODEOWNERS, docs/CODEOWNERS
          * raw - the decoded raw contents of the codeowner file
         """
-        if self.codeowners_locations is None:
-            raise NotImplementedError("Implement self.codeowners_locations to use this method.")
+        with self.record_event(
+            SCMIntegrationInteractionType.GET_CODEOWNER_FILE
+        ).capture() as lifecycle:
+            lifecycle.add_extras(
+                {
+                    "ref": ref,
+                    "organization_id": repo.organization_id,
+                }
+            )
+            if self.codeowners_locations is None:
+                raise NotImplementedError("Implement self.codeowners_locations to use this method.")
 
-        for filepath in self.codeowners_locations:
-            html_url = self.check_file(repo, filepath, ref)
-            if html_url:
-                try:
-                    contents = self.get_client().get_file(repo, filepath, ref, codeowners=True)
-                    metrics.incr(
-                        REPOSITORY_INTEGRATION_GET_FILE_METRIC.format(result="success"),
-                        tags={"integration": self.integration_name},
-                    )
-                except ApiError:
-                    metrics.incr(
-                        REPOSITORY_INTEGRATION_GET_FILE_METRIC.format(result="success"),
-                        tags={"integration": self.integration_name},
-                    )
-                    continue
-                return {"filepath": filepath, "html_url": html_url, "raw": contents}
-        return None
+            for filepath in self.codeowners_locations:
+                html_url = self.check_file(repo, filepath, ref)
+                if html_url:
+                    try:
+                        contents = self.get_client().get_file(repo, filepath, ref, codeowners=True)
+                    except ApiError:
+                        continue
+                    return {"filepath": filepath, "html_url": html_url, "raw": contents}
+            return None
 
 
 class RepositoryClient(ABC):

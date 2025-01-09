@@ -4,8 +4,9 @@ import orjson
 import pytest
 from slack_sdk.web import SlackResponse
 
-from sentry.integrations.utils.metrics import EventLifecycleOutcome
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.silo.base import SiloMode
+from sentry.testutils.asserts import assert_slo_metric
 from sentry.testutils.cases import IntegratedApiTestCase
 from sentry.testutils.helpers import get_response_text
 from sentry.testutils.silo import assume_test_silo_mode
@@ -107,10 +108,7 @@ class MessageIMEventTest(BaseEventTest, IntegratedApiTestCase):
         data = self.mock_post.call_args[1]
         assert "Link your Slack identity" in get_response_text(data)
 
-        assert len(mock_record.mock_calls) == 2
-        start, halt = mock_record.mock_calls
-        assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert halt.args[0] == EventLifecycleOutcome.HALTED
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
 
     def test_user_message_already_linked_sdk(self):
         """

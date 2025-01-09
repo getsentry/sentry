@@ -53,9 +53,9 @@ export function FlamegraphSpanTooltip({
 
   return (
     <BoundTooltip
-      bounds={canvasBounds}
       cursor={configSpaceCursor}
       canvas={spansCanvas}
+      canvasBounds={canvasBounds}
       canvasView={spansView}
     >
       <FlamegraphTooltipFrameMainInfo>

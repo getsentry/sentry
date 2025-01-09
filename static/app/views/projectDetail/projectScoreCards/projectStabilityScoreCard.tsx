@@ -21,6 +21,8 @@ import {
 
 import MissingReleasesButtons from '../missingFeatureButtons/missingReleasesButtons';
 
+import {ActionWrapper} from './actionWrapper';
+
 type Props = {
   field:
     | SessionFieldWithOperation.CRASH_FREE_RATE_SESSIONS
@@ -66,7 +68,7 @@ const useCrashFreeRate = (props: Props) => {
         },
       },
     ],
-    {staleTime: 0, enabled: isEnabled}
+    {staleTime: Infinity, enabled: isEnabled}
   );
 
   const isPreviousPeriodEnabled = shouldFetchPreviousPeriod({
@@ -87,7 +89,7 @@ const useCrashFreeRate = (props: Props) => {
       },
     ],
     {
-      staleTime: 0,
+      staleTime: Infinity,
       enabled: isEnabled && isPreviousPeriodEnabled,
     }
   );
@@ -126,20 +128,22 @@ function ProjectStabilityScoreCard(props: Props) {
 
   const score = !crashFreeRate
     ? undefined
-    : crashFreeRate?.groups[0]?.totals[props.field] * 100;
+    : crashFreeRate?.groups[0]?.totals[props.field]! * 100;
 
   const previousScore = !previousCrashFreeRate
     ? undefined
-    : previousCrashFreeRate?.groups[0]?.totals[props.field] * 100;
+    : previousCrashFreeRate?.groups[0]?.totals[props.field]! * 100;
 
   if (hasSessions === false) {
     return (
       <WidgetFrame title={cardTitle} description={cardHelp}>
-        <MissingReleasesButtons
-          organization={organization}
-          health
-          platform={props.project?.platform}
-        />
+        <ActionWrapper>
+          <MissingReleasesButtons
+            organization={organization}
+            health
+            platform={props.project?.platform}
+          />
+        </ActionWrapper>
       </WidgetFrame>
     );
   }
@@ -148,16 +152,9 @@ function ProjectStabilityScoreCard(props: Props) {
     <BigNumberWidget
       title={cardTitle}
       description={cardHelp}
-      data={[
-        {
-          [`${props.field}()`]: score ? score / 100 : undefined,
-        },
-      ]}
-      previousPeriodData={[
-        {
-          [`${props.field}()`]: previousScore ? previousScore / 100 : undefined,
-        },
-      ]}
+      value={score ? score / 100 : undefined}
+      previousPeriodValue={previousScore ? previousScore / 100 : undefined}
+      field={`${props.field}()`}
       meta={{
         fields: {
           [`${props.field}()`]: 'percentage',

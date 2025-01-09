@@ -6,7 +6,6 @@ import {LinkButton} from 'sentry/components/button';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import IntegrationButton from 'sentry/views/settings/organizationIntegrations/integrationButton';
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
@@ -26,19 +25,6 @@ function AddIntegrationRow({onClick}: Props) {
   const onAddIntegration = () => {
     integration.onAddIntegration?.();
     onClick();
-  };
-  const onExternalClick = () => {
-    trackAnalytics('onboarding.messaging_integration_external_install_clicked', {
-      provider_key: provider.key,
-      organization,
-    });
-    onClick();
-  };
-  const onSelfHostedClick = () => {
-    trackAnalytics('onboarding.messaging_integration_self_hosted_clicked', {
-      provider_key: provider.key,
-      organization,
-    });
   };
 
   const buttonProps = {
@@ -60,7 +46,6 @@ function AddIntegrationRow({onClick}: Props) {
               href={`https://develop.sentry.dev/integrations/${provider.slug}`}
               priority="primary"
               external
-              onClick={onSelfHostedClick}
             >
               Add {provider.metadata.noun}
             </LinkButton>
@@ -68,7 +53,7 @@ function AddIntegrationRow({onClick}: Props) {
             <StyledButton
               userHasAccess={hasAccess}
               onAddIntegration={onAddIntegration}
-              onExternalClick={onExternalClick}
+              onExternalClick={onClick}
               externalInstallText={`Add ${provider.metadata.noun}`}
               buttonProps={buttonProps}
             />

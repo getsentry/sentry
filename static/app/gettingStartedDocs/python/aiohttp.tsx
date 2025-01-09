@@ -7,8 +7,15 @@ import {
   type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getPythonMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
-import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
-import {crashReportOnboardingPython} from 'sentry/gettingStartedDocs/python/python';
+import {
+  feedbackOnboardingJsLoader,
+  replayOnboardingJsLoader,
+} from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
+import {
+  AlternativeConfiguration,
+  crashReportOnboardingPython,
+  featureFlagOnboarding,
+} from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -29,13 +36,23 @@ sentry_sdk.init(
     traces_sample_rate=1.0,`
         : ''
     }${
-      params.isProfilingSelected
+      params.isProfilingSelected &&
+      params.profilingOptions?.defaultProfilingMode !== 'continuous'
         ? `
     # Set profiles_sample_rate to 1.0 to profile 100%
     # of sampled transactions.
     # We recommend adjusting this value in production.
     profiles_sample_rate=1.0,`
-        : ''
+        : params.isProfilingSelected &&
+            params.profilingOptions?.defaultProfilingMode === 'continuous'
+          ? `
+    _experiments={
+        # Set continuous_profiling_auto_start to True
+        # to automatically start the profiler when
+        # possible.
+        "continuous_profiling_auto_start": True,
+    },`
+          : ''
     }
 )
 `;
@@ -93,21 +110,16 @@ const onboarding: OnboardingConfig = {
       configurations: [
         {
           language: 'python',
-          code: `
-${getSdkSetupSnippet(params)}
-async def hello(request):
-   return web.Response(text="Hello, world")
-
-app = web.Application()
-app.add_routes([web.get('/', hello)])
-
-web.run_app(app)
-        `,
+          code: getSdkSetupSnippet(params),
         },
       ],
+      additionalInfo: params.isProfilingSelected &&
+        params.profilingOptions?.defaultProfilingMode === 'continuous' && (
+          <AlternativeConfiguration />
+        ),
     },
   ],
-  verify: (params: Params) => [
+  verify: () => [
     {
       type: StepType.VERIFY,
       description: t(
@@ -118,15 +130,15 @@ web.run_app(app)
           language: 'python',
 
           code: `
-          ${getSdkSetupSnippet(params)}
 async def hello(request):
-  1/0  # raises an error
-  return web.Response(text="Hello, world")
+    1/0  # raises an error
+    return web.Response(text="Hello, world")
 
 app = web.Application()
 app.add_routes([web.get('/', hello)])
 
-web.run_app(app)`,
+web.run_app(app)
+`,
         },
       ],
       additionalInfo: (
@@ -159,6 +171,8 @@ const docs: Docs = {
     installSnippet: getInstallSnippet(),
   }),
   crashReportOnboarding: crashReportOnboardingPython,
+  featureFlagOnboarding,
+  feedbackOnboardingJsLoader,
 };
 
 export default docs;

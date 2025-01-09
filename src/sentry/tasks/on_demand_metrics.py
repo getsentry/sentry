@@ -61,10 +61,6 @@ def _set_currently_processing_batch(current_batch: int) -> None:
     cache.set(_get_widget_processing_batch_key(), current_batch, timeout=3600)
 
 
-def _set_cardinality_cache(cache_key: str, is_low_cardinality: bool) -> None:
-    cache.set(cache_key, is_low_cardinality, timeout=_WIDGET_QUERY_CARDINALITY_TTL)
-
-
 def _get_previous_processing_batch() -> int:
     return cache.get(_get_widget_processing_batch_key(), 0)
 
@@ -126,7 +122,10 @@ def schedule_on_demand_check() -> None:
 
     for (widget_query_id,) in RangeQuerySetWrapper(
         DashboardWidgetQuery.objects.filter(
-            widget__widget_type=DashboardWidgetTypes.DISCOVER
+            widget__widget_type__in=[
+                DashboardWidgetTypes.DISCOVER,
+                DashboardWidgetTypes.TRANSACTION_LIKE,
+            ]
         ).values_list("id"),
         result_value_getter=lambda item: item[0],
     ):

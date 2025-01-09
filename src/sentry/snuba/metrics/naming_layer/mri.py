@@ -33,7 +33,6 @@ __all__ = (
 )
 
 import re
-from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import Enum
 from typing import cast
@@ -42,12 +41,12 @@ from sentry_kafka_schemas.codecs import ValidationError
 
 from sentry.exceptions import InvalidParams
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics.units import format_value_using_unit_and_op
 from sentry.snuba.metrics.utils import (
     AVAILABLE_GENERIC_OPERATIONS,
     AVAILABLE_OPERATIONS,
     OP_REGEX,
+    MetricEntity,
     MetricOperationType,
     MetricUnit,
 )
@@ -163,6 +162,7 @@ class TransactionMRI(Enum):
 class SpanMRI(Enum):
     USER = "s:spans/user@none"
     DURATION = "d:spans/duration@millisecond"
+    COUNT_PER_ROOT_PROJECT = "c:spans/count_per_root_project@none"
     SELF_TIME = "d:spans/exclusive_time@millisecond"
     SELF_TIME_LIGHT = "d:spans/exclusive_time_light@millisecond"
 
@@ -334,28 +334,27 @@ def is_custom_measurement(parsed_mri: ParsedMRI) -> bool:
     )
 
 
-def get_entity_key_from_entity_type(entity_type: str, generic_metrics: bool) -> EntityKey:
-    entity_name_suffixes = {
-        "c": "counters",
-        "s": "sets",
-        "d": "distributions",
-        "g": "gauges",
-    }
+_ENTITY_KEY_MAPPING_GENERIC: dict[str, MetricEntity] = {
+    "c": "generic_metrics_counters",
+    "s": "generic_metrics_sets",
+    "d": "generic_metrics_distributions",
+    "g": "generic_metrics_gauges",
+}
+_ENTITY_KEY_MAPPING_NON_GENERIC: dict[str, MetricEntity] = {
+    "c": "metrics_counters",
+    "s": "metrics_sets",
+    "d": "metrics_distributions",
+}
 
-    if generic_metrics:
-        return EntityKey(f"generic_metrics_{entity_name_suffixes[entity_type]}")
-    else:
-        return EntityKey(f"metrics_{entity_name_suffixes[entity_type]}")
 
-
-def get_available_operations(parsed_mri: ParsedMRI) -> Sequence[str]:
+def get_available_operations(parsed_mri: ParsedMRI) -> list[MetricOperationType]:
     if parsed_mri.entity == "e":
         return []
     elif parsed_mri.namespace == "sessions":
-        entity_key = get_entity_key_from_entity_type(parsed_mri.entity, False).value
+        entity_key = _ENTITY_KEY_MAPPING_NON_GENERIC[parsed_mri.entity]
         return AVAILABLE_OPERATIONS[entity_key]
     else:
-        entity_key = get_entity_key_from_entity_type(parsed_mri.entity, True).value
+        entity_key = _ENTITY_KEY_MAPPING_GENERIC[parsed_mri.entity]
         return AVAILABLE_GENERIC_OPERATIONS[entity_key]
 
 

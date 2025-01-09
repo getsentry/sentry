@@ -10,11 +10,8 @@ describe('BigNumberWidget', () => {
         <BigNumberWidget
           title="EPS"
           description="Number of events per second"
-          data={[
-            {
-              'eps()': 0.01087819860850493,
-            },
-          ]}
+          value={0.01087819860850493}
+          field="eps()"
           meta={{
             fields: {
               'eps()': 'rate',
@@ -34,7 +31,8 @@ describe('BigNumberWidget', () => {
     it('Explains missing data', () => {
       render(
         <BigNumberWidget
-          data={[{}]}
+          value={undefined}
+          field={'p95(span.duration)'}
           meta={{
             fields: {
               'p95(span.duration)': 'number',
@@ -49,11 +47,8 @@ describe('BigNumberWidget', () => {
     it('Explains non-numeric data', () => {
       render(
         <BigNumberWidget
-          data={[
-            {
-              'count()': Infinity,
-            },
-          ]}
+          value={Infinity}
+          field="count()"
           meta={{
             fields: {
               'count()': 'number',
@@ -65,14 +60,46 @@ describe('BigNumberWidget', () => {
       expect(screen.getByText('Value is not a finite number.')).toBeInTheDocument();
     });
 
+    it('Formats dates', () => {
+      render(
+        <BigNumberWidget
+          value={'2024-10-17T16:08:07+00:00'}
+          field="max(timestamp)"
+          meta={{
+            fields: {
+              'max(timestamp)': 'date',
+            },
+            units: {
+              'max(timestamp)': null,
+            },
+          }}
+        />
+      );
+
+      expect(screen.getByText('Oct 17, 2024 4:08:07 PM UTC')).toBeInTheDocument();
+    });
+
+    it('Renders strings', () => {
+      render(
+        <BigNumberWidget
+          value={'/api/0/fetch'}
+          field="any(transaction)"
+          meta={{
+            fields: {
+              'max(timestamp)': 'string',
+            },
+          }}
+        />
+      );
+
+      expect(screen.getByText('/api/0/fetch')).toBeInTheDocument();
+    });
+
     it('Formats duration data', () => {
       render(
         <BigNumberWidget
-          data={[
-            {
-              'p95(span.duration)': 17.28,
-            },
-          ]}
+          value={17.28}
+          field="p95(span.duration)"
           meta={{
             fields: {
               'p95(span.duration)': 'duration',
@@ -90,11 +117,8 @@ describe('BigNumberWidget', () => {
     it('Shows the full unformatted value on hover', async () => {
       render(
         <BigNumberWidget
-          data={[
-            {
-              'count()': 178451214,
-            },
-          ]}
+          value={178451214}
+          field="count()"
           meta={{
             fields: {
               'count()': 'integer',
@@ -115,11 +139,8 @@ describe('BigNumberWidget', () => {
       render(
         <BigNumberWidget
           title="Count"
-          data={[
-            {
-              'count()': 178451214,
-            },
-          ]}
+          value={178451214}
+          field="count()"
           maximumValue={100000000}
           meta={{
             fields: {
@@ -191,16 +212,9 @@ describe('BigNumberWidget', () => {
       render(
         <BigNumberWidget
           title="http_response_code_rate(500)"
-          data={[
-            {
-              'http_response_code_rate(500)': 0.14227123,
-            },
-          ]}
-          previousPeriodData={[
-            {
-              'http_response_code_rate(500)': 0.1728139,
-            },
-          ]}
+          value={0.14227123}
+          previousPeriodValue={0.1728139}
+          field="http_response_code_rate(500)"
           meta={{
             fields: {
               'http_response_code_rate(500)': 'percentage',
@@ -214,6 +228,90 @@ describe('BigNumberWidget', () => {
 
       expect(screen.getByText('14.23%')).toBeInTheDocument();
       expect(screen.getByText('3.05%')).toBeInTheDocument();
+    });
+  });
+
+  describe('Thresholds', () => {
+    it('Evaluates the current value against a threshold', async () => {
+      render(
+        <BigNumberWidget
+          value={14.227123}
+          field="eps()"
+          meta={{
+            fields: {
+              'eps()': 'rate',
+            },
+            units: {
+              'eps()': '1/second',
+            },
+          }}
+          thresholds={{
+            max_values: {
+              max1: 10,
+              max2: 20,
+            },
+            unit: '1/second',
+          }}
+        />
+      );
+
+      expect(screen.getByRole('status')).toHaveAttribute('aria-label', 'meh');
+
+      await userEvent.hover(screen.getByRole('status'));
+      expect(await screen.findByText('Thresholds in /second')).toBeInTheDocument();
+    });
+
+    it('Normalizes the units', () => {
+      render(
+        <BigNumberWidget
+          value={135} //  2.25/s
+          field="mystery_error_rate()"
+          meta={{
+            fields: {
+              'mystery_error_rate()': 'rate',
+            },
+            units: {
+              'mystery_error_rate()': '1/minute',
+            },
+          }}
+          thresholds={{
+            max_values: {
+              max1: 2,
+              max2: 5,
+            },
+            unit: '1/second',
+          }}
+        />
+      );
+
+      expect(screen.getByRole('status')).toHaveAttribute('aria-label', 'meh');
+    });
+
+    it('Respects the preferred polarity', () => {
+      render(
+        <BigNumberWidget
+          value={135}
+          field="mystery_error_rate()"
+          meta={{
+            fields: {
+              'mystery_error_rate()': 'rate',
+            },
+            units: {
+              'mystery_error_rate()': '1/second',
+            },
+          }}
+          thresholds={{
+            max_values: {
+              max1: 200,
+              max2: 500,
+            },
+            unit: '1/second',
+          }}
+          preferredPolarity="-"
+        />
+      );
+
+      expect(screen.getByRole('status')).toHaveAttribute('aria-label', 'good');
     });
   });
 });

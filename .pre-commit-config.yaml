@@ -22,7 +22,7 @@ repos:
       - id: pyupgrade
         name: pyupgrade
         entry: pyupgrade
-        args: ['--py311-plus']
+        args: ['--py312-plus']
         language: system
         types: [python]
       # Configuration for black exists in pyproject.toml,
@@ -62,7 +62,7 @@ repos:
         files: requirements-.*\.txt$
         # exclude the overrides file from this linter -- it doesn't apply at all
         exclude: ^requirements-getsentry-overrides\.txt$
-        additional_dependencies: [packaging==21.3]
+        additional_dependencies: [packaging==24.1]
       - id: requirements-overrides
         name: use pinned archives (see comment in file)
         stages: [pre-commit]
@@ -117,7 +117,7 @@ repos:
       - id: eslint
         name: eslint
         language: system
-        files: \.[jt]sx?$
+        files: \.(ts|js|tsx|jsx|mjs)$
         entry: ./node_modules/.bin/eslint --quiet --fix
 
       - id: stylelint

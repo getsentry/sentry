@@ -1,5 +1,5 @@
+from django.http import HttpRequest
 from django.http.response import HttpResponse
-from rest_framework.request import Request
 
 from sentry.auth.idpmigration import SSO_VERIFICATION_KEY, get_verification_value_from_key
 from sentry.models.organizationmapping import OrganizationMapping
@@ -12,7 +12,7 @@ class AccountConfirmationView(BaseView):
     # the user using this endpoint is currently locked out of their account so auth isn't required.
     auth_required = False
 
-    def handle(self, request: Request, key: str) -> HttpResponse:
+    def handle(self, request: HttpRequest, key: str) -> HttpResponse:
         verification_value = get_verification_value_from_key(key)
 
         if not verification_value:

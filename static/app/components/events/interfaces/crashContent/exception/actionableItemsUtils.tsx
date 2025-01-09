@@ -35,6 +35,8 @@ export type ActionableItemTypes =
 export const ActionableItemWarning = [
   ProguardProcessingErrors.PROGUARD_MISSING_LINENO,
   NativeProcessingErrors.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM,
+  NativeProcessingErrors.NATIVE_SYMBOLICATOR_FAILED,
+  NativeProcessingErrors.NATIVE_INTERNAL_FAILURE,
   GenericSchemaErrors.FUTURE_TIMESTAMP,
   GenericSchemaErrors.CLOCK_DRIFT,
   GenericSchemaErrors.PAST_TIMESTAMP,
@@ -64,6 +66,14 @@ interface NativeMissingDSYMError extends BaseActionableItem {
 }
 interface NativeBadDSYMError extends BaseActionableItem {
   type: NativeProcessingErrors.NATIVE_BAD_DSYM;
+}
+
+interface NativeSymbolicatorFailedError extends BaseActionableItem {
+  type: NativeProcessingErrors.NATIVE_SYMBOLICATOR_FAILED;
+}
+
+interface NativeInternalFailureError extends BaseActionableItem {
+  type: NativeProcessingErrors.NATIVE_INTERNAL_FAILURE;
 }
 
 interface JSMissingSourcesContentError extends BaseActionableItem {
@@ -109,6 +119,8 @@ export type ActionableItemErrors =
   | NativeMissingOptionalBundledDSYMError
   | NativeMissingDSYMError
   | NativeBadDSYMError
+  | NativeSymbolicatorFailedError
+  | NativeInternalFailureError
   | JSMissingSourcesContentError
   | FetchGenericError
   | RestrictedIpError

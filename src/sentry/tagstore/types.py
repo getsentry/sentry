@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import functools
-from typing import ClassVar
+from typing import ClassVar, TypedDict
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.search.utils import convert_user_tag_to_query
@@ -91,10 +91,21 @@ class GroupTagValue(TagType):
         self.last_seen = last_seen
 
 
+class TagKeySerializerResponseOptional(TypedDict, total=False):
+    uniqueValues: int | None
+    totalValues: int | None
+    topValues: list[TagValueSerializerResponse] | None
+
+
+class TagKeySerializerResponse(TagKeySerializerResponseOptional):
+    key: str
+    name: str
+
+
 @register(GroupTagKey)
 @register(TagKey)
 class TagKeySerializer(Serializer):
-    def serialize(self, obj, attrs, user, **kwargs):
+    def serialize(self, obj, attrs, user, **kwargs) -> TagKeySerializerResponse:
         from sentry import tagstore
 
         output = {
@@ -110,10 +121,23 @@ class TagKeySerializer(Serializer):
         return output
 
 
+class TagValueSerializerResponseOptional(TypedDict, total=False):
+    query: str | None
+
+
+class TagValueSerializerResponse(TagValueSerializerResponseOptional):
+    key: str
+    name: str
+    value: str
+    count: int
+    lastSeen: str
+    firstSeen: str
+
+
 @register(GroupTagValue)
 @register(TagValue)
 class TagValueSerializer(Serializer):
-    def serialize(self, obj, attrs, user, **kwargs):
+    def serialize(self, obj, attrs, user, **kwargs) -> TagValueSerializerResponse:
         from sentry import tagstore
 
         key = tagstore.get_standardized_key(obj.key)

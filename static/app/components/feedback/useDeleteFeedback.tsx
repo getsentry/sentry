@@ -26,14 +26,14 @@ export const useDeleteFeedback = (feedbackIds, projectId) => {
           api,
           {
             orgId: organization.slug,
-            projectId: projectId,
+            projectId,
             itemIds: feedbackIds,
           },
           {
             complete: () => {
               navigate(
                 normalizeUrl({
-                  pathname: '/feedback/',
+                  pathname: `/organizations/${organization.slug}/feedback/`,
                   query: {
                     mailbox: locationQuery.mailbox,
                     project: locationQuery.project,

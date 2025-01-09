@@ -54,14 +54,13 @@ class AuthApiClient(ApiClient):
         params: Mapping[str, str] | None = None,
         auth: tuple[str, str] | str | None = None,
         json: bool = True,
-        allow_text: bool | None = None,
+        allow_text: bool = False,
         allow_redirects: bool | None = None,
         timeout: int | None = None,
         ignore_webhook_errors: bool = False,
         prepared_request: PreparedRequest | None = None,
         raw_response: Literal[True] = ...,
-    ) -> Response:
-        ...
+    ) -> Response: ...
 
     @overload
     def _request(
@@ -73,14 +72,13 @@ class AuthApiClient(ApiClient):
         params: Mapping[str, str] | None = None,
         auth: str | None = None,
         json: bool = True,
-        allow_text: bool | None = None,
+        allow_text: bool = False,
         allow_redirects: bool | None = None,
         timeout: int | None = None,
         ignore_webhook_errors: bool = False,
         prepared_request: PreparedRequest | None = None,
         raw_response: bool = ...,
-    ) -> BaseApiResponseX:
-        ...
+    ) -> BaseApiResponseX: ...
 
     def _request(self, method, path, **kwargs):
         headers = kwargs.setdefault("headers", {})

@@ -1,0 +1,55 @@
+---
+created: '2024-12-17T22:50:26.384483+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+hashing_metadata: {
+  "num_stacktraces": 1,
+  "stacktrace_location": "exception",
+  "stacktrace_type": "system"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "stacktrace",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.stacktrace": {
+    "chained_exception": "False",
+    "stacktrace_location": "exception",
+    "stacktrace_type": "system"
+  }
+}
+---
+contributing variants:
+  system*
+    hash: "90888e813b09fa25061af2883c0fb9bd"
+    contributing component: exception
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              module*
+                "django.core.handlers.base"
+              function*
+                "get_response"
+              context-line*
+                "response = wrapped_callback(request, *callback_args, **callback_kwargs)"
+            frame*
+              module*
+                "django.views.generic.base"
+              function*
+                "view"
+              context-line*
+                "return self.dispatch(request, *args, **kwargs)"
+            frame*
+              module*
+                "django.utils.decorators"
+              function*
+                "_wrapper"
+              context-line*
+                "return bound_func(*args, **kwargs)"
+          type*
+            "MultiValueDictKeyError"

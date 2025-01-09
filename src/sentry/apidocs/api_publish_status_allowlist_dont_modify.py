@@ -18,11 +18,10 @@ API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
     "/api/0/{var}/{issue_id}/events/{event_id}/": {"GET"},
     "/api/0/{var}/{issue_id}/{var}/": {"GET", "POST"},
     "/api/0/{var}/{issue_id}/{var}/{note_id}/": {"DELETE", "PUT"},
-    "/api/0/{var}/{issue_id}/hashes/": {"GET", "DELETE"},
+    "/api/0/{var}/{issue_id}/hashes/": {"GET", "PUT"},
     "/api/0/{var}/{issue_id}/reprocessing/": {"POST"},
     "/api/0/{var}/{issue_id}/stats/": {"GET"},
     "/api/0/{var}/{issue_id}/tags/": {"GET"},
-    "/api/0/{var}/{issue_id}/tags/{key}/": {"GET"},
     "/api/0/{var}/{issue_id}/tags/{key}/values/": {"GET"},
     "/api/0/{var}/{issue_id}/attachments/": {"GET"},
     "/api/0/{var}/{issue_id}/similar/": {"GET"},
@@ -81,7 +80,7 @@ API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
     },
     "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/hashes/": {
         "GET",
-        "DELETE",
+        "PUT",
     },
     "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/reprocessing/": {"POST"},
     "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/stats/": {"GET"},
@@ -407,9 +406,6 @@ API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
     "/api/0/organizations/{organization_id_or_slug}/sessions/": {"GET"},
     "/api/0/organizations/{organization_id_or_slug}/releases/{version}/resolved/": {"GET"},
     "/api/0/organizations/{organization_id_or_slug}/request-project-creation/": {"POST"},
-    "/api/0/organizations/{organization_id_or_slug}/members/{member_id}/unreleased-commits/": {
-        "GET"
-    },
     "/api/0/organizations/{organization_id_or_slug}/members/{member_id}/teams/{team_id_or_slug}/": {
         "GET",
         "PUT",

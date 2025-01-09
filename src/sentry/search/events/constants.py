@@ -1,5 +1,5 @@
 import re
-from typing import TypedDict
+from typing import Literal, TypedDict
 
 from sentry.snuba.dataset import Dataset
 from sentry.utils.snuba import DATASETS
@@ -100,8 +100,14 @@ WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS: dict[str, float] = {
     "inp": 0.30,
 }
 
+MAX_TAG_KEY_LENGTH = 200
 TAG_KEY_RE = re.compile(r"^(sentry_tags|tags)\[(?P<tag>.*)\]$")
-TYPED_TAG_KEY_RE = re.compile(r"^(sentry_tags|tags)\[(?P<tag>.*),\s*(?P<type>.*)\]$")
+
+TYPED_TAG_KEY_RE = re.compile(
+    r"^(sentry_tags|tags)\[(?P<tag>.{0,200}),\s{0,200}(?P<type>.{0,200})\]$"
+)
+
+
 # Based on general/src/protocol/tags.rs in relay
 VALID_FIELD_PATTERN = re.compile(r"^[a-zA-Z0-9_.:-]*$")
 
@@ -129,9 +135,27 @@ RESULT_TYPES = {
     "date",
     "rate",
 }
+
+SizeUnit = Literal[
+    "bit",
+    "byte",
+    "kibibyte",
+    "mebibyte",
+    "gibibyte",
+    "tebibyte",
+    "pebibyte",
+    "exbibyte",
+    "kilobyte",
+    "megabyte",
+    "gigabyte",
+    "terabyte",
+    "petabyte",
+    "exabyte",
+]
+
 # event_search normalizes to bytes
 # based on https://getsentry.github.io/relay/relay_metrics/enum.InformationUnit.html
-SIZE_UNITS = {
+SIZE_UNITS: dict[SizeUnit, float] = {
     "bit": 8,
     "byte": 1,
     "kibibyte": 1 / 1024,
@@ -147,8 +171,13 @@ SIZE_UNITS = {
     "petabyte": 1 / 1000**5,
     "exabyte": 1 / 1000**6,
 }
+
+DurationUnit = Literal[
+    "nanosecond", "microsecond", "millisecond", "second", "minute", "hour", "day", "week"
+]
+
 # event_search normalizes to seconds
-DURATION_UNITS = {
+DURATION_UNITS: dict[DurationUnit, float] = {
     "nanosecond": 1000**2,
     "microsecond": 1000,
     "millisecond": 1,
@@ -360,9 +389,6 @@ SPAN_METRICS_MAP = {
     "mobile.total_frames": "g:spans/mobile.total_frames@none",
     "mobile.frames_delay": "g:spans/mobile.frames_delay@second",
     "messaging.message.receive.latency": SPAN_MESSAGING_LATENCY,
-}
-PROFILE_METRICS_MAP = {
-    "function.duration": "d:profiles/function.duration@millisecond",
 }
 # 50 to match the size of tables in the UI + 1 for pagination reasons
 METRICS_MAX_LIMIT = 101

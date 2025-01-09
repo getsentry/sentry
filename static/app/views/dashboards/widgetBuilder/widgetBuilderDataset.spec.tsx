@@ -1,4 +1,6 @@
 import {urlEncode} from '@sentry/utils';
+import {DashboardFixture} from 'sentry-fixture/dashboard';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {MetricsFieldFixture} from 'sentry-fixture/metrics';
 import {SessionsFieldFixture} from 'sentry-fixture/sessions';
 import {TagsFixture} from 'sentry-fixture/tags';
@@ -25,6 +27,8 @@ import {
 } from 'sentry/views/dashboards/types';
 import type {WidgetBuilderProps} from 'sentry/views/dashboards/widgetBuilder';
 import WidgetBuilder from 'sentry/views/dashboards/widgetBuilder';
+
+import WidgetLegendSelectionState from '../widgetLegendSelectionState';
 
 const defaultOrgFeatures = [
   'performance-view',
@@ -75,6 +79,13 @@ function renderTestComponent({
 
   ProjectsStore.loadInitialData(projects);
 
+  const widgetLegendState = new WidgetLegendSelectionState({
+    location: LocationFixture(),
+    dashboard: DashboardFixture([], {id: 'new', title: 'Dashboard', ...dashboard}),
+    organization,
+    router,
+  });
+
   render(
     <WidgetBuilder
       route={{}}
@@ -98,6 +109,7 @@ function renderTestComponent({
         dashboardId: dashboard?.id ?? 'new',
         ...params,
       }}
+      widgetLegendState={widgetLegendState}
     />,
     {
       router,
@@ -264,6 +276,14 @@ describe('WidgetBuilder', function () {
       url: '/organizations/org-slug/releases/',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/stats/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/spans/fields/`,
+      body: [],
+    });
 
     TagStore.reset();
   });
@@ -393,7 +413,7 @@ describe('WidgetBuilder', function () {
       expect(screen.getByText('High to low')).toBeInTheDocument();
 
       // Selector "sortBy"
-      await userEvent.click(screen.getAllByText('crash_free_rate(session)')[1], {
+      await userEvent.click(screen.getAllByText('crash_free_rate(session)')[1]!, {
         delay: null,
       });
 
@@ -607,7 +627,7 @@ describe('WidgetBuilder', function () {
       const menu = screen.getByRole('listbox');
       const groups = within(menu).getAllByRole('group');
 
-      const all = groups[0];
+      const all = groups[0]!;
       expect(within(all).getByRole('option', {name: 'environment'})).toBeInTheDocument();
       expect(within(all).getByRole('option', {name: 'project'})).toBeInTheDocument();
       expect(within(all).getByRole('option', {name: 'release'})).toBeInTheDocument();
@@ -734,8 +754,8 @@ describe('WidgetBuilder', function () {
         )
       ).toHaveLength(3);
 
-      await userEvent.click(screen.getAllByLabelText('Remove column')[1]);
-      await userEvent.click(screen.getAllByLabelText('Remove column')[0]);
+      await userEvent.click(screen.getAllByLabelText('Remove column')[1]!);
+      await userEvent.click(screen.getAllByLabelText('Remove column')[0]!);
 
       expect(
         within(screen.getByTestId('choose-column-step')).getByText('issue')
@@ -797,7 +817,7 @@ describe('WidgetBuilder', function () {
 
       await userEvent.click(screen.getByText('Issues (States, Assignment, Time, etc.)'));
 
-      await userEvent.type(screen.getAllByPlaceholderText('Alias')[0], 'First Alias');
+      await userEvent.type(screen.getAllByPlaceholderText('Alias')[0]!, 'First Alias');
 
       await userEvent.click(screen.getByText('Add Widget'));
 
@@ -848,7 +868,7 @@ describe('WidgetBuilder', function () {
         const countFields = screen.getAllByText('count()');
         expect(countFields).toHaveLength(3);
 
-        await selectEvent.select(countFields[1], ['p99(…)']);
+        await selectEvent.select(countFields[1]!, ['p99(…)']);
         await selectEvent.select(screen.getByText('transaction.duration'), [
           'measurements.custom.measurement',
         ]);
@@ -1049,13 +1069,13 @@ describe('WidgetBuilder', function () {
 
         expect(await screen.findByText('Custom Widget')).toBeInTheDocument();
 
-        await selectEvent.select(screen.getAllByText('count()')[1], ['p99(…)']);
+        await selectEvent.select(screen.getAllByText('count()')[1]!, ['p99(…)']);
         await userEvent.click(screen.getByText('transaction.duration'));
         screen.getByText('measurements.custom.measurement');
         expect(
           screen.queryByText('measurements.another.custom.measurement')
         ).not.toBeInTheDocument();
-        await selectEvent.select(screen.getAllByText('p99(…)')[0], ['p95(…)']);
+        await selectEvent.select(screen.getAllByText('p99(…)')[0]!, ['p95(…)']);
         await userEvent.click(screen.getByText('transaction.duration'));
         screen.getByText('measurements.another.custom.measurement');
         expect(
@@ -1276,7 +1296,7 @@ describe('WidgetBuilder', function () {
           orgFeatures: [...defaultOrgFeatures],
         });
         await screen.findByText('transaction');
-        await userEvent.click(screen.getAllByText('count()')[1]);
+        await userEvent.click(screen.getAllByText('count()')[1]!);
         expect(
           await screen.findByText('measurements.custom.measurement')
         ).toBeInTheDocument();
@@ -1320,7 +1340,7 @@ describe('WidgetBuilder', function () {
           await screen.findByText('p99(measurements.custom.measurement)')
         ).toBeInTheDocument();
         // Delete p99(measurements.custom.measurement) column
-        await userEvent.click(screen.getAllByLabelText('Remove column')[0]);
+        await userEvent.click(screen.getAllByLabelText('Remove column')[0]!);
         expect(
           screen.queryByText('p99(measurements.custom.measurement)')
         ).not.toBeInTheDocument();

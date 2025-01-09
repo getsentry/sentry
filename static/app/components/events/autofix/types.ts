@@ -28,6 +28,15 @@ export enum AutofixCodebaseIndexingStatus {
   ERRORED = 'errored',
 }
 
+export enum AutofixStatus {
+  COMPLETED = 'COMPLETED',
+  ERROR = 'ERROR',
+  PROCESSING = 'PROCESSING',
+  NEED_MORE_INFORMATION = 'NEED_MORE_INFORMATION',
+  CANCELLED = 'CANCELLED',
+  WAITING_FOR_USER_RESPONSE = 'WAITING_FOR_USER_RESPONSE',
+}
+
 export type AutofixPullRequestDetails = {
   pr_number: number;
   pr_url: string;
@@ -49,13 +58,7 @@ export type AutofixData = {
   created_at: string;
   repositories: AutofixRepository[];
   run_id: string;
-  status:
-    | 'PENDING'
-    | 'PROCESSING'
-    | 'COMPLETED'
-    | 'NOFIX'
-    | 'ERROR'
-    | 'NEED_MORE_INFORMATION';
+  status: AutofixStatus;
   actor_ids?: number[];
   codebase_indexing?: {
     status: 'COMPLETED';
@@ -80,22 +83,19 @@ interface BaseStep {
   id: string;
   index: number;
   progress: AutofixProgressItem[];
-  status:
-    | 'PENDING'
-    | 'PROCESSING'
-    | 'COMPLETED'
-    | 'ERROR'
-    | 'CANCELLED'
-    | 'WAITING_FOR_USER_RESPONSE';
+  status: AutofixStatus;
   title: string;
   type: AutofixStepType;
   completedMessage?: string;
+  output_stream?: string | null;
 }
 
 export type CodeSnippetContext = {
   file_path: string;
   repo_name: string;
   snippet: string;
+  end_line?: number;
+  start_line?: number;
 };
 
 export type StacktraceContext = {
@@ -119,7 +119,6 @@ export type BreadcrumbContext = {
 export type AutofixInsight = {
   breadcrumb_context: BreadcrumbContext[];
   codebase_context: CodeSnippetContext[];
-  error_message_context: string[];
   insight: string;
   justification: string;
   stacktrace_context: StacktraceContext[];
@@ -141,6 +140,7 @@ export interface AutofixRootCauseStep extends BaseStep {
   causes: AutofixRootCauseData[];
   selection: AutofixRootCauseSelection;
   type: AutofixStepType.ROOT_CAUSE_ANALYSIS;
+  termination_reason?: string;
 }
 
 export type AutofixCodebaseChange = {
@@ -148,6 +148,7 @@ export type AutofixCodebaseChange = {
   diff: FilePatch[];
   repo_name: string;
   title: string;
+  branch_name?: string;
   diff_str?: string;
   pull_request?: AutofixPullRequestDetails;
   repo_external_id?: string;

@@ -7,9 +7,9 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {useReplayProjectSlug} from 'sentry/utils/replays/hooks/useReplayProjectSlug';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import useProjects from 'sentry/utils/useProjects';
 import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
 
 type Options = {
@@ -21,7 +21,7 @@ type Options = {
   /**
    * The replayId
    */
-  replayId: string;
+  replayId: string | undefined;
 
   /**
    * Default: 50
@@ -77,7 +77,6 @@ function useReplayData({
   segmentsPerPage = 100,
 }: Options): Result {
   const hasFetchedAttachments = useRef(false);
-  const projects = useProjects();
   const queryClient = useQueryClient();
 
   // Fetch every field of the replay. The TS type definition lists every field
@@ -91,18 +90,14 @@ function useReplayData({
   } = useApiQuery<{data: unknown}>([`/organizations/${orgSlug}/replays/${replayId}/`], {
     staleTime: Infinity,
     retry: false,
+    enabled: Boolean(replayId),
   });
   const replayRecord = useMemo(
     () => (replayData?.data ? mapResponseToReplayRecord(replayData.data) : undefined),
     [replayData?.data]
   );
 
-  const projectSlug = useMemo(() => {
-    if (!replayRecord) {
-      return null;
-    }
-    return projects.projects.find(p => p.id === replayRecord.project_id)?.slug ?? null;
-  }, [replayRecord, projects.projects]);
+  const projectSlug = useReplayProjectSlug({replayRecord});
 
   const getAttachmentsQueryKey = useCallback(
     ({cursor, per_page}): ApiQueryKey => {
@@ -125,7 +120,11 @@ function useReplayData({
     isFetching: isFetchingAttachments,
     error: fetchAttachmentsError,
   } = useFetchParallelPages({
-    enabled: !fetchReplayError && Boolean(projectSlug) && Boolean(replayRecord),
+    enabled:
+      !fetchReplayError &&
+      Boolean(replayId) &&
+      Boolean(projectSlug) &&
+      Boolean(replayRecord),
     hits: replayRecord?.count_segments ?? 0,
     getQueryKey: getAttachmentsQueryKey,
     perPage: segmentsPerPage,

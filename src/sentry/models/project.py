@@ -19,7 +19,7 @@ from bitfield import TypedClassBitField
 from sentry.backup.dependencies import PrimaryKeyMap
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
-from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
+from sentry.constants import PROJECT_SLUG_MAX_LENGTH, RESERVED_PROJECT_SLUGS, ObjectStatus
 from sentry.db.mixin import PendingDeletionMixin, delete_pending_deletion_option
 from sentry.db.models import (
     BoundedPositiveIntegerField,
@@ -38,7 +38,6 @@ from sentry.models.grouplink import GroupLink
 from sentry.models.team import Team
 from sentry.monitors.models import MonitorEnvironment, MonitorStatus
 from sentry.notifications.services import notifications_service
-from sentry.snuba.models import SnubaQuery
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
@@ -54,7 +53,6 @@ if TYPE_CHECKING:
     from sentry.users.models.user import User
 
 SENTRY_USE_SNOWFLAKE = getattr(settings, "SENTRY_USE_SNOWFLAKE", False)
-PROJECT_SLUG_MAX_LENGTH = 100
 
 # NOTE:
 # - When you modify this list, ensure that the platform IDs listed in "sentry/static/app/data/platforms.tsx" match.
@@ -479,6 +477,7 @@ class Project(Model, PendingDeletionMixin):
         from sentry.models.releases.release_project import ReleaseProject
         from sentry.models.rule import Rule
         from sentry.monitors.models import Monitor
+        from sentry.snuba.models import SnubaQuery
 
         old_org_id = self.organization_id
         org_changed = old_org_id != organization.id

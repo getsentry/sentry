@@ -7,15 +7,14 @@ import type {
   UseCase,
 } from 'sentry/types/metrics';
 import {parseFunction} from 'sentry/utils/discover/fields';
-import {SPAN_DURATION_MRI} from 'sentry/utils/metrics/constants';
-import {INSIGHTS_METRICS_OPERATIONS} from 'sentry/views/alerts/rules/metric/utils/isInsightsMetricAlert';
 
 export const DEFAULT_MRI: MRI = 'c:custom/sentry_metric@none';
 export const DEFAULT_SPAN_MRI: MRI = 'c:custom/span_attribute_0@none';
-export const DEFAULT_INSIGHTS_MRI: MRI = 'd:spans/duration@millisecond';
 // This is a workaround as the alert builder requires a valid aggregate to be set
 export const DEFAULT_METRIC_ALERT_FIELD = `sum(${DEFAULT_MRI})`;
-export const DEFAULT_INSIGHTS_METRICS_ALERT_FIELD = `sum(${DEFAULT_INSIGHTS_MRI})`;
+
+export const DEFAULT_EAP_FIELD = 'span.duration';
+export const DEFAULT_EAP_METRICS_ALERT_FIELD = `count(${DEFAULT_EAP_FIELD})`;
 
 export function isMRI(mri?: unknown): mri is MRI {
   if (typeof mri !== 'string') {
@@ -55,8 +54,8 @@ function _parseMRI(mri: string): ParsedMRI {
 
   return {
     type: metricType as MetricType,
-    name: parseName(name, useCase as UseCase),
-    unit,
+    name: parseName(name!, useCase as UseCase),
+    unit: unit!,
     useCase: useCase as UseCase,
   };
 }
@@ -119,19 +118,6 @@ export function isMRIField(field: string): boolean {
 // convenience function to get the MRI from a field, returns defaut MRI if it fails
 export function getMRI(field: string): MRI {
   const parsed = parseField(field);
-  // Insights functions don't always take an MRI as an argument.
-  // In these cases, we need to default to a specific MRI.
-  if (parsed?.aggregation) {
-    const operation = INSIGHTS_METRICS_OPERATIONS.find(({value}) => {
-      return value === parsed?.aggregation;
-    });
-    if (operation) {
-      if (operation.mri) {
-        return operation.mri as MRI;
-      }
-      return SPAN_DURATION_MRI;
-    }
-  }
   return parsed?.mri ?? DEFAULT_MRI;
 }
 

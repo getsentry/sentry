@@ -4,7 +4,7 @@ import pytest
 from django.urls import reverse
 
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
 
 
@@ -45,8 +45,8 @@ class OrganizationEventsSpanOpsEndpointBase(APITestCase, SnubaTestCase):
                     "same_process_as_parent": True,
                     "parent_span_id": "a" * 16,
                     "span_id": x * 16,
-                    "start_timestamp": iso_format(self.min_ago + timedelta(seconds=1)),
-                    "timestamp": iso_format(self.min_ago + timedelta(seconds=4)),
+                    "start_timestamp": self.min_ago + timedelta(seconds=1),
+                    "timestamp": self.min_ago + timedelta(seconds=4),
                     "op": "django.middleware",
                     "description": "middleware span",
                     "hash": "cd" * 8,
@@ -59,8 +59,8 @@ class OrganizationEventsSpanOpsEndpointBase(APITestCase, SnubaTestCase):
                     "same_process_as_parent": True,
                     "parent_span_id": "a" * 16,
                     "span_id": x * 16,
-                    "start_timestamp": iso_format(self.min_ago + timedelta(seconds=4)),
-                    "timestamp": iso_format(self.min_ago + timedelta(seconds=5)),
+                    "start_timestamp": self.min_ago + timedelta(seconds=4),
+                    "timestamp": self.min_ago + timedelta(seconds=5),
                     "op": "django.view",
                     "description": "view span",
                     "hash": "ef" * 8,

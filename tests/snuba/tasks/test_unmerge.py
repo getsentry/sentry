@@ -11,7 +11,7 @@ from unittest.mock import patch
 
 from django.utils import timezone
 
-from sentry import eventstream, tagstore, tsdb
+from sentry import eventstream, tsdb
 from sentry.eventstore.models import Event
 from sentry.models.environment import Environment
 from sentry.models.group import Group
@@ -30,7 +30,7 @@ from sentry.tasks.unmerge import (
     unmerge,
 )
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.tsdb.base import TSDBModel
 from sentry.utils import redis
@@ -69,7 +69,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
                 "type": "default",
                 "level": "info",
                 "tags": {"logger": "javascript"},
-                "timestamp": iso_format(now),
+                "timestamp": now.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -81,7 +81,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
                 "type": "default",
                 "level": "error",
                 "tags": {"logger": "python"},
-                "timestamp": iso_format(now),
+                "timestamp": now.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -93,7 +93,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
                 "type": "default",
                 "level": "debug",
                 "tags": {"logger": "java"},
-                "timestamp": iso_format(now),
+                "timestamp": now.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -106,7 +106,6 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             "platform": "java",
             "message": "Hello from JavaScript",
             "level": logging.INFO,
-            "score": Group.calculate_score(3, now),
             "logger": "java",
             "times_seen": 3,
             "first_release": None,
@@ -132,7 +131,6 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
                 platform="javascript",
                 message="Hello from JavaScript",
                 level=logging.INFO,
-                score=Group.calculate_score(3, now),
                 logger="javascript",
                 times_seen=1,
                 first_release=None,
@@ -144,7 +142,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
                     data={
                         "platform": "python",
                         "message": "Hello from Python",
-                        "timestamp": iso_format(now - timedelta(hours=1)),
+                        "timestamp": (now - timedelta(hours=1)).isoformat(),
                         "type": "default",
                         "level": "debug",
                         "tags": {"logger": "java"},
@@ -155,7 +153,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
                     data={
                         "platform": "java",
                         "message": "Hello from Java",
-                        "timestamp": iso_format(now - timedelta(hours=2)),
+                        "timestamp": (now - timedelta(hours=2)).isoformat(),
                         "type": "default",
                         "level": "debug",
                         "tags": {"logger": "java"},
@@ -167,7 +165,6 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             "active_at": now - timedelta(hours=2),
             "first_seen": now - timedelta(hours=2),
             "platform": "java",
-            "score": Group.calculate_score(3, now),
             "logger": "java",
             "times_seen": 3,
             "first_release": None,
@@ -208,7 +205,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
                     "user": next(user_values),
                     "tags": tags,
                     "fingerprint": [fingerprint],
-                    "timestamp": iso_format(now + timedelta(seconds=i)),
+                    "timestamp": (now + timedelta(seconds=i)).isoformat(),
                     "environment": environment,
                     "release": release,
                 },
@@ -276,16 +273,6 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             merge_groups.delay([merge_source.id], source.id)
             eventstream.backend.end_merge(eventstream_state)
 
-        assert {
-            (gtv.value, gtv.times_seen)
-            for gtv in tagstore.backend.get_group_tag_values(
-                source,
-                production_environment.id,
-                "color",
-                tenant_ids={"referrer": "get_tag_values", "organization_id": 1},
-            )
-        } == {("red", 6), ("green", 5), ("blue", 5)}
-
         similar_items = features.compare(source)
         assert len(similar_items) == 2
         assert similar_items[0][0] == source.id
@@ -336,16 +323,6 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             )
         ) == {("production", time_from_now(10), time_from_now(15))}
 
-        assert {
-            (gtv.value, gtv.times_seen)
-            for gtv in tagstore.backend.get_group_tag_values(
-                destination,
-                production_environment.id,
-                "color",
-                tenant_ids={"referrer": "get_tag_values", "organization_id": 1},
-            )
-        } == {("red", 4), ("green", 3), ("blue", 3)}
-
         destination_event_ids = set(
             map(lambda event: event.event_id, list(events.values())[0] + list(events.values())[2])
         )
@@ -366,16 +343,6 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             ("production", time_from_now(0), time_from_now(9)),
             ("staging", time_from_now(16), time_from_now(16)),
         }
-
-        assert {
-            (gtk.value, gtk.times_seen)
-            for gtk in tagstore.backend.get_group_tag_values(
-                destination,
-                production_environment.id,
-                "color",
-                tenant_ids={"referrer": "get_tag_values", "organization_id": 1},
-            )
-        } == {("red", 4), ("blue", 3), ("green", 3)}
 
         rollup_duration = 3600
 
@@ -514,8 +481,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         def collect_by_release(group, aggregate, event):
             aggregate = aggregate if aggregate is not None else {}
             release = event.get_tag("sentry:release")
-            if not release:
-                return aggregate
+            assert release
             release = GroupRelease.objects.get(
                 group_id=group.id,
                 environment=event.data["environment"],

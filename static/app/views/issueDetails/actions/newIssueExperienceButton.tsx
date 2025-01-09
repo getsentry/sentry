@@ -1,80 +1,173 @@
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
+import {motion} from 'framer-motion';
 
 import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import DropdownButton from 'sentry/components/dropdownButton';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconLab} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
-import {useLocation} from 'sentry/utils/useLocation';
 import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 export function NewIssueExperienceButton() {
+  const user = useUser();
   const organization = useOrganization();
-  const location = useLocation();
-  const navigate = useNavigate();
   const hasStreamlinedUIFlag = organization.features.includes('issue-details-streamline');
+  const hasEnforceStreamlinedUIFlag = organization.features.includes(
+    'issue-details-streamline-enforce'
+  );
   const hasStreamlinedUI = useHasStreamlinedUI();
   const openForm = useFeedbackForm();
   const {mutate} = useMutateUserOptions();
 
-  if (!hasStreamlinedUIFlag) {
+  const handleToggle = useCallback(() => {
+    mutate({['prefersIssueDetailsStreamlinedUI']: !hasStreamlinedUI});
+    trackAnalytics('issue_details.streamline_ui_toggle', {
+      isEnabled: !hasStreamlinedUI,
+      organization,
+    });
+  }, [mutate, organization, hasStreamlinedUI]);
+
+  // We hide the toggle if the org doesn't have the 'opt-in' flag, or has the 'remove opt-out' flag.
+  if (!hasStreamlinedUIFlag || hasEnforceStreamlinedUIFlag) {
     return null;
   }
 
-  const feedbackButton = openForm ? (
-    <Button
-      size="sm"
-      aria-label={t('Give feedback on new UI')}
-      onClick={() =>
-        openForm({
-          messagePlaceholder: t('How can we make this new UI work for you?'),
-          tags: {
-            ['feedback.source']: 'issue_details_streamline_ui',
-            ['feedback.owner']: 'issues',
-          },
-        })
-      }
-    >
-      {t('Give Feedback')}
-    </Button>
-  ) : null;
+  if (!openForm || !hasStreamlinedUI) {
+    const label = hasStreamlinedUI
+      ? t('Switch to the old issue experience')
+      : t('Switch to the new issue experience');
 
-  const label = hasStreamlinedUI
-    ? t('Switch to the old issue experience')
-    : t('Switch to the new issue experience');
+    return (
+      <ToggleButtonWrapper>
+        <ToggleButton
+          enabled={hasStreamlinedUI}
+          size={hasStreamlinedUI ? 'xs' : 'sm'}
+          icon={
+            defined(user?.options?.prefersIssueDetailsStreamlinedUI) ? (
+              <IconLab isSolid={hasStreamlinedUI} />
+            ) : (
+              <motion.div
+                style={{height: 14}}
+                animate={{
+                  rotate: [null, 6, -6, 12, -12, 6, -6, 0],
+                }}
+                transition={{
+                  duration: 1,
+                  delay: 1,
+                  repeatDelay: 3,
+                  repeat: 3,
+                }}
+              >
+                <IconLab isSolid={hasStreamlinedUI} />
+              </motion.div>
+            )
+          }
+          title={label}
+          aria-label={label}
+          borderless={!hasStreamlinedUI}
+          onClick={handleToggle}
+        >
+          <ToggleBorder />
+        </ToggleButton>
+      </ToggleButtonWrapper>
+    );
+  }
 
   return (
-    <ButtonBar merged>
-      <StyledButton
-        enabled={hasStreamlinedUI}
-        size="sm"
-        icon={<IconLab isSolid={hasStreamlinedUI} />}
-        title={label}
-        aria-label={label}
-        onClick={() => {
-          mutate({['prefersIssueDetailsStreamlinedUI']: !hasStreamlinedUI});
-          trackAnalytics('issue_details.streamline_ui_toggle', {
-            isEnabled: !hasStreamlinedUI,
-            organization: organization,
-          });
-          navigate({
-            ...location,
-            query: {...location.query, streamline: hasStreamlinedUI ? '0' : '1'},
-          });
-        }}
-      />
-      {hasStreamlinedUI && feedbackButton}
-    </ButtonBar>
+    <DropdownMenu
+      trigger={triggerProps => (
+        <StyledDropdownButton
+          {...triggerProps}
+          enabled={hasStreamlinedUI}
+          size={hasStreamlinedUI ? 'xs' : 'sm'}
+          aria-label={t('Switch issue experience')}
+        >
+          {/* Passing icon as child to avoid extra icon margin */}
+          <IconLab isSolid={hasStreamlinedUI} />
+        </StyledDropdownButton>
+      )}
+      items={[
+        {
+          key: 'switch-to-old-ui',
+          label: t('Switch to the old issue experience'),
+          onAction: handleToggle,
+        },
+        {
+          key: 'give-feedback',
+          label: t('Give feedback on new UI'),
+          hidden: !openForm,
+          onAction: () => {
+            openForm({
+              messagePlaceholder: t(
+                'Excluding bribes, what would make you excited to use the new UI?'
+              ),
+              tags: {
+                ['feedback.source']: 'streamlined_issue_details',
+                ['feedback.owner']: 'issues',
+              },
+            });
+          },
+        },
+      ]}
+      position="bottom-end"
+    />
   );
 }
 
-const StyledButton = styled(Button)<{enabled: boolean}>`
+const StyledDropdownButton = styled(DropdownButton)<{enabled: boolean}>`
   color: ${p => (p.enabled ? p.theme.button.primary.background : 'inherit')};
   :hover {
     color: ${p => (p.enabled ? p.theme.button.primary.background : 'inherit')};
   }
+`;
+
+const ToggleButtonWrapper = styled('div')`
+  overflow: hidden;
+  margin: 0 -1px;
+  border-radius: 7px;
+`;
+
+const ToggleButton = styled(Button)<{enabled: boolean}>`
+  position: relative;
+  color: ${p => (p.enabled ? p.theme.button.primary.background : 'inherit')};
+  :hover {
+    color: ${p => (p.enabled ? p.theme.button.primary.background : 'inherit')};
+  }
+  &:after {
+    position: absolute;
+    content: '';
+    inset: 0;
+    background: ${p => p.theme.background};
+    border-radius: ${p => p.theme.borderRadius};
+  }
+  span {
+    z-index: 1;
+    margin: 0;
+  }
+`;
+
+const ToggleBorder = styled('div')`
+  @keyframes rotating {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  position: absolute;
+  content: '';
+  z-index: -1;
+  width: 46px;
+  height: 46px;
+  border-radius: 7px;
+  background: ${p => p.theme.badge.beta.background};
+  animation: rotating 10s linear infinite;
 `;

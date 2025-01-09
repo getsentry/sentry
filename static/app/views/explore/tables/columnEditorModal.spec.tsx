@@ -79,14 +79,14 @@ describe('ColumnEditorModal', function () {
 
     const columns1 = ['id', 'project'];
     screen.getAllByTestId('editor-column').forEach((column, i) => {
-      expect(column).toHaveTextContent(columns1[i]);
+      expect(column).toHaveTextContent(columns1[i]!);
     });
 
-    await userEvent.click(screen.getAllByLabelText('Remove Column')[0]);
+    await userEvent.click(screen.getAllByLabelText('Remove Column')[0]!);
 
     const columns2 = ['project'];
     screen.getAllByTestId('editor-column').forEach((column, i) => {
-      expect(column).toHaveTextContent(columns2[i]);
+      expect(column).toHaveTextContent(columns2[i]!);
     });
 
     // only 1 column remaining, disable the delete option
@@ -118,27 +118,33 @@ describe('ColumnEditorModal', function () {
 
     const columns1 = ['id', 'project'];
     screen.getAllByTestId('editor-column').forEach((column, i) => {
-      expect(column).toHaveTextContent(columns1[i]);
+      expect(column).toHaveTextContent(columns1[i]!);
     });
 
     await userEvent.click(screen.getByRole('button', {name: 'Add a Column'}));
 
     const columns2 = ['id', 'project', 'None'];
     screen.getAllByTestId('editor-column').forEach((column, i) => {
-      expect(column).toHaveTextContent(columns2[i]);
+      expect(column).toHaveTextContent(columns2[i]!);
     });
 
-    const options = ['id', 'project', 'span.duration', 'span.op'];
-    await userEvent.click(screen.getByRole('button', {name: 'None'}));
+    const options: [string, 'string' | 'number'][] = [
+      ['id', 'string'],
+      ['project', 'string'],
+      ['span.duration', 'number'],
+      ['span.op', 'string'],
+    ];
+    await userEvent.click(screen.getByRole('button', {name: 'Column None'}));
     const columnOptions = await screen.findAllByRole('option');
     columnOptions.forEach((option, i) => {
-      expect(option).toHaveTextContent(options[i]);
+      expect(option).toHaveTextContent(options[i]![0]);
+      expect(option).toHaveTextContent(options[i]![1]);
     });
 
-    await userEvent.click(columnOptions[3]);
+    await userEvent.click(columnOptions[3]!);
     const columns3 = ['id', 'project', 'span.op'];
     screen.getAllByTestId('editor-column').forEach((column, i) => {
-      expect(column).toHaveTextContent(columns3[i]);
+      expect(column).toHaveTextContent(columns3[i]!);
     });
 
     await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
@@ -167,20 +173,26 @@ describe('ColumnEditorModal', function () {
 
     const columns1 = ['id', 'project'];
     screen.getAllByTestId('editor-column').forEach((column, i) => {
-      expect(column).toHaveTextContent(columns1[i]);
+      expect(column).toHaveTextContent(columns1[i]!);
     });
 
-    const options = ['id', 'project', 'span.duration', 'span.op'];
-    await userEvent.click(screen.getByRole('button', {name: 'project'}));
+    const options: [string, 'string' | 'number'][] = [
+      ['id', 'string'],
+      ['project', 'string'],
+      ['span.duration', 'number'],
+      ['span.op', 'string'],
+    ];
+    await userEvent.click(screen.getByRole('button', {name: 'Column project string'}));
     const columnOptions = await screen.findAllByRole('option');
     columnOptions.forEach((option, i) => {
-      expect(option).toHaveTextContent(options[i]);
+      expect(option).toHaveTextContent(options[i]![0]);
+      expect(option).toHaveTextContent(options[i]![1]);
     });
 
-    await userEvent.click(columnOptions[3]);
+    await userEvent.click(columnOptions[3]!);
     const columns2 = ['id', 'span.op'];
     screen.getAllByTestId('editor-column').forEach((column, i) => {
-      expect(column).toHaveTextContent(columns2[i]);
+      expect(column).toHaveTextContent(columns2[i]!);
     });
 
     await userEvent.click(screen.getByRole('button', {name: 'Apply'}));

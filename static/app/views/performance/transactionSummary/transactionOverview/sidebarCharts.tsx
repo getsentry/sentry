@@ -1,9 +1,7 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import color from 'color';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
-import MarkPoint from 'sentry/components/charts/components/markPoint';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import EventsRequest from 'sentry/components/charts/eventsRequest';
 import type {LineChartProps} from 'sentry/components/charts/lineChart';
@@ -18,7 +16,6 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {tooltipFormatter} from 'sentry/utils/discover/charts';
 import type EventView from 'sentry/utils/discover/eventView';
@@ -27,21 +24,12 @@ import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {formatFloat} from 'sentry/utils/number/formatFloat';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
-import AnomaliesQuery from 'sentry/utils/performance/anomalies/anomaliesQuery';
 import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {decodeScalar} from 'sentry/utils/queryString';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
 import {getTransactionMEPParamsIfApplicable} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
-
-import {
-  anomaliesRouteWithQuery,
-  ANOMALY_FLAG,
-  anomalyToColor,
-} from '../transactionAnomalies/utils';
 
 type ContainerProps = {
   error: QueryError | null;
@@ -60,8 +48,6 @@ type Props = Pick<ContainerProps, 'organization' | 'isLoading' | 'error' | 'tota
     reloading: boolean;
     series: LineChartProps['series'];
   };
-  eventView: EventView;
-  transactionName: string;
   utc: boolean;
   end?: Date;
   start?: Date;
@@ -78,12 +64,7 @@ function SidebarCharts({
   utc,
   statsPeriod,
   chartData,
-  eventView,
-  transactionName,
 }: Props) {
-  const location = useLocation();
-  const theme = useTheme();
-
   return (
     <RelativeBox>
       <ChartLabel top="0px">
@@ -99,7 +80,7 @@ function SidebarCharts({
           data-test-id="apdex-summary-value"
           isLoading={isLoading}
           error={error}
-          value={totals ? formatFloat(totals['apdex()'], 4) : null}
+          value={totals ? formatFloat(totals['apdex()']!, 4) : null}
         />
       </ChartLabel>
 
@@ -116,85 +97,41 @@ function SidebarCharts({
           data-test-id="failure-rate-summary-value"
           isLoading={isLoading}
           error={error}
-          value={totals ? formatPercentage(totals['failure_rate()']) : null}
+          value={totals ? formatPercentage(totals['failure_rate()']!) : null}
         />
       </ChartLabel>
 
-      <AnomaliesQuery
-        location={location}
-        organization={organization}
-        eventView={eventView}
+      <ChartZoom
+        period={statsPeriod}
+        start={start}
+        end={end}
+        utc={utc}
+        xAxisIndex={[0, 1, 2]}
       >
-        {results => (
-          <ChartZoom
-            period={statsPeriod}
-            start={start}
-            end={end}
-            utc={utc}
-            xAxisIndex={[0, 1, 2]}
-          >
-            {zoomRenderProps => {
-              const {errored, loading, reloading, chartOptions, series} = chartData;
+        {zoomRenderProps => {
+          const {errored, loading, reloading, chartOptions, series} = chartData;
 
-              if (errored) {
-                return (
-                  <ErrorPanel height="300px">
-                    <IconWarning color="gray300" size="lg" />
-                  </ErrorPanel>
-                );
-              }
+          if (errored) {
+            return (
+              <ErrorPanel height="300px">
+                <IconWarning color="gray300" size="lg" />
+              </ErrorPanel>
+            );
+          }
 
-              if (organization.features.includes(ANOMALY_FLAG)) {
-                const epmSeries = series.find(
-                  s => s.seriesName.includes('epm') || s.seriesName.includes('tpm')
-                );
-                if (epmSeries && results.data) {
-                  epmSeries.markPoint = MarkPoint({
-                    data: results.data.anomalies.map(a => ({
-                      name: a.id,
-                      yAxis: epmSeries.data.find(
-                        ({name}) => (name as number) > (a.end + a.start) / 2
-                      )?.value,
-                      // TODO: the above is O(n*m), remove after we change the api to include the midpoint of y.
-                      xAxis: a.start,
-                      itemStyle: {
-                        borderColor: color(anomalyToColor(a.confidence, theme)).string(),
-                        color: color(anomalyToColor(a.confidence, theme))
-                          .alpha(0.2)
-                          .rgb()
-                          .string(),
-                      },
-                      onClick: () => {
-                        const target = anomaliesRouteWithQuery({
-                          orgSlug: organization.slug,
-                          query: location.query,
-                          projectID: decodeScalar(location.query.project),
-                          transaction: transactionName,
-                        });
-                        browserHistory.push(normalizeUrl(target));
-                      },
-                    })),
-                    symbol: 'circle',
-                    symbolSize: 16,
-                  });
-                }
-              }
-
-              return (
-                <TransitionChart loading={loading} reloading={reloading} height="580px">
-                  <TransparentLoadingMask visible={reloading} />
-                  {getDynamicText({
-                    value: (
-                      <LineChart {...zoomRenderProps} {...chartOptions} series={series} />
-                    ),
-                    fixed: <Placeholder height="300px" testId="skeleton-ui" />,
-                  })}
-                </TransitionChart>
-              );
-            }}
-          </ChartZoom>
-        )}
-      </AnomaliesQuery>
+          return (
+            <TransitionChart loading={loading} reloading={reloading} height="580px">
+              <TransparentLoadingMask visible={reloading} />
+              {getDynamicText({
+                value: (
+                  <LineChart {...zoomRenderProps} {...chartOptions} series={series} />
+                ),
+                fixed: <Placeholder height="300px" testId="skeleton-ui" />,
+              })}
+            </TransitionChart>
+          );
+        }}
+      </ChartZoom>
     </RelativeBox>
   );
 }
@@ -205,13 +142,12 @@ function SidebarChartsContainer({
   isLoading,
   error,
   totals,
-  transactionName,
 }: ContainerProps) {
   const location = useLocation();
   const api = useApi();
   const theme = useTheme();
 
-  const colors = theme.charts.getColorPalette(2);
+  const colors = theme.charts.getColorPalette(2) ?? [];
   const statsPeriod = eventView.statsPeriod;
   const start = eventView.start ? getUtcToLocalDateObject(eventView.start) : undefined;
   const end = eventView.end ? getUtcToLocalDateObject(eventView.end) : undefined;
@@ -293,7 +229,7 @@ function SidebarChartsContainer({
     utc,
     isGroupedByDate: true,
     showTimeInTooltip: true,
-    colors: [colors[0], colors[1]],
+    colors: [colors[0]!, colors[1]!],
     tooltip: {
       trigger: 'axis',
       truncate: 80,
@@ -355,8 +291,6 @@ function SidebarChartsContainer({
         return (
           <SidebarCharts
             {...contentCommonProps}
-            transactionName={transactionName}
-            eventView={eventView}
             chartData={{series, errored, loading, reloading, chartOptions}}
           />
         );

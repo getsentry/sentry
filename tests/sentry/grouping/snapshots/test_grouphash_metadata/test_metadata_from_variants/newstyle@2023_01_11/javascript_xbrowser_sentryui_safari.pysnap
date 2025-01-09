@@ -1,0 +1,133 @@
+---
+created: '2024-12-17T22:50:40.556436+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+hashing_metadata: {
+  "num_stacktraces": 1,
+  "stacktrace_location": "exception",
+  "stacktrace_type": "in_app"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "stacktrace",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.stacktrace": {
+    "chained_exception": "False",
+    "stacktrace_location": "exception",
+    "stacktrace_type": "in_app"
+  }
+}
+---
+contributing variants:
+  app*
+    hash: "4a3cf3893b6485428dd02da116c8370e"
+    contributing component: exception
+    component:
+      app*
+        exception*
+          stacktrace*
+            frame*
+              module*
+                "app/components/lazyLoad"
+              context-line*
+                "this.setState({"
+            frame*
+              module*
+                "app/views/groupDetails/shared/groupEventDetails"
+              context-line*
+                "this.fetchData();"
+            frame*
+              module*
+                "app/views/groupDetails/shared/groupEventDetails"
+              context-line*
+                "fetchGroupEventAndMarkSeen(api, orgSlug, projSlug, groupId, eventId, envNames)"
+            frame*
+              module*
+                "app/api"
+              context-line*
+                "const preservedError = new Error();"
+          type*
+            "NotFoundError"
+  system*
+    hash: "0b81da6ea3d7cc82b1d4825b7aac0b8d"
+    contributing component: exception
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              module*
+                "usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator"
+              context-line*
+                "asyncGeneratorStep(gen, resolve, reject, _next, _throw, \"next\", value);"
+            frame*
+              module*
+                "usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator"
+              context-line*
+                "var info = gen[key](arg);"
+            frame*
+              module*
+                "usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime"
+              context-line*
+                "var record = tryCatch(innerFn, self, context);"
+            frame*
+              module*
+                "usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime"
+              context-line*
+                "return { type: \"normal\", arg: fn.call(obj, arg) };"
+            frame*
+              module*
+                "app/components/lazyLoad"
+              context-line*
+                "this.setState({"
+            frame*
+              module*
+                "usr/src/getsentry/src/sentry/node_modules/react/cjs/react.production"
+              function*
+                "setState"
+            frame*
+              module*
+                "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"
+              function*
+                "enqueueSetState"
+            frame*
+              module*
+                "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"
+              function*
+                "tag"
+            frame*
+              module*
+                "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"
+              function*
+                "Yg"
+            frame*
+              module*
+                "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"
+              function*
+                "Xg"
+            frame*
+              module*
+                "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"
+              function*
+                "ih"
+            frame*
+              module*
+                "app/views/groupDetails/shared/groupEventDetails"
+              context-line*
+                "this.fetchData();"
+            frame*
+              module*
+                "app/views/groupDetails/shared/groupEventDetails"
+              context-line*
+                "fetchGroupEventAndMarkSeen(api, orgSlug, projSlug, groupId, eventId, envNames)"
+            frame*
+              module*
+                "app/api"
+              context-line*
+                "const preservedError = new Error();"
+          type*
+            "NotFoundError"

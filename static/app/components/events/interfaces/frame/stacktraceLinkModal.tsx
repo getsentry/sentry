@@ -87,10 +87,10 @@ function StacktraceLinkModal({
   // If they have more than one, they'll have to navigate themselves
   const hasOneSourceCodeIntegration = sourceCodeProviders.length === 1;
   const sourceUrl = hasOneSourceCodeIntegration
-    ? `https://${sourceCodeProviders[0].domainName}`
+    ? `https://${sourceCodeProviders[0]!.domainName}`
     : undefined;
   const providerName = hasOneSourceCodeIntegration
-    ? sourceCodeProviders[0].name
+    ? sourceCodeProviders[0]!.name
     : t('source code');
 
   const onManualSetup = () => {
@@ -99,7 +99,7 @@ function StacktraceLinkModal({
       setup_type: 'manual',
       provider:
         sourceCodeProviders.length === 1
-          ? sourceCodeProviders[0].provider.name
+          ? sourceCodeProviders[0]!.provider.name
           : 'unknown',
       organization,
     });
@@ -171,7 +171,7 @@ function StacktraceLinkModal({
                           onClick={onManualSetup}
                           to={
                             hasOneSourceCodeIntegration
-                              ? `/settings/${organization.slug}/integrations/${sourceCodeProviders[0].provider.key}/${sourceCodeProviders[0].id}/`
+                              ? `/settings/${organization.slug}/integrations/${sourceCodeProviders[0]!.provider.key}/${sourceCodeProviders[0]!.id}/`
                               : `/settings/${organization.slug}/integrations/`
                           }
                         />
@@ -200,7 +200,7 @@ function StacktraceLinkModal({
                     ? tct('Go to [link]', {
                         link: (
                           <ExternalLink href={sourceUrl}>
-                            {sourceCodeProviders[0].provider.name}
+                            {sourceCodeProviders[0]!.provider.name}
                           </ExternalLink>
                         ),
                       })

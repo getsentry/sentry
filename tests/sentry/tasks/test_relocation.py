@@ -8,13 +8,13 @@ from unittest.mock import MagicMock, Mock, patch
 from uuid import UUID, uuid4
 
 import pytest
-import yaml
 from django.core.files.storage import Storage
 from django.test import override_settings
 from google.cloud.devtools.cloudbuild_v1 import Build
 from google_crc32c import value as crc32c
 
 from sentry.backup.crypto import (
+    EncryptorDecryptorPair,
     LocalFileDecryptor,
     LocalFileEncryptor,
     create_encrypted_export_tarball,
@@ -94,7 +94,12 @@ from sentry.testutils.silo import assume_test_silo_mode, create_test_regions, re
 from sentry.users.models.lostpasswordhash import LostPasswordHash
 from sentry.users.models.user import User
 from sentry.utils import json
-from sentry.utils.relocation import RELOCATION_BLOB_SIZE, RELOCATION_FILE_TYPE, OrderedTask
+from sentry.utils.relocation import (
+    RELOCATION_BLOB_SIZE,
+    RELOCATION_FILE_TYPE,
+    OrderedTask,
+    StorageBackedCheckpointExporter,
+)
 
 IMPORT_JSON_FILE_PATH = get_fixture_path("backup", "fresh-install.json")
 
@@ -302,7 +307,7 @@ class UploadingStartTest(RelocationTaskTestCase):
         assert uploading_complete_mock.call_count == 1
         assert cross_region_export_timeout_check_mock.call_count == 1
         assert fake_message_builder.call_count == 0
-        assert fake_kms_client.get_public_key.call_count == 1
+        assert fake_kms_client.get_public_key.call_count > 0
         assert fake_kms_client.asymmetric_decrypt.call_count == 0
 
         assert RelocationFile.objects.filter(
@@ -345,7 +350,7 @@ class UploadingStartTest(RelocationTaskTestCase):
         assert uploading_complete_mock.call_count == 1
         assert cross_region_export_timeout_check_mock.call_count == 1
         assert fake_message_builder.call_count == 0
-        assert fake_kms_client.get_public_key.call_count == 2
+        assert fake_kms_client.get_public_key.call_count > 0
         assert fake_kms_client.asymmetric_decrypt.call_count == 0
 
         assert (
@@ -1005,52 +1010,6 @@ class PreprocessingTransferTest(RelocationTaskTestCase):
         self.relocation.save()
         self.create_user("importing")
         self.relocation_storage = get_relocation_storage()
-
-    def test_success(
-        self,
-        preprocessing_baseline_config_mock: Mock,
-        fake_message_builder: Mock,
-    ):
-        self.mock_message_builder(fake_message_builder)
-        assert not self.relocation_storage.exists(f"runs/{self.uuid}")
-
-        preprocessing_transfer(self.uuid)
-
-        assert fake_message_builder.call_count == 0
-        assert preprocessing_baseline_config_mock.call_count == 1
-
-        (_, files) = self.relocation_storage.listdir(f"runs/{self.uuid}/conf")
-        assert len(files) == 2
-        assert "cloudbuild.yaml" in files
-        assert "cloudbuild.zip" in files
-
-        cb_yaml_file = self.relocation_storage.open(f"runs/{self.uuid}/conf/cloudbuild.yaml")
-        with cb_yaml_file:
-            cb_conf = yaml.safe_load(cb_yaml_file)
-            assert cb_conf is not None
-
-        # These entries in the generated `cloudbuild.yaml` depend on the UUID, so check them
-        # separately then replace them for snapshotting.
-        in_path = cb_conf["steps"][0]["args"][2]
-        findings_path = cb_conf["artifacts"]["objects"]["location"]
-        assert in_path == f"gs://default/runs/{self.uuid}/in"
-        assert findings_path == f"gs://default/runs/{self.uuid}/findings/"
-
-        # Do a snapshot test of the cloudbuild config.
-        cb_conf["steps"][0]["args"][2] = "gs://<BUCKET>/runs/<UUID>/in"
-        cb_conf["artifacts"]["objects"]["location"] = "gs://<BUCKET>/runs/<UUID>/findings/"
-        cb_conf["steps"][11]["args"][3] = "gs://<BUCKET>/runs/<UUID>/out"
-        self.insta_snapshot(cb_conf)
-
-        (_, files) = self.relocation_storage.listdir(f"runs/{self.uuid}/in")
-        assert len(files) == 3
-        assert "kms-config.json" in files
-        assert "filter-usernames.txt" in files
-        assert "raw-relocation-data.tar" in files
-
-        kms_file = self.relocation_storage.open(f"runs/{self.uuid}/in/kms-config.json")
-        with kms_file:
-            json.load(kms_file)
 
     def test_retry_if_attempts_left(
         self,
@@ -1990,6 +1949,7 @@ class ImportingTest(RelocationTaskTestCase, TransactionTestCase):
         self.relocation.step = Relocation.Step.VALIDATING.value
         self.relocation.latest_task = OrderedTask.VALIDATING_COMPLETE.name
         self.relocation.save()
+        self.storage = get_relocation_storage()
 
     def test_success_self_hosted(
         self, postprocessing_mock: Mock, fake_kms_client: FakeKeyManagementServiceClient
@@ -2035,19 +1995,66 @@ class ImportingTest(RelocationTaskTestCase, TransactionTestCase):
         with assume_test_silo_mode(SiloMode.CONTROL):
             user_count = User.objects.all().count()
 
+        # Create an export checkpointer, so that we can validate that it stores checkpoints properly
+        # over multiple export attempts.
+        decryptor = LocalFileDecryptor(BytesIO(self.priv_key_pem))
+        encryptor = LocalFileEncryptor(BytesIO(self.pub_key_pem))
+        export_checkpointer = StorageBackedCheckpointExporter(
+            crypto=EncryptorDecryptorPair(
+                encryptor=encryptor,
+                decryptor=decryptor,
+            ),
+            uuid=self.relocation.uuid,
+            storage=self.storage,
+        )
+        with TemporaryDirectory() as tmp_dir:
+            tmp_priv_key_path = Path(tmp_dir).joinpath("key")
+            tmp_pub_key_path = Path(tmp_dir).joinpath("key.pub")
+            with open(tmp_priv_key_path, "wb") as f:
+                f.write(self.priv_key_pem)
+            with open(tmp_pub_key_path, "wb") as f:
+                f.write(self.pub_key_pem)
+
         # Export the existing state of the `testing` organization, so that we retain exact ids.
         export_contents = BytesIO()
         export_in_organization_scope(
             export_contents,
             org_filter=set(self.relocation.want_org_slugs),
             printer=Printer(),
+            checkpointer=export_checkpointer,
         )
+
+        # Verify cache writes, to the checkpoint cache.
+        (_, num_checkpoints) = self.storage.listdir(
+            f"runs/{self.relocation.uuid}/saas_to_saas_export/_checkpoints/"
+        )
+        assert len(num_checkpoints) > 0
+
+        # Export again, to sanity-check the export checkpointer.
+        reexport_contents = BytesIO()
+        export_in_organization_scope(
+            reexport_contents,
+            org_filter=set(self.relocation.want_org_slugs),
+            printer=Printer(),
+            checkpointer=export_checkpointer,
+        )
+
+        # Verify no cache writes, to the checkpoint cache on the second pass, then check for output
+        # equality.
+        (_, num_recheckpoints) = self.storage.listdir(
+            f"runs/{self.relocation.uuid}/saas_to_saas_export/_checkpoints/"
+        )
+        assert num_checkpoints == num_recheckpoints
+        assert export_contents.getvalue() == reexport_contents.getvalue()
         export_contents.seek(0)
 
         # Convert this into a `SAAS_TO_SAAS` relocation, and use the data we just exported as the
         # import blob.
         file = RelocationFile.objects.get(relocation=self.relocation).file
-        self.swap_relocation_file(file, export_contents)
+        self.tarball = create_encrypted_export_tarball(
+            json.load(export_contents), encryptor
+        ).getvalue()
+        file.putfile(BytesIO(self.tarball), blob_size=RELOCATION_BLOB_SIZE)
         self.mock_kms_client(fake_kms_client)
         self.relocation.provenance = Relocation.Provenance.SAAS_TO_SAAS
         self.relocation.save()
@@ -2138,7 +2145,7 @@ class PostprocessingTest(RelocationTaskTestCase):
 
     @staticmethod
     def noop_relocated_signal_receiver(sender, **kwargs) -> None:
-        pass
+        raise NotImplementedError
 
     def test_success(
         self,

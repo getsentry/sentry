@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Mapping
 from typing import Any
 
@@ -19,6 +20,8 @@ from sentry.api.serializers import Serializer, serialize
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.data_secrecy.models import DataSecrecyWaiver
 from sentry.models.organization import Organization
+
+logger = logging.getLogger("sentry.data_secrecy")
 
 
 class WaiveDataSecrecyPermission(OrganizationPermission):
@@ -119,25 +122,33 @@ class WaiveDataSecrecyEndpoint(OrganizationEndpoint):
             serialize(ds, request.user, DataSecrecyWaiverSerializer()), status=status.HTTP_200_OK
         )
 
-    def delete(self, request: Request, organization):
+    def delete(self, request: Request, organization: Organization):
         """
         Reinstates data secrecy for an organization.
         """
         try:
-            ds = get_object_or_404(DataSecrecyWaiver, organization=organization)
-            ds.delete()
-
-            self.create_audit_entry(
-                request=request,
-                organization=organization,
-                event=audit_log.get_event_id("DATA_SECRECY_REINSTATED"),
+            logger.info("Reinstating data secrecy for organization %s", organization.id)
+            ds = DataSecrecyWaiver.objects.get(organization=organization)
+            logger.info(
+                "Data secrecy waiver found for organization %s",
+                organization.id,
+                extra={"ds": ds.id},
             )
-            return Response(
-                {"detail": "Data secrecy has been reinstated."},
-                status=status.HTTP_204_NO_CONTENT,
-            )
-        except Http404:
+        except DataSecrecyWaiver.DoesNotExist:
+            logger.info("No data secrecy waiver found for organization %s", organization.id)
             return Response(
                 {"detail": "No data secrecy waiver found for this organization."},
                 status=status.HTTP_404_NOT_FOUND,
             )
+
+        ds.delete()
+        logger.info("Data secrecy waiver deleted for organization %s", organization.id)
+
+        self.create_audit_entry(
+            request=request,
+            organization=organization,
+            event=audit_log.get_event_id("DATA_SECRECY_REINSTATED"),
+        )
+        return Response(
+            status=status.HTTP_204_NO_CONTENT,
+        )

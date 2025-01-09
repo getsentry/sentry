@@ -27,7 +27,7 @@ import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/componen
 import {WebVitalDetailHeader} from 'sentry/views/insights/browser/webVitals/components/webVitalDescription';
 import {useProjectRawWebVitalsQuery} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
 import {useProjectRawWebVitalsValuesTimeseriesQuery} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/useProjectRawWebVitalsValuesTimeseriesQuery';
-import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
+import {getWebVitalScoresFromTableDataRow} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/getWebVitalScoresFromTableDataRow';
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
 import {useInteractionsCategorizedSamplesQuery} from 'sentry/views/insights/browser/webVitals/queries/useInteractionsCategorizedSamplesQuery';
 import {useTransactionsCategorizedSamplesQuery} from 'sentry/views/insights/browser/webVitals/queries/useTransactionsCategorizedSamplesQuery';
@@ -40,7 +40,7 @@ import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/qu
 import useProfileExists from 'sentry/views/insights/browser/webVitals/utils/useProfileExists';
 import DetailPanel from 'sentry/views/insights/common/components/detailPanel';
 import {SpanIndexedField, type SubregionCode} from 'sentry/views/insights/types';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
 
 type Column = GridColumnHeader;
@@ -119,9 +119,7 @@ export function PageOverviewWebVitalsDetailPanel({
     subregions,
   });
 
-  const projectScore = calculatePerformanceScoreFromStoredTableDataRow(
-    projectScoresData?.data?.[0]
-  );
+  const projectScore = getWebVitalScoresFromTableDataRow(projectScoresData?.data?.[0]);
 
   const {data: transactionsTableData, isLoading: isTransactionWebVitalsQueryLoading} =
     useTransactionsCategorizedSamplesQuery({

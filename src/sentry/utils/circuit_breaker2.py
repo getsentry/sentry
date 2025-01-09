@@ -18,6 +18,7 @@ from sentry.ratelimits.sliding_windows import (
     RedisSlidingWindowRateLimiter,
     RequestedQuota,
 )
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -117,6 +118,9 @@ class CircuitBreaker:
     to prevent calls to it. In that case, the circuit breaker must be reinstantiated with the same
     config. This works because the breaker has no state of its own, instead relying on redis-backed
     rate limiters and redis itself to track error count and breaker status.
+
+    Emits a `circuit_breaker.{self.key}.error_limit_hit` DD metic when tripped so activation can be
+    easily monitored.
     """
 
     def __init__(self, key: str, config: CircuitBreakerConfig):
@@ -240,6 +244,11 @@ class CircuitBreaker:
                     "error_limit_window": controlling_quota.window_seconds,
                 },
             )
+            metrics.incr(
+                f"circuit_breaker.{self.key}.error_limit_hit",
+                sample_rate=1.0,
+                tags={"current_state": state.value},
+            )
 
             # RECOVERY will only start after the BROKEN state has expired, so push out the RECOVERY
             # expiry time. We'll store the expiry times as our redis values so we can determine how
@@ -274,13 +283,20 @@ class CircuitBreaker:
         remaining, whether requests should be allowed through.
         """
         state, _ = self._get_state_and_remaining_time()
-
-        if state == CircuitBreakerState.BROKEN:
-            return False
-
         controlling_quota = self._get_controlling_quota(state)
 
-        return self._get_remaining_error_quota(controlling_quota) > 0
+        if (
+            state == CircuitBreakerState.BROKEN
+            or
+            # If there's no remaining quota, in theory we should already be in a broken state. That
+            # said, it's possible we could be in a race condition and hit this just as the state is
+            # being changed, so just to be safe we also check qouta here.
+            self._get_remaining_error_quota(controlling_quota) <= 0
+        ):
+            metrics.incr(f"circuit_breaker.{self.key}.request_blocked")
+            return False
+
+        return True
 
     def _get_from_redis(self, keys: list[str]) -> Any:
         for key in keys:
@@ -331,16 +347,19 @@ class CircuitBreaker:
     @overload
     def _get_controlling_quota(
         self, state: Literal[CircuitBreakerState.OK, CircuitBreakerState.RECOVERY]
-    ) -> Quota:
-        ...
+    ) -> Quota: ...
 
     @overload
-    def _get_controlling_quota(self, state: Literal[CircuitBreakerState.BROKEN]) -> None:
-        ...
+    def _get_controlling_quota(self, state: Literal[CircuitBreakerState.BROKEN]) -> None: ...
 
     @overload
-    def _get_controlling_quota(self) -> Quota | None:
-        ...
+    def _get_controlling_quota(self) -> Quota | None: ...
+
+    @overload
+    def _get_controlling_quota(self, state: CircuitBreakerState) -> Quota | None: ...
+
+    @overload
+    def _get_controlling_quota(self, state: None) -> Quota | None: ...
 
     def _get_controlling_quota(self, state: CircuitBreakerState | None = None) -> Quota | None:
         """
@@ -357,42 +376,24 @@ class CircuitBreaker:
 
         return controlling_quota_by_state[_state]
 
-    @overload
-    def _get_remaining_error_quota(self, quota: None, window_end: int | None) -> None:
-        ...
-
-    @overload
-    def _get_remaining_error_quota(self, quota: Quota, window_end: int | None) -> int:
-        ...
-
-    @overload
-    def _get_remaining_error_quota(self, quota: None) -> None:
-        ...
-
-    @overload
-    def _get_remaining_error_quota(self, quota: Quota) -> int:
-        ...
-
-    @overload
-    def _get_remaining_error_quota(self) -> int | None:
-        ...
-
     def _get_remaining_error_quota(
         self, quota: Quota | None = None, window_end: int | None = None
-    ) -> int | None:
+    ) -> int:
         """
         Get the number of allowable errors remaining in the given quota for the time window ending
         at the given time.
 
         If no quota is given, in OK and RECOVERY states, return the current controlling quota's
-        remaining errors. In BROKEN state, return None.
+        remaining errors. In BROKEN state, return -1.
 
         If no time window end is given, return the current amount of quota remaining.
         """
         if not quota:
             quota = self._get_controlling_quota()
+            # This is another spot where logically we should never land, but might if we hit a race
+            # condition with two errors tripping the circiut breaker nearly simultenously.
             if quota is None:  # BROKEN state
-                return None
+                return -1
 
         now = int(time.time())
         window_end = window_end or now

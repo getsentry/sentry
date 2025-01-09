@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button, LinkButton} from 'sentry/components/button';
@@ -13,39 +13,30 @@ type Props = {
   onSkip: () => void;
 };
 
-type State = {
-  showConfirmation: boolean;
-};
+function SkipConfirm(props: Props) {
+  const [showConfirmation, setShowConfirmation] = useState<boolean>(false);
+  const {onSkip, children} = props;
 
-class SkipConfirm extends Component<Props, State> {
-  state: State = {
-    showConfirmation: false,
-  };
-
-  toggleConfirm = (e: React.MouseEvent) => {
+  const toggleConfirm = (e: React.MouseEvent) => {
     e.stopPropagation();
-    this.setState(state => ({showConfirmation: !state.showConfirmation}));
+    setShowConfirmation(!showConfirmation);
   };
 
-  handleSkip = (e: React.MouseEvent) => {
+  const handleSkip = (e: React.MouseEvent) => {
     e.stopPropagation();
-    this.props.onSkip();
+    onSkip();
   };
 
-  render() {
-    const {children} = this.props;
-
-    return (
-      <Fragment>
-        {children({skip: this.toggleConfirm})}
-        <Confirmation
-          visible={this.state.showConfirmation}
-          onSkip={this.handleSkip}
-          onDismiss={this.toggleConfirm}
-        />
-      </Fragment>
-    );
-  }
+  return (
+    <Fragment>
+      {children({skip: toggleConfirm})}
+      <Confirmation
+        visible={showConfirmation}
+        onSkip={handleSkip}
+        onDismiss={toggleConfirm}
+      />
+    </Fragment>
+  );
 }
 
 export default SkipConfirm;
@@ -87,7 +78,7 @@ const Confirmation = styled(({onDismiss, onSkip, visible: _, ...props}: ConfirmP
   align-items: center;
   flex-direction: column;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.9);
+  background: ${p => p.theme.surface200};
   animation: ${fadeIn} 200ms normal forwards;
   font-size: ${p => p.theme.fontSizeMedium};
 

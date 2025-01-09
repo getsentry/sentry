@@ -821,6 +821,77 @@ class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
 
+    def test_disallow_archive_release_when_no_open_membership(self):
+        release = self.create_release(project=self.project, version="test@1.0")
+
+        # disable Open Membership
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        # user has no access to all the projects
+        user_no_team = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user_no_team, organization=self.organization, role="member", teams=[]
+        )
+        self.login_as(user_no_team)
+
+        url = reverse(
+            "sentry-api-0-organization-releases",
+            kwargs={"organization_id_or_slug": self.organization.slug},
+        )
+
+        # trying to archive the release
+        response = self.client.post(
+            url,
+            format="json",
+            data={
+                "version": release.version,
+                "projects": [],
+                "status": "archived",
+            },
+        )
+        assert response.status_code == 400
+        assert b"You do not have permission to one of the projects: bar" in response.content
+
+    def test_disallow_projects_update_for_release_when_no_open_membership(self):
+        team1 = self.create_team(organization=self.organization)
+        team2 = self.create_team(organization=self.organization)
+
+        project1 = self.create_project(
+            name="not_yours", teams=[team1], organization=self.organization
+        )
+        project2 = self.create_project(teams=[team2], organization=self.organization)
+
+        release = self.create_release(project=project1, version="test@1.0")
+
+        # disable Open Membership
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        # user has no access to projects of team1
+        user_team2 = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user_team2, organization=self.organization, role="member", teams=[team2]
+        )
+        self.login_as(user_team2)
+
+        url = reverse(
+            "sentry-api-0-organization-releases",
+            kwargs={"organization_id_or_slug": self.organization.slug},
+        )
+
+        # trying to update projects of the release
+        response = self.client.post(
+            url,
+            format="json",
+            data={
+                "version": release.version,
+                "projects": [project2.slug],
+            },
+        )
+        assert response.status_code == 400
+        assert b"You do not have permission to one of the projects: not_yours" in response.content
+
 
 class OrganizationReleasesStatsTest(APITestCase):
     endpoint = "sentry-api-0-organization-releases-stats"

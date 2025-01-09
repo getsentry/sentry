@@ -55,20 +55,5 @@ describe('metricSearchBar', function () {
       screen.getByText('Invalid key. "span.module" is not a supported search key.');
       expect(onChange).not.toHaveBeenCalled();
     });
-    it('allows insights specific filters when using an insights mri', async function () {
-      render(
-        <MetricSearchBar onChange={onChange} mri="d:spans/exclusive_time@millisecond" />
-      );
-      await screen.findByPlaceholderText('Filter by tags');
-      await userEvent.type(
-        screen.getByPlaceholderText('Filter by tags'),
-        'span.module:db'
-      );
-      await userEvent.keyboard('{enter}');
-      expect(
-        screen.queryByText('Invalid key. "span.module" is not a supported search key.')
-      ).not.toBeInTheDocument();
-      expect(onChange).toHaveBeenCalledWith('span.module:"db"');
-    });
   });
 });

@@ -298,11 +298,6 @@ class OptionsManager:
         if not (opt.flags & FLAG_NOSTORE):
             result = self.store.get(opt, silent=silent)
             if result is not None:
-                # HACK(mattrobenolt): SENTRY_URL_PREFIX must be kept in sync
-                # when reading values from the database. This should
-                # be replaced by a signal.
-                if key == "system.url-prefix":
-                    settings.SENTRY_URL_PREFIX = result
                 return result
 
         # Some values we don't want to allow them to be configured through

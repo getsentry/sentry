@@ -27,7 +27,7 @@ import type {SpanIndexedField, SpanIndexedResponse} from 'sentry/views/insights/
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
-import {TraceViewSources} from '../performance/newTraceDetails/traceMetadataHeader';
+import {TraceViewSources} from '../performance/newTraceDetails/traceHeader/breadcrumbs';
 
 import type {TraceResult} from './hooks/useTraces';
 import {BREAKDOWN_SLICES} from './hooks/useTraces';
@@ -71,8 +71,10 @@ export function ProjectsRenderer({
   return (
     <Projects orgId={organization.slug} slugs={projectSlugs}>
       {({projects}) => {
-        const projectAvatars =
-          projects.length > 0 ? projects : projectSlugs.map(slug => ({slug}));
+        // ensure that projectAvatars is in the same order as the projectSlugs prop
+        const projectAvatars = projectSlugs.map(slug => {
+          return projects.find(project => project.slug === slug) ?? {slug};
+        });
         const numProjects = projectAvatars.length;
         const numVisibleProjects =
           maxVisibleProjects - numProjects >= 0 ? numProjects : maxVisibleProjects - 1;
@@ -224,14 +226,23 @@ const RectangleTraceBreakdown = styled(RowRectangle)<{
   position: relative;
   width: 100%;
   height: 15px;
-  ${p => `
+  ${p => css`
     filter: var(--highlightedSlice-${p.sliceName}-saturate, var(--defaultSlice-saturate));
   `}
-  ${p => `
-    opacity: var(--highlightedSlice-${p.sliceName ?? ''}-opacity, var(--defaultSlice-opacity, 1.0));
+  ${p => css`
+    opacity: var(
+      --highlightedSlice-${p.sliceName ?? ''}-opacity,
+      var(--defaultSlice-opacity, 1)
+    );
   `}
-  ${p => `
-    transform: var(--hoveredSlice-${p.offset}-translateY, var(--highlightedSlice-${p.sliceName ?? ''}-transform, var(--defaultSlice-transform, 1.0)));
+  ${p => css`
+    transform: var(
+      --hoveredSlice-${p.offset}-translateY,
+      var(
+        --highlightedSlice-${p.sliceName ?? ''}-transform,
+        var(--defaultSlice-transform, 1)
+      )
+    );
   `}
   transition: filter,opacity,transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 `;
@@ -433,7 +444,7 @@ interface TraceIdRendererProps {
   location: Location;
   timestamp: number; // in milliseconds
   traceId: string;
-  onClick?: () => void;
+  onClick?: React.ComponentProps<typeof Link>['onClick'];
   transactionId?: string;
 }
 

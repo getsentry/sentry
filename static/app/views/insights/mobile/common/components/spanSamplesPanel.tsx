@@ -17,7 +17,9 @@ import DetailPanel from 'sentry/views/insights/common/components/detailPanel';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {SpanSamplesContainer} from 'sentry/views/insights/mobile/common/components/spanSamplesPanelContainer';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import type {ModuleName} from 'sentry/views/insights/types';
+import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 
 type Props = {
   groupId: string;
@@ -41,11 +43,15 @@ export function SpanSamplesPanel({
   transactionMethod,
   spanDescription,
   onClose,
-  transactionRoute = '/performance/summary/',
+  transactionRoute,
   spanOp,
   additionalFilters,
 }: Props) {
   const router = useRouter();
+  const organization = useOrganization();
+  const {view} = useDomainViewFilters();
+
+  transactionRoute ??= getTransactionSummaryBaseUrl(organization.slug, view);
 
   const {primaryRelease, secondaryRelease} = useReleaseSelection();
 
@@ -55,7 +61,6 @@ export function SpanSamplesPanel({
     ? [groupId, transactionName, transactionMethod].filter(Boolean).join(':')
     : undefined;
 
-  const organization = useOrganization();
   const {query} = useLocation();
   const {project} = useCrossPlatformProject();
 

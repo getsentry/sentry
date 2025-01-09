@@ -9,7 +9,7 @@ import {TraceTree} from './traceTree';
 
 const start = new Date('2024-02-29T00:00:00Z').getTime() / 1e3;
 
-const traceMetadata = {replayRecord: null, meta: null};
+const traceMetadata = {replay: null, meta: null};
 
 const ssrTrace = makeTrace({
   transactions: [
@@ -47,8 +47,8 @@ describe('server side rendering', () => {
   it('reparents pageload transaction as parent of server handler', () => {
     const tree = TraceTree.FromTrace(ssrTrace, traceMetadata);
 
-    const pageload = tree.root.children[0].children[0];
-    const serverHandler = pageload.children[0];
+    const pageload = tree.root.children[0]!.children[0]!;
+    const serverHandler = pageload.children[0]!;
 
     expect(serverHandler.parent).toBe(pageload);
     expect(pageload.parent).toBe(tree.root.children[0]);
@@ -59,14 +59,10 @@ describe('server side rendering', () => {
     const tree = TraceTree.FromTrace(ssrTrace, traceMetadata);
 
     TraceTree.FromSpans(
-      tree.root.children[0].children[0],
+      tree.root.children[0]!.children[0]!,
       ssrSpans,
-      makeEventTransaction(),
-      {
-        sdk: undefined,
-      }
+      makeEventTransaction()
     );
-
     expect(tree.build().serialize()).toMatchSnapshot();
   });
 

@@ -1,19 +1,21 @@
 ---
-created: '2020-02-26T19:54:38.127506Z'
+created: '2024-12-17T22:46:50.448347+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
+  contributing component: null
   component:
     app (stacktrace of system takes precedence)
-      stacktrace
+      stacktrace (ignored because it contains no in-app frames)
         frame (non app frame)
           filename*
             "foo.html.erb"
 --------------------------------------------------------------------------
 system:
   hash: "2f908c015ad77a50595512fcf65d344c"
+  contributing component: stacktrace
   component:
     system*
       stacktrace*

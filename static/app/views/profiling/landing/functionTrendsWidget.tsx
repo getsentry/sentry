@@ -27,7 +27,7 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import type {FunctionTrend, TrendType} from 'sentry/utils/profiling/hooks/types';
 import {useProfileFunctionTrends} from 'sentry/utils/profiling/hooks/useProfileFunctionTrends';
-import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
+import {generateProfileRouteFromProfileReference} from 'sentry/utils/profiling/routes';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -211,7 +211,7 @@ function FunctionTrendsEntry({
   const project = projects.find(p => p.id === func.project);
 
   const [beforeExamples, afterExamples] = useMemo(() => {
-    return partition(func.worst, ([ts, _example]) => ts <= func.breakpoint);
+    return partition(func.examples, ([ts, _example]) => ts <= func.breakpoint);
   }, [func]);
 
   let before = <PerformanceDuration nanoseconds={func.aggregate_range_1} abbreviation />;
@@ -241,14 +241,12 @@ function FunctionTrendsEntry({
     // occurred within the period and eliminate confusion with picking an example in
     // the same bucket as the breakpoint.
 
-    const beforeTarget = generateProfileFlamechartRouteWithQuery({
+    const beforeTarget = generateProfileRouteFromProfileReference({
       orgSlug: organization.slug,
       projectSlug: project.slug,
-      profileId: beforeExamples[beforeExamples.length - 2][1],
-      query: {
-        frameName: func.function as string,
-        framePackage: func.package as string,
-      },
+      reference: beforeExamples[beforeExamples.length - 2]![1],
+      frameName: func.function as string,
+      framePackage: func.package as string,
     });
 
     before = (
@@ -257,14 +255,12 @@ function FunctionTrendsEntry({
       </Link>
     );
 
-    const afterTarget = generateProfileFlamechartRouteWithQuery({
+    const afterTarget = generateProfileRouteFromProfileReference({
       orgSlug: organization.slug,
       projectSlug: project.slug,
-      profileId: afterExamples[afterExamples.length - 2][1],
-      query: {
-        frameName: func.function as string,
-        framePackage: func.package as string,
-      },
+      reference: afterExamples[afterExamples.length - 2]![1],
+      frameName: func.function as string,
+      framePackage: func.package as string,
     });
 
     after = (
@@ -277,6 +273,14 @@ function FunctionTrendsEntry({
   return (
     <Fragment>
       <StyledAccordionItem>
+        <Button
+          icon={<IconChevron size="xs" direction={isExpanded ? 'up' : 'down'} />}
+          aria-label={t('Expand')}
+          aria-expanded={isExpanded}
+          size="zero"
+          borderless
+          onClick={() => setExpanded()}
+        />
         {project && (
           <Tooltip title={project.name}>
             <IdBadge project={project} avatarSize={16} hideName />
@@ -296,14 +300,6 @@ function FunctionTrendsEntry({
             {after}
           </DurationChange>
         </Tooltip>
-        <Button
-          icon={<IconChevron size="xs" direction={isExpanded ? 'up' : 'down'} />}
-          aria-label={t('Expand')}
-          aria-expanded={isExpanded}
-          size="zero"
-          borderless
-          onClick={() => setExpanded()}
-        />
       </StyledAccordionItem>
       {isExpanded && (
         <FunctionTrendsChartContainer>
@@ -335,9 +331,9 @@ function FunctionTrendsChart({func, trendFunction}: FunctionTrendsChartProps) {
       color: getTrendLineColor(func.change, theme),
     };
 
-    const seriesStart = func.stats.data[0][0] * 1e3;
+    const seriesStart = func.stats.data[0]![0] * 1e3;
     const seriesMid = func.breakpoint * 1e3;
-    const seriesEnd = func.stats.data[func.stats.data.length - 1][0] * 1e3;
+    const seriesEnd = func.stats.data[func.stats.data.length - 1]![0] * 1e3;
 
     const dividingLine = {
       data: [],
@@ -492,7 +488,7 @@ const StyledPagination = styled(Pagination)`
 
 const StyledAccordionItem = styled(AccordionItem)`
   display: grid;
-  grid-template-columns: auto 1fr auto auto;
+  grid-template-columns: auto auto 1fr auto;
 `;
 
 const FunctionName = styled(TextOverflow)`

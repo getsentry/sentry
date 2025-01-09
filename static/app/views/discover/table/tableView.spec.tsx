@@ -6,13 +6,15 @@ import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLi
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TagStore from 'sentry/stores/tagStore';
-import {browserHistory} from 'sentry/utils/browserHistory';
+import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import TableView from 'sentry/views/discover/table/tableView';
 
 describe('TableView > CellActions', function () {
-  let initialData, rows, onChangeShowTags;
+  let initialData: ReturnType<typeof initializeOrg>;
+  let rows: any;
+  let onChangeShowTags: jest.Mock;
 
   const location = LocationFixture({
     pathname: '/organizations/org-slug/discover/results/',
@@ -37,7 +39,11 @@ describe('TableView > CellActions', function () {
   });
   const eventView = EventView.fromLocation(location);
 
-  function renderComponent(context, tableData, view) {
+  function renderComponent(
+    context: ReturnType<typeof initializeOrg>,
+    tableData: TableData,
+    view: EventView
+  ) {
     return render(
       <TableView
         organization={context.organization}
@@ -57,17 +63,14 @@ describe('TableView > CellActions', function () {
     );
   }
 
-  async function openContextMenu(cellIndex) {
-    const firstRow = screen.getAllByRole('row')[1];
-    const emptyValueCell = within(firstRow).getAllByRole('cell')[cellIndex];
+  async function openContextMenu(cellIndex: number) {
+    const firstRow = screen.getAllByRole('row')[1]!;
+    const emptyValueCell = within(firstRow).getAllByRole('cell')[cellIndex]!;
 
     await userEvent.click(within(emptyValueCell).getByRole('button', {name: 'Actions'}));
   }
 
   beforeEach(function () {
-    jest.mocked(browserHistory.push).mockReset();
-    jest.mocked(browserHistory.replace).mockReset();
-
     const organization = OrganizationFixture({
       features: ['discover-basic'],
     });
@@ -154,7 +157,7 @@ describe('TableView > CellActions', function () {
     await openContextMenu(1);
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Add to filter'}));
 
-    expect(browserHistory.push).toHaveBeenCalledWith({
+    expect(initialData.router.push).toHaveBeenCalledWith({
       pathname: location.pathname,
       query: expect.objectContaining({
         query: '!has:title',
@@ -171,7 +174,7 @@ describe('TableView > CellActions', function () {
     await openContextMenu(1);
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Add to filter'}));
 
-    expect(browserHistory.push).toHaveBeenCalledWith({
+    expect(initialData.router.push).toHaveBeenCalledWith({
       pathname: location.pathname,
       query: expect.objectContaining({
         query: 'tag:value !has:title',
@@ -187,7 +190,7 @@ describe('TableView > CellActions', function () {
     await openContextMenu(1);
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Add to filter'}));
 
-    expect(browserHistory.push).toHaveBeenCalledWith({
+    expect(initialData.router.push).toHaveBeenCalledWith({
       pathname: location.pathname,
       query: expect.objectContaining({
         query: 'tag:value title:"some title"',
@@ -202,7 +205,7 @@ describe('TableView > CellActions', function () {
     await openContextMenu(1);
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Add to filter'}));
 
-    expect(browserHistory.push).toHaveBeenCalledWith({
+    expect(initialData.router.push).toHaveBeenCalledWith({
       pathname: location.pathname,
       query: expect.objectContaining({
         query: 'title:"some title"',
@@ -218,7 +221,7 @@ describe('TableView > CellActions', function () {
       screen.getByRole('menuitemradio', {name: 'Exclude from filter'})
     );
 
-    expect(browserHistory.push).toHaveBeenCalledWith({
+    expect(initialData.router.push).toHaveBeenCalledWith({
       pathname: location.pathname,
       query: expect.objectContaining({
         query: '!title:"some title"',
@@ -236,7 +239,7 @@ describe('TableView > CellActions', function () {
       screen.getByRole('menuitemradio', {name: 'Exclude from filter'})
     );
 
-    expect(browserHistory.push).toHaveBeenCalledWith({
+    expect(initialData.router.push).toHaveBeenCalledWith({
       pathname: location.pathname,
       query: expect.objectContaining({
         query: 'tag:value !title:"some title"',
@@ -253,7 +256,7 @@ describe('TableView > CellActions', function () {
       screen.getByRole('menuitemradio', {name: 'Exclude from filter'})
     );
 
-    expect(browserHistory.push).toHaveBeenCalledWith({
+    expect(initialData.router.push).toHaveBeenCalledWith({
       pathname: location.pathname,
       query: expect.objectContaining({
         query: 'has:title',
@@ -272,7 +275,7 @@ describe('TableView > CellActions', function () {
       screen.getByRole('menuitemradio', {name: 'Exclude from filter'})
     );
 
-    expect(browserHistory.push).toHaveBeenCalledWith({
+    expect(initialData.router.push).toHaveBeenCalledWith({
       pathname: location.pathname,
       query: expect.objectContaining({
         query: 'tag:value has:title',
@@ -287,7 +290,7 @@ describe('TableView > CellActions', function () {
       screen.getByRole('menuitemradio', {name: 'Show values greater than'})
     );
 
-    expect(browserHistory.push).toHaveBeenCalledWith({
+    expect(initialData.router.push).toHaveBeenCalledWith({
       pathname: location.pathname,
       query: expect.objectContaining({
         query: 'count():>9',
@@ -302,7 +305,7 @@ describe('TableView > CellActions', function () {
       screen.getByRole('menuitemradio', {name: 'Show values less than'})
     );
 
-    expect(browserHistory.push).toHaveBeenCalledWith({
+    expect(initialData.router.push).toHaveBeenCalledWith({
       pathname: location.pathname,
       query: expect.objectContaining({
         query: 'count():<9',
@@ -315,7 +318,7 @@ describe('TableView > CellActions', function () {
 
     renderComponent(initialData, rows, eventView);
 
-    const firstRow = screen.getAllByRole('row')[1];
+    const firstRow = screen.getAllByRole('row')[1]!;
     const link = within(firstRow).getByTestId('tableView-transaction-link');
 
     expect(link).toHaveAttribute(
@@ -344,7 +347,6 @@ describe('TableView > CellActions', function () {
         transaction: 'string',
         timestamp: 'date',
         project: 'string',
-        'event.type': 'string',
       },
       data: [
         {
@@ -353,7 +355,6 @@ describe('TableView > CellActions', function () {
           transaction: '/organizations/',
           timestamp: '2019-05-23T22:12:48+00:00',
           project: 'project-slug',
-          'event.type': '',
         },
       ],
     };
@@ -381,7 +382,7 @@ describe('TableView > CellActions', function () {
 
     renderComponent(initialData, rows, EventView.fromLocation(loc));
 
-    const firstRow = screen.getAllByRole('row')[1];
+    const firstRow = screen.getAllByRole('row')[1]!;
     const link = within(firstRow).getByTestId('view-event');
 
     expect(link).toHaveAttribute(
@@ -399,7 +400,7 @@ describe('TableView > CellActions', function () {
     await openContextMenu(5);
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Go to release'}));
 
-    expect(browserHistory.push).toHaveBeenCalledWith({
+    expect(initialData.router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/releases/v1.0.2/',
       query: expect.objectContaining({
         environment: eventView.environment,
@@ -411,8 +412,8 @@ describe('TableView > CellActions', function () {
     rows.data[0]['count()'] = 1000;
     renderComponent(initialData, rows, eventView);
 
-    const firstRow = screen.getAllByRole('row')[1];
-    const emptyValueCell = within(firstRow).getAllByRole('cell')[3];
+    const firstRow = screen.getAllByRole('row')[1]!;
+    const emptyValueCell = within(firstRow).getAllByRole('cell')[3]!;
 
     expect(within(emptyValueCell).getByText('1k')).toHaveAttribute('title', '1,000');
   });
@@ -502,13 +503,14 @@ describe('TableView > CellActions', function () {
         measurementKeys={null}
         showTags={false}
         title=""
-      />
+      />,
+      {router: initialData.router}
     );
     await userEvent.hover(screen.getByText('444.3 KB'));
     const buttons = screen.getAllByRole('button');
-    await userEvent.click(buttons[buttons.length - 1]);
+    await userEvent.click(buttons[buttons.length - 1]!);
     await userEvent.click(screen.getByText('Show values less than'));
-    expect(browserHistory.push).toHaveBeenCalledWith({
+    expect(initialData.router.push).toHaveBeenCalledWith({
       pathname: location.pathname,
       query: expect.objectContaining({
         query: 'p99(measurements.custom.kilobyte):<444300',

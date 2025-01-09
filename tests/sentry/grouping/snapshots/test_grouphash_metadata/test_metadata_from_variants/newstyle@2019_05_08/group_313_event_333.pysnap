@@ -1,0 +1,130 @@
+---
+created: '2024-12-17T22:50:13.146620+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+hashing_metadata: {
+  "num_stacktraces": 1,
+  "stacktrace_location": "exception",
+  "stacktrace_type": "system"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "stacktrace",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.stacktrace": {
+    "chained_exception": "False",
+    "stacktrace_location": "exception",
+    "stacktrace_type": "system"
+  }
+}
+---
+contributing variants:
+  system*
+    hash: "51856c096282b824c59e92b79dda4eec"
+    contributing component: exception
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+              function*
+                "start"
+            frame*
+              function*
+                "stripped_application_code"
+            frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+              filename*
+                "functional"
+              function*
+                "std::__1::function<T>::operator()"
+            frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+              filename*
+                "functional"
+              function*
+                "std::__1::__function::__value_func<T>::operator()"
+            frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+              filename*
+                "functional"
+              function*
+                "std::__1::__function::__func<T>::operator()"
+            frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+              filename*
+                "functional"
+              function*
+                "std::__1::__function::__alloc_func<T>::operator()"
+            frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+              filename*
+                "__functional_base"
+              function*
+                "std::__1::__invoke_void_return_wrapper<T>::__call<T>"
+            frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+              filename*
+                "type_traits"
+              function*
+                "std::__1::__invoke<T>"
+            frame*
+              filename*
+                "initialize.cpp"
+              function*
+                "MZ::`anonymous namespace'::lambda::operator()"
+            frame*
+              function*
+                "stripped_application_code"
+            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+              function*
+                "_objc_msgSend_uncached"
+            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+              function*
+                "lookUpImpOrForward"
+            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+              function*
+                "initializeAndMaybeRelock"
+            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+              function*
+                "initializeNonMetaClass"
+            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+              function*
+                "CALLING_SOME_+initialize_METHOD"
+            frame*
+              function*
+                "stripped_application_code"
+            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+              function*
+                "dlopen"
+            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+              function*
+                "dlopen_internal"
+            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+              function*
+                "dyld::runInitializers"
+            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+              function*
+                "ImageLoader::runInitializers"
+            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+              function*
+                "ImageLoader::processInitializers"
+            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+              function*
+                "ImageLoader::recursiveInitialization"
+            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+              function*
+                "ImageLoaderMachO::doInitialization"
+            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+              function*
+                "ImageLoaderMachO::doModInitFunctions"
+            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+              function*
+                "__report_load"
+            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+              function*
+                "abort"
+            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+              function*
+                "__abort"
+            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+              function*
+                "__pthread_kill"

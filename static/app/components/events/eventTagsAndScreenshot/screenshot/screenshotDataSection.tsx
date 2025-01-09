@@ -18,7 +18,7 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {SCREENSHOT_TYPE} from 'sentry/views/issueDetails/groupEventAttachments/groupEventAttachmentsFilter';
+import {EventAttachmentFilter} from 'sentry/views/issueDetails/groupEventAttachments/groupEventAttachmentsFilter';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
@@ -63,7 +63,7 @@ export function ScreenshotDataSection({
   const [screenshotInFocus, setScreenshotInFocus] = useState<number>(0);
 
   const showScreenshot = !isShare && !!screenshots.length;
-  const screenshot = screenshots[screenshotInFocus];
+  const screenshot = screenshots[screenshotInFocus]!;
 
   const handleDeleteScreenshot = (attachmentId: string) => {
     deleteAttachment({
@@ -92,8 +92,6 @@ export function ScreenshotDataSection({
       modalProps => (
         <ScreenshotModal
           {...modalProps}
-          event={event}
-          orgSlug={organization.slug}
           projectSlug={projectSlug}
           eventAttachment={eventAttachment}
           downloadUrl={downloadUrl}
@@ -104,7 +102,6 @@ export function ScreenshotDataSection({
             })
           }
           attachments={screenshots}
-          attachmentIndex={screenshotInFocus}
         />
       ),
       {modalCss}
@@ -113,7 +110,7 @@ export function ScreenshotDataSection({
 
   const linkPath = {
     pathname: `${location.pathname}${TabPaths[Tab.ATTACHMENTS]}`,
-    query: {...location.query, types: SCREENSHOT_TYPE},
+    query: {...location.query, attachmentFilter: EventAttachmentFilter.SCREENSHOT},
   };
   const title = tn('Screenshot', 'Screenshots', screenshots.length);
 

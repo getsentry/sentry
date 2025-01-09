@@ -20,7 +20,10 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
-import {TimePeriod} from 'sentry/views/alerts/rules/metric/types';
+import {
+  AlertRuleComparisonType,
+  TimePeriod,
+} from 'sentry/views/alerts/rules/metric/types';
 import type {Anomaly, Incident} from 'sentry/views/alerts/types';
 import {
   fetchAlertRule,
@@ -98,7 +101,18 @@ class MetricAlertDetails extends Component<Props, State> {
 
   getTimePeriod(selectedIncident: Incident | null): TimePeriodType {
     const {location} = this.props;
-    const period = (location.query.period as string) ?? TimePeriod.SEVEN_DAYS;
+    const {rule} = this.state;
+    let period = location.query.period as string | undefined;
+    if (!period) {
+      // Default to 28d view for dynamic alert rules! Anomaly detection
+      // is evaluated against 28d of historical data, so incidents should
+      // be presented in that same context for clarity
+      if (rule?.detectionType === AlertRuleComparisonType.DYNAMIC) {
+        period = TimePeriod.TWENTY_EIGHT_DAYS;
+      } else {
+        period = TimePeriod.SEVEN_DAYS;
+      }
+    }
 
     if (location.query.start && location.query.end) {
       return {
@@ -138,7 +152,7 @@ class MetricAlertDetails extends Component<Props, State> {
     }
 
     const timeOption =
-      TIME_OPTIONS.find(item => item.value === period) ?? TIME_OPTIONS[1];
+      TIME_OPTIONS.find(item => item.value === period) ?? TIME_OPTIONS[1]!;
     const start = getUtcDateString(
       moment(moment.utc().diff(TIME_WINDOWS[timeOption.value]))
     );

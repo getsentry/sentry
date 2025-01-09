@@ -76,10 +76,10 @@ def _create_api_access_log(
     Create a log entry to be used for api metrics gathering
     """
     try:
-        try:
-            view = request.resolver_match._func_path
-        except AttributeError:
+        if request.resolver_match is None:
             view = "Unknown"
+        else:
+            view = request.resolver_match._func_path
 
         request_auth = _get_request_auth(request)
         token_type = str(_get_token_name(request_auth))

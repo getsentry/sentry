@@ -1,15 +1,16 @@
 ---
-created: '2020-08-25T09:17:19.930253Z'
+created: '2024-12-17T22:46:52.248614+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: "750486b8d8c51500fa0dfbb6f1577af0"
+  contributing component: chained-exception
   component:
     app*
       chained-exception*
         exception*
-          stacktrace
+          stacktrace (ignored because it contains no in-app frames)
             frame (non app frame)
               module*
                 "io.sentry.example.Application"
@@ -176,7 +177,7 @@ app:
           value*
             "Address already in use"
         exception*
-          stacktrace
+          stacktrace (ignored because it contains no in-app frames)
             frame (non app frame)
               module*
                 "io.sentry.example.Application"
@@ -393,6 +394,7 @@ app:
 --------------------------------------------------------------------------
 default:
   hash: null
+  contributing component: null
   component:
     default (exception of app/system takes precedence)
       message (exception of app/system takes precedence)
@@ -400,6 +402,7 @@ default:
 --------------------------------------------------------------------------
 system:
   hash: "8924849495809d42431719c2b9ab65c8"
+  contributing component: chained-exception
   component:
     system*
       chained-exception*

@@ -22,7 +22,7 @@ from sentry.models.files.fileblob import FileBlob
 from sentry.models.release import Release
 from sentry.models.releasefile import ReleaseFile, update_artifact_index
 from sentry.tasks.assemble import assemble_artifacts
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.relay import RelayStoreHelper
 from sentry.testutils.skips import requires_kafka, requires_symbolicator
@@ -111,7 +111,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
         self.project = default_project
         self.projectkey = default_projectkey
         self.organization = self.project.organization
-        self.min_ago = iso_format(before_now(minutes=1))
+        self.min_ago = before_now(minutes=1).isoformat()
         # We disable scraping per-test when necessary.
         self.project.update_option("sentry:scrape_javascript", True)
 
@@ -140,7 +140,12 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
         event = self.post_and_retrieve_event(data)
         contexts = event.interfaces["contexts"].to_json()
-        assert contexts.get("os") == {"name": "Windows", "version": "8", "type": "os"}
+        assert contexts.get("os") == {
+            "os": "Windows 8",
+            "name": "Windows",
+            "version": "8",
+            "type": "os",
+        }
         assert contexts.get("device") is None
 
     @requires_symbolicator
@@ -165,8 +170,18 @@ class TestJavascriptIntegration(RelayStoreHelper):
         event = self.post_and_retrieve_event(data)
 
         contexts = event.interfaces["contexts"].to_json()
-        assert contexts.get("os") == {"name": "Android", "type": "os", "version": "4.3"}
-        assert contexts.get("browser") == {"name": "Android", "type": "browser", "version": "4.3"}
+        assert contexts.get("os") == {
+            "os": "Android 4.3",
+            "name": "Android",
+            "type": "os",
+            "version": "4.3",
+        }
+        assert contexts.get("browser") == {
+            "browser": "Android 4.3",
+            "name": "Android",
+            "type": "browser",
+            "version": "4.3",
+        }
         assert contexts.get("device") == {
             "family": "Samsung SCH-R530U",
             "type": "device",

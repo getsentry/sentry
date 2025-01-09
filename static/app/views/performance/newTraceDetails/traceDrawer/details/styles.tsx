@@ -10,8 +10,10 @@ import {
   type MenuItemProps,
 } from 'sentry/components/dropdownMenu';
 import EventTagsDataSection from 'sentry/components/events/eventTagsAndScreenshot/tags';
+import {generateStats} from 'sentry/components/events/opsBreakdown';
 import {DataSection} from 'sentry/components/events/styles';
 import FileSize from 'sentry/components/fileSize';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import KeyValueData, {
   CardPanel,
   type KeyValueDataContentProps,
@@ -19,17 +21,30 @@ import KeyValueData, {
 } from 'sentry/components/keyValueData';
 import {LazyRender, type LazyRenderProps} from 'sentry/components/lazyRender';
 import Link from 'sentry/components/links/link';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
+import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconChevron, IconOpen} from 'sentry/icons';
+import {
+  IconChevron,
+  IconCircleFill,
+  IconFocus,
+  IconJson,
+  IconOpen,
+  IconPanel,
+  IconProfiling,
+} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event, EventTransaction} from 'sentry/types/event';
 import type {KeyValueListData} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import getDuration from 'sentry/utils/duration/getDuration';
-import type {ColorOrAlias} from 'sentry/utils/theme';
+import type {Color, ColorOrAlias} from 'sentry/utils/theme';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -37,7 +52,10 @@ import {useParams} from 'sentry/utils/useParams';
 import {traceAnalytics} from '../../traceAnalytics';
 import {useTransaction} from '../../traceApi/useTransaction';
 import {useDrawerContainerRef} from '../../traceDrawer/details/drawerContainerRefContext';
-import {makeTraceContinuousProfilingLink} from '../../traceDrawer/traceProfilingLink';
+import {
+  makeTraceContinuousProfilingLink,
+  makeTransactionProfilingLink,
+} from '../../traceDrawer/traceProfilingLink';
 import {
   isAutogroupedNode,
   isMissingInstrumentationNode,
@@ -51,16 +69,26 @@ import type {ParentAutogroupNode} from '../../traceModels/parentAutogroupNode';
 import type {SiblingAutogroupNode} from '../../traceModels/siblingAutogroupNode';
 import {TraceTree} from '../../traceModels/traceTree';
 import type {TraceTreeNode} from '../../traceModels/traceTreeNode';
+import {useTraceState, useTraceStateDispatch} from '../../traceState/traceStateProvider';
+import {useHasTraceNewUi} from '../../useHasTraceNewUi';
 
-const DetailContainer = styled('div')`
+const BodyContainer = styled('div')<{hasNewTraceUi?: boolean}>`
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
-  padding: ${space(1)};
+  gap: ${p => (p.hasNewTraceUi ? 0 : space(2))};
+  padding: ${p => (p.hasNewTraceUi ? `${space(0.5)} ${space(2)}` : space(1))};
+  height: calc(100% - 52px);
+  overflow: auto;
 
   ${DataSection} {
     padding: 0;
   }
+`;
+
+const DetailContainer = styled('div')`
+  height: 100%;
+  overflow: hidden;
+  padding-bottom: ${space(1)};
 `;
 
 const FlexBox = styled('div')`
@@ -83,13 +111,50 @@ const Title = styled(FlexBox)`
   }
 `;
 
-const TitleText = styled('div')`
+const LegacyTitleText = styled('div')`
   ${p => p.theme.overflowEllipsis}
+`;
+
+const TitleText = styled('div')`
+  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-weight: bold;
 `;
 
 function TitleWithTestId(props: PropsWithChildren<{}>) {
   return <Title data-test-id="trace-drawer-title">{props.children}</Title>;
 }
+
+function SubtitleWithCopyButton({
+  text,
+  hideCopyButton = false,
+}: {
+  text: string;
+  hideCopyButton?: boolean;
+}) {
+  return (
+    <SubTitleWrapper>
+      <StyledSubTitleText>{text}</StyledSubTitleText>
+      {!hideCopyButton ? (
+        <CopyToClipboardButton
+          borderless
+          size="zero"
+          iconSize="xs"
+          text={text}
+          tooltipProps={{disabled: true}}
+        />
+      ) : null}
+    </SubTitleWrapper>
+  );
+}
+
+const SubTitleWrapper = styled(FlexBox)`
+  ${p => p.theme.overflowEllipsis}
+`;
+
+const StyledSubTitleText = styled('span')`
+  font-size: ${p => p.theme.fontSizeMedium};
+  color: ${p => p.theme.subText};
+`;
 
 function TitleOp({text}: {text: string}) {
   return (
@@ -155,7 +220,8 @@ const IconBorder = styled('div')<{backgroundColor: string; errored?: boolean}>`
   }
 `;
 
-const HeaderContainer = styled(FlexBox)`
+const LegacyHeaderContainer = styled(FlexBox)`
+  margin: ${space(1)};
   justify-content: space-between;
   gap: ${space(3)};
   container-type: inline-size;
@@ -174,6 +240,15 @@ const HeaderContainer = styled(FlexBox)`
       display: none;
     }
   }
+`;
+
+const HeaderContainer = styled(FlexBox)`
+  align-items: baseline;
+  justify-content: space-between;
+  gap: ${space(3)};
+  padding: ${space(0.25)} 0 ${space(0.5)} 0;
+  margin: 0 ${space(2)} ${space(1)} ${space(2)};
+  border-bottom: 1px solid ${p => p.theme.border};
 `;
 
 const DURATION_COMPARISON_STATUS_COLORS: {
@@ -197,9 +272,57 @@ const DURATION_COMPARISON_STATUS_COLORS: {
 
 const MIN_PCT_DURATION_DIFFERENCE = 10;
 
+type DurationComparison = {
+  deltaPct: number;
+  deltaText: JSX.Element;
+  status: 'faster' | 'slower' | 'equal';
+} | null;
+
+const getDurationComparison = (
+  baseline: number | undefined,
+  duration: number,
+  baseDescription?: string
+): DurationComparison => {
+  if (!baseline) {
+    return null;
+  }
+
+  const delta = duration - baseline;
+  const deltaPct = Math.round(Math.abs((delta / baseline) * 100));
+  const status = delta > 0 ? 'slower' : delta < 0 ? 'faster' : 'equal';
+
+  const formattedBaseDuration = (
+    <Tooltip
+      title={baseDescription}
+      showUnderline
+      underlineColor={DURATION_COMPARISON_STATUS_COLORS[status].normal}
+    >
+      {getDuration(baseline, 2, true)}
+    </Tooltip>
+  );
+
+  const deltaText =
+    status === 'equal'
+      ? tct(`equal to avg [formattedBaseDuration]`, {
+          formattedBaseDuration,
+        })
+      : status === 'faster'
+        ? tct(`[deltaPct] faster than avg [formattedBaseDuration]`, {
+            formattedBaseDuration,
+            deltaPct: `${deltaPct}%`,
+          })
+        : tct(`[deltaPct] slower than avg [formattedBaseDuration]`, {
+            formattedBaseDuration,
+            deltaPct: `${deltaPct}%`,
+          });
+
+  return {deltaPct, status, deltaText};
+};
+
 type DurationProps = {
   baseline: number | undefined;
   duration: number;
+  node: TraceTreeNode<TraceTree.NodeValue>;
   baseDescription?: string;
   ratio?: number;
 };
@@ -209,47 +332,30 @@ function Duration(props: DurationProps) {
     return <DurationContainer>{t('unknown')}</DurationContainer>;
   }
 
+  // Since transactions have ms precision, we show 2 decimal places only if the duration is greater than 1 second.
+  const precision = isTransactionNode(props.node) ? (props.duration > 1 ? 2 : 0) : 2;
   if (props.baseline === undefined || props.baseline === 0) {
-    return <DurationContainer>{getDuration(props.duration, 2, true)}</DurationContainer>;
+    return (
+      <DurationContainer>
+        {getDuration(props.duration, precision, true)}
+      </DurationContainer>
+    );
   }
 
-  const delta = props.duration - props.baseline;
-  const deltaPct = Math.round(Math.abs((delta / props.baseline) * 100));
-  const status = delta > 0 ? 'slower' : delta < 0 ? 'faster' : 'equal';
-
-  const formattedBaseDuration = (
-    <Tooltip
-      title={props.baseDescription}
-      showUnderline
-      underlineColor={DURATION_COMPARISON_STATUS_COLORS[status].normal}
-    >
-      {getDuration(props.baseline, 2, true)}
-    </Tooltip>
+  const comparison = getDurationComparison(
+    props.baseline,
+    props.duration,
+    props.baseDescription
   );
-
-  const deltaText =
-    status === 'equal'
-      ? tct(`equal to the avg of [formattedBaseDuration]`, {
-          formattedBaseDuration,
-        })
-      : status === 'faster'
-        ? tct(`[deltaPct] faster than the avg of [formattedBaseDuration]`, {
-            formattedBaseDuration,
-            deltaPct: `${deltaPct}%`,
-          })
-        : tct(`[deltaPct] slower than the avg of [formattedBaseDuration]`, {
-            formattedBaseDuration,
-            deltaPct: `${deltaPct}%`,
-          });
 
   return (
     <Fragment>
       <DurationContainer>
-        {getDuration(props.duration, 2, true)}{' '}
+        {getDuration(props.duration, precision, true)}{' '}
         {props.ratio ? `(${(props.ratio * 100).toFixed()}%)` : null}
       </DurationContainer>
-      {deltaPct >= MIN_PCT_DURATION_DIFFERENCE ? (
-        <Comparison status={status}>{deltaText}</Comparison>
+      {comparison && comparison.deltaPct >= MIN_PCT_DURATION_DIFFERENCE ? (
+        <Comparison status={comparison.status}>{comparison.deltaText}</Comparison>
       ) : null}
     </Fragment>
   );
@@ -295,6 +401,208 @@ function TableRow({
   );
 }
 
+type HighlightProps = {
+  avgDuration: number | undefined;
+  bodyContent: React.ReactNode;
+  headerContent: React.ReactNode;
+  node: TraceTreeNode<TraceTree.NodeValue>;
+  project: Project | undefined;
+  transaction: EventTransaction | undefined;
+};
+
+function Highlights({
+  node,
+  transaction: event,
+  avgDuration,
+  project,
+  headerContent,
+  bodyContent,
+}: HighlightProps) {
+  if (!isTransactionNode(node) && !isSpanNode(node)) {
+    return null;
+  }
+
+  const startTimestamp = node.space[0];
+  const endTimestamp = node.space[0] + node.space[1];
+  const durationInSeconds = (endTimestamp - startTimestamp) / 1e3;
+
+  const comparison = getDurationComparison(
+    avgDuration,
+    durationInSeconds,
+    t('Average duration for this transaction over the last 24 hours')
+  );
+
+  return (
+    <Fragment>
+      <HighlightsWrapper>
+        <HighlightsLeftColumn>
+          <Tooltip title={node.value?.project_slug}>
+            <ProjectBadge
+              project={project ? project : {slug: node.value?.project_slug ?? ''}}
+              avatarSize={18}
+              hideName
+            />
+          </Tooltip>
+          <VerticalLine />
+        </HighlightsLeftColumn>
+        <HighlightsRightColumn>
+          <HighlightOp>
+            {isTransactionNode(node) ? node.value?.['transaction.op'] : node.value?.op}
+          </HighlightOp>
+          <HighlightsDurationWrapper>
+            <HighlightDuration>
+              {getDuration(durationInSeconds, 2, true)}
+            </HighlightDuration>
+            {comparison && comparison.deltaPct >= MIN_PCT_DURATION_DIFFERENCE ? (
+              <HiglightsDurationComparison status={comparison.status}>
+                {comparison.deltaText}
+              </HiglightsDurationComparison>
+            ) : null}
+          </HighlightsDurationWrapper>
+          <StyledPanel>
+            <StyledPanelHeader>{headerContent}</StyledPanelHeader>
+            <PanelBody>{bodyContent}</PanelBody>
+          </StyledPanel>
+          {event ? <HighLightsOpsBreakdown event={event} /> : null}
+        </HighlightsRightColumn>
+      </HighlightsWrapper>
+      <SectionDivider />
+    </Fragment>
+  );
+}
+
+const StyledPanel = styled(Panel)`
+  margin-bottom: 0;
+`;
+
+function HighLightsOpsBreakdown({event}: {event: EventTransaction}) {
+  const breakdown = generateStats(event, {type: 'no_filter'});
+
+  return (
+    <HighlightsOpsBreakdownWrapper>
+      <HighlightsSpanCount>
+        {t('Most frequent span ops for this transaction are')}
+      </HighlightsSpanCount>
+      <TopOpsList>
+        {breakdown.slice(0, 3).map(currOp => {
+          const {name, percentage} = currOp;
+
+          const operationName = typeof name === 'string' ? name : t('Other');
+          const color = pickBarColor(operationName);
+          const pctLabel = isFinite(percentage) ? Math.round(percentage * 100) : '∞';
+
+          return (
+            <HighlightsOpRow key={operationName}>
+              <IconCircleFill size="xs" color={color as Color} />
+              {operationName}
+              <HighlightsOpPct>{pctLabel}%</HighlightsOpPct>
+            </HighlightsOpRow>
+          );
+        })}
+      </TopOpsList>
+    </HighlightsOpsBreakdownWrapper>
+  );
+}
+
+const TopOpsList = styled('div')`
+  display: flex;
+  flex-direction: row;
+  gap: ${space(1)};
+`;
+
+const HighlightsOpPct = styled('div')`
+  color: ${p => p.theme.subText};
+  font-size: 14px;
+`;
+
+const HighlightsSpanCount = styled('div')`
+  margin-bottom: ${space(0.25)};
+`;
+
+const HighlightsOpRow = styled(FlexBox)`
+  font-size: 13px;
+  gap: ${space(0.5)};
+`;
+
+const HighlightsOpsBreakdownWrapper = styled(FlexBox)`
+  align-items: flex-start;
+  flex-direction: column;
+  gap: ${space(0.25)};
+  margin-top: ${space(1.5)};
+`;
+
+const HiglightsDurationComparison = styled('div')<{status: string}>`
+  white-space: nowrap;
+  border-radius: 12px;
+  color: ${p => p.theme[DURATION_COMPARISON_STATUS_COLORS[p.status].normal]};
+  background-color: ${p => p.theme[DURATION_COMPARISON_STATUS_COLORS[p.status].light]};
+  border: solid 1px ${p => p.theme[DURATION_COMPARISON_STATUS_COLORS[p.status].light]};
+  font-size: ${p => p.theme.fontSizeExtraSmall};
+  padding: ${space(0.25)} ${space(1)};
+  display: inline-block;
+  height: 21px;
+`;
+
+const HighlightsDurationWrapper = styled(FlexBox)`
+  gap: ${space(1)};
+  margin-bottom: ${space(1)};
+`;
+
+const HighlightDuration = styled('div')`
+  font-size: ${p => p.theme.headerFontSize};
+  font-weight: 400;
+`;
+
+const HighlightOp = styled('div')`
+  font-weight: bold;
+  font-size: ${p => p.theme.fontSizeMedium};
+  line-height: normal;
+`;
+
+const StyledPanelHeader = styled(PanelHeader)`
+  font-weight: normal;
+  padding: 0;
+  line-height: normal;
+  text-transform: none;
+  overflow: hidden;
+`;
+
+const SectionDivider = styled('hr')`
+  border-color: ${p => p.theme.translucentBorder};
+  margin: ${space(3)} 0 ${space(1.5)} 0;
+`;
+
+const VerticalLine = styled('div')`
+  width: 1px;
+  height: 100%;
+  background-color: ${p => p.theme.border};
+  margin-top: ${space(0.5)};
+`;
+
+const HighlightsWrapper = styled('div')`
+  display: flex;
+  align-items: stretch;
+  gap: ${space(1)};
+  width: 100%;
+  margin: ${space(1)} 0;
+`;
+
+const HighlightsLeftColumn = styled('div')`
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+`;
+
+const HighlightsRightColumn = styled('div')`
+  display: flex;
+  flex-direction: column;
+  justify-content: left;
+  height: 100%;
+  flex: 1;
+  overflow: hidden;
+`;
+
 function IssuesLink({
   node,
   children,
@@ -306,14 +614,18 @@ function IssuesLink({
   const params = useParams<{traceSlug?: string}>();
   const traceSlug = params.traceSlug?.trim() ?? '';
 
+  // Adding a buffer of 15mins for errors only traces, where there is no concept of
+  // trace duration and start equals end timestamps.
+  const buffer = node.space[1] > 0 ? 0 : 15 * 60 * 1000;
+
   return (
     <Link
       to={{
         pathname: `/organizations/${organization.slug}/issues/`,
         query: {
           query: `trace:${traceSlug}`,
-          start: new Date(node.space[0]).toISOString(),
-          end: new Date(node.space[0] + node.space[1]).toISOString(),
+          start: new Date(node.space[0] - buffer).toISOString(),
+          end: new Date(node.space[0] + node.space[1] + buffer).toISOString(),
           // If we don't pass the project param, the issues page will filter by the last selected project.
           // Traces can have multiple projects, so we query issues by all projects and rely on our search query to filter the results.
           project: -1,
@@ -403,6 +715,71 @@ function TypeSafeBoolean<T>(value: T | null | undefined): value is NonNullable<T
   return value !== null && value !== undefined;
 }
 
+function PanelPositionDropDown({organization}: {organization: Organization}) {
+  const traceState = useTraceState();
+  const traceDispatch = useTraceStateDispatch();
+
+  const options: MenuItemProps[] = [];
+
+  const layoutOptions = traceState.preferences.drawer.layoutOptions;
+  if (layoutOptions.includes('drawer left')) {
+    options.push({
+      key: 'drawer-left',
+      onAction: () => {
+        traceAnalytics.trackLayoutChange('drawer left', organization);
+        traceDispatch({type: 'set layout', payload: 'drawer left'});
+      },
+      leadingItems: <IconPanel direction="left" size="xs" />,
+      label: t('Left'),
+      disabled: traceState.preferences.layout === 'drawer left',
+    });
+  }
+
+  if (layoutOptions.includes('drawer right')) {
+    options.push({
+      key: 'drawer-right',
+      onAction: () => {
+        traceAnalytics.trackLayoutChange('drawer right', organization);
+        traceDispatch({type: 'set layout', payload: 'drawer right'});
+      },
+      leadingItems: <IconPanel direction="right" size="xs" />,
+      label: t('Right'),
+      disabled: traceState.preferences.layout === 'drawer right',
+    });
+  }
+
+  if (layoutOptions.includes('drawer bottom')) {
+    options.push({
+      key: 'drawer-bottom',
+      onAction: () => {
+        traceAnalytics.trackLayoutChange('drawer bottom', organization);
+        traceDispatch({type: 'set layout', payload: 'drawer bottom'});
+      },
+      leadingItems: <IconPanel direction="down" size="xs" />,
+      label: t('Bottom'),
+      disabled: traceState.preferences.layout === 'drawer bottom',
+    });
+  }
+
+  return (
+    <DropdownMenu
+      size="sm"
+      items={options}
+      menuTitle={<div>{t('Panel Position')}</div>}
+      trigger={triggerProps => (
+        <Tooltip title={t('Panel Position')}>
+          <ActionButton
+            {...triggerProps}
+            size="xs"
+            aria-label={t('Panel position')}
+            icon={<IconPanel direction="right" size="xs" />}
+          />
+        </Tooltip>
+      )}
+    />
+  );
+}
+
 function NodeActions(props: {
   node: TraceTreeNode<any>;
   onTabScrollToNode: (
@@ -415,7 +792,7 @@ function NodeActions(props: {
   organization: Organization;
   eventSize?: number | undefined;
 }) {
-  const navigate = useNavigate();
+  const hasNewTraceUi = useHasTraceNewUi();
   const organization = useOrganization();
   const params = useParams<{traceSlug?: string}>();
 
@@ -424,22 +801,136 @@ function NodeActions(props: {
     organization,
   });
 
-  const profilerId = useMemo(() => {
-    if (isTransactionNode(props.node)) {
-      return props.node.value.profiler_id;
+  const transactionProfileTarget = useMemo(() => {
+    const profileId = isTransactionNode(props.node)
+      ? props.node.value.profile_id
+      : isSpanNode(props.node)
+        ? props.node.event?.contexts?.profile?.profile_id ?? ''
+        : '';
+    if (!profileId) {
+      return null;
     }
-    if (isSpanNode(props.node)) {
-      return props.node.value.sentry_tags?.profiler_id ?? '';
-    }
-    return '';
-  }, [props]);
+    return makeTransactionProfilingLink(profileId, {
+      orgSlug: props.organization.slug,
+      projectSlug: props.node.metadata.project_slug ?? '',
+    });
+  }, [props.node, props.organization]);
 
-  const profileLink = makeTraceContinuousProfilingLink(props.node, profilerId, {
-    orgSlug: props.organization.slug,
-    projectSlug: props.node.metadata.project_slug ?? '',
-    traceId: params.traceSlug ?? '',
-    threadId: getThreadIdFromNode(props.node, transaction),
-  });
+  const continuousProfileTarget = useMemo(() => {
+    const profilerId = isTransactionNode(props.node)
+      ? props.node.value.profiler_id
+      : isSpanNode(props.node)
+        ? props.node.value.sentry_tags?.profiler_id ?? null
+        : null;
+    if (!profilerId) {
+      return null;
+    }
+    return makeTraceContinuousProfilingLink(props.node, profilerId, {
+      orgSlug: props.organization.slug,
+      projectSlug: props.node.metadata.project_slug ?? '',
+      traceId: params.traceSlug ?? '',
+      threadId: getThreadIdFromNode(props.node, transaction),
+    });
+  }, [params.traceSlug, props.node, props.organization, transaction]);
+
+  if (!hasNewTraceUi) {
+    return (
+      <LegacyNodeActions
+        {...props}
+        continuousProfileTarget={continuousProfileTarget}
+        transactionProfileTarget={transactionProfileTarget}
+      />
+    );
+  }
+
+  return (
+    <ActionWrapper>
+      <Tooltip title={t('Show in view')}>
+        <ActionButton
+          onClick={_e => {
+            traceAnalytics.trackShowInView(props.organization);
+            props.onTabScrollToNode(props.node);
+          }}
+          size="xs"
+          aria-label={t('Show in view')}
+          icon={<IconFocus size="xs" />}
+        />
+      </Tooltip>
+      {isTransactionNode(props.node) ? (
+        <Tooltip title={t('JSON')}>
+          <ActionButton
+            onClick={() => traceAnalytics.trackViewEventJSON(props.organization)}
+            href={`/api/0/projects/${props.organization.slug}/${props.node.value.project_slug}/events/${props.node.value.event_id}/json/`}
+            size="xs"
+            aria-label={t('JSON')}
+            icon={<IconJson size="xs" />}
+          />
+        </Tooltip>
+      ) : null}
+      {continuousProfileTarget ? (
+        <Tooltip title={t('Profile')}>
+          <ActionButton
+            onClick={() => traceAnalytics.trackViewContinuousProfile(props.organization)}
+            to={continuousProfileTarget}
+            size="xs"
+            aria-label={t('Profile')}
+            icon={<IconProfiling size="xs" />}
+          />
+        </Tooltip>
+      ) : transactionProfileTarget ? (
+        <Tooltip title={t('Profile')}>
+          <ActionButton
+            onClick={() => traceAnalytics.trackViewTransactionProfile(props.organization)}
+            to={transactionProfileTarget}
+            size="xs"
+            aria-label={t('Profile')}
+            icon={<IconProfiling size="xs" />}
+          />
+        </Tooltip>
+      ) : null}
+      <PanelPositionDropDown organization={organization} />
+    </ActionWrapper>
+  );
+}
+
+const ActionButton = styled(Button)`
+  border: none;
+  background-color: transparent;
+  box-shadow: none;
+  transition: none !important;
+  opacity: 0.8;
+  height: 24px;
+  max-height: 24px;
+
+  &:hover {
+    border: none;
+    background-color: transparent;
+    box-shadow: none;
+    opacity: 1;
+  }
+`;
+
+const ActionWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.25)};
+`;
+
+function LegacyNodeActions(props: {
+  continuousProfileTarget: LocationDescriptor | null;
+  node: TraceTreeNode<any>;
+  onTabScrollToNode: (
+    node:
+      | TraceTreeNode<any>
+      | ParentAutogroupNode
+      | SiblingAutogroupNode
+      | MissingInstrumentationNode
+  ) => void;
+  organization: Organization;
+  transactionProfileTarget: LocationDescriptor | null;
+  eventSize?: number | undefined;
+}) {
+  const navigate = useNavigate();
 
   const items = useMemo((): MenuItemProps[] => {
     const showInView: MenuItemProps = {
@@ -473,29 +964,37 @@ function NodeActions(props: {
         (typeof eventSize === 'number' ? ` (${formatBytesBase10(eventSize, 0)})` : ''),
     };
 
-    const continuousProfileLink: MenuItemProps | null =
-      organization.features.includes('continuous-profiling-ui') && !!profileLink
+    const profileLink: MenuItemProps | null = props.continuousProfileTarget
+      ? {
+          key: 'profile',
+          onAction: () => {
+            traceAnalytics.trackViewContinuousProfile(props.organization);
+            navigate(props.continuousProfileTarget!);
+          },
+          label: t('View Profile'),
+        }
+      : props.transactionProfileTarget
         ? {
-            key: 'continuous-profile',
+            key: 'profile',
             onAction: () => {
-              traceAnalytics.trackViewContinuousProfile(props.organization);
-              navigate(profileLink!);
+              traceAnalytics.trackViewTransactionProfile(props.organization);
+              navigate(props.transactionProfileTarget!);
             },
-            label: t('Continuous Profile'),
+            label: t('View Profile'),
           }
         : null;
 
     if (isTransactionNode(props.node)) {
-      return [showInView, jsonDetails, continuousProfileLink].filter(TypeSafeBoolean);
+      return [showInView, jsonDetails, profileLink].filter(TypeSafeBoolean);
     }
     if (isSpanNode(props.node)) {
-      return [showInView, continuousProfileLink].filter(TypeSafeBoolean);
+      return [showInView, profileLink].filter(TypeSafeBoolean);
     }
     if (isMissingInstrumentationNode(props.node)) {
-      return [showInView, continuousProfileLink].filter(TypeSafeBoolean);
+      return [showInView, profileLink].filter(TypeSafeBoolean);
     }
     if (isTraceErrorNode(props.node)) {
-      return [showInView, continuousProfileLink].filter(TypeSafeBoolean);
+      return [showInView, profileLink].filter(TypeSafeBoolean);
     }
     if (isRootNode(props.node)) {
       return [showInView];
@@ -505,14 +1004,18 @@ function NodeActions(props: {
     }
 
     return [showInView];
-  }, [props, profileLink, navigate, organization.features]);
+  }, [props, navigate]);
 
   return (
     <ActionsContainer>
       <Actions className="Actions">
-        {organization.features.includes('continuous-profiling-ui') && !!profileLink ? (
-          <LinkButton size="xs" to={profileLink}>
-            {t('Continuous Profile')}
+        {props.continuousProfileTarget ? (
+          <LinkButton size="xs" to={props.continuousProfileTarget}>
+            {t('View Profile')}
+          </LinkButton>
+        ) : props.transactionProfileTarget ? (
+          <LinkButton size="xs" to={props.transactionProfileTarget}>
+            {t('View Profile')}
           </LinkButton>
         ) : null}
         <Button
@@ -568,6 +1071,16 @@ const ActionsContainer = styled('div')`
 `;
 
 function EventTags({projectSlug, event}: {event: Event; projectSlug: string}) {
+  const hasNewTraceUi = useHasTraceNewUi();
+
+  if (!hasNewTraceUi) {
+    return <LegacyEventTags event={event} projectSlug={projectSlug} />;
+  }
+
+  return <EventTagsDataSection event={event} projectSlug={projectSlug} />;
+}
+
+function LegacyEventTags({projectSlug, event}: {event: Event; projectSlug: string}) {
   return (
     <LazyRender {...TraceDrawerComponents.LAZY_RENDER_PROPS} containerHeight={200}>
       <TagsWrapper>
@@ -705,17 +1218,21 @@ export const CardContentSubject = styled('div')`
 
 const TraceDrawerComponents = {
   DetailContainer,
+  BodyContainer,
   FlexBox,
   Title: TitleWithTestId,
   Type,
   TitleOp,
   HeaderContainer,
+  LegacyHeaderContainer,
+  Highlights,
   Actions,
   NodeActions,
   Table,
   IconTitleWrapper,
   IconBorder,
   TitleText,
+  LegacyTitleText,
   Duration,
   TableRow,
   LAZY_RENDER_PROPS,
@@ -725,6 +1242,7 @@ const TraceDrawerComponents = {
   SectionCard,
   CopyableCardValueWithLink,
   EventTags,
+  SubtitleWithCopyButton,
   TraceDataSection,
   SectionCardGroup,
   DropdownMenuWithPortal,

@@ -214,7 +214,7 @@ export function parseComponentTemplate(template: string): ParsedTemplate {
       } else {
         pos = regex.lastIndex = process(regex.lastIndex, currentGroupId, true);
       }
-      buf.push({group: groupName, id: currentGroupId});
+      buf.push({group: groupName!, id: currentGroupId});
     }
 
     let endPos = regex.lastIndex;
@@ -405,6 +405,14 @@ export function gettextComponentTemplate(
 ): JSX.Element {
   const parsedTemplate = parseComponentTemplate(getClient().gettext(template));
   return mark(renderTemplate(parsedTemplate, components) as JSX.Element);
+}
+
+/**
+ * Helper over `gettextComponentTemplate` with a pre-populated `<code />` component that
+ * is commonly used.
+ */
+export function tctCode(template: string, components: ComponentMap = {}) {
+  return gettextComponentTemplate(template, {code: <code />, ...components});
 }
 
 /**

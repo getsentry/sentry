@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/button';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
@@ -17,7 +16,6 @@ import {
 } from 'sentry/components/statusIndicator';
 import Text from 'sentry/components/text';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
@@ -46,9 +44,10 @@ export const checkStatusToIndicatorStatus: Record<
   [CheckInStatus.IN_PROGRESS]: 'muted',
   [CheckInStatus.MISSED]: 'warning',
   [CheckInStatus.TIMEOUT]: 'error',
+  [CheckInStatus.UNKNOWN]: 'muted',
 };
 
-function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
+export function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
   const user = useUser();
   const location = useLocation();
   const organization = useOrganization();
@@ -75,14 +74,8 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
     return <LoadingError />;
   }
 
-  const generateDownloadUrl = (checkin: CheckIn) =>
-    `/api/0/organizations/${orgSlug}/monitors/${monitor.slug}/checkins/${checkin.id}/attachment/`;
-
   const emptyCell = <Text>{'\u2014'}</Text>;
 
-  // XXX(epurkhiser): Attachmnets are still experimental and may not exist in
-  // the future. For now hide these if they're not being used.
-  const hasAttachments = checkInList?.some(checkin => checkin.attachmentId !== null);
   const hasMultiEnv = monitorEnvs.length > 1;
 
   const headers = [
@@ -90,7 +83,6 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
     t('Started'),
     t('Duration'),
     t('Issues'),
-    ...(hasAttachments ? [t('Attachment')] : []),
     ...(hasMultiEnv ? [t('Environment')] : []),
     t('Expected At'),
   ];
@@ -168,24 +160,11 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
                               avatarSize={12}
                             />
                           }
-                          to={`/issues/${id}`}
+                          to={`/organizations/${organization.slug}/issues/${id}/`}
                         />
                       </QuickContextHovercard>
                     ))}
                   </IssuesContainer>
-                ) : (
-                  emptyCell
-                )}
-                {!hasAttachments ? null : checkIn.attachmentId ? (
-                  <div>
-                    <LinkButton
-                      size="xs"
-                      icon={<IconDownload />}
-                      href={generateDownloadUrl(checkIn)}
-                    >
-                      {t('Attachment')}
-                    </LinkButton>
-                  </div>
                 ) : (
                   emptyCell
                 )}
@@ -216,8 +195,6 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
     </Fragment>
   );
 }
-
-export default MonitorCheckIns;
 
 const Status = styled('div')`
   line-height: 1.1;

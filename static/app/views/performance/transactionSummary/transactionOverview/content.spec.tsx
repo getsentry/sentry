@@ -23,7 +23,7 @@ jest.mocked(useLocation).mockReturnValue({
   state: undefined,
 });
 
-function initialize(query, additionalFeatures: string[] = []) {
+function initialize(query: Record<string, string>, additionalFeatures: string[] = []) {
   const features = ['transaction-event', 'performance-view', ...additionalFeatures];
   const organization = OrganizationFixture({
     features,
@@ -142,6 +142,57 @@ describe('Transaction Summary Content', function () {
       url: '/organizations/org-slug/dynamic-sampling/custom-rules/',
       body: '',
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/profiling/flamegraph/',
+      body: {
+        activeProfileIndex: 0,
+        metadata: {
+          deviceClassification: '',
+          deviceLocale: '',
+          deviceManufacturer: '',
+          deviceModel: '',
+          deviceOSName: '',
+          deviceOSVersion: '',
+          durationNS: 0,
+          organizationID: 0,
+          platform: '',
+          profileID: '',
+          projectID: 0,
+          received: '0001-01-01T00:00:00Z',
+          sampled: false,
+          timestamp: '0001-01-01T00:00:00Z',
+          traceID: '',
+          transactionID: '',
+          transactionName: '',
+          version: '',
+        },
+        platform: '',
+        profiles: [
+          {
+            endValue: 0,
+            isMainThread: true,
+            name: '',
+            samples: [],
+            startValue: 0,
+            threadID: 0,
+            type: 'sampled',
+            unit: 'count',
+            weights: [],
+            sample_durations_ns: null,
+          },
+        ],
+        projectID: 0,
+        shared: {
+          frames: [],
+        },
+        transactionName: '',
+        metrics: [],
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      body: [],
+    });
   });
 
   afterEach(function () {
@@ -180,7 +231,7 @@ describe('Transaction Summary Content', function () {
       await screen.findByTestId('page-filter-environment-selector')
     ).toBeInTheDocument();
     expect(screen.getByTestId('page-filter-timerange-selector')).toBeInTheDocument();
-    expect(screen.getByTestId('smart-search-bar')).toBeInTheDocument();
+    expect(screen.getByTestId('search-query-builder')).toBeInTheDocument();
     expect(screen.getByTestId('transaction-summary-charts')).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: /user misery/i})).toBeInTheDocument();
 

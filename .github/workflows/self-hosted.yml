@@ -33,7 +33,7 @@ jobs:
         with:
           python-version: 3.12.6
           cache-dependency-path: requirements-dev-frozen.txt
-          install-cmd: python3 -m tools.hack_pip
+          install-cmd: echo
 
       - name: Step configurations
         id: config

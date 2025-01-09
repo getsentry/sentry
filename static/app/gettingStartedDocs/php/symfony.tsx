@@ -11,17 +11,23 @@ import {
   getCrashReportModalIntroduction,
   getCrashReportPHPInstallStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
+import {
+  feedbackOnboardingJsLoader,
+  replayOnboardingJsLoader,
+} from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
 const onboarding: OnboardingConfig = {
-  introduction: () =>
-    tct(
-      'Symfony is supported via the [code:sentry-symfony] package as a native bundle.',
-      {code: <code />}
-    ),
+  introduction: () => (
+    <p>
+      {tct(
+        'Symfony is supported via the [code:sentry-symfony] package as a native bundle.',
+        {code: <code />}
+      )}
+    </p>
+  ),
   install: (params: Params) => [
     {
       type: StepType.INSTALL,
@@ -79,16 +85,21 @@ SENTRY_DSN="${params.dsn.public}"
                 code: `when@prod:
       sentry:
           dsn: '%env(SENTRY_DSN)%'${
+            params.isPerformanceSelected || params.isProfilingSelected
+              ? `
+          options:`
+              : ''
+          }${
             params.isPerformanceSelected
               ? `
-          # Specify a fixed sample rate
-          traces_sample_rate: 1.0`
+              # Specify a fixed sample rate
+              traces_sample_rate: 1.0`
               : ''
           }${
             params.isProfilingSelected
               ? `
-          # Set a sampling rate for profiling - this is relative to traces_sample_rate
-          profiles_sample_rate: 1.0`
+              # Set a sampling rate for profiling - this is relative to traces_sample_rate
+              profiles_sample_rate: 1.0`
               : ''
           }`,
               },
@@ -178,6 +189,7 @@ const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
   crashReportOnboarding,
+  feedbackOnboardingJsLoader,
 };
 
 export default docs;

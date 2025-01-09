@@ -44,10 +44,6 @@ export function CreateProjectsFooter({
   genSkipOnboardingLink,
   clearPlatform,
 }: Props) {
-  const frameworkSelectionEnabled = !!organization?.features.includes(
-    'onboarding-sdk-selection'
-  );
-
   const api = useApi();
   const {teams} = useTeams();
   const onboardingContext = useContext(OnboardingContext);
@@ -91,7 +87,7 @@ export function CreateProjectsFooter({
         const response = (await createProject({
           api,
           orgSlug: organization.slug,
-          team: teams[0].slug,
+          team: teams[0]!.slug,
           platform: createProjectForPlatform.key,
           name: createProjectForPlatform.key,
           options: {
@@ -105,7 +101,7 @@ export function CreateProjectsFooter({
         // Note: in the onboarding flow the projects are created based on the platform slug
         const newProjects = Object.keys(onboardingContext.data.projects).reduce(
           (acc, key) => {
-            if (onboardingContext.data.projects[key].slug !== response.slug) {
+            if (onboardingContext.data.projects[key]!.slug !== response.slug) {
               acc[key] = onboardingContext.data.projects[key];
             }
             return acc;
@@ -211,9 +207,7 @@ export function CreateProjectsFooter({
       <ButtonWrapper>
         <Button
           priority="primary"
-          onClick={() =>
-            frameworkSelectionEnabled ? handleProjectCreation() : createPlatformProject()
-          }
+          onClick={handleProjectCreation}
           disabled={!selectedPlatform}
           data-test-id="platform-select-next"
         >

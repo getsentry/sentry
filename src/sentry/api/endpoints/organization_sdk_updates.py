@@ -28,8 +28,18 @@ def by_project_id(sdk):
 
 
 def serialize(data, projects):
-    # filter out SDKs with empty sdk.name or sdk.version
-    nonempty_sdks = [sdk for sdk in data if sdk["sdk.name"] != "" and sdk["sdk.version"] != ""]
+    # filter out SDKs with empty sdk.name or sdk.version or invalid version
+    nonempty_sdks = []
+    for sdk in data:
+        if not sdk["sdk.name"] or not sdk["sdk.version"]:
+            continue
+
+        try:
+            version.parse(sdk["sdk.version"])
+        except version.InvalidVersion:
+            continue
+
+        nonempty_sdks.append(sdk)
 
     # Build datastructure of the latest version of each SDK in use for each
     # project we have events for.

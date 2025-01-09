@@ -1,13 +1,14 @@
 ---
-created: '2023-02-01T08:22:01.298242Z'
+created: '2024-12-17T22:47:12.149862+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
+  contributing component: null
   component:
     app (stacktrace of system takes precedence)
-      stacktrace
+      stacktrace (ignored because it contains no in-app frames)
         frame (marked out of app by stack trace rule (family:javascript module:**/packages/flutter/** -app))
           module*
             "opt/hostedtoolcache/flutter/2.5.0-stable/x64/packages/flutter/lib/src/gestures/binding"
@@ -18,6 +19,7 @@ app:
 --------------------------------------------------------------------------
 system:
   hash: "e0e7c4713e9092dc77635d5a0d5db31d"
+  contributing component: stacktrace
   component:
     system*
       stacktrace*

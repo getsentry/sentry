@@ -35,16 +35,16 @@ class BuildMetricAlertAttachmentTest(TestCase):
             reverse(
                 "sentry-metric-alert-details",
                 kwargs={
-                    "organization_slug": self.alert_rule.organization.slug,
+                    "organization_slug": self.organization.slug,
                     "alert_rule_id": self.alert_rule.id,
                 },
             )
         )
 
         uuid = "uuid"
-        assert DiscordMetricAlertMessageBuilder(alert_rule=self.alert_rule,).build(
-            notification_uuid=uuid
-        ) == {
+        assert DiscordMetricAlertMessageBuilder(
+            alert_rule=self.alert_rule,
+        ).build(notification_uuid=uuid) == {
             "content": "",
             "embeds": [
                 {
@@ -69,7 +69,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
             reverse(
                 "sentry-metric-alert-details",
                 kwargs={
-                    "organization_slug": self.alert_rule.organization.slug,
+                    "organization_slug": self.organization.slug,
                     "alert_rule_id": self.alert_rule.id,
                 },
             )
@@ -104,15 +104,15 @@ class BuildMetricAlertAttachmentTest(TestCase):
             reverse(
                 "sentry-metric-alert-details",
                 kwargs={
-                    "organization_slug": self.alert_rule.organization.slug,
+                    "organization_slug": self.organization.slug,
                     "alert_rule_id": self.alert_rule.id,
                 },
             )
         )
         uuid = "uuid"
-        assert DiscordMetricAlertMessageBuilder(alert_rule=self.alert_rule,).build(
-            notification_uuid=uuid
-        ) == {
+        assert DiscordMetricAlertMessageBuilder(
+            alert_rule=self.alert_rule,
+        ).build(notification_uuid=uuid) == {
             "content": "",
             "embeds": [
                 {
@@ -140,7 +140,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
             reverse(
                 "sentry-metric-alert-details",
                 kwargs={
-                    "organization_slug": self.alert_rule.organization.slug,
+                    "organization_slug": self.organization.slug,
                     "alert_rule_id": self.alert_rule.id,
                 },
             )
@@ -173,7 +173,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
             reverse(
                 "sentry-metric-alert-details",
                 kwargs={
-                    "organization_slug": self.alert_rule.organization.slug,
+                    "organization_slug": self.organization.slug,
                     "alert_rule_id": self.alert_rule.id,
                 },
             )
@@ -212,13 +212,15 @@ class BuildMetricAlertAttachmentTest(TestCase):
             reverse(
                 "sentry-metric-alert-details",
                 kwargs={
-                    "organization_slug": self.alert_rule.organization.slug,
+                    "organization_slug": self.organization.slug,
                     "alert_rule_id": self.alert_rule.id,
                 },
             )
         )
 
-        assert DiscordMetricAlertMessageBuilder(alert_rule=self.alert_rule,).build() == {
+        assert DiscordMetricAlertMessageBuilder(
+            alert_rule=self.alert_rule,
+        ).build() == {
             "content": "",
             "embeds": [
                 {
@@ -255,15 +257,15 @@ class BuildMetricAlertAttachmentTest(TestCase):
             reverse(
                 "sentry-metric-alert-details",
                 kwargs={
-                    "organization_slug": alert_rule.organization.slug,
+                    "organization_slug": self.organization.slug,
                     "alert_rule_id": alert_rule.id,
                 },
             )
         )
         uuid = "uuid"
-        assert DiscordMetricAlertMessageBuilder(alert_rule=alert_rule,).build(
-            notification_uuid=uuid
-        ) == {
+        assert DiscordMetricAlertMessageBuilder(
+            alert_rule=alert_rule,
+        ).build(notification_uuid=uuid) == {
             "content": "",
             "embeds": [
                 {

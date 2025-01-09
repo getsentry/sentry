@@ -1,7 +1,7 @@
 from django.urls import reverse
 
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -13,10 +13,10 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
         self.setup_data()
 
     def setup_data(self):
-        one_min_ago = iso_format(before_now(minutes=1))
-        two_min_ago = iso_format(before_now(minutes=2))
-        three_min_ago = iso_format(before_now(minutes=3))
-        four_min_ago = iso_format(before_now(minutes=4))
+        one_min_ago = before_now(minutes=1).isoformat()
+        two_min_ago = before_now(minutes=2).isoformat()
+        three_min_ago = before_now(minutes=3).isoformat()
+        four_min_ago = before_now(minutes=4).isoformat()
 
         self.prev_event = self.store_event(
             data={"event_id": "a" * 32, "timestamp": four_min_ago, "fingerprint": ["group-1"]},
@@ -121,10 +121,10 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
 
 class ProjectEventDetailsGenericTest(OccurrenceTestMixin, ProjectEventDetailsTest):
     def setup_data(self):
-        one_min_ago = iso_format(before_now(minutes=1))
-        two_min_ago = iso_format(before_now(minutes=2))
-        three_min_ago = iso_format(before_now(minutes=3))
-        four_min_ago = iso_format(before_now(minutes=4))
+        one_min_ago = before_now(minutes=1).isoformat()
+        two_min_ago = before_now(minutes=2).isoformat()
+        three_min_ago = before_now(minutes=3).isoformat()
+        four_min_ago = before_now(minutes=4).isoformat()
 
         prev_event_id = "a" * 32
         self.prev_event, _ = self.process_occurrence(
@@ -321,7 +321,7 @@ class ProjectEventJsonEndpointTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
         self.event_id = "c" * 32
         self.fingerprint = ["group_2"]
-        self.min_ago = iso_format(before_now(minutes=1))
+        self.min_ago = before_now(minutes=1).replace(microsecond=0).isoformat()
         self.event = self.store_event(
             data={
                 "event_id": self.event_id,
@@ -343,7 +343,7 @@ class ProjectEventJsonEndpointTest(APITestCase, SnubaTestCase):
     def assert_event(self, data):
         assert data["event_id"] == self.event_id
         assert data["user"]["email"] == self.user.email
-        assert data["datetime"][:19] == self.min_ago
+        assert data["datetime"] == self.min_ago
         assert data["fingerprint"] == self.fingerprint
 
     def test_simple(self):
@@ -385,3 +385,68 @@ class ProjectEventJsonEndpointTest(APITestCase, SnubaTestCase):
         response = self.client.get(url, format="json")
         assert response.status_code == 404, response.content
         assert response.data == {"detail": "Event not found"}
+
+
+class ProjectEventDetailsTransactionTestScrubbed(APITestCase, SnubaTestCase):
+    def setUp(self):
+        super().setUp()
+        self.login_as(user=self.user)
+        data = load_data("transaction")
+        for span in data["spans"]:
+            span["sentry_tags"]["user.ip"] = "127.0.0.1"
+            span["sentry_tags"]["user"] = "ip:127.0.0.1"
+        self.event = self.store_event(data=data, project_id=self.project.id)
+
+    def url(self, event):
+        return reverse(
+            "sentry-api-0-event-json",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "project_id_or_slug": self.project.slug,
+                "event_id": event.event_id,
+            },
+        )
+
+    def test_no_scrubbed(self):
+        response = self.client.get(self.url(self.event), format="json")
+        assert response.status_code == 200, response.content
+        assert len(response.data["spans"]) > 0
+        for span in response.data["spans"]:
+            assert "user.ip" in span["sentry_tags"]
+            assert span["sentry_tags"]["user"] == "ip:127.0.0.1"
+
+    def test_scrubbed_project(self):
+        self.project.update_option("sentry:scrub_ip_address", True)
+
+        response = self.client.get(self.url(self.event), format="json")
+        assert response.status_code == 200, response.content
+        assert len(response.data["spans"]) > 0
+        for span in response.data["spans"]:
+            assert "user.ip" not in span["sentry_tags"]
+            assert span["sentry_tags"]["user"] == "ip:[ip]"
+
+    def test_scrubbed_organization(self):
+        self.organization.update_option("sentry:require_scrub_ip_address", True)
+
+        response = self.client.get(self.url(self.event), format="json")
+        assert response.status_code == 200, response.content
+        assert len(response.data["spans"]) > 0
+        for span in response.data["spans"]:
+            assert "user.ip" not in span["sentry_tags"]
+            assert span["sentry_tags"]["user"] == "ip:[ip]"
+
+    def test_scrubbed_organization_does_not_scrub_other_user_fields(self):
+        self.organization.update_option("sentry:require_scrub_ip_address", True)
+
+        data = load_data("transaction")
+        for span in data["spans"]:
+            span["sentry_tags"]["user.ip"] = "127.0.0.1"
+            span["sentry_tags"]["user"] = "username:foo"
+        event = self.store_event(data=data, project_id=self.project.id)
+
+        response = self.client.get(self.url(event), format="json")
+        assert response.status_code == 200, response.content
+        assert len(response.data["spans"]) > 0
+        for span in response.data["spans"]:
+            assert "user.ip" not in span["sentry_tags"]
+            assert span["sentry_tags"]["user"] == "username:foo"

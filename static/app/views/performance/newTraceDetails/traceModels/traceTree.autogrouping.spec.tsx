@@ -9,7 +9,7 @@ import {isParentAutogroupedNode, isSiblingAutogroupedNode} from './../traceGuard
 import {TraceTree} from './traceTree';
 
 const start = new Date('2024-02-29T00:00:00Z').getTime() / 1e3;
-const traceMetadata = {replayRecord: null, meta: null};
+const traceMetadata = {replay: null, meta: null};
 
 const singleTransactionTrace = makeTrace({
   transactions: [
@@ -61,26 +61,31 @@ const parentAutogroupSpans = [
   makeSpan({op: 'db', description: 'redis', span_id: '0002', parent_span_id: '0001'}),
 ];
 
+const parentAutogroupSpansWithChilden = [
+  makeSpan({op: 'db', description: 'redis', span_id: '0000'}),
+  makeSpan({op: 'db', description: 'redis', span_id: '0001', parent_span_id: '0000'}),
+  makeSpan({op: 'db', description: 'redis', span_id: '0002', parent_span_id: '0001'}),
+  makeSpan({op: 'http', description: 'request', span_id: '0003', parent_span_id: '0002'}),
+];
+
 describe('autogrouping', () => {
   describe('parent autogrouping', () => {
     it('groups parent chain with same op', () => {
       const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
       TraceTree.FromSpans(
-        tree.root.children[0].children[0],
+        tree.root.children[0]!.children[0]!,
         parentAutogroupSpans,
-        makeEventTransaction(),
-        {
-          sdk: undefined,
-        }
+        makeEventTransaction()
       );
 
+      TraceTree.AutogroupDirectChildrenSpanNodes(tree.root);
       expect(tree.build().serialize()).toMatchSnapshot();
     });
 
     it('assigns children to tail node', () => {
       const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
       TraceTree.FromSpans(
-        tree.root.children[0].children[0],
+        tree.root.children[0]!.children[0]!,
         [
           makeSpan({op: 'db', description: 'redis', span_id: '0000'}),
           makeSpan({
@@ -102,11 +107,10 @@ describe('autogrouping', () => {
             parent_span_id: '0002',
           }),
         ],
-        makeEventTransaction(),
-        {
-          sdk: undefined,
-        }
+        makeEventTransaction()
       );
+
+      TraceTree.AutogroupDirectChildrenSpanNodes(tree.root);
 
       expect(tree.build().serialize()).toMatchSnapshot();
     });
@@ -114,34 +118,32 @@ describe('autogrouping', () => {
     it('autogrouped chain points to tail', () => {
       const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
       TraceTree.FromSpans(
-        tree.root.children[0].children[0],
+        tree.root.children[0]!.children[0]!,
         [
           ...parentAutogroupSpans,
           makeSpan({
             op: 'http',
             description: 'request',
-            parent_span_id: parentAutogroupSpans[parentAutogroupSpans.length - 1].span_id,
+            parent_span_id:
+              parentAutogroupSpans[parentAutogroupSpans.length - 1]!.span_id,
           }),
         ],
-        makeEventTransaction(),
-        {
-          sdk: undefined,
-        }
+        makeEventTransaction()
       );
 
+      TraceTree.AutogroupDirectChildrenSpanNodes(tree.root);
       expect(tree.build().serialize()).toMatchSnapshot();
     });
 
     it('expanding parent autogroup renders head to tail chain', () => {
       const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
       TraceTree.FromSpans(
-        tree.root.children[0].children[0],
+        tree.root.children[0]!.children[0]!,
         parentAutogroupSpans,
-        makeEventTransaction(),
-        {
-          sdk: undefined,
-        }
+        makeEventTransaction()
       );
+
+      TraceTree.AutogroupDirectChildrenSpanNodes(tree.root);
 
       TraceTree.ForEachChild(tree.root, c => {
         if (isParentAutogroupedNode(c)) {
@@ -155,13 +157,12 @@ describe('autogrouping', () => {
     it('collapsing parent autogroup removes its children', () => {
       const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
       TraceTree.FromSpans(
-        tree.root.children[0].children[0],
+        tree.root.children[0]!.children[0]!,
         parentAutogroupSpans,
-        makeEventTransaction(),
-        {
-          sdk: undefined,
-        }
+        makeEventTransaction()
       );
+
+      TraceTree.AutogroupDirectChildrenSpanNodes(tree.root);
 
       TraceTree.ForEachChild(tree.root, c => {
         if (isParentAutogroupedNode(c)) {
@@ -183,7 +184,7 @@ describe('autogrouping', () => {
     it('can expand and collapse', () => {
       const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
       TraceTree.FromSpans(
-        tree.root.children[0].children[0],
+        tree.root.children[0]!.children[0]!,
         [
           makeSpan({op: 'db', description: 'redis', span_id: '0000'}),
           makeSpan({
@@ -205,11 +206,10 @@ describe('autogrouping', () => {
             parent_span_id: '0002',
           }),
         ],
-        makeEventTransaction(),
-        {
-          sdk: undefined,
-        }
+        makeEventTransaction()
       );
+
+      TraceTree.AutogroupDirectChildrenSpanNodes(tree.root);
 
       const initial = tree.build().serialize();
 
@@ -235,7 +235,7 @@ describe('autogrouping', () => {
     it('autogroups siblings when they are children of a parent autogroup chain', () => {
       const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
       TraceTree.FromSpans(
-        tree.root.children[0].children[0],
+        tree.root.children[0]!.children[0]!,
         [
           ...parentAutogroupSpans,
           ...[1, 2, 3, 4, 5].map(_i =>
@@ -245,16 +245,65 @@ describe('autogrouping', () => {
               start_timestamp: start,
               timestamp: start + 1,
               parent_span_id:
-                parentAutogroupSpans[parentAutogroupSpans.length - 1].span_id,
+                parentAutogroupSpans[parentAutogroupSpans.length - 1]!.span_id,
             })
           ),
         ],
-        makeEventTransaction(),
-        {
-          sdk: undefined,
-        }
+        makeEventTransaction()
       );
 
+      TraceTree.AutogroupSiblingSpanNodes(tree.root);
+      TraceTree.AutogroupDirectChildrenSpanNodes(tree.root);
+
+      expect(tree.build().serialize()).toMatchSnapshot();
+    });
+
+    it('removes collapsed parent autogroup', () => {
+      const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
+      TraceTree.FromSpans(
+        tree.root.children[0]!.children[0]!,
+        parentAutogroupSpansWithChilden,
+        makeEventTransaction()
+      );
+
+      const snapshot = tree.build().serialize();
+      // Add sibling autogroup
+      TraceTree.AutogroupDirectChildrenSpanNodes(tree.root);
+      expect(TraceTree.Find(tree.root, c => isParentAutogroupedNode(c))).not.toBeNull();
+
+      // Remove it and assert that the tree is back to the original state
+      TraceTree.RemoveDirectChildrenAutogroupNodes(tree.root);
+
+      expect(TraceTree.Find(tree.root, c => isParentAutogroupedNode(c))).toBeNull();
+      expect(tree.build().serialize()).toEqual(snapshot);
+      expect(tree.build().serialize()).toMatchSnapshot();
+    });
+
+    it('removes expanded parent autogroup', () => {
+      const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
+      TraceTree.FromSpans(
+        tree.root.children[0]!.children[0]!,
+        parentAutogroupSpansWithChilden,
+        makeEventTransaction()
+      );
+
+      const snapshot = tree.build().serialize();
+      // Add sibling autogroup
+      TraceTree.AutogroupDirectChildrenSpanNodes(tree.root);
+      TraceTree.ForEachChild(tree.root, c => {
+        if (isParentAutogroupedNode(c)) {
+          tree.expand(c, true);
+        }
+      });
+
+      expect(tree.build().serialize()).toMatchSnapshot();
+      expect(TraceTree.Find(tree.root, c => isParentAutogroupedNode(c))).not.toBeNull();
+
+      // Remove it and assert that the tree is back to the original state
+      TraceTree.RemoveDirectChildrenAutogroupNodes(tree.root);
+      expect(TraceTree.Find(tree.root, c => isParentAutogroupedNode(c))).toBeNull();
+      TraceTree.invalidate(tree.root, true);
+      expect(tree.build().serialize()).toEqual(snapshot);
       expect(tree.build().serialize()).toMatchSnapshot();
     });
   });
@@ -263,13 +312,12 @@ describe('autogrouping', () => {
     it('groups spans with the same op and description', () => {
       const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
       TraceTree.FromSpans(
-        tree.root.children[0].children[0],
+        tree.root.children[0]!.children[0]!,
         siblingAutogroupSpans,
-        makeEventTransaction(),
-        {
-          sdk: undefined,
-        }
+        makeEventTransaction()
       );
+
+      TraceTree.AutogroupSiblingSpanNodes(tree.root);
 
       expect(tree.build().serialize()).toMatchSnapshot();
     });
@@ -277,13 +325,12 @@ describe('autogrouping', () => {
     it('does not autogroup if count is less 5', () => {
       const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
       TraceTree.FromSpans(
-        tree.root.children[0].children[0],
+        tree.root.children[0]!.children[0]!,
         siblingAutogroupSpans.slice(0, 4),
-        makeEventTransaction(),
-        {
-          sdk: undefined,
-        }
+        makeEventTransaction()
       );
+
+      TraceTree.AutogroupSiblingSpanNodes(tree.root);
 
       expect(tree.build().serialize()).toMatchSnapshot();
     });
@@ -291,16 +338,15 @@ describe('autogrouping', () => {
     it('autogroups multiple consecutive groups', () => {
       const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
       TraceTree.FromSpans(
-        tree.root.children[0].children[0],
+        tree.root.children[0]!.children[0]!,
         [
           ...siblingAutogroupSpans,
           ...siblingAutogroupSpans.map(s => ({...s, op: 'mysql'})),
         ],
-        makeEventTransaction(),
-        {
-          sdk: undefined,
-        }
+        makeEventTransaction()
       );
+
+      TraceTree.AutogroupSiblingSpanNodes(tree.root);
 
       expect(tree.build().serialize()).toMatchSnapshot();
     });
@@ -308,13 +354,12 @@ describe('autogrouping', () => {
     it('expanding sibling autogroup renders its children', () => {
       const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
       TraceTree.FromSpans(
-        tree.root.children[0].children[0],
+        tree.root.children[0]!.children[0]!,
         siblingAutogroupSpans,
-        makeEventTransaction(),
-        {
-          sdk: undefined,
-        }
+        makeEventTransaction()
       );
+
+      TraceTree.AutogroupSiblingSpanNodes(tree.root);
 
       TraceTree.ForEachChild(tree.root, c => {
         if (isSiblingAutogroupedNode(c)) {
@@ -328,13 +373,12 @@ describe('autogrouping', () => {
     it('collapsing sibling autogroup removes its children', () => {
       const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
       TraceTree.FromSpans(
-        tree.root.children[0].children[0],
+        tree.root.children[0]!.children[0]!,
         siblingAutogroupSpans,
-        makeEventTransaction(),
-        {
-          sdk: undefined,
-        }
+        makeEventTransaction()
       );
+
+      TraceTree.AutogroupSiblingSpanNodes(tree.root);
 
       TraceTree.ForEachChild(tree.root, c => {
         if (isSiblingAutogroupedNode(c)) {
@@ -347,6 +391,26 @@ describe('autogrouping', () => {
           tree.expand(c, false);
         }
       });
+      expect(tree.build().serialize()).toMatchSnapshot();
+    });
+
+    it('removes sibling autogroup', () => {
+      const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
+      TraceTree.FromSpans(
+        tree.root.children[0]!.children[0]!,
+        siblingAutogroupSpans,
+        makeEventTransaction()
+      );
+
+      const snapshot = tree.build().serialize();
+
+      // Add sibling autogroup
+      TraceTree.AutogroupSiblingSpanNodes(tree.root);
+      expect(TraceTree.Find(tree.root, c => isSiblingAutogroupedNode(c))).not.toBeNull();
+
+      // Remove it and assert that the tree is back to the original state
+      TraceTree.RemoveSiblingAutogroupNodes(tree.root);
+      expect(tree.build().serialize()).toEqual(snapshot);
       expect(tree.build().serialize()).toMatchSnapshot();
     });
 

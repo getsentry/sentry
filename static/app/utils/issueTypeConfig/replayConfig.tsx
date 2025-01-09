@@ -5,16 +5,25 @@ const replayConfig: IssueCategoryConfigMapping = {
   _categoryDefaults: {
     actions: {
       archiveUntilOccurrence: {enabled: true},
-      delete: {enabled: false},
-      deleteAndDiscard: {enabled: false},
-      merge: {enabled: false},
+      delete: {
+        enabled: false,
+        disabledReason: t('Not yet supported for replay issues'),
+      },
+      deleteAndDiscard: {
+        enabled: false,
+        disabledReason: t('Not yet supported for replay issues'),
+      },
+      merge: {
+        enabled: false,
+        disabledReason: t('Not supported for replay issues'),
+      },
       ignore: {enabled: true},
+      resolve: {enabled: true},
       resolveInRelease: {enabled: true},
       share: {enabled: true},
     },
     attachments: {enabled: false},
     autofix: false,
-    aiSuggestedSolution: false,
     events: {enabled: true},
     mergedIssues: {enabled: false},
     regression: {enabled: false},
@@ -22,12 +31,13 @@ const replayConfig: IssueCategoryConfigMapping = {
     stats: {enabled: true},
     similarIssues: {enabled: false},
     showFeedbackWidget: true,
-    tags: {enabled: true},
+    tagsTab: {enabled: true},
     userFeedback: {enabled: true},
     discover: {enabled: true},
     evidence: {title: t('Evidence')},
     resources: null,
     usesIssuePlatform: true,
+    issueSummary: {enabled: false},
   },
 };
 

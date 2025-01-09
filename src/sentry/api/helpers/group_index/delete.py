@@ -45,10 +45,24 @@ def delete_group_list(
     if not group_list:
         return
 
+    issue_platform_deletion_allowed = features.has(
+        "organizations:issue-platform-deletion", project.organization, actor=request.user
+    )
+
     # deterministic sort for sanity, and for very large deletions we'll
     # delete the "smaller" groups first
     group_list.sort(key=lambda g: (g.times_seen, g.id))
-    group_ids = [g.id for g in group_list]
+    group_ids = []
+    error_group_found = False
+    for g in group_list:
+        group_ids.append(g.id)
+        if g.issue_category == GroupCategory.ERROR:
+            error_group_found = True
+
+    countdown = 3600
+    # With ClickHouse light deletes we want to get rid of the long delay
+    if issue_platform_deletion_allowed and not error_group_found:
+        countdown = 0
 
     Group.objects.filter(id__in=group_ids).exclude(
         status__in=[GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]
@@ -74,7 +88,7 @@ def delete_group_list(
             "transaction_id": transaction_id,
             "eventstream_state": eventstream_state,
         },
-        countdown=3600,
+        countdown=countdown,
     )
 
     for group in group_list:
@@ -110,7 +124,7 @@ def delete_groups(
     request: Request,
     projects: Sequence[Project],
     organization_id: int,
-    search_fn: SearchFunction,
+    search_fn: SearchFunction | None = None,
 ) -> Response:
     """
     `search_fn` refers to the `search.query` method with the appropriate
@@ -125,7 +139,7 @@ def delete_groups(
                 id__in=set(group_ids),
             ).exclude(status__in=[GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS])
         )
-    else:
+    elif search_fn:
         try:
             cursor_result, _ = search_fn(
                 {

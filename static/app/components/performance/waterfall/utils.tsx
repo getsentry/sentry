@@ -1,4 +1,4 @@
-import type {Theme} from '@emotion/react';
+import {css, type Theme} from '@emotion/react';
 import Color from 'color';
 
 import type {DurationDisplay} from 'sentry/components/performance/waterfall/types';
@@ -6,7 +6,7 @@ import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {space} from 'sentry/styles/space';
 
 import type {SpanBarType} from './constants';
-import {getSpanBarColours} from './constants';
+import {getSpanBarColors} from './constants';
 
 export const getBackgroundColor = ({
   showStriping,
@@ -30,10 +30,11 @@ export const getBackgroundColor = ({
 
 export function getHatchPattern(spanBarType: SpanBarType | undefined, theme: Theme) {
   if (spanBarType) {
-    const {primary, alternate} = getSpanBarColours(spanBarType, theme);
+    const {primary, alternate} = getSpanBarColors(spanBarType, theme);
 
-    return `
-      background-image: linear-gradient(135deg,
+    return css`
+      background-image: linear-gradient(
+        135deg,
         ${alternate},
         ${alternate} 2.5px,
         ${primary} 2.5px,
@@ -66,17 +67,21 @@ export const getDurationPillAlignment = ({
 }) => {
   switch (durationDisplay) {
     case 'left':
-      return `right: calc(100% + ${space(0.5)});`;
+      return css`
+        right: calc(100% + ${space(0.5)});
+      `;
     case 'right':
-      return `left: calc(100% + ${space(0.75)});`;
+      return css`
+        left: calc(100% + ${space(0.75)});
+      `;
     default:
-      return `
+      return css`
         right: ${space(0.75)};
       `;
   }
 };
 
-export const getDurationPillColours = ({
+export const getDurationPillColors = ({
   durationDisplay,
   theme,
   showDetail,
@@ -88,8 +93,8 @@ export const getDurationPillColours = ({
   spanBarType?: SpanBarType;
 }) => {
   if (durationDisplay === 'inset') {
-    const {alternate, insetTextColour} = getSpanBarColours(spanBarType, theme);
-    return `background: ${alternate}; color: ${insetTextColour};`;
+    const {alternate, insetTextColor} = getSpanBarColors(spanBarType, theme);
+    return `background: ${alternate}; color: ${insetTextColor};`;
   }
 
   return `color: ${showDetail ? theme.gray200 : theme.gray300};`;
@@ -111,13 +116,13 @@ export const getToggleTheme = ({
   spanBarType?: SpanBarType;
 }) => {
   if (spanBarType) {
-    const {primary} = getSpanBarColours(spanBarType, theme);
-    return `
-    background: ${primary};
-    border: 2px solid ${theme.button.default.border};
-    color: ${theme.button.primary.color};
-    cursor: pointer;
-  `;
+    const {primary} = getSpanBarColors(spanBarType, theme);
+    return css`
+      background: ${primary};
+      border: 2px solid ${theme.button.default.border};
+      color: ${theme.button.primary.color};
+      cursor: pointer;
+    `;
   }
 
   const buttonTheme = isExpanded ? theme.button.default : theme.button.primary;
@@ -136,24 +141,24 @@ export const getToggleTheme = ({
     : buttonTheme.color;
 
   if (isSpanGroupToggler) {
-    return `
-    background: ${theme.blue300};
-    border: 2px solid ${theme.button.default.border};
-    color: ${color};
-    cursor: pointer;
-  `;
+    return css`
+      background: ${theme.blue300};
+      border: 2px solid ${theme.button.default.border};
+      color: ${color};
+      cursor: pointer;
+    `;
   }
 
   if (disabled) {
-    return `
-    background: ${background};
-    border: 2px solid ${border};
-    color: ${color};
-    cursor: default;
-  `;
+    return css`
+      background: ${background};
+      border: 2px solid ${border};
+      color: ${color};
+      cursor: default;
+    `;
   }
 
-  return `
+  return css`
     background: ${background};
     border: 2px solid ${border};
     color: ${color};
@@ -254,10 +259,10 @@ export const pickBarColor = (input: string | undefined): string => {
     return barColors[input];
   }
 
-  const letterIndex1 = getLetterIndex(input[0]);
-  const letterIndex2 = getLetterIndex(input[1]);
-  const letterIndex3 = getLetterIndex(input[2]);
-  const letterIndex4 = getLetterIndex(input[3]);
+  const letterIndex1 = getLetterIndex(input[0]!);
+  const letterIndex2 = getLetterIndex(input[1]!);
+  const letterIndex3 = getLetterIndex(input[2]!);
+  const letterIndex4 = getLetterIndex(input[3]!);
 
   return colorsAsArray[
     (letterIndex1 + letterIndex2 + letterIndex3 + letterIndex4) % colorsAsArray.length

@@ -391,9 +391,34 @@ def _get_and_save_split_decision_for_query(
     projects = saved_query.projects.all() or Project.objects.filter(
         organization_id=saved_query.organization.id, status=ObjectStatus.ACTIVE
     )
+
+    # Handle cases where the organization has no projects at all.
+    # No projects means a downstream check will fail and we can default
+    # to the errors dataset.
+    if not projects.exists():
+        if not dry_run:
+            sentry_sdk.set_context(
+                "query",
+                {
+                    "saved_query_id": saved_query.id,
+                    "org_slug": saved_query.organization.slug,
+                },
+            )
+            sentry_sdk.capture_message(
+                "No projects found in organization for saved query, defaulting to errors dataset"
+            )
+            _save_split_decision_for_query(
+                saved_query,
+                DiscoverSavedQueryTypes.ERROR_EVENTS,
+                DatasetSourcesTypes.FORCED,
+            )
+        return DiscoverSavedQueryTypes.ERROR_EVENTS, False
+
     snuba_dataclass = _get_snuba_dataclass_for_saved_query(saved_query, list(projects))
     selected_columns = _get_field_list(saved_query.query.get("fields", []))
-    equations = _get_equation_list(saved_query.query.get("fields", []))
+    equations = [
+        equation for equation in _get_equation_list(saved_query.query.get("fields", [])) if equation
+    ]
     query = saved_query.query.get("query", "")
 
     try:
@@ -409,7 +434,28 @@ def _get_and_save_split_decision_for_query(
             equations=equations,
             limit=1,
         )
+    except (
+        snuba.UnqualifiedQueryError,
+        InvalidSearchQuery,
+        InvalidQueryError,
+        snuba.QueryExecutionError,
+    ) as e:
+        sentry_sdk.capture_exception(e)
+        if dry_run:
+            logger.info(
+                "Split decision for %s: %s (forced fallback)",
+                saved_query.id,
+                DiscoverSavedQueryTypes.TRANSACTION_LIKE,
+            )
+        else:
+            _save_split_decision_for_query(
+                saved_query,
+                DiscoverSavedQueryTypes.TRANSACTION_LIKE,
+                DatasetSourcesTypes.FORCED,
+            )
+        return DiscoverSavedQueryTypes.TRANSACTION_LIKE, False
 
+    try:
         transactions_builder = DiscoverQueryBuilder(
             Dataset.Transactions,
             params={},
@@ -419,10 +465,16 @@ def _get_and_save_split_decision_for_query(
             equations=equations,
             limit=1,
         )
-    except (InvalidSearchQuery, InvalidQueryError):
+    except (
+        snuba.UnqualifiedQueryError,
+        InvalidSearchQuery,
+        InvalidQueryError,
+        snuba.QueryExecutionError,
+    ) as e:
+        sentry_sdk.capture_exception(e)
         if dry_run:
             logger.info(
-                "Split decision for %s: %s (forced)",
+                "Split decision for %s: %s (forced fallback)",
                 saved_query.id,
                 DiscoverSavedQueryTypes.ERROR_EVENTS,
             )

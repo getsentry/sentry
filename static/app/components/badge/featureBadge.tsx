@@ -1,8 +1,8 @@
 import {Fragment, type ReactNode} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import type {SeverityLevel} from '@sentry/core';
 import {captureException, withScope} from '@sentry/react';
-import type {SeverityLevel} from '@sentry/types';
 
 import Badge from 'sentry/components/badge/badge';
 import CircleIndicator from 'sentry/components/circleIndicator';

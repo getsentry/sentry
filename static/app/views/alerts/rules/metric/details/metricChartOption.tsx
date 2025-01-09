@@ -1,5 +1,5 @@
 import color from 'color';
-import type {MarkAreaComponentOption, YAXisComponentOption} from 'echarts';
+import type {YAXisComponentOption} from 'echarts';
 import moment from 'moment-timezone';
 
 import type {AreaChartProps, AreaChartSeries} from 'sentry/components/charts/areaChart';
@@ -16,12 +16,9 @@ import {getCrashFreeRateSeries} from 'sentry/utils/sessions';
 import {lightTheme as theme} from 'sentry/utils/theme';
 import type {MetricRule, Trigger} from 'sentry/views/alerts/rules/metric/types';
 import {AlertRuleTriggerType, Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {getAnomalyMarkerSeries} from 'sentry/views/alerts/rules/metric/utils/anomalyChart';
 import type {Anomaly, Incident} from 'sentry/views/alerts/types';
-import {
-  AnomalyType,
-  IncidentActivityType,
-  IncidentStatus,
-} from 'sentry/views/alerts/types';
+import {IncidentActivityType, IncidentStatus} from 'sentry/views/alerts/types';
 import {
   ALERT_CHART_MIN_MAX_BUFFER,
   alertAxisFormatter,
@@ -140,48 +137,6 @@ function createIncidentSeries(
   };
 }
 
-function createAnomalyMarkerSeries(
-  lineColor: string,
-  timestamp: string
-): AreaChartSeries {
-  const formatter = ({value}: any) => {
-    const time = formatTooltipDate(moment(value), 'MMM D, YYYY LT');
-    return [
-      `<div class="tooltip-series"><div>`,
-      `</div>Anomaly Detected</div>`,
-      `<div class="tooltip-footer">${time}</div>`,
-      '<div class="tooltip-arrow"></div>',
-    ].join('');
-  };
-
-  return {
-    seriesName: 'Anomaly Line',
-    type: 'line',
-    markLine: MarkLine({
-      silent: false,
-      lineStyle: {color: lineColor, type: 'dashed'},
-      label: {
-        silent: true,
-        show: false,
-      },
-      data: [
-        {
-          xAxis: timestamp,
-        },
-      ],
-      tooltip: {
-        formatter,
-      },
-    }),
-    data: [],
-    tooltip: {
-      trigger: 'item',
-      alwaysShowContent: true,
-      formatter,
-    },
-  };
-}
-
 export type MetricChartData = {
   rule: MetricRule;
   timeseriesData: Series[];
@@ -232,10 +187,10 @@ export function getMetricAlertChartOption({
   }));
   const areaSeries: AreaChartSeries[] = [];
   // Ensure series data appears below incident/mark lines
-  series[0].z = 1;
-  series[0].color = CHART_PALETTE[0][0];
+  series[0]!.z = 1;
+  series[0]!.color = CHART_PALETTE[0][0];
 
-  const dataArr = timeseriesData[0].data;
+  const dataArr = timeseriesData[0]!.data;
 
   let maxSeriesValue = Number.NEGATIVE_INFINITY;
   let minSeriesValue = Number.POSITIVE_INFINITY;
@@ -263,8 +218,11 @@ export function getMetricAlertChartOption({
         ) / ALERT_CHART_MIN_MAX_BUFFER
       )
     : 0;
-  const firstPoint = new Date(dataArr[0]?.name).getTime();
-  const lastPoint = new Date(dataArr[dataArr.length - 1]?.name).getTime();
+  const startDate = new Date(dataArr[0]!?.name);
+  const endDate =
+    dataArr.length > 1 ? new Date(dataArr[dataArr.length - 1]!?.name) : new Date();
+  const firstPoint = startDate.getTime();
+  const lastPoint = endDate.getTime();
   const totalDuration = lastPoint - firstPoint;
   let waitingForDataDuration = 0;
   let criticalDuration = 0;
@@ -276,8 +234,8 @@ export function getMetricAlertChartOption({
 
   if (showWaitingForData) {
     const {startIndex, endIndex} = getWaitingForDataRange(dataArr);
-    const startTime = new Date(dataArr[startIndex]?.name).getTime();
-    const endTime = new Date(dataArr[endIndex]?.name).getTime();
+    const startTime = new Date(dataArr[startIndex]!?.name).getTime();
+    const endTime = new Date(dataArr[endIndex]!?.name).getTime();
 
     waitingForDataDuration = Math.abs(endTime - startTime);
 
@@ -325,15 +283,15 @@ export function getMetricAlertChartOption({
             incidentColor,
             incidentStartDate,
             incidentStartValue,
-            seriesName ?? series[0].seriesName,
+            seriesName ?? series[0]!.seriesName,
             rule.aggregate,
             handleIncidentClick
           )
         );
         const areaStart = Math.max(new Date(incident.dateStarted).getTime(), firstPoint);
         const areaEnd = Math.min(
-          statusChanges.length && statusChanges[0].dateCreated
-            ? new Date(statusChanges[0].dateCreated).getTime() - timeWindowMs
+          statusChanges.length && statusChanges[0]!.dateCreated
+            ? new Date(statusChanges[0]!.dateCreated).getTime() - timeWindowMs
             : new Date(incidentEnd).getTime(),
           lastPoint
         );
@@ -358,7 +316,7 @@ export function getMetricAlertChartOption({
           const statusAreaEnd = Math.min(
             idx === statusChanges.length - 1
               ? new Date(incidentEnd).getTime()
-              : new Date(statusChanges[idx + 1].dateCreated).getTime() - timeWindowMs,
+              : new Date(statusChanges[idx + 1]!.dateCreated).getTime() - timeWindowMs,
             lastPoint
           );
           const statusAreaColor =
@@ -403,77 +361,8 @@ export function getMetricAlertChartOption({
       });
   }
   if (anomalies) {
-    const anomalyBlocks: MarkAreaComponentOption['data'] = [];
-    let start: string | undefined;
-    let end: string | undefined;
-    anomalies
-      .filter(anomalyts => {
-        const ts = new Date(anomalyts.timestamp).getTime();
-        return firstPoint < ts && ts < lastPoint;
-      })
-      .forEach(anomalyts => {
-        const {anomaly, timestamp} = anomalyts;
-
-        if (
-          [AnomalyType.high, AnomalyType.low].includes(anomaly.anomaly_type as string)
-        ) {
-          if (!start) {
-            // If this is the start of an anomaly, set start
-            start = new Date(timestamp).toISOString();
-          }
-          // as long as we have an valid anomaly type - continue tracking until we've hit the end
-          end = new Date(timestamp).toISOString();
-        } else {
-          if (start && end) {
-            // If we've hit a non-anomaly type, push the block
-            anomalyBlocks.push([
-              {
-                xAxis: start,
-              },
-              {
-                xAxis: end,
-              },
-            ]);
-            // Create a marker line for the start of the anomaly
-            series.push(createAnomalyMarkerSeries(theme.purple300, start));
-          }
-          // reset the start/end to capture the next anomaly block
-          start = undefined;
-          end = undefined;
-        }
-      });
-    if (start && end) {
-      // push in the last block
-      // Create a marker line for the start of the anomaly
-      series.push(createAnomalyMarkerSeries(theme.purple300, start));
-      anomalyBlocks.push([
-        {
-          xAxis: start,
-        },
-        {
-          xAxis: end,
-        },
-      ]);
-    }
-
-    // NOTE: if timerange is too small - highlighted area will not be visible
-    // Possibly provide a minimum window size if the time range is too large?
-    series.push({
-      seriesName: '',
-      name: 'Anomaly',
-      type: 'line',
-      smooth: true,
-      data: [],
-      markArea: {
-        itemStyle: {
-          color: 'rgba(255, 173, 177, 0.4)',
-        },
-        silent: true, // potentially don't make this silent if we want to render the `anomaly detected` in the tooltip
-        data: anomalyBlocks,
-      },
-    });
+    series.push(...getAnomalyMarkerSeries(anomalies, {startDate, endDate}));
   }
-
   let maxThresholdValue = 0;
   if (!rule.comparisonDelta && warningTrigger?.alertThreshold) {
     const {alertThreshold} = warningTrigger;
@@ -501,7 +390,7 @@ export function getMetricAlertChartOption({
   const yAxis: YAXisComponentOption = {
     axisLabel: {
       formatter: (value: number) =>
-        alertAxisFormatter(value, timeseriesData[0].seriesName, rule.aggregate),
+        alertAxisFormatter(value, timeseriesData[0]!.seriesName, rule.aggregate),
     },
     max: isCrashFreeAlert(rule.dataset)
       ? 100

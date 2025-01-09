@@ -354,7 +354,7 @@ class ReactPageViewTest(TestCase):
         with self.feature({"system:multi-region": True}):
             response = self.client.get(
                 "/issues/",
-                SERVER_NAME=f"{org.slug}.testserver",
+                HTTP_HOST=f"{org.slug}.testserver",
             )
             assert response.status_code == 200
             self.assertTemplateUsed(response, "sentry/base-react.html")
@@ -369,7 +369,7 @@ class ReactPageViewTest(TestCase):
         with self.feature({"system:multi-region": True}):
             response = self.client.get(
                 "/issues/",
-                SERVER_NAME=f"{org.slug}.testserver",
+                HTTP_HOST=f"{org.slug}.testserver",
                 follow=True,
             )
             assert response.status_code == 200
@@ -388,7 +388,7 @@ class ReactPageViewTest(TestCase):
         with self.feature({"system:multi-region": True}):
             response = self.client.get(
                 "/issues/",
-                SERVER_NAME=f"{org.slug}.testserver",
+                HTTP_HOST=f"{org.slug}.testserver",
                 follow=True,
             )
             assert response.status_code == 200
@@ -405,7 +405,7 @@ class ReactPageViewTest(TestCase):
         with self.feature({"organizations:profiling-browser": [org.slug]}):
             response = self.client.get(
                 "/issues/",
-                SERVER_NAME=f"{org.slug}.testserver",
+                HTTP_HOST=f"{org.slug}.testserver",
                 follow=True,
             )
             assert response.status_code == 200
@@ -418,8 +418,37 @@ class ReactPageViewTest(TestCase):
 
         response = self.client.get(
             "/issues/",
-            SERVER_NAME=f"{org.slug}.testserver",
+            HTTP_HOST=f"{org.slug}.testserver",
             follow=True,
         )
         assert response.status_code == 200
         assert "Document-Policy" not in response.headers
+
+    def test_dns_prefetch(self):
+        us_region = Region("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
+        de_region = Region("de", 1, "https://de.testserver", RegionCategory.MULTI_TENANT)
+        with override_regions(regions=[us_region, de_region]):
+            user = self.create_user("bar@example.com")
+            org = self.create_organization(owner=user)
+            self.login_as(user)
+
+            response = self.client.get("/issues/", HTTP_HOST=f"{org.slug}.testserver")
+            assert response.status_code == 200
+            response_body = response.content
+            assert '<link rel="dns-prefetch" href="http://us.testserver"' in response_body.decode(
+                "utf-8"
+            )
+
+    def test_preconnect(self):
+        user = self.create_user("bar@example.com")
+        org = self.create_organization(owner=user)
+        self.login_as(user)
+
+        with self.settings(STATIC_ORIGIN="https://s1.sentry-cdn.com"):
+            response = self.client.get("/issues/", HTTP_HOST=f"{org.slug}.testserver")
+            assert response.status_code == 200
+            response_body = response.content
+            assert (
+                '<link rel="preconnect" href="https://s1.sentry-cdn.com"'
+                in response_body.decode("utf-8")
+            )

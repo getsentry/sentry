@@ -22,7 +22,7 @@ from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, IntegrationTestCase
 from sentry.testutils.factories import EventType
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.users.services.user.serial import serialize_rpc_user
@@ -40,7 +40,7 @@ def get_client():
 class RegionJiraIntegrationTest(APITestCase):
     def setUp(self):
         super().setUp()
-        self.min_ago = iso_format(before_now(minutes=1))
+        self.min_ago = before_now(minutes=1).isoformat()
         self.integration = self.create_integration(
             organization=self.organization,
             external_id="jira:1",
@@ -725,24 +725,9 @@ class RegionJiraIntegrationTest(APITestCase):
 
 @control_silo_test
 class JiraIntegrationTest(APITestCase):
-    @cached_property
-    def integration(self):
-        integration = self.create_provider_integration(
-            provider="jira",
-            name="Jira Cloud",
-            metadata={
-                "oauth_client_id": "oauth-client-id",
-                "shared_secret": "a-super-secret-key-from-atlassian",
-                "base_url": "https://example.atlassian.net",
-                "domain_name": "example.atlassian.net",
-            },
-        )
-        integration.add_organization(self.organization, self.user)
-        return integration
-
     def setUp(self):
         super().setUp()
-        self.min_ago = iso_format(before_now(minutes=1))
+        self.min_ago = before_now(minutes=1)
         self.login_as(self.user)
 
     def test_update_organization_config_sync_keys(self):

@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useEffect} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -15,11 +16,12 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
 import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
+import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import useReplayList from 'sentry/utils/replays/hooks/useReplayList';
-import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useUrlParams from 'sentry/utils/useUrlParams';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
 import ReplayTable from 'sentry/views/replays/replayTable';
 import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
@@ -55,13 +57,14 @@ const visibleColumns = (allMobileProj: boolean) =>
 function GroupReplays({group}: Props) {
   const organization = useOrganization();
   const location = useLocation<ReplayListLocationQuery>();
+  const hasStreamlinedUI = useHasStreamlinedUI();
 
   const {eventView, fetchError, isFetching, pageLinks} = useReplaysFromIssue({
     group,
     location,
     organization,
   });
-  const {allMobileProj} = useAllMobileProj();
+  const {allMobileProj} = useAllMobileProj({});
 
   useEffect(() => {
     trackAnalytics('replay.render-issues-group-list', {
@@ -76,7 +79,7 @@ function GroupReplays({group}: Props) {
   if (!eventView) {
     // Shown on load and no replay data available
     return (
-      <StyledLayoutPage withPadding>
+      <StyledLayoutPage withPadding hasStreamlinedUI={hasStreamlinedUI}>
         <ReplayCountHeader>
           <IconUser size="sm" />
           {isFetching ? (
@@ -129,12 +132,12 @@ function GroupReplaysTableInner({
   overlayContent?: React.ReactNode;
 }) {
   const orgSlug = organization.slug;
-  const {fetching, replay} = useReplayReader({
+  const {fetching, replay} = useLoadReplayReader({
     orgSlug,
     replaySlug,
     group,
   });
-  const {allMobileProj} = useAllMobileProj();
+  const {allMobileProj} = useAllMobileProj({});
 
   return (
     <ReplayContextProvider
@@ -177,6 +180,7 @@ function GroupReplaysTable({
   const {getReplayCountForIssue} = useReplayCountForIssues({
     statsPeriod: '90d',
   });
+  const hasStreamlinedUI = useHasStreamlinedUI();
 
   const replayListData = useReplayList({
     eventView,
@@ -185,7 +189,7 @@ function GroupReplaysTable({
     queryReferrer: 'issueReplays',
   });
   const {replays} = replayListData;
-  const {allMobileProj} = useAllMobileProj();
+  const {allMobileProj} = useAllMobileProj({});
 
   const rawReplayIndex = urlParams.getParamValue('selected_replay_index');
   const selectedReplayIndex = parseInt(
@@ -264,24 +268,37 @@ function GroupReplaysTable({
   );
 
   return (
-    <StyledLayoutPage withPadding>
+    <StyledLayoutPage withPadding hasStreamlinedUI={hasStreamlinedUI}>
       <ReplayCountHeader>
         <IconUser size="sm" />
-        {t(
-          'There are %s for this issue across %s.',
-          tn('%s replay', '%s replays', replayCount ?? 0),
-          tn('%s event', '%s events', group.count)
-        )}
+        {(replayCount ?? 0) > 50
+          ? tn(
+              'There are 50+ replays for this issue across %s event',
+              'There are 50+ replays for this issue across %s events',
+              group.count
+            )
+          : t(
+              'There %s for this issue across %s.',
+              tn('is %s replay', 'are %s replays', replayCount ?? 0),
+              tn('%s event', '%s events', group.count)
+            )}
       </ReplayCountHeader>
       {inner}
     </StyledLayoutPage>
   );
 }
 
-export const StyledLayoutPage = styled(Layout.Page)`
-  box-shadow: 0px 0px 1px ${p => p.theme.gray200};
+const StyledLayoutPage = styled(Layout.Page)<{hasStreamlinedUI?: boolean}>`
   background-color: ${p => p.theme.background};
   gap: ${space(2)};
+
+  ${p =>
+    p.hasStreamlinedUI &&
+    css`
+      border: 1px solid ${p.theme.border};
+      border-radius: ${p.theme.borderRadius};
+      padding: ${space(3)} ${space(2)};
+    `}
 `;
 
 const ReplayCountHeader = styled('div')`

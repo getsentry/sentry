@@ -31,6 +31,10 @@ export interface TabsProps<T>
    * selected tab item.
    */
   defaultValue?: T;
+  /**
+   * Disable tabs from being put in the overflow menu.
+   */
+  disableOverflow?: boolean;
   disabled?: boolean;
   /**
    * Callback when the selected tab changes.
@@ -43,7 +47,7 @@ export interface TabsProps<T>
   value?: T;
 }
 
-interface TabContext {
+export interface TabContext {
   rootProps: Omit<TabsProps<any>, 'children' | 'className'>;
   setTabListState: (state: TabListState<any>) => void;
   tabListState?: TabListState<any>;

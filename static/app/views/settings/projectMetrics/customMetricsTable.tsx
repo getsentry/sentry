@@ -19,6 +19,7 @@ import {useBlockMetric} from 'sentry/utils/metrics/useBlockMetric';
 import {useCardinalityLimitedMetricVolume} from 'sentry/utils/metrics/useCardinalityLimitedMetricVolume';
 import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useAccess} from 'sentry/views/settings/projectMetrics/access';
 import {BlockButton} from 'sentry/views/settings/projectMetrics/blockButton';
 import {useSearchQueryParam} from 'sentry/views/settings/projectMetrics/utils/useSearchQueryParam';
@@ -139,6 +140,7 @@ interface MetricsTableProps {
 
 function MetricsTable({metrics, isLoading, query, project}: MetricsTableProps) {
   const blockMetricMutation = useBlockMetric(project);
+  const organization = useOrganization();
   const {hasAccess} = useAccess({access: ['project:write'], project});
 
   return (
@@ -167,7 +169,7 @@ function MetricsTable({metrics, isLoading, query, project}: MetricsTableProps) {
       isLoading={isLoading}
     >
       {metrics.map(({mri, type, unit, cardinality, blockingStatus}) => {
-        const isBlocked = blockingStatus[0]?.isBlocked;
+        const isBlocked = blockingStatus[0]?.isBlocked!;
         const isCardinalityLimited = cardinality > 0;
         return (
           <Fragment key={mri}>
@@ -182,7 +184,7 @@ function MetricsTable({metrics, isLoading, query, project}: MetricsTableProps) {
                 </Tooltip>
               )}
               <Link
-                to={`/settings/projects/${project.slug}/metrics/${encodeURIComponent(
+                to={`/settings/${organization.slug}/projects/${project.slug}/metrics/${encodeURIComponent(
                   mri
                 )}`}
               >

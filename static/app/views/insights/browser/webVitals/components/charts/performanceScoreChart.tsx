@@ -28,7 +28,7 @@ type Props = {
   webVital?: WebVitals | null;
 };
 
-export const ORDER = ['lcp', 'fcp', 'inp', 'cls', 'ttfb'];
+export const ORDER: WebVitals[] = ['lcp', 'fcp', 'inp', 'cls', 'ttfb'];
 
 export function PerformanceScoreChart({
   projectScore,
@@ -47,7 +47,7 @@ export function PerformanceScoreChart({
       : projectScore.totalScore
     : undefined;
 
-  let ringSegmentColors = theme.charts.getColorPalette(3);
+  let ringSegmentColors = theme.charts.getColorPalette(3)?.slice() as string[];
   let ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
 
   if (webVital) {

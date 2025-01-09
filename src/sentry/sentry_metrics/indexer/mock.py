@@ -18,14 +18,13 @@ from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 
 
 class RawSimpleIndexer(StringIndexer):
-
     """Simple indexer with in-memory store. Do not use in production."""
 
     def __init__(self) -> None:
         self._counter = itertools.count(start=10000)
-        self._strings: DefaultDict[
-            UseCaseID, DefaultDict[OrgId, DefaultDict[str, int | None]]
-        ] = defaultdict(lambda: defaultdict(lambda: defaultdict(self._counter.__next__)))
+        self._strings: DefaultDict[UseCaseID, DefaultDict[OrgId, DefaultDict[str, int | None]]] = (
+            defaultdict(lambda: defaultdict(lambda: defaultdict(self._counter.__next__)))
+        )
         self._reverse: dict[int, str] = {}
 
     def bulk_record(

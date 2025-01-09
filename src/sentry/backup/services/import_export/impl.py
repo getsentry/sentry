@@ -524,12 +524,12 @@ class UniversalImportExportService(ImportExportService):
                                 # well.
                                 break
                         else:
-                            # For models that may have circular references to themselves (unlikely),
-                            # keep track of the new pk in the input map as well.
                             nonlocal max_pk
                             if item.pk > max_pk:
                                 max_pk = item.pk
 
+                            # For models that may have circular references to themselves (unlikely),
+                            # keep track of the new pk in the input map as well.
                             in_pk_map.insert(model_name, item.pk, item.pk, ImportKind.Inserted)
                             out_pk_map.insert(model_name, item.pk, item.pk, ImportKind.Inserted)
                             yield item

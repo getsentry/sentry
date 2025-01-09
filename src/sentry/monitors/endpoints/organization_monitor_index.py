@@ -11,6 +11,8 @@ from django.db.models import (
     When,
 )
 from drf_spectacular.utils import extend_schema
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry import audit_log, quotas
 from sentry.api.api_owners import ApiOwner
@@ -34,6 +36,8 @@ from sentry.db.models.query import in_iexact
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.monitors.models import (
+    DEFAULT_STATUS_ORDER,
+    MONITOR_ENVIRONMENT_ORDERING,
     Monitor,
     MonitorEnvironment,
     MonitorLimitsExceeded,
@@ -61,22 +65,6 @@ def map_value_to_constant(constant, value):
     if not hasattr(constant, value):
         raise ValueError(value)
     return getattr(constant, value)
-
-
-from rest_framework.request import Request
-from rest_framework.response import Response
-
-DEFAULT_ORDERING = [
-    MonitorStatus.ERROR,
-    MonitorStatus.OK,
-    MonitorStatus.ACTIVE,
-    MonitorStatus.DISABLED,
-]
-
-MONITOR_ENVIRONMENT_ORDERING = Case(
-    *[When(status=s, then=Value(i)) for i, s in enumerate(DEFAULT_ORDERING)],
-    output_field=IntegerField(),
-)
 
 
 def flip_sort_direction(sort_field: str) -> str:
@@ -163,8 +151,8 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
             queryset = queryset.annotate(
                 environment_status_ordering=Case(
                     # Sort DISABLED and is_muted monitors to the bottom of the list
-                    When(status=ObjectStatus.DISABLED, then=Value(len(DEFAULT_ORDERING) + 1)),
-                    When(is_muted=True, then=Value(len(DEFAULT_ORDERING))),
+                    When(status=ObjectStatus.DISABLED, then=Value(len(DEFAULT_STATUS_ORDER) + 1)),
+                    When(is_muted=True, then=Value(len(DEFAULT_STATUS_ORDER))),
                     default=Subquery(
                         monitor_environments_query.annotate(
                             status_ordering=MONITOR_ENVIRONMENT_ORDERING
@@ -375,8 +363,11 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
 
         result = dict(validator.validated_data)
 
+        projects = self.get_projects(request, organization, include_all_accessible=True)
+        project_ids = [project.id for project in projects]
+
         monitor_guids = result.pop("ids", [])
-        monitors = Monitor.objects.filter(guid__in=monitor_guids)
+        monitors = Monitor.objects.filter(guid__in=monitor_guids, project_id__in=project_ids)
 
         status = result.get("status")
         # If enabling monitors, ensure we can assign all before moving forward

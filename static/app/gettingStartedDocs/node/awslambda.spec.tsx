@@ -1,3 +1,5 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
 import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboardingLayout';
 import {screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -35,10 +37,10 @@ describe('awslambda onboarding docs', function () {
     });
 
     expect(
-      screen.queryByText(textWithMarkupMatcher(/tracesSampleRate/))
+      screen.getByText(textWithMarkupMatcher(/tracesSampleRate/))
     ).toBeInTheDocument();
     expect(
-      screen.queryByText(textWithMarkupMatcher(/profilesSampleRate/))
+      screen.getByText(textWithMarkupMatcher(/profilesSampleRate/))
     ).toBeInTheDocument();
   });
 
@@ -69,6 +71,41 @@ describe('awslambda onboarding docs', function () {
     ).toBeInTheDocument();
     expect(
       screen.getByText(textWithMarkupMatcher(/profilesSampleRate: 1\.0/))
+    ).toBeInTheDocument();
+  });
+
+  it('continuous profiling', () => {
+    const organization = OrganizationFixture({
+      features: ['continuous-profiling'],
+    });
+
+    renderWithOnboardingLayout(
+      docs,
+      {},
+      {
+        organization,
+      }
+    );
+
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(
+          /const { nodeProfilingIntegration } = require\("@sentry\/profiling-node"\)/
+        )
+      )
+    ).toBeInTheDocument();
+
+    // Profiles sample rate should not be set for continuous profiling
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/profilesSampleRate: 1\.0/))
+    ).not.toBeInTheDocument();
+
+    // Should have start and stop profiling calls
+    expect(
+      screen.getByText(textWithMarkupMatcher(/Sentry.profiler.startProfiler/))
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/Sentry.profiler.stopProfiler/))
     ).toBeInTheDocument();
   });
 });

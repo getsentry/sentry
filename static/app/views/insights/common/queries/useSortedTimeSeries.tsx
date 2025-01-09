@@ -1,9 +1,11 @@
 import type {Series} from 'sentry/types/echarts';
 import type {
+  Confidence,
   EventsStats,
   GroupedMultiSeriesEventsStats,
   MultiSeriesEventsStats,
 } from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import {DURATION_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
@@ -16,6 +18,7 @@ import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {determineSeriesConfidence} from 'sentry/views/alerts/rules/metric/utils/determineSeriesConfidence';
 import {getSeriesEventView} from 'sentry/views/insights/common/queries/getSeriesEventView';
 import type {SpanFunctions, SpanIndexedField} from 'sentry/views/insights/types';
 
@@ -116,7 +119,7 @@ export const useSortedTimeSeries = <
   };
 };
 
-function isEventsStats(
+export function isEventsStats(
   obj: EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats
 ): obj is EventsStats {
   return typeof obj === 'object' && obj !== null && typeof obj.data === 'object';
@@ -153,7 +156,7 @@ function transformToSeriesMap(
   const hasMultipleYAxes = yAxis.length > 1;
   if (isMultiSeriesEventsStats(result)) {
     const processedResults: [number, Series][] = Object.keys(result).map(seriesName =>
-      processSingleEventStats(seriesName, result[seriesName])
+      processSingleEventStats(seriesName, result[seriesName]!)
     );
 
     if (!hasMultipleYAxes) {
@@ -177,7 +180,7 @@ function transformToSeriesMap(
   // to enable sorting.
   const processedResults: [string, number, MultiSeriesEventsStats][] = [];
   Object.keys(result).forEach(seriesName => {
-    const {order: groupOrder, ...groupData} = result[seriesName];
+    const {order: groupOrder, ...groupData} = result[seriesName]!;
     processedResults.push([seriesName, groupOrder || 0, groupData]);
   });
 
@@ -187,7 +190,7 @@ function transformToSeriesMap(
       Object.keys(groupData).forEach(aggFunctionAlias => {
         const [, series] = processSingleEventStats(
           seriesName,
-          groupData[aggFunctionAlias]
+          groupData[aggFunctionAlias]!
         );
 
         if (!acc[aggFunctionAlias]) {
@@ -211,7 +214,7 @@ function processSingleEventStats(
     scale = (unit && (DURATION_UNITS[unit] ?? SIZE_UNITS[unit])) ?? 1;
   }
 
-  const processsedData: Series = {
+  const processedData: Series = {
     seriesName: seriesName || '(empty string)',
     data: seriesData.data.map(([timestamp, countsForTimestamp]) => ({
       name: timestamp * 1000,
@@ -219,5 +222,10 @@ function processSingleEventStats(
     })),
   };
 
-  return [seriesData.order || 0, processsedData];
+  const confidence: Confidence = determineSeriesConfidence(seriesData);
+  if (defined(confidence)) {
+    processedData.confidence = confidence;
+  }
+
+  return [seriesData.order || 0, processedData];
 }

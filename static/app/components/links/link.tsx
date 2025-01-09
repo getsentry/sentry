@@ -1,5 +1,8 @@
 import {forwardRef} from 'react';
-import {Link as RouterLink} from 'react-router-dom';
+import {
+  Link as RouterLink,
+  type LinkProps as ReactRouterLinkProps,
+} from 'react-router-dom';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
@@ -36,6 +39,7 @@ export interface LinkProps
    * Forwarded ref
    */
   forwardedRef?: React.Ref<HTMLAnchorElement>;
+  state?: ReactRouterLinkProps['state'];
 }
 
 /**

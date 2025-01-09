@@ -12,8 +12,7 @@ class UnsatisfiableRange(Exception):
 
 
 class RangeProtocol(Protocol):
-    def make_range(self, last_index: int) -> tuple[int, int]:
-        ...
+    def make_range(self, last_index: int) -> tuple[int, int]: ...
 
     def read_range(self, bytes: io.BytesIO) -> bytes:
         """Return a byte range from a reader.

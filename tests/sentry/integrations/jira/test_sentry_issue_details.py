@@ -8,7 +8,7 @@ from sentry.integrations.jira import JIRA_KEY
 from sentry.integrations.jira.views import UNABLE_TO_VERIFY_INSTALLATION
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
-from sentry.integrations.utils import AtlassianConnectValidationError
+from sentry.integrations.utils.atlassian_connect import AtlassianConnectValidationError
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
 from sentry.testutils.cases import APITestCase

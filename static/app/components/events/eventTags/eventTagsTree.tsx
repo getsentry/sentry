@@ -14,6 +14,7 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 const MAX_TREE_DEPTH = 4;
 const INVALID_BRANCH_REGEX = /\.{2,}/;
@@ -99,7 +100,7 @@ function getTagTreeRows({
     const branchRows = getTagTreeRows({
       ...props,
       tagKey: tag,
-      content: content.subtree[tag],
+      content: content.subtree[tag]!,
       spacerCount: spacerCount + 1,
       isLast: i === subtreeTags.length - 1,
       // Encoding the trunk index with the branch index ensures uniqueness for the key
@@ -153,7 +154,7 @@ function TagTreeColumns({
     // root parent so that we do not split up roots/branches when forming columns
     const tagTreeRowGroups: React.ReactNode[][] = Object.entries(tagTree).map(
       ([tagKey, content], i) =>
-        getTagTreeRows({tagKey, content, uniqueKey: `${i}`, project: project, ...props})
+        getTagTreeRows({tagKey, content, uniqueKey: `${i}`, project, ...props})
     );
     // Get the total number of TagTreeRow components to be rendered, and a goal size for each column
     const tagTreeRowTotal = tagTreeRowGroups.reduce(
@@ -196,6 +197,7 @@ function TagTreeColumns({
 }
 
 function EventTagsTree(props: EventTagsTreeProps) {
+  const hasStreamlinedUI = useHasStreamlinedUI();
   const containerRef = useRef<HTMLDivElement>(null);
   const columnCount = useIssueDetailsColumnCount(containerRef);
   return (
@@ -204,6 +206,7 @@ function EventTagsTree(props: EventTagsTreeProps) {
         columnCount={columnCount}
         ref={containerRef}
         data-test-id="event-tags-tree"
+        style={hasStreamlinedUI ? {marginTop: 0} : undefined}
       >
         <TagTreeColumns columnCount={columnCount} {...props} />
       </TreeContainer>

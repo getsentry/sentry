@@ -159,6 +159,7 @@ class ResultsHeader extends Component<Props, State> {
       splitDecision,
     } = this.props;
     const {savedQuery, loading, homepageQuery} = this.state;
+    const hasDiscoverQueryFeature = organization.features.includes('discover-query');
 
     return (
       <Layout.Header>
@@ -175,22 +176,33 @@ class ResultsHeader extends Component<Props, State> {
                 />
               </Layout.Title>
             </GuideAnchor>
-          ) : (
+          ) : hasDiscoverQueryFeature ? (
             <Fragment>
-              <Feature features="organizations:discover-query">
-                <DiscoverBreadcrumb
-                  eventView={eventView}
-                  organization={organization}
-                  location={location}
-                  isHomepage={isHomepage}
-                />
-              </Feature>
+              <DiscoverBreadcrumb
+                eventView={eventView}
+                organization={organization}
+                location={location}
+                isHomepage={isHomepage}
+              />
               <EventInputName
                 savedQuery={savedQuery}
                 organization={organization}
                 eventView={eventView}
                 isHomepage={isHomepage}
               />
+            </Fragment>
+          ) : (
+            // Only has discover-basic
+            <Fragment>
+              <Layout.Title>
+                {t('Discover')}
+                <PageHeadingQuestionTooltip
+                  docsUrl="https://docs.sentry.io/product/discover-queries/"
+                  title={t(
+                    'Create queries to get insights into the health of your system.'
+                  )}
+                />
+              </Layout.Title>
             </Fragment>
           )}
           {this.renderAuthor()}
@@ -230,14 +242,12 @@ class ResultsHeader extends Component<Props, State> {
         >
           {({hasFeature}) =>
             hasFeature && (
-              <DatasetSelectorWrapper>
-                <DatasetSelectorTabs
-                  eventView={eventView}
-                  isHomepage={isHomepage}
-                  savedQuery={savedQuery}
-                  splitDecision={splitDecision}
-                />
-              </DatasetSelectorWrapper>
+              <DatasetSelectorTabs
+                eventView={eventView}
+                isHomepage={isHomepage}
+                savedQuery={savedQuery}
+                splitDecision={splitDecision}
+              />
             )
           }
         </Feature>
@@ -254,12 +264,6 @@ const Subtitle = styled('h4')`
 `;
 
 const BannerWrapper = styled('div')`
-  grid-column: 1 / -1;
-`;
-
-// Force the dataset selector to have the entire width of the grid
-// so it doesn't go into the overflow menu state when the window is small
-const DatasetSelectorWrapper = styled('div')`
   grid-column: 1 / -1;
 `;
 

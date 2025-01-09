@@ -124,20 +124,6 @@ class GetMaxAlertsTest(ProjectRuleBaseTestCase):
 class CreateProjectRuleTest(ProjectRuleBaseTestCase):
     method = "post"
 
-    def mock_conversations_list(self, channels):
-        return patch(
-            "slack_sdk.web.client.WebClient.conversations_list",
-            return_value=SlackResponse(
-                client=None,
-                http_verb="POST",
-                api_url="https://slack.com/api/conversations.list",
-                req_args={},
-                data={"ok": True, "channels": channels},
-                headers={},
-                status_code=200,
-            ),
-        )
-
     def mock_conversations_info(self, channel):
         return patch(
             "slack_sdk.web.client.WebClient.conversations_info",
@@ -822,7 +808,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             "interval": "1h",
             "value": 50,
         }
-        actions = [
+        actions: list[dict[str, object]] = [
             {"id": "sentry.rules.actions.notify_event.NotifyEventAction", "uuid": str(uuid4())}
         ]
         self.run_test(
@@ -903,7 +889,6 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             == "Select a valid choice. bad data is not one of the available choices."
         )
 
-    @with_feature("organizations:latest-adopted-release-filter")
     def test_latest_adopted_release_filter_validation(self):
         filter = {
             "id": "sentry.rules.filters.latest_adopted_release_filter.LatestAdoptedReleaseFilter",

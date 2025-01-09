@@ -12,7 +12,7 @@ import sentry_sdk
 from django.conf import settings
 from django.db.models import Min, prefetch_related_objects
 
-from sentry import features, tagstore
+from sentry import tagstore
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.api.serializers.models.plugin import is_plugin_deprecated
@@ -317,7 +317,7 @@ class GroupSerializerBase(Serializer, ABC):
         return result
 
     def serialize(
-        self, obj: Group, attrs: MutableMapping[str, Any], user: Any, **kwargs: Any
+        self, obj: Group, attrs: Mapping[str, Any], user: Any, **kwargs: Any
     ) -> BaseGroupSerializerResponse:
         status_details, status_label = self._get_status(attrs, obj)
         permalink = self._get_permalink(attrs, obj)
@@ -390,7 +390,7 @@ class GroupSerializerBase(Serializer, ABC):
             return False
         return key in self.collapse
 
-    def _get_status(self, attrs: MutableMapping[str, Any], obj: Group):
+    def _get_status(self, attrs: Mapping[str, Any], obj: Group):
         status = obj.status
         status_details = {}
         if attrs["ignore_until"]:
@@ -481,13 +481,7 @@ class GroupSerializerBase(Serializer, ABC):
     def _get_group_snuba_stats(
         self, item_list: Sequence[Group], seen_stats: Mapping[Group, SeenStats] | None
     ):
-        if (
-            self._collapse("unhandled")
-            and len(item_list) > 0
-            and features.has(
-                "organizations:issue-stream-performance", item_list[0].project.organization
-            )
-        ):
+        if self._collapse("unhandled") and len(item_list) > 0:
             return None
         start = self._get_start_from_seen_stats(seen_stats)
         unhandled = {}
@@ -764,8 +758,10 @@ class GroupSerializer(GroupSerializerBase):
         ) -> Mapping[int, int]:
             pass
 
-    def __init__(self, environment_func: Callable[[], Environment] | None = None):
-        GroupSerializerBase.__init__(self)
+    def __init__(
+        self, collapse=None, expand=None, environment_func: Callable[[], Environment] | None = None
+    ):
+        GroupSerializerBase.__init__(self, collapse=collapse, expand=expand)
         self.environment_func = environment_func if environment_func is not None else lambda: None
 
     def _seen_stats_error(self, item_list, user) -> Mapping[Group, SeenStats]:
@@ -848,7 +844,7 @@ class GroupSerializer(GroupSerializerBase):
 
 class SharedGroupSerializer(GroupSerializer):
     def serialize(
-        self, obj: Group, attrs: MutableMapping[str, Any], user: Any, **kwargs: Any
+        self, obj: Group, attrs: Mapping[str, Any], user: Any, **kwargs: Any
     ) -> BaseGroupSerializerResponse:
         result = super().serialize(obj, attrs, user)
 

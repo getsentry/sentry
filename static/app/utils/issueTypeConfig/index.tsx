@@ -6,6 +6,7 @@ import {
   errorConfig,
   getErrorHelpResource,
 } from 'sentry/utils/issueTypeConfig/errorConfig';
+import metricIssueConfig from 'sentry/utils/issueTypeConfig/metricIssueConfig';
 import performanceConfig from 'sentry/utils/issueTypeConfig/performanceConfig';
 import replayConfig from 'sentry/utils/issueTypeConfig/replayConfig';
 import type {
@@ -31,25 +32,36 @@ const BASE_CONFIG: IssueTypeConfig = {
     deleteAndDiscard: {enabled: false},
     merge: {enabled: false},
     ignore: {enabled: false},
+    resolve: {enabled: true},
     resolveInRelease: {enabled: true},
     share: {enabled: false},
   },
+  customCopy: {
+    resolution: 'Resolved',
+  },
   attachments: {enabled: false},
   autofix: false,
-  aiSuggestedSolution: false,
+  eventAndUserCounts: {enabled: true},
   events: {enabled: true},
   mergedIssues: {enabled: false},
+  filterAndSearchHeader: {enabled: true},
+  performanceDurationRegression: {enabled: false},
+  profilingDurationRegression: {enabled: false},
   regression: {enabled: false},
   replays: {enabled: false},
   showFeedbackWidget: false,
-  stats: {enabled: true},
   similarIssues: {enabled: false},
+  spanEvidence: {enabled: false},
+  stacktrace: {enabled: true},
+  stats: {enabled: true},
   tags: {enabled: true},
+  tagsTab: {enabled: true},
   userFeedback: {enabled: false},
   discover: {enabled: true},
   evidence: {title: t('Evidence')},
   resources: null,
   usesIssuePlatform: true,
+  issueSummary: {enabled: false},
 };
 
 const issueTypeConfig: Config = {
@@ -58,6 +70,7 @@ const issueTypeConfig: Config = {
   [IssueCategory.CRON]: cronConfig,
   [IssueCategory.REPLAY]: replayConfig,
   [IssueCategory.UPTIME]: uptimeConfig,
+  [IssueCategory.METRIC_ALERT]: metricIssueConfig,
 };
 
 /**
@@ -103,7 +116,7 @@ export const getIssueCategoryAndTypeFromOccurrenceType = (
 export const getConfigForIssueType = (
   params: GetConfigForIssueTypeParams,
   project: Project
-) => {
+): IssueTypeConfig => {
   const {issueCategory, issueType, title} =
     'eventOccurrenceType' in params
       ? getIssueCategoryAndTypeFromOccurrenceType(params.eventOccurrenceType as number)

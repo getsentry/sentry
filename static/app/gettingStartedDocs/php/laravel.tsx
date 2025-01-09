@@ -13,7 +13,10 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import exampleSnippets from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsExampleSnippets';
 import {metricTagsExplanation} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
-import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
+import {
+  feedbackOnboardingJsLoader,
+  replayOnboardingJsLoader,
+} from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -60,18 +63,21 @@ composer install sentry/sentry-laravel
 composer update sentry/sentry-laravel -W`;
 
 const onboarding: OnboardingConfig = {
-  introduction: () =>
-    tct(
-      'This guide is for Laravel 11.0 an up. We also provide instructions for [otherVersionsLink:other versions] as well as [lumenSpecificLink:Lumen-specific instructions].',
-      {
-        otherVersionsLink: (
-          <ExternalLink href="https://docs.sentry.io/platforms/php/guides/laravel/other-versions/" />
-        ),
-        lumenSpecificLink: (
-          <ExternalLink href="https://docs.sentry.io/platforms/php/guides/laravel/other-versions/lumen/" />
-        ),
-      }
-    ),
+  introduction: () => (
+    <p>
+      {tct(
+        'This guide is for Laravel 11.0 an up. We also provide instructions for [otherVersionsLink:other versions] as well as [lumenSpecificLink:Lumen-specific instructions].',
+        {
+          otherVersionsLink: (
+            <ExternalLink href="https://docs.sentry.io/platforms/php/guides/laravel/other-versions/" />
+          ),
+          lumenSpecificLink: (
+            <ExternalLink href="https://docs.sentry.io/platforms/php/guides/laravel/other-versions/lumen/" />
+          ),
+        }
+      )}
+    </p>
+  ),
   install: (params: Params) => [
     {
       type: StepType.INSTALL,
@@ -365,6 +371,7 @@ const docs: Docs = {
   replayOnboardingJsLoader,
   customMetricsOnboarding,
   crashReportOnboarding,
+  feedbackOnboardingJsLoader,
 };
 
 export default docs;

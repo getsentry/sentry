@@ -4,14 +4,17 @@ import functools
 from collections.abc import Callable
 from typing import Optional
 
-from django.contrib.auth.models import AnonymousUser, User
+from django.contrib.auth.models import AnonymousUser
 from django.core.cache import cache
 from django.http import HttpRequest
+from rest_framework.request import Request
+from rest_framework.views import APIView
 
 from sentry.app import env
 from sentry.middleware.auth import AuthenticationMiddleware
 from sentry.middleware.placeholder import placeholder_get_response
 from sentry.testutils.factories import Factories
+from sentry.users.models.user import User
 from sentry.utils.auth import login
 
 RequestFactory = Callable[[], Optional[tuple[HttpRequest, User]]]
@@ -66,3 +69,13 @@ def make_user_request_from_org(org=None):
     request, user = make_user_request(org)
     request.session["activeorg"] = org.slug
     return request, user
+
+
+def drf_request_from_request(request: HttpRequest) -> Request:
+    ret = APIView().initialize_request(request)
+    # reattach these if missing
+    # XXX: technically `HttpRequest` shouldn't have auth but our tests do!)
+    for attr in ("auth", "user"):
+        if hasattr(request, attr):
+            setattr(ret, attr, getattr(request, attr))
+    return ret

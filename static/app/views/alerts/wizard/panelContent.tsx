@@ -157,14 +157,6 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
     examples: [t('When there are more than $100 used by LLM  within an hour')],
     illustration: diagramCustomMetrics,
   },
-  insights_metrics: {
-    description: t('Alert on insights metrics.'),
-    examples: [
-      t('When your average time in queue exceeds 100ms.'),
-      t('When your app runs more than 1000 queries in a minute.'),
-    ],
-    illustration: diagramCustomMetrics,
-  },
   crash_free_sessions: {
     description: t(
       'A session begins when a user starts the application and ends when it’s closed or sent to the background. A crash is when a session ends due to an error and this type of alert lets you monitor when those crashed sessions exceed a threshold. This lets you get a better picture of the health of your app.'
@@ -193,5 +185,13 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
       t('When a DNS resolution error is detected for the URL.'),
     ],
     illustration: diagramUptime,
+  },
+  eap_metrics: {
+    description: t('Alert on spans.'),
+    examples: [
+      t('When your average time in queue exceeds 100ms.'),
+      t('When your app runs more than 1000 queries in a minute.'),
+    ],
+    illustration: diagramThroughput,
   },
 };

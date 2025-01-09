@@ -60,6 +60,7 @@ export function usePluginExternalIssues({
         displayIcon,
         actions: [
           {
+            id: plugin.id,
             name: plugin.shortName,
             onClick: () => {
               plugins.load(plugin, () => {

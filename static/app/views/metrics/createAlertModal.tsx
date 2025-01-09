@@ -37,10 +37,10 @@ import {
 import type {MetricsQuery} from 'sentry/utils/metrics/types';
 import {useMetricsQuery} from 'sentry/utils/metrics/useMetricsQuery';
 import {useVirtualMetricsContext} from 'sentry/utils/metrics/virtualMetricsContext';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import useRouter from 'sentry/utils/useRouter';
 import {AVAILABLE_TIME_PERIODS} from 'sentry/views/alerts/rules/metric/triggers/chart';
 import {
   Dataset,
@@ -102,7 +102,7 @@ export function getAlertInterval(
   }
 
   for (let index = 0; index < TIME_WINDOWS_TO_CHECK.length; index++) {
-    const timeWindow = TIME_WINDOWS_TO_CHECK[index];
+    const timeWindow = TIME_WINDOWS_TO_CHECK[index]!;
     if (inMinutes <= timeWindow && AVAILABLE_TIME_PERIODS[timeWindow].includes(period)) {
       return toInterval(timeWindow);
     }
@@ -122,14 +122,14 @@ export function CreateAlertModal({
   Footer,
   metricsQuery,
 }: Props & ModalRenderProps) {
-  const router = useRouter();
+  const navigate = useNavigate();
   const organization = useOrganization();
   const {resolveVirtualMRI, getExtractionRule} = useVirtualMetricsContext();
   const {projects} = useProjects();
   const {selection} = usePageFilters();
   const [formState, setFormState] = useState<FormState>(() => {
     let project =
-      selection.projects.length === 1 ? selection.projects[0].toString() : null;
+      selection.projects.length === 1 ? selection.projects[0]!.toString() : null;
 
     if (isVirtualMetric(metricsQuery) && metricsQuery.condition) {
       const rule = getExtractionRule(metricsQuery.mri, metricsQuery.condition);
@@ -139,7 +139,7 @@ export function CreateAlertModal({
     }
 
     const environment =
-      selection.environments.length === 1 && project ? selection.environments[0] : null;
+      selection.environments.length === 1 && project ? selection.environments[0]! : null;
 
     return {
       project,
@@ -259,7 +259,7 @@ export function CreateAlertModal({
   );
 
   const handleSubmit = useCallback(() => {
-    router.push(
+    navigate(
       `/organizations/${organization.slug}/alerts/new/metric/?${qs.stringify({
         aggregate,
         query: `${metricsQuery.query} event.type:transaction`.trim(),
@@ -275,7 +275,7 @@ export function CreateAlertModal({
       })}`
     );
   }, [
-    router,
+    navigate,
     aggregate,
     metricsQuery.query,
     organization.slug,

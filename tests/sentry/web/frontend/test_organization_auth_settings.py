@@ -240,7 +240,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         self.login_as(self.user, organization_id=organization.id)
 
         with self.feature("organizations:sso-basic"):
-            resp = self.client.get(path, SERVER_NAME=f"{organization.slug}.testserver")
+            resp = self.client.get(path, HTTP_HOST=f"{organization.slug}.testserver")
 
         content = resp.content.decode("utf-8")
         assert f"http://{organization.slug}.testserver" in content
@@ -725,12 +725,6 @@ dummy_generic_provider_config = {
 
 class DummyGenericSAML2Provider(GenericSAML2Provider):
     name = "saml2_generic_dummy"
-
-    def get_saml_setup_pipeline(self):
-        return []
-
-    def build_config(self, state):
-        return dummy_provider_config
 
 
 @control_silo_test

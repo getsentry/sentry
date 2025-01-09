@@ -16,6 +16,9 @@ export enum ModuleName {
   AI = 'ai',
   MOBILE_UI = 'mobile-ui',
   MOBILE_SCREENS = 'mobile-screens',
+  SCREEN_RENDERING = 'screen-rendering',
+  CRONS = 'crons',
+  UPTIME = 'uptime',
   OTHER = 'other',
 }
 
@@ -134,8 +137,7 @@ export const SPAN_FUNCTIONS = [
   'sum',
 ] as const;
 
-const BREAKPOINT_CONDITIONS = ['less', 'greater'] as const;
-type BreakpointCondition = (typeof BREAKPOINT_CONDITIONS)[number];
+type BreakpointCondition = 'less' | 'greater';
 
 type RegressionFunctions = [
   `regression_score(${string},${string})`,
@@ -229,6 +231,7 @@ export enum SpanIndexedField {
   SPAN_AI_PIPELINE_GROUP = 'span.ai.pipeline.group',
   SPAN_AI_PIPELINE_GROUP_TAG = 'ai_pipeline_group',
   SDK_NAME = 'sdk.name',
+  SDK_VERSION = 'sdk.version',
   TRACE = 'trace',
   TRANSACTION_ID = 'transaction.id',
   TRANSACTION_METHOD = 'transaction.method',
@@ -246,6 +249,7 @@ export enum SpanIndexedField {
   BROWSER_NAME = 'browser.name',
   USER = 'user',
   USER_ID = 'user.id',
+  USER_IP = 'user.ip',
   USER_EMAIL = 'user.email',
   USER_USERNAME = 'user.username',
   INP = 'measurements.inp',
@@ -268,6 +272,7 @@ export type SpanIndexedResponse = {
   [SpanIndexedField.ENVIRONMENT]: string;
   [SpanIndexedField.RELEASE]: string;
   [SpanIndexedField.SDK_NAME]: string;
+  [SpanIndexedField.SDK_VERSION]: string;
   [SpanIndexedField.SPAN_CATEGORY]: string;
   [SpanIndexedField.SPAN_DURATION]: number;
   [SpanIndexedField.SPAN_SELF_TIME]: number;

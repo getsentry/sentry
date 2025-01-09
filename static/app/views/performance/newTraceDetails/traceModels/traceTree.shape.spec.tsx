@@ -8,7 +8,7 @@ describe('TraceTree', () => {
         transactions: [],
         orphan_errors: [],
       }),
-      {replayRecord: null, meta: null}
+      {replay: null, meta: null}
     );
 
     expect(tree.shape).toBe(TraceShape.EMPTY_TRACE);
@@ -27,7 +27,7 @@ describe('TraceTree', () => {
         ],
         orphan_errors: [],
       }),
-      {replayRecord: null, meta: null}
+      {replay: null, meta: null}
     );
 
     expect(tree.shape).toBe(TraceShape.NO_ROOT);
@@ -44,7 +44,7 @@ describe('TraceTree', () => {
         ],
         orphan_errors: [],
       }),
-      {replayRecord: null, meta: null}
+      {replay: null, meta: null}
     );
 
     expect(tree.shape).toBe(TraceShape.ONE_ROOT);
@@ -64,7 +64,7 @@ describe('TraceTree', () => {
         ],
         orphan_errors: [],
       }),
-      {replayRecord: null, meta: null}
+      {replay: null, meta: null}
     );
 
     expect(tree.shape).toBe(TraceShape.BROKEN_SUBTRACES);
@@ -79,7 +79,7 @@ describe('TraceTree', () => {
         ],
         orphan_errors: [],
       }),
-      {replayRecord: null, meta: null}
+      {replay: null, meta: null}
     );
 
     expect(tree.shape).toBe(TraceShape.BROWSER_MULTIPLE_ROOTS);
@@ -100,7 +100,7 @@ describe('TraceTree', () => {
         ],
         orphan_errors: [],
       }),
-      {replayRecord: null, meta: null}
+      {replay: null, meta: null}
     );
 
     expect(tree.shape).toBe(TraceShape.MULTIPLE_ROOTS);
@@ -112,7 +112,7 @@ describe('TraceTree', () => {
         transactions: [],
         orphan_errors: [makeTraceError()],
       }),
-      {replayRecord: null, meta: null}
+      {replay: null, meta: null}
     );
 
     expect(tree.shape).toBe(TraceShape.ONLY_ERRORS);

@@ -14,6 +14,7 @@ import type {Series} from 'sentry/types/echarts';
 import type {MetricsApiResponse} from 'sentry/types/metrics';
 import type {Organization, SessionApiResponse} from 'sentry/types/organization';
 import type {Release} from 'sentry/types/release';
+import {defined} from 'sentry/utils';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {stripDerivedMetricsPrefix} from 'sentry/utils/discover/fields';
 import {TOP_N} from 'sentry/utils/discover/types';
@@ -66,11 +67,11 @@ function getReleasesQuery(releases: Release[]): {
 } {
   let releaseCondition = '';
   const releasesArray: string[] = [];
-  releaseCondition += 'release:[' + releases[0].version;
-  releasesArray.push(releases[0].version);
+  releaseCondition += 'release:[' + releases[0]!.version;
+  releasesArray.push(releases[0]!.version);
   for (let i = 1; i < releases.length; i++) {
-    releaseCondition += ',' + releases[i].version;
-    releasesArray.push(releases[i].version);
+    releaseCondition += ',' + releases[i]!.version;
+    releasesArray.push(releases[i]!.version);
   }
   releaseCondition += ']';
   if (releases.length < 10) {
@@ -146,14 +147,26 @@ export function requiresCustomReleaseSorting(query: WidgetQuery): boolean {
 
 class ReleaseWidgetQueries extends Component<Props, State> {
   state: State = {
-    loading: true,
+    loading: false,
     errorMessage: undefined,
     releases: undefined,
   };
 
   componentDidMount() {
     this._isMounted = true;
-    if (requiresCustomReleaseSorting(this.props.widget.queries[0])) {
+    if (requiresCustomReleaseSorting(this.props.widget.queries[0]!)) {
+      this.fetchReleases();
+      return;
+    }
+  }
+
+  componentDidUpdate(prevProps: Readonly<Props>): void {
+    if (
+      !requiresCustomReleaseSorting(prevProps.widget.queries[0]!) &&
+      requiresCustomReleaseSorting(this.props.widget.queries[0]!) &&
+      !this.state.loading &&
+      !defined(this.state.releases)
+    ) {
       this.fetchReleases();
       return;
     }
@@ -256,7 +269,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
         widget.queries.map(q => omit(q, ignoredQueryProps)),
         prevProps.widget.queries.map(q => omit(q, ignoredQueryProps))
       ) ||
-      // If the fields changed (ignore falsy/empty fields -> they can happen after clicking on Add Overlay)
+      // If the fields changed (ignore falsy/empty fields -> they can happen after clicking on Add Series)
       !isEqual(
         widget.queries.flatMap(q => q.fields?.filter(field => !!field)),
         prevProps.widget.queries.flatMap(q => q.fields?.filter(field => !!field))
@@ -280,16 +293,16 @@ class ReleaseWidgetQueries extends Component<Props, State> {
     const {releases} = this.state;
     const widget = cloneDeep(initialWidget);
 
-    const isCustomReleaseSorting = requiresCustomReleaseSorting(widget.queries[0]);
-    const isDescending = widget.queries[0].orderby.startsWith('-');
-    const useSessionAPI = widget.queries[0].columns.includes('session.status');
+    const isCustomReleaseSorting = requiresCustomReleaseSorting(widget.queries[0]!);
+    const isDescending = widget.queries[0]!.orderby.startsWith('-');
+    const useSessionAPI = widget.queries[0]!.columns.includes('session.status');
 
     let releaseCondition = '';
     const releasesArray: string[] = [];
     if (isCustomReleaseSorting) {
       if (releases && releases.length === 1) {
-        releaseCondition += `release:${releases[0].version}`;
-        releasesArray.push(releases[0].version);
+        releaseCondition += `release:${releases[0]!.version}`;
+        releasesArray.push(releases[0]!.version);
       }
       if (releases && releases.length > 1) {
         const {releaseQueryString, releasesUsed} = getReleasesQuery(releases);
@@ -316,12 +329,12 @@ class ReleaseWidgetQueries extends Component<Props, State> {
     const {widget} = this.props;
     const {releases} = this.state;
 
-    const isDescending = widget.queries[0].orderby.startsWith('-');
+    const isDescending = widget.queries[0]!.orderby.startsWith('-');
 
     const releasesArray: string[] = [];
-    if (requiresCustomReleaseSorting(widget.queries[0])) {
+    if (requiresCustomReleaseSorting(widget.queries[0]!)) {
       if (releases && releases.length === 1) {
-        releasesArray.push(releases[0].version);
+        releasesArray.push(releases[0]!.version);
       }
       if (releases && releases.length > 1) {
         const {releasesUsed} = getReleasesQuery(releases);
@@ -371,7 +384,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
         limit={this.limit}
         onDataFetched={onDataFetched}
         loading={
-          requiresCustomReleaseSorting(widget.queries[0])
+          requiresCustomReleaseSorting(widget.queries[0]!)
             ? !this.state.releases
             : undefined
         }

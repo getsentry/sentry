@@ -1,5 +1,6 @@
 import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {t} from 'sentry/locale';
+import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
 import type {NavigationSection} from 'sentry/views/settings/types';
 
 const organizationSettingsPathPrefix = '/settings/:orgId';
@@ -108,6 +109,22 @@ const organizationNavigation: NavigationSection[] = [
         show: ({isSelfHosted}) => isSelfHosted || false,
         id: 'early-features',
         recordAnalytics: true,
+      },
+      {
+        path: `${organizationSettingsPathPrefix}/dynamic-sampling/`,
+        title: t('Dynamic Sampling'),
+        description: t('Manage your sampling rate'),
+        badge: () => <FeatureBadge type="alpha" />,
+        show: ({organization}) =>
+          !!organization && hasDynamicSamplingCustomFeature(organization),
+      },
+      {
+        path: `${organizationSettingsPathPrefix}/feature-flags/`,
+        title: t('Feature Flags'),
+        description: t('Set up your provider webhooks'),
+        badge: () => <FeatureBadge type="beta" />,
+        show: ({organization}) =>
+          !!organization && organization.features.includes('feature-flag-ui'),
       },
     ],
   },

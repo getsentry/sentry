@@ -18,7 +18,7 @@ export function EventSdk({sdk, meta}: Props) {
   }
 
   return (
-    <InterimSection title={t('SDK')} type={SectionKey.SDK}>
+    <InterimSection title={t('SDK')} type={SectionKey.SDK} initialCollapse>
       <KeyValueList
         data={[
           {

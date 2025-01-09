@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {Button, LinkButton} from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {ContextCardContent} from 'sentry/components/events/contexts/contextCard';
@@ -37,8 +37,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
-import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
-import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 interface HighlightsDataSectionProps {
@@ -56,7 +54,7 @@ function useOpenEditHighlightsModal({
 }) {
   const organization = useOrganization();
   const isProjectAdmin = hasEveryAccess(['project:admin'], {
-    organization: organization,
+    organization,
     project: detailedProject,
   });
 
@@ -153,7 +151,7 @@ function HighlightsData({
 
   // find the replayId from either context or tags, if it exists
   const contextReplayItem = highlightContextDataItems.find(
-    e => e.data.length && e.data[0].key === 'replay_id'
+    e => e.data.length && e.data[0]!.key === 'replay_id'
   );
   const contextReplayId = contextReplayItem?.value ?? EMPTY_HIGHLIGHT_DEFAULT;
 
@@ -161,7 +159,7 @@ function HighlightsData({
   const tagReplayId = tagReplayItem?.value ?? EMPTY_HIGHLIGHT_DEFAULT;
 
   // if the id doesn't exist for either tag or context, it's rendered as '--'
-  const replayId =
+  const replayId: string | undefined =
     contextReplayId !== EMPTY_HIGHLIGHT_DEFAULT
       ? contextReplayId
       : tagReplayId !== EMPTY_HIGHLIGHT_DEFAULT
@@ -259,32 +257,19 @@ export default function HighlightsDataSection({
 }: HighlightsDataSectionProps) {
   const organization = useOrganization();
   const hasStreamlinedUI = useHasStreamlinedUI();
-  const location = useLocation();
-  const {baseUrl} = useGroupDetailsRoute();
 
-  const viewAllButton = hasStreamlinedUI ? (
-    // Streamline details ui has "Jump to" feature, instead we'll show the drawer button
-    <LinkButton
-      to={{
-        pathname: `${baseUrl}${TabPaths[Tab.TAGS]}`,
-        query: location.query,
-        replace: true,
-      }}
-      size="xs"
-    >
-      {t('View All Issue Tags')}
-    </LinkButton>
-  ) : viewAllRef ? (
-    <Button
-      onClick={() => {
-        trackAnalytics('highlights.issue_details.view_all_clicked', {organization});
-        viewAllRef?.current?.scrollIntoView({behavior: 'smooth'});
-      }}
-      size="xs"
-    >
-      {t('View All')}
-    </Button>
-  ) : null;
+  const viewAllButton =
+    !hasStreamlinedUI && viewAllRef ? (
+      <Button
+        onClick={() => {
+          trackAnalytics('highlights.issue_details.view_all_clicked', {organization});
+          viewAllRef?.current?.scrollIntoView({behavior: 'smooth'});
+        }}
+        size="xs"
+      >
+        {t('View All')}
+      </Button>
+    ) : null;
 
   return (
     <InterimSection

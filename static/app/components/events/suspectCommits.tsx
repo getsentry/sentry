@@ -2,8 +2,6 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
-import bannerIllustration from 'sentry-images/spot/alerts-empty-state.svg';
-
 import type {CommitRowProps} from 'sentry/components/commitRow';
 import {SuspectCommitHeader} from 'sentry/components/events/styles';
 import Panel from 'sentry/components/panels/panel';
@@ -13,27 +11,35 @@ import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Commit} from 'sentry/types/integrations';
-import type {AvatarProject} from 'sentry/types/project';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useCommitters from 'sentry/utils/useCommitters';
 import useOrganization from 'sentry/utils/useOrganization';
+import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 interface Props {
   commitRow: React.ComponentType<CommitRowProps>;
   eventId: string;
-  project: AvatarProject;
+  projectSlug: Project['slug'];
   group?: Group;
 }
 
-export function SuspectCommits({group, eventId, project, commitRow: CommitRow}: Props) {
+export function SuspectCommits({
+  group,
+  eventId,
+  projectSlug,
+  commitRow: CommitRow,
+}: Props) {
   const organization = useOrganization();
   const [isExpanded, setIsExpanded] = useState(false);
+  const project = useProjectFromSlug({organization, projectSlug});
   const {data} = useCommitters({
     eventId,
-    projectSlug: project.slug,
+    projectSlug,
+    group,
   });
   const committers = data?.committers ?? [];
 
@@ -66,7 +72,7 @@ export function SuspectCommits({group, eventId, project, commitRow: CommitRow}: 
   const handlePullRequestClick = (commit: Commit, commitIndex: number) => {
     trackAnalytics('issue_details.suspect_commits.pull_request_clicked', {
       organization,
-      project_id: parseInt(project.id as string, 10),
+      project_id: parseInt(project?.id as string, 10),
       suspect_commit_calculation: commit.suspectCommitType ?? 'unknown',
       suspect_commit_index: commitIndex,
       ...getAnalyticsDataForGroup(group),
@@ -76,7 +82,7 @@ export function SuspectCommits({group, eventId, project, commitRow: CommitRow}: 
   const handleCommitClick = (commit: Commit, commitIndex: number) => {
     trackAnalytics('issue_details.suspect_commits.commit_clicked', {
       organization,
-      project_id: parseInt(project.id as string, 10),
+      project_id: parseInt(project?.id as string, 10),
       has_pull_request: commit.pullRequest?.id !== undefined,
       suspect_commit_calculation: commit.suspectCommitType ?? 'unknown',
       suspect_commit_index: commitIndex,
@@ -88,7 +94,12 @@ export function SuspectCommits({group, eventId, project, commitRow: CommitRow}: 
 
   return hasStreamlinedUI ? (
     <SuspectCommitWrapper>
-      <ScrollCarousel gap={1.5} transparentMask jumpItemCount={1}>
+      <ScrollCarousel
+        gap={1.5}
+        transparentMask
+        jumpItemCount={1}
+        aria-label={t('Suspect commits')}
+      >
         {commits.slice(0, 100).map((commit, commitIndex) => (
           <StreamlinedPanel key={commitIndex}>
             <Title>{t('Suspect Commit')}</Title>
@@ -101,9 +112,6 @@ export function SuspectCommits({group, eventId, project, commitRow: CommitRow}: 
                 project={project}
               />
             </div>
-            <IllustrationContainer>
-              <Illustration src={bannerIllustration} />
-            </IllustrationContainer>
           </StreamlinedPanel>
         ))}
       </ScrollCarousel>
@@ -166,21 +174,6 @@ const StreamlinedPanel = styled(Panel)`
   margin-bottom: 0;
   width: 100%;
   min-width: 85%;
-`;
-
-const IllustrationContainer = styled('div')`
-  position: absolute;
-  top: 0px;
-  right: 50px;
-
-  @media (max-width: ${p => p.theme.breakpoints.xlarge}) {
-    display: none;
-    pointer-events: none;
-  }
-`;
-
-const Illustration = styled('img')`
-  height: 110px;
 `;
 
 const SuspectCommitWrapper = styled('div')`

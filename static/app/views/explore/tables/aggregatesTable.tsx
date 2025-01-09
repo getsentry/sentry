@@ -1,94 +1,97 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import {GridResizer} from 'sentry/components/gridEditable/styles';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
-import {IconWarning} from 'sentry/icons';
+import {IconArrow} from 'sentry/icons/iconArrow';
+import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
-import type {NewQuery} from 'sentry/types/organization';
-import EventView from 'sentry/utils/discover/eventView';
-import {fieldAlignment, getAggregateAlias, type Sort} from 'sentry/utils/discover/fields';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import type {Confidence} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
+import {
+  fieldAlignment,
+  parseFunction,
+  prettifyParsedFunction,
+} from 'sentry/utils/discover/fields';
+import useOrganization from 'sentry/utils/useOrganization';
 import {
   Table,
   TableBody,
   TableBodyCell,
   TableHead,
   TableHeadCell,
+  TableHeadCellContent,
   TableRow,
   TableStatus,
   useTableStyles,
 } from 'sentry/views/explore/components/table';
-import {useDataset} from 'sentry/views/explore/hooks/useDataset';
-import {useGroupBys} from 'sentry/views/explore/hooks/useGroupBys';
-import {useSorts} from 'sentry/views/explore/hooks/useSorts';
-import {useUserQuery} from 'sentry/views/explore/hooks/useUserQuery';
-import {useVisualizes} from 'sentry/views/explore/hooks/useVisualizes';
-import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
-
-import {TOP_EVENTS_LIMIT, useTopEvents} from '../hooks/useTopEvents';
+import {
+  useExploreDataset,
+  useExploreGroupBys,
+  useExploreQuery,
+  useExploreSortBys,
+  useExploreTitle,
+  useExploreVisualizes,
+  useSetExploreSortBys,
+} from 'sentry/views/explore/contexts/pageParamsContext';
+import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
+import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
+import {TOP_EVENTS_LIMIT, useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 
 import {FieldRenderer} from './fieldRenderer';
 
-export function formatSort(sort: Sort): string {
-  const direction = sort.kind === 'desc' ? '-' : '';
-  return `${direction}${getAggregateAlias(sort.field)}`;
+interface AggregatesTableProps {
+  aggregatesTableResult: AggregatesTableResult;
+  confidences: Confidence[];
 }
 
-interface AggregatesTableProps {}
-
-export function AggregatesTable({}: AggregatesTableProps) {
-  const {selection} = usePageFilters();
+export function AggregatesTable({
+  aggregatesTableResult,
+  confidences,
+}: AggregatesTableProps) {
   const topEvents = useTopEvents();
-  const [dataset] = useDataset();
-  const {groupBys} = useGroupBys();
-  const [visualizes] = useVisualizes();
-  const fields = useMemo(() => {
-    return [...groupBys, ...visualizes.flatMap(visualize => visualize.yAxes)].filter(
-      Boolean
-    );
-  }, [groupBys, visualizes]);
-  const [sorts] = useSorts({fields});
-  const [query] = useUserQuery();
+  const organization = useOrganization();
+  const title = useExploreTitle();
+  const dataset = useExploreDataset();
+  const groupBys = useExploreGroupBys();
+  const visualizes = useExploreVisualizes();
 
-  const eventView = useMemo(() => {
-    const discoverQuery: NewQuery = {
-      id: undefined,
-      name: 'Explore - Span Aggregates',
-      fields,
-      orderby: sorts.map(formatSort),
-      query,
-      version: 2,
-      dataset,
-    };
+  const {result, eventView, fields} = aggregatesTableResult;
 
-    return EventView.fromNewQueryWithPageFilters(discoverQuery, selection);
-  }, [dataset, fields, sorts, query, selection]);
+  const sorts = useExploreSortBys();
+  const setSorts = useSetExploreSortBys();
+  const query = useExploreQuery();
 
   const columns = useMemo(() => eventView.getColumns(), [eventView]);
 
-  const result = useSpansQuery({
-    eventView,
-    initialData: [],
-    referrer: 'api.explore.spans-aggregates-table',
+  useAnalytics({
+    dataset,
+    resultLength: result.data?.length,
+    resultMode: 'aggregates',
+    resultStatus: result.status,
+    visualizes,
+    organization,
+    columns: groupBys,
+    userQuery: query,
+    confidences,
+    title,
   });
 
-  const {tableStyles} = useTableStyles({
-    items: fields.map(field => {
-      return {
-        label: field,
-        value: field,
-      };
-    }),
-  });
+  const tableRef = useRef<HTMLTableElement>(null);
+  const {initialTableStyles, onResizeMouseDown} = useTableStyles(fields, tableRef);
 
   const meta = result.meta ?? {};
 
+  const numberTags = useSpanTags('number');
+  const stringTags = useSpanTags('string');
+
   return (
     <Fragment>
-      <Table style={tableStyles}>
+      <Table ref={tableRef} styles={initialTableStyles}>
         <TableHead>
           <TableRow>
             {fields.map((field, i) => {
@@ -97,11 +100,54 @@ export function AggregatesTable({}: AggregatesTableProps) {
                 return <TableHeadCell key={i} isFirst={i === 0} />;
               }
 
+              let label = field;
+
               const fieldType = meta.fields?.[field];
               const align = fieldAlignment(field, fieldType);
+              const tag = stringTags[field] ?? numberTags[field] ?? null;
+              if (tag) {
+                label = tag.name;
+              }
+
+              const func = parseFunction(field);
+              if (func) {
+                label = prettifyParsedFunction(func);
+              }
+
+              const direction = sorts.find(s => s.field === field)?.kind;
+
+              function updateSort() {
+                const kind = direction === 'desc' ? 'asc' : 'desc';
+                setSorts([{field, kind}]);
+              }
+
               return (
                 <TableHeadCell align={align} key={i} isFirst={i === 0}>
-                  <span>{field}</span>
+                  <TableHeadCellContent onClick={updateSort}>
+                    <span>{label}</span>
+                    {defined(direction) && (
+                      <IconArrow
+                        size="xs"
+                        direction={
+                          direction === 'desc'
+                            ? 'down'
+                            : direction === 'asc'
+                              ? 'up'
+                              : undefined
+                        }
+                      />
+                    )}
+                  </TableHeadCellContent>
+                  {i !== fields.length - 1 && (
+                    <GridResizer
+                      dataRows={
+                        !result.isError && !result.isPending && result.data
+                          ? result.data.length
+                          : 0
+                      }
+                      onMouseDown={e => onResizeMouseDown(e, i)}
+                    />
+                  )}
                 </TableHeadCell>
               );
             })}
@@ -126,8 +172,7 @@ export function AggregatesTable({}: AggregatesTableProps) {
                         <TopResultsIndicator index={i} />
                       )}
                       <FieldRenderer
-                        column={columns[j]}
-                        dataset={dataset}
+                        column={columns[j]!}
                         data={row}
                         unit={meta?.units?.[field]}
                         meta={meta}
@@ -160,6 +205,6 @@ const TopResultsIndicator = styled('div')<{index: number}>`
   border-radius: 0 3px 3px 0;
 
   background-color: ${p => {
-    return CHART_PALETTE[TOP_EVENTS_LIMIT - 1][p.index];
+    return CHART_PALETTE[TOP_EVENTS_LIMIT - 1]![p.index];
   }};
 `;

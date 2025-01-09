@@ -8,17 +8,17 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import EventReplay from 'sentry/components/events/eventReplay';
+import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import {
   useHaveSelectedProjectsSentAnyReplayEvents,
   useReplayOnboardingSidebarPanel,
 } from 'sentry/utils/replays/hooks/useReplayOnboarding';
-import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 import useProjects from 'sentry/utils/useProjects';
 import type {ReplayError} from 'sentry/views/replays/types';
 
 jest.mock('sentry/utils/replays/hooks/useReplayOnboarding');
-jest.mock('sentry/utils/replays/hooks/useReplayReader');
+jest.mock('sentry/utils/replays/hooks/useLoadReplayReader');
 jest.mock('sentry/utils/useProjects');
 jest.mock('sentry/utils/replays/hooks/useReplayOnboarding');
 // Replay clip preview is very heavy, mock it out
@@ -64,12 +64,13 @@ const mockReplay = ReplayReader.factory({
     },
   }),
   errors: mockErrors,
+  fetching: false,
   attachments: RRWebInitFrameEventsFixture({
     timestamp: new Date('Sep 22, 2022 4:58:39 PM UTC'),
   }),
 });
 
-jest.mocked(useReplayReader).mockImplementation(() => {
+jest.mocked(useLoadReplayReader).mockImplementation(() => {
   return {
     attachments: [],
     errors: mockErrors,
@@ -82,19 +83,6 @@ jest.mocked(useReplayReader).mockImplementation(() => {
     replayRecord: ReplayRecordFixture(),
   };
 });
-
-const mockIsFullscreen = jest.fn();
-
-jest.mock('screenfull', () => ({
-  enabled: true,
-  get isFullscreen() {
-    return mockIsFullscreen();
-  },
-  request: jest.fn(),
-  exit: jest.fn(),
-  on: jest.fn(),
-  off: jest.fn(),
-}));
 
 describe('EventReplay', function () {
   const MockUseReplayOnboardingSidebarPanel = jest.mocked(

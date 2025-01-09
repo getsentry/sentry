@@ -83,6 +83,11 @@ export interface SearchQueryBuilderProps {
    */
   filterKeySections?: FilterKeySection[];
   /**
+   * A function that returns a warning message for a given filter key
+   * will only render a warning if the value is truthy
+   */
+  getFilterTokenWarning?: (key: string) => React.ReactNode;
+  /**
    * Allows for customization of the invalid token messages.
    */
   invalidMessages?: SearchConfig['invalidMessages'];
@@ -145,7 +150,7 @@ function SearchIndicator({
 
 const ActionButtons = forwardRef<HTMLDivElement, {trailingItems?: React.ReactNode}>(
   ({trailingItems = null}, ref) => {
-    const {dispatch, handleSearch, disabled} = useSearchQueryBuilder();
+    const {dispatch, handleSearch, disabled, query} = useSearchQueryBuilder();
 
     if (disabled) {
       return null;
@@ -154,16 +159,18 @@ const ActionButtons = forwardRef<HTMLDivElement, {trailingItems?: React.ReactNod
     return (
       <ButtonsWrapper ref={ref}>
         {trailingItems}
-        <ActionButton
-          aria-label={t('Clear search query')}
-          size="zero"
-          icon={<IconClose />}
-          borderless
-          onClick={() => {
-            dispatch({type: 'CLEAR'});
-            handleSearch('');
-          }}
-        />
+        {query === '' ? null : (
+          <ActionButton
+            aria-label={t('Clear search query')}
+            size="zero"
+            icon={<IconClose />}
+            borderless
+            onClick={() => {
+              dispatch({type: 'CLEAR'});
+              handleSearch('');
+            }}
+          />
+        )}
       </ButtonsWrapper>
     );
   }
@@ -193,6 +200,7 @@ export function SearchQueryBuilder({
   searchSource,
   showUnsubmittedIndicator,
   trailingItems,
+  getFilterTokenWarning,
 }: SearchQueryBuilderProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
@@ -205,6 +213,7 @@ export function SearchQueryBuilder({
   const parsedQuery = useMemo(
     () =>
       parseQueryBuilderValue(state.query, fieldDefinitionGetter, {
+        getFilterTokenWarning,
         disallowFreeText,
         disallowLogicalOperators,
         disallowUnsupportedFilters,
@@ -221,6 +230,7 @@ export function SearchQueryBuilder({
       disallowWildcard,
       filterKeys,
       invalidMessages,
+      getFilterTokenWarning,
     ]
   );
 
@@ -286,15 +296,16 @@ export function SearchQueryBuilder({
 
   return (
     <SearchQueryBuilderContext.Provider value={contextValue}>
-      <PanelProvider>
-        <Wrapper
-          className={className}
-          onBlur={() =>
-            onBlur?.(state.query, {parsedQuery, queryIsValid: queryIsValid(parsedQuery)})
-          }
-          ref={wrapperRef}
-          aria-disabled={disabled}
-        >
+      <Wrapper
+        className={className}
+        onBlur={() =>
+          onBlur?.(state.query, {parsedQuery, queryIsValid: queryIsValid(parsedQuery)})
+        }
+        ref={wrapperRef}
+        aria-disabled={disabled}
+        data-test-id="search-query-builder"
+      >
+        <PanelProvider>
           <SearchIndicator
             initialQuery={initialQuery}
             showUnsubmittedIndicator={showUnsubmittedIndicator}
@@ -307,8 +318,8 @@ export function SearchQueryBuilder({
           {size !== 'small' && (
             <ActionButtons ref={actionBarRef} trailingItems={trailingItems} />
           )}
-        </Wrapper>
-      </PanelProvider>
+        </PanelProvider>
+      </Wrapper>
     </SearchQueryBuilderContext.Provider>
   );
 }

@@ -47,10 +47,10 @@ function useTagFilters({tags}: Options): Return {
   );
 
   // Get from type Record<string, string[]>[] to Record<string, string[]>
-  const items = {};
+  const items: Record<string, string[]> = {};
   Object.values(filteredItems).forEach(item => {
     for (const key in item) {
-      items[key] = item[key];
+      items[key] = item[key]!;
     }
   });
 

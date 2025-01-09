@@ -1,5 +1,6 @@
 import ipaddress
 import logging
+from abc import ABC
 from collections.abc import Mapping
 from datetime import timezone
 from typing import Any
@@ -14,7 +15,10 @@ from django.views.decorators.csrf import csrf_exempt
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.bitbucket.constants import BITBUCKET_IP_RANGES, BITBUCKET_IPS
+from sentry.integrations.source_code_management.webhook import SCMWebhook
+from sentry.integrations.utils.metrics import IntegrationWebhookEvent, IntegrationWebhookEventType
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.organization import Organization
@@ -27,11 +31,12 @@ logger = logging.getLogger("sentry.webhooks")
 PROVIDER_NAME = "integrations:bitbucket"
 
 
-class Webhook:
-    def __call__(self, organization: Organization, event: Mapping[str, Any]):
-        raise NotImplementedError
+class BitbucketWebhook(SCMWebhook, ABC):
+    @property
+    def provider(self) -> str:
+        return "bitbucket"
 
-    def update_repo_data(self, repo, event):
+    def update_repo_data(self, repo: Repository, event: Mapping[str, Any]) -> None:
         """
         Given a webhook payload, update stored repo data if needed.
 
@@ -59,10 +64,18 @@ class Webhook:
             )
 
 
-class PushEventWebhook(Webhook):
+class PushEventWebhook(BitbucketWebhook):
     # https://confluence.atlassian.com/bitbucket/event-payloads-740262817.html#EventPayloads-Push
-    def __call__(self, organization: Organization, event: Mapping[str, Any]):
+
+    @property
+    def event_type(self) -> IntegrationWebhookEventType:
+        return IntegrationWebhookEventType.PUSH
+
+    def __call__(self, event: Mapping[str, Any], **kwargs) -> None:
         authors = {}
+
+        if not (organization := kwargs.get("organization")):
+            raise ValueError("Missing organization")
 
         try:
             repo = Repository.objects.get(
@@ -117,9 +130,9 @@ class BitbucketWebhookEndpoint(Endpoint):
         "POST": ApiPublishStatus.PRIVATE,
     }
     permission_classes = ()
-    _handlers: dict[str, type[Webhook]] = {"repo:push": PushEventWebhook}
+    _handlers: dict[str, type[BitbucketWebhook]] = {"repo:push": PushEventWebhook}
 
-    def get_handler(self, event_type) -> type[Webhook] | None:
+    def get_handler(self, event_type) -> type[BitbucketWebhook] | None:
         return self._handlers.get(event_type)
 
     @method_decorator(csrf_exempt)
@@ -186,5 +199,13 @@ class BitbucketWebhookEndpoint(Endpoint):
             )
             return HttpResponse(status=400)
 
-        handler()(organization, event)
+        event_handler = handler()
+
+        with IntegrationWebhookEvent(
+            interaction_type=event_handler.event_type,
+            domain=IntegrationDomain.SOURCE_CODE_MANAGEMENT,
+            provider_key=event_handler.provider,
+        ).capture():
+            event_handler(event, organization=organization)
+
         return HttpResponse(status=204)

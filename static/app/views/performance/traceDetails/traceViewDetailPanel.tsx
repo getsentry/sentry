@@ -1,4 +1,4 @@
-import {createRef, Fragment, useEffect, useState} from 'react';
+import {Fragment, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
@@ -7,7 +7,6 @@ import Alert from 'sentry/components/alert';
 import {LinkButton} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {DateTime} from 'sentry/components/dateTime';
-import {Chunk} from 'sentry/components/events/contexts/chunk';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
 import {
   isNotMarkMeasurement,
@@ -36,7 +35,6 @@ import FileSize from 'sentry/components/fileSize';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {CustomMetricsEventData} from 'sentry/components/metrics/customMetricsEventData';
 import {
   ErrorDot,
   ErrorLevel,
@@ -57,7 +55,6 @@ import {EntryType} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
@@ -138,7 +135,7 @@ function BreadCrumbsSection({
   organization: Organization;
 }) {
   const [showBreadCrumbs, setShowBreadCrumbs] = useState(false);
-  const breadCrumbsContainerRef = createRef<HTMLDivElement>();
+  const breadCrumbsContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setTimeout(() => {
@@ -191,8 +188,8 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
     return <LoadingIndicator />;
   }
 
-  const {user, contexts, projectSlug} = detail.event;
-  const {feedback} = contexts ?? {};
+  const {projectSlug} = detail.event;
+
   const eventJsonUrl = `/api/0/projects/${organization.slug}/${detail.traceFullDetailedEvent.project_slug}/events/${detail.traceFullDetailedEvent.event_id}/json/`;
   const project = projects.find(proj => proj.slug === detail.event?.projectSlug);
   const {errors, performance_issues} = detail.traceFullDetailedEvent;
@@ -238,7 +235,7 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
             title={WEB_VITAL_DETAILS[`measurements.${measurement}`]?.name}
           >
             <PerformanceDuration
-              milliseconds={Number(measurements[measurement].value.toFixed(3))}
+              milliseconds={Number(measurements[measurement]!.value.toFixed(3))}
               abbreviation
             />
           </Row>
@@ -443,35 +440,8 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
           hideBreadCrumbs
         />
       )}
-      {!isEmptyObject(feedback) && (
-        <Chunk
-          key="feedback"
-          type="feedback"
-          alias="feedback"
-          group={undefined}
-          event={detail.event}
-          value={feedback}
-        />
-      )}
-      {user && !isEmptyObject(user) && (
-        <Chunk
-          key="user"
-          type="user"
-          alias="user"
-          group={undefined}
-          event={detail.event}
-          value={user}
-        />
-      )}
       <EventExtraData event={detail.event} />
       <EventSdk sdk={detail.event.sdk} meta={detail.event._meta?.sdk} />
-      {detail.event._metrics_summary ? (
-        <CustomMetricsEventData
-          projectId={detail.event.projectID}
-          metricsSummary={detail.event._metrics_summary}
-          startTimestamp={detail.event.startTimestamp}
-        />
-      ) : null}
       <BreadCrumbsSection event={detail.event} organization={organization} />
       {project && (
         <EventAttachments event={detail.event} project={project} group={undefined} />

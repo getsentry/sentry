@@ -1,9 +1,13 @@
 import {useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import pick from 'lodash/pick';
 
 import Tag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
+import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlaceholder';
+import {CheckInTimeline} from 'sentry/components/checkInTimeline/checkInTimeline';
+import type {TimeWindowConfig} from 'sentry/components/checkInTimeline/types';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ActorBadge from 'sentry/components/idBadge/actorBadge';
@@ -14,21 +18,21 @@ import {t, tct} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
 import {space} from 'sentry/styles/space';
 import type {ObjectStatus} from 'sentry/types/core';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {Monitor} from 'sentry/views/monitors/types';
 import {scheduleAsText} from 'sentry/views/monitors/utils/scheduleAsText';
 
+import {checkInStatusPrecedent, statusToText, tickStyle} from '../../utils';
+import {selectCheckInData} from '../../utils/selectCheckInData';
+import {useMonitorStats} from '../../utils/useMonitorStats';
 import {StatusToggleButton} from '../statusToggleButton';
-import {CheckInPlaceholder} from '../timeline/checkInPlaceholder';
-import type {CheckInTimelineProps} from '../timeline/checkInTimeline';
-import {CheckInTimeline} from '../timeline/checkInTimeline';
-import {useMonitorStats} from '../timeline/hooks/useMonitorStats';
 
 import MonitorEnvironmentLabel from './monitorEnvironmentLabel';
 
-interface Props extends Omit<CheckInTimelineProps, 'bucketedData' | 'environment'> {
+interface Props {
   monitor: Monitor;
+  timeWindowConfig: TimeWindowConfig;
   onDeleteEnvironment?: (env: string) => Promise<void>;
   onToggleMuteEnvironment?: (env: string, isMuted: boolean) => Promise<void>;
   onToggleStatus?: (monitor: Monitor, status: ObjectStatus) => Promise<void>;
@@ -48,7 +52,6 @@ export function OverviewRow({
   onDeleteEnvironment,
   onToggleMuteEnvironment,
   onToggleStatus,
-  ...timelineProps
 }: Props) {
   const organization = useOrganization();
 
@@ -67,12 +70,16 @@ export function OverviewRow({
 
   const isDisabled = monitor.status === 'disabled';
 
+  const location = useLocation();
+  const query = pick(location.query, ['start', 'end', 'statsPeriod', 'environment']);
+
   const monitorDetails = singleMonitorView ? null : (
     <DetailsArea>
       <DetailsLink
-        to={normalizeUrl(
-          `/organizations/${organization.slug}/crons/${monitor.project.slug}/${monitor.slug}/`
-        )}
+        to={{
+          pathname: `/organizations/${organization.slug}/crons/${monitor.project.slug}/${monitor.slug}/`,
+          query,
+        }}
       >
         <DetailsHeadline>
           <Name>{monitor.name}</Name>
@@ -115,9 +122,7 @@ export function OverviewRow({
     (env: string) => ({
       label: t('View Environment'),
       key: 'view',
-      to: normalizeUrl(
-        `/organizations/${organization.slug}/crons/${monitor.project.slug}/${monitor.slug}/?environment=${env}`
-      ),
+      to: {pathname: location.pathname, query: {...query, environment: env}},
     }),
     ...(onToggleMuteEnvironment
       ? [
@@ -168,7 +173,8 @@ export function OverviewRow({
           const {name, isMuted} = env;
           return (
             <EnvRow key={name}>
-              <DropdownMenu
+              <MonitorEnvironmentLabel monitorEnv={env} />
+              <EnvDropdown
                 size="sm"
                 trigger={triggerProps => (
                   <EnvActionButton
@@ -182,7 +188,6 @@ export function OverviewRow({
                   actionCreator(name, isMuted)
                 )}
               />
-              <MonitorEnvironmentLabel monitorEnv={env} />
             </EnvRow>
           );
         })}
@@ -196,24 +201,26 @@ export function OverviewRow({
       </MonitorEnvContainer>
 
       <TimelineContainer>
-        {environments.map(({name}) => {
-          return (
-            <TimelineEnvOuterContainer key={name}>
-              {isPending ? (
-                <CheckInPlaceholder />
-              ) : (
-                <TimelineEnvContainer>
-                  <CheckInTimeline
-                    {...timelineProps}
-                    timeWindowConfig={timeWindowConfig}
-                    bucketedData={monitorStats?.[monitor.id] ?? []}
-                    environment={name}
-                  />
-                </TimelineEnvContainer>
-              )}
-            </TimelineEnvOuterContainer>
-          );
-        })}
+        {environments.map(({name: envName}) => (
+          <TimelineEnvOuterContainer key={envName}>
+            {isPending ? (
+              <CheckInPlaceholder />
+            ) : (
+              <TimelineEnvContainer>
+                <CheckInTimeline
+                  statusLabel={statusToText}
+                  statusStyle={tickStyle}
+                  statusPrecedent={checkInStatusPrecedent}
+                  timeWindowConfig={timeWindowConfig}
+                  bucketedData={selectCheckInData(
+                    monitorStats?.[monitor.id] ?? [],
+                    envName
+                  )}
+                />
+              </TimelineEnvContainer>
+            )}
+          </TimelineEnvOuterContainer>
+        ))}
       </TimelineContainer>
     </TimelineRow>
   );
@@ -342,6 +349,10 @@ const MonitorEnvContainer = styled('div')`
   flex-direction: column;
   border-right: 1px solid ${p => p.theme.innerBorder};
   text-align: right;
+`;
+
+const EnvDropdown = styled(DropdownMenu)`
+  text-align: left;
 `;
 
 const EnvRow = styled('div')`

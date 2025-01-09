@@ -5,6 +5,8 @@ from typing import Literal
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.integrations.client import ApiClient
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.on_call.metrics import OnCallInteractionType
+from sentry.integrations.opsgenie.metrics import record_event
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.group import Group
 from sentry.shared_integrations.client.base import BaseApiResponseX
@@ -35,11 +37,6 @@ class OpsgenieClient(ApiClient):
     def get_alerts(self, limit: int | None = 1) -> BaseApiResponseX:
         path = f"/alerts?limit={limit}"
         return self.get(path=path, headers=self._get_auth_headers())
-
-    def authorize_integration(self, type: str) -> BaseApiResponseX:
-        body = {"type": type}
-        path = "/integrations/authenticate"
-        return self.post(path=path, headers=self._get_auth_headers(), data=body)
 
     def _get_rule_urls(self, group, rules):
         organization = group.project.organization
@@ -97,6 +94,7 @@ class OpsgenieClient(ApiClient):
         notification_uuid: str | None = None,
     ):
         headers = self._get_auth_headers()
+        interaction_type = OnCallInteractionType.CREATE
         if isinstance(data, (Event, GroupEvent)):
             group = data.group
             event = data
@@ -109,11 +107,12 @@ class OpsgenieClient(ApiClient):
                 notification_uuid=notification_uuid,
             )
         else:
-            # if we're acknowledging the alert—meaning that the Sentry alert was resolved
+            # if we're closing the alert—meaning that the Sentry alert was resolved
             if data.get("identifier"):
+                interaction_type = OnCallInteractionType.RESOLVE
                 alias = data["identifier"]
                 resp = self.post(
-                    f"/alerts/{alias}/acknowledge",
+                    f"/alerts/{alias}/close",
                     data={},
                     params={"identifierType": "alias"},
                     headers=headers,
@@ -121,5 +120,6 @@ class OpsgenieClient(ApiClient):
                 return resp
             # this is a metric alert
             payload = data
-        resp = self.post("/alerts", data=payload, headers=headers)
+        with record_event(interaction_type).capture():
+            resp = self.post("/alerts", data=payload, headers=headers)
         return resp

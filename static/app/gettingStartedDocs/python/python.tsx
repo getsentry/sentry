@@ -1,3 +1,4 @@
+import {IntegrationOptions} from 'sentry/components/events/featureFlags/utils';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
@@ -16,6 +17,26 @@ import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
+type FlagImports = {
+  integration: string; // what's in the integrations array
+  module: string; // what's imported from sentry_sdk.integrations
+};
+
+const FLAG_OPTION_TO_IMPORT: Record<IntegrationOptions, FlagImports> = {
+  [IntegrationOptions.LAUNCHDARKLY]: {
+    module: 'launchdarkly',
+    integration: 'LaunchDarklyIntegration',
+  },
+  [IntegrationOptions.OPENFEATURE]: {
+    module: 'openfeature',
+    integration: 'OpenFeatureIntegration',
+  },
+  [IntegrationOptions.GENERIC]: {
+    module: 'feature_flags',
+    integration: 'FeatureFlagsIntegration',
+  },
+};
+
 const getInstallSnippet = () => `pip install --upgrade sentry-sdk`;
 
 const getSdkSetupSnippet = (params: Params) => `
@@ -30,7 +51,8 @@ sentry_sdk.init(
     traces_sample_rate=1.0,`
         : ''
     }${
-      params.isProfilingSelected
+      params.isProfilingSelected &&
+      params.profilingOptions?.defaultProfilingMode !== 'continuous'
         ? `
     # Set profiles_sample_rate to 1.0 to profile 100%
     # of sampled transactions.
@@ -38,7 +60,33 @@ sentry_sdk.init(
     profiles_sample_rate=1.0,`
         : ''
     }
-)`;
+)${
+  params.isProfilingSelected &&
+  params.profilingOptions?.defaultProfilingMode === 'continuous'
+    ? `
+
+def slow_function():
+    import time
+    time.sleep(0.1)
+    return "done"
+
+def fast_function():
+    import time
+    time.sleep(0.05)
+    return "done"
+
+# Manually call start_profiler and stop_profiler
+# to profile the code in between
+sentry_sdk.profiler.start_profiler()
+for i in range(0, 10):
+    slow_function()
+    fast_function()
+#
+# Calls to stop_profiler are optional - if you don't stop the profiler, it will keep profiling
+# your application until the process exits or stop_profiler is called.
+sentry_sdk.profiler.stop_profiler()`
+    : ''
+}`;
 
 const onboarding: OnboardingConfig = {
   install: (params: Params) => [
@@ -76,6 +124,10 @@ const onboarding: OnboardingConfig = {
           code: getSdkSetupSnippet(params),
         },
       ],
+      additionalInfo: params.isProfilingSelected &&
+        params.profilingOptions?.defaultProfilingMode === 'continuous' && (
+          <AlternativeConfiguration />
+        ),
     },
   ],
   verify: () => [
@@ -180,6 +232,52 @@ sentry_sdk.init(
   nextSteps: () => [],
 };
 
+export function AlternativeConfiguration() {
+  return (
+    <div>
+      {tct(
+        'Alternatively, you can also explicitly control continuous profiling or use transaction profiling. See our [link:documentation] for more information.',
+        {
+          link: (
+            <ExternalLink href="https://docs.sentry.io/platforms/python/profiling/" />
+          ),
+        }
+      )}
+    </div>
+  );
+}
+
+export const featureFlagOnboarding: OnboardingConfig = {
+  install: () => [],
+  configure: ({featureFlagOptions = {integration: ''}, dsn}) => [
+    {
+      type: StepType.CONFIGURE,
+      description: tct('Add [name] to your integrations list.', {
+        name: (
+          <code>{`${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration].integration}()`}</code>
+        ),
+      }),
+      configurations: [
+        {
+          language: 'python',
+          code: `
+import sentry-sdk
+from sentry_sdk.integrations.${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration].module} import ${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration].integration}
+
+sentry_sdk.init(
+  dsn="${dsn.public}",
+  integrations=[
+    ${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration].integration}(),
+  ]
+)`,
+        },
+      ],
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
   performanceOnboarding,
@@ -187,6 +285,7 @@ const docs: Docs = {
     installSnippet: getInstallSnippet(),
   }),
   crashReportOnboarding: crashReportOnboardingPython,
+  featureFlagOnboarding,
 };
 
 export default docs;

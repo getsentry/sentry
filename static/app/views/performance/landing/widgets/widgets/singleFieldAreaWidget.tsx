@@ -41,7 +41,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
 
   const chartQuery = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
     () => ({
-      fields: props.fields[0],
+      fields: props.fields[0]!,
       component: provided => (
         <QueryBatchNode batchProperty="yAxis" transform={unmergeIntoIndividualResults}>
           {({queryBatching}) => (
@@ -52,8 +52,8 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
               includePrevious
               includeTransformedData
               partial
-              currentSeriesNames={[field]}
-              previousSeriesNames={[getPreviousSeriesName(field)]}
+              currentSeriesNames={[field!]}
+              previousSeriesNames={[getPreviousSeriesName(field!)]}
               query={provided.eventView.getQueryWithAdditionalConditions()}
               interval={getInterval(
                 {
@@ -78,7 +78,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
 
   const overallQuery = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
     () => ({
-      fields: field,
+      fields: field!,
       component: provided => {
         const eventView = provided.eventView.clone();
 
@@ -132,7 +132,8 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
           {provided.widgetData?.overall?.hasData ? (
             <Fragment>
               {props.fields.map(fieldName => {
-                const value = provided.widgetData?.overall?.[fieldName];
+                const value =
+                  provided.widgetData?.overall?.[fieldName as keyof WidgetDataResult];
 
                 if (!value) {
                   return null;
@@ -140,7 +141,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
 
                 return (
                   <HighlightNumber key={fieldName} color={props.chartColor}>
-                    {axisLabelFormatter(value, aggregateOutputType(fieldName))}
+                    {axisLabelFormatter(value as any, aggregateOutputType(fieldName))}
                   </HighlightNumber>
                 );
               })}

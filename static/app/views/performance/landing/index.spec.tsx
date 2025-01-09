@@ -1,4 +1,5 @@
 import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {addMetricsDataMock} from 'sentry-test/performance/addMetricsDataMock';
 import {initializeData} from 'sentry-test/performance/initializePerformanceData';
@@ -13,7 +14,6 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import TeamStore from 'sentry/stores/teamStore';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -24,7 +24,7 @@ import {LandingDisplayField} from 'sentry/views/performance/landing/utils';
 
 const searchHandlerMock = jest.fn();
 
-function WrappedComponent({data, withStaticFilters = false}) {
+function WrappedComponent({data, withStaticFilters = false}: any) {
   const eventView = generatePerformanceEventView(
     data.router.location,
     data.projects,
@@ -67,7 +67,6 @@ describe('Performance > Landing > Index', function () {
 
   act(() => void TeamStore.loadInitialData([], false, null));
   beforeEach(function () {
-    // eslint-disable-next-line no-console
     jest.spyOn(console, 'error').mockImplementation(jest.fn());
 
     MockApiClient.addMockResponse({
@@ -199,7 +198,7 @@ describe('Performance > Landing > Index', function () {
 
     expect(columnHeaders).toHaveLength(REACT_NATIVE_COLUMN_TITLES.length);
     for (const [index, title] of columnHeaders.entries()) {
-      expect(title).toHaveTextContent(REACT_NATIVE_COLUMN_TITLES[index]);
+      expect(title).toHaveTextContent(REACT_NATIVE_COLUMN_TITLES[index]!.title!);
     }
   });
 
@@ -244,15 +243,16 @@ describe('Performance > Landing > Index', function () {
   });
 
   it('Can switch between landing displays', async function () {
+    const router = RouterFixture();
     const data = initializeData({
       query: {landingDisplay: LandingDisplayField.FRONTEND_OTHER, abc: '123'},
     });
 
-    wrapper = render(<WrappedComponent data={data} />);
+    wrapper = render(<WrappedComponent data={data} />, {router});
     expect(screen.getByTestId('frontend-other-view')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('tab', {name: 'All Transactions'}));
 
-    expect(browserHistory.push).toHaveBeenNthCalledWith(
+    expect(router.push).toHaveBeenNthCalledWith(
       1,
       expect.objectContaining({
         pathname: data.location.pathname,
@@ -296,7 +296,7 @@ describe('Performance > Landing > Index', function () {
 
       render(<WrappedComponent data={data} withStaticFilters />);
 
-      await waitForElementToBeRemoved(() => screen.getAllByTestId('loading-indicator'));
+      await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
       await userEvent.type(screen.getByPlaceholderText('Search Transactions'), '{enter}');
       expect(searchHandlerMock).toHaveBeenCalledWith('', 'transactionsOnly');
     });
@@ -320,7 +320,7 @@ describe('Performance > Landing > Index', function () {
 
       wrapper = render(<WrappedComponent data={data} />);
 
-      await waitForElementToBeRemoved(() => screen.getAllByTestId('loading-indicator'));
+      await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
       expect(await screen.findByPlaceholderText('Search Transactions')).toHaveValue('');
     });

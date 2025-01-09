@@ -19,8 +19,8 @@ import ConfigStore from 'sentry/stores/configStore';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import useApi from 'sentry/utils/useApi';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -34,6 +34,7 @@ export default function OrganizationGeneralSettings({}: RouteComponentProps<{}, 
   const api = useApi();
   const organization = useOrganization();
   const {projects} = useProjects();
+  const navigate = useNavigate();
 
   const removeConfirmMessage = (
     <Fragment>
@@ -71,7 +72,7 @@ export default function OrganizationGeneralSettings({}: RouteComponentProps<{}, 
         const {organizationUrl} = updated.links;
         window.location.replace(`${organizationUrl}/settings/organization/`);
       } else {
-        browserHistory.replace(`/settings/${updated.slug}/`);
+        navigate(`/settings/${updated.slug}/`, {replace: true});
       }
     } else {
       if (prevData.codecovAccess !== updated.codecovAccess) {
@@ -94,6 +95,7 @@ export default function OrganizationGeneralSettings({}: RouteComponentProps<{}, 
 
     addLoadingMessage();
     removeAndRedirectToRemainingOrganization(api, {
+      navigate,
       orgId: organization.slug,
       successMessage: `${organization.name} is queued for deletion.`,
       errorMessage: `Error removing the ${organization.name} organization`,

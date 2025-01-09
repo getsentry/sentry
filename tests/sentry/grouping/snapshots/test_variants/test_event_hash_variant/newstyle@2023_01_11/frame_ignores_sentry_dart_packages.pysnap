@@ -1,13 +1,14 @@
 ---
-created: '2024-06-05T14:22:42.534841+00:00'
+created: '2024-12-17T22:47:12.658226+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
+  contributing component: null
   component:
     app
-      stacktrace
+      stacktrace (ignored because it contains no in-app frames)
         frame (marked out of app by stack trace rule (path:package:sentry_logging/** -app -group))
           filename*
             "sentry_logging.dart"
@@ -49,9 +50,10 @@ fallback:
 --------------------------------------------------------------------------
 system:
   hash: null
+  contributing component: null
   component:
     system
-      stacktrace
+      stacktrace (ignored because it contains no contributing frames)
         frame (ignored by stack trace rule (path:package:sentry_logging/** -app -group))
           filename*
             "sentry_logging.dart"

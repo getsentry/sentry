@@ -16,16 +16,16 @@ import {
 import type {MetricsQueryApiQueryParams} from 'sentry/utils/metrics/useMetricsQuery';
 import type {MetricsSamplesResults} from 'sentry/utils/metrics/useMetricsSamples';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useRouter from 'sentry/utils/useRouter';
 import {METRIC_CHART_GROUP, MIN_WIDGET_WIDTH} from 'sentry/views/metrics/constants';
 import {useMetricsContext} from 'sentry/views/metrics/context';
 import {useGetCachedChartPalette} from 'sentry/views/metrics/utils/metricsChartPalette';
 import {useFormulaDependencies} from 'sentry/views/metrics/utils/useFormulaDependencies';
 import {widgetToQuery} from 'sentry/views/metrics/utils/widgetToQuery';
 
-import {TraceViewSources} from '../performance/newTraceDetails/traceMetadataHeader';
+import {TraceViewSources} from '../performance/newTraceDetails/traceHeader/breadcrumbs';
 
 import {MetricWidget} from './widget';
 
@@ -43,7 +43,7 @@ export function MetricScratchpad() {
   } = useMetricsContext();
   const {selection} = usePageFilters();
   const location = useLocation();
-  const router = useRouter();
+  const navigate = useNavigate();
   const organization = useOrganization();
   const getChartPalette = useGetCachedChartPalette();
   const metricsNewInputs = hasMetricsNewInputs(organization);
@@ -86,7 +86,7 @@ export function MetricScratchpad() {
         }
       }
 
-      router.push(
+      navigate(
         generateLinkToEventInTraceView({
           traceSlug: dataRow.trace,
           projectSlug: dataRow.project,
@@ -103,7 +103,7 @@ export function MetricScratchpad() {
         })
       );
     },
-    [router, organization, location]
+    [navigate, location, organization]
   );
 
   const firstWidget = widgets[0];
@@ -166,9 +166,9 @@ export function MetricScratchpad() {
           index={0}
           getChartPalette={getChartPalette}
           onSelect={setSelectedWidgetIndex}
-          displayType={firstWidget.displayType}
-          focusedSeries={firstWidget.focusedSeries}
-          tableSort={firstWidget.sort}
+          displayType={firstWidget!.displayType}
+          focusedSeries={firstWidget!.focusedSeries}
+          tableSort={firstWidget!.sort}
           queries={filteredWidgets
             .filter(w => !(w.type === MetricExpressionType.EQUATION && w.isHidden))
             .map(w => widgetToQuery({widget: w, metricsNewInputs}))}
@@ -182,7 +182,7 @@ export function MetricScratchpad() {
           chartHeight={200}
           highlightedSampleId={highlightedSampleId}
           metricsSamples={metricsSamples}
-          overlays={firstWidget.overlays}
+          overlays={firstWidget!.overlays}
         />
       )}
     </Wrapper>
@@ -204,7 +204,7 @@ function MultiChartWidgetQueries({
     return [
       widgetToQuery({widget, metricsNewInputs}),
       ...(isMetricsEquationWidget(widget)
-        ? formulaDependencies[widget.id]?.dependencies?.map(dependency =>
+        ? formulaDependencies[widget.id]!?.dependencies?.map(dependency =>
             widgetToQuery({widget: dependency, isQueryOnly: true, metricsNewInputs})
           )
         : []),

@@ -1,0 +1,33 @@
+---
+created: '2024-12-17T22:50:04.935891+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: message
+hashing_metadata: {
+  "message_parameterized": false,
+  "message_source": "exception"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "message",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.message": {
+    "message_parameterized": "False",
+    "message_source": "exception"
+  }
+}
+---
+contributing variants:
+  system*
+    hash: "c0efa3bdfea2264ffda696557937ff9f"
+    contributing component: exception
+    component:
+      system*
+        exception*
+          type*
+            "EXCEPTION_ACCESS_VIOLATION_READ"
+          value*
+            "Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ"

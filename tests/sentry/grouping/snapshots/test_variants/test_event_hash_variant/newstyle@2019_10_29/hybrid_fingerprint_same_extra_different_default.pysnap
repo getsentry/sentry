@@ -1,0 +1,17 @@
+---
+created: '2024-12-17T22:47:03.055936+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: "c5578778212497f1ff3435405e2a4a98"
+  contributing component: exception
+  component:
+    app*
+      exception*
+        type*
+          "FailedToFetchError"
+        value*
+          "FailedToFetchError: Maisey can't see the ball anymore :-("
+  info: {"client_fingerprint":["{{ default }}","dogs are great"]}
+  values: ["{{ default }}","dogs are great"]

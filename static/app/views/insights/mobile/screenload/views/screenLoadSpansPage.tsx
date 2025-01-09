@@ -2,23 +2,17 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import Breadcrumbs from 'sentry/components/breadcrumbs';
-import ButtonBar from 'sentry/components/buttonBar';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DurationUnit} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
+import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {
   PRIMARY_RELEASE_ALIAS,
@@ -26,7 +20,6 @@ import {
   SECONDARY_RELEASE_ALIAS,
 } from 'sentry/views/insights/common/components/releaseSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
-import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {SpanSamplesPanel} from 'sentry/views/insights/mobile/common/components/spanSamplesPanel';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
@@ -42,6 +35,7 @@ import {
   MobileCursors,
   MobileSortKeys,
 } from 'sentry/views/insights/mobile/screenload/constants';
+import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {ModuleName} from 'sentry/views/insights/types';
 
 type Query = {
@@ -56,38 +50,22 @@ type Query = {
 
 function ScreenLoadSpans() {
   const location = useLocation<Query>();
-  const organization = useOrganization();
   const {isProjectCrossPlatform} = useCrossPlatformProject();
-
-  const crumbs = useModuleBreadcrumbs('screen_load');
-
   const {transaction: transactionName} = location.query;
 
   return (
     <Layout.Page>
       <PageAlertProvider>
-        <Layout.Header>
-          <Layout.HeaderContent>
-            <Breadcrumbs
-              crumbs={[
-                ...crumbs,
-                {
-                  label: t('Screen Summary'),
-                },
-              ]}
-            />
-            <HeaderWrapper>
-              <Layout.Title>{transactionName}</Layout.Title>
-              {organization.features.includes('insights-initial-modules') &&
-                isProjectCrossPlatform && <PlatformSelector />}
-            </HeaderWrapper>
-          </Layout.HeaderContent>
-          <Layout.HeaderActions>
-            <ButtonBar gap={1}>
-              <FeedbackWidgetButton />
-            </ButtonBar>
-          </Layout.HeaderActions>
-        </Layout.Header>
+        <MobileHeader
+          module={ModuleName.SCREEN_LOAD}
+          headerTitle={transactionName}
+          headerActions={isProjectCrossPlatform && <PlatformSelector />}
+          breadcrumbs={[
+            {
+              label: t('Screen Summary'),
+            },
+          ]}
+        />
         <Layout.Body>
           <Layout.Main fullWidth>
             <PageAlert />
@@ -116,10 +94,7 @@ export function ScreenLoadSpansContent() {
       <HeaderContainer>
         <ToolRibbon>
           <FilterContainer>
-            <PageFilterBar condensed>
-              <EnvironmentPageFilter />
-              <DatePageFilter />
-            </PageFilterBar>
+            <ModulePageFilterBar moduleName={ModuleName.APP_START} disableProjectFilter />
             <ReleaseComparisonSelector />
           </FilterContainer>
         </ToolRibbon>
@@ -226,11 +201,7 @@ export function ScreenLoadSpansContent() {
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders
-      moduleName="screen_load"
-      pageTitle={t('Screen Summary')}
-      features="insights-initial-modules"
-    >
+    <ModulePageProviders moduleName="screen_load" pageTitle={t('Screen Summary')}>
       <ScreenLoadSpans />
     </ModulePageProviders>
   );
@@ -254,7 +225,4 @@ const SampleContainer = styled('div')`
 
 const SampleContainerItem = styled('div')`
   flex: 1;
-`;
-const HeaderWrapper = styled('div')`
-  display: flex;
 `;

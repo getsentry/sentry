@@ -28,8 +28,8 @@ export function usePerformanceUsageStats({
 }) {
   const traceNode = tree.root.children[0];
 
-  const traceStartDate = new Date(traceNode?.space?.[0]);
-  const traceEndDate = new Date(traceNode?.space?.[0] + traceNode?.space?.[1]);
+  const traceStartDate = new Date(traceNode?.space?.[0]!);
+  const traceEndDate = new Date(traceNode?.space?.[0]! + traceNode?.space?.[1]!);
 
   // Add 1 hour buffer to the trace start and end date.
   const start = traceNode
@@ -48,7 +48,7 @@ export function usePerformanceUsageStats({
       field: 'sum(quantity)',
       utc: true,
       category: 'transaction_indexed',
-      project: Array.from(tree.project_ids),
+      project: Array.from(tree.projects.keys()),
       referrer: 'trace-view-warnings',
     },
   };

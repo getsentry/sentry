@@ -17,9 +17,9 @@ from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.hybridcloud.rpc import OptionValue, logger
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleActivity
-from sentry.incidents.models.incident import IncidentActivity, IncidentSubscription
+from sentry.incidents.models.incident import IncidentActivity
 from sentry.models.activity import Activity
-from sentry.models.dashboard import Dashboard
+from sentry.models.dashboard import Dashboard, DashboardFavoriteUser
 from sentry.models.dynamicsampling import CustomDynamicSamplingRule
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupbookmark import GroupBookmark
@@ -590,6 +590,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 AlertRuleActivity,
                 CustomDynamicSamplingRule,
                 Dashboard,
+                DashboardFavoriteUser,
                 GroupAssignee,
                 GroupBookmark,
                 GroupSeen,
@@ -597,7 +598,6 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 GroupSearchView,
                 GroupSubscription,
                 IncidentActivity,
-                IncidentSubscription,
                 OrganizationAccessRequest,
                 ProjectBookmark,
                 RecentSearch,

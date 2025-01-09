@@ -1,5 +1,22 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`TraceTree ExpandToPath discards non txns segments 1`] = `
+"
+trace root
+  parent - transaction.op
+    child - transaction.op
+      span.op - span.description
+"
+`;
+
+exports[`TraceTree ExpandToPath expands transactions from path segments 1`] = `
+"
+trace root
+  parent - transaction.op
+    child - transaction.op
+"
+`;
+
 exports[`TraceTree FromTrace assembles tree from trace 1`] = `
 "
 trace root

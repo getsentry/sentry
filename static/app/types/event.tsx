@@ -1,6 +1,9 @@
+import type {CloudResourceContext} from '@sentry/core';
+
+import type {CultureContext} from 'sentry/components/events/contexts/knownContext/culture';
+import type {MissingInstrumentationContext} from 'sentry/components/events/contexts/knownContext/missingInstrumentation';
 import type {
   AggregateSpanType,
-  MetricsSummary,
   RawSpanType,
   TraceContextType,
 } from 'sentry/components/events/interfaces/spans/types';
@@ -55,7 +58,7 @@ type EventGroupVariantKey =
   | 'default'
   | 'system';
 
-export enum EventGroupVariantType {
+export const enum EventGroupVariantType {
   CHECKSUM = 'checksum',
   FALLBACK = 'fallback',
   CUSTOM_FINGERPRINT = 'custom-fingerprint',
@@ -332,17 +335,17 @@ export interface EntryRequestDataDefault {
   apiTarget: null;
   method: string;
   url: string;
-  cookies?: [key: string, value: string][];
+  cookies?: Array<[key: string, value: string] | null>;
   data?: string | null | Record<string, any> | [key: string, value: any][];
   env?: Record<string, string>;
   fragment?: string | null;
-  headers?: [key: string, value: string][];
+  headers?: Array<[key: string, value: string] | null>;
   inferredContentType?:
     | null
     | 'application/json'
     | 'application/x-www-form-urlencoded'
     | 'multipart/form-data';
-  query?: [key: string, value: string][] | string;
+  query?: Array<[key: string, value: string] | null> | string;
 }
 
 export interface EntryRequestDataGraphQl
@@ -404,6 +407,7 @@ export enum DeviceContextKey {
   ARCH = 'arch',
   BATTERY_LEVEL = 'battery_level',
   BATTERY_STATUS = 'battery_status',
+  BATTERY_TEMPERATURE = 'battery_temperature',
   BOOT_TIME = 'boot_time',
   BRAND = 'brand',
   CHARGING = 'charging',
@@ -450,6 +454,7 @@ export interface DeviceContext
   [DeviceContextKey.ARCH]?: string;
   [DeviceContextKey.BATTERY_LEVEL]?: number;
   [DeviceContextKey.BATTERY_STATUS]?: string;
+  [DeviceContextKey.BATTERY_TEMPERATURE]?: number;
   [DeviceContextKey.BOOT_TIME]?: string;
   [DeviceContextKey.BRAND]?: string;
   [DeviceContextKey.CHARGING]?: boolean;
@@ -608,6 +613,10 @@ export interface ThreadPoolInfoContext {
   [ThreadPoolInfoContextKey.AVAILABLE_COMPLETION_PORT_THREADS]: number;
 }
 
+export type MetricAlertContextType = {
+  alert_rule_id?: string;
+};
+
 export enum ProfileContextKey {
   PROFILE_ID = 'profile_id',
   PROFILER_ID = 'profiler_id',
@@ -636,18 +645,24 @@ export interface ResponseContext {
   type: 'response';
 }
 
-export type FeatureFlag = {flag: string; result: boolean};
-export type Flags = {values: FeatureFlag[]};
+// event.contexts.flags can be overriden by the user so the type is not strict
+export type FeatureFlag = {flag?: string; result?: boolean};
+export type Flags = {values?: FeatureFlag[]};
 
 export type EventContexts = {
+  'Current Culture'?: CultureContext;
   'Memory Info'?: MemoryInfoContext;
   'ThreadPool Info'?: ThreadPoolInfoContext;
   browser?: BrowserContext;
   client_os?: OSContext;
+  cloud_resource?: CloudResourceContext;
+  culture?: CultureContext;
   device?: DeviceContext;
   feedback?: Record<string, any>;
   flags?: Flags;
   memory_info?: MemoryInfoContext;
+  metric_alert?: MetricAlertContextType;
+  missing_instrumentation?: MissingInstrumentationContext;
   os?: OSContext;
   otel?: OtelContext;
   // TODO (udameli): add better types here
@@ -804,7 +819,6 @@ export interface EventTransaction
   )[];
   startTimestamp: number;
   type: EventOrGroupType.TRANSACTION;
-  _metrics_summary?: MetricsSummary;
   perfProblem?: PerformanceDetectorData;
 }
 

@@ -1,0 +1,45 @@
+---
+created: '2024-12-17T22:49:56.178924+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+hashing_metadata: {
+  "client_fingerprint": "['{{ default }}', 'dogs are great']",
+  "fingerprint": "['{{ default }}', 'dogs are great']",
+  "fingerprint_source": "client",
+  "is_hybrid_fingerprint": true,
+  "num_stacktraces": 1,
+  "stacktrace_location": "exception",
+  "stacktrace_type": "system"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "stacktrace",
+    "is_hybrid_fingerprint": "True"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.stacktrace": {
+    "chained_exception": "False",
+    "stacktrace_location": "exception",
+    "stacktrace_type": "system"
+  }
+}
+---
+contributing variants:
+  system*
+    hash: "8cce12f1da956a1fd4e7c6078bc311fb"
+    contributing component: exception
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              module*
+                "bar.bar"
+              function*
+                "main"
+          type*
+            "ChunkLoadError"
+    info: {"client_fingerprint":["{{ default }}","dogs are great"]}
+    values: ["{{ default }}","dogs are great"]

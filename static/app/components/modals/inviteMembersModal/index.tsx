@@ -82,7 +82,12 @@ function InviteMembersModal({
         willInvite={willInvite}
         onSendInvites={sendInvites}
       >
-        {({sendInvites: _sendInvites, canSend, headerInfo}) => {
+        {({
+          sendInvites: inviteModalSendInvites,
+          canSend: canSend,
+          headerInfo: headerInfo,
+          isOverMemberLimit: isOverMemberLimit,
+        }) => {
           return organization.features.includes('invite-members-new-modal') ? (
             <InviteMembersContext.Provider
               value={{
@@ -92,10 +97,10 @@ function InviteMembersModal({
                 setRole,
                 setTeams,
                 setInviteStatus,
-                sendInvites,
+                sendInvites: inviteModalSendInvites,
                 reset,
                 inviteStatus,
-                pendingInvites: pendingInvites[0],
+                pendingInvites: pendingInvites[0]!,
                 sendingInvites,
                 complete,
                 error,
@@ -133,12 +138,15 @@ function InviteMembersModal({
               headerInfo={headerInfo}
               invites={invites}
               inviteStatus={inviteStatus}
+              isOverMemberLimit={
+                isOverMemberLimit && organization.features?.includes('invite-billing')
+              }
               member={memberResult.data}
               pendingInvites={pendingInvites}
               removeInviteRow={removeInviteRow}
               reset={reset}
               sendingInvites={sendingInvites}
-              sendInvites={sendInvites}
+              sendInvites={inviteModalSendInvites}
               setEmails={setEmails}
               setRole={setRole}
               setTeams={setTeams}

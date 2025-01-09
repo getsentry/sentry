@@ -35,6 +35,8 @@ class OnboardingTask:
     METRIC_ALERT = 12
     INTEGRATIONS = 13
     SESSION_REPLAY = 14
+    REAL_TIME_NOTIFICATIONS = 15
+    LINK_SENTRY_TO_SOURCE_CODE = 16
 
 
 class OnboardingTaskStatus:
@@ -107,6 +109,7 @@ class AbstractOnboardingTask(Model):
     # abstract
     TASK_LOOKUP_BY_KEY: dict[str, int]
     SKIPPABLE_TASKS: frozenset[int]
+    NEW_SKIPPABLE_TASKS: frozenset[int]
 
     class Meta:
         abstract = True
@@ -127,12 +130,16 @@ class OrganizationOnboardingTask(AbstractOnboardingTask):
         (OnboardingTask.RELEASE_TRACKING, "setup_release_tracking"),
         (OnboardingTask.SOURCEMAPS, "setup_sourcemaps"),
         (OnboardingTask.USER_REPORTS, "setup_user_reports"),
+        # TODO(Telemety Experience): This task is no longer shown
+        # in the new experience and shall remove it from code
         (OnboardingTask.ISSUE_TRACKER, "setup_issue_tracker"),
         (OnboardingTask.ALERT_RULE, "setup_alert_rules"),
         (OnboardingTask.FIRST_TRANSACTION, "setup_transactions"),
         (OnboardingTask.METRIC_ALERT, "setup_metric_alert_rules"),
         (OnboardingTask.INTEGRATIONS, "setup_integrations"),
         (OnboardingTask.SESSION_REPLAY, "setup_session_replay"),
+        (OnboardingTask.REAL_TIME_NOTIFICATIONS, "setup_real_time_notifications"),
+        (OnboardingTask.LINK_SENTRY_TO_SOURCE_CODE, "link_sentry_to_source_code"),
     )
 
     # Used in the API to map IDs to string keys. This keeps things
@@ -142,7 +149,7 @@ class OrganizationOnboardingTask(AbstractOnboardingTask):
 
     task = BoundedPositiveIntegerField(choices=[(k, str(v)) for k, v in TASK_CHOICES])
 
-    # Tasks which must be completed for the onboarding to be considered
+    # Tasks which should be completed for the onboarding to be considered
     # complete.
     REQUIRED_ONBOARDING_TASKS = frozenset(
         [
@@ -150,15 +157,40 @@ class OrganizationOnboardingTask(AbstractOnboardingTask):
             OnboardingTask.FIRST_EVENT,
             OnboardingTask.INVITE_MEMBER,
             OnboardingTask.SECOND_PLATFORM,
+            # TODO(Telemety Experience): This task is no longer shown
+            # in the new experience and shall be removed after GA
             OnboardingTask.USER_CONTEXT,
             OnboardingTask.RELEASE_TRACKING,
             OnboardingTask.SOURCEMAPS,
-            OnboardingTask.ISSUE_TRACKER,
             OnboardingTask.ALERT_RULE,
             OnboardingTask.FIRST_TRANSACTION,
+            # TODO(Telemety Experience): This task is no longer shown
+            # in the new experience and shall be removed after GA
             OnboardingTask.METRIC_ALERT,
             OnboardingTask.INTEGRATIONS,
             OnboardingTask.SESSION_REPLAY,
+        ]
+    )
+
+    NEW_REQUIRED_ONBOARDING_TASKS = frozenset(
+        [
+            OnboardingTask.FIRST_PROJECT,
+            OnboardingTask.FIRST_EVENT,
+            OnboardingTask.INVITE_MEMBER,
+            OnboardingTask.SECOND_PLATFORM,
+            OnboardingTask.RELEASE_TRACKING,
+            OnboardingTask.ALERT_RULE,
+            OnboardingTask.FIRST_TRANSACTION,
+            OnboardingTask.SESSION_REPLAY,
+            OnboardingTask.REAL_TIME_NOTIFICATIONS,
+            OnboardingTask.LINK_SENTRY_TO_SOURCE_CODE,
+        ]
+    )
+
+    NEW_REQUIRED_ONBOARDING_TASKS_WITH_SOURCE_MAPS = frozenset(
+        [
+            *NEW_REQUIRED_ONBOARDING_TASKS,
+            OnboardingTask.SOURCEMAPS,
         ]
     )
 
@@ -169,6 +201,8 @@ class OrganizationOnboardingTask(AbstractOnboardingTask):
             OnboardingTask.USER_CONTEXT,
             OnboardingTask.RELEASE_TRACKING,
             OnboardingTask.SOURCEMAPS,
+            # TODO(Telemetry Experience): This task is not shown in the quick start
+            # but it is still used in the frontend, check if we can remove it from code
             OnboardingTask.USER_REPORTS,
             OnboardingTask.ISSUE_TRACKER,
             OnboardingTask.ALERT_RULE,
@@ -176,6 +210,20 @@ class OrganizationOnboardingTask(AbstractOnboardingTask):
             OnboardingTask.METRIC_ALERT,
             OnboardingTask.INTEGRATIONS,
             OnboardingTask.SESSION_REPLAY,
+        ]
+    )
+
+    NEW_SKIPPABLE_TASKS = frozenset(
+        [
+            OnboardingTask.INVITE_MEMBER,
+            OnboardingTask.SECOND_PLATFORM,
+            OnboardingTask.RELEASE_TRACKING,
+            OnboardingTask.SOURCEMAPS,
+            OnboardingTask.ALERT_RULE,
+            OnboardingTask.FIRST_TRANSACTION,
+            OnboardingTask.SESSION_REPLAY,
+            OnboardingTask.REAL_TIME_NOTIFICATIONS,
+            OnboardingTask.LINK_SENTRY_TO_SOURCE_CODE,
         ]
     )
 

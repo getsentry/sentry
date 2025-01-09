@@ -6,21 +6,25 @@ import {
   setEnvironmentIsMuted,
   updateMonitor,
 } from 'sentry/actionCreators/monitors';
+import {DateNavigator} from 'sentry/components/checkInTimeline/dateNavigator';
+import {
+  GridLineLabels,
+  GridLineOverlay,
+} from 'sentry/components/checkInTimeline/gridLines';
+import {useDateNavigation} from 'sentry/components/checkInTimeline/hooks/useDateNavigation';
+import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
 import Panel from 'sentry/components/panels/panel';
 import {Sticky} from 'sentry/components/sticky';
 import {space} from 'sentry/styles/space';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useDimensions} from 'sentry/utils/useDimensions';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import useRouter from 'sentry/utils/useRouter';
 import type {Monitor} from 'sentry/views/monitors/types';
 import {makeMonitorListQueryKey} from 'sentry/views/monitors/utils';
 
-import {DateNavigator} from '../timeline/dateNavigator';
-import {GridLineLabels, GridLineOverlay} from '../timeline/gridLines';
-import {useDateNavigation} from '../timeline/hooks/useDateNavigation';
-import {useTimeWindowConfig} from '../timeline/hooks/useTimeWindowConfig';
+import {CronServiceIncidents} from '../serviceIncidents';
 
 import {OverviewRow} from './overviewRow';
 import {SortSelector} from './sortSelector';
@@ -33,8 +37,7 @@ export function OverviewTimeline({monitorList}: Props) {
   const organization = useOrganization();
   const api = useApi();
   const queryClient = useQueryClient();
-  const router = useRouter();
-  const location = router.location;
+  const location = useLocation();
 
   const elementRef = useRef<HTMLDivElement>(null);
   const {width: timelineWidth} = useDimensions<HTMLDivElement>({elementRef});
@@ -55,7 +58,7 @@ export function OverviewTimeline({monitorList}: Props) {
         return oldMonitorList;
       }
 
-      const oldMonitor = oldMonitorList[oldMonitorIdx];
+      const oldMonitor = oldMonitorList[oldMonitorIdx]!;
       const newEnvList = oldMonitor.environments.filter(e => e.name !== env);
       const updatedMonitor = {
         ...oldMonitor,
@@ -110,7 +113,7 @@ export function OverviewTimeline({monitorList}: Props) {
     const queryKey = makeMonitorListQueryKey(organization, location.query);
     setApiQueryData(queryClient, queryKey, (oldMonitorList: Monitor[]) => {
       const monitorIdx = oldMonitorList.findIndex(m => m.slug === monitor.slug);
-      oldMonitorList[monitorIdx] = {...oldMonitorList[monitorIdx], status: resp.status};
+      oldMonitorList[monitorIdx] = {...oldMonitorList[monitorIdx]!, status: resp.status};
 
       return oldMonitorList;
     });
@@ -143,7 +146,7 @@ export function OverviewTimeline({monitorList}: Props) {
         stickyCursor
         allowZoom
         showCursor
-        showIncidents
+        additionalUi={<CronServiceIncidents timeWindowConfig={timeWindowConfig} />}
         timeWindowConfig={timeWindowConfig}
       />
 

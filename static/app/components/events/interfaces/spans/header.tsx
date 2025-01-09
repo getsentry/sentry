@@ -19,11 +19,11 @@ import {
   pickBarColor,
   rectOfContent,
 } from 'sentry/components/performance/waterfall/utils';
-import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {AggregateEventTransaction, EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 import toPercent from 'sentry/utils/number/toPercent';
 import theme from 'sentry/utils/theme';
 import {ProfileContext} from 'sentry/views/profiling/profilesProvider';
@@ -83,7 +83,6 @@ class TraceViewHeader extends Component<PropType, State> {
     if (minimapInteractiveRef.current) {
       const minimapWidth = minimapInteractiveRef.current.getBoundingClientRect().width;
       if (minimapWidth !== this.state.minimapWidth) {
-        // eslint-disable-next-line react/no-did-update-set-state
         this.setState({
           minimapWidth,
         });
@@ -810,7 +809,7 @@ export const HeaderContainer = styled('div')<{
   width: 100%;
   position: sticky;
   left: 0;
-  top: ${p => (ConfigStore.get('demoMode') ? p.theme.demo.headerSize : 0)};
+  top: ${p => (isDemoModeEnabled() ? p.theme.demo.headerSize : 0)};
   z-index: ${p => (p.isEmbedded ? 'initial' : p.theme.zIndex.traceView.minimapContainer)};
   background-color: ${p => p.theme.background};
   border-bottom: 1px solid ${p => p.theme.border};

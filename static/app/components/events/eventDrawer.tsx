@@ -4,7 +4,7 @@ import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumb
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {InputGroup} from 'sentry/components/inputGroup';
 import {space} from 'sentry/styles/space';
-import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventNavigation';
+import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventTitle';
 
 export const Header = styled('h3')`
   display: block;
@@ -47,6 +47,9 @@ export const EventDrawerHeader = styled(DrawerHeader)`
   max-height: ${MIN_NAV_HEIGHT}px;
   box-shadow: none;
   border-bottom: 1px solid ${p => p.theme.border};
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 `;
 
 export const EventNavigator = styled('div')`

@@ -165,7 +165,7 @@ function TraceRow({defaultExpanded, trace}: {defaultExpanded; trace: TraceResult
     const trailingProjects: string[] = [];
 
     for (let i = 0; i < trace.breakdowns.length; i++) {
-      const project = trace.breakdowns[i].project;
+      const project = trace.breakdowns[i]!.project;
       if (!defined(project) || seenProjects.has(project)) {
         continue;
       }
@@ -195,17 +195,20 @@ function TraceRow({defaultExpanded, trace}: {defaultExpanded; trace: TraceResult
             trackAnalytics('trace_explorer.toggle_trace_details', {
               organization,
               expanded,
+              source: 'trace explorer',
             })
           }
         />
         <TraceIdRenderer
           traceId={trace.trace}
           timestamp={trace.end}
-          onClick={() =>
+          onClick={event => {
+            event.stopPropagation();
             trackAnalytics('trace_explorer.open_trace', {
               organization,
-            })
-          }
+              source: 'trace explorer',
+            });
+          }}
           location={location}
         />
       </StyledPanelItem>

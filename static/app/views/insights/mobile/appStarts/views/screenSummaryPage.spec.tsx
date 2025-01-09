@@ -49,7 +49,7 @@ describe('Screen Summary', function () {
   });
 
   describe('Native Project', function () {
-    let eventsMock;
+    let eventsMock: jest.Mock;
 
     beforeEach(() => {
       MockApiClient.addMockResponse({
@@ -85,7 +85,7 @@ describe('Screen Summary', function () {
         action: 'PUSH',
         hash: '',
         key: '',
-        pathname: '/organizations/org-slug/performance/mobile/screens/spans/',
+        pathname: '/organizations/org-slug/insights/screens/spans/',
         query: {
           project: project.id,
           transaction: 'MainActivity',

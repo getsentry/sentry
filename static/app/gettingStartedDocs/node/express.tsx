@@ -12,7 +12,10 @@ import {
   getCrashReportModalIntroduction,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {getJSServerMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
-import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
+import {
+  feedbackOnboardingJsLoader,
+  replayOnboardingJsLoader,
+} from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
 import {
   getImportInstrumentSnippet,
@@ -54,9 +57,12 @@ app.listen(3000);
 
 const onboarding: OnboardingConfig = {
   introduction: () =>
-    tct('In this quick guide you’ll use [strong:npm] or [strong:yarn] to set up:', {
-      strong: <strong />,
-    }),
+    tct(
+      'In this quick guide you’ll use [strong:npm], [strong:yarn] or [strong:pnpm] to set up:',
+      {
+        strong: <strong />,
+      }
+    ),
   install: (params: Params) => [
     {
       type: StepType.INSTALL,
@@ -153,6 +159,7 @@ const docs: Docs = {
   replayOnboardingJsLoader,
   customMetricsOnboarding: getJSServerMetricsOnboarding(),
   crashReportOnboarding,
+  feedbackOnboardingJsLoader,
 };
 
 export default docs;

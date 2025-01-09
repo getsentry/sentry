@@ -1,5 +1,5 @@
 ---
-created: '2020-12-08T17:25:04.978501Z'
+created: '2024-11-08T22:03:16.451923+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -16,6 +16,7 @@ config:
       - sentry.*
     - - level
       - ERROR
+    text: logger:"sentry.*" level:"ERROR" -> "log-{{ logger }}-{{ level }}"
   version: 1
 fingerprint:
 - log-
@@ -24,9 +25,9 @@ fingerprint:
 - '{{ level }}'
 title: Love not found.
 variants:
-  custom-fingerprint:
+  custom_fingerprint:
     matched_rule: logger:"sentry.*" level:"ERROR" -> "log-{{ logger }}-{{ level }}"
-    type: custom-fingerprint
+    type: custom_fingerprint
     values:
     - log-
     - sentry.example.love

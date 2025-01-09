@@ -1,6 +1,7 @@
 import type {Location, LocationDescriptorObject} from 'history';
 
 import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
+import type {DateString} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
 import type {
@@ -12,6 +13,9 @@ import type {
 } from 'sentry/utils/performance/quickTrace/types';
 import {isTraceSplitResult, reduceTrace} from 'sentry/utils/performance/quickTrace/utils';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import type {DomainView} from 'sentry/views/insights/pages/useFilters';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 
 import {DEFAULT_TRACE_ROWS_LIMIT} from './limitExceededMessage';
 import type {TraceInfo} from './types';
@@ -23,10 +27,13 @@ export function getTraceDetailsUrl({
   timestamp,
   spanId,
   eventId,
+  targetId,
   demo,
   location,
   source,
+  view,
 }: {
+  // @TODO add a type for dateSelection
   dateSelection;
   location: Location;
   organization: Organization;
@@ -35,40 +42,40 @@ export function getTraceDetailsUrl({
   eventId?: string;
   source?: string;
   spanId?: string;
+  // targetId represents the span id of the transaction. It will replace eventId once all links
+  // to trace view are updated to use spand ids of transactions instead of event ids.
+  targetId?: string;
   timestamp?: string | number;
+  view?: DomainView;
 }): LocationDescriptorObject {
-  const {start, end, statsPeriod} = dateSelection;
-
-  const queryParams = {
-    ...location.query,
-    statsPeriod,
-    [PAGE_URL_PARAM.PAGE_START]: start,
-    [PAGE_URL_PARAM.PAGE_END]: end,
-  };
-
-  const oldTraceUrl = {
-    pathname: normalizeUrl(
-      `/organizations/${organization.slug}/performance/trace/${traceSlug}/`
-    ),
-    query: queryParams,
-  };
+  const performanceBaseUrl = getPerformanceBaseUrl(organization.slug, view);
+  const queryParams: Record<string, string | number | undefined | DateString | string[]> =
+    {
+      ...location.query,
+      statsPeriod: dateSelection.statsPeriod,
+      [PAGE_URL_PARAM.PAGE_START]: dateSelection.start,
+      [PAGE_URL_PARAM.PAGE_END]: dateSelection.end,
+    };
 
   if (shouldForceRouteToOldView(organization, timestamp)) {
-    return oldTraceUrl;
+    return {
+      pathname: normalizeUrl(`${performanceBaseUrl}/trace/${traceSlug}/`),
+      query: queryParams,
+    };
   }
 
   if (organization.features.includes('trace-view-v1')) {
     if (spanId) {
-      queryParams.node = [`span-${spanId}`, `txn-${eventId}`];
+      const path: TraceTree.NodePath[] = [`span-${spanId}`, `txn-${targetId ?? eventId}`];
+      queryParams.node = path;
     }
     return {
-      pathname: normalizeUrl(
-        `/organizations/${organization.slug}/performance/trace/${traceSlug}/`
-      ),
+      pathname: normalizeUrl(`${performanceBaseUrl}/trace/${traceSlug}/`),
       query: {
         ...queryParams,
         timestamp: getTimeStampFromTableDateField(timestamp),
         eventId,
+        targetId,
         demo,
         source,
       },
@@ -79,7 +86,10 @@ export function getTraceDetailsUrl({
     queryParams.limit = DEFAULT_TRACE_ROWS_LIMIT;
   }
 
-  return oldTraceUrl;
+  return {
+    pathname: normalizeUrl(`${performanceBaseUrl}/trace/${traceSlug}/`),
+    query: queryParams,
+  };
 }
 
 /**
@@ -190,7 +200,7 @@ export function getTraceInfo(
 }
 
 export function shortenErrorTitle(title: string): string {
-  return title.split(':')[0];
+  return title.split(':')[0]!;
 }
 
 export function isRootTransaction(trace: TraceFullDetailed): boolean {

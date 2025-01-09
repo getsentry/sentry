@@ -12,9 +12,12 @@ from arroyo.types import BrokerValue, Commit, FilteredPayload, Message, Partitio
 from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.monitors_clock_tick_v1 import ClockTick
 
+from sentry import options
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.monitors.clock_tasks.check_missed import dispatch_check_missing
 from sentry.monitors.clock_tasks.check_timeout import dispatch_check_timeout
+from sentry.monitors.clock_tasks.mark_unknown import dispatch_mark_unknown
+from sentry.monitors.system_incidents import process_clock_tick_for_system_incidents
 
 logger = logging.getLogger(__name__)
 
@@ -28,10 +31,29 @@ def process_clock_tick(message: Message[KafkaPayload | FilteredPayload]):
     wrapper: ClockTick = MONITORS_CLOCK_TICK_CODEC.decode(message.payload.value)
     ts = datetime.fromtimestamp(wrapper["ts"], tz=timezone.utc)
 
-    logger.info("process_clock_tick", extra={"reference_datetime": str(ts)})
+    logger.info(
+        "process_clock_tick",
+        extra={"reference_datetime": str(ts)},
+    )
+
+    try:
+        incident_result = process_clock_tick_for_system_incidents(ts)
+    except Exception:
+        incident_result = None
+        logger.exception("failed_process_clock_tick_for_system_incidents")
 
     dispatch_check_missing(ts)
-    dispatch_check_timeout(ts)
+
+    use_decision = options.get("crons.system_incidents.use_decisions")
+
+    # During a systems incident we do NOT mark timeouts since it's possible
+    # we'll have lost the completing check-in. Instead we mark ALL in-progress
+    # check-ins as UNKNOWN. Should these check-ins recieve completing check-ins
+    # they will be properly updated, even after being marked as UNKNOWN.
+    if use_decision and incident_result and incident_result.decision.is_incident():
+        dispatch_mark_unknown(ts)
+    else:
+        dispatch_check_timeout(ts)
 
 
 class MonitorClockTickStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):

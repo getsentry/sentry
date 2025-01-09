@@ -24,5 +24,6 @@ export interface UptimeRule {
   projectSlug: string;
   status: UptimeMonitorStatus;
   timeoutMs: number;
+  traceSampling: boolean;
   url: string;
 }

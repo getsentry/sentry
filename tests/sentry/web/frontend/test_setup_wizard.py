@@ -305,3 +305,16 @@ class SetupWizard(PermissionTestCase):
 
         assert resp.status_code == 302
         assert resp.headers["Location"] == "/auth/login/"
+
+    def test_options_request_cors_headers(self):
+        self.org = self.create_organization(owner=self.user)
+        self.project = self.create_project()
+        url = reverse("sentry-project-wizard-fetch", kwargs={"wizard_hash": "abc"})
+
+        _ = self.client.options(url)
+        self.login_as(self.user)
+        resp = self.client.options(url)
+        assert resp.status_code == 200
+        assert resp.headers["Content-Length"] == "0"
+        assert "Access-Control-Allow-Origin" in resp.headers
+        assert "Access-Control-Allow-Methods" in resp.headers

@@ -7,7 +7,11 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {AutofixSteps} from 'sentry/components/events/autofix/autofixSteps';
-import {type AutofixStep, AutofixStepType} from 'sentry/components/events/autofix/types';
+import {
+  AutofixStatus,
+  type AutofixStep,
+  AutofixStepType,
+} from 'sentry/components/events/autofix/types';
 
 jest.mock('sentry/actionCreators/indicator');
 
@@ -24,14 +28,14 @@ describe('AutofixSteps', () => {
         AutofixStepFixture({
           id: '1',
           type: AutofixStepType.DEFAULT,
-          status: 'COMPLETED',
+          status: AutofixStatus.COMPLETED,
           insights: [],
           progress: [],
         }),
         AutofixStepFixture({
           id: '2',
           type: AutofixStepType.ROOT_CAUSE_ANALYSIS,
-          status: 'COMPLETED',
+          status: AutofixStatus.COMPLETED,
           causes: [
             {
               id: 'cause1',
@@ -47,7 +51,7 @@ describe('AutofixSteps', () => {
       repositories: [],
       created_at: '2023-01-01T00:00:00Z',
       run_id: '1',
-      status: 'PROCESSING',
+      status: AutofixStatus.PROCESSING,
     }),
     groupId: 'group1',
     runId: 'run1',
@@ -58,9 +62,7 @@ describe('AutofixSteps', () => {
     render(<AutofixSteps {...defaultProps} />);
 
     expect(screen.getByText('Root cause 1')).toBeInTheDocument();
-    expect(
-      screen.getByPlaceholderText('Provide any instructions for the fix...')
-    ).toBeInTheDocument();
+    expect(screen.getByText('Use suggested root cause')).toBeInTheDocument();
   });
 
   it('handles root cause selection', async () => {
@@ -72,7 +74,11 @@ describe('AutofixSteps', () => {
 
     render(<AutofixSteps {...defaultProps} />);
 
-    const input = screen.getByPlaceholderText('Provide any instructions for the fix...');
+    await userEvent.click(screen.getByRole('button', {name: 'Use suggested root cause'}));
+
+    const input = screen.getByPlaceholderText(
+      '(Optional) Provide any instructions for the fix...'
+    );
     await userEvent.type(input, 'Custom root cause');
     await userEvent.click(screen.getByRole('button', {name: 'Find a Fix'}));
 
@@ -92,6 +98,7 @@ describe('AutofixSteps', () => {
 
     render(<AutofixSteps {...defaultProps} />);
 
+    await userEvent.click(screen.getByRole('button', {name: 'Use suggested root cause'}));
     await userEvent.click(screen.getByRole('button', {name: 'Find a Fix'}));
 
     await waitFor(() => {
@@ -101,47 +108,13 @@ describe('AutofixSteps', () => {
     });
   });
 
-  it('disables input when code changes are showing', () => {
-    MockApiClient.addMockResponse({
-      url: '/issues/group1/autofix/setup/',
-      body: {
-        genAIConsent: {ok: true},
-        codebaseIndexing: {ok: true},
-        integration: {ok: true},
-        githubWriteIntegration: {
-          repos: [],
-        },
-      },
-    });
-
-    const propsWithCodeChanges = {
-      ...defaultProps,
-      data: {
-        ...defaultProps.data,
-        steps: [
-          ...(defaultProps.data.steps as AutofixStep[]),
-          AutofixStepFixture({
-            id: '3',
-            type: AutofixStepType.CHANGES,
-            status: 'COMPLETED',
-            progress: [],
-            changes: [AutofixCodebaseChangeData()],
-          }),
-        ],
-      },
-    };
-
-    render(<AutofixSteps {...propsWithCodeChanges} />);
-
-    const input = screen.getByPlaceholderText('Say something...');
-    expect(input).toBeDisabled();
-  });
-
-  it('renders AutofixMessageBox with correct props', () => {
+  it('renders AutofixMessageBox with correct props', async () => {
     render(<AutofixSteps {...defaultProps} />);
 
+    await userEvent.click(screen.getByRole('button', {name: 'Use suggested root cause'}));
+
     const messageBox = screen.getByPlaceholderText(
-      'Provide any instructions for the fix...'
+      '(Optional) Provide any instructions for the fix...'
     );
     expect(messageBox).toBeInTheDocument();
 
@@ -160,7 +133,7 @@ describe('AutofixSteps', () => {
           AutofixStepFixture({
             id: '3',
             type: AutofixStepType.DEFAULT,
-            status: 'PROCESSING',
+            status: AutofixStatus.PROCESSING,
             progress: [
               AutofixProgressItemFixture({
                 message: 'Log message',
@@ -176,5 +149,63 @@ describe('AutofixSteps', () => {
     render(<AutofixSteps {...propsWithProgress} />);
 
     expect(screen.getByText('Log message')).toBeInTheDocument();
+  });
+
+  it('handles iterating on changes step', async () => {
+    MockApiClient.addMockResponse({
+      url: '/issues/group1/autofix/setup/?check_write_access=true',
+      method: 'GET',
+      body: {
+        genAIConsent: {ok: true},
+        integration: {ok: true},
+        githubWriteIntegration: {
+          repos: [],
+        },
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: '/issues/group1/autofix/update/',
+      method: 'POST',
+      body: {},
+    });
+
+    const changeData = AutofixCodebaseChangeData();
+    changeData.pull_request = undefined;
+
+    const propsWithChanges = {
+      ...defaultProps,
+      data: {
+        ...defaultProps.data,
+        steps: [
+          AutofixStepFixture({
+            id: '1',
+            type: AutofixStepType.DEFAULT,
+            status: AutofixStatus.COMPLETED,
+            insights: [],
+            progress: [],
+            index: 0,
+          }),
+          AutofixStepFixture({
+            id: '2',
+            type: AutofixStepType.CHANGES,
+            status: AutofixStatus.COMPLETED,
+            progress: [],
+            changes: [changeData],
+          }),
+        ],
+      },
+    };
+
+    render(<AutofixSteps {...propsWithChanges} />);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Iterate'}));
+
+    const input = screen.getByPlaceholderText('Share helpful context or directions...');
+    await userEvent.type(input, 'Feedback on changes');
+    await userEvent.click(screen.getByRole('button', {name: 'Send'}));
+
+    await waitFor(() => {
+      expect(addSuccessMessage).toHaveBeenCalledWith('Thanks, rethinking this...');
+    });
   });
 });

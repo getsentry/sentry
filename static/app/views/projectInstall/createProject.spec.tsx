@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 import {MOCK_RESP_VERBOSE} from 'sentry-fixture/ruleConditions';
 import {TeamFixture} from 'sentry-fixture/team';
 
@@ -12,7 +13,6 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {tct} from 'sentry/locale';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import TeamStore from 'sentry/stores/teamStore';
 import type {Organization} from 'sentry/types/organization';
@@ -45,6 +45,15 @@ function renderFrameworkModalMockRequests({
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/projects/`,
     body: [],
+  });
+
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/integrations/?integrationType=messaging`,
+    body: [
+      OrganizationIntegrationsFixture({
+        name: "Moo Deng's Workspace",
+      }),
+    ],
   });
 
   const projectCreationMockRequest = MockApiClient.addMockResponse({
@@ -83,6 +92,15 @@ describe('CreateProject', function () {
       body: {},
       // Not required for these tests
       statusCode: 500,
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/integrations/?integrationType=messaging`,
+      body: [
+        OrganizationIntegrationsFixture({
+          name: "Moo Deng's Workspace",
+        }),
+      ],
     });
   });
 
@@ -201,11 +219,7 @@ describe('CreateProject', function () {
     expect(frameWorkModalMockRequests.projectCreationMockRequest).toHaveBeenCalledTimes(
       1
     );
-    expect(addSuccessMessage).toHaveBeenCalledWith(
-      tct('Created project [project]', {
-        project: 'testProj',
-      })
-    );
+    expect(addSuccessMessage).toHaveBeenCalledWith('Created project testProj');
   });
 
   it('should display error message on proj creation failure', async function () {
@@ -242,11 +256,7 @@ describe('CreateProject', function () {
     expect(frameWorkModalMockRequests.projectCreationMockRequest).toHaveBeenCalledTimes(
       1
     );
-    expect(addErrorMessage).toHaveBeenCalledWith(
-      tct('Failed to create project [project]', {
-        project: 'apple-ios',
-      })
-    );
+    expect(addErrorMessage).toHaveBeenCalledWith('Failed to create project apple-ios');
   });
 
   it('should display success message when using member endpoint', async function () {
@@ -274,17 +284,14 @@ describe('CreateProject', function () {
       frameWorkModalMockRequests.experimentalprojectCreationMockRequest
     ).toHaveBeenCalledTimes(1);
     expect(addSuccessMessage).toHaveBeenCalledWith(
-      tct('Created [project] under new team [team]', {
-        project: 'testProj',
-        team: '#testTeam',
-      })
+      'Created testProj under new team #testTeam'
     );
   });
 
   it('does not render framework selection modal if vanilla js is NOT selected', async function () {
     const {organization} = initializeOrg({
       organization: {
-        features: ['onboarding-sdk-selection', 'team-roles'],
+        features: ['team-roles'],
         access: ['project:read', 'project:write'],
         allowMemberProjectCreation: true,
       },
@@ -324,11 +331,7 @@ describe('CreateProject', function () {
   });
 
   it('renders framework selection modal if vanilla js is selected', async function () {
-    const {organization} = initializeOrg({
-      organization: {
-        features: ['onboarding-sdk-selection'],
-      },
-    });
+    const {organization} = initializeOrg();
 
     const frameWorkModalMockRequests = renderFrameworkModalMockRequests({
       organization,
@@ -375,6 +378,15 @@ describe('CreateProject', function () {
         url: `/projects/${organization.slug}/rule-conditions/`,
         body: MOCK_RESP_VERBOSE,
       });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/integrations/?integrationType=messaging`,
+        body: [
+          OrganizationIntegrationsFixture({
+            name: "Moo Deng's Workspace",
+          }),
+        ],
+      });
     });
 
     afterEach(() => {
@@ -404,6 +416,13 @@ describe('CreateProject', function () {
       expect(getSubmitButton()).toBeEnabled();
 
       await userEvent.clear(screen.getByTestId('range-input'));
+      expect(getSubmitButton()).toBeDisabled();
+
+      await userEvent.click(
+        screen.getByRole('checkbox', {
+          name: 'Notify via integration (Slack, Discord, MS Teams, etc.)',
+        })
+      );
       expect(getSubmitButton()).toBeDisabled();
 
       await userEvent.click(screen.getByText("I'll create my own alerts later"));

@@ -49,10 +49,11 @@ import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useProjects from 'sentry/utils/useProjects';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {appendQueryDatasetParam, hasDatasetSelector} from 'sentry/views/dashboards/utils';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
 
@@ -109,6 +110,7 @@ export type TableViewProps = {
 function TableView(props: TableViewProps) {
   const {projects} = useProjects();
   const routes = useRoutes();
+  const navigate = useNavigate();
   const replayLinkGenerator = generateReplayLink(routes);
 
   /**
@@ -124,6 +126,7 @@ function TableView(props: TableViewProps) {
     const nextEventView = eventView.withResizedColumn(columnIndex, newWidth);
 
     pushEventViewToLocation({
+      navigate,
       location,
       nextEventView,
       extraQuery: {
@@ -290,7 +293,7 @@ function TableView(props: TableViewProps) {
     const currentSort = eventView.sortForField(field, tableMeta);
     const canSort = isFieldSortable(field, tableMeta);
     let titleText = isEquationAlias(column.name)
-      ? eventView.getEquations()[getEquationAliasIndex(column.name)]
+      ? eventView.getEquations()[getEquationAliasIndex(column.name)]!
       : column.name;
 
     if (column.name.toLowerCase() === 'replayid') {
@@ -375,8 +378,8 @@ function TableView(props: TableViewProps) {
         target = generateLinkToEventInTraceView({
           traceSlug: dataRow.trace?.toString(),
           eventId: dataRow.id,
-          projectSlug: (dataRow.project || dataRow['project.name']).toString(),
-          timestamp: dataRow.timestamp,
+          projectSlug: (dataRow.project || dataRow['project.name']!).toString(),
+          timestamp: dataRow.timestamp!,
           organization,
           isHomepage,
           location,

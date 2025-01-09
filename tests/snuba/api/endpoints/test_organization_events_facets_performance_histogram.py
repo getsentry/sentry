@@ -2,7 +2,6 @@ from datetime import timedelta
 
 from django.urls import reverse
 
-from sentry.testutils.helpers.datetime import iso_format
 from sentry.utils.cursors import Cursor
 from sentry.utils.samples import load_data
 from tests.snuba.api.endpoints.test_organization_events_facets_performance import (
@@ -52,13 +51,12 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(
         self,
         name="exampleTransaction",
         duration=100,
-        tags=None,
         project_id=None,
         lcp=None,
         user_id=None,
+        *,
+        tags,
     ):
-        if tags is None:
-            tags = []
         if project_id is None:
             project_id = self.project.id
         event = load_data("transaction")
@@ -67,8 +65,8 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(
             {
                 "transaction": name,
                 "event_id": f"{self._transaction_count:02x}".rjust(32, "0"),
-                "start_timestamp": iso_format(self.two_mins_ago - timedelta(seconds=duration)),
-                "timestamp": iso_format(self.two_mins_ago),
+                "start_timestamp": (self.two_mins_ago - timedelta(seconds=duration)).isoformat(),
+                "timestamp": self.two_mins_ago.isoformat(),
             }
         )
         if user_id:

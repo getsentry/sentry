@@ -68,7 +68,7 @@ with transaction.atomic():
     expected = """\
 <string>:4: error: All overload variants of "atomic" require at least one argument  [call-overload]
 <string>:4: note: Possible overload variants:
-<string>:4: note:     def [_C] atomic(using: _C) -> _C
+<string>:4: note:     def [_C: Callable[..., Any]] atomic(using: _C) -> _C
 <string>:4: note:     def atomic(using: str, savepoint: bool = ..., durable: bool = ...) -> Atomic
 Found 1 error in 1 file (checked 1 source file)
 """

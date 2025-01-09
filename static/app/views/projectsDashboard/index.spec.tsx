@@ -3,6 +3,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 import {TeamFixture} from 'sentry-fixture/team';
 
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   act,
   render,
@@ -15,14 +16,15 @@ import {
 import * as projectsActions from 'sentry/actionCreators/projects';
 import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import TeamStore from 'sentry/stores/teamStore';
 import {Dashboard} from 'sentry/views/projectsDashboard';
 
 jest.unmock('lodash/debounce');
 jest.mock('lodash/debounce', () => {
   const debounceMap = new Map();
   const mockDebounce =
-    (fn, timeout) =>
-    (...args) => {
+    (fn: (...args: any[]) => void, timeout: number) =>
+    (...args: any[]) => {
       if (debounceMap.has(fn)) {
         clearTimeout(debounceMap.get(fn));
       }
@@ -44,6 +46,7 @@ describe('ProjectsDashboard', function () {
   const teams = [team];
 
   beforeEach(function () {
+    TeamStore.loadInitialData(teams);
     MockApiClient.addMockResponse({
       url: `/teams/${org.slug}/${team.slug}/members/`,
       body: [],
@@ -57,6 +60,7 @@ describe('ProjectsDashboard', function () {
   });
 
   afterEach(function () {
+    TeamStore.reset();
     projectsActions._projectStatsToFetch.clear();
     MockApiClient.clearMockResponses();
   });
@@ -149,6 +153,156 @@ describe('ProjectsDashboard', function () {
       expect(await screen.findByText('My Teams')).toBeInTheDocument();
       expect(screen.getAllByTestId('badge-display-name')).toHaveLength(2);
       expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
+    });
+
+    it('renders only projects for my teams by default', async function () {
+      const teamA = TeamFixture({slug: 'team1', isMember: true});
+      const teamProjects = [
+        ProjectFixture({
+          id: '1',
+          slug: 'project1',
+          teams: [teamA],
+          firstEvent: new Date().toISOString(),
+          stats: [],
+        }),
+      ];
+
+      ProjectsStore.loadInitialData([
+        ...teamProjects,
+        ProjectFixture({
+          id: '2',
+          slug: 'project2',
+          teams: [],
+          isBookmarked: true,
+          firstEvent: new Date().toISOString(),
+          stats: [],
+        }),
+      ]);
+      const teamsWithTwoProjects = [TeamFixture({projects: teamProjects})];
+
+      render(
+        <Dashboard
+          api={api}
+          error={null}
+          loadingTeams={false}
+          organization={org}
+          teams={teamsWithTwoProjects}
+          {...RouteComponentPropsFixture()}
+        />
+      );
+      expect(await screen.findByText('My Teams')).toBeInTheDocument();
+      expect(screen.getAllByTestId('badge-display-name')).toHaveLength(1);
+    });
+
+    it('renders all projects if open membership is enabled and user selects all teams', async function () {
+      const {
+        organization: openOrg,
+        router,
+        routerProps,
+      } = initializeOrg({
+        organization: {features: ['open-membership']},
+        router: {
+          // team='' removes the default selection of 'myteams', same as clicking "clear"
+          location: {query: {team: ''}},
+        },
+      });
+      const teamA = TeamFixture({slug: 'team1', isMember: true});
+      const teamB = TeamFixture({id: '2', slug: 'team2', name: 'team2', isMember: false});
+      TeamStore.loadInitialData([teamA, teamB]);
+      const teamProjects = [
+        ProjectFixture({
+          id: '1',
+          slug: 'project1',
+          teams: [teamA],
+          firstEvent: new Date().toISOString(),
+          stats: [],
+        }),
+      ];
+
+      ProjectsStore.loadInitialData([
+        ...teamProjects,
+        ProjectFixture({
+          id: '2',
+          slug: 'project2',
+          teams: [teamB],
+          firstEvent: new Date().toISOString(),
+          stats: [],
+        }),
+      ]);
+      const teamsWithTwoProjects = [TeamFixture({projects: teamProjects})];
+
+      render(
+        <Dashboard
+          api={api}
+          error={null}
+          loadingTeams={false}
+          organization={openOrg}
+          teams={teamsWithTwoProjects}
+          {...routerProps}
+        />,
+        {
+          router,
+          organization: openOrg,
+        }
+      );
+      expect(await screen.findByText('All Teams')).toBeInTheDocument();
+      expect(screen.getAllByTestId('badge-display-name')).toHaveLength(2);
+
+      await userEvent.click(screen.getByText('All Teams'));
+      expect(await screen.findByText('Other Teams')).toBeInTheDocument();
+      expect(screen.getByText('#team2')).toBeInTheDocument();
+    });
+
+    it('renders only projects for my teams if open membership is disabled', async function () {
+      const {
+        organization: closedOrg,
+        router,
+        routerProps,
+      } = initializeOrg({
+        organization: {features: []},
+        router: {
+          location: {query: {team: ''}},
+        },
+      });
+      const teamA = TeamFixture({slug: 'team1', isMember: true});
+      const teamProjects = [
+        ProjectFixture({
+          id: '1',
+          slug: 'project1',
+          teams: [teamA],
+          firstEvent: new Date().toISOString(),
+          stats: [],
+        }),
+      ];
+
+      ProjectsStore.loadInitialData([
+        ...teamProjects,
+        ProjectFixture({
+          id: '2',
+          slug: 'project2',
+          teams: [],
+          firstEvent: new Date().toISOString(),
+          stats: [],
+        }),
+      ]);
+      const teamsWithTwoProjects = [TeamFixture({projects: teamProjects})];
+
+      render(
+        <Dashboard
+          api={api}
+          error={null}
+          loadingTeams={false}
+          organization={closedOrg}
+          teams={teamsWithTwoProjects}
+          {...routerProps}
+        />,
+        {
+          router,
+          organization: closedOrg,
+        }
+      );
+      expect(await screen.findByText('All Teams')).toBeInTheDocument();
+      expect(screen.getAllByTestId('badge-display-name')).toHaveLength(1);
     });
 
     it('renders correct project with selected team', async function () {
@@ -373,12 +527,12 @@ describe('ProjectsDashboard', function () {
 
       const projectName = screen.getAllByTestId('badge-display-name');
       // check that projects are in the correct order - alphabetical with bookmarked projects in front
-      expect(within(projectName[0]).getByText('a-fave')).toBeInTheDocument();
-      expect(within(projectName[1]).getByText('m-fave')).toBeInTheDocument();
-      expect(within(projectName[2]).getByText('z-fave')).toBeInTheDocument();
-      expect(within(projectName[3]).getByText('a')).toBeInTheDocument();
-      expect(within(projectName[4]).getByText('m')).toBeInTheDocument();
-      expect(within(projectName[5]).getByText('z')).toBeInTheDocument();
+      expect(within(projectName[0]!).getByText('a-fave')).toBeInTheDocument();
+      expect(within(projectName[1]!).getByText('m-fave')).toBeInTheDocument();
+      expect(within(projectName[2]!).getByText('z-fave')).toBeInTheDocument();
+      expect(within(projectName[3]!).getByText('a')).toBeInTheDocument();
+      expect(within(projectName[4]!).getByText('m')).toBeInTheDocument();
+      expect(within(projectName[5]!).getByText('z')).toBeInTheDocument();
     });
   });
 
@@ -429,7 +583,9 @@ describe('ProjectsDashboard', function () {
       ProjectsStore.loadInitialData(projects);
 
       jest.useFakeTimers();
-      ProjectsStatsStore.onStatsLoadSuccess([{...projects[0], stats: [[1517281200, 2]]}]);
+      ProjectsStatsStore.onStatsLoadSuccess([
+        {...projects[0]!, stats: [[1517281200, 2]]},
+      ]);
       const loadStatsSpy = jest.spyOn(projectsActions, 'loadStatsForProject');
       const mock = MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/projects/`,
@@ -459,20 +615,20 @@ describe('ProjectsDashboard', function () {
       const projectSummary = screen.getAllByTestId('summary-links');
       // Has 5 Loading Cards because 1 project has been loaded in store already
       expect(
-        within(projectSummary[0]).getByTestId('loading-placeholder')
+        within(projectSummary[0]!).getByTestId('loading-placeholder')
       ).toBeInTheDocument();
       expect(
-        within(projectSummary[1]).getByTestId('loading-placeholder')
+        within(projectSummary[1]!).getByTestId('loading-placeholder')
       ).toBeInTheDocument();
       expect(
-        within(projectSummary[2]).getByTestId('loading-placeholder')
+        within(projectSummary[2]!).getByTestId('loading-placeholder')
       ).toBeInTheDocument();
       expect(
-        within(projectSummary[3]).getByTestId('loading-placeholder')
+        within(projectSummary[3]!).getByTestId('loading-placeholder')
       ).toBeInTheDocument();
-      expect(within(projectSummary[4]).getByText('Errors: 2')).toBeInTheDocument();
+      expect(within(projectSummary[4]!).getByText('Errors: 2')).toBeInTheDocument();
       expect(
-        within(projectSummary[5]).getByTestId('loading-placeholder')
+        within(projectSummary[5]!).getByTestId('loading-placeholder')
       ).toBeInTheDocument();
 
       // Advance timers so that batched request fires
@@ -492,13 +648,13 @@ describe('ProjectsDashboard', function () {
 
       // All cards have loaded
       await waitFor(() => {
-        expect(within(projectSummary[0]).getByText('Errors: 3')).toBeInTheDocument();
+        expect(within(projectSummary[0]!).getByText('Errors: 3')).toBeInTheDocument();
       });
-      expect(within(projectSummary[1]).getByText('Errors: 3')).toBeInTheDocument();
-      expect(within(projectSummary[2]).getByText('Errors: 3')).toBeInTheDocument();
-      expect(within(projectSummary[3]).getByText('Errors: 3')).toBeInTheDocument();
-      expect(within(projectSummary[4]).getByText('Errors: 3')).toBeInTheDocument();
-      expect(within(projectSummary[5]).getByText('Errors: 3')).toBeInTheDocument();
+      expect(within(projectSummary[1]!).getByText('Errors: 3')).toBeInTheDocument();
+      expect(within(projectSummary[2]!).getByText('Errors: 3')).toBeInTheDocument();
+      expect(within(projectSummary[3]!).getByText('Errors: 3')).toBeInTheDocument();
+      expect(within(projectSummary[4]!).getByText('Errors: 3')).toBeInTheDocument();
+      expect(within(projectSummary[5]!).getByText('Errors: 3')).toBeInTheDocument();
 
       // Resets store when it unmounts
       unmount();

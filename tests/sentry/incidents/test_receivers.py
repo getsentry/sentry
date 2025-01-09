@@ -11,31 +11,10 @@ from sentry.models.organization import Organization
 from sentry.testutils.cases import TestCase
 
 
-class AddProjectToIncludeAllRulesTest(TestCase):
-    def test_include_all_projects_enabled(self):
-        alert_rule = self.create_alert_rule(include_all_projects=True)
-        new_project = self.create_project()
-        assert alert_rule.snuba_query.subscriptions.filter(project=new_project).exists()
-
-    def test_include_all_projects_disabled(self):
-        alert_rule = self.create_alert_rule(include_all_projects=False)
-        new_project = self.create_project()
-        assert not alert_rule.snuba_query.subscriptions.filter(project=new_project).exists()
-
-    def test_update_noop(self):
-        new_project = self.create_project()
-        alert_rule = self.create_alert_rule(
-            include_all_projects=True, excluded_projects=[new_project]
-        )
-        new_project.update(name="hi")
-        assert not alert_rule.snuba_query.subscriptions.filter(project=new_project).exists()
-
-
 class PreSaveIncidentTriggerTest(TestCase):
     def test_update_date_modified(self):
         org = Organization.objects.create(name="chris' test org")
-        alert_rule = self.create_alert_rule(include_all_projects=False)
-        alert_rule.query = "event.type:error"
+        alert_rule = self.create_alert_rule()
         trigger = AlertRuleTrigger.objects.create(
             alert_rule=alert_rule,
             label="warning",

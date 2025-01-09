@@ -54,7 +54,8 @@ describe('destinationSummaryPage', () => {
     initiallyLoaded: false,
   });
 
-  let eventsMock, eventsStatsMock, spanFieldTagsMock;
+  let eventsMock: jest.Mock;
+  let eventsStatsMock: jest.Mock;
 
   beforeEach(() => {
     eventsMock = MockApiClient.addMockResponse({
@@ -68,21 +69,6 @@ describe('destinationSummaryPage', () => {
       method: 'GET',
       body: {data: []},
     });
-
-    spanFieldTagsMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/spans/fields/`,
-      method: 'GET',
-      body: [
-        {
-          key: 'api_key',
-          name: 'Api Key',
-        },
-        {
-          key: 'bytes.size',
-          name: 'Bytes.Size',
-        },
-      ],
-    });
   });
 
   it('renders', async () => {
@@ -93,16 +79,5 @@ describe('destinationSummaryPage', () => {
     screen.getByText('Published vs Processed');
     expect(eventsStatsMock).toHaveBeenCalled();
     expect(eventsMock).toHaveBeenCalled();
-    expect(spanFieldTagsMock).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/spans/fields/`,
-      expect.objectContaining({
-        method: 'GET',
-        query: {
-          project: [],
-          environment: [],
-          statsPeriod: '1h',
-        },
-      })
-    );
   });
 });

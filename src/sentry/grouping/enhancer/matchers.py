@@ -1,6 +1,6 @@
 from typing import Any
 
-from sentry.grouping.utils import get_rule_bool
+from sentry.grouping.utils import bool_from_string
 from sentry.stacktraces.functions import get_function_name_for_frame
 from sentry.stacktraces.platform import get_behavior_family_for_platform
 from sentry.utils import metrics
@@ -104,7 +104,7 @@ def create_match_frame(frame_data: dict, platform: str | None) -> dict:
     return match_frame
 
 
-class Match:
+class EnhancementMatch:
     def matches_frame(self, frames, idx, exception_data, cache):
         raise NotImplementedError()
 
@@ -115,9 +115,9 @@ class Match:
     def _from_config_structure(obj, version):
         val = obj
         if val.startswith("|[") and val.endswith("]"):
-            return CalleeMatch(Match._from_config_structure(val[2:-1], version))
+            return CalleeMatch(EnhancementMatch._from_config_structure(val[2:-1], version))
         if val.startswith("[") and val.endswith("]|"):
-            return CallerMatch(Match._from_config_structure(val[1:-2], version))
+            return CallerMatch(EnhancementMatch._from_config_structure(val[1:-2], version))
 
         if val.startswith("!"):
             negated = True
@@ -136,13 +136,13 @@ class Match:
 InstanceKey = tuple[str, str, bool]
 
 
-class FrameMatch(Match):
+class FrameMatch(EnhancementMatch):
     # Global registry of matchers
-    instances: dict[InstanceKey, Match] = {}
+    instances: dict[InstanceKey, EnhancementMatch] = {}
     field: Any = None
 
     @classmethod
-    def from_key(cls, key: str, pattern: str, negated: bool) -> Match:
+    def from_key(cls, key: str, pattern: str, negated: bool) -> EnhancementMatch:
         instance_key = (key, pattern, negated)
         if instance_key in cls.instances:
             instance = cls.instances[instance_key]
@@ -153,7 +153,7 @@ class FrameMatch(Match):
         return instance
 
     @classmethod
-    def _from_key(cls, key: str, pattern: str, negated: bool) -> Match:
+    def _from_key(cls, key: str, pattern: str, negated: bool) -> EnhancementMatch:
         subclass = {
             "package": PackageMatch,
             "path": PathMatch,
@@ -202,7 +202,8 @@ class FrameMatch(Match):
         if self.key == "family":
             arg = "".join(_f for _f in [FAMILIES.get(x) for x in self.pattern.split(",")] if _f)
         elif self.key == "app":
-            arg = {True: "1", False: "0"}.get(get_rule_bool(self.pattern), "")
+            boolified_pattern = bool_from_string(self.pattern)
+            arg = "1" if boolified_pattern is True else "0" if boolified_pattern is False else ""
         else:
             arg = self.pattern
         return ("!" if self.negated else "") + MATCH_KEYS[self.key] + arg
@@ -258,7 +259,7 @@ class FamilyMatch(FrameMatch):
 class InAppMatch(FrameMatch):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._ref_val = get_rule_bool(self.pattern)
+        self._ref_val = bool_from_string(self.pattern)
 
     def _positive_frame_match(self, match_frame, exception_data, cache):
         ref_val = self._ref_val
@@ -315,7 +316,7 @@ class ExceptionMechanismMatch(ExceptionFieldMatch):
     field_path = ["mechanism", "type"]
 
 
-class CallerMatch(Match):
+class CallerMatch(EnhancementMatch):
     def __init__(self, inner: FrameMatch):
         self.inner = inner
 
@@ -330,7 +331,7 @@ class CallerMatch(Match):
         return idx > 0 and self.inner.matches_frame(frames, idx - 1, exception_data, cache)
 
 
-class CalleeMatch(Match):
+class CalleeMatch(EnhancementMatch):
     def __init__(self, inner: FrameMatch):
         self.inner = inner
 

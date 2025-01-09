@@ -1,10 +1,11 @@
 ---
-created: '2021-04-22T14:32:51.341008Z'
+created: '2024-12-17T22:46:57.791347+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: "029f3b967068b1539f96957b7c0451d7"
+  contributing component: exception
   component:
     app*
       exception*
@@ -14,7 +15,7 @@ app:
           "iOS_Swift.SampleError"
           0
         value (ignored because ns-error info takes precedence)
-          "Code=<int> Description=The operation couldn\u2019t be completed. (iOS_Swift.SampleError error <int>.)"
+          "Code=<int> Description=The operation couldn’t be completed. (iOS_Swift.SampleError error <int>.)"
       threads (exception of app takes precedence)
         stacktrace*
           frame (non app frame)
@@ -89,6 +90,7 @@ app:
 --------------------------------------------------------------------------
 system:
   hash: null
+  contributing component: null
   component:
     system (exception of app takes precedence)
       threads (exception of app takes precedence)

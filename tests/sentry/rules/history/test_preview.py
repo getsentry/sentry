@@ -5,8 +5,8 @@ from typing import Any
 
 from django.utils import timezone
 
+from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.grouptype import (
-    ErrorGroupType,
     GroupCategory,
     PerformanceNPlusOneGroupType,
     ProfileFileIOGroupType,
@@ -24,7 +24,7 @@ from sentry.rules.history.preview import (
 )
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import PerformanceIssueTestCase, SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import freeze_time, iso_format
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.types.activity import ActivityType
 from sentry.types.condition_activity import ConditionActivity, ConditionActivityType
 from sentry.utils.samples import load_data
@@ -71,7 +71,7 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         event = self.store_event(
             project_id=self.project.id,
             data={
-                "timestamp": iso_format(timezone.now() - timedelta(hours=1)),
+                "timestamp": (timezone.now() - timedelta(hours=1)).isoformat(),
                 **data,
             },
         )
@@ -522,7 +522,7 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         prev_hour = timezone.now() - timedelta(hours=1)
         error = self.store_event(
             project_id=self.project.id,
-            data={"timestamp": iso_format(prev_hour), "tags": {"foo": "bar"}},
+            data={"timestamp": prev_hour.isoformat(), "tags": {"foo": "bar"}},
         )
         issue = error.group
         issue.update(first_seen=prev_hour)
@@ -599,7 +599,7 @@ class FrequencyConditionTest(
                     project_id=self.project.id,
                     data={
                         "fingerprint": ["group-" + str(i)],
-                        "timestamp": iso_format(prev_hour),
+                        "timestamp": prev_hour.isoformat(),
                     },
                 )
                 group_activity[event.group_id] = []
@@ -609,7 +609,7 @@ class FrequencyConditionTest(
             project_id=self.project.id,
             data={
                 "fingerprint": ["group-" + str(FREQUENCY_CONDITION_GROUP_LIMIT)],
-                "timestamp": iso_format(prev_hour),
+                "timestamp": prev_hour.isoformat(),
             },
         )
         group_activity[event.group_id] = []
@@ -642,7 +642,7 @@ class FrequencyConditionTest(
         for time in (prev_hour, prev_two_hour):
             for i in range(5):
                 group = self.store_event(
-                    project_id=self.project.id, data={"timestamp": iso_format(time)}
+                    project_id=self.project.id, data={"timestamp": time.isoformat()}
                 ).group
             Activity.objects.create(
                 project=self.project,
@@ -679,8 +679,8 @@ class FrequencyConditionTest(
 
         event_data.update(
             {
-                "start_timestamp": iso_format(prev_hour - timedelta(minutes=1)),
-                "timestamp": iso_format(prev_hour),
+                "start_timestamp": (prev_hour - timedelta(minutes=1)).isoformat(),
+                "timestamp": prev_hour.isoformat(),
                 "tags": {"foo": "bar"},
             }
         )
@@ -731,7 +731,7 @@ class FrequencyConditionTest(
         group = None
         for i in range(5):
             group = self.store_event(
-                project_id=self.project.id, data={"timestamp": iso_format(prev_hour)}
+                project_id=self.project.id, data={"timestamp": prev_hour.isoformat()}
             ).group
         assert group is not None
         conditions = [
@@ -756,7 +756,7 @@ class FrequencyConditionTest(
         for time in (prev_hour, prev_two_hour):
             for i in range(5):
                 event = self.store_event(
-                    project_id=self.project.id, data={"timestamp": iso_format(time)}
+                    project_id=self.project.id, data={"timestamp": time.isoformat()}
                 )
                 event = event.for_group(event.groups[0])
                 occurrence = self.build_occurrence(level="info")
@@ -795,7 +795,7 @@ class FrequencyConditionTest(
         for time, count in ((prev_hour, 2), (prev_hour - timedelta(minutes=5), 1)):
             for i in range(count):
                 group = self.store_event(
-                    project_id=self.project.id, data={"timestamp": iso_format(time)}
+                    project_id=self.project.id, data={"timestamp": time.isoformat()}
                 ).group
         assert group is not None
         conditions = [
@@ -836,7 +836,7 @@ class FrequencyConditionTest(
             for i in range(2):
                 group = self.store_event(
                     project_id=self.project.id,
-                    data={"timestamp": iso_format(prev_hour), "user": {"id": str(user)}},
+                    data={"timestamp": prev_hour.isoformat(), "user": {"id": str(user)}},
                 ).group
         assert group is not None
         conditions = [
@@ -860,7 +860,7 @@ class FrequencyConditionTest(
         prev_hour = timezone.now() - timedelta(hours=1)
         group = self.store_event(
             project_id=self.project.id,
-            data={"timestamp": iso_format(prev_hour), "user": {"id": self.user.id}},
+            data={"timestamp": prev_hour.isoformat(), "user": {"id": self.user.id}},
         ).group
 
         conditions = [
@@ -891,9 +891,9 @@ class GetEventsTest(TestCase, SnubaTestCase):
     def test_get_first_seen(self):
         prev_hour = timezone.now() - timedelta(hours=1)
         two_hours = timezone.now() - timedelta(hours=2)
-        self.store_event(project_id=self.project.id, data={"timestamp": iso_format(prev_hour)})
+        self.store_event(project_id=self.project.id, data={"timestamp": prev_hour.isoformat()})
         event = self.store_event(
-            project_id=self.project.id, data={"timestamp": iso_format(two_hours)}
+            project_id=self.project.id, data={"timestamp": two_hours.isoformat()}
         )
         event.group.update(first_seen=two_hours)
 
@@ -922,10 +922,10 @@ class GetEventsTest(TestCase, SnubaTestCase):
         prev_hour = timezone.now() - timedelta(hours=1)
         group = Group.objects.create(project=self.project)
         regression_event = self.store_event(
-            project_id=self.project.id, data={"timestamp": iso_format(prev_hour)}
+            project_id=self.project.id, data={"timestamp": prev_hour.isoformat()}
         )
         reappeared_event = self.store_event(
-            project_id=self.project.id, data={"timestamp": iso_format(prev_hour)}
+            project_id=self.project.id, data={"timestamp": prev_hour.isoformat()}
         )
 
         activity = {

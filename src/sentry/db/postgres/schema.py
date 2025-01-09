@@ -1,22 +1,25 @@
+from contextlib import contextmanager
+
+from django.conf import settings
+from django.db.backends.ddl_references import Statement
 from django.db.backends.postgresql.schema import (
     DatabaseSchemaEditor as PostgresDatabaseSchemaEditor,
 )
 from django.db.models import Field
 from django.db.models.base import ModelBase
 from django_zero_downtime_migrations.backends.postgres.schema import (
+    DUMMY_SQL,
     DatabaseSchemaEditorMixin,
+    MultiStatementSQL,
+    PGLock,
     Unsafe,
     UnsafeOperationException,
 )
 
 unsafe_mapping = {
-    Unsafe.ADD_COLUMN_DEFAULT: (
-        "Adding {}.{} as column with a default is safe, but you need to take additional steps.\n"
-        "Follow this guide: https://develop.sentry.dev/database-migrations/#adding-columns-with-a-default"
-    ),
     Unsafe.ADD_COLUMN_NOT_NULL: (
-        "Adding {}.{} as a not null column is unsafe.\n"
-        "More info: https://develop.sentry.dev/database-migrations/#adding-not-null-to-columns"
+        "Adding {}.{} as a not null column with no default is unsafe. Provide a default using db_default. \n"
+        "More info: https://develop.sentry.dev/api-server/application-domains/database-migrations/#adding-columns-with-a-default"
     ),
     Unsafe.ALTER_COLUMN_TYPE: (
         "Altering the type of column {}.{} in this way is unsafe\n"
@@ -69,6 +72,12 @@ class SafePostgresDatabaseSchemaEditor(DatabaseSchemaEditorMixin, PostgresDataba
         PostgresDatabaseSchemaEditor.alter_db_tablespace
     )
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.LOCK_TIMEOUT_FORCE = getattr(
+            settings, "ZERO_DOWNTIME_MIGRATIONS_LOCK_TIMEOUT_FORCE", False
+        )
+
     def alter_db_table(self, model, old_db_table, new_db_table):
         """
         This didn't work correctly in  django_zero_downtime_migrations, so implementing here. This
@@ -79,23 +88,97 @@ class SafePostgresDatabaseSchemaEditor(DatabaseSchemaEditorMixin, PostgresDataba
             "More info here: https://develop.sentry.dev/database-migrations/#renaming-tables"
         )
 
-    def delete_model(self, model):
+    def delete_model(self, model, is_safe=False):
         """
         It's never safe to delete a model using the standard migration process
         """
-        raise UnsafeOperationException(
-            f"Deleting the {model.__name__} model is unsafe.\n"
-            "More info here: https://develop.sentry.dev/database-migrations/#deleting-tables"
-        )
+        if not is_safe:
+            raise UnsafeOperationException(
+                f"Deleting the {model.__name__} model is unsafe.\n"
+                "More info here: https://develop.sentry.dev/database-migrations/#deleting-tables"
+            )
+        super(DatabaseSchemaEditorMixin, self).delete_model(model)
 
-    def remove_field(self, model, field):
+    def remove_field(self, model, field, is_safe=False):
         """
         It's never safe to remove a field using the standard migration process
         """
-        raise UnsafeOperationException(
-            f"Removing the {model.__name__}.{field.name} field is unsafe.\n"
-            "More info here: https://develop.sentry.dev/database-migrations/#deleting-columns"
-        )
+        if not is_safe:
+            raise UnsafeOperationException(
+                f"Removing the {model.__name__}.{field.name} field is unsafe.\n"
+                "More info here: https://develop.sentry.dev/database-migrations/#deleting-columns"
+            )
+        super(DatabaseSchemaEditorMixin, self).remove_field(model, field)
+
+    def execute(self, sql, params=()):
+        if sql is DUMMY_SQL:
+            return
+        statements = []
+        if isinstance(sql, MultiStatementSQL):
+            statements.extend(sql)
+        elif isinstance(sql, Statement) and isinstance(sql.template, MultiStatementSQL):
+            statements.extend(Statement(s, **sql.parts) for s in sql.template)
+        else:
+            statements.append(sql)
+        for statement in statements:
+            idempotent_condition = None
+            if isinstance(statement, PGLock):
+                use_timeouts = statement.use_timeouts
+                disable_statement_timeout = statement.disable_statement_timeout
+                idempotent_condition = statement.idempotent_condition
+                statement = statement.sql
+            elif isinstance(statement, Statement) and isinstance(statement.template, PGLock):
+                use_timeouts = statement.template.use_timeouts
+                disable_statement_timeout = statement.template.disable_statement_timeout
+                if statement.template.idempotent_condition is not None:
+                    idempotent_condition = statement.template.idempotent_condition % statement.parts
+                statement = Statement(statement.template.sql, **statement.parts)
+            else:
+                use_timeouts = False
+                disable_statement_timeout = False
+
+            if not self._skip_applied(idempotent_condition):
+                if use_timeouts:
+                    with self._set_operation_timeout(self.STATEMENT_TIMEOUT, self.LOCK_TIMEOUT):
+                        PostgresDatabaseSchemaEditor.execute(self, statement, params)
+                elif self.LOCK_TIMEOUT_FORCE:
+                    with self._set_operation_timeout(lock_timeout=self.LOCK_TIMEOUT):
+                        PostgresDatabaseSchemaEditor.execute(self, statement, params)
+                elif disable_statement_timeout and self.FLEXIBLE_STATEMENT_TIMEOUT:
+                    with self._set_operation_timeout(self.ZERO_TIMEOUT):
+                        PostgresDatabaseSchemaEditor.execute(self, statement, params)
+                else:
+                    PostgresDatabaseSchemaEditor.execute(self, statement, params)
+
+    @contextmanager
+    def _set_operation_timeout(self, statement_timeout=None, lock_timeout=None):
+        if self.collect_sql:
+            previous_statement_timeout = self.ZERO_TIMEOUT
+            previous_lock_timeout = self.ZERO_TIMEOUT
+        else:
+            with self.connection.cursor() as cursor:
+                cursor.execute(self._sql_get_statement_timeout)
+                (previous_statement_timeout,) = cursor.fetchone()
+                cursor.execute(self._sql_get_lock_timeout)
+                (previous_lock_timeout,) = cursor.fetchone()
+        if statement_timeout is not None:
+            PostgresDatabaseSchemaEditor.execute(
+                self, self._sql_set_statement_timeout % {"statement_timeout": statement_timeout}
+            )
+        if lock_timeout is not None:
+            PostgresDatabaseSchemaEditor.execute(
+                self, self._sql_set_lock_timeout % {"lock_timeout": lock_timeout}
+            )
+        yield
+        if statement_timeout is not None:
+            PostgresDatabaseSchemaEditor.execute(
+                self,
+                self._sql_set_statement_timeout % {"statement_timeout": previous_statement_timeout},
+            )
+        if lock_timeout is not None:
+            PostgresDatabaseSchemaEditor.execute(
+                self, self._sql_set_lock_timeout % {"lock_timeout": previous_lock_timeout}
+            )
 
 
 class DatabaseSchemaEditorProxy:

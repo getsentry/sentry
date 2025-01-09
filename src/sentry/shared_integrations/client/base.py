@@ -44,8 +44,6 @@ class SessionSettings(TypedDict):
 class BaseApiClient(TrackResponseMixin):
     base_url: str | None = None
 
-    allow_text = False
-
     allow_redirects: bool | None = None
 
     integration_type: str | None = None
@@ -148,14 +146,13 @@ class BaseApiClient(TrackResponseMixin):
         params: Mapping[str, str] | None = None,
         auth: tuple[str, str] | None = None,
         json: bool = True,
-        allow_text: bool | None = None,
+        allow_text: bool = False,
         allow_redirects: bool | None = None,
         timeout: int | None = None,
         ignore_webhook_errors: bool = False,
         prepared_request: PreparedRequest | None = None,
         raw_response: Literal[True] = ...,
-    ) -> Response:
-        ...
+    ) -> Response: ...
 
     @overload
     def _request(
@@ -167,14 +164,13 @@ class BaseApiClient(TrackResponseMixin):
         params: Mapping[str, str] | None = None,
         auth: str | None = None,
         json: bool = True,
-        allow_text: bool | None = None,
+        allow_text: bool = False,
         allow_redirects: bool | None = None,
         timeout: int | None = None,
         ignore_webhook_errors: bool = False,
         prepared_request: PreparedRequest | None = None,
         raw_response: bool = ...,
-    ) -> BaseApiResponseX:
-        ...
+    ) -> BaseApiResponseX: ...
 
     def _request(
         self,
@@ -185,16 +181,13 @@ class BaseApiClient(TrackResponseMixin):
         params: Mapping[str, str] | None = None,
         auth: tuple[str, str] | str | None = None,
         json: bool = True,
-        allow_text: bool | None = None,
+        allow_text: bool = False,
         allow_redirects: bool | None = None,
         timeout: int | None = None,
         ignore_webhook_errors: bool = False,
         prepared_request: PreparedRequest | None = None,
         raw_response: bool = False,
     ) -> BaseApiResponseX:
-        if allow_text is None:
-            allow_text = self.allow_text
-
         if allow_redirects is None:
             allow_redirects = self.allow_redirects
 

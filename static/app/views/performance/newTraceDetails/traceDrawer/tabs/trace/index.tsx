@@ -5,10 +5,6 @@ import type {ApiResult} from 'sentry/api';
 import type {EventTransaction} from 'sentry/types/event';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {
-  TraceFullDetailed,
-  TraceSplitResults,
-} from 'sentry/utils/performance/quickTrace/types';
-import type {
   InfiniteData,
   UseApiQueryResult,
   UseInfiniteQueryResult,
@@ -28,7 +24,7 @@ import {GeneralInfo} from './generalInfo';
 import {TagsSummary} from './tagsSummary';
 
 type TraceDetailsProps = {
-  metaResults: TraceMetaQueryResults;
+  meta: TraceMetaQueryResults;
   node: TraceTreeNode<TraceTree.NodeValue> | null;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
   tagsInfiniteQueryResults: UseInfiniteQueryResult<
@@ -37,7 +33,6 @@ type TraceDetailsProps = {
   >;
   traceEventView: EventView;
   traceType: TraceShape;
-  traces: TraceSplitResults<TraceFullDetailed> | null;
   tree: TraceTree;
 };
 
@@ -68,11 +63,10 @@ export function TraceDetails(props: TraceDetailsProps) {
       <TraceDrawerComponents.SectionCardGroup>
         <GeneralInfo
           organization={organization}
-          traces={props.traces}
           tree={props.tree}
           node={props.node}
           rootEventResults={props.rootEventResults}
-          metaResults={props.metaResults}
+          meta={props.meta}
         />
         <TagsSummary
           tagsInfiniteQueryResults={props.tagsInfiniteQueryResults}

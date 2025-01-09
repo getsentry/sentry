@@ -1,3 +1,4 @@
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -11,11 +12,16 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {useLocation} from 'sentry/utils/useLocation';
 import TransactionSpans from 'sentry/views/performance/transactionSummary/transactionSpans';
 import {
   SpanSortOthers,
   SpanSortPercentiles,
 } from 'sentry/views/performance/transactionSummary/transactionSpans/types';
+
+jest.mock('sentry/utils/useLocation');
+
+const mockUseLocation = jest.mocked(useLocation);
 
 function initializeData(options: {query: {}; additionalFeatures?: string[]}) {
   const {query, additionalFeatures} = options;
@@ -42,10 +48,13 @@ function initializeData(options: {query: {}; additionalFeatures?: string[]}) {
 }
 
 describe('Performance > Transaction Spans', function () {
-  let eventsMock;
-  let eventsSpanOpsMock;
-  let eventsSpansPerformanceMock;
+  let eventsMock: jest.Mock;
+  let eventsSpanOpsMock: jest.Mock;
+  let eventsSpansPerformanceMock: jest.Mock;
   beforeEach(function () {
+    mockUseLocation.mockReturnValue(
+      LocationFixture({pathname: '/organizations/org-slug/performance/summary'})
+    );
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
@@ -76,6 +85,10 @@ describe('Performance > Transaction Spans', function () {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/spans/fields/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
       body: [],
     });
   });
@@ -199,13 +212,18 @@ describe('Performance > Transaction Spans', function () {
 
       await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
-      const searchTokens = await screen.findAllByTestId('filter-token');
-      expect(searchTokens).toHaveLength(2);
-      expect(searchTokens[0]).toHaveTextContent('span.op:db');
-      expect(searchTokens[1]).toHaveTextContent('span.action:SELECT');
-      expect(await screen.findByTestId('smart-search-bar')).not.toHaveTextContent(
-        'http.method:POST'
-      );
+      const searchBar = await screen.findByTestId('search-query-builder');
+
+      expect(
+        within(searchBar).getByRole('row', {name: 'span.op:db'})
+      ).toBeInTheDocument();
+      expect(
+        within(searchBar).getByRole('row', {name: 'span.action:SELECT'})
+      ).toBeInTheDocument();
+
+      expect(
+        within(searchBar).queryByRole('row', {name: 'http.method:POST'})
+      ).not.toBeInTheDocument();
     });
   });
 });

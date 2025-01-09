@@ -10,7 +10,6 @@ import type {AvatarUser} from 'sentry/types/user';
 
 type Props = {
   commit: Commit;
-  className?: string;
 };
 
 const unknownUser: AvatarUser = {
@@ -26,13 +25,20 @@ const unknownUser: AvatarUser = {
   ip_address: '',
 };
 
-function LastCommit({commit, className}: Props) {
+function LastCommit({commit}: Props) {
   function renderMessage(message: Commit['message']) {
     if (!message) {
-      return <CommitLink inline commitId={commit.id} repository={commit.repository} />;
+      return (
+        <StyledCommitLink
+          inline
+          commitId={commit.id}
+          repository={commit.repository}
+          showIcon={false}
+        />
+      );
     }
 
-    let finalMessage = message.split(/\n/)[0];
+    let finalMessage = message.split(/\n/)[0]!;
     if (finalMessage.length > 100) {
       let truncated = finalMessage.substring(0, 90);
       const words = truncated.split(/ /);
@@ -45,42 +51,33 @@ function LastCommit({commit, className}: Props) {
     }
 
     return (
-      <CommitLink
+      <StyledCommitLink
         inline
         commitId={commit.id}
         repository={commit.repository}
         commitTitle={finalMessage}
+        showIcon={false}
       />
     );
   }
 
   const commitAuthor = commit?.author;
   return (
-    <div className={className}>
+    <div>
       <h6>Last commit</h6>
-      <InnerWrap>
-        <UserAvatar user={commitAuthor || unknownUser} />
-        <div>
-          <Message>{renderMessage(commit.message)}</Message>
-          <Meta>
-            <strong>{commitAuthor?.name || t('Unknown Author')}</strong>
-            &nbsp;
-            <TimeSince date={commit.dateCreated} />
-          </Meta>
-        </div>
-      </InnerWrap>
+      <div>
+        <Message>{renderMessage(commit.message)}</Message>
+        <Meta>
+          <UserAvatar user={commitAuthor || unknownUser} size={14} />
+          <strong>{commitAuthor?.name || t('Unknown Author')}</strong>
+          <TimeSince date={commit.dateCreated} />
+        </Meta>
+      </div>
     </div>
   );
 }
 
 export default LastCommit;
-
-const InnerWrap = styled('div')`
-  display: grid;
-  grid-template-columns: max-content minmax(0, 1fr);
-  gap: ${space(1)};
-  margin-top: ${space(1)};
-`;
 
 const Message = styled('div')`
   ${p => p.theme.overflowEllipsis}
@@ -88,6 +85,17 @@ const Message = styled('div')`
 `;
 
 const Meta = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
+`;
+
+const StyledCommitLink = styled(CommitLink)`
+  color: ${p => p.theme.textColor};
+  &:hover {
+    color: ${p => p.theme.textColor};
+    text-decoration: underline dotted ${p => p.theme.textColor};
+  }
 `;

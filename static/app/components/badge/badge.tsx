@@ -3,14 +3,14 @@ import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
 
-interface Props extends React.HTMLAttributes<HTMLSpanElement> {
+export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   text?: string | number | null;
   type?: keyof Theme['badge'];
 }
 
-const Badge = styled(({children, text, ...props}: Props) => (
+const Badge = styled(({children, text, ...props}: BadgeProps) => (
   <span {...props}>{children ?? text}</span>
-))<Props>`
+))<BadgeProps>`
   display: inline-block;
   height: 20px;
   min-width: 20px;

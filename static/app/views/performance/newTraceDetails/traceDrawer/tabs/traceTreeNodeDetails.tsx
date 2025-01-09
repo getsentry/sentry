@@ -2,9 +2,8 @@ import type {Organization} from 'sentry/types/organization';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 import {
+  isAutogroupedNode,
   isMissingInstrumentationNode,
-  isParentAutogroupedNode,
-  isSiblingAutogroupedNode,
   isSpanNode,
   isTraceErrorNode,
   isTransactionNode,
@@ -12,10 +11,9 @@ import {
 import type {TraceTree} from '../../traceModels/traceTree';
 import type {TraceTreeNode} from '../../traceModels/traceTreeNode';
 import type {VirtualizedViewManager} from '../../traceRenderers/virtualizedViewManager';
+import {AutogroupNodeDetails} from '../details/autogroup';
 import {ErrorNodeDetails} from '../details/error';
 import {MissingInstrumentationNodeDetails} from '../details/missingInstrumentation';
-import {ParentAutogroupNodeDetails} from '../details/parentAutogroup';
-import {SiblingAutogroupNodeDetails} from '../details/siblingAutogroup';
 import {SpanNodeDetails} from '../details/span/index';
 import {TransactionNodeDetails} from '../details/transaction/index';
 
@@ -25,7 +23,7 @@ export interface TraceTreeNodeDetailsProps<T> {
   onParentClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
   onTabScrollToNode: (node: TraceTreeNode<any>) => void;
   organization: Organization;
-  replayRecord: ReplayRecord | null;
+  replay: ReplayRecord | null;
 }
 
 export function TraceTreeNodeDetails(props: TraceTreeNodeDetailsProps<any>) {
@@ -41,12 +39,8 @@ export function TraceTreeNodeDetails(props: TraceTreeNodeDetailsProps<any>) {
     return <ErrorNodeDetails {...props} />;
   }
 
-  if (isParentAutogroupedNode(props.node)) {
-    return <ParentAutogroupNodeDetails {...props} />;
-  }
-
-  if (isSiblingAutogroupedNode(props.node)) {
-    return <SiblingAutogroupNodeDetails {...props} />;
+  if (isAutogroupedNode(props.node)) {
+    return <AutogroupNodeDetails {...props} />;
   }
 
   if (isMissingInstrumentationNode(props.node)) {

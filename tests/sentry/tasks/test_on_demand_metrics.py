@@ -4,7 +4,7 @@ from unittest import mock
 
 import pytest
 
-from sentry.models.dashboard_widget import DashboardWidgetQueryOnDemand
+from sentry.models.dashboard_widget import DashboardWidgetQueryOnDemand, DashboardWidgetTypes
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.tasks import on_demand_metrics
@@ -29,7 +29,7 @@ OnDemandExtractionState = DashboardWidgetQueryOnDemand.OnDemandExtractionState
 
 
 @pytest.fixture
-def owner() -> None:
+def owner() -> User:
     return Factories.create_user()
 
 
@@ -454,12 +454,13 @@ def test_schedule_on_demand_check(
         ),  # Only 2 widgets are on-demand
     ],
 )
-@mock.patch("sentry.tasks.on_demand_metrics._set_cardinality_cache")
 @mock.patch("sentry.search.events.builder.base.raw_snql_query")
+@pytest.mark.parametrize(
+    "widget_type", [DashboardWidgetTypes.DISCOVER, DashboardWidgetTypes.TRANSACTION_LIKE]
+)
 @django_db_all
 def test_process_widget_specs(
     raw_snql_query: Any,
-    _set_cardinality_cache: Any,
     feature_flags: dict[str, bool],
     option_enable: bool,
     widget_query_ids: Sequence[int],
@@ -467,6 +468,7 @@ def test_process_widget_specs(
     expected_discover_queries_run: int,
     expected_low_cardinality: bool,
     project: Project,
+    widget_type: int,
 ) -> None:
     cache.clear()
     raw_snql_query.return_value = (
@@ -489,6 +491,7 @@ def test_process_widget_specs(
         columns=query_columns,
         id=2,
         dashboard=dashboard,
+        widget_type=widget_type,
     )
     create_widget(
         ["count()"],
@@ -497,6 +500,7 @@ def test_process_widget_specs(
         columns=[],
         id=3,
         dashboard=dashboard,
+        widget_type=widget_type,
     )
 
     with override_options(options), Feature(feature_flags):

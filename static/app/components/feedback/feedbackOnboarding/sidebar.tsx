@@ -163,7 +163,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     value: PlatformKey;
     label?: ReactNode;
     textValue?: string;
-  }>(jsFrameworkSelectOptions[0]);
+  }>(jsFrameworkSelectOptions[0]!);
 
   const defaultTab = 'npm';
   const location = useLocation();
@@ -195,7 +195,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
 
   const jsFrameworkPlatform =
     replayJsFrameworkOptions().find(p => p.id === jsFramework.value) ??
-    replayJsFrameworkOptions()[0];
+    replayJsFrameworkOptions()[0]!;
 
   const {
     isLoading,
@@ -246,25 +246,21 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
                       />
                     ),
                   })}
-                  {jsFrameworkDocs?.platformOptions &&
-                    tct('with [optionSelect]', {
-                      optionSelect: (
-                        <PlatformOptionDropdown
-                          platformOptions={jsFrameworkDocs?.platformOptions}
-                          disabled={setupMode() === 'jsLoader'}
-                        />
-                      ),
-                    })}
+                  {jsFrameworkDocs?.platformOptions && (
+                    <PlatformOptionDropdown
+                      platformOptions={jsFrameworkDocs?.platformOptions}
+                      disabled={setupMode() === 'jsLoader'}
+                    />
+                  )}
                 </PlatformSelect>
               ) : (
                 t('I use NPM or Yarn')
               ),
             ],
-            ['jsLoader', t('I use HTML templates')],
+            ['jsLoader', t('I use HTML templates (Loader Script)')],
           ]}
           value={setupMode()}
           onChange={setSetupMode}
-          disabledChoices={[['jsLoader', t('Coming soon!')]]}
           tooltipPosition={'top-start'}
         />
       ) : (
@@ -336,8 +332,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     ) {
       return 'feedbackOnboardingNpm';
     }
-    // TODO: update this when we add feedback to the loader
-    return 'replayOnboardingJsLoader';
+    return 'feedbackOnboardingJsLoader';
   }
 
   return (

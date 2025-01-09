@@ -5,9 +5,9 @@ from django.urls import reverse
 
 from sentry import audit_log
 from sentry.constants import SentryAppInstallationStatus
-from sentry.mediators.token_exchange.grant_exchanger import GrantExchanger
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.sentry_apps.services.app import app_service
+from sentry.sentry_apps.token_exchange.grant_exchanger import GrantExchanger
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.users.services.user.service import user_service
@@ -69,7 +69,7 @@ class GetSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
         assert response.status_code == 200, response.content
         assert response.data == {
             "app": {"uuid": self.unpublished_app.uuid, "slug": self.unpublished_app.slug},
-            "organization": {"slug": self.org.slug},
+            "organization": {"slug": self.org.slug, "id": self.org.id},
             "uuid": self.installation2.uuid,
             "status": "pending",
         }
@@ -84,7 +84,7 @@ class GetSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
         assert response.status_code == 200, response.content
         assert response.data == {
             "app": {"uuid": self.unpublished_app.uuid, "slug": self.unpublished_app.slug},
-            "organization": {"slug": self.org.slug},
+            "organization": {"slug": self.org.slug, "id": self.org.id},
             "uuid": self.installation2.uuid,
             "code": self.orm_installation2.api_grant.code,
             "status": "pending",
@@ -141,12 +141,12 @@ class DeleteSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
 class MarkInstalledSentryAppInstallationsTest(SentryAppInstallationDetailsTest):
     def setUp(self):
         super().setUp()
-        self.token = GrantExchanger.run(
+        self.token = GrantExchanger(
             install=self.installation,
             code=self.orm_installation.api_grant.code,
             client_id=self.published_app.application.client_id,
             user=self.published_app.proxy_user,
-        )
+        ).run()
 
     @patch("sentry.analytics.record")
     def test_sentry_app_installation_mark_installed(self, record):
@@ -188,12 +188,12 @@ class MarkInstalledSentryAppInstallationsTest(SentryAppInstallationDetailsTest):
         )
 
     def test_sentry_app_installation_mark_installed_wrong_app(self):
-        self.token = GrantExchanger.run(
+        self.token = GrantExchanger(
             install=self.installation2,
             code=self.orm_installation2.api_grant.code,
             client_id=self.unpublished_app.application.client_id,
             user=self.unpublished_app.proxy_user,
-        )
+        ).run()
         self.url = reverse(
             "sentry-api-0-sentry-app-installation-details", args=[self.installation.uuid]
         )

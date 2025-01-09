@@ -204,7 +204,9 @@ class OrganizationDataExportPermission(OrganizationPermission):
 class OrganizationAlertRulePermission(OrganizationPermission):
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin", "alerts:read"],
-        "POST": ["org:write", "org:admin", "alerts:write"],
+        # grant org:read permission, but raise permission denied if the members aren't allowed
+        # to create alerts and the user isn't a team admin
+        "POST": ["org:read", "org:write", "org:admin", "alerts:write"],
         "PUT": ["org:write", "org:admin", "alerts:write"],
         "DELETE": ["org:write", "org:admin", "alerts:write"],
     }
@@ -225,6 +227,14 @@ class OrganizationMetricsPermission(OrganizationPermission):
         "POST": ["org:read", "org:write", "org:admin"],
         "PUT": ["org:write", "org:admin"],
         "DELETE": ["org:admin"],
+    }
+
+
+class OrganizationFlagWebHookSigningSecretPermission(OrganizationPermission):
+    scope_map = {
+        "GET": ["org:read", "org:write", "org:admin"],
+        "POST": ["org:read", "org:write", "org:admin"],
+        "DELETE": ["org:write", "org:admin"],
     }
 
 
@@ -608,18 +618,16 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         """
         has_valid_api_key = False
         if is_api_key_auth(request.auth):
-            if request.auth.organization_id != organization.id:  # type: ignore[union-attr]
+            if request.auth.organization_id != organization.id:
                 return []
-            has_valid_api_key = request.auth.has_scope(  # type: ignore[union-attr]
+            has_valid_api_key = request.auth.has_scope(
                 "project:releases"
-            ) or request.auth.has_scope(  # type: ignore[union-attr]
-                "project:write"
-            )
+            ) or request.auth.has_scope("project:write")
 
         if is_org_auth_token_auth(request.auth):
-            if request.auth.organization_id != organization.id:  # type: ignore[union-attr]
+            if request.auth.organization_id != organization.id:
                 return []
-            has_valid_api_key = request.auth.has_scope("org:ci")  # type: ignore[union-attr]
+            has_valid_api_key = request.auth.has_scope("org:ci")
 
         if not (
             has_valid_api_key or (getattr(request, "user", None) and request.user.is_authenticated)

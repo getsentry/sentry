@@ -1,8 +1,6 @@
-import types
 from urllib.parse import parse_qs, urlparse
 
 from sentry.integrations.models.external_actor import ExternalActor
-from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.organizationmemberteamreplica import OrganizationMemberTeamReplica
 from sentry.models.rule import Rule
 from sentry.notifications.helpers import (
@@ -12,6 +10,7 @@ from sentry.notifications.helpers import (
     team_is_valid_recipient,
     validate,
 )
+from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.notifications.types import NotificationSettingEnum, NotificationSettingsOptionEnum
 from sentry.notifications.utils import (
     get_email_link_extra_params,
@@ -22,10 +21,6 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of
 from sentry.types.actor import Actor
-
-
-def mock_event(*, transaction, data=None):
-    return types.SimpleNamespace(data=data or {}, transaction=transaction)
 
 
 class NotificationHelpersTest(TestCase):

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime
 from typing import Any, TypedDict
 
@@ -36,11 +36,7 @@ from sentry.integrations.slack.utils.escape import escape_slack_markdown_text, e
 from sentry.integrations.time_utils import get_approx_start_time, time_since
 from sentry.integrations.types import ExternalProviders
 from sentry.issues.endpoints.group_details import get_group_global_count
-from sentry.issues.grouptype import (
-    GroupCategory,
-    PerformanceP95EndpointRegressionGroupType,
-    ProfileFunctionRegressionType,
-)
+from sentry.issues.grouptype import GroupCategory, NotificationContextField
 from sentry.models.commit import Commit
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
@@ -60,7 +56,6 @@ from sentry.snuba.referrer import Referrer
 from sentry.types.actor import Actor
 from sentry.types.group import SUBSTATUS_TO_STR
 from sentry.users.services.user.model import RpcUser
-from sentry.utils import metrics
 
 STATUSES = {"resolved": "resolved", "ignored": "ignored", "unresolved": "re-opened"}
 SUPPORTED_COMMIT_PROVIDERS = (
@@ -77,14 +72,29 @@ MAX_BLOCK_TEXT_LENGTH = 256
 USER_FEEDBACK_MAX_BLOCK_TEXT_LENGTH = 1500
 
 
+def get_group_users_count(group: Group, rules: list[Rule] | None = None) -> int:
+    environment_ids: list[int] | None = None
+    if rules:
+        environment_ids = [rule.environment_id for rule in rules if rule.environment_id is not None]
+        if not environment_ids:
+            environment_ids = None
+
+    return group.count_users_seen(
+        referrer=Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS_SLACK_ISSUE_NOTIFICATION.value,
+        environment_ids=environment_ids,
+    )
+
+
 # NOTE: if this starts getting large and functions get complicated,
 # pull things out into their own functions
-SUPPORTED_CONTEXT_DATA = {
-    "Events": lambda group: get_group_global_count(group),
-    "Users Affected": lambda group: get_group_users_count(group),
-    "State": lambda group: SUBSTATUS_TO_STR.get(group.substatus, "").replace("_", " ").title(),
-    "First Seen": lambda group: time_since(group.first_seen),
-    "Approx. Start Time": lambda group: datetime.fromtimestamp(
+SUPPORTED_CONTEXT_DATA: dict[NotificationContextField, Callable] = {
+    NotificationContextField.EVENTS: lambda group, rules: get_group_global_count(group),
+    NotificationContextField.USERS_AFFECTED: get_group_users_count,
+    NotificationContextField.STATE: lambda group, rules: SUBSTATUS_TO_STR.get(group.substatus, "")
+    .replace("_", " ")
+    .title(),
+    NotificationContextField.FIRST_SEEN: lambda group, rules: time_since(group.first_seen),
+    NotificationContextField.APPROX_START_TIME: lambda group, rules: datetime.fromtimestamp(
         get_approx_start_time(group=group)
     ).strftime(
         "%Y-%m-%d %H:%M:%S"
@@ -92,19 +102,7 @@ SUPPORTED_CONTEXT_DATA = {
 }
 
 
-REGRESSION_PERFORMANCE_ISSUE_TYPES = [
-    PerformanceP95EndpointRegressionGroupType,
-    ProfileFunctionRegressionType,
-]
-
 logger = logging.getLogger(__name__)
-
-
-def get_group_users_count(group: Group) -> int:
-    metrics.incr("slack.get_group_users_count", tags={"group_id": group.id}, sample_rate=1.0)
-    return group.count_users_seen(
-        referrer=Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS_SLACK_ISSUE_NOTIFICATION.value
-    )
 
 
 def build_assigned_text(identity: RpcIdentity, assignee: str) -> str | None:
@@ -198,7 +196,7 @@ def get_tags(
     return fields
 
 
-def get_context(group: Group) -> str:
+def get_context(group: Group, rules: list[Rule] | None = None) -> str:
     context_text = ""
 
     context = group.issue_type.notification_config.context.copy()
@@ -209,22 +207,22 @@ def get_context(group: Group) -> str:
 
     state = None
     event_count = None
-    if "State" in context:
-        state = SUPPORTED_CONTEXT_DATA["State"](group)
-    if "Events" in context:
-        event_count = SUPPORTED_CONTEXT_DATA["Events"](group)
+    if NotificationContextField.STATE in context:
+        state = SUPPORTED_CONTEXT_DATA[NotificationContextField.STATE](group, rules)
+    if NotificationContextField.EVENTS in context:
+        event_count = SUPPORTED_CONTEXT_DATA[NotificationContextField.EVENTS](group, rules)
 
     if (state and state == "New") or (event_count and int(event_count) <= 1):
-        if "Events" in context:
-            context.remove("Events")
+        if NotificationContextField.EVENTS in context:
+            context.remove(NotificationContextField.EVENTS)
 
         # avoid hitting Snuba for user count if we don't need it
-        if "Users Affected" in context:
-            context.remove("Users Affected")
+        if NotificationContextField.USERS_AFFECTED in context:
+            context.remove(NotificationContextField.USERS_AFFECTED)
 
     for c in context:
         if c in SUPPORTED_CONTEXT_DATA:
-            v = SUPPORTED_CONTEXT_DATA[c](group)
+            v = SUPPORTED_CONTEXT_DATA[c](group, rules)
             if v:
                 context_text += f"{c}: *{v}*   "
 
@@ -448,13 +446,6 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         self.skip_fallback = skip_fallback
         self.notes = notes
 
-    @property
-    def escape_text(self) -> bool:
-        """
-        Returns True if we need to escape the text in the message.
-        """
-        return True
-
     def get_title_block(
         self,
         event_or_group: Event | GroupEvent | Group,
@@ -609,7 +600,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             blocks.append(self.get_tags_block(tags, block_id))
 
         # add event count, user count, substate, first seen
-        context = get_context(self.group)
+        context = get_context(self.group, self.rules)
         if context:
             blocks.append(self.get_context_block(context))
 

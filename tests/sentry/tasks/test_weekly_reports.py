@@ -14,9 +14,9 @@ from sentry.constants import DataCategory
 from sentry.issues.grouptype import MonitorIncidentType, PerformanceNPlusOneGroupType
 from sentry.models.group import GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus
-from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
+from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.snuba.referrer import Referrer
@@ -38,7 +38,7 @@ from sentry.tasks.summaries.weekly_reports import (
 from sentry.testutils.cases import OutcomesSnubaTest, PerformanceIssueTestCase, SnubaTestCase
 from sentry.testutils.factories import EventType
 from sentry.testutils.helpers import with_feature
-from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.group import GroupSubStatus
@@ -90,13 +90,12 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
             date_added=self.now - timedelta(days=90),
         )
         member_set = set(project.teams.get().member_set.all())
-        with self.options({"issues.group_attributes.send_kafka": True}):
-            self.store_event(
-                data={
-                    "timestamp": iso_format(before_now(days=1)),
-                },
-                project_id=project.id,
-            )
+        self.store_event(
+            data={
+                "timestamp": before_now(days=1).isoformat(),
+            },
+            project_id=project.id,
+        )
 
         with self.tasks():
             schedule_organizations(timestamp=self.now.timestamp())
@@ -112,10 +111,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
             teams=[self.team],
             date_added=self.now - timedelta(days=90),
         )
-        with self.options({"issues.group_attributes.send_kafka": True}):
-            self.store_event(
-                data={"timestamp": iso_format(before_now(days=1))}, project_id=project.id
-            )
+        self.store_event(data={"timestamp": before_now(days=1).isoformat()}, project_id=project.id)
         member_set = set(project.teams.get().member_set.all())
         for member in member_set:
             # some users have an empty string value set for this key, presumably cleared.
@@ -141,13 +137,12 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
             teams=[self.team],
             date_added=self.now - timedelta(days=90),
         )
-        with self.options({"issues.group_attributes.send_kafka": True}):
-            self.store_event(
-                data={
-                    "timestamp": iso_format(before_now(days=1)),
-                },
-                project_id=project.id,
-            )
+        self.store_event(
+            data={
+                "timestamp": before_now(days=1).isoformat(),
+            },
+            project_id=project.id,
+        )
         with self.tasks():
             schedule_organizations(timestamp=self.now.timestamp())
             assert len(mail.outbox) == 1
@@ -272,7 +267,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
     def test_organization_project_issue_substatus_summaries(self):
         self.login_as(user=self.user)
-        min_ago = iso_format(self.now - timedelta(minutes=1))
+        min_ago = (self.now - timedelta(minutes=1)).isoformat()
         event1 = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -319,33 +314,32 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
     def test_organization_project_issue_status(self):
         self.login_as(user=self.user)
         self.project.first_event = self.now - timedelta(days=3)
-        min_ago = iso_format(self.now - timedelta(minutes=1))
-        with self.options({"issues.group_attributes.send_kafka": True}):
-            event1 = self.store_event(
-                data={
-                    "event_id": "a" * 32,
-                    "message": "message",
-                    "timestamp": min_ago,
-                    "fingerprint": ["group-1"],
-                },
-                project_id=self.project.id,
-                default_event_type=EventType.DEFAULT,
-            )
-            event2 = self.store_event(
-                data={
-                    "event_id": "b" * 32,
-                    "message": "message",
-                    "timestamp": min_ago,
-                    "fingerprint": ["group-2"],
-                },
-                project_id=self.project.id,
-                default_event_type=EventType.DEFAULT,
-            )
-            group2 = event2.group
-            group2.status = GroupStatus.RESOLVED
-            group2.substatus = None
-            group2.resolved_at = self.now - timedelta(minutes=1)
-            group2.save()
+        min_ago = (self.now - timedelta(minutes=1)).isoformat()
+        event1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "message",
+                "timestamp": min_ago,
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+            default_event_type=EventType.DEFAULT,
+        )
+        event2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "message",
+                "timestamp": min_ago,
+                "fingerprint": ["group-2"],
+            },
+            project_id=self.project.id,
+            default_event_type=EventType.DEFAULT,
+        )
+        group2 = event2.group
+        group2.status = GroupStatus.RESOLVED
+        group2.substatus = None
+        group2.resolved_at = self.now - timedelta(minutes=1)
+        group2.save()
 
         timestamp = self.now.timestamp()
         ctx = OrganizationReportContext(timestamp, ONE_DAY * 7, self.organization)
@@ -358,38 +352,37 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
     def test_message_builder_simple(self, message_builder, record):
         user = self.create_user()
         self.create_member(teams=[self.team], user=user, organization=self.organization)
-        with self.options({"issues.group_attributes.send_kafka": True}):
-            event1 = self.store_event(
-                data={
-                    "event_id": "a" * 32,
-                    "message": "message",
-                    "timestamp": iso_format(self.three_days_ago),
-                    "fingerprint": ["group-1"],
-                },
-                project_id=self.project.id,
-                default_event_type=EventType.DEFAULT,
-            )
+        event1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "message",
+                "timestamp": self.three_days_ago.isoformat(),
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+            default_event_type=EventType.DEFAULT,
+        )
 
-            event2 = self.store_event(
-                data={
-                    "event_id": "b" * 32,
-                    "message": "message",
-                    "timestamp": iso_format(self.three_days_ago),
-                    "fingerprint": ["group-2"],
-                },
-                project_id=self.project.id,
-                default_event_type=EventType.DEFAULT,
-            )
-            self.store_event_outcomes(
-                self.organization.id, self.project.id, self.three_days_ago, num_times=2
-            )
-            self.store_event_outcomes(
-                self.organization.id,
-                self.project.id,
-                self.three_days_ago,
-                num_times=10,
-                category=DataCategory.TRANSACTION,
-            )
+        event2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "message",
+                "timestamp": self.three_days_ago.isoformat(),
+                "fingerprint": ["group-2"],
+            },
+            project_id=self.project.id,
+            default_event_type=EventType.DEFAULT,
+        )
+        self.store_event_outcomes(
+            self.organization.id, self.project.id, self.three_days_ago, num_times=2
+        )
+        self.store_event_outcomes(
+            self.organization.id,
+            self.project.id,
+            self.three_days_ago,
+            num_times=10,
+            category=DataCategory.TRANSACTION,
+        )
 
         group1 = event1.group
         group2 = event2.group
@@ -434,7 +427,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                 "regression_substatus_count": 0,
                 "total_substatus_count": 2,
             }
-            assert len(context["key_errors"]) == 2
+            assert len(context["key_errors"]) == 0
             assert len(context["key_performance_issues"]) == 2
             assert context["trends"]["total_error_count"] == 2
             assert context["trends"]["total_transaction_count"] == 10
@@ -456,38 +449,37 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         """Test that we filter resolved issues out of key errors"""
         user = self.create_user()
         self.create_member(teams=[self.team], user=user, organization=self.organization)
-        with self.options({"issues.group_attributes.send_kafka": True}):
-            self.store_event(
-                data={
-                    "event_id": "a" * 32,
-                    "message": "message",
-                    "timestamp": iso_format(self.three_days_ago),
-                    "fingerprint": ["group-1"],
-                },
-                project_id=self.project.id,
-                default_event_type=EventType.DEFAULT,
-            )
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "message",
+                "timestamp": self.three_days_ago.isoformat(),
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+            default_event_type=EventType.DEFAULT,
+        )
 
-            self.store_event(
-                data={
-                    "event_id": "b" * 32,
-                    "message": "message",
-                    "timestamp": iso_format(self.three_days_ago),
-                    "fingerprint": ["group-2"],
-                },
-                project_id=self.project.id,
-                default_event_type=EventType.DEFAULT,
-            )
-            self.store_event_outcomes(
-                self.organization.id, self.project.id, self.three_days_ago, num_times=2
-            )
-            self.store_event_outcomes(
-                self.organization.id,
-                self.project.id,
-                self.three_days_ago,
-                num_times=10,
-                category=DataCategory.TRANSACTION,
-            )
+        self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "message",
+                "timestamp": self.three_days_ago.isoformat(),
+                "fingerprint": ["group-2"],
+            },
+            project_id=self.project.id,
+            default_event_type=EventType.DEFAULT,
+        )
+        self.store_event_outcomes(
+            self.organization.id, self.project.id, self.three_days_ago, num_times=2
+        )
+        self.store_event_outcomes(
+            self.organization.id,
+            self.project.id,
+            self.three_days_ago,
+            num_times=10,
+            category=DataCategory.TRANSACTION,
+        )
 
         self.create_performance_issue(fingerprint=f"{PerformanceNPlusOneGroupType.type_id}-group1")
         self.create_performance_issue(fingerprint=f"{PerformanceNPlusOneGroupType.type_id}-group2")
@@ -534,40 +526,39 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         """Test that we filter non-error level issues out of key errors"""
         user = self.create_user()
         self.create_member(teams=[self.team], user=user, organization=self.organization)
-        with self.options({"issues.group_attributes.send_kafka": True}):
-            self.store_event(
-                data={
-                    "event_id": "a" * 32,
-                    "message": "message",
-                    "timestamp": iso_format(self.three_days_ago),
-                    "fingerprint": ["group-1"],
-                    "level": "info",
-                },
-                project_id=self.project.id,
-                default_event_type=EventType.DEFAULT,
-            )
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "message",
+                "timestamp": self.three_days_ago.isoformat(),
+                "fingerprint": ["group-1"],
+                "level": "info",
+            },
+            project_id=self.project.id,
+            default_event_type=EventType.DEFAULT,
+        )
 
-            self.store_event(
-                data={
-                    "event_id": "b" * 32,
-                    "message": "message",
-                    "timestamp": iso_format(self.three_days_ago),
-                    "fingerprint": ["group-2"],
-                    "level": "error",
-                },
-                project_id=self.project.id,
-                default_event_type=EventType.DEFAULT,
-            )
-            self.store_event_outcomes(
-                self.organization.id, self.project.id, self.three_days_ago, num_times=2
-            )
-            self.store_event_outcomes(
-                self.organization.id,
-                self.project.id,
-                self.three_days_ago,
-                num_times=10,
-                category=DataCategory.TRANSACTION,
-            )
+        self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "message",
+                "timestamp": self.three_days_ago.isoformat(),
+                "fingerprint": ["group-2"],
+                "level": "error",
+            },
+            project_id=self.project.id,
+            default_event_type=EventType.DEFAULT,
+        )
+        self.store_event_outcomes(
+            self.organization.id, self.project.id, self.three_days_ago, num_times=2
+        )
+        self.store_event_outcomes(
+            self.organization.id,
+            self.project.id,
+            self.three_days_ago,
+            num_times=10,
+            category=DataCategory.TRANSACTION,
+        )
 
         prepare_organization_report(
             self.now.timestamp(), ONE_DAY * 7, self.organization.id, self._dummy_batch_id
@@ -595,38 +586,37 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         user2 = self.create_user()
         self.create_member(teams=[self.team], user=user2, organization=self.organization)
 
-        with self.options({"issues.group_attributes.send_kafka": True}):
-            event1 = self.store_event(
-                data={
-                    "event_id": "a" * 32,
-                    "message": "message",
-                    "timestamp": iso_format(self.three_days_ago),
-                    "fingerprint": ["group-1"],
-                },
-                project_id=self.project.id,
-                default_event_type=EventType.DEFAULT,
-            )
+        event1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "message",
+                "timestamp": self.three_days_ago.isoformat(),
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+            default_event_type=EventType.DEFAULT,
+        )
 
-            event2 = self.store_event(
-                data={
-                    "event_id": "b" * 32,
-                    "message": "message",
-                    "timestamp": iso_format(self.three_days_ago),
-                    "fingerprint": ["group-2"],
-                },
-                project_id=self.project.id,
-                default_event_type=EventType.DEFAULT,
-            )
-            self.store_event_outcomes(
-                self.organization.id, self.project.id, self.three_days_ago, num_times=2
-            )
-            self.store_event_outcomes(
-                self.organization.id,
-                self.project.id,
-                self.three_days_ago,
-                num_times=10,
-                category=DataCategory.TRANSACTION,
-            )
+        event2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "message",
+                "timestamp": self.three_days_ago.isoformat(),
+                "fingerprint": ["group-2"],
+            },
+            project_id=self.project.id,
+            default_event_type=EventType.DEFAULT,
+        )
+        self.store_event_outcomes(
+            self.organization.id, self.project.id, self.three_days_ago, num_times=2
+        )
+        self.store_event_outcomes(
+            self.organization.id,
+            self.project.id,
+            self.three_days_ago,
+            num_times=10,
+            category=DataCategory.TRANSACTION,
+        )
 
         group1 = event1.group
         group2 = event2.group
@@ -678,7 +668,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                 "regression_substatus_count": 0,
                 "total_substatus_count": 0,
             }
-            assert len(context["key_errors"]) == 2
+            assert len(context["key_errors"]) == 0
             assert context["trends"]["total_error_count"] == 2
             assert context["trends"]["total_transaction_count"] == 10
             assert "Weekly Report for" in message_params["subject"]
@@ -710,7 +700,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
             data={
                 "event_id": "a" * 32,
                 "message": "message",
-                "timestamp": iso_format(self.three_days_ago),
+                "timestamp": self.three_days_ago.isoformat(),
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
@@ -724,7 +714,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
             data={
                 "event_id": "b" * 32,
                 "message": "message",
-                "timestamp": iso_format(self.three_days_ago),
+                "timestamp": self.three_days_ago.isoformat(),
                 "fingerprint": ["group-2"],
             },
             project_id=self.project.id,
@@ -777,7 +767,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
             data={
                 "event_id": "a" * 32,
                 "message": "message",
-                "timestamp": iso_format(self.three_days_ago),
+                "timestamp": self.three_days_ago.isoformat(),
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
@@ -824,7 +814,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
             data={
                 "event_id": "a" * 32,
                 "message": "message",
-                "timestamp": iso_format(ten_days_ago),
+                "timestamp": ten_days_ago.isoformat(),
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,

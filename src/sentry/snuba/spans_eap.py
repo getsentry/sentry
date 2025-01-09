@@ -1,6 +1,7 @@
 import logging
 from collections.abc import Mapping, Sequence
 from datetime import timedelta
+from typing import Any, TypedDict
 
 import sentry_sdk
 from snuba_sdk import Column, Condition
@@ -49,10 +50,9 @@ def query(
     dataset: Dataset = Dataset.Discover,
     fallback_to_transactions: bool = False,
     query_source: QuerySource | None = None,
-    enable_rpc: bool | None = False,
-):
+) -> EventsResponse:
     builder = SpansEAPQueryBuilder(
-        Dataset.SpansEAP,
+        Dataset.EventsAnalyticsPlatform,
         {},
         snuba_params=snuba_params,
         query=query,
@@ -96,6 +96,8 @@ def timeseries_query(
     on_demand_metrics_type: MetricSpecType | None = None,
     dataset: Dataset = Dataset.Discover,
     query_source: QuerySource | None = None,
+    fallback_to_transactions: bool = False,
+    transform_alias_to_input_format: bool = False,
 ) -> SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -105,7 +107,7 @@ def timeseries_query(
 
     with sentry_sdk.start_span(op="spans_indexed", name="TimeseriesSpanIndexedQueryBuilder"):
         querybuilder = TimeseriesSpanEAPIndexedQueryBuilder(
-            Dataset.SpansEAP,
+            Dataset.EventsAnalyticsPlatform,
             {},
             rollup,
             snuba_params=snuba_params,
@@ -113,6 +115,7 @@ def timeseries_query(
             selected_columns=columns,
             config=QueryBuilderConfig(
                 functions_acl=functions_acl,
+                transform_alias_to_input_format=transform_alias_to_input_format,
             ),
         )
         result = querybuilder.run_query(referrer, query_source=query_source)
@@ -161,6 +164,7 @@ def top_events_timeseries(
     on_demand_metrics_type: MetricSpecType | None = None,
     dataset: Dataset = Dataset.Discover,
     query_source: QuerySource | None = None,
+    fallback_to_transactions: bool = False,
 ):
     """
     High-level API for doing arbitrary user timeseries queries for a limited number of top events
@@ -185,7 +189,7 @@ def top_events_timeseries(
             )
 
     top_events_builder = TopEventsSpanEAPQueryBuilder(
-        Dataset.SpansEAP,
+        Dataset.EventsAnalyticsPlatform,
         {},
         rollup,
         top_events["data"],
@@ -202,7 +206,7 @@ def top_events_timeseries(
     )
     if len(top_events["data"]) == limit and include_other:
         other_events_builder = TopEventsSpanEAPQueryBuilder(
-            Dataset.SpansEAP,
+            Dataset.EventsAnalyticsPlatform,
             {},
             rollup,
             top_events["data"],
@@ -240,14 +244,16 @@ def top_events_timeseries(
             snuba_params.end_date,
             rollup,
         )
+
     with sentry_sdk.start_span(op="spans_indexed", name="top_events.transform_results") as span:
         span.set_data("result_count", len(result.get("data", [])))
         result = top_events_builder.process_results(result)
+        other_result = top_events_builder.process_results(other_result)
 
         issues: Mapping[int, str | None] = {}
         translated_groupby = top_events_builder.translated_groupby
 
-        results = (
+        results: dict[str, TimeseriesResult] = (
             {discover.OTHER_KEY: {"order": limit, "data": other_result["data"]}}
             if len(other_result.get("data", []))
             else {}
@@ -288,3 +294,8 @@ def top_events_timeseries(
             )
 
     return top_events_results
+
+
+class TimeseriesResult(TypedDict):
+    order: int
+    data: list[dict[str, Any]]

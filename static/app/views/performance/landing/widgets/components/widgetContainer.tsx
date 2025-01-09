@@ -13,13 +13,12 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {Field} from 'sentry/utils/discover/fields';
 import {DisplayModes, SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {usePerformanceDisplayType} from 'sentry/utils/performance/contexts/performanceDisplayContext';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import withOrganization from 'sentry/utils/withOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
@@ -69,7 +68,7 @@ function trackChartSettingChange(
   });
 }
 
-function _WidgetContainer(props: Props) {
+function WidgetContainerInner(props: Props) {
   const {
     organization,
     index,
@@ -135,7 +134,7 @@ function _WidgetContainer(props: Props) {
     chartDefinition,
     InteractiveTitle:
       showNewWidgetDesign && allowedCharts.length > 2
-        ? containerProps => (
+        ? (containerProps: any) => (
             <WidgetInteractiveTitle
               {...containerProps}
               eventView={widgetEventView}
@@ -147,7 +146,7 @@ function _WidgetContainer(props: Props) {
           )
         : null,
     ContainerActions: !showNewWidgetDesign
-      ? containerProps => (
+      ? (containerProps: any) => (
           <WidgetContainerActions
             {...containerProps}
             eventView={widgetEventView}
@@ -220,7 +219,14 @@ export function WidgetInteractiveTitle({
   setChartSetting,
   allowedCharts,
   rowChartSettings,
+}: {
+  allowedCharts: PerformanceWidgetSetting[];
+  chartSetting: PerformanceWidgetSetting;
+  eventView: EventView;
+  rowChartSettings: PerformanceWidgetSetting[];
+  setChartSetting: (setting: PerformanceWidgetSetting) => void;
 }) {
+  const navigate = useNavigate();
   const organization = useOrganization();
   const menuOptions: SelectOption<string>[] = [];
 
@@ -240,13 +246,11 @@ export function WidgetInteractiveTitle({
     menuOptions.push({label: t('Open in Discover'), value: 'open_in_discover'});
   }
 
-  const handleChange = option => {
+  const handleChange = (option: {value: string | number}) => {
     if (option.value === 'open_in_discover') {
-      browserHistory.push(
-        normalizeUrl(getEventViewDiscoverPath(organization, eventView))
-      );
+      navigate(getEventViewDiscoverPath(organization, eventView));
     } else {
-      setChartSetting(option.value);
+      setChartSetting(option.value as PerformanceWidgetSetting);
     }
   };
 
@@ -287,6 +291,7 @@ export function WidgetContainerActions({
   rowChartSettings: PerformanceWidgetSetting[];
   setChartSetting: (setting: PerformanceWidgetSetting) => void;
 }) {
+  const navigate = useNavigate();
   const organization = useOrganization();
   const menuOptions: SelectOption<PerformanceWidgetSetting>[] = [];
 
@@ -302,11 +307,9 @@ export function WidgetContainerActions({
 
   const chartDefinition = WIDGET_DEFINITIONS({organization})[chartSetting];
 
-  function handleWidgetActionChange(value) {
+  function handleWidgetActionChange(value: string) {
     if (value === 'open_in_discover') {
-      browserHistory.push(
-        normalizeUrl(getEventViewDiscoverPath(organization, eventView))
-      );
+      navigate(getEventViewDiscoverPath(organization, eventView));
     }
   }
 
@@ -380,6 +383,6 @@ const makeEventViewForWidget = (
   return widgetEventView;
 };
 
-const WidgetContainer = withOrganization(_WidgetContainer);
+const WidgetContainer = withOrganization(WidgetContainerInner);
 
 export default WidgetContainer;

@@ -20,7 +20,6 @@ import EventView from 'sentry/utils/discover/eventView';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useMarkReplayViewed from 'sentry/utils/replays/hooks/useMarkReplayViewed';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useRoutes} from 'sentry/utils/useRoutes';
@@ -69,15 +68,6 @@ function ReplayPreviewPlayer({
   const referrer = getRouteStringFromRoutes(routes);
   const fromFeedback = referrer === '/feedback/';
 
-  const fullReplayUrl = {
-    pathname: normalizeUrl(`/organizations/${organization.slug}/replays/${replayId}/`),
-    query: {
-      referrer: getRouteStringFromRoutes(routes),
-      t_main: fromFeedback ? TabKey.BREADCRUMBS : TabKey.ERRORS,
-      t: (currentTime + startOffsetMs) / 1000,
-    },
-  };
-
   const {mutate: markAsViewed} = useMarkReplayViewed();
   useEffect(() => {
     if (replayRecord?.id && !replayRecord.has_viewed && !isFetching && isPlaying) {
@@ -95,7 +85,18 @@ function ReplayPreviewPlayer({
           organization={organization}
           referrer="issue-details-replay-header"
         />
-        <LinkButton size="sm" to={fullReplayUrl} {...fullReplayButtonProps}>
+        <LinkButton
+          size="sm"
+          to={{
+            pathname: `/organizations/${organization.slug}/replays/${replayId}/`,
+            query: {
+              referrer: getRouteStringFromRoutes(routes),
+              t_main: fromFeedback ? TabKey.BREADCRUMBS : TabKey.ERRORS,
+              t: (currentTime + startOffsetMs) / 1000,
+            },
+          }}
+          {...fullReplayButtonProps}
+        >
           {t('See Full Replay')}
         </LinkButton>
       </HeaderWrapper>

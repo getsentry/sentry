@@ -11,6 +11,7 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import type {ReleaseRegistrySdk} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
+import type {Organization} from 'sentry/types/organization';
 import type {DeepPartial} from 'sentry/types/utils';
 
 interface Options<PlatformOptions extends BasePlatformOptions = BasePlatformOptions> {
@@ -19,9 +20,17 @@ interface Options<PlatformOptions extends BasePlatformOptions = BasePlatformOpti
   selectedProducts?: ProductSolution[];
 }
 
+type RenderOptions = {
+  organization?: Organization;
+};
+
 export function renderWithOnboardingLayout<
   PlatformOptions extends BasePlatformOptions = BasePlatformOptions,
->(docsConfig: Docs<PlatformOptions>, options: Options<PlatformOptions> = {}) {
+>(
+  docsConfig: Docs<PlatformOptions>,
+  options: Options<PlatformOptions> = {},
+  renderOptions: RenderOptions = {}
+) {
   const {
     releaseRegistry = {},
     selectedProducts = [
@@ -33,6 +42,7 @@ export function renderWithOnboardingLayout<
   } = options;
 
   const {organization, project, router} = initializeOrg({
+    organization: renderOptions.organization,
     router: {
       location: {
         query: selectedOptions,

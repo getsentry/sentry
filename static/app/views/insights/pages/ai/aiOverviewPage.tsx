@@ -1,18 +1,22 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoAccess} from 'sentry/components/noAccess';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {canUseMetricsData} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {
+  canUseMetricsData,
+  useMEPSettingContext,
+} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PageAlert, usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -20,13 +24,20 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {useUserTeams} from 'sentry/utils/useUserTeams';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
+import {ViewTrendsButton} from 'sentry/views/insights/common/components/viewTrendsButton';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {AiHeader} from 'sentry/views/insights/pages/ai/aiPageHeader';
-import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
+import {
+  AI_LANDING_TITLE,
+  AI_RELEASE_LEVEL,
+} from 'sentry/views/insights/pages/ai/settings';
+import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
 import {generateGenericPerformanceEventView} from 'sentry/views/performance/data';
 import {TripleChartRow} from 'sentry/views/performance/landing/widgets/components/widgetChartRow';
+import {filterAllowedChartsMetrics} from 'sentry/views/performance/landing/widgets/utils';
 import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 import Onboarding from 'sentry/views/performance/onboarding';
 import Table from 'sentry/views/performance/table';
@@ -36,14 +47,13 @@ import {
 } from 'sentry/views/performance/utils';
 
 export const AI_COLUMN_TITLES = [
-  'transaction',
-  'project',
-  'operation',
-  'tpm',
-  'p50()',
-  'p75()',
-  'p95()',
-  'users',
+  {title: 'transaction'},
+  {title: 'operation'},
+  {title: 'project'},
+  {title: 'tpm'},
+  {title: 'p50()'},
+  {title: 'p95()'},
+  {title: 'users'},
 ];
 
 function AiOverviewPage() {
@@ -53,6 +63,8 @@ function AiOverviewPage() {
   const {projects} = useProjects();
   const onboardingProject = useOnboardingProject();
   const navigate = useNavigate();
+  const {teams} = useUserTeams();
+  const mepSetting = useMEPSettingContext();
 
   const withStaticFilters = canUseMetricsData(organization);
   const eventView = generateGenericPerformanceEventView(
@@ -65,25 +77,28 @@ function AiOverviewPage() {
   eventView.fields = [
     {field: 'team_key_transaction'},
     {field: 'transaction'},
-    {field: 'project'},
     {field: 'transaction.op'},
+    {field: 'project'},
     {field: 'tpm()'},
-    {field: 'p50(transaction.duration)'},
-    {field: 'p75(transaction.duration)'},
-    {field: 'p95(transaction.duration)'},
+    {field: 'p50()'},
+    {field: 'p95()'},
   ].map(field => ({...field, width: COL_WIDTH_UNDEFINED}));
 
   const showOnboarding = onboardingProject !== undefined;
 
-  const tripleChartRowCharts = [
-    PerformanceWidgetSetting.TPM_AREA,
-    PerformanceWidgetSetting.DURATION_HISTOGRAM,
-    PerformanceWidgetSetting.P50_DURATION_AREA,
-    PerformanceWidgetSetting.P75_DURATION_AREA,
-    PerformanceWidgetSetting.P95_DURATION_AREA,
-    PerformanceWidgetSetting.P99_DURATION_AREA,
-    PerformanceWidgetSetting.FAILURE_RATE_AREA,
-  ];
+  const tripleChartRowCharts = filterAllowedChartsMetrics(
+    organization,
+    [
+      PerformanceWidgetSetting.TPM_AREA,
+      PerformanceWidgetSetting.DURATION_HISTOGRAM,
+      PerformanceWidgetSetting.P50_DURATION_AREA,
+      PerformanceWidgetSetting.P75_DURATION_AREA,
+      PerformanceWidgetSetting.P95_DURATION_AREA,
+      PerformanceWidgetSetting.P99_DURATION_AREA,
+      PerformanceWidgetSetting.FAILURE_RATE_AREA,
+    ],
+    mepSetting
+  );
 
   const sharedProps = {eventView, location, organization, withStaticFilters};
 
@@ -119,13 +134,19 @@ function AiOverviewPage() {
 
   return (
     <Feature
-      features="insights-domain-view"
+      features="performance-view"
       organization={organization}
       renderDisabled={NoAccess}
     >
-      <Layout.Header>
-        <AiHeader />
-      </Layout.Header>
+      <AiHeader
+        headerTitle={
+          <Fragment>
+            {AI_LANDING_TITLE}
+            <FeatureBadge type={AI_RELEASE_LEVEL} />
+          </Fragment>
+        }
+        headerActions={<ViewTrendsButton />}
+      />
       <Layout.Body>
         <Layout.Main fullWidth>
           <ModuleLayout.Layout>
@@ -143,7 +164,7 @@ function AiOverviewPage() {
                     onSearch={(query: string) => {
                       handleSearch(query);
                     }}
-                    query={getFreeTextFromQuery(derivedQuery)}
+                    query={getFreeTextFromQuery(derivedQuery)!}
                   />
                 )}
               </ToolRibbon>
@@ -154,13 +175,23 @@ function AiOverviewPage() {
                 <PerformanceDisplayProvider
                   value={{performanceType: ProjectPerformanceType.ANY}}
                 >
-                  <TripleChartRow allowedCharts={tripleChartRowCharts} {...sharedProps} />
-                  <Table
-                    projects={projects}
-                    columnTitles={AI_COLUMN_TITLES}
-                    setError={setPageError}
-                    {...sharedProps}
-                  />
+                  <TeamKeyTransactionManager.Provider
+                    organization={organization}
+                    teams={teams}
+                    selectedTeams={['myteams']}
+                    selectedProjects={eventView.project.map(String)}
+                  >
+                    <TripleChartRow
+                      allowedCharts={tripleChartRowCharts}
+                      {...sharedProps}
+                    />
+                    <Table
+                      projects={projects}
+                      columnTitles={AI_COLUMN_TITLES}
+                      setError={setPageError}
+                      {...sharedProps}
+                    />
+                  </TeamKeyTransactionManager.Provider>
                 </PerformanceDisplayProvider>
               )}
 
@@ -176,17 +207,12 @@ function AiOverviewPage() {
 }
 
 function AiOverviewPageWithProviders() {
-  const organization = useOrganization();
-
   return (
-    <PageFiltersContainer>
-      <SentryDocumentTitle title={OVERVIEW_PAGE_TITLE} orgSlug={organization.slug}>
-        <AiOverviewPage />
-      </SentryDocumentTitle>
-    </PageFiltersContainer>
+    <DomainOverviewPageProviders>
+      <AiOverviewPage />
+    </DomainOverviewPageProviders>
   );
 }
-
 const StyledTransactionNameSearchBar = styled(TransactionNameSearchBar)`
   flex: 2;
 `;

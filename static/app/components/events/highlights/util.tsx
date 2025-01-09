@@ -6,6 +6,7 @@ import {
 } from 'sentry/components/events/contexts';
 import {
   getContextTitle,
+  getContextType,
   getFormattedContextData,
 } from 'sentry/components/events/contexts/utils';
 import type {TagTreeContent} from 'sentry/components/events/eventTags/eventTagsTree';
@@ -60,7 +61,7 @@ function getFuzzyHighlightContext(
     };
   }
 
-  const highlightContextKeys = highlightContextSets[highlightKey];
+  const highlightContextKeys = highlightContextSets[highlightKey]!;
   const highlightItems: KeyValueListData = data.filter(
     ({key, subject}) =>
       // We match on key (e.g. 'trace_id') and subject (e.g. 'Trace ID')
@@ -109,7 +110,7 @@ export function getHighlightContextData({
       value,
       data: getFormattedContextData({
         event,
-        contextType: type,
+        contextType: getContextType({alias, type}),
         contextValue: value,
         organization,
         project,

@@ -1,11 +1,14 @@
 ---
+created: '2024-12-17T22:46:48.732299+00:00'
+creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
+  contributing component: null
   component:
     app (stacktrace of system takes precedence)
-      stacktrace
+      stacktrace (ignored because it contains no in-app frames)
         frame (non app frame)
           module*
             "com.example.api.OutboundController$$FastClassByGuice$$ae46b1bf"
@@ -14,6 +17,7 @@ app:
 --------------------------------------------------------------------------
 system:
   hash: "91f42e615037e91a3c6f8a6fcf04056b"
+  contributing component: stacktrace
   component:
     system*
       stacktrace*

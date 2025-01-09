@@ -151,7 +151,7 @@ export function Content({
 
     const frameSourceMapDebuggerData = sourceMapDebuggerData?.exceptions[
       excIdx
-    ].frames.map(debuggerFrame =>
+    ]!.frames.map(debuggerFrame =>
       prepareSourceMapDebuggerFrameInformation(
         sourceMapDebuggerData,
         debuggerFrame,
@@ -180,7 +180,7 @@ export function Content({
         ) : (
           <Title id={id}>{exc.type}</Title>
         )}
-        <StyledPre className="exc-message">
+        <StyledPre>
           {meta?.[excIdx]?.value?.[''] && !exc.value ? (
             <AnnotatedText value={exc.value} meta={meta?.[excIdx]?.value?.['']} />
           ) : (
@@ -235,8 +235,11 @@ export function Content({
 }
 
 const StyledPre = styled('pre')`
-  margin-bottom: ${space(1)};
-  margin-top: 0;
+  padding: 0;
+  margin: 0;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  background-color: inherit;
 `;
 
 const Title = styled('h5')`

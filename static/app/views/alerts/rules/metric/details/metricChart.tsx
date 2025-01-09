@@ -114,12 +114,12 @@ function getRuleChangeSeries(
   data: AreaChartSeries[]
 ): LineSeriesOption[] {
   const {dateModified} = rule;
-  if (!data.length || !data[0].data.length || !dateModified) {
+  if (!data.length || !data[0]!.data.length || !dateModified) {
     return [];
   }
 
-  const seriesData = data[0].data;
-  const seriesStart = new Date(seriesData[0].name).getTime();
+  const seriesData = data[0]!.data;
+  const seriesStart = new Date(seriesData[0]!.name).getTime();
   const ruleChanged = new Date(dateModified).getTime();
 
   if (ruleChanged < seriesStart) {
@@ -254,13 +254,20 @@ class MetricChart extends PureComponent<Props, State> {
             </StyledSectionValue>
           </Fragment>
         </StyledInlineContainer>
-        {!isSessionAggregate(rule.aggregate) && (
-          <Feature features="discover-basic">
-            <Button size="sm" {...props}>
-              {buttonText}
-            </Button>
-          </Feature>
-        )}
+        {!isSessionAggregate(rule.aggregate) &&
+          (getAlertTypeFromAggregateDataset(rule) === 'eap_metrics' ? (
+            <Feature features="visibility-explore-view">
+              <Button size="sm" {...props}>
+                {buttonText}
+              </Button>
+            </Feature>
+          ) : (
+            <Feature features="discover-basic">
+              <Button size="sm" {...props}>
+                {buttonText}
+              </Button>
+            </Feature>
+          ))}
       </StyledChartControls>
     );
   }
@@ -399,7 +406,7 @@ class MetricChart extends PureComponent<Props, State> {
                         };
                         const endTime = formatTooltipDate(
                           moment(pointX).add(
-                            parseInt(period, 10),
+                            parseInt(period!, 10),
                             periodLength as StatsPeriodType
                           ),
                           'MMM D LT'
@@ -493,7 +500,7 @@ class MetricChart extends PureComponent<Props, State> {
       loading ||
       !this.props.isOnDemandAlert ||
       !shouldShowOnDemandMetricAlertUI(organization) ||
-      !isEmptySeries(timeseriesData[0])
+      !isEmptySeries(timeseriesData[0]!)
     ) {
       return null;
     }
@@ -579,7 +586,6 @@ class MetricChart extends PureComponent<Props, State> {
       }
     }
 
-    const alertType = getAlertTypeFromAggregateDataset(rule);
     const queryExtras: Record<string, string> = {
       ...getMetricDatasetQueryExtras({
         organization,
@@ -588,7 +594,7 @@ class MetricChart extends PureComponent<Props, State> {
         newAlertOrQuery: false,
         useOnDemandMetrics: isOnDemandAlert,
       }),
-      ...getForceMetricsLayerQueryExtras(organization, dataset, alertType),
+      ...getForceMetricsLayerQueryExtras(organization, dataset),
     };
 
     if (shouldUseErrorsDataset(dataset, query)) {
@@ -633,6 +639,7 @@ class MetricChart extends PureComponent<Props, State> {
         partial={false}
         queryExtras={queryExtras}
         referrer="api.alerts.alert-rule-chart"
+        useRpc={dataset === Dataset.EVENTS_ANALYTICS_PLATFORM}
         useOnDemandMetrics
       >
         {({loading, timeseriesData, comparisonTimeseriesData}) => (

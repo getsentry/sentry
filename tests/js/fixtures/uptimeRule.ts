@@ -16,6 +16,7 @@ export function UptimeRuleFixture(params: Partial<UptimeRule> = {}): UptimeRule 
     headers: [],
     method: 'GET',
     body: null,
+    traceSampling: false,
     ...params,
   }
 }

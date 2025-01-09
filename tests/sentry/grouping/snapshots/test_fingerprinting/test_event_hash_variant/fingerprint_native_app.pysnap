@@ -1,5 +1,5 @@
 ---
-created: '2020-12-08T17:25:04.277740Z'
+created: '2024-11-08T22:03:14.833107+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -13,6 +13,7 @@ config:
       - symbolicator::actors::symcaches::*
     - - app
       - 'true'
+    text: function:"symbolicator::actors::symcaches::*" app:"true" -> "symcache-error"
   version: 1
 fingerprint:
 - symcache-error
@@ -23,9 +24,9 @@ variants:
       contributes: false
       hint: custom fingerprint takes precedence
     type: component
-  custom-fingerprint:
+  custom_fingerprint:
     matched_rule: function:"symbolicator::actors::symcaches::*" app:"true" -> "symcache-error"
-    type: custom-fingerprint
+    type: custom_fingerprint
     values:
     - symcache-error
   system:

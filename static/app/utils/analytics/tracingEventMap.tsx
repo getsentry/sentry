@@ -1,13 +1,36 @@
+import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+
 export type TracingEventParameters = {
   'trace.configurations_docs_link_clicked': {
     title: string;
   };
+  'trace.explorer.metadata': {
+    columns: string[];
+    columns_count: number;
+    has_exceeded_performance_usage_limit: boolean | null;
+    query_status: 'success' | 'error';
+    result_length: number;
+    result_missing_root: number;
+    result_mode: 'trace samples' | 'span samples' | 'aggregates';
+    user_queries: string;
+    user_queries_count: number;
+    visualizes: Visualize[];
+    visualizes_count: number;
+  };
   'trace.metadata': {
+    has_exceeded_performance_usage_limit: boolean | null;
     num_nodes: number;
     num_root_children: number;
     project_platforms: string[];
+    referrer: string | null;
     shape: string;
     trace_duration_seconds: number;
+  };
+  'trace.preferences.autogrouping_change': {
+    enabled: boolean;
+  };
+  'trace.preferences.missing_instrumentation_change': {
+    enabled: boolean;
   };
   'trace.quality.missing_spans.doc_link_clicked': {};
   'trace.quality.performance_setup.banner_loaded': {};
@@ -64,8 +87,12 @@ export type TracingEventParameters = {
   };
   'trace_explorer.add_span_condition': {};
   'trace_explorer.open_in_issues': {};
-  'trace_explorer.open_trace': {};
-  'trace_explorer.open_trace_span': {};
+  'trace_explorer.open_trace': {
+    source: 'trace explorer' | 'new explore';
+  };
+  'trace_explorer.open_trace_span': {
+    source: 'trace explorer' | 'new explore';
+  };
   'trace_explorer.remove_span_condition': {};
   'trace_explorer.search_failure': {
     error: string;
@@ -83,6 +110,7 @@ export type TracingEventParameters = {
   };
   'trace_explorer.toggle_trace_details': {
     expanded: boolean;
+    source: 'trace explorer' | 'new explore';
   };
 };
 
@@ -90,6 +118,7 @@ export type TracingEventKey = keyof TracingEventParameters;
 
 export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace.metadata': 'Trace Load Metadata',
+  'trace.explorer.metadata': 'Improved Trace Explorer Pageload Metadata',
   'trace.trace_layout.change': 'Changed Trace Layout',
   'trace.trace_layout.drawer_minimize': 'Minimized Trace Drawer',
   'trace.trace_layout.show_in_view': 'Clicked Show in View Action',
@@ -119,7 +148,7 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace.trace_layout.view_in_insight_module': 'View Trace Span in Insight Module',
   'trace.trace_layout.search_match_navigate': 'Navigate Trace Search Matches',
   'trace.trace_layout.view_similar_spans': 'View Similar Spans in Trace',
-  'trace.trace_layout.view_span_summary': 'View Span Summary in Trace',
+  'trace.trace_layout.view_span_summary': 'More Samples in Trace',
   'trace.trace_layout.span_row_click': 'Clicked Span Row in Trace',
   'trace_explorer.add_span_condition': 'Trace Explorer: Add Another Span',
   'trace_explorer.open_in_issues': 'Trace Explorer: Open Trace in Issues',
@@ -130,4 +159,7 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace_explorer.search_failure': 'Trace Explorer: Search Failure',
   'trace_explorer.search_request': 'Trace Explorer: Search Request',
   'trace_explorer.search_success': 'Trace Explorer: Search Success',
+  'trace.preferences.autogrouping_change': 'Changed Autogrouping Preference',
+  'trace.preferences.missing_instrumentation_change':
+    'Changed Missing Instrumentation Preference',
 };

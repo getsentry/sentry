@@ -70,13 +70,13 @@ export default function BreadcrumbsTimeline({
   const virtualItems = virtualizer.getVirtualItems();
   const items = virtualItems.map(virtualizedRow => {
     const {breadcrumb, raw, title, meta, iconComponent, colorConfig, levelComponent} =
-      breadcrumbs[virtualizedRow.index];
+      breadcrumbs[virtualizedRow.index]!;
     const isVirtualCrumb = !defined(raw);
 
     const timeDate = new Date(breadcrumb.timestamp ?? '');
     const startTimeDate = new Date(startTimeString ?? '');
 
-    const absoluteFormat = shouldUse24Hours() ? 'HH:mm:ss.SSS' : 'hh:mm:ss.SSS';
+    const absoluteFormat = shouldUse24Hours() ? 'HH:mm:ss.SSS' : 'hh:mm:ss.SSS A';
     const timestampComponent = isValidDate(timeDate) ? (
       <Timestamp>
         <Tooltip

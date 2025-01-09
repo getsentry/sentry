@@ -2,7 +2,6 @@ import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
-import SearchBar from 'sentry/components/events/searchBar';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
 import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
@@ -10,15 +9,14 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DurationUnit} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useRouter from 'sentry/utils/useRouter';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
@@ -32,9 +30,7 @@ import {
   SpanMetricsField,
   type SpanMetricsQueryFilters,
 } from 'sentry/views/insights/types';
-import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
-
-import {TraceViewSources} from '../../../../performance/newTraceDetails/traceMetadataHeader';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
 const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
 
@@ -62,7 +58,7 @@ export function SpanSamplesContainer({
   additionalFilters,
 }: Props) {
   const location = useLocation();
-  const router = useRouter();
+  const navigate = useNavigate();
   const [highlightedSpanId, setHighlightedSpanId] = useState<string | undefined>(
     undefined
   );
@@ -70,7 +66,6 @@ export function SpanSamplesContainer({
 
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const {data: supportedTags} = useSpanFieldSupportedTags();
 
   const searchQuery =
     searchQueryKey !== undefined
@@ -125,13 +120,16 @@ export function SpanSamplesContainer({
   const spanMetrics = data[0] ?? {};
 
   const handleSearch = (newSearchQuery: string) => {
-    router.replace({
-      pathname: location.pathname,
-      query: {
-        ...location.query,
-        ...(searchQueryKey && {[searchQueryKey]: newSearchQuery}),
+    navigate(
+      {
+        pathname: location.pathname,
+        query: {
+          ...location.query,
+          ...(searchQueryKey && {[searchQueryKey]: newSearchQuery}),
+        },
       },
-    });
+      {replace: true}
+    );
   };
 
   return (
@@ -178,7 +176,7 @@ export function SpanSamplesContainer({
         transactionName={transactionName}
         transactionMethod={transactionMethod}
         onClickSample={span => {
-          router.push(
+          navigate(
             generateLinkToEventInTraceView({
               eventId: span['transaction.id'],
               projectSlug: span.project,
@@ -199,26 +197,13 @@ export function SpanSamplesContainer({
       />
 
       <StyledSearchBar>
-        {organization.features.includes('search-query-builder-performance') ? (
-          <SpanSearchQueryBuilder
-            searchSource={`${moduleName}-sample-panel`}
-            initialQuery={searchQuery ?? ''}
-            onSearch={handleSearch}
-            placeholder={t('Search for span attributes')}
-            projects={selection.projects}
-          />
-        ) : (
-          <SearchBar
-            searchSource={`${moduleName}-sample-panel`}
-            query={searchQuery}
-            onSearch={handleSearch}
-            placeholder={t('Search for span attributes')}
-            organization={organization}
-            supportedTags={supportedTags}
-            dataset={DiscoverDatasets.SPANS_INDEXED}
-            projectIds={selection.projects}
-          />
-        )}
+        <SpanSearchQueryBuilder
+          searchSource={`${moduleName}-sample-panel`}
+          initialQuery={searchQuery ?? ''}
+          onSearch={handleSearch}
+          placeholder={t('Search for span attributes')}
+          projects={selection.projects}
+        />
       </StyledSearchBar>
 
       <SampleTable

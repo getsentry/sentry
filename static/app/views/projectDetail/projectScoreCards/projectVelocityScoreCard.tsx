@@ -11,6 +11,8 @@ import {WidgetFrame} from 'sentry/views/dashboards/widgets/common/widgetFrame';
 
 import MissingReleasesButtons from '../missingFeatureButtons/missingReleasesButtons';
 
+import {ActionWrapper} from './actionWrapper';
+
 const API_LIMIT = 1000;
 
 type Release = {date: string; version: string};
@@ -48,7 +50,7 @@ const useReleaseCount = (props: Props) => {
         },
       },
     ],
-    {staleTime: 0, enabled: isEnabled}
+    {staleTime: Infinity, enabled: isEnabled}
   );
 
   const isPreviousPeriodEnabled = shouldFetchPreviousPeriod({
@@ -69,7 +71,7 @@ const useReleaseCount = (props: Props) => {
       },
     ],
     {
-      staleTime: 0,
+      staleTime: Infinity,
       enabled: isEnabled && isPreviousPeriodEnabled,
     }
   );
@@ -95,7 +97,7 @@ const useReleaseCount = (props: Props) => {
       },
     ],
     {
-      staleTime: 0,
+      staleTime: Infinity,
       enabled: isEnabled && isAllTimePeriodEnabled,
     }
   );
@@ -137,7 +139,7 @@ function ProjectVelocityScoreCard(props: Props) {
   } = useReleaseCount(props);
 
   const noReleaseEver =
-    [...(allTimeReleases ?? []), ...(previousReleases ?? []), ...(allTimeReleases ?? [])]
+    [...(currentReleases ?? []), ...(previousReleases ?? []), ...(allTimeReleases ?? [])]
       .length === 0;
 
   const cardTitle = t('Number of Releases');
@@ -147,7 +149,9 @@ function ProjectVelocityScoreCard(props: Props) {
   if (!isLoading && noReleaseEver) {
     return (
       <WidgetFrame title={cardTitle} description={cardHelp}>
-        <MissingReleasesButtons organization={organization} />
+        <ActionWrapper>
+          <MissingReleasesButtons organization={organization} />
+        </ActionWrapper>
       </WidgetFrame>
     );
   }
@@ -156,16 +160,9 @@ function ProjectVelocityScoreCard(props: Props) {
     <BigNumberWidget
       title={cardTitle}
       description={cardHelp}
-      data={[
-        {
-          'count()': currentReleases?.length,
-        },
-      ]}
-      previousPeriodData={[
-        {
-          'count()': previousReleases?.length,
-        },
-      ]}
+      value={currentReleases?.length}
+      previousPeriodValue={previousReleases?.length}
+      field="count()"
       maximumValue={API_LIMIT}
       meta={{
         fields: {

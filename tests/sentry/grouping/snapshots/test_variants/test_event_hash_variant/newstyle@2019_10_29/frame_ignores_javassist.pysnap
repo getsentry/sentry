@@ -1,13 +1,14 @@
 ---
-created: '2020-02-26T19:54:41.523246Z'
+created: '2024-12-17T22:47:00.376302+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
+  contributing component: null
   component:
     app (stacktrace of system takes precedence)
-      stacktrace
+      stacktrace (ignored because it contains no in-app frames)
         frame (non app frame)
           module* (removed codegen marker)
             "com.example.api.entry.EntriesResource_$$_javassist<auto>"
@@ -16,6 +17,7 @@ app:
 --------------------------------------------------------------------------
 system:
   hash: "538bdfd8d7bb2495d0d6429c3689a420"
+  contributing component: stacktrace
   component:
     system*
       stacktrace*

@@ -5,6 +5,7 @@ import type {Organization} from 'sentry/types/organization';
 import type EventView from 'sentry/utils/discover/eventView';
 import fetchReplayList from 'sentry/utils/replays/fetchReplayList';
 import useApi from 'sentry/utils/useApi';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import type {
   ReplayListLocationQuery,
   ReplayListQueryReferrer,
@@ -30,6 +31,7 @@ function useReplayList({
   perPage,
 }: Options): Result {
   const api = useApi();
+  const {selection} = usePageFilters();
 
   const [data, setData] = useState<State>({
     fetchError: undefined,
@@ -51,10 +53,11 @@ function useReplayList({
       eventView,
       queryReferrer,
       perPage,
+      selection,
     });
 
     setData({...response, isFetching: false});
-  }, [api, organization, location, eventView, queryReferrer, perPage]);
+  }, [api, organization, location, eventView, queryReferrer, perPage, selection]);
 
   useEffect(() => {
     loadReplays();

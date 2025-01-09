@@ -14,9 +14,11 @@ import {
 } from 'sentry/utils/profiling/routes';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
+import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 
-import {TraceViewSources} from '../newTraceDetails/traceMetadataHeader';
+import {TraceViewSources} from '../newTraceDetails/traceHeader/breadcrumbs';
 
 export enum DisplayModes {
   DURATION_PERCENTILE = 'durationpercentile',
@@ -37,11 +39,13 @@ export enum TransactionFilterOptions {
 export function generateTransactionSummaryRoute({
   orgSlug,
   subPath,
+  view,
 }: {
   orgSlug: string;
   subPath?: string;
+  view?: DomainView; // TODO - this should be mantatory once we release domain view
 }): string {
-  return `/organizations/${orgSlug}/performance/summary/${subPath ? `${subPath}/` : ''}`;
+  return `${getTransactionSummaryBaseUrl(orgSlug, view)}/${subPath ? `${subPath}/` : ''}`;
 }
 
 // normalizes search conditions by removing any redundant search conditions before presenting them in:
@@ -80,6 +84,7 @@ export function transactionSummaryRouteWithQuery({
   showTransactions,
   additionalQuery,
   subPath,
+  view,
 }: {
   orgSlug: string;
   query: Query;
@@ -92,10 +97,12 @@ export function transactionSummaryRouteWithQuery({
   trendColumn?: string;
   trendFunction?: string;
   unselectedSeries?: string | string[];
+  view?: DomainView;
 }) {
   const pathname = generateTransactionSummaryRoute({
     orgSlug,
     subPath,
+    view,
   });
 
   let searchFilter: typeof query.query;
@@ -126,7 +133,7 @@ export function transactionSummaryRouteWithQuery({
   };
 }
 
-export function generateTraceLink(dateSelection) {
+export function generateTraceLink(dateSelection, view?: DomainView) {
   return (
     organization: Organization,
     tableRow: TableDataRow,
@@ -144,11 +151,12 @@ export function generateTraceLink(dateSelection) {
       timestamp: tableRow.timestamp,
       location,
       source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
+      view,
     });
   };
 }
 
-export function generateTransactionIdLink(transactionName?: string) {
+export function generateTransactionIdLink(transactionName?: string, view?: DomainView) {
   return (
     organization: Organization,
     tableRow: TableDataRow,
@@ -157,14 +165,15 @@ export function generateTransactionIdLink(transactionName?: string) {
   ): LocationDescriptor => {
     return generateLinkToEventInTraceView({
       eventId: tableRow.id,
-      timestamp: tableRow.timestamp,
-      traceSlug: tableRow.trace?.toString(),
-      projectSlug: tableRow['project.name']?.toString(),
+      timestamp: tableRow.timestamp!,
+      traceSlug: tableRow.trace?.toString()!,
+      projectSlug: tableRow['project.name']?.toString()!,
       location,
       organization,
       spanId,
       transactionName,
       source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
+      view,
     });
   };
 }
@@ -255,6 +264,15 @@ export function generateReplayLink(routes: PlainRoute<any>[]) {
     };
   };
 }
+
+export function getTransactionSummaryBaseUrl(
+  orgSlug: string,
+  view?: DomainView,
+  bare: boolean = false
+) {
+  return `${getPerformanceBaseUrl(orgSlug, view, bare)}/summary`;
+}
+
 export const SidebarSpacer = styled('div')`
   margin-top: ${space(3)};
 `;

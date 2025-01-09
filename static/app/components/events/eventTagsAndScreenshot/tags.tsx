@@ -1,6 +1,7 @@
 import {forwardRef, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {
@@ -55,9 +56,12 @@ export const EventTagsDataSection = forwardRef<HTMLElement, Props>(
       });
     }, [event.tags]);
 
+    // Prevent drawer button from appearing on performance pages
+    const isOnIssueDetails = location.pathname.includes('/issues/');
+
     const actions = (
       <ButtonBar gap={1}>
-        {hasStreamlinedUI && event.groupID && (
+        {hasStreamlinedUI && event.groupID && isOnIssueDetails && (
           <LinkButton
             to={{
               pathname: `${location.pathname}${TabPaths[Tab.TAGS]}`,
@@ -84,14 +88,17 @@ export const EventTagsDataSection = forwardRef<HTMLElement, Props>(
 
     return (
       <StyledEventDataSection
-        title={t('Tags')}
+        title={
+          <GuideAnchor target="tags" position="top">
+            {t('Tags')}
+          </GuideAnchor>
+        }
         help={tct('The searchable tags associated with this event. [link:Learn more]', {
           link: <ExternalLink openInNewTab href={TAGS_DOCS_LINK} />,
         })}
         isHelpHoverable
         actions={actions}
         data-test-id="event-tags"
-        guideTarget="tags"
         type={SectionKey.TAGS}
         ref={ref}
       >

@@ -4,7 +4,7 @@ import responses
 
 from sentry.sentry_apps.tasks.service_hooks import get_payload_v0, process_service_hook
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 
@@ -22,7 +22,7 @@ class TestServiceHooks(TestCase):
         from hashlib import sha256
 
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(minutes=1))}, project_id=self.project.id
+            data={"timestamp": before_now(minutes=1).isoformat()}, project_id=self.project.id
         )
 
         process_service_hook(self.hook.id, event)
@@ -42,7 +42,7 @@ class TestServiceHooks(TestCase):
         self.hook.update(events=["event.created", "event.alert"])
 
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(minutes=1))}, project_id=self.project.id
+            data={"timestamp": before_now(minutes=1).isoformat()}, project_id=self.project.id
         )
 
         process_service_hook(self.hook.id, event)
@@ -64,7 +64,7 @@ class TestServiceHooks(TestCase):
         responses.add(responses.POST, "https://example.com/sentry/webhook")
 
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(minutes=1))}, project_id=self.project.id
+            data={"timestamp": before_now(minutes=1).isoformat()}, project_id=self.project.id
         )
         assert event.group is not None
 

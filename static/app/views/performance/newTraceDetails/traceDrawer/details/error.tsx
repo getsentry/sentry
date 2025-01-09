@@ -10,6 +10,7 @@ import {
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {EventError} from 'sentry/types/event';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
@@ -19,11 +20,63 @@ import {TraceTree} from '../../traceModels/traceTree';
 import type {TraceTreeNode} from '../../traceModels/traceTreeNode';
 import {makeTraceNodeBarColor} from '../../traceRow/traceBar';
 import {getTraceTabTitle} from '../../traceState/traceTabs';
+import {useHasTraceNewUi} from '../../useHasTraceNewUi';
 
 import {IssueList} from './issues/issues';
 import {type SectionCardKeyValueList, TraceDrawerComponents} from './styles';
 
-export function ErrorNodeDetails({
+export function ErrorNodeDetails(
+  props: TraceTreeNodeDetailsProps<TraceTreeNode<TraceTree.TraceError>>
+) {
+  const hasTraceNewUi = useHasTraceNewUi();
+  const {node, organization, onTabScrollToNode} = props;
+  const issues = useMemo(() => {
+    return [...node.errors];
+  }, [node.errors]);
+
+  if (!hasTraceNewUi) {
+    return <LegacyErrorNodeDetails {...props} />;
+  }
+
+  return (
+    <TraceDrawerComponents.DetailContainer>
+      <TraceDrawerComponents.HeaderContainer>
+        <TraceDrawerComponents.Title>
+          <TraceDrawerComponents.LegacyTitleText>
+            <TraceDrawerComponents.TitleText>
+              {t('Error')}
+            </TraceDrawerComponents.TitleText>
+            <TraceDrawerComponents.SubtitleWithCopyButton
+              text={`ID: ${props.node.value.event_id}`}
+            />
+          </TraceDrawerComponents.LegacyTitleText>
+        </TraceDrawerComponents.Title>
+        <TraceDrawerComponents.NodeActions
+          node={node}
+          organization={organization}
+          onTabScrollToNode={onTabScrollToNode}
+        />
+      </TraceDrawerComponents.HeaderContainer>
+      <TraceDrawerComponents.BodyContainer hasNewTraceUi={hasTraceNewUi}>
+        <Description>
+          {t(
+            'This error is related to an ongoing issue. For details about how many users this affects and more, go to the issue below.'
+          )}
+        </Description>
+        <IssueList issues={issues} node={node} organization={organization} />
+      </TraceDrawerComponents.BodyContainer>
+    </TraceDrawerComponents.DetailContainer>
+  );
+}
+
+const Description = styled('div')`
+  margin-bottom: ${space(2)};
+  font-size: ${p => p.theme.fontSizeLarge};
+  line-height: 1.5;
+  text-align: left;
+`;
+
+function LegacyErrorNodeDetails({
   node,
   organization,
   onTabScrollToNode,
@@ -77,19 +130,19 @@ export function ErrorNodeDetails({
     <LoadingIndicator />
   ) : data ? (
     <TraceDrawerComponents.DetailContainer>
-      <TraceDrawerComponents.HeaderContainer>
+      <TraceDrawerComponents.LegacyHeaderContainer>
         <TraceDrawerComponents.Title>
           <TraceDrawerComponents.IconBorder
             backgroundColor={makeTraceNodeBarColor(theme, node)}
           >
             <TraceIcons.Icon event={node.value} />
           </TraceDrawerComponents.IconBorder>
-          <TraceDrawerComponents.TitleText>
+          <TraceDrawerComponents.LegacyTitleText>
             <div>{node.value.level ?? t('error')}</div>
             <TraceDrawerComponents.TitleOp
               text={node.value.message ?? node.value.title ?? 'Error'}
             />
-          </TraceDrawerComponents.TitleText>
+          </TraceDrawerComponents.LegacyTitleText>
         </TraceDrawerComponents.Title>
         <TraceDrawerComponents.Actions>
           <TraceDrawerComponents.NodeActions
@@ -101,39 +154,39 @@ export function ErrorNodeDetails({
             {t('Go to Issue')}
           </LinkButton>
         </TraceDrawerComponents.Actions>
-      </TraceDrawerComponents.HeaderContainer>
+      </TraceDrawerComponents.LegacyHeaderContainer>
+      <TraceDrawerComponents.BodyContainer>
+        <IssueList issues={issues} node={node} organization={organization} />
 
-      <IssueList issues={issues} node={node} organization={organization} />
+        <TraceDrawerComponents.SectionCard
+          items={[
+            {
+              key: 'stack_trace',
+              subject: t('Stack Trace'),
+              subjectNode: null,
+              value:
+                stackTrace && data ? (
+                  <StackTraceWrapper>
+                    <StackTracePreviewContent event={data} stacktrace={stackTrace} />
+                  </StackTraceWrapper>
+                ) : (
+                  t('No stack trace has been reported with this error')
+                ),
+            },
+          ]}
+          title={t('Stack Trace')}
+        />
 
-      <TraceDrawerComponents.SectionCard
-        items={[
-          {
-            key: 'stack_trace',
-            subject: t('Stack Trace'),
-            subjectNode: null,
-            value:
-              stackTrace && data ? (
-                <StackTraceWrapper>
-                  <StackTracePreviewContent event={data} stacktrace={stackTrace} />
-                </StackTraceWrapper>
-              ) : (
-                t('No stack trace has been reported with this error')
-              ),
-          },
-        ]}
-        title={t('Stack Trace')}
-      />
+        <TraceDrawerComponents.SectionCard items={items} title={t('General')} />
 
-      <TraceDrawerComponents.SectionCard items={items} title={t('General')} />
-
-      <TraceDrawerComponents.EventTags
-        projectSlug={node.value.project_slug}
-        event={data}
-      />
+        <TraceDrawerComponents.EventTags
+          projectSlug={node.value.project_slug}
+          event={data}
+        />
+      </TraceDrawerComponents.BodyContainer>
     </TraceDrawerComponents.DetailContainer>
   ) : null;
 }
-
 const StackTraceWrapper = styled('div')`
   .traceback {
     margin-bottom: 0;

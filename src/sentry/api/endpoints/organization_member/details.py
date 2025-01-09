@@ -46,7 +46,9 @@ ERR_NO_AUTH = "You cannot remove this member with an unauthenticated API request
 ERR_INSUFFICIENT_ROLE = "You cannot remove a member who has more access than you."
 ERR_INSUFFICIENT_SCOPE = "You are missing the member:admin scope."
 ERR_MEMBER_INVITE = "You cannot modify invitations sent by someone else."
-ERR_MEMBER_REINVITE = "You can only reinvite members; you cannot modify other member details."
+ERR_EDIT_WHEN_REINVITING = (
+    "You cannot modify member details when resending an invitation. Separate requests are required."
+)
 ERR_ONLY_OWNER = "You cannot remove the only remaining owner of the organization."
 ERR_UNINVITABLE = "You cannot send an invitation to a user who is already a full member."
 ERR_EXPIRED = "You cannot resend an expired invitation without regenerating the token."
@@ -224,10 +226,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         is_member = not (
             request.access.has_scope("member:invite") and request.access.has_scope("member:admin")
         )
-        enable_member_invite = (
-            features.has("organizations:members-invite-teammates", organization)
-            and not organization.flags.disable_member_invite
-        )
+        enable_member_invite = not organization.flags.disable_member_invite
         # Members can only resend invites
         reinvite_request_only = set(result.keys()).issubset({"reinvite", "regenerate"})
         # Members can only resend invites that they sent
@@ -236,14 +235,14 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         if is_member:
             if not enable_member_invite or not member.is_pending:
                 raise PermissionDenied
-            if not reinvite_request_only:
-                return Response({"detail": ERR_MEMBER_REINVITE}, status=403)
             if not is_invite_from_user:
                 return Response({"detail": ERR_MEMBER_INVITE}, status=403)
 
         # XXX(dcramer): if/when this expands beyond reinvite we need to check
         # access level
         if result.get("reinvite"):
+            if not reinvite_request_only:
+                return Response({"detail": ERR_EDIT_WHEN_REINVITING}, status=403)
             if member.is_pending:
                 if ratelimits.for_organization_member_invite(
                     organization=organization,
@@ -274,6 +273,25 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             else:
                 # TODO(dcramer): proper error message
                 return Response({"detail": ERR_UNINVITABLE}, status=400)
+
+            self.create_audit_entry(
+                request=request,
+                organization=organization,
+                target_object=member.id,
+                target_user_id=member.user_id,
+                event=audit_log.get_event_id("MEMBER_REINVITE"),
+                data=member.get_audit_log_data(),
+            )
+
+            return Response(
+                serialize(
+                    member,
+                    request.user,
+                    OrganizationMemberWithRolesSerializer(
+                        allowed_roles=allowed_roles,
+                    ),
+                )
+            )
 
         assigned_org_role = result.get("orgRole") or result.get("role")
 
@@ -449,8 +467,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                 if acting_member != member:
                     if not request.access.has_scope("member:admin"):
                         if (
-                            features.has("organizations:members-invite-teammates", organization)
-                            and not organization.flags.disable_member_invite
+                            not organization.flags.disable_member_invite
                             and request.access.has_scope("member:invite")
                         ):
                             return self._handle_deletion_by_member(

@@ -19,6 +19,7 @@ import {
   AggregationKey,
   DISCOVER_FIELDS,
   FieldKey,
+  FieldKind,
   FieldValueType,
   getFieldDefinition,
   MEASUREMENT_FIELDS,
@@ -264,7 +265,7 @@ export const AGGREGATIONS = {
         kind: 'dropdown',
         options: CONDITIONS_ARGUMENTS,
         dataType: 'string',
-        defaultValue: CONDITIONS_ARGUMENTS[0].value,
+        defaultValue: CONDITIONS_ARGUMENTS[0]!.value,
         required: true,
       },
       {
@@ -296,7 +297,7 @@ export const AGGREGATIONS = {
         kind: 'dropdown',
         options: WEB_VITALS_QUALITY,
         dataType: 'string',
-        defaultValue: WEB_VITALS_QUALITY[0].value,
+        defaultValue: WEB_VITALS_QUALITY[0]!.value,
         required: true,
       },
     ],
@@ -532,6 +533,23 @@ export const AGGREGATIONS = {
     parameters: [],
     isSortable: true,
   },
+  [AggregationKey.PERFORMANCE_SCORE]: {
+    ...getDocsAndOutputType(AggregationKey.PERFORMANCE_SCORE),
+    parameters: [
+      {
+        kind: 'dropdown',
+        options: ['cls', 'fcp', 'inp', 'lcp', 'total', 'ttfb'].map(vital => ({
+          label: `measurements.score.${vital}`,
+          value: `measurements.score.${vital}`,
+        })),
+        dataType: 'number',
+        defaultValue: 'measurements.score.total',
+        required: true,
+      },
+    ],
+    isSortable: true,
+    multiPlotType: 'line',
+  },
 } as const;
 
 // TPM and TPS are aliases that are only used in Performance
@@ -666,7 +684,7 @@ export function getAggregations(dataset: DiscoverDatasets) {
           kind: 'dropdown',
           options: CONDITIONS_ARGUMENTS,
           dataType: 'string',
-          defaultValue: CONDITIONS_ARGUMENTS[0].value,
+          defaultValue: CONDITIONS_ARGUMENTS[0]!.value,
           required: true,
         },
         {
@@ -787,7 +805,7 @@ export function measurementType(field: string): MeasurementType {
 export function getMeasurementSlug(field: string): string | null {
   const results = field.match(MEASUREMENT_PATTERN);
   if (results && results.length >= 2) {
-    return results[1];
+    return results[1]!;
   }
   return null;
 }
@@ -801,7 +819,7 @@ export function getAggregateArg(field: string): string | null {
   const result = parseFunction(field);
 
   if (result && result.arguments.length > 0) {
-    return result.arguments[0];
+    return result.arguments[0]!;
   }
 
   return null;
@@ -811,40 +829,41 @@ export function parseFunction(field: string): ParsedFunction | null {
   const results = field.match(AGGREGATE_PATTERN);
   if (results && results.length === 3) {
     return {
-      name: results[1],
-      arguments: parseArguments(results[1], results[2]),
+      name: results[1]!,
+      arguments: parseArguments(results[2]!),
     };
   }
 
   return null;
 }
 
-export function parseArguments(functionText: string, columnText: string): string[] {
-  // Some functions take a quoted string for their arguments that may contain commas
-  // This function attempts to be identical with the similarly named parse_arguments
-  // found in src/sentry/search/events/fields.py
-  if (
-    (functionText !== 'to_other' &&
-      functionText !== 'count_if' &&
-      functionText !== 'spans_histogram') ||
-    columnText?.length === 0
-  ) {
-    return columnText ? columnText.split(',').map(result => result.trim()) : [];
+function _lookback(columnText: string, j: number, str: string) {
+  // For parse_arguments, check that the current character is preceeded by string
+  if (j < str.length) {
+    return false;
   }
+  return columnText.substring(j - str.length, j) === str;
+}
 
+export function parseArguments(columnText: string): string[] {
   const args: string[] = [];
 
   let quoted = false;
+  let inTag = false;
   let escaped = false;
 
   let i: number = 0;
   let j: number = 0;
 
   while (j < columnText?.length) {
-    if (i === j && columnText[j] === '"') {
+    if (!inTag && i === j && columnText[j] === '"') {
       // when we see a quote at the beginning of
       // an argument, then this is a quoted string
       quoted = true;
+    } else if (!quoted && columnText[j] === '[' && _lookback(columnText, j, 'tags')) {
+      // when the argument begins with tags[,
+      // then this is the beginning of the tag that may contain commas
+      inTag = true;
     } else if (i === j && columnText[j] === ' ') {
       // argument has leading spaces, skip over them
       i += 1;
@@ -856,12 +875,16 @@ export function parseArguments(functionText: string, columnText: string): string
       // when we see a non-escaped quote while inside
       // of a quoted string, we should end it
       quoted = false;
+    } else if (inTag && !escaped && columnText[j] === ']') {
+      // when we see a non-escaped quote while inside
+      // of a quoted string, we should end it
+      inTag = false;
     } else if (quoted && escaped) {
       // when we are inside a quoted string and have
       // begun an escape character, we should end it
       escaped = false;
-    } else if (quoted && columnText[j] === ',') {
-      // when we are inside a quoted string and see
+    } else if ((quoted || inTag) && columnText[j] === ',') {
+      // when we are inside a quoted string or tag and see
       // a comma, it should not be considered an
       // argument separator
     } else if (columnText[j] === ',') {
@@ -906,7 +929,7 @@ export function getEquationAliasIndex(field: string): number {
   const results = field.match(EQUATION_ALIAS_PATTERN);
 
   if (results && results.length === 2) {
-    return parseInt(results[1], 10);
+    return parseInt(results[1]!, 10);
   }
   return -1;
 }
@@ -1163,7 +1186,7 @@ export function aggregateFunctionOutputType(
   }
 
   if (firstArg && STARFISH_FIELDS[firstArg]) {
-    return STARFISH_FIELDS[firstArg].outputType;
+    return STARFISH_FIELDS[firstArg]!.outputType;
   }
 
   if (STARFISH_AGGREGATION_FIELDS[funcName]) {
@@ -1349,7 +1372,7 @@ export function isLegalYAxisType(match: ColumnType | MetricType) {
 export function getSpanOperationName(field: string): string | null {
   const results = field.match(SPAN_OP_BREAKDOWN_PATTERN);
   if (results && results.length >= 2) {
-    return results[1];
+    return results[1]!;
   }
   return null;
 }
@@ -1616,3 +1639,20 @@ export const COMBINED_DATASET_FILTER_KEY_SECTIONS: FilterKeySection[] = [
 // export const PLATFORM_KEY_TO_FILTER_SECTIONS
 // will take in a project platform key, and output only the relevant filter key sections.
 // This way, users will not be suggested mobile fields for a backend transaction, for example.
+
+export const TYPED_TAG_KEY_RE = /tags\[([^\s]*),([^\s]*)\]/;
+
+export function classifyTagKey(key: string): FieldKind {
+  const result = key.match(TYPED_TAG_KEY_RE);
+  return result?.[2] === 'number' ? FieldKind.MEASUREMENT : FieldKind.TAG;
+}
+
+export function prettifyTagKey(key: string): string {
+  const result = key.match(TYPED_TAG_KEY_RE);
+  return result?.[1] ?? key;
+}
+
+export function prettifyParsedFunction(func: ParsedFunction) {
+  const args = func.arguments.map(prettifyTagKey);
+  return `${func.name}(${args.join(',')})`;
+}

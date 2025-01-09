@@ -1,14 +1,17 @@
 import merge from 'lodash/merge';
 import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
+import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RepositoryFixture} from 'sentry-fixture/repository';
 import {RepositoryProjectPathConfigFixture} from 'sentry-fixture/repositoryProjectPathConfig';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {Threads} from 'sentry/components/events/interfaces/threads';
 import {displayOptions} from 'sentry/components/events/traceEventDataSection';
+import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Event} from 'sentry/types/event';
 import {EntryType, EventOrGroupType} from 'sentry/types/event';
@@ -35,6 +38,7 @@ describe('Threads', function () {
       body: {config, sourceUrl: 'https://something.io', integrations: [integration]},
     });
     ProjectsStore.loadInitialData([project]);
+    ConfigStore.set('user', UserFixture());
   });
 
   describe('non native platform', function () {
@@ -214,10 +218,11 @@ describe('Threads', function () {
       };
 
       const props: React.ComponentProps<typeof Threads> = {
-        data: event.entries[1].data as React.ComponentProps<typeof Threads>['data'],
+        data: event.entries[1]!.data as React.ComponentProps<typeof Threads>['data'],
         event,
         groupingCurrentLevel: 0,
         projectSlug: project.slug,
+        group: undefined,
       };
 
       it('renders', async function () {
@@ -263,7 +268,7 @@ describe('Threads', function () {
         render(<Threads {...props} />, {organization});
 
         expect(
-          within(screen.getAllByTestId('line')[0]).getByText(
+          within(screen.getAllByTestId('line')[0]!).getByText(
             'sentry/controllers/welcome_controller.rb'
           )
         ).toBeInTheDocument();
@@ -282,7 +287,7 @@ describe('Threads', function () {
 
         // Last frame is the first on the list
         expect(
-          within(screen.getAllByTestId('line')[0]).getByText(
+          within(screen.getAllByTestId('line')[0]!).getByText(
             'puma (3.12.6) lib/puma/server.rb'
           )
         ).toBeInTheDocument();
@@ -293,7 +298,7 @@ describe('Threads', function () {
 
         // First frame is the first on the list
         expect(
-          within(screen.getAllByTestId('line')[0]).getByText(
+          within(screen.getAllByTestId('line')[0]!).getByText(
             'sentry/controllers/welcome_controller.rb'
           )
         ).toBeInTheDocument();
@@ -322,6 +327,41 @@ describe('Threads', function () {
         expect(
           await screen.findByText('Minified version not available')
         ).toBeInTheDocument();
+      });
+
+      it('renders suspect commits', async function () {
+        const user = UserFixture();
+        user.options.prefersIssueDetailsStreamlinedUI = true;
+        ConfigStore.set('user', user);
+        const group = GroupFixture();
+        const committers = [
+          {
+            author: {name: 'Max Bittker', id: '1'},
+            commits: [
+              {
+                message: 'feat: xyz',
+                score: 4,
+                id: 'ab2709293d0c9000829084ac7b1c9221fb18437c',
+                repository: RepositoryFixture(),
+                dateCreated: '2018-03-02T18:30:26Z',
+              },
+            ],
+          },
+        ];
+        MockApiClient.addMockResponse({
+          method: 'GET',
+          url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,
+          body: {
+            committers,
+          },
+        });
+        render(<Threads {...props} group={group} />, {
+          organization,
+        });
+        expect(await screen.findByText('Stack Trace')).toBeInTheDocument();
+
+        // Suspect commits
+        expect(await screen.findByTestId('commit-row')).toBeInTheDocument();
       });
     });
   });
@@ -856,10 +896,11 @@ describe('Threads', function () {
       };
 
       const props: React.ComponentProps<typeof Threads> = {
-        data: event.entries[1].data as React.ComponentProps<typeof Threads>['data'],
+        data: event.entries[1]!.data as React.ComponentProps<typeof Threads>['data'],
         event,
         groupingCurrentLevel: 0,
         projectSlug: project.slug,
+        group: undefined,
       };
 
       it('renders', async function () {
@@ -874,9 +915,9 @@ describe('Threads', function () {
         expect(screen.getByRole('radio', {name: 'Full Stack Trace'})).not.toBeChecked();
         expect(screen.getByRole('button', {name: 'Options'})).toBeInTheDocument();
 
-        expect(screen.queryByText('Threads')).toBeInTheDocument();
-        expect(screen.queryByText('Thread State')).toBeInTheDocument();
-        expect(screen.queryByText('Thread Tags')).toBeInTheDocument();
+        expect(screen.getByText('Threads')).toBeInTheDocument();
+        expect(screen.getByText('Thread State')).toBeInTheDocument();
+        expect(screen.getByText('Thread Tags')).toBeInTheDocument();
 
         // Stack Trace
         expect(screen.getByRole('heading', {name: 'EXC_BAD_ACCESS'})).toBeInTheDocument();
@@ -972,7 +1013,7 @@ describe('Threads', function () {
 
       it('maps android vm states to java vm states', async function () {
         const newEvent = {...event};
-        const threadsEntry = newEvent.entries[1].data as React.ComponentProps<
+        const threadsEntry = newEvent.entries[1]!.data as React.ComponentProps<
           typeof Threads
         >['data'];
         const thread = {
@@ -1048,7 +1089,7 @@ describe('Threads', function () {
         render(<Threads {...props} />, {organization});
 
         expect(
-          within(screen.getAllByTestId('stack-trace-frame')[0]).getByText(
+          within(screen.getAllByTestId('stack-trace-frame')[0]!).getByText(
             '-[SentryClient crash]'
           )
         ).toBeInTheDocument();
@@ -1074,7 +1115,7 @@ describe('Threads', function () {
 
         // Last frame is the first on the list
         expect(
-          within(screen.getAllByTestId('stack-trace-frame')[0]).getByText('UIKit')
+          within(screen.getAllByTestId('stack-trace-frame')[0]!).getByText('UIKit')
         ).toBeInTheDocument();
 
         // Switch back to recent first
@@ -1083,7 +1124,7 @@ describe('Threads', function () {
 
         // First frame is the first on the list
         expect(
-          within(screen.getAllByTestId('stack-trace-frame')[0]).getByText(
+          within(screen.getAllByTestId('stack-trace-frame')[0]!).getByText(
             '-[SentryClient crash]'
           )
         ).toBeInTheDocument();
@@ -1118,7 +1159,7 @@ describe('Threads', function () {
 
         // Function name is not verbose
         expect(
-          within(screen.getAllByTestId('stack-trace-frame')[1]).getByText(
+          within(screen.getAllByTestId('stack-trace-frame')[1]!).getByText(
             'ViewController.causeCrash'
           )
         ).toBeInTheDocument();
@@ -1128,14 +1169,14 @@ describe('Threads', function () {
 
         // Function name is now verbose
         expect(
-          within(screen.getAllByTestId('stack-trace-frame')[1]).getByText(
+          within(screen.getAllByTestId('stack-trace-frame')[1]!).getByText(
             'ViewController.causeCrash(Any) -> ()'
           )
         ).toBeInTheDocument();
 
         // Address is not absolute
         expect(
-          within(screen.getAllByTestId('stack-trace-frame')[1]).getByText('+0x085ac')
+          within(screen.getAllByTestId('stack-trace-frame')[1]!).getByText('+0x085ac')
         ).toBeInTheDocument();
 
         // Click on absolute file paths option
@@ -1143,7 +1184,7 @@ describe('Threads', function () {
 
         // Address is now absolute
         expect(
-          within(screen.getAllByTestId('stack-trace-frame')[1]).getByText('0x10008c5ac')
+          within(screen.getAllByTestId('stack-trace-frame')[1]!).getByText('0x10008c5ac')
         ).toBeInTheDocument();
 
         MockApiClient.addMockResponse({
@@ -1174,7 +1215,7 @@ describe('Threads', function () {
 
       it('uses thread label in selector if name not available', async function () {
         const newEvent = {...event};
-        const threadsEntry = newEvent.entries[1].data as React.ComponentProps<
+        const threadsEntry = newEvent.entries[1]!.data as React.ComponentProps<
           typeof Threads
         >['data'];
         const thread = {
@@ -1224,6 +1265,18 @@ describe('Threads', function () {
         const threadSelector = await screen.findByTestId('thread-selector');
         expect(threadSelector).toBeInTheDocument();
         within(threadSelector).getByText('ViewController.causeCrash');
+      });
+
+      it('can navigate to next/previous thread', async function () {
+        render(<Threads {...props} />, {organization});
+        const threadSelector = await screen.findByTestId('thread-selector');
+        expect(threadSelector).toHaveTextContent('Thread #0');
+        await userEvent.click(await screen.findByRole('button', {name: 'Next Thread'}));
+        expect(threadSelector).toHaveTextContent('Thread #1');
+        await userEvent.click(
+          await screen.findByRole('button', {name: 'Previous Thread'})
+        );
+        expect(threadSelector).toHaveTextContent('Thread #0');
       });
 
       it('renders raw stack trace', async function () {

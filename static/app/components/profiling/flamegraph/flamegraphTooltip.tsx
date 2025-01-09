@@ -19,11 +19,17 @@ import type {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegra
 import {Rect} from 'sentry/utils/profiling/speedscope';
 import {relativeChange} from 'sentry/utils/profiling/units/units';
 
+export const PROFILING_SAMPLES_FORMATTER = Intl.NumberFormat(undefined, {
+  notation: 'compact',
+});
+
 export function formatWeightToProfileDuration(
   frame: CallTreeNode,
   flamegraph: Flamegraph
 ) {
-  return `${Math.round((frame.totalWeight / flamegraph.profile.duration) * 100)}%`;
+  const weight = (frame.totalWeight / flamegraph.profile.duration) * 100;
+
+  return `${Math.round(weight * 100) / 100}%`;
 }
 
 export interface FlamegraphTooltipProps {
@@ -100,16 +106,16 @@ function DifferentialFlamegraphTooltip(props: DifferentialFlamegraphTooltipProps
 
   return (
     <BoundTooltip
-      bounds={props.canvasBounds}
       cursor={props.configSpaceCursor}
       canvas={props.flamegraphCanvas}
+      canvasBounds={props.canvasBounds}
       canvasView={props.flamegraphView}
     >
       <FlamegraphTooltipFrameMainInfo>
         <FlamegraphTooltipColorIndicator
           backgroundColor={formatColorForFrame(props.frame, props.flamegraphRenderer)}
         />
-        {flamegraph.formatter(props.frame.node.totalWeight)}{' '}
+        {PROFILING_SAMPLES_FORMATTER.format(props.frame.node.totalWeight)}{' '}
         {t('samples, ') + formattedChange}{' '}
         {`(${formatWeightToProfileDuration(props.frame.node, flamegraph)})`}{' '}
         {props.frame.frame.name}
@@ -134,7 +140,7 @@ interface AggregateFlamegraphTooltipProps extends FlamegraphTooltipProps {
 function AggregateFlamegraphTooltip(props: AggregateFlamegraphTooltipProps) {
   return (
     <BoundTooltip
-      bounds={props.canvasBounds}
+      canvasBounds={props.canvasBounds}
       cursor={props.configSpaceCursor}
       canvas={props.flamegraphCanvas}
       canvasView={props.flamegraphView}
@@ -143,7 +149,7 @@ function AggregateFlamegraphTooltip(props: AggregateFlamegraphTooltipProps) {
         <FlamegraphTooltipColorIndicator
           backgroundColor={formatColorForFrame(props.frame, props.flamegraphRenderer)}
         />
-        {props.flamegraphRenderer.flamegraph.formatter(props.frame.node.totalWeight)}{' '}
+        {PROFILING_SAMPLES_FORMATTER.format(props.frame.node.totalWeight)}{' '}
         {t('samples') + ' '}
         {`(${formatWeightToProfileDuration(
           props.frame.node,
@@ -167,7 +173,7 @@ interface FlamechartTooltipProps extends FlamegraphTooltipProps {
 function FlamechartTooltip(props: FlamechartTooltipProps) {
   return (
     <BoundTooltip
-      bounds={props.canvasBounds}
+      canvasBounds={props.canvasBounds}
       cursor={props.configSpaceCursor}
       canvas={props.flamegraphCanvas}
       canvasView={props.flamegraphView}
@@ -231,8 +237,9 @@ export const FlamegraphTooltipTimelineInfo = styled('div')`
 `;
 
 export const FlamegraphTooltipFrameMainInfo = styled('div')`
-  display: flex;
-  align-items: center;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 `;
 
 export const FlamegraphTooltipColorIndicator = styled('div')<{
@@ -249,4 +256,5 @@ export const FlamegraphTooltipColorIndicator = styled('div')<{
   background-size: 16px 16px;
   background-color: ${p => p.backgroundColor};
   margin-right: ${space(1)};
+  transform: translateY(2px);
 `;

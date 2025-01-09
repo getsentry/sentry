@@ -26,7 +26,7 @@ import type {SelectValue} from 'sentry/types/core';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import slugify from 'sentry/utils/slugify';
 import commonTheme from 'sentry/utils/theme';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {getScheduleIntervals} from 'sentry/views/monitors/utils';
@@ -97,7 +97,7 @@ export function transformMonitorFormData(_data: Record<string, any>, model: Form
         // See SentryMemberTeamSelectorField to understand why these are strings
         const [type, id] = item.split(':');
 
-        const targetType = RULE_TARGET_MAP[type];
+        const targetType = RULE_TARGET_MAP[type!];
 
         return {targetType, targetIdentifier: Number(id)};
       });
@@ -169,6 +169,7 @@ function MonitorForm({
   apiMethod,
   onSubmitSuccess,
 }: Props) {
+  const organization = useOrganization();
   const form = useRef(
     new FormModel({
       transformData: transformMonitorFormData,
@@ -179,7 +180,7 @@ function MonitorForm({
   const {selection} = usePageFilters();
 
   function formDataFromConfig(type: MonitorType, config: MonitorConfig) {
-    const rv = {};
+    const rv: Record<string, MonitorConfig[keyof MonitorConfig]> = {};
     switch (type) {
       case 'cron_job':
         rv['config.scheduleType'] = config.schedule_type;
@@ -239,7 +240,7 @@ function MonitorForm({
           ? {
               name: monitor.name,
               slug: monitor.slug,
-              owner: owner,
+              owner,
               type: monitor.type ?? DEFAULT_MONITOR_TYPE,
               project: monitor.project.slug,
               'alertRule.targets': alertRuleTarget,
@@ -489,19 +490,17 @@ function MonitorForm({
           {t('Configure who to notify upon issue creation and when.')}
         </ListItemSubText>
         <InputGroup>
+          {monitor?.config.alert_rule_id && (
+            <AlertLink
+              priority="muted"
+              to={`/organizations/${organization.slug}/alerts/rules/${monitor.project.slug}/${monitor.config.alert_rule_id}/`}
+              withoutMarginBottom
+            >
+              {t('Customize this monitors notification configuration in Alerts')}
+            </AlertLink>
+          )}
           <Panel>
             <PanelBody>
-              {monitor?.config.alert_rule_id && (
-                <AlertLink
-                  priority="muted"
-                  to={normalizeUrl(
-                    `/alerts/rules/${monitor.project.slug}/${monitor.config.alert_rule_id}/`
-                  )}
-                  withoutMarginBottom
-                >
-                  {t('Customize this monitors notification configuration in Alerts')}
-                </AlertLink>
-              )}
               <Observer>
                 {() => {
                   const projectSlug = form.current.getValue('project')?.toString();

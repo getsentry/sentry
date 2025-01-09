@@ -4,6 +4,7 @@ import {
   Fragment,
   useCallback,
   useLayoutEffect,
+  useRef,
   useState,
 } from 'react';
 import styled from '@emotion/styled';
@@ -11,12 +12,14 @@ import styled from '@emotion/styled';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {IconChevron} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import mergeRefs from 'sentry/utils/mergeRefs';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import type {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {useEventDetails} from 'sentry/views/issueDetails/streamline/context';
+import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 
 export function getFoldSectionKey(key: SectionKey) {
   return `'issue-details-fold-section-collapse:${key}`;
@@ -53,21 +56,49 @@ export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function Fo
     sectionKey,
     initialCollapse = false,
     preventCollapse = false,
-    ...props
   },
   forwardedRef
 ) {
   const organization = useOrganization();
-  const {sectionData, navScrollMargin, dispatch} = useEventDetails();
+  const {sectionData, navScrollMargin, dispatch} = useIssueDetails();
   // Does not control open/close state. Controls what state is persisted to local storage
   const [isCollapsed, setIsCollapsed] = useSyncedLocalStorageState(
     getFoldSectionKey(sectionKey),
     initialCollapse
   );
+  const hasAttemptedScroll = useRef(false);
+
+  const scrollToSection = useCallback(
+    (element: HTMLElement | null) => {
+      if (!element || !navScrollMargin || hasAttemptedScroll.current) {
+        return;
+      }
+      // Prevent scrolling to element on rerenders
+      hasAttemptedScroll.current = true;
+
+      // scroll to element if it's the current section on page load
+      if (window.location.hash) {
+        const [, hash] = window.location.hash.split('#');
+        if (hash === sectionKey) {
+          if (isCollapsed) {
+            setIsCollapsed(false);
+          }
+
+          // Delay scrollIntoView to allow for layout changes to take place
+          setTimeout(() => element?.scrollIntoView(), 100);
+        }
+      }
+    },
+    [sectionKey, navScrollMargin, isCollapsed, setIsCollapsed]
+  );
 
   useLayoutEffect(() => {
     if (!sectionData.hasOwnProperty(sectionKey)) {
-      dispatch({type: 'UPDATE_SECTION', key: sectionKey, config: {initialCollapse}});
+      dispatch({
+        type: 'UPDATE_EVENT_SECTION',
+        key: sectionKey,
+        config: {initialCollapse},
+      });
     }
   }, [sectionData, dispatch, sectionKey, initialCollapse]);
 
@@ -88,25 +119,31 @@ export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function Fo
     },
     [organization, sectionKey, isCollapsed, setIsCollapsed]
   );
+  const labelPrefix = isCollapsed ? t('View') : t('Collapse');
+  const labelSuffix = typeof title === 'string' ? title + t(' Section') : t('Section');
 
   return (
     <Fragment>
       <Section
-        {...props}
-        ref={forwardedRef}
+        ref={mergeRefs([forwardedRef, scrollToSection])}
         id={sectionKey}
         scrollMargin={navScrollMargin ?? 0}
+        role="region"
       >
         <SectionExpander
           preventCollapse={preventCollapse}
           onClick={preventCollapse ? e => e.preventDefault() : toggleCollapse}
+          role="button"
+          aria-label={`${labelPrefix} ${labelSuffix}`}
+          aria-expanded={!isCollapsed}
         >
           <InteractionStateLayer
+            hasSelectedBackground={false}
             hidden={preventCollapse ? preventCollapse : !isLayerEnabled}
           />
           <TitleWithActions>
             <TitleWrapper>{title}</TitleWrapper>
-            {!preventCollapse && !isCollapsed && (
+            {!isCollapsed && (
               <div
                 onClick={e => e.stopPropagation()}
                 onMouseEnter={() => setIsLayerEnabled(false)}
@@ -133,13 +170,13 @@ export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function Fo
 
 export const SectionDivider = styled('hr')`
   border-color: ${p => p.theme.translucentBorder};
-  margin: ${space(1)} 0;
+  margin: ${space(1.5)} 0;
   &:last-child {
     display: none;
   }
 `;
 
-export const Section = styled('section')<{scrollMargin: number}>`
+const Section = styled('section')<{scrollMargin: number}>`
   scroll-margin-top: calc(${space(1)} + ${p => p.scrollMargin ?? 0}px);
 `;
 
@@ -151,15 +188,17 @@ const SectionExpander = styled('div')<{preventCollapse: boolean}>`
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
-  padding: ${space(0.5)} ${space(0.75)};
+  padding: ${space(0.5)} ${space(1.5)};
+  margin: 0 -${space(0.75)};
   border-radius: ${p => p.theme.borderRadius};
   cursor: ${p => (p.preventCollapse ? 'initial' : 'pointer')};
   position: relative;
 `;
 
 const TitleWrapper = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSizeLarge};
   font-weight: ${p => p.theme.fontWeightBold};
+  user-select: none;
 `;
 
 const IconWrapper = styled('div')<{preventCollapse: boolean}>`

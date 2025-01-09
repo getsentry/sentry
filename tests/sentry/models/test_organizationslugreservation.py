@@ -44,9 +44,9 @@ class TestOrganizationSlugReservationReplication(TestCase):
             slug_res = org_slug_reservations.get(slug)
             assert slug_res is not None
 
-            org_slug_reservation_replica: None | (
-                OrganizationSlugReservationReplica
-            ) = org_slug_replicas.pop(slug, None)
+            org_slug_reservation_replica: None | (OrganizationSlugReservationReplica) = (
+                org_slug_replicas.pop(slug, None)
+            )
 
             if org_slug_reservation_replica is None:
                 slug_reservations_missing_replicas.append(slug_res)
@@ -69,7 +69,7 @@ class TestOrganizationSlugReservationReplication(TestCase):
             or len(slug_reservations_missing_replicas) > 0
             or len(extraneous_replicas) > 0
         ):
-            raise Exception(
+            raise AssertionError(
                 "One or more org slug replicas did not match\n"
                 + f"mismatched replicas: {mismatched_slug_res_replicas}\n"
                 + f"extraneous replicas: {extraneous_replicas}\n"

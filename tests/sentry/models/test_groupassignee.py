@@ -5,7 +5,7 @@ import pytest
 from sentry.integrations.example.integration import ExampleIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.services.assignment_source import AssignmentSource
-from sentry.integrations.utils import sync_group_assignee_inbound
+from sentry.integrations.utils.sync import sync_group_assignee_inbound
 from sentry.models.activity import Activity
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.grouplink import GroupLink
@@ -270,7 +270,7 @@ class GroupAssigneeTestCase(TestCase):
 
         with self.feature({"organizations:integrations-issue-sync": True}):
             with self.tasks():
-                GroupAssignee.objects.deassign(self.group)
+                GroupAssignee.objects.deassign(self.group, self.user)
                 mock_sync_assignee_outbound.assert_called_with(
                     external_issue, None, assign=False, assignment_source=None
                 )

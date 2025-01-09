@@ -21,7 +21,7 @@ from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment, R
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.users.models.user import User
 from sentry.users.models.useremail import UserEmail
@@ -45,7 +45,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
 
         self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "release": release_version,
                 "environment": "prod",
             },
@@ -76,12 +76,8 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         assert result["version"] == release.version
         # should be sum of all projects
         assert result["newGroups"] == 2
-        tagvalue1 = tagstore.backend.get_tag_value(
-            project.id,
-            None,
-            "sentry:release",
-            release_version,
-            tenant_ids={"organization_id": 1, "referrer": "r"},
+        (tagvalue1,) = tagstore.backend.get_release_tags(
+            1, [project.id], environment_id=None, versions=[release_version]
         )
         assert result["lastEvent"] == tagvalue1.last_seen
         assert result["commitCount"] == 1
@@ -149,7 +145,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
 
         self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "release": release_version,
                 "environment": "prod",
             },
@@ -612,7 +608,7 @@ class GroupEventReleaseSerializerTest(TestCase, SnubaTestCase):
 
         self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "release": release_version,
                 "environment": "prod",
             },

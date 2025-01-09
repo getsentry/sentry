@@ -1,5 +1,6 @@
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {PageFilters} from 'sentry/types/core';
+import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -16,6 +17,7 @@ export interface SpanResults<F extends string> {
 interface UseTraceSpansOptions<F extends string> {
   fields: F[];
   trace: TraceResult;
+  dataset?: DiscoverDatasets;
   datetime?: PageFilters['datetime'];
   enabled?: boolean;
   limit?: number;
@@ -26,6 +28,7 @@ interface UseTraceSpansOptions<F extends string> {
 export function useTraceSpans<F extends string>({
   fields,
   trace,
+  dataset,
   datetime,
   enabled,
   limit,
@@ -42,6 +45,7 @@ export function useTraceSpans<F extends string>({
       project: selection.projects,
       environment: selection.environments,
       ...normalizeDateTimeParams(datetime ?? selection.datetime),
+      dataset,
       field: fields,
       query,
       sort,

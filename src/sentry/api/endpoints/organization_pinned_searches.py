@@ -33,8 +33,8 @@ class OrganizationSearchSerializer(serializers.Serializer):
 class OrganizationPinnedSearchEndpoint(OrganizationEndpoint):
     owner = ApiOwner.UNOWNED
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
-        "PUT": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (OrganizationPinnedSearchPermission,)
 

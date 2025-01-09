@@ -173,12 +173,14 @@ const lightShadows = {
   dropShadowLight: '0 0 1px rgba(43, 34, 51, 0.04)',
   dropShadowMedium: '0 1px 2px rgba(43, 34, 51, 0.04)',
   dropShadowHeavy: '0 4px 24px rgba(43, 34, 51, 0.12)',
+  dropShadowHeavyTop: '0 -4px 24px rgba(43, 34, 51, 0.12)',
 };
 
 const darkShadows = {
   dropShadowLight: '0 0 1px rgba(10, 8, 12, 0.2)',
   dropShadowMedium: '0 1px 2px rgba(10, 8, 12, 0.2)',
   dropShadowHeavy: '0 4px 24px rgba(10, 8, 12, 0.36)',
+  dropShadowHeavyTop: '0 -4px 24px rgba(10, 8, 12, 0.36)',
 };
 
 /**
@@ -417,7 +419,7 @@ const dataCategory = {
   [DATA_CATEGORY_INFO.transaction.plural]: CHART_PALETTE[4][2],
   [DATA_CATEGORY_INFO.attachment.plural]: CHART_PALETTE[4][1],
   [DATA_CATEGORY_INFO.replay.plural]: CHART_PALETTE[4][4],
-  [DATA_CATEGORY_INFO.monitorSeat.plural]: CHART_PALETTE[4][5],
+  [DATA_CATEGORY_INFO.monitorSeat.plural]: '#a397f7',
 };
 
 /**
@@ -648,6 +650,16 @@ const generateUtils = (colors: BaseColors, aliases: Aliases) => ({
     overflow: 'hidden',
     textOverflow: 'ellipsis',
   }),
+  // https://css-tricks.com/inclusively-hidden/
+  visuallyHidden: css({
+    clip: 'rect(0 0 0 0)',
+    clipPath: 'inset(50%)',
+    height: '1px',
+    overflow: 'hidden',
+    position: 'absolute',
+    whiteSpace: 'nowrap',
+    width: '1px',
+  }),
 });
 
 const generatePrismVariables = (
@@ -733,6 +745,9 @@ const commonTheme = {
 
     globalSelectionHeader: 1009,
 
+    // needs to be below sidebar
+    widgetBuilderDrawer: 1016,
+
     settingsSidebarNavMask: 1017,
     settingsSidebarNav: 1018,
     sidebarPanel: 1019,
@@ -754,9 +769,9 @@ const commonTheme = {
 
     // On mobile views issue list dropdowns overlap
     issuesList: {
-      stickyHeader: 1,
-      sortOptions: 2,
-      displayOptions: 3,
+      stickyHeader: 2,
+      sortOptions: 3,
+      displayOptions: 4,
     },
   },
 
@@ -916,7 +931,7 @@ const commonTheme = {
 
     // We have an array that maps `number + 1` --> list of `number` colors
     getColorPalette: (length: number) =>
-      CHART_PALETTE[Math.min(CHART_PALETTE.length - 1, length + 1)] as string[],
+      CHART_PALETTE[Math.min(CHART_PALETTE.length - 1, length + 1)],
 
     previousPeriod: lightColors.gray200,
     symbolSize: 6,

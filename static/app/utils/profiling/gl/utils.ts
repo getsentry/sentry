@@ -177,8 +177,8 @@ function onResize(entries: ResizeObserverEntry[]) {
       // NOTE: Only this path gives the correct answer
       // The other paths are imperfect fallbacks
       // for browsers that don't provide anyway to do this
-      width = entry.devicePixelContentBoxSize[0].inlineSize;
-      height = entry.devicePixelContentBoxSize[0].blockSize;
+      width = entry.devicePixelContentBoxSize[0]!.inlineSize;
+      height = entry.devicePixelContentBoxSize[0]!.blockSize;
       dpr = 1; // it's already in width and height
     } else if (entry.contentBoxSize) {
       if (entry.contentBoxSize[0]) {
@@ -414,17 +414,17 @@ export function lowerBound<T extends {end: number; start: number}>(
 
   if (high === 1) {
     return getValue
-      ? getValue(values[0]) < target
+      ? getValue(values[0]!) < target
         ? 1
         : 0
-      : values[0].end < target
+      : values[0]!.end < target
         ? 1
         : 0;
   }
 
   while (low !== high) {
     const mid = low + Math.floor((high - low) / 2);
-    const value = getValue ? getValue(values[mid]) : values[mid].end;
+    const value = getValue ? getValue(values[mid]!) : values[mid]!.end;
 
     if (value < target) {
       low = mid + 1;
@@ -628,7 +628,7 @@ export function computeMinZoomConfigViewForFrames(view: Rect, frames: Rect[]): R
   }
 
   if (frames.length === 1) {
-    return new Rect(frames[0].x, frames[0].y, frames[0].width, view.height);
+    return new Rect(frames[0]!.x, frames[0]!.y, frames[0]!.width, view.height);
   }
 
   const frame = frames.reduce(
@@ -703,12 +703,12 @@ export function getTranslationMatrixFromPhysicalSpace(
   const [m00, m01, m02, m10, m11, m12] = physicalToConfig;
 
   const configDelta = vec2.transformMat3(vec2.create(), physicalDelta, [
-    m00,
-    m01,
-    m02,
-    m10,
-    m11,
-    m12,
+    m00!,
+    m01!,
+    m02!,
+    m10!,
+    m11!,
+    m12!,
     0,
     0,
     0,
@@ -741,12 +741,12 @@ export function getConfigViewTranslationBetweenVectors(
   const [m00, m01, m02, m10, m11, m12] = physicalToConfig;
 
   const configDelta = vec2.transformMat3(vec2.create(), physicalDelta, [
-    m00,
-    m01,
-    m02,
-    m10,
-    m11,
-    m12,
+    m00!,
+    m01!,
+    m02!,
+    m10!,
+    m11!,
+    m12!,
     0,
     0,
     0,
@@ -778,12 +778,12 @@ export function getConfigSpaceTranslationBetweenVectors(
   );
   const [m00, m01, m02, m10, m11, m12] = physicalToConfig;
   const configDelta = vec2.transformMat3(vec2.create(), physicalDelta, [
-    m00,
-    m01,
-    m02,
-    m10,
-    m11,
-    m12,
+    m00!,
+    m01!,
+    m02!,
+    m10!,
+    m11!,
+    m12!,
     0,
     0,
     0,
@@ -835,12 +835,10 @@ export function useResizeCanvasObserver(
     }
 
     const observer = watchForResize(canvases as HTMLCanvasElement[], entries => {
-      const contentRect =
-        entries[0].contentRect ?? entries[0].target.getBoundingClientRect();
-
-      setCanvasBounds(
-        new Rect(contentRect.x, contentRect.y, contentRect.width, contentRect.height)
-      );
+      // We cannot use the resize observer's reported rect because it does not report x
+      // coordinate that is required to do edge detection.
+      const rect = entries[0]!.target.getBoundingClientRect();
+      setCanvasBounds(new Rect(rect.x, rect.y, rect.width, rect.height));
 
       canvas.initPhysicalSpace();
       if (view) {

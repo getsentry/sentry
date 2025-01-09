@@ -105,5 +105,7 @@ describe('StackTracePreview', () => {
     await userEvent.hover(screen.getByText(/Preview Trigger/));
 
     expect(await screen.findByTestId(component)).toBeInTheDocument();
+    // Hide the platform icon for stack trace previews
+    expect(screen.queryByRole('img')).not.toBeInTheDocument();
   });
 });

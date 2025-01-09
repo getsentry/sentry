@@ -18,7 +18,6 @@ import OrganizationsStore from 'sentry/stores/organizationsStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Config} from 'sentry/types/system';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import OrganizationGeneralSettings from 'sentry/views/settings/organizationGeneralSettings';
 
 jest.mock('sentry/utils/analytics');
@@ -107,7 +106,7 @@ describe('OrganizationGeneralSettings', function () {
   });
 
   it('changes org slug and redirects to new slug', async function () {
-    render(<OrganizationGeneralSettings {...defaultProps} />);
+    render(<OrganizationGeneralSettings {...defaultProps} />, {router});
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'PUT',
@@ -126,7 +125,11 @@ describe('OrganizationGeneralSettings', function () {
           data: {slug: 'new-slug'},
         })
       );
-      expect(browserHistory.replace).toHaveBeenCalledWith('/settings/new-slug/');
+    });
+    await waitFor(() => {
+      expect(router.replace).toHaveBeenCalledWith(
+        expect.objectContaining({pathname: '/settings/new-slug/'})
+      );
     });
   });
 
@@ -158,10 +161,10 @@ describe('OrganizationGeneralSettings', function () {
           },
         })
       );
-      expect(window.location.replace).toHaveBeenCalledWith(
-        'https://acme.sentry.io/settings/organization/'
-      );
     });
+    expect(window.location.replace).toHaveBeenCalledWith(
+      'https://acme.sentry.io/settings/organization/'
+    );
   });
 
   it('disables the entire form if user does not have write access', function () {

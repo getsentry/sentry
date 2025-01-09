@@ -1,0 +1,167 @@
+---
+created: '2024-12-17T22:50:25.242539+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+hashing_metadata: {
+  "num_stacktraces": 1,
+  "stacktrace_location": "exception",
+  "stacktrace_type": "system"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "stacktrace",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.stacktrace": {
+    "chained_exception": "False",
+    "stacktrace_location": "exception",
+    "stacktrace_type": "system"
+  }
+}
+---
+contributing variants:
+  system*
+    hash: "ab793fe47359148c7fc95f684bc5308d"
+    contributing component: exception
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+              function*
+                "start"
+            frame*
+              function*
+                "code"
+            frame*
+              function*
+                "-[NSApplication run]"
+            frame*
+              function*
+                "-[NSApplication(NSEvent) _nextEventMatchingEventMask:untilDate:inMode:dequeue:]"
+            frame*
+              function*
+                "_DPSNextEvent"
+            frame*
+              function*
+                "_BlockUntilNextEventMatchingListInModeWithFilter"
+            frame*
+              function*
+                "ReceiveNextEventCommon"
+            frame*
+              function*
+                "RunCurrentEventLoopInMode"
+            frame*
+              function*
+                "__NSThreadPerformPerform"
+            frame*
+              function*
+                "code"
+            frame*
+              function*
+                "-[NSView displayIfNeeded]"
+            frame*
+              function*
+                "-[_NSOpenGLViewBackingLayer display]"
+            frame*
+              function*
+                "code"
+            frame*
+              function*
+                "CGLTexImageIOSurface2D"
+            frame*
+              function*
+                "CGLDescribeRenderer"
+            frame*
+              function*
+                "gliSetInteger"
+            frame*
+              function*
+                "gldFlushObject"
+            frame*
+              function*
+                "intelSubmitCommands"
+            frame*
+              function*
+                "IntelCommandBuffer::getNew"
+            frame*
+              function*
+                "gpusSubmitDataBuffers"
+            frame*
+              function*
+                "gpusKillClientExt"
+            frame*
+              function*
+                "gpusGenerateCrashLog"
+            frame*
+              function*
+                "gpusGenerateCrashLog.cold.1"
+            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+              function*
+                "abort"
+            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+              function*
+                "_sigtramp"
+            frame*
+              function*
+                "code"
+            frame*
+              function*
+                "NSRunAlertPanel"
+            frame*
+              function*
+                "_NSTryRunModal"
+            frame*
+              function*
+                "CA::Transaction::commit"
+            frame*
+              function*
+                "CA::Context::commit_transaction"
+            frame*
+              function*
+                "CA::Layer::display_if_needed"
+            frame*
+              function*
+                "-[_NSOpenGLViewBackingLayer display]"
+            frame*
+              function*
+                "code"
+            frame*
+              function*
+                "CGLTexImageIOSurface2D"
+            frame*
+              function*
+                "CGLDescribeRenderer"
+            frame*
+              function*
+                "gliSetInteger"
+            frame*
+              function*
+                "gldFlushObject"
+            frame*
+              function*
+                "intelSubmitCommands"
+            frame*
+              function*
+                "IntelCommandBuffer::getNew"
+            frame*
+              function*
+                "gpusSubmitDataBuffers"
+            frame*
+              function*
+                "gpusKillClientExt"
+            frame*
+              function*
+                "gpusGenerateCrashLog"
+            frame*
+              function*
+                "gpusGenerateCrashLog.cold.1"
+            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+              function*
+                "abort"
+            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+              function*
+                "__pthread_kill"

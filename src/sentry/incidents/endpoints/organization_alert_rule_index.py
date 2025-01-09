@@ -6,7 +6,7 @@ from django.db.models import Case, DateTimeField, IntegerField, OuterRef, Q, Sub
 from django.db.models.functions import Coalesce
 from drf_spectacular.utils import extend_schema, extend_schema_serializer
 from rest_framework import serializers, status
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -52,8 +52,8 @@ from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleSource
 from sentry.models.team import Team
 from sentry.sentry_apps.services.app import app_service
-from sentry.signals import alert_rule_created
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.models import SnubaQuery
 from sentry.uptime.models import (
     ProjectUptimeSubscription,
     ProjectUptimeSubscriptionMode,
@@ -77,10 +77,6 @@ class AlertRuleIndexMixin(Endpoint):
 
         if not features.has("organizations:performance-view", organization):
             alert_rules = alert_rules.filter(snuba_query__dataset=Dataset.Events.value)
-
-        monitor_type = request.GET.get("monitor_type", None)
-        if monitor_type is not None:
-            alert_rules = alert_rules.filter(monitor_type=monitor_type)
 
         response = self.paginate(
             request,
@@ -111,22 +107,14 @@ class AlertRuleIndexMixin(Endpoint):
                 "access": request.access,
                 "user": request.user,
                 "ip_address": request.META.get("REMOTE_ADDR"),
-                "installations": app_service.get_installed_for_organization(
+                "installations": app_service.installations_for_organization(
                     organization_id=organization.id
                 ),
             },
             data=data,
         )
-
         if not serializer.is_valid():
             raise ValidationError(serializer.errors)
-
-        # if there are no triggers, then the serializer will raise an error
-        for trigger in data["triggers"]:
-            if not trigger.get("actions", []):
-                raise ValidationError(
-                    "Each trigger must have an associated action for this alert to fire."
-                )
 
         trigger_sentry_app_action_creators_for_incidents(serializer.validated_data)
         if get_slack_actions_with_async_lookups(organization, request.user, request.data):
@@ -142,25 +130,13 @@ class AlertRuleIndexMixin(Endpoint):
             return Response({"uuid": client.uuid}, status=202)
         else:
             alert_rule = serializer.save()
-            referrer = request.query_params.get("referrer")
-            session_id = request.query_params.get("sessionId")
-            duplicate_rule = request.query_params.get("duplicateRule")
-            wizard_v3 = request.query_params.get("wizardV3")
-            subscriptions = alert_rule.snuba_query.subscriptions.all()
-            for sub in subscriptions:
-                alert_rule_created.send_robust(
-                    user=request.user,
-                    project=sub.project,
-                    rule_id=alert_rule.id,
-                    rule_type="metric",
-                    sender=self,
-                    referrer=referrer,
-                    session_id=session_id,
-                    is_api_token=request.auth is not None,
-                    duplicate_rule=duplicate_rule,
-                    wizard_v3=wizard_v3,
-                )
             return Response(serialize(alert_rule, request.user), status=status.HTTP_201_CREATED)
+
+    def get_query_type_description(self, value):
+        try:
+            return SnubaQuery.Type(value).name
+        except ValueError:
+            return "Unknown"
 
 
 @region_silo_endpoint
@@ -206,10 +182,6 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
 
         alert_rules = AlertRule.objects.fetch_for_organization(organization, projects)
 
-        monitor_type = request.GET.get("monitor_type", None)
-        if monitor_type is not None:
-            alert_rules = alert_rules.filter(monitor_type=monitor_type)
-
         issue_rules = Rule.objects.filter(
             status__in=[ObjectStatus.ACTIVE, ObjectStatus.DISABLED],
             source__in=[RuleSource.ISSUE],
@@ -223,9 +195,6 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
                 ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
             ),
         )
-
-        if not features.has("organizations:uptime-rule-api", organization):
-            uptime_rules = ProjectUptimeSubscription.objects.none()
 
         if not features.has("organizations:performance-view", organization):
             # Filter to only error alert rules
@@ -369,7 +338,7 @@ A list of triggers, where each trigger is an object with the following fields:
 - `label`: One of `critical` or `warning`. A `critical` trigger is always required.
 - `alertThreshold`: The value that the subscription needs to reach to trigger the
 alert rule.
-- `actions`: A list of actions that take place when the threshold is met. Set as an empty list if no actions are to take place.
+- `actions`: A list of actions that take place when the threshold is met.
 ```json
 triggers: [
     {
@@ -432,21 +401,7 @@ Metric alert rule trigger actions follow the following structure:
     owner = ActorField(
         required=False, allow_null=True, help_text="The ID of the team or user that owns the rule."
     )
-    excludedProjects = serializers.ListField(
-        child=ProjectField(scope="project:read"), required=False
-    )
     thresholdPeriod = serializers.IntegerField(required=False, default=1, min_value=1, max_value=20)
-    monitorType = serializers.IntegerField(
-        required=False,
-        min_value=0,
-        help_text="Monitor type represents whether the alert rule is actively being monitored or is monitored given a specific activation condition.",
-    )
-    activationCondition = serializers.IntegerField(
-        required=False,
-        allow_null=True,
-        min_value=0,
-        help_text="Optional int that represents a trigger condition for when to start monitoring",
-    )
 
 
 @extend_schema(tags=["Alerts"])
@@ -458,6 +413,29 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         "POST": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (OrganizationAlertRulePermission,)
+
+    def check_can_create_alert(self, request: Request, organization: Organization) -> None:
+        """
+        Determine if the requesting user has access to alert creation. If the request does not have the "alerts:write"
+        permission, then we must verify that the user is a team admin with "alerts:write" access to the project(s)
+        in their request.
+        """
+        # if the requesting user has any of these org-level permissions, then they can create an alert
+        if (
+            request.access.has_scope("alerts:write")
+            or request.access.has_scope("org:admin")
+            or request.access.has_scope("org:write")
+        ):
+            return
+        # team admins should be able to create alerts for the projects they have access to
+        projects = self.get_projects(request, organization)
+        # team admins will have alerts:write scoped to their projects, members will not
+        team_admin_has_access = all(
+            [request.access.has_project_scope(project, "alerts:write") for project in projects]
+        )
+        # all() returns True for empty list, so include a check for it
+        if not team_admin_has_access or not projects:
+            raise PermissionDenied
 
     @extend_schema(
         operation_id="List an Organization's Metric Alert Rules",
@@ -648,4 +626,5 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         }
         ```
         """
+        self.check_can_create_alert(request, organization)
         return self.create_metric_alert(request, organization)

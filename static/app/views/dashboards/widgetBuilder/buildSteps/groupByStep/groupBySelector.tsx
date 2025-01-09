@@ -35,6 +35,7 @@ interface Props {
   onChange: (fields: QueryFieldValue[]) => void;
   validatedWidgetResponse: UseApiQueryResult<ValidateWidgetResponse, RequestError>;
   columns?: QueryFieldValue[];
+  style?: React.CSSProperties;
 }
 
 export function GroupBySelector({
@@ -42,6 +43,7 @@ export function GroupBySelector({
   columns = [],
   onChange,
   validatedWidgetResponse,
+  style,
 }: Props) {
   const [activeId, setActiveId] = useState<string | null>(null);
 
@@ -71,7 +73,7 @@ export function GroupBySelector({
 
   const hasOnlySingleColumnWithValue =
     columns.length === 1 &&
-    columns[0].kind === FieldValueKind.FIELD &&
+    columns[0]!.kind === FieldValueKind.FIELD &&
     columns[0]?.field !== '';
 
   const canDrag = columns.length > 1;
@@ -84,9 +86,9 @@ export function GroupBySelector({
       filteredFieldOptions: FieldOptions;
     }>(
       (acc, key) => {
-        const value = fieldOptions[key];
+        const value = fieldOptions[key]!;
         const optionInColumnsIndex = columnFieldsAsString.findIndex(
-          column => column === value.value.meta.name
+          column => column === value!.value.meta.name
         );
         if (optionInColumnsIndex === -1) {
           acc.filteredFieldOptions[key] = value;
@@ -111,7 +113,7 @@ export function GroupBySelector({
 
   return (
     <Fragment>
-      <StyledField inline={false} flexibleControlStateSize stacked>
+      <StyledField inline={false} style={style} flexibleControlStateSize stacked>
         {columns.length === 0 ? (
           <QueryField
             value={EMPTY_FIELD}
@@ -147,7 +149,7 @@ export function GroupBySelector({
                 {columns.map((column, index) => (
                   <SortableQueryField
                     key={items[index]}
-                    dragId={items[index]}
+                    dragId={items[index]!}
                     value={column}
                     fieldOptions={{
                       ...filteredFieldOptions,
@@ -171,7 +173,7 @@ export function GroupBySelector({
               {activeId ? (
                 <Ghost>
                   <QueryField
-                    value={columns[Number(activeId)]}
+                    value={columns[Number(activeId)]!}
                     fieldOptions={{
                       ...filteredFieldOptions,
                       ...columnsAsFieldOptions[Number(activeId)],

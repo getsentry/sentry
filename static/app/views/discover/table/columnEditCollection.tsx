@@ -55,6 +55,7 @@ type Props = {
   noFieldsMessage?: string;
   showAliasField?: boolean;
   source?: Sources;
+  supportsEquations?: boolean;
 };
 
 type State = {
@@ -113,7 +114,7 @@ class ColumnEditCollection extends Component<Props, State> {
   checkColumnErrors(columns: Column[]) {
     const error = new Map();
     for (let i = 0; i < columns.length; i += 1) {
-      const column = columns[i];
+      const column = columns[i]!;
       if (column.kind === 'equation') {
         const result = parseArithmetic(column.field);
         if (result.error) {
@@ -179,15 +180,15 @@ class ColumnEditCollection extends Component<Props, State> {
   };
 
   updateEquationFields = (newColumns: Column[], index: number, updatedColumn: Column) => {
-    const oldColumn = newColumns[index];
-    const existingColumn = generateFieldAsString(newColumns[index]);
+    const oldColumn = newColumns[index]!;
+    const existingColumn = generateFieldAsString(newColumns[index]!);
     const updatedColumnString = generateFieldAsString(updatedColumn);
     if (!isLegalEquationColumn(updatedColumn) || hasDuplicate(newColumns, oldColumn)) {
       return;
     }
     // Find the equations in the list of columns
     for (let i = 0; i < newColumns.length; i++) {
-      const newColumn = newColumns[i];
+      const newColumn = newColumns[i]!;
 
       if (newColumn.kind === 'equation') {
         const result = parseArithmetic(newColumn.field);
@@ -217,7 +218,7 @@ class ColumnEditCollection extends Component<Props, State> {
         newColumns[i] = {
           kind: 'equation',
           field: newEquation,
-          alias: newColumns[i].alias,
+          alias: newColumns[i]!.alias,
         };
       }
     }
@@ -327,7 +328,7 @@ class ColumnEditCollection extends Component<Props, State> {
 
   isFixedIssueColumn = (columnIndex: number) => {
     const {source, columns} = this.props;
-    const column = columns[columnIndex];
+    const column = columns[columnIndex]!;
     const issueFieldColumnCount = columns.filter(
       col => col.kind === 'field' && col.field === FieldKey.ISSUE
     ).length;
@@ -346,7 +347,7 @@ class ColumnEditCollection extends Component<Props, State> {
 
   isRemainingReleaseHealthAggregate = (columnIndex: number) => {
     const {source, columns} = this.props;
-    const column = columns[columnIndex];
+    const column = columns[columnIndex]!;
     const aggregateCount = columns.filter(
       col => col.kind === FieldValueKind.FUNCTION
     ).length;
@@ -380,7 +381,7 @@ class ColumnEditCollection extends Component<Props, State> {
     // Reorder columns and trigger change.
     const newColumns = [...this.props.columns];
     const removed = newColumns.splice(sourceIndex, 1);
-    newColumns.splice(targetIndex, 0, removed[0]);
+    newColumns.splice(targetIndex, 0, removed[0]!);
     this.checkColumnErrors(newColumns);
     this.props.onChange(newColumns);
 
@@ -406,7 +407,7 @@ class ColumnEditCollection extends Component<Props, State> {
 
     const top = Number(this.state.top) - dragOffsetY;
     const left = Number(this.state.left) - dragOffsetX;
-    const col = this.props.columns[index];
+    const col = this.props.columns[index]!;
 
     const style = {
       top: `${top}px`,
@@ -501,8 +502,8 @@ class ColumnEditCollection extends Component<Props, State> {
           {source === WidgetType.METRICS && !this.isFixedMetricsColumn(i) ? (
             <MetricTagQueryField
               mri={
-                columns[0].kind === FieldValueKind.FUNCTION
-                  ? columns[0].function[1]
+                columns[0]!.kind === FieldValueKind.FUNCTION
+                  ? columns[0]!.function[1]
                   : // We should never get here because the first column should always be function for metrics
                     undefined
               }
@@ -582,7 +583,7 @@ class ColumnEditCollection extends Component<Props, State> {
   }
 
   render() {
-    const {className, columns, showAliasField, source} = this.props;
+    const {className, columns, showAliasField, source, supportsEquations} = this.props;
     const canDelete = columns.filter(field => field.kind !== 'equation').length > 1;
     const canDrag = columns.length > 1;
     const canAdd = columns.length < MAX_COL_COUNT;
@@ -672,20 +673,18 @@ class ColumnEditCollection extends Component<Props, State> {
             >
               {t('Add a Column')}
             </Button>
-            {WidgetType.ISSUE &&
-              source !== WidgetType.RELEASE &&
-              source !== WidgetType.METRICS && (
-                <Button
-                  size="sm"
-                  aria-label={t('Add an Equation')}
-                  onClick={this.handleAddEquation}
-                  title={title}
-                  disabled={!canAdd}
-                  icon={<IconAdd isCircled />}
-                >
-                  {t('Add an Equation')}
-                </Button>
-              )}
+            {supportsEquations && (
+              <Button
+                size="sm"
+                aria-label={t('Add an Equation')}
+                onClick={this.handleAddEquation}
+                title={title}
+                disabled={!canAdd}
+                icon={<IconAdd isCircled />}
+              >
+                {t('Add an Equation')}
+              </Button>
+            )}
           </Actions>
         </RowContainer>
       </div>

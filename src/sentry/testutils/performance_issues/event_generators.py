@@ -14,7 +14,7 @@ _fixture_path = get_fixture_path("events", "performance_problems")
 EVENTS = {}
 PROJECT_ID = 1
 
-for (dirpath, dirnames, filenames) in os.walk(_fixture_path):
+for dirpath, dirnames, filenames in os.walk(_fixture_path):
 
     for filename in filenames:
         [name, extension] = filename.split(".")

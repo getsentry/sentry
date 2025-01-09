@@ -21,11 +21,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.conf.server import SEER_ANOMALY_DETECTION_STORE_DATA_URL
 from sentry.constants import ObjectStatus
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
-from sentry.incidents.events import (
-    IncidentCommentCreatedEvent,
-    IncidentCreatedEvent,
-    IncidentStatusUpdatedEvent,
-)
+from sentry.incidents.events import IncidentCreatedEvent, IncidentStatusUpdatedEvent
 from sentry.incidents.logic import (
     CRITICAL_TRIGGER_LABEL,
     DEFAULT_ALERT_RULE_RESOLUTION,
@@ -37,7 +33,6 @@ from sentry.incidents.logic import (
     AlertTarget,
     ChannelLookupTimeoutError,
     InvalidTriggerActionError,
-    ProjectsNotAssociatedWithAlertRuleError,
     create_alert_rule,
     create_alert_rule_trigger,
     create_alert_rule_trigger_action,
@@ -52,12 +47,9 @@ from sentry.incidents.logic import (
     get_actions_for_trigger,
     get_alert_resolution,
     get_available_action_integrations_for_org,
-    get_excluded_projects_for_alert_rule,
     get_incident_aggregates,
-    get_incident_subscribers,
     get_triggers_for_alert_rule,
     snapshot_alert_rule,
-    subscribe_to_incident,
     translate_aggregate_field,
     update_alert_rule,
     update_alert_rule_trigger,
@@ -74,7 +66,6 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleThresholdType,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
-    AlertRuleTriggerExclusion,
 )
 from sentry.incidents.models.incident import (
     Incident,
@@ -83,7 +74,6 @@ from sentry.incidents.models.incident import (
     IncidentProject,
     IncidentStatus,
     IncidentStatusMethod,
-    IncidentSubscription,
     IncidentTrigger,
     IncidentType,
     TriggerStatus,
@@ -101,9 +91,8 @@ from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.testutils.cases import BaseIncidentsTest, BaseMetricsTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of
 from sentry.types.actor import Actor
 
@@ -184,16 +173,12 @@ class UpdateIncidentStatus(TestCase):
         )
         assert incident.status == IncidentStatus.WARNING.value
 
-    def run_test(
-        self, incident, status, expected_date_closed, user=None, comment=None, date_closed=None
-    ):
+    def run_test(self, incident, status, expected_date_closed, user=None, date_closed=None):
         prev_status = incident.status
         self.record_event.reset_mock()
         update_incident_status(
             incident,
             status,
-            user=user,
-            comment=comment,
             status_method=IncidentStatusMethod.RULE_TRIGGERED,
             date_closed=date_closed,
         )
@@ -202,12 +187,8 @@ class UpdateIncidentStatus(TestCase):
         assert incident.date_closed == expected_date_closed
         activity = self.get_most_recent_incident_activity(incident)
         assert activity.type == IncidentActivityType.STATUS_CHANGE.value
-        assert activity.user_id == (user.id if user else None)
-        if user:
-            assert IncidentSubscription.objects.filter(incident=incident, user_id=user.id).exists()
         assert activity.value == str(status.value)
         assert activity.previous_value == str(prev_status)
-        assert activity.comment == comment
 
         assert len(self.record_event.call_args_list) == 1
         event = self.record_event.call_args[0][0]
@@ -238,9 +219,7 @@ class UpdateIncidentStatus(TestCase):
 
     def test_all_params(self):
         incident = self.create_incident()
-        self.run_test(
-            incident, IncidentStatus.CLOSED, timezone.now(), user=self.user, comment="lol"
-        )
+        self.run_test(incident, IncidentStatus.CLOSED, timezone.now(), user=self.user)
 
 
 class BaseIncidentsValidation:
@@ -309,7 +288,6 @@ class GetIncidentAggregatesTest(TestCase, BaseIncidentAggregatesTest):
     def test_projects(self):
         assert get_incident_aggregates(self.project_incident) == {"count": 4}
 
-    @override_options({"issues.group_attributes.send_kafka": True})
     def test_is_unresolved_query(self):
         incident = self.create_incident(
             date_started=self.now - timedelta(minutes=5),
@@ -353,117 +331,18 @@ class GetCrashRateMetricsIncidentAggregatesTest(TestCase, BaseMetricsTestCase):
 
 @freeze_time()
 class CreateIncidentActivityTest(TestCase, BaseIncidentsTest):
-    @pytest.fixture(autouse=True)
-    def _setup_patches(self):
-        with mock.patch(
-            "sentry.incidents.tasks.send_subscriber_notifications"
-        ) as self.send_subscriber_notifications:
-            with mock.patch("sentry.analytics.base.Analytics.record_event") as self.record_event:
-                yield
-
-    def assert_notifications_sent(self, activity):
-        self.send_subscriber_notifications.apply_async.assert_called_once_with(
-            kwargs={"activity_id": activity.id}, countdown=10
-        )
-
     def test_no_snapshot(self):
         incident = self.create_incident()
-        self.record_event.reset_mock()
         activity = create_incident_activity(
             incident,
             IncidentActivityType.STATUS_CHANGE,
-            user=self.user,
             value=str(IncidentStatus.CLOSED.value),
             previous_value=str(IncidentStatus.WARNING.value),
         )
         assert activity.incident == incident
         assert activity.type == IncidentActivityType.STATUS_CHANGE.value
-        assert activity.user_id == self.user.id
         assert activity.value == str(IncidentStatus.CLOSED.value)
         assert activity.previous_value == str(IncidentStatus.WARNING.value)
-        self.assert_notifications_sent(activity)
-        assert not self.record_event.called
-
-    def test_comment(self):
-        incident = self.create_incident()
-        comment = "hello"
-
-        assert not IncidentSubscription.objects.filter(
-            incident=incident, user_id=self.user.id
-        ).exists()
-        self.record_event.reset_mock()
-        activity = create_incident_activity(
-            incident, IncidentActivityType.COMMENT, user=self.user, comment=comment
-        )
-        assert IncidentSubscription.objects.filter(incident=incident, user_id=self.user.id).exists()
-
-        assert activity.incident == incident
-        assert activity.type == IncidentActivityType.COMMENT.value
-        assert activity.user_id == self.user.id
-        assert activity.comment == comment
-        assert activity.value is None
-        assert activity.previous_value is None
-        self.assert_notifications_sent(activity)
-        assert len(self.record_event.call_args_list) == 1
-        event = self.record_event.call_args[0][0]
-        assert isinstance(event, IncidentCommentCreatedEvent)
-        assert event.data == {
-            "organization_id": str(self.organization.id),
-            "incident_id": str(incident.id),
-            "incident_type": str(incident.type),
-            "user_id": str(self.user.id),
-            "activity_id": str(activity.id),
-        }
-
-    def test_mentioned_user_ids(self):
-        incident = self.create_incident()
-        mentioned_member = self.create_user()
-        subscribed_mentioned_member = self.create_user()
-        IncidentSubscription.objects.create(
-            incident=incident, user_id=subscribed_mentioned_member.id
-        )
-        comment = f"hello **@{mentioned_member.username}** and **@{subscribed_mentioned_member.username}**"
-
-        assert not IncidentSubscription.objects.filter(
-            incident=incident, user_id=mentioned_member.id
-        ).exists()
-        self.record_event.reset_mock()
-        activity = create_incident_activity(
-            incident,
-            IncidentActivityType.COMMENT,
-            user=self.user,
-            comment=comment,
-            mentioned_user_ids=[mentioned_member.id, subscribed_mentioned_member.id],
-        )
-        assert IncidentSubscription.objects.filter(
-            incident=incident, user_id=mentioned_member.id
-        ).exists()
-
-        assert activity.incident == incident
-        assert activity.type == IncidentActivityType.COMMENT.value
-        assert activity.user_id == self.user.id
-        assert activity.comment == comment
-        assert activity.value is None
-        assert activity.previous_value is None
-        self.assert_notifications_sent(activity)
-        assert len(self.record_event.call_args_list) == 1
-        event = self.record_event.call_args[0][0]
-        assert isinstance(event, IncidentCommentCreatedEvent)
-        assert event.data == {
-            "organization_id": str(self.organization.id),
-            "incident_id": str(incident.id),
-            "incident_type": str(incident.type),
-            "user_id": str(self.user.id),
-            "activity_id": str(activity.id),
-        }
-
-
-class GetIncidentSubscribersTest(TestCase, BaseIncidentsTest):
-    def test_simple(self):
-        incident = self.create_incident()
-        assert list(get_incident_subscribers(incident)) == []
-        subscription = subscribe_to_incident(incident, self.user.id)
-        assert list(get_incident_subscribers(incident)) == [subscription]
 
 
 class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
@@ -659,20 +538,6 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.threshold_type == threshold_type.value
         assert alert_rule.resolve_threshold == resolve_threshold
         assert alert_rule.threshold_period == threshold_period
-
-    def test_include_all_projects(self):
-        include_all_projects = True
-        self.project
-        alert_rule = self.create_alert_rule(projects=[], include_all_projects=include_all_projects)
-        assert alert_rule.snuba_query.subscriptions.get().project == self.project
-        assert alert_rule.include_all_projects == include_all_projects
-
-        new_project = self.create_project(fire_project_created=True)
-        alert_rule = self.create_alert_rule(
-            projects=[], include_all_projects=include_all_projects, excluded_projects=[self.project]
-        )
-        assert alert_rule.snuba_query.subscriptions.get().project == new_project
-        assert alert_rule.include_all_projects == include_all_projects
 
     # This test will fail unless real migrations are run. Refer to migration 0061.
     @pytest.mark.migrations  # requires custom migration 0061
@@ -1009,7 +874,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         data = {
             "event_id": "a" * 32,
             "message": "super bad",
-            "timestamp": iso_format(two_weeks_ago + timedelta(minutes=1)),
+            "timestamp": two_weeks_ago + timedelta(minutes=1),
             "tags": {"sentry:user": self.user.email},
             "exception": [{"value": "BadError"}],
         }
@@ -1090,6 +955,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         with self.tasks():
             update_alert_rule(alert_rule, projects=[self.project])
         # NOTE: subscribing alert rule to projects creates a new subscription per project
+        assert alert_rule.snuba_query is not None
         subscriptions = alert_rule.snuba_query.subscriptions.all()
         assert subscriptions.count() == 1
         assert alert_rule.snuba_query.subscriptions.get().project == self.project
@@ -1105,58 +971,14 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         project_updates = [self.project, new_project]
         with self.tasks():
             update_alert_rule(alert_rule, projects=project_updates, query=query_update)
+        assert alert_rule.snuba_query is not None
         updated_subscriptions = alert_rule.snuba_query.subscriptions.all()
         updated_projects = alert_rule.projects.all()
         assert {sub.project for sub in updated_subscriptions} == set(project_updates)
         assert set(updated_projects) == set(project_updates)
         for sub in updated_subscriptions:
+            assert sub.snuba_query is not None
             assert sub.snuba_query.query == query_update
-
-    def test_update_to_include_all(self):
-        orig_project = self.project
-        alert_rule = self.create_alert_rule(projects=[orig_project])
-        new_project = self.create_project(fire_project_created=True)
-        assert not alert_rule.snuba_query.subscriptions.filter(project=new_project).exists()
-        update_alert_rule(alert_rule, include_all_projects=True)
-        assert {sub.project for sub in alert_rule.snuba_query.subscriptions.all()} == {
-            new_project,
-            orig_project,
-        }
-
-    def test_update_to_include_all_with_exclude(self):
-        orig_project = self.project
-        alert_rule = self.create_alert_rule(projects=[orig_project])
-        new_project = self.create_project(fire_project_created=True)
-        excluded_project = self.create_project()
-        assert not alert_rule.snuba_query.subscriptions.filter(project=new_project).exists()
-        update_alert_rule(
-            alert_rule, include_all_projects=True, excluded_projects=[excluded_project]
-        )
-        assert {sub.project for sub in alert_rule.snuba_query.subscriptions.all()} == {
-            orig_project,
-            new_project,
-        }
-
-    def test_update_include_all_exclude_list(self):
-        new_project = self.create_project(fire_project_created=True)
-        projects = {new_project, self.project}
-        alert_rule = self.create_alert_rule(include_all_projects=True)
-        assert {sub.project for sub in alert_rule.snuba_query.subscriptions.all()} == projects
-        with self.tasks():
-            update_alert_rule(alert_rule, excluded_projects=[self.project])
-        assert [sub.project for sub in alert_rule.snuba_query.subscriptions.all()] == [new_project]
-
-        update_alert_rule(alert_rule, excluded_projects=[])
-        assert {sub.project for sub in alert_rule.snuba_query.subscriptions.all()} == projects
-
-    def test_update_from_include_all(self):
-        new_project = self.create_project(fire_project_created=True)
-        projects = {new_project, self.project}
-        alert_rule = self.create_alert_rule(include_all_projects=True)
-        assert {sub.project for sub in alert_rule.snuba_query.subscriptions.all()} == projects
-        with self.tasks():
-            update_alert_rule(alert_rule, projects=[new_project], include_all_projects=False)
-        assert [sub.project for sub in alert_rule.snuba_query.subscriptions.all()] == [new_project]
 
     def test_with_attached_incident(self):
         # A snapshot of the pre-updated rule should be created, and the incidents should also be resolved.
@@ -1680,6 +1502,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             time_window=60,
             detection_type=AlertRuleDetectionType.DYNAMIC,
         )
+        assert dynamic_rule.snuba_query is not None
         snuba_query = SnubaQuery.objects.get(id=dynamic_rule.snuba_query_id)
         assert dynamic_rule.snuba_query.resolution == 60 * 60
         assert mock_seer_request.call_count == 1
@@ -1703,12 +1526,12 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         # update query
         update_alert_rule(
             dynamic_rule,
-            query="is:unresolved",
+            query="message:*post_process*",
             detection_type=AlertRuleDetectionType.DYNAMIC,
         )
         assert mock_seer_request.call_count == 1
         snuba_query.refresh_from_db()
-        assert snuba_query.query == "is:unresolved"
+        assert snuba_query.query == "message:*post_process*"
         mock_seer_request.reset_mock()
         # update aggregate
         update_alert_rule(
@@ -1811,11 +1634,10 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         mock_seer_request.reset_mock()
 
         two_weeks_ago = before_now(days=14).replace(hour=10, minute=0, second=0, microsecond=0)
-        with self.options({"issues.group_attributes.send_kafka": True}):
-            self.create_error_event(timestamp=iso_format(two_weeks_ago + timedelta(minutes=1)))
-            self.create_error_event(
-                timestamp=iso_format(two_weeks_ago + timedelta(days=10))
-            )  # 4 days ago
+        self.create_error_event(timestamp=(two_weeks_ago + timedelta(minutes=1)).isoformat())
+        self.create_error_event(
+            timestamp=(two_weeks_ago + timedelta(days=10)).isoformat()
+        )  # 4 days ago
 
         # update aggregate
         update_alert_rule(
@@ -1840,11 +1662,10 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
 
         two_weeks_ago = before_now(days=14).replace(hour=10, minute=0, second=0, microsecond=0)
-        with self.options({"issues.group_attributes.send_kafka": True}):
-            self.create_error_event(timestamp=iso_format(two_weeks_ago + timedelta(minutes=1)))
-            self.create_error_event(
-                timestamp=iso_format(two_weeks_ago + timedelta(days=10))
-            )  # 4 days ago
+        self.create_error_event(timestamp=(two_weeks_ago + timedelta(minutes=1)).isoformat())
+        self.create_error_event(
+            timestamp=(two_weeks_ago + timedelta(days=10)).isoformat()
+        )  # 4 days ago
 
         dynamic_rule = self.create_alert_rule(
             sensitivity=AlertRuleSensitivity.HIGH,
@@ -1962,7 +1783,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             update_alert_rule(
                 dynamic_rule,
                 time_window=30,
-                query="is:unresolved",
+                query="message:*post_process*",
                 detection_type=AlertRuleDetectionType.DYNAMIC,
                 sensitivity=AlertRuleSensitivity.HIGH,
                 seasonality=AlertRuleSeasonality.AUTO,
@@ -1982,7 +1803,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             update_alert_rule(
                 dynamic_rule,
                 time_window=30,
-                query="is:unresolved",
+                query="message:*post_process*",
                 detection_type=AlertRuleDetectionType.DYNAMIC,
                 sensitivity=AlertRuleSensitivity.HIGH,
                 seasonality=AlertRuleSeasonality.AUTO,
@@ -2424,21 +2245,6 @@ class DisableAlertRuleTest(TestCase, BaseIncidentsTest):
                 assert subscription.status == QuerySubscription.Status.DISABLED.value
 
 
-class TestGetExcludedProjectsForAlertRule(TestCase):
-    def test(self):
-        excluded = [self.create_project(fire_project_created=True)]
-        alert_rule = self.create_alert_rule(
-            projects=[], include_all_projects=True, excluded_projects=excluded
-        )
-        exclusions = get_excluded_projects_for_alert_rule(alert_rule)
-        assert [exclusion.project for exclusion in exclusions] == excluded
-
-    def test_no_excluded(self):
-        self.create_project(fire_project_created=True)
-        alert_rule = self.create_alert_rule(projects=[], include_all_projects=True)
-        assert list(get_excluded_projects_for_alert_rule(alert_rule)) == []
-
-
 class CreateAlertRuleTriggerTest(TestCase):
     @cached_property
     def alert_rule(self):
@@ -2450,23 +2256,6 @@ class CreateAlertRuleTriggerTest(TestCase):
         trigger = create_alert_rule_trigger(self.alert_rule, label, alert_threshold)
         assert trigger.label == label
         assert trigger.alert_threshold == alert_threshold
-        assert not AlertRuleTriggerExclusion.objects.filter(alert_rule_trigger=trigger).exists()
-
-    def test_excluded_projects(self):
-        excluded_project = self.create_project(fire_project_created=True)
-        alert_rule = self.create_alert_rule(projects=[self.project, excluded_project])
-        trigger = create_alert_rule_trigger(
-            alert_rule, "hi", 100, excluded_projects=[excluded_project]
-        )
-        # We should have only one exclusion
-        exclusion = AlertRuleTriggerExclusion.objects.get(alert_rule_trigger=trigger)
-        assert exclusion.query_subscription.project == excluded_project
-
-    def test_excluded_projects_not_associated_with_rule(self):
-        other_project = self.create_project(fire_project_created=True)
-        alert_rule = self.create_alert_rule(projects=[self.project])
-        with pytest.raises(ProjectsNotAssociatedWithAlertRuleError):
-            create_alert_rule_trigger(alert_rule, "hi", 100, excluded_projects=[other_project])
 
     def test_existing_label(self):
         name = "uh oh"
@@ -2515,38 +2304,6 @@ class UpdateAlertRuleTriggerTest(TestCase):
         with pytest.raises(AlertRuleTriggerLabelAlreadyUsedError):
             update_alert_rule_trigger(trigger, label=label)
 
-    def test_exclude_projects(self):
-        other_project = self.create_project(fire_project_created=True)
-
-        alert_rule = self.create_alert_rule(projects=[other_project, self.project])
-        trigger = create_alert_rule_trigger(alert_rule, "hi", 1000)
-        update_alert_rule_trigger(trigger, excluded_projects=[other_project])
-        assert trigger.exclusions.get().query_subscription.project == other_project
-
-    def test_complex_exclude_projects(self):
-        excluded_project = self.create_project()
-        other_project = self.create_project(fire_project_created=True)
-
-        alert_rule = self.create_alert_rule(
-            projects=[excluded_project, self.project, other_project]
-        )
-        trigger = create_alert_rule_trigger(
-            alert_rule, "hi", 1000, excluded_projects=[excluded_project, self.project]
-        )
-        update_alert_rule_trigger(trigger, excluded_projects=[other_project, excluded_project])
-        excluded_projects = [
-            exclusion.query_subscription.project for exclusion in trigger.exclusions.all()
-        ]
-        assert set(excluded_projects) == {other_project, excluded_project}
-
-    def test_excluded_projects_not_associated_with_rule(self):
-        other_project = self.create_project(fire_project_created=True)
-        alert_rule = self.create_alert_rule(projects=[self.project])
-        trigger = create_alert_rule_trigger(alert_rule, "hi", 1000)
-
-        with pytest.raises(ProjectsNotAssociatedWithAlertRuleError):
-            update_alert_rule_trigger(trigger, excluded_projects=[other_project])
-
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")
     @patch(
@@ -2570,19 +2327,10 @@ class UpdateAlertRuleTriggerTest(TestCase):
 class DeleteAlertRuleTriggerTest(TestCase):
     def test(self):
         alert_rule = self.create_alert_rule()
-        trigger = create_alert_rule_trigger(
-            alert_rule, "hi", 1000, excluded_projects=[self.project]
-        )
+        trigger = create_alert_rule_trigger(alert_rule, "hi", 1000)
         trigger_id = trigger.id
-        assert AlertRuleTriggerExclusion.objects.filter(
-            alert_rule_trigger=trigger_id, query_subscription__project=self.project
-        ).exists()
         delete_alert_rule_trigger(trigger)
-
         assert not AlertRuleTrigger.objects.filter(id=trigger_id).exists()
-        assert not AlertRuleTriggerExclusion.objects.filter(
-            alert_rule_trigger=trigger_id, query_subscription__project=self.project
-        ).exists()
 
 
 class GetTriggersForAlertRuleTest(TestCase):
@@ -2624,12 +2372,6 @@ class BaseAlertRuleTriggerActionTest(TestCase):
         )
 
     def patch_msg_delete_scheduled_response(self, channel_id):
-        if channel_id == "channel_not_found":
-            bodydict = {"ok": False, "error": "channel_not_found"}
-        else:
-            bodydict = {
-                "ok": True,
-            }
         return patch(
             "slack_sdk.web.client.WebClient.chat_deleteScheduledMessage",
             return_value=SlackResponse(
@@ -2637,7 +2379,7 @@ class BaseAlertRuleTriggerActionTest(TestCase):
                 http_verb="POST",
                 api_url="https://slack.com/api/chat.deleteScheduleMessage",
                 req_args={},
-                data=bodydict,
+                data={"ok": True},
                 headers={},
                 status_code=200,
             ),

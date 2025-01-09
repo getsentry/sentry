@@ -29,6 +29,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
+import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 import MissingReleasesButtons from 'sentry/views/projectDetail/missingFeatureButtons/missingReleasesButtons';
 import {
   CRASH_FREE_DECIMAL_THRESHOLD,
@@ -138,6 +139,7 @@ class ProjectCard extends Component<Props> {
                 borderless
                 size="zero"
                 icon={<IconSettings color="subText" />}
+                title={t('Settings')}
                 aria-label={t('Settings')}
                 to={`/settings/${organization.slug}/projects/${slug}/`}
               />
@@ -157,7 +159,7 @@ class ProjectCard extends Component<Props> {
                       <em>|</em>
                       <TransactionsLink
                         data-test-id="project-transactions"
-                        to={`/organizations/${organization.slug}/performance/?project=${project.id}`}
+                        to={`${getPerformanceBaseUrl(organization.slug)}/?project=${project.id}`}
                       >
                         {t(
                           'Transactions: %s',
@@ -279,7 +281,7 @@ class ProjectCardContainer extends Component<ContainerProps, ContainerState> {
     }
 
     this.setState({
-      projectDetails: itemsBySlug[project.slug],
+      projectDetails: itemsBySlug[project.slug]!,
     });
   }
 
@@ -313,6 +315,8 @@ const SettingsButton = styled(LinkButton)`
   margin-top: -${space(0.5)};
   padding: 3px;
   border-radius: 50%;
+  width: 24px;
+  height: 24px;
 `;
 
 const StyledBookmarkStar = styled(BookmarkStar)`

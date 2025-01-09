@@ -51,7 +51,7 @@ function findIndex(
   const mid = Math.floor((start + end) / 2);
 
   // Search lower half
-  if (event.timestamp <= arr[mid].timestamp) {
+  if (event.timestamp <= arr[mid]!.timestamp) {
     return findIndex(arr, event, start, mid - 1);
   }
 
@@ -106,7 +106,7 @@ export function CanvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
     while (eventsToPrune.length) {
       // Peek top of queue and see if event should be pruned, otherwise we can break out of the loop
       if (
-        Math.abs(event.timestamp - eventsToPrune[0].timestamp) <= BUFFER_TIME &&
+        Math.abs(event.timestamp - eventsToPrune[0]!.timestamp) <= BUFFER_TIME &&
         eventsToPrune.length <= PRELOAD_SIZE
       ) {
         break;
@@ -201,8 +201,30 @@ export function CanvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
     }
   }
 
+  // Debounce so that `processEvent` is not called immediately. We want to only
+  // process the most recent event, otherwise it will look like the canvas is
+  // animating when we seek throughout replay.
+  //
+  // `handleQueue` is really a map of canvas id -> most recent canvas mutation
+  // event for all canvas mutation events before the current replay time
   const debouncedProcessQueuedEvents = debounce(
-    function () {
+    function processQueuedEvents() {
+      const canvasIds = Array.from(canvases.keys());
+      const queuedEventIds = Array.from(handleQueue.keys());
+      const queuedEventIdsSet = new Set(queuedEventIds);
+      const unusedCanvases = canvasIds.filter(id => !queuedEventIdsSet.has(id));
+
+      // Compare the canvas ids from canvas mutation events against existing
+      // canvases and remove the canvas snapshot for previously drawn to
+      // canvases that do not currently exist in this new point of time
+      unusedCanvases.forEach(id => {
+        const el = containers.get(id);
+        if (el) {
+          el.src = '';
+        }
+      });
+
+      // Find all canvases with an event that needs to process
       Array.from(handleQueue.entries()).forEach(async ([id, [e, replayer]]) => {
         try {
           await processEvent(e, {replayer});
@@ -221,9 +243,11 @@ export function CanvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
    * recent sync event, otherwise the playback will look like it's playing if
    * we process all events.
    */
-  function processEventSync(e: CanvasEventWithTime, {replayer}: {replayer: Replayer}) {
-    // We want to only process the most recent sync event
-    handleQueue.set(e.data.id, [e, replayer]);
+  function processEventSync(e: eventWithTime, {replayer}: {replayer: Replayer}) {
+    // We want to only process the most recent sync CanvasMutationEvent
+    if (isCanvasMutationEvent(e)) {
+      handleQueue.set(e.data.id, [e, replayer]);
+    }
     debouncedProcessQueuedEvents();
   }
 
@@ -314,11 +338,7 @@ export function CanvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
         // Only do this when isSync is true, meaning there was a seek, since we
         // don't know where next index is
         nextPreloadIndex = -1;
-
-        if (isCanvas) {
-          processEventSync(e, {replayer});
-        }
-
+        processEventSync(e, {replayer});
         prune(e);
         return;
       }

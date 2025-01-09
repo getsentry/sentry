@@ -99,6 +99,8 @@ def _merge_frame(new_frame, symbolicated, platform="native"):
 def _handle_image_status(status, image, os, data):
     if status in ("found", "unused"):
         return
+    elif status == "unsupported":
+        error = SymbolicationFailed(type=EventError.NATIVE_UNSUPPORTED_DSYM)
     elif status == "missing":
         package = image.get("code_file")
         if not package:
@@ -283,7 +285,7 @@ def process_minidump(symbolicator: Symbolicator, data: Any) -> Any:
         return
 
     metrics.incr("process.native.symbolicate.request")
-    response = symbolicator.process_minidump(minidump.data)
+    response = symbolicator.process_minidump(data.get("platform"), minidump.data)
 
     if _handle_response_status(data, response):
         _merge_full_response(data, response)
@@ -306,7 +308,7 @@ def process_applecrashreport(symbolicator: Symbolicator, data: Any) -> Any:
         return
 
     metrics.incr("process.native.symbolicate.request")
-    response = symbolicator.process_applecrashreport(report.data)
+    response = symbolicator.process_applecrashreport(data.get("platform"), report.data)
 
     if _handle_response_status(data, response):
         _merge_full_response(data, response)
@@ -421,7 +423,9 @@ def process_native_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
     signal = signal_from_data(data)
 
     metrics.incr("process.native.symbolicate.request")
-    response = symbolicator.process_payload(stacktraces=stacktraces, modules=modules, signal=signal)
+    response = symbolicator.process_payload(
+        platform=data.get("platform"), stacktraces=stacktraces, modules=modules, signal=signal
+    )
 
     if not _handle_response_status(data, response):
         return data
@@ -485,6 +489,8 @@ def emit_apple_symbol_stats(apple_symbol_stats, data):
         data, "contexts", "os", "raw_description"
     )
     os_version = get_path(data, "contexts", "os", "version")
+    # See https://develop.sentry.dev/sdk/data-model/event-payloads/contexts/
+    is_simulator = get_path(data, "contexts", "device", "simulator", default=False)
 
     if os_version:
         os_version = os_version.split(".", 1)[0]
@@ -493,19 +499,25 @@ def emit_apple_symbol_stats(apple_symbol_stats, data):
         metrics.incr(
             "apple_symbol_availability_v2",
             amount=neither,
-            tags={"availability": "neither", "os_name": os_name, "os_version": os_version},
+            tags={
+                "availability": "neither",
+                "os_name": os_name,
+                "os_version": os_version,
+                "is_simulator": is_simulator,
+            },
             sample_rate=1.0,
         )
 
-    # TODO: This seems to just be wrong
-    # We want mutual exclusion here, since we don't want to double count. E.g., an event has both symbols, so we
-    # count it both in `both` and `old` or `symx` which makes it impossible for us to know the percentage of events
-    # that matched both.
     if both := apple_symbol_stats.get("both"):
         metrics.incr(
             "apple_symbol_availability_v2",
             amount=both,
-            tags={"availability": "both", "os_name": os_name, "os_version": os_version},
+            tags={
+                "availability": "both",
+                "os_name": os_name,
+                "os_version": os_version,
+                "is_simulator": is_simulator,
+            },
             sample_rate=1.0,
         )
 
@@ -513,7 +525,12 @@ def emit_apple_symbol_stats(apple_symbol_stats, data):
         metrics.incr(
             "apple_symbol_availability_v2",
             amount=old,
-            tags={"availability": "old", "os_name": os_name, "os_version": os_version},
+            tags={
+                "availability": "old",
+                "os_name": os_name,
+                "os_version": os_version,
+                "is_simulator": is_simulator,
+            },
             sample_rate=1.0,
         )
 
@@ -521,7 +538,12 @@ def emit_apple_symbol_stats(apple_symbol_stats, data):
         metrics.incr(
             "apple_symbol_availability_v2",
             amount=symx,
-            tags={"availability": "symx", "os_name": os_name, "os_version": os_version},
+            tags={
+                "availability": "symx",
+                "os_name": os_name,
+                "os_version": os_version,
+                "is_simulator": is_simulator,
+            },
             sample_rate=1.0,
         )
 

@@ -298,6 +298,11 @@ export function Control({
           ?.focus();
       }
 
+      // Prevent form submissions on Enter key press in search box
+      if (e.key === 'Enter') {
+        e.preventDefault();
+      }
+
       // Continue propagation, otherwise the overlay won't close on Esc key press
       e.continuePropagation();
     },
@@ -519,9 +524,9 @@ export function Control({
         >
           <StyledOverlay
             width={menuWidth ?? menuFullWidth}
-            minWidth={overlayProps.style.minWidth}
+            minWidth={overlayProps.style!.minWidth}
             maxWidth={maxMenuWidth}
-            maxHeight={overlayProps.style.maxHeight}
+            maxHeight={overlayProps.style!.maxHeight}
             maxHeightProp={maxMenuHeight}
             data-menu-has-header={!!menuTitle || clearable}
             data-menu-has-search={searchable}

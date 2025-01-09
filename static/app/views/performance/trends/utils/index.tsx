@@ -146,7 +146,7 @@ export const trendCursorNames = {
 const TOKEN_KEYS_SUPPORTED_IN_METRICS_TRENDS = ['transaction', 'tpm()'];
 
 export function resetCursors() {
-  const cursors = {};
+  const cursors: Record<string, undefined> = {};
   Object.values(trendCursorNames).forEach(cursor => (cursors[cursor] = undefined)); // Resets both cursors
   return cursors;
 }
@@ -158,7 +158,7 @@ export function getCurrentTrendFunction(
   const trendFunctionField =
     _trendFunctionField ?? decodeScalar(location?.query?.trendFunction);
   const trendFunction = TRENDS_FUNCTIONS.find(({field}) => field === trendFunctionField);
-  return trendFunction || TRENDS_FUNCTIONS[1];
+  return trendFunction || TRENDS_FUNCTIONS[1]!;
 }
 
 function getDefaultTrendParameter(
@@ -166,7 +166,7 @@ function getDefaultTrendParameter(
   projectIds: Readonly<number[]>
 ): TrendParameter {
   const performanceType = platformToPerformanceType(projects, projectIds);
-  const trendParameter = performanceTypeToTrendParameterLabel(performanceType);
+  const trendParameter = performanceTypeToTrendParameterLabel(performanceType!);
 
   return trendParameter;
 }

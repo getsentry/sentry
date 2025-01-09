@@ -9,7 +9,6 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {MobileBetaBanner} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
   getCrashReportApiIntroduction,
   getCrashReportInstallDescription,
@@ -37,11 +36,9 @@ Sentry.init({
   }${
     params.isProfilingSelected
       ? `
-  _experiments: {
-    // profilesSampleRate is relative to tracesSampleRate.
-    // Here, we'll capture profiles for 100% of transactions.
-    profilesSampleRate: 1.0,
-  },`
+  // profilesSampleRate is relative to tracesSampleRate.
+  // Here, we'll capture profiles for 100% of transactions.
+  profilesSampleRate: 1.0,`
       : ''
   }
 });`;
@@ -82,10 +79,8 @@ import * as Sentry from '@sentry/react-native';
 
 Sentry.init({
   dsn: "${params.dsn.public}",
-  _experiments: {
-    replaysSessionSampleRate: 1.0,
-    replaysOnErrorSampleRate: 1.0,
-  },
+  replaysSessionSampleRate: 0.1,
+  replaysOnErrorSampleRate: 1.0,
   integrations: [
     Sentry.mobileReplayIntegration(),
   ],
@@ -155,7 +150,7 @@ const onboarding: OnboardingConfig = {
           ? [
               {
                 description: t(
-                  'React Native Profiling beta is available since SDK version 5.8.0.'
+                  'React Native Profiling is available since SDK version 5.32.0.'
                 ),
               },
             ]
@@ -406,14 +401,11 @@ const getInstallConfig = () => [
 ];
 
 const replayOnboarding: OnboardingConfig = {
-  introduction: () => (
-    <MobileBetaBanner link="https://docs.sentry.io/platforms/react-native/session-replay/" />
-  ),
   install: (params: Params) => [
     {
       type: StepType.INSTALL,
       description: t(
-        'Make sure your Sentry React Native SDK version is at least 5.26.0. If you already have the SDK installed, you can update it to the latest version with:'
+        'Make sure your Sentry React Native SDK version is at least 6.5.0. If you already have the SDK installed, you can update it to the latest version with:'
       ),
       configurations: [
         {

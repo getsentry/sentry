@@ -19,10 +19,38 @@ import {
   type EventTransaction,
 } from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
+import {useHasTraceNewUi} from 'sentry/views/performance/newTraceDetails/useHasTraceNewUi';
 
 import {TraceDrawerComponents} from '../../styles';
 
 export function BreadCrumbs({
+  event,
+  organization,
+}: {
+  event: EventTransaction;
+  organization: Organization;
+}) {
+  const hasNewTraceUi = useHasTraceNewUi();
+  const matchingEntry: EntryBreadcrumbs | undefined = event?.entries?.find(
+    (entry): entry is EntryBreadcrumbs => entry.type === EntryType.BREADCRUMBS
+  );
+
+  if (!matchingEntry) {
+    return null;
+  }
+
+  if (!hasNewTraceUi) {
+    return <LegacyBreadCrumbs event={event} organization={organization} />;
+  }
+
+  return (
+    <ResponsiveBreadcrumbWrapper>
+      <Breadcrumbs data={matchingEntry.data} event={event} organization={organization} />
+    </ResponsiveBreadcrumbWrapper>
+  );
+}
+
+function LegacyBreadCrumbs({
   event,
   organization,
 }: {
@@ -74,6 +102,10 @@ const ResponsiveBreadcrumbWrapper = styled('div')`
   container: breadcrumbs / inline-size;
 
   ${SearchAndSortWrapper} {
+    @container breadcrumbs (width < 600px) {
+      display: none;
+    }
+
     > div {
       width: auto !important;
     }

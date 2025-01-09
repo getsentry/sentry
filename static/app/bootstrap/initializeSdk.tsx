@@ -1,7 +1,6 @@
 // eslint-disable-next-line simple-import-sort/imports
 import * as Sentry from '@sentry/react';
-import {_browserPerformanceTimeOriginMode} from '@sentry/utils';
-import type {Event} from '@sentry/types';
+import {type Event, _browserPerformanceTimeOriginMode} from '@sentry/core';
 
 import {SENTRY_RELEASE_VERSION, SPA_DSN} from 'sentry/constants';
 import type {Config} from 'sentry/types/system';
@@ -15,7 +14,6 @@ import {
   useNavigationType,
 } from 'react-router-dom';
 import {useEffect} from 'react';
-import FeatureObserver from 'sentry/utils/featureObserver';
 
 const SPA_MODE_ALLOW_URLS = [
   'localhost',
@@ -62,31 +60,30 @@ function getSentryIntegrations() {
       depth: 6,
     }),
     Sentry.reactRouterV6BrowserTracingIntegration({
-      useEffect: useEffect,
-      useLocation: useLocation,
-      useNavigationType: useNavigationType,
-      createRoutesFromChildren: createRoutesFromChildren,
-      matchRoutes: matchRoutes,
+      useEffect,
+      useLocation,
+      useNavigationType,
+      createRoutesFromChildren,
+      matchRoutes,
     }),
     Sentry.browserProfilingIntegration(),
     Sentry.thirdPartyErrorFilterIntegration({
       filterKeys: ['sentry-spa'],
       behaviour: 'apply-tag-if-contains-third-party-frames',
     }),
+    Sentry.featureFlagsIntegration(),
   ];
 
   return integrations;
 }
 
-// TODO(__SENTRY_USING_REACT_ROUTER_SIX): Remove opts once getsentry has had
-// this paramter removed
 /**
  * Initialize the Sentry SDK
  *
  * If `routes` is passed, we will instrument react-router. Not all
  * entrypoints require this.
  */
-export function initializeSdk(config: Config, _otps?: any) {
+export function initializeSdk(config: Config) {
   const {apmSampling, sentryConfig, userIdentity} = config;
   const tracesSampleRate = apmSampling ?? 0;
   const extraTracePropagationTargets = SPA_DSN
@@ -182,22 +179,21 @@ export function initializeSdk(config: Config, _otps?: any) {
 
       handlePossibleUndefinedResponseBodyErrors(event);
       addEndpointTagToRequestError(event);
-
       lastEventId = event.event_id || hint.event_id;
-
-      // attach feature flags to the event context
-      if (event.contexts) {
-        const flags = FeatureObserver.singleton().getFeatureFlags();
-        event.contexts.flags = flags;
-      }
 
       return event;
     },
   });
 
   if (process.env.NODE_ENV !== 'production') {
-    if (sentryConfig.environment === 'development' && process.env.NO_SPOTLIGHT !== '1') {
+    if (
+      sentryConfig.environment === 'development' &&
+      process.env.SENTRY_SPOTLIGHT &&
+      !['false', 'f', 'n', 'no', 'off', '0'].includes(process.env.SENTRY_SPOTLIGHT)
+    ) {
       import('@spotlightjs/spotlight').then(Spotlight => {
+        // TODO: use the value of `process.env.SENTRY_SPOTLIGHT` for the `sidecarUrl` below when it is not "truthy"
+        //       Truthy is defined in https://github.com/getsentry/sentry-javascript/pull/13325/files#diff-a139d0f6c10ca33f2b0264da406662f90061cd7e8f707c197a02460a7f666e87R2
         /* #__PURE__ */ Spotlight.init();
       });
     }
@@ -221,7 +217,7 @@ export function initializeSdk(config: Config, _otps?: any) {
         images.push({
           type: 'sourcemap',
           code_file: filename,
-          debug_id: debugIdMap[filename],
+          debug_id: debugIdMap[filename]!,
         });
       });
     } catch (e) {
@@ -314,7 +310,7 @@ function handlePossibleUndefinedResponseBodyErrors(event: Event): void {
   const causeErrorIsURBE = causeError?.type === 'UndefinedResponseBodyError';
 
   if (mainErrorIsURBE || causeErrorIsURBE) {
-    mainError.type = 'UndefinedResponseBodyError';
+    mainError!.type = 'UndefinedResponseBodyError';
     event.tags = {...event.tags, undefinedResponseBody: true};
     event.fingerprint = mainErrorIsURBE
       ? ['UndefinedResponseBodyError as main error']
@@ -323,7 +319,7 @@ function handlePossibleUndefinedResponseBodyErrors(event: Event): void {
 }
 
 export function addEndpointTagToRequestError(event: Event): void {
-  const errorMessage = event.exception?.values?.[0].value || '';
+  const errorMessage = event.exception?.values?.[0]!.value || '';
 
   // The capturing group here turns `GET /dogs/are/great 500` into just `GET /dogs/are/great`
   const requestErrorRegex = new RegExp('^([A-Za-z]+ (/[^/]+)+/) \\d+$');

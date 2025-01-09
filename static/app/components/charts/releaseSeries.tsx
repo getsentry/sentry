@@ -46,7 +46,7 @@ function getOrganizationReleases(
   organization: Organization,
   conditions: ReleaseConditions
 ) {
-  const query = {};
+  const query: Record<string, string> = {};
   Object.keys(conditions).forEach(key => {
     let value = conditions[key];
     if (value && (key === 'start' || key === 'end')) {
@@ -175,7 +175,7 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
         if (pageLinks) {
           const paginationObject = parseLinkHeader(pageLinks);
           hasMore = paginationObject?.next?.results ?? false;
-          conditions.cursor = paginationObject.next.cursor;
+          conditions.cursor = paginationObject.next!.cursor;
         } else {
           hasMore = false;
         }

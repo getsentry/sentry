@@ -5,7 +5,7 @@ from django.urls import reverse
 
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.testutils.cases import MetricsAPIBaseTestCase
-from sentry.testutils.helpers.datetime import freeze_time, iso_format
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils.samples import load_data
 
 pytestmark = [pytest.mark.sentry_metrics]
@@ -44,7 +44,6 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
         project_id,
         start_timestamp,
         duration,
-        transaction_id=None,
     ):
         timestamp = start_timestamp + timedelta(milliseconds=duration)
 
@@ -56,8 +55,6 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
             start_timestamp=start_timestamp,
             timestamp=timestamp,
         )
-        if transaction_id is not None:
-            data["event_id"] = transaction_id
         data["transaction"] = transaction
         data["contexts"]["trace"]["parent_span_id"] = parent_span_id
         return self.store_event(data, project_id=project_id)
@@ -142,8 +139,8 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
         before_span = {
             "parent_span_id": "a" * 16,
             "span_id": "e" * 16,
-            "start_timestamp": iso_format(before_timestamp),
-            "timestamp": iso_format(before_timestamp),
+            "start_timestamp": before_timestamp.isoformat(),
+            "timestamp": before_timestamp.isoformat(),
             "op": "django.middleware",
             "description": "middleware span",
             "exclusive_time": 60.0,
@@ -182,8 +179,8 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
                 {
                     "parent_span_id": "e" * 16,
                     "span_id": "f" * 16,
-                    "start_timestamp": iso_format(after_timestamp),
-                    "timestamp": iso_format(after_timestamp),
+                    "start_timestamp": after_timestamp.isoformat(),
+                    "timestamp": after_timestamp.isoformat(),
                     "op": "django.middleware",
                     "description": "middleware span",
                     "exclusive_time": 40.0,
@@ -191,8 +188,8 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
                 {
                     "parent_span_id": "1" * 16,
                     "span_id": "2" * 16,
-                    "start_timestamp": iso_format(after_timestamp),
-                    "timestamp": iso_format(after_timestamp),
+                    "start_timestamp": after_timestamp.isoformat(),
+                    "timestamp": after_timestamp.isoformat(),
                     "op": "django.middleware",
                     "description": "middleware span",
                     "exclusive_time": 600.0,
@@ -200,8 +197,8 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
                 {
                     "parent_span_id": "1" * 16,
                     "span_id": "3" * 16,
-                    "start_timestamp": iso_format(after_timestamp),
-                    "timestamp": iso_format(after_timestamp),
+                    "start_timestamp": after_timestamp.isoformat(),
+                    "timestamp": after_timestamp.isoformat(),
                     "op": "django.middleware",
                     "description": "middleware span",
                     "exclusive_time": 60.0,
@@ -262,8 +259,8 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
                 {
                     "parent_span_id": "a" * 16,
                     "span_id": "e" * 16,
-                    "start_timestamp": iso_format(self.now - timedelta(days=2)),
-                    "timestamp": iso_format(self.now - timedelta(days=2)),
+                    "start_timestamp": (self.now - timedelta(days=2)).isoformat(),
+                    "timestamp": (self.now - timedelta(days=2)).isoformat(),
                     "op": "django.middleware",
                     "description": "middleware span",
                     "exclusive_time": 60.0,
@@ -284,8 +281,8 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
                 {
                     "parent_span_id": "a" * 16,
                     "span_id": "e" * 16,
-                    "start_timestamp": iso_format(self.now - timedelta(hours=1)),
-                    "timestamp": iso_format(self.now - timedelta(hours=1)),
+                    "start_timestamp": (self.now - timedelta(hours=1)).isoformat(),
+                    "timestamp": (self.now - timedelta(hours=1)).isoformat(),
                     "op": "django.middleware",
                     "description": "middleware span",
                     "exclusive_time": 100.0,
@@ -293,8 +290,8 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
                 {
                     "parent_span_id": "a" * 16,
                     "span_id": "f" * 16,
-                    "start_timestamp": iso_format(self.now - timedelta(hours=1)),
-                    "timestamp": iso_format(self.now - timedelta(hours=1)),
+                    "start_timestamp": (self.now - timedelta(hours=1)).isoformat(),
+                    "timestamp": (self.now - timedelta(hours=1)).isoformat(),
                     "op": "db",
                     "description": "db",
                     "exclusive_time": 10000.0,
@@ -348,8 +345,8 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
                 {
                     "parent_span_id": "a" * 16,
                     "span_id": "e" * 16,
-                    "start_timestamp": iso_format(before_timestamp),
-                    "timestamp": iso_format(before_timestamp),
+                    "start_timestamp": before_timestamp.isoformat(),
+                    "timestamp": before_timestamp.isoformat(),
                     "op": "django.middleware",
                     "description": "middleware span",
                     "exclusive_time": 60.0,
@@ -370,8 +367,8 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
                 {
                     "parent_span_id": "a" * 16,
                     "span_id": "e" * 16,
-                    "start_timestamp": iso_format(after_timestamp),
-                    "timestamp": iso_format(after_timestamp),
+                    "start_timestamp": after_timestamp.isoformat(),
+                    "timestamp": after_timestamp.isoformat(),
                     "op": "django.middleware",
                     "description": "middleware span",
                     "exclusive_time": 100.0,

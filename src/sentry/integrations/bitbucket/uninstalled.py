@@ -9,7 +9,10 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.repository import repository_service
-from sentry.integrations.utils import AtlassianConnectValidationError, get_integration_from_jwt
+from sentry.integrations.utils.atlassian_connect import (
+    AtlassianConnectValidationError,
+    get_integration_from_jwt,
+)
 
 
 @control_silo_endpoint

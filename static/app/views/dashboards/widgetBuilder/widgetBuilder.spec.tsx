@@ -1,4 +1,6 @@
 import {urlEncode} from '@sentry/utils';
+import {DashboardFixture} from 'sentry-fixture/dashboard';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {MetricsFieldFixture} from 'sentry-fixture/metrics';
 import {ReleaseFixture} from 'sentry-fixture/release';
 import {SessionsFieldFixture} from 'sentry-fixture/sessions';
@@ -28,6 +30,8 @@ import {
 } from 'sentry/views/dashboards/types';
 import type {WidgetBuilderProps} from 'sentry/views/dashboards/widgetBuilder';
 import WidgetBuilder from 'sentry/views/dashboards/widgetBuilder';
+
+import WidgetLegendSelectionState from '../widgetLegendSelectionState';
 
 const defaultOrgFeatures = [
   'performance-view',
@@ -80,6 +84,13 @@ function renderTestComponent({
 
   ProjectsStore.loadInitialData(projects);
 
+  const widgetLegendState = new WidgetLegendSelectionState({
+    location: LocationFixture(),
+    dashboard: DashboardFixture([], {id: 'new', title: 'Dashboard', ...dashboard}),
+    organization,
+    router,
+  });
+
   render(
     <WidgetBuilder
       route={{}}
@@ -104,6 +115,7 @@ function renderTestComponent({
         ...params,
       }}
       updateDashboardSplitDecision={updateDashboardSplitDecision}
+      widgetLegendState={widgetLegendState}
     />,
     {
       router,
@@ -251,6 +263,14 @@ describe('WidgetBuilder', function () {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/stats/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/spans/fields/`,
       body: [],
     });
 
@@ -526,7 +546,7 @@ describe('WidgetBuilder', function () {
     const countFields = screen.getAllByText('count()');
     expect(countFields).toHaveLength(3);
 
-    await selectEvent.select(countFields[1], ['last_seen()']);
+    await selectEvent.select(countFields[1]!, ['last_seen()']);
 
     await userEvent.click(screen.getByText('Add Widget'));
 
@@ -565,8 +585,8 @@ describe('WidgetBuilder', function () {
     // Select line chart display
     await userEvent.click(screen.getByText('Line Chart'));
 
-    // Click the add overlay button
-    await userEvent.click(screen.getByLabelText('Add Overlay'));
+    // Click the Add Series button
+    await userEvent.click(screen.getByLabelText('Add Series'));
     await selectEvent.select(screen.getByText('(Required)'), ['count_unique(…)']);
 
     await userEvent.click(screen.getByLabelText('Add Widget'));
@@ -1178,7 +1198,7 @@ describe('WidgetBuilder', function () {
 
     // Triggering the onBlur of the new field should not error
     await userEvent.click(
-      screen.getAllByPlaceholderText('Search for events, users, tags, and more')[1],
+      screen.getAllByPlaceholderText('Search for events, users, tags, and more')[1]!,
       {delay: null}
     );
     await userEvent.keyboard('{Escape}', {delay: null});
@@ -1243,11 +1263,11 @@ describe('WidgetBuilder', function () {
     expect(await screen.findByText('Area Chart')).toBeInTheDocument();
 
     // Add a group by
-    await userEvent.click(screen.getByText('Add Overlay'));
+    await userEvent.click(screen.getByText('Add Series'));
     await selectEvent.select(screen.getByText('Select group'), /project/);
 
     // Change the y-axis
-    await selectEvent.select(screen.getAllByText('count()')[0], 'eps()');
+    await selectEvent.select(screen.getAllByText('count()')[0]!, 'eps()');
 
     await waitFor(() => {
       expect(eventsStatsMock).toHaveBeenLastCalledWith(
@@ -1292,7 +1312,7 @@ describe('WidgetBuilder', function () {
 
     await selectEvent.select(await screen.findByText('Select group'), 'project');
 
-    await userEvent.click(screen.getByText('Add Overlay'));
+    await userEvent.click(screen.getByText('Add Series'));
     await selectEvent.select(screen.getByText('(Required)'), /count_unique/);
 
     await waitFor(() => {
@@ -1359,7 +1379,7 @@ describe('WidgetBuilder', function () {
     screen.getByText('Limit to 5 results');
 
     await userEvent.click(screen.getByText('Add Query'));
-    await userEvent.click(screen.getByText('Add Overlay'));
+    await userEvent.click(screen.getByText('Add Series'));
 
     expect(screen.getByText('Limit to 2 results')).toBeInTheDocument();
   });
@@ -1604,7 +1624,7 @@ describe('WidgetBuilder', function () {
 
     await userEvent.click(screen.getByLabelText('Add a Column'));
 
-    await userEvent.click(screen.getAllByPlaceholderText('Alias')[1]);
+    await userEvent.click(screen.getAllByPlaceholderText('Alias')[1]!);
     await userEvent.paste('Second Alias');
 
     await userEvent.click(screen.getByText('Add Widget'));
@@ -1626,9 +1646,9 @@ describe('WidgetBuilder', function () {
     });
 
     await userEvent.click(screen.getByText('Add an Equation'));
-    await userEvent.click(screen.getAllByPlaceholderText('Alias')[1]);
+    await userEvent.click(screen.getAllByPlaceholderText('Alias')[1]!);
     await userEvent.paste('This should persist');
-    await userEvent.type(screen.getAllByPlaceholderText('Alias')[0], 'A');
+    await userEvent.type(screen.getAllByPlaceholderText('Alias')[0]!, 'A');
 
     expect(await screen.findByText('This should persist')).toBeInTheDocument();
   });
@@ -1639,12 +1659,12 @@ describe('WidgetBuilder', function () {
     });
 
     await userEvent.click(screen.getByText('Add an Equation'));
-    await userEvent.click(screen.getAllByPlaceholderText('Alias')[1]);
+    await userEvent.click(screen.getAllByPlaceholderText('Alias')[1]!);
     await userEvent.paste('This should persist');
 
     // 1 for the table, 1 for the column selector, 1 for the sort
     await waitFor(() => expect(screen.getAllByText('count()')).toHaveLength(3));
-    await selectEvent.select(screen.getAllByText('count()')[1], /count_unique/);
+    await selectEvent.select(screen.getAllByText('count()')[1]!, /count_unique/);
 
     expect(screen.getByText('This should persist')).toBeInTheDocument();
   });
@@ -1657,7 +1677,7 @@ describe('WidgetBuilder', function () {
     await userEvent.click(await screen.findByText('Table'));
     await userEvent.click(screen.getByText('Line Chart'));
     await selectEvent.select(screen.getByText('Select group'), 'project');
-    await selectEvent.select(screen.getAllByText('count()')[1], 'count_unique(…)');
+    await selectEvent.select(screen.getAllByText('count()')[1]!, 'count_unique(…)');
 
     MockApiClient.clearMockResponses();
     eventsStatsMock = MockApiClient.addMockResponse({
@@ -2257,7 +2277,7 @@ describe('WidgetBuilder', function () {
       // Confirm modal doesn't open because no changes were made
       expect(mockModal).not.toHaveBeenCalled();
 
-      await userEvent.click(screen.getAllByLabelText('Remove this Y-Axis')[0]);
+      await userEvent.click(screen.getAllByLabelText('Remove this Y-Axis')[0]!);
       await userEvent.click(screen.getByText('High Throughput Transactions'));
 
       // Should not have overwritten widget data, and confirm modal should open
@@ -2298,7 +2318,7 @@ describe('WidgetBuilder', function () {
       });
 
       await selectEvent.select(await screen.findByText('Select group'), 'project');
-      await userEvent.click(screen.getAllByText('count()')[0], {
+      await userEvent.click(screen.getAllByText('count()')[0]!, {
         skipHover: true,
       });
       await userEvent.click(screen.getByText(/count_unique/), {
@@ -2357,7 +2377,7 @@ describe('WidgetBuilder', function () {
       await userEvent.click(await screen.findByText('Add Group'));
       expect(screen.getAllByLabelText('Remove group')).toHaveLength(2);
 
-      await userEvent.click(screen.getAllByLabelText('Remove group')[1]);
+      await userEvent.click(screen.getAllByLabelText('Remove group')[1]!);
       await waitFor(() =>
         expect(screen.queryByLabelText('Remove group')).not.toBeInTheDocument()
       );
@@ -2582,6 +2602,114 @@ describe('WidgetBuilder', function () {
           }),
         })
       );
+    });
+  });
+
+  describe('Spans Dataset', () => {
+    it('queries for span tags and returns the correct data', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/spans/fields/`,
+        body: [
+          {
+            key: 'plan',
+            name: 'plan',
+          },
+        ],
+        match: [
+          function (_url: string, options: Record<string, any>) {
+            return options.query.type === 'string';
+          },
+        ],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/spans/fields/`,
+        body: [
+          {
+            key: 'tags[lcp.size,number]',
+            name: 'lcp.size',
+          },
+          {
+            key: 'tags[something.else,number]',
+            name: 'something.else',
+          },
+        ],
+        match: [
+          function (_url: string, options: Record<string, any>) {
+            return options.query.type === 'number';
+          },
+        ],
+      });
+
+      const dashboard = mockDashboard({
+        widgets: [
+          WidgetFixture({
+            widgetType: WidgetType.SPANS,
+            displayType: DisplayType.TABLE,
+            queries: [
+              {
+                name: 'Test Widget',
+                fields: ['count(tags[lcp.size,number])'],
+                columns: [],
+                aggregates: ['count(tags[lcp.size,number])'],
+                conditions: '',
+                orderby: '',
+              },
+            ],
+          }),
+        ],
+      });
+      renderTestComponent({
+        dashboard,
+        orgFeatures: [...defaultOrgFeatures, 'dashboards-eap'],
+        params: {
+          widgetIndex: '0',
+        },
+      });
+
+      // Click the argument to the count() function
+      expect(await screen.findByText('lcp.size')).toBeInTheDocument();
+      await userEvent.click(screen.getByText('lcp.size'));
+
+      // The option now appears in the aggregate property dropdown
+      expect(screen.queryAllByText('lcp.size')).toHaveLength(2);
+      expect(screen.getByText('something.else')).toBeInTheDocument();
+
+      // Click count() to verify the string tag is in the dropdown
+      expect(screen.queryByText('plan')).not.toBeInTheDocument();
+      await userEvent.click(screen.getByText(`count(…)`));
+      expect(screen.getByText('plan')).toBeInTheDocument();
+    });
+
+    it('does not show the Add Query button', async function () {
+      const dashboard = mockDashboard({
+        widgets: [
+          WidgetFixture({
+            widgetType: WidgetType.SPANS,
+            // Add Query is only available for timeseries charts
+            displayType: DisplayType.LINE,
+            queries: [
+              {
+                name: 'Test Widget',
+                fields: ['count(span.duration)'],
+                columns: [],
+                conditions: '',
+                orderby: '',
+                aggregates: ['count(span.duration)'],
+              },
+            ],
+          }),
+        ],
+      });
+      renderTestComponent({
+        dashboard,
+        orgFeatures: [...defaultOrgFeatures],
+        params: {
+          widgetIndex: '0',
+        },
+      });
+
+      await screen.findByText('Line Chart');
+      expect(screen.queryByText('Add Query')).not.toBeInTheDocument();
     });
   });
 });

@@ -74,7 +74,7 @@ export function NativeContent({
   function setInitialFrameMap(): {[frameIndex: number]: boolean} {
     const indexMap = {};
     (data.frames ?? []).forEach((frame, frameIdx) => {
-      const nextFrame = (data.frames ?? [])[frameIdx + 1];
+      const nextFrame = (data.frames ?? [])[frameIdx + 1]!;
       const repeatedFrame = isRepeatedFrame(frame, nextFrame);
       if (frameIsVisible(frame, nextFrame) && !repeatedFrame && !frame.inApp) {
         indexMap[frameIdx] = false;
@@ -87,7 +87,7 @@ export function NativeContent({
     let count = 0;
     const countMap = {};
     (data.frames ?? []).forEach((frame, frameIdx) => {
-      const nextFrame = (data.frames ?? [])[frameIdx + 1];
+      const nextFrame = (data.frames ?? [])[frameIdx + 1]!;
       const repeatedFrame = isRepeatedFrame(frame, nextFrame);
       if (frameIsVisible(frame, nextFrame) && !repeatedFrame && !frame.inApp) {
         countMap[frameIdx] = count;
@@ -180,7 +180,7 @@ export function NativeContent({
   let convertedFrames = frames
     .map((frame, frameIndex) => {
       const prevFrame = frames[frameIndex - 1];
-      const nextFrame = frames[frameIndex + 1];
+      const nextFrame = frames[frameIndex + 1]!;
       const repeatedFrame = isRepeatedFrame(frame, nextFrame);
 
       if (repeatedFrame) {
@@ -260,7 +260,7 @@ export function NativeContent({
 
   if (convertedFrames.length > 0 && registers) {
     const lastFrame = convertedFrames.length - 1;
-    convertedFrames[lastFrame] = cloneElement(convertedFrames[lastFrame], {
+    convertedFrames[lastFrame] = cloneElement(convertedFrames[lastFrame]!, {
       registers,
     });
   }
@@ -279,6 +279,7 @@ export function NativeContent({
       <ContentPanel
         className={wrapperClassName}
         data-test-id="native-stack-trace-content"
+        hideIcon={hideIcon}
       >
         <Frames data-test-id="stack-trace">
           {!newestFirst ? convertedFrames : [...convertedFrames].reverse()}
@@ -292,9 +293,9 @@ const Wrapper = styled('div')`
   position: relative;
 `;
 
-const ContentPanel = styled(Panel)`
+const ContentPanel = styled(Panel)<{hideIcon?: boolean}>`
   position: relative;
-  border-top-left-radius: 0;
+  border-top-left-radius: ${p => (p.hideIcon ? p.theme.borderRadius : 0)};
   overflow: hidden;
 `;
 

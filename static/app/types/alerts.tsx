@@ -38,6 +38,7 @@ export const enum IssueAlertConditionType {
   REAPPEARED_EVENT = 'sentry.rules.conditions.reappeared_event.ReappearedEventCondition',
   EVENT_FREQUENCY = 'sentry.rules.conditions.event_frequency.EventFrequencyCondition',
   EVENT_UNIQUE_USER_FREQUENCY = 'sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition',
+  EVENT_UNIQUE_USER_FREQUENCY_WITH_CONDITIONS = 'sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyConditionWithConditions',
   EVENT_FREQUENCY_PERCENT = 'sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition',
   NEW_HIGH_PRIORITY_ISSUE = 'sentry.rules.conditions.high_priority_issue.NewHighPriorityIssueCondition',
   EXISTING_HIGH_PRIORITY_ISSUE = 'sentry.rules.conditions.high_priority_issue.ExistingHighPriorityIssueCondition',
@@ -212,6 +213,28 @@ export type IssueAlertRuleCondition = Omit<
   // These are the same values as the keys in `formFields` for a template
   [key: string]: number | string;
 };
+
+interface SlackAction {
+  channel: string | undefined;
+  id: IssueAlertActionType.SLACK;
+  workspace: string | undefined;
+  channel_id?: string | undefined;
+  notes?: string | undefined;
+  tags?: string | undefined;
+}
+interface DiscordAction {
+  channel_id: string | undefined;
+  id: IssueAlertActionType.DISCORD;
+  server: string | undefined;
+  tags?: string | undefined;
+}
+interface MSTeamsAction {
+  channel: string | undefined;
+  id: IssueAlertActionType.MS_TEAMS;
+  team: string | undefined;
+}
+
+export type IntegrationAction = SlackAction | DiscordAction | MSTeamsAction;
 
 export interface UnsavedIssueAlertRule {
   /** When an issue matches [actionMatch] of the following */

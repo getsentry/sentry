@@ -5,13 +5,13 @@ import {CommitRow} from 'sentry/components/commitRow';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
 import EventHydrationDiff from 'sentry/components/events/eventHydrationDiff';
 import EventReplay from 'sentry/components/events/eventReplay';
+import {EventGroupingInfoSection} from 'sentry/components/events/groupingInfo/groupingInfoSection';
 import {ActionableItems} from 'sentry/components/events/interfaces/crashContent/exception/actionableItems';
 import {actionableItemsEnabled} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
-import {CustomMetricsEventData} from 'sentry/components/metrics/customMetricsEventData';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Entry, Event} from 'sentry/types/event';
-import {EntryType, EventOrGroupType} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Organization, SharedViewOrganization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -27,7 +27,6 @@ import {EventExtraData} from './eventExtraData';
 import {EventSdk} from './eventSdk';
 import {EventTagsAndScreenshot} from './eventTagsAndScreenshot';
 import {EventViewHierarchy} from './eventViewHierarchy';
-import {EventGroupingInfo} from './groupingInfo';
 import {EventPackageData} from './packageData';
 import {EventRRWebIntegration} from './rrwebIntegration';
 import {DataSection} from './styles';
@@ -82,7 +81,7 @@ function EventEntries({
       )}
       {!isShare && isNotSharedOrganization(organization) && (
         <SuspectCommits
-          project={project}
+          projectSlug={project.slug}
           eventId={event.id}
           group={group}
           commitRow={CommitRow}
@@ -119,15 +118,8 @@ function EventEntries({
       {!isShare && <EventViewHierarchy event={event} project={project} />}
       {!isShare && <EventAttachments event={event} project={project} group={group} />}
       <EventSdk sdk={event.sdk} meta={event._meta?.sdk} />
-      {event.type === EventOrGroupType.TRANSACTION && event._metrics_summary && (
-        <CustomMetricsEventData
-          projectId={event.projectID}
-          metricsSummary={event._metrics_summary}
-          startTimestamp={event.startTimestamp}
-        />
-      )}
       {!isShare && event.groupID && (
-        <EventGroupingInfo
+        <EventGroupingInfoSection
           projectSlug={projectSlug}
           event={event}
           showGroupingConfig={
@@ -203,12 +195,12 @@ export function Entries({
   return (
     <Fragment>
       {!hideBeforeReplayEntries &&
-        beforeReplayEntries.map((entry, entryIdx) => (
+        beforeReplayEntries!.map((entry, entryIdx) => (
           <EventEntry key={entryIdx} entry={entry} {...eventEntryProps} />
         ))}
       {!isShare && <EventHydrationDiff {...eventEntryProps} />}
       {!isShare && <EventReplay {...eventEntryProps} />}
-      {afterReplayEntries.map((entry, entryIdx) => {
+      {afterReplayEntries!.map((entry, entryIdx) => {
         if (hideBreadCrumbs && entry.type === EntryType.BREADCRUMBS) {
           return null;
         }

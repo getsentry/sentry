@@ -21,14 +21,17 @@ from sentry.users.web import accounts
 from sentry.users.web.account_identity import AccountIdentityAssociateView
 from sentry.users.web.user_avatar import UserAvatarPhotoView
 from sentry.web import api
-from sentry.web.frontend import generic
+from sentry.web.frontend import csrf_failure, generic
 from sentry.web.frontend.auth_channel_login import AuthChannelLoginView
 from sentry.web.frontend.auth_close import AuthCloseView
 from sentry.web.frontend.auth_login import AuthLoginView
 from sentry.web.frontend.auth_logout import AuthLogoutView
 from sentry.web.frontend.auth_organization_login import AuthOrganizationLoginView
 from sentry.web.frontend.auth_provider_login import AuthProviderLoginView
+from sentry.web.frontend.cli import get_cli, get_cli_download_url
 from sentry.web.frontend.disabled_member_view import DisabledMemberView
+from sentry.web.frontend.error_404 import Error404View
+from sentry.web.frontend.error_500 import Error500View
 from sentry.web.frontend.error_page_embed import ErrorPageEmbedView
 from sentry.web.frontend.group_event_json import GroupEventJsonView
 from sentry.web.frontend.group_plugin_action import GroupPluginActionView
@@ -61,7 +64,23 @@ from social_auth.views import complete
 generic_react_page_view = GenericReactPageView.as_view()
 react_page_view = ReactPageView.as_view()
 
-urlpatterns: list[URLResolver | URLPattern] = []
+urlpatterns: list[URLResolver | URLPattern] = [
+    re_path(
+        r"^500/",
+        Error500View.as_view(),
+        name="error-500",
+    ),
+    re_path(
+        r"^404/",
+        Error404View.as_view(),
+        name="error-404",
+    ),
+    re_path(
+        r"^403-csrf-failure/",
+        csrf_failure.view,
+        name="error-403-csrf-failure",
+    ),
+]
 
 if getattr(settings, "DEBUG_VIEWS", settings.DEBUG):
     from sentry.web.debug_urls import urlpatterns as debug_urls
@@ -135,6 +154,13 @@ urlpatterns += [
         r"^js-sdk-loader/(?P<public_key>[^/\.]+)(?:(?P<minified>\.min))?\.js$",
         JavaScriptSdkLoader.as_view(),
         name="sentry-js-sdk-loader",
+    ),
+    # docs reference this for acquiring the sentry cli
+    re_path(r"^get-cli/$", get_cli, name="get_cli_script"),
+    re_path(
+        r"^get-cli/(?P<platform>[^/]+)/(?P<arch>[^/]+)/?$",
+        get_cli_download_url,
+        name="get_cli_download_url",
     ),
     # Versioned API
     re_path(
@@ -429,6 +455,12 @@ urlpatterns += [
         react_page_view,
         name="stories",
     ),
+    # Rollback
+    re_path(
+        r"^rollback/",
+        react_page_view,
+        name="rollback",
+    ),
     # Legacy Redirects
     re_path(
         r"^docs/?$",
@@ -592,6 +624,11 @@ urlpatterns += [
                     name="sentry-customer-domain-audit-log-settings",
                 ),
                 re_path(
+                    r"^rate-limits/",
+                    react_page_view,
+                    name="sentry-customer-domain-rate-limits-settings",
+                ),
+                re_path(
                     r"^relay/",
                     react_page_view,
                     name="sentry-customer-domain-relay-settings",
@@ -605,6 +642,16 @@ urlpatterns += [
                     r"^integrations/",
                     react_page_view,
                     name="sentry-customer-domain-integrations-settings",
+                ),
+                re_path(
+                    r"^dynamic-sampling/",
+                    react_page_view,
+                    name="sentry-customer-domain-dynamic-sampling-settings",
+                ),
+                re_path(
+                    r"^feature-flags/",
+                    react_page_view,
+                    name="sentry-customer-domain-feature-flags-settings",
                 ),
                 re_path(
                     r"^developer-settings/",

@@ -19,14 +19,6 @@ def disable_internal_networks():
     return mock.patch.object(system, "INTERNAL_NETWORKS", ())
 
 
-def _get_all_keys(config):
-    for key in config:
-        yield key
-        if isinstance(config[key], dict):
-            for key in _get_all_keys(config[key]):
-                yield key
-
-
 class RelayProjectIdsEndpointTest(APITestCase):
     _date_regex = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z$")
 

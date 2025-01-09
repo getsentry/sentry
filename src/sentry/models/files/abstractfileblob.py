@@ -52,12 +52,10 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
         abstract = True
 
     @abstractmethod
-    def _create_blob_owner(self, organization_id: int) -> BlobOwnerType:
-        ...
+    def _create_blob_owner(self, organization_id: int) -> BlobOwnerType: ...
 
     @abstractmethod
-    def _delete_file_task(self) -> SentryTask:
-        ...
+    def _delete_file_task(self) -> SentryTask: ...
 
     @classmethod
     @abstractmethod

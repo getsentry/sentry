@@ -24,8 +24,10 @@ export function useSpansQuery<T = any[]>({
   limit,
   enabled,
   referrer = 'use-spans-query',
+  allowAggregateConditions,
   cursor,
 }: {
+  allowAggregateConditions?: boolean;
   cursor?: string;
   enabled?: boolean;
   eventView?: EventView;
@@ -50,6 +52,7 @@ export function useSpansQuery<T = any[]>({
       enabled: (enabled || enabled === undefined) && pageFiltersReady,
       referrer,
       cursor,
+      allowAggregateConditions,
     });
 
     TrackResponse(eventView, response);
@@ -134,8 +137,10 @@ export function useWrappedDiscoverQuery<T>({
   limit,
   cursor,
   noPagination,
+  allowAggregateConditions,
 }: {
   eventView: EventView;
+  allowAggregateConditions?: boolean;
   cursor?: string;
   enabled?: boolean;
   initialData?: T;
@@ -146,6 +151,13 @@ export function useWrappedDiscoverQuery<T>({
   const location = useLocation();
   const organization = useOrganization();
   const {isReady: pageFiltersReady} = usePageFilters();
+
+  const queryExtras: Record<string, string> = {};
+
+  if (allowAggregateConditions !== undefined) {
+    queryExtras.allowAggregateConditions = allowAggregateConditions ? '1' : '0';
+  }
+
   const result = useDiscoverQuery({
     eventView,
     orgSlug: organization.slug,
@@ -160,6 +172,7 @@ export function useWrappedDiscoverQuery<T>({
       retryDelay: getRetryDelay,
       staleTime: Infinity,
     },
+    queryExtras,
     noPagination,
   });
 
@@ -192,7 +205,7 @@ function processDiscoverTimeseriesResult(
   }
 
   const firstYAxis =
-    typeof eventView.yAxis === 'string' ? eventView.yAxis : eventView.yAxis[0];
+    typeof eventView.yAxis === 'string' ? eventView.yAxis : eventView.yAxis[0]!;
 
   if (result.data) {
     // Result data only returned one series. This means there was only only one yAxis requested, and no sub-series. Iterate the data, and return the result

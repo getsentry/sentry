@@ -17,6 +17,7 @@ from sentry.replays.usecases.ingest.dom_index import (
     log_canvas_size,
     parse_replay_actions,
 )
+from sentry.testutils.helpers import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
 
@@ -274,8 +275,15 @@ def test_parse_replay_actions(mock_project):
     assert len(action["event_hash"]) == 36
 
 
+@pytest.mark.parametrize("use_experimental_timeout", (False, True))
 @django_db_all
-def test_parse_replay_dead_click_actions(patch_rage_click_issue_with_replay_event, default_project):
+def test_parse_replay_dead_click_actions(
+    patch_rage_click_issue_with_replay_event, default_project, use_experimental_timeout
+):
+    experimental_timeout = 5000.0
+    default_timeout = 7000.0
+    time_after_click_ms = experimental_timeout if use_experimental_timeout else default_timeout
+
     events = [
         {
             "type": 5,
@@ -289,7 +297,7 @@ def test_parse_replay_dead_click_actions(patch_rage_click_issue_with_replay_even
                     "message": "div.container > div#root > div > ul > div",
                     "data": {
                         "endReason": "timeout",
-                        "timeafterclickms": 7000.0,
+                        "timeafterclickms": time_after_click_ms,
                         "nodeId": 59,
                         "url": "https://www.sentry.io",
                         "node": {
@@ -324,7 +332,7 @@ def test_parse_replay_dead_click_actions(patch_rage_click_issue_with_replay_even
                     "data": {
                         "clickcount": 5,
                         "endReason": "timeout",
-                        "timeafterclickms": 7000.0,
+                        "timeafterclickms": time_after_click_ms,
                         "nodeId": 59,
                         "url": "https://www.sentry.io",
                         "node": {
@@ -361,7 +369,7 @@ def test_parse_replay_dead_click_actions(patch_rage_click_issue_with_replay_even
                         "url": "https://www.sentry.io",
                         "clickCount": 5,
                         "endReason": "timeout",
-                        "timeAfterClickMs": 7000.0,
+                        "timeAfterClickMs": time_after_click_ms,
                         "nodeId": 59,
                         "node": {
                             "id": 59,
@@ -385,7 +393,20 @@ def test_parse_replay_dead_click_actions(patch_rage_click_issue_with_replay_even
     ]
 
     default_project.update_option("sentry:replay_rage_click_issues", True)
-    replay_actions = parse_replay_actions(default_project, "1", 30, events, mock_replay_event())
+
+    if use_experimental_timeout:
+        with override_options(
+            {
+                "replay.rage-click.experimental-timeout.org-id-list": [1],
+                "replay.rage-click.experimental-timeout.milliseconds": experimental_timeout,
+            }
+        ):
+            replay_actions = parse_replay_actions(
+                default_project, "1", 30, events, mock_replay_event(), org_id=1
+            )
+    else:
+        replay_actions = parse_replay_actions(default_project, "1", 30, events, mock_replay_event())
+
     assert patch_rage_click_issue_with_replay_event.call_count == 2
     assert replay_actions is not None
     assert replay_actions["type"] == "replay_event"

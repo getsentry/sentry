@@ -215,7 +215,6 @@ export function SentryAppInstallsFixture() {
 export function PluginListConfigFixture() {
   return [
     {
-      assets: [],
       author: {name: 'Sentry Team', url: 'https://github.com/getsentry/sentry'},
       canDisable: true,
       contexts: [],
@@ -259,7 +258,6 @@ export function PluginListConfigFixture() {
       hasConfiguration: true,
       shortName: 'PagerDuty',
       id: 'pagerduty',
-      assets: [],
       featureDescriptions: [
         {
           description:
@@ -314,7 +312,6 @@ export function WebhookPluginConfigFixture(plugin?: Partial<Plugin>): Plugin {
     metadata: {},
     contexts: [],
     status: 'unknown',
-    assets: [],
     doc: '',
     enabled: true,
     version: '24.1.0.dev0',

@@ -1,5 +1,4 @@
 import {Fragment, isValidElement, useCallback, useContext, useMemo} from 'react';
-import isPropValid from '@emotion/is-prop-valid';
 import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -194,7 +193,6 @@ function SidebarItem({
     return {
       pathname: to ? to : href,
       search,
-      state: {source: SIDEBAR_NAVIGATION_SOURCE},
     };
   }, [to, href, search]);
 
@@ -239,6 +237,7 @@ function SidebarItem({
             isInFloatingAccordion={isInFloatingAccordion}
             active={isActive ? 'true' : undefined}
             to={toProps}
+            state={{source: SIDEBAR_NAVIGATION_SOURCE}}
             disabled={!hasLink && isInFloatingAccordion}
             className={className}
             aria-current={isActive ? 'page' : undefined}
@@ -336,7 +335,7 @@ export function isItemActive(
       !location.pathname.startsWith('/settings/')) ||
     (item?.label === 'Releases' && location.pathname.includes('/release-thresholds/')) ||
     (item?.label === 'Performance' &&
-      location.pathname.includes('/performance/') &&
+      location.pathname.startsWith('/performance/') &&
       !location.pathname.startsWith('/settings/'))
   );
 }
@@ -391,7 +390,8 @@ const getActiveStyle = ({
 };
 
 const StyledSidebarItem = styled(Link, {
-  shouldForwardProp: p => typeof p === 'string' && isPropValid(p),
+  shouldForwardProp: p =>
+    !['isInFloatingAccordion', 'hasNewNav', 'index', 'organization'].includes(p),
 })`
   display: flex;
   color: ${p => (p.isInFloatingAccordion ? p.theme.gray400 : 'inherit')};

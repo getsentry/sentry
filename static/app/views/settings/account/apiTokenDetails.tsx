@@ -60,9 +60,9 @@ function ApiTokenDetailsForm({token}: {token: InternalAppApiToken}) {
   };
 
   const {mutate: submitToken} = useMutateApiToken({
-    token: token,
-    onSuccess: onSuccess,
-    onError: onError,
+    token,
+    onSuccess,
+    onError,
   });
 
   return (

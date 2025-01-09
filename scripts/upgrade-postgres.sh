@@ -1,5 +1,11 @@
 #!/bin/bash
 
+POSTGRES_CONTAINER="sentry_postgres"
+USE_NEW_DEVSERVICES=${USE_NEW_DEVSERVICES:-"0"}
+if [ "$USE_NEW_DEVSERVICES" == "1" ]; then
+    POSTGRES_CONTAINER="sentry-postgres-1"
+fi
+
 OLD_VERSION="9.6"
 NEW_VERSION="14"
 PG_IMAGE="ghcr.io/getsentry/image-mirror-library-postgres:${NEW_VERSION}-alpine"
@@ -10,7 +16,7 @@ TMP_VOLUME_NAME="${VOLUME_NAME}_${NEW_VERSION}"
 TMP_CONTAINER="${PROJECT}_pg_migration"
 
 echo "Stop the container"
-docker stop sentry_postgres
+docker stop "${POSTGRES_CONTAINER}"
 
 echo "Check existence of a volume"
 if [[ -z "$(docker volume ls -q --filter name="^${VOLUME_NAME}$")" ]]

@@ -1,15 +1,17 @@
 import * as Sentry from '@sentry/react';
+import * as qs from 'query-string';
 
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
-import type {TraceShape, TraceTree} from './traceModels/traceTree';
+import {TraceShape, type TraceTree} from './traceModels/traceTree';
 
 const trackTraceMetadata = (
   tree: TraceTree,
   projects: Project[],
-  organization: Organization
+  organization: Organization,
+  hasExceededPerformanceUsageLimit: boolean | null
 ) => {
   Sentry.metrics.increment(`trace.trace_shape.${tree.shape}`);
 
@@ -25,10 +27,14 @@ const trackTraceMetadata = (
     .filter(p => projectSlugs.includes(p.slug))
     .map(project => project?.platform ?? '');
 
+  const query = qs.parse(location.search);
+
   trackAnalytics('trace.metadata', {
     shape: tree.shape,
     // round trace_duration_seconds to nearest two decimal places
     trace_duration_seconds: Math.round(trace_duration_seconds * 100) / 100,
+    has_exceeded_performance_usage_limit: hasExceededPerformanceUsageLimit,
+    referrer: query.source?.toString() || null,
     num_root_children: tree.root.children.length,
     num_nodes: tree.list.length,
     project_platforms: projectPlatforms,
@@ -63,6 +69,10 @@ const trackViewEventJSON = (organization: Organization) =>
   });
 const trackViewContinuousProfile = (organization: Organization) =>
   trackAnalytics('trace.trace_layout.view_continuous_profile', {
+    organization,
+  });
+const trackViewTransactionProfile = (organization: Organization) =>
+  trackAnalytics('trace.trace_layout.view_transaction_profile', {
     organization,
   });
 
@@ -148,15 +158,62 @@ const trackTraceConfigurationsDocsClicked = (organization: Organization, title: 
     title,
   });
 
+const trackAutogroupingPreferenceChange = (
+  organization: Organization,
+  enabled: boolean
+) =>
+  trackAnalytics('trace.preferences.autogrouping_change', {
+    organization,
+    enabled,
+  });
+
+const trackMissingInstrumentationPreferenceChange = (
+  organization: Organization,
+  enabled: boolean
+) =>
+  trackAnalytics('trace.preferences.missing_instrumentation_change', {
+    organization,
+    enabled,
+  });
+
+function trackTraceShape(
+  tree: TraceTree,
+  projects: Project[],
+  organization: Organization,
+  hasExceededPerformanceUsageLimit: boolean | null
+) {
+  switch (tree.shape) {
+    case TraceShape.BROKEN_SUBTRACES:
+    case TraceShape.EMPTY_TRACE:
+    case TraceShape.MULTIPLE_ROOTS:
+    case TraceShape.ONE_ROOT:
+    case TraceShape.NO_ROOT:
+    case TraceShape.ONLY_ERRORS:
+    case TraceShape.BROWSER_MULTIPLE_ROOTS:
+      traceAnalytics.trackTraceMetadata(
+        tree,
+        projects,
+        organization,
+        hasExceededPerformanceUsageLimit
+      );
+      break;
+    default: {
+      Sentry.captureMessage('Unknown trace type');
+    }
+  }
+}
+
 const traceAnalytics = {
   // Trace shape
   trackTraceMetadata,
+  trackTraceShape,
   trackEmptyTraceState,
   trackFailedToFetchTraceState,
   // Drawer actions
   trackShowInView,
   trackViewEventJSON,
   trackViewContinuousProfile,
+  trackViewTransactionProfile,
   // Layout actions
   trackLayoutChange,
   trackDrawerMinimize,
@@ -176,6 +233,9 @@ const traceAnalytics = {
   trackQuotaExceededBannerLoaded,
   trackTraceConfigurationsDocsClicked,
   trackMissingSpansDocLinkClicked,
+  // Trace Preferences
+  trackAutogroupingPreferenceChange,
+  trackMissingInstrumentationPreferenceChange,
 };
 
 export {traceAnalytics};

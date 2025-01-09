@@ -472,3 +472,49 @@ class OAuthTokenRefreshTokenTest(TestCase):
         assert token2.token != self.token.token
         assert token2.refresh_token != self.token.refresh_token
         assert token2.refresh_token
+
+
+@control_silo_test
+class OAuthTokenOrganizationScopedTest(TestCase):
+    @cached_property
+    def path(self):
+        return "/oauth/token/"
+
+    def setUp(self):
+        super().setUp()
+        self.application = ApiApplication.objects.create(
+            owner=self.user,
+            redirect_uris="https://example.com",
+            scopes=["org:read"],
+            requires_org_level_access=True,
+        )
+        self.client_secret = self.application.client_secret
+        self.grant = ApiGrant.objects.create(
+            user=self.user,
+            application=self.application,
+            redirect_uri="https://example.com",
+            organization_id=self.organization.id,
+        )
+
+    def test_valid_params(self):
+        self.login_as(self.user)
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "authorization_code",
+                "redirect_uri": self.application.get_default_redirect_uri(),
+                "code": self.grant.code,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+
+        assert resp.status_code == 200
+        data = json.loads(resp.content)
+
+        token = ApiToken.objects.get(token=data["access_token"])
+        assert token.application == self.application
+        assert token.user == self.grant.user
+        assert token.get_scopes() == self.grant.get_scopes()
+        assert token.organization_id == self.organization.id

@@ -36,6 +36,15 @@ export interface KeyValueDataContentProps {
    */
   errors?: MetaError[];
   /**
+   * If true, expands the left side of the cards to take up more space.
+   */
+  expandLeft?: boolean;
+  /**
+   * Used for the feature flag section.
+   * If true, then the row will be highlighted in red.
+   */
+  isSuspectFlag?: boolean;
+  /**
    * Metadata pertaining to content item
    */
   meta?: Record<string, any>;
@@ -47,6 +56,8 @@ export function Content({
   errors = [],
   disableLink = false,
   disableFormattedData = false,
+  isSuspectFlag = false,
+  expandLeft,
   ...props
 }: KeyValueDataContentProps) {
   const {
@@ -78,7 +89,12 @@ export function Content({
   );
 
   return (
-    <ContentWrapper hasErrors={hasErrors} {...props}>
+    <ContentWrapper
+      expandLeft={expandLeft}
+      hasErrors={hasErrors}
+      isSuspectFlag={isSuspectFlag}
+      {...props}
+    >
       {subjectNode !== undefined ? subjectNode : <Subject>{subject}</Subject>}
       <ValueSection hasErrors={hasErrors} hasEmptySubject={subjectNode === null}>
         <ValueWrapper hasSuffix={hasSuffix}>
@@ -109,6 +125,10 @@ export interface KeyValueDataCardProps {
    */
   contentItems: KeyValueDataContentProps[];
   /**
+   * If true, expands the left side of the cards to take up more space.
+   */
+  expandLeft?: boolean;
+  /**
    *  Flag to enable alphabetical sorting by item subject. Uses given item ordering if false.
    */
   sortAlphabetically?: boolean;
@@ -127,6 +147,7 @@ export function Card({
   title,
   truncateLength = Infinity,
   sortAlphabetically = false,
+  expandLeft = false,
 }: KeyValueDataCardProps) {
   const [isTruncated, setIsTruncated] = useState(contentItems.length > truncateLength);
 
@@ -143,7 +164,7 @@ export function Card({
     : truncatedItems;
 
   const componentItems = orderedItems.map((itemProps, i) => (
-    <Content key={`content-card-${title}-${i}`} {...itemProps} />
+    <Content expandLeft={expandLeft} key={`content-card-${title}-${i}`} {...itemProps} />
   ));
 
   return (
@@ -212,21 +233,39 @@ const Title = styled('div')`
   font-weight: ${p => p.theme.fontWeightBold};
 `;
 
-const ContentWrapper = styled('div')<{hasErrors: boolean}>`
+const ContentWrapper = styled('div')<{
+  hasErrors: boolean;
+  isSuspectFlag: boolean;
+  expandLeft?: boolean;
+}>`
   display: grid;
-  grid-template-columns: subgrid;
+  grid-template-columns: ${p => (p.expandLeft ? '2fr 0.8fr' : 'subgrid')};
   grid-column: span 2;
   column-gap: ${space(1.5)};
   padding: ${space(0.25)} ${space(0.75)};
   border-radius: 4px;
-  color: ${p => (p.hasErrors ? p.theme.alert.error.color : p.theme.subText)};
+  color: ${p =>
+    p.hasErrors
+      ? p.theme.alert.error.color
+      : p.isSuspectFlag
+        ? p.theme.yellow400
+        : p.theme.subText};
   box-shadow: inset 0 0 0 1px
-    ${p => (p.hasErrors ? p.theme.alert.error.border : 'transparent')};
+    ${p =>
+      p.hasErrors ? p.theme.red100 : p.isSuspectFlag ? p.theme.yellow100 : 'transparent'};
   background-color: ${p =>
-    p.hasErrors ? p.theme.alert.error.backgroundLight : p.theme.background};
+    p.hasErrors
+      ? p.theme.alert.error.backgroundLight
+      : p.isSuspectFlag
+        ? p.theme.yellow100
+        : p.theme.background};
   &:nth-child(odd) {
     background-color: ${p =>
-      p.hasErrors ? p.theme.alert.error.backgroundLight : p.theme.backgroundSecondary};
+      p.hasErrors
+        ? p.theme.alert.error.backgroundLight
+        : p.isSuspectFlag
+          ? p.theme.yellow100
+          : p.theme.backgroundSecondary};
   }
 `;
 
@@ -287,8 +326,10 @@ const ActionButtonWrapper = styled('div')<{actionButtonAlwaysVisible?: boolean}>
 `;
 
 export const KeyValueData = {
+  Title,
   Content,
   Card,
+  CardPanel,
   Container,
 };
 

@@ -2,8 +2,7 @@ import uuid
 
 from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.helpers import parse_link_header, with_feature
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
@@ -14,36 +13,24 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         super().setUp()
         self.min_ago = before_now(minutes=1)
 
-    def _parse_links(self, header):
-        # links come in {url: {...attrs}}, but we need {rel: {...attrs}}
-        links = {}
-        for url, attrs in parse_link_header(header).items():
-            links[attrs["rel"]] = attrs
-            attrs["href"] = url
-        return links
-
     def get_response(self, *args, **kwargs):
-        if not args:
-            org = self.project.organization.slug
-        else:
-            org = args[0]
-        return super().get_response(org, **kwargs)
+        return super().get_response(self.project.organization.slug, **kwargs)
 
     def test_simple(self):
         self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         group_a = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=1)), "fingerprint": ["group-a"]},
+            data={"timestamp": before_now(seconds=1).isoformat(), "fingerprint": ["group-a"]},
             project_id=self.project.id,
         ).group
         self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=2)), "fingerprint": ["group-b"]},
+            data={"timestamp": before_now(seconds=2).isoformat(), "fingerprint": ["group-b"]},
             project_id=self.project.id,
         )
         group_c = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=3)), "fingerprint": ["group-c"]},
+            data={"timestamp": before_now(seconds=3).isoformat(), "fingerprint": ["group-c"]},
             project_id=self.project.id,
         ).group
         self.login_as(user=self.user)
@@ -64,16 +51,14 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         assert "userCount" in response_data[0]
         assert "lifetime" in response_data[0]
         assert "filtered" in response_data[0]
-        assert "isUnhandled" not in response_data[0]
 
-    @with_feature("organizations:issue-stream-performance")
     def test_unhandled(self):
         self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         group_a = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=1)), "fingerprint": ["group-a"]},
+            data={"timestamp": before_now(seconds=1).isoformat(), "fingerprint": ["group-a"]},
             project_id=self.project.id,
         ).group
 
@@ -144,7 +129,7 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         profile_group = group_info.group
 
         error_event = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         error_group = error_event.group
@@ -175,19 +160,19 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
 
     def test_simple_with_project(self):
         self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         group_a = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=1)), "fingerprint": ["group-a"]},
+            data={"timestamp": before_now(seconds=1).isoformat(), "fingerprint": ["group-a"]},
             project_id=self.project.id,
         ).group
         self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=2)), "fingerprint": ["group-b"]},
+            data={"timestamp": before_now(seconds=2).isoformat(), "fingerprint": ["group-b"]},
             project_id=self.project.id,
         )
         group_c = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=3)), "fingerprint": ["group-c"]},
+            data={"timestamp": before_now(seconds=3).isoformat(), "fingerprint": ["group-c"]},
             project_id=self.project.id,
         ).group
         self.login_as(user=self.user)
@@ -200,19 +185,19 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
 
     def test_query_timestamp(self):
         self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         event2 = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=1)), "fingerprint": ["group-a"]},
+            data={"timestamp": before_now(seconds=1).isoformat(), "fingerprint": ["group-a"]},
             project_id=self.project.id,
         )
         self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=2)), "fingerprint": ["group-b"]},
+            data={"timestamp": before_now(seconds=2).isoformat(), "fingerprint": ["group-b"]},
             project_id=self.project.id,
         )
         event4 = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=3)), "fingerprint": ["group-c"]},
+            data={"timestamp": before_now(seconds=3).isoformat(), "fingerprint": ["group-c"]},
             project_id=self.project.id,
         )
 
@@ -221,7 +206,7 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
 
         self.login_as(user=self.user)
         response = self.get_response(
-            query=f"timestamp:>{iso_format(before_now(seconds=3))} timestamp:<{iso_format(before_now(seconds=1))}",
+            query=f"timestamp:>{before_now(seconds=3)} timestamp:<{before_now(seconds=1).isoformat()}",
             groups=[group_a.id, group_c.id],
         )
 

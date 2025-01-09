@@ -1,19 +1,21 @@
 ---
-created: '2023-01-11T11:41:28.906471Z'
+created: '2024-12-17T22:47:18.335738+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
+  contributing component: null
   component:
     app (stacktrace of system takes precedence)
-      stacktrace
+      stacktrace (ignored because it contains no in-app frames)
         frame (non app frame)
           filename*
             "foo"
 --------------------------------------------------------------------------
 system:
   hash: "acbd18db4cc2f85cedef654fccc4a4d8"
+  contributing component: stacktrace
   component:
     system*
       stacktrace*

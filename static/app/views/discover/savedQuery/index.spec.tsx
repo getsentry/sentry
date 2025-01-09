@@ -1,9 +1,11 @@
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
-import type {NewQuery} from 'sentry/types/organization';
+import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
 import {DisplayModes, SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {WidgetType} from 'sentry/views/dashboards/types';
@@ -14,12 +16,12 @@ import * as utils from 'sentry/views/discover/savedQuery/utils';
 jest.mock('sentry/actionCreators/modal');
 
 function mount(
-  location,
-  organization,
-  router,
-  eventView,
-  savedQuery,
-  yAxis,
+  location: ReturnType<typeof LocationFixture>,
+  organization: Organization,
+  router: ReturnType<typeof RouterFixture>,
+  eventView: EventView,
+  savedQuery: SavedQuery | NewQuery | undefined,
+  yAxis: string[],
   disabled = false,
   setSavedQuery = jest.fn()
 ) {
@@ -28,7 +30,7 @@ function mount(
       location={location}
       organization={organization}
       eventView={eventView}
-      savedQuery={savedQuery}
+      savedQuery={savedQuery as SavedQuery}
       disabled={disabled}
       updateCallback={() => {}}
       yAxis={yAxis}
@@ -41,19 +43,19 @@ function mount(
 }
 
 describe('Discover > SaveQueryButtonGroup', function () {
-  let organization,
-    errorsView,
-    savedQuery,
-    errorsViewSaved,
-    errorsViewModified,
-    errorsQuery;
-  const location = {
+  let organization: Organization;
+  let errorsView: EventView;
+  let savedQuery: SavedQuery;
+  let errorsViewSaved: EventView;
+  let errorsViewModified: EventView;
+  let errorsQuery: NewQuery;
+  const location = LocationFixture({
     pathname: '/organization/eventsv2/',
     query: {},
-  };
-  const router = {
+  });
+  const router = RouterFixture({
     location: {query: {}},
-  };
+  });
   const yAxis = ['count()', 'failure_count()'];
 
   beforeEach(() => {
@@ -138,7 +140,7 @@ describe('Discover > SaveQueryButtonGroup', function () {
 
       await userEvent.click(screen.getByRole('button', {name: /discover context menu/i}));
       expect(
-        screen.queryByRole('menuitemradio', {name: /add to dashboard/i})
+        screen.getByRole('menuitemradio', {name: /add to dashboard/i})
       ).toBeInTheDocument();
     });
 
@@ -165,7 +167,7 @@ describe('Discover > SaveQueryButtonGroup', function () {
 
       await userEvent.click(screen.getByRole('button', {name: /discover context menu/i}));
       expect(
-        screen.queryByRole('menuitemradio', {name: /add to dashboard/i})
+        screen.getByRole('menuitemradio', {name: /add to dashboard/i})
       ).toBeInTheDocument();
       await userEvent.click(
         screen.getByRole('menuitemradio', {name: /add to dashboard/i})
@@ -174,7 +176,7 @@ describe('Discover > SaveQueryButtonGroup', function () {
       expect(openAddToDashboardModal).toHaveBeenCalledWith(
         expect.objectContaining({
           widget: {
-            displayType: 'line',
+            displayType: 'area',
             interval: undefined,
             limit: undefined,
             queries: [
@@ -196,7 +198,7 @@ describe('Discover > SaveQueryButtonGroup', function () {
             defaultTitle: 'Errors by Title',
             defaultWidgetQuery:
               'name=&aggregates=count()%2Cfailure_count()&columns=&fields=count()%2Cfailure_count()&conditions=event.type%3Aerror&orderby=-count()',
-            displayType: 'line',
+            displayType: 'area',
             end: undefined,
             limit: undefined,
             source: 'discoverv2',
@@ -272,7 +274,7 @@ describe('Discover > SaveQueryButtonGroup', function () {
   });
 
   describe('viewing a saved query', () => {
-    let mockUtils;
+    let mockUtils: jest.SpyInstance;
 
     beforeEach(() => {
       mockUtils = jest
@@ -331,7 +333,7 @@ describe('Discover > SaveQueryButtonGroup', function () {
         organization,
         router,
         errorsViewSaved,
-        {...savedQuery, yAxis: 'count()'},
+        {...savedQuery, yAxis: ['count()']},
         ['count()']
       );
 
@@ -362,7 +364,7 @@ describe('Discover > SaveQueryButtonGroup', function () {
   });
 
   describe('modifying a saved query', () => {
-    let mockUtils;
+    let mockUtils: jest.SpyInstance;
 
     it('renders the correct set of buttons', async () => {
       mount(
@@ -374,7 +376,7 @@ describe('Discover > SaveQueryButtonGroup', function () {
         yAxis
       );
 
-      expect(screen.queryByRole('button', {name: /save as/i})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: /save as/i})).toBeInTheDocument();
       expect(screen.getByRole('button', {name: /save changes/i})).toBeInTheDocument();
 
       await userEvent.click(screen.getByRole('button', {name: /discover context menu/i}));
@@ -419,8 +421,8 @@ describe('Discover > SaveQueryButtonGroup', function () {
             }),
             yAxis
           );
-          expect(mockSetSavedQuery).toHaveBeenCalled();
         });
+        expect(mockSetSavedQuery).toHaveBeenCalled();
       });
     });
 
@@ -501,11 +503,9 @@ describe('Discover > SaveQueryButtonGroup', function () {
       const href = createAlertButton.getAttribute('href')!;
       const queryParameters = new URLSearchParams(href.split('?')[1]);
 
-      expect(queryParameters.get('query')).toEqual(
-        '(foo:bar) AND (event.type:transaction)'
-      );
-      expect(queryParameters.get('dataset')).toEqual('transactions');
-      expect(queryParameters.get('eventTypes')).toEqual('transaction');
+      expect(queryParameters.get('query')).toBe('(foo:bar) AND (event.type:transaction)');
+      expect(queryParameters.get('dataset')).toBe('transactions');
+      expect(queryParameters.get('eventTypes')).toBe('transaction');
     });
     it('uses the num errors alert type for error queries', () => {
       const metricAlertOrg = {
@@ -524,9 +524,9 @@ describe('Discover > SaveQueryButtonGroup', function () {
       const href = createAlertButton.getAttribute('href')!;
       const queryParameters = new URLSearchParams(href.split('?')[1]);
 
-      expect(queryParameters.get('query')).toEqual('foo:bar');
-      expect(queryParameters.get('dataset')).toEqual('events');
-      expect(queryParameters.get('eventTypes')).toEqual('error');
+      expect(queryParameters.get('query')).toBe('foo:bar');
+      expect(queryParameters.get('dataset')).toBe('events');
+      expect(queryParameters.get('eventTypes')).toBe('error');
     });
   });
 });

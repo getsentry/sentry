@@ -1,0 +1,63 @@
+---
+created: '2024-12-17T22:50:04.137358+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+hashing_metadata: {
+  "num_stacktraces": 1,
+  "stacktrace_location": "exception",
+  "stacktrace_type": "in_app"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "stacktrace",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.stacktrace": {
+    "chained_exception": "False",
+    "stacktrace_location": "exception",
+    "stacktrace_type": "in_app"
+  }
+}
+---
+contributing variants:
+  app*
+    hash: "260f8f0a5856cd6db03c549b83080d5d"
+    contributing component: exception
+    component:
+      app*
+        exception*
+          stacktrace*
+            frame*
+              filename*
+                "/server.php"
+              context-line*
+                "require_once __DIR__.'/public/index.php';"
+          type*
+            "Exception"
+  system*
+    hash: "babe97015e0a63eaaab253c266bae20d"
+    contributing component: exception
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              filename*
+                "/server.php"
+              context-line*
+                "require_once __DIR__.'/public/index.php';"
+            frame*
+              filename*
+                "/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php"
+              context-line*
+                "                    return $callable($passable);"
+            frame*
+              filename*
+                "/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php"
+              context-line*
+                "                                ? $pipe->{$this->method}(...$parameters)"
+          type*
+            "Exception"

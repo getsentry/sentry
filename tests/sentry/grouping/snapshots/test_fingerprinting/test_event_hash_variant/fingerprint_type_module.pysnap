@@ -1,5 +1,5 @@
 ---
-created: '2020-12-08T17:25:04.954793Z'
+created: '2024-11-08T22:03:16.036167+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -14,6 +14,8 @@ config:
       - DatabaseUnavailable
     - - module
       - io.sentry.example.*
+    text: type:"DatabaseUnavailable" module:"io.sentry.example.*" -> "{{ type }}{{
+      module }}"
   version: 1
 fingerprint:
 - '{{ type }}'
@@ -25,10 +27,10 @@ variants:
       contributes: false
       hint: custom fingerprint takes precedence
     type: component
-  custom-fingerprint:
+  custom_fingerprint:
     matched_rule: type:"DatabaseUnavailable" module:"io.sentry.example.*" -> "{{ type
       }}{{ module }}"
-    type: custom-fingerprint
+    type: custom_fingerprint
     values:
     - DatabaseUnavailable
     - io.sentry.example.Application

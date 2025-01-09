@@ -13,13 +13,13 @@ jobs:
     name: Lint @deprecated callsites
     timeout-minutes: 30
     # Make sure this matches the runner that runs frontend tests
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
-      - name: Install dependencies & inject eslint-plugin-deprecation
+      - name: Install dependencies
         id: dependencies
-        run: yarn add --dev eslint-plugin-deprecation
+        run: yarn install
 
       # Setup custom tsc matcher, see https://github.com/actions/setup-node/issues/97
       - name: setup matchers

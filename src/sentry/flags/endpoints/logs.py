@@ -5,7 +5,6 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-# from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -21,9 +20,9 @@ from sentry.models.organization import Organization
 class FlagAuditLogModelSerializerResponse(TypedDict):
     id: int
     action: str
-    created_at: datetime
-    created_by: str
-    created_by_type: str
+    createdAt: datetime
+    createdBy: str | None
+    createdByType: str | None
     flag: str
     tags: dict[str, Any]
 
@@ -34,9 +33,13 @@ class FlagAuditLogModelSerializer(Serializer):
         return {
             "id": obj.id,
             "action": ActionEnum.to_string(obj.action),
-            "created_at": obj.created_at.isoformat(),
-            "created_by": obj.created_by,
-            "created_by_type": CreatedByTypeEnum.to_string(obj.created_by_type),
+            "createdAt": obj.created_at.isoformat(),
+            "createdBy": obj.created_by,
+            "createdByType": (
+                None
+                if obj.created_by_type is None
+                else CreatedByTypeEnum.to_string(obj.created_by_type)
+            ),
             "flag": obj.flag,
             "tags": obj.tags,
         }
@@ -48,9 +51,6 @@ class OrganizationFlagLogIndexEndpoint(OrganizationEndpoint):
     publish_status = {"GET": ApiPublishStatus.PRIVATE}
 
     def get(self, request: Request, organization: Organization) -> Response:
-        # if not features.has("organizations:feature-flag-ui", organization, actor=request.user):
-        #     raise ResourceDoesNotExist
-
         start, end = get_date_range_from_params(request.GET)
         if start is None or end is None:
             raise ParseError(detail="Invalid date range")
@@ -60,6 +60,10 @@ class OrganizationFlagLogIndexEndpoint(OrganizationEndpoint):
             created_at__lt=end,
             organization_id=organization.id,
         )
+
+        flags = request.GET.getlist("flag")
+        if flags:
+            queryset = queryset.filter(flag__in=flags)
 
         return self.paginate(
             request=request,
@@ -77,9 +81,6 @@ class OrganizationFlagLogDetailsEndpoint(OrganizationEndpoint):
     publish_status = {"GET": ApiPublishStatus.PRIVATE}
 
     def get(self, request: Request, organization: Organization, flag_log_id: int) -> Response:
-        # if not features.has("organizations:feature-flag-ui", organization, actor=request.user):
-        #     raise ResourceDoesNotExist
-
         try:
             model = FlagAuditLogModel.objects.filter(
                 id=flag_log_id,

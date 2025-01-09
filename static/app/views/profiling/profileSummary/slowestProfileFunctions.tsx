@@ -15,16 +15,16 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {Frame} from 'sentry/utils/profiling/frame';
 import type {EventsResultsDataRow} from 'sentry/utils/profiling/hooks/types';
 import {useCurrentProjectFromRouteParam} from 'sentry/utils/profiling/hooks/useCurrentProjectFromRouteParam';
 import {useProfileFunctions} from 'sentry/utils/profiling/hooks/useProfileFunctions';
 import {formatSort} from 'sentry/utils/profiling/hooks/utils';
-import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
+import {generateProfileRouteFromProfileReference} from 'sentry/utils/profiling/routes';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 
 const SLOWEST_FUNCTIONS_LIMIT = 15;
@@ -36,7 +36,7 @@ const functionsFields = [
   'count()',
   'p75()',
   'sum()',
-  'examples()',
+  'all_examples()',
 ] as const;
 
 type FunctionsField = (typeof functionsFields)[number];
@@ -45,12 +45,13 @@ interface SlowestProfileFunctionsProps {
 }
 
 export function SlowestProfileFunctions(props: SlowestProfileFunctionsProps) {
+  const navigate = useNavigate();
+  const location = useLocation();
   const organization = useOrganization();
   const project = useCurrentProjectFromRouteParam();
   const [functionType, setFunctionType] = useState<'application' | 'system' | 'all'>(
     'application'
   );
-  const location = useLocation();
   const functionsCursor = useMemo(
     () => decodeScalar(location.query[SLOWEST_FUNCTIONS_CURSOR]),
     [location.query]
@@ -68,12 +69,14 @@ export function SlowestProfileFunctions(props: SlowestProfileFunctionsProps) {
     [location.query.functionsSort]
   );
 
-  const handleFunctionsCursor = useCallback((cursor, pathname, query) => {
-    browserHistory.push({
-      pathname,
-      query: {...query, [SLOWEST_FUNCTIONS_CURSOR]: cursor},
-    });
-  }, []);
+  const handleFunctionsCursor = useCallback(
+    (cursor, pathname, query) =>
+      navigate({
+        pathname,
+        query: {...query, [SLOWEST_FUNCTIONS_CURSOR]: cursor},
+      }),
+    [navigate]
+  );
 
   const query = useMemo(() => {
     const conditions = new MutableSearch('');
@@ -175,22 +178,17 @@ function SlowestFunctionEntry(props: SlowestFunctionEntryProps) {
   }, [props.func, props.project]);
 
   let rendered = <TextTruncateOverflow>{frame.name}</TextTruncateOverflow>;
-  if (defined(props.func['examples()']?.[0])) {
+  const example = props.func['all_examples()']?.[0];
+  if (defined(example)) {
+    const target = generateProfileRouteFromProfileReference({
+      orgSlug: props.organization.slug,
+      projectSlug: props.project?.slug ?? '',
+      frameName: frame.name as string,
+      framePackage: frame.package as string,
+      reference: example,
+    });
     rendered = (
-      <Link
-        onClick={props.onSlowestFunctionClick}
-        to={generateProfileFlamechartRouteWithQuery({
-          orgSlug: props.organization.slug,
-          projectSlug: props.project?.slug ?? '',
-          profileId: props.func['examples()']?.[0] as string,
-          query: {
-            // specify the frame to focus, the flamegraph will switch
-            // to the appropriate thread when these are specified
-            frameName: frame.name as string,
-            framePackage: frame.package as string,
-          },
-        })}
-      >
+      <Link onClick={props.onSlowestFunctionClick} to={target}>
         {rendered}
       </Link>
     );

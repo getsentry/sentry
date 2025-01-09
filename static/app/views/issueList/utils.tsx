@@ -1,6 +1,11 @@
+import type {Location, LocationDescriptorObject} from 'history';
+
 import ExternalLink from 'sentry/components/links/externalLink';
 import {DEFAULT_QUERY} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
+import type {Event} from 'sentry/types/event';
+import type {Group, GroupTombstoneHelper} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 
 export enum Query {
   FOR_REVIEW = 'is:unresolved is:for_review assigned_or_suggested:[me, my_teams, none]',
@@ -158,7 +163,7 @@ export function isForReviewQuery(query: string | undefined) {
 // the tab counts will look like 99+
 export const TAB_MAX_COUNT = 99;
 
-type QueryCount = {
+export type QueryCount = {
   count: number;
   hasMore: boolean;
 };
@@ -211,6 +216,9 @@ export const DISCOVER_EXCLUSION_FIELDS: string[] = [
   'first_seen',
   'is',
   '__text',
+  'issue.priority',
+  'issue.category',
+  'issue.type',
 ];
 
 export const FOR_REVIEW_QUERIES: string[] = [Query.FOR_REVIEW];
@@ -246,4 +254,49 @@ function getIssueGroupFilter(group: IssueGroup): string {
 /** Generate a properly encoded `?query=` string for a given issue group */
 export function getSearchForIssueGroup(group: IssueGroup): string {
   return `?${new URLSearchParams(`query=is:unresolved+${getIssueGroupFilter(group)}`)}`;
+}
+
+export function createIssueLink({
+  organization,
+  data,
+  eventId,
+  referrer,
+  streamIndex,
+  location,
+  query,
+}: {
+  data: Event | Group | GroupTombstoneHelper;
+  location: Location;
+  organization: Organization;
+  eventId?: string;
+  query?: string;
+  referrer?: string;
+  streamIndex?: number;
+}): LocationDescriptorObject {
+  const {id} = data as Group;
+  const {eventID: latestEventId, groupID} = data as Event;
+
+  // If we have passed in a custom event ID, use it; otherwise use default
+  const finalEventId = eventId ?? latestEventId;
+
+  return {
+    pathname: `/organizations/${organization.slug}/issues/${
+      latestEventId ? groupID : id
+    }/${finalEventId ? `events/${finalEventId}/` : ''}`,
+    query: {
+      referrer: referrer || 'event-or-group-header',
+      stream_index: streamIndex,
+      query,
+      // This adds sort to the query if one was selected from the
+      // issues list page
+      ...(location.query.sort !== undefined ? {sort: location.query.sort} : {}),
+      // This appends _allp to the URL parameters if they have no
+      // project selected ("all" projects included in results). This is
+      // so that when we enter the issue details page and lock them to
+      // a project, we can properly take them back to the issue list
+      // page with no project selected (and not the locked project
+      // selected)
+      ...(location.query.project !== undefined ? {} : {_allp: 1}),
+    },
+  };
 }

@@ -15,6 +15,8 @@ import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import theme from 'sentry/utils/theme';
+import {getAnomalyMarkerSeries} from 'sentry/views/alerts/rules/metric/utils/anomalyChart';
+import type {Anomaly} from 'sentry/views/alerts/types';
 import {
   ALERT_CHART_MIN_MAX_BUFFER,
   alertAxisFormatter,
@@ -39,7 +41,9 @@ type Props = DefaultProps & {
   resolveThreshold: MetricRule['resolveThreshold'];
   thresholdType: MetricRule['thresholdType'];
   triggers: Trigger[];
+  anomalies?: Anomaly[];
   comparisonSeriesName?: string;
+  includePrevious?: boolean;
   isExtrapolatedData?: boolean;
   maxValue?: number;
   minValue?: number;
@@ -316,6 +320,7 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
       comparisonMarkLines,
       minutesThresholdToDisplaySeconds,
       thresholdType,
+      anomalies = [],
     } = this.props;
 
     const dataWithoutRecentBucket = data?.map(({data: eventData, ...restOfData}) => {
@@ -370,7 +375,7 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
             : [seriesParamsOrParam];
 
           const pointY = (
-            seriesParams.length > 1 ? seriesParams[0].data[1] : undefined
+            seriesParams.length > 1 ? seriesParams[0]!.data[1] : undefined
           ) as number | undefined;
 
           const comparisonSeries =
@@ -410,7 +415,7 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
         max: this.state.yAxisMax ?? undefined,
         axisLabel: {
           formatter: (value: number) =>
-            alertAxisFormatter(value, data[0].seriesName, aggregate),
+            alertAxisFormatter(value, data[0]!.seriesName, aggregate),
         },
       },
     };
@@ -431,7 +436,11 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
           ]),
         })}
         colors={CHART_PALETTE[0]}
-        series={[...dataWithoutRecentBucket, ...comparisonMarkLines]}
+        series={[
+          ...dataWithoutRecentBucket,
+          ...comparisonMarkLines,
+          ...getAnomalyMarkerSeries(anomalies),
+        ]}
         additionalSeries={comparisonDataWithoutRecentBucket.map(
           ({data: _data, ...otherSeriesProps}) =>
             LineSeries({

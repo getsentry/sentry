@@ -18,6 +18,9 @@ export class MissingInstrumentationNode extends TraceTreeNode<TraceTree.MissingI
     this.previous = previous;
 
     // The space of a missing instrumentation node is gap between previous end and next start
-    this.space = [previous.value.timestamp, next.value.start_timestamp];
+    this.space = [
+      previous.value.timestamp * 1e3,
+      (next.value.start_timestamp - previous.value.timestamp) * 1e3,
+    ];
   }
 }

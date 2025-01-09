@@ -52,14 +52,16 @@ class RegionResolutionTest(TestCase):
     def test_require_single_organization(self) -> None:
         region_resolution = RequireSingleOrganization()
 
-        with override_regions([self.target_region]), override_settings(
-            SENTRY_SINGLE_ORGANIZATION=True
+        with (
+            override_regions([self.target_region]),
+            override_settings(SENTRY_SINGLE_ORGANIZATION=True),
         ):
             actual_region = region_resolution.resolve({})
             assert actual_region == self.target_region
 
-        with override_regions([self.target_region]), override_settings(
-            SENTRY_SINGLE_ORGANIZATION=False
+        with (
+            override_regions([self.target_region]),
+            override_settings(SENTRY_SINGLE_ORGANIZATION=False),
         ):
             with pytest.raises(RegionResolutionError):
                 region_resolution.resolve({})

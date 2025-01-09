@@ -9,7 +9,6 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {MobileBetaBanner} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {metricTagsExplanation} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {
   getReplayMobileConfigureDescription,
@@ -79,7 +78,8 @@ func application(_ application: UIApplication,
         options.tracesSampleRate = 1.0`
             : ''
         }${
-          params.isProfilingSelected
+          params.isProfilingSelected &&
+          params.profilingOptions?.defaultProfilingMode !== 'continuous'
             ? `
 
         // Sample rate for profiling, applied on top of TracesSampleRate.
@@ -87,6 +87,20 @@ func application(_ application: UIApplication,
         options.profilesSampleRate = 1.0`
             : ''
         }
+    }${
+      params.isProfilingSelected &&
+      params.profilingOptions?.defaultProfilingMode === 'continuous'
+        ? `
+
+    // Manually call startProfiler and stopProfiler
+    // to profile the code in between
+    SentrySDK.startProfiler()
+    // this code will be profiled
+    //
+    // Calls to stopProfiler are optional - if you don't stop the profiler, it will keep profiling
+    // your application until the process exits or stopProfiler is called.
+    SentrySDK.stopProfiler()`
+        : ''
     }
 
     return true
@@ -109,7 +123,8 @@ struct SwiftUIApp: App {
             options.tracesSampleRate = 1.0`
                 : ''
             }${
-              params.isProfilingSelected
+              params.isProfilingSelected &&
+              params.profilingOptions?.defaultProfilingMode !== 'continuous'
                 ? `
 
             // Sample rate for profiling, applied on top of TracesSampleRate.
@@ -117,6 +132,20 @@ struct SwiftUIApp: App {
             options.profilesSampleRate = 1.0`
                 : ''
             }
+        }${
+          params.isProfilingSelected &&
+          params.profilingOptions?.defaultProfilingMode === 'continuous'
+            ? `
+
+        // Manually call startProfiler and stopProfiler
+        // to profile the code in between
+        SentrySDK.startProfiler()
+        // this code will be profiled
+        //
+        // Calls to stopProfiler are optional - if you don't stop the profiler, it will keep profiling
+        // your application until the process exits or stopProfiler is called.
+        SentrySDK.stopProfiler()`
+            : ''
         }
     }
 }`;
@@ -254,14 +283,13 @@ SentrySDK.start(configureOptions: { options in
   options.dsn = "${params.dsn.public}"
   options.debug = true
 
-  // Currently under experimental options:
-  options.experimental.sessionReplay.onErrorSampleRate = 1.0
-  options.experimental.sessionReplay.sessionSampleRate = 1.0
+  options.sessionReplay.onErrorSampleRate = 1.0
+  options.sessionReplay.sessionSampleRate = 0.1
 })`;
 
 const getReplayConfigurationSnippet = () => `
-options.experimental.sessionReplay.redactAllText = true
-options.experimental.sessionReplay.redactAllImages = true`;
+options.sessionReplay.redactAllText = true
+options.sessionReplay.redactAllImages = true`;
 
 const onboarding: OnboardingConfig<PlatformOptions> = {
   install: params =>
@@ -621,14 +649,11 @@ const metricsOnboarding: OnboardingConfig<PlatformOptions> = {
 };
 
 const replayOnboarding: OnboardingConfig<PlatformOptions> = {
-  introduction: () => (
-    <MobileBetaBanner link="https://docs.sentry.io/platforms/android/session-replay/" />
-  ),
   install: (params: Params) => [
     {
       type: StepType.INSTALL,
       description: t(
-        'Make sure your Sentry Cocoa SDK version is at least 8.31.1. If you already have the SDK installed, you can update it to the latest version with:'
+        'Make sure your Sentry Cocoa SDK version is at least 8.43.0. If you already have the SDK installed, you can update it to the latest version with:'
       ),
       configurations: [
         {
@@ -703,10 +728,8 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
     },
   ],
   verify: getReplayVerifyStep({
-    replayOnErrorSampleRateName:
-      'options\u200b.experimental\u200b.sessionReplay\u200b.onErrorSampleRate',
-    replaySessionSampleRateName:
-      'options\u200b.experimental\u200b.sessionReplay\u200b.sessionSampleRate',
+    replayOnErrorSampleRateName: 'options\u200b.sessionReplay\u200b.onErrorSampleRate',
+    replaySessionSampleRateName: 'options\u200b.sessionReplay\u200b.sessionSampleRate',
   }),
   nextSteps: () => [],
 };

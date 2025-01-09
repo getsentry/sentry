@@ -32,7 +32,7 @@ describe('PageFilters ActionCreators', function () {
   });
 
   describe('initializeUrlState', function () {
-    let router;
+    let router: ReturnType<typeof RouterFixture>;
     const key = `global-selection:${organization.slug}`;
 
     beforeEach(() => {

@@ -10,17 +10,17 @@ export class ContinuousProfile extends Profile {
     chunk: Profiling.ContinuousProfile,
     frameIndex: ReturnType<typeof createContinuousProfileFrameIndex>
   ): ContinuousProfile {
-    const firstSample = chunk.samples[0];
-    const lastSample = chunk.samples[chunk.samples.length - 1];
+    const firstSample = chunk.samples[0]!;
+    const lastSample = chunk.samples[chunk.samples.length - 1]!;
 
-    const duration = lastSample.timestamp - firstSample.timestamp;
     const {threadId, threadName} = getThreadData(chunk);
 
     const profile = new ContinuousProfile({
-      duration,
-      endedAt: lastSample.timestamp,
-      startedAt: firstSample.timestamp,
-      threadId: threadId,
+      // Duration is in seconds, convert to nanoseconds
+      duration: (lastSample.timestamp - firstSample.timestamp) * 1e3,
+      endedAt: lastSample.timestamp * 1e3,
+      startedAt: firstSample.timestamp * 1e3,
+      threadId,
       name: threadName,
       type: 'flamechart',
       unit: 'milliseconds',
@@ -38,7 +38,7 @@ export class ContinuousProfile extends Profile {
     const resolvedStack: Frame[] = new Array(256); // stack size limit
 
     for (let i = 0; i < chunk.samples.length; i++) {
-      const sample = chunk.samples[i];
+      const sample = chunk.samples[i]!;
       const nextSampleTimestamp = chunk.samples[i + 1]?.timestamp ?? sample.timestamp;
 
       const stack = chunk.stacks[sample.stack_id];
@@ -63,6 +63,9 @@ export class ContinuousProfile extends Profile {
   }
 
   appendSample(stack: Frame[], duration: number, end: number): void {
+    // Keep track of discarded samples and ones that may have negative weights
+    this.trackSampleStats(duration);
+
     // Ignore samples with 0 weight
     if (duration === 0) {
       return;
@@ -71,7 +74,7 @@ export class ContinuousProfile extends Profile {
     let node = this.callTree;
     const framesInStack: CallTreeNode[] = [];
     for (let i = 0; i < end; i++) {
-      const frame = stack[i];
+      const frame = stack[i]!;
       const last = node.children[node.children.length - 1];
       // Find common frame between two stacks
       if (last && !last.isLocked() && last.frame === frame) {
@@ -89,10 +92,10 @@ export class ContinuousProfile extends Profile {
       // We check the stack in a top-down order to find the first recursive frame.
       let start = framesInStack.length - 1;
       while (start >= 0) {
-        if (framesInStack[start].frame === node.frame) {
+        if (framesInStack[start]!.frame === node.frame) {
           // The recursion edge is bidirectional
-          framesInStack[start].recursive = node;
-          node.recursive = framesInStack[start];
+          framesInStack[start]!.recursive = node;
+          node.recursive = framesInStack[start]!;
           break;
         }
         start--;
@@ -120,7 +123,7 @@ export class ContinuousProfile extends Profile {
 
     // If node is the same as the previous sample, add the weight to the previous sample
     if (node === this.samples[this.samples.length - 1]) {
-      this.weights[this.weights.length - 1] += duration;
+      this.weights[this.weights.length - 1]! += duration;
     } else {
       this.samples.push(node);
       this.weights.push(duration);
@@ -160,7 +163,7 @@ function getThreadData(profile: Profiling.ContinuousProfile): {
   threadName: string;
 } {
   const {samples, thread_metadata = {}} = profile;
-  const sample = samples[0];
+  const sample = samples[0]!;
   const threadId = parseInt(sample.thread_id, 10);
 
   return {

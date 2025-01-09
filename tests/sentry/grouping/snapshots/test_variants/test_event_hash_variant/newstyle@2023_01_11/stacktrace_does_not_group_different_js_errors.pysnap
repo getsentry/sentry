@@ -1,13 +1,14 @@
 ---
-created: '2023-01-11T11:41:26.731813Z'
+created: '2024-12-17T22:47:18.387663+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
+  contributing component: null
   component:
     app
-      stacktrace
+      stacktrace (ignored because it contains no in-app frames)
         frame (non app frame)
           filename (ignored because frame points to a URL)
             "index.js"
@@ -17,9 +18,10 @@ fallback:
 --------------------------------------------------------------------------
 system:
   hash: null
+  contributing component: null
   component:
     system
-      stacktrace
+      stacktrace (ignored because it contains no contributing frames)
         frame
           filename (ignored because frame points to a URL)
             "index.js"

@@ -45,6 +45,7 @@ def dispatch_post_process_group_task(
     skip_consume: bool = False,
     group_states: GroupStates | None = None,
     occurrence_id: str | None = None,
+    eventstream_type: str | None = None,
 ) -> None:
     if skip_consume:
         logger.info("post_process.skip.raw_event", extra={"event_id": event_id})
@@ -62,6 +63,7 @@ def dispatch_post_process_group_task(
                 "group_states": group_states,
                 "occurrence_id": occurrence_id,
                 "project_id": project_id,
+                "eventstream_type": eventstream_type,
             },
             queue=queue,
         )
@@ -83,15 +85,19 @@ def _get_task_kwargs(message: Message[KafkaPayload]) -> Mapping[str, Any] | None
             return get_task_kwargs_for_message(message.payload.value)
 
 
-def _get_task_kwargs_and_dispatch(message: Message[KafkaPayload]) -> None:
+def _get_task_kwargs_and_dispatch(
+    message: Message[KafkaPayload], eventstream_type: str | None = None
+) -> None:
     task_kwargs = _get_task_kwargs(message)
     if not task_kwargs:
         return None
 
-    dispatch_post_process_group_task(**task_kwargs)
+    dispatch_post_process_group_task(**task_kwargs, eventstream_type=eventstream_type)
 
 
 class EventPostProcessForwarderStrategyFactory(PostProcessForwarderStrategyFactory):
     @staticmethod
-    def _dispatch_function(message: Message[KafkaPayload]) -> None:
-        return _get_task_kwargs_and_dispatch(message)
+    def _dispatch_function(
+        message: Message[KafkaPayload], eventstream_type: str | None = None
+    ) -> None:
+        return _get_task_kwargs_and_dispatch(message, eventstream_type)
