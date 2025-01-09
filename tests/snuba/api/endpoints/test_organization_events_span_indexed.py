@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from unittest import mock
 
 import pytest
+import urllib3
 
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
@@ -1511,6 +1512,23 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
 
     is_eap = True
     use_rpc = True
+
+    @mock.patch(
+        "sentry.utils.snuba_rpc._snuba_pool.urlopen", side_effect=urllib3.exceptions.TimeoutError
+    )
+    def test_timeout(self, mock_rpc):
+        response = self.do_request(
+            {
+                "field": ["span.status", "description", "count()"],
+                "query": "",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 400, response.content
+        assert "Query timeout" in response.data["detail"]
 
     def test_extrapolation(self):
         """Extrapolation only changes the number when there's a sample rate"""
