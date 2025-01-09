@@ -253,7 +253,7 @@ def parse_datetime_comparison(
     raise InvalidQuery(f"{value} is not a valid datetime query")
 
 
-def parse_datetime_value(value: str) -> tuple[ParsedDatetime, ParsedDatetime]:
+def parse_datetime_value(value: str) -> tuple[tuple[datetime, bool], tuple[datetime, bool]]:
     result = None
 
     # A value that only specifies the date (without a time component) should be
@@ -507,7 +507,7 @@ def parse_release(
     projects: Sequence[Project | int],
     environments: Sequence[Environment] | None,
     organization_id: int | None = None,
-) -> Sequence[str]:
+) -> list[str]:
     if value == "latest":
         try:
             return get_latest_release(projects, environments, organization_id)
