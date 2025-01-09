@@ -33,7 +33,13 @@ export function EventMissingBanner() {
       {
         link: (
           <Link
-            to={`${baseUrl}/recommended/statsPeriod=${MAX_PICKABLE_DAYS}d`}
+            to={{
+              pathname: `${baseUrl}/recommended/`,
+              query: {
+                statsPeriod: `${MAX_PICKABLE_DAYS}d`,
+                ...(location.query.project ? {project: location.query.project} : {}),
+              },
+            }}
             aria-label={t('View recommended event')}
           />
         ),
@@ -50,8 +56,8 @@ export function EventMissingBanner() {
           to={{
             pathname: `${baseUrl}/${eventId}/`,
             query: {
-              project: location.query.project ?? undefined,
               statsPeriod: `${MAX_PICKABLE_DAYS}d`,
+              ...(location.query.project ? {project: location.query.project} : {}),
             },
           }}
           aria-label={t('Clear event filters')}
