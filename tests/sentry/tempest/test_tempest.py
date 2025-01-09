@@ -156,17 +156,13 @@ class TempestTasksTest(TestCase):
             use_case=UseCase.TEMPEST, project=project
         )
 
-        assert created
-        assert project_key_1.use_case == UseCase.TEMPEST
-
-        project_key_2, created = ProjectKey.objects.get_or_create(
+        project_key_2, created_2 = ProjectKey.objects.get_or_create(
             use_case=UseCase.TEMPEST, project=project
         )
 
-        assert not created
-        assert (
-            project_key_2.use_case == "UseCase.TEMPEST"
-        )  # Since the use_case is stored as a string in the DB
+        assert created
+        assert not created_2
+        assert project_key_2.use_case == "UseCase.TEMPEST"
         assert project_key_1.id == project_key_2.id
 
     def test_tempest_screenshot_option(self):
