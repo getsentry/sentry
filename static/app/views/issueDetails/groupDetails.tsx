@@ -238,7 +238,6 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
   } = useGroupEvent({
     groupId,
     eventId: params.eventId,
-    environments,
   });
 
   const {

@@ -1809,6 +1809,31 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert other["order"] == 5
         assert [{"count": 1}] in [attrs for _, attrs in other["data"]]
 
+    def test_transactions_top_events_with_issue(self):
+        # delete a group to make sure if this happens the value becomes unknown
+        event_group = self.events[0].group
+        event_group.delete()
+
+        with self.feature(self.enabled_features):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": self.day_ago.isoformat(),
+                    "end": (self.day_ago + timedelta(hours=2)).isoformat(),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["-count()"],
+                    "field": ["count()", "message", "issue"],
+                    "topEvents": "5",
+                    "query": "!event.type:transaction",
+                    "dataset": "transactions",
+                },
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+        # Just asserting that this doesn't fail, issue on transactions dataset doesn't mean anything
+
     def test_top_events_with_transaction_status(self):
         with self.feature(self.enabled_features):
             response = self.client.get(
@@ -2944,12 +2969,18 @@ class OrganizationEventsStatsTopNEventsProfileFunctionDatasetEndpointTest(
             timestamp=self.two_days_ago,
         )
 
+        y_axes = [
+            "cpm()",
+            "p95(function.duration)",
+            "all_examples()",
+        ]
+
         data = {
             "dataset": "profileFunctions",
             "field": ["function", "count()"],
             "start": self.three_days_ago.isoformat(),
             "end": self.one_day_ago.isoformat(),
-            "yAxis": ["cpm()", "p95(function.duration)"],
+            "yAxis": y_axes,
             "interval": "1d",
             "topEvents": "2",
             "excludeOther": "1",
@@ -2974,6 +3005,17 @@ class OrganizationEventsStatsTopNEventsProfileFunctionDatasetEndpointTest(
         assert any(
             row[1][0]["count"] > 0 for row in response.data["bar"]["p95(function.duration)"]["data"]
         )
+
+        for func in ["foo", "bar"]:
+            for y_axis in y_axes:
+                assert response.data[func][y_axis]["meta"]["units"] == {
+                    "time": None,
+                    "count": None,
+                    "cpm": None,
+                    "function": None,
+                    "p95_function_duration": "nanosecond",
+                    "all_examples": None,
+                }
 
 
 class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):

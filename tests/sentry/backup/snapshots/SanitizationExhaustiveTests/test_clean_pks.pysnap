@@ -1,5 +1,5 @@
 ---
-created: '2024-12-07T00:26:32.322405+00:00'
+created: '2025-01-07T23:12:05.475202+00:00'
 creator: sentry
 source: tests/sentry/backup/test_sanitize.py
 ---
@@ -587,6 +587,11 @@ source: tests/sentry/backup/test_sanitize.py
   - date_updated
 - model_name: sentry.querysubscription
   ordinal: 3
+  sanitized_fields:
+  - date_added
+  - date_updated
+- model_name: sentry.querysubscription
+  ordinal: 4
   sanitized_fields:
   - date_added
   - date_updated

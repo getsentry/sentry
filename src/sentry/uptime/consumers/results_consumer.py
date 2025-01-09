@@ -4,6 +4,10 @@ import logging
 import random
 from datetime import datetime, timedelta, timezone
 
+from arroyo import Topic as ArroyoTopic
+from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
+from sentry_kafka_schemas.codecs import Codec
+from sentry_kafka_schemas.schema_types.snuba_uptime_results_v1 import SnubaUptimeResult
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CHECKSTATUS_FAILURE,
     CHECKSTATUS_MISSED_WINDOW,
@@ -11,8 +15,8 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CheckResult,
 )
 
-from sentry import features, options
-from sentry.conf.types.kafka_definition import Topic
+from sentry import features, options, quotas
+from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.remote_subscriptions.consumers.result_consumer import (
     ResultProcessor,
     ResultsStrategyFactory,
@@ -38,6 +42,8 @@ from sentry.uptime.subscriptions.tasks import (
     update_remote_uptime_subscription,
 )
 from sentry.utils import metrics
+from sentry.utils.arroyo_producer import SingletonProducer
+from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
 logger = logging.getLogger(__name__)
 LAST_UPDATE_REDIS_TTL = timedelta(days=7)
@@ -57,6 +63,18 @@ ACTIVE_FAILURE_THRESHOLD = 3
 ACTIVE_RECOVERY_THRESHOLD = 1
 # The TTL of the redis key used to track consecutive statuses
 ACTIVE_THRESHOLD_REDIS_TTL = timedelta(minutes=60)
+SNUBA_UPTIME_RESULTS_CODEC: Codec[SnubaUptimeResult] = get_topic_codec(Topic.SNUBA_UPTIME_RESULTS)
+
+
+def _get_snuba_uptime_checks_producer() -> KafkaProducer:
+    cluster_name = get_topic_definition(Topic.SNUBA_UPTIME_RESULTS)["cluster"]
+    producer_config = get_kafka_producer_cluster_options(cluster_name)
+    producer_config.pop("compression.type", None)
+    producer_config.pop("message.max.bytes", None)
+    return KafkaProducer(build_kafka_configuration(default_config=producer_config))
+
+
+_snuba_uptime_checks_producer = SingletonProducer(_get_snuba_uptime_checks_producer)
 
 
 def build_last_update_key(project_subscription: ProjectUptimeSubscription) -> str:
@@ -235,6 +253,10 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             ex=LAST_UPDATE_REDIS_TTL,
         )
 
+        # After processing the result and updating Redis, produce message to Kafka
+        if options.get("uptime.snuba_uptime_results.enabled"):
+            self._produce_snuba_uptime_result(project_subscription, result)
+
     def handle_result_for_project_auto_onboarding_mode(
         self, project_subscription: ProjectUptimeSubscription, result: CheckResult
     ):
@@ -406,6 +428,58 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                 tags={"status": status},
             )
         return result
+
+    def _produce_snuba_uptime_result(
+        self, project_subscription: ProjectUptimeSubscription, result: CheckResult
+    ) -> None:
+        """
+        Produces a message to Snuba's Kafka topic for uptime check results.
+
+        Args:
+            project_subscription: The project subscription associated with the result
+            result: The check result to be sent to Snuba
+        """
+        try:
+            project = project_subscription.project
+            retention_days = (
+                quotas.backend.get_event_retention(organization=project.organization) or 90
+            )
+
+            snuba_message: SnubaUptimeResult = {
+                # Copy over fields from original result
+                "guid": result["guid"],
+                "subscription_id": result["subscription_id"],
+                "status": result["status"],
+                "status_reason": result["status_reason"],
+                "trace_id": result["trace_id"],
+                "span_id": result["span_id"],
+                "scheduled_check_time_ms": result["scheduled_check_time_ms"],
+                "actual_check_time_ms": result["actual_check_time_ms"],
+                "duration_ms": result["duration_ms"],
+                "request_info": result["request_info"],
+                # Add required Snuba-specific fields
+                "organization_id": project.organization_id,
+                "project_id": project.id,
+                "retention_days": retention_days,
+                "region_slug": result.get("region"),
+            }
+
+            topic = get_topic_definition(Topic.SNUBA_UPTIME_RESULTS)["real_topic_name"]
+            payload = KafkaPayload(None, SNUBA_UPTIME_RESULTS_CODEC.encode(snuba_message), [])
+
+            _snuba_uptime_checks_producer.produce(ArroyoTopic(topic), payload)
+
+            metrics.incr(
+                "uptime.result_processor.snuba_message_produced",
+                sample_rate=1.0,
+            )
+
+        except Exception:
+            logger.exception("Failed to produce Snuba message for uptime result")
+            metrics.incr(
+                "uptime.result_processor.snuba_message_failed",
+                sample_rate=1.0,
+            )
 
 
 class UptimeResultsStrategyFactory(ResultsStrategyFactory[CheckResult, UptimeSubscription]):
