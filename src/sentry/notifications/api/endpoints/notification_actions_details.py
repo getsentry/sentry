@@ -12,15 +12,15 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.api.endpoints.notifications.notification_actions_index import (
-    NotificationActionsPermission,
-)
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_NO_CONTENT
 from sentry.apidocs.examples.notification_examples import NotificationActionExamples
 from sentry.apidocs.parameters import GlobalParams, NotificationParams
 from sentry.models.organization import Organization
+from sentry.notifications.api.endpoints.notification_actions_index import (
+    NotificationActionsPermission,
+)
 from sentry.notifications.api.serializers.notification_action_request import (
     NotificationActionSerializer,
 )
