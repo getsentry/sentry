@@ -1,6 +1,6 @@
 from typing import Any
 
-from sentry.issues.grouptype import ErrorGroupType
+from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.organization import Organization
 from sentry.models.rule import Rule
 from sentry.rules.processing.processor import split_conditions_and_filters

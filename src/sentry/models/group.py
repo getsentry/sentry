@@ -36,7 +36,7 @@ from sentry.db.models import (
 )
 from sentry.db.models.manager.base import BaseManager
 from sentry.eventstore.models import GroupEvent
-from sentry.issues.grouptype import ErrorGroupType, GroupCategory, get_group_type_by_type_id
+from sentry.issues.grouptype import GroupCategory, get_group_type_by_type_id
 from sentry.issues.priority import (
     PRIORITY_TO_GROUP_HISTORY_STATUS,
     PriorityChangeReason,
@@ -69,6 +69,8 @@ logger = logging.getLogger(__name__)
 
 _short_id_re = re.compile(r"^(?:issue+:)?(.*?)(?:[\s_-])([A-Za-z0-9]+)$")
 ShortId = namedtuple("ShortId", ["project_slug", "short_id"])
+
+DEFAULT_TYPE_ID = 1
 
 
 def parse_short_id(short_id_s: str) -> ShortId | None:
@@ -584,7 +586,7 @@ class Group(Model):
         blank=True, null=True
     )
     short_id = BoundedBigIntegerField(null=True)
-    type = BoundedPositiveIntegerField(default=ErrorGroupType.type_id, db_index=True)
+    type = BoundedPositiveIntegerField(default=DEFAULT_TYPE_ID, db_index=True)
     priority = models.PositiveSmallIntegerField(null=True)
     priority_locked_at = models.DateTimeField(null=True)
 

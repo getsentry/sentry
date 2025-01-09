@@ -9,6 +9,7 @@ from django.urls import reverse
 from urllib3.response import HTTPResponse
 
 from sentry.eventstore.models import Event
+from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
 from sentry.incidents.models.alert_rule import (
     AlertRuleDetectionType,
@@ -33,7 +34,6 @@ from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricA
 from sentry.integrations.slack.message_builder.types import LEVEL_TO_COLOR
 from sentry.integrations.time_utils import time_since
 from sentry.issues.grouptype import (
-    ErrorGroupType,
     FeedbackGroup,
     MonitorIncidentType,
     PerformanceP95EndpointRegressionGroupType,

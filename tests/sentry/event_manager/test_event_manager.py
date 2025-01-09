@@ -38,12 +38,12 @@ from sentry.event_manager import (
 from sentry.eventstore.models import Event
 from sentry.exceptions import HashDiscarded
 from sentry.grouping.api import GroupingConfig, load_grouping_config
+from sentry.grouping.grouptype import ErrorGroupType
 from sentry.grouping.utils import hash_from_values
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.issues.grouptype import (
-    ErrorGroupType,
     GroupCategory,
     PerformanceNPlusOneGroupType,
     PerformanceSlowDBQueryGroupType,
