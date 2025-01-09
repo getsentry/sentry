@@ -13,6 +13,7 @@ from sentry.workflow_engine.models import (
     DataSource,
     DataSourceDetector,
     Detector,
+    Workflow,
 )
 from sentry.workflow_engine.types import DataSourceTypeHandler
 
@@ -183,4 +184,23 @@ class DetectorSerializer(Serializer):
             "dataSources": attrs.get("data_sources"),
             "conditionGroup": attrs.get("condition_group"),
             "config": attrs.get("config"),
+        }
+
+
+@register(Workflow)
+class WorkflowSerializer(Serializer):
+    def get_attrs(self, item_list, user, **kwargs):
+        attrs: MutableMapping[Workflow, dict[str, Any]] = defaultdict(dict)
+        # TODO: return the needed attributes for the frontend
+        return attrs
+
+    def serialize(self, obj: Workflow, attrs: Mapping[str, Any], user, **kwargs) -> dict[str, Any]:
+        return {
+            "id": str(obj.id),
+            "organizationId": str(obj.organization_id),
+            "enabled": str(obj.enabled),
+            "dateCreated": obj.date_added,
+            "dateUpdated": obj.date_updated,
+            "whenConditionGroup": "",  # TODO: this in get_attrs
+            "environment": "",  # TODO: what info do we need to get from this field?
         }
