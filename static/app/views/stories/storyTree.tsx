@@ -10,6 +10,14 @@ import {useLocation} from 'sentry/utils/useLocation';
 import type {StoryTreeNode} from './index';
 
 function folderOrSearchScoreFirst(a: StoryTreeNode, b: StoryTreeNode) {
+  if (a.visible && !b.visible) {
+    return -1;
+  }
+
+  if (!a.visible && b.visible) {
+    return 1;
+  }
+
   if (a.result && b.result) {
     if (a.result.score === b.result.score) {
       return a.name.localeCompare(b.name);
@@ -57,9 +65,7 @@ export default function StoryTree({nodes, ...htmlProps}: Props) {
           }
 
           return Object.keys(node.children).length === 0 ? (
-            <li key={node.name}>
-              <File node={node} />
-            </li>
+            <File node={node} key={node.name} />
           ) : (
             <Folder node={node} key={node.name} />
           );
@@ -100,9 +106,7 @@ function Folder(props: {node: StoryTreeNode}) {
                 return null;
               }
               return Object.keys(child.children).length === 0 ? (
-                <li>
-                  <File key={child.path} node={child} />
-                </li>
+                <File key={child.path} node={child} />
               ) : (
                 <Folder key={child.path} node={child} />
               );
@@ -118,15 +122,17 @@ function File(props: {node: StoryTreeNode}) {
   const query = qs.stringify({...location.query, name: props.node.path});
 
   return (
-    <FolderLink
-      to={`/stories/?${query}`}
-      active={location.query.name === props.node.path}
-    >
-      {/* @TODO (JonasBadalic): Do file type icons make sense here? */}
-      <IconFile size="xs" />
-      {/* @TODO (JonasBadalic): Do we need to show the file extension? */}
-      {normalizeFilename(props.node.name)}
-    </FolderLink>
+    <li>
+      <FolderLink
+        to={`/stories/?${query}`}
+        active={location.query.name === props.node.path}
+      >
+        {/* @TODO (JonasBadalic): Do file type icons make sense here? */}
+        <IconFile size="xs" />
+        {/* @TODO (JonasBadalic): Do we need to show the file extension? */}
+        {normalizeFilename(props.node.name)}
+      </FolderLink>
+    </li>
   );
 }
 
