@@ -40,7 +40,7 @@ def filter_recently_fired_workflow_actions(
             output_field=DurationField(),
         ),
         difference=ExpressionWrapper(
-            now - F("date_updated"), output_field=DurationField()
+            Value(now) - F("date_updated"), output_field=DurationField()
         ),  # how long ago the action fired
     )
     actions_to_include = set(
