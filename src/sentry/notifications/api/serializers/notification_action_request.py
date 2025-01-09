@@ -230,6 +230,7 @@ Required if **service_type** is `slack` or `opsgenie`.
                 )
             except Exception as e:
                 # validate_channel_id raises user friendly validation errors!
+                # TODO (christinarlong): Figure out what specific exceptions to catch here to prevent leaks
                 raise serializers.ValidationError({"target_display": str(e)})
             return data
 

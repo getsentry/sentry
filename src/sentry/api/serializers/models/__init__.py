@@ -1,4 +1,3 @@
-from ....notifications.api.serializers.notification_action_response import *  # noqa: F401,F403
 from .activity import *  # noqa: F401,F403
 from .actor import *  # noqa: F401,F403
 from .apiapplication import *  # noqa: F401,F403
