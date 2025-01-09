@@ -1,7 +1,5 @@
-import type {Dispatch, SetStateAction} from 'react';
-import {Fragment, useCallback, useEffect, useMemo} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
-import isEqual from 'lodash/isEqual';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
 import Count from 'sentry/components/count';
@@ -10,7 +8,6 @@ import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {IconClock, IconGraph} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Series} from 'sentry/types/echarts';
 import type {Confidence, NewQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
@@ -28,30 +25,25 @@ import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import ChartContextMenu from 'sentry/views/explore/components/chartContextMenu';
 import {
   useExploreDataset,
-  useExploreGroupBys,
-  useExploreMode,
-  useExploreSortBys,
   useExploreVisualizes,
   useSetExploreVisualizes,
 } from 'sentry/views/explore/contexts/pageParamsContext';
-import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
+import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
 import Chart, {
   ChartType,
   useSynchronizeCharts,
 } from 'sentry/views/insights/common/components/chart';
 import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
-import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 import {CHART_HEIGHT} from 'sentry/views/insights/database/settings';
 
-import {TOP_EVENTS_LIMIT, useTopEvents} from '../hooks/useTopEvents';
-
 interface ExploreChartsProps {
+  canUsePreviousResults: boolean;
+  confidences: Confidence[];
   query: string;
-  setConfidences: Dispatch<SetStateAction<Confidence[]>>;
-  setError: Dispatch<SetStateAction<string>>;
+  timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
 }
 
 const exploreChartTypeOptions = [
@@ -71,108 +63,35 @@ const exploreChartTypeOptions = [
 
 export const EXPLORE_CHART_GROUP = 'explore-charts_group';
 
-export function ExploreCharts({query, setConfidences, setError}: ExploreChartsProps) {
+export function ExploreCharts({
+  canUsePreviousResults,
+  confidences,
+  query,
+  timeseriesResult,
+}: ExploreChartsProps) {
   const dataset = useExploreDataset();
   const visualizes = useExploreVisualizes();
   const setVisualizes = useSetExploreVisualizes();
   const [interval, setInterval, intervalOptions] = useChartInterval();
-  const groupBys = useExploreGroupBys();
-  const mode = useExploreMode();
-  const topEvents = useTopEvents();
 
   const extrapolationMetaResults = useExtrapolationMeta({
     dataset,
     query,
   });
 
-  const fields: string[] = useMemo(() => {
-    if (mode === Mode.SAMPLES) {
-      return [];
-    }
-
-    return [...groupBys, ...visualizes.flatMap(visualize => visualize.yAxes)].filter(
-      Boolean
-    );
-  }, [mode, groupBys, visualizes]);
-
-  const sortBys = useExploreSortBys();
-
-  const orderby: string | string[] | undefined = useMemo(() => {
-    if (!sortBys.length) {
-      return undefined;
-    }
-
-    return sortBys.map(formatSort);
-  }, [sortBys]);
-
-  const yAxes = useMemo(() => {
-    const deduped = dedupeArray(visualizes.flatMap(visualize => visualize.yAxes));
-    deduped.sort();
-    return deduped;
-  }, [visualizes]);
-
-  const options = useMemo(() => {
-    const search = new MutableSearch(query);
-
-    // Filtering out all spans with op like 'ui.interaction*' which aren't
-    // embedded under transactions. The trace view does not support rendering
-    // such spans yet.
-    search.addFilterValues('!transaction.span_id', ['00']);
-
-    return {
-      search,
-      yAxis: yAxes,
-      interval,
-      fields,
-      orderby,
-      topEvents,
-    };
-  }, [query, yAxes, interval, fields, orderby, topEvents]);
-
-  const previousQuery = usePrevious(query);
-  const previousOptions = usePrevious(options);
-  const canUsePreviousResults = useMemo(() => {
-    if (!isEqual(query, previousQuery)) {
-      return false;
-    }
-
-    if (!isEqual(options.interval, previousOptions.interval)) {
-      return false;
-    }
-
-    if (!isEqual(options.fields, previousOptions.fields)) {
-      return false;
-    }
-
-    if (!isEqual(options.orderby, previousOptions.orderby)) {
-      return false;
-    }
-
-    if (!isEqual(options.topEvents, previousOptions.topEvents)) {
-      return false;
-    }
-
-    return true;
-  }, [query, previousQuery, options, previousOptions]);
-
-  const timeSeriesResult = useSortedTimeSeries(options, 'api.explorer.stats', dataset);
-  const previousTimeSeriesResult = usePrevious(timeSeriesResult);
-
-  useEffect(() => {
-    setError(timeSeriesResult.error?.message ?? '');
-  }, [setError, timeSeriesResult.error?.message]);
+  const previousTimeseriesResult = usePrevious(timeseriesResult);
 
   const getSeries = useCallback(
     (dedupedYAxes: string[], formattedYAxes: (string | undefined)[]) => {
       const shouldUsePreviousResults =
-        timeSeriesResult.isPending &&
+        timeseriesResult.isPending &&
         canUsePreviousResults &&
-        dedupedYAxes.every(yAxis => previousTimeSeriesResult.data.hasOwnProperty(yAxis));
+        dedupedYAxes.every(yAxis => previousTimeseriesResult.data.hasOwnProperty(yAxis));
 
       const data = dedupedYAxes.flatMap((yAxis, i) => {
         const series = shouldUsePreviousResults
-          ? previousTimeSeriesResult.data[yAxis]
-          : timeSeriesResult.data[yAxis];
+          ? previousTimeseriesResult.data[yAxis]
+          : timeseriesResult.data[yAxis];
 
         return (series ?? []).map(s => {
           // We replace the series name with the formatted series name here
@@ -193,18 +112,18 @@ export function ExploreCharts({query, setConfidences, setError}: ExploreChartsPr
       return {
         data,
         error: shouldUsePreviousResults
-          ? previousTimeSeriesResult.error
-          : timeSeriesResult.error,
+          ? previousTimeseriesResult.error
+          : timeseriesResult.error,
         loading: shouldUsePreviousResults
-          ? previousTimeSeriesResult.isPending
-          : timeSeriesResult.isPending,
+          ? previousTimeseriesResult.isPending
+          : timeseriesResult.isPending,
       };
     },
-    [canUsePreviousResults, timeSeriesResult, previousTimeSeriesResult]
+    [canUsePreviousResults, timeseriesResult, previousTimeseriesResult]
   );
 
   const chartInfos = useMemo(() => {
-    return visualizes.map(visualize => {
+    return visualizes.map((visualize, index) => {
       const dedupedYAxes = dedupeArray(visualize.yAxes);
 
       const formattedYAxes = dedupedYAxes.map(yaxis => {
@@ -225,10 +144,6 @@ export function ExploreCharts({query, setConfidences, setError}: ExploreChartsPr
         formattedYAxes.filter(Boolean).map(aggregateOutputType)
       );
 
-      const confidence = combineConfidenceForSeries(
-        dedupedYAxes.flatMap(yAxis => timeSeriesResult.data[yAxis]).filter(defined)
-      );
-
       return {
         chartIcon: <IconGraph type={chartIcon} />,
         chartType: visualize.chartType,
@@ -239,17 +154,10 @@ export function ExploreCharts({query, setConfidences, setError}: ExploreChartsPr
         error,
         loading,
         outputTypes,
-        confidence,
+        confidence: confidences[index],
       };
     });
-  }, [getSeries, timeSeriesResult.data, visualizes]);
-
-  useEffect(() => {
-    // only update the confidence once the result has loaded
-    if (!timeSeriesResult.isPending) {
-      setConfidences(chartInfos.map(info => info.confidence));
-    }
-  }, [setConfidences, chartInfos, timeSeriesResult.isPending]);
+  }, [confidences, getSeries, visualizes]);
 
   const handleChartTypeChange = useCallback(
     (chartType: ChartType, index: number) => {
@@ -262,7 +170,7 @@ export function ExploreCharts({query, setConfidences, setError}: ExploreChartsPr
 
   useSynchronizeCharts(
     visualizes.length,
-    !timeSeriesResult.isPending,
+    !timeseriesResult.isPending,
     EXPLORE_CHART_GROUP
   );
 
@@ -427,32 +335,6 @@ function useExtrapolationMeta({
     referrer: 'api.explore.spans-extrapolation-meta',
     enabled: dataset === DiscoverDatasets.SPANS_EAP_RPC,
   });
-}
-
-function combineConfidenceForSeries(series: Series[]): Confidence {
-  let lows = 0;
-  let highs = 0;
-  let nulls = 0;
-
-  for (const s of series) {
-    if (s.confidence === 'low') {
-      lows += 1;
-    } else if (s.confidence === 'high') {
-      highs += 1;
-    } else {
-      nulls += 1;
-    }
-  }
-
-  if (lows <= 0 && highs <= 0 && nulls >= 0) {
-    return null;
-  }
-
-  if (lows / (lows + highs) > 0.5) {
-    return 'low';
-  }
-
-  return 'high';
 }
 
 const ChartContainer = styled('div')`
