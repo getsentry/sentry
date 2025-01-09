@@ -214,8 +214,8 @@ class AlertRuleMigrationHelpersTest(APITestCase):
 
         data_conditions = DataCondition.objects.filter(
             comparison__in=[
-                self.alert_rule_trigger_warning.alert_threshold,
-                self.alert_rule_trigger_critical.alert_threshold,
+                DetectorPriorityLevel.MEDIUM,
+                DetectorPriorityLevel.HIGH,
                 self.metric_alert.resolve_threshold,
             ]
         )
@@ -224,19 +224,17 @@ class AlertRuleMigrationHelpersTest(APITestCase):
         critical_data_condition = data_conditions[1]
         resolve_data_condition = data_conditions[2]
 
-        assert warning_data_condition.type == Condition.GREATER
-        assert warning_data_condition.comparison == self.alert_rule_trigger_warning.alert_threshold
-        assert warning_data_condition.condition_result == DetectorPriorityLevel.MEDIUM
+        assert warning_data_condition.type == Condition.ISSUE_PRIORITY_EQUALS
+        assert warning_data_condition.comparison == DetectorPriorityLevel.MEDIUM
+        assert warning_data_condition.condition_result is True
         assert warning_data_condition.condition_group == warning_data_condition.condition_group
         assert WorkflowDataConditionGroup.objects.filter(
             condition_group=warning_data_condition.condition_group
         ).exists()
 
-        assert critical_data_condition.type == Condition.GREATER
-        assert (
-            critical_data_condition.comparison == self.alert_rule_trigger_critical.alert_threshold
-        )
-        assert critical_data_condition.condition_result == DetectorPriorityLevel.HIGH
+        assert critical_data_condition.type == Condition.ISSUE_PRIORITY_EQUALS
+        assert critical_data_condition.comparison == DetectorPriorityLevel.HIGH
+        assert critical_data_condition.condition_result is True
         assert critical_data_condition.condition_group == critical_data_condition.condition_group
         assert WorkflowDataConditionGroup.objects.filter(
             condition_group=critical_data_condition.condition_group

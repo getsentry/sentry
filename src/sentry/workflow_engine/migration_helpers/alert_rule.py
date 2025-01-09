@@ -85,7 +85,6 @@ def migrate_metric_action(
         target_display=alert_rule_trigger_action.target_display,
         target_identifier=alert_rule_trigger_action.target_identifier,
         target_type=alert_rule_trigger_action.target_type,
-        legacy_notification_type=Action.LegacyNotificationType.METRIC_ALERT,
     )
     data_condition_group_action = DataConditionGroupAction.objects.create(
         condition_group_id=alert_rule_trigger_data_condition.data_condition.condition_group.id,
@@ -99,12 +98,6 @@ def migrate_metric_data_condition(
 ) -> tuple[DataCondition, AlertRuleTriggerDataCondition] | None:
     alert_rule = alert_rule_trigger.alert_rule
 
-    threshold_to_condition = {
-        AlertRuleThresholdType.ABOVE.value: Condition.GREATER,
-        AlertRuleThresholdType.BELOW.value: Condition.LESS,
-        # TODO add ABOVE_AND_BELOW for anomaly detection
-    }
-
     data_condition_group = DataConditionGroup.objects.create(
         organization_id=alert_rule.organization_id
     )
@@ -113,26 +106,14 @@ def migrate_metric_data_condition(
         condition_group=data_condition_group,
         workflow=alert_rule_workflow.workflow,
     )
-
-    condition_result = (
-        DetectorPriorityLevel.MEDIUM
-        if alert_rule_trigger.label == "warning"
-        else DetectorPriorityLevel.HIGH
-    )
-    threshold_type = alert_rule_trigger.alert_rule.threshold_type
-    # XXX: we read the threshold type off of the alert_rule and NOT the alert_rule_trigger
-    # alert_rule_trigger.threshold_type is a deprecated feature we are not moving over
-    if threshold_type is None:
-        logger.warning(
-            "No threshold type",
-            extra={"alert_rule_id": alert_rule_trigger.alert_rule.id},
-        )
-        return None
-
     data_condition = DataCondition.objects.create(
-        comparison=alert_rule_trigger.alert_threshold,
-        condition_result=condition_result,
-        type=threshold_to_condition.get(threshold_type, AlertRuleThresholdType.ABOVE.value),
+        comparison=(
+            DetectorPriorityLevel.MEDIUM
+            if alert_rule_trigger.label == "warning"
+            else DetectorPriorityLevel.HIGH
+        ),
+        condition_result=True,
+        type=Condition.ISSUE_PRIORITY_EQUALS,
         condition_group=data_condition_group,
     )
     alert_rule_trigger_data_condition = AlertRuleTriggerDataCondition.objects.create(
