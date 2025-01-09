@@ -161,15 +161,17 @@ export const EventTitle = forwardRef<HTMLDivElement, EventNavigationProps>(
               css={grayText}
               aria-label={t('Event timestamp')}
             />
-            <Divider />
-            <ViewJsonButton
-              borderless
-              size="zero"
-              onClick={downloadJson}
-              icon={<IconJson />}
-            >
-              {t('View JSON')}
-            </ViewJsonButton>
+            <JsonButtonWrapper>
+              <Divider />
+              <ViewJsonButton
+                borderless
+                size="zero"
+                onClick={downloadJson}
+                icon={<IconJson />}
+              >
+                {t('View JSON')}
+              </ViewJsonButton>
+            </JsonButtonWrapper>
             {hasEventError && (
               <Fragment>
                 <Divider />
@@ -308,4 +310,15 @@ const ViewJsonButton = styled(Button)`
   color: ${p => p.theme.subText};
   font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.fontSizeSmall};
+`;
+
+const JsonButtonWrapper = styled('div')`
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: ${space(1)};
+
+  @media (max-width: ${p => p.theme.breakpoints.xsmall}) {
+    display: none;
+  }
 `;
