@@ -125,7 +125,12 @@ export default function WizardField({
                 label: (
                   <span>
                     {AlertWizardAlertNames.eap_metrics}
-                    <FeatureBadge type="experimental" />
+                    <FeatureBadge
+                      type="beta"
+                      title={t(
+                        'This feature is available for early adopters and the UX may change'
+                      )}
+                    />
                   </span>
                 ),
                 value: 'eap_metrics' as const,
