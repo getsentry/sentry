@@ -24,7 +24,6 @@ export type WidgetOption =
 interface LandingWidgetSelectorProps {
   cursorName: string;
   defaultWidget: WidgetOption;
-  query: string;
   storageKey: string;
   widgetHeight?: string;
 }
