@@ -131,9 +131,7 @@ class IntegrationPlatformEndpoint(Endpoint):
 
     def _handle_sentry_app_exception(self, exception: Exception):
         if isinstance(exception, SentryAppIntegratorError) or isinstance(exception, SentryAppError):
-            response = Response(
-                {"detail": str(exception), **exception.details}, status=exception.status_code
-            )
+            response = Response({"detail": str(exception)}, status=exception.status_code)
             response.exception = True
             return response
 
