@@ -3,7 +3,6 @@ import keyBy from 'lodash/keyBy';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {t} from 'sentry/locale';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {
@@ -23,12 +22,7 @@ import {
   TransactionsTable,
 } from 'sentry/views/insights/cache/components/tables/transactionsTable';
 import {Referrer} from 'sentry/views/insights/cache/referrers';
-import {
-  BASE_FILTERS,
-  MODULE_DESCRIPTION,
-  MODULE_DOC_LINK,
-  MODULE_TITLE,
-} from 'sentry/views/insights/cache/settings';
+import {BASE_FILTERS, MODULE_DOC_LINK} from 'sentry/views/insights/cache/settings';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
@@ -177,18 +171,7 @@ export function CacheLandingPage() {
 
   return (
     <React.Fragment>
-      <BackendHeader
-        headerTitle={
-          <Fragment>
-            {MODULE_TITLE}
-            <PageHeadingQuestionTooltip
-              docsUrl={MODULE_DOC_LINK}
-              title={MODULE_DESCRIPTION}
-            />
-          </Fragment>
-        }
-        module={ModuleName.CACHE}
-      />
+      <BackendHeader module={ModuleName.CACHE} />
 
       <ModuleBodyUpsellHook moduleName={ModuleName.CACHE}>
         <Layout.Body>

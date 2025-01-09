@@ -274,7 +274,6 @@ function TransactionHeader({
       breadcrumbs: getTabCrumbs({
         location,
         organization,
-        tab: currentTab,
         transaction: {
           name: transactionName,
           project: projectId,
@@ -342,7 +341,6 @@ function TransactionHeader({
             project: projectId,
             name: transactionName,
           }}
-          tab={currentTab}
         />
         <Layout.Title>
           {project && (

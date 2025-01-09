@@ -225,7 +225,9 @@ describe('Performance > Web Vitals', function () {
       organization,
     });
 
-    expect(screen.getByRole('navigation')).toHaveTextContent('PerformanceWeb Vitals');
+    expect(screen.getByRole('navigation')).toHaveTextContent(
+      'PerformanceTransaction Summary'
+    );
   });
 
   describe('renders all vitals cards correctly', function () {
