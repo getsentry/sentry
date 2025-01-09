@@ -16,14 +16,12 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SentryApp} from 'sentry/types/integrations';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import RequestLog from './requestLog';
-
-type Props = RouteComponentProps<{appSlug: string}, {}>;
 
 type Interactions = {
   componentInteractions: {
@@ -39,10 +37,10 @@ type Stats = {
   uninstallStats: [number, number][];
 };
 
-function SentryApplicationDashboard({params}: Props) {
+function SentryApplicationDashboard() {
   const organization = useOrganization();
+  const {appSlug} = useParams();
 
-  const {appSlug} = params;
   // Default time range for now: 90 days ago to now
   const now = Math.floor(new Date().getTime() / 1000);
   const ninety_days_ago = 3600 * 24 * 90;
