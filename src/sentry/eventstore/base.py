@@ -278,7 +278,7 @@ class EventStorage(Service):
         group_id: int,
         environments: list[str],
         event: Event | GroupEvent,
-        conditions: list[Condition] = None,
+        conditions: list[Condition] | None = None,
     ):
         raise NotImplementedError
 

@@ -451,7 +451,7 @@ class SnubaEventStorage(EventStorage):
             return Dataset.Discover
 
     def get_adjacent_event_ids_snql(
-        self, organization_id, project_id, group_id, environments, event, conditions
+        self, organization_id, project_id, group_id, environments, event, conditions=None
     ):
         """
         Utility function for grabbing an event's adjascent events,
