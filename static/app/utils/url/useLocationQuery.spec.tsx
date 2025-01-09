@@ -70,6 +70,39 @@ describe('useLocationQuery', () => {
     });
   });
 
+  it('allows custom typed decoders', () => {
+    jest.mocked(useLocation).mockReturnValueOnce({
+      ...mockLocation,
+      query: {
+        titles: ['Mx', 'Dr'],
+      },
+    } as Location);
+
+    type Title = 'Mr' | 'Ms' | 'Mx';
+
+    const titlesDecoder = (value): Title[] | undefined => {
+      const decodedValue = decodeList(value);
+
+      const validTitles = decodedValue.filter(v => {
+        return ['Mr', 'Ms', 'Mx'].includes(v);
+      }) as Title[];
+
+      return validTitles.length > 0 ? validTitles : undefined;
+    };
+
+    const {result} = renderHook(useLocationQuery, {
+      initialProps: {
+        fields: {
+          titles: titlesDecoder,
+        },
+      },
+    });
+
+    expect(result.current).toStrictEqual({
+      titles: ['Mx'],
+    });
+  });
+
   it('should pass-through static values along with decoded ones', () => {
     jest.mocked(useLocation).mockReturnValueOnce({
       ...mockLocation,
