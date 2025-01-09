@@ -142,7 +142,7 @@ function GroupTimestamp({date, label}: {date: string | null | undefined; label: 
       tooltipPrefix={label}
       date={date}
       suffix="ago"
-      unitStyle="extraShort"
+      unitStyle="short"
     />
   );
 }
