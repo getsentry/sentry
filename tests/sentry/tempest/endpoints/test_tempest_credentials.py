@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from sentry.tempest.models import TempestCredentials
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import Feature
@@ -38,7 +40,10 @@ class TestTempestCredentials(APITestCase):
     def test_unauthenticated_user_cant_access_endpoint(self):
         self.get_error_response(self.project.organization.slug, self.project.slug)
 
-    def test_create_tempest_credentials(self):
+    @patch(
+        "sentry.tempest.endpoints.tempest_credentials.TempestCredentialsEndpoint.create_audit_entry"
+    )
+    def test_create_tempest_credentials(self, create_audit_entry):
         with Feature({"organizations:tempest-access": True}):
             self.login_as(self.user)
             response = self.get_success_response(
@@ -53,6 +58,8 @@ class TestTempestCredentials(APITestCase):
             assert creds_obj.client_secret == self.valid_credentials_data["clientSecret"]
             assert creds_obj.project == self.project
             assert creds_obj.created_by_id == self.user.id
+
+            create_audit_entry.assert_called()
 
     def test_create_tempest_credentials_without_feature_flag(self):
         self.login_as(self.user)
