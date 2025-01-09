@@ -39,7 +39,7 @@ class SuperuserDataSecrecyTestCase(APITestCase):
 
 class DataSecrecyV2TestCase(APITestCase):
     # Picked an endpoint with OrganizationAndStaffPermission
-    endpoint = "sentry-api-0-organization-metrics-details"
+    endpoint = "sentry-api-0-organization-projects"
     method = "get"
 
     def setUp(self):
