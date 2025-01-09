@@ -54,6 +54,19 @@ const VISIBLE_COLUMNS_MOBILE = [
 const visibleColumns = (allMobileProj: boolean) =>
   allMobileProj ? VISIBLE_COLUMNS_MOBILE : VISIBLE_COLUMNS;
 
+function ReplayFilterMessage() {
+  const hasStreamlinedUI = useHasStreamlinedUI();
+  if (!hasStreamlinedUI) {
+    return null;
+  }
+  return (
+    <ReplayFilterText>
+      {t('The replays shown below are not subject to search filters.')}
+      <StyledBreak />
+    </ReplayFilterText>
+  );
+}
+
 function GroupReplays({group}: Props) {
   const organization = useOrganization();
   const location = useLocation<ReplayListLocationQuery>();
@@ -80,14 +93,17 @@ function GroupReplays({group}: Props) {
     // Shown on load and no replay data available
     return (
       <StyledLayoutPage withPadding hasStreamlinedUI={hasStreamlinedUI}>
-        <ReplayCountHeader>
-          <IconUser size="sm" />
-          {isFetching ? (
-            <Placeholder height="18px" width="400px" />
-          ) : (
-            t('No replay data available.')
-          )}
-        </ReplayCountHeader>
+        <ReplayHeader>
+          <ReplayFilterMessage />
+          <ReplayCountHeader>
+            <IconUser size="sm" />
+            {isFetching ? (
+              <Placeholder height="18px" width="400px" />
+            ) : (
+              t('No replay data available.')
+            )}
+          </ReplayCountHeader>
+        </ReplayHeader>
         <ReplayTable
           fetchError={fetchError}
           isFetching={isFetching}
@@ -269,20 +285,23 @@ function GroupReplaysTable({
 
   return (
     <StyledLayoutPage withPadding hasStreamlinedUI={hasStreamlinedUI}>
-      <ReplayCountHeader>
-        <IconUser size="sm" />
-        {(replayCount ?? 0) > 50
-          ? tn(
-              'There are 50+ replays for this issue across %s event',
-              'There are 50+ replays for this issue across %s events',
-              group.count
-            )
-          : t(
-              'There %s for this issue across %s.',
-              tn('is %s replay', 'are %s replays', replayCount ?? 0),
-              tn('%s event', '%s events', group.count)
-            )}
-      </ReplayCountHeader>
+      <ReplayHeader>
+        <ReplayFilterMessage />
+        <ReplayCountHeader>
+          <IconUser size="sm" />
+          {(replayCount ?? 0) > 50
+            ? tn(
+                'There are 50+ replays for this issue across %s event',
+                'There are 50+ replays for this issue across %s events',
+                group.count
+              )
+            : t(
+                'There %s for this issue across %s.',
+                tn('is %s replay', 'are %s replays', replayCount ?? 0),
+                tn('%s event', '%s events', group.count)
+              )}
+        </ReplayCountHeader>
+      </ReplayHeader>
       {inner}
     </StyledLayoutPage>
   );
@@ -290,14 +309,14 @@ function GroupReplaysTable({
 
 const StyledLayoutPage = styled(Layout.Page)<{hasStreamlinedUI?: boolean}>`
   background-color: ${p => p.theme.background};
-  gap: ${space(2)};
+  gap: ${space(1.5)};
 
   ${p =>
     p.hasStreamlinedUI &&
     css`
       border: 1px solid ${p.theme.border};
       border-radius: ${p.theme.borderRadius};
-      padding: ${space(3)} ${space(2)};
+      padding: ${space(1.5)};
     `}
 `;
 
@@ -305,6 +324,21 @@ const ReplayCountHeader = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
+`;
+
+const ReplayHeader = styled('div')`
+  display: flex;
+  flex-direction: column;
+`;
+
+const StyledBreak = styled('hr')`
+  margin-top: ${space(1)};
+  margin-bottom: ${space(1.5)};
+  border-color: ${p => p.theme.border};
+`;
+
+const ReplayFilterText = styled('div')`
+  color: ${p => p.theme.subText};
 `;
 
 const OverlayText = styled('div')`
