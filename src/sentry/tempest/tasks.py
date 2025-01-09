@@ -112,6 +112,10 @@ def poll_tempest_crashes(credentials_id: int) -> None:
             dsn = ProjectKey.objects.get_or_create(
                 use_case=UseCase.TEMPEST, project=credentials.project
             )[0].get_dsn()
+
+            # Check if we should attach screenshots (opt-in feature)
+            attach_screenshot = credentials.project.get_option("sentry:tempest_fetch_screenshots")
+
             response = fetch_items_from_tempest(
                 org_id=org_id,
                 project_id=project_id,
@@ -119,6 +123,7 @@ def poll_tempest_crashes(credentials_id: int) -> None:
                 client_secret=credentials.client_secret,
                 dsn=dsn,
                 offset=int(credentials.latest_fetched_item_id),
+                attach_screenshot=attach_screenshot,
             )
         else:
             raise ValueError(
