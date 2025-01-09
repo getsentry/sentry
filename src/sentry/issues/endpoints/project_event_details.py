@@ -4,6 +4,7 @@ from typing import Any
 import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
+from snuba_sdk import Condition
 
 from sentry import eventstore, options
 from sentry.api.api_owners import ApiOwner
@@ -26,6 +27,7 @@ def wrap_event_response(
     event: Event | GroupEvent,
     environments: list[str],
     include_full_release_data: bool = False,
+    conditions: list[Condition] | None = None,
 ) -> GroupEventDetailsResponse:
     event_data = serialize(
         event,
@@ -38,6 +40,9 @@ def wrap_event_response(
     next_event_id = None
     prev_event_id = None
 
+    if conditions is None:
+        conditions = []
+
     if event.group_id:
         if options.get("eventstore.adjacent_event_ids_use_snql"):
             prev_ids, next_ids = eventstore.backend.get_adjacent_event_ids_snql(
@@ -46,13 +51,15 @@ def wrap_event_response(
                 group_id=event.group_id,
                 environments=environments,
                 event=event,
+                conditions=conditions,
             )
         else:
-            conditions = []
+            legacy_conditions = []
             if environments:
-                conditions.append(["environment", "IN", environments])
+                legacy_conditions.append(["environment", "IN", environments])
+
             _filter = eventstore.Filter(
-                conditions=conditions,
+                conditions=legacy_conditions,
                 project_ids=[event.project_id],
                 group_ids=[event.group_id],
             )
