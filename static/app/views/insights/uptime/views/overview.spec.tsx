@@ -3,7 +3,7 @@ import {TeamFixture} from 'sentry-fixture/team';
 import {UptimeRuleFixture} from 'sentry-fixture/uptimeRule';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationStore from 'sentry/stores/organizationStore';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -70,15 +70,23 @@ describe('Uptime Overview', function () {
 
   it('renders', async function () {
     const {organization, router} = initializeOrg({
-      organization: {features: ['insights-initial-modules', 'insights-uptime']},
+      organization: {
+        features: [
+          'insights-initial-modules',
+          'insights-entry-points',
+          'insights-uptime',
+        ],
+      },
     });
     OrganizationStore.onUpdate(organization);
 
     render(<UptimeOverview />, {organization, router});
-    expect(
-      await screen.findByRole('heading', {name: 'Uptime Monitors'})
-    ).toBeInTheDocument();
 
-    expect(screen.getByRole('heading', {name: 'Test Monitor'})).toBeInTheDocument();
+    await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
+
+    expect(screen.getByRole('heading', {level: 1})).toHaveTextContent('Backend');
+    const tab = screen.getByRole('tab', {name: 'Uptime Monitors'});
+    expect(tab).toBeInTheDocument();
+    expect(tab).toHaveAttribute('aria-selected', 'true');
   });
 });

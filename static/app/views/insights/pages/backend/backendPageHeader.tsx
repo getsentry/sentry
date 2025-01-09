@@ -12,15 +12,14 @@ import {
 import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
 
 type Props = {
-  headerTitle: HeaderProps['headerTitle'];
   breadcrumbs?: HeaderProps['additionalBreadCrumbs'];
   headerActions?: HeaderProps['additonalHeaderActions'];
+  headerTitle?: HeaderProps['headerTitle'];
   hideDefaultTabs?: HeaderProps['hideDefaultTabs'];
   module?: HeaderProps['selectedModule'];
   tabs?: HeaderProps['tabs'];
 };
 
-// TODO - add props to append to breadcrumbs and change title
 export function BackendHeader({
   module,
   headerActions,

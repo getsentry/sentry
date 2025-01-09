@@ -203,7 +203,7 @@ describe('Screens Landing Page', function () {
     });
 
     it('shows content if permission is there', async function () {
-      organization.features = [MODULE_FEATURE];
+      organization.features = [MODULE_FEATURE, 'insights-entry-points'];
       render(<ScreensLandingPage />, {organization});
       expect(await screen.findAllByText('Mobile Screens')).toHaveLength(2);
     });

@@ -2,7 +2,6 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import * as Layout from 'sentry/components/layouts/thirds';
-import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -27,11 +26,6 @@ import {
   QueuesTable,
 } from 'sentry/views/insights/queues/components/tables/queuesTable';
 import {Referrer} from 'sentry/views/insights/queues/referrers';
-import {
-  MODULE_DESCRIPTION,
-  MODULE_DOC_LINK,
-  MODULE_TITLE,
-} from 'sentry/views/insights/queues/settings';
 import {ModuleName} from 'sentry/views/insights/types';
 
 const DEFAULT_SORT = {
@@ -80,18 +74,7 @@ function QueuesLandingPage() {
 
   return (
     <Fragment>
-      <BackendHeader
-        headerTitle={
-          <Fragment>
-            {MODULE_TITLE}
-            <PageHeadingQuestionTooltip
-              docsUrl={MODULE_DOC_LINK}
-              title={MODULE_DESCRIPTION}
-            />
-          </Fragment>
-        }
-        module={ModuleName.QUEUE}
-      />
+      <BackendHeader module={ModuleName.QUEUE} />
 
       <ModuleBodyUpsellHook moduleName={ModuleName.QUEUE}>
         <Layout.Body>
