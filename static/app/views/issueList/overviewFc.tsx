@@ -28,7 +28,6 @@ import type {PageFilters} from 'sentry/types/core';
 import type {BaseGroup, Group, PriorityLevel, SavedSearch} from 'sentry/types/group';
 import {GroupStatus, IssueCategory} from 'sentry/types/group';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -41,21 +40,21 @@ import {makeIssuesINPObserver} from 'sentry/utils/performanceForSentry';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useDisableRouteAnalytics from 'sentry/utils/routeAnalytics/useDisableRouteAnalytics';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import type {WithRouteAnalyticsProps} from 'sentry/utils/routeAnalytics/withRouteAnalytics';
-import withRouteAnalytics from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import {useParams} from 'sentry/utils/useParams';
 import usePrevious from 'sentry/utils/usePrevious';
-import withOrganization from 'sentry/utils/withOrganization';
-import withPageFilters from 'sentry/utils/withPageFilters';
-import withSavedSearches from 'sentry/utils/withSavedSearches';
 import IssueListTable from 'sentry/views/issueList/issueListTable';
 import {IssuesDataConsentBanner} from 'sentry/views/issueList/issuesDataConsentBanner';
 import IssueViewsIssueListHeader from 'sentry/views/issueList/issueViewsHeader';
+import {useFetchSavedSearchesForOrg} from 'sentry/views/issueList/queries/useFetchSavedSearchesForOrg';
 import SavedIssueSearches from 'sentry/views/issueList/savedIssueSearches';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {NewTabContextProvider} from 'sentry/views/issueList/utils/newTabContext';
 import {parseIssuePrioritySearch} from 'sentry/views/issueList/utils/parseIssuePrioritySearch';
+import {useSelectedSavedSearch} from 'sentry/views/issueList/utils/useSelectedSavedSearch';
 
 import IssueListFilters from './filters';
 import IssueListHeader from './header';
@@ -78,21 +77,7 @@ const DEFAULT_GRAPH_STATS_PERIOD = '24h';
 const DYNAMIC_COUNTS_STATS_PERIODS = new Set(['14d', '24h', 'auto']);
 const MAX_ISSUES_COUNT = 100;
 
-type Params = {
-  orgId: string;
-};
-
-type Props = {
-  location: Location;
-  organization: Organization;
-  params: Params;
-  savedSearch: SavedSearch;
-  savedSearchLoading: boolean;
-  savedSearches: SavedSearch[];
-  selectedSearchId: string;
-  selection: PageFilters;
-} & RouteComponentProps<{}, {searchId?: string}> &
-  WithRouteAnalyticsProps;
+type Props = RouteComponentProps<{}, {searchId?: string}>;
 
 interface EndpointParams extends Partial<PageFilters['datetime']> {
   environment: string[];
@@ -129,16 +114,30 @@ function useIssuesINPObserver() {
   }, []);
 }
 
-function IssueListOverviewFc({
-  organization,
-  location,
-  router,
-  savedSearch,
-  savedSearches,
-  savedSearchLoading,
-  selection,
-  selectedSearchId,
-}: Props) {
+function useSavedSearches() {
+  const organization = useOrganization();
+  const {data: savedSearches = [], isPending} = useFetchSavedSearchesForOrg(
+    {
+      orgSlug: organization.slug,
+    },
+    {enabled: !organization.features.includes('issue-stream-custom-views')}
+  );
+
+  const params = useParams();
+  const selectedSavedSearch = useSelectedSavedSearch();
+
+  return {
+    savedSearches,
+    savedSearchLoading:
+      !organization.features.includes('issue-stream-custom-views') && isPending,
+    savedSearch: selectedSavedSearch,
+    selectedSearchId: params.searchId ?? null,
+  };
+}
+
+function IssueListOverviewFc({location, router}: Props) {
+  const organization = useOrganization();
+  const {selection} = usePageFilters();
   const api = useApi();
   const realtimeActiveCookie = Cookies.get('realtimeActive');
   const [realtimeActive, setRealtimeActive] = useState(
@@ -157,6 +156,9 @@ function IssueListOverviewFc({
   const undoRef = useRef(false);
   const pollerRef = useRef<CursorPoller | undefined>(undefined);
   const actionTakenRef = useRef(false);
+
+  const {savedSearch, savedSearchLoading, savedSearches, selectedSearchId} =
+    useSavedSearches();
 
   const groups = useLegacyStore(GroupStore);
   useEffect(() => {
@@ -187,7 +189,7 @@ function IssueListOverviewFc({
   }, [onRealtimePoll, pageLinks]);
 
   const getQueryFromSavedSearchOrLocation = useCallback(
-    (props: Pick<Props, 'savedSearch' | 'location'>): string => {
+    (props: {location: Location; savedSearch: SavedSearch | null}): string => {
       if (
         !organization.features.includes('issue-stream-custom-views') &&
         props.savedSearch
@@ -207,7 +209,7 @@ function IssueListOverviewFc({
   );
 
   const getSortFromSavedSearchOrLocation = useCallback(
-    (props: Pick<Props, 'savedSearch' | 'location'>): string => {
+    (props: {location: Location; savedSearch: SavedSearch | null}): string => {
       if (!props.location.query.sort && props.savedSearch?.id) {
         return props.savedSearch.sort;
       }
@@ -1140,11 +1142,7 @@ function IssueListOverviewFc({
   );
 }
 
-export default withRouteAnalytics(
-  withPageFilters(
-    withSavedSearches(withOrganization(Sentry.withProfiler(IssueListOverviewFc)))
-  )
-);
+export default Sentry.withProfiler(IssueListOverviewFc);
 
 export {IssueListOverviewFc};
 
