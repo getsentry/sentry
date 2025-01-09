@@ -178,6 +178,30 @@ def test_namespace_with_retry_send_task() -> None:
         assert proto_message == activation.SerializeToString()
 
 
+def test_namespace_with_wait_for_delivery_send_task() -> None:
+    namespace = TaskNamespace(
+        name="tests",
+        topic=Topic.TASK_WORKER,
+        retry=Retry(times=3),
+    )
+
+    @namespace.register(name="test.simpletask", wait_for_delivery=True)
+    def simple_task() -> None:
+        raise NotImplementedError
+
+    activation = simple_task.create_activation()
+
+    with patch.object(namespace, "producer") as mock_producer:
+        namespace.send_task(activation)
+        assert mock_producer.produce.call_count == 1
+
+        mock_call = mock_producer.produce.call_args
+        assert mock_call[0][0].name == "task-worker"
+
+        proto_message = mock_call[0][1].value
+        assert proto_message == activation.SerializeToString()
+
+
 def test_registry_get() -> None:
     registry = TaskRegistry()
     ns = registry.create_namespace(name="tests")

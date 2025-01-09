@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import datetime
 import logging
+import time
 from collections.abc import Callable
 from functools import cached_property
 from typing import Any
@@ -80,6 +81,7 @@ class TaskNamespace:
         expires: int | datetime.timedelta | None = None,
         processing_deadline_duration: int | datetime.timedelta | None = None,
         at_most_once: bool = False,
+        wait_for_delivery: bool = False,
     ) -> Callable[[Callable[P, R]], Task[P, R]]:
         """
         Register a task.
@@ -102,6 +104,9 @@ class TaskNamespace:
             Enable at-most-once execution. Tasks with `at_most_once` cannot
             define retry policies, and use a worker side idempotency key to
             prevent processing deadline based retries.
+        wait_for_delivery: bool
+            If true, the task will wait for the delivery report to be received
+            before returning.
         """
 
         def wrapped(func: Callable[P, R]) -> Task[P, R]:
@@ -118,6 +123,7 @@ class TaskNamespace:
                     processing_deadline_duration or self.default_processing_deadline_duration
                 ),
                 at_most_once=at_most_once,
+                wait_for_delivery=wait_for_delivery,
             )
             # TODO(taskworker) tasks should be registered into the registry
             # so that we can ensure task names are globally unique
@@ -126,13 +132,16 @@ class TaskNamespace:
 
         return wrapped
 
-    def send_task(self, activation: TaskActivation) -> None:
+    def send_task(self, activation: TaskActivation, wait_for_delivery: bool = False) -> None:
         metrics.incr("taskworker.registry.send_task", tags={"namespace": activation.namespace})
-        # TODO(taskworker) producer callback handling
-        self.producer.produce(
+
+        produce_future = self.producer.produce(
             ArroyoTopic(name=self.topic.value),
             KafkaPayload(key=None, value=activation.SerializeToString(), headers=[]),
         )
+        if wait_for_delivery:
+            while not produce_future.is_done():
+                time.sleep(0.1)
 
 
 class TaskRegistry:
