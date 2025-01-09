@@ -285,6 +285,9 @@ class Project(Model, PendingDeletionMixin):
         # This project has sent new feedbacks, from the user-initiated widget
         has_new_feedbacks: bool
 
+        # This Project has sent feature flags
+        has_flags: bool
+
         # spike protection flags are DEPRECATED
         spike_protection_error_currently_active: bool
         spike_protection_transaction_currently_active: bool
