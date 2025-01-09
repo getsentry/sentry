@@ -14,7 +14,6 @@ from sentry.api.endpoints.organization_events_root_cause_analysis import (
     OrganizationEventsRootCauseAnalysisEndpoint,
 )
 from sentry.api.endpoints.organization_fork import OrganizationForkEndpoint
-from sentry.api.endpoints.organization_minimal_projects import OrganizationMinimalProjectsEndpoint
 from sentry.api.endpoints.organization_missing_org_members import OrganizationMissingMembersEndpoint
 from sentry.api.endpoints.organization_plugins_configs import OrganizationPluginsConfigsEndpoint
 from sentry.api.endpoints.organization_plugins_index import OrganizationPluginsEndpoint
@@ -1761,11 +1760,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/projects/$",
         OrganizationProjectsEndpoint.as_view(),
         name="sentry-api-0-organization-projects",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/minimal-projects/$",
-        OrganizationMinimalProjectsEndpoint.as_view(),
-        name="sentry-api-0-organization-minimal-projects",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/experimental/projects/$",
