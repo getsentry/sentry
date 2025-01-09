@@ -1,5 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
-import {css, useTheme} from '@emotion/react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/button';
@@ -7,50 +6,26 @@ import ButtonBar from 'sentry/components/buttonBar';
 import Count from 'sentry/components/count';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {TabList, Tabs} from 'sentry/components/tabs';
-import {Tooltip} from 'sentry/components/tooltip';
-import {IconChevron, IconTelescope} from 'sentry/icons';
+import {IconTelescope} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
-import {keepPreviousData, useApiQuery} from 'sentry/utils/queryClient';
+import {keepPreviousData} from 'sentry/utils/queryClient';
 import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
-import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {useGroupEventAttachments} from 'sentry/views/issueDetails/groupEventAttachments/useGroupEventAttachments';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
+import {IssueDetailsEventNavigation} from 'sentry/views/issueDetails/streamline/issueDetailsEventNavigation';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
-import {
-  getGroupEventQueryKey,
-  useDefaultIssueEvent,
-  useEnvironmentsFromUrl,
-} from 'sentry/views/issueDetails/utils';
-
-const enum EventNavOptions {
-  RECOMMENDED = 'recommended',
-  LATEST = 'latest',
-  OLDEST = 'oldest',
-  CUSTOM = 'custom',
-}
-
-const EventNavOrder = [
-  EventNavOptions.OLDEST,
-  EventNavOptions.LATEST,
-  EventNavOptions.RECOMMENDED,
-  EventNavOptions.CUSTOM,
-];
 
 const TabName = {
   [Tab.DETAILS]: t('Events'),
@@ -66,15 +41,9 @@ interface IssueEventNavigationProps {
 }
 
 export function IssueEventNavigation({event, group}: IssueEventNavigationProps) {
-  const theme = useTheme();
   const organization = useOrganization();
   const {baseUrl, currentTab} = useGroupDetailsRoute();
   const location = useLocation();
-  const params = useParams<{eventId?: string}>();
-  const defaultIssueEvent = useDefaultIssueEvent();
-  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.small})`);
-  const [shouldPreload, setShouldPreload] = useState({next: false, previous: false});
-  const environments = useEnvironmentsFromUrl();
   const eventView = useIssueDetailsEventView({group});
   const {eventCount} = useIssueDetails();
   const issueTypeConfig = getConfigForIssueType(group, group.project);
@@ -88,53 +57,6 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
     organization.slug,
     false,
     hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
-  );
-
-  // Reset shouldPreload when the groupId changes
-  useEffect(() => {
-    setShouldPreload({next: false, previous: false});
-  }, [group.id]);
-
-  const handleHoverPagination = useCallback(
-    (direction: 'next' | 'previous', isEnabled: boolean) => () => {
-      if (isEnabled) {
-        setShouldPreload(prev => ({...prev, [direction]: true}));
-      }
-    },
-    []
-  );
-
-  // Prefetch next
-  useApiQuery(
-    getGroupEventQueryKey({
-      orgSlug: organization.slug,
-      groupId: group.id,
-      // Will be defined when enabled
-      eventId: event?.nextEventID!,
-      environments,
-    }),
-    {
-      enabled: shouldPreload.next && defined(event?.nextEventID),
-      staleTime: Infinity,
-      // Ignore state changes from the query
-      notifyOnChangeProps: [],
-    }
-  );
-  // Prefetch previous
-  useApiQuery(
-    getGroupEventQueryKey({
-      orgSlug: organization.slug,
-      groupId: group.id,
-      // Will be defined when enabled
-      eventId: event?.previousEventID!,
-      environments,
-    }),
-    {
-      enabled: shouldPreload.previous && defined(event?.previousEventID),
-      staleTime: Infinity,
-      // Ignore state changes from the query
-      notifyOnChangeProps: [],
-    }
   );
 
   const {getReplayCountForIssue} = useReplayCountForIssues({
@@ -154,40 +76,6 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
   // Since we reuse whatever page the user was on, we can look at pagination to determine if there are more attachments
   const hasManyAttachments =
     attachmentPagination.next?.results || attachmentPagination.previous?.results;
-
-  const selectedOption = useMemo(() => {
-    switch (params.eventId) {
-      case EventNavOptions.RECOMMENDED:
-      case EventNavOptions.LATEST:
-      case EventNavOptions.OLDEST:
-        return params.eventId;
-      case undefined:
-        return defaultIssueEvent;
-      default:
-        return EventNavOptions.CUSTOM;
-    }
-  }, [params.eventId, defaultIssueEvent]);
-
-  const onTabChange = (tabKey: typeof selectedOption) => {
-    trackAnalytics('issue_details.event_navigation_selected', {
-      organization,
-      content: EventNavLabels[tabKey],
-    });
-  };
-
-  const baseEventsPath = `/organizations/${organization.slug}/issues/${group.id}/events/`;
-
-  const grayText = css`
-    color: ${theme.subText};
-    font-weight: ${theme.fontWeightNormal};
-  `;
-
-  const EventNavLabels = {
-    [EventNavOptions.RECOMMENDED]: isSmallScreen ? t('Rec.') : t('Recommended'),
-    [EventNavOptions.OLDEST]: t('First'),
-    [EventNavOptions.LATEST]: t('Last'),
-    [EventNavOptions.CUSTOM]: t('Specific'),
-  };
 
   return (
     <EventNavigationWrapper role="navigation">
@@ -292,93 +180,19 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
       <NavigationWrapper>
         {currentTab === Tab.DETAILS && (
           <Fragment>
-            <Navigation>
-              <Tooltip title={t('Previous Event')} skipWrapper>
-                <LinkButton
-                  aria-label={t('Previous Event')}
-                  borderless
-                  size="xs"
-                  icon={<IconChevron direction="left" />}
-                  disabled={!defined(event?.previousEventID)}
-                  analyticsEventKey="issue_details.previous_event_clicked"
-                  analyticsEventName="Issue Details: Previous Event Clicked"
-                  to={{
-                    pathname: `${baseEventsPath}${event?.previousEventID}/`,
-                    query: {...location.query, referrer: 'previous-event'},
-                  }}
-                  css={grayText}
-                  onMouseEnter={handleHoverPagination(
-                    'previous',
-                    defined(event?.previousEventID)
-                  )}
-                  onClick={() => {
-                    // Assume they will continue to paginate
-                    setShouldPreload({next: true, previous: true});
-                  }}
-                />
-              </Tooltip>
-              <Tooltip title={t('Next Event')} skipWrapper>
-                <LinkButton
-                  aria-label={t('Next Event')}
-                  borderless
-                  size="xs"
-                  icon={<IconChevron direction="right" />}
-                  disabled={!defined(event?.nextEventID)}
-                  analyticsEventKey="issue_details.next_event_clicked"
-                  analyticsEventName="Issue Details: Next Event Clicked"
-                  to={{
-                    pathname: `${baseEventsPath}${event?.nextEventID}/`,
-                    query: {...location.query, referrer: 'next-event'},
-                  }}
-                  css={grayText}
-                  onMouseEnter={handleHoverPagination(
-                    'next',
-                    defined(event?.nextEventID)
-                  )}
-                  onClick={() => {
-                    // Assume they will continue to paginate
-                    setShouldPreload({next: true, previous: true});
-                  }}
-                />
-              </Tooltip>
-            </Navigation>
-            <Tabs value={selectedOption} disableOverflow onChange={onTabChange}>
-              <TabList hideBorder variant="floating">
-                {EventNavOrder.map(label => {
-                  const eventPath =
-                    label === selectedOption
-                      ? undefined
-                      : {
-                          pathname: normalizeUrl(baseEventsPath + label + '/'),
-                          query: {...location.query, referrer: `${label}-event`},
-                        };
-                  return (
-                    <TabList.Item
-                      to={eventPath}
-                      key={label}
-                      hidden={label === EventNavOptions.CUSTOM}
-                      textValue={EventNavLabels[label]}
-                    >
-                      {EventNavLabels[label]}
-                    </TabList.Item>
-                  );
-                })}
-              </TabList>
-            </Tabs>
+            <IssueDetailsEventNavigation event={event} group={group} />
+            <LinkButton
+              to={{
+                pathname: `${baseUrl}${TabPaths[Tab.EVENTS]}`,
+                query: location.query,
+              }}
+              size="xs"
+              analyticsEventKey="issue_details.all_events_clicked"
+              analyticsEventName="Issue Details: All Events Clicked"
+            >
+              {issueTypeConfig.customCopy.allEvents || t('All Events')}
+            </LinkButton>
           </Fragment>
-        )}
-        {currentTab === Tab.DETAILS && (
-          <LinkButton
-            to={{
-              pathname: `${baseUrl}${TabPaths[Tab.EVENTS]}`,
-              query: location.query,
-            }}
-            size="xs"
-            analyticsEventKey="issue_details.all_events_clicked"
-            analyticsEventName="Issue Details: All Events Clicked"
-          >
-            {issueTypeConfig.customCopy.allEvents || t('All Events')}
-          </LinkButton>
         )}
 
         {currentTab === Tab.EVENTS && (
@@ -456,12 +270,6 @@ const NavigationWrapper = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints.xsmall}) {
     gap: ${space(0.5)};
   }
-`;
-
-const Navigation = styled('div')`
-  display: flex;
-  padding-right: ${space(0.25)};
-  border-right: 1px solid ${p => p.theme.gray100};
 `;
 
 const DropdownCountWrapper = styled('div')<{isCurrentTab: boolean}>`

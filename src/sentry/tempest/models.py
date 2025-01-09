@@ -42,3 +42,9 @@ class TempestCredentials(DefaultFieldsModel):
                 name="sentry_tempestcredentials_client_project_uniq",
             )
         ]
+
+    def get_audit_log_data(self) -> dict:
+        return {
+            "project_id": self.project.id,
+            "client_id": self.client_id,
+        }

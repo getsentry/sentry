@@ -7,7 +7,7 @@ will then be regenerated, and you should be able to merge without conflicts.
 
 feedback: 0004_index_together
 
-hybridcloud: 0017_add_scoping_organization_apitokenreplica
+hybridcloud: 0018_add_alert_and_member_invite_scopes_to_sentry_apps
 
 nodestore: 0002_nodestore_no_dictfield
 
@@ -15,7 +15,7 @@ remote_subscriptions: 0003_drop_remote_subscription
 
 replays: 0004_index_together
 
-sentry: 0804_delete_metrics_key_indexer_pt2
+sentry: 0809_delete_auth_provider_default_teams
 
 social_auth: 0002_default_auto_field
 
@@ -23,4 +23,4 @@ tempest: 0001_create_tempest_credentials_model
 
 uptime: 0021_drop_region_table_col
 
-workflow_engine: 0019_drop_dataconditions_condition
+workflow_engine: 0022_add_action_group_status_model

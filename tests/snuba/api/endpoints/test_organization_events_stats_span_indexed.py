@@ -687,7 +687,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
     is_eap = True
     is_rpc = True
 
-    def test_extrapolation(self):
+    def test_extrapolation_count(self):
         event_counts = [6, 0, 6, 3, 0, 3]
         for hour, count in enumerate(event_counts):
             for minute in range(count):
@@ -729,6 +729,66 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
                 assert actual[1][0]["count"] == "low"
             else:
                 assert actual[1][0]["count"] is None
+
+    def test_confidence_is_set(self):
+        event_counts = [6, 0, 6, 3, 0, 3]
+        for hour, count in enumerate(event_counts):
+            for minute in range(count):
+                self.store_spans(
+                    [
+                        self.create_span(
+                            {
+                                "description": "foo",
+                                "sentry_tags": {"status": "success"},
+                                "measurements": {"client_sample_rate": {"value": 0.1}},
+                            },
+                            start_ts=self.day_ago + timedelta(hours=hour, minutes=minute),
+                        ),
+                    ],
+                    is_eap=self.is_eap,
+                )
+
+        y_axes = [
+            "count()",
+            "count(span.duration)",
+            "sum(span.duration)",
+            "avg(span.duration)",
+            "p50(span.duration)",
+            "p75(span.duration)",
+            "p90(span.duration)",
+            "p95(span.duration)",
+            "p99(span.duration)",
+            # "p100(span.duration)",
+            # "min(span.duration)",
+            # "max(span.duration)",
+        ]
+
+        for y_axis in y_axes:
+            response = self._do_request(
+                data={
+                    "start": self.day_ago,
+                    "end": self.day_ago + timedelta(hours=6),
+                    "interval": "1h",
+                    "yAxis": y_axis,
+                    "project": self.project.id,
+                    "dataset": self.dataset,
+                },
+            )
+            assert response.status_code == 200, (y_axis, response.content)
+
+            assert len(response.data["data"]) == len(event_counts), y_axis
+            for count, row in zip(event_counts, response.data["data"]):
+                if count == 0:
+                    assert row[1][0]["count"] == 0, y_axis
+                else:
+                    assert isinstance(row[1][0]["count"], (float, int)), y_axis
+
+            assert len(response.data["confidence"]) == len(event_counts)
+            for count, row in zip(event_counts, response.data["confidence"]):
+                if count == 0:
+                    assert row[1][0]["count"] is None, y_axis
+                else:
+                    assert row[1][0]["count"] in {"low", "high"}, y_axis
 
     @pytest.mark.xfail
     def test_extrapolation_with_multiaxis(self):

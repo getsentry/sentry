@@ -18,6 +18,7 @@ const metricIssueConfig: IssueCategoryConfigMapping = {
       allEvents: t('All Open Periods'),
     },
     attachments: {enabled: false},
+    eventAndUserCounts: {enabled: false},
     resources: null,
     autofix: false,
     events: {enabled: false},

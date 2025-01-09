@@ -1,18 +1,22 @@
+from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.incidents.grouptype import MetricAlertFire
 from sentry.snuba.models import QuerySubscription
 from sentry.testutils.cases import APITestCase
 from sentry.users.services.user.service import user_service
-from sentry.workflow_engine.migration_helpers.alert_rule import migrate_alert_rule
+from sentry.workflow_engine.migration_helpers.alert_rule import (
+    dual_delete_migrated_alert_rule,
+    migrate_alert_rule,
+)
 from sentry.workflow_engine.models import (
     AlertRuleDetector,
     AlertRuleWorkflow,
+    DataConditionGroup,
     DataSource,
     DataSourceDetector,
     Detector,
     DetectorState,
     DetectorWorkflow,
     Workflow,
-    WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
@@ -53,8 +57,7 @@ class AlertRuleMigrationHelpersTest(APITestCase):
         detector_workflow = DetectorWorkflow.objects.get(detector=detector)
         assert detector_workflow.workflow == workflow
 
-        workflow_data_condition_group = WorkflowDataConditionGroup.objects.get(workflow=workflow)
-        assert workflow_data_condition_group.condition_group == workflow.when_condition_group
+        assert workflow.when_condition_group is None
 
         assert self.metric_alert.snuba_query
         query_subscription = QuerySubscription.objects.get(
@@ -81,3 +84,42 @@ class AlertRuleMigrationHelpersTest(APITestCase):
         assert len(DataSource.objects.all()) == 0
         assert not AlertRuleWorkflow.objects.filter(alert_rule=self.metric_alert).exists()
         assert not AlertRuleDetector.objects.filter(alert_rule=self.metric_alert).exists()
+
+    def test_delete_metric_alert(self):
+        migrate_alert_rule(self.metric_alert, self.rpc_user)
+        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=self.metric_alert)
+        alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=self.metric_alert)
+        workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
+        detector = Detector.objects.get(id=alert_rule_detector.detector.id)
+        detector_workflow = DetectorWorkflow.objects.get(detector=detector)
+        data_condition_group = detector.workflow_condition_group
+        assert data_condition_group is not None
+        assert self.metric_alert.snuba_query
+        query_subscription = QuerySubscription.objects.get(
+            snuba_query=self.metric_alert.snuba_query.id
+        )
+        data_source = DataSource.objects.get(
+            organization_id=self.metric_alert.organization_id, query_id=query_subscription.id
+        )
+        detector_state = DetectorState.objects.get(detector=detector)
+        data_source_detector = DataSourceDetector.objects.get(data_source=data_source)
+
+        dual_delete_migrated_alert_rule(self.metric_alert)
+        with self.tasks():
+            run_scheduled_deletions()
+
+        # check workflow-related tables
+        assert not Workflow.objects.filter(id=workflow.id).exists()
+        assert not AlertRuleWorkflow.objects.filter(id=alert_rule_workflow.id).exists()
+
+        # check detector-related tables
+        assert not Detector.objects.filter(id=detector.id).exists()
+        assert not DetectorWorkflow.objects.filter(id=detector_workflow.id).exists()
+        assert not DetectorState.objects.filter(id=detector_state.id).exists()
+        assert not DataSourceDetector.objects.filter(id=data_source_detector.id).exists()
+
+        # check data condition group
+        assert not DataConditionGroup.objects.filter(id=data_condition_group.id).exists()
+
+        # check data source
+        assert not DataSource.objects.filter(id=data_source.id).exists()
