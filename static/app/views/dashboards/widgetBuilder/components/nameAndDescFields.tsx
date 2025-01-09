@@ -11,8 +11,8 @@ import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/con
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 
 interface WidgetBuilderNameAndDescriptionProps {
-  error: Record<string, any>;
-  setError: (error: Record<string, any>) => void;
+  error?: Record<string, any>;
+  setError?: (error: Record<string, any>) => void;
 }
 
 function WidgetBuilderNameAndDescription({
@@ -34,11 +34,11 @@ function WidgetBuilderNameAndDescription({
         value={state.title}
         onChange={newTitle => {
           // clear error once user starts typing
-          setError({...error, title: undefined});
+          setError?.({...error, title: undefined});
           dispatch({type: BuilderStateAction.SET_TITLE, payload: newTitle});
         }}
         required
-        error={error.title}
+        error={error?.title}
         inline={false}
       />
       {!isDescSelected && (
