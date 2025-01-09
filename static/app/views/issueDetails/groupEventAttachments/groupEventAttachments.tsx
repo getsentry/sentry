@@ -1,3 +1,4 @@
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/container/flex';
@@ -10,7 +11,9 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group, IssueAttachment} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useEventQuery} from 'sentry/views/issueDetails/streamline/eventSearch';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
@@ -35,9 +38,34 @@ function GroupEventAttachments({project, group}: GroupEventAttachmentsProps) {
   const hasStreamlinedUI = useHasStreamlinedUI();
   const eventQuery = useEventQuery({groupId: group.id});
   const eventView = useIssueDetailsEventView({group});
+  const navigate = useNavigate();
+  const [previouslyUsedAttachmentsTab, setPreviouslyUsedAttachmentsTab] =
+    useLocalStorageState(
+      `issue-details-attachments-default-tab-${project.id}`,
+      EventAttachmentFilter.ALL
+    );
+
   const activeAttachmentsTab =
     (location.query.attachmentFilter as EventAttachmentFilter | undefined) ??
+    previouslyUsedAttachmentsTab ??
     EventAttachmentFilter.ALL;
+
+  // Persist the previously used attachments tab in the URL if it's not already set
+  useEffect(() => {
+    if (
+      !location.query.attachmentFilter &&
+      previouslyUsedAttachmentsTab !== EventAttachmentFilter.ALL
+    ) {
+      navigate(
+        {
+          pathname: location.pathname,
+          query: {...location.query, attachmentFilter: previouslyUsedAttachmentsTab},
+        },
+        {replace: true}
+      );
+    }
+  }, [previouslyUsedAttachmentsTab, location, navigate]);
+
   const {attachments, isPending, isError, getResponseHeader, refetch} =
     useGroupEventAttachments({
       group,
@@ -128,7 +156,9 @@ function GroupEventAttachments({project, group}: GroupEventAttachmentsProps) {
             <IconFilter size="xs" />
             {t('Results are filtered by the selections above.')}
           </FilterMessage>
-          <GroupEventAttachmentsFilter />
+          <GroupEventAttachmentsFilter
+            onChange={key => setPreviouslyUsedAttachmentsTab(key)}
+          />
         </Flex>
       ) : (
         <GroupEventAttachmentsFilter />
