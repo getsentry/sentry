@@ -4,7 +4,6 @@ import * as qs from 'query-string';
 
 import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -98,7 +97,6 @@ export default function UptimeOverview() {
         module={ModuleName.UPTIME}
         headerActions={
           <ButtonBar gap={1}>
-            <FeedbackWidgetButton />
             <LinkButton
               size="sm"
               priority="primary"
