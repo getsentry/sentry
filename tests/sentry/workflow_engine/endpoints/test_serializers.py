@@ -7,7 +7,13 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscriptionDataSourceHandler, SnubaQuery
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import TestCase
-from sentry.workflow_engine.models import DataCondition, DataConditionGroup, DataSource, Detector
+from sentry.workflow_engine.models import (
+    Action,
+    DataCondition,
+    DataConditionGroup,
+    DataSource,
+    Detector,
+)
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import data_source_type_registry
 from sentry.workflow_engine.types import DetectorPriorityLevel
@@ -221,3 +227,15 @@ class TestDataConditionGroupSerializer(TestCase):
                 }
             ],
         }
+
+
+class TestActionSerializer(TestCase):
+    def test_serialize_simple(self):
+        action = Action.objects.create(
+            type=Action.Type.EMAIL,
+            data={"foo": "bar"},
+        )
+
+        result = serialize(action)
+
+        assert result == {"id": str(action.id), "type": "email", "data": '{"foo":"bar"}'}

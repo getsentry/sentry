@@ -5,7 +5,9 @@ from typing import Any
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.issues.grouptype import ErrorGroupType
 from sentry.models.options.project_option import ProjectOption
+from sentry.utils import json
 from sentry.workflow_engine.models import (
+    Action,
     DataCondition,
     DataConditionGroup,
     DataSource,
@@ -13,6 +15,21 @@ from sentry.workflow_engine.models import (
     Detector,
 )
 from sentry.workflow_engine.types import DataSourceTypeHandler
+
+
+@register(Action)
+class ActionSerializer(Serializer):
+    def get_attrs(self, item_list: Sequence[Action], user: Any, **kwargs: Any):
+        attrs: MutableMapping[Action, dict[str, Any]] = defaultdict(dict)
+        # TODO: get the action's attributes (what is this doing?)
+        return attrs
+
+    def serialize(self, obj: Action, attrs, user, **kwargs):
+        return {
+            "id": str(obj.id),
+            "type": obj.type,
+            "data": json.dumps(obj.data),
+        }
 
 
 @register(DataSource)
