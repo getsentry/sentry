@@ -1,5 +1,6 @@
 import uuid
 from datetime import UTC, datetime
+from unittest import mock
 
 import pytest
 from django.test import RequestFactory, override_settings
@@ -33,6 +34,7 @@ from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.requests import drf_request_from_request
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, no_silo_test
 from sentry.types.token import AuthTokenType
+from sentry.utils import metrics
 from sentry.utils.security.orgauthtoken_token import hash_token
 
 
@@ -119,8 +121,10 @@ class TestDSNAuthentication(TestCase):
         request = _drf_request()
         request.META["HTTP_AUTHORIZATION"] = f"DSN {self.project_key.dsn_public}"
 
-        result = self.auth.authenticate(request)
+        with mock.patch.object(metrics, "incr") as metrics_incr:
+            result = self.auth.authenticate(request)
         assert result is not None
+        metrics_incr.assert_called_once_with("dsnauth.used")
 
         user, auth = result
         assert user.is_anonymous

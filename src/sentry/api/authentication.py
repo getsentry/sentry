@@ -42,6 +42,7 @@ from sentry.silo.base import SiloLimit, SiloMode
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
+from sentry.utils import metrics
 from sentry.utils.linksign import process_signature
 from sentry.utils.sdk import Scope
 from sentry.utils.security.orgauthtoken_token import SENTRY_ORG_AUTH_TOKEN_PREFIX, hash_token
@@ -510,6 +511,8 @@ class DSNAuthentication(StandardAuthentication):
 
         if not key.is_active:
             raise AuthenticationFailed("Invalid dsn")
+
+        metrics.incr("dsnauth.used")
 
         scope = Scope.get_isolation_scope()
         scope.set_tag("api_token_type", self.token_name)
