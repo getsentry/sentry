@@ -495,6 +495,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     metricsActivateLastForGauges: bool
     requiresSso: bool
     rollbackEnabled: bool
+    streamlineOnly: bool
 
 
 class DetailedOrganizationSerializer(OrganizationSerializer):

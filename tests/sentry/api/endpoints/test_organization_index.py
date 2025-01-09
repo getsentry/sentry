@@ -18,6 +18,7 @@ from sentry.models.team import Team
 from sentry.silo.base import SiloMode
 from sentry.slug.patterns import ORG_SLUG_PATTERN
 from sentry.testutils.cases import APITestCase, TwoFactorAPITestCase
+from sentry.testutils.helpers import override_options
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import assume_test_silo_mode, create_test_regions, region_silo_test
 from sentry.users.models.authenticator import Authenticator
@@ -315,6 +316,20 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
         org = Organization.objects.get(id=organization_id)
         assert org.name == data["name"]
         assert OrganizationOption.objects.get_value(org, "sentry:aggregated_data_consent") is True
+
+    @override_options({"issues.details.streamline_rollout_rate": 1.0})
+    def test_streamline_only_is_true(self):
+        self.login_as(user=self.user)
+        response = self.get_success_response(name="acme")
+        organization = Organization.objects.get(id=response.data["id"])
+        assert OrganizationOption.objects.get_value(organization, "sentry:streamline_ui_only")
+
+    @override_options({"issues.details.streamline_rollout_rate": 0})
+    def test_streamline_only_is_false(self):
+        self.login_as(user=self.user)
+        response = self.get_success_response(name="acme")
+        organization = Organization.objects.get(id=response.data["id"])
+        assert not OrganizationOption.objects.get_value(organization, "sentry:streamline_ui_only")
 
 
 @region_silo_test(regions=create_test_regions("de", "us"))
