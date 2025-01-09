@@ -68,13 +68,13 @@ def build_notification_actions_from_rule_data_actions(
 
     for action in actions:
         # Use Rule.integration.provider to get the action type
-        action_type = RULE_REGISTRY_ID_TO_INTEGRATION_PROVIDER.get(action["id"])
+        action_type = RULE_REGISTRY_ID_TO_INTEGRATION_PROVIDER.get(action.get("id"))
         if action_type is None:
             _logger.warning(
                 "Action type not found for action",
                 extra={
-                    "action_id": action["id"],
-                    "action_uuid": action["uuid"],
+                    "action_id": action.get("id"),
+                    "action_uuid": action.get("uuid"),
                 },
             )
             continue
@@ -96,8 +96,8 @@ def build_notification_actions_from_rule_data_actions(
                     "Integration ID key not found for action type",
                     extra={
                         "action_type": action_type,
-                        "action_id": action["id"],
-                        "action_uuid": action["uuid"],
+                        "action_id": action.get("id"),
+                        "action_uuid": action.get("uuid"),
                     },
                 )
                 continue
