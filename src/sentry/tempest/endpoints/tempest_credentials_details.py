@@ -30,7 +30,11 @@ class TempestCredentialsDetailsEndpoint(ProjectEndpoint):
         if not self.has_feature(request, project):
             raise NotFound
 
-        credentials = TempestCredentials.objects.filter(project=project, id=tempest_credentials_id)
+        try:
+            credentials = TempestCredentials.objects.get(project=project, id=tempest_credentials_id)
+        except TempestCredentials.DoesNotExist:
+            raise NotFound
+
         data = credentials.get_audit_log_data()
         credentials.delete()
 
