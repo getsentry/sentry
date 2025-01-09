@@ -229,9 +229,10 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
             return Response(serialize(event, request.user, EventSerializer()))
 
         data = wrap_event_response(
-            request.user,
-            event,
-            environment_names,
+            request_user=request.user,
+            event=event,
+            environments=environment_names,
             include_full_release_data="fullRelease" not in collapse,
+            conditions=conditions,
         )
         return Response(data)
