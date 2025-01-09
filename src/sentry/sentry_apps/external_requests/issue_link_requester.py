@@ -99,7 +99,7 @@ class IssueLinkRequester:
         if not self._validate_response(response):
             raise SentryAppIntegratorError(
                 ValidationError(
-                    f"Invalid response format from sentry app {self.sentry_app} when linking issue"
+                    f"Invalid response format from {self.sentry_app.slug} when linking issue"
                 )
             )
 

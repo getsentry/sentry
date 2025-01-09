@@ -81,7 +81,7 @@ class SelectRequester:
             logger.info(message, extra=extra)
             raise SentryAppIntegratorError(
                 APIError(
-                    f"Something went wrong while getting SelectFields from {self.sentry_app.slug}"
+                    f"Something went wrong while fetching Select FormField options from {self.sentry_app.slug}"
                 )
             ) from e
 
@@ -98,7 +98,7 @@ class SelectRequester:
             )
             raise SentryAppIntegratorError(
                 ValidationError(
-                    f"Invalid response format for SelectField in {self.sentry_app.slug} from uri: {self.uri}"
+                    f"Invalid response format for Select FormField options in {self.sentry_app.slug} from uri: {self.uri}"
                 )
             )
         return self._format_response(response)
@@ -139,11 +139,13 @@ class SelectRequester:
                     "select-requester.invalid-response",
                     extra={
                         "resposnse": resp,
-                        "error_msg": "Missing `value` or `label` in option data for SelectField",
+                        "error_msg": f"Missing `value` or `label` in options data for uri: {self.uri}",
                     },
                 )
                 raise SentryAppIntegratorError(
-                    ValidationError("Missing `value` or `label` in option data for SelectField")
+                    ValidationError(
+                        f"Missing `value` or `label` in options data for uri: {self.uri}"
+                    )
                 )
 
             choices.append([option["value"], option["label"]])
