@@ -14,7 +14,7 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
 
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap import constants
-from sentry.search.events.constants import SPAN_MODULE_CATEGORY_VALUES
+from sentry.search.events.constants import DURATION_UNITS, SIZE_UNITS, SPAN_MODULE_CATEGORY_VALUES
 from sentry.search.events.types import SnubaParams
 from sentry.search.utils import DEVICE_CLASS
 from sentry.utils.validators import is_event_id, is_span_id
@@ -74,33 +74,9 @@ class ResolvedColumn(ResolvedAttribute):
         )
 
 
-SIZE_TYPE: set[constants.SearchType] = {
-    "bit",
-    "byte",
-    "kibibyte",
-    "mebibyte",
-    "gibibyte",
-    "tebibyte",
-    "pebibyte",
-    "exbibyte",
-    "kilobyte",
-    "megabyte",
-    "gigabyte",
-    "terabyte",
-    "petabyte",
-    "exabyte",
-}
+SIZE_TYPE: set[constants.SearchType] = set(SIZE_UNITS.keys())
 
-DURATION_TYPE: set[constants.SearchType] = {
-    "nanosecond",
-    "microsecond",
-    "millisecond",
-    "second",
-    "minute",
-    "hour",
-    "day",
-    "week",
-}
+DURATION_TYPE: set[constants.SearchType] = set(DURATION_UNITS.keys())
 
 
 @dataclass
