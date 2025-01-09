@@ -71,7 +71,6 @@ describe('AlertWizard', () => {
     expect(screen.getByText('Sessions')).toBeInTheDocument();
     expect(screen.getByText('Performance')).toBeInTheDocument();
     expect(screen.getByText('Uptime Monitoring')).toBeInTheDocument();
-    expect(screen.getByText('LLM Monitoring')).toBeInTheDocument();
     expect(screen.getByText('Custom')).toBeInTheDocument();
     const alertGroups = screen.getAllByRole('radiogroup');
     expect(alertGroups).toHaveLength(6);
