@@ -45,8 +45,8 @@ def get_first_last_release_for_env(
 class LatestAdoptedReleaseConditionHandler(DataConditionHandler[WorkflowJob]):
     @staticmethod
     def evaluate_value(job: WorkflowJob, comparison: Any) -> bool:
-        release_age_type = comparison["oldest_or_newest"]
-        age_comparison = comparison["older_or_newer"]
+        release_age_type = comparison["release_age_type"]
+        age_comparison = comparison["age_comparison"]
         environment_name = comparison["environment"]
 
         event = job["event"]

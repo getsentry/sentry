@@ -67,8 +67,8 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
         self.dc = self.create_data_condition(
             type=self.condition,
             comparison={
-                "oldest_or_newest": "oldest",
-                "older_or_newer": "newer",
+                "release_age_type": "oldest",
+                "age_comparison": "newer",
                 "environment": self.prod_env.name,
             },
             condition_result=True,
@@ -80,8 +80,8 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
 
         assert dc.type == self.condition
         assert dc.comparison == {
-            "oldest_or_newest": "oldest",
-            "older_or_newer": "newer",
+            "release_age_type": "oldest",
+            "age_comparison": "newer",
             "environment": "prod",
         }
         assert dc.condition_result is True
@@ -137,8 +137,8 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
     def test_oldest_older(self):
         self.dc.update(
             comparison={
-                "oldest_or_newest": "oldest",
-                "older_or_newer": "older",
+                "release_age_type": "oldest",
+                "age_comparison": "older",
                 "environment": self.prod_env.name,
             }
         )
@@ -160,8 +160,8 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
     def test_newest_newer(self):
         self.dc.update(
             comparison={
-                "oldest_or_newest": "newest",
-                "older_or_newer": "newer",
+                "release_age_type": "newest",
+                "age_comparison": "newer",
                 "environment": self.prod_env.name,
             }
         )
@@ -183,8 +183,8 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
     def test_newest_older(self):
         self.dc.update(
             comparison={
-                "oldest_or_newest": "newest",
-                "older_or_newer": "older",
+                "release_age_type": "newest",
+                "age_comparison": "older",
                 "environment": self.prod_env.name,
             }
         )

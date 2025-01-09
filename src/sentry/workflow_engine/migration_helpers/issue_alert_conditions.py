@@ -250,8 +250,8 @@ def create_latest_adopted_release_data_condition(
 ) -> DataCondition:
     # TODO: Add comparison validation (error if not enough information)
     comparison = {
-        "oldest_or_newest": data["oldest_or_newest"],
-        "older_or_newer": data["older_or_newer"],
+        "release_age_type": data["oldest_or_newest"],
+        "age_comparison": data["older_or_newer"],
         "environment": data["environment"],
     }
     return DataCondition.objects.create(
