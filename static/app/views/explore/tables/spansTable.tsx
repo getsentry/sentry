@@ -1,5 +1,4 @@
-import type {Dispatch, SetStateAction} from 'react';
-import {Fragment, useEffect, useMemo, useRef} from 'react';
+import {Fragment, useMemo, useRef} from 'react';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {GridResizer} from 'sentry/components/gridEditable/styles';
@@ -8,13 +7,10 @@ import Pagination from 'sentry/components/pagination';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
-import type {Confidence, NewQuery} from 'sentry/types/organization';
+import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import EventView from 'sentry/utils/discover/eventView';
 import {fieldAlignment, prettifyTagKey} from 'sentry/utils/discover/fields';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   Table,
   TableBody,
@@ -37,18 +33,16 @@ import {
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {useAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
-import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
+import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 
 import {FieldRenderer} from './fieldRenderer';
 
 interface SpansTableProps {
   confidences: Confidence[];
-  setError: Dispatch<SetStateAction<string>>;
+  spansTableResult: SpansTableResult;
 }
 
-export function SpansTable({confidences, setError}: SpansTableProps) {
-  const {selection} = usePageFilters();
-
+export function SpansTable({confidences, spansTableResult}: SpansTableProps) {
   const dataset = useExploreDataset();
   const title = useExploreTitle();
   const fields = useExploreFields();
@@ -63,48 +57,9 @@ export function SpansTable({confidences, setError}: SpansTableProps) {
     [fields]
   );
 
-  const eventView = useMemo(() => {
-    const queryFields = [
-      ...visibleFields,
-      'project',
-      'trace',
-      'transaction.span_id',
-      'id',
-      'timestamp',
-    ];
-
-    const search = new MutableSearch(query);
-
-    // Filtering out all spans with op like 'ui.interaction*' which aren't
-    // embedded under transactions. The trace view does not support rendering
-    // such spans yet.
-    search.addFilterValues('!transaction.span_id', ['00']);
-
-    const discoverQuery: NewQuery = {
-      id: undefined,
-      name: 'Explore - Span Samples',
-      fields: queryFields,
-      orderby: sortBys.map(sort => `${sort.kind === 'desc' ? '-' : ''}${sort.field}`),
-      query: search.formatString(),
-      version: 2,
-      dataset,
-    };
-
-    return EventView.fromNewQueryWithPageFilters(discoverQuery, selection);
-  }, [dataset, sortBys, query, selection, visibleFields]);
+  const {result, eventView} = spansTableResult;
 
   const columnsFromEventView = useMemo(() => eventView.getColumns(), [eventView]);
-
-  const result = useSpansQuery({
-    eventView,
-    initialData: [],
-    referrer: 'api.explore.spans-samples-table',
-    allowAggregateConditions: false,
-  });
-
-  useEffect(() => {
-    setError(result.error?.message ?? '');
-  }, [setError, result.error?.message]);
 
   useAnalytics({
     dataset,

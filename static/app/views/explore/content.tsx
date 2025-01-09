@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
@@ -48,7 +48,11 @@ import {
   SpanTagsProvider,
   useSpanTags,
 } from 'sentry/views/explore/contexts/spanTagsContext';
+import {useExploreAggregatesTable} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
+import {useExploreSpansTable} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import {useExploreTimeseries} from 'sentry/views/explore/hooks/useExploreTimeseries';
+import {useExploreTracesTable} from 'sentry/views/explore/hooks/useExploreTracesTable';
+import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
 import {ExploreTables} from 'sentry/views/explore/tables';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
 import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
@@ -65,6 +69,7 @@ function ExploreContentImpl({}: ExploreContentProps) {
   const dataset = useExploreDataset();
   const mode = useExploreMode();
   const visualizes = useExploreVisualizes();
+  const [samplesTab, setSamplesTab] = useTab();
 
   const numberTags = useSpanTags('number');
   const stringTags = useSpanTags('string');
@@ -86,10 +91,27 @@ function ExploreContentImpl({}: ExploreContentProps) {
     });
   }, [location, navigate]);
 
-  const [tableError, setTableError] = useState<string>('');
-
   const maxPickableDays = 7;
 
+  const queryType: 'aggregate' | 'samples' | 'traces' =
+    mode === Mode.AGGREGATE
+      ? 'aggregate'
+      : samplesTab === Tab.TRACE
+        ? 'traces'
+        : 'samples';
+
+  const aggregatesTableResult = useExploreAggregatesTable({
+    query,
+    enabled: queryType === 'aggregate',
+  });
+  const spansTableResult = useExploreSpansTable({
+    query,
+    enabled: queryType === 'samples',
+  });
+  const tracesTableResult = useExploreTracesTable({
+    query,
+    enabled: queryType === 'traces',
+  });
   const {timeseriesResult, canUsePreviousResults} = useExploreTimeseries({query});
   const confidences = useMemo(
     () =>
@@ -103,6 +125,12 @@ function ExploreContentImpl({}: ExploreContentProps) {
     [timeseriesResult.data, visualizes]
   );
 
+  const tableError =
+    queryType === 'aggregate'
+      ? aggregatesTableResult.result.error?.message ?? ''
+      : queryType === 'traces'
+        ? tracesTableResult.result.error?.message ?? ''
+        : spansTableResult.result.error?.message ?? '';
   const chartError = timeseriesResult.error?.message ?? '';
 
   return (
@@ -203,7 +231,14 @@ function ExploreContentImpl({}: ExploreContentProps) {
                 query={query}
                 timeseriesResult={timeseriesResult}
               />
-              <ExploreTables confidences={confidences} setError={setTableError} />
+              <ExploreTables
+                aggregatesTableResult={aggregatesTableResult}
+                spansTableResult={spansTableResult}
+                tracesTableResult={tracesTableResult}
+                confidences={confidences}
+                samplesTab={samplesTab}
+                setSamplesTab={setSamplesTab}
+              />
             </MainSection>
           </Body>
         </Layout.Page>
