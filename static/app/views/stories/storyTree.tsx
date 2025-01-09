@@ -4,12 +4,25 @@ import styled from '@emotion/styled';
 import Link from 'sentry/components/links/link';
 import {IconChevron, IconFile} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
+import {useLocation} from 'sentry/utils/useLocation';
 
 import type {StoryTreeNode} from './index';
 
-function folderFirst(a: [string, StoryTreeNode], b: [string, StoryTreeNode]) {
-  const aIsFolder = Object.keys(a[1].children).length > 0;
-  const bIsFolder = Object.keys(b[1].children).length > 0;
+function folderOrSearchScoreFirst(a: StoryTreeNode, b: StoryTreeNode) {
+  if (a.result && b.result) {
+    return b.result.score - a.result.score;
+  }
+
+  if (!a.visible) {
+    return 1;
+  }
+
+  if (!b.visible) {
+    return -1;
+  }
+
+  const aIsFolder = Object.keys(a.children).length > 0;
+  const bIsFolder = Object.keys(b.children).length > 0;
 
   if (aIsFolder && !bIsFolder) {
     return -1;
@@ -19,18 +32,35 @@ function folderFirst(a: [string, StoryTreeNode], b: [string, StoryTreeNode]) {
     return 1;
   }
 
-  return a[0].localeCompare(b[0]);
+  return a.name.localeCompare(b.name);
 }
+
+function normalizeFilename(filename: string) {
+  // Do not uppercase the first three characters of the filename
+  if (filename.startsWith('use')) {
+    return filename.replace('.stories.tsx', '');
+  }
+
+  // capitalizes the filename
+  return filename.charAt(0).toUpperCase() + filename.slice(1).replace('.stories.tsx', '');
+}
+
 interface Props extends React.HTMLAttributes<HTMLDivElement> {
   nodes: StoryTreeNode[];
 }
 
+// @TODO (JonasBadalic): Implement treeview pattern navigation
+// https://www.w3.org/WAI/ARIA/apg/patterns/treeview/
 export default function StoryTree({nodes, ...htmlProps}: Props) {
   return (
     <nav {...htmlProps}>
       <StoryList>
-        {nodes.map(node => {
-          return Object.entries(node.children).length === 0 ? (
+        {nodes.sort(folderOrSearchScoreFirst).map(node => {
+          if (!node.visible) {
+            return null;
+          }
+
+          return Object.keys(node.children).length === 0 ? (
             <li key={node.name}>
               <File node={node} />
             </li>
@@ -46,23 +76,39 @@ export default function StoryTree({nodes, ...htmlProps}: Props) {
 function Folder(props: {node: StoryTreeNode}) {
   const [expanded, setExpanded] = useState(props.node.expanded);
 
+  if (props.node.expanded !== expanded) {
+    setExpanded(props.node.expanded);
+  }
+
+  if (!props.node.visible) {
+    return null;
+  }
+
   return (
     <li>
-      <FolderName onClick={() => setExpanded(!expanded)}>
+      <FolderName
+        onClick={() => {
+          props.node.expanded = !props.node.expanded;
+          setExpanded(props.node.expanded);
+        }}
+      >
         <IconChevron size="xs" direction={expanded ? 'down' : 'right'} />
-        {capitalize(props.node.name)}
+        {normalizeFilename(props.node.name)}
       </FolderName>
-      {expanded && Object.entries(props.node.children).length > 0 && (
+      {expanded && Object.keys(props.node.children).length > 0 && (
         <StoryList>
-          {Object.entries(props.node.children)
-            .sort(folderFirst)
-            .map(([name, child]) => {
+          {Object.values(props.node.children)
+            .sort(folderOrSearchScoreFirst)
+            .map(child => {
+              if (!child.visible) {
+                return null;
+              }
               return Object.keys(child.children).length === 0 ? (
                 <li>
-                  <File key={name} node={child} />
+                  <File key={child.path} node={child} />
                 </li>
               ) : (
-                <Folder key={name} node={child} />
+                <Folder key={child.path} node={child} />
               );
             })}
         </StoryList>
@@ -72,18 +118,19 @@ function Folder(props: {node: StoryTreeNode}) {
 }
 
 function File(props: {node: StoryTreeNode}) {
+  const location = useLocation();
+
   return (
-    <FolderLink to={`/stories/?name=${props.node.path}`}>
+    <FolderLink
+      to={`/stories/?name=${props.node.path}`}
+      active={location.query.name === props.node.path}
+    >
       {/* @TODO (JonasBadalic): Do file type icons make sense here? */}
       <IconFile size="xs" />
       {/* @TODO (JonasBadalic): Do we need to show the file extension? */}
-      {capitalize(props.node.name)}
+      {normalizeFilename(props.node.name)}
     </FolderLink>
   );
-}
-
-function capitalize(str: string) {
-  return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
 const StoryList = styled('ul')`
@@ -99,62 +146,55 @@ const FolderName = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.75)};
-  padding: ${space(0.25)} 0;
+  padding: ${space(0.25)} 0 ${space(0.25)} ${space(0.5)};
   cursor: pointer;
+  position: relative;
+
+  &:before {
+    background: ${p => p.theme.surface100};
+    content: '';
+    inset: 0px 0px 0px -100%;
+    position: absolute;
+    z-index: -1;
+    opacity: 0;
+  }
+
+  &:hover {
+    &:before {
+      opacity: 1;
+    }
+  }
 `;
 
-const FolderLink = styled(Link)`
+const FolderLink = styled(Link, {
+  shouldForwardProp: prop => prop !== 'active',
+})<{active: boolean}>`
   display: flex;
   align-items: center;
   margin-left: ${space(0.5)};
   gap: ${space(0.75)};
   color: ${p => p.theme.textColor};
-  padding: ${space(0.25)} 0;
+  padding: ${space(0.25)} 0 ${space(0.25)} ${space(0.5)};
+  position: relative;
+
+  &:before {
+    background: ${p => p.theme.surface100};
+    content: '';
+    inset: 0px 0px 0px -100%;
+    position: absolute;
+    z-index: -1;
+    opacity: ${p => (p.active ? 1 : 0)};
+  }
 
   &:hover {
     color: ${p => p.theme.textColor};
+
+    &:before {
+      opacity: 1;
+    }
   }
 
   svg {
     flex-shrink: 0;
   }
 `;
-
-// function FolderContent({node}: {node: StoryTreeNode}) {
-//   const location = useLocation<StoriesQuery>();
-//   const currentFile = location.query.name;
-
-//   return (
-//     <StoryList>
-//       {Object.entries(node.children).map(([name, children]) => {
-//         // const childPath = toPath(path, name);
-
-//         if (Object.keys(children).length === 0) {
-//           // const isCurrent = childPath === currentFile ? true : undefined;
-//           // const to = `/stories/?name=${childPath}`;
-//           return (
-//             <ListItem key={name} aria-current={isCurrent}>
-//               <FolderLink to={to}>
-//                 <IconFile size="xs" />
-//                 {name}
-//               </FolderLink>
-//             </ListItem>
-//           );
-//         }
-
-//         return (
-//           <ListItem key={name}>
-//             <Folder open>
-//               <FolderName>{name}</FolderName>
-//               <FolderContent node={node} />
-//             </Folder>
-//           </ListItem>
-//         );
-//       })}
-//     </StoryList>
-//   );
-// }
-
-// function toPath(path: string, name: string) {
-//   return [path, name].filter(Boolean).join('/');
-// }
