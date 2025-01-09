@@ -1,8 +1,6 @@
 from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 
-import pytest
-
 from sentry.models.environment import Environment
 from sentry.models.release import Release
 from sentry.rules.filters.latest_adopted_release_filter import (
@@ -10,13 +8,10 @@ from sentry.rules.filters.latest_adopted_release_filter import (
     get_first_last_release_for_group_cache_key,
 )
 from sentry.search.utils import LatestReleaseOrders
-from sentry.testutils.skips import requires_snuba
 from sentry.utils.cache import cache
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import WorkflowJob
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase
-
-pytestmark = [requires_snuba, pytest.mark.sentry_metrics]
 
 
 class TestLatestAdoptedReleaseCondition(ConditionTestCase):
@@ -28,6 +23,12 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
         "older_or_newer": "newer",
         "environment": "prod",
     }
+
+    def create_new_group_event(self, fingerprint):
+        event = self.store_event(data={"fingerprint": [fingerprint]}, project_id=self.project.id)
+        group = event.group
+        group_event = self.event.for_group(group)
+        return group, group_event
 
     def setUp(self):
         super().setUp()
@@ -60,7 +61,7 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
 
         self.job = WorkflowJob(
             {
-                "event": self.event,
+                "event": self.group_event,
             }
         )
         self.dc = self.create_data_condition(
@@ -90,31 +91,26 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
         # Test no release
         self.assert_does_not_pass(self.dc, self.job)
 
-        self.create_group_release(group=self.event.group, release=self.newest_release)
-        self.assert_passes(self.dc, WorkflowJob({"event": self.event}))
+        self.create_group_release(group=self.group, release=self.newest_release)
+        self.assert_passes(self.dc, WorkflowJob({"event": self.group_event}))
 
-        event_2 = self.store_event(data={"fingerprint": ["group2"]}, project_id=self.project.id)
-        group_2 = event_2.group
-
+        group_2, group_event_2 = self.create_new_group_event("group2")
         self.create_group_release(group=group_2, release=self.newest_release)
         self.create_group_release(group=group_2, release=self.oldest_release)
-        self.assert_does_not_pass(self.dc, WorkflowJob({"event": event_2}))
+        self.assert_does_not_pass(self.dc, WorkflowJob({"event": group_event_2}))
 
-        event_3 = self.store_event(data={"fingerprint": ["group3"]}, project_id=self.project.id)
-        group_3 = event_3.group
-
+        group_3, group_event_3 = self.create_new_group_event("group3")
         self.create_group_release(group=group_3, release=self.middle_release)
-        self.assert_does_not_pass(self.dc, WorkflowJob({"event": event_3}))
+        self.assert_does_not_pass(self.dc, WorkflowJob({"event": group_event_3}))
 
         # Check that the group cache invalidation works by adding an older release to the first group
-        self.create_group_release(group=self.event.group, release=self.oldest_release)
-        self.assert_does_not_pass(self.dc, WorkflowJob({"event": self.event}))
+        self.create_group_release(group=self.group, release=self.oldest_release)
+        self.assert_does_not_pass(self.dc, WorkflowJob({"event": self.group_event}))
 
         # Check that the project cache invalidation works by adding a newer release to the project
-        event_4 = self.store_event(data={"fingerprint": ["group4"]}, project_id=self.project.id)
-        group_4 = event_4.group
+        group_4, group_event_4 = self.create_new_group_event("group4")
         self.create_group_release(group=group_4, release=self.newest_release)
-        self.assert_passes(self.dc, WorkflowJob({"event": event_4}))
+        self.assert_passes(self.dc, WorkflowJob({"event": group_event_4}))
 
         self.create_release(
             project=self.event.group.project,
@@ -123,24 +119,20 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
             environments=[self.prod_env],
             adopted=self.now - timedelta(days=2),
         )
-        self.assert_does_not_pass(self.dc, WorkflowJob({"event": event_4}))
+        self.assert_does_not_pass(self.dc, WorkflowJob({"event": group_event_4}))
 
     def test_date(self):
-        self.create_group_release(group=self.event.group, release=self.newest_release)
-        self.assert_passes(self.dc, WorkflowJob({"event": self.event}))
+        self.create_group_release(group=self.group, release=self.newest_release)
+        self.assert_passes(self.dc, WorkflowJob({"event": self.group_event}))
 
-        event_2 = self.store_event(data={"fingerprint": ["group2"]}, project_id=self.project.id)
-        group_2 = event_2.group
-
+        group_2, group_event_2 = self.create_new_group_event("group2")
         self.create_group_release(group=group_2, release=self.newest_release)
         self.create_group_release(group=group_2, release=self.oldest_release)
-        self.assert_does_not_pass(self.dc, WorkflowJob({"event": event_2}))
+        self.assert_does_not_pass(self.dc, WorkflowJob({"event": group_event_2}))
 
-        event_3 = self.store_event(data={"fingerprint": ["group3"]}, project_id=self.project.id)
-        group_3 = event_3.group
-
+        group_3, group_event_3 = self.create_new_group_event("group3")
         self.create_group_release(group=group_3, release=self.middle_release)
-        self.assert_does_not_pass(self.dc, WorkflowJob({"event": event_3}))
+        self.assert_does_not_pass(self.dc, WorkflowJob({"event": group_event_3}))
 
     def test_oldest_older(self):
         self.dc.update(
@@ -151,21 +143,19 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
             }
         )
 
-        self.create_group_release(group=self.event.group, release=self.newest_release)
-        self.assert_does_not_pass(self.dc, WorkflowJob({"event": self.event}))
+        self.create_group_release(group=self.group, release=self.newest_release)
+        self.assert_does_not_pass(self.dc, WorkflowJob({"event": self.group_event}))
 
-        event_2 = self.store_event(data={"fingerprint": ["group2"]}, project_id=self.project.id)
-        group_2 = event_2.group
+        group_2, group_event_2 = self.create_new_group_event("group2")
 
         self.create_group_release(group=group_2, release=self.newest_release)
         self.create_group_release(group=group_2, release=self.oldest_release)
-        self.assert_passes(self.dc, WorkflowJob({"event": event_2}))
+        self.assert_passes(self.dc, WorkflowJob({"event": group_event_2}))
 
-        event_3 = self.store_event(data={"fingerprint": ["group3"]}, project_id=self.project.id)
-        group_3 = event_3.group
+        group_3, group_event_3 = self.create_new_group_event("group3")
 
         self.create_group_release(group=group_3, release=self.middle_release)
-        self.assert_does_not_pass(self.dc, WorkflowJob({"event": event_3}))
+        self.assert_does_not_pass(self.dc, WorkflowJob({"event": group_event_3}))
 
     def test_newest_newer(self):
         self.dc.update(
@@ -176,21 +166,19 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
             }
         )
 
-        self.create_group_release(group=self.event.group, release=self.newest_release)
-        self.assert_passes(self.dc, WorkflowJob({"event": self.event}))
+        self.create_group_release(group=self.group, release=self.newest_release)
+        self.assert_passes(self.dc, WorkflowJob({"event": self.group_event}))
 
-        event_2 = self.store_event(data={"fingerprint": ["group2"]}, project_id=self.project.id)
-        group_2 = event_2.group
+        group_2, group_event_2 = self.create_new_group_event("group2")
 
         self.create_group_release(group=group_2, release=self.newest_release)
         self.create_group_release(group=group_2, release=self.oldest_release)
-        self.assert_passes(self.dc, WorkflowJob({"event": event_2}))
+        self.assert_passes(self.dc, WorkflowJob({"event": group_event_2}))
 
-        event_3 = self.store_event(data={"fingerprint": ["group3"]}, project_id=self.project.id)
-        group_3 = event_3.group
+        group_3, group_event_3 = self.create_new_group_event("group3")
 
         self.create_group_release(group=group_3, release=self.middle_release)
-        self.assert_does_not_pass(self.dc, WorkflowJob({"event": event_3}))
+        self.assert_does_not_pass(self.dc, WorkflowJob({"event": group_event_3}))
 
     def test_newest_older(self):
         self.dc.update(
@@ -204,32 +192,28 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
         self.create_group_release(group=self.event.group, release=self.newest_release)
         self.assert_does_not_pass(self.dc, WorkflowJob({"event": self.event}))
 
-        event_2 = self.store_event(data={"fingerprint": ["group2"]}, project_id=self.project.id)
-        group_2 = event_2.group
-
+        group_2, group_event_2 = self.create_new_group_event("group2")
         self.create_group_release(group=group_2, release=self.newest_release)
         self.create_group_release(group=group_2, release=self.oldest_release)
-        self.assert_does_not_pass(self.dc, WorkflowJob({"event": event_2}))
+        self.assert_does_not_pass(self.dc, WorkflowJob({"event": group_event_2}))
 
-        event_3 = self.store_event(data={"fingerprint": ["group3"]}, project_id=self.project.id)
-        group_3 = event_3.group
-
+        group_3, group_event_3 = self.create_new_group_event("group3")
         self.create_group_release(group=group_3, release=self.middle_release)
-        self.assert_does_not_pass(self.dc, WorkflowJob({"event": event_3}))
+        self.assert_does_not_pass(self.dc, WorkflowJob({"event": group_event_3}))
 
     def test_caching(self):
         cache_key = get_first_last_release_for_group_cache_key(
-            self.event.group.id, "oldest", LatestReleaseOrders.SEMVER
+            self.group.id, "oldest", LatestReleaseOrders.SEMVER
         )
         assert cache.get(cache_key) is None
 
-        self.create_group_release(group=self.event.group, release=self.newest_release)
+        self.create_group_release(group=self.group, release=self.newest_release)
         self.assert_passes(self.dc, self.job)
         assert cache.get(cache_key) is not None
 
         # ensure we clear the cache after creating a new release
         oldest_group_release = self.create_group_release(
-            group=self.event.group, release=self.oldest_release
+            group=self.group, release=self.oldest_release
         )
         assert cache.get(cache_key) is None
 
