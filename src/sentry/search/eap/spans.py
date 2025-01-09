@@ -304,7 +304,7 @@ class SearchResolver:
         self,
         column: ResolvedColumn,
         operator: str,
-        value: str | int | datetime | Sequence[int] | Sequence[str],
+        value: str | float | datetime | Sequence[float] | Sequence[str],
     ) -> AttributeValue:
         column.validate(value)
         if isinstance(column.proto_definition, AttributeKey):
