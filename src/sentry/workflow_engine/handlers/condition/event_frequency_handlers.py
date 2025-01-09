@@ -11,9 +11,13 @@ from sentry import tsdb
 from sentry.issues.constants import get_issue_tsdb_group_model
 from sentry.issues.grouptype import GroupCategory, get_group_type_by_type_id
 from sentry.models.group import Group
-from sentry.rules.conditions.event_frequency import SNUBA_LIMIT, STANDARD_INTERVALS
+from sentry.rules.conditions.event_frequency import (
+    SNUBA_LIMIT,
+    STANDARD_INTERVALS,
+    ComparisonType,
+    percent_increase,
+)
 from sentry.tsdb.base import TSDBModel
-from sentry.utils import json
 from sentry.utils.iterators import chunked
 from sentry.utils.snuba import options_override
 from sentry.workflow_engine.models.data_condition import Condition
@@ -176,10 +180,19 @@ class BaseEventFrequencyConditionHandler(ABC):
 
 
 @condition_handler_registry.register(Condition.EVENT_FREQUENCY)
-class EventFrequencyConditionHandler(DataConditionHandler[int], BaseEventFrequencyConditionHandler):
+class EventFrequencyConditionHandler(
+    DataConditionHandler[list[int]], BaseEventFrequencyConditionHandler
+):
     @staticmethod
-    def evaluate_value(value: int, comparison: Any) -> DataConditionResult:
-        return value == json.loads(comparison)["value"]
+    def evaluate_value(value: list[int], comparison: Any) -> DataConditionResult:
+        comparison_type = comparison["comparison_type"]
+        if comparison_type == ComparisonType.COUNT:
+            return value[0] > comparison["value"]
+
+        if comparison_type == ComparisonType.PERCENT:
+            return percent_increase(value[0], value[1]) > comparison["value"]
+
+        return False
 
     @property
     def intervals(self) -> dict[str, tuple[str, timedelta]]:

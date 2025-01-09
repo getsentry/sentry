@@ -2,9 +2,8 @@ import pytest
 
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group
-from sentry.rules.conditions.event_frequency import EventFrequencyCondition
+from sentry.rules.conditions.event_frequency import ComparisonType, EventFrequencyCondition
 from sentry.testutils.skips import requires_snuba
-from sentry.utils import json
 from sentry.workflow_engine.handlers.condition.event_frequency_handlers import (
     EventFrequencyConditionHandler,
 )
@@ -24,25 +23,61 @@ class TestEventFrequencyCondition(ConditionTestCase):
         "interval": "1h",
         "id": EventFrequencyCondition.id,
         "value": 1000,
+        "comparisonType": ComparisonType.COUNT,
     }
 
-    def test(self):
+    def test_count(self):
         dc = self.create_data_condition(
             type=self.condition,
-            comparison=json.dumps({"interval": "1h", "value": 1000}),
+            comparison={"interval": "1h", "value": 1000, "comparison_type": ComparisonType.COUNT},
             condition_result=True,
         )
 
-        self.assert_passes(dc, 1000)
+        self.assert_passes(dc, [1001])
 
-        self.assert_does_not_pass(dc, 999)
+        self.assert_does_not_pass(dc, [999])
 
-    def test_dual_write(self):
+    def test_percent(self):
+        dc = self.create_data_condition(
+            type=self.condition,
+            comparison={
+                "interval": "1h",
+                "value": 100,
+                "comparison_type": ComparisonType.PERCENT,
+                "comparison_interval": "1d",
+            },
+            condition_result=True,
+        )
+
+        self.assert_passes(dc, [21, 10])
+
+        self.assert_does_not_pass(dc, [20, 10])
+
+    def test_dual_write_count(self):
         dcg = self.create_data_condition_group()
         dc = self.translate_to_data_condition(self.payload, dcg)
 
         assert dc.type == self.condition
-        assert dc.comparison == json.dumps({"interval": "1h", "value": 1000})
+        assert dc.comparison == {
+            "interval": "1h",
+            "value": 1000,
+            "comparison_type": ComparisonType.COUNT,
+        }
+        assert dc.condition_result is True
+        assert dc.condition_group == dcg
+
+    def test_dual_write_percent(self):
+        self.payload.update({"comparisonType": ComparisonType.PERCENT, "comparisonInterval": "1d"})
+        dcg = self.create_data_condition_group()
+        dc = self.translate_to_data_condition(self.payload, dcg)
+
+        assert dc.type == self.condition
+        assert dc.comparison == {
+            "interval": "1h",
+            "value": 1000,
+            "comparison_type": ComparisonType.PERCENT,
+            "comparison_interval": "1d",
+        }
         assert dc.condition_result is True
         assert dc.condition_group == dcg
 

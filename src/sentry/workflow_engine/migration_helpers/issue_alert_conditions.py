@@ -2,7 +2,7 @@ from collections.abc import Callable
 from typing import Any
 
 from sentry.rules.conditions.event_attribute import EventAttributeCondition
-from sentry.rules.conditions.event_frequency import EventFrequencyCondition
+from sentry.rules.conditions.event_frequency import ComparisonType, EventFrequencyCondition
 from sentry.rules.conditions.every_event import EveryEventCondition
 from sentry.rules.conditions.existing_high_priority_issue import ExistingHighPriorityIssueCondition
 from sentry.rules.conditions.first_seen_event import FirstSeenEventCondition
@@ -21,7 +21,6 @@ from sentry.rules.filters.latest_release import LatestReleaseFilter
 from sentry.rules.filters.level import LevelFilter
 from sentry.rules.filters.tagged_event import TaggedEventFilter
 from sentry.rules.match import MatchType
-from sentry.utils import json
 from sentry.utils.registry import Registry
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
 from sentry.workflow_engine.models.data_condition_group import DataConditionGroup
@@ -267,9 +266,18 @@ def create_latest_adopted_release_data_condition(
 def create_event_frequency_data_condition(
     data: dict[str, Any], dcg: DataConditionGroup
 ) -> DataCondition:
+    comparison = {
+        "interval": data["interval"],
+        "value": data["value"],
+        "comparison_type": data["comparisonType"],
+    }
+
+    if comparison["comparison_type"] == ComparisonType.PERCENT:
+        comparison["comparison_interval"] = data["comparisonInterval"]
+
     return DataCondition.objects.create(
         type=Condition.EVENT_FREQUENCY,
-        comparison=json.dumps({"interval": data["interval"], "value": data["value"]}),
+        comparison=comparison,
         condition_result=True,
         condition_group=dcg,
     )
