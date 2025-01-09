@@ -7,6 +7,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -70,6 +71,12 @@ function GroupUserFeedback() {
   return (
     <StyledLayoutBody hasStreamlinedUI={hasStreamlinedUI}>
       <Layout.Main fullWidth>
+        {hasStreamlinedUI && (
+          <FilterMessage>
+            {t('The feedback shown below is not subject to search filters.')}
+            <StyledBreak />
+          </FilterMessage>
+        )}
         {reportList.length === 0 ? (
           <UserFeedbackEmpty projectIds={[group.project.id]} issueTab />
         ) : (
@@ -100,12 +107,22 @@ const StyledLayoutBody = styled(Layout.Body)<{hasStreamlinedUI?: boolean}>`
     css`
       border: 1px solid ${p.theme.border};
       border-radius: ${p.theme.borderRadius};
-      padding: ${space(2)} 0;
+      padding: ${space(1.5)} 0;
 
       @media (min-width: ${p.theme.breakpoints.medium}) {
-        padding: ${space(2)} ${space(2)};
+        padding: ${space(1.5)};
       }
     `}
+`;
+
+const FilterMessage = styled('div')`
+  color: ${p => p.theme.subText};
+`;
+
+const StyledBreak = styled('hr')`
+  margin-top: ${space(1)};
+  margin-bottom: ${space(1)};
+  border-color: ${p => p.theme.border};
 `;
 
 export default GroupUserFeedback;
