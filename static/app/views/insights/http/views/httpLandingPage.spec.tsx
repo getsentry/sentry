@@ -15,7 +15,9 @@ jest.mock('sentry/utils/useProjects');
 jest.mock('sentry/views/insights/common/queries/useOnboardingProject');
 
 describe('HTTPLandingPage', function () {
-  const organization = OrganizationFixture({features: ['insights-initial-modules']});
+  const organization = OrganizationFixture({
+    features: ['insights-initial-modules', 'insights-entry-points'],
+  });
 
   let spanListRequestMock!: jest.Mock;
   let spanChartsRequestMock!: jest.Mock;
@@ -281,9 +283,10 @@ describe('HTTPLandingPage', function () {
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
-    expect(screen.getByRole('heading', {level: 1})).toHaveTextContent(
-      'Outbound API Requests'
-    );
+    expect(screen.getByRole('heading', {level: 1})).toHaveTextContent('Backend');
+    const tab = screen.getByRole('tab', {name: 'Outbound API Requests'});
+    expect(tab).toBeInTheDocument();
+    expect(tab).toHaveAttribute('aria-selected', 'true');
 
     expect(screen.getByRole('table', {name: 'Domains'})).toBeInTheDocument();
 
