@@ -4,6 +4,7 @@ import memoize from 'lodash/memoize';
 import LazyLoad from 'sentry/components/lazyLoad';
 import {EXPERIMENTAL_SPA, USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {t} from 'sentry/locale';
+import {ProvideAriaRouter} from 'sentry/ProvideAriaRouter';
 import HookStore from 'sentry/stores/hookStore';
 import type {HookName} from 'sentry/types/hooks';
 import errorHandler from 'sentry/utils/errorHandler';
@@ -2426,15 +2427,17 @@ function buildRoutes() {
   );
 
   const appRoutes = (
-    <Route>
-      {experimentalSpaRoutes}
-      <Route path="/" component={errorHandler(App)}>
-        {rootRoutes}
-        {organizationRoutes}
-        {legacyRedirectRoutes}
-        <Route path="*" component={errorHandler(RouteNotFound)} />
+    <ProvideAriaRouter>
+      <Route>
+        {experimentalSpaRoutes}
+        <Route path="/" component={errorHandler(App)}>
+          {rootRoutes}
+          {organizationRoutes}
+          {legacyRedirectRoutes}
+          <Route path="*" component={errorHandler(RouteNotFound)} />
+        </Route>
       </Route>
-    </Route>
+    </ProvideAriaRouter>
   );
 
   return appRoutes;
