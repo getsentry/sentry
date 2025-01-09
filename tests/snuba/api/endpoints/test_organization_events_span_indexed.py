@@ -616,7 +616,6 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         assert response.status_code == 200, response.content
         assert response.data["data"] == [{"foo": "", "count()": 1}]
 
-    @pytest.mark.xfail
     def test_count_field_type(self):
         response = self.do_request(
             {
@@ -680,7 +679,7 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
                         "sentry_tags": {"status": "success"},
                         "tags": {"bar": "bar2"},
                     },
-                    measurements={k: {"value": i + 1} for i, (k, _, _) in enumerate(keys)},
+                    measurements={k: {"value": (i + 1) / 10} for i, (k, _, _) in enumerate(keys)},
                     start_ts=self.ten_mins_ago,
                 ),
             ],
@@ -717,7 +716,7 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
             }
             assert response.data["data"] == [
                 {
-                    key: i + 1,
+                    key: pytest.approx((i + 1) / 10),
                     "id": mock.ANY,
                     "project.name": self.project.slug,
                 }
@@ -1664,7 +1663,6 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert data[0]["count()"] == 11
         assert confidence[0]["count()"] == "low"
 
-    @pytest.mark.xfail
     def test_aggregate_numeric_attr(self):
         self.store_spans(
             [
