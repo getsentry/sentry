@@ -99,4 +99,25 @@ describe('convertBuilderStateToWidget', function () {
     expect(widget.queries[1]!.name).toBe('test2');
     expect(widget.queries[1]!.conditions).toBe('transaction.duration:>50');
   });
+
+  it('propagates the selected aggregate to the widget query', () => {
+    const mockState: WidgetBuilderState = {
+      selectedAggregate: 0,
+      query: ['transaction.duration:>100'],
+    };
+
+    const widget = convertBuilderStateToWidget(mockState);
+
+    expect(widget.queries[0]!.selectedAggregate).toBe(0);
+  });
+
+  it('sets selectedAggregate to undefined if not provided', () => {
+    const mockState: WidgetBuilderState = {
+      query: ['transaction.duration:>100'],
+    };
+
+    const widget = convertBuilderStateToWidget(mockState);
+
+    expect(widget.queries[0]!.selectedAggregate).toBeUndefined();
+  });
 });

@@ -80,4 +80,22 @@ describe('convertWidgetToBuilderStateParams', () => {
     expect(params.query).toEqual(['one condition', 'second condition']);
     expect(params.yAxis).toEqual(['count()']);
   });
+
+  it('exposes the selected aggregate in a widget query', () => {
+    const widget = {
+      ...getDefaultWidget(WidgetType.ERRORS),
+      queries: [
+        {
+          aggregates: ['count()'],
+          selectedAggregate: 0,
+          columns: [],
+          conditions: '',
+          name: '',
+          orderby: '',
+        },
+      ],
+    };
+    const params = convertWidgetToBuilderStateParams(widget);
+    expect(params.selectedAggregate).toBe(0);
+  });
 });

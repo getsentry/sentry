@@ -58,5 +58,6 @@ export function convertWidgetToBuilderStateParams(
     query,
     sort,
     legendAlias,
+    selectedAggregate: firstWidgetQuery?.selectedAggregate,
   };
 }
