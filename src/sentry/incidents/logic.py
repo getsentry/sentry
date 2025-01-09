@@ -103,8 +103,6 @@ from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry_from_user
 from sentry.utils.snuba import is_measurement
 
-# from sentry.workflow_engine.migration_helpers.alert_rule import dual_delete_migrated_alert_rule
-
 if TYPE_CHECKING:
     from sentry.incidents.utils.types import AlertRuleActivationConditionType
 
