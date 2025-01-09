@@ -1,5 +1,9 @@
+import logging
+
+from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.incidents.grouptype import MetricAlertFire
 from sentry.incidents.models.alert_rule import AlertRule
+from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.users.services.user import RpcUser
 from sentry.workflow_engine.models import (
@@ -13,6 +17,8 @@ from sentry.workflow_engine.models import (
     Workflow,
 )
 from sentry.workflow_engine.types import DetectorPriorityLevel
+
+logger = logging.getLogger(__name__)
 
 
 def create_metric_alert_lookup_tables(
@@ -35,12 +41,10 @@ def create_data_source(
 ) -> DataSource | None:
     if not snuba_query:
         return None
-
     try:
         query_subscription = QuerySubscription.objects.get(snuba_query=snuba_query.id)
     except QuerySubscription.DoesNotExist:
         return None
-
     return DataSource.objects.create(
         organization_id=organization_id,
         query_id=query_subscription.id,
@@ -143,3 +147,71 @@ def migrate_alert_rule(
         alert_rule_workflow,
         detector_workflow,
     )
+
+
+def get_data_source(alert_rule: AlertRule) -> DataSource | None:
+    snuba_query = alert_rule.snuba_query
+    organization = alert_rule.organization
+    if not snuba_query or not organization:
+        # This shouldn't be possible, but just in case.
+        return None
+    try:
+        query_subscription = QuerySubscription.objects.get(snuba_query=snuba_query.id)
+    except QuerySubscription.DoesNotExist:
+        return None
+    try:
+        data_source = DataSource.objects.get(
+            organization=organization,
+            query_id=query_subscription.id,
+            type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+        )
+    except DataSource.DoesNotExist:
+        return None
+    return data_source
+
+
+def dual_delete_migrated_alert_rule(
+    alert_rule: AlertRule,
+    user: RpcUser | None = None,
+) -> None:
+    try:
+        alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=alert_rule)
+        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=alert_rule)
+    except AlertRuleDetector.DoesNotExist:
+        # NOTE: making this an info log because we run the dual delete even if the user
+        # isn't flagged into dual write
+        logger.info(
+            "AlertRuleDetector does not exist",
+            extra={"alert_rule_id": AlertRule.id},
+        )
+        return
+    except AlertRuleWorkflow.DoesNotExist:
+        logger.info(
+            "AlertRuleWorkflow does not exist",
+            extra={"alert_rule_id": AlertRule.id},
+        )
+        return
+
+    workflow: Workflow = alert_rule_workflow.workflow
+    detector: Detector = alert_rule_detector.detector
+    data_condition_group: DataConditionGroup | None = detector.workflow_condition_group
+
+    data_source = get_data_source(alert_rule=alert_rule)
+    if data_source is None:
+        logger.info(
+            "DataSource does not exist",
+            extra={"alert_rule_id": AlertRule.id},
+        )
+    # NOTE: for migrated alert rules, each workflow is associated with a single detector
+    # make sure there are no other detectors associated with the workflow, then delete it if so
+    if DetectorWorkflow.objects.filter(workflow=workflow).count() == 1:
+        # also deletes alert_rule_workflow
+        RegionScheduledDeletion.schedule(instance=workflow, days=0, actor=user)
+    # also deletes alert_rule_detector, detector_workflow (if not already deleted), detector_state
+    RegionScheduledDeletion.schedule(instance=detector, days=0, actor=user)
+    if data_condition_group:
+        RegionScheduledDeletion.schedule(instance=data_condition_group, days=0, actor=user)
+    if data_source:
+        RegionScheduledDeletion.schedule(instance=data_source, days=0, actor=user)
+
+    return
