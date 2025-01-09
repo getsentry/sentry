@@ -32,6 +32,8 @@ type GroupEventAttachmentsProps = {
   project: Project;
 };
 
+const DEFAULT_ATTACHMENTS_TAB = EventAttachmentFilter.ALL;
+
 function GroupEventAttachments({project, group}: GroupEventAttachmentsProps) {
   const location = useLocation();
   const organization = useOrganization();
@@ -42,19 +44,19 @@ function GroupEventAttachments({project, group}: GroupEventAttachmentsProps) {
   const [previouslyUsedAttachmentsTab, setPreviouslyUsedAttachmentsTab] =
     useLocalStorageState(
       `issue-details-attachments-default-tab-${project.id}`,
-      EventAttachmentFilter.ALL
+      DEFAULT_ATTACHMENTS_TAB
     );
 
   const activeAttachmentsTab =
     (location.query.attachmentFilter as EventAttachmentFilter | undefined) ??
     previouslyUsedAttachmentsTab ??
-    EventAttachmentFilter.ALL;
+    DEFAULT_ATTACHMENTS_TAB;
 
-  // Persist the previously used attachments tab in the URL if it's not already set
+  // Persist the previously used attachments tab in the url if it's not already set
   useEffect(() => {
     if (
       !location.query.attachmentFilter &&
-      previouslyUsedAttachmentsTab !== EventAttachmentFilter.ALL
+      previouslyUsedAttachmentsTab !== DEFAULT_ATTACHMENTS_TAB
     ) {
       navigate(
         {
