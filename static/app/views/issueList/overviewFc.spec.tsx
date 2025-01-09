@@ -22,9 +22,11 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import StreamGroup from 'sentry/components/stream/group';
 import {DEFAULT_QUERY} from 'sentry/constants';
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TagStore from 'sentry/stores/tagStore';
 import {SavedSearchVisibility} from 'sentry/types/group';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import localStorageWrapper from 'sentry/utils/localStorage';
 import * as parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import IssueListWithStores, {
@@ -63,7 +65,7 @@ const {organization, projects, router} = initializeOrg({
 const routerProps = {
   params: router.params,
   location: router.location,
-};
+} as RouteComponentProps<{}, {searchId?: string}>;
 
 function getSearchInput() {
   const input = screen.getAllByRole('combobox', {name: 'Add a search term'}).at(-1);
@@ -157,26 +159,21 @@ describe('IssueList', function () {
       body: [project],
     });
 
+    PageFiltersStore.onInitializeUrlState(
+      {
+        projects: [parseInt(projects[0]!.id, 10)],
+        environments: [],
+        datetime: {period: '14d', start: null, end: null, utc: null},
+      },
+      new Set()
+    );
+
     TagStore.init?.();
 
     props = {
       api,
-      savedSearchLoading: false,
-      savedSearches: [savedSearch],
-      useOrgSavedSearches: true,
-      selection: {
-        projects: [parseInt(projects[0]!.id, 10)],
-        environments: [],
-        datetime: {period: '14d'},
-      },
       location: {query: {query: DEFAULT_QUERY}, search: `query=${DEFAULT_QUERY}`},
       params: {},
-      organization,
-      tags: tags.reduce<Record<string, (typeof tags)[number]>>((acc, tag) => {
-        acc[tag.key] = tag;
-
-        return acc;
-      }, {}),
     };
   });
 
@@ -393,22 +390,22 @@ describe('IssueList', function () {
         },
       });
 
+      PageFiltersStore.onInitializeUrlState(
+        {
+          projects: [],
+          environments: [],
+          datetime: {period: '14d', start: null, end: null, utc: null},
+        },
+        new Set()
+      );
+
       const defaultProps = {
         ...props,
         ...routerProps,
-        useOrgSavedSearches: true,
-        selection: {
-          projects: [],
-          environments: [],
-          datetime: {period: '14d'},
-        },
-        organization: OrganizationFixture({
-          features: ['issue-stream-performance'],
-        }),
       };
       const {unmount} = render(<IssueListWithStores {...defaultProps} />, {
         router,
-        organization: defaultProps.organization,
+        organization,
       });
 
       expect(
@@ -420,7 +417,7 @@ describe('IssueList', function () {
       // Mount component again, getting from cache
       render(<IssueListWithStores {...defaultProps} />, {
         router,
-        organization: defaultProps.organization,
+        organization,
       });
 
       expect(
@@ -481,7 +478,7 @@ describe('IssueList', function () {
           pathname: '/organizations/org-slug/issues/',
           query: {
             environment: [],
-            project: [],
+            project: [3559],
             referrer: 'issue-list',
             sort: '',
             query: 'dogs',
@@ -671,22 +668,24 @@ describe('IssueList', function () {
         },
       });
 
-      render(
-        <IssueListWithStores
-          {...newRouter}
-          selection={{
-            projects: [123],
-            environments: ['prod'],
-            datetime: {
-              end: null,
-              period: null,
-              start: null,
-              utc: null,
-            },
-          }}
-        />,
-        {router: newRouter, organization}
+      PageFiltersStore.onInitializeUrlState(
+        {
+          projects: [123],
+          environments: ['prod'],
+          datetime: {
+            period: null,
+            start: null,
+            end: null,
+            utc: null,
+          },
+        },
+        new Set()
       );
+
+      render(<IssueListWithStores {...(newRouter as any)} />, {
+        router: newRouter,
+        organization,
+      });
 
       const createPin = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/pinned-searches/',
@@ -750,22 +749,26 @@ describe('IssueList', function () {
         })
       );
 
+      PageFiltersStore.onInitializeUrlState(
+        {
+          projects: [123],
+          environments: ['prod'],
+          datetime: {
+            period: null,
+            start: null,
+            end: null,
+            utc: null,
+          },
+        },
+        new Set()
+      );
+
       render(
-        <IssueListWithStores
-          {...newRouter}
-          selection={{
-            projects: [123],
-            environments: ['prod'],
-            datetime: {
-              end: null,
-              period: null,
-              start: null,
-              utc: null,
-            },
-          }}
-          savedSearch={localSavedSearch}
-        />,
-        {router: newRouter, organization}
+        <IssueListWithStores {...(newRouter as any)} savedSearch={localSavedSearch} />,
+        {
+          router: newRouter,
+          organization,
+        }
       );
 
       await userEvent.click(await screen.findByLabelText(/Remove Default/i));
@@ -810,7 +813,7 @@ describe('IssueList', function () {
           cursor: '1443575000:0:0',
           page: 1,
           environment: [],
-          project: [],
+          project: [3559],
           query: DEFAULT_QUERY,
           statsPeriod: '14d',
           referrer: 'issue-list',
@@ -836,7 +839,7 @@ describe('IssueList', function () {
           cursor: '1443574000:0:0',
           page: 2,
           environment: [],
-          project: [],
+          project: [3559],
           query: DEFAULT_QUERY,
           statsPeriod: '14d',
           referrer: 'issue-list',
@@ -858,7 +861,7 @@ describe('IssueList', function () {
           cursor: '1443575000:0:1',
           page: 1,
           environment: [],
-          project: [],
+          project: [3559],
           query: DEFAULT_QUERY,
           statsPeriod: '14d',
           referrer: 'issue-list',
@@ -882,7 +885,7 @@ describe('IssueList', function () {
             cursor: undefined,
             environment: [],
             page: undefined,
-            project: [],
+            project: [3559],
             query: DEFAULT_QUERY,
             statsPeriod: '14d',
             referrer: 'issue-list',
@@ -953,13 +956,16 @@ describe('IssueList', function () {
         router,
       });
 
-      rerender(
-        <IssueListOverview
-          {...routerProps}
-          {...props}
-          selection={{projects: [99], environments: [], datetime: {period: '24h'}}}
-        />
+      PageFiltersStore.onInitializeUrlState(
+        {
+          projects: [99],
+          environments: [],
+          datetime: {period: '24h', start: null, end: null, utc: null},
+        },
+        new Set()
       );
+
+      rerender(<IssueListOverview {...routerProps} {...props} />);
 
       await waitFor(() => {
         expect(fetchDataMock).toHaveBeenCalled();
@@ -988,14 +994,21 @@ describe('IssueList', function () {
       const {rerender} = render(<IssueListOverview {...routerProps} {...props} />, {
         router,
       });
-      const selection = {projects: [99], environments: [], datetime: {}};
-      rerender(<IssueListOverview {...routerProps} {...props} selection={selection} />);
+      PageFiltersStore.onInitializeUrlState(
+        {
+          projects: [99],
+          environments: [],
+          datetime: {period: '14d', start: null, end: null, utc: null},
+        },
+        new Set()
+      );
+      rerender(<IssueListOverview {...routerProps} {...props} />);
 
       await waitFor(() => {
         expect(fetchDataMock).toHaveBeenLastCalledWith(
           '/organizations/org-slug/issues/',
           expect.objectContaining({
-            data: 'collapse=stats&collapse=unhandled&expand=owners&expand=inbox&limit=25&project=99&query=is%3Aunresolved%20issue.priority%3A%5Bhigh%2C%20medium%5D&savedSearch=1&shortIdLookup=1&statsPeriod=14d',
+            data: 'collapse=stats&collapse=unhandled&expand=owners&expand=inbox&limit=25&project=99&query=is%3Aunresolved%20issue.priority%3A%5Bhigh%2C%20medium%5D&savedSearch=0&shortIdLookup=1&statsPeriod=14d',
           })
         );
       });
@@ -1012,19 +1025,22 @@ describe('IssueList', function () {
         expect(fetchMembersRequest).toHaveBeenCalled();
       });
 
-      const selection = {
-        projects: [99],
-        environments: [],
-        datetime: {period: '24h'},
-      };
-      rerender(<IssueListOverview {...routerProps} {...props} selection={selection} />);
+      PageFiltersStore.onInitializeUrlState(
+        {
+          projects: [99],
+          environments: [],
+          datetime: {period: '24h', start: null, end: null, utc: null},
+        },
+        new Set()
+      );
+      rerender(<IssueListOverview {...routerProps} {...props} />);
 
       await waitFor(() => {
         expect(fetchMembersRequest).toHaveBeenCalledWith(
           expect.anything(),
           expect.objectContaining({
             query: {
-              project: selection.projects.map(p => p.toString()),
+              project: ['99'],
             },
           })
         );
@@ -1102,6 +1118,17 @@ describe('IssueList', function () {
   });
 
   describe('Error Robot', function () {
+    beforeEach(() => {
+      PageFiltersStore.onInitializeUrlState(
+        {
+          projects: [],
+          environments: [],
+          datetime: {period: '14d', start: null, end: null, utc: null},
+        },
+        new Set()
+      );
+    });
+
     const createWrapper = async (moreProps: any) => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
@@ -1113,20 +1140,13 @@ describe('IssueList', function () {
 
       const defaultProps = {
         ...props,
-        useOrgSavedSearches: true,
-        selection: {
-          projects: [],
-          environments: [],
-          datetime: {period: '14d'},
-        },
         ...merge({}, routerProps, {
           params: {},
           location: {query: {query: DEFAULT_QUERY}, search: 'query=is:unresolved'},
         }),
-        organization: OrganizationFixture(),
         ...moreProps,
       };
-      render(<IssueListOverview {...defaultProps} />, {router});
+      render(<IssueListOverview {...defaultProps} />, {router, organization});
 
       await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
     };
@@ -1345,6 +1365,7 @@ describe('IssueList', function () {
     const {router: newRouter} = initializeOrg();
     const {rerender} = render(<IssueListOverview {...props} />, {
       router: newRouter,
+      organization,
     });
 
     await waitFor(() => {
@@ -1397,7 +1418,7 @@ describe('IssueList', function () {
           ])
         );
 
-        render(<IssueListOverview {...props} />, {router});
+        render(<IssueListOverview {...props} />, {router, organization});
 
         await waitFor(() => {
           expect(
@@ -1428,18 +1449,19 @@ describe('IssueList', function () {
           ])
         );
 
-        render(
-          <IssueListOverview
-            {...props}
-            selection={{
-              ...props.selection,
-              projects: [Number(project.id), Number(projectBar.id)],
-            }}
-          />,
+        PageFiltersStore.onInitializeUrlState(
           {
-            router: newRouter,
-          }
+            projects: [Number(project.id), Number(projectBar.id)],
+            environments: [],
+            datetime: {period: '14d', start: null, end: null, utc: null},
+          },
+          new Set()
         );
+
+        render(<IssueListOverview {...props} />, {
+          router: newRouter,
+          organization,
+        });
 
         await waitFor(() => {
           expect(
