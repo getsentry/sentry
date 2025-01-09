@@ -33,9 +33,8 @@ class TestEventFrequencyCondition(ConditionTestCase):
             condition_result=True,
         )
 
-        self.assert_passes(dc, [1001])
-
-        self.assert_does_not_pass(dc, [999])
+        self.assert_slow_cond_passes(dc, [1001])
+        self.assert_slow_cond_does_not_pass(dc, [999])
 
     def test_percent(self):
         dc = self.create_data_condition(
@@ -49,9 +48,8 @@ class TestEventFrequencyCondition(ConditionTestCase):
             condition_result=True,
         )
 
-        self.assert_passes(dc, [21, 10])
-
-        self.assert_does_not_pass(dc, [20, 10])
+        self.assert_slow_cond_passes(dc, [21, 10])
+        self.assert_slow_cond_does_not_pass(dc, [20, 10])
 
     def test_dual_write_count(self):
         dcg = self.create_data_condition_group()

@@ -13,6 +13,7 @@ from sentry.workflow_engine.migration_helpers.issue_alert_conditions import (
 )
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
 from sentry.workflow_engine.models.data_condition_group import DataConditionGroup
+from sentry.workflow_engine.types import WorkflowJob
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
@@ -39,10 +40,17 @@ class ConditionTestCase(BaseWorkflowTest):
     ) -> DataCondition:
         return dual_write_condition(data, dcg)
 
-    def assert_passes(self, data_condition: DataCondition, job: Any) -> None:
+    def assert_passes(self, data_condition: DataCondition, job: WorkflowJob) -> None:
         assert data_condition.evaluate_value(job) == data_condition.get_condition_result()
 
-    def assert_does_not_pass(self, data_condition: DataCondition, job: Any) -> None:
+    def assert_does_not_pass(self, data_condition: DataCondition, job: WorkflowJob) -> None:
+        assert data_condition.evaluate_value(job) != data_condition.get_condition_result()
+
+    # Slow conditions are evaluated in delayed processing and take in the results directly
+    def assert_slow_cond_passes(self, data_condition: DataCondition, job: list[int]) -> None:
+        assert data_condition.evaluate_value(job) == data_condition.get_condition_result()
+
+    def assert_slow_cond_does_not_pass(self, data_condition: DataCondition, job: list[int]) -> None:
         assert data_condition.evaluate_value(job) != data_condition.get_condition_result()
 
     # TODO: activity
