@@ -12,7 +12,6 @@ jest.mock('sentry/utils/useNavigate', () => ({
 }));
 
 const mockUseNavigate = jest.mocked(useNavigate);
-const mockSetError = jest.fn();
 
 describe('TypeSelector', () => {
   let router!: ReturnType<typeof RouterFixture>;
@@ -28,7 +27,7 @@ describe('TypeSelector', () => {
 
     render(
       <WidgetBuilderProvider>
-        <TypeSelector error={{}} setError={mockSetError} />
+        <TypeSelector />
       </WidgetBuilderProvider>,
       {
         router,
@@ -52,10 +51,7 @@ describe('TypeSelector', () => {
   it('displays error message when there is an error', async function () {
     render(
       <WidgetBuilderProvider>
-        <TypeSelector
-          error={{displayType: 'Please select a type'}}
-          setError={mockSetError}
-        />
+        <TypeSelector error={{displayType: 'Please select a type'}} />
       </WidgetBuilderProvider>,
       {router, organization}
     );
