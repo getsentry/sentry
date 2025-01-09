@@ -172,7 +172,7 @@ class UserEmailsEndpoint(UserEndpoint):
                     },
                 )
                 return self.respond(
-                    {"email": _("A verification email has been sent. Please check your inbox.")},
+                    {"detail": _("A verification email has been sent. Please check your inbox.")},
                     status=201,
                 )
             else:
@@ -192,7 +192,7 @@ class UserEmailsEndpoint(UserEndpoint):
                 )
         except DuplicateEmailError:
             return self.respond(
-                {"email": _("Email address is already associated with your account.")},
+                {"detail": _("That email address is already associated with your account.")},
                 status=409,
             )
 
