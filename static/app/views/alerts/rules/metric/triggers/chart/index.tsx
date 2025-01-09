@@ -390,7 +390,7 @@ class TriggersChart extends PureComponent<Props, State> {
       eventView.getEventsAPIPayload(location)
     );
 
-    const extrapolationSampleCount = response[0]?.data[0]?.['count_sample()'];
+    const extrapolationSampleCount = response[0]?.data?.[0]?.['count_sample()'];
     this.setState({
       extrapolationSampleCount: extrapolationSampleCount
         ? Number(extrapolationSampleCount)
