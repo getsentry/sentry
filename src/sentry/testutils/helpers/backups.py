@@ -120,6 +120,7 @@ from sentry.workflow_engine.models import (
     AlertRuleWorkflow,
     DataConditionGroup,
 )
+from sentry.workflow_engine.models.action_group_status import ActionGroupStatus
 
 __all__ = [
     "export_to_file",
@@ -708,6 +709,7 @@ class ExhaustiveFixtures(Fixtures):
         AlertRuleTriggerDataCondition.objects.create(
             alert_rule_trigger=trigger, data_condition=data_condition
         )
+        ActionGroupStatus.objects.create(action=send_notification_action, group=group)
 
         TempestCredentials.objects.create(
             project=project,
