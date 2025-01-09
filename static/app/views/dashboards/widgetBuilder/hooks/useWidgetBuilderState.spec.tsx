@@ -552,6 +552,27 @@ describe('useWidgetBuilderState', () => {
 
       expect(result.current.state.query).toEqual(['event.type:test']);
     });
+
+    it('resets selectedAggregate when the display type is switched', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({query: {selectedAggregate: '0'}})
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.selectedAggregate).toBe(0);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.TABLE,
+        });
+      });
+
+      expect(result.current.state.selectedAggregate).toBeUndefined();
+    });
   });
 
   describe('dataset', () => {
@@ -766,6 +787,27 @@ describe('useWidgetBuilderState', () => {
           kind: 'desc',
         },
       ]);
+    });
+
+    it('resets selectedAggregate when the dataset is switched', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({query: {selectedAggregate: '0'}})
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.selectedAggregate).toBe(0);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DATASET,
+          payload: WidgetType.SPANS,
+        });
+      });
+
+      expect(result.current.state.selectedAggregate).toBeUndefined();
     });
   });
 
@@ -1022,6 +1064,55 @@ describe('useWidgetBuilderState', () => {
       });
 
       expect(result.current.state.legendAlias).toEqual(['test3', 'test4']);
+    });
+  });
+
+  describe('selectedAggregate', () => {
+    it('can decode and update selectedAggregate', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({query: {selectedAggregate: '0'}})
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.selectedAggregate).toBe(0);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_SELECTED_AGGREGATE,
+          payload: 1,
+        });
+      });
+
+      expect(result.current.state.selectedAggregate).toBe(1);
+    });
+
+    it('can set selectedAggregate to undefined', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({query: {selectedAggregate: '0'}})
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.selectedAggregate).toBe(0);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_SELECTED_AGGREGATE,
+          payload: undefined,
+        });
+      });
+
+      expect(result.current.state.selectedAggregate).toBeUndefined();
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: {selectedAggregate: undefined},
+        })
+      );
     });
   });
 });
