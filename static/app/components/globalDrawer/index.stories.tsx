@@ -7,6 +7,7 @@ import useDrawer from 'sentry/components/globalDrawer';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import storyBook from 'sentry/stories/storyBook';
 
+import Alert from '../alert';
 import JSXNode from '../stories/jsxNode';
 
 export default storyBook('GlobalDrawer', story => {
@@ -28,7 +29,13 @@ export default storyBook('GlobalDrawer', story => {
   ));
 
   story('Example', () => {
-    const {openDrawer} = useDrawer();
+    const {openDrawer, isDrawerOpen} = useDrawer();
+
+    const showDetails = () => {
+      if (!isDrawerOpen) {
+        openDrawer(() => <MyDrawer title="Hello!" />, {ariaLabel: 'Details'});
+      }
+    };
 
     return (
       <Fragment>
@@ -37,10 +44,12 @@ export default storyBook('GlobalDrawer', story => {
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 
 function MyPage() {
-  const {openDrawer} = useDrawer();
+  const {openDrawer, isDrawerOpen} = useDrawer();
 
   const showDetails = () => {
-    openDrawer(() => <MyDrawer />, {ariaLabel: 'Details'});
+    if (!isDrawerOpen) {
+      openDrawer(() => <MyDrawer title="Hello!" />, {ariaLabel: 'Details'});
+    }
   };
 
   return (
@@ -50,10 +59,10 @@ function MyPage() {
   );
 }
 
-function MyDrawer() {
+function MyDrawer({title}: {title: string}) {
   return (
     <div>
-      <DrawerHeader>My Drawer</DrawerHeader>
+      <DrawerHeader>{title}</DrawerHeader>
       <DrawerBody>Lorem, ipsum...</DrawerBody>
     </div>
   );
@@ -61,12 +70,19 @@ function MyDrawer() {
 `}
         </CodeSnippet>
         <div>
-          <LeftButton
-            onClick={() => openDrawer(() => <MyDrawer />, {ariaLabel: 'Details'})}
-          >
-            Open Drawer
-          </LeftButton>
+          <LeftButton onClick={showDetails}>Open Drawer</LeftButton>
         </div>
+
+        <Alert type="warning" showIcon>
+          Calling <code>openDrawer</code> updates a global context. All components that
+          subscribe to that context will be re-rendered, and this can cause infinite
+          rendering loops. Avoid calling <code>openDrawer</code> repeatedly. This can
+          happen inside a <code>useEffect</code>, in a loop, in a callback, or other
+          situations. Check <code>isDrawerOpen</code> before opening the drawer (see
+          example above), wrap <code>openDrawer</code> in a <code>useCallback</code> with
+          stable dependencies, or otherwise make sure not to repeatedly call{' '}
+          <code>openDrawer</code>.
+        </Alert>
       </Fragment>
     );
   });
@@ -284,10 +300,10 @@ function ModalContent() {
   });
 });
 
-function MyDrawer() {
+function MyDrawer({title}: {title: string}) {
   return (
     <div>
-      <DrawerHeader>My Drawer</DrawerHeader>
+      <DrawerHeader>{title}</DrawerHeader>
       <DrawerBody>Lorem, ipsum...</DrawerBody>
     </div>
   );
