@@ -4,11 +4,10 @@ import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
-import Count from 'sentry/components/count';
 import {Tooltip} from 'sentry/components/tooltip';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {IconClock, IconGraph} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Series} from 'sentry/types/echarts';
 import type {Confidence, NewQuery} from 'sentry/types/organization';
@@ -25,6 +24,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import usePrevious from 'sentry/utils/usePrevious';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
+import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
 import ChartContextMenu from 'sentry/views/explore/components/chartContextMenu';
 import {
   useExploreDataset,
@@ -347,41 +347,10 @@ export function ExploreCharts({query, setConfidences, setError}: ExploreChartsPr
               />
               {dataset === DiscoverDatasets.SPANS_EAP_RPC && (
                 <ChartFooter>
-                  {!defined(extrapolationMetaResults.data?.[0]?.['count_sample()'])
-                    ? t('* Extrapolated from \u2026')
-                    : chartInfo.confidence === 'low'
-                      ? tct(
-                          '* Extrapolated from [sampleCount] samples ([insufficientSamples])',
-                          {
-                            sampleCount: (
-                              <Count
-                                value={
-                                  extrapolationMetaResults.data?.[0]?.['count_sample()']
-                                }
-                              />
-                            ),
-                            insufficientSamples: (
-                              <Tooltip
-                                title={t(
-                                  'Shortening the date range, increasing the time interval or removing extra filters may improve accuracy.'
-                                )}
-                              >
-                                <InsufficientSamples>
-                                  {t('insufficient for accuracy')}
-                                </InsufficientSamples>
-                              </Tooltip>
-                            ),
-                          }
-                        )
-                      : tct('* Extrapolated from [sampleCount] samples', {
-                          sampleCount: (
-                            <Count
-                              value={
-                                extrapolationMetaResults.data?.[0]?.['count_sample()']
-                              }
-                            />
-                          ),
-                        })}
+                  <ConfidenceFooter
+                    sampleCount={extrapolationMetaResults.data?.[0]?.['count_sample()']}
+                    confidence={chartInfo.confidence}
+                  />
                 </ChartFooter>
               )}
             </ChartPanel>
@@ -486,13 +455,7 @@ const ChartLabel = styled('div')`
 `;
 
 const ChartFooter = styled('div')`
-  color: ${p => p.theme.gray300};
-  font-size: ${p => p.theme.fontSizeSmall};
   display: inline-block;
   margin-top: ${space(1.5)};
   margin-bottom: 0;
-`;
-
-const InsufficientSamples = styled('span')`
-  text-decoration: underline dotted ${p => p.theme.gray300};
 `;
