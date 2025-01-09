@@ -73,7 +73,10 @@ class SentryAppParser(Serializer):
     status = serializers.CharField(required=False, allow_null=True)
     events = EventListField(required=False, allow_null=True)
     features = serializers.MultipleChoiceField(
-        choices=Feature.as_choices(), allow_blank=True, allow_null=True, required=False
+        choices=Feature.as_int_choices(), allow_blank=True, allow_null=True, required=False
+    )
+    feature_set = serializers.MultipleChoiceField(
+        choices=Feature.as_str_choices(), allow_blank=True, allow_null=True, required=False
     )
     schema = SchemaField(required=False, allow_null=True)
     webhookUrl = URLField(required=False, allow_null=True, allow_blank=True)
@@ -175,5 +178,8 @@ class SentryAppParser(Serializer):
         # validate author for public integrations
         if not get_current_value("isInternal") and not get_current_value("author"):
             raise ValidationError({"author": "author required for public integrations"})
+
+        if attrs.get("features") and attrs.get("feature_set"):
+            raise ValidationError("`features` and `feature_set` are mutually exclusive fields")
 
         return attrs

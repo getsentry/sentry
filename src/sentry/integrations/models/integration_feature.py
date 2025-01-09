@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Sequence
-from enum import Enum
+from enum import Enum, IntEnum
 from typing import ClassVar
 
 from django.db import models
@@ -20,65 +20,68 @@ from sentry.integrations.models.doc_integration import DocIntegration
 from sentry.sentry_apps.models.sentry_app import SentryApp
 
 
-class Feature:
-    API = 0
-    ISSUE_LINK = 1
-    STACKTRACE_LINK = 2
-    EVENT_HOOKS = 3
-    PROJECT_MANAGEMENT = 4
-    INCIDENT_MANAGEMENT = 5
-    FEATURE_FLAG = 6
-    ALERTS = 7
-    RELEASE_MANAGEMENT = 8
-    VISUALIZATION = 9
-    CHAT = 11
-    SESSION_REPLAY = 12
+class Feature(IntEnum):
+    API = 0, "integrations-api"
+    ISSUE_LINK = 1, "integrations-issue-link"
+    STACKTRACE_LINK = 2, "integrations-stacktrace-link"
+    EVENT_HOOKS = (
+        3,
+        "integrations-event-hooks",
+    )
+    PROJECT_MANAGEMENT = 4, "integrations-project-management"
+    INCIDENT_MANAGEMENT = 5, "integrations-incident-management"
+    FEATURE_FLAG = 6, "integrations-feature-flag"
+    ALERTS = 7, "integrations-alert-rule"
+    RELEASE_MANAGEMENT = 8, "integrations-release-management"
+    VISUALIZATION = 9, "integrations-visualization"
+    CHAT = 11, "integrations-chat"
+    SESSION_REPLAY = 12, "integrations-session-replay"
+
+    feature_name: str
+
+    def __new__(cls, value: int, feature_name: str) -> Feature:
+        obj = int.__new__(cls, value)
+        obj._value_ = value
+        obj.feature_name = feature_name
+
+        return obj
 
     @classmethod
-    def as_choices(cls) -> tuple[tuple[int, str], ...]:
-        return (
-            (cls.API, "integrations-api"),
-            (cls.ISSUE_LINK, "integrations-issue-link"),
-            (cls.STACKTRACE_LINK, "integrations-stacktrace-link"),
-            (cls.EVENT_HOOKS, "integrations-event-hooks"),
-            (cls.PROJECT_MANAGEMENT, "integrations-project-management"),
-            (cls.INCIDENT_MANAGEMENT, "integrations-incident-management"),
-            (cls.FEATURE_FLAG, "integrations-feature-flag"),
-            (cls.ALERTS, "integrations-alert-rule"),
-            (cls.RELEASE_MANAGEMENT, "integrations-release-management"),
-            (cls.VISUALIZATION, "integrations-visualization"),
-            (cls.CHAT, "integrations-chat"),
-            (cls.SESSION_REPLAY, "integrations-session-replay"),
-        )
+    def from_str(cls, feature_name: str) -> Feature:
+        for value in cls:
+            if value.feature_name == feature_name:
+                return value
+        raise ValueError(f"Invalid feature name provided: {feature_name}")
 
     @classmethod
-    def as_str(cls, feature: int) -> str:
-        if feature == cls.ISSUE_LINK:
-            return "integrations-issue-link"
-        if feature == cls.STACKTRACE_LINK:
-            return "integrations-stacktrace-link"
-        if feature == cls.EVENT_HOOKS:
-            return "integrations-event-hooks"
-        if feature == cls.PROJECT_MANAGEMENT:
-            return "integrations-project-management"
-        if feature == cls.INCIDENT_MANAGEMENT:
-            return "integrations-incident-management"
-        if feature == cls.FEATURE_FLAG:
-            return "integrations-feature-flag"
-        if feature == cls.ALERTS:
-            return "integrations-alert-rule"
-        if feature == cls.RELEASE_MANAGEMENT:
-            return "integrations-release-management"
-        if feature == cls.VISUALIZATION:
-            return "integrations-visualization"
-        if feature == cls.CHAT:
-            return "integrations-chat"
-        if feature == cls.SESSION_REPLAY:
-            return "integrations-session-replay"
-        return "integrations-api"
+    def from_int(cls, value: int) -> Feature:
+        for enum_obj in cls:
+            if enum_obj.value == value:
+                return enum_obj
+        raise ValueError(f"Invalid feature value provided: {value}")
+
+    @classmethod
+    def as_str_choices(cls) -> list[str]:
+        return [obj.feature_name for obj in cls]
+
+    @classmethod
+    def as_int_choices(cls) -> list[int]:
+        return [obj.value for obj in cls]
+
+    @classmethod
+    def as_choices(cls) -> list[tuple[int, str]]:
+        return [(obj.value, obj.feature_name) for obj in cls]
+
+    def __str__(self) -> str:
+        return self.feature_name
 
     @classmethod
     def description(cls, feature: int, name: str) -> str:
+        """
+        This is copied from the previous Feature class implementation.
+        TODO(Gabe): Make each of these descriptions either take a name, or not,
+            then inline the descriptions with other enum values.
+        """
         if feature == cls.PROJECT_MANAGEMENT:
             return "Create or link issues in %s from Sentry issue groups." % name
         if feature == cls.INCIDENT_MANAGEMENT:
@@ -195,7 +198,7 @@ class IntegrationFeature(Model):
         ),
     )
     user_description = models.TextField(null=True)
-    feature = BoundedPositiveIntegerField(default=0, choices=Feature.as_choices())
+    feature = BoundedPositiveIntegerField(default=Feature.API.value, choices=Feature.as_choices())
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
@@ -204,7 +207,7 @@ class IntegrationFeature(Model):
         unique_together = (("target_id", "target_type", "feature"),)
 
     def feature_str(self) -> str:
-        return Feature.as_str(self.feature)
+        return str(Feature.from_int(self.feature))
 
     @property
     def description(self) -> str:

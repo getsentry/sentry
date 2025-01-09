@@ -200,6 +200,71 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
                 application_id=self.unpublished_app.application_id
             ).exists()
 
+    def test_update_unpublished_app_with_feature_set(self):
+        response = self.get_success_response(
+            self.unpublished_app.slug,
+            name="NewName",
+            webhookUrl="https://newurl.com",
+            scopes=("event:read",),
+            events=("issue",),
+            feature_set=["integrations-issue-link", "integrations-stacktrace-link"],
+            status_code=200,
+        )
+
+        assert response.data["name"] == "NewName"
+        assert response.data["slug"] == self.unpublished_app.slug
+        assert response.data["scopes"] == ["event:read"]
+        assert response.data["events"] == {"issue"}
+        assert response.data["uuid"] == self.unpublished_app.uuid
+        assert response.data["webhookUrl"] == "https://newurl.com"
+        assert sorted(response.data["featureData"], key=lambda a: a["featureId"]) == [
+            {
+                "featureId": 1,
+                "featureGate": "integrations-issue-link",
+                "description": "Organizations can **create or link Sentry issues** to another service.",
+            },
+            {
+                "featureId": 2,
+                "featureGate": "integrations-stacktrace-link",
+                "description": "Organizations can **open a line to Sentry's stack trace** in another service.",
+            },
+        ]
+        assert not SentryAppInstallation.objects.filter(sentry_app=self.unpublished_app).exists()
+        with assume_test_silo_mode(SiloMode.REGION):
+            assert not ServiceHook.objects.filter(
+                application_id=self.unpublished_app.application_id
+            ).exists()
+
+    def test_update_with_invalid_feature_set(self):
+        response = self.get_error_response(
+            self.unpublished_app.slug,
+            name="NewName",
+            webhookUrl="https://newurl.com",
+            scopes=("event:read",),
+            events=("issue",),
+            feature_set=["integrations-what-feature-was-this", "integrations-stacktrace-link"],
+            status_code=400,
+        )
+
+        error_response = response.data.get("feature_set")
+        assert error_response
+        assert "integrations-what-feature-was-this" in str(error_response)
+
+        response = self.get_error_response(
+            self.unpublished_app.slug,
+            name="NewName",
+            webhookUrl="https://newurl.com",
+            scopes=("event:read",),
+            events=("issue",),
+            features=[1, 2, 3],
+            feature_set=["integrations-issue-link", "integrations-stacktrace-link"],
+            status_code=400,
+        )
+
+        error_response = response.data.get("non_field_errors")
+        assert error_response
+        assert "`features` and `feature_set` are mutually exclusive fields" in str(error_response)
+
     def test_update_internal_app(self):
         self.get_success_response(
             self.internal_integration.slug,

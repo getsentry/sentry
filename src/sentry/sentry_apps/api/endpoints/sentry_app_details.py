@@ -14,6 +14,7 @@ from sentry.api.base import control_silo_endpoint
 from sentry.api.serializers import serialize
 from sentry.auth.staff import is_active_staff
 from sentry.constants import SentryAppStatus
+from sentry.integrations.models.integration_feature import Feature
 from sentry.organizations.services.organization import organization_service
 from sentry.sentry_apps.api.bases.sentryapps import (
     SentryAppAndStaffPermission,
@@ -107,11 +108,16 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
             assert isinstance(
                 request.user, (User, RpcUser)
             ), "User must be authenticated to update a Sentry App"
+
+            feature_list = result.get("features")
+            if feature_set := result.get("feature_set"):
+                feature_list = [Feature.from_str(feature).value for feature in feature_set]
+
             updated_app = SentryAppUpdater(
                 sentry_app=sentry_app,
                 name=result.get("name"),
                 author=result.get("author"),
-                features=result.get("features"),
+                features=feature_list,
                 status=result.get("status"),
                 webhook_url=result.get("webhookUrl"),
                 redirect_url=result.get("redirectUrl"),

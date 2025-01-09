@@ -24,7 +24,7 @@ class IntegrationFeaturesTest(APITestCase):
         assert len({item["featureId"] for item in response.data}) == len(all_features)
         for feature in response.data:
             # Ensure their featureGate matches the featureId
-            assert feature["featureGate"] == Feature.as_str(feature["featureId"])
+            assert feature["featureGate"] == str(Feature.from_int(feature["featureId"]))
 
     def test_no_records_are_created(self):
         """
