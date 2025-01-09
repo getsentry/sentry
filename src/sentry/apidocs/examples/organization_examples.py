@@ -452,6 +452,7 @@ class OrganizationExamples:
                     "hasSessions": True,
                     "hasProfiles": True,
                     "hasReplays": True,
+                    "hasFlags": True,
                     "hasMinifiedStackTrace": False,
                     "hasMonitors": True,
                     "hasFeedbacks": False,
