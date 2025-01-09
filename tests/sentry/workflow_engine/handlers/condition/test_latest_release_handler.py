@@ -45,57 +45,57 @@ class TestLatestReleaseCondition(ConditionTestCase):
         assert dc.condition_group == dcg
 
     def test_latest_release(self):
-        oldRelease = Release.objects.create(
+        old_release = Release.objects.create(
             organization_id=self.organization.id,
             version="1",
             date_added=datetime(2020, 9, 1, 3, 8, 24, 880386, tzinfo=UTC),
         )
-        oldRelease.add_project(self.project)
+        old_release.add_project(self.project)
 
-        newRelease = Release.objects.create(
+        new_release = Release.objects.create(
             organization_id=self.organization.id,
             version="2",
             date_added=datetime(2020, 9, 2, 3, 8, 24, 880386, tzinfo=UTC),
         )
-        newRelease.add_project(self.project)
+        new_release.add_project(self.project)
 
-        self.event.data["tags"] = (("release", newRelease.version),)
+        self.event.data["tags"] = (("release", new_release.version),)
         self.assert_passes(self.dc, self.job)
 
     def test_latest_release_no_match(self):
-        oldRelease = Release.objects.create(
+        old_release = Release.objects.create(
             organization_id=self.organization.id,
             version="1",
             date_added=datetime(2020, 9, 1, 3, 8, 24, 880386, tzinfo=UTC),
         )
-        oldRelease.add_project(self.project)
+        old_release.add_project(self.project)
 
-        newRelease = Release.objects.create(
+        new_release = Release.objects.create(
             organization_id=self.organization.id,
             version="2",
             date_added=datetime(2020, 9, 2, 3, 8, 24, 880386, tzinfo=UTC),
         )
-        newRelease.add_project(self.project)
+        new_release.add_project(self.project)
 
-        self.event.data["tags"] = (("release", oldRelease.version),)
+        self.event.data["tags"] = (("release", old_release.version),)
         self.assert_does_not_pass(self.dc, self.job)
 
     def test_caching(self):
-        oldRelease = Release.objects.create(
+        old_release = Release.objects.create(
             organization_id=self.organization.id,
             version="1",
             date_added=datetime(2020, 9, 1, 3, 8, 24, 880386, tzinfo=UTC),
         )
-        oldRelease.add_project(self.project)
-        self.event.data["tags"] = (("release", oldRelease.version),)
+        old_release.add_project(self.project)
+        self.event.data["tags"] = (("release", old_release.version),)
         self.assert_passes(self.dc, self.job)
 
-        newRelease = Release.objects.create(
+        new_release = Release.objects.create(
             organization_id=self.organization.id,
             version="2",
             date_added=datetime(2020, 9, 2, 3, 8, 24, 880386, tzinfo=UTC),
         )
-        newRelease.add_project(self.project)
+        new_release.add_project(self.project)
 
         # ensure we clear the cache after creating a new release
         cache_key = get_project_release_cache_key(self.event.group.project_id)
@@ -104,7 +104,7 @@ class TestLatestReleaseCondition(ConditionTestCase):
         self.assert_does_not_pass(self.dc, self.job)
 
         # ensure we clear the cache when a release is deleted
-        newRelease.safe_delete()
+        new_release.safe_delete()
         cache_key = get_project_release_cache_key(self.event.group.project_id)
         assert cache.get(cache_key) is None
 
