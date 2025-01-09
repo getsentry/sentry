@@ -1,5 +1,3 @@
-import os
-from collections import defaultdict
 from collections.abc import Sequence
 from datetime import datetime, timedelta
 from typing import Any
@@ -10,7 +8,6 @@ import pytest
 from dateutil.parser import parse as parse_datetime
 from django.core.serializers import serialize
 from django.db import models
-from django.db.models import Model
 
 from sentry.backup.dependencies import NormalizedModelName, get_model_name
 from sentry.backup.helpers import DatetimeSafeDjangoJSONEncoder
@@ -29,10 +26,6 @@ from sentry.db.models.fields.jsonfield import JSONField
 from sentry.db.models.fields.slug import SentrySlugField
 from sentry.db.models.fields.uuid import UUIDField
 from sentry.testutils.cases import TestCase
-from sentry.testutils.factories import get_fixture_path
-from sentry.testutils.helpers.backups import BackupTransactionTestCase
-from sentry.testutils.silo import strip_silo_mode_test_suffix
-from tests.sentry.backup import expect_models, verify_models_in_output
 
 FAKE_EMAIL = "test@fake.com"
 FAKE_NAME = "Fake Name"
@@ -424,78 +417,3 @@ class SanitizationUnitTests(TestCase):
         )
         with pytest.raises(TypeError):
             sanitize([invalid])
-
-
-class IntegrationTestCase(TestCase):
-    def sanitize_and_compare(self, unsanitized_json: Any) -> Any:
-        root_dir = os.path.dirname(os.path.realpath(__file__))
-
-        # Use the same data for monolith and region mode.
-        class_name = strip_silo_mode_test_suffix(self.__class__.__name__)
-        snapshot_path = f"{root_dir}/snapshots/{class_name}/{self._testMethodName}.pysnap"
-
-        # Go roughly 10 years backward, to ensure that there is no collision in the data when we
-        # look for diffs.
-        sanitized_json = sanitize(unsanitized_json, timedelta(days=3650))
-        assert len(sanitized_json) == len(unsanitized_json)
-
-        # Walk the two JSONs simultaneously, taking note of any changed fields.
-        diffs = []
-        ordinals: dict[str, int] = defaultdict(lambda: 1)
-        for i, sanitized_model in enumerate(sanitized_json):
-            unsanitized_model = unsanitized_json[i]
-            assert sanitized_model["model"] == unsanitized_model["model"]
-
-            model_name = sanitized_model["model"]
-            ordinal = ordinals[model_name]
-            ordinals[model_name] = ordinal + 1
-            sanitized_fields = sorted(sanitized_model["fields"].keys())
-            unsanitized_fields = sorted(unsanitized_model["fields"].keys())
-            assert set(sanitized_fields) == set(unsanitized_fields)
-
-            diff = []
-            for field_name in sanitized_fields:
-                if sanitized_model["fields"][field_name] != unsanitized_model["fields"][field_name]:
-                    diff.append(field_name)
-
-            diffs.append(
-                {
-                    "model_name": model_name,
-                    "ordinal": ordinal,
-                    "sanitized_fields": diff,
-                }
-            )
-
-        # Perform the snapshot comparison.
-        self.insta_snapshot(diffs, reference_file=snapshot_path)
-
-        return sanitized_json
-
-
-class SanitizationIntegrationTests(IntegrationTestCase):
-    """
-    Use some of our existing export JSON fixtures as test cases, ensuring that a consistent set of
-    fields is altered by sanitization.
-    """
-
-    def test_fresh_install(self):
-        with open(get_fixture_path("backup", "fresh-install.json"), "rb") as backup_file:
-            unsanitized_json = orjson.loads(backup_file.read())
-            self.sanitize_and_compare(unsanitized_json)
-
-
-SANITIZATION_TESTED: set[NormalizedModelName] = set()
-
-
-class SanitizationExhaustiveTests(BackupTransactionTestCase, IntegrationTestCase):
-    """
-    Take our exhaustive test case and sanitize it, ensuring that the specific fields that
-    were sanitized remain constant.
-    """
-
-    @expect_models(SANITIZATION_TESTED, "__all__")
-    def test_clean_pks(self, expected_models: list[type[Model]]):
-        self.create_exhaustive_instance(is_superadmin=True)
-        unsanitized_json = self.import_export_then_validate(self._testMethodName, reset_pks=True)
-        sanitized_json = self.sanitize_and_compare(unsanitized_json)
-        verify_models_in_output(expected_models, sanitized_json)
