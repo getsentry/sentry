@@ -50,21 +50,16 @@ def signal_monitor_created(project: Project, user, from_upsert: bool, monitor: M
     )
     check_and_signal_first_monitor_created(project, user, from_upsert)
 
-    if from_upsert:
-        create_system_audit_entry(
-            organization_id=project.organization_id,
-            target_object=monitor.id,
-            event=audit_log.get_event_id("UPSERT_MONITOR_ADD"),
-            data=monitor.get_audit_log_data(),
-        )
-    else:
-        create_audit_entry(
-            request=request,
-            organization=project.organization,
-            target_object=monitor.id,
-            event=audit_log.get_event_id("MONITOR_ADD"),
-            data=monitor.get_audit_log_data(),
-        )
+    create_audit_log = create_system_audit_entry if from_upsert else create_audit_entry
+    kwargs = {
+        "organization": project.organization,
+        **({"request": request} if not from_upsert else {}),
+        "target_object": monitor.id,
+        "event": audit_log.get_event_id("MONITOR_ADD"),
+        "data": {"upsert": from_upsert, **monitor.get_audit_log_data()},
+    }
+
+    create_audit_log(**kwargs)
 
 
 def get_max_runtime(max_runtime: int | None) -> timedelta:

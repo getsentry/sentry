@@ -1163,8 +1163,8 @@ class MonitorConsumerTest(TestCase):
 
         assert_org_audit_log_exists(
             organization=self.organization,
-            event=audit_log.get_event_id("UPSERT_MONITOR_ADD"),
-            data=monitor.get_audit_log_data(),
+            event=audit_log.get_event_id("MONITOR_ADD"),
+            data={"upsert": True, **monitor.get_audit_log_data()},
         )
 
     @mock.patch("sentry.quotas.backend.assign_monitor_seat")

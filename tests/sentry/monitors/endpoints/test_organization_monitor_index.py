@@ -400,7 +400,7 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         assert_org_audit_log_exists(
             organization=self.organization,
             event=audit_log.get_event_id("MONITOR_ADD"),
-            data=monitor.get_audit_log_data(),
+            data={"upsert": False, **monitor.get_audit_log_data()},
         )
 
         self.project.refresh_from_db()
