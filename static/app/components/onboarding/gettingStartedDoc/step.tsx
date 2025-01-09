@@ -118,7 +118,7 @@ export type Configuration = {
 };
 
 // TODO(aknaus): move to types
-interface BaseStepProps extends React.HTMLAttributes<HTMLDivElement> {
+interface BaseStepProps {
   /**
    * Additional information to be displayed below the configurations
    */
@@ -212,7 +212,7 @@ export function Step({
   collapsible = false,
   codeHeader,
   ...props
-}: StepProps) {
+}: React.HTMLAttributes<HTMLDivElement> & StepProps) {
   const [showOptionalConfig, setShowOptionalConfig] = useState(false);
 
   const config = (
