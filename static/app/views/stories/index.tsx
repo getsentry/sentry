@@ -107,7 +107,7 @@ function useStoryTree(query: string, files: string[]) {
 
     // If the user navigates to a story, expand to its location in the tree
     if (initialName.current) {
-      for (const {node, path} of root.files()) {
+      for (const {node, path} of root) {
         if (node.path === initialName.current) {
           for (const p of path) {
             p.expanded = true;
@@ -132,7 +132,7 @@ function useStoryTree(query: string, files: string[]) {
 
       // If there is no initial query and no story is selected, the sidebar
       // tree is collapsed to the root node.
-      for (const node of root) {
+      for (const {node} of root) {
         node.visible = true;
         node.expanded = false;
         node.result = null;
@@ -140,7 +140,7 @@ function useStoryTree(query: string, files: string[]) {
       return Object.values(root.children);
     }
 
-    for (const node of root) {
+    for (const {node} of root) {
       node.visible = false;
       node.expanded = false;
       node.result = null;
@@ -149,12 +149,20 @@ function useStoryTree(query: string, files: string[]) {
     // Fzf requires the input to be lowercase as it normalizes the search candidates to lowercase
     const lowerCaseQuery = query.toLowerCase();
 
-    for (const {node, path} of root.files()) {
+    for (const {node, path} of root) {
       const match = fzf(node.name, lowerCaseQuery, false);
       node.result = match;
-      node.visible = match.score > 0;
 
-      if (node.visible) {
+      if (match.score > 0) {
+        node.visible = true;
+
+        if (Object.keys(node.children).length > 0) {
+          node.expanded = true;
+          for (const child of Object.values(node.children)) {
+            child.visible = true;
+          }
+        }
+
         // @TODO (JonasBadalic): We can trip this when we find a visible node if we reverse iterate
         for (const p of path) {
           p.visible = true;
@@ -175,18 +183,21 @@ function useStoryTree(query: string, files: string[]) {
 }
 
 export class StoryTreeNode {
-  expanded = false;
-  visible = true;
-  result: ReturnType<typeof fzf> | null = null;
-  children: Record<string, StoryTreeNode> = {};
+  public name: string;
+  public path: string;
+  public visible = true;
+  public expanded = false;
+  public children: Record<string, StoryTreeNode> = {};
 
-  constructor(
-    public name: string,
-    public path: string
-  ) {}
+  public result: ReturnType<typeof fzf> | null = null;
+
+  constructor(name: string, path: string) {
+    this.name = name;
+    this.path = path;
+  }
 
   find(predicate: (node: StoryTreeNode) => boolean): StoryTreeNode | undefined {
-    for (const node of this) {
+    for (const {node} of this) {
       if (node && predicate(node)) {
         return node;
       }
@@ -195,37 +206,16 @@ export class StoryTreeNode {
   }
 
   // Iterator that yields all files in the tree, excluding folders
-  *files(): Generator<{node: StoryTreeNode; path: StoryTreeNode[]}> {
+  *[Symbol.iterator](): Generator<{node: StoryTreeNode; path: StoryTreeNode[]}> {
     function* recurse(node: StoryTreeNode, path: StoryTreeNode[]) {
-      if (Object.keys(node.children).length === 0) {
-        yield {node, path};
-      }
+      yield {node, path};
 
       for (const child of Object.values(node.children)) {
         yield* recurse(child, [...path, node]);
       }
-
-      return;
     }
 
     yield* recurse(this, []);
-  }
-
-  // Iterator that yields all nodes in the tree
-  *[Symbol.iterator](): Generator<StoryTreeNode> {
-    const queue: StoryTreeNode[] = [this];
-
-    while (queue.length > 0) {
-      const node = queue.pop();
-      if (node) {
-        yield node;
-      }
-
-      const nodeChildren = Object.values(node?.children ?? {});
-      for (let i = nodeChildren.length - 1; i >= 0; i--) {
-        queue.push(nodeChildren[i]!);
-      }
-    }
   }
 }
 
