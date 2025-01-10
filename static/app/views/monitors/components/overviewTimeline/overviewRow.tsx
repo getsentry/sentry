@@ -5,6 +5,9 @@ import pick from 'lodash/pick';
 
 import Tag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
+import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlaceholder';
+import {CheckInTimeline} from 'sentry/components/checkInTimeline/checkInTimeline';
+import type {TimeWindowConfig} from 'sentry/components/checkInTimeline/types';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ActorBadge from 'sentry/components/idBadge/actorBadge';
@@ -20,16 +23,16 @@ import useOrganization from 'sentry/utils/useOrganization';
 import type {Monitor} from 'sentry/views/monitors/types';
 import {scheduleAsText} from 'sentry/views/monitors/utils/scheduleAsText';
 
+import {checkInStatusPrecedent, statusToText, tickStyle} from '../../utils';
+import {selectCheckInData} from '../../utils/selectCheckInData';
+import {useMonitorStats} from '../../utils/useMonitorStats';
 import {StatusToggleButton} from '../statusToggleButton';
-import {CheckInPlaceholder} from '../timeline/checkInPlaceholder';
-import type {CheckInTimelineProps} from '../timeline/checkInTimeline';
-import {CheckInTimeline} from '../timeline/checkInTimeline';
-import {useMonitorStats} from '../timeline/hooks/useMonitorStats';
 
 import MonitorEnvironmentLabel from './monitorEnvironmentLabel';
 
-interface Props extends Omit<CheckInTimelineProps, 'bucketedData' | 'environment'> {
+interface Props {
   monitor: Monitor;
+  timeWindowConfig: TimeWindowConfig;
   onDeleteEnvironment?: (env: string) => Promise<void>;
   onToggleMuteEnvironment?: (env: string, isMuted: boolean) => Promise<void>;
   onToggleStatus?: (monitor: Monitor, status: ObjectStatus) => Promise<void>;
@@ -49,7 +52,6 @@ export function OverviewRow({
   onDeleteEnvironment,
   onToggleMuteEnvironment,
   onToggleStatus,
-  ...timelineProps
 }: Props) {
   const organization = useOrganization();
 
@@ -199,24 +201,26 @@ export function OverviewRow({
       </MonitorEnvContainer>
 
       <TimelineContainer>
-        {environments.map(({name}) => {
-          return (
-            <TimelineEnvOuterContainer key={name}>
-              {isPending ? (
-                <CheckInPlaceholder />
-              ) : (
-                <TimelineEnvContainer>
-                  <CheckInTimeline
-                    {...timelineProps}
-                    timeWindowConfig={timeWindowConfig}
-                    bucketedData={monitorStats?.[monitor.id] ?? []}
-                    environment={name}
-                  />
-                </TimelineEnvContainer>
-              )}
-            </TimelineEnvOuterContainer>
-          );
-        })}
+        {environments.map(({name: envName}) => (
+          <TimelineEnvOuterContainer key={envName}>
+            {isPending ? (
+              <CheckInPlaceholder />
+            ) : (
+              <TimelineEnvContainer>
+                <CheckInTimeline
+                  statusLabel={statusToText}
+                  statusStyle={tickStyle}
+                  statusPrecedent={checkInStatusPrecedent}
+                  timeWindowConfig={timeWindowConfig}
+                  bucketedData={selectCheckInData(
+                    monitorStats?.[monitor.id] ?? [],
+                    envName
+                  )}
+                />
+              </TimelineEnvContainer>
+            )}
+          </TimelineEnvOuterContainer>
+        ))}
       </TimelineContainer>
     </TimelineRow>
   );

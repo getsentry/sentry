@@ -234,6 +234,26 @@ class CreateAuditEntryTest(TestCase):
         self.assert_valid_deleted_log(deleted_project, self.project)
         assert deleted_project.platform == self.project.platform
 
+    def test_audit_entry_project_create_with_origin_log(self):
+        if SiloMode.get_current_mode() == SiloMode.CONTROL:
+            return
+
+        entry = create_audit_entry(
+            request=self.req,
+            organization=self.org,
+            target_object=self.project.id,
+            event=audit_log.get_event_id("PROJECT_ADD_WITH_ORIGIN"),
+            data={**self.project.get_audit_log_data(), "origin": "ui"},
+        )
+        audit_log_event = audit_log.get(entry.event)
+
+        assert entry.actor == self.user
+        assert entry.target_object == self.project.id
+        assert entry.event == audit_log.get_event_id("PROJECT_ADD_WITH_ORIGIN")
+        assert (
+            audit_log_event.render(entry) == "created project" + " " + self.project.slug + " via ui"
+        )
+
     def test_audit_entry_project_edit_log(self):
         entry = create_audit_entry(
             request=self.req,

@@ -124,7 +124,7 @@ class TestDSNAuthentication(TestCase):
 
         user, auth = result
         assert user.is_anonymous
-        assert auth == self.project_key
+        assert auth == AuthenticatedToken.from_token(self.project_key)
 
     def test_inactive_key(self):
         self.project_key.update(status=ProjectKeyStatus.INACTIVE)

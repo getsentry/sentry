@@ -14,7 +14,6 @@ from sentry.api.endpoints.organization_events_root_cause_analysis import (
     OrganizationEventsRootCauseAnalysisEndpoint,
 )
 from sentry.api.endpoints.organization_fork import OrganizationForkEndpoint
-from sentry.api.endpoints.organization_minimal_projects import OrganizationMinimalProjectsEndpoint
 from sentry.api.endpoints.organization_missing_org_members import OrganizationMissingMembersEndpoint
 from sentry.api.endpoints.organization_plugins_configs import OrganizationPluginsConfigsEndpoint
 from sentry.api.endpoints.organization_plugins_index import OrganizationPluginsEndpoint
@@ -231,6 +230,29 @@ from sentry.monitors.endpoints.project_processing_errors_details import (
 from sentry.monitors.endpoints.project_processing_errors_index import (
     ProjectProcessingErrorsIndexEndpoint,
 )
+from sentry.notifications.api.endpoints.notification_actions_available import (
+    NotificationActionsAvailableEndpoint,
+)
+from sentry.notifications.api.endpoints.notification_actions_details import (
+    NotificationActionsDetailsEndpoint,
+)
+from sentry.notifications.api.endpoints.notification_actions_index import (
+    NotificationActionsIndexEndpoint,
+)
+from sentry.notifications.api.endpoints.notification_defaults import NotificationDefaultsEndpoints
+from sentry.notifications.api.endpoints.user_notification_details import (
+    UserNotificationDetailsEndpoint,
+)
+from sentry.notifications.api.endpoints.user_notification_email import UserNotificationEmailEndpoint
+from sentry.notifications.api.endpoints.user_notification_settings_options import (
+    UserNotificationSettingsOptionsEndpoint,
+)
+from sentry.notifications.api.endpoints.user_notification_settings_options_detail import (
+    UserNotificationSettingsOptionsDetailEndpoint,
+)
+from sentry.notifications.api.endpoints.user_notification_settings_providers import (
+    UserNotificationSettingsProvidersEndpoint,
+)
 from sentry.replays.endpoints.organization_replay_count import OrganizationReplayCountEndpoint
 from sentry.replays.endpoints.organization_replay_details import OrganizationReplayDetailsEndpoint
 from sentry.replays.endpoints.organization_replay_events_meta import (
@@ -403,12 +425,6 @@ from .endpoints.internal import (
     InternalWarningsEndpoint,
 )
 from .endpoints.internal_ea_features import InternalEAFeaturesEndpoint
-from .endpoints.notification_defaults import NotificationDefaultsEndpoints
-from .endpoints.notifications import (
-    NotificationActionsAvailableEndpoint,
-    NotificationActionsDetailsEndpoint,
-    NotificationActionsIndexEndpoint,
-)
 from .endpoints.organization_access_request_details import OrganizationAccessRequestDetailsEndpoint
 from .endpoints.organization_api_key_details import OrganizationApiKeyDetailsEndpoint
 from .endpoints.organization_api_key_index import OrganizationApiKeyIndexEndpoint
@@ -649,15 +665,6 @@ from .endpoints.team_release_count import TeamReleaseCountEndpoint
 from .endpoints.team_stats import TeamStatsEndpoint
 from .endpoints.team_time_to_resolution import TeamTimeToResolutionEndpoint
 from .endpoints.team_unresolved_issue_age import TeamUnresolvedIssueAgeEndpoint
-from .endpoints.user_notification_details import UserNotificationDetailsEndpoint
-from .endpoints.user_notification_email import UserNotificationEmailEndpoint
-from .endpoints.user_notification_settings_options import UserNotificationSettingsOptionsEndpoint
-from .endpoints.user_notification_settings_options_detail import (
-    UserNotificationSettingsOptionsDetailEndpoint,
-)
-from .endpoints.user_notification_settings_providers import (
-    UserNotificationSettingsProvidersEndpoint,
-)
 from .endpoints.user_organizationintegrations import UserOrganizationIntegrationsEndpoint
 from .endpoints.user_organizations import UserOrganizationsEndpoint
 from .endpoints.user_subscriptions import UserSubscriptionsEndpoint
@@ -1753,11 +1760,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/projects/$",
         OrganizationProjectsEndpoint.as_view(),
         name="sentry-api-0-organization-projects",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/minimal-projects/$",
-        OrganizationMinimalProjectsEndpoint.as_view(),
-        name="sentry-api-0-organization-minimal-projects",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/experimental/projects/$",

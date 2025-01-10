@@ -48,7 +48,6 @@ django-stubs-ext==5.1.1
 djangorestframework==3.15.2
 docker==7.1.0
 drf-spectacular==0.26.3
-email-reply-parser==0.5.12
 execnet==1.9.0
 fastjsonschema==2.16.2
 fido2==0.9.2
@@ -187,7 +186,8 @@ sentry-covdefaults-disable-branch-coverage==1.0.2
 sentry-devenv==1.14.2
 sentry-forked-django-stubs==5.1.1.post1
 sentry-forked-djangorestframework-stubs==3.15.2.post1
-sentry-kafka-schemas==0.1.126
+sentry-forked-email-reply-parser==0.5.12.post1
+sentry-kafka-schemas==0.1.128
 sentry-ophio==1.0.0
 sentry-protos==0.1.39
 sentry-redis-tools==0.1.7
