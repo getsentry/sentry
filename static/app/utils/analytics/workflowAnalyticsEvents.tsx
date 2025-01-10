@@ -106,7 +106,7 @@ export type TeamInsightsEventParameters = {
   'issue_details.attachment_tab.screenshot_modal_download': {};
   'issue_details.attachment_tab.screenshot_modal_opened': {};
   'issue_details.attachment_tab.screenshot_title_clicked': {};
-  'issue_details.event_json_clicked': {group_id: number};
+  'issue_details.event_json_clicked': {group_id: number; streamline: boolean};
   'issue_details.event_navigation_clicked': {button: string; project_id: number};
   'issue_details.issue_tab.screenshot_dropdown_deleted': {};
   'issue_details.issue_tab.screenshot_dropdown_download': {};

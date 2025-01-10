@@ -30,8 +30,8 @@ export function MetricBigNumberContainer({
 export function getBigNumberData(data: MetricsQueryApiResponse): string {
   try {
     // Big number widgets only have one query
-    const value = data.data[0][0].totals;
-    const lastMetaEntry = data.meta[0][1];
+    const value = data.data[0]![0]!.totals;
+    const lastMetaEntry = data.meta[0]![1];
     const metaUnit =
       (lastMetaEntry && 'unit' in lastMetaEntry && lastMetaEntry.unit) || 'none';
 

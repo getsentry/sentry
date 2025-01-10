@@ -150,7 +150,7 @@ describe('useConsoleFilters', () => {
     const {result} = renderHook(useConsoleFilters, {
       initialProps: {frames},
     });
-    await waitFor(() => expect(result.current.items.length).toEqual(5));
+    await waitFor(() => expect(result.current.items).toHaveLength(5));
   });
 
   it('should filter by logLevel', () => {
@@ -164,7 +164,7 @@ describe('useConsoleFilters', () => {
     const {result} = renderHook(useConsoleFilters, {
       initialProps: {frames},
     });
-    expect(result.current.items.length).toEqual(2);
+    expect(result.current.items).toHaveLength(2);
   });
 
   it('should filter by searchTerm', () => {
@@ -178,7 +178,7 @@ describe('useConsoleFilters', () => {
     const {result} = renderHook(useConsoleFilters, {
       initialProps: {frames},
     });
-    expect(result.current.items.length).toEqual(2);
+    expect(result.current.items).toHaveLength(2);
   });
 
   it('should filter by searchTerm and logLevel', () => {
@@ -193,7 +193,7 @@ describe('useConsoleFilters', () => {
     const {result} = renderHook(useConsoleFilters, {
       initialProps: {frames},
     });
-    expect(result.current.items.length).toEqual(1);
+    expect(result.current.items).toHaveLength(1);
   });
 
   describe('getOptions', () => {
@@ -237,7 +237,7 @@ describe('useConsoleFilters', () => {
     });
 
     it('should return a sorted list of BreadcrumbLevelType', () => {
-      const simpleCrumbs = [CRUMB_LOG_1, CRUMB_WARN, CRUMB_ERROR];
+      const simpleCrumbs = [CRUMB_LOG_1!, CRUMB_WARN!, CRUMB_ERROR!];
 
       const {result} = renderHook(useConsoleFilters, {
         initialProps: {frames: simpleCrumbs},
@@ -250,7 +250,7 @@ describe('useConsoleFilters', () => {
     });
 
     it('should deduplicate BreadcrumbLevelType', () => {
-      const simpleCrumbs = [CRUMB_LOG_1, CRUMB_LOG_2];
+      const simpleCrumbs = [CRUMB_LOG_1!, CRUMB_LOG_2!];
 
       const {result} = renderHook(useConsoleFilters, {
         initialProps: {frames: simpleCrumbs},
@@ -259,7 +259,7 @@ describe('useConsoleFilters', () => {
     });
 
     it('should inject extra BreadcrumbLevelType values', () => {
-      const simpleCrumbs = [CRUMB_WARN, CRUMB_ERROR];
+      const simpleCrumbs = [CRUMB_WARN!, CRUMB_ERROR!];
 
       mockUseLocation.mockReturnValue({
         pathname: '/',

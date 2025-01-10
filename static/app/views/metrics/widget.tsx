@@ -102,7 +102,7 @@ export function getWidgetTitle(queries: MetricsQueryApiQueryParams[]) {
   const filteredQueries = queries.filter(isNotQueryOnly);
 
   if (filteredQueries.length === 1) {
-    const firstQuery = filteredQueries[0];
+    const firstQuery = filteredQueries[0]!;
     if (isMetricFormula(firstQuery)) {
       return (
         <Fragment>
@@ -488,7 +488,7 @@ const MetricWidgetBody = memo(
     const setSeriesVisibility = useCallback(
       (series: FocusedMetricsSeries) => {
         setHoveredSeries('');
-        if (focusedSeries?.length === 1 && focusedSeries[0].id === series.id) {
+        if (focusedSeries?.length === 1 && focusedSeries[0]!.id === series.id) {
           onChange?.({
             focusedSeries: [],
           });
@@ -586,9 +586,9 @@ export function getChartTimeseries(
   const filteredQueries = queries.filter(isNotQueryOnly);
 
   const series = data.data.flatMap((group, index) => {
-    const query = filteredQueries[index];
-    const meta = data.meta[index];
-    const lastMetaEntry = meta[meta.length - 1];
+    const query = filteredQueries[index]!;
+    const meta = data.meta[index]!;
+    const lastMetaEntry = meta[meta.length - 1]!;
     const unit =
       (lastMetaEntry && 'unit' in lastMetaEntry && lastMetaEntry.unit) || 'none';
     const scalingFactor =

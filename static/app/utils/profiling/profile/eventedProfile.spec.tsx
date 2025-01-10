@@ -95,7 +95,7 @@ describe('EventedProfile', () => {
       {type: 'flamechart'}
     );
 
-    expect(profile.rawWeights.length).toBe(2);
+    expect(profile.rawWeights).toHaveLength(2);
   });
 
   it('rebuilds the stack', () => {
@@ -135,11 +135,11 @@ describe('EventedProfile', () => {
 
     const root = firstCallee(profile.callTree);
 
-    expect(root.totalWeight).toEqual(4);
-    expect(firstCallee(root).totalWeight).toEqual(1);
+    expect(root!.totalWeight).toBe(4);
+    expect(firstCallee(root!)!.totalWeight).toBe(1);
 
-    expect(root.selfWeight).toEqual(3);
-    expect(firstCallee(root).selfWeight).toEqual(1);
+    expect(root!.selfWeight).toBe(3);
+    expect(firstCallee(root!)!.selfWeight).toBe(1);
   });
 
   it('marks direct recursion', () => {
@@ -164,7 +164,7 @@ describe('EventedProfile', () => {
       {type: 'flamechart'}
     );
 
-    expect(!!firstCallee(firstCallee(profile.callTree)).recursive).toBe(true);
+    expect(!!firstCallee(firstCallee(profile.callTree)!)!.recursive).toBe(true);
   });
 
   it('marks indirect recursion', () => {
@@ -191,7 +191,7 @@ describe('EventedProfile', () => {
       {type: 'flamechart'}
     );
 
-    expect(!!firstCallee(firstCallee(firstCallee(profile.callTree))).recursive).toBe(
+    expect(!!firstCallee(firstCallee(firstCallee(profile.callTree)!)!)!.recursive).toBe(
       true
     );
   });
@@ -296,8 +296,8 @@ describe('EventedProfile - flamegraph', () => {
       {type: 'flamegraph'}
     );
 
-    expect(profile.callTree.children.length).toBe(1);
-    expect(profile.callTree.children[0].selfWeight).toBe(2);
+    expect(profile.callTree.children).toHaveLength(1);
+    expect(profile.callTree.children[0]!.selfWeight).toBe(2);
     expect(profile.callTree.totalWeight).toBe(2);
   });
 
@@ -330,14 +330,14 @@ describe('EventedProfile - flamegraph', () => {
       {type: 'flamegraph'}
     );
 
-    expect(profile.callTree.children[0].frame.name).toBe('f0');
-    expect(profile.callTree.children[1].frame.name).toBe('f1');
+    expect(profile.callTree.children[0]!.frame.name).toBe('f0');
+    expect(profile.callTree.children[1]!.frame.name).toBe('f1');
 
     // frame 0 is opened twice, so the weight gets merged
-    expect(profile.samples.length).toBe(2);
+    expect(profile.samples).toHaveLength(2);
     expect(profile.weights[0]).toBe(2);
     expect(profile.weights[1]).toBe(1);
-    expect(profile.weights.length).toBe(2);
+    expect(profile.weights).toHaveLength(2);
   });
 
   it('flamegraph tracks node count', () => {
@@ -363,8 +363,8 @@ describe('EventedProfile - flamegraph', () => {
     );
 
     // frame 0 is opened twice, so the weight gets merged
-    expect(profile.callTree.children[0].count).toBe(3);
-    expect(profile.callTree.children[0].children[0].count).toBe(1);
+    expect(profile.callTree.children[0]!.count).toBe(3);
+    expect(profile.callTree.children[0]!.children[0]!.count).toBe(1);
   });
 
   it('filters frames', () => {
@@ -394,8 +394,8 @@ describe('EventedProfile - flamegraph', () => {
 
     expect(profile.callTree.frame).toBe(Frame.Root);
     expect(profile.callTree.children).toHaveLength(1);
-    expect(profile.callTree.children[0].frame.name).toEqual('f0');
+    expect(profile.callTree.children[0]!.frame.name).toBe('f0');
     // the f1 frame is filtered out, so the f0 frame has no children
-    expect(profile.callTree.children[0].children).toHaveLength(0);
+    expect(profile.callTree.children[0]!.children).toHaveLength(0);
   });
 });

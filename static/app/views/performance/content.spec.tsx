@@ -302,7 +302,7 @@ describe('Performance > Content', function () {
     });
 
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
-    expect(screen.queryByText('Pinpoint problems')).toBeInTheDocument();
+    expect(screen.getByText('Pinpoint problems')).toBeInTheDocument();
     expect(screen.queryByTestId('performance-table')).not.toBeInTheDocument();
   });
 
@@ -415,7 +415,7 @@ describe('Performance > Content', function () {
     });
 
     const trendsLinks = await screen.findAllByTestId('landing-header-trends');
-    await userEvent.click(trendsLinks[0]);
+    await userEvent.click(trendsLinks[0]!);
 
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
     expect(router.push).toHaveBeenCalledWith(
@@ -440,6 +440,6 @@ describe('Performance > Content', function () {
     });
 
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
-    expect(screen.queryByTestId('create-sample-transaction-btn')).toBeInTheDocument();
+    expect(screen.getByTestId('create-sample-transaction-btn')).toBeInTheDocument();
   });
 });

@@ -33,7 +33,7 @@ import {useDimensions} from 'sentry/utils/useDimensions';
 import {useDimensionsMultiple} from 'sentry/utils/useDimensionsMultiple';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {IssueViewsContext} from 'sentry/views/issueList/groupSearchViewTabs/issueViews';
+import {IssueViewsContext} from 'sentry/views/issueList/issueViews/issueViews';
 
 import type {DraggableTabListItemProps} from './item';
 import {Item} from './item';
@@ -62,9 +62,9 @@ function useOverflowingTabs({state}: {state: TabListState<DraggableTabListItemPr
     const overflowing: Node<DraggableTabListItemProps>[] = [];
 
     for (let i = 0; i < tabsDimensions.length; i++) {
-      totalWidth += tabsDimensions[i].width + 1; // 1 extra pixel for the divider
+      totalWidth += tabsDimensions[i]!.width + 1; // 1 extra pixel for the divider
       if (totalWidth > availableWidth + 1) {
-        overflowing.push(persistentTabs[i]);
+        overflowing.push(persistentTabs[i]!);
       }
     }
 

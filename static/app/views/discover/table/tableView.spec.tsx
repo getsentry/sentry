@@ -64,8 +64,8 @@ describe('TableView > CellActions', function () {
   }
 
   async function openContextMenu(cellIndex: number) {
-    const firstRow = screen.getAllByRole('row')[1];
-    const emptyValueCell = within(firstRow).getAllByRole('cell')[cellIndex];
+    const firstRow = screen.getAllByRole('row')[1]!;
+    const emptyValueCell = within(firstRow).getAllByRole('cell')[cellIndex]!;
 
     await userEvent.click(within(emptyValueCell).getByRole('button', {name: 'Actions'}));
   }
@@ -318,7 +318,7 @@ describe('TableView > CellActions', function () {
 
     renderComponent(initialData, rows, eventView);
 
-    const firstRow = screen.getAllByRole('row')[1];
+    const firstRow = screen.getAllByRole('row')[1]!;
     const link = within(firstRow).getByTestId('tableView-transaction-link');
 
     expect(link).toHaveAttribute(
@@ -382,7 +382,7 @@ describe('TableView > CellActions', function () {
 
     renderComponent(initialData, rows, EventView.fromLocation(loc));
 
-    const firstRow = screen.getAllByRole('row')[1];
+    const firstRow = screen.getAllByRole('row')[1]!;
     const link = within(firstRow).getByTestId('view-event');
 
     expect(link).toHaveAttribute(
@@ -412,8 +412,8 @@ describe('TableView > CellActions', function () {
     rows.data[0]['count()'] = 1000;
     renderComponent(initialData, rows, eventView);
 
-    const firstRow = screen.getAllByRole('row')[1];
-    const emptyValueCell = within(firstRow).getAllByRole('cell')[3];
+    const firstRow = screen.getAllByRole('row')[1]!;
+    const emptyValueCell = within(firstRow).getAllByRole('cell')[3]!;
 
     expect(within(emptyValueCell).getByText('1k')).toHaveAttribute('title', '1,000');
   });
@@ -508,7 +508,7 @@ describe('TableView > CellActions', function () {
     );
     await userEvent.hover(screen.getByText('444.3 KB'));
     const buttons = screen.getAllByRole('button');
-    await userEvent.click(buttons[buttons.length - 1]);
+    await userEvent.click(buttons[buttons.length - 1]!);
     await userEvent.click(screen.getByText('Show values less than'));
     expect(initialData.router.push).toHaveBeenCalledWith({
       pathname: location.pathname,

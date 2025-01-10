@@ -2113,13 +2113,18 @@ class Factories:
     def create_workflow(
         name: str | None = None,
         organization: Organization | None = None,
+        config: dict[str, Any] | None = None,
         **kwargs,
     ) -> Workflow:
         if organization is None:
             organization = Factories.create_organization()
         if name is None:
             name = petname.generate(2, " ", letters=10).title()
-        return Workflow.objects.create(organization=organization, name=name, **kwargs)
+        if config is None:
+            config = {}
+        return Workflow.objects.create(
+            organization=organization, name=name, config=config, **kwargs
+        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
@@ -2170,13 +2175,17 @@ class Factories:
     @assume_test_silo_mode(SiloMode.REGION)
     def create_detector(
         name: str | None = None,
+        config: dict | None = None,
         **kwargs,
     ) -> Detector:
         if name is None:
             name = petname.generate(2, " ", letters=10).title()
+        if config is None:
+            config = {}
 
         return Detector.objects.create(
             name=name,
+            config=config,
             **kwargs,
         )
 

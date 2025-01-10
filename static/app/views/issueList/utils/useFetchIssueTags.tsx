@@ -1,8 +1,11 @@
 import {useMemo} from 'react';
 
 import {useFetchOrganizationTags} from 'sentry/actionCreators/tags';
-import {ItemType, type SearchGroup} from 'sentry/components/smartSearchBar/types';
-import {escapeTagValue} from 'sentry/components/smartSearchBar/utils';
+import {
+  ItemType,
+  type SearchGroup,
+} from 'sentry/components/deprecatedSmartSearchBar/types';
+import {escapeTagValue} from 'sentry/components/deprecatedSmartSearchBar/utils';
 import {IconStar, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
@@ -159,8 +162,8 @@ export const useFetchIssueTags = ({
 
     issuePlatformTags.forEach(tag => {
       if (allTagsCollection[tag.key]) {
-        allTagsCollection[tag.key].totalValues =
-          (allTagsCollection[tag.key].totalValues ?? 0) + (tag.totalValues ?? 0);
+        allTagsCollection[tag.key]!.totalValues =
+          (allTagsCollection[tag.key]!.totalValues ?? 0) + (tag.totalValues ?? 0);
       } else {
         allTagsCollection[tag.key] = {...tag, kind: FieldKind.TAG};
       }
@@ -237,20 +240,20 @@ function builtInIssuesFields(
       predefined: true,
     },
     [FieldKey.ASSIGNED_OR_SUGGESTED]: {
-      ...PREDEFINED_FIELDS[FieldKey.ASSIGNED_OR_SUGGESTED],
+      ...PREDEFINED_FIELDS[FieldKey.ASSIGNED_OR_SUGGESTED]!,
       name: 'Assigned or Suggested',
       isInput: true,
       values: assigneeFieldValues,
       predefined: true,
     },
     [FieldKey.BOOKMARKS]: {
-      ...PREDEFINED_FIELDS[FieldKey.BOOKMARKS],
+      ...PREDEFINED_FIELDS[FieldKey.BOOKMARKS]!,
       name: 'Bookmarked By',
       values: bookmarksValues,
       predefined: true,
     },
     [FieldKey.ISSUE_CATEGORY]: {
-      ...PREDEFINED_FIELDS[FieldKey.ISSUE_CATEGORY],
+      ...PREDEFINED_FIELDS[FieldKey.ISSUE_CATEGORY]!,
       name: 'Issue Category',
       values: [
         IssueCategory.ERROR,
@@ -262,7 +265,7 @@ function builtInIssuesFields(
       predefined: true,
     },
     [FieldKey.ISSUE_TYPE]: {
-      ...PREDEFINED_FIELDS[FieldKey.ISSUE_TYPE],
+      ...PREDEFINED_FIELDS[FieldKey.ISSUE_TYPE]!,
       name: 'Issue Type',
       values: [
         IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
@@ -289,31 +292,31 @@ function builtInIssuesFields(
       predefined: true,
     },
     [FieldKey.LAST_SEEN]: {
-      ...PREDEFINED_FIELDS[FieldKey.LAST_SEEN],
+      ...PREDEFINED_FIELDS[FieldKey.LAST_SEEN]!,
       name: 'Last Seen',
       values: [],
       predefined: false,
     },
     [FieldKey.FIRST_SEEN]: {
-      ...PREDEFINED_FIELDS[FieldKey.FIRST_SEEN],
+      ...PREDEFINED_FIELDS[FieldKey.FIRST_SEEN]!,
       name: 'First Seen',
       values: [],
       predefined: false,
     },
     [FieldKey.FIRST_RELEASE]: {
-      ...PREDEFINED_FIELDS[FieldKey.FIRST_RELEASE],
+      ...PREDEFINED_FIELDS[FieldKey.FIRST_RELEASE]!,
       name: 'First Release',
       values: ['latest'],
       predefined: true,
     },
     [FieldKey.EVENT_TIMESTAMP]: {
-      ...PREDEFINED_FIELDS[FieldKey.EVENT_TIMESTAMP],
+      ...PREDEFINED_FIELDS[FieldKey.EVENT_TIMESTAMP]!,
       name: 'Event Timestamp',
       values: [],
       predefined: true,
     },
     [FieldKey.TIMES_SEEN]: {
-      ...PREDEFINED_FIELDS[FieldKey.TIMES_SEEN],
+      ...PREDEFINED_FIELDS[FieldKey.TIMES_SEEN]!,
       name: 'Times Seen',
       isInput: true,
       // Below values are required or else SearchBar will attempt to get values
@@ -322,7 +325,7 @@ function builtInIssuesFields(
       predefined: true,
     },
     [FieldKey.ISSUE_PRIORITY]: {
-      ...PREDEFINED_FIELDS[FieldKey.ISSUE_PRIORITY],
+      ...PREDEFINED_FIELDS[FieldKey.ISSUE_PRIORITY]!,
       name: 'Issue Priority',
       values: [PriorityLevel.HIGH, PriorityLevel.MEDIUM, PriorityLevel.LOW],
       predefined: true,

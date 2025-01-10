@@ -1,11 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {
-  render,
-  screen,
-  userEvent,
-  waitFor,
-  waitForElementToBeRemoved,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {NewOnboardingSidebar} from 'sentry/components/onboardingWizard/newSidebar';
 import {type OnboardingTask, OnboardingTaskKey} from 'sentry/types/onboarding';
@@ -69,20 +63,20 @@ describe('NewSidebar', function () {
     expect(screen.getByText('0 out of 2 tasks completed')).toBeInTheDocument();
     // This means that the group is expanded
     expect(screen.getByRole('button', {name: 'Collapse'})).toBeInTheDocument();
-    expect(screen.getByText(gettingStartedTasks[0].title)).toBeInTheDocument();
-    expect(screen.getByText(gettingStartedTasks[0].description)).toBeInTheDocument();
+    expect(screen.getByText(gettingStartedTasks[0]!.title)).toBeInTheDocument();
+    expect(screen.getByText(gettingStartedTasks[0]!.description)).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Skip Task'})).not.toBeInTheDocument();
 
     // Group 2
     expect(screen.getByText('Beyond the Basics')).toBeInTheDocument();
     expect(screen.getByText('0 out of 1 task completed')).toBeInTheDocument();
     // This means that the group is not expanded
-    expect(screen.queryByText(beyondBasicsTasks[0].title)).not.toBeInTheDocument();
+    expect(screen.queryByText(beyondBasicsTasks[0]!.title)).not.toBeInTheDocument();
 
     // Manually expand second group
-    userEvent.click(screen.getByRole('button', {name: 'Expand'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Expand'}));
     // Tasks from the second group should be visible
-    expect(await screen.findByText(beyondBasicsTasks[0].title)).toBeInTheDocument();
+    expect(await screen.findByText(beyondBasicsTasks[0]!.title)).toBeInTheDocument();
     // task from second group are skippable
     expect(screen.getByRole('button', {name: 'Skip Task'})).toBeInTheDocument();
   });
@@ -95,6 +89,7 @@ describe('NewSidebar', function () {
         collapsed={false}
         gettingStartedTasks={gettingStartedTasks.map(task => ({
           ...task,
+          completionSeen: true,
           status: 'complete',
         }))}
         beyondBasicsTasks={beyondBasicsTasks}
@@ -107,7 +102,7 @@ describe('NewSidebar', function () {
 
     // Group 2
     // This means that the group is expanded
-    expect(screen.getByText(beyondBasicsTasks[0].title)).toBeInTheDocument();
+    expect(screen.getByText(beyondBasicsTasks[0]!.title)).toBeInTheDocument();
   });
 
   it('show skipable confirmation when skipping a task', async function () {
@@ -132,11 +127,12 @@ describe('NewSidebar', function () {
     );
 
     // Manually expand second group
-    userEvent.click(screen.getByRole('button', {name: 'Expand'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Expand'}));
     // Tasks from the second group should be visible
-    expect(await screen.findByText(beyondBasicsTasks[0].title)).toBeInTheDocument();
+    expect(await screen.findByText(beyondBasicsTasks[0]!.title)).toBeInTheDocument();
 
-    userEvent.click(screen.getByRole('button', {name: 'Skip Task'}));
+    // Click skip task
+    await userEvent.click(screen.getByRole('button', {name: 'Skip Task'}));
 
     // Confirmation to skip should be visible
     expect(await screen.findByText(/Not sure what to do/)).toBeInTheDocument();
@@ -144,7 +140,7 @@ describe('NewSidebar', function () {
     expect(screen.getByRole('button', {name: 'Help'})).toBeInTheDocument();
 
     // Click help
-    userEvent.click(screen.getByRole('button', {name: 'Help'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Help'}));
 
     // Show help menu
     expect(await screen.findByText('Search Support, Docs and More')).toBeInTheDocument();
@@ -152,8 +148,15 @@ describe('NewSidebar', function () {
     expect(screen.getByRole('link', {name: 'Join our Discord'})).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'Visit Help Center'})).toBeInTheDocument();
 
+    // Dismiss skip confirmation
+    await userEvent.click(screen.getByRole('button', {name: 'Dismiss Skip'}));
+    expect(screen.queryByText(/Not sure what to do/)).not.toBeInTheDocument();
+
+    // Click skip task again
+    await userEvent.click(screen.getByRole('button', {name: 'Skip Task'}));
+
     // Click 'Just Skip'
-    userEvent.click(screen.getByRole('button', {name: 'Just Skip'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Just Skip'}));
     await waitFor(() => {
       expect(mockUpdate).toHaveBeenCalledWith(
         `/organizations/${organization.slug}/onboarding-tasks/`,
@@ -165,9 +168,5 @@ describe('NewSidebar', function () {
         })
       );
     });
-
-    // Dismiss skip confirmation
-    userEvent.click(screen.getByRole('button', {name: 'Dismiss Skip'}));
-    await waitForElementToBeRemoved(() => screen.queryByText(/Not sure what to do/));
   });
 });

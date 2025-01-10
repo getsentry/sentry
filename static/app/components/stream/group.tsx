@@ -142,7 +142,7 @@ function GroupTimestamp({date, label}: {date: string | null | undefined; label: 
       tooltipPrefix={label}
       date={date}
       suffix="ago"
-      unitStyle="extraShort"
+      unitStyle="short"
     />
   );
 }
@@ -184,7 +184,7 @@ function BaseGroupRow({
   const {period, start, end} = selection.datetime || {};
 
   const summary =
-    customStatsPeriod?.label.toLowerCase() ??
+    customStatsPeriod?.label?.toLowerCase() ??
     (!!start && !!end
       ? 'time range'
       : getRelativeSummary(period || DEFAULT_STATS_PERIOD).toLowerCase());
@@ -270,8 +270,8 @@ function BaseGroupRow({
     }
 
     return group.filtered
-      ? group.filtered.stats?.[statsPeriod]
-      : group.stats?.[statsPeriod];
+      ? group.filtered.stats?.[statsPeriod]!
+      : group.stats?.[statsPeriod]!;
   }, [group, statsPeriod]);
 
   const groupSecondaryStats = useMemo<ReadonlyArray<TimeseriesValue>>(() => {
@@ -279,7 +279,7 @@ function BaseGroupRow({
       return [];
     }
 
-    return group.filtered ? group.stats?.[statsPeriod] : [];
+    return group.filtered ? group.stats?.[statsPeriod]! : [];
   }, [group, statsPeriod]);
 
   if (!group) {
@@ -410,6 +410,7 @@ function BaseGroupRow({
     [IssueCategory.CRON]: t('Cron Events'),
     [IssueCategory.REPLAY]: t('Replay Events'),
     [IssueCategory.UPTIME]: t('Uptime Events'),
+    [IssueCategory.METRIC_ALERT]: t('Metric Alert Events'),
   };
 
   const groupCount = !defined(primaryCount) ? (

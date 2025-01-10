@@ -135,8 +135,8 @@ type WebVitalDetailHeaderProps = {
 
 export function WebVitalDetailHeader({score, value, webVital}: Props) {
   const theme = useTheme();
-  const colors = theme.charts.getColorPalette(3);
-  const dotColor = colors[ORDER.indexOf(webVital)];
+  const colors = theme.charts.getColorPalette(3) ?? [];
+  const dotColor = colors[ORDER.indexOf(webVital)]!;
   const status = score !== undefined ? scoreToStatus(score) : undefined;
 
   return (
@@ -165,7 +165,7 @@ export function WebVitalTagsDetailHeader({
   isProjectScoreCalculated,
 }: WebVitalDetailHeaderProps) {
   const theme = useTheme();
-  const ringSegmentColors = theme.charts.getColorPalette(3);
+  const ringSegmentColors = theme.charts.getColorPalette(3) ?? [];
   const ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
   const title =
     tag.key === 'geo.country_code' ? COUNTRY_CODE_TO_NAME_MAP[tag.name] : tag.name;

@@ -181,7 +181,7 @@ describe('EventExtraData', function () {
     await userEvent.click(screen.getByRole('button', {name: 'Expand'}));
     expect(await screen.findAllByText(/redacted/)).toHaveLength(10);
 
-    await userEvent.hover(screen.getAllByText(/redacted/)[0]);
+    await userEvent.hover(screen.getAllByText(/redacted/)[0]!);
 
     expect(
       await screen.findByText(

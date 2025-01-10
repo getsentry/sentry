@@ -212,9 +212,14 @@ class Chart extends Component<ChartProps, State> {
 
     const data = [
       ...(currentSeriesNames.length > 0 ? currentSeriesNames : [t('Current')]),
-      ...(previousSeriesNames.length > 0 ? previousSeriesNames : [t('Previous')]),
       ...(additionalSeries ? additionalSeries.map(series => series.name as string) : []),
     ];
+
+    if (defined(previousTimeseriesData)) {
+      data.push(
+        ...(previousSeriesNames.length > 0 ? previousSeriesNames : [t('Previous')])
+      );
+    }
 
     const releasesLegend = t('Releases');
 
@@ -223,7 +228,7 @@ class Chart extends Component<ChartProps, State> {
       data.push('Other');
     }
 
-    if (Array.isArray(releaseSeries)) {
+    if (Array.isArray(releaseSeries) && releaseSeries.length > 0) {
       data.push(releasesLegend);
     }
 
@@ -266,7 +271,9 @@ class Chart extends Component<ChartProps, State> {
     }
     const chartColors = timeseriesData.length
       ? colors?.slice(0, series.length) ?? [
-          ...theme.charts.getColorPalette(timeseriesData.length - 2 - (hasOther ? 1 : 0)),
+          ...(theme.charts.getColorPalette(
+            timeseriesData.length - 2 - (hasOther ? 1 : 0)
+          ) ?? []),
         ]
       : undefined;
     if (chartColors?.length && hasOther) {
@@ -314,7 +321,7 @@ class Chart extends Component<ChartProps, State> {
               // Check to see if all series output types are the same. If not, then default to number.
               const outputType =
                 new Set(Object.values(timeseriesResultsTypes)).size === 1
-                  ? timeseriesResultsTypes[yAxis]
+                  ? timeseriesResultsTypes[yAxis]!
                   : 'number';
               return axisLabelFormatterUsingAggregateOutputType(value, outputType);
             }
@@ -607,7 +614,7 @@ class EventsChart extends Component<EventsChartProps> {
             additionalSeries={additionalSeries}
             previousSeriesTransformer={previousSeriesTransformer}
             stacked={this.isStacked()}
-            yAxis={yAxisArray[0]}
+            yAxis={yAxisArray[0]!}
             showDaily={showDaily}
             colors={colors}
             legendOptions={legendOptions}

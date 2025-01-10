@@ -67,7 +67,7 @@ export class RenderField extends Component<RenderProps, State> {
 
     if (newProjects.length === 1) {
       this.setState({
-        selectedSentryProjectId: newProjects[0],
+        selectedSentryProjectId: newProjects[0]!,
       });
     }
   }

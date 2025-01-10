@@ -196,7 +196,7 @@ function SpanDetail(props: Props) {
       return null;
     }
 
-    const childTransaction = childTransactions[0];
+    const childTransaction = childTransactions[0]!;
 
     const transactionResult: TransactionResult = {
       'project.name': childTransaction.project_slug,

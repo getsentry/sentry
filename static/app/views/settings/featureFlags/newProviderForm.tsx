@@ -116,7 +116,10 @@ export default function NewProviderForm({
         value={selectedProvider}
         placeholder={t('Select a provider')}
         name="provider"
-        options={[{value: 'LaunchDarkly', label: 'LaunchDarkly'}]}
+        options={[
+          {value: 'LaunchDarkly', label: 'LaunchDarkly'},
+          {value: 'Generic', label: 'Generic'},
+        ]}
         help={t(
           'If you have already linked this provider, pasting a new secret will override the existing secret.'
         )}
@@ -134,7 +137,7 @@ export default function NewProviderForm({
       >
         <TextCopyInput
           aria-label={t('Webhook URL')}
-        >{`https://sentry.io/api/0/organizations/sentry/flags/hooks/provider/${selectedProvider.toLowerCase()}/`}</TextCopyInput>
+        >{`https://sentry.io/api/0/organizations/${organization.slug}/flags/hooks/provider/${selectedProvider.toLowerCase()}/`}</TextCopyInput>
       </StyledFieldGroup>
       <TextField
         name="secret"

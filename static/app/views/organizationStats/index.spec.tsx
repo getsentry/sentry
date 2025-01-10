@@ -382,7 +382,7 @@ describe('OrganizationStats', function () {
     });
     await userEvent.click(screen.getByTestId('proj-1'));
     expect(screen.queryByText('My Projects')).not.toBeInTheDocument();
-    expect(screen.getAllByText('proj-1').length).toBe(2);
+    expect(screen.getAllByText('proj-1')).toHaveLength(2);
   });
 
   /**
@@ -453,7 +453,7 @@ describe('OrganizationStats', function () {
     // Should show Profile Hours option
     expect(screen.getByRole('option', {name: 'Profile Hours'})).toBeInTheDocument();
     // Should show Profiles (transaction) option
-    expect(screen.queryByRole('option', {name: 'Profiles'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'Profiles'})).toBeInTheDocument();
   });
 
   it('shows only profile duration category when both profiling features are enabled', async () => {
@@ -497,6 +497,35 @@ describe('OrganizationStats', function () {
     expect(screen.queryByRole('option', {name: 'Profile Hours'})).not.toBeInTheDocument();
     // Should show Profiles (transaction) option
     expect(screen.getByRole('option', {name: 'Profiles'})).toBeInTheDocument();
+  });
+
+  it('denies access on no projects', async function () {
+    act(() => ProjectsStore.loadInitialData([]));
+
+    render(<OrganizationStats {...defaultProps} />, {
+      router,
+    });
+
+    expect(
+      await screen.findByText('You need at least one project to use this view')
+    ).toBeInTheDocument();
+  });
+
+  it('denies access without project membership', async function () {
+    const newOrg = initializeOrg({
+      organization: {
+        openMembership: false,
+      },
+    });
+    act(() => ProjectsStore.loadInitialData([ProjectFixture({isMember: false})]));
+
+    render(<OrganizationStats {...defaultProps} organization={newOrg.organization} />, {
+      router: newOrg.router,
+    });
+
+    expect(
+      await screen.findByText('You need at least one project to use this view')
+    ).toBeInTheDocument();
   });
 });
 

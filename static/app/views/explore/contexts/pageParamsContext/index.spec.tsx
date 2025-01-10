@@ -77,7 +77,7 @@ describe('PageParamsProvider', function () {
     );
 
     expect(pageParams).toEqual({
-      dataset: DiscoverDatasets.SPANS_EAP,
+      dataset: undefined,
       fields: [
         'id',
         'project',

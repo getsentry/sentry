@@ -152,7 +152,7 @@ export interface BaseChartProps {
    * Array of color codes to use in charts. May also take a function which is
    * provided with the current theme
    */
-  colors?: string[] | ((theme: Theme) => string[]);
+  colors?: string[] | readonly string[] | ((theme: Theme) => string[]);
   'data-test-id'?: string;
   /**
    * DataZoom (allows for zooming of chart)
@@ -323,8 +323,8 @@ export interface BaseChartProps {
 
 const DEFAULT_CHART_READY = () => {};
 const DEFAULT_OPTIONS = {};
-const DEFAULT_SERIES = [];
-const DEFAULT_ADDITIONAL_SERIES = [];
+const DEFAULT_SERIES: SeriesOption[] = [];
+const DEFAULT_ADDITIONAL_SERIES: LineSeriesOption[] = [];
 const DEFAULT_Y_AXIS = {};
 const DEFAULT_X_AXIS = {};
 
@@ -390,7 +390,7 @@ function BaseChartUnwrapped({
   const theme = useTheme();
 
   const resolveColors =
-    colors !== undefined ? (Array.isArray(colors) ? colors : colors(theme)) : null;
+    colors !== undefined ? (typeof colors === 'function' ? colors(theme) : colors) : null;
 
   const color =
     resolveColors ||
@@ -398,7 +398,7 @@ function BaseChartUnwrapped({
 
   const resolvedSeries = useMemo(() => {
     const previousPeriodColors =
-      (previousPeriod?.length ?? 0) > 1 ? lightenHexToRgb(color) : undefined;
+      (previousPeriod?.length ?? 0) > 1 ? lightenHexToRgb(color as string[]) : undefined;
 
     const hasSinglePoints = (series as LineSeriesOption[] | undefined)?.every(
       s => Array.isArray(s.data) && s.data.length <= 1
@@ -606,22 +606,22 @@ function BaseChartUnwrapped({
   const eventsMap = useMemo(
     () =>
       ({
-        click: (props, instance) => {
+        click: (props, instance: ECharts) => {
           handleClick(props, instance);
           onClick?.(props, instance);
         },
-        highlight: (props, instance) => onHighlight?.(props, instance),
-        mouseout: (props, instance) => onMouseOut?.(props, instance),
-        mouseover: (props, instance) => onMouseOver?.(props, instance),
-        datazoom: (props, instance) => onDataZoom?.(props, instance),
-        restore: (props, instance) => onRestore?.(props, instance),
-        finished: (props, instance) => onFinished?.(props, instance),
-        rendered: (props, instance) => onRendered?.(props, instance),
-        legendselectchanged: (props, instance) =>
+        highlight: (props, instance: ECharts) => onHighlight?.(props, instance),
+        mouseout: (props, instance: ECharts) => onMouseOut?.(props, instance),
+        mouseover: (props, instance: ECharts) => onMouseOver?.(props, instance),
+        datazoom: (props, instance: ECharts) => onDataZoom?.(props, instance),
+        restore: (props, instance: ECharts) => onRestore?.(props, instance),
+        finished: (props, instance: ECharts) => onFinished?.(props, instance),
+        rendered: (props, instance: ECharts) => onRendered?.(props, instance),
+        legendselectchanged: (props, instance: ECharts) =>
           onLegendSelectChanged?.(props, instance),
-        brush: (props, instance) => onBrushStart?.(props, instance),
-        brushend: (props, instance) => onBrushEnd?.(props, instance),
-        brushselected: (props, instance) => onBrushSelected?.(props, instance),
+        brush: (props, instance: ECharts) => onBrushStart?.(props, instance),
+        brushend: (props, instance: ECharts) => onBrushEnd?.(props, instance),
+        brushselected: (props, instance: ECharts) => onBrushSelected?.(props, instance),
       }) as ReactEchartProps['onEvents'],
     [
       onClick,

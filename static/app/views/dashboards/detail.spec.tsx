@@ -412,7 +412,7 @@ describe('Dashboards > Detail', function () {
       const updateMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
         method: 'PUT',
-        body: DashboardFixture([widgets[0]], {id: '1', title: 'Custom Errors'}),
+        body: DashboardFixture([widgets[0]!], {id: '1', title: 'Custom Errors'}),
       });
       render(
         <OrganizationContext.Provider value={initialData.organization}>
@@ -436,10 +436,10 @@ describe('Dashboards > Detail', function () {
 
       // Remove the second and third widgets
       await userEvent.click(
-        (await screen.findAllByRole('button', {name: 'Delete Widget'}))[1]
+        (await screen.findAllByRole('button', {name: 'Delete Widget'}))[1]!
       );
       await userEvent.click(
-        (await screen.findAllByRole('button', {name: 'Delete Widget'}))[1]
+        (await screen.findAllByRole('button', {name: 'Delete Widget'}))[1]!
       );
 
       // Save changes
@@ -551,7 +551,7 @@ describe('Dashboards > Detail', function () {
         {router: initialData.router}
       );
 
-      await userEvent.click(screen.getAllByText('Add Widget')[0]);
+      await userEvent.click(screen.getAllByText('Add Widget')[0]!);
       const menuOptions = await screen.findAllByTestId('menu-list-item-label');
       expect(menuOptions.map(e => e.textContent)).toEqual([
         'Errors',
@@ -589,7 +589,7 @@ describe('Dashboards > Detail', function () {
         {router: initialData.router}
       );
 
-      await userEvent.click(screen.getAllByText('Add Widget')[0]);
+      await userEvent.click(screen.getAllByText('Add Widget')[0]!);
       const menuOptions = await screen.findAllByTestId('menu-list-item-label');
       expect(menuOptions.map(e => e.textContent)).toEqual([
         'Errors and Transactions',
@@ -1049,7 +1049,7 @@ describe('Dashboards > Detail', function () {
       await userEvent.click(screen.getByText('Last 7 days'));
       await screen.findByText('7D');
 
-      expect(screen.queryByText('Cancel')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('filter-bar-cancel')).not.toBeInTheDocument();
       expect(screen.queryByText('Save')).not.toBeInTheDocument();
     });
 
@@ -1226,7 +1226,7 @@ describe('Dashboards > Detail', function () {
 
       await screen.findByText('7D');
       await userEvent.click(await screen.findByText('sentry-android-shop@1.2.0'));
-      await userEvent.click(screen.getAllByText('Clear')[0]);
+      await userEvent.click(screen.getAllByText('Clear')[0]!);
       screen.getByText('All Releases');
       await userEvent.click(document.body);
 
@@ -1336,7 +1336,7 @@ describe('Dashboards > Detail', function () {
       await userEvent.click(screen.getByText('sentry-android-shop@1.2.0'));
       await userEvent.keyboard('{Escape}');
 
-      await userEvent.click(screen.getByText('Cancel'));
+      await userEvent.click(screen.getByTestId('filter-bar-cancel'));
 
       screen.getByText('All Releases');
       expect(testData.router.replace).toHaveBeenCalledWith(
@@ -1394,7 +1394,7 @@ describe('Dashboards > Detail', function () {
       );
 
       expect(await screen.findByText('Save')).toBeInTheDocument();
-      expect(screen.getByText('Cancel')).toBeInTheDocument();
+      expect(screen.getByTestId('filter-bar-cancel')).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Edit Dashboard'})).toBeDisabled();
     });
 
@@ -1463,7 +1463,7 @@ describe('Dashboards > Detail', function () {
 
       // Save and Cancel should not appear because alpha, beta is the same as beta, alpha
       expect(screen.queryByText('Save')).not.toBeInTheDocument();
-      expect(screen.queryByText('Cancel')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('filter-bar-cancel')).not.toBeInTheDocument();
     });
 
     it('uses releases from the URL query params', async function () {
@@ -1500,7 +1500,7 @@ describe('Dashboards > Detail', function () {
 
       await screen.findByText(/not-selected-1/);
       screen.getByText('Save');
-      screen.getByText('Cancel');
+      screen.getByTestId('filter-bar-cancel');
     });
 
     it('resets release in URL params', async function () {
@@ -1546,7 +1546,7 @@ describe('Dashboards > Detail', function () {
       );
 
       await screen.findByText(/not-selected-1/);
-      await userEvent.click(screen.getByText('Cancel'));
+      await userEvent.click(screen.getByTestId('filter-bar-cancel'));
 
       // release isn't used in the redirect
       expect(testData.router.replace).toHaveBeenCalledWith(
@@ -1665,7 +1665,7 @@ describe('Dashboards > Detail', function () {
       );
 
       await userEvent.click(await screen.findByText('All Releases'));
-      await userEvent.type(screen.getAllByPlaceholderText('Search\u2026')[2], 's');
+      await userEvent.type(screen.getAllByPlaceholderText('Search\u2026')[2]!, 's');
       await userEvent.click(await screen.findByRole('option', {name: 'search-result'}));
 
       // Validate that after search is cleared, search result still appears
@@ -1681,10 +1681,7 @@ describe('Dashboards > Detail', function () {
         />,
         {
           router: initialData.router,
-          organization: {
-            ...initialData.organization,
-            features: ['dashboards-edit-access'],
-          },
+          organization: initialData.organization,
         }
       );
 
@@ -1703,10 +1700,7 @@ describe('Dashboards > Detail', function () {
       render(
         <ViewEditDashboard
           {...RouteComponentPropsFixture()}
-          organization={{
-            ...initialData.organization,
-            features: ['dashboards-edit-access', ...initialData.organization.features],
-          }}
+          organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}
           router={initialData.router}
           location={initialData.router.location}
@@ -1715,9 +1709,7 @@ describe('Dashboards > Detail', function () {
         </ViewEditDashboard>,
         {
           router: initialData.router,
-          organization: {
-            features: ['dashboards-edit-access', ...initialData.organization.features],
-          },
+          organization: initialData.organization,
         }
       );
       await userEvent.click(await screen.findByText('Edit Access:'));
@@ -1738,15 +1730,15 @@ describe('Dashboards > Detail', function () {
 
       await waitFor(() => {
         expect(mockPUT).toHaveBeenCalledTimes(1);
-        expect(mockPUT).toHaveBeenCalledWith(
-          '/organizations/org-slug/dashboards/1/',
-          expect.objectContaining({
-            data: expect.objectContaining({
-              permissions: {isEditableByEveryone: false, teamsWithEditAccess: []},
-            }),
-          })
-        );
       });
+      expect(mockPUT).toHaveBeenCalledWith(
+        '/organizations/org-slug/dashboards/1/',
+        expect.objectContaining({
+          data: expect.objectContaining({
+            permissions: {isEditableByEveryone: false, teamsWithEditAccess: []},
+          }),
+        })
+      );
     });
 
     it('creator can update permissions for dashboard', async function () {
@@ -1771,10 +1763,7 @@ describe('Dashboards > Detail', function () {
       render(
         <ViewEditDashboard
           {...RouteComponentPropsFixture()}
-          organization={{
-            ...initialData.organization,
-            features: ['dashboards-edit-access', ...initialData.organization.features],
-          }}
+          organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}
           router={initialData.router}
           location={initialData.router.location}
@@ -1783,9 +1772,7 @@ describe('Dashboards > Detail', function () {
         </ViewEditDashboard>,
         {
           router: initialData.router,
-          organization: {
-            features: ['dashboards-edit-access', ...initialData.organization.features],
-          },
+          organization: initialData.organization,
         }
       );
       await userEvent.click(await screen.findByText('Edit Access:'));
@@ -1806,15 +1793,15 @@ describe('Dashboards > Detail', function () {
 
       await waitFor(() => {
         expect(mockPUT).toHaveBeenCalledTimes(1);
-        expect(mockPUT).toHaveBeenCalledWith(
-          '/organizations/org-slug/dashboards/1/',
-          expect.objectContaining({
-            data: expect.objectContaining({
-              permissions: {isEditableByEveryone: true, teamsWithEditAccess: []},
-            }),
-          })
-        );
       });
+      expect(mockPUT).toHaveBeenCalledWith(
+        '/organizations/org-slug/dashboards/1/',
+        expect.objectContaining({
+          data: expect.objectContaining({
+            permissions: {isEditableByEveryone: true, teamsWithEditAccess: []},
+          }),
+        })
+      );
     });
 
     it('creator can update permissions with teams for dashboard', async function () {
@@ -1860,10 +1847,7 @@ describe('Dashboards > Detail', function () {
       render(
         <ViewEditDashboard
           {...RouteComponentPropsFixture()}
-          organization={{
-            ...initialData.organization,
-            features: ['dashboards-edit-access', ...initialData.organization.features],
-          }}
+          organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}
           router={initialData.router}
           location={initialData.router.location}
@@ -1872,9 +1856,7 @@ describe('Dashboards > Detail', function () {
         </ViewEditDashboard>,
         {
           router: initialData.router,
-          organization: {
-            features: ['dashboards-edit-access', ...initialData.organization.features],
-          },
+          organization: initialData.organization,
         }
       );
       await userEvent.click(await screen.findByText('Edit Access:'));
@@ -1890,15 +1872,15 @@ describe('Dashboards > Detail', function () {
 
       await waitFor(() => {
         expect(mockPUT).toHaveBeenCalledTimes(1);
-        expect(mockPUT).toHaveBeenCalledWith(
-          '/organizations/org-slug/dashboards/1/',
-          expect.objectContaining({
-            data: expect.objectContaining({
-              permissions: {isEditableByEveryone: false, teamsWithEditAccess: [1, 2]},
-            }),
-          })
-        );
       });
+      expect(mockPUT).toHaveBeenCalledWith(
+        '/organizations/org-slug/dashboards/1/',
+        expect.objectContaining({
+          data: expect.objectContaining({
+            permissions: {isEditableByEveryone: false, teamsWithEditAccess: [1, 2]},
+          }),
+        })
+      );
     });
 
     it('disables edit dashboard and add widget button if user cannot edit dashboard', async function () {
@@ -1931,7 +1913,7 @@ describe('Dashboards > Detail', function () {
           {...RouteComponentPropsFixture()}
           organization={{
             ...initialData.organization,
-            features: ['dashboards-edit-access', ...initialData.organization.features],
+            features: initialData.organization.features,
             access: ['org:read'],
           }}
           params={{orgId: 'org-slug', dashboardId: '1'}}
@@ -1943,7 +1925,7 @@ describe('Dashboards > Detail', function () {
         {
           router: initialData.router,
           organization: {
-            features: ['dashboards-edit-access', ...initialData.organization.features],
+            features: initialData.organization.features,
             access: ['org:read'],
           },
         }
@@ -1995,7 +1977,7 @@ describe('Dashboards > Detail', function () {
           {...RouteComponentPropsFixture()}
           organization={{
             ...initialData.organization,
-            features: ['dashboards-edit-access', ...initialData.organization.features],
+            features: initialData.organization.features,
             access: ['org:read'],
           }}
           params={{orgId: 'org-slug', dashboardId: '1'}}
@@ -2007,7 +1989,7 @@ describe('Dashboards > Detail', function () {
         {
           router: initialData.router,
           organization: {
-            features: ['dashboards-edit-access', ...initialData.organization.features],
+            features: initialData.organization.features,
             access: ['org:read'],
           },
         }

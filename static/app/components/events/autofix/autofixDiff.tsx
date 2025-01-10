@@ -43,7 +43,7 @@ function makeTestIdFromLineType(lineType: DiffLineType) {
 
 function addChangesToDiffLines(lines: DiffLineWithChanges[]): DiffLineWithChanges[] {
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
+    const line = lines[i]!;
     if (line.line_type === DiffLineType.CONTEXT) {
       continue;
     }
@@ -293,7 +293,7 @@ function DiffHunkContent({
 
     // Update diff_line_no for all lines after the insertion
     for (let i = insertionIndex + newAddedLines.length; i < updatedLines.length; i++) {
-      updatedLines[i].diff_line_no = ++lastDiffLineNo;
+      updatedLines[i]!.diff_line_no = ++lastDiffLineNo;
     }
 
     updateHunk.mutate({hunkIndex, lines: updatedLines, repoId, fileName});
@@ -332,15 +332,15 @@ function DiffHunkContent({
   };
 
   const getStartLineNumber = (index: number, lineType: DiffLineType) => {
-    const line = linesWithChanges[index];
+    const line = linesWithChanges[index]!;
     if (lineType === DiffLineType.REMOVED) {
       return line.source_line_no;
     }
     if (lineType === DiffLineType.ADDED) {
       // Find the first non-null target_line_no
       for (let i = index; i < linesWithChanges.length; i++) {
-        if (linesWithChanges[i].target_line_no !== null) {
-          return linesWithChanges[i].target_line_no;
+        if (linesWithChanges[i]!.target_line_no !== null) {
+          return linesWithChanges[i]!.target_line_no;
         }
       }
     }

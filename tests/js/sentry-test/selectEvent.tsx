@@ -23,7 +23,7 @@
 
 import userEvent from '@testing-library/user-event'; // eslint-disable-line no-restricted-imports
 
-import {findAllByText, findByText, type Matcher, waitFor} from './reactTestingLibrary';
+import {type Matcher, waitFor, within} from 'sentry-test/reactTestingLibrary';
 
 /**
  * Find the react-select container from its input field
@@ -107,14 +107,14 @@ const select = async (
     }
 
     // only consider visible, interactive elements
-    const matchingElements = await findAllByText(container, option, {
+    const matchingElements = await within(container).findAllByText(option, {
       ignore: "[aria-live] *,[style*='visibility: hidden']",
     });
 
     // When the target option is already selected, the react-select display text
     // will also match the selector. In this case, the actual dropdown element is
     // positioned last in the DOM tree.
-    const optionElement = matchingElements[matchingElements.length - 1];
+    const optionElement = matchingElements[matchingElements.length - 1]!;
     await user.click(optionElement, {skipHover: true});
   }
 };
@@ -147,7 +147,7 @@ const create = async (
   await select(input, createOptionText, {...config, user});
 
   if (waitForElement) {
-    await findByText(getReactSelectContainerFromInput(input), option);
+    await within(getReactSelectContainerFromInput(input)).findByText(option);
   }
 };
 
@@ -161,6 +161,7 @@ const clearFirst = async (
 ) => {
   const container = getReactSelectContainerFromInput(input);
   // The "clear" button is the first svg element that is hidden to screen readers
+  // eslint-disable-next-line testing-library/no-node-access
   const clearButton = container.querySelector('svg[aria-hidden="true"]')!;
   await clear(clearButton, {user});
 };
@@ -176,8 +177,9 @@ const clearAll = async (
   const container = getReactSelectContainerFromInput(input);
   // The "clear all" button is the penultimate svg element that is hidden to screen readers
   // (the last one is the dropdown arrow)
+  // eslint-disable-next-line testing-library/no-node-access
   const elements = container.querySelectorAll('svg[aria-hidden="true"]');
-  const clearAllButton = elements[elements.length - 2];
+  const clearAllButton = elements[elements.length - 2]!;
   await clear(clearAllButton, {user});
 };
 

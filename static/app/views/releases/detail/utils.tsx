@@ -35,18 +35,18 @@ export function getFilesByRepository(fileList: CommitFile[]) {
       filesByRepository[repoName] = {};
     }
 
-    if (!filesByRepository[repoName].hasOwnProperty(filename)) {
-      filesByRepository[repoName][filename] = {
+    if (!filesByRepository[repoName]!.hasOwnProperty(filename)) {
+      filesByRepository[repoName]![filename] = {
         authors: {},
         types: new Set(),
       };
     }
 
     if (author.email) {
-      filesByRepository[repoName][filename].authors[author.email] = author;
+      filesByRepository[repoName]![filename].authors[author.email] = author;
     }
 
-    filesByRepository[repoName][filename].types.add(type);
+    filesByRepository[repoName]![filename].types.add(type);
 
     return filesByRepository;
   }, {});
@@ -63,7 +63,7 @@ export function getCommitsByRepository(commitList: Commit[]): CommitsByRepositor
       commitsByRepository[repositoryName] = [];
     }
 
-    commitsByRepository[repositoryName].push(commit);
+    commitsByRepository[repositoryName]!.push(commit);
 
     return commitsByRepository;
   }, {});

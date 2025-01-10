@@ -78,7 +78,7 @@ describe('View Hierarchy', function () {
   it('can expand and collapse by clicking the icon', async function () {
     render(<ViewHierarchy viewHierarchy={MOCK_DATA} project={project} />);
 
-    expect(screen.queryByText('Text')).toBeInTheDocument();
+    expect(screen.getByText('Text')).toBeInTheDocument();
 
     await userEvent.click(
       within(screen.getByLabelText('Nested Container - nested')).getByRole('button', {
@@ -90,13 +90,13 @@ describe('View Hierarchy', function () {
 
     await userEvent.click(screen.getByRole('button', {name: 'Expand'}));
 
-    expect(screen.queryByText('Text')).toBeInTheDocument();
+    expect(screen.getByText('Text')).toBeInTheDocument();
   });
 
   it('can navigate with keyboard shortcuts after a selection', async function () {
     render(<ViewHierarchy viewHierarchy={MOCK_DATA} project={project} />);
 
-    await userEvent.click(screen.getAllByText('Container - test_identifier')[0]);
+    await userEvent.click(screen.getAllByText('Container - test_identifier')[0]!);
 
     await userEvent.keyboard('{ArrowDown}');
 
@@ -107,7 +107,7 @@ describe('View Hierarchy', function () {
   it('can expand/collapse with the keyboard', async function () {
     render(<ViewHierarchy viewHierarchy={MOCK_DATA} project={project} />);
 
-    await userEvent.click(screen.getAllByText('Nested Container - nested')[0]);
+    await userEvent.click(screen.getAllByText('Nested Container - nested')[0]!);
 
     await userEvent.keyboard('{Enter}');
 
