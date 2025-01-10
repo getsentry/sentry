@@ -31,9 +31,10 @@ import {SortSelector} from './sortSelector';
 
 interface Props {
   monitorList: Monitor[];
+  linkToAlerts?: boolean;
 }
 
-export function OverviewTimeline({monitorList}: Props) {
+export function OverviewTimeline({monitorList, linkToAlerts}: Props) {
   const organization = useOrganization();
   const api = useApi();
   const queryClient = useQueryClient();
@@ -161,6 +162,7 @@ export function OverviewTimeline({monitorList}: Props) {
               handleToggleMuteEnvironment(monitor, env, isMuted)
             }
             onToggleStatus={handleToggleStatus}
+            linkToAlerts={linkToAlerts}
           />
         ))}
       </MonitorRows>

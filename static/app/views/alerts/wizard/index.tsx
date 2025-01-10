@@ -120,7 +120,9 @@ function AlertWizard({organization, params, location, projectId}: AlertWizardPro
                     ? AlertRuleType.METRIC
                     : alertOption === 'uptime_monitor'
                       ? AlertRuleType.UPTIME
-                      : AlertRuleType.ISSUE
+                      : alertOption === 'crons_monitor'
+                        ? AlertRuleType.CRONS
+                        : AlertRuleType.ISSUE
                 }/`,
                 query: {
                   ...(metricRuleTemplate ? metricRuleTemplate : {}),
