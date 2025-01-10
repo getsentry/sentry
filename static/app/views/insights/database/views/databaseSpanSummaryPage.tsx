@@ -62,7 +62,6 @@ export function DatabaseSpanSummaryPage({params}: Props) {
   const selectedAggregate = DEFAULT_DURATION_AGGREGATE;
 
   const {groupId} = params;
-  const {transaction, transactionMethod} = location.query;
 
   const filters: SpanMetricsQueryFilters = {
     'span.group': groupId,
@@ -290,8 +289,6 @@ export function DatabaseSpanSummaryPage({params}: Props) {
             <SampleList
               groupId={span[SpanMetricsField.SPAN_GROUP]}
               moduleName={ModuleName.DB}
-              transactionName={transaction}
-              transactionMethod={transactionMethod}
               referrer={TraceViewSources.QUERIES_MODULE}
             />
           </Layout.Main>

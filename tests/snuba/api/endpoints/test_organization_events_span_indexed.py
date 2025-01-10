@@ -616,7 +616,6 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         assert response.status_code == 200, response.content
         assert response.data["data"] == [{"foo": "", "count()": 1}]
 
-    @pytest.mark.xfail
     def test_count_field_type(self):
         response = self.do_request(
             {
@@ -680,7 +679,7 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
                         "sentry_tags": {"status": "success"},
                         "tags": {"bar": "bar2"},
                     },
-                    measurements={k: {"value": i + 1} for i, (k, _, _) in enumerate(keys)},
+                    measurements={k: {"value": (i + 1) / 10} for i, (k, _, _) in enumerate(keys)},
                     start_ts=self.ten_mins_ago,
                 ),
             ],
@@ -717,7 +716,7 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
             }
             assert response.data["data"] == [
                 {
-                    key: i + 1,
+                    key: pytest.approx((i + 1) / 10),
                     "id": mock.ANY,
                     "project.name": self.project.slug,
                 }
@@ -1664,7 +1663,6 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert data[0]["count()"] == 11
         assert confidence[0]["count()"] == "low"
 
-    @pytest.mark.xfail
     def test_aggregate_numeric_attr(self):
         self.store_spans(
             [
@@ -1839,3 +1837,95 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
     @pytest.mark.xfail(reason="wip: rate not implemented yet")
     def test_spm(self):
         super().test_spm()
+
+    def test_is_transaction(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "description": "foo",
+                        "sentry_tags": {"status": "success"},
+                        "is_segment": True,
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "description": "bar",
+                        "sentry_tags": {"status": "success"},
+                        "is_segment": False,
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["span.status", "description", "count()", "is_transaction"],
+                "query": "is_transaction:true",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data == [
+            {
+                "is_transaction": True,
+                "span.status": "success",
+                "description": "foo",
+                "count()": 1,
+            },
+        ]
+        assert meta["dataset"] == self.dataset
+
+    def test_is_not_transaction(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "description": "foo",
+                        "sentry_tags": {"status": "success"},
+                        "is_segment": True,
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "description": "bar",
+                        "sentry_tags": {"status": "success"},
+                        "is_segment": False,
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["span.status", "description", "count()", "is_transaction"],
+                "query": "is_transaction:0",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data == [
+            {
+                "is_transaction": False,
+                "span.status": "success",
+                "description": "bar",
+                "count()": 1,
+            },
+        ]
+        assert meta["dataset"] == self.dataset
