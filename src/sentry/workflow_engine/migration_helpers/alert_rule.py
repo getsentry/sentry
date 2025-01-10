@@ -1,5 +1,5 @@
-from typing import Any
 import logging
+from typing import Any
 
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.incidents.grouptype import MetricAlertFire
@@ -281,6 +281,7 @@ def migrate_alert_rule(
         detector_workflow,
     )
 
+
 def update_migrated_alert_rule(alert_rule: AlertRule, updated_fields: dict[str, Any]) -> (
     tuple[
         DetectorState,
@@ -371,6 +372,7 @@ def update_migrated_alert_rule(alert_rule: AlertRule, updated_fields: dict[str, 
 
     # TODO: do we need to create an audit log entry here?
     return detector_state, detector
+
 
 def get_data_source(alert_rule: AlertRule) -> DataSource | None:
     snuba_query = alert_rule.snuba_query
