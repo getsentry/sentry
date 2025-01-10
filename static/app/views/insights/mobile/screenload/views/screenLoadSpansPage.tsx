@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import omit from 'lodash/omit';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -9,6 +10,7 @@ import {DurationUnit} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {useLocation} from 'sentry/utils/useLocation';
+import useRouter from 'sentry/utils/useRouter';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
@@ -77,6 +79,7 @@ function ScreenLoadSpans() {
 }
 
 export function ScreenLoadSpansContent() {
+  const router = useRouter();
   const location = useLocation<Query>();
 
   const {
@@ -84,7 +87,6 @@ export function ScreenLoadSpansContent() {
     primaryRelease,
     secondaryRelease,
     transaction: transactionName,
-    spanDescription,
   } = location.query;
 
   useSamplesDrawer({
@@ -92,8 +94,12 @@ export function ScreenLoadSpansContent() {
       <SpanSamplesPanel
         groupId={spanGroup}
         moduleName={ModuleName.SCREEN_LOAD}
-        transactionName={transactionName}
-        spanDescription={spanDescription}
+        onClose={() => {
+          router.replace({
+            pathname: router.location.pathname,
+            query: omit(router.location.query, 'spanGroup', 'transactionMethod'),
+          });
+        }}
       />
     ),
     moduleName: ModuleName.SCREEN_LOAD,

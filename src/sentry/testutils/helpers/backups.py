@@ -44,7 +44,10 @@ from sentry.backup.scopes import ExportScope
 from sentry.backup.validate import validate
 from sentry.data_secrecy.models import DataSecrecyWaiver
 from sentry.db.models.paranoia import ParanoidModel
-from sentry.incidents.models.alert_rule import AlertRuleMonitorTypeInt
+from sentry.incidents.models.alert_rule_activations import (
+    AlertRuleActivationCondition,
+    AlertRuleActivations,
+)
 from sentry.incidents.models.incident import (
     IncidentActivity,
     IncidentSnapshot,
@@ -120,6 +123,7 @@ from sentry.workflow_engine.models import (
     AlertRuleWorkflow,
     DataConditionGroup,
 )
+from sentry.workflow_engine.models.action_group_status import ActionGroupStatus
 
 __all__ = [
     "export_to_file",
@@ -523,21 +527,16 @@ class ExhaustiveFixtures(Fixtures):
         trigger = self.create_alert_rule_trigger(alert_rule=alert)
         assert alert.snuba_query is not None
         self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
-        activated_alert = self.create_alert_rule(
-            organization=org,
-            projects=[project],
-            monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
-            activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
-        )
-        self.create_alert_rule_activation(
-            alert_rule=activated_alert,
-            project=project,
+
+        AlertRuleActivations.objects.create(
+            alert_rule=alert,
+            finished_at=None,
             metric_value=100,
-            activator="testing exhaustive",
-            activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
+            query_subscription=None,
+            condition_type=AlertRuleActivationConditionType.RELEASE_CREATION.value,
+            activator="testing",
         )
-        activated_trigger = self.create_alert_rule_trigger(alert_rule=activated_alert)
-        self.create_alert_rule_trigger_action(alert_rule_trigger=activated_trigger)
+        AlertRuleActivationCondition.objects.create(alert_rule=alert, condition_type=None)
 
         # Incident*
         incident = self.create_incident(org, [project])
@@ -708,6 +707,7 @@ class ExhaustiveFixtures(Fixtures):
         AlertRuleTriggerDataCondition.objects.create(
             alert_rule_trigger=trigger, data_condition=data_condition
         )
+        ActionGroupStatus.objects.create(action=send_notification_action, group=group)
 
         TempestCredentials.objects.create(
             project=project,

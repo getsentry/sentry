@@ -17,7 +17,7 @@ django-pg-zero-downtime-migrations>=0.16
 Django>=5.1.1
 djangorestframework>=3.15.1
 drf-spectacular>=0.26.3
-email-reply-parser>=0.5.12
+sentry-forked-email-reply-parser>=0.5.12.post1
 google-api-core>=2.19.1
 google-auth>=2.29.0
 google-cloud-bigtable>=2.26.0
@@ -66,7 +66,7 @@ rfc3339-validator>=0.1.2
 rfc3986-validator>=0.1.1
 # [end] jsonschema format validators
 sentry-arroyo>=2.19.9
-sentry-kafka-schemas>=0.1.126
+sentry-kafka-schemas>=0.1.128
 sentry-ophio==1.0.0
 sentry-protos>=0.1.37
 sentry-redis-tools>=0.1.7

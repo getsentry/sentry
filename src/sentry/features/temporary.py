@@ -42,8 +42,6 @@ def register_temporary_features(manager: FeatureManager):
     # Organization scoped features that are in development or in customer trials. #
     ###############################################################################
 
-    # Enables activated alert rules
-    manager.add("organizations:activated-alert-rules", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable AI Issue Summary feature on the Issue Details page.
     manager.add("organizations:ai-summary", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables alert creation on indexed events in UI (use for PoC/testing only)
@@ -98,8 +96,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:dashboards-span-metrics", OrganizationFeature, FeatureHandlerStrategy.OPTIONS, api_expose=False)
     # Enable table view on dashboards landing page
     manager.add("organizations:dashboards-table-view", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable access protected editing of dashboards
-    manager.add("organizations:dashboards-edit-access", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable share links for dashboards for sharing outside the org
     manager.add("organizations:dashboards-share", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable favouriting dashboards

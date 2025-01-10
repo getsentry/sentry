@@ -11,16 +11,23 @@ import {
 import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Tooltip} from 'sentry/components/tooltip';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatTraceDuration} from 'sentry/utils/duration/formatTraceDuration';
+import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {replayPlayerTimestampEmitter} from 'sentry/utils/replays/replayPlayerTimestampEmitter';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {
+  getFormattedDuration,
+  WEB_VITALS_METERS_CONFIG,
+} from 'sentry/views/insights/browser/webVitals/components/webVitalMeters';
+import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import {
   scoreToStatus,
   STATUS_TEXT,
@@ -396,7 +403,7 @@ export function Trace({
       </div>
       <div className="TraceDivider" ref={manager.registerDividerRef} />
       <div
-        className="TraceIndicatorContainer"
+        className="TraceIndicatorsContainer"
         ref={manager.registerIndicatorContainerRef}
       >
         {trace.indicators.length > 0
@@ -405,16 +412,39 @@ export function Trace({
                 indicator.score === undefined
                   ? 'none'
                   : STATUS_TEXT[scoreToStatus(indicator.score)];
+              const webvital = indicator.label.toLowerCase() as WebVitals;
+
+              const defaultFormatter = (value: number) =>
+                getFormattedDuration(value / 1000);
+              const formatter =
+                WEB_VITALS_METERS_CONFIG[webvital]?.formatter ?? defaultFormatter;
 
               return (
-                <div
-                  key={i}
-                  ref={r => manager.registerIndicatorRef(r, i, indicator)}
-                  className={`TraceIndicator ${indicator.poor ? 'Errored' : ''}`}
-                >
-                  <div className={`TraceIndicatorLabel ${status}`}>{indicator.label}</div>
-                  <div className={`TraceIndicatorLine ${status}`} />
-                </div>
+                <Fragment key={i}>
+                  <div
+                    key={i}
+                    ref={r => manager.registerIndicatorLabelRef(r, i, indicator)}
+                    className={`TraceIndicatorLabelContainer ${status}`}
+                  >
+                    <Tooltip
+                      title={
+                        <div>
+                          {WEB_VITAL_DETAILS[`measurements.${webvital}`]?.name}
+                          <br />
+                          {formatter(indicator.measurement.value)} - {status}
+                        </div>
+                      }
+                    >
+                      <div className="TraceIndicatorLabel">{indicator.label}</div>
+                    </Tooltip>
+                  </div>
+                  <div
+                    ref={r => manager.registerIndicatorRef(r, i, indicator)}
+                    className={`TraceIndicator ${indicator.poor ? 'Errored' : ''}`}
+                  >
+                    <div className={`TraceIndicatorLine ${status}`} />
+                  </div>
+                </Fragment>
               );
             })
           : null}
@@ -432,7 +462,7 @@ export function Trace({
               ref={r => manager.registerTimelineIndicatorRef(r, i)}
               className="TraceIndicator Timeline"
             >
-              <div className="TraceIndicatorLabel">
+              <div className="TraceIndicatorLabelContainer">
                 {indicatorTimestamp > 0
                   ? formatTraceDuration(manager.view.trace_view.x + indicatorTimestamp)
                   : '0s'}
@@ -754,10 +784,9 @@ const TraceStylingWrapper = styled('div')`
     }
 
     .TraceIndicator.Timeline {
-      .TraceIndicatorLabel {
+      .TraceIndicatorLabelContainer {
         top: 26px;
       }
-
       .TraceIndicatorLine {
         top: 30px;
       }
@@ -847,7 +876,7 @@ const TraceStylingWrapper = styled('div')`
     }
   }
 
-  .TraceIndicatorContainer {
+  .TraceIndicatorsContainer {
     overflow: hidden;
     width: 100%;
     height: 100%;
@@ -858,51 +887,55 @@ const TraceStylingWrapper = styled('div')`
     pointer-events: none;
   }
 
+  .TraceIndicatorLabelContainer {
+    min-width: 34px;
+    text-align: center;
+    position: absolute;
+    font-size: 10px;
+    font-weight: ${p => p.theme.fontWeightBold};
+    color: ${p => p.theme.textColor};
+    background-color: ${p => p.theme.background};
+    border-radius: ${p => p.theme.borderRadius};
+    border: 1px solid ${p => p.theme.border};
+    display: inline-block;
+    line-height: 1;
+    margin-top: 2px;
+    white-space: nowrap;
+    pointer-events: auto;
+    cursor: pointer;
+
+    &:hover {
+      z-index: 10;
+      & + div {
+        z-index: 10;
+      }
+    }
+
+    &.Poor {
+      color: ${p => p.theme.red300};
+      border: 1px solid ${p => p.theme.red300};
+    }
+
+    &.Meh {
+      color: ${p => p.theme.yellow400};
+      border: 1px solid ${p => p.theme.yellow300};
+    }
+
+    &.Good {
+      color: ${p => p.theme.green300};
+      border: 1px solid ${p => p.theme.green300};
+    }
+  }
+
+  .TraceIndicatorLabel {
+    padding: 2px;
+  }
+
   .TraceIndicator {
-    z-index: 1;
     width: 3px;
     height: 100%;
     top: 0;
     position: absolute;
-
-    &:hover {
-      z-index: 10;
-    }
-
-    .TraceIndicatorLabel {
-      min-width: 34px;
-      text-align: center;
-      position: absolute;
-      font-size: 10px;
-      font-weight: ${p => p.theme.fontWeightBold};
-      color: ${p => p.theme.textColor};
-      background-color: ${p => p.theme.background};
-      border-radius: ${p => p.theme.borderRadius};
-      border: 1px solid ${p => p.theme.border};
-      padding: 2px;
-      display: inline-block;
-      line-height: 1;
-      margin-top: 2px;
-      white-space: nowrap;
-
-      &.Poor {
-        color: ${p => p.theme.red300};
-        border: 1px solid ${p => p.theme.red300};
-        background: ${p => p.theme.red100};
-      }
-
-      &.Meh {
-        color: ${p => p.theme.yellow400};
-        border: 1px solid ${p => p.theme.yellow300};
-        background: ${p => p.theme.yellow100};
-      }
-
-      &.Good {
-        color: ${p => p.theme.green300};
-        border: 1px solid ${p => p.theme.green300};
-        background: ${p => p.theme.green100};
-      }
-    }
 
     .TraceIndicatorLine {
       width: 1px;
@@ -964,7 +997,7 @@ const TraceStylingWrapper = styled('div')`
     }
 
     &.Errored {
-      .TraceIndicatorLabel {
+      .TraceIndicatorLabelContainer {
         border: 1px solid ${p => p.theme.error};
         color: ${p => p.theme.error};
       }
@@ -984,7 +1017,7 @@ const TraceStylingWrapper = styled('div')`
       z-index: 1;
       pointer-events: none;
 
-      .TraceIndicatorLabel {
+      .TraceIndicatorLabelContainer {
         font-weight: ${p => p.theme.fontWeightNormal};
         min-width: 0;
         top: 8px;

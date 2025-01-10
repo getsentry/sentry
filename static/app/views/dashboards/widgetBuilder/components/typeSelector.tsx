@@ -30,8 +30,8 @@ const displayTypes = {
 };
 
 interface WidgetBuilderTypeSelectorProps {
-  error: Record<string, any>;
-  setError: (error: Record<string, any>) => void;
+  error?: Record<string, any>;
+  setError?: (error: Record<string, any>) => void;
 }
 
 function WidgetBuilderTypeSelector({error, setError}: WidgetBuilderTypeSelectorProps) {
@@ -44,7 +44,11 @@ function WidgetBuilderTypeSelector({error, setError}: WidgetBuilderTypeSelectorP
         tooltipText={t('This is the type of visualization (ex. line chart)')}
         title={t('Type')}
       />
-      <StyledFieldGroup error={error.displayType} inline={false} flexibleControlStateSize>
+      <StyledFieldGroup
+        error={error?.displayType}
+        inline={false}
+        flexibleControlStateSize
+      >
         <SelectControl
           name="displayType"
           value={state.displayType}
@@ -59,7 +63,7 @@ function WidgetBuilderTypeSelector({error, setError}: WidgetBuilderTypeSelectorP
             if (newValue?.value === state.displayType) {
               return;
             }
-            setError({...error, displayType: undefined});
+            setError?.({...error, displayType: undefined});
 
             dispatch({
               type: BuilderStateAction.SET_DISPLAY_TYPE,

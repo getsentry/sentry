@@ -1,5 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {useRouter} from '@react-aria/utils';
+import omit from 'lodash/omit';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
@@ -18,7 +20,7 @@ import {SamplesTables} from 'sentry/views/insights/mobile/common/components/tabl
 import {SpanOperationTable} from 'sentry/views/insights/mobile/ui/components/tables/spanOperationTable';
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {isModuleEnabled} from 'sentry/views/insights/pages/utils';
-import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
+import {ModuleName} from 'sentry/views/insights/types';
 
 type Query = {
   'device.class': string;
@@ -63,27 +65,28 @@ function ScreenSummary() {
 }
 
 export function ScreenSummaryContent() {
+  const router = useRouter();
   const location = useLocation<Query>();
 
-  const {
-    transaction: transactionName,
-    spanGroup,
-    spanDescription,
-    spanOp,
-    'device.class': deviceClass,
-  } = location.query;
+  const {transaction: transactionName, spanGroup} = location.query;
 
   useSamplesDrawer({
     Component: (
       <SpanSamplesPanel
-        additionalFilters={{
-          ...(deviceClass ? {[SpanMetricsField.DEVICE_CLASS]: deviceClass} : {}),
-        }}
         groupId={spanGroup}
         moduleName={ModuleName.OTHER}
-        transactionName={transactionName}
-        spanDescription={spanDescription}
-        spanOp={spanOp}
+        onClose={() => {
+          router.replace({
+            pathname: router.location.pathname,
+            query: omit(
+              router.location.query,
+              'spanGroup',
+              'transactionMethod',
+              'spanDescription',
+              'spanOp'
+            ),
+          });
+        }}
       />
     ),
     moduleName: ModuleName.OTHER,

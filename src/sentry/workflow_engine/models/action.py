@@ -29,14 +29,24 @@ class Action(DefaultFieldsModel):
     __repr__ = sane_repr("id", "type")
 
     class Type(models.TextChoices):
-        EMAIL = "email"
         SLACK = "slack"
-        PAGERDUTY = "pagerduty"
-        WEBHOOK = "webhook"
+        MSTEAMS = "msteams"
+        DISCORD = "discord"
 
-    class LegacyNotificationType(models.TextChoices):
-        ISSUE_ALERT = "issue"
-        METRIC_ALERT = "metric"
+        PAGERDUTY = "pagerduty"
+        OPSGENIE = "opsgenie"
+
+        GITHUB = "github"
+        GITHUB_ENTERPRISE = "github_enterprise"
+        JIRA = "jira"
+        JIRA_SERVER = "jira_server"
+        AZURE_DEVOPS = "azure_devops"
+
+        EMAIL = "email"
+        SENTRY_APP = "sentry_app"
+
+        PLUGIN = "plugin"
+        WEBHOOK = "webhook"
 
     # The type field is used to denote the type of action we want to trigger
     type = models.TextField(choices=Type.choices)
@@ -49,13 +59,6 @@ class Action(DefaultFieldsModel):
     # This allows us to map the way we're saving the notification channels to the action.
     integration_id = HybridCloudForeignKey(
         "sentry.Integration", blank=True, null=True, on_delete="CASCADE"
-    )
-
-    # LEGACY: The legacy_notification_type is used to denote if this notification was for an issue alert, metric alert, etc.
-    # We need this because of how tightly coupled the notification system is with the legacy alert models
-    legacy_notification_type = models.TextField(
-        null=True,
-        choices=LegacyNotificationType.choices,
     )
 
     # LEGACY: The target_display is used to display the target's name in notifications

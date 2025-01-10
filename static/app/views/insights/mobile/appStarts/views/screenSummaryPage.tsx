@@ -89,10 +89,7 @@ export function ScreenSummaryContentPage() {
     secondaryRelease,
     transaction: transactionName,
     spanGroup,
-    spanDescription,
-    spanOp,
     [SpanMetricsField.APP_START_TYPE]: appStartType,
-    'device.class': deviceClass,
   } = location.query;
 
   useEffect(() => {
@@ -114,15 +111,8 @@ export function ScreenSummaryContentPage() {
   useSamplesDrawer({
     Component: (
       <SpanSamplesPanel
-        additionalFilters={{
-          [SpanMetricsField.APP_START_TYPE]: appStartType,
-          ...(deviceClass ? {[SpanMetricsField.DEVICE_CLASS]: deviceClass} : {}),
-        }}
         groupId={spanGroup}
         moduleName={ModuleName.APP_START}
-        transactionName={transactionName}
-        spanDescription={spanDescription}
-        spanOp={spanOp}
         onClose={() => {
           navigate(
             {

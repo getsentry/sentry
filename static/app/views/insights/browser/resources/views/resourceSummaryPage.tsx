@@ -3,7 +3,6 @@ import React from 'react';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t, tct} from 'sentry/locale';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
 import ResourceSummaryCharts from 'sentry/views/insights/browser/resources/components/charts/resourceSummaryCharts';
 import RenderBlockingSelector from 'sentry/views/insights/browser/resources/components/renderBlockingSelector';
@@ -45,18 +44,13 @@ function ResourceSummary() {
   const {groupId} = useParams();
   const filters = useResourceModuleFilters();
   const selectedSpanOp = filters[SPAN_OP];
-  const {
-    query: {transaction},
-  } = useLocation();
 
   useSamplesDrawer({
     Component: (
       <SampleList
-        transactionRoute={webVitalsModuleURL}
-        subregions={filters[SpanMetricsField.USER_GEO_SUBREGION]}
         groupId={groupId!}
         moduleName={ModuleName.RESOURCE}
-        transactionName={transaction as string}
+        transactionRoute={webVitalsModuleURL}
         referrer={TraceViewSources.ASSETS_MODULE}
       />
     ),

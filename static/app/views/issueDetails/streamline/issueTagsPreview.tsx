@@ -5,6 +5,7 @@ import Placeholder from 'sentry/components/placeholder';
 import {space} from 'sentry/styles/space';
 import {TagPreviewDistribution} from 'sentry/views/issueDetails/groupTags/tagDistribution';
 import {useGroupTagsReadable} from 'sentry/views/issueDetails/groupTags/useGroupTags';
+import {useEventQuery} from 'sentry/views/issueDetails/streamline/eventSearch';
 
 export default function IssueTagsPreview({
   groupId,
@@ -13,6 +14,8 @@ export default function IssueTagsPreview({
   environments: string[];
   groupId: string;
 }) {
+  const searchQuery = useEventQuery({groupId});
+
   const {
     isError,
     isPending,
@@ -20,7 +23,6 @@ export default function IssueTagsPreview({
   } = useGroupTagsReadable({
     groupId,
     environment: environments,
-    limit: 3,
   });
   const tagsToPreview = useMemo(() => {
     const priorityTags = ['browser.name', 'os.name', 'runtime.name', 'environment'];
@@ -36,12 +38,11 @@ export default function IssueTagsPreview({
     return (
       <LoadingContainer style={{paddingTop: space(1)}}>
         <Placeholder width="320px" height="95px" />
-        <SectionDivider />
       </LoadingContainer>
     );
   }
 
-  if (isError || !tagsToPreview) {
+  if (isError || !tagsToPreview || searchQuery || tagsToPreview.length === 0) {
     return null;
   }
 
@@ -52,7 +53,6 @@ export default function IssueTagsPreview({
           <TagPreviewDistribution key={tag.key} tag={tag} />
         ))}
       </TagsPreview>
-      <SectionDivider />
     </Fragment>
   );
 }
@@ -84,15 +84,4 @@ const TagsPreview = styled('div')`
 const LoadingContainer = styled('div')`
   padding-top: ${space(1)};
   display: flex;
-`;
-
-const SectionDivider = styled('div')`
-  border-left: 1px solid ${p => p.theme.translucentBorder};
-  display: flex;
-  align-items: center;
-  margin: ${space(1)};
-
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    display: none;
-  }
 `;

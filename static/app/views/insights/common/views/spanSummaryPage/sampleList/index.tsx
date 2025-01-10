@@ -11,12 +11,14 @@ import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {DATA_TYPE} from 'sentry/views/insights/browser/resources/settings';
+import decodeSubregions from 'sentry/views/insights/browser/resources/utils/queryParameterDecoders/subregions';
 import {DEFAULT_COLUMN_ORDER} from 'sentry/views/insights/common/components/samplesTable/spanSamplesTable';
 import DurationChart from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart';
 import SampleInfo from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/sampleInfo';
@@ -26,7 +28,6 @@ import {
   ModuleName,
   SpanIndexedField,
   SpanMetricsField,
-  type SubregionCode,
 } from 'sentry/views/insights/types';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 
@@ -38,24 +39,26 @@ const {HTTP_RESPONSE_CONTENT_LENGTH, SPAN_DESCRIPTION} = SpanMetricsField;
 type Props = {
   groupId: string;
   moduleName: ModuleName;
-  transactionName: string;
   referrer?: string;
-  subregions?: SubregionCode[];
-  transactionMethod?: string;
   transactionRoute?: string;
 };
 
-export function SampleList({
-  groupId,
-  moduleName,
-  transactionName,
-  transactionMethod,
-  subregions,
-  transactionRoute,
-  referrer,
-}: Props) {
+export function SampleList({groupId, moduleName, transactionRoute, referrer}: Props) {
   const organization = useOrganization();
   const {view} = useDomainViewFilters();
+
+  const {
+    transaction: transactionName,
+    transactionMethod,
+    [SpanMetricsField.USER_GEO_SUBREGION]: subregions,
+  } = useLocationQuery({
+    fields: {
+      transaction: decodeScalar,
+      transactionMethod: decodeScalar,
+      [SpanMetricsField.USER_GEO_SUBREGION]: decodeSubregions,
+    },
+  });
+
   const router = useRouter();
   const [highlightedSpanId, setHighlightedSpanId] = useState<string | undefined>(
     undefined
