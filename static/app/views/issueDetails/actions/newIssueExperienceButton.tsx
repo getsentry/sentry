@@ -22,7 +22,7 @@ export function NewIssueExperienceButton() {
   const hasEnforceStreamlinedUIFlag = organization.features.includes(
     'issue-details-streamline-enforce'
   );
-  const hasOnlyOneUIOption = organization.streamlineOnly;
+  const hasOnlyOneUIOption = defined(organization.streamlineOnly);
 
   const hasStreamlinedUI = useHasStreamlinedUI();
   const openForm = useFeedbackForm();
