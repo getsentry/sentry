@@ -5,8 +5,8 @@ import logging
 import multiprocessing
 import queue
 import signal
+import sys
 import time
-from multiprocessing.context import TimeoutError
 from types import FrameType
 from typing import Any
 from uuid import uuid4
@@ -94,7 +94,8 @@ def child_worker(
             processed_tasks.put(
                 ProcessingResult(task_id=current_task_id, status=TASK_ACTIVATION_STATUS_FAILURE)
             )
-        raise TimeoutError("Task proessing_deadline_duration exceeded")
+        metrics.incr("taskworker.worker.processing_deadline_exceeded")
+        sys.exit(1)
 
     signal.signal(signal.SIGALRM, handle_alarm)
 
@@ -339,7 +340,7 @@ class TaskWorker:
         return True
 
     def _spawn_children(self) -> None:
-        active_children = [child.is_alive() for child in self._children]
+        active_children = [child for child in self._children if child.is_alive()]
         if len(active_children) >= self._concurrency:
             return
         for _ in range(self._concurrency - len(active_children)):
@@ -353,7 +354,8 @@ class TaskWorker:
                 ),
             )
             process.start()
-            self._children.append(process)
+            active_children.append(process)
+        self._children = active_children
 
     def fetch_task(self) -> TaskActivation | None:
         try:
