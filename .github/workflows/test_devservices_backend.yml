@@ -14,6 +14,7 @@ env:
   SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
   USE_NEW_DEVSERVICES: 1
   IS_DEV: 1
+  SNUBA_NO_WORKERS: 1
 
 jobs:
   devservices-api-docs:
