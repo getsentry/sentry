@@ -65,7 +65,11 @@ function WidgetBuilderSlideout({
   const showTemplates = localStorage.getItem('showTemplates') === 'true';
 
   const isEditing = widgetIndex !== undefined;
-  const title = isEditing ? t('Edit Widget') : t('Create Custom Widget');
+  const title = showTemplates
+    ? t('Add from Widget Library')
+    : isEditing
+      ? t('Edit Widget')
+      : t('Create Custom Widget');
   const isChartWidget =
     state.displayType !== DisplayType.BIG_NUMBER &&
     state.displayType !== DisplayType.TABLE;
