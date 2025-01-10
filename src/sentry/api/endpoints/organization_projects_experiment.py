@@ -2,6 +2,7 @@ import logging
 import random
 import string
 from email.headerregistry import Address
+from typing import TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 from django.db import IntegrityError, router, transaction
@@ -51,6 +52,12 @@ class OrgProjectPermission(OrganizationPermission):
     scope_map = {
         "POST": ["project:read", "project:write", "project:admin"],
     }
+
+
+class AuditData(TypedDict):
+    request: Request
+    organization: Organization
+    target_object: int
 
 
 @region_silo_endpoint
@@ -172,13 +179,29 @@ class OrganizationProjectsExperimentEndpoint(OrganizationEndpoint):
             event=audit_log.get_event_id("TEAM_ADD"),
             data=team.get_audit_log_data(),
         )
-        self.create_audit_entry(
-            request=request,
-            organization=team.organization,
-            target_object=project.id,
-            event=audit_log.get_event_id("PROJECT_ADD"),
-            data=project.get_audit_log_data(),
-        )
+
+        common_audit_data: AuditData = {
+            "request": request,
+            "organization": team.organization,
+            "target_object": project.id,
+        }
+
+        if request.data.get("origin"):
+            self.create_audit_entry(
+                **common_audit_data,
+                event=audit_log.get_event_id("PROJECT_ADD_WITH_ORIGIN"),
+                data={
+                    **project.get_audit_log_data(),
+                    "origin": request.data.get("origin"),
+                },
+            )
+        else:
+            self.create_audit_entry(
+                **common_audit_data,
+                event=audit_log.get_event_id("PROJECT_ADD"),
+                data={**project.get_audit_log_data()},
+            )
+
         project_created.send(
             project=project,
             user=request.user,
