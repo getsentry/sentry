@@ -19,7 +19,7 @@ jobs:
           node-version-file: '.volta.json'
 
       - name: node_modules cache
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
+        uses: actions/cache@v4.2.0
         id: nodemodulescache
         with:
           path: node_modules
