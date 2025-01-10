@@ -193,7 +193,7 @@ def test_namespace_with_wait_for_delivery_send_task() -> None:
     activation = simple_task.create_activation()
 
     with patch.object(namespace, "producer") as mock_producer:
-        ret_value = Future()
+        ret_value: Future[None] = Future()
         ret_value.set_result(None)
         mock_producer.produce.return_value = ret_value
         namespace.send_task(activation, wait_for_delivery=True)
