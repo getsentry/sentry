@@ -11,6 +11,7 @@ from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.users.services.user.service import user_service
 from sentry.workflow_engine.migration_helpers.alert_rule import (
     dual_delete_migrated_alert_rule,
+    get_resolve_threshold,
     migrate_alert_rule,
     migrate_metric_action,
     migrate_metric_data_conditions,
@@ -230,7 +231,7 @@ class AlertRuleMigrationHelpersTest(APITestCase):
         assert critical_detector_trigger.condition_result == DetectorPriorityLevel.HIGH
         assert critical_detector_trigger.condition_group == detector.workflow_condition_group
 
-        assert resolve_detector_trigger.type == Condition.LESS
+        assert resolve_detector_trigger.type == Condition.LESS_OR_EQUAL
         assert resolve_detector_trigger.condition_result == DetectorPriorityLevel.OK
         assert resolve_detector_trigger.condition_group == detector.workflow_condition_group
 
@@ -269,6 +270,25 @@ class AlertRuleMigrationHelpersTest(APITestCase):
         assert WorkflowDataConditionGroup.objects.filter(
             condition_group=resolve_data_condition.condition_group
         ).exists()
+
+    def test_calculate_resolve_threshold_critical_only(self):
+        migrate_alert_rule(self.metric_alert, self.rpc_user)
+        migrate_metric_data_conditions(self.alert_rule_trigger_critical)
+
+        detector = AlertRuleDetector.objects.get(alert_rule=self.metric_alert).detector
+        detector_dcg = detector.workflow_condition_group
+        resolve_threshold = get_resolve_threshold(detector_dcg)
+        assert resolve_threshold == self.alert_rule_trigger_critical.alert_threshold
+
+    def test_calculat_resolve_threshold_with_warning(self):
+        migrate_alert_rule(self.metric_alert, self.rpc_user)
+        migrate_metric_data_conditions(self.alert_rule_trigger_warning)
+        migrate_metric_data_conditions(self.alert_rule_trigger_critical)
+
+        detector = AlertRuleDetector.objects.get(alert_rule=self.metric_alert).detector
+        detector_dcg = detector.workflow_condition_group
+        resolve_threshold = get_resolve_threshold(detector_dcg)
+        assert resolve_threshold == self.alert_rule_trigger_warning.alert_threshold
 
     def test_create_metric_alert_trigger_action(self):
         """

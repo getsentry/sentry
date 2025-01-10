@@ -147,9 +147,7 @@ def migrate_metric_data_conditions(
     return detector_trigger, data_condition, alert_rule_trigger_data_condition
 
 
-def get_resolve_threshold(
-    detector_data_condition_group: DataConditionGroup, threshold_type: AlertRuleThresholdType
-) -> float:
+def get_resolve_threshold(detector_data_condition_group: DataConditionGroup) -> float:
     """
     Helper method to get the resolve threshold for a Detector if none is specified on
     the legacy AlertRule.
@@ -164,20 +162,6 @@ def get_resolve_threshold(
     else:
         # critical threshold value
         resolve_threshold = detector_triggers.first().comparison
-
-    # XXX (mifu67): I saw this workaround for off by one error on the original auto-resolution.
-    # Do we still need this? Copying the comment over:
-    # -------------------------
-    # Since we only support gt/lt thresholds we have an off-by-one with auto
-    # resolve. If we have an alert threshold of > 0, and no resolve threshold, then
-    # we'd automatically set this to < 0, which can never happen. To work around
-    # this, we add a small amount to the number so that in this case we'd have
-    # the resolve threshold be < 0.000001. This means that when we hit 0 we'll still
-    # resolve as expected.
-    if threshold_type == AlertRuleThresholdType.ABOVE.value:
-        resolve_threshold += 0.000001
-    else:
-        resolve_threshold -= 0.000001
 
     return resolve_threshold
 
@@ -195,16 +179,16 @@ def migrate_resolve_threshold_data_conditions(alert_rule: AlertRule) -> DataCond
     # XXX: we set the resolve trigger's threshold_type to whatever the opposite of the rule's threshold_type is
     # e.g. if the rule has a critical trigger ABOVE some number, the resolve threshold is automatically set to BELOW
     threshold_type = (
-        Condition.LESS
+        Condition.LESS_OR_EQUAL
         if alert_rule.threshold_type == AlertRuleThresholdType.ABOVE.value
-        else Condition.GREATER
+        else Condition.GREATER_OR_EQUAL
     )
 
     if alert_rule.resolve_threshold is not None:
         resolve_threshold = alert_rule.resolve_threshold
     else:
         # figure out the resolve threshold ourselves
-        resolve_threshold = get_resolve_threshold(detector_data_condition_group, threshold_type)
+        resolve_threshold = get_resolve_threshold(detector_data_condition_group)
 
     detector_trigger = DataCondition.objects.create(
         comparison=resolve_threshold,
