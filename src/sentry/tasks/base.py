@@ -86,15 +86,11 @@ def instrumented_task(name, stat_suffix=None, silo_mode=None, record_timing=Fals
     def wrapped(func):
         @wraps(func)
         def _wrapped(*args, **kwargs):
-            record_timing_rollout = options.get("sentry.tasks.record.timing.rollout")
             do_record_timing_rollout = False
+            record_timing_rollout = options.get("sentry.tasks.record.timing.rollout")
             if record_timing_rollout and record_timing_rollout > random():
                 do_record_timing_rollout = True
-
             record_queue_wait_time = record_timing or do_record_timing_rollout
-
-            # Use a try/catch here to contain the blast radius of an exception being unhandled through the options lib
-            # Unhandled exception could cause all tasks to be effected and not work
 
             # TODO(dcramer): we want to tag a transaction ID, but overriding
             # the base on app.task seems to cause problems w/ Celery internals

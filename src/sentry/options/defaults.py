@@ -2937,3 +2937,10 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# rollout option for task latency metrics
+register(
+    "sentry.tasks.record.timing.rollout",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
