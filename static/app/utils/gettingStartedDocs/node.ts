@@ -1,5 +1,5 @@
 import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {ProductSolution} from 'sentry/components/onboarding/productSelection';
+import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 
 export type ProductSelectionMap = Record<ProductSolution, boolean>;
 

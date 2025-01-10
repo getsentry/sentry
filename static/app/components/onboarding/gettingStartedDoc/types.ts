@@ -1,7 +1,6 @@
 import type {Client} from 'sentry/api';
 import type {StepProps} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {ReleaseRegistrySdk} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
-import type {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey, Project, ProjectKey} from 'sentry/types/project';
 
@@ -38,6 +37,13 @@ export type SelectedPlatformOptions<
 
 export enum DocsPageLocation {
   PROFILING_PAGE = 1,
+}
+
+export enum ProductSolution {
+  ERROR_MONITORING = 'error-monitoring',
+  PERFORMANCE_MONITORING = 'performance-monitoring',
+  SESSION_REPLAY = 'session-replay',
+  PROFILING = 'profiling',
 }
 
 export interface DocsParams<

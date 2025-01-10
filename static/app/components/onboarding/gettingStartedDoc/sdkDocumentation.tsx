@@ -1,9 +1,11 @@
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {OnboardingLayout} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
-import type {ConfigType} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import type {
+  ConfigType,
+  ProductSolution,
+} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
-import type {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformIntegration, Project} from 'sentry/types/project';
