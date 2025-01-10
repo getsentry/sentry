@@ -86,7 +86,6 @@ export function ScreenLoadSpansContent() {
     primaryRelease,
     secondaryRelease,
     transaction: transactionName,
-    spanDescription,
   } = location.query;
 
   return (
@@ -184,8 +183,6 @@ export function ScreenLoadSpansContent() {
           <SpanSamplesPanel
             groupId={spanGroup}
             moduleName={ModuleName.SCREEN_LOAD}
-            transactionName={transactionName}
-            spanDescription={spanDescription}
             onClose={() => {
               router.replace({
                 pathname: router.location.pathname,
