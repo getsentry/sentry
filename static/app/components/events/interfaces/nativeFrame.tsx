@@ -60,7 +60,6 @@ type Props = {
   hiddenFrameCount?: number;
   image?: React.ComponentProps<typeof DebugImage>['image'];
   includeSystemFrames?: boolean;
-  isExpanded?: boolean;
   isHoverPreviewed?: boolean;
   isOnlyFrame?: boolean;
   isShowFramesToggleExpanded?: boolean;
