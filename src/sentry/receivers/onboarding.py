@@ -30,6 +30,7 @@ from sentry.signals import (
     first_event_received,
     first_event_with_minified_stack_trace_received,
     first_feedback_received,
+    first_flag_received,
     first_insight_span_received,
     first_new_feedback_received,
     first_profile_received,
@@ -279,6 +280,18 @@ def record_first_replay(project, **kwargs):
             )
             return
         try_mark_onboarding_complete(project.organization_id, user)
+
+
+@first_flag_received.connect(weak=False)
+def record_first_flag(project, **kwargs):
+    project.update(flags=F("flags").bitor(Project.flags.has_flags))
+
+    analytics.record(
+        "first_flag.sent",
+        organization_id=project.organization_id,
+        project_id=project.id,
+        platform=project.platform,
+    )
 
 
 @first_feedback_received.connect(weak=False)
