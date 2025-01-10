@@ -148,7 +148,6 @@ function WidgetBuilderSlideout({
         <Section>
           <WidgetBuilderQueryFilterBuilder
             onQueryConditionChange={onQueryConditionChange}
-            error={error}
           />
         </Section>
         {isChartWidget && (

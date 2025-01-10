@@ -19,7 +19,6 @@ from sentry.eventstore.models import Event
 from sentry.eventstore.processing import event_processing_store
 from sentry.eventstream.types import EventStreamEventType
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource
-from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.source_code_management.commit_context import CommitInfo, FileBlameInfo
 from sentry.issues.grouptype import (
@@ -63,7 +62,6 @@ from sentry.tasks.post_process import (
     feedback_filter_decorator,
     locks,
     post_process_group,
-    process_event,
     run_post_process_job,
 )
 from sentry.testutils.cases import BaseTestCase, PerformanceIssueTestCase, SnubaTestCase, TestCase
@@ -72,7 +70,6 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.redis import mock_redis_buffer
-from sentry.testutils.performance_issues.store_transaction import store_transaction
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
@@ -2582,47 +2579,6 @@ class PostProcessGroupPerformanceTest(
             )
         return cache_key
 
-    @patch("sentry.sentry_metrics.client.generic_metrics_backend.counter")
-    @patch("sentry.tasks.post_process.run_post_process_job")
-    @patch("sentry.rules.processing.processor.RuleProcessor")
-    @patch("sentry.signals.transaction_processed.send_robust")
-    @patch("sentry.signals.event_processed.send_robust")
-    def test_process_transaction_event_with_no_group(
-        self,
-        event_processed_signal_mock,
-        transaction_processed_signal_mock,
-        mock_processor,
-        run_post_process_job_mock,
-        generic_metrics_backend_mock,
-    ):
-        min_ago = before_now(minutes=1)
-        event = store_transaction(
-            test_case=self,
-            project_id=self.project.id,
-            user_id=self.create_user(name="user1").name,
-            fingerprint=[],
-            environment=None,
-            timestamp=min_ago,
-        )
-        assert len(event.groups) == 0
-        cache_key = write_event_to_cache(event)
-        post_process_group(
-            is_new=False,
-            is_regression=False,
-            is_new_group_environment=False,
-            cache_key=cache_key,
-            group_id=None,
-            group_states=None,
-            project_id=self.project.id,
-            eventstream_type=EventStreamEventType.Transaction,
-        )
-
-        assert transaction_processed_signal_mock.call_count == 1
-        assert event_processed_signal_mock.call_count == 0
-        assert mock_processor.call_count == 0
-        assert run_post_process_job_mock.call_count == 0
-        assert generic_metrics_backend_mock.call_count == 0
-
     @patch("sentry.tasks.post_process.handle_owner_assignment")
     @patch("sentry.tasks.post_process.handle_auto_assignment")
     @patch("sentry.tasks.post_process.process_rules")
@@ -2662,7 +2618,6 @@ class PostProcessGroupPerformanceTest(
             eventstream_type=EventStreamEventType.Error,
         )
 
-        assert transaction_processed_signal_mock.call_count == 1
         assert event_processed_signal_mock.call_count == 0
         assert mock_processor.call_count == 0
         assert run_post_process_job_mock.call_count == 1
@@ -2709,44 +2664,6 @@ class PostProcessGroupAggregateEventTest(
                 eventstream_type=EventStreamEventType.Error,
             )
         return cache_key
-
-
-class TransactionClustererTestCase(TestCase, SnubaTestCase):
-    @patch("sentry.ingest.transaction_clusterer.datasource.redis._record_sample")
-    def test_process_transaction_event_clusterer(
-        self,
-        mock_store_transaction_name,
-    ):
-        min_ago = before_now(minutes=1)
-        event = process_event(
-            data={
-                "project": self.project.id,
-                "event_id": "b" * 32,
-                "transaction": "foo",
-                "start_timestamp": str(min_ago),
-                "timestamp": str(min_ago),
-                "type": "transaction",
-                "transaction_info": {
-                    "source": "url",
-                },
-                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
-            },
-            group_id=0,
-        )
-        cache_key = write_event_to_cache(event)
-        post_process_group(
-            is_new=False,
-            is_regression=False,
-            is_new_group_environment=False,
-            cache_key=cache_key,
-            group_id=None,
-            project_id=self.project.id,
-            eventstream_type=EventStreamEventType.Transaction,
-        )
-
-        assert mock_store_transaction_name.mock_calls == [
-            mock.call(ClustererNamespace.TRANSACTIONS, self.project, "foo")
-        ]
 
 
 class PostProcessGroupGenericTest(

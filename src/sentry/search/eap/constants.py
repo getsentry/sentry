@@ -61,8 +61,7 @@ TYPE_MAP: dict[SearchType, AttributeKey.Type.ValueType] = {
     "week": FLOAT,
     "duration": FLOAT,
     "integer": INT,
-    # TODO:  need to update these to float once the proto supports float arrays
-    "number": INT,
+    "number": FLOAT,
     "percentage": FLOAT,
     "string": STRING,
 }

@@ -2934,6 +2934,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "ingest-attachments-dlq": "default",
     "ingest-transactions": "default",
     "ingest-transactions-dlq": "default",
+    "ingest-transactions-backlog": "default",
     "ingest-metrics": "default",
     "ingest-metrics-dlq": "default",
     "snuba-metrics": "default",
@@ -3450,8 +3451,6 @@ SEER_SIMILARITY_CIRCUIT_BREAKER_KEY = "seer.similarity"
 
 SEER_ANOMALY_DETECTION_VERSION = "v1"
 SEER_ANOMALY_DETECTION_STORE_DATA_URL = f"/{SEER_ANOMALY_DETECTION_VERSION}/anomaly-detection/store"
-
-SIMILARITY_BACKFILL_COHORT_MAP: dict[str, list[int]] = {}
 
 UPTIME_REGIONS = [
     UptimeRegionConfig(
