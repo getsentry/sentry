@@ -9,6 +9,7 @@ from typing import Protocol, TypeVar
 import sentry_protos.snuba.v1alpha.request_common_pb2
 import sentry_sdk
 import sentry_sdk.scope
+import urllib3
 from google.protobuf.message import Message as ProtobufMessage
 from sentry_protos.snuba.v1.endpoint_create_subscription_pb2 import (
     CreateSubscriptionRequest,
@@ -219,18 +220,22 @@ def _make_rpc_request(
                 if referrer:
                     span.set_tag("snuba.referrer", referrer)
                     span.set_data("snuba.query", req)
-                http_resp = _snuba_pool.urlopen(
-                    "POST",
-                    f"/rpc/{endpoint_name}/{class_version}",
-                    body=req.SerializeToString(),
-                    headers=(
-                        {
-                            "referer": referrer,
-                        }
-                        if referrer
-                        else {}
-                    ),
-                )
+                try:
+                    http_resp = _snuba_pool.urlopen(
+                        "POST",
+                        f"/rpc/{endpoint_name}/{class_version}",
+                        body=req.SerializeToString(),
+                        headers=(
+                            {
+                                "referer": referrer,
+                            }
+                            if referrer
+                            else {}
+                        ),
+                    )
+                except urllib3.exceptions.HTTPError as err:
+                    raise SnubaRPCError(err)
+                span.set_tag("timeout", "False")
                 if http_resp.status != 200 and http_resp.status != 202:
                     error = ErrorProto()
                     error.ParseFromString(http_resp.data)

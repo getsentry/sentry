@@ -5,7 +5,6 @@ This is later used for generating group forecasts for determining when a group m
 from __future__ import annotations
 
 import logging
-import math
 from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sequence
 from datetime import datetime, timedelta
@@ -26,9 +25,8 @@ from snuba_sdk import (
     Query,
     Request,
 )
-from snuba_sdk.expressions import Granularity
 
-from sentry import features, options
+from sentry import options
 from sentry.eventstore.models import GroupEvent
 from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.escalating_issues_alg import GroupCount
@@ -43,24 +41,12 @@ from sentry.models.groupinbox import (
     InboxReasonDetails,
     add_group_to_inbox,
 )
-from sentry.models.organization import Organization
-from sentry.models.project import Project
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.signals import issue_escalating
 from sentry.snuba.dataset import Dataset, EntityKey
-from sentry.snuba.metrics import (
-    DeprecatingMetricsQuery,
-    MetricField,
-    MetricGroupByField,
-    get_series,
-)
-from sentry.snuba.metrics.naming_layer.mri import ErrorsMRI
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 from sentry.utils.cache import cache
 from sentry.utils.snuba import raw_snql_query
-
-logger = logging.getLogger(__name__)
 
 __all__ = ["query_groups_past_counts", "parse_groups_past_counts"]
 
@@ -72,9 +58,6 @@ GROUP_HOURLY_COUNT_TTL = 60
 HOUR = 3600  # 3600 seconds
 
 ELEMENTS_PER_SNUBA_PAGE = 10000  # This is the maximum value for Snuba
-ELEMENTS_PER_SNUBA_METRICS_QUERY = math.floor(
-    ELEMENTS_PER_SNUBA_PAGE / BUCKETS_PER_GROUP
-)  # This is the maximum value for Snuba Metrics Query
 
 GroupsCountResponse = TypedDict(
     "GroupsCountResponse",
@@ -200,151 +183,7 @@ def _query_with_pagination(
         if not results or len(results) < ELEMENTS_PER_SNUBA_PAGE:
             break
 
-    _query_metrics_with_pagination(
-        organization_id, project_ids, group_ids, start_date, end_date, all_results, category
-    )
     return all_results
-
-
-def _query_metrics_with_pagination(
-    organization_id: int,
-    project_ids: Sequence[int],
-    group_ids: Sequence[int],
-    start_date: datetime,
-    end_date: datetime,
-    all_results: Sequence[GroupsCountResponse],
-    category: GroupCategory | None = None,
-) -> None:
-    """
-    Paginates Snuba metric queries for event counts for the
-    given list of project ids and groups ids in a time range.
-
-    Checks if the returned results are equivalent to `all_results`.
-    If not equivalent, it will generate a log.
-    """
-    organization = Organization.objects.get(id=organization_id)
-
-    if category == GroupCategory.ERROR and features.has(
-        "organizations:escalating-issues-v2", organization
-    ):
-        metrics_results = []
-        metrics_offset = 0
-
-        while True:
-            # Generate and execute the query to the Generics Metrics Backend
-            metrics_query = _generate_generic_metrics_backend_query(
-                organization_id,
-                project_ids,
-                group_ids,
-                start_date,
-                end_date,
-                metrics_offset,
-                category,
-            )
-            projects = list(Project.objects.filter(id__in=project_ids))
-            metrics_series_results = get_series(
-                projects=projects,
-                metrics_query=metrics_query,
-                use_case_id=UseCaseID.ESCALATING_ISSUES,
-            )
-
-            metrics_results += transform_to_groups_count_response(metrics_series_results)
-            metrics_offset += ELEMENTS_PER_SNUBA_METRICS_QUERY
-
-            if (
-                not metrics_series_results["groups"]
-                or len(metrics_series_results["groups"]) < ELEMENTS_PER_SNUBA_METRICS_QUERY
-            ):
-                break
-
-        # Log exception if results from the Metrics backend are
-        # not equivalent to the Errors dataset.
-        if not compare_lists(metrics_results, all_results):
-            logger.info(
-                "Generics Metrics Backend query results not the same as Errors dataset query.",
-                extra={"metrics_results": metrics_results, "dataset_results": all_results},
-            )
-
-
-def transform_to_groups_count_response(data: Mapping[str, Any]) -> list[GroupsCountResponse]:
-    """
-    Transforms results from `get_series` metrics query to List[GroupsCountResponse]
-    """
-    result: list[GroupsCountResponse] = []
-
-    for group in data["groups"]:
-        project_id = group["by"]["project_id"]
-        group_id = int(group["by"]["group"])
-        for interval, count in zip(data["intervals"], group["series"]["event_ingested"]):
-            if count > 0:
-                result.append(
-                    {
-                        "project_id": project_id,
-                        "group_id": group_id,
-                        "hourBucket": interval.isoformat(),
-                        "count()": count,
-                    }
-                )
-
-    return result
-
-
-def compare_lists(
-    list1: Sequence[GroupsCountResponse], list2: Sequence[GroupsCountResponse]
-) -> bool:
-    # Convert each dictionary in the list to a frozenset so it's hashable
-    set1 = set(map(lambda x: frozenset(x.items()), list1))
-    set2 = set(map(lambda x: frozenset(x.items()), list2))
-
-    return set1 == set2
-
-
-def _generate_generic_metrics_backend_query(
-    organization_id: int,
-    project_ids: Sequence[int],
-    group_ids: Sequence[int],
-    start_date: datetime,
-    end_date: datetime,
-    offset: int,
-    category: GroupCategory | None = None,
-) -> DeprecatingMetricsQuery:
-    """
-    This function generates a query to fetch the hourly events
-    for a group_id through the Generic Metrics Backend.
-
-    The Generic Metrics Backend only contains data for Errors.
-    """
-
-    # Check if category is for Errors, else raise an exception
-    if category is None or category != GroupCategory.ERROR:
-        raise Exception("Invalid category.")
-
-    select = [
-        MetricField(metric_mri=ErrorsMRI.EVENT_INGESTED.value, alias="event_ingested", op="sum"),
-    ]
-
-    groupby = [MetricGroupByField(field="project_id"), MetricGroupByField(field="group")]
-
-    where = [
-        Condition(
-            lhs=Column(name="tags[group]"),
-            op=Op.IN,
-            rhs=[str(group_id) for group_id in group_ids],
-        )
-    ]
-    return DeprecatingMetricsQuery(
-        org_id=organization_id,
-        project_ids=project_ids,
-        select=select,
-        start=start_date,
-        end=end_date,
-        where=where,
-        granularity=Granularity(HOUR),
-        groupby=groupby,
-        offset=Offset(offset),
-        limit=Limit(ELEMENTS_PER_SNUBA_METRICS_QUERY),
-        include_totals=False,
-    )
 
 
 def _generate_entity_dataset_query(

@@ -1,5 +1,9 @@
+import logging
+
+from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.incidents.grouptype import MetricAlertFire
 from sentry.incidents.models.alert_rule import AlertRule
+from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.users.services.user import RpcUser
 from sentry.workflow_engine.models import (
@@ -11,29 +15,24 @@ from sentry.workflow_engine.models import (
     DetectorState,
     DetectorWorkflow,
     Workflow,
-    WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.types import DetectorPriorityLevel
+
+logger = logging.getLogger(__name__)
 
 
 def create_metric_alert_lookup_tables(
     alert_rule: AlertRule,
     detector: Detector,
     workflow: Workflow,
-    data_source: DataSource,
-    data_condition_group: DataConditionGroup,
-) -> tuple[AlertRuleDetector, AlertRuleWorkflow, DetectorWorkflow, WorkflowDataConditionGroup]:
+) -> tuple[AlertRuleDetector, AlertRuleWorkflow, DetectorWorkflow]:
     alert_rule_detector = AlertRuleDetector.objects.create(alert_rule=alert_rule, detector=detector)
     alert_rule_workflow = AlertRuleWorkflow.objects.create(alert_rule=alert_rule, workflow=workflow)
     detector_workflow = DetectorWorkflow.objects.create(detector=detector, workflow=workflow)
-    workflow_data_condition_group = WorkflowDataConditionGroup.objects.create(
-        condition_group=data_condition_group, workflow=workflow
-    )
     return (
         alert_rule_detector,
         alert_rule_workflow,
         detector_workflow,
-        workflow_data_condition_group,
     )
 
 
@@ -42,12 +41,10 @@ def create_data_source(
 ) -> DataSource | None:
     if not snuba_query:
         return None
-
     try:
         query_subscription = QuerySubscription.objects.get(snuba_query=snuba_query.id)
     except QuerySubscription.DoesNotExist:
         return None
-
     return DataSource.objects.create(
         organization_id=organization_id,
         query_id=query_subscription.id,
@@ -57,7 +54,6 @@ def create_data_source(
 
 def create_data_condition_group(organization_id: int) -> DataConditionGroup:
     return DataConditionGroup.objects.create(
-        logic_type=DataConditionGroup.Type.ANY,
         organization_id=organization_id,
     )
 
@@ -65,13 +61,12 @@ def create_data_condition_group(organization_id: int) -> DataConditionGroup:
 def create_workflow(
     name: str,
     organization_id: int,
-    data_condition_group: DataConditionGroup,
     user: RpcUser | None = None,
 ) -> Workflow:
     return Workflow.objects.create(
         name=name,
         organization_id=organization_id,
-        when_condition_group=data_condition_group,
+        when_condition_group=None,
         enabled=True,
         created_by_id=user.id if user else None,
         config={},
@@ -116,7 +111,6 @@ def migrate_alert_rule(
         AlertRuleDetector,
         AlertRuleWorkflow,
         DetectorWorkflow,
-        WorkflowDataConditionGroup,
     ]
     | None
 ):
@@ -129,9 +123,10 @@ def migrate_alert_rule(
     if not data_source:
         return None
 
-    data_condition_group = create_data_condition_group(organization_id)
-    workflow = create_workflow(alert_rule.name, organization_id, data_condition_group, user)
-    detector = create_detector(alert_rule, project.id, data_condition_group, user)
+    detector_data_condition_group = create_data_condition_group(organization_id)
+    detector = create_detector(alert_rule, project.id, detector_data_condition_group, user)
+
+    workflow = create_workflow(alert_rule.name, organization_id, user)
 
     data_source.detectors.set([detector])
     detector_state = DetectorState.objects.create(
@@ -139,19 +134,84 @@ def migrate_alert_rule(
         active=False,
         state=DetectorPriorityLevel.OK,
     )
-    alert_rule_detector, alert_rule_workflow, detector_workflow, workflow_data_condition_group = (
-        create_metric_alert_lookup_tables(
-            alert_rule, detector, workflow, data_source, data_condition_group
-        )
+    alert_rule_detector, alert_rule_workflow, detector_workflow = create_metric_alert_lookup_tables(
+        alert_rule, detector, workflow
     )
     return (
         data_source,
-        data_condition_group,
+        detector_data_condition_group,
         workflow,
         detector,
         detector_state,
         alert_rule_detector,
         alert_rule_workflow,
         detector_workflow,
-        workflow_data_condition_group,
     )
+
+
+def get_data_source(alert_rule: AlertRule) -> DataSource | None:
+    snuba_query = alert_rule.snuba_query
+    organization = alert_rule.organization
+    if not snuba_query or not organization:
+        # This shouldn't be possible, but just in case.
+        return None
+    try:
+        query_subscription = QuerySubscription.objects.get(snuba_query=snuba_query.id)
+    except QuerySubscription.DoesNotExist:
+        return None
+    try:
+        data_source = DataSource.objects.get(
+            organization=organization,
+            query_id=query_subscription.id,
+            type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+        )
+    except DataSource.DoesNotExist:
+        return None
+    return data_source
+
+
+def dual_delete_migrated_alert_rule(
+    alert_rule: AlertRule,
+    user: RpcUser | None = None,
+) -> None:
+    try:
+        alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=alert_rule)
+        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=alert_rule)
+    except AlertRuleDetector.DoesNotExist:
+        # NOTE: making this an info log because we run the dual delete even if the user
+        # isn't flagged into dual write
+        logger.info(
+            "AlertRuleDetector does not exist",
+            extra={"alert_rule_id": AlertRule.id},
+        )
+        return
+    except AlertRuleWorkflow.DoesNotExist:
+        logger.info(
+            "AlertRuleWorkflow does not exist",
+            extra={"alert_rule_id": AlertRule.id},
+        )
+        return
+
+    workflow: Workflow = alert_rule_workflow.workflow
+    detector: Detector = alert_rule_detector.detector
+    data_condition_group: DataConditionGroup | None = detector.workflow_condition_group
+
+    data_source = get_data_source(alert_rule=alert_rule)
+    if data_source is None:
+        logger.info(
+            "DataSource does not exist",
+            extra={"alert_rule_id": AlertRule.id},
+        )
+    # NOTE: for migrated alert rules, each workflow is associated with a single detector
+    # make sure there are no other detectors associated with the workflow, then delete it if so
+    if DetectorWorkflow.objects.filter(workflow=workflow).count() == 1:
+        # also deletes alert_rule_workflow
+        RegionScheduledDeletion.schedule(instance=workflow, days=0, actor=user)
+    # also deletes alert_rule_detector, detector_workflow (if not already deleted), detector_state
+    RegionScheduledDeletion.schedule(instance=detector, days=0, actor=user)
+    if data_condition_group:
+        RegionScheduledDeletion.schedule(instance=data_condition_group, days=0, actor=user)
+    if data_source:
+        RegionScheduledDeletion.schedule(instance=data_source, days=0, actor=user)
+
+    return

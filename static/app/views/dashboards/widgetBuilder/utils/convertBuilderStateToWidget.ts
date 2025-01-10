@@ -52,6 +52,7 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
       orderby: sort,
       fieldAliases: fieldAliases ?? [],
       name: legendAlias[index] ?? '',
+      selectedAggregate: state.selectedAggregate,
     };
   });
 
