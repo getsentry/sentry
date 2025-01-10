@@ -62,6 +62,7 @@ import type WidgetLegendSelectionState from '../widgetLegendSelectionState';
 import {BigNumberWidgetVisualization} from '../widgets/bigNumberWidget/bigNumberWidgetVisualization';
 
 import type {GenericWidgetQueriesChildrenProps} from './genericWidgetQueries';
+import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
 
 const OTHER = 'Other';
 const PERCENTAGE_DECIMAL_POINTS = 3;
@@ -527,19 +528,23 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
                       autoHeightResize={shouldResize ?? true}
                       noPadding={noPadding}
                     >
-                      {getDynamicText({
-                        value: this.chartComponent({
-                          ...zoomRenderProps,
-                          ...chartOptions,
-                          // Override default datazoom behaviour for updating Global Selection Header
-                          ...(onZoom ? {onDataZoom: onZoom} : {}),
-                          legend,
-                          series: [...series, ...(modifiedReleaseSeriesResults ?? [])],
-                          onLegendSelectChanged,
-                          forwardedRef,
-                        }),
-                        fixed: <Placeholder height="200px" testId="skeleton-ui" />,
-                      })}
+                      <div style={{flex: 1}}>
+                        {getDynamicText({
+                          value: this.chartComponent({
+                            ...zoomRenderProps,
+                            ...chartOptions,
+                            // Override default datazoom behaviour for updating Global Selection Header
+                            ...(onZoom ? {onDataZoom: onZoom} : {}),
+                            legend,
+                            series: [...series, ...(modifiedReleaseSeriesResults ?? [])],
+                            onLegendSelectChanged,
+                            forwardedRef,
+                          }),
+                          fixed: <Placeholder height="200px" testId="skeleton-ui" />,
+                        })}
+                      </div>
+
+                      <ConfidenceFooter sampleCount={500} confidence={'low'} />
                     </ChartWrapper>
                   </TransitionChart>
                 );
@@ -549,19 +554,22 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
             <TransitionChart loading={loading} reloading={loading}>
               <LoadingScreen loading={loading} />
               <ChartWrapper autoHeightResize={shouldResize ?? true} noPadding={noPadding}>
-                {getDynamicText({
-                  value: this.chartComponent({
-                    ...zoomRenderProps,
-                    ...chartOptions,
-                    // Override default datazoom behaviour for updating Global Selection Header
-                    ...(onZoom ? {onDataZoom: onZoom} : {}),
-                    legend,
-                    series,
-                    onLegendSelectChanged,
-                    forwardedRef,
-                  }),
-                  fixed: <Placeholder height="200px" testId="skeleton-ui" />,
-                })}
+                <div style={{flex: 1}}>
+                  {getDynamicText({
+                    value: this.chartComponent({
+                      ...zoomRenderProps,
+                      ...chartOptions,
+                      // Override default datazoom behaviour for updating Global Selection Header
+                      ...(onZoom ? {onDataZoom: onZoom} : {}),
+                      legend,
+                      series,
+                      onLegendSelectChanged,
+                      forwardedRef,
+                    }),
+                    fixed: <Placeholder height="200px" testId="skeleton-ui" />,
+                  })}
+                </div>
+                <ConfidenceFooter sampleCount={500} confidence={'low'} />
               </ChartWrapper>
             </TransitionChart>
           );
@@ -623,6 +631,9 @@ const ChartWrapper = styled('div')<{autoHeightResize: boolean; noPadding?: boole
   ${p => p.autoHeightResize && 'height: 100%;'}
   width: 100%;
   padding: ${p => (p.noPadding ? `0` : `0 ${space(2)} ${space(2)}`)};
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
 `;
 
 const TableWrapper = styled('div')`

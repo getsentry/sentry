@@ -161,6 +161,8 @@ export function WidgetCardChartContainer({
               }
               widgetLegendState={widgetLegendState}
             />
+
+            {/* <ConfidenceFooter sampleCount={500} confidence={'low'} /> */}
           </Fragment>
         );
       }}
