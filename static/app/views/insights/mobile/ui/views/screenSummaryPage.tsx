@@ -19,7 +19,7 @@ import {SamplesTables} from 'sentry/views/insights/mobile/common/components/tabl
 import {SpanOperationTable} from 'sentry/views/insights/mobile/ui/components/tables/spanOperationTable';
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {isModuleEnabled} from 'sentry/views/insights/pages/utils';
-import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
+import {ModuleName} from 'sentry/views/insights/types';
 
 type Query = {
   'device.class': string;
@@ -67,13 +67,7 @@ export function ScreenSummaryContent() {
   const location = useLocation<Query>();
   const router = useRouter();
 
-  const {
-    transaction: transactionName,
-    spanGroup,
-    spanDescription,
-    spanOp,
-    'device.class': deviceClass,
-  } = location.query;
+  const {transaction: transactionName, spanGroup, spanOp} = location.query;
 
   return (
     <Fragment>
@@ -98,14 +92,8 @@ export function ScreenSummaryContent() {
 
       {spanGroup && spanOp && (
         <SpanSamplesPanel
-          additionalFilters={{
-            ...(deviceClass ? {[SpanMetricsField.DEVICE_CLASS]: deviceClass} : {}),
-          }}
           groupId={spanGroup}
           moduleName={ModuleName.OTHER}
-          transactionName={transactionName}
-          spanDescription={spanDescription}
-          spanOp={spanOp}
           onClose={() => {
             router.replace({
               pathname: router.location.pathname,
