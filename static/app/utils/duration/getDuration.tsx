@@ -1,6 +1,15 @@
 import {t, tn} from 'sentry/locale';
 
-import {DAY, HOUR, MINUTE, MONTH, SECOND, WEEK} from '../formatters';
+import {
+  DAY,
+  HOUR,
+  MICROSECOND,
+  MILLISECOND,
+  MINUTE,
+  MONTH,
+  SECOND,
+  WEEK,
+} from '../formatters';
 
 function roundWithFixed(
   value: number,
@@ -44,26 +53,40 @@ const DURATION_LABELS = {
   ms: t('ms'),
   millisecond: t('millisecond'),
   milliseconds: t('milliseconds'),
+  us: 'μs', // SI units don't need a translation
+  microsecond: t('microsecond'),
+  microseconds: t('microseconds'),
 };
 
+/**
+ *
+ * @param seconds Duration in seconds
+ * @param fixedDigits Number of digits after the decimal in output format
+ * @param abbreviation Use short-ish labels like "sec" for "second" and "wk" for "week" if available
+ * @param extraShort Use extra-short labels like "s" for "second" and "w" for week
+ * @param absolute Convert the number of second to absolute before formatting
+ * @param minimumUnit Smallest unit to consider while formatting. 55 seconds with a `minimumUnit` of `MINUTE` will return `"1 minute"` instead of `"55 seconds"`
+ * @returns Formatted string
+ */
 export default function getDuration(
   seconds: number,
   fixedDigits: number = 0,
   abbreviation: boolean = false,
   extraShort: boolean = false,
-  absolute: boolean = false
+  absolute: boolean = false,
+  minimumUnit: number = MILLISECOND
 ): string {
   const absValue = Math.abs(seconds * 1000);
 
   // value in milliseconds
   const msValue = absolute ? absValue : seconds * 1000;
 
-  if (absValue >= MONTH && !extraShort) {
+  if ((absValue >= MONTH && !extraShort) || minimumUnit === MONTH) {
     const {label, result} = roundWithFixed(msValue / MONTH, fixedDigits);
     return `${label}${abbreviation ? DURATION_LABELS.mo : ` ${tn('month', 'months', result)}`}`;
   }
 
-  if (absValue >= WEEK) {
+  if (absValue >= WEEK || minimumUnit === WEEK) {
     const {label, result} = roundWithFixed(msValue / WEEK, fixedDigits);
     if (extraShort) {
       return `${label}${DURATION_LABELS.w}`;
@@ -74,7 +97,7 @@ export default function getDuration(
     return `${label} ${tn('week', 'weeks', result)}`;
   }
 
-  if (absValue >= DAY) {
+  if (absValue >= DAY || minimumUnit === DAY) {
     const {label, result} = roundWithFixed(msValue / DAY, fixedDigits);
 
     if (extraShort || abbreviation) {
@@ -83,7 +106,7 @@ export default function getDuration(
     return `${label} ${tn('day', 'days', result)}`;
   }
 
-  if (absValue >= HOUR) {
+  if (absValue >= HOUR || minimumUnit === HOUR) {
     const {label, result} = roundWithFixed(msValue / HOUR, fixedDigits);
     if (extraShort) {
       return `${label}${DURATION_LABELS.h}`;
@@ -94,7 +117,7 @@ export default function getDuration(
     return `${label} ${tn('hour', 'hours', result)}`;
   }
 
-  if (absValue >= MINUTE) {
+  if (absValue >= MINUTE || minimumUnit === MINUTE) {
     const {label, result} = roundWithFixed(msValue / MINUTE, fixedDigits);
     if (extraShort) {
       return `${label}${DURATION_LABELS.m}`;
@@ -105,7 +128,7 @@ export default function getDuration(
     return `${label} ${tn('minute', 'minutes', result)}`;
   }
 
-  if (absValue >= SECOND) {
+  if (absValue >= SECOND || minimumUnit === SECOND) {
     const {label, result} = roundWithFixed(msValue / SECOND, fixedDigits);
     if (extraShort || abbreviation) {
       return `${label}${DURATION_LABELS.s}`;
@@ -113,11 +136,19 @@ export default function getDuration(
     return `${label} ${tn('second', 'seconds', result)}`;
   }
 
-  const {label, result} = roundWithFixed(msValue, fixedDigits);
-
-  if (extraShort || abbreviation) {
-    return `${label}${DURATION_LABELS.ms}`;
+  if (absValue >= MILLISECOND || minimumUnit === MILLISECOND) {
+    const {label, result} = roundWithFixed(msValue / MILLISECOND, fixedDigits);
+    if (extraShort || abbreviation) {
+      return `${label}${DURATION_LABELS.ms}`;
+    }
+    return `${label} ${tn('millisecond', 'milliseconds', result)}`;
   }
 
-  return `${label} ${tn('millisecond', 'milliseconds', result)}`;
+  const {label, result} = roundWithFixed(msValue / MICROSECOND, fixedDigits);
+
+  if (extraShort || abbreviation) {
+    return `${label}${DURATION_LABELS.us}`;
+  }
+
+  return `${label} ${tn('microsecond', 'microseconds', result)}`;
 }
