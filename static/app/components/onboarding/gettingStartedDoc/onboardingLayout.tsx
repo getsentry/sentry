@@ -7,20 +7,18 @@ import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import type {
-  ConfigType,
-  Docs,
-  DocsParams,
+import {
+  type ConfigType,
+  type Docs,
+  type DocsParams,
+  ProductSolution,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {
   PlatformOptionsControl,
   useUrlPlatformOptions,
 } from 'sentry/components/onboarding/platformOptionsControl';
-import {
-  ProductSelection,
-  ProductSolution,
-} from 'sentry/components/onboarding/productSelection';
+import {ProductSelection} from 'sentry/components/onboarding/productSelection';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
