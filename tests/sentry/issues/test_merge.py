@@ -55,4 +55,4 @@ class HandleIssueMergeTest(TestCase):
 
         with pytest.raises(rest_framework.exceptions.ValidationError) as e:
             handle_merge(self.groups, self.project_lookup, self.user)
-            assert e.match("Only error issues can be merged.")
+        assert e.match("Only error issues can be merged.")

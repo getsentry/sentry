@@ -20,7 +20,7 @@ export function transformReleaseEvents({
   colorPalette,
   releaseEvents,
 }: {
-  colorPalette: string[];
+  colorPalette: string[] | ReadonlyArray<string>;
   releaseEvents: any;
   topTransactions: any;
   yAxes: YAxis[];
@@ -113,7 +113,7 @@ export function transformDeviceClassEvents({
 
   if (defined(data)) {
     data.data?.forEach(row => {
-      const deviceClass = row['device.class'];
+      const deviceClass = row['device.class']!;
       const index = deviceClassIndex[deviceClass];
 
       const release = row.release;

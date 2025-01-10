@@ -13,9 +13,8 @@ from snuba_sdk import Column, Condition, Entity, Limit, Op, Query, Request
 from sentry import nodestore, options
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.eventstore.models import Event
-from sentry.grouping.grouping_info import get_grouping_info
-from sentry.issues.grouptype import ErrorGroupType
-from sentry.issues.occurrence_consumer import EventLookupError
+from sentry.grouping.grouping_info import get_grouping_info_from_variants
+from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.seer.similarity.grouping_records import (
@@ -36,6 +35,7 @@ from sentry.seer.similarity.utils import (
     event_content_has_stacktrace,
     filter_null_from_string,
     get_stacktrace_string_with_metrics,
+    has_too_many_contributing_frames,
 )
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
@@ -357,11 +357,17 @@ def get_events_from_nodestore(
     bulk_event_ids = set()
     for group_id, event in nodestore_events.items():
         event._project_cache = project
-        if event and event.data and event_content_has_stacktrace(event):
-            grouping_info = get_grouping_info(None, project=project, event=event)
-            stacktrace_string = get_stacktrace_string_with_metrics(
-                grouping_info, event.platform, ReferrerOptions.BACKFILL
-            )
+        stacktrace_string = None
+
+        if event and event_content_has_stacktrace(event):
+            variants = event.get_grouping_variants(normalize_stacktraces=True)
+
+            if not has_too_many_contributing_frames(event, variants, ReferrerOptions.BACKFILL):
+                grouping_info = get_grouping_info_from_variants(variants)
+                stacktrace_string = get_stacktrace_string_with_metrics(
+                    grouping_info, event.platform, ReferrerOptions.BACKFILL
+                )
+
             if not stacktrace_string:
                 invalid_event_group_ids.append(group_id)
                 continue
@@ -680,16 +686,6 @@ def _retry_operation(operation, *args, retries, delay, exceptions, **kwargs):
                 time.sleep(delay * (2**attempt))
             else:
                 raise
-
-
-# TODO: delete this and its tests
-def lookup_event(project_id: int, event_id: str, group_id: int) -> Event:
-    data = nodestore.backend.get(Event.generate_node_id(project_id, event_id))
-    if data is None:
-        raise EventLookupError(f"Failed to lookup event({event_id}) for project_id({project_id})")
-    event = Event(event_id=event_id, project_id=project_id, group_id=group_id)
-    event.data = data
-    return event
 
 
 def delete_seer_grouping_records(

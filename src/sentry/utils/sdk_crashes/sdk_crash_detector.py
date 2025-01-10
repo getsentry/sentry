@@ -53,6 +53,9 @@ class SDKCrashDetector:
         if mechanism_type and mechanism_type in self.config.ignore_mechanism_type:
             return False
 
+        if mechanism_type and mechanism_type in self.config.allow_mechanism_type:
+            return True
+
         is_unhandled = (
             get_path(event_data, "exception", "values", -1, "mechanism", "handled") is False
         )

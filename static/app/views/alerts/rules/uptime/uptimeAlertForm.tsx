@@ -16,11 +16,12 @@ import TextareaField from 'sentry/components/forms/fields/textareaField';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
+import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import Panel from 'sentry/components/panels/panel';
 import Text from 'sentry/components/text';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -246,9 +247,14 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
             <BooleanField
               name="traceSampling"
               label={t('Allow Sampling')}
-              showHelpInTooltip
-              help={t(
-                'Allows uptime checks to trigger traces if the checked service is configured with a Sentry SDK.'
+              showHelpInTooltip={{isHoverable: true}}
+              help={tct(
+                'Defer the sampling decision to a Sentry SDK configured in your application. Disable to prevent all span sampling. [link:Learn more].',
+                {
+                  link: (
+                    <ExternalLink href="https://docs.sentry.io/product/alerts/uptime-monitoring/uptime-tracing/" />
+                  ),
+                }
               )}
               flexibleControlStateSize
             />

@@ -1,6 +1,7 @@
 import logging
 import time
 from base64 import b64encode
+from urllib.parse import urlencode
 
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.urls import reverse
@@ -17,6 +18,7 @@ from sentry.utils import auth, json
 from sentry.utils.email import MessageBuilder
 from sentry.utils.geo import geo_by_addr
 from sentry.utils.http import absolute_uri
+from sentry.web.client_config import get_client_config
 from sentry.web.forms.accounts import TwoFactorForm
 from sentry.web.frontend.base import BaseView, control_silo_view
 from sentry.web.helpers import render_to_response
@@ -25,6 +27,36 @@ COOKIE_NAME = "s2fai"
 COOKIE_MAX_AGE = 60 * 60 * 24 * 31
 
 logger = logging.getLogger(__name__)
+
+MFA_RATE_LIMITS = {
+    "auth-2fa:user:{user_id}": {
+        "limit": 5,
+        "window": 20,
+    },
+    "auth-2fa-long:user:{user_id}": {
+        "limit": 20,
+        "window": 60 * 60,
+    },
+}
+
+
+def is_rate_limited(user_id: int) -> bool:
+    result = False
+    for key_template, rl in MFA_RATE_LIMITS.items():
+        result = result or ratelimiter.backend.is_limited(
+            key_template.format(user_id=user_id),
+            limit=rl["limit"],
+            window=rl["window"],
+        )
+    return result
+
+
+def reset_2fa_rate_limits(user_id: int):
+    for key_template, rl in MFA_RATE_LIMITS.items():
+        ratelimiter.backend.reset(
+            key_template.format(user_id=user_id),
+            window=rl["window"],
+        )
 
 
 @control_silo_view
@@ -112,12 +144,16 @@ class TwoFactorAuthView(BaseView):
                 return interface
 
     def send_notification_email(self, email, ip_address):
+        recover_uri = "{path}?{query}".format(
+            path=reverse("sentry-account-recover"), query=urlencode({"email": email})
+        )
         context = {
             "datetime": timezone.now(),
             "email": email,
             "geo": geo_by_addr(ip_address),
             "ip_address": ip_address,
             "url": absolute_uri(reverse("sentry-account-settings-security")),
+            "recover_url": absolute_uri(recover_uri),
         }
 
         subject = "Suspicious Activity Detected"
@@ -146,13 +182,7 @@ class TwoFactorAuthView(BaseView):
         challenge = activation = None
         interface = self.negotiate_interface(request, interfaces)
 
-        is_rate_limited = ratelimiter.backend.is_limited(
-            f"auth-2fa:user:{user.id}", limit=5, window=20
-        ) or ratelimiter.backend.is_limited(
-            f"auth-2fa-long:user:{user.id}", limit=20, window=60 * 60
-        )
-
-        if request.method == "POST" and is_rate_limited:
+        if request.method == "POST" and is_rate_limited(user.id):
             # prevent spamming due to failed 2FA attempts
             if not ratelimiter.backend.is_limited(
                 f"auth-2fa-failed-notification:user:{user.id}", limit=1, window=30 * 60
@@ -220,6 +250,7 @@ class TwoFactorAuthView(BaseView):
                 "interface": interface,
                 "other_interfaces": self.get_other_interfaces(interface, interfaces),
                 "activation": activation,
+                "react_config": get_client_config(request, self.active_organization),
             },
             request,
             status=200,

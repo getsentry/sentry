@@ -68,10 +68,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             "channel": {"type": "string", "placeholder": "e.g., #critical, Jane Schmidt"},
             "channel_id": {"type": "string", "placeholder": "e.g., CA2FRA079 or UA1J9RTE1"},
             "tags": {"type": "string", "placeholder": "e.g., environment,user,my_tag"},
-        }
-        self.form_fields["notes"] = {
-            "type": "string",
-            "placeholder": "e.g. @jane, @on-call-team",
+            "notes": {"type": "string", "placeholder": "e.g., @jane, @on-call-team"},
         }
 
         self._repository: IssueAlertNotificationMessageRepository = (
@@ -200,11 +197,6 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                         thread_ts=thread_ts,
                         reply_broadcast=reply_broadcast,
                     )
-                    metrics.incr(
-                        SLACK_ISSUE_ALERT_SUCCESS_DATADOG_METRIC,
-                        sample_rate=1.0,
-                        tags={"action": "send_notification"},
-                    )
                 except SlackApiError as e:
                     # Record the error code and details from the exception
                     new_notification_message_object.error_code = e.response.status_code
@@ -222,20 +214,6 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                     }
                     if self.get_option("channel"):
                         log_params["channel_name"] = self.get_option("channel")
-
-                    self.logger.info(
-                        "slack.issue_alert.error",
-                        extra=log_params,
-                    )
-                    metrics.incr(
-                        SLACK_ISSUE_ALERT_FAILURE_DATADOG_METRIC,
-                        sample_rate=1.0,
-                        tags={
-                            "action": "send_notification",
-                            "ok": e.response.get("ok", False),
-                            "status": e.response.status_code,
-                        },
-                    )
 
                     lifecycle.add_extras(log_params)
                     # If the error is a channel not found or archived, we can halt the flow

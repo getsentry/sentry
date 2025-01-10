@@ -7,10 +7,9 @@ from django.db import models
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, region_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.eventstore.models import GroupEvent
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.workflow_engine.registry import action_handler_registry
-from sentry.workflow_engine.types import ActionHandler
+from sentry.workflow_engine.types import ActionHandler, WorkflowJob
 
 if TYPE_CHECKING:
     from sentry.workflow_engine.models import Detector
@@ -30,7 +29,9 @@ class Action(DefaultFieldsModel):
     __repr__ = sane_repr("id", "type")
 
     class Type(models.TextChoices):
-        NOTIFICATION = "notification"
+        EMAIL = "email"
+        SLACK = "slack"
+        PAGERDUTY = "pagerduty"
         WEBHOOK = "webhook"
 
     # The type field is used to denote the type of action we want to trigger
@@ -59,7 +60,7 @@ class Action(DefaultFieldsModel):
         action_type = Action.Type(self.type)
         return action_handler_registry.get(action_type)
 
-    def trigger(self, evt: GroupEvent, detector: Detector) -> None:
+    def trigger(self, job: WorkflowJob, detector: Detector) -> None:
         # get the handler for the action type
         handler = self.get_handler()
-        handler.execute(evt, self, detector)
+        handler.execute(job, self, detector)

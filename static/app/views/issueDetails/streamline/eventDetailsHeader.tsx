@@ -13,11 +13,13 @@ import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useGroupTags} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 import {EventGraph} from 'sentry/views/issueDetails/streamline/eventGraph';
 import {
   EventSearch,
   useEventQuery,
 } from 'sentry/views/issueDetails/streamline/eventSearch';
+import IssueTagsPreview from 'sentry/views/issueDetails/streamline/issueTagsPreview';
 import {ToggleSidebar} from 'sentry/views/issueDetails/streamline/sidebar/toggleSidebar';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
@@ -35,10 +37,15 @@ export function EventDetailsHeader({
   const navigate = useNavigate();
   const location = useLocation();
   const environments = useEnvironmentsFromUrl();
-  const searchQuery = useEventQuery({group});
+  const searchQuery = useEventQuery({groupId: group.id});
   const {baseUrl} = useGroupDetailsRoute();
 
   const issueTypeConfig = getConfigForIssueType(group, project);
+
+  const {data: tags} = useGroupTags({
+    groupId: group.id,
+    environment: environments,
+  });
 
   if (!issueTypeConfig.filterAndSearchHeader.enabled) {
     return null;
@@ -80,6 +87,7 @@ export function EventDetailsHeader({
         <GraphSection>
           <EventGraph event={event} group={group} style={{flex: 1}} />
           <SectionDivider />
+          <IssueTagsPreview groupId={group.id} environments={environments} />
           <IssueTagsButton
             aria-label={t('View issue tag distributions')}
             to={{
@@ -89,8 +97,9 @@ export function EventDetailsHeader({
             }}
             analyticsEventKey="issue_details.issue_tags_clicked"
             analyticsEventName="Issue Details: Issue Tags Clicked"
+            disabled={!tags || tags.length === 0}
           >
-            {t('Issue Tags')}
+            {t('All Tags')}
           </IssueTagsButton>
         </GraphSection>
       </FilterContainer>

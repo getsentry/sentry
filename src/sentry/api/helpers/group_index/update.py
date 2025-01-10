@@ -165,9 +165,7 @@ def get_current_release_version_of_group(group: Group, follows_semver: bool = Fa
 
 def update_groups(
     request: Request,
-    group_ids: Sequence[int | str] | None,
-    projects: Sequence[Project],
-    organization_id: int,
+    groups: Sequence[Group],
     user: RpcUser | User | AnonymousUser | None = None,
     data: Mapping[str, Any] | None = None,
 ) -> Response:
@@ -177,9 +175,15 @@ def update_groups(
     acting_user = user if user and user.is_authenticated else None
     data = data or request.data
 
-    group_ids, group_list = get_group_ids_and_group_list(organization_id, projects, group_ids)
+    # so we won't have to requery for each group
+    project_lookup = {g.project_id: g.project for g in groups}
+    projects = list(project_lookup.values())
 
-    if not group_ids or not group_list:
+    # Assert all projects belong to the same organization
+    if len({p.organization_id for p in projects}) > 1:
+        return Response({"detail": "All groups must belong to same organization."}, status=400)
+
+    if not groups:
         return Response({"detail": "No groups found"}, status=204)
 
     serializer = validate_request(request, projects, data)
@@ -192,17 +196,9 @@ def update_groups(
 
     acting_user = user if user.is_authenticated else None
 
-    # so we won't have to requery for each group
-    project_lookup = {g.project_id: g.project for g in group_list}
-    group_project_ids = {g.project_id for g in group_list}
-    # filter projects down to only those that have groups in the search results
-    projects = [p for p in projects if p.id in group_project_ids]
-
-    queryset = Group.objects.filter(id__in=group_ids)
-
     discard = result.get("discard")
     if discard:
-        return handle_discard(request, list(queryset), projects, acting_user)
+        return handle_discard(request, groups, projects, acting_user)
 
     status_details = result.pop("statusDetails", result)
     status = result.get("status")
@@ -210,7 +206,7 @@ def update_groups(
     if "priority" in result:
         handle_priority(
             priority=result["priority"],
-            group_list=group_list,
+            group_list=groups,
             acting_user=acting_user,
             project_lookup=project_lookup,
         )
@@ -219,7 +215,7 @@ def update_groups(
             result, res_type = handle_resolve_in_release(
                 status,
                 status_details,
-                group_list,
+                groups,
                 projects,
                 project_lookup,
                 acting_user,
@@ -231,7 +227,7 @@ def update_groups(
     elif status:
         result = handle_other_status_updates(
             result,
-            group_list,
+            groups,
             projects,
             project_lookup,
             status_details,
@@ -241,7 +237,7 @@ def update_groups(
 
     return prepare_response(
         result,
-        group_list,
+        groups,
         project_lookup,
         projects,
         acting_user,
@@ -256,11 +252,13 @@ def update_groups_with_search_fn(
     group_ids: Sequence[int | str] | None,
     projects: Sequence[Project],
     organization_id: int,
-    search_fn: SearchFunction | None,
-    user: RpcUser | User | AnonymousUser | None = None,
-    data: Mapping[str, Any] | None = None,
+    search_fn: SearchFunction,
 ) -> Response:
-    if search_fn and not group_ids:
+    group_list = []
+    if group_ids:
+        group_list = get_group_list(organization_id, projects, group_ids)
+
+    if not group_list:
         try:
             # It can raise ValidationError
             cursor_result, _ = search_fn(
@@ -275,11 +273,12 @@ def update_groups_with_search_fn(
                 {"detail": "Invalid query. Error getting group ids and group list"}, status=400
             )
 
-        group_ids = [g.id for g in list(cursor_result)]
-    else:
-        group_ids, _ = get_group_ids_and_group_list(organization_id, projects, group_ids)
+        group_list = list(cursor_result)
 
-    return update_groups(request, group_ids, projects, organization_id, user, data)
+    if not group_list:
+        return Response({"detail": "No groups found"}, status=204)
+
+    return update_groups(request, group_list)
 
 
 def validate_request(
@@ -306,40 +305,36 @@ def validate_request(
     return serializer
 
 
-def get_group_ids_and_group_list(
+def get_group_list(
     organization_id: int,
     projects: Sequence[Project],
-    group_ids: Sequence[int | str] | None,
-) -> tuple[list[int | str], list[Group]]:
+    group_ids: Sequence[int | str],
+) -> list[Group]:
     """
-    Gets group IDs and group list based on provided filters.
+    Gets group list based on provided filters.
 
     Args:
         organization_id: ID of the organization
         projects: Sequence of projects to filter groups by
-        group_ids: Optional sequence of specific group IDs to fetch
+        group_ids: Sequence of specific group IDs to fetch
 
-    Returns:
-        Tuple of:
-            - List of group IDs that were found
-            - List of Group objects that were found
-
-    Notes:
-        - If group_ids provided, filters to only valid groups in the org/projects
+    Returns: List of Group objects filtered to only valid groups in the org/projects
     """
-    _group_ids: list[int | str] = []
-    _group_list: list[Group] = []
-
-    if group_ids:
-        _group_list = list(
+    groups = []
+    # Convert all group IDs to integers and filter out any non-integer values
+    group_ids_int = [int(gid) for gid in group_ids if str(gid).isdigit()]
+    if group_ids_int:
+        return list(
             Group.objects.filter(
-                project__organization_id=organization_id, project__in=projects, id__in=group_ids
+                project__organization_id=organization_id, project__in=projects, id__in=group_ids_int
             )
         )
-        # filter down group ids to only valid matches
-        _group_ids = [g.id for g in _group_list]
+    else:
+        for group_id in group_ids:
+            if isinstance(group_id, str):
+                groups.append(Group.objects.by_qualified_short_id(organization_id, group_id))
 
-    return _group_ids, _group_list
+    return groups
 
 
 def handle_resolve_in_release(

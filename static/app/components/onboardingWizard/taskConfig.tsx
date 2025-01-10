@@ -57,7 +57,7 @@ function getIssueAlertUrl({projects, organization}: Options) {
   }
   // pick the first project with events if we have that, otherwise just pick the first project
   const firstProjectWithEvents = projects.find(project => !!project.firstEvent);
-  const project = firstProjectWithEvents ?? projects[0];
+  const project = firstProjectWithEvents ?? projects[0]!;
   return `/organizations/${organization.slug}/alerts/${project.slug}/wizard/`;
 }
 
@@ -80,7 +80,7 @@ function getOnboardingInstructionsUrl({projects, organization}: Options) {
   const firstProjectWithoutError = projects.find(project => !project.firstEvent);
   // If all projects contain errors, this step will not be visible to the user,
   // but if the user falls into this case for some reason, we pick the first project
-  const project = firstProjectWithoutError ?? projects[0];
+  const project = firstProjectWithoutError ?? projects[0]!;
 
   let url = `/${organization.slug}/${project.slug}/getting-started/`;
 
@@ -99,7 +99,7 @@ function getMetricAlertUrl({projects, organization}: Options) {
   const firstProjectWithEvents = projects.find(
     project => !!project.firstTransactionEvent
   );
-  const project = firstProjectWithEvents ?? projects[0];
+  const project = firstProjectWithEvents ?? projects[0]!;
   return {
     pathname: `/organizations/${organization.slug}/alerts/${project.slug}/wizard/`,
     query: {
@@ -228,7 +228,7 @@ export function getOnboardingTasks({
           <EventWaiter
             api={api}
             organization={organization}
-            project={projects[0]}
+            project={projects[0]!}
             eventType="error"
             onIssueReceived={() => !taskIsDone(task) && onCompleteTask?.()}
           >
@@ -369,14 +369,14 @@ export function getOnboardingTasks({
 
         if (projectsForOnboarding.length) {
           navigateTo(
-            `${performanceUrl}?project=${projectsForOnboarding[0].id}#performance-sidequest`,
+            `${performanceUrl}?project=${projectsForOnboarding[0]!.id}#performance-sidequest`,
             router
           );
           return;
         }
 
         navigateTo(
-          `${performanceUrl}?project=${projectsWithoutFirstTransactionEvent[0].id}#performance-sidequest`,
+          `${performanceUrl}?project=${projectsWithoutFirstTransactionEvent[0]!.id}#performance-sidequest`,
           router
         );
       },
@@ -400,7 +400,7 @@ export function getOnboardingTasks({
           <EventWaiter
             api={api}
             organization={organization}
-            project={projects[0]}
+            project={projects[0]!}
             eventType="transaction"
             onIssueReceived={() => !taskIsDone(task) && onCompleteTask?.()}
           >
@@ -476,7 +476,7 @@ export function getOnboardingTasks({
           <EventWaiter
             api={api}
             organization={organization}
-            project={projects[0]}
+            project={projects[0]!}
             eventType="replay"
             onIssueReceived={() => !taskIsDone(task) && onCompleteTask?.()}
           >
@@ -578,12 +578,14 @@ export function getMergedTasks({organization, projects, onboardingContext}: Opti
   }));
 }
 
-const PulsingIndicator = styled('div')<{hasQuickStartUpdatesFeature?: boolean}>`
+const PulsingIndicator = styled('div')<{
+  hasQuickStartUpdatesFeature?: boolean;
+}>`
   ${pulsingIndicatorStyles};
   ${p =>
     p.hasQuickStartUpdatesFeature
       ? css`
-          margin: 0 ${space(0.5)};
+          margin: 0;
         `
       : css`
           margin-right: ${space(1)};

@@ -521,7 +521,6 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase, HybridCloudTest
 class OrganizationMemberPermissionRoleTest(OrganizationMemberListTestBase, HybridCloudTestMixin):
     method = "post"
 
-    @with_feature("organizations:members-invite-teammates")
     def invite_all_helper(self, role):
         invite_roles = ["owner", "manager", "member"]
 

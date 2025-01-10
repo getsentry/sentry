@@ -1,65 +1,9 @@
-import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {WidgetBuilderState} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
+import {FieldValueKind} from 'sentry/views/discover/table/types';
 
 describe('convertBuilderStateToWidget', function () {
-  it('returns the default of the dataset config when no widget queries state is provided', function () {
-    const mockState: WidgetBuilderState = {
-      title: 'Test Widget',
-      description: 'Test Description',
-      dataset: WidgetType.ERRORS,
-      displayType: DisplayType.TABLE,
-      limit: 5,
-      fields: [],
-      yAxis: [],
-    };
-
-    const widget = convertBuilderStateToWidget(mockState);
-
-    expect(widget).toEqual({
-      title: 'Test Widget',
-      description: 'Test Description',
-      widgetType: WidgetType.ERRORS,
-      displayType: DisplayType.TABLE,
-      interval: '1h',
-      limit: 5,
-      queries: [
-        {
-          ...getDatasetConfig(WidgetType.ERRORS).defaultWidgetQuery,
-        },
-      ],
-    });
-  });
-
-  it('returns the default of the dataset config when no widget queries state is provided - issues', function () {
-    const mockState: WidgetBuilderState = {
-      title: 'Test Issues Widget',
-      description: 'test description for an issues widget',
-      dataset: WidgetType.ISSUE,
-      displayType: DisplayType.TABLE,
-      limit: 5,
-      fields: [],
-      yAxis: [],
-    };
-
-    const widget = convertBuilderStateToWidget(mockState);
-
-    expect(widget).toEqual({
-      title: 'Test Issues Widget',
-      description: 'test description for an issues widget',
-      widgetType: WidgetType.ISSUE,
-      displayType: DisplayType.TABLE,
-      interval: '1h',
-      limit: 5,
-      queries: [
-        {
-          ...getDatasetConfig(WidgetType.ISSUE).defaultWidgetQuery,
-        },
-      ],
-    });
-  });
-
   it('returns the widget with the provided widget queries state', function () {
     const mockState: WidgetBuilderState = {
       title: 'Test Widget',
@@ -93,7 +37,7 @@ describe('convertBuilderStateToWidget', function () {
       queries: [
         {
           fields: ['geo.country', 'count()', 'count_unique(user)'],
-          fieldAliases: [],
+          fieldAliases: ['', '', ''],
           aggregates: ['count()'],
           columns: ['geo.country'],
           conditions: '',
@@ -112,8 +56,8 @@ describe('convertBuilderStateToWidget', function () {
 
     const widget = convertBuilderStateToWidget(mockState);
 
-    expect(widget.queries[0].orderby).toEqual('-geo.country');
-    expect(widget.queries[1].orderby).toEqual('-geo.country');
+    expect(widget.queries[0]!.orderby).toBe('-geo.country');
+    expect(widget.queries[1]!.orderby).toBe('-geo.country');
   });
 
   it('does not convert aggregates to aliased format', function () {
@@ -124,7 +68,56 @@ describe('convertBuilderStateToWidget', function () {
 
     const widget = convertBuilderStateToWidget(mockState);
 
-    expect(widget.queries[0].orderby).toEqual('-count()');
-    expect(widget.queries[1].orderby).toEqual('-count()');
+    expect(widget.queries[0]!.orderby).toBe('-count()');
+    expect(widget.queries[1]!.orderby).toBe('-count()');
+  });
+
+  it('adds aliases to the widget queries', function () {
+    const mockState: WidgetBuilderState = {
+      fields: [
+        {field: 'geo.country', alias: 'test', kind: FieldValueKind.FIELD},
+        {field: 'geo.country', alias: undefined, kind: FieldValueKind.FIELD},
+        {field: 'geo.country', alias: 'another one', kind: FieldValueKind.FIELD},
+      ],
+    };
+
+    const widget = convertBuilderStateToWidget(mockState);
+
+    expect(widget.queries[0]!.fieldAliases).toEqual(['test', '', 'another one']);
+  });
+
+  it('adds legend aliases to the widget queries', function () {
+    const mockState: WidgetBuilderState = {
+      legendAlias: ['test', 'test2'],
+      query: ['transaction.duration:>100', 'transaction.duration:>50'],
+    };
+
+    const widget = convertBuilderStateToWidget(mockState);
+
+    expect(widget.queries[0]!.name).toBe('test');
+    expect(widget.queries[0]!.conditions).toBe('transaction.duration:>100');
+    expect(widget.queries[1]!.name).toBe('test2');
+    expect(widget.queries[1]!.conditions).toBe('transaction.duration:>50');
+  });
+
+  it('propagates the selected aggregate to the widget query', () => {
+    const mockState: WidgetBuilderState = {
+      selectedAggregate: 0,
+      query: ['transaction.duration:>100'],
+    };
+
+    const widget = convertBuilderStateToWidget(mockState);
+
+    expect(widget.queries[0]!.selectedAggregate).toBe(0);
+  });
+
+  it('sets selectedAggregate to undefined if not provided', () => {
+    const mockState: WidgetBuilderState = {
+      query: ['transaction.duration:>100'],
+    };
+
+    const widget = convertBuilderStateToWidget(mockState);
+
+    expect(widget.queries[0]!.selectedAggregate).toBeUndefined();
   });
 });

@@ -21,7 +21,6 @@ import {
   scoreToStatus,
   STATUS_TEXT,
 } from 'sentry/views/insights/browser/webVitals/utils/scoreToStatus';
-import {vitalDescription} from 'sentry/views/performance/vitalDetail/utils';
 
 type Props = {
   onClick?: (webVital: WebVitals) => void;
@@ -31,7 +30,7 @@ type Props = {
   transaction?: string;
 };
 
-const WEB_VITALS_METERS_CONFIG = {
+export const WEB_VITALS_METERS_CONFIG = {
   lcp: {
     name: t('Largest Contentful Paint'),
     formatter: (value: number) => getFormattedDuration(value / 1000),
@@ -69,7 +68,7 @@ export default function WebVitalMeters({
   const webVitalsConfig = WEB_VITALS_METERS_CONFIG;
 
   const webVitals = Object.keys(webVitalsConfig) as WebVitals[];
-  const colors = theme.charts.getColorPalette(3);
+  const colors = theme.charts.getColorPalette(3) ?? [];
 
   const renderVitals = () => {
     return webVitals.map((webVital, index) => {
@@ -88,7 +87,7 @@ export default function WebVitalMeters({
           showTooltip={showTooltip}
           score={score}
           meterValue={meterValue}
-          color={colors[index]}
+          color={colors[index]!}
           onClick={onClick}
         />
       );
@@ -333,11 +332,11 @@ export function VitalPill({webVital, score, meterValue}: VitalPillProps) {
       <NoValue />
     );
 
-  const tooltipText = vitalDescription[`measurements.${webVital}`];
+  const tooltipText = VITAL_DESCRIPTIONS[`measurements.${webVital}`];
 
   return (
     <VitalPillContainer>
-      <Tooltip title={tooltipText}>
+      <Tooltip title={tooltipText?.shortDescription}>
         <VitalPillName status={status}>
           {`${webVital ? webVital.toUpperCase() : ''} (${STATUS_TEXT[status] ?? 'N/A'})`}
         </VitalPillName>

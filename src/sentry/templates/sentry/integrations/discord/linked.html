@@ -1,14 +1,16 @@
 {% extends "sentry/bases/modal.html" %}
-
 {% load i18n %}
-
 {% block title %}{% trans "Discord Linked" %} | {{ block.super }}{% endblock %}
 {% block wrapperclass %}narrow auth{% endblock %}
-
 {% block main %}
   <div class="align-center">
     <p>
       {% trans "Your Discord account has been associated with your Sentry account. You may now take Sentry actions through Discord." %}
+    </p>
+    <p>
+      <a href="discord://discord.com/channels/{{ guild_id }}" class="btn btn-default btn-login-discord">
+        <span class="provider-logo discord"></span> Go back to Discord
+      </a>
     </p>
   </div>
 {% endblock %}

@@ -2,13 +2,15 @@ from typing import Any
 
 from django.conf import settings
 from django.db import models
+from django.db.models.signals import pre_save
+from django.dispatch import receiver
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.eventstore.models import GroupEvent
 from sentry.models.owner_base import OwnerModel
 from sentry.workflow_engine.processors.data_condition_group import evaluate_condition_group
+from sentry.workflow_engine.types import WorkflowJob
 
 from .json_config import JSONConfigBase
 
@@ -35,8 +37,20 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     created_by_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
 
     @property
-    def CONFIG_SCHEMA(self) -> dict[str, Any]:
-        raise NotImplementedError('Subclasses must define a "CONFIG_SCHEMA" attribute')
+    def config_schema(self) -> dict[str, Any]:
+        return {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "title": "Workflow Schema",
+            "type": "object",
+            "properties": {
+                "frequency": {
+                    "description": "How often the workflow should fire for a Group (minutes)",
+                    "type": "integer",
+                    "minimum": 0,
+                },
+            },
+            "additionalProperties": False,
+        }
 
     __repr__ = sane_repr("name", "organization_id")
 
@@ -50,7 +64,7 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
             )
         ]
 
-    def evaluate_trigger_conditions(self, evt: GroupEvent) -> bool:
+    def evaluate_trigger_conditions(self, job: WorkflowJob) -> bool:
         """
         Evaluate the conditions for the workflow trigger and return if the evaluation was successful.
         If there aren't any workflow trigger conditions, the workflow is considered triggered.
@@ -58,5 +72,11 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         if self.when_condition_group is None:
             return True
 
-        evaluation, _ = evaluate_condition_group(self.when_condition_group, evt)
+        job["workflow"] = self
+        evaluation, _ = evaluate_condition_group(self.when_condition_group, job)
         return evaluation
+
+
+@receiver(pre_save, sender=Workflow)
+def enforce_config_schema(sender, instance: Workflow, **kwargs):
+    instance.validate_config(instance.config_schema)

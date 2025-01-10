@@ -87,6 +87,7 @@ interface BaseStep {
   title: string;
   type: AutofixStepType;
   completedMessage?: string;
+  output_stream?: string | null;
 }
 
 export type CodeSnippetContext = {
@@ -147,6 +148,7 @@ export type AutofixCodebaseChange = {
   diff: FilePatch[];
   repo_name: string;
   title: string;
+  branch_name?: string;
   diff_str?: string;
   pull_request?: AutofixPullRequestDetails;
   repo_external_id?: string;

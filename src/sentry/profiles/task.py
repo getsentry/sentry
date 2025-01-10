@@ -19,7 +19,6 @@ from sentry.lang.native.utils import native_images_from_data
 from sentry.models.eventerror import EventError
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.profiles.device import classify_device
 from sentry.profiles.java import (
     convert_android_methods_to_jvm_frames,
     deobfuscate_signature,
@@ -31,6 +30,7 @@ from sentry.profiles.utils import (
     apply_stack_trace_rules_to_profile,
     get_from_profiling_service,
 )
+from sentry.search.utils import DEVICE_CLASS
 from sentry.signals import first_profile_received
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -38,10 +38,11 @@ from sentry.utils import json, metrics
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.sdk import set_measurement
 
+REVERSE_DEVICE_CLASS = {next(iter(tags)): label for label, tags in DEVICE_CLASS.items()}
+
 
 @instrumented_task(
     name="sentry.profiles.task.process_profile",
-    queue="profiles.process",
     retry_backoff=True,
     retry_backoff_max=20,
     retry_jitter=True,
@@ -344,34 +345,12 @@ def _normalize(profile: Profile, organization: Organization) -> None:
     if platform not in {"cocoa", "android"} or version == "2":
         return
 
-    classification_options = dict()
+    classification = profile.get("transaction_tags", {}).get("device.class", None)
 
-    if platform == "android":
-        classification_options.update(
-            {
-                "cpu_frequencies": profile["device_cpu_frequencies"],
-                "physical_memory_bytes": profile["device_physical_memory_bytes"],
-            }
-        )
+    if not classification:
+        return
 
-    if version == "1":
-        classification_options.update(
-            {
-                "model": profile["device"]["model"],
-                "os_name": profile["os"]["name"],
-                "is_emulator": profile["device"]["is_emulator"],
-            }
-        )
-    elif version is None:
-        classification_options.update(
-            {
-                "model": profile["device_model"],
-                "os_name": profile["device_os_name"],
-                "is_emulator": profile["device_is_emulator"],
-            }
-        )
-
-    classification = str(classify_device(**classification_options))
+    classification = REVERSE_DEVICE_CLASS.get(classification, "unknown")
 
     if version == "1":
         profile["device"]["classification"] = classification

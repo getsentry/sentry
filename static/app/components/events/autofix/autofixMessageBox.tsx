@@ -5,6 +5,8 @@ import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button, LinkButton} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import AutofixActionSelector from 'sentry/components/events/autofix/autofixActionSelector';
 import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
 import {AutofixSetupWriteAccessModal} from 'sentry/components/events/autofix/autofixSetupWriteAccessModal';
 import {
@@ -21,13 +23,13 @@ import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup'
 import Input from 'sentry/components/input';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
-import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {
+  IconChat,
   IconCheckmark,
   IconChevron,
   IconClose,
+  IconCopy,
   IconFatal,
-  IconFocus,
   IconOpen,
   IconSad,
 } from 'sentry/icons';
@@ -37,6 +39,7 @@ import {singleLineRenderer} from 'sentry/utils/marked';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
+import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 
 function useSendMessage({groupId, runId}: {groupId: string; runId: string}) {
   const api = useApi({persistInFlight: true});
@@ -109,7 +112,6 @@ function CreatePRsButton({
           payload: {
             type: 'create_pr',
             repo_external_id: change.repo_external_id,
-            repo_id: change.repo_id, // The repo_id is only here for temporary backwards compatibility for LA customers, and we should remove it soon.
           },
         },
       });
@@ -136,7 +138,65 @@ function CreatePRsButton({
       analyticsEventKey="autofix.create_pr_clicked"
       analyticsParams={{group_id: groupId}}
     >
-      Create PR{changes.length > 1 ? 's' : ''}
+      Draft PR{changes.length > 1 ? 's' : ''}
+    </Button>
+  );
+}
+
+function CreateBranchButton({
+  changes,
+  groupId,
+}: {
+  changes: AutofixCodebaseChange[];
+  groupId: string;
+}) {
+  const autofixData = useAutofixData({groupId});
+  const api = useApi();
+  const queryClient = useQueryClient();
+  const [hasClickedPushToBranch, setHasClickedPushToBranch] = useState(false);
+
+  const pushToBranch = () => {
+    setHasClickedPushToBranch(true);
+    for (const change of changes) {
+      createBranch({change});
+    }
+  };
+
+  const {mutate: createBranch} = useMutation({
+    mutationFn: ({change}: {change: AutofixCodebaseChange}) => {
+      return api.requestPromise(`/issues/${groupId}/autofix/update/`, {
+        method: 'POST',
+        data: {
+          run_id: autofixData?.run_id,
+          payload: {
+            type: 'create_branch',
+            repo_external_id: change.repo_external_id,
+          },
+        },
+      });
+    },
+    onSuccess: () => {
+      addSuccessMessage(t('Pushed to branches.'));
+      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(groupId)});
+    },
+    onError: () => {
+      setHasClickedPushToBranch(false);
+      addErrorMessage(t('Failed to push to branches.'));
+    },
+  });
+
+  return (
+    <Button
+      onClick={pushToBranch}
+      icon={
+        hasClickedPushToBranch && <ProcessingStatusIndicator size={14} mini hideMessage />
+      }
+      busy={hasClickedPushToBranch}
+      analyticsEventName="Autofix: Push to Branch Clicked"
+      analyticsEventKey="autofix.push_to_branch_clicked"
+      analyticsParams={{group_id: groupId}}
+    >
+      Check Out Locally
     </Button>
   );
 }
@@ -169,7 +229,7 @@ function SetupAndCreatePRsButton({
         analyticsParams={{group_id: groupId}}
         title={t('Enable write access to create pull requests')}
       >
-        {t('Create PRs')}
+        {t('Draft PR')}
       </Button>
     );
   }
@@ -177,16 +237,51 @@ function SetupAndCreatePRsButton({
   return <CreatePRsButton changes={changes} groupId={groupId} />;
 }
 
+function SetupAndCreateBranchButton({
+  changes,
+  groupId,
+}: {
+  changes: AutofixCodebaseChange[];
+  groupId: string;
+}) {
+  const {data: setupData} = useAutofixSetup({groupId, checkWriteAccess: true});
+
+  if (
+    !changes.every(
+      change =>
+        setupData?.githubWriteIntegration?.repos?.find(
+          repo => `${repo.owner}/${repo.name}` === change.repo_name
+        )?.ok
+    )
+  ) {
+    return (
+      <Button
+        onClick={() => {
+          openModal(deps => <AutofixSetupWriteAccessModal {...deps} groupId={groupId} />);
+        }}
+        analyticsEventName="Autofix: Create PR Setup Clicked"
+        analyticsEventKey="autofix.create_pr_setup_clicked"
+        analyticsParams={{group_id: groupId}}
+        title={t('Enable write access to create branches')}
+      >
+        {t('Check Out Locally')}
+      </Button>
+    );
+  }
+
+  return <CreateBranchButton changes={changes} groupId={groupId} />;
+}
+
 interface RootCauseAndFeedbackInputAreaProps {
   actionText: string;
-  changesMode: 'give_feedback' | 'add_tests' | 'create_prs';
+  changesMode: 'give_feedback' | 'add_tests' | 'create_prs' | null;
   groupId: string;
   handleSend: (e: FormEvent<HTMLFormElement>) => void;
   isRootCauseSelectionStep: boolean;
   message: string;
   primaryAction: boolean;
   responseRequired: boolean;
-  rootCauseMode: 'suggested_root_cause' | 'custom_root_cause';
+  rootCauseMode: 'suggested_root_cause' | 'custom_root_cause' | null;
   setMessage: (message: string) => void;
 }
 
@@ -213,7 +308,7 @@ function RootCauseAndFeedbackInputArea({
               onChange={e => setMessage(e.target.value)}
               placeholder={
                 !isRootCauseSelectionStep
-                  ? 'Share helpful context or feedback...'
+                  ? 'Share helpful context or directions...'
                   : rootCauseMode === 'suggested_root_cause'
                     ? '(Optional) Provide any instructions for the fix...'
                     : 'Propose your own root cause...'
@@ -281,23 +376,19 @@ function StepIcon({step}: {step: AutofixStep}) {
     if (step.changes.every(change => change.pull_request)) {
       return <IconCheckmark size="sm" color="green300" isCircled />;
     }
-    return <IconFocus size="sm" color="gray300" />;
+    return null;
   }
 
   if (step.type === AutofixStepType.ROOT_CAUSE_ANALYSIS) {
     if (step.causes?.length === 0) {
       return <IconSad size="sm" color="gray300" />;
     }
-    return step.selection ? (
-      <IconCheckmark size="sm" color="green300" isCircled />
-    ) : (
-      <IconFocus size="sm" color="gray300" />
-    );
+    return step.selection ? <IconCheckmark size="sm" color="green300" isCircled /> : null;
   }
 
   switch (step.status) {
     case AutofixStatus.WAITING_FOR_USER_RESPONSE:
-      return <IconFocus size="sm" color="gray300" />;
+      return <IconChat size="sm" color="gray300" />;
     case AutofixStatus.PROCESSING:
       return <ProcessingStatusIndicator size={14} mini hideMessage />;
     case AutofixStatus.CANCELLED:
@@ -339,12 +430,12 @@ function AutofixMessageBox({
   const contentRef = useRef<HTMLDivElement>(null);
 
   const [rootCauseMode, setRootCauseMode] = useState<
-    'suggested_root_cause' | 'custom_root_cause'
-  >('suggested_root_cause');
+    'suggested_root_cause' | 'custom_root_cause' | null
+  >(null);
 
   const [changesMode, setChangesMode] = useState<
-    'give_feedback' | 'add_tests' | 'create_prs'
-  >('create_prs');
+    'give_feedback' | 'add_tests' | 'create_prs' | null
+  >(null);
 
   const changes =
     isChangesStep && step?.type === AutofixStepType.CHANGES ? step.changes : [];
@@ -352,6 +443,11 @@ function AutofixMessageBox({
     step?.status === AutofixStatus.COMPLETED &&
     changes.length >= 1 &&
     changes.every(change => change.pull_request);
+  const branchesMade =
+    !prsMade &&
+    step?.status === AutofixStatus.COMPLETED &&
+    changes.length >= 1 &&
+    changes.every(change => change.branch_name);
 
   const isDisabled =
     step?.status === AutofixStatus.ERROR ||
@@ -396,6 +492,27 @@ function AutofixMessageBox({
     }
   };
 
+  function BranchButton({change}: {change: AutofixCodebaseChange}) {
+    const {onClick} = useCopyToClipboard({
+      text: `git fetch --all && git switch ${change.branch_name}`,
+      successMessage: t('Command copied. Next stop: your terminal.'),
+    });
+
+    return (
+      <Button
+        key={`${change.repo_external_id}-${Math.random()}`}
+        size="xs"
+        priority="primary"
+        onClick={onClick}
+        aria-label={t('Check out in %s', change.repo_name)}
+        title={t('git fetch --all && git switch %s', change.branch_name)}
+        icon={<IconCopy size="xs" />}
+      >
+        {t('Check out in %s', change.repo_name)}
+      </Button>
+    );
+  }
+
   return (
     <Container>
       <AnimatedContent animate={{height}} transition={{duration: 0.3, ease: 'easeInOut'}}>
@@ -403,14 +520,14 @@ function AutofixMessageBox({
           <ContentArea>
             {step && (
               <StepHeader>
-                <StepIconContainer>
-                  <StepIcon step={step} />
-                </StepIconContainer>
                 <StepTitle
                   dangerouslySetInnerHTML={{
                     __html: singleLineRenderer(step.title),
                   }}
                 />
+                <StepIconContainer>
+                  <StepIcon step={step} />
+                </StepIconContainer>
                 <StepHeaderRightSection>
                   {scrollIntoView !== null && (
                     <ScrollIntoViewButtonWrapper>
@@ -440,117 +557,158 @@ function AutofixMessageBox({
             />
           </ContentArea>
           {!isDisabled && (
-            <ActionBar>
-              {isRootCauseSelectionStep && (
-                <Fragment>
-                  <SegmentedControl
-                    size="xs"
-                    value={rootCauseMode}
-                    onChange={setRootCauseMode}
-                    aria-label={t('Root cause selection')}
-                  >
-                    <SegmentedControl.Item key="suggested_root_cause">
-                      {t('Use suggested root cause')}
-                    </SegmentedControl.Item>
-                    <SegmentedControl.Item key="custom_root_cause">
-                      {t('Propose your own root cause')}
-                    </SegmentedControl.Item>
-                  </SegmentedControl>
-                </Fragment>
+            <InputSection>
+              {isRootCauseSelectionStep ? (
+                <AutofixActionSelector
+                  options={[
+                    {key: 'custom_root_cause', label: t('Propose your own root cause')},
+                    {
+                      key: 'suggested_root_cause',
+                      label: t('Use suggested root cause'),
+                      active: true,
+                    },
+                  ]}
+                  selected={rootCauseMode}
+                  onSelect={value => setRootCauseMode(value)}
+                  onBack={() => setRootCauseMode(null)}
+                >
+                  {option => (
+                    <RootCauseAndFeedbackInputArea
+                      handleSend={handleSend}
+                      isRootCauseSelectionStep={isRootCauseSelectionStep}
+                      message={message}
+                      rootCauseMode={option.key}
+                      responseRequired={responseRequired}
+                      setMessage={setMessage}
+                      actionText={actionText}
+                      primaryAction={primaryAction}
+                      changesMode={changesMode}
+                      groupId={groupId}
+                    />
+                  )}
+                </AutofixActionSelector>
+              ) : isChangesStep && !prsMade && !branchesMade ? (
+                <AutofixActionSelector
+                  options={[
+                    {key: 'add_tests', label: t('Add tests')},
+                    {key: 'give_feedback', label: t('Iterate')},
+                    {
+                      key: 'create_prs',
+                      label: t('Use this code'),
+                      active: true,
+                    },
+                  ]}
+                  selected={changesMode}
+                  onSelect={value => setChangesMode(value)}
+                  onBack={() => setChangesMode(null)}
+                >
+                  {option => (
+                    <Fragment>
+                      {option.key === 'give_feedback' && (
+                        <RootCauseAndFeedbackInputArea
+                          handleSend={handleSend}
+                          isRootCauseSelectionStep={isRootCauseSelectionStep}
+                          message={message}
+                          rootCauseMode={rootCauseMode}
+                          responseRequired={responseRequired}
+                          setMessage={setMessage}
+                          actionText={actionText}
+                          primaryAction
+                          changesMode={option.key}
+                          groupId={groupId}
+                        />
+                      )}
+                      {option.key === 'add_tests' && (
+                        <form onSubmit={handleSend}>
+                          <InputArea>
+                            <StaticMessage>
+                              Write unit tests to make sure the issue is fixed?
+                            </StaticMessage>
+                            <Button type="submit" priority="primary">
+                              Add Tests
+                            </Button>
+                          </InputArea>
+                        </form>
+                      )}
+                      {option.key === 'create_prs' && (
+                        <InputArea>
+                          <StaticMessage>
+                            Push the above changes to{' '}
+                            {changes.length > 1
+                              ? `${changes.length} branches`
+                              : 'a branch'}
+                            ?
+                          </StaticMessage>
+                          <ButtonBar gap={1}>
+                            <SetupAndCreateBranchButton
+                              changes={changes}
+                              groupId={groupId}
+                            />
+                            <SetupAndCreatePRsButton
+                              changes={changes}
+                              groupId={groupId}
+                            />
+                          </ButtonBar>
+                        </InputArea>
+                      )}
+                    </Fragment>
+                  )}
+                </AutofixActionSelector>
+              ) : isChangesStep && prsMade ? (
+                <StyledScrollCarousel aria-label={t('View pull requests')}>
+                  {changes.map(
+                    change =>
+                      change.pull_request?.pr_url && (
+                        <LinkButton
+                          key={`${change.repo_external_id}-${Math.random()}`}
+                          size="xs"
+                          priority="primary"
+                          icon={<IconOpen size="xs" />}
+                          href={change.pull_request.pr_url}
+                          external
+                        >
+                          View PR in {change.repo_name}
+                        </LinkButton>
+                      )
+                  )}
+                </StyledScrollCarousel>
+              ) : isChangesStep && branchesMade ? (
+                <StyledScrollCarousel aria-label={t('Check out branches')}>
+                  {changes.map(
+                    change =>
+                      change.branch_name && (
+                        <BranchButton
+                          key={`${change.repo_external_id}-${Math.random()}`}
+                          change={change}
+                        />
+                      )
+                  )}
+                </StyledScrollCarousel>
+              ) : (
+                <RootCauseAndFeedbackInputArea
+                  handleSend={handleSend}
+                  isRootCauseSelectionStep={isRootCauseSelectionStep}
+                  message={message}
+                  rootCauseMode={rootCauseMode}
+                  responseRequired={responseRequired}
+                  setMessage={setMessage}
+                  actionText={actionText}
+                  primaryAction={primaryAction}
+                  changesMode={changesMode}
+                  groupId={groupId}
+                />
               )}
-              {isChangesStep && !prsMade && (
-                <Fragment>
-                  <SegmentedControl
-                    size="xs"
-                    value={changesMode}
-                    onChange={setChangesMode}
-                    aria-label={t('Changes selection')}
-                  >
-                    <SegmentedControl.Item key="create_prs">
-                      {t('Approve')}
-                    </SegmentedControl.Item>
-                    <SegmentedControl.Item key="give_feedback">
-                      {t('Iterate')}
-                    </SegmentedControl.Item>
-                    <SegmentedControl.Item key="add_tests">
-                      {t('Test')}
-                    </SegmentedControl.Item>
-                  </SegmentedControl>
-                </Fragment>
-              )}
-            </ActionBar>
+            </InputSection>
           )}
+          {isDisabled && <Placeholder />}
         </ContentWrapper>
       </AnimatedContent>
-      <InputSection>
-        {(!isChangesStep || changesMode === 'give_feedback') &&
-          !prsMade &&
-          !isDisabled && (
-            <RootCauseAndFeedbackInputArea
-              handleSend={handleSend}
-              isRootCauseSelectionStep={isRootCauseSelectionStep}
-              message={message}
-              rootCauseMode={rootCauseMode}
-              responseRequired={responseRequired}
-              setMessage={setMessage}
-              actionText={actionText}
-              primaryAction={primaryAction}
-              changesMode={changesMode}
-              groupId={groupId}
-            />
-          )}
-        {isChangesStep && changesMode === 'add_tests' && !prsMade && (
-          <form onSubmit={handleSend}>
-            <InputArea>
-              <Fragment>
-                <StaticMessage>
-                  Write unit tests to make sure the issue is fixed?
-                </StaticMessage>
-                <Button type="submit" priority="primary">
-                  Add Tests
-                </Button>
-              </Fragment>
-            </InputArea>
-          </form>
-        )}
-        {isChangesStep && changesMode === 'create_prs' && !prsMade && (
-          <InputArea>
-            <Fragment>
-              <StaticMessage>
-                Draft {changes.length} pull request{changes.length > 1 ? 's' : ''} for the
-                above changes?
-              </StaticMessage>
-              <SetupAndCreatePRsButton changes={changes} groupId={groupId} />
-            </Fragment>
-          </InputArea>
-        )}
-        {isChangesStep && prsMade && (
-          <ViewPRButtons aria-label={t('View pull requests')}>
-            {changes.map(
-              change =>
-                change.pull_request?.pr_url && (
-                  <LinkButton
-                    key={`${change.repo_external_id}-${Math.random()}`}
-                    size="xs"
-                    priority="primary"
-                    icon={<IconOpen size="xs" />}
-                    href={change.pull_request.pr_url}
-                    external
-                  >
-                    View PR in {change.repo_name}
-                  </LinkButton>
-                )
-            )}
-          </ViewPRButtons>
-        )}
-      </InputSection>
     </Container>
   );
 }
 
-const ViewPRButtons = styled(ScrollCarousel)`
-  width: 100%;
-  padding: 0 ${space(1)};
+const Placeholder = styled('div')`
+  padding: ${space(1)};
 `;
 
 const ScrollIntoViewButtonWrapper = styled('div')`
@@ -571,6 +729,10 @@ const Container = styled('div')`
   box-shadow: ${p => p.theme.dropShadowHeavy};
   display: flex;
   flex-direction: column;
+`;
+
+const StyledScrollCarousel = styled(ScrollCarousel)`
+  padding: 0 ${space(1)};
 `;
 
 const AnimatedContent = styled(motion.div)`
@@ -595,7 +757,6 @@ const StepTitle = styled('div')`
   white-space: nowrap;
   display: flex;
   align-items: center;
-  flex-grow: 1;
 
   span {
     margin-right: ${space(1)};
@@ -611,6 +772,7 @@ const StepHeaderRightSection = styled('div')`
 const StepIconContainer = styled('div')`
   display: flex;
   align-items: center;
+  margin-right: auto;
 `;
 
 const StepHeader = styled('div')`
@@ -633,7 +795,6 @@ const StaticMessage = styled('p')`
   padding-top: ${space(1)};
   padding-left: ${space(1)};
   margin-bottom: 0;
-  color: ${p => p.theme.subText};
   border-top: 1px solid ${p => p.theme.border};
 `;
 
@@ -657,13 +818,8 @@ const ProcessingStatusIndicator = styled(LoadingIndicator)`
   }
 `;
 
-const ActionBar = styled('div')`
-  padding-bottom: ${space(1)};
-  padding-left: ${space(2)};
-`;
-
 const InputSection = styled('div')`
-  padding: 0 ${space(2)} ${space(2)} ${space(2)};
+  padding: ${space(0.5)} ${space(2)} ${space(2)};
 `;
 
 export default AutofixMessageBox;

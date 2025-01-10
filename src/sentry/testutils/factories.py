@@ -146,6 +146,8 @@ from sentry.signals import project_created
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, QuerySubscriptionDataSourceHandler
+from sentry.tempest.models import MessageType as TempestMessageType
+from sentry.tempest.models import TempestCredentials
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
@@ -158,6 +160,7 @@ from sentry.uptime.models import (
     ProjectUptimeSubscriptionMode,
     UptimeStatus,
     UptimeSubscription,
+    UptimeSubscriptionRegion,
 )
 from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.users.models.user import User
@@ -606,6 +609,34 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
+    def create_tempest_credentials(
+        project: Project,
+        created_by: User | None = None,
+        client_id: str | None = None,
+        client_secret: str | None = None,
+        message: str = "",
+        message_type: str | None = None,
+        latest_fetched_item_id: str | None = None,
+    ):
+        if client_id is None:
+            client_id = str(uuid4())
+        if client_secret is None:
+            client_secret = str(uuid4())
+        if message_type is None:
+            message_type = TempestMessageType.ERROR
+
+        return TempestCredentials.objects.create(
+            project=project,
+            created_by_id=created_by.id if created_by else None,
+            client_id=client_id,
+            client_secret=client_secret,
+            message=message,
+            message_type=message_type,
+            latest_fetched_item_id=latest_fetched_item_id,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_release(
         project: Project,
         user: User | None = None,
@@ -1003,6 +1034,9 @@ class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
     def create_group(project, **kwargs):
+        from sentry.models.group import GroupStatus
+        from sentry.types.group import GroupSubStatus
+
         kwargs.setdefault("message", "Hello world")
         kwargs.setdefault("data", {})
         if "type" not in kwargs["data"]:
@@ -1012,6 +1046,10 @@ class Factories:
         if "metadata" in kwargs:
             metadata = kwargs.pop("metadata")
             kwargs["data"].setdefault("metadata", {}).update(metadata)
+        if "status" not in kwargs:
+            kwargs["status"] = GroupStatus.UNRESOLVED
+            kwargs["substatus"] = GroupSubStatus.NEW
+
         return Group.objects.create(project=project, **kwargs)
 
     @staticmethod
@@ -1945,7 +1983,7 @@ class Factories:
         type: str,
         subscription_id: str | None,
         status: UptimeSubscription.Status,
-        url: str,
+        url: str | None,
         url_domain: str,
         url_domain_suffix: str,
         host_provider_id: str,
@@ -1957,6 +1995,10 @@ class Factories:
         date_updated: datetime,
         trace_sampling: bool = False,
     ):
+        if url is None:
+            url = petname.generate().title()
+            url = f"http://{url}.com"
+
         return UptimeSubscription.objects.create(
             type=type,
             subscription_id=subscription_id,
@@ -1980,10 +2022,12 @@ class Factories:
         env: Environment | None,
         uptime_subscription: UptimeSubscription,
         mode: ProjectUptimeSubscriptionMode,
-        name: str,
+        name: str | None,
         owner: Actor | None,
         uptime_status: UptimeStatus,
     ):
+        if name is None:
+            name = petname.generate().title()
         owner_team_id = None
         owner_user_id = None
         if owner:
@@ -2001,6 +2045,14 @@ class Factories:
             owner_team_id=owner_team_id,
             owner_user_id=owner_user_id,
             uptime_status=uptime_status,
+        )
+
+    @staticmethod
+    def create_uptime_subscription_region(
+        subscription: UptimeSubscription, region_slug: str
+    ) -> UptimeSubscriptionRegion:
+        return UptimeSubscriptionRegion.objects.create(
+            uptime_subscription=subscription, region_slug=region_slug
         )
 
     @staticmethod
@@ -2061,13 +2113,18 @@ class Factories:
     def create_workflow(
         name: str | None = None,
         organization: Organization | None = None,
+        config: dict[str, Any] | None = None,
         **kwargs,
     ) -> Workflow:
         if organization is None:
             organization = Factories.create_organization()
         if name is None:
             name = petname.generate(2, " ", letters=10).title()
-        return Workflow.objects.create(organization=organization, name=name, **kwargs)
+        if config is None:
+            config = {}
+        return Workflow.objects.create(
+            organization=organization, name=name, config=config, **kwargs
+        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
@@ -2118,13 +2175,17 @@ class Factories:
     @assume_test_silo_mode(SiloMode.REGION)
     def create_detector(
         name: str | None = None,
+        config: dict | None = None,
         **kwargs,
     ) -> Detector:
         if name is None:
             name = petname.generate(2, " ", letters=10).title()
+        if config is None:
+            config = {}
 
         return Detector.objects.create(
             name=name,
+            config=config,
             **kwargs,
         )
 

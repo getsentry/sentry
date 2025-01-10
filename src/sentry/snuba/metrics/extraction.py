@@ -313,8 +313,6 @@ _IGNORED_METRIC_CONDITION = [
     "event.type=transaction",
 ]
 
-Variables = dict[str, Any]
-
 query_builder = UnresolvedQuery(
     dataset=Dataset.Transactions, params={}
 )  # Workaround to get all updated discover functions instead of using the deprecated events fields.
@@ -662,12 +660,6 @@ def should_use_on_demand_metrics(
             metrics.incr("on_demand_metrics.should_use_on_demand_metrics.cache_hit")
             return cached_result
         else:
-            logger.info(
-                "should_use_on_demand_metrics.cache_miss",
-                extra={
-                    "cache_key": local_cache_key,
-                },
-            )
             result = _should_use_on_demand_metrics(
                 dataset=dataset,
                 aggregate=aggregate,
@@ -1325,11 +1317,6 @@ class OnDemandMetricSpec:
         """Returns a parent condition containing a list of other conditions which determine whether of not the metric
         is extracted."""
         return self._process_query()
-
-    def is_project_dependent(self) -> bool:
-        """Returns whether the spec is unique to a project, which is required for some forms of caching"""
-        tags_specs_generator = _ONDEMAND_OP_TO_PROJECT_SPEC_GENERATOR.get(self.op)
-        return tags_specs_generator is not None
 
     def tags_conditions(self, project: Project) -> list[TagSpec]:
         """Returns a list of tag conditions that will specify how tags are injected into metrics by Relay, and a bool if those specs may be project specific."""

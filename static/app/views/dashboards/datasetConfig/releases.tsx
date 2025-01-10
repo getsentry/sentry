@@ -14,7 +14,10 @@ import {SessionField} from 'sentry/types/sessions';
 import {defined} from 'sentry/utils';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import type {QueryFieldValue} from 'sentry/utils/discover/fields';
+import type {
+  AggregationKeyWithAlias,
+  QueryFieldValue,
+} from 'sentry/utils/discover/fields';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
@@ -60,12 +63,23 @@ const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   orderby: `-crash_free_rate(${SessionField.SESSION})`,
 };
 
+const DEFAULT_FIELD: QueryFieldValue = {
+  function: [
+    'crash_free_rate' as AggregationKeyWithAlias,
+    SessionField.SESSION,
+    undefined,
+    undefined,
+  ],
+  kind: FieldValueKind.FUNCTION,
+};
+
 const METRICS_BACKED_SESSIONS_START_DATE = new Date('2022-07-12');
 
 export const ReleasesConfig: DatasetConfig<
   SessionApiResponse | MetricsApiResponse,
   SessionApiResponse | MetricsApiResponse
 > = {
+  defaultField: DEFAULT_FIELD,
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   enableEquations: false,
   disableSortOptions,
@@ -190,7 +204,7 @@ function getReleasesSeriesRequest(
   organization: Organization,
   pageFilters: PageFilters
 ) {
-  const query = widget.queries[queryIndex];
+  const query = widget.queries[queryIndex]!;
   const {displayType, limit} = widget;
 
   const {datetime} = pageFilters;

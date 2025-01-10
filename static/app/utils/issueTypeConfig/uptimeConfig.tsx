@@ -8,6 +8,7 @@ const uptimeConfig: IssueCategoryConfigMapping = {
       deleteAndDiscard: {enabled: false},
       merge: {enabled: false},
       ignore: {enabled: true},
+      resolve: {enabled: true},
       resolveInRelease: {enabled: true},
       share: {enabled: true},
     },

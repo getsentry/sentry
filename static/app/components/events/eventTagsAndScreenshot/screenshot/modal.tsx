@@ -27,8 +27,6 @@ export const MAX_SCREENSHOTS_PER_PAGE = 20;
 interface ScreenshotModalProps extends ModalRenderProps {
   downloadUrl: string;
   eventAttachment: EventAttachment;
-  onDelete: () => void;
-  onDownload: () => void;
   projectSlug: Project['slug'];
   /**
    * Enables pagination of screenshots.
@@ -38,6 +36,8 @@ interface ScreenshotModalProps extends ModalRenderProps {
    * Enables navigation to the issue details page.
    */
   groupId?: string;
+  onDelete?: () => void;
+  onDownload?: () => void;
 }
 
 export default function ScreenshotModal({
@@ -65,7 +65,7 @@ export default function ScreenshotModal({
       if (attachments.length) {
         const newIndex = currentAttachmentIndex + delta;
         if (newIndex >= 0 && newIndex < attachments.length) {
-          setCurrentAttachment(attachments[newIndex]);
+          setCurrentAttachment(attachments[newIndex]!);
         }
       }
     },
@@ -152,14 +152,16 @@ export default function ScreenshotModal({
       </Body>
       <Footer>
         <ButtonBar gap={1}>
-          <Confirm
-            confirmText={t('Delete')}
-            message={<h6>{t('Are you sure you want to delete this screenshot?')}</h6>}
-            priority="danger"
-            onConfirm={onDelete}
-          >
-            <Button priority="danger">{t('Delete')}</Button>
-          </Confirm>
+          {onDelete && (
+            <Confirm
+              confirmText={t('Delete')}
+              message={<h6>{t('Are you sure you want to delete this screenshot?')}</h6>}
+              priority="danger"
+              onConfirm={onDelete}
+            >
+              <Button priority="danger">{t('Delete')}</Button>
+            </Confirm>
+          )}
           <LinkButton onClick={onDownload} href={downloadUrl}>
             {t('Download')}
           </LinkButton>

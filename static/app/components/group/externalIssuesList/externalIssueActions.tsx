@@ -75,7 +75,7 @@ function ExternalIssueActions({configurations, group, onChange}: Props) {
     const {externalIssues} = integration;
     // Currently we do not support a case where there is multiple external issues.
     // For example, we shouldn't have more than 1 jira ticket created for an issue for each jira configuration.
-    const issue = externalIssues[0];
+    const issue = externalIssues[0]!;
     const {id} = issue;
     const endpoint = `/organizations/${organization.slug}/issues/${group.id}/integrations/${integration.id}/?externalIssue=${id}`;
 
@@ -97,7 +97,7 @@ function ExternalIssueActions({configurations, group, onChange}: Props) {
     <Fragment>
       {linked.map(config => {
         const {provider, externalIssues} = config;
-        const issue = externalIssues[0];
+        const issue = externalIssues[0]!;
         return (
           <IssueSyncListElement
             key={issue.id}
@@ -122,8 +122,8 @@ function ExternalIssueActions({configurations, group, onChange}: Props) {
 
       {unlinked.length > 0 && (
         <IssueSyncListElement
-          integrationType={unlinked[0].provider.key}
-          hoverCardHeader={t('%s Integration', unlinked[0].provider.name)}
+          integrationType={unlinked[0]!.provider.key}
+          hoverCardHeader={t('%s Integration', unlinked[0]!.provider.name)}
           hoverCardBody={
             <Container>
               {unlinked.map(config => (
@@ -148,7 +148,7 @@ function ExternalIssueActions({configurations, group, onChange}: Props) {
               ? () =>
                   doOpenExternalIssueModal({
                     group,
-                    integration: unlinked[0],
+                    integration: unlinked[0]!,
                     onChange,
                     organization,
                   })

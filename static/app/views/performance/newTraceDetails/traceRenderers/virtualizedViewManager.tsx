@@ -81,6 +81,7 @@ export class VirtualizedViewManager {
     [];
   timeline_indicators: (HTMLElement | undefined)[] = [];
   vertical_indicators: {[key: string]: VerticalIndicator} = {};
+  vertical_indicator_labels: {[key: string]: HTMLElement | undefined} = {};
   span_bars: ({color: string; ref: HTMLElement; space: [number, number]} | undefined)[] =
     [];
   span_patterns: ({ref: HTMLElement; space: [number, number]} | undefined)[][] = [];
@@ -394,15 +395,21 @@ export class VirtualizedViewManager {
     }
 
     if (ref) {
-      const label = ref.children[0] as HTMLElement | undefined;
-      if (label) {
-        this.indicator_label_measurer.enqueueMeasure(indicator, label);
-      }
-
       ref.addEventListener('wheel', this.onWheel, {passive: false});
       ref.style.transform = `translateX(${this.transformXFromTimestamp(
         indicator.start
       )}px)`;
+    }
+  }
+
+  registerIndicatorLabelRef(
+    ref: HTMLElement | null,
+    index: number,
+    indicator: TraceTree['indicators'][0]
+  ) {
+    if (ref) {
+      this.vertical_indicator_labels[index] = ref;
+      this.indicator_label_measurer.enqueueMeasure(indicator, ref);
     }
   }
 
@@ -453,7 +460,7 @@ export class VirtualizedViewManager {
       const scale = 1 - event.deltaY * 0.01 * -1;
       const x = offsetX > 0 ? event.clientX - offsetX : event.offsetX;
       const configSpaceCursor = this.view.getConfigSpaceCursor({
-        x: x,
+        x,
         y: 0,
       });
 
@@ -663,15 +670,15 @@ export class VirtualizedViewManager {
   maybeInitializeTraceViewFromQS(fov: string): void {
     const [x, width] = fov.split(',').map(parseFloat);
 
-    if (isNaN(x) || isNaN(width)) {
+    if (isNaN(x!) || isNaN(width!)) {
       return;
     }
 
-    if (width <= 0 || width > this.view.trace_space.width) {
+    if (width! <= 0 || width! > this.view.trace_space.width) {
       return;
     }
 
-    if (x < 0 || x > this.view.trace_space.width) {
+    if (x! < 0 || x! > this.view.trace_space.width) {
       return;
     }
 
@@ -933,7 +940,7 @@ export class VirtualizedViewManager {
     let innerMostNode: TraceTreeNode<any> | undefined;
 
     for (let i = 5; i < this.columns.span_list.column_refs.length - 5; i++) {
-      const width = this.row_measurer.cache.get(this.columns.list.column_nodes[i]);
+      const width = this.row_measurer.cache.get(this.columns.list.column_nodes[i]!);
       if (width === undefined) {
         // this is unlikely to happen, but we should trigger a sync measure event if it does
         continue;
@@ -943,7 +950,7 @@ export class VirtualizedViewManager {
       max = Math.max(max, width);
       innerMostNode =
         !innerMostNode ||
-        TraceTree.Depth(this.columns.list.column_nodes[i]) <
+        TraceTree.Depth(this.columns.list.column_nodes[i]!) <
           TraceTree.Depth(innerMostNode)
           ? this.columns.list.column_nodes[i]
           : innerMostNode;
@@ -1122,8 +1129,8 @@ export class VirtualizedViewManager {
     const text_width = this.text_measurer.measure(text);
 
     const timestamps = getIconTimestamps(node, span_space, icon_width_config_space);
-    const text_left = Math.min(span_space[0], timestamps[0]);
-    const text_right = Math.max(span_space[0] + span_space[1], timestamps[1]);
+    const text_left = Math.min(span_space[0], timestamps[0]!);
+    const text_right = Math.max(span_space[0] + span_space[1], timestamps[1]!);
 
     // precompute all anchor points aot, so we make the control flow more readable.
     /// |---| text
@@ -1280,8 +1287,9 @@ export class VirtualizedViewManager {
     }
 
     this.drawInvisibleBars();
+    this.drawVerticalIndicators();
 
-    let start_indicator = 0;
+    let start_indicator = -1;
     let end_indicator = this.indicators.length;
 
     while (start_indicator < this.indicators.length - 1) {
@@ -1318,62 +1326,79 @@ export class VirtualizedViewManager {
     start_indicator = Math.max(0, start_indicator - 1);
     end_indicator = Math.min(this.indicators.length - 1, end_indicator);
 
+    let indicator_label_right = 0;
+
     for (let i = 0; i < this.indicators.length; i++) {
       const entry = this.indicators[i];
-      if (!entry) {
+      const label = this.vertical_indicator_labels[i];
+      if (!entry || !label) {
         continue;
       }
 
       if (i < start_indicator || i > end_indicator) {
         entry.ref.style.opacity = '0';
+        label.style.opacity = `0`;
         continue;
       }
 
+      const label_width = this.indicator_label_measurer.cache.get(entry.indicator) ?? 34;
       const transform = this.transformXFromTimestamp(entry.indicator.start);
-      const label = entry.ref.children[0] as HTMLElement | undefined;
 
-      const indicator_max = this.view.trace_physical_space.width + 1;
-      const indicator_min = -1;
+      const indicator_max = this.view.trace_physical_space.width;
+      const indicator_min = 0;
 
-      const label_width = this.indicator_label_measurer.cache.get(entry.indicator);
-      const clamped_transform = clamp(transform, -1, indicator_max);
+      const PADDING = 2;
+      const clamped_transform = clamp(transform, indicator_min, indicator_max);
+      let clamped_label_transform = clamp(
+        transform - label_width / 2,
+        indicator_min + PADDING,
+        indicator_max - label_width - PADDING
+      );
 
-      if (label_width === undefined) {
-        entry.ref.style.transform = `translate(${clamp(transform, indicator_min, indicator_max)}px, 0)`;
+      if (clamped_transform <= 2) {
+        label.style.transform = `translateX(${clamped_label_transform}px)`;
+        entry.ref.style.opacity = '0';
+        indicator_label_right = clamped_label_transform + label_width;
+        continue;
+      } else if (clamped_transform + label_width / 2 >= indicator_max) {
+        label.style.transform = `translateX(${clamped_label_transform}px)`;
+        indicator_label_right = clamped_label_transform;
+        entry.ref.style.opacity = '0';
         continue;
       }
 
-      if (label) {
-        const PADDING = 2;
-        const label_window_left = PADDING;
-        const label_window_right = -label_width - PADDING;
+      if (clamped_label_transform < indicator_label_right) {
+        const previousIndicator = this.indicators[i - 1]!;
 
-        if (transform < -1) {
-          label.style.transform = `translateX(${label_window_left}px)`;
-        } else if (transform >= indicator_max) {
-          label.style.transform = `translateX(${label_window_right}px)`;
-        } else {
-          const space_left = transform - PADDING - label_width / 2;
-          const space_right = transform + label_width / 2;
+        const overlapsWithLastVisibleOnLeft =
+          i - 1 === start_indicator &&
+          previousIndicator.indicator.start <
+            this.view.to_origin + this.view.trace_view.left;
 
-          if (space_left < 0) {
-            const left = -label_width / 2 + Math.abs(space_left);
-            label.style.transform = `translateX(${left - 1}px)`;
-          } else if (space_right > this.view.trace_physical_space.width) {
-            const right =
-              -label_width / 2 - (space_right - this.view.trace_physical_space.width) - 1;
-            label.style.transform = `translateX(${right}px)`;
-          } else {
-            label.style.transform = `translateX(${-label_width / 2}px)`;
+        if (overlapsWithLastVisibleOnLeft) {
+          const previousLabel = this.vertical_indicator_labels[i - 1];
+
+          if (previousLabel && previousIndicator) {
+            previousLabel.style.opacity = '1';
+            const overlap = indicator_label_right - clamped_label_transform;
+            previousLabel.style.transform = `translateX(${2 - overlap}px)`;
           }
+        } else {
+          const OVERLAP_FACTOR = 0.25;
+          clamped_label_transform +=
+            (indicator_label_right - clamped_label_transform) * OVERLAP_FACTOR;
         }
       }
+
+      indicator_label_right = clamped_label_transform + label_width;
+
+      label.style.opacity = `1`;
+      label.style.transform = `translateX(${clamp(clamped_label_transform, -1, indicator_max)}px)`;
 
       entry.ref.style.opacity = '1';
       entry.ref.style.transform = `translate(${clamped_transform}px, 0)`;
     }
 
-    this.drawVerticalIndicators();
     this.drawTimelineIntervals();
   }
 
@@ -1449,7 +1474,7 @@ export class VirtualizedViewManager {
 
   drawVerticalIndicators() {
     for (const key in this.vertical_indicators) {
-      this.drawVerticalIndicator(this.vertical_indicators[key]);
+      this.drawVerticalIndicator(this.vertical_indicators[key]!);
     }
   }
 
@@ -1616,7 +1641,7 @@ export class VirtualizedViewManager {
 
       if (text) {
         const [inside, text_transform] = this.computeSpanTextPlacement(
-          this.columns.list.column_nodes[i],
+          this.columns.list.column_nodes[i]!,
           text.space,
           text.text
         );

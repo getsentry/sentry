@@ -3,7 +3,6 @@ from __future__ import annotations
 import zipfile
 from io import BytesIO
 from os.path import join
-from tempfile import TemporaryFile
 from typing import Any
 from unittest.mock import patch
 
@@ -84,26 +83,6 @@ def load_profile(name):
     path = join(PROFILES_FIXTURES_PATH, name)
     with open(path) as f:
         return json.loads(f.read())
-
-
-def load_proguard(project, proguard_uuid, proguard_source):
-    with TemporaryFile() as tf:
-        tf.write(proguard_source)
-        tf.seek(0)
-        file = Factories.create_file(
-            name=proguard_uuid,
-            type="project.dif",
-            headers={"Content-Type": "proguard"},
-        )
-        file.putfile(tf)
-
-    return Factories.create_dif_file(
-        project,
-        file=file,
-        debug_id=proguard_uuid,
-        object_name="proguard-mapping",
-        data={"features": ["mapping"]},
-    )
 
 
 @pytest.fixture
@@ -288,35 +267,38 @@ def sample_v2_profile():
     )
 
 
-@pytest.fixture
-def proguard_file_basic(project):
-    return load_proguard(project, PROGUARD_UUID, PROGUARD_SOURCE)
+@django_db_all
+def test_normalize_sample_v1_profile(organization, sample_v1_profile):
+    sample_v1_profile["transaction_tags"] = {"device.class": "1"}
 
+    _normalize(profile=sample_v1_profile, organization=organization)
 
-@pytest.fixture
-def proguard_file_inline(project):
-    return load_proguard(project, PROGUARD_INLINE_UUID, PROGUARD_INLINE_SOURCE)
-
-
-@pytest.fixture
-def proguard_file_bug(project):
-    return load_proguard(project, PROGUARD_BUG_UUID, PROGUARD_BUG_SOURCE)
+    assert sample_v1_profile.get("os", {}).get("build_number")
+    assert sample_v1_profile.get("device", {}).get("classification")
+    assert sample_v1_profile["device"]["classification"] == "low"
 
 
 @django_db_all
 def test_normalize_ios_profile(organization, ios_profile):
+    ios_profile["transaction_tags"] = {"device.class": "1"}
+
     _normalize(profile=ios_profile, organization=organization)
     for k in ["device_os_build_number", "device_classification"]:
         assert k in ios_profile
 
+    assert ios_profile["device_classification"] == "low"
+
 
 @django_db_all
 def test_normalize_android_profile(organization, android_profile):
+    android_profile["transaction_tags"] = {"device.class": "1"}
+
     _normalize(profile=android_profile, organization=organization)
     for k in ["android_api_level", "device_classification"]:
         assert k in android_profile
 
     assert isinstance(android_profile["android_api_level"], int)
+    assert android_profile["device_classification"] == "low"
 
 
 def test_process_symbolicator_results_for_sample():

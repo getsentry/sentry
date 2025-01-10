@@ -278,16 +278,16 @@ function FocusAreaOverlay({
       return;
     }
 
-    const widthPx = bottomRight[0] - topLeft[0];
-    const heightPx = bottomRight[1] - topLeft[1];
+    const widthPx = bottomRight[0]! - topLeft[0]!;
+    const heightPx = bottomRight[1]! - topLeft[1]!;
 
-    const resultTop = useFullYAxis ? '0px' : `${topLeft[1].toPrecision(5)}px`;
+    const resultTop = useFullYAxis ? '0px' : `${topLeft[1]!.toPrecision(5)}px`;
     const resultHeight = useFullYAxis
       ? `${CHART_HEIGHT}px`
       : `${heightPx.toPrecision(5)}px`;
 
     // Ensure the focus area rect is always within the chart bounds
-    const left = Math.max(topLeft[0], 0);
+    const left = Math.max(topLeft[0]!, 0);
     const width = Math.min(widthPx, chartInstance.getWidth() - left);
 
     const newPosition = {
@@ -347,14 +347,14 @@ const getSelectionRange = (
   useFullYAxis: boolean,
   boundingRect: ValueRect
 ): SelectionRange => {
-  const startTimestamp = Math.min(...rect.coordRange[0]);
-  const endTimestamp = Math.max(...rect.coordRange[0]);
+  const startTimestamp = Math.min(...rect.coordRange![0]!);
+  const endTimestamp = Math.max(...rect.coordRange![0]!);
 
   const startDate = getDateString(Math.max(startTimestamp, boundingRect.xMin));
   const endDate = getDateString(Math.min(endTimestamp, boundingRect.xMax));
 
-  const min = useFullYAxis ? NaN : Math.min(...rect.coordRange[1]);
-  const max = useFullYAxis ? NaN : Math.max(...rect.coordRange[1]);
+  const min = useFullYAxis ? NaN : Math.min(...rect.coordRange[1]!);
+  const max = useFullYAxis ? NaN : Math.max(...rect.coordRange[1]!);
 
   return {
     start: startDate,

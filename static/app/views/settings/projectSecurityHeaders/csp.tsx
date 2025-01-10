@@ -51,7 +51,7 @@ function getReportOnlyInstructions(keyList: ProjectKey[]) {
 export default function ProjectCspReports() {
   const organization = useOrganization();
   const params = useParams();
-  const projectId = params.projectId;
+  const projectId = params.projectId!;
 
   const {
     data: keyList,

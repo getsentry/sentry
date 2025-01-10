@@ -13,6 +13,7 @@ from django.utils import timezone
 from urllib3.response import HTTPResponse
 
 from sentry.conf.server import SEER_ANOMALY_DETECTION_ENDPOINT_URL
+from sentry.incidents.grouptype import MetricAlertFire
 from sentry.incidents.logic import (
     CRITICAL_TRIGGER_LABEL,
     WARNING_TRIGGER_LABEL,
@@ -30,7 +31,6 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleThresholdType,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
-    alert_subscription_callback_registry,
 )
 from sentry.incidents.models.incident import (
     Incident,
@@ -50,7 +50,7 @@ from sentry.incidents.subscription_processor import (
     partition,
     update_alert_rule_stats,
 )
-from sentry.incidents.utils.types import AlertRuleActivationConditionType
+from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.issues.grouptype import MetricIssuePOC
 from sentry.models.project import Project
 from sentry.seer.anomaly_detection.get_anomaly_data import get_anomaly_data_from_seer
@@ -61,7 +61,6 @@ from sentry.seer.anomaly_detection.types import (
 )
 from sentry.seer.anomaly_detection.utils import has_anomaly, translate_direction
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.indexer.postgres.models import MetricsKeyIndexer
 from sentry.sentry_metrics.utils import resolve_tag_key
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
@@ -215,10 +214,6 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         return self.rule.snuba_query.subscriptions.filter(project=self.project).get()
 
     @cached_property
-    def activated_sub(self):
-        return self.activated_rule.snuba_query.subscriptions.filter(project=self.project).get()
-
-    @cached_property
     def other_sub(self):
         return self.rule.snuba_query.subscriptions.filter(project=self.other_project).get()
 
@@ -251,40 +246,6 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
     @cached_property
     def rule(self):
         return self.create_rule_trigger_and_action(projects=[self.project, self.other_project])
-
-    @cached_property
-    def activated_rule(self):
-        rule = self.create_alert_rule(
-            projects=[self.project, self.other_project],
-            name="some rule",
-            query="",
-            aggregate="count()",
-            time_window=1,
-            threshold_type=AlertRuleThresholdType.ABOVE,
-            resolve_threshold=10,
-            threshold_period=1,
-            monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
-            activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
-            event_types=[
-                SnubaQueryEventType.EventType.ERROR,
-                SnubaQueryEventType.EventType.DEFAULT,
-            ],
-        )
-        rule.subscribe_projects(
-            projects=[self.project],
-            monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
-            activation_condition=AlertRuleActivationConditionType.DEPLOY_CREATION,
-            activator="testing",
-        )
-        # Make sure the trigger exists
-        trigger = create_alert_rule_trigger(rule, CRITICAL_TRIGGER_LABEL, 100)
-        create_alert_rule_trigger_action(
-            trigger,
-            AlertRuleTriggerAction.Type.EMAIL,
-            AlertRuleTriggerAction.TargetType.USER,
-            str(self.user.id),
-        )
-        return rule
 
     @cached_property
     def comparison_rule_above(self):
@@ -325,16 +286,8 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         return self.rule.alertruletrigger_set.get()
 
     @cached_property
-    def activated_trigger(self):
-        return self.activated_rule.alertruletrigger_set.get()
-
-    @cached_property
     def action(self):
         return self.trigger.alertruletriggeraction_set.get()
-
-    @cached_property
-    def activated_action(self):
-        return self.activated_trigger.alertruletriggeraction_set.get()
 
     def build_subscription_update(self, subscription, time_delta=None, value=EMPTY):
         if time_delta is not None:
@@ -971,33 +924,6 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             [(trigger.alert_threshold + 1, IncidentStatus.CRITICAL, uuid)],
         )
         create_metric_issue_mock.assert_not_called()
-
-    def test_activated_alert(self):
-        # Verify that an alert rule that only expects a single update to be over the
-        # alert threshold triggers correctly
-        rule = self.activated_rule
-        trigger = self.activated_trigger
-        subscription = self.activated_sub
-        processor = self.send_update(
-            rule=rule, value=trigger.alert_threshold + 1, subscription=subscription
-        )
-        self.assert_trigger_counts(processor, self.activated_trigger, 0, 0)
-        incident = self.assert_active_incident(rule=rule, subscription=subscription)
-        assert incident.date_started == (
-            timezone.now().replace(microsecond=0) - timedelta(seconds=rule.snuba_query.time_window)
-        )
-        self.assert_trigger_exists_with_status(
-            incident, self.activated_trigger, TriggerStatus.ACTIVE
-        )
-        latest_activity = self.latest_activity(incident)
-        uuid = str(latest_activity.notification_uuid)
-        self.assert_actions_fired_for_incident(
-            incident,
-            [self.activated_action],
-            [(trigger.alert_threshold + 1, IncidentStatus.CRITICAL, uuid)],
-        )
-        # assert that an incident was created _with_ an activation!
-        assert incident.activation
 
     def test_alert_dedupe(self):
         # Verify that an alert rule that only expects a single update to be over the
@@ -2956,15 +2882,6 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_trigger_exists_with_status(new_incident, trigger, TriggerStatus.ACTIVE)
         self.assert_incident_is_latest_for_rule(new_incident)
 
-    def test_invoke_alert_subscription_callback(self):
-        mock = Mock()
-        alert_subscription_callback_registry[AlertRuleMonitorTypeInt.CONTINUOUS] = mock
-
-        self.send_update(self.rule, 1, subscription=self.sub)
-
-        assert mock.call_count == 1
-        assert mock.call_args[0][0] == self.sub
-
     @with_feature("organizations:metric-issue-poc")
     @mock.patch("sentry.incidents.utils.metric_issue_poc.produce_occurrence_to_kafka")
     def test_alert_creates_metric_issue(self, mock_produce_occurrence_to_kafka):
@@ -3039,6 +2956,23 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         status_change = mock_produce_occurrence_to_kafka.call_args_list[1][1]["status_change"]
         assert status_change.new_status == GroupStatus.RESOLVED
         assert occurrence.fingerprint == status_change.fingerprint
+
+    @with_feature("organizations:workflow-engine-metric-alert-processing")
+    @mock.patch("sentry.incidents.subscription_processor.process_data_packets")
+    def test_process_data_packets_called(self, mock_process_data_packets):
+        rule = self.rule
+        detector = self.create_detector(name="hojicha", type=MetricAlertFire.slug)
+        data_source = self.create_data_source(query_id=self.sub.id)
+        data_source.detectors.set([detector])
+        self.send_update(rule, 10)
+        assert mock_process_data_packets.call_count == 1
+        assert (
+            mock_process_data_packets.call_args_list[0][0][1]
+            == DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+        )
+        data_packet_list = mock_process_data_packets.call_args_list[0][0][0]
+        assert data_packet_list[0].query_id == self.sub.id
+        assert data_packet_list[0].packet["values"] == {"data": [{"some_col_name": 10}]}
 
 
 class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetricsTestCase):
@@ -3418,7 +3352,7 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
         )
         self.assert_active_incident(rule)
 
-    @patch("sentry.workflow_engine.process_update_helpers.metrics")
+    @patch("sentry.incidents.utils.process_update_helpers.metrics")
     def test_crash_rate_alert_for_sessions_with_no_sessions_data(self, helper_metrics):
         """
         Test that ensures we skip the Crash Rate Alert processing if we have no sessions data
@@ -3441,8 +3375,8 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
             ]
         )
 
-    @patch("sentry.workflow_engine.process_update_helpers.CRASH_RATE_ALERT_MINIMUM_THRESHOLD", 30)
-    @patch("sentry.workflow_engine.process_update_helpers.metrics")
+    @patch("sentry.incidents.utils.process_update_helpers.CRASH_RATE_ALERT_MINIMUM_THRESHOLD", 30)
+    @patch("sentry.incidents.utils.process_update_helpers.metrics")
     def test_crash_rate_alert_when_session_count_is_lower_than_minimum_threshold(
         self, helper_metrics
     ):
@@ -3470,7 +3404,7 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
             ]
         )
 
-    @patch("sentry.workflow_engine.process_update_helpers.CRASH_RATE_ALERT_MINIMUM_THRESHOLD", 30)
+    @patch("sentry.incidents.utils.process_update_helpers.CRASH_RATE_ALERT_MINIMUM_THRESHOLD", 30)
     def test_crash_rate_alert_when_session_count_is_higher_than_minimum_threshold(self):
         rule = self.crash_rate_alert_rule
         trigger = self.crash_rate_alert_critical_trigger
@@ -3489,7 +3423,7 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
         self.assert_actions_fired_for_incident(incident, [action_critical], None)
         self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
 
-    @patch("sentry.workflow_engine.process_update_helpers.metrics")
+    @patch("sentry.incidents.utils.process_update_helpers.metrics")
     def test_multiple_threshold_trigger_is_reset_when_no_sessions_data(self, helper_metrics):
         rule = self.crash_rate_alert_rule
         rule.update(threshold_period=2)
@@ -3528,8 +3462,8 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
         )
         self.assert_trigger_counts(processor, trigger, 0, 0)
 
-    @patch("sentry.workflow_engine.process_update_helpers.CRASH_RATE_ALERT_MINIMUM_THRESHOLD", 30)
-    @patch("sentry.workflow_engine.process_update_helpers.metrics")
+    @patch("sentry.incidents.utils.process_update_helpers.CRASH_RATE_ALERT_MINIMUM_THRESHOLD", 30)
+    @patch("sentry.incidents.utils.process_update_helpers.metrics")
     def test_multiple_threshold_trigger_is_reset_when_count_is_lower_than_min_threshold(
         self, helper_metrics
     ):
@@ -3571,7 +3505,7 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
         )
         self.assert_trigger_counts(processor, trigger, 0, 0)
 
-    @patch("sentry.workflow_engine.process_update_helpers.metrics")
+    @patch("sentry.incidents.utils.process_update_helpers.metrics")
     def test_multiple_threshold_resolve_is_reset_when_no_sessions_data(self, helper_metrics):
         rule = self.crash_rate_alert_rule
         trigger = self.crash_rate_alert_critical_trigger
@@ -3630,8 +3564,8 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
         self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
         self.assert_action_handler_called_with_actions(incident, [])
 
-    @patch("sentry.workflow_engine.process_update_helpers.CRASH_RATE_ALERT_MINIMUM_THRESHOLD", 30)
-    @patch("sentry.workflow_engine.process_update_helpers.metrics")
+    @patch("sentry.incidents.utils.process_update_helpers.CRASH_RATE_ALERT_MINIMUM_THRESHOLD", 30)
+    @patch("sentry.incidents.utils.process_update_helpers.metrics")
     def test_multiple_threshold_resolve_is_reset_when_count_is_lower_than_min_threshold(
         self, helper_metrics
     ):
@@ -3690,11 +3624,10 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
         self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
         self.assert_action_handler_called_with_actions(incident, [])
 
-    @patch("sentry.workflow_engine.process_update_helpers.metrics")
+    @patch("sentry.incidents.utils.process_update_helpers.metrics")
     def test_ensure_case_when_no_metrics_index_not_found_is_handled_gracefully(
         self, helper_metrics
     ):
-        MetricsKeyIndexer.objects.all().delete()
         rule = self.crash_rate_alert_rule
         subscription = rule.snuba_query.subscriptions.filter(project=self.project).get()
         processor = SubscriptionProcessor(subscription)

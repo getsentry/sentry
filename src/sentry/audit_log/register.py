@@ -615,6 +615,24 @@ default_manager.add(
 
 default_manager.add(
     AuditLogEvent(
+        event_id=1152,
+        name="TEMPEST_CLIENT_ID_ADD",
+        api_name="playstation-client-id.create",
+        template="added playstation client id {client_id}",
+    )
+)
+
+default_manager.add(
+    AuditLogEvent(
+        event_id=1153,
+        name="TEMPEST_CLIENT_ID_REMOVE",
+        api_name="playstation-client-id.remove",
+        template="removed playstation client id {client_id}",
+    )
+)
+
+default_manager.add(
+    AuditLogEvent(
         event_id=220,
         name="TRUSTED_RELAY_ADD",
         api_name="trusted-relay.add",

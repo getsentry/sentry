@@ -4,7 +4,6 @@ import type {CultureContext} from 'sentry/components/events/contexts/knownContex
 import type {MissingInstrumentationContext} from 'sentry/components/events/contexts/knownContext/missingInstrumentation';
 import type {
   AggregateSpanType,
-  MetricsSummary,
   RawSpanType,
   TraceContextType,
 } from 'sentry/components/events/interfaces/spans/types';
@@ -614,6 +613,10 @@ export interface ThreadPoolInfoContext {
   [ThreadPoolInfoContextKey.AVAILABLE_COMPLETION_PORT_THREADS]: number;
 }
 
+export type MetricAlertContextType = {
+  alert_rule_id?: string;
+};
+
 export enum ProfileContextKey {
   PROFILE_ID = 'profile_id',
   PROFILER_ID = 'profiler_id',
@@ -658,6 +661,7 @@ export type EventContexts = {
   feedback?: Record<string, any>;
   flags?: Flags;
   memory_info?: MemoryInfoContext;
+  metric_alert?: MetricAlertContextType;
   missing_instrumentation?: MissingInstrumentationContext;
   os?: OSContext;
   otel?: OtelContext;
@@ -815,7 +819,6 @@ export interface EventTransaction
   )[];
   startTimestamp: number;
   type: EventOrGroupType.TRANSACTION;
-  _metrics_summary?: MetricsSummary;
   perfProblem?: PerformanceDetectorData;
 }
 

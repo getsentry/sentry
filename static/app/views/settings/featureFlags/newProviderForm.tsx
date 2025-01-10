@@ -16,12 +16,12 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {makeFetchSecretQueryKey} from 'sentry/views/settings/featureFlags';
 
@@ -46,12 +46,13 @@ export default function NewProviderForm({
   const organization = useOrganization();
   const api = useApi();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const [selectedProvider, setSelectedProvider] = useState('<provider_name>');
 
   const handleGoBack = useCallback(() => {
-    browserHistory.push(normalizeUrl(`/settings/${organization.slug}/feature-flags/`));
-  }, [organization.slug]);
+    navigate(normalizeUrl(`/settings/${organization.slug}/feature-flags/`));
+  }, [organization.slug, navigate]);
 
   const {mutate: submitSecret, isPending} = useMutation<
     CreateSecretResponse,
@@ -115,7 +116,10 @@ export default function NewProviderForm({
         value={selectedProvider}
         placeholder={t('Select a provider')}
         name="provider"
-        options={[{value: 'LaunchDarkly', label: 'LaunchDarkly'}]}
+        options={[
+          {value: 'LaunchDarkly', label: 'LaunchDarkly'},
+          {value: 'Generic', label: 'Generic'},
+        ]}
         help={t(
           'If you have already linked this provider, pasting a new secret will override the existing secret.'
         )}
@@ -133,7 +137,7 @@ export default function NewProviderForm({
       >
         <TextCopyInput
           aria-label={t('Webhook URL')}
-        >{`https://sentry.io/api/0/organizations/sentry/flags/hooks/provider/${selectedProvider.toLowerCase()}/`}</TextCopyInput>
+        >{`https://sentry.io/api/0/organizations/${organization.slug}/flags/hooks/provider/${selectedProvider.toLowerCase()}/`}</TextCopyInput>
       </StyledFieldGroup>
       <TextField
         name="secret"

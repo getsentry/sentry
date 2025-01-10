@@ -7,6 +7,11 @@ import type {KeyboardEvent} from '@react-types/shared';
 import Checkbox from 'sentry/components/checkbox';
 import type {SelectOptionWithKey} from 'sentry/components/compactSelect/types';
 import {getItemsWithKeys} from 'sentry/components/compactSelect/utils';
+import {
+  ItemType,
+  type SearchGroup,
+  type SearchItem,
+} from 'sentry/components/deprecatedSmartSearchBar/types';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {
   type CustomComboboxMenu,
@@ -44,11 +49,6 @@ import {
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
-import {
-  ItemType,
-  type SearchGroup,
-  type SearchItem,
-} from 'sentry/components/smartSearchBar/types';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Tag, TagCollection} from 'sentry/types/group';
@@ -447,7 +447,7 @@ function ItemCheckbox({
           onChange={() => {
             dispatch({
               type: 'TOGGLE_FILTER_VALUE',
-              token: token,
+              token,
               value: escapeTagValue(value),
             });
           }}
@@ -596,7 +596,7 @@ export function SearchQueryBuilderValueCombobox({
 
           dispatch({
             type: 'UPDATE_TOKEN_VALUE',
-            token: token,
+            token,
             value: newValue,
           });
 
@@ -609,7 +609,7 @@ export function SearchQueryBuilderValueCombobox({
 
         dispatch({
           type: 'UPDATE_TOKEN_VALUE',
-          token: token,
+          token,
           value: prepareInputValueForSaving(
             getFilterValueType(token, fieldDefinition),
             replaceCommaSeparatedValue(inputValue, selectionIndex, escapeTagValue(value))
@@ -622,7 +622,7 @@ export function SearchQueryBuilderValueCombobox({
       } else {
         dispatch({
           type: 'UPDATE_TOKEN_VALUE',
-          token: token,
+          token,
           value: cleanedValue,
         });
         onCommit();
@@ -681,7 +681,7 @@ export function SearchQueryBuilderValueCombobox({
       if (!value && !token.value.text) {
         dispatch({
           type: 'UPDATE_TOKEN_VALUE',
-          token: token,
+          token,
           value: getDefaultFilterValue({fieldDefinition}),
         });
         onCommit();
@@ -797,7 +797,7 @@ export function SearchQueryBuilderValueCombobox({
             handleSave={newDateTimeValue => {
               dispatch({
                 type: 'UPDATE_TOKEN_VALUE',
-                token: token,
+                token,
                 value: newDateTimeValue,
               });
               onCommit();

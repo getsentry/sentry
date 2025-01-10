@@ -6,6 +6,7 @@ import {Button, LinkButton} from 'sentry/components/button';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {useActionableItems} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import TimeSince from 'sentry/components/timeSince';
 import {IconWarning} from 'sentry/icons';
@@ -28,7 +29,7 @@ import EventCreatedTooltip from 'sentry/views/issueDetails/eventCreatedTooltip';
 import {
   type SectionConfig,
   SectionKey,
-  useEventDetails,
+  useIssueDetails,
 } from 'sentry/views/issueDetails/streamline/context';
 import {getFoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 
@@ -64,7 +65,7 @@ export const EventTitle = forwardRef<HTMLDivElement, EventNavigationProps>(
     const organization = useOrganization();
     const theme = useTheme();
 
-    const {sectionData} = useEventDetails();
+    const {sectionData} = useIssueDetails();
     const eventSectionConfigs = Object.values(sectionData ?? {}).filter(
       config => sectionLabels[config.key]
     );
@@ -88,13 +89,15 @@ export const EventTitle = forwardRef<HTMLDivElement, EventNavigationProps>(
       font-weight: ${theme.fontWeightNormal};
     `;
 
+    const host = organization.links.regionUrl;
+    const jsonUrl = `${host}/api/0/projects/${organization.slug}/${group.project.slug}/events/${event.id}/json/`;
+
     const downloadJson = () => {
-      const host = organization.links.regionUrl;
-      const jsonUrl = `${host}/api/0/projects/${organization.slug}/${group.project.slug}/events/${event.id}/json/`;
       window.open(jsonUrl);
       trackAnalytics('issue_details.event_json_clicked', {
         organization,
         group_id: parseInt(`${event.groupID}`, 10),
+        streamline: true,
       });
     };
 
@@ -106,12 +109,20 @@ export const EventTitle = forwardRef<HTMLDivElement, EventNavigationProps>(
           organization,
           ...getAnalyticsDataForGroup(group),
           ...getAnalyticsDataForEvent(event),
+          streamline: true,
         }),
     });
 
     const {onClick: copyEventId} = useCopyToClipboard({
       successMessage: t('Event ID copied to clipboard'),
       text: event.id,
+      onCopy: () =>
+        trackAnalytics('issue_details.copy_event_id_clicked', {
+          organization,
+          ...getAnalyticsDataForGroup(group),
+          ...getAnalyticsDataForEvent(event),
+          streamline: true,
+        }),
     });
 
     return (
@@ -147,6 +158,7 @@ export const EventTitle = forwardRef<HTMLDivElement, EventNavigationProps>(
                   key: 'view-json',
                   label: t('View JSON'),
                   onAction: downloadJson,
+                  className: 'hidden-sm hidden-md hidden-lg',
                 },
               ]}
             />
@@ -157,6 +169,21 @@ export const EventTitle = forwardRef<HTMLDivElement, EventNavigationProps>(
               css={grayText}
               aria-label={t('Event timestamp')}
             />
+            <JsonLinkWrapper className="hidden-xs">
+              <Divider />
+              <JsonLink
+                href={jsonUrl}
+                onClick={() =>
+                  trackAnalytics('issue_details.event_json_clicked', {
+                    organization,
+                    group_id: parseInt(`${event.groupID}`, 10),
+                    streamline: true,
+                  })
+                }
+              >
+                {t('JSON')}
+              </JsonLink>
+            </JsonLinkWrapper>
             {hasEventError && (
               <Fragment>
                 <Divider />
@@ -288,5 +315,20 @@ const ProcessingErrorButton = styled(Button)`
   font-size: ${p => p.theme.fontSizeSmall};
   :hover {
     color: ${p => p.theme.red300};
+  }
+`;
+
+const JsonLinkWrapper = styled('div')`
+  display: flex;
+  gap: ${space(0.5)};
+`;
+
+const JsonLink = styled(ExternalLink)`
+  color: ${p => p.theme.gray300};
+  text-decoration: underline;
+  text-decoration-color: ${p => p.theme.translucentGray200};
+
+  :hover {
+    color: ${p => p.theme.gray300};
   }
 `;

@@ -386,7 +386,7 @@ class TriggersChart extends PureComponent<Props, State> {
 
     const showExtrapolatedChartData =
       shouldShowOnDemandMetricAlertUI(organization) &&
-      seriesAdditionalInfo?.[timeseriesData[0]?.seriesName]?.isExtrapolatedData;
+      seriesAdditionalInfo?.[timeseriesData[0]!?.seriesName]?.isExtrapolatedData;
 
     const totalCountLabel = isSessionAggregate(aggregate)
       ? SESSION_AGGREGATE_TO_HEADING[aggregate]
@@ -451,7 +451,6 @@ class TriggersChart extends PureComponent<Props, State> {
                 borderless: true,
                 prefix: t('Display'),
               }}
-              disabled={isLoading || isReloading}
             />
           </InlineContainer>
         </ChartControls>
@@ -482,7 +481,7 @@ class TriggersChart extends PureComponent<Props, State> {
       onConfidenceDataLoaded,
     } = this.props;
 
-    const period = this.getStatsPeriod();
+    const period = this.getStatsPeriod()!;
     const renderComparisonStats = Boolean(
       organization.features.includes('change-alerts') && comparisonDelta
     );
@@ -529,8 +528,8 @@ class TriggersChart extends PureComponent<Props, State> {
               api={this.historicalAPI}
               period={
                 timeWindow === 5
-                  ? HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS[period]
-                  : HISTORICAL_TIME_PERIOD_MAP[period]
+                  ? HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS[period]!
+                  : HISTORICAL_TIME_PERIOD_MAP[period]!
               }
               dataLoadedCallback={onHistoricalDataLoaded}
             />
@@ -576,12 +575,12 @@ class TriggersChart extends PureComponent<Props, State> {
 
     if (isSessionAggregate(aggregate)) {
       const baseProps: ComponentProps<typeof SessionsRequest> = {
-        api: api,
-        organization: organization,
+        api,
+        organization,
         project: projects.map(({id}) => Number(id)),
         environment: environment ? [environment] : undefined,
         statsPeriod: period,
-        query: query,
+        query,
         interval: TIME_WINDOW_TO_INTERVAL[timeWindow],
         field: SESSION_AGGREGATE_TO_FIELD[aggregate],
         groupBy: ['session.status'],
@@ -624,9 +623,7 @@ class TriggersChart extends PureComponent<Props, State> {
       );
     }
 
-    const useRpc =
-      organization.features.includes('eap-alerts-ui-uses-rpc') &&
-      dataset === Dataset.EVENTS_ANALYTICS_PLATFORM;
+    const useRpc = dataset === Dataset.EVENTS_ANALYTICS_PLATFORM;
 
     const baseProps = {
       api,
@@ -653,8 +650,8 @@ class TriggersChart extends PureComponent<Props, State> {
             api={this.historicalAPI}
             period={
               timeWindow === 5
-                ? HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS[period]
-                : HISTORICAL_TIME_PERIOD_MAP[period]
+                ? HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS[period]!
+                : HISTORICAL_TIME_PERIOD_MAP[period]!
             }
             dataLoadedCallback={onHistoricalDataLoaded}
           >
@@ -665,7 +662,7 @@ class TriggersChart extends PureComponent<Props, State> {
           <EventsRequest
             {...baseProps}
             api={this.confidenceAPI}
-            period="7d"
+            period={TimePeriod.SEVEN_DAYS}
             dataLoadedCallback={onConfidenceDataLoaded}
           >
             {noop}

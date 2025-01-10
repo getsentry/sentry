@@ -435,10 +435,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             organization=self.org, projects=[self.project2]
         )
         proj_uptime_monitor = self.create_project_uptime_subscription(project=self.project)
-        proj2_uptime_monitor = self.create_project_uptime_subscription(
-            uptime_subscription=self.create_uptime_subscription(url="http://santry.io"),
-            project=self.project2,
-        )
+        proj2_uptime_monitor = self.create_project_uptime_subscription(project=self.project2)
 
         with self.feature(
             [
@@ -631,7 +628,6 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         )
         unowned_uptime_monitor = self.create_project_uptime_subscription(
             name="Uptime unowned",
-            uptime_subscription=self.create_uptime_subscription(url="http://santry.io"),
         )
 
         with self.feature(
@@ -773,7 +769,6 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         self.setup_project_and_rules()
         uptime_monitor = self.create_project_uptime_subscription(name="Uptime")
         another_uptime_monitor = self.create_project_uptime_subscription(
-            uptime_subscription=self.create_uptime_subscription(url="https://santry.io"),
             name="yet another Uptime",
         )
         with self.feature(
@@ -946,7 +941,6 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         )
         uptime_monitor = self.create_project_uptime_subscription()
         failed_uptime_monitor = self.create_project_uptime_subscription(
-            uptime_subscription=self.create_uptime_subscription(url="https://santry.io"),
             uptime_status=UptimeStatus.FAILED,
         )
         with self.feature(
@@ -1033,12 +1027,10 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         uptime_monitor = self.create_project_uptime_subscription(name="Uptime Monitor")
         other_uptime_monitor = self.create_project_uptime_subscription(
             name="Other Uptime Monitor",
-            uptime_subscription=self.create_uptime_subscription(url="https://santry.io"),
         )
         self.create_project_uptime_subscription(
             name="Onboarding Uptime monitor",
             mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING,
-            uptime_subscription=self.create_uptime_subscription(url="https://santry-iz-kool.io"),
         )
 
         request_data = {"name": "Uptime", "project": [self.project.id]}
@@ -1057,12 +1049,10 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         self.create_project_uptime_subscription(name="Uptime Monitor")
         self.create_project_uptime_subscription(
             name="Other Uptime Monitor",
-            uptime_subscription=self.create_uptime_subscription(url="https://santry.io"),
         )
         self.create_project_uptime_subscription(
             name="Onboarding Uptime monitor",
             mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING,
-            uptime_subscription=self.create_uptime_subscription(url="https://santry-iz-kool.io"),
         )
 
         request_data = {"project": [self.project.id], "sort": "name"}

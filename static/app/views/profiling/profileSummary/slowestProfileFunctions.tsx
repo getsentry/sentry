@@ -15,7 +15,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {Frame} from 'sentry/utils/profiling/frame';
 import type {EventsResultsDataRow} from 'sentry/utils/profiling/hooks/types';
 import {useCurrentProjectFromRouteParam} from 'sentry/utils/profiling/hooks/useCurrentProjectFromRouteParam';
@@ -25,6 +24,7 @@ import {generateProfileRouteFromProfileReference} from 'sentry/utils/profiling/r
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 
 const SLOWEST_FUNCTIONS_LIMIT = 15;
@@ -45,12 +45,13 @@ interface SlowestProfileFunctionsProps {
 }
 
 export function SlowestProfileFunctions(props: SlowestProfileFunctionsProps) {
+  const navigate = useNavigate();
+  const location = useLocation();
   const organization = useOrganization();
   const project = useCurrentProjectFromRouteParam();
   const [functionType, setFunctionType] = useState<'application' | 'system' | 'all'>(
     'application'
   );
-  const location = useLocation();
   const functionsCursor = useMemo(
     () => decodeScalar(location.query[SLOWEST_FUNCTIONS_CURSOR]),
     [location.query]
@@ -68,12 +69,14 @@ export function SlowestProfileFunctions(props: SlowestProfileFunctionsProps) {
     [location.query.functionsSort]
   );
 
-  const handleFunctionsCursor = useCallback((cursor, pathname, query) => {
-    browserHistory.push({
-      pathname,
-      query: {...query, [SLOWEST_FUNCTIONS_CURSOR]: cursor},
-    });
-  }, []);
+  const handleFunctionsCursor = useCallback(
+    (cursor, pathname, query) =>
+      navigate({
+        pathname,
+        query: {...query, [SLOWEST_FUNCTIONS_CURSOR]: cursor},
+      }),
+    [navigate]
+  );
 
   const query = useMemo(() => {
     const conditions = new MutableSearch('');

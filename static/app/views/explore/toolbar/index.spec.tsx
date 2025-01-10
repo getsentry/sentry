@@ -9,6 +9,7 @@ import {
   useExploreFields,
   useExploreGroupBys,
   useExploreMode,
+  useExplorePageParams,
   useExploreSortBys,
   useExploreVisualizes,
 } from 'sentry/views/explore/contexts/pageParamsContext';
@@ -253,7 +254,7 @@ describe('ExploreToolbar', function () {
     ]);
 
     // delete first overlay
-    await userEvent.click(within(section).getAllByLabelText('Remove Overlay')[0]);
+    await userEvent.click(within(section).getAllByLabelText('Remove Overlay')[0]!);
     expect(visualizes).toEqual([
       {
         chartType: ChartType.LINE,
@@ -268,7 +269,7 @@ describe('ExploreToolbar', function () {
     ]);
 
     // delete second chart
-    await userEvent.click(within(section).getAllByLabelText('Remove Overlay')[1]);
+    await userEvent.click(within(section).getAllByLabelText('Remove Overlay')[1]!);
     expect(visualizes).toEqual([
       {
         chartType: ChartType.LINE,
@@ -332,7 +333,7 @@ describe('ExploreToolbar', function () {
     );
     expect(groupBys).toEqual(['span.op', 'span.description']);
 
-    await userEvent.click(within(section).getAllByLabelText('Remove Column')[0]);
+    await userEvent.click(within(section).getAllByLabelText('Remove Column')[0]!);
     expect(groupBys).toEqual(['span.description']);
 
     // only 1 left but it's not empty
@@ -380,7 +381,7 @@ describe('ExploreToolbar', function () {
     const fieldOptions = await within(section).findAllByRole('option');
     expect(fieldOptions).toHaveLength(fields.length);
     fieldOptions.forEach((option, i) => {
-      expect(option).toHaveTextContent(fields[i]);
+      expect(option).toHaveTextContent(fields[i]!);
     });
 
     // try changing the field
@@ -401,5 +402,53 @@ describe('ExploreToolbar', function () {
     expect(within(section).getByRole('button', {name: 'span.op'})).toBeInTheDocument();
     expect(within(section).getByRole('button', {name: 'Asc'})).toBeInTheDocument();
     expect(sortBys).toEqual([{field: 'span.op', kind: 'asc'}]);
+  });
+
+  it('takes you to suggested query', async function () {
+    let pageParams;
+    function Component() {
+      pageParams = useExplorePageParams();
+      return <ExploreToolbar />;
+    }
+    render(
+      <PageParamsProvider>
+        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+          <Component />
+        </SpanTagsProvider>
+      </PageParamsProvider>,
+      {disableRouterMocks: true}
+    );
+
+    const section = screen.getByTestId('section-suggested-queries');
+
+    await userEvent.click(within(section).getByText('Slowest Ops'));
+    expect(pageParams).toEqual(
+      expect.objectContaining({
+        fields: [
+          'id',
+          'project',
+          'span.op',
+          'span.description',
+          'span.duration',
+          'timestamp',
+        ],
+        groupBys: ['span.op'],
+        mode: Mode.AGGREGATE,
+        query: '',
+        sortBys: [{field: 'avg(span.duration)', kind: 'desc'}],
+        visualizes: [
+          {
+            chartType: ChartType.LINE,
+            label: 'A',
+            yAxes: ['avg(span.duration)'],
+          },
+          {
+            chartType: ChartType.LINE,
+            label: 'B',
+            yAxes: ['p50(span.duration)'],
+          },
+        ],
+      })
+    );
   });
 });

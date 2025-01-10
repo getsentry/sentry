@@ -90,7 +90,7 @@ describe('AutofixMessageBox', () => {
 
     expect(screen.getByText('Test display text')).toBeInTheDocument();
     expect(
-      screen.getByPlaceholderText('Share helpful context or feedback...')
+      screen.getByPlaceholderText('Share helpful context or directions...')
     ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Send'})).toBeInTheDocument();
   });
@@ -99,7 +99,7 @@ describe('AutofixMessageBox', () => {
     const onSendMock = jest.fn();
     render(<AutofixMessageBox {...defaultProps} onSend={onSendMock} />);
 
-    const input = screen.getByPlaceholderText('Share helpful context or feedback...');
+    const input = screen.getByPlaceholderText('Share helpful context or directions...');
     await userEvent.type(input, 'Test message');
     await userEvent.click(screen.getByRole('button', {name: 'Send'}));
 
@@ -115,7 +115,7 @@ describe('AutofixMessageBox', () => {
 
     render(<AutofixMessageBox {...defaultProps} />);
 
-    const input = screen.getByPlaceholderText('Share helpful context or feedback...');
+    const input = screen.getByPlaceholderText('Share helpful context or directions...');
     await userEvent.type(input, 'Test message');
     await userEvent.click(screen.getByRole('button', {name: 'Send'}));
 
@@ -136,7 +136,7 @@ describe('AutofixMessageBox', () => {
 
     render(<AutofixMessageBox {...defaultProps} />);
 
-    const input = screen.getByPlaceholderText('Share helpful context or feedback...');
+    const input = screen.getByPlaceholderText('Share helpful context or directions...');
     await userEvent.type(input, 'Test message');
     await userEvent.click(screen.getByRole('button', {name: 'Send'}));
 
@@ -173,6 +173,7 @@ describe('AutofixMessageBox', () => {
     );
 
     // Test suggested root cause
+    await userEvent.click(screen.getByRole('button', {name: 'Use suggested root cause'}));
     const input = screen.getByPlaceholderText(
       '(Optional) Provide any instructions for the fix...'
     );
@@ -189,7 +190,9 @@ describe('AutofixMessageBox', () => {
     );
 
     // Test custom root cause
-    await userEvent.click(screen.getAllByText('Propose your own root cause')[0]);
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Propose your own root cause'})
+    );
     const customInput = screen.getByPlaceholderText('Propose your own root cause...');
     await userEvent.type(customInput, 'Custom root cause');
     await userEvent.click(screen.getByRole('button', {name: 'Send'}));
@@ -200,23 +203,23 @@ describe('AutofixMessageBox', () => {
   it('renders segmented control for changes step', () => {
     render(<AutofixMessageBox {...changesStepProps} />);
 
-    expect(screen.getByRole('radio', {name: 'Iterate'})).toBeInTheDocument();
-    expect(screen.getByRole('radio', {name: 'Approve'})).toBeInTheDocument();
-    expect(screen.getByRole('radio', {name: 'Test'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Iterate'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Use this code'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Add tests'})).toBeInTheDocument();
   });
 
   it('shows feedback input when "Iterate" is selected', async () => {
     render(<AutofixMessageBox {...changesStepProps} />);
 
-    await userEvent.click(screen.getByRole('radio', {name: 'Iterate'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Iterate'}));
 
     expect(
-      screen.getByPlaceholderText('Share helpful context or feedback...')
+      screen.getByPlaceholderText('Share helpful context or directions...')
     ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Send'})).toBeInTheDocument();
   });
 
-  it('shows "Create PR" button when "Approve" is selected', async () => {
+  it('shows "Draft PR" button when "Approve" is selected', async () => {
     MockApiClient.addMockResponse({
       url: '/issues/123/autofix/setup/?check_write_access=true',
       method: 'GET',
@@ -231,15 +234,13 @@ describe('AutofixMessageBox', () => {
 
     render(<AutofixMessageBox {...changesStepProps} />);
 
-    await userEvent.click(screen.getByRole('radio', {name: 'Approve'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Use this code'}));
 
-    expect(
-      screen.getByText('Draft 1 pull request for the above changes?')
-    ).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Create PR'})).toBeInTheDocument();
+    expect(screen.getByText('Push the above changes to a branch?')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Draft PR'})).toBeInTheDocument();
   });
 
-  it('shows "Create PRs" button with correct text for multiple changes', async () => {
+  it('shows "Draft PRs" button with correct text for multiple changes', async () => {
     MockApiClient.addMockResponse({
       url: '/issues/123/autofix/setup/?check_write_access=true',
       method: 'GET',
@@ -262,12 +263,10 @@ describe('AutofixMessageBox', () => {
 
     render(<AutofixMessageBox {...multipleChangesProps} />);
 
-    await userEvent.click(screen.getByRole('radio', {name: 'Approve'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Use this code'}));
 
-    expect(
-      screen.getByText('Draft 2 pull requests for the above changes?')
-    ).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Create PRs'})).toBeInTheDocument();
+    expect(screen.getByText('Push the above changes to 2 branches?')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Draft PRs'})).toBeInTheDocument();
   });
 
   it('shows "View PR" buttons when PRs are created', () => {
@@ -295,7 +294,7 @@ describe('AutofixMessageBox', () => {
     );
   });
 
-  it('shows "Create PRs" button that opens setup modal when setup is incomplete', async () => {
+  it('shows "Draft PRs" button that opens setup modal when setup is incomplete', async () => {
     MockApiClient.addMockResponse({
       url: '/issues/123/autofix/setup/?check_write_access=true',
       method: 'GET',
@@ -320,13 +319,11 @@ describe('AutofixMessageBox', () => {
 
     render(<AutofixMessageBox {...changesStepProps} />);
 
-    await userEvent.click(screen.getByRole('radio', {name: 'Approve'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Use this code'}));
 
-    expect(
-      screen.getByText('Draft 1 pull request for the above changes?')
-    ).toBeInTheDocument();
+    expect(screen.getByText('Push the above changes to a branch?')).toBeInTheDocument();
 
-    const createPRsButton = screen.getByRole('button', {name: 'Create PRs'});
+    const createPRsButton = screen.getByRole('button', {name: 'Draft PR'});
     expect(createPRsButton).toBeInTheDocument();
 
     renderGlobalModal();
@@ -338,18 +335,18 @@ describe('AutofixMessageBox', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows segmented control options for changes step', () => {
+  it('shows option buttons for changes step', () => {
     render(<AutofixMessageBox {...changesStepProps} />);
 
-    expect(screen.getByRole('radio', {name: 'Approve'})).toBeInTheDocument();
-    expect(screen.getByRole('radio', {name: 'Iterate'})).toBeInTheDocument();
-    expect(screen.getByRole('radio', {name: 'Test'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Use this code'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Iterate'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Add tests'})).toBeInTheDocument();
   });
 
   it('shows "Test" button and static message when "Test" is selected', async () => {
     render(<AutofixMessageBox {...changesStepProps} />);
 
-    await userEvent.click(screen.getByRole('radio', {name: 'Test'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Add tests'}));
 
     expect(
       screen.getByText('Write unit tests to make sure the issue is fixed?')
@@ -366,7 +363,7 @@ describe('AutofixMessageBox', () => {
 
     render(<AutofixMessageBox {...changesStepProps} />);
 
-    await userEvent.click(screen.getByRole('radio', {name: 'Test'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Add tests'}));
     await userEvent.click(screen.getByRole('button', {name: 'Add Tests'}));
 
     await waitFor(() => {

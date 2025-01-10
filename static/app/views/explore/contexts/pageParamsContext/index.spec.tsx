@@ -17,8 +17,15 @@ import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 describe('PageParamsProvider', function () {
-  let pageParams, setPageParams;
-  let setDataset, setFields, setGroupBys, setMode, setQuery, setSortBys, setVisualizes;
+  let pageParams: ReturnType<typeof useExplorePageParams>;
+  let setPageParams: ReturnType<typeof useSetExplorePageParams>;
+  let setDataset: ReturnType<typeof useSetExploreDataset>;
+  let setFields: ReturnType<typeof useSetExploreFields>;
+  let setGroupBys: ReturnType<typeof useSetExploreGroupBys>;
+  let setMode: ReturnType<typeof useSetExploreMode>;
+  let setQuery: ReturnType<typeof useSetExploreQuery>;
+  let setSortBys: ReturnType<typeof useSetExploreSortBys>;
+  let setVisualizes: ReturnType<typeof useSetExploreVisualizes>;
 
   function Component() {
     pageParams = useExplorePageParams();
@@ -33,7 +40,7 @@ describe('PageParamsProvider', function () {
     return <br />;
   }
 
-  function renderTestComponent(defaultPageParams?) {
+  function renderTestComponent(defaultPageParams?: any) {
     render(
       <PageParamsProvider>
         <Component />
@@ -70,7 +77,7 @@ describe('PageParamsProvider', function () {
     );
 
     expect(pageParams).toEqual({
-      dataset: DiscoverDatasets.SPANS_EAP,
+      dataset: undefined,
       fields: [
         'id',
         'project',

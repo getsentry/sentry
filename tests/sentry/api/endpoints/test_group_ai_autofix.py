@@ -29,7 +29,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         mock_get_autofix_state.return_value = AutofixState(
             run_id=123,
             request={"project_id": 456, "issue": {"id": 789}},
-            updated_at=datetime.strptime("2023-07-18T12:00:00Z", "%Y-%m-%dT%H:%M:%SZ"),
+            updated_at=datetime.fromisoformat("2023-07-18T12:00:00Z"),
             status=AutofixStatus.PROCESSING,
         )
 
@@ -64,7 +64,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         mock_get_autofix_state.return_value = AutofixState(
             run_id=123,
             request={"project_id": 456, "issue": {"id": 789}},
-            updated_at=datetime.strptime("2023-07-18T12:00:00Z", "%Y-%m-%dT%H:%M:%SZ"),
+            updated_at=datetime.fromisoformat("2023-07-18T12:00:00Z"),
             status=AutofixStatus.PROCESSING,
         )
 

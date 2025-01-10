@@ -6,9 +6,11 @@ from django.test import RequestFactory, override_settings
 from pytest import raises
 from rest_framework import status
 
+from sentry.constants import ObjectStatus
 from sentry.hybridcloud.models.webhookpayload import WebhookPayload
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
 from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.types.region import Region, RegionCategory
@@ -106,3 +108,47 @@ class BaseRequestParserTest(TestCase):
             assert payload.mailbox_name == "slack:0"
             assert payload.request_path
             assert payload.request_method
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    def test_get_organizations_from_integration_success(self):
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="test_provider",
+            external_id="test_external_id",
+        )
+        # Create additional org integration to test multiple orgs
+        other_org = self.create_organization()
+        OrganizationIntegration.objects.create(
+            organization_id=other_org.id,
+            integration_id=integration.id,
+            status=ObjectStatus.ACTIVE,
+        )
+
+        parser = BaseRequestParser(self.request, self.response_handler)
+        organizations = parser.get_organizations_from_integration(integration)
+
+        assert len(organizations) == 2
+        org_ids = {org.id for org in organizations}
+        assert self.organization.id in org_ids
+        assert other_org.id in org_ids
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @patch("sentry.integrations.middleware.hybrid_cloud.parser.logger.info")
+    def test_get_organizations_from_integration_inactive_org(self, mock_log):
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="test_provider",
+            external_id="test_external_id",
+        )
+
+        other_org = self.create_organization()
+        OrganizationIntegration.objects.create(
+            organization_id=other_org.id,
+            integration_id=integration.id,
+            status=ObjectStatus.DISABLED,
+        )
+
+        parser = BaseRequestParser(self.request, self.response_handler)
+        organizations = parser.get_organizations_from_integration(integration)
+        assert len(organizations) == 1
+        assert organizations[0].id == self.organization.id

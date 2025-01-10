@@ -114,7 +114,7 @@ function RelatedIssuesSection({
           </HeaderWrapper>
           <GroupList
             orgSlug={orgSlug}
-            queryParams={{query: query}}
+            queryParams={{query}}
             source="similar-issues-tab"
             canSelectGroups={false}
             withChart={false}

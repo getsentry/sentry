@@ -29,15 +29,15 @@ Retrieve a collection of flag logs.
 
 **Attributes**
 
-| Column        | Type   | Description                                                   |
-| ------------- | ------ | ------------------------------------------------------------- |
-| action        | string | Enum of `created`, `updated`, or `deleted`.                   |
-| createdAt     | string | ISO-8601 timestamp of when the flag was changed.              |
-| createdBy     | string | The user responsible for the change.                          |
-| createdByType | string | Enum of `email`, `id`, or `name`.                             |
-| flag          | string | The name of the flag changed. Maps to flag_log_id in the URI. |
-| id            | number | A unique identifier for the log entry.                        |
-| tags          | object | A collection of provider-specified scoping metadata.          |
+| Column        | Type             | Description                                                   |
+| ------------- | ---------------- | ------------------------------------------------------------- |
+| action        | string           | Enum of `created`, `updated`, or `deleted`.                   |
+| createdAt     | string           | ISO-8601 timestamp of when the flag was changed.              |
+| createdBy     | optional[string] | The user responsible for the change.                          |
+| createdByType | optional[string] | Enum of `email`, `id`, or `name`.                             |
+| flag          | string           | The name of the flag changed. Maps to flag_log_id in the URI. |
+| id            | number           | A unique identifier for the log entry.                        |
+| tags          | object           | A collection of provider-specified scoping metadata.          |
 
 - Response 200
 
@@ -147,7 +147,54 @@ Delete a signing secret.
 
 ## Webhooks [/organizations/<organization_id_or_slug>/flags/hooks/provider/<provider>/]
 
-### Create Flag Log [POST]
+### Create Generic Flag Log [POST]
+
+A flag log event must be emitted after every flag definition change which influences a flag's evaluation. Updates to a flag that do not change a flag's evaluation logic do not need to be emitted to this endpoint. We are only concerned with changes which could have influenced behavior.
+
+Sentry does not currently have a concept of disambiguating flag changes by project or environment. Everything is done at the organization level. Flag changes that are duplicated across projects, environments, or other groupings within the provider, must be de-duplicated. To support this, the posted payload sets a "change_id" field for idempotency. In the presence of duplicate ids, only one audit-log record is written in Sentry.
+
+**Data Attributes**
+
+| Column          | Type   | Description                                                    |
+| --------------- | ------ | -------------------------------------------------------------- |
+| action          | string | Enum of `created`, `updated`, or `deleted`.                    |
+| change_id       | number | A 64-bit idempotency token representing a unique change group. |
+| created_at      | string | String formatted UTC date time: YYYY-MM-DDTHH:MM:SS.           |
+| created_by      | object | Created-by object.                                             |
+| created_by.id   | string | User identifier which made the change.                         |
+| created_by.type | string | Enum of `email`, `id`, or `name`.                              |
+| flag            | string | The name of the flag changed.                                  |
+
+**Meta Attributes**
+
+| Column  | Type | Description           |
+| ------- | ---- | --------------------- |
+| version | int  | The protocol version. |
+
+- Request (application/json)
+
+  ```json
+  {
+    "data": [
+      {
+        "action": "created",
+        "created_at": "2024-12-12T00:02:00+00:00",
+        "created_by": {
+          "id": "first.last@company.com",
+          "type": "email"
+        },
+        "flag": "hello.world"
+      }
+    ],
+    "meta": {
+      "version": 1
+    }
+  }
+  ```
+
+- Response 201
+
+### Create Provider-Specific Flag Log [POST]
 
 The shape of the request object varies by provider. The `<provider>` URI parameter informs the server of the shape of the request and it is on the server to handle the provider. The following providers are supported: LaunchDarkly.
 

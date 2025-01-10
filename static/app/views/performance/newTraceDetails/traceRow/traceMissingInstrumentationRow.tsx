@@ -39,7 +39,7 @@ export function TraceMissingInstrumentationRow(
           <div className="TraceChildrenCountWrapper">
             <TraceRowConnectors node={props.node} manager={props.manager} />
           </div>
-          <span className="TraceOperation">{t('Missing instrumentation')}</span>
+          <span className="TraceOperation">{t('No Instrumentation')}</span>
         </div>
       </div>
       <div
