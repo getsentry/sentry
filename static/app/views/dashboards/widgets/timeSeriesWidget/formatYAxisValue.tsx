@@ -6,7 +6,7 @@ import {
   SIZE_UNITS,
 } from 'sentry/utils/discover/fieldRenderers';
 import type {RateUnit} from 'sentry/utils/discover/fields';
-import getDuration from 'sentry/utils/duration/getDuration';
+import {axisDuration} from 'sentry/utils/duration/axisDuration';
 import {formatAbbreviatedNumber, formatRate} from 'sentry/utils/formatters';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 
@@ -19,7 +19,7 @@ export function formatYAxisValue(value: number, type: string, unit?: string): st
     case 'percentage':
       return formatPercentage(value, 3);
     case 'duration':
-      return getDuration((value * (unit ? DURATION_UNITS[unit] : 1)) / 1000, 2, true);
+      return axisDuration(value * (unit ? DURATION_UNITS[unit] : 1));
     case 'size':
       const bytes = value * SIZE_UNITS[unit ?? 'byte'];
 
