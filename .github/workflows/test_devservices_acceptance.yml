@@ -19,6 +19,7 @@ env:
   USE_NEW_DEVSERVICES: 1
   IS_DEV: 1
   CHARTCUTERIE_CONFIG_PATH: ${{ github.workspace }}/config/chartcuterie
+  SNUBA_NO_WORKERS: 1
 
 jobs:
   devservices-acceptance:
