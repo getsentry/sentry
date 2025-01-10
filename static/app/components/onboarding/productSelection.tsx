@@ -8,7 +8,7 @@ import {FeatureDisabledModal} from 'sentry/components/acl/featureDisabledModal';
 import {Button} from 'sentry/components/button';
 import Checkbox from 'sentry/components/checkbox';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {ProductSolution as ProductSolutionImport} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -23,6 +23,10 @@ interface DisabledProduct {
   reason: ReactNode;
   onClick?: () => void;
 }
+
+// TODO(aknaus): Remove re-export
+export const ProductSolution = ProductSolutionImport;
+export type ProductSolution = ProductSolutionImport;
 
 export type DisabledProducts = Partial<Record<ProductSolution, DisabledProduct>>;
 
