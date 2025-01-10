@@ -28,7 +28,6 @@ import {
   SessionsAggregate,
 } from 'sentry/views/alerts/rules/metric/types';
 import {hasEAPAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
-import {MODULE_TITLE as LLM_MONITORING_MODULE_TITLE} from 'sentry/views/insights/llmMonitoring/settings';
 
 export type AlertType =
   | 'issues'
@@ -45,8 +44,6 @@ export type AlertType =
   | 'crash_free_users'
   | 'custom_transactions'
   | 'custom_metrics'
-  | 'llm_tokens'
-  | 'llm_cost'
   | 'uptime_monitor'
   | 'eap_metrics';
 
@@ -90,8 +87,6 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
   custom_transactions: t('Custom Measurement'),
   crash_free_sessions: t('Crash Free Session Rate'),
   crash_free_users: t('Crash Free User Rate'),
-  llm_cost: t('LLM cost'),
-  llm_tokens: t('LLM token usage'),
   uptime_monitor: t('Uptime Monitor'),
   eap_metrics: t('Spans'),
 };
@@ -101,7 +96,12 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
  * for adding feature badges or other call-outs for newer alert types.
  */
 export const AlertWizardExtraContent: Partial<Record<AlertType, React.ReactNode>> = {
-  eap_metrics: <FeatureBadge type="experimental" />,
+  eap_metrics: (
+    <FeatureBadge
+      type="beta"
+      title={t('This feature is available for early adopters and the UX may change')}
+    />
+  ),
   uptime_monitor: <FeatureBadge type="beta" />,
 };
 
@@ -138,12 +138,6 @@ export const getAlertWizardCategories = (org: Organization) => {
         ...(hasEAPAlerts(org) ? ['eap_metrics' as const] : []),
       ],
     });
-    if (org.features.includes('insights-addon-modules')) {
-      result.push({
-        categoryHeading: LLM_MONITORING_MODULE_TITLE,
-        options: ['llm_tokens', 'llm_cost'],
-      });
-    }
 
     result.push({
       categoryHeading: t('Uptime Monitoring'),
@@ -220,16 +214,6 @@ export const AlertWizardRuleTemplates: Record<
   },
   custom_metrics: {
     aggregate: DEFAULT_METRIC_ALERT_FIELD,
-    dataset: Dataset.GENERIC_METRICS,
-    eventTypes: EventTypes.TRANSACTION,
-  },
-  llm_tokens: {
-    aggregate: 'sum(ai.total_tokens.used)',
-    dataset: Dataset.GENERIC_METRICS,
-    eventTypes: EventTypes.TRANSACTION,
-  },
-  llm_cost: {
-    aggregate: 'sum(ai.total_cost)',
     dataset: Dataset.GENERIC_METRICS,
     eventTypes: EventTypes.TRANSACTION,
   },

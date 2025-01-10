@@ -2229,6 +2229,11 @@ SENTRY_ATTACHMENT_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
 # The chunk size for files in the chunk upload. This is used for native debug
 # files and source maps, and directly translates to the chunk size in blob
 # store. MUST be a power of two.
+#
+# Note: Even if the power of two restriction is lifted in Sentry, Sentry CLI
+# versions ≤2.39.1 will error if the chunkSize returned by the server is
+# not a power of two. Changing this value to a non-power-of-two is therefore
+# a breaking API change.
 SENTRY_CHUNK_UPLOAD_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
 
 # This flag tell DEVSERVICES to start the ingest-metrics-consumer in order to work on
@@ -2929,6 +2934,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "ingest-attachments-dlq": "default",
     "ingest-transactions": "default",
     "ingest-transactions-dlq": "default",
+    "ingest-transactions-backlog": "default",
     "ingest-metrics": "default",
     "ingest-metrics-dlq": "default",
     "snuba-metrics": "default",
@@ -2946,6 +2952,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "uptime-configs": "default",
     "uptime-results": "default",
     "uptime-configs": "default",
+    "snuba-uptime-results": "default",
     "generic-events": "default",
     "snuba-generic-events-commit-log": "default",
     "group-attributes": "default",
@@ -3444,8 +3451,6 @@ SEER_SIMILARITY_CIRCUIT_BREAKER_KEY = "seer.similarity"
 
 SEER_ANOMALY_DETECTION_VERSION = "v1"
 SEER_ANOMALY_DETECTION_STORE_DATA_URL = f"/{SEER_ANOMALY_DETECTION_VERSION}/anomaly-detection/store"
-
-SIMILARITY_BACKFILL_COHORT_MAP: dict[str, list[int]] = {}
 
 UPTIME_REGIONS = [
     UptimeRegionConfig(

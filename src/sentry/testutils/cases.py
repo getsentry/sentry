@@ -3113,11 +3113,15 @@ class UptimeTestCase(UptimeTestCaseMixin, TestCase):
         subscription_id: str | None = None,
         status: str = CHECKSTATUS_FAILURE,
         scheduled_check_time: datetime | None = None,
+        uptime_region: str | None = "us-west",
     ) -> CheckResult:
         if subscription_id is None:
             subscription_id = uuid.uuid4().hex
         if scheduled_check_time is None:
             scheduled_check_time = datetime.now().replace(microsecond=0)
+        optional_fields = {}
+        if uptime_region is not None:
+            optional_fields["region"] = uptime_region
         return {
             "guid": uuid.uuid4().hex,
             "subscription_id": subscription_id,
@@ -3132,6 +3136,7 @@ class UptimeTestCase(UptimeTestCaseMixin, TestCase):
             "actual_check_time_ms": int(datetime.now().replace(microsecond=0).timestamp() * 1000),
             "duration_ms": 100,
             "request_info": {"request_type": REQUESTTYPE_HEAD, "http_status_code": 500},
+            **optional_fields,
         }
 
 

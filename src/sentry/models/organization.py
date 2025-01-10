@@ -420,11 +420,11 @@ class Organization(ReplicatedRegionModel):
         return OrganizationOption.objects
 
     def _handle_requirement_change(self, request, task):
-        from sentry.models.apikey import is_api_key_auth
-
-        actor_id = request.user.id if request.user and request.user.is_authenticated else None
+        actor_id = request.user.id if request.user.is_authenticated else None
         api_key_id = (
-            request.auth.id if hasattr(request, "auth") and is_api_key_auth(request.auth) else None
+            request.auth.entity_id
+            if request.auth is not None and request.auth.kind == "api_key"
+            else None
         )
         ip_address = request.META["REMOTE_ADDR"]
 

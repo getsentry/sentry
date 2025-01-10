@@ -372,7 +372,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "strategy_factory": "sentry.ingest.consumer.factory.IngestTransactionsStrategyFactory",
         "click_options": ingest_transactions_options(),
         "dlq_topic": Topic.INGEST_TRANSACTIONS_DLQ,
-        "stale_topic": Topic.INGEST_TRANSACTIONS_DLQ,
+        "stale_topic": Topic.INGEST_TRANSACTIONS_BACKLOG,
     },
     "ingest-metrics": {
         "topic": Topic.INGEST_METRICS,
