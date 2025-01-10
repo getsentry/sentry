@@ -7,6 +7,7 @@ from time import time
 from typing import Any
 from urllib.parse import parse_qs, quote, urlencode, urlparse
 
+import sentry_sdk
 from django import forms
 from django.http import HttpRequest
 from django.http.response import HttpResponseBase
@@ -434,9 +435,17 @@ class VstsIntegrationProvider(IntegrationProvider):
         if features.has(
             "organizations:migrate-azure-devops-integration", self.pipeline.organization
         ):
+            logger.info(
+                "vsts.get_scopes.new_scopes",
+                extra={"organization_id": self.pipeline.organization.id},
+            )
             # This is the new way we need to pass scopes to the OAuth flow
             # https://stackoverflow.com/questions/75729931/get-access-token-for-azure-devops-pat
             return VstsIntegrationProvider.NEW_SCOPES
+        logger.info(
+            "vsts.get_scopes.old_scopes",
+            extra={"organization_id": self.pipeline.organization.id},
+        )
         return ("vso.code", "vso.graph", "vso.serviceendpoint_manage", "vso.work_write")
 
     def get_pipeline_views(self) -> Sequence[PipelineView]:
@@ -461,6 +470,11 @@ class VstsIntegrationProvider(IntegrationProvider):
         user = get_user_info(data["access_token"])
         scopes = sorted(self.get_scopes())
         base_url = self.get_base_url(data["access_token"], account["accountId"])
+
+        logger.info(
+            "vsts.build_integration.base_config",
+            extra={"scopes": scopes, "organization_id": self.pipeline.organization.id},
+        )
 
         integration: MutableMapping[str, Any] = {
             "name": account["accountName"],
@@ -538,7 +552,8 @@ class VstsIntegrationProvider(IntegrationProvider):
                 sample_rate=1.0,
             )
 
-        except (IntegrationModel.DoesNotExist, AssertionError, KeyError):
+        except (IntegrationModel.DoesNotExist, AssertionError, KeyError) as e:
+            sentry_sdk.capture_exception(e)
             logger.warning(
                 "vsts.build_integration.error",
                 extra={
