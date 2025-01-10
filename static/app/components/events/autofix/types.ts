@@ -98,30 +98,9 @@ export type CodeSnippetContext = {
   start_line?: number;
 };
 
-export type StacktraceContext = {
-  code_snippet: string;
-  col_no: number;
-  file_name: string;
-  function: string;
-  line_no: number;
-  repo_name: string;
-  vars_as_json: string;
-};
-
-export type BreadcrumbContext = {
-  body: string;
-  category: string;
-  data_as_json: string;
-  level: string;
-  type: string;
-};
-
 export type AutofixInsight = {
-  breadcrumb_context: BreadcrumbContext[];
-  codebase_context: CodeSnippetContext[];
   insight: string;
   justification: string;
-  stacktrace_context: StacktraceContext[];
 };
 
 export interface AutofixDefaultStep extends BaseStep {

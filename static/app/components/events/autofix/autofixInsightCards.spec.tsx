@@ -4,60 +4,16 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import AutofixInsightCards from 'sentry/components/events/autofix/autofixInsightCards';
 import type {AutofixInsight} from 'sentry/components/events/autofix/types';
 
-jest.mock('sentry/utils/marked', () => ({
-  singleLineRenderer: jest.fn(text => text),
-}));
-
 jest.mock('sentry/actionCreators/indicator');
 
 const sampleInsights: AutofixInsight[] = [
   {
-    breadcrumb_context: [
-      {
-        body: 'Breadcrumb body',
-        category: 'ui',
-        level: 'info',
-        data_as_json: '{"testData": "testValue"}',
-        type: 'info',
-      },
-    ],
-    codebase_context: [
-      {
-        snippet: 'console.log("Hello, World!");',
-        repo_name: 'sample-repo',
-        file_path: 'src/index.js',
-      },
-    ],
     insight: 'Sample insight 1',
     justification: 'Sample justification 1',
-    stacktrace_context: [
-      {
-        code_snippet: 'function() { throw new Error("Test error"); }',
-        repo_name: 'sample-repo',
-        file_name: 'src/error.js',
-        vars_as_json: '{"testVar": "testValue"}',
-        col_no: 1,
-        line_no: 1,
-        function: 'testFunction',
-      },
-    ],
   },
   {
     insight: 'User message',
     justification: 'USER',
-    breadcrumb_context: [],
-    stacktrace_context: [],
-    codebase_context: [],
-  },
-];
-
-const sampleRepos = [
-  {
-    external_id: '1',
-    name: 'sample-repo',
-    default_branch: 'main',
-    provider: 'github',
-    url: 'github.com/org/sample-repo',
   },
 ];
 
@@ -72,7 +28,6 @@ describe('AutofixInsightCards', () => {
     return render(
       <AutofixInsightCards
         insights={sampleInsights}
-        repos={sampleRepos}
         hasStepAbove={false}
         hasStepBelow={false}
         groupId="1"
@@ -89,33 +44,6 @@ describe('AutofixInsightCards', () => {
     expect(screen.getByText('User message')).toBeInTheDocument();
   });
 
-  it('renders breadcrumb context correctly', async () => {
-    renderComponent();
-    const contextButton = screen.getByText('Sample insight 1');
-    await userEvent.click(contextButton);
-    expect(screen.getByText('Breadcrumb body')).toBeInTheDocument();
-    expect(screen.getByText('info')).toBeInTheDocument();
-  });
-
-  it('renders codebase context correctly', async () => {
-    renderComponent();
-    const contextButton = screen.getByText('Sample insight 1');
-    await userEvent.click(contextButton);
-    expect(screen.getByText('console.log("Hello, World!");')).toBeInTheDocument();
-    expect(screen.getByText('src/index.js')).toBeInTheDocument();
-  });
-
-  it('renders stacktrace context correctly', async () => {
-    renderComponent();
-    const contextButton = screen.getByText('Sample insight 1');
-    await userEvent.click(contextButton);
-    expect(
-      screen.getByText('function() { throw new Error("Test error"); }')
-    ).toBeInTheDocument();
-    expect(screen.getByText('src/error.js')).toBeInTheDocument();
-    expect(screen.getByText('testVar')).toBeInTheDocument();
-  });
-
   it('renders user messages differently', () => {
     renderComponent();
     const userMessage = screen.getByText('User message');
@@ -127,10 +55,14 @@ describe('AutofixInsightCards', () => {
     const contextButton = screen.getByText('Sample insight 1');
 
     await userEvent.click(contextButton);
-    expect(screen.getByText('Sample justification 1')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('Sample justification 1')).toBeInTheDocument();
+    });
 
     await userEvent.click(contextButton);
-    expect(screen.queryByText('Sample justification 1')).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByText('Sample justification 1')).not.toBeInTheDocument();
+    });
   });
 
   it('renders multiple insights correctly', () => {
