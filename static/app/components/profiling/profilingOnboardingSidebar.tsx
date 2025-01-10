@@ -11,8 +11,8 @@ import {
   DocsPageLocation,
   type DocsParams,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
-import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {TaskSidebar} from 'sentry/components/sidebar/taskSidebar';
 import type {CommonSidebarProps} from 'sentry/components/sidebar/types';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';

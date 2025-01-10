@@ -570,10 +570,15 @@ def _do_save_event(
             )
             # Put the updated event back into the cache so that post_process
             # has the most recent data.
-            data = manager.get_data()
-            if not isinstance(data, dict):
-                data = dict(data.items())
-            processing_store.store(data)
+
+            # We don't need to update the event in the processing_store for transaction events
+            # because they're not used in post_process.
+            if consumer_type != ConsumerType.Transactions:
+                data = manager.get_data()
+                if not isinstance(data, dict):
+                    data = dict(data.items())
+                processing_store.store(data)
+
         except HashDiscarded:
             # Delete the event payload from cache since it won't show up in post-processing.
             if cache_key:

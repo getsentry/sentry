@@ -462,7 +462,7 @@ function Visualize({error, setError}: VisualizeProps) {
                       type="text"
                       name="name"
                       placeholder={t('Add Alias')}
-                      value={field.alias}
+                      value={field.alias ?? ''}
                       onChange={e => {
                         const newFields = cloneDeep(fields);
                         newFields[index]!.alias = e.target.value;
