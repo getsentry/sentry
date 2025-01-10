@@ -4,7 +4,6 @@ import type {Series} from 'sentry/types/echarts';
 import {
   axisLabelFormatter,
   axisLabelFormatterUsingAggregateOutputType,
-  categorizeDuration,
   findRangeOfMultiSeries,
   getDurationUnit,
   tooltipFormatter,
@@ -12,6 +11,8 @@ import {
 } from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {HOUR, MINUTE, SECOND} from 'sentry/utils/formatters';
+
+import {categorizeDuration} from './categorizeDuration';
 
 describe('tooltipFormatter()', () => {
   it('formats values', () => {
