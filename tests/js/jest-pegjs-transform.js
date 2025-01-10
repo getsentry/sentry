@@ -1,10 +1,7 @@
-/* eslint-env node */
-
-const crypto = require('node:crypto');
-const peggy = require('peggy');
+'use strict';
 
 function getCacheKey(fileData, _filePath, config, _options) {
-  return crypto
+  return require('node:crypto')
     .createHash('md5')
     .update(fileData)
     .update(config.configString)
@@ -13,7 +10,7 @@ function getCacheKey(fileData, _filePath, config, _options) {
 
 function process(sourceText) {
   return {
-    code: `module.exports = ${peggy.generate(sourceText, {output: 'source'})}`,
+    code: `module.exports = ${require('peggy').generate(sourceText, {output: 'source'})}`,
   };
 }
 
