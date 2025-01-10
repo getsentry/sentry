@@ -3,6 +3,7 @@ name: test-devservices-backend
 on:
   schedule:
     - cron: '0 * * * *'
+  pull_request:
 # Cancel in progress workflows on pull_requests.
 # https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
 concurrency:
@@ -14,6 +15,7 @@ env:
   SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
   USE_NEW_DEVSERVICES: 1
   IS_DEV: 1
+  SNUBA_NO_WORKERS: 1
 
 jobs:
   devservices-api-docs:

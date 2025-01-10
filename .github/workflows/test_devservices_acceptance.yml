@@ -5,6 +5,7 @@ name: test-devservices-acceptance
 on:
   schedule:
     - cron: '0 * * * *'
+  pull_request:
 
 # Cancel in progress workflows on pull_requests.
 # https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
@@ -19,6 +20,7 @@ env:
   USE_NEW_DEVSERVICES: 1
   IS_DEV: 1
   CHARTCUTERIE_CONFIG_PATH: ${{ github.workspace }}/config/chartcuterie
+  SNUBA_NO_WORKERS: 1
 
 jobs:
   devservices-acceptance:
