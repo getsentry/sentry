@@ -495,7 +495,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     metricsActivateLastForGauges: bool
     requiresSso: bool
     rollbackEnabled: bool
-    streamlineOnly: bool
+    streamlineOnly: bool | None
 
 
 class DetailedOrganizationSerializer(OrganizationSerializer):
@@ -720,6 +720,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         "metricsActivateLastForGauges",
         "quota",
         "rollbackEnabled",
+        "streamlineOnly",
     ]
 )
 class DetailedOrganizationSerializerWithProjectsAndTeamsResponse(
