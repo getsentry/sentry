@@ -1,13 +1,5 @@
 import {t} from 'sentry/locale';
-import {
-  DAY,
-  HOUR,
-  MICROSECOND,
-  MILLISECOND,
-  MINUTE,
-  SECOND,
-  WEEK,
-} from 'sentry/utils/formatters';
+import {DAY, HOUR, MINUTE, SECOND, WEEK} from 'sentry/utils/formatters';
 
 import {categorizeDuration} from '../discover/categorizeDuration';
 
@@ -42,12 +34,8 @@ export function axisDuration(milliseconds: number, durationUnit?: number): strin
       const label = (milliseconds / SECOND).toFixed(0);
       return t('%ss', label);
     }
-    case MILLISECOND: {
-      const label = (milliseconds / MILLISECOND).toFixed(0);
-      return t('%sms', label);
-    }
     default:
-      const label = (milliseconds / MICROSECOND).toFixed(0);
-      return t('%sμs', label);
+      const label = milliseconds.toFixed(0);
+      return t('%sms', label);
   }
 }
