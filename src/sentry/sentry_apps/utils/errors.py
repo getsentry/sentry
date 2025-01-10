@@ -1,4 +1,4 @@
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from enum import Enum
 
 from sentry.utils import json
@@ -23,7 +23,7 @@ class SentryAppBaseError(Exception):
         self.error = error
 
     def __str__(self) -> str:
-        if isinstance(Mapping, self.error.args[0]):
+        if isinstance((Mapping, Sequence), self.error.args[0]):
             return json.dumps(self.error.args[0])
         else:
             return str(self.error.args[0])
