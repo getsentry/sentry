@@ -2198,6 +2198,11 @@ ORGANIZATION_URLS = [
         OrganizationForkEndpoint.as_view(),
         name="sentry-api-0-organization-fork",
     ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/trusted-relays/$",
+        InternalRegisterTrustedRelayEndpoint.as_view(),
+        name="sentry-api-0-organization-trusted-relays",
+    ),
 ]
 
 PROJECT_URLS: list[URLPattern | URLResolver] = [
@@ -3043,11 +3048,6 @@ INTERNAL_URLS = [
         r"^feature-flags/ea-feature-flags$",
         InternalEAFeaturesEndpoint.as_view(),
         name="sentry-api-0-internal-ea-features",
-    ),
-    re_path(
-        r"^register-trusted-relay/$",
-        InternalRegisterTrustedRelayEndpoint.as_view(),
-        name="sentry-api-0-internal-register-trusted-relay",
     ),
 ]
 

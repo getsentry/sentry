@@ -3,20 +3,21 @@ from datetime import datetime, timezone
 from django.urls import reverse
 
 from sentry.models.options.organization_option import OrganizationOption
-from sentry.models.organizationmember import OrganizationMember
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test
+from sentry.testutils.silo import region_silo_test
 
 
-@control_silo_test
+@region_silo_test
 class InternalRegisterTrustedRelayTest(APITestCase):
-    endpoint = "sentry-api-0-internal-register-trusted-relay"
+    endpoint = "sentry-api-0-organization-trusted-relays"
 
     def setUp(self):
         super().setUp()
         self.org = self.create_organization(owner=self.user)
-
-        self.url = reverse(self.endpoint)
+        self.url = reverse(
+            "sentry-api-0-organization-trusted-relays",
+            kwargs={"organization_id_or_slug": self.org.slug},
+        )
         self.valid_payload = {
             "publicKey": "EfuxZmOtiknvFJpmITKaSnX2fzkZoH612nrjZJnbbm8",
             "name": "relay_test",
@@ -28,10 +29,13 @@ class InternalRegisterTrustedRelayTest(APITestCase):
         Generates a user auth token.
         """
         org_user = self.create_user()
-        with assume_test_silo_mode_of(OrganizationMember):
-            OrganizationMember.objects.create(
-                user_id=org_user.id, organization_id=self.org.id, role="member"
-            )
+
+        self.create_member(
+            user=org_user,
+            organization=self.org,
+            teams=[self.team],
+            role="manager",
+        )
 
         return self.create_user_auth_token(user=org_user, scope_list=scope_list).token
 
@@ -213,7 +217,9 @@ class InternalRegisterTrustedRelayTest(APITestCase):
                 "name": "updated_relay1",
                 "description": "Updated relay 1",
             }
-            response = self.client.post(self.url, update_payload)
+            response = self.client.post(
+                self.url, update_payload, HTTP_AUTHORIZATION=f"Bearer {auth_token}"
+            )
             assert response.status_code == 201
 
             # Verify the update
