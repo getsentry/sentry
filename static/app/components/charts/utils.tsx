@@ -67,10 +67,10 @@ export function useShortInterval(datetimeObj: DateTimeObject): boolean {
 export type GranularityStep = [timeDiff: number, interval: string];
 
 export class GranularityLadder {
-  ladder: Ladder;
+  ladder: Ladder<string>;
 
   constructor(steps: [GranularityStep, ...GranularityStep[]]) {
-    this.ladder = new Ladder(steps);
+    this.ladder = new Ladder<string>(steps);
   }
 
   getInterval(minutes: number): string {
