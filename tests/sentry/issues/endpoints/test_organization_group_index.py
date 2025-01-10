@@ -32,6 +32,7 @@ from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus, record_
 from sentry.models.groupinbox import (
     GroupInbox,
     GroupInboxReason,
+    InboxReasonDetails,
     add_group_to_inbox,
     remove_group_from_inbox,
 )
@@ -1754,7 +1755,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.data[0]["inbox"]["reason"] == GroupInboxReason.NEW.value
         assert response.data[0]["inbox"]["reason_details"] is None
         remove_group_from_inbox(event.group)
-        snooze_details = {
+        snooze_details: InboxReasonDetails = {
             "until": None,
             "count": 3,
             "window": None,
@@ -1786,7 +1787,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert int(response.data[0]["id"]) == event.group.id
         assert response.data[0]["inbox"]["reason"] == GroupInboxReason.NEW.value
         remove_group_from_inbox(event.group)
-        snooze_details = {
+        snooze_details: InboxReasonDetails = {
             "until": None,
             "count": 3,
             "window": None,

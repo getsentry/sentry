@@ -43,6 +43,7 @@ if TYPE_CHECKING:
     from sentry.eventstore.models import Event, GroupEvent
     from sentry.eventstream.base import GroupState
     from sentry.models.group import Group
+    from sentry.models.groupinbox import InboxReasonDetails
     from sentry.models.project import Project
     from sentry.models.team import Team
     from sentry.ownership.grammar import Rule
@@ -857,7 +858,7 @@ def process_snoozes(job: PostProcessJob) -> None:
         )
 
         if not snooze_condition_still_applies:
-            snooze_details = {
+            snooze_details: InboxReasonDetails = {
                 "until": snooze.until,
                 "count": snooze.count,
                 "window": snooze.window,

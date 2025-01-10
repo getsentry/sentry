@@ -817,7 +817,6 @@ def prepare_response(
             group_list,
             project_lookup,
             acting_user,
-            http_referrer=referer,
             sender=update_groups,
         )
 
