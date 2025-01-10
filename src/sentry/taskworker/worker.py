@@ -107,10 +107,15 @@ def child_worker(
             logger.info("taskwworker.max_task_count_reached")
             break
 
+        if shutdown_event.is_set():
+            logger.info("taskworker.worker.shutdown_event")
+            break
+
         try:
-            activation = child_tasks.get(timeout=1)
+            activation = child_tasks.get_nowait()
         except queue.Empty:
             continue
+
         task_func = _get_known_task(activation)
         if not task_func:
             metrics.incr(
@@ -144,6 +149,8 @@ def child_worker(
         try:
             _execute_activation(task_func, activation)
             processed_task_count += 1
+            # Clear the alarm
+            signal.alarm(0)
         except Exception as err:
             next_state = TASK_ACTIVATION_STATUS_FAILURE
             if task_func.should_retry(activation.retry_state, err):
@@ -336,18 +343,17 @@ class TaskWorker:
         if len(active_children) >= self._concurrency:
             return
         for _ in range(self._concurrency - len(active_children)):
-            self._children.append(
-                multiprocessing.Process(
-                    target=child_worker,
-                    args=(
-                        self._child_tasks,
-                        self._processed_tasks,
-                        self._shutdown_event,
-                        self._max_task_count,
-                    ),
-                    daemon=True,
-                )
+            process = multiprocessing.Process(
+                target=child_worker,
+                args=(
+                    self._child_tasks,
+                    self._processed_tasks,
+                    self._shutdown_event,
+                    self._max_task_count,
+                ),
             )
+            process.start()
+            self._children.append(process)
 
     def fetch_task(self) -> TaskActivation | None:
         try:
