@@ -31,7 +31,6 @@ import {useParams} from 'sentry/utils/useParams';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 import ProjectListItem from 'sentry/views/settings/components/settingsProjectItem';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
-import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
 function TeamProjects() {
   const organization = useOrganization();
@@ -130,42 +129,31 @@ function TeamProjects() {
           'If you have Team Admin permissions for other projects, you can associate them with this team.'
         )}
       </TextBlock>
-      <PermissionAlert access={['team:write']} team={team} />
       <Panel>
         <PanelHeader hasButtons>
           <div>{t('Projects')}</div>
           <div style={{textTransform: 'none', fontWeight: 'normal'}}>
-            {!hasWriteAccess ? (
-              <DropdownButton
-                disabled
-                title={t('You do not have enough permission to associate a project.')}
-                size="xs"
-              >
-                {t('Add Project')}
-              </DropdownButton>
-            ) : (
-              <DropdownAutoComplete
-                items={otherProjects}
-                minWidth={300}
-                onChange={evt => setQuery(evt.target.value)}
-                onSelect={selection => {
-                  const project = unlinkedProjects.find(p => p.id === selection.value);
-                  if (project) {
-                    handleLinkProject(project, 'add');
-                  }
-                }}
-                onClose={() => setQuery('')}
-                busy={loadingUnlinkedProjects}
-                emptyMessage={t('You are not an admin for any other projects')}
-                alignMenu="right"
-              >
-                {({isOpen}) => (
-                  <DropdownButton isOpen={isOpen} size="xs">
-                    {t('Add Project')}
-                  </DropdownButton>
-                )}
-              </DropdownAutoComplete>
-            )}
+            <DropdownAutoComplete
+              items={otherProjects}
+              minWidth={300}
+              onChange={evt => setQuery(evt.target.value)}
+              onSelect={selection => {
+                const project = unlinkedProjects.find(p => p.id === selection.value);
+                if (project) {
+                  handleLinkProject(project, 'add');
+                }
+              }}
+              onClose={() => setQuery('')}
+              busy={loadingUnlinkedProjects}
+              emptyMessage={t('You are not an admin for any other projects')}
+              alignMenu="right"
+            >
+              {({isOpen}) => (
+                <DropdownButton isOpen={isOpen} size="xs">
+                  {t('Add Project')}
+                </DropdownButton>
+              )}
+            </DropdownAutoComplete>
           </div>
         </PanelHeader>
 

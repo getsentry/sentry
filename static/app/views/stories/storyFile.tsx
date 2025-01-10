@@ -1,4 +1,5 @@
 import type {ComponentProps} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/button';
@@ -7,58 +8,73 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {IconGithub} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {ResolvedStoryModule} from 'sentry/views/stories/types';
+
+import type {StoryDescriptor} from './useStoriesLoader';
 
 interface Props extends ComponentProps<'div'> {
-  filename: string;
-  resolved: ResolvedStoryModule;
+  story: StoryDescriptor;
 }
 
-export default function StoryFile({filename, resolved, style}: Props) {
-  const {default: DefaultExport, ...otherExports} = resolved;
-  const otherEntries = Object.entries(otherExports);
-
-  const githubViewUrl = `https://github.com/getsentry/sentry/blob/master/static/${filename}`;
-  const githubEditUrl = `https://github.com/getsentry/sentry/edit/master/static/${filename}`;
+export default function StoryFile({story, ...htmlProps}: Props) {
+  const {default: DefaultExport, ...namedExports} = story.exports;
 
   return (
-    <FlexColumn style={style}>
-      <FlexRow style={{justifyContent: 'space-between'}}>
+    <StoryFileLayout {...htmlProps}>
+      <FlexRow style={{gap: space(1), justifyContent: 'space-between'}}>
         <FlexRow style={{alignItems: 'center', gap: space(1)}}>
-          <Header>
-            <TextOverflow>{filename}</TextOverflow>
-          </Header>
-          <CopyToClipboardButton size="xs" iconSize="xs" text={filename} />
+          <H2>
+            <TextOverflow>{story.filename}</TextOverflow>
+          </H2>
+          <CopyToClipboardButton size="xs" iconSize="xs" text={story.filename} />
         </FlexRow>
-        <FlexRow style={{alignItems: 'center', gap: space(1)}}>
-          <LinkButton
-            href={githubViewUrl}
-            external
-            icon={<IconGithub />}
-            size="xs"
-            aria-label={t('View on GitHub')}
-          >
-            {t('View')}
-          </LinkButton>
-          <LinkButton
-            href={githubEditUrl}
-            external
-            icon={<IconGithub />}
-            size="xs"
-            aria-label={t('Edit on GitHub')}
-          >
-            {t('Edit')}
-          </LinkButton>
-        </FlexRow>
+        <StoryLinksContainer>
+          <GithubLinks story={story} />
+        </StoryLinksContainer>
       </FlexRow>
+      {DefaultExport ? (
+        <Story>
+          <DefaultExport />
+        </Story>
+      ) : null}
+      {Object.entries(namedExports).map(([name, MaybeComponent]) => {
+        if (typeof MaybeComponent === 'function') {
+          return (
+            <Story key={name}>
+              <MaybeComponent />
+            </Story>
+          );
+        }
 
-      <StoryArea>
-        {DefaultExport ? <DefaultExport /> : null}
-        {otherEntries.map(([field, Component]) => (
-          <Component key={field} />
-        ))}
-      </StoryArea>
-    </FlexColumn>
+        throw new Error(
+          `Story exported an unsupported key ${name} with value: ${typeof MaybeComponent}`
+        );
+      })}
+    </StoryFileLayout>
+  );
+}
+
+function GithubLinks(props: {story: StoryDescriptor}) {
+  return (
+    <Fragment>
+      <LinkButton
+        href={`https://github.com/getsentry/sentry/blob/master/static/${props.story.filename}`}
+        external
+        icon={<IconGithub />}
+        size="xs"
+        aria-label={t('View on GitHub')}
+      >
+        {t('View')}
+      </LinkButton>
+      <LinkButton
+        href={`https://github.com/getsentry/sentry/edit/master/static/${props.story.filename}`}
+        external
+        icon={<IconGithub />}
+        size="xs"
+        aria-label={t('Edit on GitHub')}
+      >
+        {t('Edit')}
+      </LinkButton>
+    </Fragment>
   );
 }
 
@@ -70,20 +86,22 @@ const FlexRow = styled('div')`
   align-content: flex-start;
 `;
 
-const FlexColumn = styled('section')`
+const StoryLinksContainer = styled('div')`
   display: flex;
-  flex-direction: column;
-  gap: var(--stories-grid-space);
-  max-height: 100%;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: ${space(1)};
+  align-content: flex-start;
+  grid-area: header-links;
 `;
 
-const StoryArea = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(4)};
+const StoryFileLayout = styled('section')``;
+
+const Story = styled('section')`
+  padding-top: ${space(2)};
 `;
 
-const Header = styled('h2')`
+const H2 = styled('h2')`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeMedium};
   font-weight: ${p => p.theme.fontWeightNormal};

@@ -31,8 +31,12 @@ import {MonitorOnboarding} from './components/onboarding';
 import {MonitorProcessingErrors} from './components/processingErrors/monitorProcessingErrors';
 import {makeMonitorErrorsQueryKey} from './components/processingErrors/utils';
 import {StatusToggleButton} from './components/statusToggleButton';
-import type {MonitorBucket} from './components/timeline/types';
-import type {CheckinProcessingError, Monitor, ProcessingErrorType} from './types';
+import type {
+  CheckinProcessingError,
+  Monitor,
+  MonitorBucket,
+  ProcessingErrorType,
+} from './types';
 import {makeMonitorDetailsQueryKey} from './utils';
 
 const DEFAULT_POLL_INTERVAL_MS = 5000;
@@ -139,7 +143,7 @@ function MonitorDetails({params, location}: Props) {
   const envsSortedByLastCheck = sortBy(monitor.environments, e => e.lastCheckIn);
 
   return (
-    <SentryDocumentTitle title={`Crons — ${monitor.name}`}>
+    <SentryDocumentTitle title={`${monitor.name} — Crons`}>
       <Layout.Page>
         <MonitorHeader
           monitor={monitor}

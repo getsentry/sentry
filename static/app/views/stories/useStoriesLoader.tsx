@@ -1,69 +1,31 @@
-import {useCallback, useEffect, useState} from 'react';
+import type React from 'react';
 
+import {useQuery} from 'sentry/utils/queryClient';
 import storiesContext from 'sentry/views/stories/storiesContext';
-import type {ResolvedStoryModule} from 'sentry/views/stories/types';
 
-interface Props {
+interface UseStoriesLoaderOptions {
   filename: string;
 }
 
-interface EmptyState {
-  error: undefined;
-  filename: undefined | string;
-  resolved: undefined;
-}
-
-interface ResolvedState {
-  error: undefined;
+export interface StoryDescriptor {
+  exports: Record<string, React.ComponentType | any>;
   filename: string;
-  resolved: ResolvedStoryModule;
 }
 
-interface ErrorState {
-  error: Error;
-  filename: undefined | string;
-  resolved: undefined;
+function importStory(filename: string): Promise<StoryDescriptor> {
+  return storiesContext()
+    .importStory(filename)
+    .then((story): StoryDescriptor => {
+      return {
+        filename,
+        exports: story,
+      };
+    });
 }
 
-type State = EmptyState | ResolvedState | ErrorState;
-
-export default function useStoriesLoader({filename}: Props) {
-  const [mod, setMod] = useState<State>({
-    error: undefined,
-    filename,
-    resolved: undefined,
+export default function useStoriesLoader({filename}: UseStoriesLoaderOptions) {
+  return useQuery({
+    queryKey: [filename],
+    queryFn: () => importStory(filename),
   });
-
-  const asyncImportStory = useCallback(async () => {
-    if (!filename) {
-      return;
-    }
-    try {
-      setMod({
-        error: undefined,
-        filename,
-        resolved: undefined,
-      });
-      const resolved = await storiesContext().importStory(filename);
-      setMod({
-        error: undefined,
-        filename,
-
-        resolved,
-      });
-    } catch (error) {
-      setMod({
-        error,
-        filename,
-
-        resolved: undefined,
-      });
-    }
-  }, [filename]);
-
-  useEffect(() => {
-    asyncImportStory();
-  }, [asyncImportStory]);
-
-  return mod;
 }

@@ -34,8 +34,8 @@ type WebVitalsLabelCoordinates = {
 type Props = {
   height: number;
   projectScore: ProjectScore;
-  ringBackgroundColors: string[];
-  ringSegmentColors: string[];
+  ringBackgroundColors: ReadonlyArray<string>;
+  ringSegmentColors: ReadonlyArray<string>;
   text: React.ReactNode;
   width: number;
   barWidth?: number;
