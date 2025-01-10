@@ -8,6 +8,7 @@ import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {withPerformanceOnboarding} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
+import {DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -200,8 +201,8 @@ function PerformanceQuotaExceededWarning(props: ErrorOnlyWarningsProps) {
       }}
       docsRoute={getDocsLinkForEventType(
         subscription?.categories && 'spans' in subscription.categories
-          ? 'span'
-          : 'transaction'
+          ? DataCategoryExact.SPAN
+          : DataCategoryExact.TRANSACTION
       )}
       primaryButtonText={ctaText}
     />
