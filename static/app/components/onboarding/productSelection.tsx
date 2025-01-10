@@ -8,6 +8,7 @@ import {FeatureDisabledModal} from 'sentry/components/acl/featureDisabledModal';
 import {Button} from 'sentry/components/button';
 import Checkbox from 'sentry/components/checkbox';
 import ExternalLink from 'sentry/components/links/externalLink';
+import {ProductSolution as ProductSolutionImport} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -18,18 +19,14 @@ import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/project';
 import {useOnboardingQueryParams} from 'sentry/views/onboarding/components/useOnboardingQueryParams';
 
-// TODO(aknaus): move to types
-export enum ProductSolution {
-  ERROR_MONITORING = 'error-monitoring',
-  PERFORMANCE_MONITORING = 'performance-monitoring',
-  SESSION_REPLAY = 'session-replay',
-  PROFILING = 'profiling',
-}
-
 interface DisabledProduct {
   reason: ReactNode;
   onClick?: () => void;
 }
+
+// TODO(aknaus): Remove re-export
+export const ProductSolution = ProductSolutionImport;
+export type ProductSolution = ProductSolutionImport;
 
 export type DisabledProducts = Partial<Record<ProductSolution, DisabledProduct>>;
 
