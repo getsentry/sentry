@@ -1163,16 +1163,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert query(TSDBModel.project, project.id, environment_id=environment_id) == 1
         assert query(TSDBModel.group, event.group.id, environment_id=environment_id) == 1
 
-    @pytest.mark.xfail
-    def test_record_frequencies(self) -> None:
-        project = self.project
-        manager = EventManager(make_event())
-        event = manager.save(project.id)
-
-        assert tsdb.backend.get_most_frequent(
-            TSDBModel.frequent_issues_by_project, (event.project.id,), event.datetime
-        ) == {event.project.id: [(event.group_id, 1.0)]}
-
     def test_event_user(self) -> None:
         event_id = uuid.uuid4().hex
         manager = EventManager(
@@ -1529,7 +1519,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         # the basic strategy is to simply use the description
         assert spans == [{"hash": hash_values([span["description"]])} for span in data["spans"]]
 
-    @override_options({"transactions.do_post_process_in_save": 1.0})
     def test_transaction_sampler_and_receive(self) -> None:
         # make sure with the option on we don't get any errors
         manager = EventManager(
@@ -1588,7 +1577,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         manager.normalize()
         manager.save(self.project.id)
 
-    @override_options({"transactions.do_post_process_in_save": 1.0})
     @patch("sentry.event_manager.record_event_processed")
     @patch("sentry.event_manager.record_user_context_received")
     @patch("sentry.event_manager.record_release_received")

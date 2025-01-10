@@ -75,6 +75,7 @@ def create_audit_entry_from_user(
     **kwargs: Any,
 ) -> AuditLogEntry:
     organization_id = _org_id(organization, organization_id)
+    assert user is not None or api_key is not None or ip_address is not None
 
     entry = AuditLogEntry(
         actor_id=user.id if user else None,

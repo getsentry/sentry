@@ -579,7 +579,7 @@ export function IssueViewsStateProvider({
           ...location,
           query: {
             ...queryParams,
-            query,
+            query: newQuery,
             sort: IssueSortOptions.DATE,
           },
         },

@@ -102,6 +102,7 @@ class DashboardWidgetSerializer(Serializer):
                 obj.dashboard.organization,
                 actor=user,
             )
+            and obj.widget_type == DashboardWidgetTypes.DISCOVER
             and obj.discover_widget_split is not None
         ):
             widget_type = DashboardWidgetTypes.get_type_name(obj.discover_widget_split)

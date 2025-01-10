@@ -17,7 +17,6 @@ from sentry.api.serializers import UserReportWithGroupSerializer, serialize
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource
 from sentry.ingest.userreport import Conflict, save_userreport
 from sentry.models.environment import Environment
-from sentry.models.projectkey import ProjectKey
 from sentry.models.userreport import UserReport
 from sentry.utils.dates import epoch
 
@@ -55,7 +54,7 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
         :auth: required
         """
         # we don't allow read permission with DSNs
-        if isinstance(request.auth, ProjectKey):
+        if request.auth is not None and request.auth.kind == "project_key":  # type: ignore[union-attr]
             return self.respond(status=401)
 
         paginate_kwargs: _PaginateKwargs = {}
@@ -119,7 +118,7 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
         :param string email: user's email address
         :param string comments: comments supplied by user
         """
-        if hasattr(request.auth, "project_id") and project.id != request.auth.project_id:
+        if request.auth is not None and project.id != request.auth.project_id:  # type: ignore[union-attr]  # TODO: real .auth typing
             return self.respond(status=401)
 
         serializer = UserReportSerializer(data=request.data)
@@ -134,7 +133,7 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
         except Conflict as e:
             return self.respond({"detail": str(e)}, status=409)
 
-        if isinstance(request.auth, ProjectKey):
+        if request.auth is not None and request.auth.kind == "project_key":  # type: ignore[union-attr]
             return self.respond(status=200)
 
         return self.respond(

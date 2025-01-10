@@ -33,7 +33,7 @@ describe('QueryFilterBuilder', () => {
   it('renders a dataset-specific query filter bar', async () => {
     render(
       <WidgetBuilderProvider>
-        <WidgetBuilderQueryFilterBuilder onQueryConditionChange={() => {}} error={{}} />
+        <WidgetBuilderQueryFilterBuilder onQueryConditionChange={() => {}} />
       </WidgetBuilderProvider>,
       {
         organization,
@@ -54,7 +54,7 @@ describe('QueryFilterBuilder', () => {
 
     render(
       <WidgetBuilderProvider>
-        <WidgetBuilderQueryFilterBuilder onQueryConditionChange={() => {}} error={{}} />
+        <WidgetBuilderQueryFilterBuilder onQueryConditionChange={() => {}} />
       </WidgetBuilderProvider>,
       {
         organization,
@@ -77,7 +77,7 @@ describe('QueryFilterBuilder', () => {
   it('renders a legend alias input for charts', async () => {
     render(
       <WidgetBuilderProvider>
-        <WidgetBuilderQueryFilterBuilder onQueryConditionChange={() => {}} error={{}} />
+        <WidgetBuilderQueryFilterBuilder onQueryConditionChange={() => {}} />
       </WidgetBuilderProvider>,
       {
         organization,

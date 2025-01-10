@@ -42,11 +42,11 @@ import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery'
 import {FieldRenderer} from './fieldRenderer';
 
 interface SpansTableProps {
-  confidence: Confidence;
+  confidences: Confidence[];
   setError: Dispatch<SetStateAction<string>>;
 }
 
-export function SpansTable({confidence, setError}: SpansTableProps) {
+export function SpansTable({confidences, setError}: SpansTableProps) {
   const {selection} = usePageFilters();
 
   const dataset = useExploreDataset();
@@ -115,7 +115,7 @@ export function SpansTable({confidence, setError}: SpansTableProps) {
     organization,
     columns: fields,
     userQuery: query,
-    confidence,
+    confidences,
     title,
   });
 
