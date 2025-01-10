@@ -126,6 +126,7 @@ export function EventFeatureFlagList({
   const hasFlags = hasFlagContext && eventFlags.length > 0;
 
   const showCTA =
+    !project.hasFlags &&
     !hasFlagContext &&
     !anyEventHasContext &&
     featureFlagOnboardingPlatforms.includes(project.platform ?? 'other') &&
