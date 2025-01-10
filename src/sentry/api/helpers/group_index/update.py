@@ -78,7 +78,7 @@ def handle_discard(
     request: Request,
     group_list: Sequence[Group],
     projects: Sequence[Project],
-    user,
+    user: RpcUser | User | AnonymousUser,
 ) -> Response:
     for project in projects:
         if not features.has("projects:discard-groups", project, actor=user):
@@ -119,7 +119,7 @@ def handle_discard(
 
 
 def self_subscribe_and_assign_issue(
-    acting_user, group: Group, self_assign_issue: str
+    acting_user: RpcUser | User, group: Group, self_assign_issue: str
 ) -> Actor | None:
     """
     Used during issue resolution to assign to acting user
@@ -198,7 +198,7 @@ def update_groups(
 
     discard = result.get("discard")
     if discard:
-        return handle_discard(request, groups, projects, acting_user)
+        return handle_discard(request, groups, projects, user)
 
     status_details = result.pop("statusDetails", result)
     status = result.get("status")
@@ -240,7 +240,7 @@ def update_groups(
         groups,
         project_lookup,
         projects,
-        acting_user,
+        user,
         data,
         res_type,
         request.META.get("HTTP_REFERER", ""),
@@ -343,7 +343,7 @@ def handle_resolve_in_release(
     group_list: Sequence[Group],
     projects: Sequence[Project],
     project_lookup: Mapping[int, Project],
-    acting_user,
+    acting_user: RpcUser | User | None,
     user: RpcUser | User | AnonymousUser,
     result: MutableMapping[str, Any],
 ) -> tuple[dict[str, Any], int | None]:
@@ -505,13 +505,13 @@ def process_group_resolution(
     commit: Commit | None,
     res_type: int | None,
     res_status: int | None,
-    acting_user,
+    acting_user: RpcUser | User,
     user: RpcUser | User | AnonymousUser,
     self_assign_issue: str,
     activity_type: int,
     activity_data: MutableMapping[str, Any],
     result: MutableMapping[str, Any],
-):
+) -> None:
     now = django_timezone.now()
     resolution = None
     created = None
@@ -665,7 +665,7 @@ def process_group_resolution(
 def merge_groups(
     group_list: Sequence[Group],
     project_lookup: Mapping[int, Project],
-    acting_user,
+    acting_user: RpcUser | User,
     referer: str,
 ) -> MergedGroup:
     issue_stream_regex = r"^(\/organizations\/[^\/]+)?\/issues\/$"
@@ -699,7 +699,7 @@ def handle_other_status_updates(
     projects: Sequence[Project],
     project_lookup: Mapping[int, Project],
     status_details: dict[str, Any],
-    acting_user,
+    acting_user: RpcUser | User | None,
     user: RpcUser | User | AnonymousUser,
 ) -> dict[str, Any]:
     group_ids = [group.id for group in group_list]
@@ -748,7 +748,7 @@ def prepare_response(
     group_list: Sequence[Group],
     project_lookup: Mapping[int, Project],
     projects: Sequence[Project],
-    acting_user,
+    user: RpcUser | User | AnonymousUser,
     data: Mapping[str, Any],
     res_type: int | None,
     referer: str,
@@ -766,7 +766,7 @@ def prepare_response(
                     Activity.objects.get_activities_for_group(
                         group=group_list[0], num=ACTIVITIES_COUNT
                     ),
-                    acting_user,
+                    user,
                 )
     except UnboundLocalError:
         pass
@@ -778,23 +778,21 @@ def prepare_response(
             data.get("integration"),
             group_list,
             project_lookup,
-            acting_user,
+            user,
         )
 
-    handle_has_seen(result.get("hasSeen"), group_list, project_lookup, projects, acting_user)
+    handle_has_seen(result.get("hasSeen"), group_list, project_lookup, projects, user)
 
     if "isBookmarked" in result:
-        handle_is_bookmarked(result["isBookmarked"], group_list, project_lookup, acting_user)
+        handle_is_bookmarked(result["isBookmarked"], group_list, project_lookup, user)
 
     if result.get("isSubscribed") in (True, False):
         result["subscriptionDetails"] = handle_is_subscribed(
-            result["isSubscribed"], group_list, project_lookup, acting_user
+            result["isSubscribed"], group_list, project_lookup, user
         )
 
     if "isPublic" in result:
-        result["shareId"] = handle_is_public(
-            result["isPublic"], group_list, project_lookup, acting_user
-        )
+        result["shareId"] = handle_is_public(result["isPublic"], group_list, project_lookup, user)
 
     # TODO: Create new endpoint for this
     if result.get("merge") and len(group_list) > 1:
@@ -806,7 +804,7 @@ def prepare_response(
         result["merge"] = merge_groups(
             group_list,
             project_lookup,
-            acting_user,
+            user,
             urlparse(referer).path,
         )
 
@@ -816,7 +814,7 @@ def prepare_response(
             inbox,
             group_list,
             project_lookup,
-            acting_user,
+            user,
             sender=update_groups,
         )
 
@@ -856,7 +854,7 @@ def greatest_semver_release(project: Project) -> Release | None:
 def get_semver_releases(project: Project) -> QuerySet[Release]:
     return (
         Release.objects.filter(projects=project, organization_id=project.organization_id)
-        .filter_to_semver()
+        .filter_to_semver()  # type: ignore[attr-defined]
         .annotate_prerelease_column()
         .order_by(*[f"-{col}" for col in Release.SEMVER_COLS])
     )
@@ -866,7 +864,7 @@ def handle_is_subscribed(
     is_subscribed: bool,
     group_list: Sequence[Group],
     project_lookup: Mapping[int, Project],
-    acting_user,
+    acting_user: RpcUser | User,
 ) -> dict[str, str]:
     # TODO(dcramer): we could make these more efficient by first
     # querying for which `GroupSubscription` rows are present (if N > 2),
@@ -893,7 +891,7 @@ def handle_is_bookmarked(
     is_bookmarked: bool,
     group_list: Sequence[Group],
     project_lookup: Mapping[int, Project],
-    acting_user,
+    acting_user: RpcUser | User,
 ) -> None:
     """
     Creates bookmarks and subscriptions for a user, or deletes the existing bookmarks and subscriptions.
@@ -929,7 +927,7 @@ def handle_has_seen(
     group_list: Sequence[Group],
     project_lookup: Mapping[int, Project],
     projects: Sequence[Project],
-    acting_user,
+    acting_user: RpcUser | User,
 ) -> None:
     is_member_map = {
         project.id: (
@@ -957,7 +955,7 @@ def handle_has_seen(
 def handle_priority(
     priority: str,
     group_list: Sequence[Group],
-    acting_user,
+    acting_user: RpcUser | User | None,
     project_lookup: Mapping[int, Project],
 ) -> None:
     for group in group_list:
@@ -977,7 +975,7 @@ def handle_is_public(
     is_public: bool,
     group_list: Sequence[Group],
     project_lookup: Mapping[int, Project],
-    acting_user,
+    acting_user: RpcUser | User,
 ) -> str | None:
     """
     Handle the isPublic flag on a group update.
@@ -1021,7 +1019,7 @@ def handle_assigned_to(
     integration: str | None,
     group_list: Sequence[Group],
     project_lookup: Mapping[int, Project],
-    acting_user,
+    acting_user: RpcUser | User,
 ) -> ActorSerializerResponse | None:
     """
     Handle the assignedTo field on a group update.
