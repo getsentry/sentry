@@ -94,11 +94,29 @@ def migrate_metric_action(
     return action, data_condition_group_action
 
 
-def migrate_metric_data_condition(
+def migrate_metric_data_conditions(
     alert_rule_trigger: AlertRuleTrigger,
-) -> tuple[DataCondition, AlertRuleTriggerDataCondition] | None:
+) -> tuple[DataCondition, DataCondition, AlertRuleTriggerDataCondition] | None:
     alert_rule = alert_rule_trigger.alert_rule
+    # create a data condition for the Detector's data condition group with the
+    # threshold and associated priority level
+    alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=alert_rule)
+    detector = alert_rule_detector.detector
+    detector_data_condition_group = detector.workflow_condition_group
 
+    detector_trigger = DataCondition.objects.create(
+        comparison=alert_rule_trigger.alert_threshold,
+        condition_result=(
+            DetectorPriorityLevel.MEDIUM
+            if alert_rule_trigger.label == "warning"
+            else DetectorPriorityLevel.HIGH
+        ),
+        type=alert_rule.threshold_type,
+        condition_group=detector_data_condition_group,
+    )
+
+    # create an "action filter": if the detector's status matches a certain priority level,
+    # then the condition result is set to true
     data_condition_group = DataConditionGroup.objects.create(
         organization_id=alert_rule.organization_id
     )
@@ -120,13 +138,75 @@ def migrate_metric_data_condition(
     alert_rule_trigger_data_condition = AlertRuleTriggerDataCondition.objects.create(
         alert_rule_trigger=alert_rule_trigger, data_condition=data_condition
     )
-    return data_condition, alert_rule_trigger_data_condition
+    return detector_trigger, data_condition, alert_rule_trigger_data_condition
 
 
-def migrate_resolve_threshold_data_condition(alert_rule: AlertRule) -> DataCondition:
+def get_resolve_threshold(
+    detector_data_condition_group: DataConditionGroup, threshold_type: AlertRuleThresholdType
+) -> float:
     """
-    Create data conditions for rules with a resolve threshold
+    Helper method to get the resolve threshold for a Detector if none is specified on
+    the legacy AlertRule.
     """
+    detector_triggers = DataCondition.objects.filter(condition_group=detector_data_condition_group)
+    if detector_triggers.count() > 1:
+        # there is a warning threshold for this detector, so we should resolve based on it
+        warning_data_condition = detector_triggers.filter(
+            condition_result=DetectorPriorityLevel.MEDIUM
+        ).first()
+        resolve_threshold = warning_data_condition.comparison
+    else:
+        # critical threshold value
+        resolve_threshold = detector_triggers.first().comparison
+
+    # XXX (mifu67): I saw this workaround for off by one error on the original auto-resolution.
+    # Do we still need this? Copying the comment over:
+    # -------------------------
+    # Since we only support gt/lt thresholds we have an off-by-one with auto
+    # resolve. If we have an alert threshold of > 0, and no resolve threshold, then
+    # we'd automatically set this to < 0, which can never happen. To work around
+    # this, we add a small amount to the number so that in this case we'd have
+    # the resolve threshold be < 0.000001. This means that when we hit 0 we'll still
+    # resolve as expected.
+    if threshold_type == AlertRuleThresholdType.ABOVE.value:
+        resolve_threshold += 0.000001
+    else:
+        resolve_threshold -= 0.000001
+
+    return resolve_threshold
+
+
+def migrate_resolve_threshold_data_conditions(alert_rule: AlertRule) -> DataCondition:
+    """
+    Create data conditions for the old world's "resolve" threshold. If a resolve threshold
+    has been explicitly set on the alert rule, then use this as our comparison value. Otherwise,
+    we need to figure out what the resolve threshold is based on the trigger threshold values.
+    """
+    alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=alert_rule)
+    detector = alert_rule_detector.detector
+    detector_data_condition_group = detector.workflow_condition_group
+
+    # XXX: we set the resolve trigger's threshold_type to whatever the opposite of the rule's threshold_type is
+    # e.g. if the rule has a critical trigger ABOVE some number, the resolve threshold is automatically set to BELOW
+    threshold_type = (
+        Condition.LESS
+        if alert_rule.threshold_type == AlertRuleThresholdType.ABOVE.value
+        else Condition.GREATER
+    )
+
+    if alert_rule.resolve_threshold is not None:
+        resolve_threshold = alert_rule.resolve_threshold
+    else:
+        # figure out the resolve threshold ourselves
+        resolve_threshold = get_resolve_threshold(detector_data_condition_group, threshold_type)
+
+    detector_trigger = DataCondition.objects.create(
+        comparison=resolve_threshold,
+        condition_result=DetectorPriorityLevel.OK,
+        type=threshold_type,
+        condition_group=detector_data_condition_group,
+    )
+
     data_condition_group = DataConditionGroup.objects.create(
         organization_id=alert_rule.organization_id
     )
@@ -135,22 +215,15 @@ def migrate_resolve_threshold_data_condition(alert_rule: AlertRule) -> DataCondi
         condition_group=data_condition_group,
         workflow=alert_rule_workflow.workflow,
     )
-    threshold_type = (
-        Condition.LESS
-        if alert_rule.threshold_type == AlertRuleThresholdType.ABOVE.value
-        else Condition.GREATER
-    )
-    # XXX: we set the resolve trigger's threshold_type to whatever the opposite of the rule's threshold_type is
-    # e.g. if the rule has a critical trigger ABOVE some number, the resolve threshold is automatically set to BELOW
 
     data_condition = DataCondition.objects.create(
-        comparison=alert_rule.resolve_threshold,
-        condition_result=DetectorPriorityLevel.OK,
-        type=threshold_type,
+        comparison=DetectorPriorityLevel.OK,
+        condition_result=True,
+        type=Condition.ISSUE_PRIORITY_EQUALS,
         condition_group=data_condition_group,
     )
     # XXX: can't make an AlertRuleTriggerDataCondition since this isn't really a trigger
-    return data_condition
+    return detector_trigger, data_condition
 
 
 def create_metric_alert_lookup_tables(
