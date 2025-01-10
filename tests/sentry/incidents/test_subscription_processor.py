@@ -24,7 +24,6 @@ from sentry.incidents.logic import (
 from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleDetectionType,
-    AlertRuleMonitorTypeInt,
     AlertRuleSeasonality,
     AlertRuleSensitivity,
     AlertRuleStatus,
@@ -227,7 +226,6 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             threshold_type=AlertRuleThresholdType.ABOVE,
             resolve_threshold=10,
             threshold_period=1,
-            monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS,
             event_types=[
                 SnubaQueryEventType.EventType.ERROR,
                 SnubaQueryEventType.EventType.DEFAULT,
