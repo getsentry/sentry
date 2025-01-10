@@ -54,10 +54,10 @@ export class Ladder<T> {
   }
 
   get min() {
-    return (this.rungs.at(0) as Rung<T>)[1];
+    return (this.rungs.at(-1) as Rung<T>)[1];
   }
 
   get max() {
-    return (this.rungs.at(-1) as Rung<T>)[1];
+    return (this.rungs.at(0) as Rung<T>)[1];
   }
 }

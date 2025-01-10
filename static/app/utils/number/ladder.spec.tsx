@@ -61,14 +61,15 @@ describe('Ladder', () => {
     expect(() => ladder.rung(-1)).toThrow();
   });
 
-  test('providers the min and max value', () => {
+  test('provides the min and max value', () => {
     const ladder = new Ladder([
-      [10, 'second'],
+      [10, 'third'],
+      [5, 'second'],
       [0, 'first'],
     ]);
 
     expect(ladder.min).toBe('first');
-    expect(ladder.max).toBe('second');
+    expect(ladder.max).toBe('third');
   });
 
   test('enforces type', () => {
