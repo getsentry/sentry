@@ -3,7 +3,22 @@ import orderBy from 'lodash/orderBy';
 type Rung<T> = [threshold: number, value: T];
 
 /**
- * Class that represents a value ladder. Given a ladder of increasing thresholds, the ladder can match an incoming value against the known intervals.
+ * Class that represents a value ladder. Given a ladder of increasing thresholds,
+ * the ladder can match an incoming value against the known intervals.
+ *
+ * @example
+ * ```javascript
+ * // Selecting a quota based on team size
+ * const ladder = new Ladder([
+ *   [0, 10],
+ *   [10, 100_000],
+ *   [30, 1_000_000],
+ * ]);
+ *
+ * const quota = ladder.step(0); // Quota for small teams is 10
+ * const quota = ladder.step(12); // Quota for a 10-20 person team is 100,000
+ * const quota = ladder.step(120); // Quota for a 30 person or higher team is 1,000,000
+ * ```
  */
 export class Ladder<T> {
   rungs: Rung<T>[];
