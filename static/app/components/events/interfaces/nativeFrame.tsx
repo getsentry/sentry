@@ -60,7 +60,6 @@ type Props = {
   hiddenFrameCount?: number;
   image?: React.ComponentProps<typeof DebugImage>['image'];
   includeSystemFrames?: boolean;
-  isExpanded?: boolean;
   isHoverPreviewed?: boolean;
   isOnlyFrame?: boolean;
   isShowFramesToggleExpanded?: boolean;
@@ -91,7 +90,6 @@ function NativeFrame({
   isShowFramesToggleExpanded,
   isSubFrame,
   onShowFramesToggle,
-  isExpanded,
   platform,
   registersMeta,
   frameMeta,
@@ -151,7 +149,7 @@ function NativeFrame({
     defined(frame.function) &&
     frame.function !== frame.rawFunction;
 
-  const [expanded, setExpanded] = useState(expandable ? isExpanded ?? false : false);
+  const [expanded, setExpanded] = useState(true);
   const [isHovering, setHovering] = useState(false);
 
   const contextLine = (frame?.context || []).find(l => l[0] === frame.lineNo);
@@ -280,7 +278,6 @@ function NativeFrame({
       <StrictClick onClick={handleToggleContext}>
         <RowHeader
           expandable={expandable}
-          expanded={expanded}
           isInAppFrame={frame.inApp}
           isSubFrame={!!isSubFrame}
           onMouseEnter={handleMouseEnter}
@@ -522,14 +519,13 @@ const FileName = styled('span')`
 
 const RowHeader = styled('span')<{
   expandable: boolean;
-  expanded: boolean;
   isInAppFrame: boolean;
   isSubFrame: boolean;
 }>`
   position: relative;
   display: grid;
-  grid-template-columns: repeat(2, auto) 1fr repeat(2, auto) ${space(2)};
-  grid-template-rows: repeat(2, auto);
+  grid-template-columns: auto 150px 120px 4fr repeat(3, auto) ${space(2)}; /* Adjusted to account for the extra element */
+  grid-template-rows: 1fr; /* Ensures a single row */
   align-items: center;
   align-content: center;
   column-gap: ${space(1)};
@@ -544,7 +540,7 @@ const RowHeader = styled('span')<{
   ${p => p.expandable && `cursor: pointer;`};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: auto 150px 120px 4fr repeat(2, auto) ${space(2)};
+    grid-template-columns: auto 150px 120px 4fr repeat(3, auto) ${space(2)}; /* Matches the updated desktop layout */
     padding: ${space(0.5)} ${space(1.5)};
     min-height: 32px;
   }
