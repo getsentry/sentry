@@ -88,6 +88,7 @@ export default function ProjectCreationModal({
           name: projectName,
           platform: platform.key,
           default_rules: defaultRules ?? true,
+          origin: 'ui',
         },
       });
 
