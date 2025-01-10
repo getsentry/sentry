@@ -710,6 +710,71 @@ describe('Visualize', () => {
     expect(screen.queryByText('this field has an error')).not.toBeInTheDocument();
   });
 
+  it('shows radio buttons for big number widgets when there are multiple aggregates', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.BIG_NUMBER,
+              field: ['count_unique(user)'],
+            },
+          }),
+        }),
+      }
+    );
+
+    expect(await screen.findByLabelText('Aggregate Selection')).toHaveTextContent(
+      'count_unique'
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Add Field'}));
+
+    // There are two radio buttons, one for each aggregate, and the last one is selected
+    expect(screen.getAllByLabelText('aggregate-selector')).toHaveLength(2);
+    expect(screen.getByRole('radio', {name: 'field1'})).toBeChecked();
+  });
+
+  it('shifts the selected aggregate up when it is the last one and removed', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.BIG_NUMBER,
+              field: ['count_unique(1)', 'count_unique(2)', 'count_unique(3)'],
+              selectedAggregate: '2',
+            },
+          }),
+        }),
+      }
+    );
+
+    expect(await screen.findByRole('radio', {name: 'field2'})).toBeChecked();
+    await userEvent.click(screen.getAllByRole('button', {name: 'Remove field'})[2]!);
+
+    // The second field is now selected, but the URL param for selectedAggregate
+    // is cleared, so the last field is selected
+    expect(await screen.findByRole('radio', {name: 'field1'})).toBeChecked();
+    expect(mockNavigate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({
+          selectedAggregate: undefined,
+        }),
+      })
+    );
+  });
+
   describe('spans', () => {
     beforeEach(() => {
       jest.mocked(useSpanTags).mockImplementation((type?: 'string' | 'number') => {
