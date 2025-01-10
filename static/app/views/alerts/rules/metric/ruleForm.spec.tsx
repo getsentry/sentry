@@ -78,6 +78,10 @@ describe('Incident Rules Form', () => {
       body: {count: 5},
     });
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {},
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/alert-rules/available-actions/',
       body: [
         {
