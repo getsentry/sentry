@@ -12,7 +12,14 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import AndFilter, OrFilter, Tr
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.columns import ResolvedColumn, ResolvedFunction
-from sentry.search.eap.constants import FLOAT, INT, MAX_ROLLUP_POINTS, STRING, VALID_GRANULARITIES
+from sentry.search.eap.constants import (
+    BOOLEAN,
+    FLOAT,
+    INT,
+    MAX_ROLLUP_POINTS,
+    STRING,
+    VALID_GRANULARITIES,
+)
 from sentry.search.eap.spans import SearchResolver
 from sentry.search.eap.types import CONFIDENCES, ConfidenceData, EAPResponse, SearchResolverConfig
 from sentry.search.events.fields import get_function_alias, is_function
@@ -135,6 +142,8 @@ def run_table_query(
                 result_value = result.val_int
             elif resolved_column.proto_type == FLOAT:
                 result_value = result.val_float
+            elif resolved_column.proto_type == BOOLEAN:
+                result_value = result.val_bool
             result_value = process_value(result_value)
             final_data[index][attribute] = resolved_column.process_column(result_value)
             if has_reliability:

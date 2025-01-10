@@ -26,6 +26,7 @@ SearchType = (
         "number",
         "percentage",
         "string",
+        "boolean",
     ]
 )
 
@@ -64,6 +65,7 @@ TYPE_MAP: dict[SearchType, AttributeKey.Type.ValueType] = {
     "number": FLOAT,
     "percentage": FLOAT,
     "string": STRING,
+    "boolean": BOOLEAN,
 }
 
 # https://github.com/getsentry/snuba/blob/master/snuba/web/rpc/v1/endpoint_time_series.py
@@ -86,3 +88,6 @@ VALID_GRANULARITIES = frozenset(
         24 * 3600,  # hours
     }
 )
+TRUTHY_VALUES = {"1", "true"}
+FALSEY_VALUES = {"0", "false"}
+BOOLEAN_VALUES = TRUTHY_VALUES.union(FALSEY_VALUES)

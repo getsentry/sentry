@@ -272,6 +272,11 @@ SPAN_COLUMN_DEFINITIONS = {
             search_type="string",
         ),
         ResolvedColumn(
+            public_alias="is_transaction",
+            internal_name="sentry.is_segment",
+            search_type="boolean",
+        ),
+        ResolvedColumn(
             public_alias="transaction.span_id",
             internal_name="sentry.segment_id",
             search_type="string",
