@@ -5,7 +5,7 @@ import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {TabList, Tabs} from 'sentry/components/tabs';
+import {TabList} from 'sentry/components/tabs';
 import type {TabListItemProps} from 'sentry/components/tabs/item';
 import {IconBusiness} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
@@ -15,21 +15,18 @@ import {
   type RoutableModuleNames,
   useModuleURLBuilder,
 } from 'sentry/views/insights/common/utils/useModuleURL';
-import {
-  DOMAIN_VIEW_BASE_TITLE,
-  OVERVIEW_PAGE_TITLE,
-} from 'sentry/views/insights/pages/settings';
+import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
 import {isModuleEnabled, isModuleVisible} from 'sentry/views/insights/pages/utils';
 import type {ModuleName} from 'sentry/views/insights/types';
 
 export type Props = {
   domainBaseUrl: string;
   domainTitle: string;
-  headerTitle: React.ReactNode;
   modules: ModuleName[];
   selectedModule: ModuleName | undefined;
   additionalBreadCrumbs?: Crumb[];
   additonalHeaderActions?: React.ReactNode;
+  headerTitle?: React.ReactNode;
   hideDefaultTabs?: boolean;
   tabs?: {onTabChange: (key: string) => void; tabList: React.ReactNode; value: string};
 };
@@ -47,24 +44,11 @@ export function DomainViewHeader({
 }: Props) {
   const organization = useOrganization();
   const moduleURLBuilder = useModuleURLBuilder();
-  const moduleTitles = useModuleTitles();
 
-  const baseCrumbs: Crumb[] = [
-    {
-      label: DOMAIN_VIEW_BASE_TITLE,
-      to: undefined, // There is no base /performance/ page
-      preservePageFilters: true,
-    },
+  const crumbs: Crumb[] = [
     {
       label: domainTitle,
       to: domainBaseUrl,
-      preservePageFilters: true,
-    },
-    {
-      label: selectedModule ? moduleTitles[selectedModule] : OVERVIEW_PAGE_TITLE,
-      to: selectedModule
-        ? `${moduleURLBuilder(selectedModule as RoutableModuleNames)}/`
-        : domainBaseUrl,
       preservePageFilters: true,
     },
     ...additionalBreadCrumbs,
@@ -92,9 +76,8 @@ export function DomainViewHeader({
     <Fragment>
       <Layout.Header>
         <Layout.HeaderContent>
-          <Breadcrumbs crumbs={baseCrumbs} />
-
-          <Layout.Title>{headerTitle}</Layout.Title>
+          {crumbs.length > 1 && <Breadcrumbs crumbs={crumbs} />}
+          <Layout.Title>{headerTitle || domainTitle}</Layout.Title>
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <ButtonBar gap={1}>
@@ -102,7 +85,7 @@ export function DomainViewHeader({
             {additonalHeaderActions}
           </ButtonBar>
         </Layout.HeaderActions>
-        <Tabs value={tabValue} onChange={tabs?.onTabChange}>
+        <Layout.HeaderTabs value={tabValue} onChange={tabs?.onTabChange}>
           {!hideDefaultTabs && (
             <TabList hideBorder>
               {tabList.map(tab => (
@@ -111,7 +94,7 @@ export function DomainViewHeader({
             </TabList>
           )}
           {hideDefaultTabs && tabs && tabs.tabList}
-        </Tabs>
+        </Layout.HeaderTabs>
       </Layout.Header>
     </Fragment>
   );

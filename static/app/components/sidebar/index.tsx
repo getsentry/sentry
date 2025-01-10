@@ -278,7 +278,6 @@ function Sidebar() {
         to={`/organizations/${organization.slug}/traces/`}
         id="performance-trace-explorer"
         icon={<SubitemDot collapsed />}
-        isBeta
       />
     </Feature>
   );
