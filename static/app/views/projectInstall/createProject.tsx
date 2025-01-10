@@ -121,6 +121,7 @@ function CreateProject() {
             name: projectName,
             platform: selectedPlatform.key,
             default_rules: defaultRules ?? true,
+            origin: 'ui',
           },
         });
 
