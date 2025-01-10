@@ -356,7 +356,7 @@ const StyledCard = styled('div')`
   background: ${p => p.theme.backgroundElevated};
   overflow: hidden;
   border-bottom: 1px solid ${p => p.theme.border};
-  padding: ${space(0.5)} ${space(0.5)} ${space(3)} ${space(0.5)};
+  padding: ${space(1)} ${space(0.5)} ${space(3)} ${space(0.5)};
 `;
 
 const HeaderText = styled('div')`
