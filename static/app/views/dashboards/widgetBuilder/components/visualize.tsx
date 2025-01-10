@@ -520,11 +520,13 @@ function Visualize({error, setError}: VisualizeProps) {
                         state.displayType === DisplayType.BIG_NUMBER &&
                         selectedAggregateSet
                       ) {
-                        // Only explicitly change the selected aggregate if it's the last one
+                        // Unset the selected aggregate if it's the last one
+                        // so the state will automatically choose the last aggregate
+                        // as new fields are added
                         if (state.selectedAggregate === fields.length - 1) {
                           dispatch({
                             type: BuilderStateAction.SET_SELECTED_AGGREGATE,
-                            payload: Math.max(0, state.selectedAggregate - 1),
+                            payload: undefined,
                           });
                         }
                       }

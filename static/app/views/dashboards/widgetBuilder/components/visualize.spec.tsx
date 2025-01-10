@@ -763,10 +763,13 @@ describe('Visualize', () => {
     expect(await screen.findByRole('radio', {name: 'field2'})).toBeChecked();
     await userEvent.click(screen.getAllByRole('button', {name: 'Remove field'})[2]!);
 
+    // The second field is now selected, but the URL param for selectedAggregate
+    // is cleared, so the last field is selected
+    expect(await screen.findByRole('radio', {name: 'field1'})).toBeChecked();
     expect(mockNavigate).toHaveBeenCalledWith(
       expect.objectContaining({
         query: expect.objectContaining({
-          selectedAggregate: 1,
+          selectedAggregate: undefined,
         }),
       })
     );
