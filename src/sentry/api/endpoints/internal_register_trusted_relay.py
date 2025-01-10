@@ -4,7 +4,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import audit_log, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import UserAuthTokenAuthentication
@@ -12,6 +12,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers.models.organization import TrustedRelaySerializer
 from sentry.models.options.organization_option import OrganizationOption
+from sentry.utils.audit import create_audit_entry
 
 
 @region_silo_endpoint
@@ -59,16 +60,18 @@ class InternalRegisterTrustedRelayEndpoint(OrganizationEndpoint):
                 existing_relay_index = index
                 break
 
-        if existing_relay_index is not None:
-            # Update existing relay
-            relay_data["created"] = existing_relays[existing_relay_index]["created"]
-            relay_data["last_modified"] = timestamp_now
-            existing_relays[existing_relay_index] = relay_data
-        else:
+        is_new = existing_relay_index is None
+
+        if is_new:
             # Add new relay
             relay_data["created"] = timestamp_now
             relay_data["last_modified"] = timestamp_now
             existing_relays.append(relay_data)
+        else:
+            # Update existing relay
+            relay_data["created"] = existing_relays[existing_relay_index]["created"]
+            relay_data["last_modified"] = timestamp_now
+            existing_relays[existing_relay_index] = relay_data
 
         # Save the updated relay list
         if existing_option is not None:
@@ -78,5 +81,18 @@ class InternalRegisterTrustedRelayEndpoint(OrganizationEndpoint):
             OrganizationOption.objects.set_value(
                 organization=organization, key=option_key, value=existing_relays
             )
+
+        # Create audit log entry
+        create_audit_entry(
+            request=request,
+            organization=organization,
+            target_object=None,  # No specific target object ID for relays
+            event=audit_log.get_event_id("TRUSTED_RELAY_ADD" if is_new else "TRUSTED_RELAY_EDIT"),
+            data={
+                "public_key": public_key,
+                "name": relay_data.get("name"),
+                "description": relay_data.get("description"),
+            },
+        )
 
         return Response(relay_data, status=status.HTTP_201_CREATED)

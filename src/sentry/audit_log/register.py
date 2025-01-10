@@ -612,3 +612,21 @@ default_manager.add(
         api_name="data-secrecy.reinstated",
     )
 )
+
+default_manager.add(
+    AuditLogEvent(
+        event_id=220,
+        name="TRUSTED_RELAY_ADD",
+        api_name="trusted-relay.add",
+        template="added trusted relay {name} with public key {public_key}",
+    )
+)
+
+default_manager.add(
+    AuditLogEvent(
+        event_id=221,
+        name="TRUSTED_RELAY_EDIT",
+        api_name="trusted-relay.edit",
+        template="edited trusted relay {name} with public key {public_key}",
+    )
+)
