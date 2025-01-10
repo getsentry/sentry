@@ -223,8 +223,8 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                 status=403,
             )
 
-        is_member = not (
-            request.access.has_scope("member:invite") and request.access.has_scope("member:admin")
+        is_member = not request.access.has_scope("member:admin") and request.access.has_scope(
+            "member:invite"
         )
         enable_member_invite = not organization.flags.disable_member_invite
         # Members can only resend invites
@@ -233,7 +233,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         is_invite_from_user = member.inviter_id == request.user.id
 
         if is_member:
-            if not enable_member_invite or not member.is_pending:
+            if not enable_member_invite or not member.is_pending or not reinvite_request_only:
                 raise PermissionDenied
             if not is_invite_from_user:
                 return Response({"detail": ERR_MEMBER_INVITE}, status=403)

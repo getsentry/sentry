@@ -369,6 +369,31 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             )
             return Response({"detail": ERR_RATE_LIMITED}, status=429)
 
+        is_member = not request.access.has_scope("member:admin") and (
+            request.access.has_scope("member:invite")
+        )
+        disable_invites_to_other_teams = (
+            not organization.flags.allow_joinleave and not organization.flags.disable_member_invite
+        )
+        has_team_roles = "teamRoles" in result and bool(result["teamRoles"])
+
+        # members can only invite members to teams they are not in if
+        # disable_member_invite = False and allow_joinleave = True
+        if is_member and disable_invites_to_other_teams and has_team_roles:
+            requester_teams = set(
+                OrganizationMember.objects.filter(
+                    organization=organization,
+                    user_id=request.user.id,
+                    user_is_active=True,
+                ).values_list("teams__slug", flat=True)
+            )
+            team_slugs = [team.slug for team, _ in result.get("teamRoles")]
+            if not requester_teams.issuperset(team_slugs):
+                return Response(
+                    {"detail": "You cannot assign members to teams you are not a member of."},
+                    status=400,
+                )
+
         if (
             ("teamRoles" in result and result["teamRoles"])
             or ("teams" in result and result["teams"])
