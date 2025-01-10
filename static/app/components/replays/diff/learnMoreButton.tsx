@@ -71,7 +71,6 @@ export default function LearnMoreButton(
             bodyClassName={css`
               padding: ${space(1)};
             `}
-            position="top-end"
           >
             <Button
               size="sm"

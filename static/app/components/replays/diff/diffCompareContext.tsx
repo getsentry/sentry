@@ -7,9 +7,12 @@ import {
   useState,
 } from 'react';
 
+import type {Event} from 'sentry/types/event';
 import ReplayReader from 'sentry/utils/replays/replayReader';
+import type {HydrationErrorFrame} from 'sentry/utils/replays/types';
 
 type ContextType = {
+  frameOrEvent: HydrationErrorFrame | Event;
   leftOffsetMs: number;
   leftTimestampMs: number;
   replay: ReplayReader;
@@ -20,6 +23,7 @@ type ContextType = {
 };
 
 const context = createContext<ContextType>({
+  frameOrEvent: {} as Event,
   replay: ReplayReader.factory({
     attachments: [],
     errors: [],
@@ -39,6 +43,7 @@ export function useDiffCompareContext() {
 }
 
 interface Props {
+  frameOrEvent: HydrationErrorFrame | Event;
   initialLeftOffsetMs: number;
   initialRightOffsetMs: number;
   replay: ReplayReader;
@@ -46,10 +51,11 @@ interface Props {
 }
 
 export function DiffCompareContextProvider({
-  replay,
+  children,
+  frameOrEvent,
   initialLeftOffsetMs,
   initialRightOffsetMs,
-  children,
+  replay,
 }: Props) {
   const [leftOffsetMs, setLeftOffsetMs] = useState(initialLeftOffsetMs);
   const [rightOffsetMs, setRightOffsetMs] = useState(initialRightOffsetMs);
@@ -61,6 +67,7 @@ export function DiffCompareContextProvider({
   return (
     <context.Provider
       value={{
+        frameOrEvent,
         leftOffsetMs,
         leftTimestampMs,
         replay,
