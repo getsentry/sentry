@@ -89,6 +89,7 @@ BASE_PROJECT = {
     "hasNewFeedbacks": False,
     "hasProfiles": False,
     "hasReplays": False,
+    "hasFlags": False,
     "hasSessions": False,
     "hasInsightsHttp": True,
     "hasInsightsDb": False,
