@@ -7,6 +7,7 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.snuba.models import QuerySubscription
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.factories import AlertRuleThresholdType
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.users.services.user.service import user_service
 from sentry.workflow_engine.migration_helpers.alert_rule import (
@@ -280,7 +281,7 @@ class AlertRuleMigrationHelpersTest(APITestCase):
         resolve_threshold = get_resolve_threshold(detector_dcg)
         assert resolve_threshold == self.alert_rule_trigger_critical.alert_threshold
 
-    def test_calculat_resolve_threshold_with_warning(self):
+    def test_calculate_resolve_threshold_with_warning(self):
         migrate_alert_rule(self.metric_alert, self.rpc_user)
         migrate_metric_data_conditions(self.alert_rule_trigger_warning)
         migrate_metric_data_conditions(self.alert_rule_trigger_critical)
@@ -289,6 +290,57 @@ class AlertRuleMigrationHelpersTest(APITestCase):
         detector_dcg = detector.workflow_condition_group
         resolve_threshold = get_resolve_threshold(detector_dcg)
         assert resolve_threshold == self.alert_rule_trigger_warning.alert_threshold
+
+    def create_metric_alert_trigger_auto_resolve(self):
+        """
+        Test that we create the correct resolution DataConditions when an AlertRule has no explicit resolve threshold
+        """
+        metric_alert = self.create_alert_rule()
+        critical_trigger = self.create_alert_rule_trigger(alert_rule=metric_alert, label="critical")
+
+        migrate_alert_rule(metric_alert, self.rpc_user)
+        migrate_metric_data_conditions(critical_trigger)
+
+        detector = AlertRuleDetector.objects.get(alert_rule=metric_alert).detector
+
+        resolve_detector_trigger = DataCondition.objects.get(
+            condition_result=DetectorPriorityLevel.OK
+        )
+
+        assert resolve_detector_trigger.type == Condition.LESS_OR_EQUAL
+        assert resolve_detector_trigger.comparison == critical_trigger.alert_threshold
+        assert resolve_detector_trigger.condition_result == DetectorPriorityLevel.OK
+        assert resolve_detector_trigger.condition_group == detector.workflow_condition_group
+
+        resolve_data_condition = DataCondition.objects.get(comparison=DetectorPriorityLevel.OK)
+
+        assert resolve_data_condition.type == Condition.ISSUE_PRIORITY_EQUALS
+        assert resolve_data_condition.condition_result is True
+        assert resolve_data_condition.condition_group == resolve_data_condition.condition_group
+        assert WorkflowDataConditionGroup.objects.filter(
+            condition_group=resolve_data_condition.condition_group
+        ).exists()
+
+    def create_metric_alert_trigger_auto_resolve_less_than(self):
+        """
+        Test that we assign the resolve detector trigger the correct type if the threshold type is ABOVE
+        """
+        metric_alert = self.create_alert_rule(threshold_type=AlertRuleThresholdType.ABOVE)
+        critical_trigger = self.create_alert_rule_trigger(alert_rule=metric_alert, label="critical")
+
+        migrate_alert_rule(metric_alert, self.rpc_user)
+        migrate_metric_data_conditions(critical_trigger)
+
+        detector = AlertRuleDetector.objects.get(alert_rule=metric_alert).detector
+
+        resolve_detector_trigger = DataCondition.objects.get(
+            condition_result=DetectorPriorityLevel.OK
+        )
+
+        assert resolve_detector_trigger.type == Condition.GREATER_OR_EQUAL
+        assert resolve_detector_trigger.comparison == critical_trigger.alert_threshold
+        assert resolve_detector_trigger.condition_result == DetectorPriorityLevel.OK
+        assert resolve_detector_trigger.condition_group == detector.workflow_condition_group
 
     def test_create_metric_alert_trigger_action(self):
         """
