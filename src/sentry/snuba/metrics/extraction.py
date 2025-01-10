@@ -660,12 +660,6 @@ def should_use_on_demand_metrics(
             metrics.incr("on_demand_metrics.should_use_on_demand_metrics.cache_hit")
             return cached_result
         else:
-            logger.info(
-                "should_use_on_demand_metrics.cache_miss",
-                extra={
-                    "cache_key": local_cache_key,
-                },
-            )
             result = _should_use_on_demand_metrics(
                 dataset=dataset,
                 aggregate=aggregate,
