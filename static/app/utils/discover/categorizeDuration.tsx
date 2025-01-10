@@ -1,4 +1,12 @@
-import {DAY, HOUR, MINUTE, SECOND, WEEK} from 'sentry/utils/formatters';
+import {
+  DAY,
+  HOUR,
+  MICROSECOND,
+  MILLISECOND,
+  MINUTE,
+  SECOND,
+  WEEK,
+} from 'sentry/utils/formatters';
 
 /**
  * Categorizes the duration by Second, Minute, Hour, etc
@@ -21,5 +29,9 @@ export function categorizeDuration(value): number {
   if (value >= SECOND) {
     return SECOND;
   }
-  return 1;
+  if (value >= MILLISECOND) {
+    return MILLISECOND;
+  }
+
+  return MICROSECOND;
 }
