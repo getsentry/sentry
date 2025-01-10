@@ -91,6 +91,7 @@ export interface Organization extends OrganizationSummary {
   scrubIPAddresses: boolean;
   sensitiveFields: string[];
   storeCrashReports: number;
+  streamlineOnly: boolean | null;
   targetSampleRate: number;
   teamRoleList: TeamRole[];
   trustedRelays: Relay[];
