@@ -94,9 +94,10 @@ export function GlobalDrawer({children}) {
   >();
   // If no config is set, the global drawer is closed.
   const isDrawerOpen = !!currentDrawerConfig;
-  const openDrawer = useCallback<DrawerContextType['openDrawer']>((renderer, options) => {
-    overwriteDrawerConfig({renderer, options});
-  }, []);
+  const openDrawer = useCallback<DrawerContextType['openDrawer']>(
+    (renderer, options) => overwriteDrawerConfig({renderer, options}),
+    []
+  );
   const closeDrawer = useCallback<DrawerContextType['closeDrawer']>(
     () => overwriteDrawerConfig(undefined),
     []
@@ -111,10 +112,7 @@ export function GlobalDrawer({children}) {
   useLayoutEffect(
     () => {
       // Defaults to closing the drawer when the location changes
-      if (
-        (currentDrawerConfig?.options.shouldCloseOnLocationChange?.(location) ?? true) &&
-        isDrawerOpen
-      ) {
+      if (currentDrawerConfig?.options.shouldCloseOnLocationChange?.(location) ?? true) {
         // Call `closeDrawer` without invoking `onClose` callback, since those callbacks often update the URL
         closeDrawer();
       }
