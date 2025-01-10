@@ -8,7 +8,7 @@ from sentry.workflow_engine.types import DataConditionHandler, DataConditionHand
 
 @condition_handler_registry.register(Condition.EXISTING_HIGH_PRIORITY_ISSUE)
 class ExistingHighPriorityIssueConditionHandler(DataConditionHandler[WorkflowJob]):
-    type: DataConditionHandlerType = DataConditionHandlerType.ACTION_FILTER
+    type: DataConditionHandlerType = DataConditionHandlerType.WORKFLOW_TRIGGER
 
     @staticmethod
     def evaluate_value(job: WorkflowJob, comparison: Any) -> bool:
