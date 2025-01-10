@@ -136,7 +136,7 @@ function CronsOverview() {
               {t('Manage Monitors')}
             </Button>
             {showAddMonitor && (
-              <NewMonitorButton size="sm" icon={<IconAdd isCircled />}>
+              <NewMonitorButton linkToAlerts size="sm" icon={<IconAdd isCircled />}>
                 {t('Add Monitor')}
               </NewMonitorButton>
             )}
@@ -183,11 +183,11 @@ function CronsOverview() {
             <LoadingIndicator />
           ) : monitorList?.length ? (
             <Fragment>
-              <OverviewTimeline monitorList={monitorList} />
+              <OverviewTimeline linkToAlerts monitorList={monitorList} />
               {monitorListPageLinks && <Pagination pageLinks={monitorListPageLinks} />}
             </Fragment>
           ) : (
-            <CronsLandingPanel />
+            <CronsLandingPanel linkToAlerts />
           )}
         </Layout.Main>
       </Layout.Body>

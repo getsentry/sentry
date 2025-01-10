@@ -11,12 +11,16 @@ interface Props {
   monitor: Monitor;
   onUpdate: (data: Monitor) => void;
   orgSlug: string;
+  /**
+   * TODO(epurkhiser): Remove once crons exists only in alerts
+   */
+  linkToAlerts?: boolean;
 }
 
-export function MonitorHeader({monitor, orgSlug, onUpdate}: Props) {
+export function MonitorHeader({monitor, orgSlug, onUpdate, linkToAlerts}: Props) {
   const crumbs = [
     {
-      label: t('Crons'),
+      label: t('Alerts'),
       to: `/organizations/${orgSlug}/crons/`,
       preservePageFilters: true,
     },
@@ -40,7 +44,12 @@ export function MonitorHeader({monitor, orgSlug, onUpdate}: Props) {
         </Layout.Title>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
-        <MonitorHeaderActions orgSlug={orgSlug} monitor={monitor} onUpdate={onUpdate} />
+        <MonitorHeaderActions
+          linkToAlerts={linkToAlerts}
+          orgSlug={orgSlug}
+          monitor={monitor}
+          onUpdate={onUpdate}
+        />
       </Layout.HeaderActions>
     </Layout.Header>
   );

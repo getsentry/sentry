@@ -33,6 +33,10 @@ import MonitorEnvironmentLabel from './monitorEnvironmentLabel';
 interface Props {
   monitor: Monitor;
   timeWindowConfig: TimeWindowConfig;
+  /**
+   * TODO(epurkhiser): Remove once crons exists only in alerts
+   */
+  linkToAlerts?: boolean;
   onDeleteEnvironment?: (env: string) => Promise<void>;
   onToggleMuteEnvironment?: (env: string, isMuted: boolean) => Promise<void>;
   onToggleStatus?: (monitor: Monitor, status: ObjectStatus) => Promise<void>;
@@ -52,6 +56,7 @@ export function OverviewRow({
   onDeleteEnvironment,
   onToggleMuteEnvironment,
   onToggleStatus,
+  linkToAlerts,
 }: Props) {
   const organization = useOrganization();
 
@@ -73,14 +78,19 @@ export function OverviewRow({
   const location = useLocation();
   const query = pick(location.query, ['start', 'end', 'statsPeriod', 'environment']);
 
+  const to = linkToAlerts
+    ? {
+        pathname: `/organizations/${organization.slug}/alerts/rules/crons/${monitor.project.slug}/${monitor.slug}/details/`,
+        query,
+      }
+    : {
+        pathname: `/organizations/${organization.slug}/crons/${monitor.project.slug}/${monitor.slug}/`,
+        query,
+      };
+
   const monitorDetails = singleMonitorView ? null : (
     <DetailsArea>
-      <DetailsLink
-        to={{
-          pathname: `/organizations/${organization.slug}/crons/${monitor.project.slug}/${monitor.slug}/`,
-          query,
-        }}
-      >
+      <DetailsLink to={to}>
         <DetailsHeadline>
           <Name>{monitor.name}</Name>
         </DetailsHeadline>

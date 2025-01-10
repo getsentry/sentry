@@ -71,6 +71,7 @@ function RuleListRow({
     [CombinedAlertType.ISSUE]: 'rules',
     [CombinedAlertType.METRIC]: 'metric-rules',
     [CombinedAlertType.UPTIME]: 'uptime-rules',
+    [CombinedAlertType.CRONS]: 'crons-rules',
   } satisfies Record<CombinedAlertType, string>;
 
   const editLink = `/organizations/${orgId}/alerts/${editKey[rule.type]}/${slug}/${rule.id}/`;
@@ -79,6 +80,7 @@ function RuleListRow({
     [CombinedAlertType.ISSUE]: 'issue',
     [CombinedAlertType.METRIC]: 'metric',
     [CombinedAlertType.UPTIME]: 'uptime',
+    [CombinedAlertType.CRONS]: 'crons',
   } satisfies Record<CombinedAlertType, string>;
 
   const duplicateLink = {
