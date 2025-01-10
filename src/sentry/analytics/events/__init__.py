@@ -22,6 +22,7 @@ from .first_cron_checkin_sent import *  # noqa: F401,F403
 from .first_custom_metric_sent import *  # noqa: F401,F403
 from .first_event_sent import *  # noqa: F401,F403
 from .first_feedback_sent import *  # noqa: F401,F403
+from .first_flag_sent import *  # noqa: F401,F403
 from .first_insight_span_sent import *  # noqa: F401,F403
 from .first_new_feedback_sent import *  # noqa: F401,F403
 from .first_profile_sent import *  # noqa: F401,F403

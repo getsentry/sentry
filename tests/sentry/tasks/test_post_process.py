@@ -2198,6 +2198,33 @@ class DetectBaseUrlsForUptimeTestMixin(BasePostProgressGroupMixin):
         self.assert_organization_key(self.organization, False)
 
 
+@patch("sentry.analytics.record")
+class CheckIfFlagsSentTestMixin(BasePostProgressGroupMixin):
+    def test_set_has_flags(self, mock_record):
+        project = self.create_project()
+        event_id = "a" * 32
+        event = self.create_event(
+            data={"event_id": event_id, "contexts": {"flags": {"values": []}}},
+            project_id=project.id,
+        )
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+
+        project.refresh_from_db()
+        assert project.flags.has_flags
+
+        mock_record.assert_called_with(
+            "first_flag.sent",
+            organization_id=self.organization.id,
+            project_id=project.id,
+            platform=project.platform,
+        )
+
+
 class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
     def test_has_escalated(self, mock_run_post_process_job):
@@ -2480,6 +2507,7 @@ class PostProcessGroupErrorTest(
     UserReportEventLinkTestMixin,
     DetectBaseUrlsForUptimeTestMixin,
     ProcessSimilarityTestMixin,
+    CheckIfFlagsSentTestMixin,
 ):
     def setUp(self):
         super().setUp()
