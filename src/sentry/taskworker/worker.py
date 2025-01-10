@@ -70,8 +70,8 @@ def _get_known_task(activation: TaskActivation) -> Task[Any, Any] | None:
 
 
 def child_worker(
-    child_tasks: multiprocessing.Queue[TaskActivation],
-    processed_tasks: multiprocessing.Queue[ProcessingResult],
+    child_tasks: queue.Queue[TaskActivation],
+    processed_tasks: queue.Queue[ProcessingResult],
     shutdown_event: Event,
     max_task_count: int | None,
 ) -> None:
@@ -138,22 +138,21 @@ def child_worker(
                 metrics.incr(
                     "taskworker.worker.at_most_once.skipped", tags={"task": activation.taskname}
                 )
-                return None
+                continue
 
         current_task_id = activation.id
 
         # Set an alarm for the processing_deadline_duration
         signal.alarm(activation.processing_deadline_duration)
 
-        next_state = TASK_ACTIVATION_STATUS_COMPLETE
         execution_start_time = time.time()
+        next_state = TASK_ACTIVATION_STATUS_FAILURE
         try:
             _execute_activation(task_func, activation)
-            processed_task_count += 1
+            next_state = TASK_ACTIVATION_STATUS_COMPLETE
             # Clear the alarm
             signal.alarm(0)
         except Exception as err:
-            next_state = TASK_ACTIVATION_STATUS_FAILURE
             if task_func.should_retry(activation.retry_state, err):
                 logger.info("taskworker.task.retry", extra={"task": activation.taskname})
                 next_state = TASK_ACTIVATION_STATUS_RETRY
@@ -162,6 +161,8 @@ def child_worker(
                 logger.info(
                     "taskworker.task.errored", extra={"type": str(err.__class__), "error": str(err)}
                 )
+
+        processed_task_count += 1
 
         # Get completion time before pushing to queue to avoid inflating latency metrics.
         execution_complete_time = time.time()
@@ -250,7 +251,6 @@ class TaskWorker:
             maxsize=(concurrency * 10)
         )
         self._children: list[multiprocessing.Process] = []
-        # multiprocessing.Event is a function and can't be used as a type
         self._shutdown_event = multiprocessing.Event()
 
     def __del__(self) -> None:
@@ -272,18 +272,19 @@ class TaskWorker:
 
         signal.signal(signal.SIGINT, self._handle_sigint)
 
-        # Main loop for the parent process
-        # 1. If child_tasks has room, fetch a task and add it to the child_tasks queue
-        # 2. fetch from processed_tasks and ship a result
-        # 3. Check that there are enough processes alive still.
         while True:
-            self._add_task()
-            self._drain_result()
-            self._spawn_children()
+            self.run_once()
+
+    def run_once(self) -> None:
+        """Access point for tests to run a single worker loop"""
+        self._add_task()
+        self._drain_result()
+        self._spawn_children()
 
     def _handle_sigint(self, signum: int, frame: FrameType | None) -> None:
         logger.info("taskworker.worker.sigint_received")
         self._shutdown()
+        raise KeyboardInterrupt("Shutdown complete")
 
     def _shutdown(self) -> None:
         """
@@ -300,9 +301,13 @@ class TaskWorker:
             child.terminate()
             child.join()
 
-        raise KeyboardInterrupt("Shutdown complete")
-
     def _add_task(self) -> None:
+        """
+        Add a task to child tasks queue
+        """
+        if self._child_tasks.full():
+            return
+
         task = self.fetch_task()
         if task:
             try:
@@ -313,6 +318,9 @@ class TaskWorker:
                 )
 
     def _drain_result(self, fetch: bool = True) -> bool:
+        """
+        Consume results from children and update taskbroker
+        """
         try:
             result = self._processed_tasks.get_nowait()
         except queue.Empty:
