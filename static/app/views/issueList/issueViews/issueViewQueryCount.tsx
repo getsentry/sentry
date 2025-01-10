@@ -89,6 +89,7 @@ export function IssueViewQueryCount({view}: IssueViewQueryCountProps) {
     >
       <motion.span
         // Prevents count from fading in if it's already cached on mount
+        layout="preserve-aspect"
         initial={{opacity: isLoading ? 0 : 1}}
         animate={{opacity: isFetching ? 0 : 1}}
         transition={{duration: 0.1}}
