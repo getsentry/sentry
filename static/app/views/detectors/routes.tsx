@@ -3,7 +3,7 @@ import {IndexRoute, Route} from 'sentry/components/route';
 import {makeLazyloadComponent as make} from 'sentry/routes';
 
 export function DetectorRoutes() {
-  const root = `/issues/monitors/`;
+  const root = `/monitors/`;
   return (
     <Feature features="workflow-engine-ui">
       <Route path={root} withOrgPath>
