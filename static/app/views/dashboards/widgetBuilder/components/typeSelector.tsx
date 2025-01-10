@@ -53,13 +53,15 @@ function WidgetBuilderTypeSelector({error, setError}: WidgetBuilderTypeSelectorP
           name="displayType"
           value={state.displayType}
           options={Object.keys(displayTypes).map(value => ({
+            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             leadingItems: typeIcons[value],
+            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             label: displayTypes[value],
             value,
             disabled: !config.supportedDisplayTypes.includes(value as DisplayType),
           }))}
           clearable={false}
-          onChange={newValue => {
+          onChange={(newValue: any) => {
             if (newValue?.value === state.displayType) {
               return;
             }
@@ -81,7 +83,7 @@ function WidgetBuilderTypeSelector({error, setError}: WidgetBuilderTypeSelectorP
             }
           }}
           components={{
-            SingleValue: containerProps => {
+            SingleValue: (containerProps: any) => {
               return (
                 <components.SingleValue {...containerProps}>
                   <SelectionWrapper>

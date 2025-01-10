@@ -213,8 +213,10 @@ function getInsightsModuleBreadcrumbs(
 
   if (
     typeof location.query.source === 'string' &&
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     TRACE_SOURCE_TO_MODULE[location.query.source]
   ) {
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     moduleName = TRACE_SOURCE_TO_MODULE[location.query.source] as RoutableModuleNames;
     crumbs.push({
       label: MODULE_TITLES[moduleName],
@@ -341,6 +343,7 @@ export function getTraceViewBreadcrumbs(
 ): Crumb[] {
   if (
     typeof location.query.source === 'string' &&
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     TRACE_SOURCE_TO_MODULE[location.query.source]
   ) {
     return getInsightsModuleBreadcrumbs(location, organization, moduleUrlBuilder, view);

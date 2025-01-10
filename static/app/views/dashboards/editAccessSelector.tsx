@@ -86,7 +86,7 @@ function EditAccessSelector({
   }, [dashboard, teamsToRender, isMenuOpen]); // isMenuOpen dependency ensures perms are 'refreshed'
 
   // Handles state change when dropdown options are selected
-  const onSelectOptions = newSelectedOptions => {
+  const onSelectOptions = (newSelectedOptions: any) => {
     let newSelectedValues = newSelectedOptions.map(
       (option: {value: string}) => option.value
     );
@@ -109,7 +109,9 @@ function EditAccessSelector({
         ? // selecting all teams deselects 'all users'
           (newSelectedValues = ['_creator', '_allUsers', ...teamIds])
         : // deselecting any team deselects 'all users'
-          (newSelectedValues = newSelectedValues.filter(value => value !== '_allUsers'));
+          (newSelectedValues = newSelectedValues.filter(
+            (value: any) => value !== '_allUsers'
+          ));
     }
 
     setSelectedOptions(newSelectedValues);

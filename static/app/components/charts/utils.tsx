@@ -227,6 +227,7 @@ export function getSeriesSelection(
 ): LegendComponentOption['selected'] {
   const unselectedSeries = decodeList(location?.query.unselectedSeries);
   return unselectedSeries.reduce((selection, series) => {
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     selection[series] = false;
     return selection;
   }, {});
@@ -344,7 +345,7 @@ export function computeEchartsAriaLabels(
     ? `MMMM D, h:mm A`
     : 'MMMM Do';
 
-  function formatDate(date) {
+  function formatDate(date: any) {
     return getFormattedDate(date, dateFormat, {
       local: !useUTC,
     });
@@ -377,14 +378,16 @@ export function computeEchartsAriaLabels(
       let highestValue: NonNullable<LineSeriesOption['data']>[0] = [0, -Infinity];
       let lowestValue: NonNullable<LineSeriesOption['data']>[0] = [0, Infinity];
 
-      s.data.forEach(datum => {
+      s.data.forEach((datum: any) => {
         if (!Array.isArray(datum)) {
           return;
         }
 
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         if (datum[1] > highestValue[1]) {
           highestValue = datum;
         }
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         if (datum[1] < lowestValue[1]) {
           lowestValue = datum;
         }

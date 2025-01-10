@@ -15,7 +15,7 @@ export interface StoryDescriptor {
 function importStory(filename: string): Promise<StoryDescriptor> {
   return storiesContext()
     .importStory(filename)
-    .then((story): StoryDescriptor => {
+    .then((story: any): StoryDescriptor => {
       return {
         filename,
         exports: story,

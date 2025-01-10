@@ -165,6 +165,7 @@ const ISSUE_TYPE_TO_ISSUE_TITLE = {
 
 export function getIssueTitleFromType(issueType: string): IssueTitle | undefined {
   if (issueType in ISSUE_TYPE_TO_ISSUE_TITLE) {
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return ISSUE_TYPE_TO_ISSUE_TITLE[issueType];
   }
   return undefined;
@@ -202,6 +203,7 @@ export function getIssueTypeFromOccurrenceType(
   if (!typeId) {
     return null;
   }
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   return OCCURRENCE_TYPE_TO_ISSUE_TYPE[typeId] ?? null;
 }
 

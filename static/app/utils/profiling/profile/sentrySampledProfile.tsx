@@ -53,6 +53,7 @@ function sortSentrySampledProfileSamples(
   });
 
   const framesMapping = frameIds.reduce((acc, frameId, idx) => {
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     acc[frameId] = idx;
     return acc;
   }, {});
@@ -82,7 +83,9 @@ function sortSentrySampledProfileSamples(
         continue;
       }
 
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const frameIdxA = framesMapping[frameIdA];
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const frameIdxB = framesMapping[frameIdB];
 
       // same frame idx, so check the next frame in the stack
@@ -120,7 +123,7 @@ export class SentrySampledProfile extends Profile {
       }
     );
 
-    function resolveFrame(index): Frame {
+    function resolveFrame(index: any): Frame {
       const resolvedFrame = frameIndex[index];
       if (!resolvedFrame) {
         throw new Error(`Could not resolve frame ${index} in frame index`);
@@ -164,7 +167,7 @@ export class SentrySampledProfile extends Profile {
       let stack = stacks[sample!.stack_id].map(resolveFrame);
 
       if (options.frameFilter) {
-        stack = stack.filter(frame => options.frameFilter!(frame));
+        stack = stack.filter((frame: any) => options.frameFilter!(frame));
       }
 
       profile.appendSampleWithWeight(stack, sample.weight);

@@ -102,6 +102,7 @@ export function CreateProjectsFooter({
         const newProjects = Object.keys(onboardingContext.data.projects).reduce(
           (acc, key) => {
             if (onboardingContext.data.projects[key]!.slug !== response.slug) {
+              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
               acc[key] = onboardingContext.data.projects[key];
             }
             return acc;

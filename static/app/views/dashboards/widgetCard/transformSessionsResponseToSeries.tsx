@@ -55,9 +55,11 @@ export function transformSessionsResponseToSeries(
       // stripped.
       if (!injectedFields.includes(derivedMetricsToField(field))) {
         results.push({
+          // @ts-expect-error TS(2345): Argument of type '{ by: Record<string, string | nu... Remove this comment to see the full error message
           seriesName: getSeriesName(field, group, queryAlias),
           data: response.intervals.map((interval, index) => ({
             name: interval,
+            // @ts-expect-error TS(2532): Object is possibly 'undefined'.
             value: group.series[field][index] ?? 0,
           })),
         });
@@ -79,9 +81,11 @@ export function transformSessionsResponseToSeries(
             }
           }
           results.push({
+            // @ts-expect-error TS(2345): Argument of type '{ by: Record<string, string | nu... Remove this comment to see the full error message
             seriesName: getSeriesName(status, group, queryAlias),
             data: response.intervals.map((interval, index) => ({
               name: interval,
+              // @ts-expect-error TS(2532): Object is possibly 'undefined'.
               value: metricField ? group.series[metricField][index] ?? 0 : 0,
             })),
           });

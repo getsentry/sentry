@@ -116,12 +116,14 @@ export function getOperatorInfo(token: TokenResult<Token.FILTER>): {
 } {
   if (isDateToken(token)) {
     const operator = getOperatorFromDateToken(token);
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     const opLabel = DATE_OP_LABELS[operator] ?? operator;
 
     return {
       operator,
       label: <OpLabel>{opLabel}</OpLabel>,
       options: DATE_OPTIONS.map((op): SelectOption<TermOperator> => {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         const optionOpLabel = DATE_OP_LABELS[op] ?? op;
 
         return {
@@ -191,6 +193,7 @@ export function getOperatorInfo(token: TokenResult<Token.FILTER>): {
   }
 
   const keyLabel = token.key.text;
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const opLabel = OP_LABELS[operator] ?? operator;
 
   return {

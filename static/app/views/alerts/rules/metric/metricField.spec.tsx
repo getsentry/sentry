@@ -12,7 +12,7 @@ async function openSelectMenu(text) {
 }
 
 describe('MetricField', function () {
-  let model;
+  let model: any;
   const {organization} = initializeOrg({
     organization: {features: ['performance-view']},
   });

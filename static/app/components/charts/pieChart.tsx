@@ -44,7 +44,7 @@ class PieChart extends Component<Props> {
 
   // Select a series to highlight (e.g. shows details of series)
   // This is the same event as when you hover over a series in the chart
-  highlight = dataIndex => {
+  highlight = (dataIndex: any) => {
     if (!this.chart.current) {
       return;
     }
@@ -57,7 +57,7 @@ class PieChart extends Component<Props> {
   };
 
   // Opposite of `highlight`
-  downplay = dataIndex => {
+  downplay = (dataIndex: any) => {
     if (!this.chart.current) {
       return;
     }
@@ -142,8 +142,10 @@ class PieChart extends Component<Props> {
           bottom: 10,
           formatter: name =>
             `${name} ${
+              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
               typeof seriesPercentages[name] !== 'undefined'
-                ? `(${seriesPercentages[name]}%)`
+                ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                  `(${seriesPercentages[name]}%)`
                 : ''
             }`,
         })}
@@ -151,8 +153,10 @@ class PieChart extends Component<Props> {
           formatter: data => {
             return [
               '<div class="tooltip-series">',
+              // @ts-expect-error TS(2339): Property 'marker' does not exist on type 'TopLevel... Remove this comment to see the full error message
               `<div><span class="tooltip-label">${data.marker}<strong>${data.name}</strong></span> ${data.percent}%</div>`,
               '</div>',
+              // @ts-expect-error TS(2339): Property 'value' does not exist on type 'TopLevelF... Remove this comment to see the full error message
               `<div class="tooltip-footer">${data.value}</div>`,
               '</div>',
               '<div class="tooltip-arrow"></div>',

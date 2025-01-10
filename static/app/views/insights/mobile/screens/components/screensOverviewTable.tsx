@@ -44,7 +44,7 @@ function ScreensOverviewTable({data, eventView, isLoading, pageLinks}: Props) {
     ['avg(measurements.app_start_cold)']: t('Cold Start'),
   };
 
-  function renderBodyCell(column, row): React.ReactNode | null {
+  function renderBodyCell(column: any, row: any): React.ReactNode | null {
     if (!data) {
       return null;
     }

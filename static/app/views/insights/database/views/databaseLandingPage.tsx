@@ -219,7 +219,7 @@ const DEFAULT_SORT = {
   kind: 'desc' as const,
 };
 
-function AlertBanner(props) {
+function AlertBanner(props: any) {
   return (
     <ModuleLayout.Full>
       <Alert {...props} type="info" showIcon />

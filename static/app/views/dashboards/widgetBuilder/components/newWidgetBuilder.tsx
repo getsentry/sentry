@@ -83,11 +83,11 @@ function WidgetBuilderV2({
     }
   }, [escapeKeyPressed, isOpen, onClose]);
 
-  const handleDragEnd = ({over}) => {
+  const handleDragEnd = ({over}: any) => {
     setTranslate(snapPreviewToCorners(over));
   };
 
-  const handleDragMove = ({delta}) => {
+  const handleDragMove = ({delta}: any) => {
     setTranslate(previousTranslate => ({
       ...previousTranslate,
       initialTranslate: previousTranslate.initialTranslate,

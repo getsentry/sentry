@@ -64,8 +64,8 @@ function MetricAlertActivity({organization, incident}: MetricAlertActivityProps)
   let activationBlock: ReactElement | null = null;
   // TODO: Split this string check into a separate component
   if (activation) {
-    let condition;
-    let activator;
+    let condition: any;
+    let activator: any;
     switch (activation.conditionType) {
       case String(ActivationConditionType.RELEASE_CREATION):
         condition = 'Release';

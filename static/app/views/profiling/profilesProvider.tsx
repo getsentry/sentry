@@ -123,6 +123,7 @@ interface ProfilesProviderProps {
   orgSlug: Organization['slug'];
   profileId: string;
   projectSlug: Project['slug'];
+  // @ts-expect-error TS(7051): Parameter has a name but no type. Did you mean 'ar... Remove this comment to see the full error message
   onUpdateProfiles?: (any) => void;
 }
 

@@ -71,7 +71,7 @@ export function useEventQuery({groupId}: {groupId: string}): string {
   // For example: "is:unresolved browser.name:firefox" -> "browser.name:firefox"
   // Note: This is _probably_ not accounting for MANY invalid filters which could come in from the
   // issue stream. Will likely have to refine this in the future.
-  const validQuery = parsedQuery.filter(token => {
+  const validQuery = parsedQuery.filter((token: any) => {
     if (token.type === Token.FREE_TEXT) {
       return false;
     }

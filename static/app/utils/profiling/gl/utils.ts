@@ -37,8 +37,8 @@ export function initializeFlamegraphRenderer(
   for (const renderer of renderers) {
     let r: FlamegraphRenderer | UIFramesRenderer | null = null;
     try {
-      // @ts-expect-error ts complains that constructor args are not of tuple
       // type, even though they are.
+      // @ts-expect-error TS(2556): A spread argument must either have a tuple type or... Remove this comment to see the full error message
       r = new renderer(...constructorArgs);
       // eslint-disable-next-line no-empty
     } catch (e) {}
@@ -170,8 +170,8 @@ const canvasToDisplaySizeMap = new Map<HTMLCanvasElement, [number, number]>();
 
 function onResize(entries: ResizeObserverEntry[]) {
   for (const entry of entries) {
-    let width;
-    let height;
+    let width: any;
+    let height: any;
     let dpr = window.devicePixelRatio;
     if (entry.devicePixelContentBoxSize) {
       // NOTE: Only this path gives the correct answer
@@ -185,9 +185,9 @@ function onResize(entries: ResizeObserverEntry[]) {
         width = entry.contentBoxSize[0].inlineSize;
         height = entry.contentBoxSize[0].blockSize;
       } else {
-        // @ts-expect-error
+        // @ts-expect-error TS(2339): Property 'inlineSize' does not exist on type 'read... Remove this comment to see the full error message
         width = entry.contentBoxSize.inlineSize;
-        // @ts-expect-error
+        // @ts-expect-error TS(2339): Property 'blockSize' does not exist on type 'reado... Remove this comment to see the full error message
         height = entry.contentBoxSize.blockSize;
       }
     } else {
@@ -362,16 +362,19 @@ export function upperBound<T extends {end: number; start: number} | {x: number}>
 
   if (high === 1) {
     return getValue
-      ? getValue(values[0]) < target
+      ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        getValue(values[0]) < target
         ? 1
         : 0
-      : values[0].start < target
+      : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        values[0].start < target
         ? 1
         : 0;
   }
 
   while (low !== high) {
     const mid = low + Math.floor((high - low) / 2);
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     const value = getValue ? getValue(values[mid]) : values[mid].start;
 
     if (value < target) {

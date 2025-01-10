@@ -283,7 +283,7 @@ function DashboardEditFeature({
 }: {
   children: (hasFeature: boolean) => React.ReactNode;
 }) {
-  const renderDisabled = p => (
+  const renderDisabled = (p: any) => (
     <Hovercard
       body={
         <FeatureDisabled

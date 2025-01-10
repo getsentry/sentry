@@ -58,7 +58,7 @@ export class TraceRowWidthMeasurer<T> {
     }
 
     for (const handler of this.listeners[event]) {
-      // @ts-expect-error
+      // @ts-expect-error TS(2556): A spread argument must either have a tuple type or... Remove this comment to see the full error message
       handler(...args);
     }
   }

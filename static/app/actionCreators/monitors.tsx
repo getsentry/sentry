@@ -70,6 +70,7 @@ export async function updateMonitor(
     // If we are updating a single value in the monitor we can read the
     // validation error for that key, otherwise fallback to the default error
     const validationError =
+      // @ts-expect-error TS(2571): Object is of type 'unknown'.
       updateKeys.length === 1 ? respError.responseJSON?.[updateKeys[0]!]?.[0] : undefined;
 
     logException(err);

@@ -305,6 +305,7 @@ function NewTraceDetailsContent(props: Props) {
     const transactionsCount = meta?.transactions ?? traceInfo?.transactions.size ?? 0;
     const totalNumOfEvents = transactionsCount + orphanErrorsCount;
     const webVitals = Object.keys(rootEvent?.measurements ?? {})
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       .filter(name => Boolean(WEB_VITAL_DETAILS[`measurements.${name}`]))
       .sort();
 

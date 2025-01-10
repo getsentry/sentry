@@ -71,7 +71,9 @@ function CustomCommitsResolutionModal({
           placeholder={t('e.g. d86b832')}
           url={`/projects/${orgSlug}/${projectSlug}/commits/`}
           onResults={onAsyncFieldResults}
-          onQuery={query => ({query})}
+          onQuery={(query: any) => ({
+            query,
+          })}
         />
       </Body>
       <Footer>

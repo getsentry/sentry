@@ -348,7 +348,9 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
 
     if (key === 'replayId') {
       const replayTarget =
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         (row['transaction.duration'] !== undefined ||
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           row[SpanIndexedField.SPAN_SELF_TIME] !== undefined) &&
         replayLinkGenerator(
           organization,
@@ -357,8 +359,10 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
             id: '', // id doesn't get used in replayLinkGenerator. This is just to satisfy the type.
             'transaction.duration':
               datatype === Datatype.INTERACTIONS
-                ? row[SpanIndexedField.SPAN_SELF_TIME]
-                : row['transaction.duration'],
+                ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                  row[SpanIndexedField.SPAN_SELF_TIME]
+                : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                  row['transaction.duration'],
             timestamp: row.timestamp,
           },
           undefined
@@ -408,6 +412,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
       );
     }
 
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return <NoOverflow>{row[key]}</NoOverflow>;
   }
 

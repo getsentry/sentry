@@ -153,6 +153,7 @@ type TreeTransformerOpts = {
  * a transform to those nodes.
  */
 export function treeTransformer({tree, transform}: TreeTransformerOpts) {
+  // @ts-expect-error TS(7023): 'nodeVisitor' implicitly has return type 'any' bec... Remove this comment to see the full error message
   const nodeVisitor = (token: TokenResult<Token> | null) => {
     if (token === null) {
       return null;
@@ -295,6 +296,7 @@ function stringifyTokenFilter(token: TokenResult<Token.FILTER>) {
   return stringifiedToken;
 }
 
+// @ts-expect-error TS(7023): 'stringifyToken' implicitly has return type 'any' ... Remove this comment to see the full error message
 export function stringifyToken(token: TokenResult<Token>) {
   switch (token.type) {
     case Token.FREE_TEXT:

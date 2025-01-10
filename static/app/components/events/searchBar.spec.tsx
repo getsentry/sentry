@@ -23,14 +23,14 @@ const selectNthAutocompleteItem = async index => {
   await userEvent.click(item, {delay: null});
 };
 
-async function setQuery(query) {
+async function setQuery(query: any) {
   const input = screen.getByTestId('smart-search-input');
   await userEvent.click(input, {delay: null});
   await userEvent.paste(query, {delay: null});
 }
 
 describe('Events > SearchBar', function () {
-  let tagValuesMock;
+  let tagValuesMock: any;
   let organization: TOrganization;
   let props: React.ComponentProps<typeof SearchBar>;
 

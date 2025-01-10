@@ -72,12 +72,15 @@ function InviteRowControl({roleDisabledUnallowed, roleOptions}: Props) {
     }
   };
 
-  const handleInput = input => {
+  const handleInput = (input: any) => {
     const newEmails = input.trim() ? input.trim().split(/[\s,]+/) : [];
     if (newEmails.length > 0) {
       onChangeEmails([
         ...mapToOptions(emails),
-        ...newEmails.map(email => ({label: email, value: email})),
+        ...newEmails.map((email: any) => ({
+          label: email,
+          value: email,
+        })),
       ]);
     }
   };

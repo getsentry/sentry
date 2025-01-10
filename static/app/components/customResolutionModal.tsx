@@ -79,7 +79,9 @@ function CustomResolutionModal(props: CustomResolutionModalProps) {
           placeholder={t('e.g. 1.0.4')}
           url={url}
           onResults={onAsyncFieldResults}
-          onQuery={query => ({query})}
+          onQuery={(query: any) => ({
+            query,
+          })}
         />
       </Body>
       <Footer>

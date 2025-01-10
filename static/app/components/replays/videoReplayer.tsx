@@ -137,7 +137,7 @@ export class VideoReplayer {
   private addListeners(el: HTMLVideoElement, index: number): void {
     const handleEnded = () => this.handleSegmentEnd(index);
 
-    const handleLoadedData = event => {
+    const handleLoadedData = (event: any) => {
       // Used to correctly set the dimensions of the first frame
       if (index === 0) {
         this._callbacks.onLoaded!(event);
@@ -156,13 +156,13 @@ export class VideoReplayer {
       }
     };
 
-    const handlePlay = event => {
+    const handlePlay = (event: any) => {
       if (index === this._currentIndex) {
         this._callbacks.onLoaded!(event);
       }
     };
 
-    const handleLoadedMetaData = event => {
+    const handleLoadedMetaData = (event: any) => {
       // Only call this for current segment?
       if (index === this._currentIndex) {
         // Theoretically we could have different orientations and they should
@@ -171,7 +171,7 @@ export class VideoReplayer {
       }
     };
 
-    const handleSeeking = event => {
+    const handleSeeking = (event: any) => {
       // Centers the video when seeking (and video is not playing)
       this._callbacks.onLoaded!(event);
     };
@@ -682,6 +682,7 @@ export class VideoReplayer {
     Object.entries(config)
       .filter(([, value]) => value !== undefined)
       .forEach(([key, value]) => {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         this.config[key] = value;
       });
 

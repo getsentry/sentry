@@ -170,6 +170,7 @@ function transformToSeriesMap(
     return processedResults
       .sort(([a], [b]) => a - b)
       .reduce((acc, [, series]) => {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         acc[series.seriesName] = [series];
         return acc;
       }, {});
@@ -211,6 +212,7 @@ function processSingleEventStats(
   if (seriesName) {
     const unit = seriesData.meta?.units?.[getAggregateAlias(seriesName)];
     // Scale series values to milliseconds or bytes depending on units from meta
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     scale = (unit && (DURATION_UNITS[unit] ?? SIZE_UNITS[unit])) ?? 1;
   }
 

@@ -51,8 +51,11 @@ function aggregateSystemApplicationBreakdown(data: TableDataRow[]) {
       type = 'application';
     }
 
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     acc[row.release!] = {
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       ...acc[row.release!],
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       [type]: (acc[row.release!]?.[type] ?? 0) + (row['sum(span.self_time)'] ?? 0),
     };
 
@@ -60,7 +63,7 @@ function aggregateSystemApplicationBreakdown(data: TableDataRow[]) {
   }, {});
 }
 
-function SystemApplicationBreakdown({additionalFilters}) {
+function SystemApplicationBreakdown({additionalFilters}: any) {
   const pageFilter = usePageFilters();
   const location = useLocation();
   const {query: locationQuery} = location;
@@ -161,6 +164,7 @@ function SystemApplicationBreakdown({additionalFilters}) {
             <TextOverflow>{formatVersion(primaryRelease)}</TextOverflow>
             <Breakdown
               data-test-id="primary-release-breakdown"
+              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
               row={breakdownByReleaseData[primaryRelease]}
               breakdownGroups={breakdownGroups}
             />
@@ -171,6 +175,7 @@ function SystemApplicationBreakdown({additionalFilters}) {
             <TextOverflow>{formatVersion(secondaryRelease)}</TextOverflow>
             <Breakdown
               data-test-id="secondary-release-breakdown"
+              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
               row={breakdownByReleaseData[secondaryRelease]}
               breakdownGroups={breakdownGroups}
             />

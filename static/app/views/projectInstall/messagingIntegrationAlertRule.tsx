@@ -51,7 +51,7 @@ export default function MessagingIntegrationAlertRule({
             disabled={Object.keys(providersToIntegrations).length === 1}
             value={provider}
             options={providerOptions}
-            onChange={p => {
+            onChange={(p: any) => {
               setProvider(p.value);
               setIntegration(providersToIntegrations[p.value]![0]!);
               setChannel('');
@@ -64,7 +64,7 @@ export default function MessagingIntegrationAlertRule({
             disabled={integrationOptions.length === 1}
             value={integration}
             options={integrationOptions}
-            onChange={i => setIntegration(i.value)}
+            onChange={(i: any) => setIntegration(i.value)}
           />
         ),
         target: (

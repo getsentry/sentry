@@ -307,15 +307,17 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
     );
   }
 
-  function partitionSizes(data): {
+  function partitionSizes(data: any): {
     nonSizeKeys: {[key: string]: unknown};
     sizeKeys: {[key: string]: number};
   } {
     const sizeKeys = SIZE_DATA_KEYS.reduce((keys, key) => {
       if (data.hasOwnProperty(key) && defined(data[key])) {
         try {
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           keys[key] = parseInt(data[key], 10);
         } catch (e) {
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           keys[key] = data[key];
         }
       }
@@ -663,7 +665,7 @@ const StyledText = styled('p')`
   margin: ${space(2)} 0;
 `;
 
-function TextTr({children}) {
+function TextTr({children}: any) {
   return (
     <tr>
       <td className="key" />

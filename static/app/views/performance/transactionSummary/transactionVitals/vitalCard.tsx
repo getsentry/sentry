@@ -366,7 +366,7 @@ class VitalCard extends Component<Props, State> {
   getSeries() {
     const {theme, chartData, precision, vitalDetails, vital} = this.props;
 
-    const additionalFieldsFn = bucket => {
+    const additionalFieldsFn = (bucket: any) => {
       return {
         itemStyle: {color: theme[this.getVitalsColor(vital, bucket)]},
       };
@@ -385,7 +385,9 @@ class VitalCard extends Component<Props, State> {
   }
 
   getVitalsColor(vital: WebVital, value: number) {
+    // @ts-expect-error TS(2551): Property 'measurements.ttfb' does not exist on typ... Remove this comment to see the full error message
     const poorThreshold = webVitalPoor[vital];
+    // @ts-expect-error TS(2551): Property 'measurements.ttfb' does not exist on typ... Remove this comment to see the full error message
     const mehThreshold = webVitalMeh[vital];
 
     if (value >= poorThreshold) {

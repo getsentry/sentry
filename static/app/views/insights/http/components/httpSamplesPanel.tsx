@@ -102,7 +102,7 @@ export function HTTPSamplesPanel() {
     ? [query.domain, query.transactionMethod, query.transaction].filter(Boolean).join(':')
     : undefined;
 
-  const handlePanelChange = newPanelName => {
+  const handlePanelChange = (newPanelName: any) => {
     trackAnalytics('performance_views.sample_spans.filter_updated', {
       filter: 'panel',
       new_state: newPanelName,
@@ -118,7 +118,7 @@ export function HTTPSamplesPanel() {
     });
   };
 
-  const handleResponseCodeClassChange = newResponseCodeClass => {
+  const handleResponseCodeClassChange = (newResponseCodeClass: any) => {
     trackAnalytics('performance_views.sample_spans.filter_updated', {
       filter: 'status_code',
       new_state: newResponseCodeClass.value,

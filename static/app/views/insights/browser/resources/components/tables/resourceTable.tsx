@@ -135,6 +135,7 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
       const fileExtension = row[SPAN_DESCRIPTION].split('.').pop() || '';
       const extraLinkQueryParams = {};
       if (filters[SpanMetricsField.USER_GEO_SUBREGION]) {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         extraLinkQueryParams[SpanMetricsField.USER_GEO_SUBREGION] =
           filters[SpanMetricsField.USER_GEO_SUBREGION];
       }

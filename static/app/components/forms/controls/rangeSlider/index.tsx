@@ -132,6 +132,7 @@ function RangeSlider({
     }
 
     // If `allowedValues` is defined, then `sliderValue` represents index to `allowedValues`
+    // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
     return allowedValues[newSliderValue];
   }
 
@@ -167,6 +168,7 @@ function RangeSlider({
       };
     }
 
+    // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
     const actualValue = allowedValues[sliderValue];
 
     return {

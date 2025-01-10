@@ -91,6 +91,7 @@ export const WIDGET_DEFINITIONS: ({
       titleTooltip: getTermHelp(organization, PerformanceTerm.DURATION_DISTRIBUTION),
       fields: ['transaction.duration'],
       dataType: GenericPerformanceWidgetDataType.HISTOGRAM,
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       chartColor: WIDGET_PALETTE[5]!!,
     },
     [PerformanceWidgetSetting.LCP_HISTOGRAM]: {
@@ -98,6 +99,7 @@ export const WIDGET_DEFINITIONS: ({
       titleTooltip: getTermHelp(organization, PerformanceTerm.DURATION_DISTRIBUTION),
       fields: ['measurements.lcp'],
       dataType: GenericPerformanceWidgetDataType.HISTOGRAM,
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       chartColor: WIDGET_PALETTE[5]!!,
     },
     [PerformanceWidgetSetting.FCP_HISTOGRAM]: {
@@ -105,6 +107,7 @@ export const WIDGET_DEFINITIONS: ({
       titleTooltip: getTermHelp(organization, PerformanceTerm.DURATION_DISTRIBUTION),
       fields: ['measurements.fcp'],
       dataType: GenericPerformanceWidgetDataType.HISTOGRAM,
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       chartColor: WIDGET_PALETTE[5]!!,
     },
     [PerformanceWidgetSetting.FID_HISTOGRAM]: {
@@ -112,6 +115,7 @@ export const WIDGET_DEFINITIONS: ({
       titleTooltip: getTermHelp(organization, PerformanceTerm.DURATION_DISTRIBUTION),
       fields: ['measurements.fid'],
       dataType: GenericPerformanceWidgetDataType.HISTOGRAM,
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       chartColor: WIDGET_PALETTE[5]!!,
     },
     [PerformanceWidgetSetting.WORST_LCP_VITALS]: {
@@ -159,6 +163,7 @@ export const WIDGET_DEFINITIONS: ({
       titleTooltip: getTermHelp(organization, PerformanceTerm.TPM),
       fields: ['tpm()'],
       dataType: GenericPerformanceWidgetDataType.AREA,
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       chartColor: WIDGET_PALETTE[1]!,
       allowsOpenInDiscover: true,
     },
@@ -167,6 +172,7 @@ export const WIDGET_DEFINITIONS: ({
       titleTooltip: getTermHelp(organization, PerformanceTerm.APDEX),
       fields: ['apdex()'],
       dataType: GenericPerformanceWidgetDataType.AREA,
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       chartColor: WIDGET_PALETTE[4]!,
       allowsOpenInDiscover: true,
     },
@@ -175,6 +181,7 @@ export const WIDGET_DEFINITIONS: ({
       titleTooltip: getTermHelp(organization, PerformanceTerm.P50),
       fields: ['p50(transaction.duration)'],
       dataType: GenericPerformanceWidgetDataType.AREA,
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       chartColor: WIDGET_PALETTE[3]!,
       allowsOpenInDiscover: true,
     },
@@ -183,6 +190,7 @@ export const WIDGET_DEFINITIONS: ({
       titleTooltip: getTermHelp(organization, PerformanceTerm.P75),
       fields: ['p75(transaction.duration)'],
       dataType: GenericPerformanceWidgetDataType.AREA,
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       chartColor: WIDGET_PALETTE[3]!,
       allowsOpenInDiscover: true,
     },
@@ -191,6 +199,7 @@ export const WIDGET_DEFINITIONS: ({
       titleTooltip: getTermHelp(organization, PerformanceTerm.P95),
       fields: ['p95(transaction.duration)'],
       dataType: GenericPerformanceWidgetDataType.AREA,
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       chartColor: WIDGET_PALETTE[3]!,
       allowsOpenInDiscover: true,
     },
@@ -199,6 +208,7 @@ export const WIDGET_DEFINITIONS: ({
       titleTooltip: getTermHelp(organization, PerformanceTerm.P99),
       fields: ['p99(transaction.duration)'],
       dataType: GenericPerformanceWidgetDataType.AREA,
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       chartColor: WIDGET_PALETTE[3]!,
       allowsOpenInDiscover: true,
     },
@@ -207,6 +217,7 @@ export const WIDGET_DEFINITIONS: ({
       titleTooltip: getTermHelp(organization, PerformanceTerm.P75),
       fields: ['p75(measurements.lcp)'],
       dataType: GenericPerformanceWidgetDataType.AREA,
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       chartColor: WIDGET_PALETTE[1]!,
       allowsOpenInDiscover: true,
     },
@@ -215,6 +226,7 @@ export const WIDGET_DEFINITIONS: ({
       titleTooltip: getTermHelp(organization, PerformanceTerm.FAILURE_RATE),
       fields: ['failure_rate()'],
       dataType: GenericPerformanceWidgetDataType.AREA,
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       chartColor: WIDGET_PALETTE[2]!,
       allowsOpenInDiscover: true,
     },
@@ -223,6 +235,7 @@ export const WIDGET_DEFINITIONS: ({
       titleTooltip: getTermHelp(organization, PerformanceTerm.USER_MISERY),
       fields: [`user_misery()`],
       dataType: GenericPerformanceWidgetDataType.AREA,
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       chartColor: WIDGET_PALETTE[0]!,
       allowsOpenInDiscover: true,
     },
@@ -231,6 +244,7 @@ export const WIDGET_DEFINITIONS: ({
       titleTooltip: getTermHelp(organization, PerformanceTerm.APP_START_COLD),
       fields: ['p75(measurements.app_start_cold)'],
       dataType: GenericPerformanceWidgetDataType.AREA,
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       chartColor: WIDGET_PALETTE[4]!,
       allowsOpenInDiscover: true,
     },
@@ -239,6 +253,7 @@ export const WIDGET_DEFINITIONS: ({
       titleTooltip: getTermHelp(organization, PerformanceTerm.APP_START_WARM),
       fields: ['p75(measurements.app_start_warm)'],
       dataType: GenericPerformanceWidgetDataType.AREA,
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       chartColor: WIDGET_PALETTE[3]!,
       allowsOpenInDiscover: true,
     },
@@ -247,6 +262,7 @@ export const WIDGET_DEFINITIONS: ({
       titleTooltip: getTermHelp(organization, PerformanceTerm.SLOW_FRAMES),
       fields: ['p75(measurements.frames_slow_rate)'],
       dataType: GenericPerformanceWidgetDataType.AREA,
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       chartColor: WIDGET_PALETTE[0]!,
       allowsOpenInDiscover: true,
     },
@@ -255,6 +271,7 @@ export const WIDGET_DEFINITIONS: ({
       titleTooltip: getTermHelp(organization, PerformanceTerm.FROZEN_FRAMES),
       fields: ['p75(measurements.frames_frozen_rate)'],
       dataType: GenericPerformanceWidgetDataType.AREA,
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       chartColor: WIDGET_PALETTE[5]!!,
       allowsOpenInDiscover: true,
     },
@@ -263,6 +280,7 @@ export const WIDGET_DEFINITIONS: ({
       titleTooltip: getTermHelp(organization, PerformanceTerm.MOST_ERRORS),
       fields: [`failure_count()`],
       dataType: GenericPerformanceWidgetDataType.LINE_LIST,
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       chartColor: WIDGET_PALETTE[0]!,
     },
     [PerformanceWidgetSetting.MOST_RELATED_ISSUES]: {
@@ -270,6 +288,7 @@ export const WIDGET_DEFINITIONS: ({
       titleTooltip: getTermHelp(organization, PerformanceTerm.MOST_ISSUES),
       fields: [`count()`],
       dataType: GenericPerformanceWidgetDataType.LINE_LIST,
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       chartColor: WIDGET_PALETTE[0]!,
     },
     [PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES]: {
@@ -278,6 +297,7 @@ export const WIDGET_DEFINITIONS: ({
       titleTooltip: getTermHelp(organization, PerformanceTerm.MOST_TIME_SPENT_DB_QUERIES),
       fields: [`time_spent_percentage()`],
       dataType: GenericPerformanceWidgetDataType.LINE_LIST,
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       chartColor: WIDGET_PALETTE[0]!,
     },
     [PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES]: {
@@ -289,6 +309,7 @@ export const WIDGET_DEFINITIONS: ({
       ),
       fields: [`time_spent_percentage()`],
       dataType: GenericPerformanceWidgetDataType.LINE_LIST,
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       chartColor: WIDGET_PALETTE[0]!,
     },
     [PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS]: {
@@ -300,6 +321,7 @@ export const WIDGET_DEFINITIONS: ({
       ),
       fields: [`cache_miss_rate()`],
       dataType: GenericPerformanceWidgetDataType.LINE_LIST,
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       chartColor: WIDGET_PALETTE[0]!,
     },
     [PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS]: {
@@ -311,6 +333,7 @@ export const WIDGET_DEFINITIONS: ({
       ),
       fields: [`time_spent_percentage()`],
       dataType: GenericPerformanceWidgetDataType.LINE_LIST,
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       chartColor: WIDGET_PALETTE[0]!,
     },
     [PerformanceWidgetSetting.HIGHEST_OPPORTUNITY_PAGES]: {
@@ -332,6 +355,7 @@ export const WIDGET_DEFINITIONS: ({
       titleTooltip: getTermHelp(organization, PerformanceTerm.SLOW_HTTP_SPANS),
       fields: [`p75(spans.http)`, 'p75(spans.db)'],
       dataType: GenericPerformanceWidgetDataType.LINE_LIST,
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       chartColor: WIDGET_PALETTE[0]!,
     },
     [PerformanceWidgetSetting.SLOW_BROWSER_OPS]: {
@@ -339,6 +363,7 @@ export const WIDGET_DEFINITIONS: ({
       titleTooltip: getTermHelp(organization, PerformanceTerm.SLOW_HTTP_SPANS),
       fields: [`p75(spans.browser)`],
       dataType: GenericPerformanceWidgetDataType.LINE_LIST,
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       chartColor: WIDGET_PALETTE[0]!,
     },
     [PerformanceWidgetSetting.SLOW_RESOURCE_OPS]: {
@@ -346,6 +371,7 @@ export const WIDGET_DEFINITIONS: ({
       titleTooltip: getTermHelp(organization, PerformanceTerm.SLOW_HTTP_SPANS),
       fields: [`p75(spans.resource)`],
       dataType: GenericPerformanceWidgetDataType.LINE_LIST,
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       chartColor: WIDGET_PALETTE[0]!,
     },
     [PerformanceWidgetSetting.SLOW_DB_OPS]: {
@@ -353,6 +379,7 @@ export const WIDGET_DEFINITIONS: ({
       titleTooltip: getTermHelp(organization, PerformanceTerm.SLOW_HTTP_SPANS),
       fields: [`p75(spans.db)`, 'p75(spans.http)'],
       dataType: GenericPerformanceWidgetDataType.LINE_LIST,
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       chartColor: WIDGET_PALETTE[0]!,
     },
     [PerformanceWidgetSetting.TIME_TO_INITIAL_DISPLAY]: {
@@ -360,6 +387,7 @@ export const WIDGET_DEFINITIONS: ({
       titleTooltip: getTermHelp(organization, PerformanceTerm.TIME_TO_INITIAL_DISPLAY),
       fields: ['p75(measurements.time_to_initial_display)'],
       dataType: GenericPerformanceWidgetDataType.AREA,
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       chartColor: WIDGET_PALETTE[4]!,
       allowsOpenInDiscover: true,
     },
@@ -368,6 +396,7 @@ export const WIDGET_DEFINITIONS: ({
       titleTooltip: getTermHelp(organization, PerformanceTerm.TIME_TO_FULL_DISPLAY),
       fields: ['p75(measurements.time_to_full_display)'],
       dataType: GenericPerformanceWidgetDataType.AREA,
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       chartColor: WIDGET_PALETTE[4]!,
       allowsOpenInDiscover: true,
     },
@@ -376,6 +405,7 @@ export const WIDGET_DEFINITIONS: ({
       titleTooltip: getTermHelp(organization, PerformanceTerm.SLOW_FRAMES),
       fields: ['avg(measurements.frames_slow)'],
       dataType: GenericPerformanceWidgetDataType.LINE_LIST,
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       chartColor: WIDGET_PALETTE[0]!,
     },
     [PerformanceWidgetSetting.MOST_FROZEN_FRAMES]: {
@@ -383,6 +413,7 @@ export const WIDGET_DEFINITIONS: ({
       titleTooltip: getTermHelp(organization, PerformanceTerm.FROZEN_FRAMES),
       fields: ['avg(measurements.frames_frozen)'],
       dataType: GenericPerformanceWidgetDataType.LINE_LIST,
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       chartColor: WIDGET_PALETTE[0]!,
     },
     [PerformanceWidgetSetting.MOST_IMPROVED]: {

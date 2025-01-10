@@ -10,7 +10,7 @@ import type {CreateTeamAccessRequestModalProps} from 'sentry/components/modals/t
 import TeamAccessRequestModal from 'sentry/components/modals/teamAccessRequestModal';
 
 describe('TeamAccessRequestModal', function () {
-  let createMock;
+  let createMock: any;
 
   const closeModal = jest.fn();
   const orgId = OrganizationFixture().slug;

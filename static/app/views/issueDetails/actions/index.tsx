@@ -266,7 +266,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
   };
 
   const renderDiscardModal = ({Body, Footer, closeModal}: ModalRenderProps) => {
-    function renderDiscardDisabled({children, ...innerProps}) {
+    function renderDiscardDisabled({children, ...innerProps}: any) {
       return children({
         ...innerProps,
         renderDisabled: ({features}: {features: string[]}) => (

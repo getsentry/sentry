@@ -29,7 +29,7 @@ function getGraphQlErrorsFromResponseContext(event: Event): GraphQlError[] {
     typeof responseData === 'object' &&
     'errors' in responseData &&
     Array.isArray(responseData.errors) &&
-    responseData.errors.every(error => typeof error === 'object')
+    responseData.errors.every((error: any) => typeof error === 'object')
   ) {
     return responseData.errors;
   }
@@ -97,6 +97,7 @@ export function GraphQlRequestBody({data, event}: GraphQlBodyProps) {
 
   // https://prismjs.com/plugins/line-highlight/
   useEffect(() => {
+    // @ts-expect-error TS(7016): Could not find a declaration file for module 'pris... Remove this comment to see the full error message
     import('prismjs/plugins/line-highlight/prism-line-highlight');
   }, []);
 

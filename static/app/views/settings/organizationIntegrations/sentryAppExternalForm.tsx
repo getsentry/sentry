@@ -14,7 +14,7 @@ import replaceAtArrayIndex from 'sentry/utils/array/replaceAtArrayIndex';
 import withApi from 'sentry/utils/withApi';
 
 // 0 is a valid choice but empty string, undefined, and null are not
-const hasValue = value => !!value || value === 0;
+const hasValue = (value: any) => !!value || value === 0;
 
 // See docs: https://docs.sentry.io/product/integrations/integration-platform/ui-components/formfield/
 export type FieldFromSchema = Omit<Field, 'choices' | 'type'> & {
@@ -114,6 +114,7 @@ export class SentryAppExternalForm extends Component<Props, State> {
     if (element === 'alert-rule-action') {
       const defaultResetValues = this.props.resetValues?.settings || [];
       const initialData = defaultResetValues.reduce((acc, curr) => {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         acc[curr.name] = curr.value;
         return acc;
       }, {});
@@ -222,6 +223,7 @@ export class SentryAppExternalForm extends Component<Props, State> {
     // instead makes the requests every 200ms
     async (field: FieldFromSchema, input, resolve) => {
       const choices = await this.makeExternalRequest(field, input);
+      // @ts-expect-error TS(7031): Binding element 'value' implicitly has an 'any' ty... Remove this comment to see the full error message
       const options = choices.map(([value, label]) => ({value, label}));
       const optionsByField = new Map(this.state.optionsByField);
       optionsByField.set(field.name, options);
@@ -244,6 +246,7 @@ export class SentryAppExternalForm extends Component<Props, State> {
 
     if (field.depends_on) {
       const dependentData = field.depends_on.reduce((accum, dependentField: string) => {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         accum[dependentField] = this.model.getValue(dependentField);
         return accum;
       }, {});
@@ -329,7 +332,7 @@ export class SentryAppExternalForm extends Component<Props, State> {
     });
   };
 
-  createPreserveOptionFunction = (name: string) => (option, _event) => {
+  createPreserveOptionFunction = (name: string) => (option: any, _event: any) => {
     this.setState({
       selectedOptions: {
         ...this.state.selectedOptions,
@@ -407,7 +410,7 @@ export class SentryAppExternalForm extends Component<Props, State> {
     );
   };
 
-  handleAlertRuleSubmit = (formData, onSubmitSuccess) => {
+  handleAlertRuleSubmit = (formData: any, onSubmitSuccess: any) => {
     const {sentryAppInstallationUuid} = this.props;
     if (this.model.validateForm()) {
       onSubmitSuccess({

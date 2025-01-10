@@ -631,6 +631,7 @@ const ProfileDigestScrollContainer = styled('div')`
   flex-direction: column;
 `;
 
+// @ts-expect-error TS(7008): Member 'hideRegressions' implicitly has an 'any' t... Remove this comment to see the full error message
 const ProfileVisualizationContainer = styled('div')<{hideRegressions}>`
   display: grid;
   /* false positive for grid layout */

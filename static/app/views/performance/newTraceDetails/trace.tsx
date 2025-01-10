@@ -370,8 +370,8 @@ export function Trace({
 
   const render = useMemo(() => {
     return trace.type !== 'trace' || isLoading
-      ? r => renderLoadingRow(r)
-      : r => renderVirtualizedRow(r);
+      ? (r: any) => renderLoadingRow(r)
+      : (r: any) => renderVirtualizedRow(r);
   }, [isLoading, renderLoadingRow, renderVirtualizedRow, trace.type]);
 
   const traceNode = trace.root.children[0];
@@ -552,7 +552,7 @@ function RenderTraceRow(props: {
   );
 
   const registerSpanArrowRef = useCallback(
-    ref => {
+    (ref: any) => {
       props.manager.registerArrowRef(ref, node.space!, virtualized_index);
     },
     [props.manager, node, virtualized_index]

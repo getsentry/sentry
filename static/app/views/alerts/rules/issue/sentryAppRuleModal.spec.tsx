@@ -17,8 +17,8 @@ describe('SentryAppRuleModal', function () {
     Body: p => p.children,
     Footer: p => p.children,
   };
-  let sentryApp;
-  let sentryAppInstallation;
+  let sentryApp: any;
+  let sentryAppInstallation: any;
 
   beforeEach(function () {
     sentryApp = SentryAppFixture();

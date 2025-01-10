@@ -71,7 +71,7 @@ class KeyStats extends Component<Props, State> {
           let emptyStats = true;
           const dropped: Series['data'] = [];
           const accepted: Series['data'] = [];
-          data.forEach(p => {
+          data.forEach((p: any) => {
             if (p.total) {
               emptyStats = false;
             }

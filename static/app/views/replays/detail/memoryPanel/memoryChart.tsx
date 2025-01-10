@@ -59,19 +59,20 @@ export default function MemoryChart({
               value => `
               <div>
                 <span className="tooltip-label">${value.marker}<strong>${value.seriesName}</strong></span>
-                ${formatBytesBase2(value.data[1])}
+                ${formatBytesBase2((value.data as any)[1])}
               </div>
             `
             );
             return `
             <div class="tooltip-series">${seriesTooltips.join('')}</div>
               <div class="tooltip-footer">
-                ${t('Date: %s', getFormattedDate(startTimestampMs + firstValue.axisValue, 'MMM D, YYYY hh:mm:ss A z', {local: false}))}
+                ${t('Date: %s', getFormattedDate(startTimestampMs + firstValue!.axisValue, 'MMM D, YYYY hh:mm:ss A z', {local: false}))}
               </div>
               <div class="tooltip-footer" style="border: none;">
                 ${t(
                   'Time within replay: %s',
                   formatDuration({
+                    // @ts-expect-error TS(2532): Object is possibly 'undefined'.
                     duration: [firstValue.axisValue, 'ms'],
                     precision: 'ms',
                     style: 'hh:mm:ss.sss',
@@ -103,7 +104,7 @@ export default function MemoryChart({
         maxInterval: Math.pow(1024, 4), // maxInterval is a terabyte
         axisLabel: {
           // format the axis labels to be whole number values
-          formatter: value => formatBytesBase2(value, 0),
+          formatter: (value: any) => formatBytesBase2(value, 0),
         },
       }),
       onMouseOver: ({data}) => {

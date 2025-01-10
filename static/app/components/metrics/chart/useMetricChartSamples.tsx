@@ -83,6 +83,7 @@ export function useMetricChartSamples({
 
   const samplesById = useMemo(() => {
     return (samples ?? []).reduce((acc, sample) => {
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       acc[sample.id] = sample;
       return acc;
     }, {});
@@ -130,8 +131,9 @@ export function useMetricChartSamples({
       nameFormatter: (name: string) => {
         return t('Span %s', name.substring(0, 8));
       },
-      valueFormatter: (_, label?: string) => {
+      valueFormatter: (_: any, label?: string) => {
         // We need to access the sample as the charts datapoints are fit to the charts viewport
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         const sample = samplesById[label ?? ''];
         const yValue = getSummaryValueForAggregation(sample.summary, aggregation);
         return formatMetricUsingUnit(yValue, unit);
@@ -141,6 +143,7 @@ export function useMetricChartSamples({
 
   const handleClick = useCallback<EChartClickHandler>(
     (event: EChartMouseEventParam) => {
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const sample = samplesById[event.seriesName];
       if (defined(onSampleClick) && defined(sample)) {
         onSampleClick(sample);

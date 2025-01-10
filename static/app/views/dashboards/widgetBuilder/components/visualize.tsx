@@ -86,7 +86,7 @@ function Visualize({error, setError}: VisualizeProps) {
   // Span column options are explicitly defined and bypass all of the
   // fieldOptions filtering and logic used for showing options for
   // chart types.
-  let spanColumnOptions;
+  let spanColumnOptions: any;
   if (state.dataset === WidgetType.SPANS) {
     // Explicitly merge numeric and string tags to ensure filtering
     // compatibility for timeseries chart types.
@@ -130,6 +130,7 @@ function Visualize({error, setError}: VisualizeProps) {
         };
       }),
     ];
+    // @ts-expect-error TS(7006): Parameter 'a' implicitly has an 'any' type.
     spanColumnOptions.sort((a, b) => {
       if (a.label < b.label) {
         return -1;
@@ -166,9 +167,11 @@ function Visualize({error, setError}: VisualizeProps) {
   // Used to extract selected aggregates and parameters from the fields
   const stringFields = fields?.map(generateFieldAsString);
 
-  const fieldErrors = error?.queries?.find(queryError => queryError?.fields)?.fields;
+  const fieldErrors = error?.queries?.find(
+    (queryError: any) => queryError?.fields
+  )?.fields;
   const aggregateErrors = error?.queries?.find(
-    aggregateError => aggregateError?.aggregates
+    (aggregateError: any) => aggregateError?.aggregates
   )?.aggregates;
 
   return (
@@ -232,7 +235,7 @@ function Visualize({error, setError}: VisualizeProps) {
                 ? aggregateOptions
                 : [NONE_AGGREGATE, ...aggregateOptions];
 
-            let matchingAggregate;
+            let matchingAggregate: any;
             if (
               fields[index]!.kind === FieldValueKind.FUNCTION &&
               FieldValueKind.FUNCTION in fields[index]!
@@ -453,36 +456,38 @@ function Visualize({error, setError}: VisualizeProps) {
                       {field.kind === FieldValueKind.FUNCTION &&
                         parameterRefinements.length > 0 && (
                           <ParameterRefinements>
-                            {parameterRefinements.map((parameter, parameterIndex) => {
-                              // The current value is displaced by 2 because the first two parameters
-                              // are the aggregate name and the column selection
-                              const currentValue =
-                                field.function[parameterIndex + 2] || '';
-                              const key = `${field.function.join('_')}-${parameterIndex}`;
-                              return (
-                                <AggregateParameter
-                                  key={key}
-                                  parameter={parameter}
-                                  fieldValue={field}
-                                  currentValue={currentValue}
-                                  onChange={value => {
-                                    const newFields = cloneDeep(fields);
-                                    if (
-                                      newFields[index]!.kind !== FieldValueKind.FUNCTION
-                                    ) {
-                                      return;
-                                    }
-                                    newFields[index]!.function[parameterIndex + 2] =
-                                      value;
-                                    dispatch({
-                                      type: updateAction,
-                                      payload: newFields,
-                                    });
-                                    setError?.({...error, queries: []});
-                                  }}
-                                />
-                              );
-                            })}
+                            {parameterRefinements.map(
+                              (parameter: any, parameterIndex: any) => {
+                                // The current value is displaced by 2 because the first two parameters
+                                // are the aggregate name and the column selection
+                                const currentValue =
+                                  field.function[parameterIndex + 2] || '';
+                                const key = `${field.function.join('_')}-${parameterIndex}`;
+                                return (
+                                  <AggregateParameter
+                                    key={key}
+                                    parameter={parameter}
+                                    fieldValue={field}
+                                    currentValue={currentValue}
+                                    onChange={value => {
+                                      const newFields = cloneDeep(fields);
+                                      if (
+                                        newFields[index]!.kind !== FieldValueKind.FUNCTION
+                                      ) {
+                                        return;
+                                      }
+                                      newFields[index]!.function[parameterIndex + 2] =
+                                        value;
+                                      dispatch({
+                                        type: updateAction,
+                                        payload: newFields,
+                                      });
+                                      setError?.({...error, queries: []});
+                                    }}
+                                  />
+                                );
+                              }
+                            )}
                           </ParameterRefinements>
                         )}
                     </Fragment>
@@ -590,7 +595,7 @@ function AggregateParameter({
       required: parameter.required,
       value:
         parameter.value ?? ('defaultValue' in parameter && parameter?.defaultValue) ?? '',
-      onUpdate: value => {
+      onUpdate: (value: any) => {
         onChange(value);
       },
       placeholder: parameter.placeholder,
@@ -639,7 +644,7 @@ function AggregateParameter({
         options={parameter.options}
         value={currentValue}
         required={parameter.required}
-        onChange={({value}) => {
+        onChange={({value}: any) => {
           onChange(value);
         }}
       />

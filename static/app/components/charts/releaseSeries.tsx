@@ -48,6 +48,7 @@ function getOrganizationReleases(
 ) {
   const query: Record<string, string> = {};
   Object.keys(conditions).forEach(key => {
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     let value = conditions[key];
     if (value && (key === 'start' || key === 'end')) {
       value = getUtcDateString(value);
@@ -116,7 +117,7 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
     this.fetchData();
   }
 
-  componentDidUpdate(prevProps) {
+  componentDidUpdate(prevProps: any) {
     if (
       !isEqual(prevProps.projects, this.props.projects) ||
       !isEqual(prevProps.environments, this.props.environments) ||
@@ -186,7 +187,7 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
     }
   }
 
-  setReleasesWithSeries(releases) {
+  setReleasesWithSeries(releases: any) {
     const {emphasizeReleases = []} = this.props;
     const releaseSeries: Series[] = [];
 
@@ -215,7 +216,7 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
     });
   }
 
-  getReleaseSeries = (releases, lineStyle = {}) => {
+  getReleaseSeries = (releases: any, lineStyle = {}) => {
     const {
       organization,
       router,
@@ -251,10 +252,11 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
       label: {
         show: false,
       },
-      data: releases.map(release => ({
+      data: releases.map((release: any) => ({
         xAxis: +new Date(release.date),
         name: formatVersion(release.version, true),
         value: formatVersion(release.version, true),
+
         onClick: () => {
           router.push(
             normalizeUrl({
@@ -265,6 +267,7 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
             })
           );
         },
+
         label: {
           formatter: () => formatVersion(release.version, true),
         },

@@ -324,6 +324,7 @@ export class TagExplorer extends Component<Props> {
     column: TableColumn<ColumnKeys>,
     dataRow: TableDataRow
   ): React.ReactNode => {
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     const value = dataRow[column.key];
     const {location, organization, transactionName} = parentProps;
 

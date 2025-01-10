@@ -84,7 +84,7 @@ function XAxis({
       showMaxLabel: false,
       showMinLabel: false,
 
-      // @ts-expect-error formatter type is missing
+      // @ts-expect-error TS(2322): Type '(value: string | number, index: number) => s... Remove this comment to see the full error message
       formatter: AxisLabelFormatter,
     },
     axisPointer: {

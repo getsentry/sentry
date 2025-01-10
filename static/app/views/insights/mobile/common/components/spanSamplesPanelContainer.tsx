@@ -157,12 +157,14 @@ export function SpanSamplesContainer({
       <StyledReadoutRibbon>
         <MetricReadout
           title={DataTitles.avg}
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           value={spanMetrics?.[`avg(${SPAN_SELF_TIME})`]}
           unit={DurationUnit.MILLISECOND}
           isLoading={isPending}
         />
         <MetricReadout
           title={DataTitles.count}
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           value={spanMetrics?.['count()'] ?? 0}
           unit="count"
           isLoading={isPending}

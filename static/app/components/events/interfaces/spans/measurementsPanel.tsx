@@ -44,6 +44,7 @@ function MeasurementsPanel(props: Props) {
         }
 
         const vitalLabels: VitalLabel[] = Object.keys(verticalMark.marks).map(name => ({
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           vital: VITAL_DETAILS[`measurements.${name}`],
           isPoorValue: verticalMark.marks[name]!.failedThreshold,
         }));

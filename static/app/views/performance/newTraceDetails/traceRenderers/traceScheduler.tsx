@@ -49,7 +49,7 @@ export class TraceScheduler {
 
   once<K extends keyof TraceEvents>(eventName: K, cb: TraceEvents[K]) {
     const wrapper = (...args: any[]) => {
-      // @ts-expect-error
+      // @ts-expect-error TS(2556): A spread argument must either have a tuple type or... Remove this comment to see the full error message
       cb(...args);
       this.off(eventName, wrapper);
     };
@@ -77,7 +77,7 @@ export class TraceScheduler {
       return;
     }
 
-    // @ts-expect-error - filter out the callback
+    // @ts-expect-error TS(2322): Type '[TraceEventPriority, K][]' is not assignable... Remove this comment to see the full error message
     this.events[eventName] = arr.filter(a => a[1] !== cb) as unknown as Array<
       [TraceEventPriority, K]
     >;
@@ -88,7 +88,7 @@ export class TraceScheduler {
     ...args: ArgumentTypes<TraceEvents[K]>
   ): void {
     for (const [_priority, handler] of this.events[eventName]) {
-      // @ts-expect-error
+      // @ts-expect-error TS(2556): A spread argument must either have a tuple type or... Remove this comment to see the full error message
       handler(...args);
     }
   }

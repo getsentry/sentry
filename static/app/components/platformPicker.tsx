@@ -292,7 +292,7 @@ ClearButton.defaultProps = {
   size: 'xs',
 };
 
-const PlatformCard = styled(({platform, selected, onClear, ...props}) => (
+const PlatformCard = styled(({platform, selected, onClear, ...props}: any) => (
   <div {...props}>
     <StyledPlatformIcon
       platform={platform.id}

@@ -85,6 +85,7 @@ export function ProjectInstallPlatform({
     }
 
     const platformKey = Object.keys(platforms).find(
+      // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
       key => platforms[key].id === project.platform
     );
 
@@ -99,7 +100,9 @@ export function ProjectInstallPlatform({
       teamSlug: project.team?.slug,
       alertRules: projectAlertRules,
       platform: {
+        // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
         ...omit(platforms[platformKey], 'id'),
+        // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
         key: platforms[platformKey].id,
       } as OnboardingSelectedSDK,
     });

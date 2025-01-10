@@ -89,7 +89,7 @@ export function SearchableMetricSamplesTable({
   ...props
 }: MetricsSamplesTableProps) {
   const [secondaryQuery, setSecondaryQuery] = useState('');
-  const handleSearch = useCallback(value => {
+  const handleSearch = useCallback((value: any) => {
     setSecondaryQuery(value);
   }, []);
 
@@ -114,6 +114,7 @@ export function SearchableMetricSamplesTable({
 }
 
 interface MetricsSamplesSearchBarProps {
+  // @ts-expect-error TS(7051): Parameter has a name but no type. Did you mean 'ar... Remove this comment to see the full error message
   handleSearch: (string) => void;
   query: string;
   mri?: MRI;
@@ -412,7 +413,7 @@ const SORTABLE_COLUMNS: Set<ResultField> = new Set([
 
 function renderHeadCell(
   currentSort: {direction: 'asc' | 'desc'; key: string} | undefined,
-  generateSortLink: (key) => () => LocationDescriptorObject | undefined
+  generateSortLink: (key: any) => () => LocationDescriptorObject | undefined
 ) {
   return function (col: GridColumnOrder<ResultField>) {
     return (

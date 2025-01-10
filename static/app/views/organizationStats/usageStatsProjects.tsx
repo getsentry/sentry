@@ -397,15 +397,19 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
           return;
         }
 
+        // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
         if (!stats[projectId!]) {
+          // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
           stats[projectId!] = {...baseStat};
         }
 
         if (outcome !== Outcome.CLIENT_DISCARD && category !== 'span_indexed') {
+          // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
           stats[projectId!]!.total += group.totals['sum(quantity)']!;
         }
 
         if (category === 'span_indexed' && outcome === Outcome.ACCEPTED) {
+          // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
           stats[projectId!]!.accepted_stored += group.totals['sum(quantity)']!;
           return;
         }
@@ -415,6 +419,7 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
           outcome === Outcome.FILTERED ||
           outcome === Outcome.INVALID
         ) {
+          // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
           stats[projectId!]![outcome!] += group.totals['sum(quantity)']!;
         }
 
@@ -423,6 +428,7 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
           outcome === Outcome.CARDINALITY_LIMITED ||
           outcome === Outcome.ABUSE
         ) {
+          // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
           stats[projectId!]![SortBy.RATE_LIMITED] += group.totals['sum(quantity)']!;
         }
       });
@@ -430,6 +436,7 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
       // For projects without stats, fill in with zero
       let hasStoredOutcome = false;
       const tableStats: TableStat[] = projectList.map(proj => {
+        // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
         const stat = stats[proj.id] ?? {...baseStat};
         if (
           stat[SortBy.ACCEPTED_STORED] > 0 &&

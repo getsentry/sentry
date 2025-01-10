@@ -97,7 +97,7 @@ class Form<
     this.props.onSubmitSuccess?.(data);
   };
 
-  onSubmitError = error => {
+  onSubmitError = (error: any) => {
     this.setState({
       state: FormState.ERROR,
       errors: error.responseJSON,
@@ -136,6 +136,7 @@ class Form<
         <StyledForm
           onSubmit={this.onSubmit}
           className={this.props.className}
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           aria-label={this.props['aria-label']}
         >
           {isError && !hideErrors && (

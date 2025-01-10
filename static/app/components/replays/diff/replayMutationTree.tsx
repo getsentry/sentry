@@ -20,6 +20,7 @@ export function ReplayMutationTree() {
   const timeIndexedMutations = Array.from(data?.values() ?? []).reduce(
     (acc, mutation) => {
       for (const timestamp of Object.keys(mutation)) {
+        // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
         acc[timestamp] = mutation[timestamp];
       }
       return acc;

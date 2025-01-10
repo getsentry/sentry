@@ -31,7 +31,7 @@ interface ReleaseQuery {
   statsPeriod?: string | null;
 }
 
-function getQuery(conditions) {
+function getQuery(conditions: any) {
   const query = {};
   Object.keys(conditions).forEach(key => {
     let value = conditions[key];
@@ -39,6 +39,7 @@ function getQuery(conditions) {
       value = getUtcDateString(value);
     }
     if (value) {
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       query[key] = value;
     }
   });

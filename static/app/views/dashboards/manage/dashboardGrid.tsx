@@ -162,7 +162,7 @@ function DashboardGrid({
       />
     );
   }
-  function renderGridPreview(dashboard) {
+  function renderGridPreview(dashboard: any) {
     return <GridPreview widgetPreview={dashboard.widgetPreview} />;
   }
 

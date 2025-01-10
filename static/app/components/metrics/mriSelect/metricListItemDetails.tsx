@@ -104,7 +104,7 @@ export function MetricListItemDetails({
   // Display custom tags first, then sort alphabetically
   const sortedTags = useMemo(
     () =>
-      tagsData.toSorted((a, b) => {
+      tagsData.toSorted((a: any, b: any) => {
         const aIsStandard = STANDARD_TAGS.includes(a.key);
         const bIsStandard = STANDARD_TAGS.includes(b.key);
 
@@ -213,7 +213,7 @@ export function MetricListItemDetails({
                 t('(None)')
               ) : (
                 <Fragment>
-                  {truncatedTags.map((tag, index) => {
+                  {truncatedTags.map((tag: any, index: any) => {
                     const shouldAddDelimiter = index < truncatedTags.length - 1;
                     return (
                       <Fragment key={tag.key}>

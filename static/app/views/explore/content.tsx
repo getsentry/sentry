@@ -247,7 +247,7 @@ function ExploreContentImpl({}: ExploreContentProps) {
   );
 }
 
-function ExploreTagsProvider({children}) {
+function ExploreTagsProvider({children}: any) {
   const dataset = useExploreDataset();
 
   return (

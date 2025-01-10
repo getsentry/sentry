@@ -80,7 +80,7 @@ export default function QuickTrace({
   errorDest,
   transactionDest,
 }: QuickTraceProps) {
-  let parsedQuickTrace;
+  let parsedQuickTrace: any;
   const traceSlug = event.contexts?.trace?.trace_id ?? '';
   const noTrace = <Fragment>{'\u2014'}</Fragment>;
   try {

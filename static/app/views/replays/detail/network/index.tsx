@@ -82,7 +82,7 @@ function NetworkList() {
     handleHeight: RESIZEABLE_HANDLE_HEIGHT,
     urlParamName: 'n_detail_row',
     onShowDetails: useCallback(
-      ({dataIndex, rowIndex}) => {
+      ({dataIndex, rowIndex}: any) => {
         setScrollToRow(rowIndex);
 
         const item = items[dataIndex];
@@ -221,6 +221,7 @@ function NetworkList() {
           <NetworkDetails
             {...resizableDrawerProps}
             isSetup={isNetworkDetailsSetup}
+            // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
             item={selectedIndex ? items[selectedIndex] : null}
             onClose={onCloseDetailsSplit}
             projectId={projectId}

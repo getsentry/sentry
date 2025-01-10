@@ -32,7 +32,7 @@ function CatchClicks({children}: {children: ReactNode}) {
 
 function HeaderCell(
   {field, handleSort, label, sortConfig, style, tooltipTitle}: Props<BaseRecord>,
-  ref
+  ref: any
 ) {
   return (
     <HeaderButton style={style} onClick={() => handleSort(field)} ref={ref}>

@@ -26,12 +26,15 @@ export function WebVitalStatusLineChart({webVitalSeries}: Props) {
   const allSeries = [webVitalSeries];
 
   const seriesIsPoor = webVitalSeries.data?.some(
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     ({value}) => value > PERFORMANCE_SCORE_MEDIANS[webVital ?? '']
   );
   const seriesIsMeh = webVitalSeries.data?.some(
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     ({value}) => value >= PERFORMANCE_SCORE_P90S[webVital ?? '']
   );
   const seriesIsGood = webVitalSeries.data?.every(
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     ({value}) => value < PERFORMANCE_SCORE_P90S[webVital ?? '']
   );
   const goodMarkArea = MarkArea({
@@ -43,6 +46,7 @@ export function WebVitalStatusLineChart({webVitalSeries}: Props) {
     data: [
       [
         {
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           yAxis: PERFORMANCE_SCORE_P90S[webVital ?? ''],
         },
         {
@@ -60,9 +64,11 @@ export function WebVitalStatusLineChart({webVitalSeries}: Props) {
     data: [
       [
         {
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           yAxis: PERFORMANCE_SCORE_MEDIANS[webVital ?? ''],
         },
         {
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           yAxis: PERFORMANCE_SCORE_P90S[webVital ?? ''],
         },
       ],
@@ -77,6 +83,7 @@ export function WebVitalStatusLineChart({webVitalSeries}: Props) {
     data: [
       [
         {
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           yAxis: PERFORMANCE_SCORE_MEDIANS[webVital ?? ''],
         },
         {
@@ -97,6 +104,7 @@ export function WebVitalStatusLineChart({webVitalSeries}: Props) {
     },
     data: [
       {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         yAxis: PERFORMANCE_SCORE_P90S[webVital ?? ''],
       },
     ],
@@ -113,6 +121,7 @@ export function WebVitalStatusLineChart({webVitalSeries}: Props) {
     },
     data: [
       {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         yAxis: PERFORMANCE_SCORE_MEDIANS[webVital ?? ''],
       },
     ],
@@ -191,9 +200,11 @@ export function WebVitalStatusLineChart({webVitalSeries}: Props) {
       return undefined;
     }
     if (seriesIsMeh) {
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       return PERFORMANCE_SCORE_MEDIANS[webVital ?? ''];
     }
     if (seriesIsGood) {
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       return PERFORMANCE_SCORE_P90S[webVital ?? ''];
     }
     return undefined;

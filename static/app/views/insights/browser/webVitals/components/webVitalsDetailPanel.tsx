@@ -230,12 +230,15 @@ export function WebVitalsDetailPanel({
     }
     if (key === 'count') {
       const count =
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         webVital === 'inp' ? row['count_scores(measurements.score.inp)'] : row['count()'];
       return <AlignRight>{formatAbbreviatedNumber(count)}</AlignRight>;
     }
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return <AlignRight>{row[key]}</AlignRight>;
   };
 
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const webVitalScore = projectScore[`${webVital}Score`];
   const webVitalValue = projectData?.data?.[0]?.[mapWebVitalToColumn(webVital)] as
     | number

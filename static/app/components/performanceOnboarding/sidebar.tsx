@@ -79,6 +79,7 @@ function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
     // Establish current project
     if (priorityProjectIds) {
       const projectMap: Record<string, Project> = projects.reduce((acc, project) => {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         acc[project.id] = project;
         return acc;
       }, {});

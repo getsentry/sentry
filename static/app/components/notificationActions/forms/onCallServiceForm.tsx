@@ -50,6 +50,7 @@ function OnCallServiceForm({
     return Object.keys(Integrations).map<MenuItemProps>(integrationId => {
       // Get the name of the integration for the integrationId from the first
       // AvailableNotificationAction element in the array
+      // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
       const integrationName = Integrations[integrationId][0].action.integrationName;
       return {
         key: integrationName,

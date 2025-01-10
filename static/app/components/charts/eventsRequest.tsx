@@ -319,7 +319,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
       errorMessage: undefined,
     }));
 
-    let errorMessage;
+    let errorMessage: any;
     if (expired) {
       errorMessage = t(
         '%s has an invalid date range. Please try a more recent date range.',
@@ -453,6 +453,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
     if (seriesName) {
       const unit = meta?.units?.[getAggregateAlias(seriesName)];
       // Scale series values to milliseconds or bytes depending on units from meta
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       scale = (unit && (DURATION_UNITS[unit] ?? SIZE_UNITS[unit])) ?? 1;
     }
 

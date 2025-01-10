@@ -19,8 +19,8 @@ export default function MetricHistoryActivation({
   activationActivity,
   organization,
 }: MetricHistoryActivationProps) {
-  let trigger;
-  let activator;
+  let trigger: any;
+  let activator: any;
   switch (activationActivity.conditionType) {
     case String(ActivationConditionType.RELEASE_CREATION):
       activator = (

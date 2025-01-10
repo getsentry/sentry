@@ -475,7 +475,7 @@ const OffsetLabel = styled('div')`
 
 const groupedTimezones = Object.entries(groupBy(timezones, ([group]) => group));
 
-// @ts-expect-error Should be removed once these types improve for grouped options
+// @ts-expect-error TS(2322): Type '{ label: string; options: { value: string; t... Remove this comment to see the full error message
 const timezoneOptions: SelectValue<string>[] = groupedTimezones.map(([group, zones]) => ({
   label: group,
   options: zones.map(([_, value, label]) => {

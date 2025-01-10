@@ -26,7 +26,7 @@ export class ContinuousProfile extends Profile {
       unit: 'milliseconds',
     });
 
-    function resolveFrame(index) {
+    function resolveFrame(index: any) {
       const resolvedFrame = frameIndex[index];
       if (!resolvedFrame) {
         throw new Error(`Could not resolve frame ${index} in frame index`);

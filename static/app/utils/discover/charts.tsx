@@ -220,7 +220,7 @@ export function getDurationUnit(
  * Ex) categorizeDuration(1200) = MINUTE
  * @param value Duration in ms
  */
-export function categorizeDuration(value): number {
+export function categorizeDuration(value: any): number {
   if (value >= WEEK) {
     return WEEK;
   }

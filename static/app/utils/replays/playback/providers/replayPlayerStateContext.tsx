@@ -156,7 +156,7 @@ function stateReducer(state: State, replayerAction: ReplayerAction): State {
     case 'didSpeedStateChange':
       return {...state, currentSpeed: replayerAction.speedState.context.timer.speed};
     default:
-      // @ts-expect-error: Unreachable code: the switch should be exhaustive and cover all possible values.
+      // @ts-expect-error TS(2339): Property 'type' does not exist on type 'never'.
       throw Error('Unknown action: ' + replayerAction.type);
   }
 }
@@ -200,7 +200,6 @@ function invokeUserAction(replayer: Replayer, userAction: UserAction): void {
 
       return;
     default:
-      // @ts-expect-error: Unreachable code: the switch should be exhaustive and cover all possible values.
       throw Error('Unknown action: ' + action.type);
   }
 }

@@ -24,7 +24,12 @@ export function useOrganizationsWithRegion() {
       return results.reduce((acc, [region, response]) => {
         // Don't append error results to the org list.
         if (response[0]) {
-          acc = acc.concat(response.map(org => ({...org, region: region.name})));
+          acc = acc.concat(
+            response.map((org: any) => ({
+              ...org,
+              region: region.name,
+            }))
+          );
         }
         return acc;
       }, []);

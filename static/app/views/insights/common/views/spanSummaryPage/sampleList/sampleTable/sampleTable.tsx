@@ -73,6 +73,7 @@ function SampleTable({
   }
 
   if (subregions) {
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     filters[SpanMetricsField.USER_GEO_SUBREGION] = `[${subregions.join(',')}]`;
   }
 
@@ -173,11 +174,13 @@ function SampleTable({
           data={spans.map(sample => {
             return {
               ...sample,
+              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
               op: spanMetrics[SPAN_OP]!,
               transaction: transactionsById[sample['transaction.id']]!,
             };
           })}
           isLoading={isLoading}
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           avg={spanMetrics?.[`avg(${SPAN_SELF_TIME})`]}
           source={referrer}
         />

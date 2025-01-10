@@ -393,6 +393,7 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncComponen
 
         <FieldGroup label={t('Organization')} inline={false} stacked required>
           <SelectControl
+            // @ts-expect-error TS(7031): Binding element 'orgSlug' implicitly has an 'any' ... Remove this comment to see the full error message
             onChange={({value: orgSlug}) => this.onSelectOrg(orgSlug)}
             value={selectedOrgSlug}
             placeholder={t('Select an organization')}

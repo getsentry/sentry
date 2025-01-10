@@ -80,6 +80,7 @@ export default function SubregionSelector({size}: Props) {
       onChange={(selectedOptions: SelectOption<string>[]) => {
         trackAnalytics('insight.general.select_region_value', {
           organization,
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           regions: selectedOptions.map(v => subregionCodeToName[v.value]),
         });
 

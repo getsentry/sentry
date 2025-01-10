@@ -3275,7 +3275,7 @@ describe('EventView.getYAxisOptions()', function () {
     environment: [],
   };
 
-  function generateYaxis(value) {
+  function generateYaxis(value: any) {
     return {
       value,
       label: value,

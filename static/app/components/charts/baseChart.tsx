@@ -419,6 +419,7 @@ function BaseChartUnwrapped({
               type: 'line',
               itemStyle: {...(s.lineStyle ?? {})},
               markLine:
+                // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                 s?.data?.[0]?.[1] !== undefined
                   ? MarkLine({
                       silent: true,
@@ -426,6 +427,7 @@ function BaseChartUnwrapped({
                         type: 'solid',
                         width: 1.5,
                       },
+                      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                       data: [{yAxis: s?.data?.[0]?.[1]}],
                       label: {
                         show: false,
@@ -606,22 +608,23 @@ function BaseChartUnwrapped({
   const eventsMap = useMemo(
     () =>
       ({
-        click: (props, instance: ECharts) => {
+        click: (props: any, instance: ECharts) => {
           handleClick(props, instance);
           onClick?.(props, instance);
         },
-        highlight: (props, instance: ECharts) => onHighlight?.(props, instance),
-        mouseout: (props, instance: ECharts) => onMouseOut?.(props, instance),
-        mouseover: (props, instance: ECharts) => onMouseOver?.(props, instance),
-        datazoom: (props, instance: ECharts) => onDataZoom?.(props, instance),
-        restore: (props, instance: ECharts) => onRestore?.(props, instance),
-        finished: (props, instance: ECharts) => onFinished?.(props, instance),
-        rendered: (props, instance: ECharts) => onRendered?.(props, instance),
-        legendselectchanged: (props, instance: ECharts) =>
+        highlight: (props: any, instance: ECharts) => onHighlight?.(props, instance),
+        mouseout: (props: any, instance: ECharts) => onMouseOut?.(props, instance),
+        mouseover: (props: any, instance: ECharts) => onMouseOver?.(props, instance),
+        datazoom: (props: any, instance: ECharts) => onDataZoom?.(props, instance),
+        restore: (props: any, instance: ECharts) => onRestore?.(props, instance),
+        finished: (props: any, instance: ECharts) => onFinished?.(props, instance),
+        rendered: (props: any, instance: ECharts) => onRendered?.(props, instance),
+        legendselectchanged: (props: any, instance: ECharts) =>
           onLegendSelectChanged?.(props, instance),
-        brush: (props, instance: ECharts) => onBrushStart?.(props, instance),
-        brushend: (props, instance: ECharts) => onBrushEnd?.(props, instance),
-        brushselected: (props, instance: ECharts) => onBrushSelected?.(props, instance),
+        brush: (props: any, instance: ECharts) => onBrushStart?.(props, instance),
+        brushend: (props: any, instance: ECharts) => onBrushEnd?.(props, instance),
+        brushselected: (props: any, instance: ECharts) =>
+          onBrushSelected?.(props, instance),
       }) as ReactEchartProps['onEvents'],
     [
       onClick,

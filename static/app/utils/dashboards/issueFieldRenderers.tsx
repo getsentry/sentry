@@ -146,7 +146,7 @@ const SPECIAL_FIELDS: SpecialFields = {
     sortField: null,
     renderFunc: ({links}) => (
       <LinksContainer>
-        {links.map((link, index) => (
+        {links.map((link: any, index: any) => (
           <ExternalLink key={index} href={link.url}>
             {link.displayName}
           </ExternalLink>
@@ -284,7 +284,7 @@ const SecondaryCount = styled(Count)`
   }
 `;
 
-const WrappedCount = styled(({value, ...p}) => (
+const WrappedCount = styled(({value, ...p}: any) => (
   <div {...p}>
     <Count value={value} />
   </div>
@@ -328,6 +328,7 @@ export function getIssueFieldRenderer(
   field: string
 ): FieldFormatterRenderFunctionPartial | null {
   if (SPECIAL_FIELDS.hasOwnProperty(field)) {
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return SPECIAL_FIELDS[field].renderFunc;
   }
 

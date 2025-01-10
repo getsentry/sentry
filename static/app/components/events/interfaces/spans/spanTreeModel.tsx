@@ -302,7 +302,7 @@ class SpanTreeModel {
     };
 
     if (wrappedSpan.type === 'root_span') {
-      // @ts-expect-error
+      // @ts-expect-error TS(2339): Property 'toggleNestedSpanGroup' does not exist on... Remove this comment to see the full error message
       delete wrappedSpan.toggleNestedSpanGroup;
     }
 
