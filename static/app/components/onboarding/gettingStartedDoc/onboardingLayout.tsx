@@ -167,11 +167,11 @@ export function OnboardingLayout({
           ) : null}
         </Header>
         <Divider withBottomMargin />
-        <Steps>
+        <div>
           {steps.map(step => (
-            <Step key={step.title ?? step.type} {...step} />
+            <StyledStep key={step.title ?? step.type} {...step} />
           ))}
-        </Steps>
+        </div>
         {nextSteps.length > 0 && (
           <Fragment>
             <Divider />
@@ -222,10 +222,10 @@ const Divider = styled('hr')<{withBottomMargin?: boolean}>`
   ${p => p.withBottomMargin && `margin-bottom: ${space(3)}`}
 `;
 
-const Steps = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
+const StyledStep = styled(Step)`
+  :not(:last-child) {
+    margin-bottom: 1.5rem;
+  }
 `;
 
 const Wrapper = styled('div')`
