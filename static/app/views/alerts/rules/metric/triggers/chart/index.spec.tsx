@@ -23,6 +23,11 @@ describe('Incident Rules Create', () => {
       url: '/organizations/org-slug/events-meta/',
       body: {count: 5},
     });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {},
+    });
   });
   afterEach(() => {
     MockApiClient.clearMockResponses();
