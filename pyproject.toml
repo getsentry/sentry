@@ -153,7 +153,7 @@ module = [
     "sentry.api.endpoints.project_transaction_names",
     "sentry.api.endpoints.team_details",
     "sentry.api.endpoints.user_subscriptions",
-    "sentry.api.helpers.group_index.index",
+    "sentry.api.helpers.group_index.*",
     "sentry.api.invite_helper",
     "sentry.api.issue_search",
     "sentry.api.paginator",

@@ -856,7 +856,7 @@ def greatest_semver_release(project: Project) -> Release | None:
 def get_semver_releases(project: Project) -> QuerySet[Release]:
     return (
         Release.objects.filter(projects=project, organization_id=project.organization_id)
-        .filter_to_semver()  # type: ignore[attr-defined]
+        .filter_to_semver()
         .annotate_prerelease_column()
         .order_by(*[f"-{col}" for col in Release.SEMVER_COLS])
     )
