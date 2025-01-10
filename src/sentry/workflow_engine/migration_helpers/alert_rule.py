@@ -293,10 +293,10 @@ def update_migrated_alert_rule(alert_rule: AlertRule, updated_fields: dict[str, 
     try:
         alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=alert_rule)
     except AlertRuleDetector.DoesNotExist:
-        # logger.exception(
-        #     "AlertRuleDetector does not exist",
-        #     extra={"alert_rule_id": AlertRule.id},
-        # )
+        logger.exception(
+            "AlertRuleDetector does not exist",
+            extra={"alert_rule_id": AlertRule.id},
+        )
         return None
 
     detector: Detector = alert_rule_detector.detector
@@ -304,10 +304,10 @@ def update_migrated_alert_rule(alert_rule: AlertRule, updated_fields: dict[str, 
     try:
         detector_state = DetectorState.objects.get(detector=detector)
     except DetectorState.DoesNotExist:
-        # logger.exception(
-        #     "DetectorState does not exist",
-        #     extra={"alert_rule_id": AlertRule.id, "detector_id": detector.id},
-        # )
+        logger.exception(
+            "DetectorState does not exist",
+            extra={"alert_rule_id": AlertRule.id, "detector_id": detector.id},
+        )
         return None
 
     updated_detector_fields: dict[str:Any] = {}
@@ -347,10 +347,10 @@ def update_migrated_alert_rule(alert_rule: AlertRule, updated_fields: dict[str, 
         data_condition_group = detector.workflow_condition_group
         if data_condition_group is None:
             # this shouldn't be possible due to the way we dual write
-            # logger.error(
-            #     "AlertRuleDetector has no associated DataConditionGroup",
-            #     extra={"alert_rule_id": AlertRule.id},
-            # )
+            logger.error(
+                "AlertRuleDetector has no associated DataConditionGroup",
+                extra={"alert_rule_id": AlertRule.id},
+            )
             return None
         data_conditions = DataCondition.objects.filter(condition_group=data_condition_group)
         if "threshold_type" in updated_fields:
