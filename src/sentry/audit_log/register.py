@@ -604,7 +604,6 @@ default_manager.add(
 )
 
 default_manager.add(events.DataSecrecyWaivedAuditLogEvent())
-
 default_manager.add(
     AuditLogEvent(
         event_id=1142,
@@ -621,7 +620,6 @@ default_manager.add(
         template="added playstation client id {client_id}",
     )
 )
-
 default_manager.add(
     AuditLogEvent(
         event_id=1153,
@@ -639,7 +637,6 @@ default_manager.add(
         template="added trusted relay {name} with public key {public_key}",
     )
 )
-
 default_manager.add(
     AuditLogEvent(
         event_id=221,
