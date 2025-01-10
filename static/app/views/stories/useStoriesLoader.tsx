@@ -1,23 +1,26 @@
+import type React from 'react';
+
 import {useQuery} from 'sentry/utils/queryClient';
 import storiesContext from 'sentry/views/stories/storiesContext';
-import type {ResolvedStoryModule} from 'sentry/views/stories/types';
 
 interface UseStoriesLoaderOptions {
   filename: string;
 }
 
-interface StoryDescriptor {
+export interface StoryDescriptor {
+  exports: Record<string, React.ComponentType | any>;
   filename: string;
-  resolved: ResolvedStoryModule;
 }
 
 function importStory(filename: string): Promise<StoryDescriptor> {
   return storiesContext()
     .importStory(filename)
-    .then(story => ({
-      filename,
-      resolved: story,
-    }));
+    .then((story): StoryDescriptor => {
+      return {
+        filename,
+        exports: story,
+      };
+    });
 }
 
 export default function useStoriesLoader({filename}: UseStoriesLoaderOptions) {
