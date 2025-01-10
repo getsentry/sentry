@@ -48,6 +48,7 @@ export type AlertType =
   | 'llm_tokens'
   | 'llm_cost'
   | 'uptime_monitor'
+  | 'crons_monitor'
   | 'eap_metrics';
 
 export enum MEPAlertsQueryType {
@@ -62,7 +63,10 @@ export enum MEPAlertsDataset {
   METRICS_ENHANCED = 'metricsEnhanced',
 }
 
-export type MetricAlertType = Exclude<AlertType, 'issues' | 'uptime_monitor'>;
+export type MetricAlertType = Exclude<
+  AlertType,
+  'issues' | 'uptime_monitor' | 'crons_monitor'
+>;
 
 export const DatasetMEPAlertQueryTypes: Record<
   Exclude<Dataset, Dataset.ISSUE_PLATFORM | Dataset.SESSIONS | Dataset.REPLAYS>, // IssuePlatform (search_issues) is not used in alerts, so we can exclude it here
@@ -94,6 +98,7 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
   llm_tokens: t('LLM token usage'),
   uptime_monitor: t('Uptime Monitor'),
   eap_metrics: t('Spans'),
+  crons_monitor: t('Cron Monitor'),
 };
 
 /**
@@ -154,6 +159,14 @@ export const getAlertWizardCategories = (org: Organization) => {
       categoryHeading: t('Uptime Monitoring'),
       options: ['uptime_monitor'],
     });
+
+    if (org.features.includes('insights-crons')) {
+      result.push({
+        categoryHeading: t('Cron Monitoring'),
+        options: ['crons_monitor'],
+      });
+    }
+
     result.push({
       categoryHeading: hasCustomMetrics(org) ? t('Metrics') : t('Custom'),
       options: [hasCustomMetrics(org) ? 'custom_metrics' : 'custom_transactions'],

@@ -2,6 +2,7 @@ import diagramApdex from 'sentry-images/spot/alerts-wizard-apdex.svg';
 import diagramCLS from 'sentry-images/spot/alerts-wizard-cls.svg';
 import diagramCrashFreeSessions from 'sentry-images/spot/alerts-wizard-crash-free-sessions.svg';
 import diagramCrashFreeUsers from 'sentry-images/spot/alerts-wizard-crash-free-users.svg';
+import diagramCrons from 'sentry-images/spot/alerts-wizard-crons.svg';
 import diagramCustomTransaction from 'sentry-images/spot/alerts-wizard-custom.svg';
 import diagramCustomMetrics from 'sentry-images/spot/alerts-wizard-custom-metrics.svg';
 import diagramErrors from 'sentry-images/spot/alerts-wizard-errors.svg';
@@ -185,6 +186,17 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
       t('When a DNS resolution error is detected for the URL.'),
     ],
     illustration: diagramUptime,
+  },
+  crons_monitor: {
+    description: t(
+      'Alert on scheduled monitors that check-in on recurring jobs and tell you if they’re running on schedule, failing, or succeeding.'
+    ),
+    examples: [
+      t('When a scheduled job fails during execution'),
+      t("When a scheduled job runs for longer than it's expected runtime"),
+      t('When a scheduled job does not run'),
+    ],
+    illustration: diagramCrons,
   },
   eap_metrics: {
     description: t('Alert on spans.'),

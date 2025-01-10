@@ -9,6 +9,7 @@ export enum AlertRuleType {
   METRIC = 'metric',
   ISSUE = 'issue',
   UPTIME = 'uptime',
+  CRONS = 'crons',
 }
 
 export type Incident = {
@@ -94,6 +95,7 @@ export enum CombinedAlertType {
   METRIC = 'alert_rule',
   ISSUE = 'rule',
   UPTIME = 'uptime',
+  CRONS = 'crons',
 }
 
 export interface IssueAlert extends IssueAlertRule {
