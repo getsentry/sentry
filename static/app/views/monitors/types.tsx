@@ -182,6 +182,19 @@ export interface CheckIn {
   groups?: {id: number; shortId: string}[];
 }
 
+type StatsBucket = {
+  [CheckInStatus.IN_PROGRESS]: number;
+  [CheckInStatus.OK]: number;
+  [CheckInStatus.MISSED]: number;
+  [CheckInStatus.TIMEOUT]: number;
+  [CheckInStatus.ERROR]: number;
+  [CheckInStatus.UNKNOWN]: number;
+};
+
+type MonitorBucketEnvMapping = Record<string, StatsBucket>;
+
+export type MonitorBucket = [timestamp: number, envData: MonitorBucketEnvMapping];
+
 /**
  * Object used to store config for the display next to an environment in the
  * timeline view

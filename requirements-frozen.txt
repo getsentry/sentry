@@ -39,7 +39,6 @@ django-csp==3.8
 django-pg-zero-downtime-migrations==0.16
 djangorestframework==3.15.2
 drf-spectacular==0.26.3
-email-reply-parser==0.5.12
 fastjsonschema==2.16.2
 fido2==0.9.2
 filelock==3.15.3
@@ -126,7 +125,8 @@ rpds-py==0.20.0
 rsa==4.8
 s3transfer==0.10.0
 sentry-arroyo==2.19.9
-sentry-kafka-schemas==0.1.126
+sentry-forked-email-reply-parser==0.5.12.post1
+sentry-kafka-schemas==0.1.128
 sentry-ophio==1.0.0
 sentry-protos==0.1.39
 sentry-redis-tools==0.1.7
