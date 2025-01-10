@@ -12,6 +12,7 @@ import Radio from 'sentry/components/radio';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 import {
   type AggregationKeyWithAlias,
   type AggregationRefinement,
@@ -22,6 +23,8 @@ import {
   type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import {FieldKind} from 'sentry/utils/fields';
+import {decodeScalar} from 'sentry/utils/queryString';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
 import useOrganization from 'sentry/utils/useOrganization';
 import useTags from 'sentry/utils/useTags';
@@ -64,7 +67,14 @@ function Visualize({error, setError}: VisualizeProps) {
   const {state, dispatch} = useWidgetBuilderContext();
   let tags = useTags();
   const {customMeasurements} = useCustomMeasurements();
-  const [selectedAggregateSet, setSelectedAggregateSet] = useState(false);
+  const {selectedAggregate: queryParamSelectedAggregate} = useLocationQuery({
+    fields: {
+      selectedAggregate: decodeScalar,
+    },
+  });
+  const [selectedAggregateSet, setSelectedAggregateSet] = useState(
+    defined(queryParamSelectedAggregate)
+  );
 
   const isChartWidget =
     state.displayType !== DisplayType.TABLE &&

@@ -227,14 +227,7 @@ function useWidgetBuilderState(): {
               ...(yAxisWithoutAlias?.slice(0, MAX_NUM_Y_AXES) ?? []),
             ]);
           }
-          if (
-            action.payload === DisplayType.BIG_NUMBER &&
-            aggregatesWithoutAlias.length > 1
-          ) {
-            setSelectedAggregate(aggregatesWithoutAlias.length - 1);
-          } else {
-            setSelectedAggregate(undefined);
-          }
+          setSelectedAggregate(undefined);
           break;
         case BuilderStateAction.SET_DATASET:
           setDataset(action.payload);
