@@ -83,7 +83,7 @@ export class GranularityLadder {
         );
       });
 
-      return this.ladder.max;
+      return this.ladder.min;
     }
 
     return this.ladder.rung(minutes);
