@@ -29,7 +29,6 @@ from sentry.incidents.logic import INVALID_TIME_WINDOW
 from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleDetectionType,
-    AlertRuleMonitorTypeInt,
     AlertRuleSeasonality,
     AlertRuleSensitivity,
     AlertRuleStatus,
@@ -39,7 +38,6 @@ from sentry.incidents.models.alert_rule import (
 )
 from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.incidents.serializers import AlertRuleSerializer
-from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.integrations.slack.tasks.find_channel_id_for_alert_rule import (
     find_channel_id_for_alert_rule,
 )
@@ -654,40 +652,6 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
             resp.renderer_context["request"].META["REMOTE_ADDR"]
             == list(audit_log_entry)[0].ip_address
         )
-
-    def test_monitor_type_with_condition(self):
-        self.create_member(
-            user=self.user, organization=self.organization, role="owner", teams=[self.team]
-        )
-
-        self.login_as(self.user)
-        alert_rule = self.alert_rule
-        serialized_alert_rule = self.get_serialized_alert_rule()
-        serialized_alert_rule["monitorType"] = AlertRuleMonitorTypeInt.ACTIVATED
-        serialized_alert_rule["activationCondition"] = (
-            AlertRuleActivationConditionType.RELEASE_CREATION.value
-        )
-        with (
-            outbox_runner(),
-            self.feature(["organizations:incidents", "organizations:activated-alert-rules"]),
-        ):
-            resp = self.get_success_response(
-                self.organization.slug, alert_rule.id, **serialized_alert_rule
-            )
-        alert_rule = AlertRule.objects.get(id=resp.data["id"])
-        alert_rule.monitorType = AlertRuleMonitorTypeInt.ACTIVATED
-        alert_rule.activationCondition = AlertRuleActivationConditionType.RELEASE_CREATION.value
-        alert_rule.date_modified = resp.data["dateModified"]
-        assert resp.data == serialize(alert_rule)
-
-        # TODO: determine how to convert activated alert into continuous alert and vice versa (see logic.py)
-        # requires creating/disabling activations accordingly
-        # assert resp.data["monitorType"] == AlertRuleMonitorTypeInt.ACTIVATED
-        # assert (
-        #     resp.data["activationCondition"]
-        #     == AlertRuleActivationConditionType.RELEASE_CREATION.value
-        # )
-        assert resp.data["dateModified"] > serialized_alert_rule["dateModified"]
 
     def test_not_updated_fields(self):
         self.create_member(
