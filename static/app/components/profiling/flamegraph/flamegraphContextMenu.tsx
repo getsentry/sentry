@@ -30,10 +30,7 @@ import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {isContinuousProfileReference} from 'sentry/utils/profiling/guards/profile';
 import type {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 import {useSourceCodeLink} from 'sentry/utils/profiling/hooks/useSourceLink';
-import type {
-  ContinuousProfileGroup,
-  ProfileGroup,
-} from 'sentry/utils/profiling/profile/importProfile';
+import type {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {generateProfileRouteFromProfileReference} from 'sentry/utils/profiling/routes';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -68,7 +65,7 @@ export interface FlamegraphContextMenuProps {
   onCopyFunctionNameClick: () => void;
   onCopyFunctionSource: () => void;
   onHighlightAllOccurrencesClick: () => void;
-  profileGroup: ProfileGroup | ContinuousProfileGroup | null;
+  profileGroup: ProfileGroup | null;
   disableCallOrderSort?: boolean;
   disableColorCoding?: boolean;
 }

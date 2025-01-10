@@ -2,6 +2,7 @@ import type {Span} from '@sentry/core';
 import * as Sentry from '@sentry/react';
 
 import type {Image} from 'sentry/types/debugImage';
+import {defined} from 'sentry/utils';
 
 import type {Frame} from '../frame';
 import {
@@ -46,19 +47,7 @@ export interface ProfileGroup {
   profiles: Profile[];
   traceID: string;
   transactionID: string | null;
-  type: 'transaction' | 'loading';
-  images?: Image[];
-}
-
-export interface ContinuousProfileGroup {
-  activeProfileIndex: number;
-  measurements: Partial<Profiling.ContinuousMeasurements>;
-  metadata: Partial<Profiling.Schema['metadata']>;
-  name: string;
-  profiles: ContinuousProfile[];
-  traceID: string;
-  transactionID: string | null;
-  type: 'continuous' | 'loading';
+  type: 'continuous' | 'transaction' | 'loading';
   images?: Image[];
 }
 
@@ -68,7 +57,7 @@ export function importProfile(
   activeThreadId: string | null,
   type: 'flamegraph' | 'flamechart',
   frameFilter?: (frame: Frame) => boolean
-): ProfileGroup | ContinuousProfileGroup {
+): ProfileGroup {
   return Sentry.withScope(scope => {
     const span = Sentry.startInactiveSpan({
       op: 'import',
@@ -257,7 +246,7 @@ export function importSentryContinuousProfileChunk(
   input: Readonly<Profiling.SentryContinousProfileChunk>,
   traceID: string,
   options: ImportOptions
-): ContinuousProfileGroup {
+): ProfileGroup {
   const frameIndex = createContinuousProfileFrameIndex(
     input.profile.frames,
     input.platform
@@ -268,8 +257,15 @@ export function importSentryContinuousProfileChunk(
     Profiling.SentryContinousProfileChunk['profile']['samples']
   > = {};
 
+  let firstTimestamp: number | null = null;
+
   for (let i = 0; i < input.profile.samples.length; i++) {
     const sample = input.profile.samples[i]!;
+
+    if (!defined(firstTimestamp) || firstTimestamp > sample.timestamp) {
+      firstTimestamp = sample.timestamp;
+    }
+
     if (!samplesByThread[sample.thread_id]) {
       samplesByThread[sample.thread_id] = [];
     }
@@ -313,11 +309,59 @@ export function importSentryContinuousProfileChunk(
     transactionID: null,
     activeProfileIndex,
     profiles,
-    measurements: input.measurements ?? {},
+    measurements: measurementsFromContinuousMeasurements(
+      input.measurements ?? {},
+      firstTimestamp
+    ),
     metadata: {
       platform: input.platform,
       projectID: input.project_id,
     },
+  };
+}
+
+function measurementsFromContinuousMeasurements(
+  continuousMeasurements: Profiling.ContinuousMeasurements,
+  firstTimestamp: number | null
+): Profiling.Measurements {
+  for (const continuousMeasurement of Object.values(continuousMeasurements)) {
+    for (const value of continuousMeasurement.values) {
+      if (!defined(firstTimestamp) || firstTimestamp > value.timestamp) {
+        firstTimestamp = value.timestamp;
+      }
+    }
+  }
+
+  // couldn't find any timestamps so there must not be any measurements
+  if (!defined(firstTimestamp)) {
+    return {};
+  }
+
+  const measurements = {};
+
+  for (const [key, continuousMeasurement] of Object.entries(continuousMeasurements)) {
+    measurements[key] = measurementFromContinousMeasurement(
+      continuousMeasurement,
+      firstTimestamp
+    );
+  }
+
+  return measurements;
+}
+
+function measurementFromContinousMeasurement(
+  continuousMeasurement: Profiling.ContinuousMeasurement,
+  anchor: number
+): Profiling.Measurement {
+  return {
+    unit: continuousMeasurement.unit,
+    values: continuousMeasurement.values.map(continuousMeasurementValue => {
+      const elapsed_since_start_s = continuousMeasurementValue.timestamp - anchor;
+      return {
+        elapsed_since_start_ns: elapsed_since_start_s * 1e9,
+        value: continuousMeasurementValue.value,
+      };
+    }),
   };
 }
 
