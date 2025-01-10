@@ -208,8 +208,8 @@ export function EventFeatureFlagList({
     return <FeatureFlagInlineCTA projectId={event.projectID} />;
   }
 
-  // if contexts.flags is not set, hide the section
-  if (!hasFlagContext) {
+  // if contexts.flags is not set and project has not set up flags, hide the section
+  if (!hasFlagContext && !project.hasFlags) {
     return null;
   }
 
