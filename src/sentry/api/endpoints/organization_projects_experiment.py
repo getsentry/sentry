@@ -2,6 +2,7 @@ import logging
 import random
 import string
 from email.headerregistry import Address
+from typing import TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 from django.db import IntegrityError, router, transaction
@@ -51,6 +52,12 @@ class OrgProjectPermission(OrganizationPermission):
     scope_map = {
         "POST": ["project:read", "project:write", "project:admin"],
     }
+
+
+class AuditData(TypedDict):
+    request: Request
+    organization: Organization
+    target_object: int
 
 
 @region_silo_endpoint
@@ -173,7 +180,7 @@ class OrganizationProjectsExperimentEndpoint(OrganizationEndpoint):
             data=team.get_audit_log_data(),
         )
 
-        common_audit_data = {
+        common_audit_data: AuditData = {
             "request": request,
             "organization": team.organization,
             "target_object": project.id,
