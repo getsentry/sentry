@@ -16,8 +16,6 @@ interface Props extends ComponentProps<'div'> {
 }
 
 export default function StoryFile({story, ...htmlProps}: Props) {
-  const {default: DefaultExport, ...namedExports} = story.exports;
-
   return (
     <StoryFileLayout {...htmlProps}>
       <FlexRow style={{gap: space(1), justifyContent: 'space-between'}}>
@@ -31,8 +29,18 @@ export default function StoryFile({story, ...htmlProps}: Props) {
           <GithubLinks story={story} />
         </StoryLinksContainer>
       </FlexRow>
+      <StoryExports story={story} />
+    </StoryFileLayout>
+  );
+}
+
+export function StoryExports(props: {story: StoryDescriptor}) {
+  const {default: DefaultExport, ...namedExports} = props.story.exports;
+
+  return (
+    <Fragment>
       {DefaultExport ? (
-        <Story>
+        <Story key="default">
           <DefaultExport />
         </Story>
       ) : null}
@@ -49,7 +57,7 @@ export default function StoryFile({story, ...htmlProps}: Props) {
           `Story exported an unsupported key ${name} with value: ${typeof MaybeComponent}`
         );
       })}
-    </StoryFileLayout>
+    </Fragment>
   );
 }
 
@@ -95,7 +103,9 @@ const StoryLinksContainer = styled('div')`
   grid-area: header-links;
 `;
 
-const StoryFileLayout = styled('section')``;
+const StoryFileLayout = styled('section')`
+  padding-top: ${space(2)};
+`;
 
 const Story = styled('section')`
   padding-top: ${space(2)};
