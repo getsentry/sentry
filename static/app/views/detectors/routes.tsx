@@ -3,10 +3,9 @@ import {IndexRoute, Route} from 'sentry/components/route';
 import {makeLazyloadComponent as make} from 'sentry/routes';
 
 export function DetectorRoutes() {
-  const root = `/monitors/`;
   return (
     <Feature features="workflow-engine-ui">
-      <Route path={root} withOrgPath>
+      <Route path="/monitors/" withOrgPath>
         <IndexRoute component={make(() => import('sentry/views/detectors/list'))} />
         <Route
           path=":monitorId/"
