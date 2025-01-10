@@ -139,7 +139,10 @@ class TaskNamespace:
             KafkaPayload(key=None, value=activation.SerializeToString(), headers=[]),
         )
         if wait_for_delivery:
-            produce_future.result(timeout=None)
+            try:
+                produce_future.result(timeout=10)
+            except Exception:
+                logger.exception("Failed to wait for delivery")
 
 
 class TaskRegistry:
