@@ -6,7 +6,6 @@ from typing import TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 from django.db import IntegrityError, router, transaction
-from django.http import HttpRequest
 from django.utils.text import slugify
 from rest_framework.exceptions import NotAuthenticated, PermissionDenied
 from rest_framework.request import Request
@@ -56,7 +55,7 @@ class OrgProjectPermission(OrganizationPermission):
 
 
 class AuditData(TypedDict):
-    request: HttpRequest
+    request: Request
     organization: Organization
     target_object: int
 

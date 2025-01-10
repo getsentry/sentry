@@ -2,7 +2,6 @@ import time
 from typing import TypedDict
 
 from django.db import IntegrityError, router, transaction
-from django.http import HttpRequest
 from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import serializers, status
 from rest_framework.request import Request
@@ -88,7 +87,7 @@ class TeamProjectPermission(TeamPermission):
 
 
 class AuditData(TypedDict):
-    request: HttpRequest
+    request: Request
     organization: Organization
     target_object: int
 
