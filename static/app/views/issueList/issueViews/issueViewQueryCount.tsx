@@ -1,3 +1,4 @@
+import {useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
@@ -37,12 +38,15 @@ export function IssueViewQueryCount({view}: IssueViewQueryCountProps) {
   const pageFilters = usePageFilters();
   const theme = useTheme();
 
+  const [count, setCount] = useState<number>(0);
+
   // TODO(msun): Once page filters are saved to views, remember to use the view's specific
   // page filters here instead of the global pageFilters, if they exist.
   const {
     data: queryCount,
     isLoading,
     isFetching,
+    isError,
   } = useFetchIssueCounts({
     orgSlug: organization.slug,
     query: [view.unsavedChanges ? view.unsavedChanges[0] : view.query],
@@ -51,8 +55,17 @@ export function IssueViewQueryCount({view}: IssueViewQueryCountProps) {
     ...constructCountTimeFrame(pageFilters.selection.datetime),
   });
 
-  const displayedCount =
-    queryCount?.[view.unsavedChanges ? view.unsavedChanges[0] : view.query] ?? 0;
+  useEffect(() => {
+    // Only update the count once the query has finished fetching
+    // This preserves the previous count while the query is fetching a new one
+    if (queryCount && !isFetching) {
+      setCount(
+        queryCount?.[view.unsavedChanges ? view.unsavedChanges[0] : view.query] ?? 0
+      );
+    } else if (isError) {
+      setCount(0);
+    }
+  }, [queryCount, isFetching, isError, view.query, view.unsavedChanges]);
 
   return (
     <QueryCountBubble
@@ -67,6 +80,7 @@ export function IssueViewQueryCount({view}: IssueViewQueryCountProps) {
           duration: 0.2,
         },
         default: {
+          // Cuts animation short once the query has finished fetching
           duration: isFetching ? 2 : 0,
           repeat: isFetching ? Infinity : 0,
           ease: 'easeInOut',
@@ -74,12 +88,12 @@ export function IssueViewQueryCount({view}: IssueViewQueryCountProps) {
       }}
     >
       <motion.span
-        layout="position"
+        // Prevents count from fading in if it's already cached on mount
         initial={{opacity: isLoading ? 0 : 1}}
         animate={{opacity: isFetching ? 0 : 1}}
-        transition={{duration: 0.15}}
+        transition={{duration: 0.1}}
       >
-        {displayedCount > TAB_MAX_COUNT ? `${TAB_MAX_COUNT}+` : displayedCount}
+        {count > TAB_MAX_COUNT ? `${TAB_MAX_COUNT}+` : count}
       </motion.span>
     </QueryCountBubble>
   );
