@@ -23,7 +23,7 @@ export default function AdminQuotas() {
   } = useApiQuery<Config>(['/internal/quotas/'], {
     staleTime: 0,
   });
-  const since = new Date().getTime() / 1000 - 3600 * 24 * 7;
+  const [since] = useState(() => new Date().getTime() / 1000 - 3600 * 24 * 7)
   const resolution = '1h';
 
   if (isPending) {
