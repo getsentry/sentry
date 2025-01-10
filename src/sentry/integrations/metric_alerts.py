@@ -222,10 +222,8 @@ def metric_alert_attachment_info(
         text += f"\nThreshold: {alert_rule.detection_type.title()}"
 
     date_started = None
-    activation = None
     if selected_incident:
         date_started = selected_incident.date_started
-        activation = selected_incident.activation
 
     last_triggered_date = None
     if latest_incident:
@@ -239,8 +237,4 @@ def metric_alert_attachment_info(
         "date_started": date_started,
         "last_triggered_date": last_triggered_date,
         "title_link": title_link,
-        "activator": (activation.activator if activation else ""),
-        "condition_type": (
-            activation.condition_type if activation else None
-        ),  # 0 = release creation, 1 = deploy creation
     }

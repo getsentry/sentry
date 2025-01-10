@@ -7,7 +7,7 @@ from copy import deepcopy
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta, timezone
 from enum import Enum, auto
-from typing import TYPE_CHECKING, Any, TypedDict
+from typing import Any, TypedDict
 from uuid import UUID, uuid4
 
 from django.db import router, transaction
@@ -29,7 +29,6 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleActivity,
     AlertRuleActivityType,
     AlertRuleDetectionType,
-    AlertRuleMonitorTypeInt,
     AlertRuleProjects,
     AlertRuleSeasonality,
     AlertRuleSensitivity,
@@ -37,10 +36,6 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleThresholdType,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
-)
-from sentry.incidents.models.alert_rule_activations import (
-    AlertRuleActivationCondition,
-    AlertRuleActivations,
 )
 from sentry.incidents.models.incident import (
     Incident,
@@ -105,10 +100,6 @@ from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry_from_user
 from sentry.utils.snuba import is_measurement
 
-if TYPE_CHECKING:
-    from sentry.incidents.utils.types import AlertRuleActivationConditionType
-
-
 # We can return an incident as "windowed" which returns a range of points around the start of the incident
 # It attempts to center the start of the incident, only showing earlier data if there isn't enough time
 # after the incident started to display the correct start date.
@@ -153,7 +144,6 @@ def create_incident(
     projects: Collection[Project] = (),
     user: RpcUser | None = None,
     alert_rule: AlertRule | None = None,
-    activation: AlertRuleActivations | None = None,
     subscription: QuerySubscription | None = None,
 ) -> Incident:
     if date_detected is None:
@@ -169,7 +159,6 @@ def create_incident(
             date_started=date_started,
             date_detected=date_detected,
             alert_rule=alert_rule,
-            activation=activation,
             subscription=subscription,
         )
         if projects:
@@ -513,8 +502,6 @@ def create_alert_rule(
     user: RpcUser | None = None,
     event_types: Collection[SnubaQueryEventType.EventType] = (),
     comparison_delta: int | None = None,
-    monitor_type: AlertRuleMonitorTypeInt = AlertRuleMonitorTypeInt.CONTINUOUS,
-    activation_condition: AlertRuleActivationConditionType | None = None,
     description: str | None = None,
     sensitivity: AlertRuleSensitivity | None = None,
     seasonality: AlertRuleSeasonality | None = None,
@@ -555,9 +542,6 @@ def create_alert_rule(
 
     if detection_type == AlertRuleDetectionType.DYNAMIC.value and not has_anomaly_detection:
         raise ResourceDoesNotExist("Your organization does not have access to this feature.")
-
-    if monitor_type == AlertRuleMonitorTypeInt.ACTIVATED and not activation_condition:
-        raise ValidationError("Activation condition required for activated alert rule")
 
     if detection_type == AlertRuleDetectionType.DYNAMIC:
         resolution = time_window
@@ -617,7 +601,6 @@ def create_alert_rule(
             resolve_threshold=resolve_threshold,
             threshold_period=threshold_period,
             comparison_delta=comparison_delta,
-            monitor_type=monitor_type,
             description=description,
             sensitivity=sensitivity,
             seasonality=seasonality,
@@ -637,12 +620,6 @@ def create_alert_rule(
                 target_object=alert_rule.id,
                 data=alert_rule.get_audit_log_data(),
                 event=audit_log.get_event_id("ALERT_RULE_ADD"),
-            )
-
-        if monitor_type == AlertRuleMonitorTypeInt.ACTIVATED and activation_condition:
-            # NOTE: if monitor_type is activated, activation_condition is required
-            AlertRuleActivationCondition.objects.create(
-                alert_rule=alert_rule, condition_type=activation_condition.value
             )
 
         # initialize projects join table for alert rules
@@ -745,7 +722,6 @@ def update_alert_rule(
     user: RpcUser | None = None,
     event_types: Collection[SnubaQueryEventType.EventType] | None = None,
     comparison_delta: int | None | NotSet = NOT_SET,
-    monitor_type: AlertRuleMonitorTypeInt | None = None,
     description: str | None = None,
     sensitivity: AlertRuleSensitivity | None | NotSet = NOT_SET,
     seasonality: AlertRuleSeasonality | None | NotSet = NOT_SET,
@@ -807,9 +783,6 @@ def update_alert_rule(
             updated_query_fields["dataset"] = dataset
     if query_type is not None:
         updated_query_fields["query_type"] = query_type
-    if monitor_type is not None:
-        # TODO: determine how to convert activated alert into continuous alert and vice versa
-        pass
     if event_types is not None:
         updated_query_fields["event_types"] = event_types
     if owner is not NOT_SET:
@@ -1077,10 +1050,6 @@ def delete_alert_rule(
 
 
 class AlertRuleTriggerLabelAlreadyUsedError(Exception):
-    pass
-
-
-class AlertRuleActivationConditionLabelAlreadyUsedError(Exception):
     pass
 
 
