@@ -95,7 +95,7 @@ function MetricAlertActivity({organization, incident}: MetricAlertActivityProps)
             )}
             {COMPARISON_DELTA_OPTIONS.find(
               ({value}) => value === incident.alertRule.comparisonDelta
-            )?.label ?? COMPARISON_DELTA_OPTIONS[0].label}
+            )?.label ?? COMPARISON_DELTA_OPTIONS[0]?.label}
           </Fragment>
         ) : (
           <Fragment>
