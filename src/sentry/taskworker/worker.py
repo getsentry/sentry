@@ -7,6 +7,7 @@ import queue
 import signal
 import sys
 import time
+from multiprocessing.synchronize import Event
 from types import FrameType
 from typing import Any
 from uuid import uuid4
@@ -71,14 +72,13 @@ def _get_known_task(activation: TaskActivation) -> Task[Any, Any] | None:
 def child_worker(
     child_tasks: multiprocessing.Queue[TaskActivation],
     processed_tasks: multiprocessing.Queue[ProcessingResult],
-    shutdown_event: multiprocessing.Event,
+    shutdown_event: Event,
     max_task_count: int | None,
 ) -> None:
-    # TODO execution count
     for module in settings.TASKWORKER_IMPORTS:
         __import__(module)
 
-    current_task_id = None
+    current_task_id: str | None = None
     processed_task_count = 0
 
     def handle_alarm(signum: int, frame: Any) -> None:
@@ -250,6 +250,7 @@ class TaskWorker:
             maxsize=(concurrency * 10)
         )
         self._children: list[multiprocessing.Process] = []
+        # multiprocessing.Event is a function and can't be used as a type
         self._shutdown_event = multiprocessing.Event()
 
     def __del__(self) -> None:
