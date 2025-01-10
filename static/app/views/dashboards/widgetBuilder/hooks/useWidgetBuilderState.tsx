@@ -47,6 +47,7 @@ export const BuilderStateAction = {
   SET_LIMIT: 'SET_LIMIT',
   SET_LEGEND_ALIAS: 'SET_LEGEND_ALIAS',
   SET_SELECTED_AGGREGATE: 'SET_SELECTED_AGGREGATE',
+  SET_STATE: 'SET_STATE',
 } as const;
 
 type WidgetAction =
@@ -60,7 +61,8 @@ type WidgetAction =
   | {payload: Sort[]; type: typeof BuilderStateAction.SET_SORT}
   | {payload: number; type: typeof BuilderStateAction.SET_LIMIT}
   | {payload: string[]; type: typeof BuilderStateAction.SET_LEGEND_ALIAS}
-  | {payload: number | undefined; type: typeof BuilderStateAction.SET_SELECTED_AGGREGATE};
+  | {payload: number | undefined; type: typeof BuilderStateAction.SET_SELECTED_AGGREGATE}
+  | {payload: WidgetBuilderStateQueryParams; type: typeof BuilderStateAction.SET_STATE};
 
 export interface WidgetBuilderState {
   dataset?: WidgetType;
@@ -321,6 +323,23 @@ function useWidgetBuilderState(): {
           break;
         case BuilderStateAction.SET_SELECTED_AGGREGATE:
           setSelectedAggregate(action.payload);
+          break;
+        case BuilderStateAction.SET_STATE:
+          setDataset(action.payload.dataset);
+          setDescription(action.payload.description);
+          setDisplayType(action.payload.displayType);
+          if (action.payload.field) {
+            setFields(deserializeFields(action.payload.field));
+          }
+          setLegendAlias(action.payload.legendAlias);
+          setLimit(action.payload.limit);
+          setQuery(action.payload.query);
+          setSelectedAggregate(action.payload.selectedAggregate);
+          setSort(decodeSorts(action.payload.sort));
+          setTitle(action.payload.title);
+          if (action.payload.yAxis) {
+            setYAxis(deserializeFields(action.payload.yAxis));
+          }
           break;
         default:
           break;
