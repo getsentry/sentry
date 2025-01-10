@@ -261,6 +261,7 @@ class ProjectSerializerBaseResponse(_ProjectSerializerOptionalBaseResponse):
     hasAccess: bool
     hasCustomMetrics: bool
     hasFeedbacks: bool
+    hasFlags: bool
     hasMinifiedStackTrace: bool
     hasMonitors: bool
     hasNewFeedbacks: bool
@@ -524,6 +525,7 @@ class ProjectSerializer(Serializer):
             "hasProfiles": bool(obj.flags.has_profiles),
             "hasReplays": bool(obj.flags.has_replays),
             "hasFeedbacks": bool(obj.flags.has_feedbacks),
+            "hasFlags": bool(obj.flags.has_flags),
             "hasNewFeedbacks": bool(obj.flags.has_new_feedbacks),
             "hasSessions": bool(obj.flags.has_sessions),
             # whether first span has been sent for each insight module
@@ -770,6 +772,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             platforms=attrs["platforms"],
             latestRelease=attrs["latest_release"],
             hasUserReports=attrs["has_user_reports"],
+            hasFlags=bool(obj.flags.has_flags),
         )
         if not self._collapse(LATEST_DEPLOYS_KEY):
             context[LATEST_DEPLOYS_KEY] = attrs["deploys"]
