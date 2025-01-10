@@ -1,6 +1,7 @@
 import {useCallback, useMemo} from 'react';
 import partition from 'lodash/partition';
 
+import {defined} from 'sentry/utils';
 import {
   type Column,
   explodeField,
@@ -141,7 +142,13 @@ function useWidgetBuilderState(): {
       sort,
       limit,
       legendAlias,
-      selectedAggregate,
+
+      // The selected aggregate is the last aggregate for big number widgets
+      // if it hasn't been explicitly set
+      selectedAggregate:
+        displayType === DisplayType.BIG_NUMBER && defined(fields) && fields.length > 1
+          ? selectedAggregate ?? fields.length - 1
+          : undefined,
     }),
     [
       title,
