@@ -22,7 +22,6 @@ def update_inbox(
     group_list: Sequence[Group],
     project_lookup: Mapping[int, Project],
     acting_user: User | None,
-    http_referrer: str,
     sender: Any,
 ) -> bool:
     """
@@ -40,10 +39,7 @@ def update_inbox(
         for group in group_list:
             # Remove from inbox first to insert the mark reviewed activity
             remove_group_from_inbox(
-                group,
-                action=GroupInboxRemoveAction.MARK_REVIEWED,
-                user=acting_user,
-                referrer=http_referrer,
+                group, action=GroupInboxRemoveAction.MARK_REVIEWED, user=acting_user
             )
             if group.substatus != GroupSubStatus.ONGOING and group.status == GroupStatus.UNRESOLVED:
                 bulk_transition_group_to_ongoing(
