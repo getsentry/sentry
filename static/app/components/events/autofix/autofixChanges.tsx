@@ -1,18 +1,35 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {openModal} from 'sentry/actionCreators/modal';
+import {Button, LinkButton} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import ClippedBox from 'sentry/components/clippedBox';
 import {AutofixDiff} from 'sentry/components/events/autofix/autofixDiff';
-import type {
-  AutofixChangesStep,
-  AutofixCodebaseChange,
+import {useUpdateInsightCard} from 'sentry/components/events/autofix/autofixInsightCards';
+import {AutofixSetupWriteAccessModal} from 'sentry/components/events/autofix/autofixSetupWriteAccessModal';
+import {
+  type AutofixChangesStep,
+  type AutofixCodebaseChange,
+  AutofixStatus,
+  AutofixStepType,
 } from 'sentry/components/events/autofix/types';
-import {useAutofixData} from 'sentry/components/events/autofix/useAutofix';
-import {IconFix} from 'sentry/icons';
+import {
+  makeAutofixQueryKey,
+  useAutofixData,
+} from 'sentry/components/events/autofix/useAutofix';
+import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {ScrollCarousel} from 'sentry/components/scrollCarousel';
+import {IconCopy, IconFix, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
+import useApi from 'sentry/utils/useApi';
+import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 
 type AutofixChangesProps = {
   groupId: string;
@@ -69,8 +86,243 @@ const cardAnimationProps: AnimationProps = {
   }),
 };
 
+function BranchButton({change}: {change: AutofixCodebaseChange}) {
+  const {onClick} = useCopyToClipboard({
+    text: `git fetch --all && git switch ${change.branch_name}`,
+    successMessage: t('Command copied. Next stop: your terminal.'),
+  });
+
+  return (
+    <Button
+      key={`${change.repo_external_id}-${Math.random()}`}
+      size="xs"
+      priority="primary"
+      onClick={onClick}
+      aria-label={t('Check out in %s', change.repo_name)}
+      title={t('git fetch --all && git switch %s', change.branch_name)}
+      icon={<IconCopy size="xs" />}
+    >
+      {t('Check out in %s', change.repo_name)}
+    </Button>
+  );
+}
+
+function CreatePRsButton({
+  changes,
+  groupId,
+  runId,
+}: {
+  changes: AutofixCodebaseChange[];
+  groupId: string;
+  runId: string;
+}) {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  const [hasClickedCreatePr, setHasClickedCreatePr] = useState(false);
+
+  const createPRs = () => {
+    setHasClickedCreatePr(true);
+    for (const change of changes) {
+      createPr({change});
+    }
+  };
+
+  const {mutate: createPr} = useMutation({
+    mutationFn: ({change}: {change: AutofixCodebaseChange}) => {
+      return api.requestPromise(`/issues/${groupId}/autofix/update/`, {
+        method: 'POST',
+        data: {
+          run_id: runId,
+          payload: {
+            type: 'create_pr',
+            repo_external_id: change.repo_external_id,
+          },
+        },
+      });
+    },
+    onSuccess: () => {
+      addSuccessMessage(t('Created pull requests.'));
+      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(groupId)});
+    },
+    onError: () => {
+      setHasClickedCreatePr(false);
+      addErrorMessage(t('Failed to create a pull request'));
+    },
+  });
+
+  return (
+    <Button
+      priority="primary"
+      onClick={createPRs}
+      icon={
+        hasClickedCreatePr && <ProcessingStatusIndicator size={14} mini hideMessage />
+      }
+      size="sm"
+      busy={hasClickedCreatePr}
+      analyticsEventName="Autofix: Create PR Clicked"
+      analyticsEventKey="autofix.create_pr_clicked"
+      analyticsParams={{group_id: groupId}}
+    >
+      Draft PR{changes.length > 1 ? 's' : ''}
+    </Button>
+  );
+}
+
+function CreateBranchButton({
+  changes,
+  groupId,
+  runId,
+}: {
+  changes: AutofixCodebaseChange[];
+  groupId: string;
+  runId: string;
+}) {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  const [hasClickedPushToBranch, setHasClickedPushToBranch] = useState(false);
+
+  const pushToBranch = () => {
+    setHasClickedPushToBranch(true);
+    for (const change of changes) {
+      createBranch({change});
+    }
+  };
+
+  const {mutate: createBranch} = useMutation({
+    mutationFn: ({change}: {change: AutofixCodebaseChange}) => {
+      return api.requestPromise(`/issues/${groupId}/autofix/update/`, {
+        method: 'POST',
+        data: {
+          run_id: runId,
+          payload: {
+            type: 'create_branch',
+            repo_external_id: change.repo_external_id,
+          },
+        },
+      });
+    },
+    onSuccess: () => {
+      addSuccessMessage(t('Pushed to branches.'));
+      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(groupId)});
+    },
+    onError: () => {
+      setHasClickedPushToBranch(false);
+      addErrorMessage(t('Failed to push to branches.'));
+    },
+  });
+
+  return (
+    <Button
+      onClick={pushToBranch}
+      icon={
+        hasClickedPushToBranch && <ProcessingStatusIndicator size={14} mini hideMessage />
+      }
+      size="sm"
+      busy={hasClickedPushToBranch}
+      analyticsEventName="Autofix: Push to Branch Clicked"
+      analyticsEventKey="autofix.push_to_branch_clicked"
+      analyticsParams={{group_id: groupId}}
+    >
+      Check Out Locally
+    </Button>
+  );
+}
+
+function SetupAndCreateBranchButton({
+  changes,
+  groupId,
+  runId,
+}: {
+  changes: AutofixCodebaseChange[];
+  groupId: string;
+  runId: string;
+}) {
+  const {data: setupData} = useAutofixSetup({groupId, checkWriteAccess: true});
+
+  if (
+    !changes.every(
+      change =>
+        setupData?.githubWriteIntegration?.repos?.find(
+          repo => `${repo.owner}/${repo.name}` === change.repo_name
+        )?.ok
+    )
+  ) {
+    return (
+      <Button
+        onClick={() => {
+          openModal(deps => <AutofixSetupWriteAccessModal {...deps} groupId={groupId} />);
+        }}
+        size="sm"
+        analyticsEventName="Autofix: Create Branch Setup Clicked"
+        analyticsEventKey="autofix.create_branch_setup_clicked"
+        analyticsParams={{group_id: groupId}}
+        title={t('Enable write access to create branches')}
+      >
+        {t('Check Out Locally')}
+      </Button>
+    );
+  }
+
+  return <CreateBranchButton changes={changes} groupId={groupId} runId={runId} />;
+}
+
+function SetupAndCreatePRsButton({
+  changes,
+  groupId,
+  runId,
+}: {
+  changes: AutofixCodebaseChange[];
+  groupId: string;
+  runId: string;
+}) {
+  const {data: setupData} = useAutofixSetup({groupId, checkWriteAccess: true});
+
+  if (
+    !changes.every(
+      change =>
+        setupData?.githubWriteIntegration?.repos?.find(
+          repo => `${repo.owner}/${repo.name}` === change.repo_name
+        )?.ok
+    )
+  ) {
+    return (
+      <Button
+        priority="primary"
+        onClick={() => {
+          openModal(deps => <AutofixSetupWriteAccessModal {...deps} groupId={groupId} />);
+        }}
+        size="sm"
+        analyticsEventName="Autofix: Create PR Setup Clicked"
+        analyticsEventKey="autofix.create_pr_setup_clicked"
+        analyticsParams={{group_id: groupId}}
+        title={t('Enable write access to create pull requests')}
+      >
+        {t('Draft PR')}
+      </Button>
+    );
+  }
+
+  return <CreatePRsButton changes={changes} groupId={groupId} runId={runId} />;
+}
+
 export function AutofixChanges({step, groupId, runId}: AutofixChangesProps) {
   const data = useAutofixData({groupId});
+
+  const {mutate: sendFeedbackOnChanges} = useUpdateInsightCard({groupId, runId});
+
+  const handleAddTests = () => {
+    const planStep = data?.steps?.[data.steps.length - 2];
+    if (!planStep || planStep.type !== AutofixStepType.DEFAULT) {
+      return;
+    }
+
+    sendFeedbackOnChanges({
+      step_index: planStep.index,
+      retain_insight_card_index: planStep.insights.length - 1,
+      message:
+        'Please write a unit test that reproduces the issue to make sure it is fixed. Put it in the appropriate test file in the codebase. If there is none, create one.',
+    });
+  };
 
   if (step.status === 'ERROR' || data?.status === 'ERROR') {
     return (
@@ -101,15 +353,81 @@ export function AutofixChanges({step, groupId, runId}: AutofixChangesProps) {
 
   const allChangesHavePullRequests = step.changes.every(change => change.pull_request);
 
+  const prsMade =
+    step.status === AutofixStatus.COMPLETED &&
+    step.changes.length >= 1 &&
+    step.changes.every(change => change.pull_request);
+
+  const branchesMade =
+    !prsMade &&
+    step.status === AutofixStatus.COMPLETED &&
+    step.changes.length >= 1 &&
+    step.changes.every(change => change.branch_name);
+
   return (
     <AnimatePresence initial>
       <AnimationWrapper key="card" {...cardAnimationProps}>
         <ChangesContainer allChangesHavePullRequests={allChangesHavePullRequests}>
           <ClippedBox clipHeight={408}>
-            <HeaderText>
-              <IconFix size="sm" />
-              {t('Fixes')}
-            </HeaderText>
+            <HeaderWrapper>
+              <HeaderText>
+                <IconFix size="sm" />
+                {t('Fixes')}
+              </HeaderText>
+              {!prsMade && !branchesMade ? (
+                <ButtonBar gap={1}>
+                  <Button
+                    size="sm"
+                    onClick={handleAddTests}
+                    analyticsEventName="Autofix: Add Tests Clicked"
+                    analyticsEventKey="autofix.add_tests_clicked"
+                    analyticsParams={{group_id: groupId}}
+                  >
+                    {t('Add Tests')}
+                  </Button>
+                  <SetupAndCreateBranchButton
+                    changes={step.changes}
+                    groupId={groupId}
+                    runId={runId}
+                  />
+                  <SetupAndCreatePRsButton
+                    changes={step.changes}
+                    groupId={groupId}
+                    runId={runId}
+                  />
+                </ButtonBar>
+              ) : prsMade ? (
+                <StyledScrollCarousel aria-label={t('View pull requests')}>
+                  {step.changes.map(
+                    change =>
+                      change.pull_request?.pr_url && (
+                        <LinkButton
+                          key={`${change.repo_external_id}-${Math.random()}`}
+                          size="xs"
+                          priority="primary"
+                          icon={<IconOpen size="xs" />}
+                          href={change.pull_request.pr_url}
+                          external
+                        >
+                          View PR in {change.repo_name}
+                        </LinkButton>
+                      )
+                  )}
+                </StyledScrollCarousel>
+              ) : branchesMade ? (
+                <StyledScrollCarousel aria-label={t('Check out branches')}>
+                  {step.changes.map(
+                    change =>
+                      change.branch_name && (
+                        <BranchButton
+                          key={`${change.repo_external_id}-${Math.random()}`}
+                          change={change}
+                        />
+                      )
+                  )}
+                </StyledScrollCarousel>
+              ) : null}
+            </HeaderWrapper>
             {step.changes.map((change, i) => (
               <Fragment key={change.repo_external_id}>
                 {i > 0 && <Separator />}
@@ -122,6 +440,10 @@ export function AutofixChanges({step, groupId, runId}: AutofixChangesProps) {
     </AnimatePresence>
   );
 }
+
+const StyledScrollCarousel = styled(ScrollCarousel)`
+  padding: 0 ${space(1)};
+`;
 
 const PreviewContent = styled('div')`
   display: flex;
@@ -181,4 +503,20 @@ const HeaderText = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
+`;
+
+const HeaderWrapper = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 ${space(1)} ${space(1)} ${space(1)};
+  border-bottom: 1px solid ${p => p.theme.border};
+`;
+
+const ProcessingStatusIndicator = styled(LoadingIndicator)`
+  && {
+    margin: 0;
+    height: 14px;
+    width: 14px;
+  }
 `;

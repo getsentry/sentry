@@ -121,6 +121,7 @@ export function GroupSummary({
             normalizeUrl(
               `/organizations/${organization.slug}/issues/${data?.groupId}/events/${data?.eventId}/`
             ),
+      disabled: event?.id === data?.eventId,
     },
     ...(event?.id !== data?.eventId
       ? [
