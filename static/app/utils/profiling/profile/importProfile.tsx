@@ -47,19 +47,7 @@ export interface ProfileGroup {
   profiles: Profile[];
   traceID: string;
   transactionID: string | null;
-  type: 'transaction' | 'loading';
-  images?: Image[];
-}
-
-export interface ContinuousProfileGroup {
-  activeProfileIndex: number;
-  measurements: Partial<Profiling.Measurements>;
-  metadata: Partial<Profiling.Schema['metadata']>;
-  name: string;
-  profiles: Profile[];
-  traceID: string;
-  transactionID: string | null;
-  type: 'continuous' | 'loading';
+  type: 'continuous' | 'transaction' | 'loading';
   images?: Image[];
 }
 
@@ -69,7 +57,7 @@ export function importProfile(
   activeThreadId: string | null,
   type: 'flamegraph' | 'flamechart',
   frameFilter?: (frame: Frame) => boolean
-): ProfileGroup | ContinuousProfileGroup {
+): ProfileGroup {
   return Sentry.withScope(scope => {
     const span = Sentry.startInactiveSpan({
       op: 'import',
@@ -258,7 +246,7 @@ export function importSentryContinuousProfileChunk(
   input: Readonly<Profiling.SentryContinousProfileChunk>,
   traceID: string,
   options: ImportOptions
-): ContinuousProfileGroup {
+): ProfileGroup {
   const frameIndex = createContinuousProfileFrameIndex(
     input.profile.frames,
     input.platform

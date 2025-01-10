@@ -49,7 +49,7 @@ import {
   initializeFlamegraphRenderer,
   useResizeCanvasObserver,
 } from 'sentry/utils/profiling/gl/utils';
-import type {ContinuousProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
+import type {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import type {Profile} from 'sentry/utils/profiling/profile/profile';
 import {FlamegraphRenderer2D} from 'sentry/utils/profiling/renderers/flamegraphRenderer2D';
 import {FlamegraphRendererWebGL} from 'sentry/utils/profiling/renderers/flamegraphRendererWebGL';
@@ -70,7 +70,7 @@ import {
   useContinuousProfile,
   useContinuousProfileSegment,
 } from 'sentry/views/profiling/continuousProfileProvider';
-import {useContinuousProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
+import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 
 import {FlamegraphDrawer} from './flamegraphDrawer/flamegraphDrawer';
 import {FlamegraphWarnings} from './flamegraphOverlays/FlamegraphWarnings';
@@ -101,7 +101,7 @@ function collectAllSpanEntriesFromTransaction(
 }
 
 function getMaxConfigSpace(
-  profileGroup: ContinuousProfileGroup,
+  profileGroup: ProfileGroup,
   transaction: EventTransaction | null,
   unit: ProfilingFormatterUnit | string,
   [start, end]: [number, number] | [null, null]
@@ -247,7 +247,7 @@ export function ContinuousFlamegraph(): ReactElement {
   const dispatch = useDispatchFlamegraphState();
 
   const profiles = useContinuousProfile();
-  const profileGroup = useContinuousProfileGroup();
+  const profileGroup = useProfileGroup();
   const segment = useContinuousProfileSegment();
 
   const configSpaceQueryParam = useMemo(() => decodeConfigSpace(), []);
