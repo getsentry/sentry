@@ -32,6 +32,7 @@ from sentry.utils.redis import clusters
 def _set_up_request():
     request = RequestFactory().post("/auth/sso/")
     request.user = AnonymousUser()
+    request.auth = None
     request.session = Client().session
     return request
 
