@@ -629,3 +629,11 @@ default_manager.add(
         template="removed playstation client id {client_id}",
     )
 )
+default_manager.add(
+    AuditLogEvent(
+        event_id=1154,
+        name="PROJECT_ADD_WITH_ORIGIN",
+        api_name="project.create-with-origin",
+        template="created project {slug} via {origin}",
+    )
+)
