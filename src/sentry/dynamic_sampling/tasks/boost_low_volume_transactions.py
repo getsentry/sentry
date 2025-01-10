@@ -209,6 +209,10 @@ def boost_low_volume_transactions_of_project(project_transactions: ProjectTransa
     if sample_rate == 1.0:
         return
 
+    # the model fails when we are not having any transactions, thus we can simply return here
+    if len(transactions) == 0:
+        return
+
     intensity = options.get("dynamic-sampling.prioritise_transactions.rebalance_intensity", 1.0)
 
     model = model_factory(ModelType.TRANSACTIONS_REBALANCING)
