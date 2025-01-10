@@ -70,4 +70,16 @@ describe('Ladder', () => {
     expect(ladder.min).toBe('first');
     expect(ladder.max).toBe('second');
   });
+
+  test('enforces type', () => {
+    type Salutation = 'Hello' | 'Hi';
+
+    const ladder = new Ladder([
+      [0, 'Hello' as Salutation],
+      [10, 'Hi' as Salutation],
+    ]);
+
+    const salutation = ladder.rung(0);
+    expect(salutation === 'Hi').toBeFalsy();
+  });
 });
