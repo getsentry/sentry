@@ -297,7 +297,11 @@ export function importSentryContinuousProfileChunk(
     profiles.push(
       wrapWithSpan(
         options.span,
-        () => ContinuousProfile.FromProfile(profile, frameIndex),
+        () =>
+          ContinuousProfile.FromProfile(profile, frameIndex, {
+            type: options.type,
+            frameFilter: options.frameFilter,
+          }),
         {
           op: 'profile.import',
           description: 'continuous',
@@ -336,13 +340,17 @@ function importSingleProfile(
   if (isSentryContinuousProfile(profile)) {
     // In some cases, the SDK may return spans as undefined and we dont want to throw there.
     if (!span) {
-      return ContinuousProfile.FromProfile(profile, frameIndex);
+      return ContinuousProfile.FromProfile(profile, frameIndex, {type, frameFilter});
     }
 
-    return wrapWithSpan(span, () => ContinuousProfile.FromProfile(profile, frameIndex), {
-      op: 'profile.import',
-      description: 'continuous-profile',
-    });
+    return wrapWithSpan(
+      span,
+      () => ContinuousProfile.FromProfile(profile, frameIndex, {type, frameFilter}),
+      {
+        op: 'profile.import',
+        description: 'continuous-profile',
+      }
+    );
   }
   if (isEventedProfile(profile)) {
     // In some cases, the SDK may return spans as undefined and we dont want to throw there.
