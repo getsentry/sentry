@@ -1257,6 +1257,15 @@ function buildRoutes() {
               component={make(() => import('sentry/views/alerts/rules/uptime/details'))}
             />
           </Route>
+          <Route
+            path="crons/"
+            component={make(() => import('sentry/views/alerts/rules/crons'))}
+          >
+            <Route
+              path=":projectId/:monitorSlug/details/"
+              component={make(() => import('sentry/views/alerts/rules/crons/details'))}
+            />
+          </Route>
         </Route>
         <Route path="metric-rules/">
           <IndexRedirect
@@ -1288,6 +1297,17 @@ function buildRoutes() {
           >
             <Route
               path=":ruleId/"
+              component={make(() => import('sentry/views/alerts/edit'))}
+            />
+          </Route>
+        </Route>
+        <Route path="crons-rules/">
+          <Route
+            path=":projectId/"
+            component={make(() => import('sentry/views/alerts/builder/projectProvider'))}
+          >
+            <Route
+              path=":monitorSlug/"
               component={make(() => import('sentry/views/alerts/edit'))}
             />
           </Route>
