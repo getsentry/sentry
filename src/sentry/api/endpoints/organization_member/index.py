@@ -372,14 +372,13 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         is_member = not request.access.has_scope("member:admin") and (
             request.access.has_scope("member:invite")
         )
-        disable_invites_to_other_teams = (
+        # if Open Team Membership is disabled and Member Invites are enabled, members can only invite members to teams they are in
+        members_can_only_invite_to_members_teams = (
             not organization.flags.allow_joinleave and not organization.flags.disable_member_invite
         )
         has_team_roles = "teamRoles" in result and bool(result["teamRoles"])
 
-        # members can only invite members to teams they are not in if
-        # disable_member_invite = False and allow_joinleave = True
-        if is_member and disable_invites_to_other_teams and has_team_roles:
+        if is_member and members_can_only_invite_to_members_teams and has_team_roles:
             requester_teams = set(
                 OrganizationMember.objects.filter(
                     organization=organization,
@@ -388,6 +387,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                 ).values_list("teams__slug", flat=True)
             )
             team_slugs = [team.slug for team, _ in result.get("teamRoles")]
+            # ensure that the requester is a member of all teams they are trying to assign
             if not requester_teams.issuperset(team_slugs):
                 return Response(
                     {"detail": "You cannot assign members to teams you are not a member of."},
