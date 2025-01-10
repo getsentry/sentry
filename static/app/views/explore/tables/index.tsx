@@ -1,4 +1,3 @@
-import type {Dispatch, SetStateAction} from 'react';
 import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
@@ -16,15 +15,25 @@ import {
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
-import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
+import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
+import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
+import type {TracesTableResult} from 'sentry/views/explore/hooks/useExploreTracesTable';
+import {Tab} from 'sentry/views/explore/hooks/useTab';
 import {AggregatesTable} from 'sentry/views/explore/tables/aggregatesTable';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 import {SpansTable} from 'sentry/views/explore/tables/spansTable';
 import {TracesTable} from 'sentry/views/explore/tables/tracesTable/index';
 
-interface ExploreTablesProps {
+interface BaseExploreTablesProps {
   confidences: Confidence[];
-  setError: Dispatch<SetStateAction<string>>;
+  samplesTab: Tab;
+  setSamplesTab: (tab: Tab) => void;
+}
+
+interface ExploreTablesProps extends BaseExploreTablesProps {
+  aggregatesTableResult: AggregatesTableResult;
+  spansTableResult: SpansTableResult;
+  tracesTableResult: TracesTableResult;
 }
 
 export function ExploreTables(props: ExploreTablesProps) {
@@ -38,13 +47,20 @@ export function ExploreTables(props: ExploreTablesProps) {
   );
 }
 
-function ExploreAggregatesTable(props: ExploreTablesProps) {
+interface AggregatesExploreTablesProps extends BaseExploreTablesProps {
+  aggregatesTableResult: AggregatesTableResult;
+}
+
+function ExploreAggregatesTable(props: AggregatesExploreTablesProps) {
   return <AggregatesTable {...props} />;
 }
 
-function ExploreSamplesTable(props: ExploreTablesProps) {
-  const [tab, setTab] = useTab();
+interface SamplesExploreTablesProps extends BaseExploreTablesProps {
+  spansTableResult: SpansTableResult;
+  tracesTableResult: TracesTableResult;
+}
 
+function ExploreSamplesTable(props: SamplesExploreTablesProps) {
   const fields = useExploreFields();
   const setFields = useSetExploreFields();
 
@@ -69,22 +85,22 @@ function ExploreSamplesTable(props: ExploreTablesProps) {
   return (
     <Fragment>
       <SamplesTableHeader>
-        <Tabs value={tab} onChange={setTab}>
+        <Tabs value={props.samplesTab} onChange={props.setSamplesTab}>
           <TabList hideBorder>
             <TabList.Item key={Tab.SPAN}>{t('Span Samples')}</TabList.Item>
             <TabList.Item key={Tab.TRACE}>{t('Trace Samples')}</TabList.Item>
           </TabList>
         </Tabs>
         <Button
-          disabled={tab !== Tab.SPAN}
+          disabled={props.samplesTab !== Tab.SPAN}
           onClick={openColumnEditor}
           icon={<IconTable />}
         >
           {t('Edit Table')}
         </Button>
       </SamplesTableHeader>
-      {tab === Tab.SPAN && <SpansTable {...props} />}
-      {tab === Tab.TRACE && <TracesTable {...props} />}
+      {props.samplesTab === Tab.SPAN && <SpansTable {...props} />}
+      {props.samplesTab === Tab.TRACE && <TracesTable {...props} />}
     </Fragment>
   );
 }

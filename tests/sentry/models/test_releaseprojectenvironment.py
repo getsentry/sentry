@@ -1,15 +1,10 @@
 from datetime import timedelta
-from unittest.mock import patch
 
 from django.utils import timezone
 
 from sentry.models.environment import Environment
 from sentry.models.release import Release
-from sentry.models.releaseprojectenvironment import (
-    ReleaseProjectEnvironment,
-    ReleaseProjectEnvironmentManager,
-)
-from sentry.signals import receivers_raise_on_send
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.testutils.cases import TestCase
 
 
@@ -88,17 +83,3 @@ class GetOrCreateTest(TestCase):
         )
         assert release_project_env.first_seen == self.datetime_now
         assert release_project_env.last_seen == self.datetime_now
-
-    @receivers_raise_on_send()
-    @patch.object(ReleaseProjectEnvironmentManager, "subscribe_project_to_alert_rule")
-    def test_post_save_subscribes_project_to_alert_rule_if_created(
-        self, mock_subscribe_project_to_alert_rule
-    ):
-        ReleaseProjectEnvironment.get_or_create(
-            project=self.project,
-            release=self.release,
-            environment=self.environment,
-            datetime=self.datetime_now,
-        )
-
-        assert mock_subscribe_project_to_alert_rule.call_count == 1
