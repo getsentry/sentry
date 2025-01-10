@@ -228,7 +228,6 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         response = self.get_error_response(
             self.organization.slug,
             self.curr_invite.id,
-            reinvite=1,
             teams=[foo.slug],
             status_code=403,
         )
@@ -240,14 +239,10 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         response = self.get_error_response(
             self.organization.slug,
             self.curr_invite.id,
-            reinvite=1,
             teams=[foo.slug],
             status_code=403,
         )
-        assert (
-            response.data.get("detail")
-            == "You cannot modify member details when resending an invitation. Separate requests are required."
-        )
+        assert response.data.get("detail") == "You do not have permission to perform this action."
         assert not mock_send_invite_email.mock_calls
 
     @patch("sentry.models.OrganizationMember.send_invite_email")
