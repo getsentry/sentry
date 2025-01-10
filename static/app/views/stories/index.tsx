@@ -13,18 +13,17 @@ import OrganizationContainer from 'sentry/views/organizationContainer';
 import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
 import EmptyStory from 'sentry/views/stories/emptyStory';
 import ErrorStory from 'sentry/views/stories/errorStory';
-import storiesContext from 'sentry/views/stories/storiesContext';
 import StoryFile from 'sentry/views/stories/storyFile';
 import StoryHeader from 'sentry/views/stories/storyHeader';
 import StoryTree from 'sentry/views/stories/storyTree';
-import useStoriesLoader from 'sentry/views/stories/useStoriesLoader';
+import useStoriesLoader, {useStoryBookFiles} from 'sentry/views/stories/useStoriesLoader';
 
 export default function Stories() {
   const searchInput = useRef<HTMLInputElement>(null);
   const location = useLocation<{name: string; query?: string}>();
 
+  const files = useStoryBookFiles();
   const story = useStoriesLoader({filename: location.query.name});
-  const files = useMemo(() => storiesContext().files(), []);
   const nodes = useStoryTree(location.query.query ?? '', files);
 
   const navigate = useNavigate();

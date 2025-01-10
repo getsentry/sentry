@@ -1,7 +1,9 @@
 import type React from 'react';
+import {useMemo} from 'react';
 
 import {useQuery} from 'sentry/utils/queryClient';
-import storiesContext from 'sentry/views/stories/storiesContext';
+
+const context = require.context('sentry', true, /\.stories.tsx$/, 'lazy');
 
 interface UseStoriesLoaderOptions {
   filename: string;
@@ -12,15 +14,17 @@ export interface StoryDescriptor {
   filename: string;
 }
 
-function importStory(filename: string): Promise<StoryDescriptor> {
-  return storiesContext()
-    .importStory(filename)
-    .then((story): StoryDescriptor => {
-      return {
-        filename,
-        exports: story,
-      };
-    });
+export function useStoryBookFiles() {
+  return useMemo(() => context.keys().map(file => file.replace(/^\.\//, 'app/')), []);
+}
+
+async function importStory(filename: string): Promise<StoryDescriptor> {
+  const story = await context(filename.replace(/^app\//, './'));
+
+  return {
+    exports: story,
+    filename,
+  };
 }
 
 export default function useStoriesLoader({filename}: UseStoriesLoaderOptions) {
