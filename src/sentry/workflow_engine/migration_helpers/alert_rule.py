@@ -100,7 +100,9 @@ def migrate_metric_data_conditions(
     alert_rule = alert_rule_trigger.alert_rule
     # create a data condition for the Detector's data condition group with the
     # threshold and associated priority level
-    alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=alert_rule)
+    alert_rule_detector = AlertRuleDetector.objects.select_related(
+        "detector__workflow_condition_group"
+    ).get(alert_rule=alert_rule)
     detector = alert_rule_detector.detector
     detector_data_condition_group = detector.workflow_condition_group
 
@@ -126,7 +128,9 @@ def migrate_metric_data_conditions(
     data_condition_group = DataConditionGroup.objects.create(
         organization_id=alert_rule.organization_id
     )
-    alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=alert_rule)
+    alert_rule_workflow = AlertRuleWorkflow.objects.select_related("workflow").get(
+        alert_rule=alert_rule
+    )
     WorkflowDataConditionGroup.objects.create(
         condition_group=data_condition_group,
         workflow=alert_rule_workflow.workflow,
@@ -172,7 +176,9 @@ def migrate_resolve_threshold_data_conditions(alert_rule: AlertRule) -> DataCond
     has been explicitly set on the alert rule, then use this as our comparison value. Otherwise,
     we need to figure out what the resolve threshold is based on the trigger threshold values.
     """
-    alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=alert_rule)
+    alert_rule_detector = AlertRuleDetector.objects.select_related(
+        "detector__workflow_condition_group"
+    ).get(alert_rule=alert_rule)
     detector = alert_rule_detector.detector
     detector_data_condition_group = detector.workflow_condition_group
 
