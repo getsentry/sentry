@@ -273,6 +273,11 @@ export function useHasStreamlinedUI() {
     return location.query.streamline === '1';
   }
 
+  // If the organzation option is set, it determines which interface is used.
+  if (defined(organization.streamlineOnly)) {
+    return organization.streamlineOnly;
+  }
+
   // If the enforce flag is set for the organization, ignore user preferences and enable the UI
   if (organization.features.includes('issue-details-streamline-enforce')) {
     return true;
