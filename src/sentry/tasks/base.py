@@ -4,15 +4,14 @@ import logging
 from collections.abc import Callable, Iterable
 from datetime import datetime
 from functools import wraps
-from random import random
 from typing import Any, TypeVar
 
 from celery import current_task
 from django.conf import settings
 from django.db.models import Model
 
-from sentry import options
 from sentry.celery import app
+from sentry.features.rollout import in_random_rollout
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.utils import metrics
 from sentry.utils.memory import track_memory_usage
@@ -86,11 +85,8 @@ def instrumented_task(name, stat_suffix=None, silo_mode=None, record_timing=Fals
     def wrapped(func):
         @wraps(func)
         def _wrapped(*args, **kwargs):
-            do_record_timing_rollout = False
-            record_timing_rollout = options.get("sentry.tasks.record.timing.rollout")
-            if record_timing_rollout and record_timing_rollout > random():
-                do_record_timing_rollout = True
-            record_queue_wait_time = record_timing or do_record_timing_rollout
+            record_timing_rollout = in_random_rollout("sentry.tasks.record.timing.rollout")
+            record_queue_wait_time = record_timing or record_timing_rollout
 
             # TODO(dcramer): we want to tag a transaction ID, but overriding
             # the base on app.task seems to cause problems w/ Celery internals
