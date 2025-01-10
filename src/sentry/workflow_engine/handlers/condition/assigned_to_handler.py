@@ -7,11 +7,13 @@ from sentry.notifications.types import AssigneeTargetType
 from sentry.utils.cache import cache
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
-from sentry.workflow_engine.types import DataConditionHandler, WorkflowJob
+from sentry.workflow_engine.types import DataConditionHandler, DataConditionHandlerType, WorkflowJob
 
 
 @condition_handler_registry.register(Condition.ASSIGNED_TO)
 class AssignedToConditionHandler(DataConditionHandler[WorkflowJob]):
+    type: DataConditionHandlerType = DataConditionHandlerType.ACTION_FILTER
+
     @staticmethod
     def get_assignees(group: Group) -> Sequence[GroupAssignee]:
         cache_key = f"group:{group.id}:assignees"
