@@ -1,6 +1,8 @@
 import time
+from typing import TypedDict
 
 from django.db import IntegrityError, router, transaction
+from django.http import HttpRequest
 from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import serializers, status
 from rest_framework.request import Request
@@ -23,6 +25,7 @@ from sentry.apidocs.examples.team_examples import TeamExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import PROJECT_SLUG_MAX_LENGTH, RESERVED_PROJECT_SLUGS, ObjectStatus
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.seer.similarity.utils import project_is_seer_eligible
@@ -82,6 +85,12 @@ class TeamProjectPermission(TeamPermission):
         "PUT": ["project:write", "project:admin"],
         "DELETE": ["project:admin"],
     }
+
+
+class AuditData(TypedDict):
+    request: HttpRequest
+    organization: Organization
+    target_object: int
 
 
 @extend_schema(tags=["Teams"])
@@ -206,7 +215,7 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
 
             set_default_symbol_sources(project)
 
-            common_audit_data = {
+            common_audit_data: AuditData = {
                 "request": request,
                 "organization": team.organization,
                 "target_object": project.id,
