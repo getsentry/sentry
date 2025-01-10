@@ -4,12 +4,14 @@ import logging
 from collections.abc import Callable, Iterable
 from datetime import datetime
 from functools import wraps
+from random import random
 from typing import Any, TypeVar
 
 from celery import current_task
 from django.conf import settings
 from django.db.models import Model
 
+from sentry import options
 from sentry.celery import app
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.utils import metrics
@@ -84,7 +86,12 @@ def instrumented_task(name, stat_suffix=None, silo_mode=None, record_timing=Fals
     def wrapped(func):
         @wraps(func)
         def _wrapped(*args, **kwargs):
-            record_queue_wait_time = record_timing
+            record_timing_rollout = options.get("sentry.tasks.record.timing.rollout")
+            do_record_timing_rollout = False
+            if record_timing_rollout and record_timing_rollout > random():
+                do_record_timing_rollout = True
+
+            record_queue_wait_time = record_timing or do_record_timing_rollout
 
             # Use a try/catch here to contain the blast radius of an exception being unhandled through the options lib
             # Unhandled exception could cause all tasks to be effected and not work
