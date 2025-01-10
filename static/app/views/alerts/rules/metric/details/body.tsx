@@ -292,7 +292,7 @@ export default function MetricDetailsBody({
                   }
                 />
               )}
-              {dataset === Dataset.TRANSACTIONS && (
+              {[Dataset.TRANSACTIONS, Dataset.GENERIC_METRICS].includes(dataset) && (
                 <RelatedTransactions
                   organization={organization}
                   location={location}
