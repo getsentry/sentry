@@ -349,6 +349,7 @@ module = [
     "sentry.auth.view",
     "sentry.buffer.*",
     "sentry.build.*",
+    "sentry.data_export.processors.issues_by_tag",
     "sentry.data_secrecy.models.*",
     "sentry.data_secrecy.service.*",
     "sentry.db.models.fields.citext",
