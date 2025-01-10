@@ -14,6 +14,8 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {getAlertRuleActionCategory} from 'sentry/views/alerts/rules/utils';
+import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
+import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 
 type Props = {
   hasMetricRuleDetailsError: boolean;
@@ -52,13 +54,24 @@ function DetailsHeader({
 
   const isSnoozed = rule?.snooze ?? false;
 
+  const ruleType =
+    rule &&
+    getAlertTypeFromAggregateDataset({
+      aggregate: rule.aggregate,
+      dataset: rule.dataset,
+    });
+
   return (
     <Layout.Header>
       <Layout.HeaderContent>
         <Breadcrumbs
           crumbs={[
             {label: t('Alerts'), to: `/organizations/${organization.slug}/alerts/rules/`},
-            {label: t('Metric Alert')},
+            {
+              label: ruleType
+                ? t('%s Metric Alert', AlertWizardAlertNames[ruleType])
+                : t('Metric Alert'),
+            },
           ]}
         />
         <RuleTitle data-test-id="incident-rule-title" loading={!isRuleReady}>
