@@ -142,7 +142,7 @@ export default function ProfilingContent({location}: ProfilingContentProps) {
                     </Tabs>
                   </div>
                   {tab === 'flamegraph' ? (
-                    <FlamegraphTab location={location} selection={selection} />
+                    <FlamegraphTab />
                   ) : (
                     <TransactionsTab location={location} selection={selection} />
                   )}
@@ -232,7 +232,7 @@ function TransactionsTab({location, selection}: TabbedContentProps) {
   );
 }
 
-function FlamegraphTab({}: TabbedContentProps) {
+function FlamegraphTab() {
   return (
     <LandingAggregateFlamegraphSizer>
       <LandingAggregateFlamegraphContainer>
