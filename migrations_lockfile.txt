@@ -15,7 +15,7 @@ remote_subscriptions: 0003_drop_remote_subscription
 
 replays: 0004_index_together
 
-sentry: 0813_rm_alertruleactivations
+sentry: 0812_rm_activation_incident
 
 social_auth: 0002_default_auto_field
 
