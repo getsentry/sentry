@@ -8,7 +8,6 @@ export default function decode(
 ): SubregionCode[] | undefined {
   const decodedValue = decodeList(value);
 
-  // return decodedValue.filter(isAValidOption);
   const validSubregions = decodedValue.filter(isAValidOption);
   return validSubregions.length > 0 ? validSubregions : undefined;
 }
