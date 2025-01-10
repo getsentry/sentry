@@ -153,7 +153,7 @@ function getTransactionOffset(
 }
 
 function convertContinuousProfileMeasurementsToUIFrames(
-  measurement: ContinuousProfileGroup['measurements']['slow_frame_renders']
+  measurement: ProfileGroup['measurements']['slow_frame_renders']
 ): UIFrameMeasurements | undefined {
   if (!measurement) {
     return undefined;
