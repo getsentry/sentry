@@ -3,22 +3,29 @@ import styled from '@emotion/styled';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Alert from 'sentry/components/alert';
 import AnalyticsArea from 'sentry/components/analyticsArea';
+import {Button} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
+import {Hovercard} from 'sentry/components/hovercard';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {DiffCompareContextProvider} from 'sentry/components/replays/diff/diffCompareContext';
 import LearnMoreButton from 'sentry/components/replays/diff/learnMoreButton';
+import DiffTimestampPicker from 'sentry/components/replays/diff/picker/diffTimestampPicker';
 import ReplayDiffChooser from 'sentry/components/replays/diff/replayDiffChooser';
 import {Tooltip} from 'sentry/components/tooltip';
+import {IconSliders} from 'sentry/icons';
 import {IconInfo} from 'sentry/icons/iconInfo';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
+import {type HydrationErrorFrame, isHydrateCrumb} from 'sentry/utils/replays/types';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 interface Props extends ModalRenderProps {
+  frameOrEvent: HydrationErrorFrame | Event;
   initialLeftOffsetMs: number;
   initialRightOffsetMs: number;
   organization: Organization;
@@ -28,6 +35,7 @@ interface Props extends ModalRenderProps {
 export default function ReplayComparisonModal({
   Body,
   Header,
+  frameOrEvent,
   initialLeftOffsetMs,
   initialRightOffsetMs,
   organization,
@@ -44,6 +52,7 @@ export default function ReplayComparisonModal({
       <AnalyticsArea name="hydration-error-modal">
         <DiffCompareContextProvider
           replay={replay}
+          frameOrEvent={frameOrEvent}
           initialLeftOffsetMs={initialLeftOffsetMs}
           initialRightOffsetMs={initialRightOffsetMs}
         >
@@ -68,10 +77,19 @@ export default function ReplayComparisonModal({
                 </Tooltip>
               </Title>
               <Flex gap={space(1)}>
-                <LearnMoreButton
-                  onHover={() => focusTrap?.pause()}
-                  onBlur={() => focusTrap?.unpause()}
-                />
+                {isHydrateCrumb(frameOrEvent) ? (
+                  <AutoWideHovercard
+                    body={<DiffTimestampPicker />}
+                    onHover={() => focusTrap?.pause()}
+                    onBlur={() => focusTrap?.unpause()}
+                  >
+                    <Button
+                      aria-label={t('Adjust diff')}
+                      icon={<IconSliders size="md" direction="up" />}
+                      borderless
+                    />
+                  </AutoWideHovercard>
+                ) : null}
                 {focusTrap ? (
                   <FeedbackWidgetButton
                     optionOverrides={{
@@ -95,13 +113,25 @@ export default function ReplayComparisonModal({
                 )}
               </Alert>
             ) : null}
-            <ReplayDiffChooser />
+            <RelativePosition>
+              <ReplayDiffChooser />
+              <AbsoluteTopRight>
+                <LearnMoreButton
+                  onHover={() => focusTrap?.pause()}
+                  onBlur={() => focusTrap?.unpause()}
+                />
+              </AbsoluteTopRight>
+            </RelativePosition>
           </Body>
         </DiffCompareContextProvider>
       </AnalyticsArea>
     </OrganizationContext.Provider>
   );
 }
+
+const AutoWideHovercard = styled(Hovercard)`
+  width: auto;
+`;
 
 const ModalHeader = styled('div')`
   display: flex;
@@ -123,4 +153,15 @@ export const Before = styled('span')`
 export const After = styled('span')`
   color: ${p => p.theme.green300};
   font-weight: bold;
+`;
+
+const RelativePosition = styled('div')`
+  position: relative;
+  height: 100%;
+`;
+
+const AbsoluteTopRight = styled('div')`
+  position: absolute;
+  top: 0;
+  right: 0;
 `;

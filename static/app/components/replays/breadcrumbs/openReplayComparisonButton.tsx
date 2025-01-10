@@ -5,7 +5,9 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {Button, type ButtonProps} from 'sentry/components/button';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
+import type {Event} from 'sentry/types/event';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
+import type {HydrationErrorFrame} from 'sentry/utils/replays/types';
 import useOrganization from 'sentry/utils/useOrganization';
 
 const LazyComparisonModal = lazy(
@@ -14,20 +16,22 @@ const LazyComparisonModal = lazy(
 
 interface Props {
   children: ReactNode;
-  leftOffsetMs: number;
+  frameOrEvent: HydrationErrorFrame | Event;
+  initialLeftOffsetMs: number;
+  initialRightOffsetMs: number;
   replay: ReplayReader;
-  rightOffsetMs: number;
   surface: string;
   size?: ButtonProps['size'];
 }
 
 export function OpenReplayComparisonButton({
   children,
-  leftOffsetMs,
+  frameOrEvent,
+  initialLeftOffsetMs,
+  initialRightOffsetMs,
   replay,
-  rightOffsetMs,
-  surface,
   size,
+  surface,
 }: Props) {
   const organization = useOrganization();
 
@@ -59,8 +63,9 @@ export function OpenReplayComparisonButton({
               <LazyComparisonModal
                 replay={replay}
                 organization={organization}
-                initialLeftOffsetMs={leftOffsetMs}
-                initialRightOffsetMs={rightOffsetMs}
+                frameOrEvent={frameOrEvent}
+                initialLeftOffsetMs={initialLeftOffsetMs}
+                initialRightOffsetMs={initialRightOffsetMs}
                 {...deps}
               />
             </Suspense>
