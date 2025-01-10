@@ -32,6 +32,7 @@ class AuthenticationMiddlewareTestCase(TestCase):
     def test_process_request_anon(self):
         self.middleware.process_request(self.request)
         assert self.request.user.is_anonymous
+        assert self.request.auth is None
 
     def test_process_request_user(self):
         request = self.request
