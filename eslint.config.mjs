@@ -282,7 +282,6 @@ export default typescript.config([
       'no-cond-assign': ['error', 'always'],
       'no-async-promise-executor': 'off', // TODO(ryan953): Fix violations and delete this line
       'no-case-declarations': 'off', // TODO(ryan953): Fix violations and delete this line
-      'no-constant-binary-expression': 'error', // TODO(ryan953): Fix violations and delete this line
       'no-dupe-class-members': 'off', // TODO(ryan953): Fix violations and delete this line
       'no-dupe-else-if': 'off', // TODO(ryan953): Fix violations and delete this line
       'no-empty-pattern': 'off', // TODO(ryan953): Fix violations and delete this line
