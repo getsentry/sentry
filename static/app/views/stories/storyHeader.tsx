@@ -8,9 +8,9 @@ import {space} from 'sentry/styles/space';
 
 interface Props extends ComponentProps<'div'> {}
 
-export default function StoryHeader({style}: Props) {
+export default function StoryHeader(props: Props) {
   return (
-    <Flex as="header" justify="space-between" gap={space(2)} style={style}>
+    <Flex as="header" justify="space-between" gap={space(2)} {...props}>
       <H1>
         <IconSentry size="xl" /> Component Library
       </H1>
