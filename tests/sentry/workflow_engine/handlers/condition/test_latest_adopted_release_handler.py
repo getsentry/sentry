@@ -226,25 +226,27 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
 
         self.assert_passes(self.dc, self.job)
 
-    def test_release_does_not_exist(self):
-        with patch(
-            "sentry.search.utils.get_first_last_release_for_group", side_effect=Release.DoesNotExist
-        ):
-            self.assert_does_not_pass(self.dc, self.job)
+    @patch("sentry.search.utils.get_first_last_release_for_group", side_effect=Release.DoesNotExist)
+    def test_release_does_not_exist(self, mock_get_first_last_release):
+        self.assert_does_not_pass(self.dc, self.job)
 
-        with patch(
-            "sentry.workflow_engine.handlers.condition.latest_release_handler.get_latest_release_for_env",
-            return_value=None,
-        ):
-            self.assert_does_not_pass(self.dc, self.job)
+    @patch(
+        "sentry.workflow_engine.handlers.condition.latest_release_handler.get_latest_release_for_env",
+        return_value=None,
+    )
+    def test_latest_release_for_env_does_not_exist(self, mock_get_latest_release_for_env):
+        self.assert_does_not_pass(self.dc, self.job)
 
-        with patch(
-            "sentry.workflow_engine.handlers.condition.latest_adopted_release_handler.get_first_last_release_for_env",
-            return_value=None,
-        ):
-            self.assert_does_not_pass(self.dc, self.job)
+    @patch(
+        "sentry.workflow_engine.handlers.condition.latest_adopted_release_handler.get_first_last_release_for_env",
+        return_value=None,
+    )
+    def test_first_last_release_for_env_does_not_exist(self, mock_get_first_last_release_for_env):
+        self.assert_does_not_pass(self.dc, self.job)
 
-    def test_environment_does_not_exist(self):
-        with patch("sentry.models.environment.Environment.get_for_organization_id") as mock_get_env:
-            mock_get_env.side_effect = Environment.DoesNotExist
-            self.assert_does_not_pass(self.dc, self.job)
+    @patch(
+        "sentry.models.environment.Environment.get_for_organization_id",
+        side_effect=Environment.DoesNotExist,
+    )
+    def test_environment_does_not_exist(self, mock_get_env):
+        self.assert_does_not_pass(self.dc, self.job)
