@@ -15,7 +15,9 @@ export function TagPreviewDistribution({tag}: {tag: GroupTag}) {
   const totalVisible = tag.topValues.reduce((sum, value) => sum + value.count, 0);
   const hasOther = totalVisible < tag.totalValues;
 
-  const otherPercentage = percent(tag.totalValues - totalVisible, tag.totalValues);
+  const otherPercentage = Math.round(
+    percent(tag.totalValues - totalVisible, tag.totalValues)
+  );
   const otherDisplayPercentage =
     otherPercentage < 1 ? '<1%' : `${otherPercentage.toFixed(0)}%`;
 
@@ -26,7 +28,7 @@ export function TagPreviewDistribution({tag}: {tag: GroupTag}) {
       </TagHeader>
       <TagValueContent>
         {tag.topValues.map((tagValue, tagValueIdx) => {
-          const percentage = percent(tagValue.count, tag.totalValues);
+          const percentage = Math.round(percent(tagValue.count, tag.totalValues));
           const displayPercentage = percentage < 1 ? '<1%' : `${percentage.toFixed(0)}%`;
           return (
             <TagValueRow key={tagValueIdx}>
@@ -192,7 +194,7 @@ const TagBarContainer = styled('div')`
   position: absolute;
   left: 0;
   top: 0;
-  min-width: ${space(1)};
+  min-width: ${space(0.25)};
   &:before {
     position: absolute;
     inset: 0;

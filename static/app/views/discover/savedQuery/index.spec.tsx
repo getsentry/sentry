@@ -140,7 +140,7 @@ describe('Discover > SaveQueryButtonGroup', function () {
 
       await userEvent.click(screen.getByRole('button', {name: /discover context menu/i}));
       expect(
-        screen.queryByRole('menuitemradio', {name: /add to dashboard/i})
+        screen.getByRole('menuitemradio', {name: /add to dashboard/i})
       ).toBeInTheDocument();
     });
 
@@ -167,7 +167,7 @@ describe('Discover > SaveQueryButtonGroup', function () {
 
       await userEvent.click(screen.getByRole('button', {name: /discover context menu/i}));
       expect(
-        screen.queryByRole('menuitemradio', {name: /add to dashboard/i})
+        screen.getByRole('menuitemradio', {name: /add to dashboard/i})
       ).toBeInTheDocument();
       await userEvent.click(
         screen.getByRole('menuitemradio', {name: /add to dashboard/i})
@@ -176,7 +176,7 @@ describe('Discover > SaveQueryButtonGroup', function () {
       expect(openAddToDashboardModal).toHaveBeenCalledWith(
         expect.objectContaining({
           widget: {
-            displayType: 'line',
+            displayType: 'area',
             interval: undefined,
             limit: undefined,
             queries: [
@@ -198,7 +198,7 @@ describe('Discover > SaveQueryButtonGroup', function () {
             defaultTitle: 'Errors by Title',
             defaultWidgetQuery:
               'name=&aggregates=count()%2Cfailure_count()&columns=&fields=count()%2Cfailure_count()&conditions=event.type%3Aerror&orderby=-count()',
-            displayType: 'line',
+            displayType: 'area',
             end: undefined,
             limit: undefined,
             source: 'discoverv2',
@@ -376,7 +376,7 @@ describe('Discover > SaveQueryButtonGroup', function () {
         yAxis
       );
 
-      expect(screen.queryByRole('button', {name: /save as/i})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: /save as/i})).toBeInTheDocument();
       expect(screen.getByRole('button', {name: /save changes/i})).toBeInTheDocument();
 
       await userEvent.click(screen.getByRole('button', {name: /discover context menu/i}));
@@ -421,8 +421,8 @@ describe('Discover > SaveQueryButtonGroup', function () {
             }),
             yAxis
           );
-          expect(mockSetSavedQuery).toHaveBeenCalled();
         });
+        expect(mockSetSavedQuery).toHaveBeenCalled();
       });
     });
 
@@ -503,11 +503,9 @@ describe('Discover > SaveQueryButtonGroup', function () {
       const href = createAlertButton.getAttribute('href')!;
       const queryParameters = new URLSearchParams(href.split('?')[1]);
 
-      expect(queryParameters.get('query')).toEqual(
-        '(foo:bar) AND (event.type:transaction)'
-      );
-      expect(queryParameters.get('dataset')).toEqual('transactions');
-      expect(queryParameters.get('eventTypes')).toEqual('transaction');
+      expect(queryParameters.get('query')).toBe('(foo:bar) AND (event.type:transaction)');
+      expect(queryParameters.get('dataset')).toBe('transactions');
+      expect(queryParameters.get('eventTypes')).toBe('transaction');
     });
     it('uses the num errors alert type for error queries', () => {
       const metricAlertOrg = {
@@ -526,9 +524,9 @@ describe('Discover > SaveQueryButtonGroup', function () {
       const href = createAlertButton.getAttribute('href')!;
       const queryParameters = new URLSearchParams(href.split('?')[1]);
 
-      expect(queryParameters.get('query')).toEqual('foo:bar');
-      expect(queryParameters.get('dataset')).toEqual('events');
-      expect(queryParameters.get('eventTypes')).toEqual('error');
+      expect(queryParameters.get('query')).toBe('foo:bar');
+      expect(queryParameters.get('dataset')).toBe('events');
+      expect(queryParameters.get('eventTypes')).toBe('error');
     });
   });
 });

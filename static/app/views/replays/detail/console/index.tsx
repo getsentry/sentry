@@ -84,7 +84,7 @@ function Console() {
           currentHoverTime={currentHoverTime}
           currentTime={currentTime}
           expandPaths={Array.from(expandPathsRef.current?.get(index) || [])}
-          frame={item}
+          frame={item!}
           onMouseEnter={onMouseEnter}
           onMouseLeave={onMouseLeave}
           index={index}

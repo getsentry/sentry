@@ -319,7 +319,6 @@ describe('DropdownMenu', function () {
     // JSDOM throws an error on navigation to random urls
     expect(errorSpy).toHaveBeenCalledTimes(1);
 
-    // eslint-disable-next-line no-console
     errorSpy.mockRestore();
   });
 });

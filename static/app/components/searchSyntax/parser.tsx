@@ -1466,7 +1466,7 @@ export function joinQuery(
   return (
     (leadingSpace ? ' ' : '') +
     (parsedTerms.length === 1
-      ? parsedTerms[0].text
+      ? parsedTerms[0]!.text
       : parsedTerms.map(p => p.text).join(additionalSpaceBetween ? ' ' : ''))
   );
 }

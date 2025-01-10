@@ -118,7 +118,7 @@ export function PageOverviewSidebar({
     return undefined;
   };
 
-  const ringSegmentColors = theme.charts.getColorPalette(3);
+  const ringSegmentColors = theme.charts.getColorPalette(3) ?? [];
   const ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
 
   return (

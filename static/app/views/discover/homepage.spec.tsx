@@ -134,9 +134,9 @@ describe('Discover > Homepage', () => {
     await screen.findByText('environment');
 
     // Only the environment field
-    expect(screen.getAllByTestId('grid-head-cell').length).toEqual(1);
+    expect(screen.getAllByTestId('grid-head-cell')).toHaveLength(1);
     screen.getByText('Previous Period');
-    screen.getByText('event.type:error');
+    screen.getByRole('row', {name: 'event.type:error'});
     expect(screen.queryByText('Dataset')).not.toBeInTheDocument();
   });
 
@@ -587,8 +587,8 @@ describe('Discover > Homepage', () => {
 
     await screen.findByText('environment');
 
-    expect(screen.getAllByTestId('grid-head-cell').length).toEqual(1);
-    screen.getByText('event.type:error');
+    expect(screen.getAllByTestId('grid-head-cell')).toHaveLength(1);
+    screen.getByRole('row', {name: 'event.type:error'});
     expect(screen.getByRole('tab', {name: 'Errors'})).toHaveAttribute(
       'aria-selected',
       'true'

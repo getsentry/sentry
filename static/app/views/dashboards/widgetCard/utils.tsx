@@ -5,5 +5,5 @@ export const getBucketSize = (series: Series[] | undefined) => {
     return 0;
   }
 
-  return Number(series[0].data[1]?.name) - Number(series[0].data[0]?.name);
+  return Number(series[0]!.data[1]?.name) - Number(series[0]!.data[0]?.name);
 };

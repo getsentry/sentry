@@ -47,4 +47,15 @@ describe('TypeSelector', () => {
       })
     );
   });
+
+  it('displays error message when there is an error', async function () {
+    render(
+      <WidgetBuilderProvider>
+        <TypeSelector error={{displayType: 'Please select a type'}} />
+      </WidgetBuilderProvider>,
+      {router, organization}
+    );
+
+    expect(await screen.findByText('Please select a type')).toBeInTheDocument();
+  });
 });

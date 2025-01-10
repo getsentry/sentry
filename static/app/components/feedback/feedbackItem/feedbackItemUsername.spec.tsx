@@ -1,10 +1,18 @@
 import {FeedbackIssueFixture} from 'sentry-fixture/feedbackIssue';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
 
 describe('FeedbackItemUsername', () => {
+  beforeEach(() => {
+    Object.assign(navigator, {
+      clipboard: {
+        writeText: jest.fn().mockResolvedValue(''),
+      },
+    });
+  });
+
   it('should fallback to "Anonymous User" when no name/contact_email exist', () => {
     const issue = FeedbackIssueFixture({
       metadata: {
@@ -87,5 +95,25 @@ describe('FeedbackItemUsername', () => {
       'href',
       expect.stringContaining('mailto:foo@bar.com')
     );
+  });
+
+  it('should copy text and select it on click', async () => {
+    const issue = FeedbackIssueFixture({
+      metadata: {
+        name: 'Foo Bar',
+        contact_email: 'foo@bar.com',
+      },
+    });
+    render(<FeedbackItemUsername feedbackIssue={issue} />);
+
+    const username = screen.getByText('Foo Bar');
+
+    await userEvent.click(username);
+
+    await waitFor(() => {
+      expect(window.getSelection()?.toString()).toBe('Foo Bar•foo@bar.com');
+    });
+
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith('Foo Bar <foo@bar.com>');
   });
 });

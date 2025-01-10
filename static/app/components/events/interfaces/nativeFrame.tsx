@@ -39,7 +39,7 @@ import type {PlatformKey} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
-import {SectionKey, useEventDetails} from 'sentry/views/issueDetails/streamline/context';
+import {SectionKey, useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {getFoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
@@ -101,7 +101,7 @@ function NativeFrame({
 }: Props) {
   const traceEventDataSectionContext = useContext(TraceEventDataSectionContext);
 
-  const {sectionData} = useEventDetails();
+  const {sectionData} = useIssueDetails();
   const debugSectionConfig = sectionData[SectionKey.DEBUGMETA];
   const [_isCollapsed, setIsCollapsed] = useSyncedLocalStorageState(
     getFoldSectionKey(SectionKey.DEBUGMETA),

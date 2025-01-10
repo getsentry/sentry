@@ -3,9 +3,11 @@ import styled from '@emotion/styled';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Alert from 'sentry/components/alert';
 import AnalyticsArea from 'sentry/components/analyticsArea';
+import {Flex} from 'sentry/components/container/flex';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import ExternalLink from 'sentry/components/links/externalLink';
+import {DiffCompareContextProvider} from 'sentry/components/replays/diff/diffCompareContext';
 import LearnMoreButton from 'sentry/components/replays/diff/learnMoreButton';
 import ReplayDiffChooser from 'sentry/components/replays/diff/replayDiffChooser';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -17,79 +19,85 @@ import type ReplayReader from 'sentry/utils/replays/replayReader';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 interface Props extends ModalRenderProps {
-  leftOffsetMs: number;
+  initialLeftOffsetMs: number;
+  initialRightOffsetMs: number;
   organization: Organization;
   replay: ReplayReader;
-  rightOffsetMs: number;
 }
 
 export default function ReplayComparisonModal({
   Body,
   Header,
-  leftOffsetMs,
+  initialLeftOffsetMs,
+  initialRightOffsetMs,
   organization,
   replay,
-  rightOffsetMs,
 }: Props) {
   // Callbacks set by GlobalModal on-render.
   // We need these to interact with feedback opened while a modal is active.
   const {focusTrap} = useGlobalModal();
 
-  const isSameTimestamp = leftOffsetMs === rightOffsetMs;
+  const isSameTimestamp = initialLeftOffsetMs === initialRightOffsetMs;
 
   return (
     <OrganizationContext.Provider value={organization}>
       <AnalyticsArea name="hydration-error-modal">
-        <Header closeButton>
-          <ModalHeader>
-            <Title>
-              {t('Hydration Error')}
-              <Tooltip
-                isHoverable
-                title={tct(
-                  'This modal helps with debugging hydration errors by diffing the DOM before and after the app hydrated. [boldBefore:Before] refers to the HTML rendered on the server. [boldAfter:After] refers to the HTML rendered on the client. Read more about [link:resolving hydration errors].',
-                  {
-                    boldBefore: <Before />,
-                    boldAfter: <After />,
-                    link: (
-                      <ExternalLink href="https://sentry.io/answers/hydration-error-nextjs/" />
-                    ),
-                  }
+        <DiffCompareContextProvider
+          replay={replay}
+          initialLeftOffsetMs={initialLeftOffsetMs}
+          initialRightOffsetMs={initialRightOffsetMs}
+        >
+          <Header closeButton>
+            <ModalHeader>
+              <Title>
+                {t('Hydration Error')}
+                <Tooltip
+                  isHoverable
+                  title={tct(
+                    'This modal helps with debugging hydration errors by diffing the DOM before and after the app hydrated. [boldBefore:Before] refers to the HTML rendered on the server. [boldAfter:After] refers to the HTML rendered on the client. Read more about [link:resolving hydration errors].',
+                    {
+                      boldBefore: <Before />,
+                      boldAfter: <After />,
+                      link: (
+                        <ExternalLink href="https://sentry.io/answers/hydration-error-nextjs/" />
+                      ),
+                    }
+                  )}
+                >
+                  <IconInfo />
+                </Tooltip>
+              </Title>
+              <Flex gap={space(1)}>
+                <LearnMoreButton
+                  onHover={() => focusTrap?.pause()}
+                  onBlur={() => focusTrap?.unpause()}
+                />
+                {focusTrap ? (
+                  <FeedbackWidgetButton
+                    optionOverrides={{
+                      onFormOpen: () => {
+                        focusTrap.pause();
+                      },
+                      onFormClose: () => {
+                        focusTrap.unpause();
+                      },
+                    }}
+                  />
+                ) : null}
+              </Flex>
+            </ModalHeader>
+          </Header>
+          <Body>
+            {isSameTimestamp ? (
+              <Alert type="warning" showIcon>
+                {t(
+                  "Cannot display diff for this hydration error. Sentry wasn't able to identify the correct event."
                 )}
-              >
-                <IconInfo />
-              </Tooltip>
-            </Title>
-            <LearnMoreButton />
-            {focusTrap ? (
-              <FeedbackWidgetButton
-                optionOverrides={{
-                  onFormOpen: () => {
-                    focusTrap.pause();
-                  },
-                  onFormClose: () => {
-                    focusTrap.unpause();
-                  },
-                }}
-              />
+              </Alert>
             ) : null}
-          </ModalHeader>
-        </Header>
-        <Body>
-          {isSameTimestamp ? (
-            <Alert type="warning" showIcon>
-              {t(
-                "Cannot display diff for this hydration error. Sentry wasn't able to identify the correct event."
-              )}
-            </Alert>
-          ) : null}
-
-          <ReplayDiffChooser
-            replay={replay}
-            leftOffsetMs={leftOffsetMs}
-            rightOffsetMs={rightOffsetMs}
-          />
-        </Body>
+            <ReplayDiffChooser />
+          </Body>
+        </DiffCompareContextProvider>
       </AnalyticsArea>
     </OrganizationContext.Provider>
   );

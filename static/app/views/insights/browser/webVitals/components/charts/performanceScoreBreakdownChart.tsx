@@ -5,13 +5,16 @@ import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Series} from 'sentry/types/echarts';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {ORDER} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
 import {
   useProjectWebVitalsScoresTimeseriesQuery,
   type WebVitalsScoreBreakdown,
 } from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresTimeseriesQuery';
+import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import {applyStaticWeightsToTimeseries} from 'sentry/views/insights/browser/webVitals/utils/applyStaticWeightsToTimeseries';
+import {getWeights} from 'sentry/views/insights/browser/webVitals/utils/getWeights';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {PERFORMANCE_SCORE_WEIGHTS} from 'sentry/views/insights/browser/webVitals/utils/scoreThresholds';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
@@ -24,12 +27,11 @@ type Props = {
   transaction?: string;
 };
 
-export const formatTimeSeriesResultsToChartData = (
+export function formatTimeSeriesResultsToChartData(
   data: WebVitalsScoreBreakdown,
   segmentColors: string[],
-  useWeights = true,
-  order = ORDER
-): Series[] => {
+  order: WebVitals[] = ORDER
+): Series[] {
   return order.map((webVital, index) => {
     const series = data[webVital];
     const color = segmentColors[index];
@@ -37,24 +39,26 @@ export const formatTimeSeriesResultsToChartData = (
       seriesName: webVital.toUpperCase(),
       data: series.map(({name, value}) => ({
         name,
-        value: Math.round(
-          value * (useWeights ? PERFORMANCE_SCORE_WEIGHTS[webVital] : 100) * 0.01
-        ),
+        value: Math.round(value),
       })),
       color,
     };
   });
-};
+}
 
 export function PerformanceScoreBreakdownChart({
   transaction,
   browserTypes,
   subregions,
 }: Props) {
+  const organization = useOrganization();
   const theme = useTheme();
-  const segmentColors = [...theme.charts.getColorPalette(3).slice(0, 5)];
+  const segmentColors = [...(theme.charts.getColorPalette(3) ?? []).slice(0, 5)];
 
   const pageFilters = usePageFilters();
+  const handleMissingWebVitals = organization.features.includes(
+    'performance-vitals-handle-missing-webvitals'
+  );
 
   const {data: timeseriesData, isLoading: isTimeseriesLoading} =
     useProjectWebVitalsScoresTimeseriesQuery({transaction, browserTypes, subregions});
@@ -63,12 +67,14 @@ export function PerformanceScoreBreakdownChart({
   const performanceScoreSubtext = (period && DEFAULT_RELATIVE_PERIODS[period]) ?? '';
   const chartSeriesOrder = ORDER;
 
-  const weightedTimeseriesData = applyStaticWeightsToTimeseries(timeseriesData);
+  const weightedTimeseriesData = applyStaticWeightsToTimeseries(
+    organization,
+    timeseriesData
+  );
 
   const weightedTimeseries = formatTimeSeriesResultsToChartData(
     weightedTimeseriesData,
     segmentColors,
-    false,
     chartSeriesOrder
   );
 
@@ -82,14 +88,16 @@ export function PerformanceScoreBreakdownChart({
       total: timeseriesData.total,
     },
     segmentColors,
-    false,
     chartSeriesOrder
   );
 
-  const weightsSeries = weightedTimeseries[0].data.map(({name}) => {
-    const value = PERFORMANCE_SCORE_WEIGHTS;
-    return {name, value};
-  });
+  const weights = handleMissingWebVitals
+    ? getWeights(
+        ORDER.filter(webVital =>
+          timeseriesData[webVital].some(series => series.value > 0)
+        )
+      )
+    : PERFORMANCE_SCORE_WEIGHTS;
 
   return (
     <StyledChartPanel title={t('Score Breakdown')}>
@@ -111,18 +119,14 @@ export function PerformanceScoreBreakdownChart({
         dataMax={100}
         chartColors={segmentColors}
         tooltipFormatterOptions={{
-          nameFormatter: (name, seriesParams: any) => {
-            const timestamp = seriesParams?.data[0];
-            const weights = weightsSeries.find(
-              series => series.name === timestamp
-            )?.value;
+          nameFormatter: name => {
             // nameFormatter expects a string an will wrap the output in an html string.
             // Kind of a hack, but we can inject some html to escape styling for the subLabel.
             const subLabel =
               weights !== undefined
-                ? ` </strong>(${
-                    weights[name.toLocaleLowerCase()]
-                  }% of Perf Score)<strong>`
+                ? ` </strong>(${weights[name.toLocaleLowerCase()].toFixed(
+                    0
+                  )}% of Perf Score)<strong>`
                 : '';
             return `${name} Score${subLabel}`;
           },

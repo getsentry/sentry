@@ -10,8 +10,8 @@ import storyBook from 'sentry/stories/storyBook';
 import type {DateString} from 'sentry/types/core';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
-import {shiftTimeserieToNow} from '../common/shiftTimeserieToNow';
 import type {Release, TimeseriesData} from '../common/types';
+import {shiftTimeserieToNow} from '../timeSeriesWidget/shiftTimeserieToNow';
 
 import {LineChartWidget} from './lineChartWidget';
 import sampleDurationTimeSeries from './sampleDurationTimeSeries.json';
@@ -103,6 +103,10 @@ export default storyBook(LineChartWidget, story => {
                 shiftTimeserieToNow(durationTimeSeries1),
                 shiftTimeserieToNow(durationTimeSeries2),
               ]}
+              aliases={{
+                'p50(span.duration)': '50th Percentile',
+                'p99(span.duration)': '99th Percentile',
+              }}
             />
           </MediumWidget>
         </SideBySide>

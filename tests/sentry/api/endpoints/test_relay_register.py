@@ -25,10 +25,6 @@ class RelayRegisterTest(APITestCase):
 
         self.path = reverse("sentry-api-0-relay-register-challenge")
 
-    def add_internal_key(self, public_key):
-        if public_key not in settings.SENTRY_RELAY_WHITELIST_PK:
-            settings.SENTRY_RELAY_WHITELIST_PK.append(str(self.public_key))
-
     def register_relay(self, key_pair, version, relay_id):
 
         private_key = key_pair[0]

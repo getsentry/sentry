@@ -1308,7 +1308,7 @@ describe('Results', function () {
             ...LocationFixture(),
             query: {
               ...EventView.fromNewQueryWithLocation(
-                getTransactionViews(organization)[0],
+                getTransactionViews(organization)[0]!,
                 LocationFixture()
               ).generateQueryStringObject(),
             },
@@ -1330,7 +1330,7 @@ describe('Results', function () {
         {router, organization}
       );
 
-      await screen.findAllByText(getTransactionViews(organization)[0].name);
+      await screen.findAllByText(getTransactionViews(organization)[0]!.name);
       await userEvent.click(screen.getByText('Set as Default'));
       expect(await screen.findByText('Remove Default')).toBeInTheDocument();
 
@@ -1835,7 +1835,9 @@ describe('Results', function () {
       await userEvent.click(
         screen.getByPlaceholderText('Search for events, users, tags, and more')
       );
-      expect(screen.getByTestId('filter-token')).toHaveTextContent('event.type:error');
+      expect(
+        await screen.findByRole('option', {name: 'event.type:error'})
+      ).toBeInTheDocument();
     });
 
     it('shows the search history for the transaction dataset', async function () {
@@ -1953,9 +1955,10 @@ describe('Results', function () {
       await userEvent.click(
         screen.getByPlaceholderText('Search for events, users, tags, and more')
       );
-      expect(screen.getByTestId('filter-token')).toHaveTextContent(
-        'transaction.status:ok'
-      );
+
+      expect(
+        await screen.findByRole('option', {name: 'transaction.status:ok'})
+      ).toBeInTheDocument();
     });
   });
 });

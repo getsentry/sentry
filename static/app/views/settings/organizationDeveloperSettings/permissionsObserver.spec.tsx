@@ -7,7 +7,7 @@ import PermissionsObserver from 'sentry/views/settings/organizationDeveloperSett
 describe('PermissionsObserver', () => {
   let model: FormModel;
 
-  beforeEach(() => {
+  function renderForm() {
     model = new FormModel();
 
     render(
@@ -19,21 +19,24 @@ describe('PermissionsObserver', () => {
         />
       </Form>
     );
-  });
+  }
 
   it('defaults to no-access for all resources not passed', () => {
+    renderForm();
     expect(model.getValue('Team--permission')).toBe('no-access');
     expect(model.getValue('Event--permission')).toBe('no-access');
     expect(model.getValue('Member--permission')).toBe('no-access');
   });
 
   it('converts a raw list of scopes into permissions', () => {
+    renderForm();
     expect(model.getValue('Project--permission')).toBe('write');
     expect(model.getValue('Release--permission')).toBe('admin');
     expect(model.getValue('Organization--permission')).toBe('admin');
   });
 
   it('selects the highest ranking scope to convert to permission', () => {
+    renderForm();
     expect(model.getValue('Project--permission')).toBe('write');
   });
 });
