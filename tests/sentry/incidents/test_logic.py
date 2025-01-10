@@ -491,8 +491,6 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.resolve_threshold == resolve_threshold
         assert alert_rule.threshold_period == threshold_period
 
-    # This test will fail unless real migrations are run. Refer to migration 0061.
-    @pytest.mark.migrations  # requires custom migration 0061
     @override_settings(SILO_MODE=SiloMode.MONOLITH)
     def test_two_archived_with_same_name(self):
         name = "allowed"
