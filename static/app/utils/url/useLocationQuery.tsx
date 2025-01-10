@@ -6,16 +6,22 @@ import {
   type decodeList,
   decodeScalar,
   type decodeSorts,
+  type QueryValue,
 } from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 
 type Scalar = string | boolean | number | undefined;
-export type Decoder =
+
+type KnownDecoder =
   | typeof decodeInteger
   | typeof decodeList
   | typeof decodeScalar
   | typeof decodeSorts
   | typeof decodeBoolean;
+
+type GenericDecoder<T = unknown> = (query: QueryValue) => T;
+
+export type Decoder = KnownDecoder | GenericDecoder;
 
 /**
  * Select and memoize query params from location.
