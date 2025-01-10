@@ -1,4 +1,4 @@
-import toSearchTerm from 'sentry/components/devtoolbar/components/transactionToSearchTerm';
+import toSearchTerm from './transactionToSearchTerm';
 
 describe('getSearchTerm', () => {
   it.each([
