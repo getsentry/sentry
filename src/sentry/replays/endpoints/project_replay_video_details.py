@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import logging
 from io import BytesIO
-from subprocess import PIPE, Popen
 
 from django.http import HttpResponse, StreamingHttpResponse
 from django.http.response import HttpResponseBase
 from drf_spectacular.utils import extend_schema
+from ffmpeg import FFmpeg
 from rest_framework.request import Request
 
 from sentry import features
@@ -97,36 +97,16 @@ class ProjectReplayVideoDetailsEndpoint(ProjectEndpoint):
         if video is None:
             return self.respond({"detail": "Replay recording segment not found."}, status=404)
 
-        # Use GStreamer to transcode the video to WebM
+        # Use ffmpeg-python to transcode the video
         input_video = BytesIO(video)
         output_video = BytesIO()
 
-        # The pipeline reads from stdin, transcodes to WebM, and writes to stdout
-        gst_command = [
-            "gst-launch-1.0",
-            "fdsrc",
-            "!",
-            "matroskademux",
-            "!",
-            "vp8enc",
-            "!",
-            "webmmux",
-            "!",
-            "filesink",
-            "location=pipe:1",
-        ]
+        # Run ffmpeg transcoding to WebM format
+        FFmpeg.input("pipe:0").output("pipe:1", format="webm").run(
+            input=input_video, output=output_video
+        )
 
-        # Using subprocess to invoke GStreamer
-        process = Popen(gst_command, stdin=PIPE, stdout=PIPE, stderr=PIPE)
-
-        # Write the video to the stdin of the GStreamer process
-        process.stdin.write(input_video.read())
-        process.stdin.close()
-
-        # Capture the output (transcoded WebM data) from GStreamer
-        transcoded_video = process.stdout.read()
-        output_video.write(transcoded_video)
-        output_video.seek(0)  # Ensure the pointer is at the start
+        output_video.seek(0)  # Reset pointer to the start of the output
 
         if range_header := request.headers.get("Range"):
             response = handle_range_response(range_header, video)
