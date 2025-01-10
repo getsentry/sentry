@@ -42,16 +42,16 @@ class UserEmailsTest(APITestCase):
         assert response.status_code == 201, response.data
         assert UserEmail.objects.filter(user=self.user, email="altemail1@example.com").exists()
 
-        # duplicate email allows still succeeds, but has a diff response code
+        # duplicate email returns 409
         response = self.client.post(self.url, data={"email": "altemail1@example.com"})
-        assert response.status_code == 200, response.data
+        assert response.status_code == 409, response.data
 
     def test_cant_have_same_email_with_different_casing(self):
         user = self.create_user(email="FOOBAR@example.com")
         self.login_as(user=user)
         url = reverse("sentry-api-0-user-emails", kwargs={"user_id": user.id})
         response = self.client.post(url, data={"email": "foobar@example.com"})
-        assert response.status_code == 200, response.data
+        assert response.status_code == 409, response.data
 
     def test_change_verified_secondary_to_primary(self):
         UserEmail.objects.create(user=self.user, email="altemail1@example.com", is_verified=True)
