@@ -206,13 +206,27 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
 
             set_default_symbol_sources(project)
 
-            self.create_audit_entry(
-                request=request,
-                organization=team.organization,
-                target_object=project.id,
-                event=audit_log.get_event_id("PROJECT_ADD"),
-                data=project.get_audit_log_data(),
-            )
+            common_audit_data = {
+                "request": request,
+                "organization": team.organization,
+                "target_object": project.id,
+            }
+
+            if request.data.get("origin"):
+                self.create_audit_entry(
+                    **common_audit_data,
+                    event=audit_log.get_event_id("PROJECT_ADD_WITH_ORIGIN"),
+                    data={
+                        **project.get_audit_log_data(),
+                        "origin": request.data.get("origin"),
+                    },
+                )
+            else:
+                self.create_audit_entry(
+                    **common_audit_data,
+                    event=audit_log.get_event_id("PROJECT_ADD"),
+                    data={**project.get_audit_log_data()},
+                )
 
             project_created.send(
                 project=project,
