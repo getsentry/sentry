@@ -230,8 +230,6 @@ class Monitor(Model):
     organization_id = BoundedBigIntegerField(db_index=True)
     project_id = BoundedBigIntegerField(db_index=True)
 
-    # TODO(epurkhiser): Muted is moving to its own boolean column, this should
-    # become object status again
     status = BoundedPositiveIntegerField(
         default=ObjectStatus.ACTIVE, choices=ObjectStatus.as_choices()
     )
