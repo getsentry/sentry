@@ -537,7 +537,9 @@ class OrganizationMemberPermissionRoleTest(OrganizationMemberListTestBase, Hybri
             data = {
                 "email": f"{invite_role}_1@localhost",
                 "role": invite_role,
-                "teams": [self.team.slug],
+                "teamRoles": [
+                    {"teamSlug": self.team.slug, "role": "contributor"},
+                ],
             }
             if role == "member" or role == "admin":
                 self.get_error_response(self.organization.slug, **data, status_code=403)
@@ -553,12 +555,71 @@ class OrganizationMemberPermissionRoleTest(OrganizationMemberListTestBase, Hybri
             data = {
                 "email": f"{invite_role}_2@localhost",
                 "role": invite_role,
-                "teams": [self.team.slug],
+                "teamRoles": [
+                    {"teamSlug": self.team.slug, "role": "contributor"},
+                ],
             }
             if any(invite_role == allowed_role.id for allowed_role in allowed_roles):
                 self.get_success_response(self.organization.slug, **data, status_code=201)
             else:
                 self.get_error_response(self.organization.slug, **data, status_code=400)
+
+    def invite_to_other_team_helper(self, role):
+        user = self.create_user("inviter@localhost")
+        self.create_member(user=user, organization=self.organization, role=role, teams=[self.team])
+        self.login_as(user=user)
+
+        other_team = self.create_team(organization=self.organization, name="Moo Deng's Team")
+
+        def get_data(email: str, other_team_invite: bool = False):
+            data = {
+                "email": f"{email}@localhost",
+                "role": "member",
+                "teamRoles": [
+                    {
+                        "teamSlug": other_team.slug if other_team_invite else self.team.slug,
+                        "role": "contributor",
+                    },
+                ],
+            }
+            return data
+
+        # members can never invite members if disable_member_invite = True
+        self.organization.flags.allow_joinleave = True
+        self.organization.flags.disable_member_invite = True
+        self.organization.save()
+        response = self.get_error_response(
+            self.organization.slug, **get_data("foo1"), status_code=403
+        )
+        assert response.data.get("detail") == "You do not have permission to perform this action."
+
+        self.organization.flags.allow_joinleave = False
+        self.organization.flags.disable_member_invite = True
+        self.organization.save()
+        response = self.get_error_response(
+            self.organization.slug, **get_data("foo2"), status_code=403
+        )
+        assert response.data.get("detail") == "You do not have permission to perform this action."
+
+        # members can only invite members to teams they are in if allow_joinleave = False
+        self.organization.flags.allow_joinleave = False
+        self.organization.flags.disable_member_invite = False
+        self.organization.save()
+        self.get_success_response(self.organization.slug, **get_data("foo3"), status_code=201)
+        response = self.get_error_response(
+            self.organization.slug, **get_data("foo4", True), status_code=400
+        )
+        assert (
+            response.data.get("detail")
+            == "You cannot assign members to teams you are not a member of."
+        )
+
+        # members can invite member to any team if allow_joinleave = True
+        self.organization.flags.allow_joinleave = True
+        self.organization.flags.disable_member_invite = False
+        self.organization.save()
+        self.get_success_response(self.organization.slug, **get_data("foo5"), status_code=201)
+        self.get_success_response(self.organization.slug, **get_data("foo6", True), status_code=201)
 
     def test_owner_invites(self):
         self.invite_all_helper("owner")
@@ -568,9 +629,11 @@ class OrganizationMemberPermissionRoleTest(OrganizationMemberListTestBase, Hybri
 
     def test_admin_invites(self):
         self.invite_all_helper("admin")
+        self.invite_to_other_team_helper("admin")
 
     def test_member_invites(self):
         self.invite_all_helper("member")
+        self.invite_to_other_team_helper("member")
 
     def test_respects_feature_flag(self):
         user = self.create_user("baz@example.com")
