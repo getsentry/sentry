@@ -66,6 +66,19 @@ class ReplayVideoDetailsTestCase(APITestCase, ReplaysSnubaTestCase):
             assert response.get("Content-Length") == str(self.segment_data_size)
             assert response.get("Content-Type") == "application/octet-stream"
 
+    def test_get_replay_video_as_webm(self):
+        self.save_video(0, self.segment_data)
+        self.login_as(user=self.user)
+
+        with self.feature("organizations:session-replay"):
+            response = self.client.get(self.url)
+
+            assert response.status_code == 200, response.content
+            assert close_streaming_response(response) == self.segment_data
+            assert response.get("Content-Disposition") == f'attachment; filename="{self.filename}"'
+            assert response.get("Content-Length") == str(self.segment_data_size)
+            assert response.get("Content-Type") == "application/octet-stream"
+
     def test_get_replay_video_range(self):
         self.save_video(0, self.segment_data)
         self.login_as(user=self.user)

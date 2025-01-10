@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from io import BytesIO
+from subprocess import PIPE, Popen
 
 from django.http import HttpResponse, StreamingHttpResponse
 from django.http.response import HttpResponseBase
@@ -68,6 +69,64 @@ class ProjectReplayVideoDetailsEndpoint(ProjectEndpoint):
         video = download_video(segment)
         if video is None:
             return self.respond({"detail": "Replay recording segment not found."}, status=404)
+
+        if range_header := request.headers.get("Range"):
+            response = handle_range_response(range_header, video)
+        else:
+            video_io = BytesIO(video)
+            iterator = iter(lambda: video_io.read(4096), b"")
+            response = StreamingHttpResponse(iterator, content_type="application/octet-stream")
+            response["Content-Length"] = len(video)
+
+        response["Accept-Ranges"] = "bytes"
+        response["Content-Disposition"] = f'attachment; filename="{make_video_filename(segment)}"'
+        return response
+
+    def getAsWebM(self, request: Request, project, replay_id, segment_id) -> HttpResponseBase:
+        """Return a replay video in a webm format."""
+        if not features.has(
+            "organizations:session-replay", project.organization, actor=request.user
+        ):
+            return self.respond(status=404)
+
+        segment = fetch_segment_metadata(project.id, replay_id, int(segment_id))
+        if not segment:
+            return self.respond({"detail": "Replay recording segment not found."}, status=404)
+
+        video = download_video(segment)
+        if video is None:
+            return self.respond({"detail": "Replay recording segment not found."}, status=404)
+
+        # Use GStreamer to transcode the video to WebM
+        input_video = BytesIO(video)
+        output_video = BytesIO()
+
+        # The pipeline reads from stdin, transcodes to WebM, and writes to stdout
+        gst_command = [
+            "gst-launch-1.0",
+            "fdsrc",
+            "!",
+            "matroskademux",
+            "!",
+            "vp8enc",
+            "!",
+            "webmmux",
+            "!",
+            "filesink",
+            "location=pipe:1",
+        ]
+
+        # Using subprocess to invoke GStreamer
+        process = Popen(gst_command, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+
+        # Write the video to the stdin of the GStreamer process
+        process.stdin.write(input_video.read())
+        process.stdin.close()
+
+        # Capture the output (transcoded WebM data) from GStreamer
+        transcoded_video = process.stdout.read()
+        output_video.write(transcoded_video)
+        output_video.seek(0)  # Ensure the pointer is at the start
 
         if range_header := request.headers.get("Range"):
             response = handle_range_response(range_header, video)
