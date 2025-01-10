@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from enum import IntEnum
+from abc import abstractproperty
+from enum import IntEnum, StrEnum
 from typing import TYPE_CHECKING, Any, Generic, TypedDict, TypeVar
 
 from sentry.types.group import PriorityLevel
@@ -18,6 +19,12 @@ class DetectorPriorityLevel(IntEnum):
     LOW = PriorityLevel.LOW
     MEDIUM = PriorityLevel.MEDIUM
     HIGH = PriorityLevel.HIGH
+
+
+class DataConditionHandlerType(StrEnum):
+    DETECTOR_TRIGGER = "detector_trigger"
+    WORKFLOW_TRIGGER = "workflow_trigger"
+    ACTION_FILTER = "action_filter"
 
 
 # The unique key used to identify a group within a DataPacket result.
@@ -55,6 +62,10 @@ class DataSourceTypeHandler(Generic[T]):
 
 
 class DataConditionHandler(Generic[T]):
+    @abstractproperty
+    def type(self) -> DataConditionHandlerType:
+        pass
+
     @staticmethod
     def evaluate_value(value: T, comparison: Any) -> DataConditionResult:
         raise NotImplementedError
