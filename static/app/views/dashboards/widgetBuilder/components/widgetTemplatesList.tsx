@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -16,7 +16,7 @@ function WidgetTemplatesList() {
   const widgets = getTopNConvertedDefaultWidgets(organization);
 
   return (
-    <div>
+    <Fragment>
       {widgets.map((widget, index) => {
         const iconColor = theme.charts.getColorPalette(widgets.length - 2)?.[index]!;
 
@@ -31,7 +31,7 @@ function WidgetTemplatesList() {
               <IconWrapper backgroundColor={iconColor}>
                 <Icon color="white" />
               </IconWrapper>
-              <ContentWrapper>
+              <div>
                 <WidgetTitle>{widget.title}</WidgetTitle>
                 <WidgetDescription>{widget.description}</WidgetDescription>
                 {selectedWidget === index && (
@@ -40,12 +40,12 @@ function WidgetTemplatesList() {
                     <Button size="sm">{t('Add to dashboard')}</Button>
                   </ButtonsWrapper>
                 )}
-              </ContentWrapper>
+              </div>
             </TemplateCard>
           </TemplateContainer>
         );
       })}
-    </div>
+    </Fragment>
   );
 }
 
@@ -100,8 +100,6 @@ const IconWrapper = styled('div')<{backgroundColor: string}>`
   border-radius: ${p => p.theme.borderRadius};
   background: ${p => p.backgroundColor};
 `;
-
-const ContentWrapper = styled('div')``;
 
 const ButtonsWrapper = styled('div')`
   display: flex;
