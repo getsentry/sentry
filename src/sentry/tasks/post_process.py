@@ -43,6 +43,7 @@ if TYPE_CHECKING:
     from sentry.eventstore.models import Event, GroupEvent
     from sentry.eventstream.base import GroupState
     from sentry.models.group import Group
+    from sentry.models.groupinbox import InboxReasonDetails
     from sentry.models.project import Project
     from sentry.models.team import Team
     from sentry.ownership.grammar import Rule
@@ -857,7 +858,7 @@ def process_snoozes(job: PostProcessJob) -> None:
         )
 
         if not snooze_condition_still_applies:
-            snooze_details = {
+            snooze_details: InboxReasonDetails = {
                 "until": snooze.until,
                 "count": snooze.count,
                 "window": snooze.window,
@@ -1489,6 +1490,17 @@ def detect_base_urls_for_uptime(job: PostProcessJob):
     detect_base_url_for_project(job["event"].project, url)
 
 
+def check_if_flags_sent(job: PostProcessJob) -> None:
+    from sentry.models.project import Project
+    from sentry.signals import first_flag_received
+
+    event = job["event"]
+    project = event.project
+    flag_context = get_path(event.data, "contexts", "flags")
+    if flag_context and not project.flags.has_flags:
+        first_flag_received.send_robust(project=project, sender=Project)
+
+
 GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
     GroupCategory.ERROR: [
         _capture_group_stats,
@@ -1511,6 +1523,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         process_replay_link,
         link_event_to_user_report,
         detect_base_urls_for_uptime,
+        check_if_flags_sent,
     ],
     GroupCategory.FEEDBACK: [
         feedback_filter_decorator(process_snoozes),

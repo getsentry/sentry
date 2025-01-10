@@ -38,7 +38,6 @@ export default function IssueTagsPreview({
     return (
       <LoadingContainer style={{paddingTop: space(1)}}>
         <Placeholder width="320px" height="95px" />
-        <SectionDivider />
       </LoadingContainer>
     );
   }
@@ -54,7 +53,6 @@ export default function IssueTagsPreview({
           <TagPreviewDistribution key={tag.key} tag={tag} />
         ))}
       </TagsPreview>
-      <SectionDivider />
     </Fragment>
   );
 }
@@ -86,15 +84,4 @@ const TagsPreview = styled('div')`
 const LoadingContainer = styled('div')`
   padding-top: ${space(1)};
   display: flex;
-`;
-
-const SectionDivider = styled('div')`
-  border-left: 1px solid ${p => p.theme.translucentBorder};
-  display: flex;
-  align-items: center;
-  margin: ${space(1)};
-
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    display: none;
-  }
 `;

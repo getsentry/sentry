@@ -11,16 +11,23 @@ import {
 import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Tooltip} from 'sentry/components/tooltip';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatTraceDuration} from 'sentry/utils/duration/formatTraceDuration';
+import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {replayPlayerTimestampEmitter} from 'sentry/utils/replays/replayPlayerTimestampEmitter';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {
+  getFormattedDuration,
+  WEB_VITALS_METERS_CONFIG,
+} from 'sentry/views/insights/browser/webVitals/components/webVitalMeters';
+import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import {
   scoreToStatus,
   STATUS_TEXT,
@@ -405,15 +412,31 @@ export function Trace({
                 indicator.score === undefined
                   ? 'none'
                   : STATUS_TEXT[scoreToStatus(indicator.score)];
+              const webvital = indicator.label.toLowerCase() as WebVitals;
+
+              const defaultFormatter = (value: number) =>
+                getFormattedDuration(value / 1000);
+              const formatter =
+                WEB_VITALS_METERS_CONFIG[webvital]?.formatter ?? defaultFormatter;
 
               return (
                 <Fragment key={i}>
                   <div
                     key={i}
                     ref={r => manager.registerIndicatorLabelRef(r, i, indicator)}
-                    className={`TraceIndicatorLabel ${status}`}
+                    className={`TraceIndicatorLabelContainer ${status}`}
                   >
-                    {indicator.label}
+                    <Tooltip
+                      title={
+                        <div>
+                          {WEB_VITAL_DETAILS[`measurements.${webvital}`]?.name}
+                          <br />
+                          {formatter(indicator.measurement.value)} - {status}
+                        </div>
+                      }
+                    >
+                      <div className="TraceIndicatorLabel">{indicator.label}</div>
+                    </Tooltip>
                   </div>
                   <div
                     ref={r => manager.registerIndicatorRef(r, i, indicator)}
@@ -439,7 +462,7 @@ export function Trace({
               ref={r => manager.registerTimelineIndicatorRef(r, i)}
               className="TraceIndicator Timeline"
             >
-              <div className="TraceIndicatorLabel">
+              <div className="TraceIndicatorLabelContainer">
                 {indicatorTimestamp > 0
                   ? formatTraceDuration(manager.view.trace_view.x + indicatorTimestamp)
                   : '0s'}
@@ -761,7 +784,7 @@ const TraceStylingWrapper = styled('div')`
     }
 
     .TraceIndicator.Timeline {
-      .TraceIndicatorLabel {
+      .TraceIndicatorLabelContainer {
         top: 26px;
       }
       .TraceIndicatorLine {
@@ -864,7 +887,7 @@ const TraceStylingWrapper = styled('div')`
     pointer-events: none;
   }
 
-  .TraceIndicatorLabel {
+  .TraceIndicatorLabelContainer {
     min-width: 34px;
     text-align: center;
     position: absolute;
@@ -874,7 +897,6 @@ const TraceStylingWrapper = styled('div')`
     background-color: ${p => p.theme.background};
     border-radius: ${p => p.theme.borderRadius};
     border: 1px solid ${p => p.theme.border};
-    padding: 2px;
     display: inline-block;
     line-height: 1;
     margin-top: 2px;
@@ -905,13 +927,8 @@ const TraceStylingWrapper = styled('div')`
     }
   }
 
-  .TraceIndicatorContainer {
-    position: absolute;
-    z-index: 1;
-
-    &:hover {
-      z-index: 10;
-    }
+  .TraceIndicatorLabel {
+    padding: 2px;
   }
 
   .TraceIndicator {
@@ -980,7 +997,7 @@ const TraceStylingWrapper = styled('div')`
     }
 
     &.Errored {
-      .TraceIndicatorLabel {
+      .TraceIndicatorLabelContainer {
         border: 1px solid ${p => p.theme.error};
         color: ${p => p.theme.error};
       }
@@ -1000,7 +1017,7 @@ const TraceStylingWrapper = styled('div')`
       z-index: 1;
       pointer-events: none;
 
-      .TraceIndicatorLabel {
+      .TraceIndicatorLabelContainer {
         font-weight: ${p => p.theme.fontWeightNormal};
         min-width: 0;
         top: 8px;

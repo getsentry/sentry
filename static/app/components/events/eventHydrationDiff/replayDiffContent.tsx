@@ -34,19 +34,23 @@ export default function ReplayDiffContent({event, group, orgSlug, replaySlug}: P
     return null;
   }
 
-  const {leftOffsetMs, rightOffsetMs} = getReplayDiffOffsetsFromEvent(replay, event);
+  const {frameOrEvent, leftOffsetMs, rightOffsetMs} = getReplayDiffOffsetsFromEvent(
+    replay,
+    event
+  );
   return (
     <InterimSection
       type={SectionKey.HYDRATION_DIFF}
       title={t('Hydration Error Diff')}
       actions={
         <OpenReplayComparisonButton
+          frameOrEvent={frameOrEvent}
+          initialLeftOffsetMs={leftOffsetMs}
+          initialRightOffsetMs={rightOffsetMs}
           key="open-modal-button"
-          leftOffsetMs={leftOffsetMs}
           replay={replay}
-          rightOffsetMs={rightOffsetMs}
-          surface="issue-details" // TODO: refactor once this component is used in more surfaces
           size="xs"
+          surface="issue-details" // TODO: refactor once this component is used in more surfaces
         >
           {t('Open Diff Viewer')}
         </OpenReplayComparisonButton>
@@ -56,6 +60,7 @@ export default function ReplayDiffContent({event, group, orgSlug, replaySlug}: P
         <ReplayGroupContextProvider groupId={group?.id} eventId={event.id}>
           <DiffCompareContextProvider
             replay={replay}
+            frameOrEvent={frameOrEvent}
             initialLeftOffsetMs={leftOffsetMs}
             initialRightOffsetMs={rightOffsetMs}
           >
