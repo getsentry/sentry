@@ -37,4 +37,12 @@ export class Ladder {
 
     return rung[1];
   }
+
+  get min() {
+    return (this.rungs.at(0) as Rung)[1];
+  }
+
+  get max() {
+    return (this.rungs.at(-1) as Rung)[1];
+  }
 }
