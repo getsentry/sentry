@@ -332,17 +332,7 @@ def update_migrated_alert_rule(alert_rule: AlertRule, updated_fields: dict[str, 
         config["comparison_delta"] = updated_fields["comparison_delta"]
     updated_detector_fields["config"] = config
 
-    # if the user updated resolve_threshold or threshold_type, then we also need to update the Detector's DataConditions
-    """
-    type:
-    - get all data conditions associated with the alert rule
-    - for each data condition, update the threshold type
-
-    resolve threshold:
-    - figure out which data condition maps to resolve (how?)
-    - we can get to detector DCG and then look for condition result OK
-    - update the comparison field
-    """
+    # if the user updated resolve_threshold or threshold_type, then we also need to update the detector triggers
     if "threshold_type" in updated_fields or "resolve_threshold" in updated_fields:
         data_condition_group = detector.workflow_condition_group
         if data_condition_group is None:
