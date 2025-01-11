@@ -101,20 +101,7 @@ class ProjectReplayVideoDetailsEndpoint(ProjectEndpoint):
         output_video = BytesIO()  # Output buffer for the transcoded video
 
         # FFmpeg command to transcode video from MP4 (or other formats) to WebM
-        command = [
-            "ffmpeg",  # Call ffmpeg
-            "-i",
-            "pipe:0",  # Input comes from stdin (pipe:0)
-            "-c:v",
-            "vp8",  # Video codec for WebM
-            "-b:v",
-            "1M",  # Video bitrate (1 Mbps, adjust as needed)
-            "-c:a",
-            "libvorbis",  # Audio codec for WebM (libvorbis)
-            "-f",
-            "webm",  # Set output format to WebM
-            "pipe:1",  # Output goes to stdout (pipe:1)
-        ]
+        command = ["ffmpeg -i pipe:0 -c:v libvpx-vp9 -crf 4 -b:v 0 -f webm pipe:1"]
 
         # Run the FFmpeg command using subprocess
         process = Popen(command, stdin=PIPE, stdout=PIPE, stderr=PIPE)
@@ -136,7 +123,7 @@ class ProjectReplayVideoDetailsEndpoint(ProjectEndpoint):
             video_io = output_video
             iterator = iter(lambda: video_io.read(4096), b"")
             response = StreamingHttpResponse(iterator, content_type="application/octet-stream")
-            response["Content-Length"] = len(output_video)
+            response["Content-Length"] = len(output_video.getvalue())
 
         response["Accept-Ranges"] = "bytes"
         response["Content-Disposition"] = f'attachment; filename="{make_video_filename(segment)}"'
