@@ -1,4 +1,5 @@
 import {t} from 'sentry/locale';
+import type {AlertRuleActivation} from 'sentry/types/alerts';
 import type {MEPAlertsQueryType} from 'sentry/views/alerts/wizard/options';
 import type {SchemaFormConfig} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
 
@@ -124,6 +125,7 @@ export type UnsavedMetricRule = {
 
 // Form values for updating a metric alert rule
 export interface SavedMetricRule extends UnsavedMetricRule {
+  activations: AlertRuleActivation[];
   dateCreated: string;
   dateModified: string;
   id: string;
