@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import logging
 from io import BytesIO
+from subprocess import PIPE, Popen
 
 from django.http import HttpResponse, StreamingHttpResponse
 from django.http.response import HttpResponseBase
 from drf_spectacular.utils import extend_schema
-from ffmpeg import FFmpeg
 from rest_framework.request import Request
 
 from sentry import features
@@ -97,24 +97,46 @@ class ProjectReplayVideoDetailsEndpoint(ProjectEndpoint):
         if video is None:
             return self.respond({"detail": "Replay recording segment not found."}, status=404)
 
-        # Use ffmpeg-python to transcode the video
-        input_video = BytesIO(video)
-        output_video = BytesIO()
+        input_video = BytesIO(video)  # Create a BytesIO buffer for the video
+        output_video = BytesIO()  # Output buffer for the transcoded video
 
-        # Run ffmpeg transcoding to WebM format
-        FFmpeg.input("pipe:0").output("pipe:1", format="webm").run(
-            input=input_video, output=output_video
-        )
+        # FFmpeg command to transcode video from MP4 (or other formats) to WebM
+        command = [
+            "ffmpeg",  # Call ffmpeg
+            "-i",
+            "pipe:0",  # Input comes from stdin (pipe:0)
+            "-c:v",
+            "vp8",  # Video codec for WebM
+            "-b:v",
+            "1M",  # Video bitrate (1 Mbps, adjust as needed)
+            "-c:a",
+            "libvorbis",  # Audio codec for WebM (libvorbis)
+            "-f",
+            "webm",  # Set output format to WebM
+            "pipe:1",  # Output goes to stdout (pipe:1)
+        ]
 
-        output_video.seek(0)  # Reset pointer to the start of the output
+        # Run the FFmpeg command using subprocess
+        process = Popen(command, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+
+        # Write the video data to the stdin of the FFmpeg process
+        process.stdin.write(input_video.read())
+        process.stdin.close()
+
+        # Read the transcoded WebM video from stdout of the FFmpeg process
+        transcoded_video = process.stdout.read()
+
+        # Write the transcoded video to the output buffer
+        output_video.write(transcoded_video)
+        output_video.seek(0)
 
         if range_header := request.headers.get("Range"):
-            response = handle_range_response(range_header, video)
+            response = handle_range_response(range_header, output_video.getvalue())
         else:
-            video_io = BytesIO(video)
+            video_io = output_video
             iterator = iter(lambda: video_io.read(4096), b"")
             response = StreamingHttpResponse(iterator, content_type="application/octet-stream")
-            response["Content-Length"] = len(video)
+            response["Content-Length"] = len(output_video)
 
         response["Accept-Ranges"] = "bytes"
         response["Content-Disposition"] = f'attachment; filename="{make_video_filename(segment)}"'
