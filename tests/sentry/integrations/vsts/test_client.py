@@ -19,6 +19,7 @@ from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_PATH, PROXY_SIGNATURE_HEADER
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.integrations import get_installation_of_type
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.users.models.identity import Identity, IdentityProvider
@@ -66,6 +67,44 @@ class VstsApiClientTest(VstsIntegrationTestCase):
             "vso.serviceendpoint_manage",
             "vso.work_write",
         ]
+        assert identity.data["access_token"] == "new-access-token"
+        assert identity.data["refresh_token"] == "new-refresh-token"
+        assert identity.data["expires"] > int(time())
+
+    @with_feature("organizations:migrate-azure-devops-integration")
+    def test_refreshes_expired_token_new_integration(self):
+        self.assert_installation(new=True)
+        integration, installation = self._get_integration_and_install()
+
+        # Make the Identity have an expired token
+        idp = IdentityProvider.objects.get(external_id=self.vsts_account_id)
+        identity = Identity.objects.get(idp_id=idp.id)
+        identity.data["expires"] = int(time()) - int(123456789)
+        identity.save()
+
+        # New values VSTS will return on refresh
+        self.access_token = "new-access-token"
+        self.refresh_token = "new-refresh-token"
+        self._stub_vsts()
+
+        # Make a request with expired token
+        installation.get_client().get_projects()
+
+        # Second to last request, before the Projects request, was to refresh
+        # the Access Token.
+        assert (
+            responses.calls[-2].request.url
+            == "https://login.microsoftonline.com/common/oauth2/v2.0/token"
+        )
+
+        # Then we request the Projects with the new token
+        assert (
+            responses.calls[-1].request.url.split("?")[0]
+            == f"{self.vsts_base_url.lower()}_apis/projects"
+        )
+
+        identity = Identity.objects.get(id=identity.id)
+        assert set(identity.scopes) == set(VstsIntegrationProvider.NEW_SCOPES)
         assert identity.data["access_token"] == "new-access-token"
         assert identity.data["refresh_token"] == "new-refresh-token"
         assert identity.data["expires"] > int(time())
