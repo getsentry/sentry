@@ -17,9 +17,7 @@ import {CHART_HEIGHT} from 'sentry/views/insights/database/settings';
 
 import {areQueriesEmpty} from './utils';
 
-interface Props {}
-
-export function TracesChart({}: Props) {
+export function TracesChart() {
   const location = useLocation();
 
   const queries = useMemo(() => {

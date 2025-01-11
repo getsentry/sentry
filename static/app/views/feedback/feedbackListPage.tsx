@@ -23,15 +23,12 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {feedbackWidgetPlatforms} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
-interface Props extends RouteComponentProps<{}, {}, {}> {}
-
-export default function FeedbackListPage({}: Props) {
+export default function FeedbackListPage() {
   const organization = useOrganization();
   const {hasSetupOneFeedback} = useHaveSelectedProjectsSetupFeedback();
   const {hasSetupNewFeedback} = useHaveSelectedProjectsSetupNewFeedback();

@@ -284,8 +284,6 @@ export default typescript.config([
       'no-case-declarations': 'off', // TODO(ryan953): Fix violations and delete this line
       'no-constant-binary-expression': 'off', // TODO(ryan953): Fix violations and delete this line
       'no-dupe-class-members': 'off', // TODO(ryan953): Fix violations and delete this line
-      'no-dupe-else-if': 'off', // TODO(ryan953): Fix violations and delete this line
-      'no-empty-pattern': 'off', // TODO(ryan953): Fix violations and delete this line
       'no-import-assign': 'off', // TODO(ryan953): Fix violations and delete this line
       'no-loss-of-precision': 'off', // TODO(ryan953): Fix violations and delete this line
       'no-prototype-builtins': 'off', // TODO(ryan953): Fix violations and delete this line

@@ -6,7 +6,7 @@ import NewTokenHandler from 'sentry/views/settings/components/newTokenHandler';
 
 describe('NewTokenHandler', () => {
   it('renders', () => {
-    const callback = ({}) => {};
+    const callback = () => {};
     render(<NewTokenHandler token={ApiTokenFixture().token} handleGoBack={callback} />);
   });
 });
