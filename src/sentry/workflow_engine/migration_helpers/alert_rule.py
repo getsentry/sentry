@@ -105,6 +105,9 @@ def migrate_metric_data_conditions(
     ).get(alert_rule=alert_rule)
     detector = alert_rule_detector.detector
     detector_data_condition_group = detector.workflow_condition_group
+    if detector_data_condition_group is None:
+        logger.error("workflow_condition_group does not exist", extra={"detector": detector})
+        return None
 
     threshold_type = (
         Condition.GREATER
