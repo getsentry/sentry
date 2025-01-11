@@ -10,7 +10,7 @@ import {organizationSamplingForm} from 'sentry/views/settings/dynamicSampling/ut
 
 const {useFormField} = organizationSamplingForm;
 
-export function OrganizationSampleRateField({}) {
+export function OrganizationSampleRateField() {
   const field = useFormField('targetSampleRate');
   const hasAccess = useHasDynamicSamplingWriteAccess();
 
