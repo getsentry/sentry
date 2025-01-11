@@ -368,7 +368,7 @@ function ChainLink({
         </AnimatePresence>
         <RethinkButton
           ref={setReferenceElement}
-          icon={<IconThumb direction="down" size="xs" />}
+          icon={<IconThumb direction="down" size="sm" />}
           size="zero"
           className="rethink-button"
           title={t('Rethink from here')}
@@ -516,7 +516,7 @@ const RethinkButtonContainer = styled('div')`
 
 const RethinkMessage = styled(motion.div)`
   color: ${p => p.theme.pink400};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSizeSmall};
   position: absolute;
   right: calc(100% + ${space(1)});
   margin-top: 1px;
