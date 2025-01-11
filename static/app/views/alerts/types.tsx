@@ -1,4 +1,4 @@
-import type {AlertRuleActivation, IssueAlertRule} from 'sentry/types/alerts';
+import type {IssueAlertRule} from 'sentry/types/alerts';
 import type {User} from 'sentry/types/user';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
@@ -32,7 +32,6 @@ export type Incident = {
   status: IncidentStatus;
   statusMethod: IncidentStatusMethod;
   title: string;
-  activation?: AlertRuleActivation;
   activities?: ActivityType[];
 };
 
@@ -72,11 +71,6 @@ export enum IncidentStatus {
   CLOSED = 2,
   WARNING = 10,
   CRITICAL = 20,
-}
-
-export enum ActivationStatus {
-  WAITING = 0,
-  MONITORING = 1,
 }
 
 export enum IncidentStatusMethod {
