@@ -262,6 +262,43 @@ class PHPParser(LanguageParser):
     ]
 
 
+class CSharpParser(LanguageParser):
+    issue_row_template = "| **`{function_name}`** | [**{title}**]({url}) {subtitle} <br> `Event Count:` **{event_count}** |"
+
+    function_prefix = "."
+
+    r"""
+    Type of function declaration    Example
+    Method declaration:             public async Task<int> MethodName(string param)
+    Lambda expression:              Action<string> handler = async (string param) =>
+    Local function:                 void LocalFunction() { }
+    Expression body:                public string Name => _name;
+    Anonymous method:               delegate(string x) { return x.ToUpper(); }
+    """
+    # Match standard method declarations with optional modifiers and return types
+    method_declaration_regex = r"^@@.*@@\s*(?:public|private|protected|internal|\s)*\s*(?:static|virtual|override|abstract|\s)*\s*(?:async\s+)?(?:\w+(?:<[^>]+>)?)\s+(?P<fnc>\w+)\s*\("
+
+    # Match lambda expressions
+    lambda_expression_regex = r"^@@.*@@.*\s+(?P<fnc>\w+)\s*=\s*(?:async\s+)?\([^)]*\)\s*=>"
+
+    # Match local functions
+    local_function_regex = r"^@@.*@@\s*(?:static\s+)?(?:async\s+)?(?:\w+(?:<[^>]+>)?)\s+(?P<fnc>\w+)\s*\([^)]*\)\s*(?:=>|{)"
+
+    # Match expression-bodied members
+    expression_body_regex = r"^@@.*@@\s*(?:public|private|protected|internal|\s)*\s*(?:\w+(?:<[^>]+>)?)\s+(?P<fnc>\w+)\s*=>"
+
+    # Match anonymous method assignments
+    anonymous_method_regex = r"^@@.*@@.*\s+(?P<fnc>\w+)\s*=\s*delegate\s*\("
+
+    regexes = [
+        method_declaration_regex,
+        lambda_expression_regex,
+        local_function_regex,
+        expression_body_regex,
+        anonymous_method_regex,
+    ]
+
+
 PATCH_PARSERS: dict[str, Any] = {
     "py": PythonParser,
     "js": JavascriptParser,
@@ -270,4 +307,6 @@ PATCH_PARSERS: dict[str, Any] = {
     "tsx": JavascriptParser,
     "php": PHPParser,
     "rb": RubyParser,
+    "cs": CSharpParser,
+    "csx": CSharpParser,
 }
