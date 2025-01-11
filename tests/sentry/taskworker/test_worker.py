@@ -82,11 +82,12 @@ class TestTaskWorker(TestCase):
             mock_get.assert_called_once()
         assert task is None
 
-    def test_run_once(self) -> None:
+    def test_run_once_no_next_task(self) -> None:
         max_runtime = 5
         taskworker = TaskWorker(rpc_host="127.0.0.1:50051", max_task_count=1)
         with mock.patch.object(taskworker, "client") as mock_client:
             mock_client.get_task.return_value = SIMPLE_TASK
+            # No next_task returned
             mock_client.update_task.return_value = None
 
             # Run once to add the task and then poll until the task is complete.
@@ -100,6 +101,38 @@ class TestTaskWorker(TestCase):
                     raise AssertionError("Timeout waiting for get_task to be called")
 
             assert mock_client.get_task.called
+            mock_client.update_task.assert_called_with(
+                task_id=SIMPLE_TASK.id,
+                status=TASK_ACTIVATION_STATUS_COMPLETE,
+                fetch_next_task=FetchNextTask(namespace=None),
+            )
+
+    def test_run_once_with_next_task(self) -> None:
+        # Cover the scenario where update_task returns the next task which should
+        # be processed.
+        max_runtime = 5
+        taskworker = TaskWorker(rpc_host="127.0.0.1:50051", max_task_count=1)
+        with mock.patch.object(taskworker, "client") as mock_client:
+
+            def update_task_response(*args, **kwargs):
+                if mock_client.update_task.call_count >= 1:
+                    return None
+                return SIMPLE_TASK
+
+            mock_client.update_task.side_effect = update_task_response
+            mock_client.get_task.return_value = SIMPLE_TASK
+
+            # Run until two tasks have been processed
+            start = time.time()
+            while True:
+                taskworker.run_once()
+                if mock_client.update_task.call_count >= 2:
+                    break
+                if time.time() - start > max_runtime:
+                    raise AssertionError("Timeout waiting for get_task to be called")
+
+            assert mock_client.get_task.called
+            assert mock_client.update_task.call_count == 2
             mock_client.update_task.assert_called_with(
                 task_id=SIMPLE_TASK.id,
                 status=TASK_ACTIVATION_STATUS_COMPLETE,
