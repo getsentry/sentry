@@ -553,8 +553,8 @@ class VstsIntegrationProvider(IntegrationProvider):
 
         # Assertion error happens when org_integration does not exist
         # KeyError happens when subscription is not found
-        except (IntegrationModel.DoesNotExist, AssertionError, KeyError) as e:
-            if isinstance(e, IntegrationModel.DoesNotExist) and features.has(
+        except (IntegrationModel.DoesNotExist, AssertionError, KeyError):
+            if features.has(
                 "organizations:migrate-azure-devops-integration", self.pipeline.organization
             ):
                 # If there is a new integration, we need to set the migration version to 1
