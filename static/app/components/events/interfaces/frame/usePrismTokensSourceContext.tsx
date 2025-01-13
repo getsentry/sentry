@@ -253,7 +253,7 @@ export const usePrismTokensSourceContext = ({
 }) => {
   const organization = useOrganization({allowNull: true});
 
-  const fullLanguage = getPrismLanguage(fileExtension);
+  const fullLanguage = getPrismLanguage(fileExtension)!;
   const {preCode, executedCode, postCode} = convertContextLines(contextLines, lineNo);
   const code = preCode + executedCode + postCode;
 

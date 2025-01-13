@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-__all__ = ("Plugin",)
-
 import logging
 from collections.abc import Sequence
 from threading import local
@@ -13,16 +11,16 @@ from django.urls import reverse
 from sentry.auth import access
 from sentry.models.project import Project
 from sentry.plugins import HIDDEN_PLUGINS
-from sentry.plugins.base.configuration import default_plugin_config, default_plugin_options
 from sentry.plugins.base.response import DeferredResponse
 from sentry.plugins.base.view import PluggableViewMixin
 from sentry.plugins.config import PluginConfigMixin
 from sentry.plugins.status import PluginStatusMixin
 from sentry.projects.services.project import RpcProject
-from sentry.utils.hashlib import md5_text
 
 if TYPE_CHECKING:
     from django.utils.functional import _StrPromise
+
+__all__ = ("Plugin",)
 
 
 class PluginMount(type):
@@ -205,25 +203,6 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
         if project is not None:
             return self.project_conf_template
         return self.site_conf_template
-
-    def get_conf_options(self, project=None):
-        """
-        Returns a dict of all of the configured options for a project.
-
-        >>> plugin.get_conf_options(project)
-        """
-        return default_plugin_options(self, project)
-
-    def get_conf_version(self, project):
-        """
-        Returns a version string that represents the current configuration state.
-
-        If any option changes or new options added, the version will change.
-
-        >>> plugin.get_conf_version(project)
-        """
-        options = self.get_conf_options(project)
-        return md5_text("&".join(sorted("%s=%s" % o for o in options.items()))).hexdigest()[:3]
 
     def get_conf_title(self):
         """
@@ -497,10 +476,6 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
         We use this to hide plugins as they are replaced with integrations.
         """
         return self.slug in HIDDEN_PLUGINS
-
-    def configure(self, request, project=None):
-        """Configures the plugin."""
-        return default_plugin_config(self, project, request)
 
     def get_url_module(self):
         """Allows a plugin to return the import path to a URL module."""

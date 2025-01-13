@@ -1,7 +1,7 @@
 from unittest import mock
 
 from sentry.eventstream.base import GroupState
-from sentry.issues.grouptype import ErrorGroupType
+from sentry.grouping.grouptype import ErrorGroupType
 from sentry.workflow_engine.models import DataConditionGroup
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.processors.workflow import evaluate_workflow_triggers, process_workflows
@@ -50,7 +50,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
     def test_regressed_event(self):
         dcg = self.create_data_condition_group()
         self.create_data_condition(
-            type=Condition.REGRESSED_EVENT,
+            type=Condition.REGRESSION_EVENT,
             comparison=True,
             condition_result=True,
             condition_group=dcg,

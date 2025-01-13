@@ -7,7 +7,11 @@ from enum import Enum
 
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer
 from arroyo.dlq import InvalidMessage, KafkaDlqProducer
-from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
+from arroyo.processing.strategies.abstract import (
+    MessageRejected,
+    ProcessingStrategy,
+    ProcessingStrategyFactory,
+)
 from arroyo.types import FILTERED_PAYLOAD, BrokerValue, Commit, FilteredPayload, Message, Partition
 from arroyo.types import Topic as ArroyoTopic
 from arroyo.types import Value
@@ -107,7 +111,10 @@ class DlqStaleMessages(ProcessingStrategy[KafkaPayload]):
             if message_timestamp < min_accepted_timestamp:
                 self.offsets_to_forward[message.value.partition] = message.value.next_offset
                 raise InvalidMessage(
-                    message.value.partition, message.value.offset, reason=RejectReason.STALE.value
+                    message.value.partition,
+                    message.value.offset,
+                    reason=RejectReason.STALE.value,
+                    log_exception=False,
                 )
 
         # If we get a valid message for a partition later, don't emit a filtered message for it
@@ -124,9 +131,12 @@ class DlqStaleMessages(ProcessingStrategy[KafkaPayload]):
         if self.offsets_to_forward:
             if time.time() > self.last_forwarded_offsets + 1:
                 filtered_message = Message(Value(FILTERED_PAYLOAD, self.offsets_to_forward))
-                self.next_step.submit(filtered_message)
-                self.offsets_to_forward = {}
-                self.last_forwarded_offsets = time.time()
+                try:
+                    self.next_step.submit(filtered_message)
+                    self.offsets_to_forward = {}
+                    self.last_forwarded_offsets = time.time()
+                except MessageRejected:
+                    pass
 
     def join(self, timeout: float | None = None) -> None:
         self.next_step.join(timeout)

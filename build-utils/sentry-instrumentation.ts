@@ -71,7 +71,7 @@ class SentryInstrumentation {
     sentry.setTag('arch', os.arch());
     sentry.setTag(
       'cpu',
-      cpus?.length ? `${cpus[0].model} (cores: ${cpus.length})}` : 'N/A'
+      cpus?.length ? `${cpus[0]!.model} (cores: ${cpus.length})}` : 'N/A'
     );
 
     this.Sentry = sentry;
@@ -96,7 +96,7 @@ class SentryInstrumentation {
           .filter(assetName => !assetName.endsWith('.map'))
           .forEach(assetName => {
             const asset = compilation.assets[assetName];
-            const size = asset.size();
+            const size = asset!.size();
             const file = assetName;
             const body = JSON.stringify({
               file,

@@ -432,22 +432,26 @@ export default class ReplayReader {
     return this.processingErrors().length;
   };
 
-  getExtractDomNodes = memoize(async () => {
-    if (this._fetching) {
-      return null;
+  getExtractDomNodes = memoize(
+    async ({withoutStyles}: {withoutStyles?: boolean} = {}) => {
+      if (this._fetching) {
+        return null;
+      }
+      const {onVisitFrame, shouldVisitFrame} = extractDomNodes;
+
+      const results = await replayerStepper({
+        frames: this.getDOMFrames(),
+        rrwebEvents: withoutStyles
+          ? this.getRRWebFramesWithoutStyles()
+          : this.getRRWebFrames(),
+        startTimestampMs: this.getReplay().started_at.getTime() ?? 0,
+        onVisitFrame,
+        shouldVisitFrame,
+      });
+
+      return results;
     }
-    const {onVisitFrame, shouldVisitFrame} = extractDomNodes;
-
-    const results = await replayerStepper({
-      frames: this.getDOMFrames(),
-      rrwebEvents: this.getRRWebFrames(),
-      startTimestampMs: this.getReplay().started_at.getTime() ?? 0,
-      onVisitFrame,
-      shouldVisitFrame,
-    });
-
-    return results;
-  });
+  );
 
   getClipWindow = () => this._clipWindow;
 
@@ -486,7 +490,7 @@ export default class ReplayReader {
       // and TouchEnd is too small. This clamps the tap to a min time
       // if the difference is less, so that the rrweb tap is visible and obvious.
       if (isTouchStartFrame(e) && index < events.length - 2) {
-        const nextEvent = events[index + 1];
+        const nextEvent = events[index + 1]!;
         if (isTouchEndFrame(nextEvent)) {
           nextEvent.timestamp = Math.max(nextEvent.timestamp, e.timestamp + 500);
         }
@@ -532,6 +536,35 @@ export default class ReplayReader {
       }
     });
     return eventsWithSnapshots;
+  });
+
+  /**
+   * Filter out style mutations as they can cause perf problems especially when
+   * used in replayStepper
+   */
+  getRRWebFramesWithoutStyles = memoize(() => {
+    return this.getRRWebFrames().map(e => {
+      if (
+        e.type === EventType.IncrementalSnapshot &&
+        'source' in e.data &&
+        e.data.source === IncrementalSource.Mutation
+      ) {
+        return {
+          ...e,
+          data: {
+            ...e.data,
+            adds: e.data.adds.filter(
+              add =>
+                !(
+                  (add.node.type === 3 && add.node.isStyle) ||
+                  (add.node.type === 2 && add.node.tagName === 'style')
+                )
+            ),
+          },
+        };
+      }
+      return e;
+    });
   });
 
   getRRwebTouchEvents = memoize(() =>

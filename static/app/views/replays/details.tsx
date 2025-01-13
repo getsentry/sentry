@@ -16,10 +16,10 @@ import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {decodeScalar} from 'sentry/utils/queryString';
 import type {TimeOffsetLocationQueryParams} from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
 import useInitialTimeOffsetMs from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
+import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import useLogReplayDataLoaded from 'sentry/utils/replays/hooks/useLogReplayDataLoaded';
 import useMarkReplayViewed from 'sentry/utils/replays/hooks/useMarkReplayViewed';
 import useReplayPageview from 'sentry/utils/replays/hooks/useReplayPageview';
-import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
 import {ReplayPreferencesContextProvider} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
@@ -55,7 +55,7 @@ function ReplayDetails({params: {replaySlug}}: Props) {
     replay,
     replayId,
     replayRecord,
-  } = useReplayReader({
+  } = useLoadReplayReader({
     replaySlug,
     orgSlug,
   });

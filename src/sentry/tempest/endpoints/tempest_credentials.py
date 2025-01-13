@@ -3,6 +3,7 @@ from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import audit_log
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -45,9 +46,18 @@ class TempestCredentialsEndpoint(ProjectEndpoint):
         serializer = DRFTempestCredentialsSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         try:
-            serializer.save(created_by_id=request.user.id, project=project)
+            credentials = serializer.save(created_by_id=request.user.id, project=project)
         except IntegrityError:
             return Response(
                 {"detail": "A credential with this client ID already exists."}, status=400
             )
+
+        self.create_audit_entry(
+            request,
+            organization=project.organization,
+            target_object=credentials.id,
+            event=audit_log.get_event_id("TEMPEST_CLIENT_ID_ADD"),
+            data=credentials.get_audit_log_data(),
+        )
+
         return Response(serializer.data, status=201)

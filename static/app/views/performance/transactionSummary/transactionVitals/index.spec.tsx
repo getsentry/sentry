@@ -14,8 +14,8 @@ import {
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import TransactionVitals from 'sentry/views/performance/transactionSummary/transactionVitals';
 import {
   VITAL_GROUPS,
@@ -25,6 +25,9 @@ import {
 jest.mock('sentry/utils/useLocation');
 
 const mockUseLocation = jest.mocked(useLocation);
+jest.mock('sentry/utils/useNavigate');
+
+const mockUseNavigate = jest.mocked(useNavigate);
 
 interface HistogramData {
   count: number;
@@ -100,7 +103,7 @@ describe('Performance > Web Vitals', function () {
     mockUseLocation.mockReturnValue(
       LocationFixture({pathname: '/organizations/org-slug/performance/summary'})
     );
-    // eslint-disable-next-line no-console
+
     jest.spyOn(console, 'error').mockImplementation(jest.fn());
 
     MockApiClient.addMockResponse({
@@ -222,20 +225,19 @@ describe('Performance > Web Vitals', function () {
       organization,
     });
 
-    expect(screen.getByRole('navigation')).toHaveTextContent('PerformanceWeb Vitals');
+    expect(screen.getByRole('navigation')).toHaveTextContent(
+      'PerformanceTransaction Summary'
+    );
   });
 
   describe('renders all vitals cards correctly', function () {
     const {organization, router} = initialize();
 
-    beforeEach(() => {
+    it.each(vitals)('Renders %s', async function (vital) {
       render(
         <TransactionVitals organization={organization} location={router.location} />,
         {router, organization}
       );
-    });
-
-    it.each(vitals)('Renders %s', async function (vital) {
       expect(await screen.findByText(vital.heading)).toBeInTheDocument();
       expect(await screen.findByText(vital.baseline)).toBeInTheDocument();
     });
@@ -300,6 +302,8 @@ describe('Performance > Web Vitals', function () {
     });
 
     it('resets view properly', async function () {
+      const mockNavigate = jest.fn();
+      mockUseNavigate.mockReturnValue(mockNavigate);
       const {organization, router} = initialize({
         query: {
           fidStart: '20',
@@ -314,7 +318,7 @@ describe('Performance > Web Vitals', function () {
 
       await userEvent.click(screen.getByRole('button', {name: 'Reset View'}));
 
-      expect(browserHistory.push).toHaveBeenCalledWith({
+      expect(mockNavigate).toHaveBeenCalledWith({
         query: expect.not.objectContaining(
           ZOOM_KEYS.reduce((obj, key) => {
             obj[key] = expect.anything();

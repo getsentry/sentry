@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import type {MultiValueProps} from 'react-select';
 import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
@@ -29,8 +29,15 @@ function mapToOptions(values: string[]): SelectOption[] {
 }
 
 function InviteRowControl({roleDisabledUnallowed, roleOptions}: Props) {
-  const {inviteStatus, pendingInvites, setEmails, setRole, setTeams, reset} =
-    useInviteMembersContext();
+  const {
+    inviteStatus,
+    isOverMemberLimit,
+    pendingInvites,
+    setEmails,
+    setRole,
+    setTeams,
+    reset,
+  } = useInviteMembersContext();
   const emails = [...(pendingInvites.emails ?? [])];
   const role = pendingInvites.role ?? '';
   const teams = [...(pendingInvites.teams ?? [])];
@@ -82,6 +89,13 @@ function InviteRowControl({roleDisabledUnallowed, roleOptions}: Props) {
     }
   };
 
+  useEffect(() => {
+    if (isOverMemberLimit) {
+      setRole('billing', 0);
+      setTeams([], 0);
+    }
+  }, [isOverMemberLimit, setRole, setTeams]);
+
   return (
     <RowWrapper>
       <div>
@@ -94,7 +108,7 @@ function InviteRowControl({roleDisabledUnallowed, roleOptions}: Props) {
           value={emails}
           components={{
             MultiValue: (props: MultiValueProps<SelectOption>) => (
-              <EmailValue status={inviteStatus[props.data.value]} valueProps={props} />
+              <EmailValue status={inviteStatus[props.data.value]!} valueProps={props} />
             ),
             DropdownIndicator: () => null,
           }}
@@ -119,6 +133,7 @@ function InviteRowControl({roleDisabledUnallowed, roleOptions}: Props) {
           <RoleSelectControl
             id="role"
             aria-label={t('Role')}
+            disabled={isOverMemberLimit}
             value={role}
             roles={roleOptions}
             disableUnallowed={roleDisabledUnallowed}

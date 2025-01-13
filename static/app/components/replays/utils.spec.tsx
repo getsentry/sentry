@@ -77,7 +77,6 @@ describe('getFramesByColumn', () => {
 
   const {
     errorFrames: [CRUMB_1, CRUMB_2, CRUMB_3, CRUMB_4, CRUMB_5],
-    feedbackFrames: [],
   } = hydrateErrors(
     ReplayRecordFixture({
       started_at: new Date('2022-04-14T14:19:47.326000Z'),
@@ -110,11 +109,11 @@ describe('getFramesByColumn', () => {
 
   it('should put a crumbs in the first and last buckets', () => {
     const columnCount = 3;
-    const columns = getFramesByColumn(durationMs, [CRUMB_1, CRUMB_5], columnCount);
+    const columns = getFramesByColumn(durationMs, [CRUMB_1!, CRUMB_5!], columnCount);
     expect(columns).toEqual(
       new Map([
-        [1, [CRUMB_1]],
-        [3, [CRUMB_5]],
+        [1, [CRUMB_1!]],
+        [3, [CRUMB_5!]],
       ])
     );
   });
@@ -124,7 +123,7 @@ describe('getFramesByColumn', () => {
     const columnCount = 6;
     const columns = getFramesByColumn(
       durationMs,
-      [CRUMB_1, CRUMB_2, CRUMB_3, CRUMB_4, CRUMB_5],
+      [CRUMB_1!, CRUMB_2!, CRUMB_3!, CRUMB_4!, CRUMB_5!],
       columnCount
     );
     expect(columns).toEqual(
@@ -322,7 +321,7 @@ describe('findVideoSegmentIndex', () => {
     const trackList2 = segments2.map(
       ({timestamp}, index) => [timestamp, index] as [ts: number, index: number]
     );
-    expect(findVideoSegmentIndex(trackList2, segments2, 1000)).toEqual(-1);
+    expect(findVideoSegmentIndex(trackList2, segments2, 1000)).toBe(-1);
   });
 
   it('returns first segment if target timestamp is before the first segment', () => {
@@ -351,6 +350,6 @@ describe('findVideoSegmentIndex', () => {
     const trackList2 = segments2.map(
       ({timestamp}, index) => [timestamp, index] as [ts: number, index: number]
     );
-    expect(findVideoSegmentIndex(trackList2, segments2, 1000)).toEqual(-1);
+    expect(findVideoSegmentIndex(trackList2, segments2, 1000)).toBe(-1);
   });
 });

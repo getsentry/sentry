@@ -39,9 +39,7 @@ type ParsedVisualize = {
   label: string;
 };
 
-interface ToolbarVisualizeProps {}
-
-export function ToolbarVisualize({}: ToolbarVisualizeProps) {
+export function ToolbarVisualize() {
   const visualizes = useExploreVisualizes();
   const setVisualizes = useSetExploreVisualizes();
 
@@ -122,7 +120,7 @@ export function ToolbarVisualize({}: ToolbarVisualizeProps) {
   const addOverlay = useCallback(
     (group: number) => {
       const newVisualizes = visualizes.slice();
-      newVisualizes[group].yAxes.push(DEFAULT_VISUALIZATION);
+      newVisualizes[group]!.yAxes.push(DEFAULT_VISUALIZATION);
       setVisualizes(newVisualizes);
     },
     [setVisualizes, visualizes]
@@ -131,8 +129,8 @@ export function ToolbarVisualize({}: ToolbarVisualizeProps) {
   const setChartField = useCallback(
     (group: number, index: number, {value}: SelectOption<SelectKey>) => {
       const newVisualizes = visualizes.slice();
-      newVisualizes[group].yAxes[index] =
-        `${parsedVisualizeGroups[group][index].func.name}(${value})`;
+      newVisualizes[group]!.yAxes[index] =
+        `${parsedVisualizeGroups[group]![index]!.func.name}(${value})`;
       setVisualizes(newVisualizes);
     },
     [parsedVisualizeGroups, setVisualizes, visualizes]
@@ -141,8 +139,8 @@ export function ToolbarVisualize({}: ToolbarVisualizeProps) {
   const setChartAggregate = useCallback(
     (group: number, index: number, {value}: SelectOption<SelectKey>) => {
       const newVisualizes = visualizes.slice();
-      newVisualizes[group].yAxes[index] =
-        `${value}(${parsedVisualizeGroups[group][index].func.arguments[0]})`;
+      newVisualizes[group]!.yAxes[index] =
+        `${value}(${parsedVisualizeGroups[group]![index]!.func.arguments[0]})`;
       setVisualizes(newVisualizes);
     },
     [parsedVisualizeGroups, setVisualizes, visualizes]

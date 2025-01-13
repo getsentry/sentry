@@ -17,9 +17,7 @@ import {CHART_HEIGHT} from 'sentry/views/insights/database/settings';
 
 import {areQueriesEmpty} from './utils';
 
-interface Props {}
-
-export function TracesChart({}: Props) {
+export function TracesChart() {
   const location = useLocation();
 
   const queries = useMemo(() => {
@@ -37,15 +35,15 @@ export function TracesChart({}: Props) {
 
   const firstCountSeries = useTraceCountSeries({
     query: queries?.[0] || '',
-    enabled: enabled[0],
+    enabled: enabled[0]!,
   });
   const secondCountSeries = useTraceCountSeries({
-    query: queries?.[1],
-    enabled: enabled[1],
+    query: queries?.[1]!,
+    enabled: enabled[1]!,
   });
   const thirdCountSeries = useTraceCountSeries({
-    query: queries?.[2],
-    enabled: enabled[2],
+    query: queries?.[2]!,
+    enabled: enabled[2]!,
   });
 
   const seriesAreLoading =
@@ -55,9 +53,9 @@ export function TracesChart({}: Props) {
     // References
     // - https://tanstack.com/query/v4/docs/framework/react/guides/disabling-queries
     // - https://tanstack.com/query/latest/docs/framework/react/guides/disabling-queries#isloading-previously-isinitialloading
-    (enabled[0] && firstCountSeries.isPending) ||
-    (enabled[1] && secondCountSeries.isPending) ||
-    (enabled[2] && thirdCountSeries.isPending);
+    (enabled[0]! && firstCountSeries.isPending) ||
+    (enabled[1]! && secondCountSeries.isPending) ||
+    (enabled[2]! && thirdCountSeries.isPending);
 
   const error = useMemo(() => {
     const errors = [
@@ -87,7 +85,7 @@ export function TracesChart({}: Props) {
       if (!enabled[i] || error) {
         continue;
       }
-      const data = series[i]['count()'];
+      const data = series[i]!['count()'];
       data.color = CHART_PALETTE[2][i];
       data.seriesName =
         `span ${i + 1}: ${queries[i] || t('All spans')}` || t('All spans');

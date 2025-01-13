@@ -102,7 +102,7 @@ function VitalChartMetrics({
               seriesName: field,
               data: response.intervals.map((intervalValue, intervalIndex) => ({
                 name: moment(intervalValue).valueOf(),
-                value: group.series ? group.series[field][intervalIndex] : 0,
+                value: group.series ? group.series[field]![intervalIndex] : 0,
               })),
             })) as Series[] | undefined;
 

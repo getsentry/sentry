@@ -11,7 +11,7 @@ describe('getPlatformPath', () => {
       name: 'name',
     };
 
-    expect(getPlatformPath(platform)).toEqual('javascript/react');
+    expect(getPlatformPath(platform)).toBe('javascript/react');
   });
 
   it('returns the correct path for a language platform', () => {
@@ -23,7 +23,19 @@ describe('getPlatformPath', () => {
       name: 'name',
     };
 
-    expect(getPlatformPath(platform)).toEqual('python/python');
+    expect(getPlatformPath(platform)).toBe('python/python');
+  });
+
+  it('returns the correct path for the multi-word framework', () => {
+    const platform: PlatformIntegration = {
+      type: 'framework',
+      id: 'java-spring-boot',
+      language: 'java',
+      link: 'link',
+      name: 'name',
+    };
+
+    expect(getPlatformPath(platform)).toBe('java/spring-boot');
   });
 
   it('handles special cases', () => {
@@ -48,41 +60,37 @@ describe('getPlatformPath', () => {
     }
 
     // Frameworks
-    expect(getPlatformPath(getFrameworkPlatformWithId('capacitor'))).toEqual(
+    expect(getPlatformPath(getFrameworkPlatformWithId('capacitor'))).toBe(
       'language/language'
     );
 
-    expect(getPlatformPath(getFrameworkPlatformWithId('ionic'))).toEqual(
+    expect(getPlatformPath(getFrameworkPlatformWithId('ionic'))).toBe(
       'language/language'
     );
-    expect(getPlatformPath(getFrameworkPlatformWithId('dart'))).toEqual(
+    expect(getPlatformPath(getFrameworkPlatformWithId('dart'))).toBe('language/language');
+    expect(getPlatformPath(getFrameworkPlatformWithId('android'))).toBe(
       'language/language'
     );
-    expect(getPlatformPath(getFrameworkPlatformWithId('android'))).toEqual(
+    expect(getPlatformPath(getFrameworkPlatformWithId('flutter'))).toBe(
       'language/language'
     );
-    expect(getPlatformPath(getFrameworkPlatformWithId('flutter'))).toEqual(
+    expect(getPlatformPath(getFrameworkPlatformWithId('unreal'))).toBe(
       'language/language'
     );
-    expect(getPlatformPath(getFrameworkPlatformWithId('unreal'))).toEqual(
+    expect(getPlatformPath(getFrameworkPlatformWithId('unity'))).toBe(
       'language/language'
     );
-    expect(getPlatformPath(getFrameworkPlatformWithId('unity'))).toEqual(
+    expect(getPlatformPath(getFrameworkPlatformWithId('minidump'))).toBe(
       'language/language'
     );
-    expect(getPlatformPath(getFrameworkPlatformWithId('minidump'))).toEqual(
-      'language/language'
-    );
-    expect(getPlatformPath(getFrameworkPlatformWithId('native-qt'))).toEqual(
-      'language/qt'
-    );
+    expect(getPlatformPath(getFrameworkPlatformWithId('native-qt'))).toBe('language/qt');
 
     // Library
-    expect(getPlatformPath(getLibraryPlatformWithId('python-celery'))).toEqual(
+    expect(getPlatformPath(getLibraryPlatformWithId('python-celery'))).toBe(
       'language/celery'
     );
-    expect(getPlatformPath(getLibraryPlatformWithId('python-rq'))).toEqual('language/rq');
-    expect(getPlatformPath(getLibraryPlatformWithId('python-pymongo'))).toEqual(
+    expect(getPlatformPath(getLibraryPlatformWithId('python-rq'))).toBe('language/rq');
+    expect(getPlatformPath(getLibraryPlatformWithId('python-pymongo'))).toBe(
       'language/pymongo'
     );
   });

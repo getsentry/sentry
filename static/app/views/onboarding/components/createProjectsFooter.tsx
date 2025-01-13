@@ -87,7 +87,7 @@ export function CreateProjectsFooter({
         const response = (await createProject({
           api,
           orgSlug: organization.slug,
-          team: teams[0].slug,
+          team: teams[0]!.slug,
           platform: createProjectForPlatform.key,
           name: createProjectForPlatform.key,
           options: {
@@ -101,7 +101,7 @@ export function CreateProjectsFooter({
         // Note: in the onboarding flow the projects are created based on the platform slug
         const newProjects = Object.keys(onboardingContext.data.projects).reduce(
           (acc, key) => {
-            if (onboardingContext.data.projects[key].slug !== response.slug) {
+            if (onboardingContext.data.projects[key]!.slug !== response.slug) {
               acc[key] = onboardingContext.data.projects[key];
             }
             return acc;

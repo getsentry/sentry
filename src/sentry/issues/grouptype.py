@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import logging
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import timedelta
@@ -21,11 +22,8 @@ from sentry.utils import metrics
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
     from sentry.models.project import Project
-    from sentry.users.models.user import User
+    from sentry.workflow_engine.endpoints.validators.base import BaseGroupTypeDetectorValidator
     from sentry.workflow_engine.handlers.detector import DetectorHandler
-    from sentry.workflow_engine.endpoints.validators import BaseGroupTypeDetectorValidator
-
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -194,13 +192,6 @@ class GroupType:
             raise ValueError(f"Category must be one of {valid_categories} from GroupCategory.")
 
     @classmethod
-    def is_visible(cls, organization: Organization, user: User | None = None) -> bool:
-        if cls.released:
-            return True
-
-        return features.has(cls.build_visible_feature_name(), organization, actor=user)
-
-    @classmethod
     def allow_ingest(cls, organization: Organization) -> bool:
         if cls.released:
             return True
@@ -260,16 +251,6 @@ def get_group_type_by_slug(slug: str) -> type[GroupType] | None:
 def get_group_type_by_type_id(id: int) -> type[GroupType]:
     # TODO: Replace uses of this with the registry
     return registry.get_by_type_id(id)
-
-
-@dataclass(frozen=True)
-class ErrorGroupType(GroupType):
-    type_id = 1
-    slug = "error"
-    description = "Error"
-    category = GroupCategory.ERROR.value
-    default_priority = PriorityLevel.MEDIUM
-    released = True
 
 
 # used as an additional superclass for Performance GroupType defaults

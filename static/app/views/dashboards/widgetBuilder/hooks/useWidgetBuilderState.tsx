@@ -1,11 +1,13 @@
 import {useCallback, useMemo} from 'react';
 import partition from 'lodash/partition';
 
+import {defined} from 'sentry/utils';
 import {
   type Column,
   explodeField,
   generateFieldAsString,
   isAggregateFieldOrEquation,
+  type QueryFieldValue,
   type Sort,
 } from 'sentry/utils/discover/fields';
 import {
@@ -24,9 +26,11 @@ export type WidgetBuilderStateQueryParams = {
   dataset?: WidgetType;
   description?: string;
   displayType?: DisplayType;
-  field?: (string | undefined)[];
+  field?: string[];
+  legendAlias?: string[];
   limit?: number;
   query?: string[];
+  selectedAggregate?: number;
   sort?: string[];
   title?: string;
   yAxis?: string[];
@@ -42,6 +46,8 @@ export const BuilderStateAction = {
   SET_QUERY: 'SET_QUERY',
   SET_SORT: 'SET_SORT',
   SET_LIMIT: 'SET_LIMIT',
+  SET_LEGEND_ALIAS: 'SET_LEGEND_ALIAS',
+  SET_SELECTED_AGGREGATE: 'SET_SELECTED_AGGREGATE',
 } as const;
 
 type WidgetAction =
@@ -53,15 +59,19 @@ type WidgetAction =
   | {payload: Column[]; type: typeof BuilderStateAction.SET_Y_AXIS}
   | {payload: string[]; type: typeof BuilderStateAction.SET_QUERY}
   | {payload: Sort[]; type: typeof BuilderStateAction.SET_SORT}
-  | {payload: number; type: typeof BuilderStateAction.SET_LIMIT};
+  | {payload: number; type: typeof BuilderStateAction.SET_LIMIT}
+  | {payload: string[]; type: typeof BuilderStateAction.SET_LEGEND_ALIAS}
+  | {payload: number | undefined; type: typeof BuilderStateAction.SET_SELECTED_AGGREGATE};
 
 export interface WidgetBuilderState {
   dataset?: WidgetType;
   description?: string;
   displayType?: DisplayType;
   fields?: Column[];
+  legendAlias?: string[];
   limit?: number;
   query?: string[];
+  selectedAggregate?: number;
   sort?: Sort[];
   title?: string;
   yAxis?: Column[];
@@ -98,6 +108,7 @@ function useWidgetBuilderState(): {
   const [query, setQuery] = useQueryParamState<string[]>({
     fieldName: 'query',
     decoder: decodeList,
+    deserializer: deserializeQuery,
   });
   const [sort, setSort] = useQueryParamState<Sort[]>({
     fieldName: 'sort',
@@ -109,10 +120,49 @@ function useWidgetBuilderState(): {
     decoder: decodeScalar,
     deserializer: deserializeLimit,
   });
+  const [legendAlias, setLegendAlias] = useQueryParamState<string[]>({
+    fieldName: 'legendAlias',
+    decoder: decodeList,
+  });
+  const [selectedAggregate, setSelectedAggregate] = useQueryParamState<number>({
+    fieldName: 'selectedAggregate',
+    decoder: decodeScalar,
+    deserializer: deserializeSelectedAggregate,
+  });
 
   const state = useMemo(
-    () => ({title, description, displayType, dataset, fields, yAxis, query, sort, limit}),
-    [title, description, displayType, dataset, fields, yAxis, query, sort, limit]
+    () => ({
+      title,
+      description,
+      displayType,
+      dataset,
+      fields,
+      yAxis,
+      query,
+      sort,
+      limit,
+      legendAlias,
+
+      // The selected aggregate is the last aggregate for big number widgets
+      // if it hasn't been explicitly set
+      selectedAggregate:
+        displayType === DisplayType.BIG_NUMBER && defined(fields) && fields.length > 1
+          ? selectedAggregate ?? fields.length - 1
+          : undefined,
+    }),
+    [
+      title,
+      description,
+      displayType,
+      dataset,
+      fields,
+      yAxis,
+      query,
+      sort,
+      limit,
+      legendAlias,
+      selectedAggregate,
+    ]
   );
 
   const dispatch = useCallback(
@@ -126,41 +176,83 @@ function useWidgetBuilderState(): {
           break;
         case BuilderStateAction.SET_DISPLAY_TYPE:
           setDisplayType(action.payload);
-          if (action.payload === DisplayType.BIG_NUMBER) {
-            setSort([]);
-          }
           const [aggregates, columns] = partition(fields, field => {
             const fieldString = generateFieldAsString(field);
             return isAggregateFieldOrEquation(fieldString);
           });
+          const columnsWithoutAlias = columns.map(column => {
+            return {...column, alias: undefined};
+          });
+          const aggregatesWithoutAlias = aggregates.map(aggregate => {
+            return {...aggregate, alias: undefined};
+          });
+          const yAxisWithoutAlias = yAxis?.map(axis => {
+            return {...axis, alias: undefined};
+          });
           if (action.payload === DisplayType.TABLE) {
             setYAxis([]);
-            setFields([...columns, ...aggregates, ...(yAxis ?? [])]);
+            setLegendAlias([]);
+            const newFields = [
+              ...columnsWithoutAlias,
+              ...aggregatesWithoutAlias,
+              ...(yAxisWithoutAlias ?? []),
+            ];
+            setFields(newFields);
+
+            // Keep the sort if it's already contained in the new fields
+            // Otherwise, reset sorting to the first field
+            if (
+              newFields.length > 0 &&
+              !newFields.find(field => generateFieldAsString(field) === sort?.[0]?.field)
+            ) {
+              setSort([
+                {
+                  kind: 'desc',
+                  field: generateFieldAsString(newFields[0] as QueryFieldValue),
+                },
+              ]);
+            }
+          } else if (action.payload === DisplayType.BIG_NUMBER) {
+            // TODO: Reset the selected aggregate here for widgets with equations
+            setSort([]);
+            setYAxis([]);
+            setLegendAlias([]);
+            // Columns are ignored for big number widgets because there is no grouping
+            setFields([...aggregatesWithoutAlias, ...(yAxisWithoutAlias ?? [])]);
+            setQuery(query?.slice(0, 1));
           } else {
-            setFields(columns);
+            setFields(columnsWithoutAlias);
             setYAxis([
-              ...aggregates.slice(0, MAX_NUM_Y_AXES),
-              ...(yAxis?.slice(0, MAX_NUM_Y_AXES) ?? []),
+              ...aggregatesWithoutAlias.slice(0, MAX_NUM_Y_AXES),
+              ...(yAxisWithoutAlias?.slice(0, MAX_NUM_Y_AXES) ?? []),
             ]);
           }
+          setSelectedAggregate(undefined);
           break;
         case BuilderStateAction.SET_DATASET:
           setDataset(action.payload);
 
-          let newDisplayType;
+          let nextDisplayType = displayType;
           if (action.payload === WidgetType.ISSUE) {
             // Issues only support table display type
             setDisplayType(DisplayType.TABLE);
-            newDisplayType = DisplayType.TABLE;
+            nextDisplayType = DisplayType.TABLE;
           }
 
           const config = getDatasetConfig(action.payload);
           setFields(
             config.defaultWidgetQuery.fields?.map(field => explodeField({field}))
           );
-          if (newDisplayType === DisplayType.TABLE) {
+          if (
+            nextDisplayType === DisplayType.TABLE ||
+            nextDisplayType === DisplayType.BIG_NUMBER
+          ) {
             setYAxis([]);
+            setFields(
+              config.defaultWidgetQuery.fields?.map(field => explodeField({field}))
+            );
           } else {
+            setFields([]);
             setYAxis(
               config.defaultWidgetQuery.aggregates?.map(aggregate =>
                 explodeField({field: aggregate})
@@ -169,9 +261,55 @@ function useWidgetBuilderState(): {
           }
           setQuery([config.defaultWidgetQuery.conditions]);
           setSort(decodeSorts(config.defaultWidgetQuery.orderby));
+          setSelectedAggregate(undefined);
           break;
         case BuilderStateAction.SET_FIELDS:
           setFields(action.payload);
+          const isRemoved = action.payload.length < (fields?.length ?? 0);
+          if (
+            displayType === DisplayType.TABLE &&
+            action.payload.length > 0 &&
+            !action.payload.find(
+              field => generateFieldAsString(field) === sort?.[0]?.field
+            )
+          ) {
+            if (dataset === WidgetType.ISSUE) {
+              // Issue widgets can sort their tables by limited fields that aren't
+              // in the fields array.
+              return;
+            }
+
+            if (isRemoved) {
+              setSort([
+                {
+                  kind: 'desc',
+                  field: generateFieldAsString(action.payload[0] as QueryFieldValue),
+                },
+              ]);
+            } else {
+              // Find the index of the first field that doesn't match the old fields.
+              const changedFieldIndex = action.payload.findIndex(
+                field =>
+                  !fields?.find(
+                    originalField =>
+                      generateFieldAsString(originalField) ===
+                      generateFieldAsString(field)
+                  )
+              );
+              if (changedFieldIndex !== -1) {
+                // At this point, we can assume the fields are the same length so
+                // using the changedFieldIndex in action.payload is safe.
+                setSort([
+                  {
+                    kind: sort?.[0]?.kind ?? 'desc',
+                    field: generateFieldAsString(
+                      action.payload[changedFieldIndex] as QueryFieldValue
+                    ),
+                  },
+                ]);
+              }
+            }
+          }
           break;
         case BuilderStateAction.SET_Y_AXIS:
           setYAxis(action.payload);
@@ -184,6 +322,12 @@ function useWidgetBuilderState(): {
           break;
         case BuilderStateAction.SET_LIMIT:
           setLimit(action.payload);
+          break;
+        case BuilderStateAction.SET_LEGEND_ALIAS:
+          setLegendAlias(action.payload);
+          break;
+        case BuilderStateAction.SET_SELECTED_AGGREGATE:
+          setSelectedAggregate(action.payload);
           break;
         default:
           break;
@@ -199,8 +343,14 @@ function useWidgetBuilderState(): {
       setQuery,
       setSort,
       setLimit,
+      setLegendAlias,
+      setSelectedAggregate,
       fields,
       yAxis,
+      displayType,
+      query,
+      sort,
+      dataset,
     ]
   );
 
@@ -276,6 +426,21 @@ function serializeSorts(sorts: Sort[]): string[] {
  */
 function deserializeLimit(value: string): number {
   return decodeInteger(value, DEFAULT_RESULTS_LIMIT);
+}
+
+function deserializeSelectedAggregate(value: string): number | undefined {
+  return decodeInteger(value);
+}
+
+/**
+ * Decodes the query from the query params
+ * Returns an array with an empty string if the query is empty
+ */
+function deserializeQuery(queries: string[]): string[] {
+  if (queries.length === 0) {
+    return [''];
+  }
+  return queries;
 }
 
 export default useWidgetBuilderState;

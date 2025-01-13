@@ -1,9 +1,4 @@
-import {Fragment} from 'react';
-
-import FeatureBadge from 'sentry/components/badge/featureBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
-import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
@@ -22,11 +17,6 @@ import {
   EAPPipelinesTable,
   PipelinesTable,
 } from 'sentry/views/insights/llmMonitoring/components/tables/pipelinesTable';
-import {
-  MODULE_DOC_LINK,
-  MODULE_TITLE,
-  RELEASE_LEVEL,
-} from 'sentry/views/insights/llmMonitoring/settings';
 import {AiHeader} from 'sentry/views/insights/pages/ai/aiPageHeader';
 import {ModuleName} from 'sentry/views/insights/types';
 
@@ -37,19 +27,7 @@ export function LLMMonitoringPage() {
 
   return (
     <Layout.Page>
-      <AiHeader
-        headerTitle={
-          <Fragment>
-            {MODULE_TITLE}
-            <PageHeadingQuestionTooltip
-              title={t('View analytics and information about your AI pipelines')}
-              docsUrl={MODULE_DOC_LINK}
-            />
-            <FeatureBadge type={RELEASE_LEVEL} />
-          </Fragment>
-        }
-        module={ModuleName.AI}
-      />
+      <AiHeader module={ModuleName.AI} />
       <ModuleBodyUpsellHook moduleName={ModuleName.AI}>
         <Layout.Body>
           <Layout.Main fullWidth>

@@ -158,7 +158,7 @@ export function TeamUnresolvedIssues({
               ]}
             >
               {groupedProjects.map(({project}, idx) => {
-                const totals = projectTotals[project.id] ?? {};
+                const totals = projectTotals[project.id]! ?? {};
 
                 if (idx >= COLLAPSE_COUNT && !isExpanded) {
                   return null;

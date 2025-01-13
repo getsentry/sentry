@@ -320,11 +320,21 @@ def get_group_list(
 
     Returns: List of Group objects filtered to only valid groups in the org/projects
     """
-    return list(
-        Group.objects.filter(
-            project__organization_id=organization_id, project__in=projects, id__in=group_ids
+    groups = []
+    # Convert all group IDs to integers and filter out any non-integer values
+    group_ids_int = [int(gid) for gid in group_ids if str(gid).isdigit()]
+    if group_ids_int:
+        return list(
+            Group.objects.filter(
+                project__organization_id=organization_id, project__in=projects, id__in=group_ids_int
+            )
         )
-    )
+    else:
+        for group_id in group_ids:
+            if isinstance(group_id, str):
+                groups.append(Group.objects.by_qualified_short_id(organization_id, group_id))
+
+    return groups
 
 
 def handle_resolve_in_release(
@@ -807,7 +817,6 @@ def prepare_response(
             group_list,
             project_lookup,
             acting_user,
-            http_referrer=referer,
             sender=update_groups,
         )
 

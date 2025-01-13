@@ -2,6 +2,7 @@ import diagramApdex from 'sentry-images/spot/alerts-wizard-apdex.svg';
 import diagramCLS from 'sentry-images/spot/alerts-wizard-cls.svg';
 import diagramCrashFreeSessions from 'sentry-images/spot/alerts-wizard-crash-free-sessions.svg';
 import diagramCrashFreeUsers from 'sentry-images/spot/alerts-wizard-crash-free-users.svg';
+import diagramCrons from 'sentry-images/spot/alerts-wizard-crons.svg';
 import diagramCustomTransaction from 'sentry-images/spot/alerts-wizard-custom.svg';
 import diagramCustomMetrics from 'sentry-images/spot/alerts-wizard-custom-metrics.svg';
 import diagramErrors from 'sentry-images/spot/alerts-wizard-errors.svg';
@@ -143,20 +144,6 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
     ],
     illustration: diagramCustomMetrics,
   },
-  llm_tokens: {
-    description: t(
-      'Receive an alert when the total number of tokens used by your LLMs reaches a limit.'
-    ),
-    examples: [t('When there are more than 100,000 tokens used within an hour')],
-    illustration: diagramCustomMetrics,
-  },
-  llm_cost: {
-    description: t(
-      'Receive an alert when the total cost of tokens used by your LLMs reaches a limit.'
-    ),
-    examples: [t('When there are more than $100 used by LLM  within an hour')],
-    illustration: diagramCustomMetrics,
-  },
   crash_free_sessions: {
     description: t(
       'A session begins when a user starts the application and ends when it’s closed or sent to the background. A crash is when a session ends due to an error and this type of alert lets you monitor when those crashed sessions exceed a threshold. This lets you get a better picture of the health of your app.'
@@ -186,12 +173,23 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
     ],
     illustration: diagramUptime,
   },
+  crons_monitor: {
+    description: t(
+      'Alert on scheduled monitors that check-in on recurring jobs and tell you if they’re running on schedule, failing, or succeeding.'
+    ),
+    examples: [
+      t('When a scheduled job fails during execution'),
+      t("When a scheduled job runs for longer than it's expected runtime"),
+      t('When a scheduled job does not run'),
+    ],
+    illustration: diagramCrons,
+  },
   eap_metrics: {
     description: t('Alert on spans.'),
     examples: [
       t('When your average time in queue exceeds 100ms.'),
       t('When your app runs more than 1000 queries in a minute.'),
     ],
-    illustration: diagramCustomMetrics,
+    illustration: diagramThroughput,
   },
 };
