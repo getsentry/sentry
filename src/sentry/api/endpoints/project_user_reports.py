@@ -54,7 +54,7 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
         :auth: required
         """
         # we don't allow read permission with DSNs
-        if request.auth is not None and request.auth.kind == "project_key":  # type: ignore[union-attr]
+        if request.auth is not None and request.auth.kind == "project_key":
             return self.respond(status=401)
 
         paginate_kwargs: _PaginateKwargs = {}
@@ -118,7 +118,7 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
         :param string email: user's email address
         :param string comments: comments supplied by user
         """
-        if request.auth is not None and project.id != request.auth.project_id:  # type: ignore[union-attr]  # TODO: real .auth typing
+        if request.auth is not None and project.id != request.auth.project_id:
             return self.respond(status=401)
 
         serializer = UserReportSerializer(data=request.data)
@@ -133,7 +133,7 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
         except Conflict as e:
             return self.respond({"detail": str(e)}, status=409)
 
-        if request.auth is not None and request.auth.kind == "project_key":  # type: ignore[union-attr]
+        if request.auth is not None and request.auth.kind == "project_key":
             return self.respond(status=200)
 
         return self.respond(
