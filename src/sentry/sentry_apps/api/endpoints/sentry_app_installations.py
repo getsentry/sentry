@@ -20,6 +20,7 @@ from sentry.sentry_apps.api.serializers.sentry_app_installation import (
 from sentry.sentry_apps.installations import SentryAppInstallationCreator
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+from sentry.sentry_apps.utils.errors import SentryAppError
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 
@@ -83,12 +84,10 @@ class SentryAppInstallationsEndpoint(SentryAppInstallationsBaseEndpoint):
                 is_feature_enabled[feature_flag_name] = True
 
         if not any(is_feature_enabled.values()):
-            return Response(
-                {
-                    "detail": "At least one feature from this list has to be enabled in order to install the app",
-                    "missing_features": list(is_feature_enabled.keys()),
-                },
-                status=403,
+            raise SentryAppError(
+                "At least one feature from this list has to be enabled in order to install the app",
+                status_code=403,
+                extras={"public_context": {"missing_features": list(is_feature_enabled.keys())}},
             )
 
         try:
