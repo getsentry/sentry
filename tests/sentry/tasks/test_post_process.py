@@ -2199,12 +2199,29 @@ class DetectBaseUrlsForUptimeTestMixin(BasePostProgressGroupMixin):
 
 
 @patch("sentry.analytics.record")
+@patch("sentry.utils.metrics.incr")
 class CheckIfFlagsSentTestMixin(BasePostProgressGroupMixin):
-    def test_set_has_flags(self, mock_record):
+    def test_set_has_flags(self, mock_incr, mock_record):
         project = self.create_project()
         event_id = "a" * 32
         event = self.create_event(
-            data={"event_id": event_id, "contexts": {"flags": {"values": []}}},
+            data={
+                "event_id": event_id,
+                "contexts": {
+                    "flags": {
+                        "values": [
+                            {
+                                "flag": "test-flag-1",
+                                "result": False,
+                            },
+                            {
+                                "flag": "test-flag-2",
+                                "result": True,
+                            },
+                        ]
+                    }
+                },
+            },
             project_id=project.id,
         )
         self.call_post_process_group(
@@ -2217,6 +2234,8 @@ class CheckIfFlagsSentTestMixin(BasePostProgressGroupMixin):
         project.refresh_from_db()
         assert project.flags.has_flags
 
+        mock_incr.assert_any_call("feature_flags.event_has_flags_context")
+        mock_incr.assert_any_call("feature_flags.num_flags_sent", tags={"amount": 2})
         mock_record.assert_called_with(
             "first_flag.sent",
             organization_id=self.organization.id,
