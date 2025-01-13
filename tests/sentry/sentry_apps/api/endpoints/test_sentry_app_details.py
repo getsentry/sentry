@@ -207,7 +207,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             webhookUrl="https://newurl.com",
             scopes=("event:read",),
             events=("issue",),
-            feature_set=["integrations-issue-link", "integrations-stacktrace-link"],
+            featureSet=["integrations-issue-link", "integrations-stacktrace-link"],
             status_code=200,
         )
 
@@ -242,11 +242,11 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             webhookUrl="https://newurl.com",
             scopes=("event:read",),
             events=("issue",),
-            feature_set=["integrations-what-feature-was-this", "integrations-stacktrace-link"],
+            featureSet=["integrations-what-feature-was-this", "integrations-stacktrace-link"],
             status_code=400,
         )
 
-        error_response = response.data.get("feature_set")
+        error_response = response.data.get("featureSet")
         assert error_response
         assert "integrations-what-feature-was-this" in str(error_response)
 
@@ -257,13 +257,13 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             scopes=("event:read",),
             events=("issue",),
             features=[1, 2, 3],
-            feature_set=["integrations-issue-link", "integrations-stacktrace-link"],
+            featureSet=["integrations-issue-link", "integrations-stacktrace-link"],
             status_code=400,
         )
 
         error_response = response.data.get("non_field_errors")
         assert error_response
-        assert "`features` and `feature_set` are mutually exclusive fields" in str(error_response)
+        assert "`features` and `featureSet` are mutually exclusive fields" in str(error_response)
 
     def test_update_internal_app(self):
         self.get_success_response(

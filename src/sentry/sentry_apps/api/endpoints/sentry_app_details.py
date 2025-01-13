@@ -110,7 +110,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
             ), "User must be authenticated to update a Sentry App"
 
             feature_list = result.get("features")
-            if feature_set := result.get("feature_set"):
+            if feature_set := result.get("featureSet"):
                 feature_list = [Feature.from_str(feature).value for feature in feature_set]
 
             updated_app = SentryAppUpdater(

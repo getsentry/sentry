@@ -75,7 +75,7 @@ class SentryAppParser(Serializer):
     features = serializers.MultipleChoiceField(
         choices=Feature.as_int_choices(), allow_blank=True, allow_null=True, required=False
     )
-    feature_set = serializers.MultipleChoiceField(
+    featureSet = serializers.MultipleChoiceField(
         choices=Feature.as_str_choices(), allow_blank=True, allow_null=True, required=False
     )
     schema = SchemaField(required=False, allow_null=True)
@@ -179,7 +179,7 @@ class SentryAppParser(Serializer):
         if not get_current_value("isInternal") and not get_current_value("author"):
             raise ValidationError({"author": "author required for public integrations"})
 
-        if attrs.get("features") and attrs.get("feature_set"):
-            raise ValidationError("`features` and `feature_set` are mutually exclusive fields")
+        if attrs.get("features") and attrs.get("featureSet"):
+            raise ValidationError("`features` and `featureSet` are mutually exclusive fields")
 
         return attrs
