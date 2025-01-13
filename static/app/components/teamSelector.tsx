@@ -156,6 +156,14 @@ function TeamSelector(props: Props) {
   const api = useApi();
   const {teams, fetching, onSearch} = useTeams();
 
+  const isMemberInvite =
+    organization.access?.includes('member:invite') &&
+    !organization.access?.includes('member:admin');
+  const membersCanOnlyInviteMemberTeams =
+    organization.allowMemberInvite && !organization.openMembership;
+  // If Member Invites are enabled but Open Membership is disabled, only allow members to invite to teams they are a member of
+  const memberTeamsOnly = isMemberInvite && membersCanOnlyInviteMemberTeams;
+
   // TODO(ts) This type could be improved when react-select types are better.
   const selectRef = useRef<any>(null);
 
@@ -303,7 +311,13 @@ function TeamSelector(props: Props) {
   );
 
   function getOptions() {
-    const filteredTeams = teamFilter ? teams.filter(teamFilter) : teams;
+    const memberSettingsFilteredTeams = memberTeamsOnly
+      ? teams.filter((team: Team) => team.isMember)
+      : teams;
+    const filteredTeams = teamFilter
+      ? memberSettingsFilteredTeams.filter(teamFilter)
+      : memberSettingsFilteredTeams;
+
     const createOption = {
       value: CREATE_TEAM_VALUE,
       label: t('Create team'),
@@ -346,6 +360,7 @@ function TeamSelector(props: Props) {
     allowCreate,
     createTeamOption,
     includeUnassigned,
+    memberTeamsOnly,
     createTeamOutsideProjectOption,
   ]);
 
