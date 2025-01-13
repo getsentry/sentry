@@ -10,7 +10,7 @@ from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     AttributeKey,
     AttributeValue,
-    FloatArray,
+    DoubleArray,
     IntArray,
     StrArray,
     VirtualColumnContext,
@@ -336,14 +336,14 @@ class SearchResolver:
                 if operator in constants.IN_OPERATORS:
                     if isinstance(value, list):
                         return AttributeValue(
-                            val_float_array=FloatArray(values=[val for val in value])
+                            val_double_array=DoubleArray(values=[val for val in value])
                         )
                     else:
                         raise InvalidSearchQuery(
                             f"{value} is not a valid value for doing an IN filter"
                         )
                 elif isinstance(value, float):
-                    return AttributeValue(val_float=value)
+                    return AttributeValue(val_double=value)
             elif column_type == constants.BOOLEAN:
                 if operator in constants.IN_OPERATORS:
                     raise InvalidSearchQuery(

@@ -3,8 +3,8 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     AttributeAggregation,
     AttributeKey,
     AttributeValue,
+    DoubleArray,
     ExtrapolationMode,
-    FloatArray,
     Function,
     StrArray,
     VirtualColumnContext,
@@ -53,7 +53,7 @@ class SearchResolverQueryTest(TestCase):
             comparison_filter=ComparisonFilter(
                 key=AttributeKey(name="ai_total_tokens_used", type=AttributeKey.Type.TYPE_FLOAT),
                 op=ComparisonFilter.OP_EQUALS,
-                value=AttributeValue(val_float=123),
+                value=AttributeValue(val_double=123),
             )
         )
 
@@ -97,7 +97,7 @@ class SearchResolverQueryTest(TestCase):
             comparison_filter=ComparisonFilter(
                 key=AttributeKey(name="ai_total_tokens_used", type=AttributeKey.Type.TYPE_FLOAT),
                 op=ComparisonFilter.OP_IN,
-                value=AttributeValue(val_float_array=FloatArray(values=[123, 456, 789])),
+                value=AttributeValue(val_double_array=DoubleArray(values=[123, 456, 789])),
             )
         )
 
@@ -107,7 +107,7 @@ class SearchResolverQueryTest(TestCase):
             comparison_filter=ComparisonFilter(
                 key=AttributeKey(name="ai_total_tokens_used", type=AttributeKey.Type.TYPE_FLOAT),
                 op=ComparisonFilter.OP_GREATER_THAN,
-                value=AttributeValue(val_float=123),
+                value=AttributeValue(val_double=123),
             )
         )
 
