@@ -21,7 +21,7 @@ from sentry.integrations.utils.code_mapping import (
 )
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.tasks.derive_code_mappings import get_installation
+from sentry.tasks.auto_source_code_configs import get_installation
 
 
 @region_silo_endpoint
