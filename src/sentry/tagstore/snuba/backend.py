@@ -1287,15 +1287,14 @@ class SnubaTagStorage(TagStorage):
 
     def get_group_tag_value_iter(
         self,
-        group,
-        environment_ids,
-        key,
-        callbacks=(),
-        orderby="-first_seen",
+        group: Group,
+        environment_ids: list[int | None],
+        key: str,
+        orderby: str = "-first_seen",
         limit: int = 1000,
         offset: int = 0,
-        tenant_ids=None,
-    ):
+        tenant_ids: dict[str, int | str] | None = None,
+    ) -> list[GroupTagValue]:
         filters = {
             "project_id": get_project_list(group.project_id),
             "tags_key": [key],
@@ -1325,9 +1324,6 @@ class SnubaTagStorage(TagStorage):
             GroupTagValue(group_id=group.id, key=key, value=value, **fix_tag_value_data(data))
             for value, data in results.items()
         ]
-
-        for cb in callbacks:
-            cb(group_tag_values)
 
         return group_tag_values
 

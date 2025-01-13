@@ -1,11 +1,19 @@
 from __future__ import annotations
 
+from typing import NamedTuple
+
 from sentry import tagstore
 from sentry.models.group import Group, get_group_with_redirect
 from sentry.models.project import Project
+from sentry.tagstore.types import GroupTagValue
 from sentry.utils.eventuser import EventUser
 
 from ..base import ExportError
+
+
+class GroupTagValueAndEventUser(NamedTuple):
+    value: GroupTagValue
+    eventuser: EventUser | None
 
 
 class IssuesByTagProcessor:
@@ -15,10 +23,10 @@ class IssuesByTagProcessor:
 
     def __init__(
         self,
-        project_id,
-        group_id,
-        key,
-        environment_id,
+        project_id: int,
+        group_id: int,
+        key: str,
+        environment_id: int | None,
         tenant_ids: dict[str, str | int] | None = None,
     ):
         self.project = self.get_project(project_id)
@@ -34,10 +42,9 @@ class IssuesByTagProcessor:
             )
         except tagstore.TagKeyNotFound:
             raise ExportError("Requested key does not exist")
-        self.callbacks = self.get_callbacks(self.key, self.group.project_id)
 
     @staticmethod
-    def get_project(project_id):
+    def get_project(project_id: int) -> Project:
         try:
             project = Project.objects.get_from_cache(id=project_id)
             return project
@@ -45,7 +52,7 @@ class IssuesByTagProcessor:
             raise ExportError("Requested project does not exist")
 
     @staticmethod
-    def get_group(group_id, project):
+    def get_group(group_id: int, project: Project) -> Group:
         try:
             group, _ = get_group_with_redirect(
                 group_id, queryset=Group.objects.filter(project=project)
@@ -55,7 +62,7 @@ class IssuesByTagProcessor:
             raise ExportError("Requested issue does not exist")
 
     @staticmethod
-    def get_header_fields(key):
+    def get_header_fields(key: str) -> list[str]:
         if key == "user":
             return [
                 "value",
@@ -71,53 +78,44 @@ class IssuesByTagProcessor:
             return ["value", "times_seen", "last_seen", "first_seen"]
 
     @staticmethod
-    def get_lookup_key(key):
-        return str(f"sentry:{key}") if tagstore.backend.is_reserved_key(key) else key
+    def get_lookup_key(key: str) -> str:
+        return f"sentry:{key}" if tagstore.backend.is_reserved_key(key) else key
 
     @staticmethod
-    def get_eventuser_callback(project_id):
-        def attach_eventuser(items):
-            users = EventUser.for_tags(project_id, [i.value for i in items])
-            for item in items:
-                item._eventuser = users.get(item.value)
-
-        return attach_eventuser
-
-    @staticmethod
-    def get_callbacks(key, project_id):
-        return [IssuesByTagProcessor.get_eventuser_callback(project_id)] if key == "user" else []
-
-    @staticmethod
-    def serialize_row(item, key):
+    def serialize_row(item: GroupTagValueAndEventUser, key: str) -> dict[str, str]:
         result = {
-            "value": item.value,
-            "times_seen": item.times_seen,
-            "last_seen": item.last_seen.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-            "first_seen": item.first_seen.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+            "value": item.value.value,
+            "times_seen": item.value.times_seen,
+            "last_seen": item.value.last_seen.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+            "first_seen": item.value.first_seen.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
         }
         if key == "user":
-            euser = item._eventuser
+            euser = item.eventuser
             result["id"] = euser.user_ident if euser and isinstance(euser, EventUser) else ""
             result["email"] = euser.email if euser else ""
             result["username"] = euser.username if euser else ""
             result["ip_address"] = euser.ip_address if euser else ""
         return result
 
-    def get_raw_data(self, limit=1000, offset=0):
+    def get_raw_data(self, limit: int = 1000, offset: int = 0) -> list[GroupTagValueAndEventUser]:
         """
         Returns list of GroupTagValues
         """
-        return tagstore.backend.get_group_tag_value_iter(
+        items = tagstore.backend.get_group_tag_value_iter(
             group=self.group,
             environment_ids=[self.environment_id],
             key=self.lookup_key,
-            callbacks=self.callbacks,
             limit=limit,
             offset=offset,
             tenant_ids={"organization_id": self.project.organization_id},
         )
+        if self.key == "user":
+            users = EventUser.for_tags(self.group.project_id, [i.value for i in items])
+        else:
+            users = {}
+        return [GroupTagValueAndEventUser(item, users.get(item.value)) for item in items]
 
-    def get_serialized_data(self, limit=1000, offset=0):
+    def get_serialized_data(self, limit: int = 1000, offset: int = 0) -> list[dict[str, str]]:
         """
         Returns list of serialized GroupTagValue dictionaries
         """
