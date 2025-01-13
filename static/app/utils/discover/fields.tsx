@@ -149,6 +149,20 @@ export enum DurationUnit {
   YEAR = 'year',
 }
 
+// Durations normalized to millisecond unit
+export const DURATION_UNIT_MULTIPLIERS: Record<DurationUnit, number> = {
+  nanosecond: 1 / 1000 ** 2,
+  microsecond: 1 / 1000,
+  millisecond: 1,
+  second: 1000,
+  minute: 1000 * 60,
+  hour: 1000 * 60 * 60,
+  day: 1000 * 60 * 60 * 24,
+  week: 1000 * 60 * 60 * 24 * 7,
+  month: 1000 * 60 * 60 * 24 * 30,
+  year: 1000 * 60 * 60 * 24 * 365,
+};
+
 export enum SizeUnit {
   BIT = 'bit',
   BYTE = 'byte',

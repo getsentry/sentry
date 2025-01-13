@@ -179,6 +179,7 @@ export const ABYTE_UNITS = [
   'exabyte',
 ];
 
+// TODO: Remove this, use `DURATION_UNIT_MULTIPLIERS` instead
 export const DURATION_UNITS = {
   nanosecond: 1 / 1000 ** 2,
   microsecond: 1 / 1000,
