@@ -189,7 +189,10 @@ function WidgetBuilderSlideout({
                 </Section>
               )}
             </div>
-            <WidgetTemplatesList setOpenWidgetTemplates={setOpenWidgetTemplates} />
+            <WidgetTemplatesList
+              onSave={onSave}
+              setOpenWidgetTemplates={setOpenWidgetTemplates}
+            />
           </Fragment>
         )}
       </SlideoutBodyWrapper>
