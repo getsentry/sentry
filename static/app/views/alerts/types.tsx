@@ -74,11 +74,6 @@ export enum IncidentStatus {
   CRITICAL = 20,
 }
 
-export enum ActivationStatus {
-  WAITING = 0,
-  MONITORING = 1,
-}
-
 export enum IncidentStatusMethod {
   MANUAL = 1,
   RULE_UPDATED = 2,
