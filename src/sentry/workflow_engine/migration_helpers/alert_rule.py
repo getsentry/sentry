@@ -310,7 +310,7 @@ def update_migrated_alert_rule(alert_rule: AlertRule, updated_fields: dict[str, 
         )
         return None
 
-    updated_detector_fields: dict[str:Any] = {}
+    updated_detector_fields: dict[str, Any] = {}
     config = detector.config.copy()
 
     if "name" in updated_fields:
@@ -368,13 +368,10 @@ def update_migrated_alert_rule(alert_rule: AlertRule, updated_fields: dict[str, 
     detector.update(**updated_detector_fields)
 
     # reset detector status, as the rule was updated
-    updated_status = {
-        "active": False,
-        "state": DetectorPriorityLevel.OK,
-    }
-    detector_state.update(**updated_status)
+    detector_state.update(active=False, state=DetectorPriorityLevel.OK)
 
     # TODO: do we need to create an audit log entry here?
+    # do we need to return the detector's data conditions/DCG?
     return detector_state, detector
 
 

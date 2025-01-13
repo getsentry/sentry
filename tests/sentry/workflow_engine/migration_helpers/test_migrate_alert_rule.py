@@ -15,6 +15,7 @@ from sentry.workflow_engine.migration_helpers.alert_rule import (
     migrate_metric_action,
     migrate_metric_data_condition,
     migrate_resolve_threshold_data_condition,
+    update_migrated_alert_rule,
 )
 from sentry.workflow_engine.models import (
     Action,
@@ -315,3 +316,59 @@ class AlertRuleMigrationHelpersTest(APITestCase):
                 "alert_rule_trigger_action_id": self.alert_rule_trigger_action_integration.id,
             },
         )
+
+    def test_update_metric_alert(self):
+        migrate_alert_rule(self.metric_alert, self.rpc_user)
+        updated_fields = {
+            "name": "hojicha",
+            "description": "a Japanese green tea roasted over charcoal",
+        }
+
+        alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=self.metric_alert)
+        detector = alert_rule_detector.detector
+        detector_state = DetectorState.objects.get(detector=detector)
+        detector_state.update(
+            active=True, state=DetectorPriorityLevel.HIGH
+        )  # so we can confirm that our update actually changes things
+        assert detector_state.active
+
+        update_migrated_alert_rule(self.metric_alert, updated_fields)
+        detector.refresh_from_db()
+        detector_state.refresh_from_db()
+
+        assert detector.name == "hojicha"
+        assert detector.description == "a Japanese green tea roasted over charcoal"
+
+        assert not detector_state.active
+        assert detector_state.state == str(DetectorPriorityLevel.OK.value)
+
+    def test_update_metric_alert_owner(self):
+        migrate_alert_rule(self.metric_alert, self.rpc_user)
+        updated_fields = {
+            "user_id": self.user.id,
+            "team_id": None,
+        }
+        alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=self.metric_alert)
+        detector = alert_rule_detector.detector
+
+        update_migrated_alert_rule(self.metric_alert, updated_fields)
+        detector.refresh_from_db()
+
+        assert detector.owner_user_id == self.user.id
+        assert detector.owner_team_id is None
+
+    def test_update_metric_alert_config(self):
+        migrate_alert_rule(self.metric_alert, self.rpc_user)
+        updated_fields = {
+            "threshold_period": 1,
+            "sensitivity": None,
+            "seasonality": None,
+            "comparison_delta": 3600,
+        }
+        alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=self.metric_alert)
+        detector = alert_rule_detector.detector
+
+        update_migrated_alert_rule(self.metric_alert, updated_fields)
+        detector.refresh_from_db()
+
+        assert detector.config == updated_fields
