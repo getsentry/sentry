@@ -148,7 +148,6 @@ type State = {
   query: string;
   resolveThreshold: UnsavedMetricRule['resolveThreshold'];
   sensitivity: UnsavedMetricRule['sensitivity'];
-  thresholdPeriod: UnsavedMetricRule['thresholdPeriod'];
   thresholdType: UnsavedMetricRule['thresholdType'];
   timeWindow: number;
   triggerErrors: Map<number, {[fieldName: string]: string}>;
@@ -873,10 +872,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     );
   };
 
-  handleThresholdPeriodChange = (value: number) => {
-    this.setState({thresholdPeriod: value}, () => this.fetchAnomalies());
-  };
-
   handleResolveThresholdChange = (
     resolveThreshold: UnsavedMetricRule['resolveThreshold']
   ) => {
@@ -1237,7 +1232,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       triggers,
       aggregate,
       thresholdType,
-      thresholdPeriod,
       comparisonDelta,
       comparisonType,
       resolveThreshold,
@@ -1265,7 +1259,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         isMigration={isMigration}
         resolveThreshold={resolveThreshold}
         sensitivity={sensitivity}
-        thresholdPeriod={thresholdPeriod}
         thresholdType={thresholdType}
         comparisonType={comparisonType}
         currentProject={project.slug}
@@ -1273,7 +1266,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         availableActions={this.state.availableActions}
         onChange={this.handleChangeTriggers}
         onThresholdTypeChange={this.handleThresholdTypeChange}
-        onThresholdPeriodChange={this.handleThresholdPeriodChange}
         onResolveThresholdChange={this.handleResolveThresholdChange}
         onSensitivityChange={this.handleSensitivityChange}
       />
