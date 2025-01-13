@@ -144,7 +144,6 @@ class GroupAutofixEndpoint(GroupEndpoint):
                     child["function"] == frame_data["function"]
                     and child["module"] == frame_data["module"]
                     and child["filename"] == frame_data["filename"]
-                    and child["lineno"] == frame_data["lineno"]
                 ):
                     return child
 
@@ -163,7 +162,6 @@ class GroupAutofixEndpoint(GroupEndpoint):
                     existing_root["function"] == stack_frames[0]["function"]
                     and existing_root["module"] == stack_frames[0]["module"]
                     and existing_root["filename"] == stack_frames[0]["filename"]
-                    and existing_root["lineno"] == stack_frames[0]["lineno"]
                 ):
                     root = existing_root
                     break
