@@ -11,6 +11,10 @@ import {formatAbbreviatedNumber, formatRate} from 'sentry/utils/formatters';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 
 export function formatYAxisValue(value: number, type: string, unit?: string): string {
+  if (value === 0) {
+    return '0';
+  }
+
   switch (type) {
     case 'integer':
       return formatAbbreviatedNumber(value);
