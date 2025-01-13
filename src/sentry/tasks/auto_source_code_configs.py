@@ -17,7 +17,7 @@ from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionEvent,
     SCMIntegrationInteractionType,
 )
-from sentry.integrations.utils.code_mapping import CodeMapping, CodeMappingTreesHelper
+from sentry.issues.auto_source_code_config.code_mapping import CodeMapping, CodeMappingTreesHelper
 from sentry.issues.auto_source_code_config.integrations import get_organization_installation
 from sentry.locks import locks
 from sentry.models.organization import Organization

@@ -17,7 +17,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.autofix.utils import get_autofix_repos_from_project_code_mappings, get_autofix_state
-from sentry.integrations.utils.code_mapping import get_sorted_code_mapping_configs
+from sentry.issues.auto_source_code_config.code_mapping import get_sorted_code_mapping_configs
 from sentry.models.group import Group
 from sentry.seer.signed_seer_api import get_seer_salted_url, sign_with_seer_secret
 from sentry.tasks.autofix import check_autofix_status

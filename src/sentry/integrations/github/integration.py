@@ -32,11 +32,11 @@ from sentry.integrations.services.repository import RpcRepository, repository_se
 from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.integrations.tasks.migrate_repo import migrate_repo
-from sentry.integrations.utils.code_mapping import RepoTree
 from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewEvent,
     IntegrationPipelineViewType,
 )
+from sentry.issues.auto_source_code_config.code_mapping import RepoTree
 from sentry.models.repository import Repository
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization import RpcOrganizationSummary, organization_service

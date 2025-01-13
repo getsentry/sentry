@@ -3,7 +3,7 @@ from unittest.mock import patch
 import pytest
 
 from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.integrations.utils.code_mapping import (
+from sentry.issues.auto_source_code_config.code_mapping import (
     CodeMapping,
     CodeMappingTreesHelper,
     FrameFilename,
