@@ -254,18 +254,18 @@ class TriggersChart extends PureComponent<Props, State> {
       this.props;
     const {statsPeriod} = this.state;
     if (
-      showTotalCount &&
-      !isSessionAggregate(aggregate) &&
-      (!isEqual(prevProps.projects, projects) ||
-        prevProps.environment !== environment ||
-        prevProps.query !== query ||
-        !isEqual(prevProps.timeWindow, timeWindow) ||
-        !isEqual(prevState.statsPeriod, statsPeriod))
+      !isEqual(prevProps.projects, projects) ||
+      prevProps.environment !== environment ||
+      prevProps.query !== query ||
+      !isEqual(prevProps.timeWindow, timeWindow) ||
+      !isEqual(prevState.statsPeriod, statsPeriod)
     ) {
-      this.fetchTotalCount();
-    }
-    if (this.props.dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
-      this.fetchExtrapolationSampleCount();
+      if (showTotalCount && !isSessionAggregate(aggregate)) {
+        this.fetchTotalCount();
+      }
+      if (this.props.dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
+        this.fetchExtrapolationSampleCount();
+      }
     }
   }
 
