@@ -123,7 +123,6 @@ module = [
     "sentry.api.bases.team",
     "sentry.api.endpoints.accept_organization_invite",
     "sentry.api.endpoints.auth_config",
-    "sentry.api.endpoints.codeowners",
     "sentry.api.endpoints.codeowners.index",
     "sentry.api.endpoints.event_attachments",
     "sentry.api.endpoints.group_integration_details",
