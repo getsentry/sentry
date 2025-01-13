@@ -2,7 +2,7 @@ from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log, features
+from sentry import audit_log
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -10,6 +10,7 @@ from sentry.api.bases import ProjectEndpoint
 from sentry.models.project import Project
 from sentry.tempest.models import TempestCredentials
 from sentry.tempest.permissions import TempestCredentialsPermission
+from sentry.tempest.utils import has_tempest_access
 
 
 @region_silo_endpoint
@@ -21,13 +22,8 @@ class TempestCredentialsDetailsEndpoint(ProjectEndpoint):
 
     permission_classes = (TempestCredentialsPermission,)
 
-    def has_feature(self, request: Request, project: Project) -> bool:
-        return features.has(
-            "organizations:tempest-access", project.organization, actor=request.user
-        )
-
     def delete(self, request: Request, project: Project, tempest_credentials_id: int) -> Response:
-        if not self.has_feature(request, project):
+        if not has_tempest_access(project.organization, request.user):
             raise NotFound
 
         try:
