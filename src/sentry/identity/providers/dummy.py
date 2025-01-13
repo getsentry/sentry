@@ -1,14 +1,18 @@
 __all__ = ["DummyProvider"]
 
-from django.http import HttpResponse
-from rest_framework.request import Request
+from typing import Any
+
+from django.http import HttpRequest, HttpResponse
+from django.http.response import HttpResponseBase
 
 from sentry.identity.base import Provider
 from sentry.pipeline import PipelineView
 
 
 class AskEmail(PipelineView):
-    def dispatch(self, request: Request, pipeline) -> HttpResponse:
+    def dispatch(
+        self, request: HttpRequest, pipeline, *args: Any, **kwargs: Any
+    ) -> HttpResponseBase:
         if "email" in request.POST:
             pipeline.bind_state("email", request.POST.get("email"))
             return pipeline.next_step()

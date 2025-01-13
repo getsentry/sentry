@@ -180,7 +180,6 @@ module = [
     "sentry.identity.gitlab.provider",
     "sentry.identity.oauth2",
     "sentry.identity.pipeline",
-    "sentry.identity.providers.dummy",
     "sentry.incidents.endpoints.bases",
     "sentry.incidents.endpoints.organization_alert_rule_details",
     "sentry.incidents.endpoints.organization_alert_rule_index",
