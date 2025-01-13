@@ -163,7 +163,7 @@ export function WidgetCardChartContainer({
                   : {selected: widgetLegendState.getWidgetSelectionState(widget)}
               }
               widgetLegendState={widgetLegendState}
-              showConfidenceWarning={confidence === 'low' || showConfidenceWarning}
+              showConfidenceWarning={showConfidenceWarning}
               confidence={confidence}
             />
           </Fragment>
