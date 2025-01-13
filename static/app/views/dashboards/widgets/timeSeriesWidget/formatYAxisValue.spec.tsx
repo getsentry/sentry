@@ -38,8 +38,8 @@ describe('formatYAxisValue', () => {
   describe('duration', () => {
     it.each([
       [0, 'millisecond', '0'],
-      [0.712, 'second', '712.00ms'],
-      [1231, 'second', '20.52min'],
+      [0.712, 'second', '712ms'],
+      [1230, 'second', '20.5min'],
     ])('Formats %s as %s', (value, unit, formattedValue) => {
       expect(formatYAxisValue(value, 'duration', unit)).toEqual(formattedValue);
     });
