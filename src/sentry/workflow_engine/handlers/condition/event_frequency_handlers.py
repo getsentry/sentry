@@ -65,5 +65,6 @@ class EventFrequencyCountHandler(EventFrequencyConditionHandler, DataConditionHa
 class EventFrequencyPercentHandler(EventFrequencyConditionHandler, DataConditionHandler[list[int]]):
     @staticmethod
     def evaluate_value(value: list[int], comparison: Any) -> DataConditionResult:
-        assert len(value) == 2
+        if len(value) != 2:
+            return False
         return percent_increase(value[0], value[1]) > comparison["value"]
