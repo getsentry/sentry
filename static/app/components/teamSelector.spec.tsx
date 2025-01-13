@@ -2,7 +2,6 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
 
@@ -210,16 +209,8 @@ describe('Team Selector', function () {
     expect(openCreateTeamModal).not.toHaveBeenCalled();
   });
 
-  it('shows all teams to members if Open Membership is enabled', async function () {
-    const {organization: orgWithInviteAccess} = initializeOrg({
-      organization: {
-        access: ['member:invite'],
-        allowMemberInvite: true,
-        openMembership: true,
-      },
-    });
-
-    createWrapper({isInviting: true, organization: orgWithInviteAccess});
+  it('shows all teams to members if filterByUserMembership is false', async function () {
+    createWrapper({filterByUserMembership: false});
     await userEvent.type(screen.getByText('Select...'), '{keyDown}');
 
     expect(screen.getByText('#team1')).toBeInTheDocument();
@@ -227,16 +218,8 @@ describe('Team Selector', function () {
     expect(screen.getByText('#team3')).toBeInTheDocument();
   });
 
-  it('only shows member teams if Open Membership is disabled', async function () {
-    const {organization: orgWithInviteAccess} = initializeOrg({
-      organization: {
-        access: ['member:invite'],
-        allowMemberInvite: true,
-        openMembership: false,
-      },
-    });
-
-    createWrapper({isInviting: true, organization: orgWithInviteAccess});
+  it('only shows member teams if filterByUserMembership is true', async function () {
+    createWrapper({filterByUserMembership: true});
     await userEvent.type(screen.getByText('Select...'), '{keyDown}');
 
     expect(screen.getByText('#team1')).toBeInTheDocument();
