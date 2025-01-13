@@ -122,7 +122,7 @@ class AcceptOrganizationInviteTest(AcceptanceTestCase):
         self.browser.get(new_member.get_invite_link().split("/", 3)[-1])
         self.browser.wait_until('[data-test-id="accept-invite"]')
 
-        # Accept the invitation using the existing account
+        # Choose to login with existing account
         self.browser.click('a[data-test-id="link-with-existing"]')
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
@@ -131,12 +131,12 @@ class AcceptOrganizationInviteTest(AcceptanceTestCase):
             "document.addEventListener('invalid', function(e) { e.preventDefault(); }, true);"
         )
 
-        # Login using existing credentials
+        # Login
         self._sign_in_user(email, password)
-        assert self.browser.wait_until('[aria-label="Create project"]')
+        self.browser.wait_until('[data-test-id="join-organization"]')
 
-        # Check if the user is redirected to the correct organization
-        self.browser.find_element(By.XPATH, f"//*[text() = '{self.org.name}']")
+        # Display the acceptance view for the invitation to join a new organization
+        assert self.browser.element_exists(f"[aria-label='Join the {self.org.slug} organization']")
 
     @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
     def test_existing_user_invite_2fa_enforced_org(self):
@@ -176,4 +176,7 @@ class AcceptOrganizationInviteTest(AcceptanceTestCase):
 
         # Login using existing credentials
         self._sign_in_user(email, password)
-        assert self.browser.element_exists_by_test_id("2fa-warning")
+        self.browser.wait_until('[data-test-id="2fa-warning"]')
+
+        # Display the 2FA configuration view
+        assert self.browser.element_exists("[aria-label='Configure Two-Factor Auth']")

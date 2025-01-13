@@ -674,15 +674,15 @@ class AuthLoginView(BaseView):
                     )
 
                     # If the user is in a "pending invite acceptance" state and user_id is None,
-                    # they are not yet fully associated with the organization.
-                    # To ensure they are redirected to the correct organization after accepting the invite,
-                    # they need to be added as a member.
-                    if membership and membership.user_id is None and membership.is_pending:
-                        organization_service.add_organization_member(
-                            organization_id=organization.id,
-                            default_org_role=organization.default_role,
-                            user_id=user.id,
-                        )
+                    # they have to be redirected to the invitation page to explicitly accept the invite.
+                    if (
+                        membership
+                        and membership.user_id is None
+                        and membership.is_pending
+                        and membership.invitation_link
+                    ):
+                        accept_link_position = membership.invitation_link.find("/accept")
+                        return self.redirect(membership.invitation_link[accept_link_position:])
 
                     # Refresh the organization we fetched prior to login in order to check its login state.
                     org_context = organization_service.get_organization_by_slug(
