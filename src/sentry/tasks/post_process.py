@@ -994,7 +994,8 @@ def process_code_mappings(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
-    from sentry.tasks.derive_code_mappings import SUPPORTED_LANGUAGES, derive_code_mappings
+    from sentry.issues.auto_source_code_config.code_mapping import SUPPORTED_LANGUAGES
+    from sentry.tasks.auto_source_code_configs import derive_code_mappings
 
     try:
         event = job["event"]

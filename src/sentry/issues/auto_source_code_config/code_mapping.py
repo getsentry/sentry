@@ -13,6 +13,8 @@ from sentry.utils.event_frames import EventFrame, try_munge_frame_path
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
+SUPPORTED_LANGUAGES = ["javascript", "python", "node", "ruby", "php", "go", "csharp"]
+
 SLASH = "/"
 BACKSLASH = "\\"  # This is the Python representation of a single backslash
 

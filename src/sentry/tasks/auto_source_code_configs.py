@@ -17,7 +17,11 @@ from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionEvent,
     SCMIntegrationInteractionType,
 )
-from sentry.issues.auto_source_code_config.code_mapping import CodeMapping, CodeMappingTreesHelper
+from sentry.issues.auto_source_code_config.code_mapping import (
+    SUPPORTED_LANGUAGES,
+    CodeMapping,
+    CodeMappingTreesHelper,
+)
 from sentry.issues.auto_source_code_config.integrations import get_organization_installation
 from sentry.locks import locks
 from sentry.models.organization import Organization
@@ -27,8 +31,6 @@ from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.base import instrumented_task
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.safe import get_path
-
-SUPPORTED_LANGUAGES = ["javascript", "python", "node", "ruby", "php", "go", "csharp"]
 
 logger = logging.getLogger(__name__)
 
@@ -80,8 +82,8 @@ def process_error(error: ApiError, extra: dict[str, str]) -> None:
 
 
 @instrumented_task(
-    name="sentry.tasks.derive_code_mappings.derive_code_mappings",
-    queue="derive_code_mappings",
+    name="sentry.tasks.auto_source_code_configs.derive_code_mappings",
+    queue="derive_code_mappings",  # XXX: To be renamed to auto_source_code_configs
     default_retry_delay=60 * 10,
     max_retries=3,
 )
