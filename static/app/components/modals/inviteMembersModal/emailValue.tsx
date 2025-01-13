@@ -4,9 +4,8 @@ import styled from '@emotion/styled';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconCheckmark, IconWarning} from 'sentry/icons';
+import {IconWarning} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
-import useOrganization from 'sentry/utils/useOrganization';
 
 import type {InviteStatus} from './types';
 
@@ -17,7 +16,6 @@ function EmailValue<Option extends OptionTypeBase>({
   status: InviteStatus[string];
   valueProps: MultiValueProps<Option>;
 }) {
-  const organization = useOrganization();
   const {children, ...props} = valueProps;
   const error = status?.error;
 
@@ -30,9 +28,6 @@ function EmailValue<Option extends OptionTypeBase>({
           {children}
           {!status.sent && !status.error && <SendingIndicator />}
           {status.error && <IconWarning legacySize="10px" />}
-          {status.sent && !organization.features.includes('invite-members-new-modal') && (
-            <IconCheckmark legacySize="10px" color="success" />
-          )}
         </EmailLabel>
       </Tooltip>
     );

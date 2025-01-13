@@ -17,7 +17,7 @@ describe('InviteRowControlNew', function () {
       >
         <InviteMembersFooter canSend />
       </InviteMembersContext.Provider>,
-      {organization: OrganizationFixture({features: ['invite-members-new-modal']})}
+      {organization: OrganizationFixture()}
     );
   };
 
