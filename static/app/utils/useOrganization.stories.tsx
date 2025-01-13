@@ -14,7 +14,7 @@ export default storyBook('useOrganization', story => {
 
     return (
       <Fragment>
-        <p>useOrganization returns the currently selected organization.</p>
+        <p><code>useOrganization</code> returns the currently selected organization.</p>
         In the context of the Sentry dashboard, only a single organization cab be selected
         at a time.
         <p>
