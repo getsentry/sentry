@@ -7,6 +7,7 @@ from sentry import http
 from sentry.models.projectkey import ProjectKey, UseCase
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
+from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.tempest.models import TempestCredentials
 
 # This is the URL to the tempest service
@@ -109,10 +110,14 @@ def poll_tempest_crashes(credentials_id: int) -> None:
     try:
         if credentials.latest_fetched_item_id is not None:
             # This should generate/fetch a dsn explicitly for using with Tempest.
-            project_key, _ = ProjectKey.objects.get_or_create(
+            project_key, created = ProjectKey.objects.get_or_create(
                 use_case=UseCase.TEMPEST, project=credentials.project
             )
             dsn = project_key.get_dsn()
+            if created:
+                schedule_invalidate_project_config(
+                    project_id=project_id, trigger="tempest:poll_tempest_crashes"
+                )
 
             # Check if we should attach screenshots (opt-in feature)
             attach_screenshot = credentials.project.get_option("sentry:tempest_fetch_screenshots")
