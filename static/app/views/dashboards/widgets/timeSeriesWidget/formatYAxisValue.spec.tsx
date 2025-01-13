@@ -25,7 +25,7 @@ describe('formatYAxisValue', () => {
 
   describe('percentage', () => {
     it.each([
-      [0, '0%'],
+      [0, '0'],
       [0.00005, '0.005%'],
       [0.712, '71.2%'],
       [17.123, '1,712.3%'],
@@ -37,7 +37,7 @@ describe('formatYAxisValue', () => {
 
   describe('duration', () => {
     it.each([
-      [0, 'millisecond', '0.00ms'],
+      [0, 'millisecond', '0'],
       [0.712, 'second', '712.00ms'],
       [1231, 'second', '20.52min'],
     ])('Formats %s as %s', (value, unit, formattedValue) => {
@@ -47,7 +47,7 @@ describe('formatYAxisValue', () => {
 
   describe('size', () => {
     it.each([
-      [0, 'byte', '0.0 B'],
+      [0, 'byte', '0'],
       [0.712, 'megabyte', '712 KB'],
       [1231, 'kibibyte', '1.2 MiB'],
     ])('Formats %s as %s', (value, unit, formattedValue) => {
@@ -57,7 +57,7 @@ describe('formatYAxisValue', () => {
 
   describe('rate', () => {
     it.each([
-      [0, '1/second', '0/s'],
+      [0, '1/second', '0'],
       [0.712, '1/second', '0.712/s'],
       [12712, '1/second', '12.7K/s'],
       [1231, '1/minute', '1.23K/min'],
