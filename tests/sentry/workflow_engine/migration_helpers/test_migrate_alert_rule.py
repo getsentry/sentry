@@ -2,12 +2,11 @@ from unittest import mock
 
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.incidents.grouptype import MetricAlertFire
-from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
+from sentry.incidents.models.alert_rule import AlertRuleThresholdType, AlertRuleTriggerAction
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.snuba.models import QuerySubscription
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.factories import AlertRuleThresholdType
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.users.services.user.service import user_service
 from sentry.workflow_engine.migration_helpers.alert_rule import (
@@ -278,6 +277,7 @@ class AlertRuleMigrationHelpersTest(APITestCase):
 
         detector = AlertRuleDetector.objects.get(alert_rule=self.metric_alert).detector
         detector_dcg = detector.workflow_condition_group
+        assert detector_dcg
         resolve_threshold = get_resolve_threshold(detector_dcg)
         assert resolve_threshold == self.alert_rule_trigger_critical.alert_threshold
 
@@ -288,6 +288,7 @@ class AlertRuleMigrationHelpersTest(APITestCase):
 
         detector = AlertRuleDetector.objects.get(alert_rule=self.metric_alert).detector
         detector_dcg = detector.workflow_condition_group
+        assert detector_dcg
         resolve_threshold = get_resolve_threshold(detector_dcg)
         assert resolve_threshold == self.alert_rule_trigger_warning.alert_threshold
 

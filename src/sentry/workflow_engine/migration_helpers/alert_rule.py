@@ -165,15 +165,30 @@ def get_resolve_threshold(detector_data_condition_group: DataConditionGroup) -> 
         warning_data_condition = detector_triggers.filter(
             condition_result=DetectorPriorityLevel.MEDIUM
         ).first()
+        if warning_data_condition is None:
+            logger.error(
+                "more than one detector trigger in detector data condition group, but no warning condition exists",
+                extra={"detector_data_condition_group": detector_triggers},
+            )
+            return -1
         resolve_threshold = warning_data_condition.comparison
     else:
         # critical threshold value
-        resolve_threshold = detector_triggers.first().comparison
+        critical_data_condition = detector_triggers.first()
+        if critical_data_condition is None:
+            logger.error(
+                "no data conditions exist for detector data condition group",
+                extra={"detector_data_condition_group": detector_triggers},
+            )
+            return -1
+        resolve_threshold = critical_data_condition.comparison
 
     return resolve_threshold
 
 
-def migrate_resolve_threshold_data_conditions(alert_rule: AlertRule) -> DataCondition:
+def migrate_resolve_threshold_data_conditions(
+    alert_rule: AlertRule,
+) -> tuple[DataCondition, DataCondition] | None:
     """
     Create data conditions for the old world's "resolve" threshold. If a resolve threshold
     has been explicitly set on the alert rule, then use this as our comparison value. Otherwise,
@@ -184,6 +199,9 @@ def migrate_resolve_threshold_data_conditions(alert_rule: AlertRule) -> DataCond
     ).get(alert_rule=alert_rule)
     detector = alert_rule_detector.detector
     detector_data_condition_group = detector.workflow_condition_group
+    if detector_data_condition_group is None:
+        logger.error("workflow_condition_group does not exist", extra={"detector": detector})
+        return None
 
     # XXX: we set the resolve trigger's threshold_type to whatever the opposite of the rule's threshold_type is
     # e.g. if the rule has a critical trigger ABOVE some number, the resolve threshold is automatically set to BELOW
@@ -198,6 +216,9 @@ def migrate_resolve_threshold_data_conditions(alert_rule: AlertRule) -> DataCond
     else:
         # figure out the resolve threshold ourselves
         resolve_threshold = get_resolve_threshold(detector_data_condition_group)
+        if resolve_threshold == -1:
+            # something went wrong
+            return None
 
     detector_trigger = DataCondition.objects.create(
         comparison=resolve_threshold,
