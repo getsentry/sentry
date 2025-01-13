@@ -21,7 +21,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "0813_rm_alertruleactivations"),
+        ("sentry", "0813_rm_alertruleactivation_models"),
     ]
 
     operations = [
