@@ -440,3 +440,21 @@ def dual_delete_migrated_alert_rule(
         RegionScheduledDeletion.schedule(instance=data_source, days=0, actor=user)
 
     return
+
+
+def dual_delete_migrated_alert_rule_trigger(
+    trigger: AlertRuleTrigger,
+    user: RpcUser | None = None,
+) -> None:
+    # get the detector trigger that corresponds to this AlertRuleTrigger (how?)
+    # get the data condition that corresponds to this AlertRuleTrigger using the table
+    # are we going to have orphaned resolve conditions?
+    pass
+
+
+def dual_delete_migrated_alert_rule_trigger_action(
+    action: AlertRuleTriggerAction,
+    user: RpcUser | None = None,
+) -> None:
+    # how do we get the corresponding action lol
+    pass
