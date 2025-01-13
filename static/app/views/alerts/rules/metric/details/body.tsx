@@ -263,7 +263,6 @@ export default function MetricDetailsBody({
             incidents={incidents}
             anomalies={anomalies}
             timePeriod={timePeriod}
-            selectedIncident={selectedIncident}
             formattedAggregate={formattedAggregate}
             organization={organization}
             project={project}

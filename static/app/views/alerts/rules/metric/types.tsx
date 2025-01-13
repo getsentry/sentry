@@ -1,9 +1,5 @@
 import {t} from 'sentry/locale';
-import type {
-  ActivationConditionType,
-  AlertRuleActivation,
-  MonitorType,
-} from 'sentry/types/alerts';
+import type {AlertRuleActivation} from 'sentry/types/alerts';
 import type {MEPAlertsQueryType} from 'sentry/views/alerts/wizard/options';
 import type {SchemaFormConfig} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
 
@@ -118,10 +114,8 @@ export type UnsavedMetricRule = {
   thresholdType: AlertRuleThresholdType;
   timeWindow: TimeWindow;
   triggers: Trigger[];
-  activationCondition?: ActivationConditionType;
   comparisonDelta?: number | null;
   eventTypes?: EventTypes[];
-  monitorType?: MonitorType;
   monitorWindow?: number | null;
   owner?: string | null;
   queryType?: MEPAlertsQueryType | null;
