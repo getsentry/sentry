@@ -17,7 +17,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.autofix.utils import get_autofix_repos_from_project_code_mappings, get_autofix_state
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import Event, GroupEvent
 from sentry.integrations.utils.code_mapping import get_sorted_code_mapping_configs
 from sentry.models.group import Group
 from sentry.models.project import Project
@@ -53,7 +53,7 @@ class GroupAutofixEndpoint(GroupEndpoint):
 
     def _get_serialized_event(
         self, event_id: str, group: Group, user: AbstractBaseUser | AnonymousUser
-    ) -> tuple[dict[str, Any] | None, Event | None]:
+    ) -> tuple[dict[str, Any] | None, Event | GroupEvent | None]:
         event = eventstore.backend.get_event_by_id(group.project.id, event_id, group_id=group.id)
 
         if not event:
@@ -62,7 +62,7 @@ class GroupAutofixEndpoint(GroupEndpoint):
         serialized_event = serialize(event, user, EventSerializer())
         return serialized_event, event
 
-    def _get_profile_for_event(self, event: Event, project: Project) -> dict[str, Any]:
+    def _get_profile_for_event(self, event: Event | GroupEvent, project: Project) -> dict[str, Any]:
         context = event.data.get("contexts", {})
         profile_id = context.get("profile", {}).get("profile_id")  # transaction profile
 
@@ -195,7 +195,7 @@ class GroupAutofixEndpoint(GroupEndpoint):
             return nodes
 
         # Process all samples to build execution tree
-        execution_tree = []
+        execution_tree: list[dict] = []
 
         for sample in samples:
             stack_id = sample["stack_id"]
@@ -293,7 +293,7 @@ class GroupAutofixEndpoint(GroupEndpoint):
         # This event_id is the event that the user is looking at when they click the "Fix" button
         event_id = data.get("event_id", None)
         if event_id is None:
-            event = group.get_recommended_event_for_environments()
+            event: Event | GroupEvent | None = group.get_recommended_event_for_environments()
             if not event:
                 event = group.get_latest_event()
 
@@ -333,7 +333,7 @@ class GroupAutofixEndpoint(GroupEndpoint):
 
         # find best profile for this event
         try:
-            profile = self._get_profile_for_event(event, group.project)
+            profile = self._get_profile_for_event(event, group.project) if event else None
         except Exception as e:
             logger.exception(
                 "Failed to get profile for event",
