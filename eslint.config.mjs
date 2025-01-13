@@ -295,7 +295,6 @@ export default typescript.config([
       'no-unused-vars': 'off', // TODO(ryan953): Fix violations and delete this line
       'no-useless-catch': 'off', // TODO(ryan953): Fix violations and delete this line
       'no-useless-escape': 'off', // TODO(ryan953): Fix violations and delete this line
-      'valid-typeof': 'off', // TODO(ryan953): Fix violations and delete this line
     },
   },
   {
