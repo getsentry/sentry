@@ -5,20 +5,12 @@ from sentry.workflow_engine.migration_helpers.rule_action import (
 )
 from sentry.workflow_engine.models.action import Action
 from sentry.workflow_engine.typings.notification_action import (
-    ACTION_TYPE_TO_INTEGRATION_ID_KEY,
-    ACTION_TYPE_TO_TARGET_DISPLAY_KEY,
-    ACTION_TYPE_TO_TARGET_IDENTIFIER_KEY,
     EXCLUDED_ACTION_DATA_KEYS,
-    INTEGRATION_ACTION_TYPES,
-    RULE_REGISTRY_ID_TO_INTEGRATION_PROVIDER,
+    issue_alert_action_translator_registry,
 )
 
 
 class TestNotificationActionMigrationUtils(TestCase):
-    """
-    Tests for the migration utils for notification actions.
-    """
-
     def setUp(self):
         self.group = self.create_group(project=self.project)
         self.group_event = GroupEvent.from_event(self.event, self.group)
@@ -26,59 +18,61 @@ class TestNotificationActionMigrationUtils(TestCase):
     def assert_action_data_blob(self, action: Action, compare_dict: dict):
         """
         Asserts that the action data is equivalent to the compare_dict.
-        The keys in the compare_dict that are not in the EXCLUDED_ACTION_DATA_KEYS are compared.
-        The data blob shouldn't contain more than the keys in the compare_dict.
+        Uses the translator to determine which keys should be excluded from the data blob.
         """
+        translator_class = issue_alert_action_translator_registry.get(compare_dict["id"])
+        translator = translator_class()
 
         # Get the keys we need to ignore
         exclude_keys = [
-            ACTION_TYPE_TO_INTEGRATION_ID_KEY.get(Action.Type(action.type)),
-            ACTION_TYPE_TO_TARGET_IDENTIFIER_KEY.get(Action.Type(action.type)),
-            ACTION_TYPE_TO_TARGET_DISPLAY_KEY.get(Action.Type(action.type)),
+            translator.integration_id_key,
+            translator.target_identifier_key,
+            translator.target_display_key,
             *EXCLUDED_ACTION_DATA_KEYS,
         ]
 
-        # Assert the rest of the data is the same
-        for key in compare_dict:
-            if key not in exclude_keys:
-                assert compare_dict[key] == action.data[key]
+        # If we have a blob type, verify the data matches the blob structure
+        if translator.blob_type:
+            for field in translator.blob_type.__dataclass_fields__:
+                assert action.data.get(field, "") == compare_dict.get(field, "")
+            # Ensure no extra fields
+            assert set(action.data.keys()) == {
+                f.name for f in translator.blob_type.__dataclass_fields__.values()
+            }
+        else:
+            # Assert the rest of the data is the same
+            for key in compare_dict:
+                if key not in exclude_keys:
+                    assert compare_dict[key] == action.data[key]
 
-        # Assert the action data blob doesn't contain more than the keys in the compare_dict
-        for key in action.data:
-            assert key not in exclude_keys
+            # Assert the action data blob doesn't contain more than the keys in the compare_dict
+            for key in action.data:
+                assert key not in exclude_keys
 
-    def assert_action_attributes(
-        self,
-        action: Action,
-        compare_dict: dict[str, str],
-    ):
+    def assert_action_attributes(self, action: Action, compare_dict: dict[str, str]):
         """
-        Asserts that the action attributes are equivalent to the compare_dict.
+        Asserts that the action attributes are equivalent to the compare_dict using the translator.
         """
-        # assert action_type matches the id mapping
-        id = compare_dict.get("id")
-        assert id is not None
-        assert action.type == RULE_REGISTRY_ID_TO_INTEGRATION_PROVIDER.get(id)
+        translator_class = issue_alert_action_translator_registry.get(compare_dict["id"])
+        translator = translator_class()
 
-        if action.type in INTEGRATION_ACTION_TYPES:
-            # assert integration_id matches the integration_id key value from the compare_dict
-            integration_id_key = ACTION_TYPE_TO_INTEGRATION_ID_KEY.get(Action.Type(action.type))
-            assert integration_id_key is not None
-            assert action.integration_id == compare_dict.get(integration_id_key)
+        # Assert action type matches the translator
+        assert action.type == translator.action_type
 
-            # assert target_identifier matches the target_identifier key value from the compare_dict
-            # if the target_identifier key exists
-            target_identifier_key = ACTION_TYPE_TO_TARGET_IDENTIFIER_KEY.get(
-                Action.Type(action.type)
-            )
-            if target_identifier_key is not None:
-                assert action.target_identifier == compare_dict.get(target_identifier_key)
+        # Assert integration_id matches if specified
+        if translator.integration_id_key:
+            assert action.integration_id == compare_dict.get(translator.integration_id_key)
 
-            # assert target_display matches the target_display key value from the compare_dict
-            # if the target_display key exists
-            target_display_key = ACTION_TYPE_TO_TARGET_DISPLAY_KEY.get(Action.Type(action.type))
-            if target_display_key is not None:
-                assert action.target_display == compare_dict.get(target_display_key)
+        # Assert target_identifier matches if specified
+        if translator.target_identifier_key:
+            assert action.target_identifier == compare_dict.get(translator.target_identifier_key)
+
+        # Assert target_display matches if specified
+        if translator.target_display_key:
+            assert action.target_display == compare_dict.get(translator.target_display_key)
+
+        # Assert target_type matches
+        assert action.target_type == translator.target_type
 
     def assert_actions_migrated_correctly(
         self,
@@ -90,7 +84,6 @@ class TestNotificationActionMigrationUtils(TestCase):
         """
         assert len(actions) == len(rule_data_actions)
 
-        # checks if the action is equivalent to action_data
         for action, rule_data in zip(actions, rule_data_actions):
             assert isinstance(action, Action)
             self.assert_action_attributes(action, rule_data)

@@ -1,57 +1,14 @@
+import dataclasses
 import logging
 from typing import Any
 
-from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.workflow_engine.models.action import Action
 from sentry.workflow_engine.typings.notification_action import (
-    ACTION_TYPE_TO_INTEGRATION_ID_KEY,
-    ACTION_TYPE_TO_TARGET_DISPLAY_KEY,
-    ACTION_TYPE_TO_TARGET_IDENTIFIER_KEY,
-    ACTION_TYPE_TO_TARGET_TYPE_RULE_REGISTRY,
     EXCLUDED_ACTION_DATA_KEYS,
-    RULE_REGISTRY_ID_TO_INTEGRATION_PROVIDER,
-    SlackDataBlob,
+    issue_alert_action_translator_registry,
 )
 
-_logger = logging.getLogger(__name__)
-
-
-def build_slack_data_blob(action: dict[str, Any]) -> SlackDataBlob:
-    """
-    Builds a SlackDataBlob from the action data.
-    Only includes the keys that are not None.
-    """
-    return SlackDataBlob(
-        tags=action.get("tags", ""),
-        notes=action.get("notes", ""),
-    )
-
-
-def sanitize_action(action: dict[str, Any], action_type: Action.Type) -> dict[str, Any]:
-    """
-    Pops the keys we don't want to save inside the JSON field of the Action model.
-
-    :param action: action data (Rule.data.actions)
-    :param action_type: action type (Action.Type)
-    :return: action data without the excluded keys
-    """
-
-    # # If we have a specific blob type, we need to sanitize the action data to the blob type
-    if action_type == Action.Type.SLACK:
-        return build_slack_data_blob(action).__dict__
-    # # Otherwise, we can just return the action data as is, removing the keys we don't want to save
-    else:
-        return {
-            k: v
-            for k, v in action.items()
-            if k
-            not in [
-                ACTION_TYPE_TO_INTEGRATION_ID_KEY.get(action_type),
-                ACTION_TYPE_TO_TARGET_IDENTIFIER_KEY.get(action_type),
-                ACTION_TYPE_TO_TARGET_DISPLAY_KEY.get(action_type),
-                *EXCLUDED_ACTION_DATA_KEYS,
-            ]
-        }
+logger = logging.getLogger(__name__)
 
 
 def build_notification_actions_from_rule_data_actions(
@@ -62,75 +19,88 @@ def build_notification_actions_from_rule_data_actions(
 
     :param actions: list of action data (Rule.data.actions)
     :return: list of notification actions (Action)
+
+    :raises ValueError: if action is missing an id
+    :raises KeyError: if there isn't a translator registered for the id
     """
 
     notification_actions: list[Action] = []
 
     for action in actions:
-        # Use Rule.integration.provider to get the action type
-        action_type = RULE_REGISTRY_ID_TO_INTEGRATION_PROVIDER.get(action.get("id"))
-        if action_type is None:
-            _logger.warning(
-                "Action type not found for action",
+        registry_id = action.get("id")
+        if not registry_id:
+            logger.error(
+                "No registry ID found for action",
+                extra={"action_uuid": action.get("uuid")},
+            )
+            continue
+
+        try:
+            translator_class = issue_alert_action_translator_registry.get(registry_id)
+            translator = translator_class()
+        except KeyError:
+            logger.exception(
+                "Action translator not found for action",
                 extra={
-                    "action_id": action.get("id"),
+                    "registry_id": registry_id,
                     "action_uuid": action.get("uuid"),
                 },
             )
             continue
 
-        # For all integrations, the target type is specific
-        # For email, the target type is user
-        # For sentry app, the target type is sentry app
-        # FWIW, we don't use target type for issue alerts
-        target_type = ACTION_TYPE_TO_TARGET_TYPE_RULE_REGISTRY.get(action_type)
+        # Get integration ID if needed
+        # This won't be set for all actions, (e.g. sentry app)
+        integration_id = None
+        if translator.integration_id_key:
+            integration_id = action.get(translator.integration_id_key)
 
-        if target_type == ActionTarget.SPECIFIC:
+        # Get target identifier if needed
+        # This won't be set for all actions, (e.g. sentry app)
+        target_identifier = None
+        if translator.target_identifier_key:
+            target_identifier = action.get(translator.target_identifier_key)
 
-            # Get the integration_id
-            integration_id_key = ACTION_TYPE_TO_INTEGRATION_ID_KEY.get(action_type)
-            if integration_id_key is None:
-                # we should always have an integration id key if target type is specific
-                # TODO(iamrajjoshi): Should we fail loudly here?
-                _logger.warning(
-                    "Integration ID key not found for action type",
-                    extra={
-                        "action_type": action_type,
-                        "action_id": action.get("id"),
-                        "action_uuid": action.get("uuid"),
-                    },
-                )
-                continue
-            integration_id = action.get(integration_id_key)
+        # Get target display if needed
+        # This won't be set for all actions, some integrations also don't have a target display
+        target_display = None
+        if translator.target_display_key:
+            target_display = action.get(translator.target_display_key)
 
-            # Get the target_identifier if it exists
-            target_identifier_key = ACTION_TYPE_TO_TARGET_IDENTIFIER_KEY.get(action_type)
-            if target_identifier_key is not None:
-                target_identifier = action.get(target_identifier_key)
-
-            # Get the target_display if it exists
-            target_display_key = ACTION_TYPE_TO_TARGET_DISPLAY_KEY.get(action_type)
-            if target_display_key is not None:
-                target_display = action.get(target_display_key)
+        # Sanitize the action data
+        data = translator.sanitize_action(action)
+        if translator.blob_type:
+            # Convert to dataclass if blob type is specified
+            # k.name contains the field name inside the dataclass
+            blob_instance = translator.blob_type(
+                **{k.name: action.get(k.name, "") for k in dataclasses.fields(translator.blob_type)}
+            )
+            data = dataclasses.asdict(blob_instance)
+        else:
+            # Remove keys we don't want to save
+            data = {
+                k: v
+                for k, v in action.items()
+                if k
+                not in [
+                    translator.integration_id_key,
+                    translator.target_identifier_key,
+                    translator.target_display_key,
+                    *EXCLUDED_ACTION_DATA_KEYS,
+                ]
+            }
 
         notification_action = Action(
-            type=action_type,
-            data=(
-                # If the target type is specific, sanitize the action data
-                # Otherwise, use the action data as is
-                sanitize_action(action, action_type)
-                if target_type == ActionTarget.SPECIFIC
-                else action
-            ),
+            type=translator.action_type,
+            data=data,
             integration_id=integration_id,
             target_identifier=target_identifier,
             target_display=target_display,
-            target_type=target_type,
+            target_type=translator.target_type,
         )
 
         notification_actions.append(notification_action)
 
-    # Bulk create the actions, note: this won't call save(), not sure if we need to
+    # Bulk create the actions
     Action.objects.bulk_create(notification_actions)
 
     return notification_actions
