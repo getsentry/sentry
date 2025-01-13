@@ -55,6 +55,7 @@ type Props = {
   onZoom?: EChartDataZoomHandler;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
   shouldResize?: boolean;
+  showConfidenceWarning?: boolean;
   tableItemLimit?: number;
   windowWidth?: number;
 };
@@ -78,6 +79,7 @@ export function WidgetCardChartContainer({
   chartGroup,
   shouldResize,
   widgetLegendState,
+  showConfidenceWarning,
 }: Props) {
   const location = useLocation();
 
@@ -105,6 +107,7 @@ export function WidgetCardChartContainer({
         errorMessage,
         loading,
         timeseriesResultsTypes,
+        confidence,
       }) => {
         if (widget.widgetType === WidgetType.ISSUE) {
           return (
@@ -160,9 +163,9 @@ export function WidgetCardChartContainer({
                   : {selected: widgetLegendState.getWidgetSelectionState(widget)}
               }
               widgetLegendState={widgetLegendState}
+              showConfidenceWarning={confidence === 'low' || showConfidenceWarning}
+              confidence={confidence}
             />
-
-            {/* <ConfidenceFooter sampleCount={500} confidence={'low'} /> */}
           </Fragment>
         );
       }}

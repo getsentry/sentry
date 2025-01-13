@@ -29,7 +29,7 @@ import type {
   EChartEventHandler,
   ReactEchartsRef,
 } from 'sentry/types/echarts';
-import type {Organization} from 'sentry/types/organization';
+import type {Confidence, Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {
   axisLabelFormatter,
@@ -51,6 +51,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
+import ConfidenceWarning from 'sentry/views/dashboards/widgetCard/confidenceWarning';
 import {getBucketSize} from 'sentry/views/dashboards/widgetCard/utils';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 
@@ -62,7 +63,6 @@ import type WidgetLegendSelectionState from '../widgetLegendSelectionState';
 import {BigNumberWidgetVisualization} from '../widgets/bigNumberWidget/bigNumberWidgetVisualization';
 
 import type {GenericWidgetQueriesChildrenProps} from './genericWidgetQueries';
-import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
 
 const OTHER = 'Other';
 const PERCENTAGE_DECIMAL_POINTS = 3;
@@ -83,6 +83,7 @@ type WidgetCardChartProps = Pick<
   widget: Widget;
   widgetLegendState: WidgetLegendSelectionState;
   chartGroup?: string;
+  confidence?: Confidence;
   expandNumbers?: boolean;
   isMobile?: boolean;
   legendOptions?: LegendComponentOption;
@@ -94,6 +95,7 @@ type WidgetCardChartProps = Pick<
   }>;
   onZoom?: EChartDataZoomHandler;
   shouldResize?: boolean;
+  showConfidenceWarning?: boolean;
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
   windowWidth?: number;
 };
@@ -285,6 +287,8 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       noPadding,
       timeseriesResultsTypes,
       shouldResize,
+      confidence,
+      showConfidenceWarning,
     } = this.props;
 
     if (widget.displayType === 'table') {
@@ -544,7 +548,12 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
                         })}
                       </div>
 
-                      <ConfidenceFooter sampleCount={500} confidence={'low'} />
+                      {showConfidenceWarning && confidence && (
+                        <ConfidenceWarning
+                          query={widget.queries[0]?.conditions ?? ''}
+                          confidence={confidence}
+                        />
+                      )}
                     </ChartWrapper>
                   </TransitionChart>
                 );
@@ -569,7 +578,12 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
                     fixed: <Placeholder height="200px" testId="skeleton-ui" />,
                   })}
                 </div>
-                <ConfidenceFooter sampleCount={500} confidence={'low'} />
+                {showConfidenceWarning && confidence && (
+                  <ConfidenceWarning
+                    query={widget.queries[0]?.conditions ?? ''}
+                    confidence={confidence}
+                  />
+                )}
               </ChartWrapper>
             </TransitionChart>
           );
