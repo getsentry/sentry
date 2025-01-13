@@ -1,6 +1,5 @@
-import React, {Fragment, useState} from 'react';
+import React, {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
-import omit from 'lodash/omit';
 
 import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
@@ -11,7 +10,6 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
-import useRouter from 'sentry/utils/useRouter';
 import BrowserTypeSelector from 'sentry/views/insights/browser/webVitals/components/browserTypeSelector';
 import {PerformanceScoreChart} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
 import {PagePerformanceTable} from 'sentry/views/insights/browser/webVitals/components/tables/pagePerformanceTable';
@@ -26,6 +24,7 @@ import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modul
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
+import {useWebVitalsDrawer} from 'sentry/views/insights/common/utils/useWebVitalsDrawer';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
 import {
   ModuleName,
@@ -37,8 +36,6 @@ const WEB_VITALS_COUNT = 5;
 
 export function WebVitalsLandingPage() {
   const location = useLocation();
-
-  const router = useRouter();
 
   const [state, setState] = useState<{webVital: WebVitals | null}>({
     webVital: (location.query.webVital as WebVitals) ?? null,
@@ -60,6 +57,20 @@ export function WebVitalsLandingPage() {
     isProjectScoresLoading || isPending
       ? undefined
       : getWebVitalScoresFromTableDataRow(projectScores?.data?.[0]);
+
+  const {openVitalsDrawer} = useWebVitalsDrawer({
+    Component: <WebVitalsDetailPanel webVital={state.webVital} />,
+    webVital: state.webVital,
+    onClose: () => {
+      setState({webVital: null});
+    },
+  });
+
+  useEffect(() => {
+    if (state.webVital) {
+      openVitalsDrawer();
+    }
+  });
 
   return (
     <React.Fragment>
@@ -130,16 +141,6 @@ export function WebVitalsLandingPage() {
           </Layout.Main>
         </Layout.Body>
       </ModuleBodyUpsellHook>
-      <WebVitalsDetailPanel
-        webVital={state.webVital}
-        onClose={() => {
-          router.replace({
-            pathname: router.location.pathname,
-            query: omit(router.location.query, 'webVital'),
-          });
-          setState({...state, webVital: null});
-        }}
-      />
     </React.Fragment>
   );
 }
