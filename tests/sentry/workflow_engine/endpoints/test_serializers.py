@@ -20,6 +20,8 @@ from sentry.workflow_engine.models import (
     Workflow,
 )
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.models.data_condition_group_action import DataConditionGroupAction
+from sentry.workflow_engine.models.workflow_data_condition_group import WorkflowDataConditionGroup
 from sentry.workflow_engine.registry import data_source_type_registry
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
@@ -57,6 +59,11 @@ class TestDetectorSerializer(TestCase):
             comparison=100,
             condition_result=DetectorPriorityLevel.HIGH,
         )
+
+        action = Action.objects.create(type=Action.Type.EMAIL, data={"foo": "bar"})
+
+        DataConditionGroupAction.objects.create(condition_group=condition_group, action=action)
+
         detector = Detector.objects.create(
             organization_id=self.organization.id,
             name="Test Detector",
@@ -123,6 +130,13 @@ class TestDetectorSerializer(TestCase):
                         "condition": Condition.GREATER,
                         "comparison": 100,
                         "result": DetectorPriorityLevel.HIGH,
+                    }
+                ],
+                "actions": [
+                    {
+                        "id": str(action.id),
+                        "type": "email",
+                        "data": '{"foo":"bar"}',
                     }
                 ],
             },
@@ -203,9 +217,10 @@ class TestDataConditionGroupSerializer(TestCase):
             "organizationId": str(self.organization.id),
             "logicType": DataConditionGroup.Type.ANY,
             "conditions": [],
+            "actions": [],
         }
 
-    def test_serialize_with_conditions(self):
+    def test_serialize_full(self):
         condition_group = DataConditionGroup.objects.create(
             organization_id=self.organization.id,
             logic_type=DataConditionGroup.Type.ANY,
@@ -216,6 +231,10 @@ class TestDataConditionGroupSerializer(TestCase):
             comparison=100,
             condition_result=DetectorPriorityLevel.HIGH,
         )
+
+        action = Action.objects.create(type=Action.Type.EMAIL, data={"foo": "bar"})
+
+        DataConditionGroupAction.objects.create(condition_group=condition_group, action=action)
 
         result = serialize(condition_group)
 
@@ -229,6 +248,13 @@ class TestDataConditionGroupSerializer(TestCase):
                     "condition": "gt",
                     "comparison": 100,
                     "result": DetectorPriorityLevel.HIGH,
+                }
+            ],
+            "actions": [
+                {
+                    "id": str(action.id),
+                    "type": "email",
+                    "data": '{"foo":"bar"}',
                 }
             ],
         }
@@ -279,30 +305,48 @@ class TestWorkflowSerializer(TestCase):
         assert result == {
             "id": str(workflow.id),
             "organizationId": str(self.organization.id),
-            "enabled": True,
             "dateCreated": workflow.date_added,
             "dateUpdated": workflow.date_updated,
-            "conditionGroup": None,
+            "triggerConditionGroup": None,
+            "dataConditionGroups": [],
             "environment": None,
         }
 
     def test_serialize_full(self):
-        condition_group = DataConditionGroup.objects.create(
+        when_condition_group = DataConditionGroup.objects.create(
             organization_id=self.organization.id,
             logic_type=DataConditionGroup.Type.ANY,
         )
+        trigger_condition = DataCondition.objects.create(
+            condition_group=when_condition_group,
+            type=Condition.FIRST_SEEN_EVENT,
+            comparison=True,
+            condition_result=True,
+        )
+        workflow = Workflow.objects.create(
+            name="hojicha",
+            organization_id=self.organization.id,
+            config={},
+            when_condition_group=when_condition_group,
+            environment=self.environment,
+        )
+
+        condition_group = DataConditionGroup.objects.create(
+            organization_id=self.organization.id,
+            logic_type=DataConditionGroup.Type.ALL,
+        )
+        action = Action.objects.create(type=Action.Type.EMAIL, data={"foo": "bar"})
+        DataConditionGroupAction.objects.create(condition_group=condition_group, action=action)
         condition = DataCondition.objects.create(
             condition_group=condition_group,
             type=Condition.GREATER,
             comparison=100,
             condition_result=DetectorPriorityLevel.HIGH,
         )
-        workflow = Workflow.objects.create(
-            name="hojicha",
-            organization_id=self.organization.id,
-            config={},
-            when_condition_group=condition_group,
-            environment=self.environment,
+
+        WorkflowDataConditionGroup.objects.create(
+            condition_group=condition_group,
+            workflow=workflow,
         )
 
         result = serialize(workflow)
@@ -310,21 +354,43 @@ class TestWorkflowSerializer(TestCase):
         assert result == {
             "id": str(workflow.id),
             "organizationId": str(self.organization.id),
-            "enabled": True,
             "dateCreated": workflow.date_added,
             "dateUpdated": workflow.date_updated,
-            "conditionGroup": {
-                "id": str(condition_group.id),
+            "triggerConditionGroup": {
+                "id": str(when_condition_group.id),
                 "organizationId": str(self.organization.id),
                 "logicType": DataConditionGroup.Type.ANY,
                 "conditions": [
                     {
-                        "id": str(condition.id),
-                        "condition": Condition.GREATER,
-                        "comparison": 100,
-                        "result": DetectorPriorityLevel.HIGH,
+                        "id": str(trigger_condition.id),
+                        "condition": "first_seen_event",
+                        "comparison": True,
+                        "result": True,
                     }
                 ],
+                "actions": [],
             },
+            "dataConditionGroups": [
+                {
+                    "id": str(condition_group.id),
+                    "organizationId": str(self.organization.id),
+                    "logicType": DataConditionGroup.Type.ALL,
+                    "conditions": [
+                        {
+                            "id": str(condition.id),
+                            "condition": "gt",
+                            "comparison": 100,
+                            "result": DetectorPriorityLevel.HIGH,
+                        }
+                    ],
+                    "actions": [
+                        {
+                            "id": str(action.id),
+                            "type": "email",
+                            "data": '{"foo":"bar"}',
+                        }
+                    ],
+                },
+            ],
             "environment": self.environment.name,
         }

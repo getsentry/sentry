@@ -213,7 +213,7 @@ class WorkflowSerializer(Serializer):
         }
 
         wdcg_list = list(WorkflowDataConditionGroup.objects.filter(workflow__in=item_list))
-        condition_groups = {wdcg.data_condition_group for wdcg in wdcg_list}
+        condition_groups = {wdcg.condition_group for wdcg in wdcg_list}
 
         serialized_condition_groups = {
             dcg.id: serialized
@@ -221,9 +221,7 @@ class WorkflowSerializer(Serializer):
         }
         dcg_map = defaultdict(list)
         for wdcg in wdcg_list:
-            dcg_map[wdcg.workflow_id].append(
-                serialized_condition_groups[wdcg.data_condition_group_id]
-            )
+            dcg_map[wdcg.workflow_id].append(serialized_condition_groups[wdcg.condition_group_id])
 
         for item in item_list:
             attrs[item]["trigger_condition_group"] = trigger_condition_map.get(
