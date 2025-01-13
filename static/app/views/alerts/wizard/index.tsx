@@ -238,6 +238,7 @@ const WizardOptions = styled('div')`
 
 const WizardImage = styled('img')`
   max-height: 300px;
+  margin-bottom: ${space(2)};
 `;
 
 const WizardPanel = styled(Panel)<{visible?: boolean}>`
