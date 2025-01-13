@@ -356,6 +356,9 @@ def handle_resolve_in_release(
         serialized_user = user_service.serialize_many(
             filter=dict(user_ids=[acting_user.id]), as_user=acting_user
         )
+        if serialized_user:
+            new_status_details["actor"] = serialized_user[0]
+
     res_status = None
     if status == "resolvedInNextRelease" or status_details.get("inNextRelease"):
         # TODO(jess): We may want to support this for multi project, but punting on it for now
@@ -370,7 +373,7 @@ def handle_resolve_in_release(
             "version": ""
         }
 
-        new_status_details = {"inNextRelease": True}
+        new_status_details["inNextRelease"] = True
         res_type = GroupResolution.Type.in_next_release
         res_type_str = "in_next_release"
         res_status = GroupResolution.Status.pending
@@ -381,7 +384,7 @@ def handle_resolve_in_release(
         activity_type = ActivityType.SET_RESOLVED_IN_RELEASE.value
         activity_data = {"version": ""}
 
-        new_status_details = {"inUpcomingRelease": True}
+        new_status_details["inUpcomingRelease"] = True
         res_type = GroupResolution.Type.in_upcoming_release
         res_type_str = "in_upcoming_release"
         res_status = GroupResolution.Status.pending
@@ -398,7 +401,7 @@ def handle_resolve_in_release(
             "version": release.version
         }
 
-        new_status_details = {"inRelease": release.version}
+        new_status_details["inRelease"] = release.version
         res_type = GroupResolution.Type.in_release
         res_type_str = "in_release"
         res_status = GroupResolution.Status.resolved
@@ -410,7 +413,7 @@ def handle_resolve_in_release(
         commit = status_details["inCommit"]
         activity_type = ActivityType.SET_RESOLVED_IN_COMMIT.value
         activity_data = {"commit": commit.id}
-        new_status_details = {"inCommit": serialize(commit, acting_user)}
+        new_status_details["inCommit"] = serialize(commit, acting_user)
 
         res_type_str = "in_commit"
     else:
@@ -418,9 +421,6 @@ def handle_resolve_in_release(
         activity_type = ActivityType.SET_RESOLVED.value
         activity_data = {}
         new_status_details = {}
-
-    if serialized_user:
-        new_status_details["actor"] = serialized_user[0]
 
     metrics.incr("group.resolved", instance=res_type_str, skip_internal=True)
 
