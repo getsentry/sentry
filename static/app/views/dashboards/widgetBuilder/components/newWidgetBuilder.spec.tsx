@@ -100,6 +100,8 @@ describe('NewWidgetBuiler', function () {
         dashboard={DashboardFixture([])}
         dashboardFilters={{}}
         onSave={onSaveMock}
+        openWidgetTemplates={false}
+        changeBuilderView={jest.fn()}
       />,
       {
         router,
@@ -164,6 +166,8 @@ describe('NewWidgetBuiler', function () {
         dashboard={DashboardFixture([])}
         dashboardFilters={{}}
         onSave={onSaveMock}
+        openWidgetTemplates={false}
+        changeBuilderView={jest.fn()}
       />,
       {
         router: chartsRouter,
@@ -190,6 +194,8 @@ describe('NewWidgetBuiler', function () {
         dashboard={DashboardFixture([])}
         dashboardFilters={{}}
         onSave={onSaveMock}
+        openWidgetTemplates={false}
+        changeBuilderView={jest.fn()}
       />,
       {
         router,
@@ -221,6 +227,8 @@ describe('NewWidgetBuiler', function () {
         dashboard={DashboardFixture([])}
         dashboardFilters={{}}
         onSave={onSaveMock}
+        openWidgetTemplates={false}
+        changeBuilderView={jest.fn()}
       />,
       {
         router: chartsRouter,

@@ -66,6 +66,8 @@ describe('WidgetBuilderSlideout', () => {
           onSave={jest.fn()}
           setIsPreviewDraggable={jest.fn()}
           isOpen
+          openWidgetTemplates={false}
+          changeBuilderView={jest.fn()}
         />
       </WidgetBuilderProvider>,
       {
@@ -103,6 +105,8 @@ describe('WidgetBuilderSlideout', () => {
           onSave={jest.fn()}
           setIsPreviewDraggable={jest.fn()}
           isOpen
+          openWidgetTemplates={false}
+          changeBuilderView={jest.fn()}
         />
       </WidgetBuilderProvider>,
       {
@@ -137,6 +141,8 @@ describe('WidgetBuilderSlideout', () => {
           onSave={jest.fn()}
           setIsPreviewDraggable={jest.fn()}
           isOpen
+          openWidgetTemplates={false}
+          changeBuilderView={jest.fn()}
         />
       </WidgetBuilderProvider>,
       {
@@ -170,6 +176,8 @@ describe('WidgetBuilderSlideout', () => {
           onSave={jest.fn()}
           setIsPreviewDraggable={jest.fn()}
           isOpen
+          openWidgetTemplates={false}
+          changeBuilderView={jest.fn()}
         />
       </WidgetBuilderProvider>,
       {organization}
@@ -197,6 +205,8 @@ describe('WidgetBuilderSlideout', () => {
           onSave={jest.fn()}
           setIsPreviewDraggable={jest.fn()}
           isOpen
+          openWidgetTemplates={false}
+          changeBuilderView={jest.fn()}
         />
       </WidgetBuilderProvider>,
       {organization}
@@ -226,6 +236,8 @@ describe('WidgetBuilderSlideout', () => {
           onSave={jest.fn()}
           setIsPreviewDraggable={jest.fn()}
           isOpen
+          openWidgetTemplates={false}
+          changeBuilderView={jest.fn()}
         />
       </WidgetBuilderProvider>,
       {
@@ -265,6 +277,8 @@ describe('WidgetBuilderSlideout', () => {
           onSave={jest.fn()}
           setIsPreviewDraggable={jest.fn()}
           isOpen
+          openWidgetTemplates={false}
+          changeBuilderView={jest.fn()}
         />
       </WidgetBuilderProvider>,
       {
@@ -300,6 +314,8 @@ describe('WidgetBuilderSlideout', () => {
           onSave={jest.fn()}
           setIsPreviewDraggable={jest.fn()}
           isOpen
+          openWidgetTemplates={false}
+          changeBuilderView={jest.fn()}
         />
       </WidgetBuilderProvider>,
       {

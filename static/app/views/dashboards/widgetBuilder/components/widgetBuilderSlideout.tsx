@@ -34,6 +34,7 @@ import WidgetTemplatesList from 'sentry/views/dashboards/widgetBuilder/component
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 
 type WidgetBuilderSlideoutProps = {
+  changeBuilderView: (openWidgetTemplates: boolean) => void;
   dashboard: DashboardDetails;
   dashboardFilters: DashboardFilters;
   isOpen: boolean;
@@ -41,6 +42,7 @@ type WidgetBuilderSlideoutProps = {
   onClose: () => void;
   onQueryConditionChange: (valid: boolean) => void;
   onSave: ({index, widget}: {index: number; widget: Widget}) => void;
+  openWidgetTemplates: boolean;
   setIsPreviewDraggable: (draggable: boolean) => void;
 };
 
@@ -53,6 +55,8 @@ function WidgetBuilderSlideout({
   dashboardFilters,
   setIsPreviewDraggable,
   isWidgetInvalid,
+  openWidgetTemplates,
+  changeBuilderView,
 }: WidgetBuilderSlideoutProps) {
   const organization = useOrganization();
   const {state} = useWidgetBuilderContext();
@@ -62,10 +66,10 @@ function WidgetBuilderSlideout({
   const theme = useTheme();
 
   // TODO: remove this once we have a proper way to handle templates
-  const showTemplates = localStorage.getItem('showTemplates') === 'true';
+  // const showTemplates = localStorage.getItem('showTemplates') === 'true';
 
   const isEditing = widgetIndex !== undefined;
-  const title = showTemplates
+  const title = openWidgetTemplates
     ? t('Add from Widget Library')
     : isEditing
       ? t('Edit Widget')
@@ -124,7 +128,7 @@ function WidgetBuilderSlideout({
         </CloseButton>
       </SlideoutHeaderWrapper>
       <SlideoutBodyWrapper>
-        {!showTemplates ? (
+        {!openWidgetTemplates ? (
           <Fragment>
             <Section>
               <WidgetBuilderFilterBar />
@@ -188,7 +192,7 @@ function WidgetBuilderSlideout({
                 </Section>
               )}
             </div>
-            <WidgetTemplatesList />
+            <WidgetTemplatesList changeBuilderView={changeBuilderView} />
           </Fragment>
         )}
       </SlideoutBodyWrapper>

@@ -12,7 +12,11 @@ import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetB
 import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 import {getWidgetIcon} from 'sentry/views/dashboards/widgetLibrary/widgetCard';
 
-function WidgetTemplatesList() {
+interface WidgetTemplatesListProps {
+  changeBuilderView: (openWidgetTemplates: boolean) => void;
+}
+
+function WidgetTemplatesList({changeBuilderView}: WidgetTemplatesListProps) {
   const organization = useOrganization();
   const [selectedWidget, setSelectedWidget] = useState<number | null>(null);
 
@@ -47,7 +51,9 @@ function WidgetTemplatesList() {
                 <WidgetDescription>{widget.description}</WidgetDescription>
                 {selectedWidget === index && (
                   <ButtonsWrapper>
-                    <Button size="sm">{t('Customize')}</Button>
+                    <Button size="sm" onClick={() => changeBuilderView(false)}>
+                      {t('Customize')}
+                    </Button>
                     <Button size="sm">{t('Add to dashboard')}</Button>
                   </ButtonsWrapper>
                 )}
