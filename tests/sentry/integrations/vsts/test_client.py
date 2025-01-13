@@ -164,6 +164,17 @@ class VstsApiClientTest(VstsIntegrationTestCase):
         projects = installation.get_client().get_projects()
         assert len(projects) == 220
 
+    @with_feature("organizations:migrate-azure-devops-integration")
+    def test_metadata_is_correct(self):
+        self.assert_installation(new=True)
+        integration, installation = self._get_integration_and_install()
+        assert integration.metadata["domain_name"] == "https://MyVSTSAccount.visualstudio.com/"
+        assert set(integration.metadata["scopes"]) == set(VstsIntegrationProvider.NEW_SCOPES)
+        assert (
+            integration.metadata["integration_migration_version"]
+            == VstsIntegrationProvider.CURRENT_MIGRATION_VERSION
+        )
+
     @responses.activate
     def test_simple(self):
         responses.add(
