@@ -180,7 +180,7 @@ function Region<Value extends SelectKey>({
       label={label}
     >
       {(opt: SelectOption<Value>) => (
-        <Item key={opt.value} {...opt}>
+        <Item {...opt} key={opt.value}>
           {opt.label}
         </Item>
       )}

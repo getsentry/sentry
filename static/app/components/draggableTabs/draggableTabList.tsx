@@ -439,7 +439,7 @@ export function DraggableTabList({items, onAddView, ...props}: DraggableTabListP
       disabledKeys={disabledKeys}
       {...props}
     >
-      {item => <Item {...item} />}
+      {item => <Item {...item} key={item.key} />}
     </BaseDraggableTabList>
   );
 }

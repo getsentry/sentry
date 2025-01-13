@@ -246,7 +246,7 @@ function DropdownMenu({
             );
           }
           return (
-            <Item size={size} {...item}>
+            <Item size={size} {...item} key={item.key}>
               {item.label}
             </Item>
           );

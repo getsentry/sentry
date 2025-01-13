@@ -281,7 +281,7 @@ export function TabList({items, variant, ...props}: TabListProps) {
       variant={variant}
       {...props}
     >
-      {item => <Item {...item} />}
+      {item => <Item {...item} key={item.key} />}
     </BaseTabList>
   );
 }
