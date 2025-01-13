@@ -1500,7 +1500,7 @@ def check_if_flags_sent(job: PostProcessJob) -> None:
 
     if flag_context:
         metrics.incr("feature_flags.event_has_flags_context")
-        metrics.incr("feature_flags.num_flags_sent", tags={"amount": len(flag_context)})
+        metrics.distribution("feature_flags.num_flags_sent", len(flag_context))
         if not project.flags.has_flags:
             first_flag_received.send_robust(project=project, sender=Project)
 
