@@ -1,5 +1,6 @@
 import logging
 from functools import wraps
+import time
 from types import FunctionType
 
 from slack_sdk import WebClient
@@ -14,6 +15,7 @@ from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.silo.base import SiloMode
+from sentry.integrations.slack.rate_limiter import SlackRateLimiter
 from sentry.utils import metrics
 
 SLACK_DATADOG_METRIC = "integrations.slack.http_response"
@@ -33,6 +35,14 @@ def track_response_data(response: SlackResponse, method: str, error: str | None 
         tags={"ok": is_ok, "status": code},
     )
 
+    # Track rate limit metrics
+    if code == 429 and "Retry-After" in response.headers:
+        metrics.timing(
+            "integration.slack.rate_limit.retry_after",
+            int(response.headers.get("Retry-After", 0)),
+            tags={"method": method}
+        )
+
     extra = {
         "integration": "slack",
         "status_string": str(code),
@@ -40,6 +50,7 @@ def track_response_data(response: SlackResponse, method: str, error: str | None 
         "method": method,
     }
     logger.info("integration.http_response", extra=extra)
+
 
 
 def is_response_fatal(response: SlackResponse) -> bool:
@@ -110,6 +121,7 @@ class MetaClass(type):
 class SlackSdkClient(WebClient, metaclass=MetaClass):
     def __init__(self, integration_id: int):
         self.integration_id = integration_id
+        self.rate_limiter = SlackRateLimiter(integration_id)
 
         integration: Integration | RpcIntegration | None
         if SiloMode.get_current_mode() == SiloMode.REGION:
@@ -135,5 +147,32 @@ class SlackSdkClient(WebClient, metaclass=MetaClass):
         if not access_token:
             raise ValueError(f"Missing token for integration with id {integration_id}")
 
+
         # TODO: missing from old SlackClient: verify_ssl, logging_context
         super().__init__(token=access_token)
+
+    def chat_postMessage(self, channel: str, **kwargs):
+        """Override to add rate limiting"""
+        # Normalize channel format
+        if not channel.startswith("#"):
+            channel = f"#{channel}"
+            
+        # Check rate limit
+        if wait_time := self.rate_limiter.check_rate_limit(channel):
+            # If rate limited, sleep for the required time
+            time.sleep(wait_time)
+            
+        try:
+            response = super().chat_postMessage(channel=channel, **kwargs)
+            # Update rate limit state for successful requests
+            self.rate_limiter.update_rate_limit(channel)
+            return response
+        except SlackApiError as e:
+            if e.response and e.response.status_code == 429:
+                # Extract retry_after from headers
+                retry_after = None
+                if "Retry-After" in e.response.headers:
+                    retry_after = int(e.response.headers["Retry-After"])
+                # Update rate limit state
+                self.rate_limiter.update_rate_limit(channel, retry_after)
+            raise
