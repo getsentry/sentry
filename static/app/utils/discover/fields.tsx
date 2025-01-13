@@ -163,6 +163,19 @@ export const DURATION_UNIT_MULTIPLIERS: Record<DurationUnit, number> = {
   year: 1000 * 60 * 60 * 24 * 365,
 };
 
+export const DURATION_UNIT_LABELS: Record<DurationUnit, string> = {
+  nanosecond: 'ns',
+  microsecond: 'μs',
+  millisecond: 'ms',
+  second: 's',
+  minute: 'min',
+  hour: 'hr',
+  day: 'day',
+  week: 'wk',
+  month: 'mo',
+  year: 'yr',
+};
+
 export enum SizeUnit {
   BIT = 'bit',
   BYTE = 'byte',
@@ -198,6 +211,23 @@ export const SIZE_UNIT_MULTIPLIERS: Record<SizeUnit, number> = {
   exabyte: 1000 ** 6,
 };
 
+export const SIZE_UNIT_LABELS: Record<SizeUnit, string> = {
+  bit: 'b',
+  byte: 'B',
+  kibibyte: 'KiB',
+  kilobyte: 'KB',
+  mebibyte: 'MiB',
+  megabyte: 'MB',
+  gibibyte: 'GiB',
+  gigabyte: 'GB',
+  tebibyte: 'TiB',
+  terabyte: 'TB',
+  pebibyte: 'PiB',
+  petabyte: 'PB',
+  exbibyte: 'EiB',
+  exabyte: 'EB',
+};
+
 export enum RateUnit {
   PER_SECOND = '1/second',
   PER_MINUTE = '1/minute',
@@ -211,13 +241,13 @@ export const RATE_UNIT_MULTIPLIERS: Record<RateUnit, number> = {
   [RateUnit.PER_HOUR]: 1 / (60 * 60),
 };
 
-export const RATE_UNIT_LABELS = {
+export const RATE_UNIT_LABELS: Record<RateUnit, string> = {
   [RateUnit.PER_SECOND]: '/s',
   [RateUnit.PER_MINUTE]: '/min',
   [RateUnit.PER_HOUR]: '/hr',
 };
 
-export const RATE_UNIT_TITLE = {
+export const RATE_UNIT_TITLE: Record<RateUnit, string> = {
   [RateUnit.PER_SECOND]: 'Per Second',
   [RateUnit.PER_MINUTE]: 'Per Minute',
   [RateUnit.PER_HOUR]: 'Per Hour',
