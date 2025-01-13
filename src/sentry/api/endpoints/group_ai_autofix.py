@@ -186,7 +186,10 @@ class GroupAutofixEndpoint(GroupEndpoint):
             nodes = []
             for idx in reversed(frame_indices):
                 frame = frames[idx]
-                if frame.get("in_app", False):
+                if frame.get("in_app", False) and not (
+                    frame.get("filename", "").startswith("<")
+                    and frame.get("filename", "").endswith(">")
+                ):
                     nodes.append(create_frame_node(idx))
 
             return nodes
