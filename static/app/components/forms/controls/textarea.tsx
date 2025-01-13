@@ -1,5 +1,5 @@
 import {forwardRef} from 'react';
-import TextareaAutosize from 'react-autosize-textarea';
+import TextareaAutosize, {type TextareaAutosizeProps} from 'react-textarea-autosize';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
@@ -7,7 +7,10 @@ import type {InputStylesProps} from 'sentry/components/input';
 import {inputStyles} from 'sentry/components/input';
 
 export interface TextAreaProps
-  extends Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, 'css' | 'onResize'>,
+  extends Omit<
+      React.TextareaHTMLAttributes<HTMLTextAreaElement>,
+      'css' | 'onResize' | 'height' | 'style'
+    >,
     InputStylesProps {
   /**
    * Enable autosizing of the textarea.
@@ -21,6 +24,7 @@ export interface TextAreaProps
    * Number of rows to default to.
    */
   rows?: number;
+  style?: TextareaAutosizeProps['style'];
 }
 
 const TextAreaControl = forwardRef(function TextAreaControl(
@@ -28,7 +32,7 @@ const TextAreaControl = forwardRef(function TextAreaControl(
   ref: React.Ref<HTMLTextAreaElement>
 ) {
   return autosize ? (
-    <TextareaAutosize {...p} async ref={ref} rows={rows ? rows : 2} maxRows={maxRows} />
+    <TextareaAutosize {...p} ref={ref} rows={rows ? rows : 2} maxRows={maxRows} />
   ) : (
     <textarea ref={ref} {...p} />
   );
@@ -43,7 +47,7 @@ const TextArea = styled(TextAreaControl, {
   ${inputStyles};
   line-height: ${p => p.theme.text.lineHeightBody};
 
-  /** Allow react-autosize-textarea to freely control height based on props. */
+  /** Allow react-textarea-autosize to freely control height based on props. */
   ${p =>
     p.autosize &&
     `
