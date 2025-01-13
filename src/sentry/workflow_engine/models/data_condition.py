@@ -41,10 +41,20 @@ class Condition(models.TextChoices):
     REAPPEARED_EVENT = "reappeared_event"
     TAGGED_EVENT = "tagged_event"
     ISSUE_PRIORITY_EQUALS = "issue_priority_equals"
-    EVENT_FREQUENCY = "event_frequency"
-    EVENT_UNIQUE_USER_FREQUENCY = "event_unique_user_frequency"
+
+    # Event frequency conditions
+    EVENT_FREQUENCY_COUNT = "event_frequency_count"
     EVENT_FREQUENCY_PERCENT = "event_frequency_percent"
-    EVENT_UNIQUE_USER_FREQUENCY_WITH_CONDITIONS = "event_unique_user_frequency_with_conditions"
+    EVENT_UNIQUE_USER_FREQUENCY_COUNT = "event_unique_user_frequency_count"
+    EVENT_UNIQUE_USER_FREQUENCY_PERCENT = "event_unique_user_frequency_percent"
+    PERCENT_SESSIONS_COUNT = "percent_sessions_count"
+    PERCENT_SESSIONS_PERCENT = "percent_sessions_percent"
+    EVENT_UNIQUE_USER_FREQUENCY_WITH_CONDITIONS_COUNT = (
+        "event_unique_user_frequency_with_conditions_count"
+    )
+    EVENT_UNIQUE_USER_FREQUENCY_WITH_CONDITIONS_PERCENT = (
+        "event_unique_user_frequency_with_conditions_percent"
+    )
 
 
 CONDITION_OPS = {
@@ -131,10 +141,14 @@ class DataCondition(DefaultFieldsModel):
 
 
 SLOW_CONDITIONS = [
-    Condition.EVENT_FREQUENCY,
-    Condition.EVENT_UNIQUE_USER_FREQUENCY,
+    Condition.EVENT_FREQUENCY_COUNT,
     Condition.EVENT_FREQUENCY_PERCENT,
-    Condition.EVENT_UNIQUE_USER_FREQUENCY_WITH_CONDITIONS,
+    Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT,
+    Condition.EVENT_UNIQUE_USER_FREQUENCY_PERCENT,
+    Condition.PERCENT_SESSIONS_COUNT,
+    Condition.PERCENT_SESSIONS_PERCENT,
+    Condition.EVENT_UNIQUE_USER_FREQUENCY_WITH_CONDITIONS_COUNT,
+    Condition.EVENT_UNIQUE_USER_FREQUENCY_WITH_CONDITIONS_PERCENT,
 ]
 
 

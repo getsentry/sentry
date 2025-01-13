@@ -266,17 +266,20 @@ def create_latest_adopted_release_data_condition(
 def create_event_frequency_data_condition(
     data: dict[str, Any], dcg: DataConditionGroup
 ) -> DataCondition:
+    comparison_type = data["comparisonType"]  # this is camelCase, age comparison is snake_case
     comparison = {
         "interval": data["interval"],
         "value": data["value"],
-        "comparison_type": data["comparisonType"],
     }
 
-    if comparison["comparison_type"] == ComparisonType.PERCENT:
+    if comparison_type == ComparisonType.COUNT:
+        type = Condition.EVENT_FREQUENCY_COUNT
+    else:
+        type = Condition.EVENT_FREQUENCY_PERCENT
         comparison["comparison_interval"] = data["comparisonInterval"]
 
     return DataCondition.objects.create(
-        type=Condition.EVENT_FREQUENCY,
+        type=type,
         comparison=comparison,
         condition_result=True,
         condition_group=dcg,

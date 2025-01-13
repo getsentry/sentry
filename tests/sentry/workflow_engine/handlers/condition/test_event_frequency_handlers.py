@@ -5,7 +5,7 @@ from sentry.models.group import Group
 from sentry.rules.conditions.event_frequency import ComparisonType, EventFrequencyCondition
 from sentry.testutils.skips import requires_snuba
 from sentry.workflow_engine.handlers.condition.event_frequency_handlers import (
-    EventFrequencyConditionHandler,
+    EventFrequencyCountHandler,
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from tests.sentry.workflow_engine.handlers.condition.test_base import (
@@ -16,8 +16,8 @@ from tests.sentry.workflow_engine.handlers.condition.test_base import (
 pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
 
-class TestEventFrequencyCondition(ConditionTestCase):
-    condition = Condition.EVENT_FREQUENCY
+class TestEventFrequencyCountCondition(ConditionTestCase):
+    condition = Condition.EVENT_FREQUENCY_COUNT
     rule_cls = EventFrequencyCondition
     payload = {
         "interval": "1h",
@@ -29,27 +29,12 @@ class TestEventFrequencyCondition(ConditionTestCase):
     def test_count(self):
         dc = self.create_data_condition(
             type=self.condition,
-            comparison={"interval": "1h", "value": 1000, "comparison_type": ComparisonType.COUNT},
+            comparison={"interval": "1h", "value": 1000},
             condition_result=True,
         )
 
-        self.assert_slow_cond_passes(dc, [1001])
-        self.assert_slow_cond_does_not_pass(dc, [999])
-
-    def test_percent(self):
-        dc = self.create_data_condition(
-            type=self.condition,
-            comparison={
-                "interval": "1h",
-                "value": 100,
-                "comparison_type": ComparisonType.PERCENT,
-                "comparison_interval": "1d",
-            },
-            condition_result=True,
-        )
-
-        self.assert_slow_cond_passes(dc, [21, 10])
-        self.assert_slow_cond_does_not_pass(dc, [20, 10])
+        self.assert_slow_cond_passes(dc, 1001)
+        self.assert_slow_cond_does_not_pass(dc, 999)
 
     def test_dual_write_count(self):
         dcg = self.create_data_condition_group()
@@ -59,10 +44,34 @@ class TestEventFrequencyCondition(ConditionTestCase):
         assert dc.comparison == {
             "interval": "1h",
             "value": 1000,
-            "comparison_type": ComparisonType.COUNT,
         }
         assert dc.condition_result is True
         assert dc.condition_group == dcg
+
+
+class TestEventFrequencyPercentCondition(ConditionTestCase):
+    condition = Condition.EVENT_FREQUENCY_PERCENT
+    rule_cls = EventFrequencyCondition
+    payload = {
+        "interval": "1h",
+        "id": EventFrequencyCondition.id,
+        "value": 1000,
+        "comparisonType": ComparisonType.PERCENT,
+    }
+
+    def test_percent(self):
+        dc = self.create_data_condition(
+            type=self.condition,
+            comparison={
+                "interval": "1h",
+                "value": 100,
+                "comparison_interval": "1d",
+            },
+            condition_result=True,
+        )
+
+        self.assert_slow_cond_passes(dc, [21, 10])
+        self.assert_slow_cond_does_not_pass(dc, [20, 10])
 
     def test_dual_write_percent(self):
         self.payload.update({"comparisonType": ComparisonType.PERCENT, "comparisonInterval": "1d"})
@@ -73,7 +82,6 @@ class TestEventFrequencyCondition(ConditionTestCase):
         assert dc.comparison == {
             "interval": "1h",
             "value": 1000,
-            "comparison_type": ComparisonType.PERCENT,
             "comparison_interval": "1d",
         }
         assert dc.condition_result is True
@@ -81,7 +89,7 @@ class TestEventFrequencyCondition(ConditionTestCase):
 
 
 class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
-    handler = EventFrequencyConditionHandler
+    handler = EventFrequencyCountHandler
 
     def test_batch_query(self):
         batch_query = self.handler().batch_query(
