@@ -9,7 +9,7 @@ import responses
 from sentry.db.models.fields.node import NodeData
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
-from sentry.integrations.utils.code_mapping import CodeMapping, Repo, RepoTree
+from sentry.issues.auto_source_code_config.code_mapping import CodeMapping, Repo, RepoTree
 from sentry.models.organization import OrganizationStatus
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError

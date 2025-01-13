@@ -7,7 +7,7 @@ import requests
 from django.conf import settings
 from pydantic import BaseModel
 
-from sentry.integrations.utils.code_mapping import get_sorted_code_mapping_configs
+from sentry.issues.auto_source_code_config.code_mapping import get_sorted_code_mapping_configs
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.seer.signed_seer_api import get_seer_salted_url, sign_with_seer_secret

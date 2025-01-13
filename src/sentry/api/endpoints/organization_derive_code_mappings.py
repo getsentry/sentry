@@ -12,7 +12,7 @@ from sentry.api.bases.organization import (
 )
 from sentry.api.serializers import serialize
 from sentry.integrations.github.integration import GitHubIntegration
-from sentry.integrations.utils.code_mapping import (
+from sentry.issues.auto_source_code_config.code_mapping import (
     CodeMapping,
     CodeMappingTreesHelper,
     FrameFilename,
