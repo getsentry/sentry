@@ -15,13 +15,14 @@ from sentry.models.project import Project
 from sentry.signals import issue_mark_reviewed
 from sentry.types.group import GroupSubStatus
 from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
 
 
 def update_inbox(
     in_inbox: bool,
     group_list: Sequence[Group],
     project_lookup: Mapping[int, Project],
-    acting_user: User | None,
+    acting_user: RpcUser | User | None,
     sender: Any,
 ) -> bool:
     """

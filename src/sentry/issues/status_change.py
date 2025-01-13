@@ -22,6 +22,7 @@ from sentry.signals import issue_ignored, issue_unignored, issue_unresolved
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
 from sentry.utils import json
 
 logger = logging.getLogger(__name__)
@@ -71,7 +72,7 @@ def handle_status_update(
     new_substatus: int | None,
     is_bulk: bool,
     status_details: dict[str, Any],
-    acting_user: User | None,
+    acting_user: RpcUser | User | None,
     sender: Any,
 ) -> None:
     """
