@@ -574,6 +574,7 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /tests/sentry/tasks/test_auto_ongoing_issues.py             @getsentry/issues
 /tests/sentry/tasks/test_auto_remove_inbox.py               @getsentry/issues
 /tests/sentry/tasks/test_auto_resolve_issues.py             @getsentry/issues
+/tests/sentry/tasks/test_auto_source_code_configs.py        @getsentry/issues
 /tests/sentry/tasks/test_backfill_seer_grouping_records.py  @getsentry/issues
 /tests/sentry/tasks/test_check_new_issue_threshold_met.py   @getsentry/issues
 /tests/sentry/tasks/test_clear_expired_resolutions.py       @getsentry/issues
@@ -583,7 +584,6 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /tests/sentry/tasks/test_commit_context.py                  @getsentry/issues
 /tests/sentry/tasks/test_commits.py                         @getsentry/issues
 /tests/sentry/tasks/test_delete_seer_grouping_records.py    @getsentry/issues
-/tests/sentry/tasks/test_derive_code_mappings.py            @getsentry/issues
 /tests/sentry/tasks/test_groupowner.py                      @getsentry/issues
 /tests/sentry/tasks/test_merge.py                           @getsentry/issues
 /tests/sentry/tasks/test_post_process.py                    @getsentry/issues

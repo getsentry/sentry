@@ -26,6 +26,11 @@ from sentry.models.project import Project
 
 @region_silo_endpoint
 class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
+    """
+    In the UI, we have a prompt to derive code mappings from the stacktrace filename.
+    This endpoint is used to get the possible code mappings for it.
+    """
+
     owner = ApiOwner.ISSUES
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
