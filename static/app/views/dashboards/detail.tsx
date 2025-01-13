@@ -1323,7 +1323,9 @@ class DashboardDetail extends Component<Props, State> {
                                   <WidgetBuilderV2
                                     isOpen={this.state.isWidgetBuilderOpen}
                                     openWidgetTemplates={this.state.openWidgetTemplates}
-                                    changeBuilderView={this.handleChangeWidgetBuilderView}
+                                    setOpenWidgetTemplates={
+                                      this.handleChangeWidgetBuilderView
+                                    }
                                     onClose={this.handleCloseWidgetBuilder}
                                     dashboardFilters={
                                       getDashboardFiltersFromURL(location) ??

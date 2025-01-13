@@ -67,7 +67,7 @@ describe('WidgetBuilderSlideout', () => {
           setIsPreviewDraggable={jest.fn()}
           isOpen
           openWidgetTemplates={false}
-          changeBuilderView={jest.fn()}
+          setOpenWidgetTemplates={jest.fn()}
         />
       </WidgetBuilderProvider>,
       {
@@ -106,7 +106,7 @@ describe('WidgetBuilderSlideout', () => {
           setIsPreviewDraggable={jest.fn()}
           isOpen
           openWidgetTemplates={false}
-          changeBuilderView={jest.fn()}
+          setOpenWidgetTemplates={jest.fn()}
         />
       </WidgetBuilderProvider>,
       {
@@ -142,7 +142,7 @@ describe('WidgetBuilderSlideout', () => {
           setIsPreviewDraggable={jest.fn()}
           isOpen
           openWidgetTemplates={false}
-          changeBuilderView={jest.fn()}
+          setOpenWidgetTemplates={jest.fn()}
         />
       </WidgetBuilderProvider>,
       {
@@ -177,7 +177,7 @@ describe('WidgetBuilderSlideout', () => {
           setIsPreviewDraggable={jest.fn()}
           isOpen
           openWidgetTemplates={false}
-          changeBuilderView={jest.fn()}
+          setOpenWidgetTemplates={jest.fn()}
         />
       </WidgetBuilderProvider>,
       {organization}
@@ -206,7 +206,7 @@ describe('WidgetBuilderSlideout', () => {
           setIsPreviewDraggable={jest.fn()}
           isOpen
           openWidgetTemplates={false}
-          changeBuilderView={jest.fn()}
+          setOpenWidgetTemplates={jest.fn()}
         />
       </WidgetBuilderProvider>,
       {organization}
@@ -237,7 +237,7 @@ describe('WidgetBuilderSlideout', () => {
           setIsPreviewDraggable={jest.fn()}
           isOpen
           openWidgetTemplates={false}
-          changeBuilderView={jest.fn()}
+          setOpenWidgetTemplates={jest.fn()}
         />
       </WidgetBuilderProvider>,
       {
@@ -278,7 +278,7 @@ describe('WidgetBuilderSlideout', () => {
           setIsPreviewDraggable={jest.fn()}
           isOpen
           openWidgetTemplates={false}
-          changeBuilderView={jest.fn()}
+          setOpenWidgetTemplates={jest.fn()}
         />
       </WidgetBuilderProvider>,
       {
@@ -315,7 +315,7 @@ describe('WidgetBuilderSlideout', () => {
           setIsPreviewDraggable={jest.fn()}
           isOpen
           openWidgetTemplates={false}
-          changeBuilderView={jest.fn()}
+          setOpenWidgetTemplates={jest.fn()}
         />
       </WidgetBuilderProvider>,
       {

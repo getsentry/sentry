@@ -46,13 +46,13 @@ import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
 type WidgetBuilderV2Props = {
-  changeBuilderView: (openWidgetTemplates: boolean) => void;
   dashboard: DashboardDetails;
   dashboardFilters: DashboardFilters;
   isOpen: boolean;
   onClose: () => void;
   onSave: ({index, widget}: {index: number; widget: Widget}) => void;
   openWidgetTemplates: boolean;
+  setOpenWidgetTemplates: (openWidgetTemplates: boolean) => void;
 };
 
 function WidgetBuilderV2({
@@ -61,7 +61,7 @@ function WidgetBuilderV2({
   onSave,
   dashboardFilters,
   dashboard,
-  changeBuilderView,
+  setOpenWidgetTemplates,
   openWidgetTemplates,
 }: WidgetBuilderV2Props) {
   const escapeKeyPressed = useKeyPress('Escape');
@@ -128,7 +128,7 @@ function WidgetBuilderV2({
                       setIsPreviewDraggable={setIsPreviewDraggable}
                       isWidgetInvalid={!queryConditionsValid}
                       openWidgetTemplates={openWidgetTemplates}
-                      changeBuilderView={changeBuilderView}
+                      setOpenWidgetTemplates={setOpenWidgetTemplates}
                     />
                     {(!isSmallScreen || isPreviewDraggable) && (
                       <DndContext

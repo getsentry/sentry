@@ -13,10 +13,10 @@ import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibr
 import {getWidgetIcon} from 'sentry/views/dashboards/widgetLibrary/widgetCard';
 
 interface WidgetTemplatesListProps {
-  changeBuilderView: (openWidgetTemplates: boolean) => void;
+  setOpenWidgetTemplates: (openWidgetTemplates: boolean) => void;
 }
 
-function WidgetTemplatesList({changeBuilderView}: WidgetTemplatesListProps) {
+function WidgetTemplatesList({setOpenWidgetTemplates}: WidgetTemplatesListProps) {
   const organization = useOrganization();
   const [selectedWidget, setSelectedWidget] = useState<number | null>(null);
 
@@ -51,7 +51,7 @@ function WidgetTemplatesList({changeBuilderView}: WidgetTemplatesListProps) {
                 <WidgetDescription>{widget.description}</WidgetDescription>
                 {selectedWidget === index && (
                   <ButtonsWrapper>
-                    <Button size="sm" onClick={() => changeBuilderView(false)}>
+                    <Button size="sm" onClick={() => setOpenWidgetTemplates(false)}>
                       {t('Customize')}
                     </Button>
                     <Button size="sm">{t('Add to dashboard')}</Button>

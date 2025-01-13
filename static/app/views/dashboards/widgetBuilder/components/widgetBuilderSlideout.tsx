@@ -34,7 +34,6 @@ import WidgetTemplatesList from 'sentry/views/dashboards/widgetBuilder/component
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 
 type WidgetBuilderSlideoutProps = {
-  changeBuilderView: (openWidgetTemplates: boolean) => void;
   dashboard: DashboardDetails;
   dashboardFilters: DashboardFilters;
   isOpen: boolean;
@@ -44,6 +43,7 @@ type WidgetBuilderSlideoutProps = {
   onSave: ({index, widget}: {index: number; widget: Widget}) => void;
   openWidgetTemplates: boolean;
   setIsPreviewDraggable: (draggable: boolean) => void;
+  setOpenWidgetTemplates: (openWidgetTemplates: boolean) => void;
 };
 
 function WidgetBuilderSlideout({
@@ -56,7 +56,7 @@ function WidgetBuilderSlideout({
   setIsPreviewDraggable,
   isWidgetInvalid,
   openWidgetTemplates,
-  changeBuilderView,
+  setOpenWidgetTemplates,
 }: WidgetBuilderSlideoutProps) {
   const organization = useOrganization();
   const {state} = useWidgetBuilderContext();
@@ -192,7 +192,7 @@ function WidgetBuilderSlideout({
                 </Section>
               )}
             </div>
-            <WidgetTemplatesList changeBuilderView={changeBuilderView} />
+            <WidgetTemplatesList setOpenWidgetTemplates={setOpenWidgetTemplates} />
           </Fragment>
         )}
       </SlideoutBodyWrapper>

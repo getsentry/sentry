@@ -43,7 +43,7 @@ describe('WidgetTemplatesList', () => {
   it('should render the widget templates list', async () => {
     render(
       <WidgetBuilderProvider>
-        <WidgetTemplatesList changeBuilderView={jest.fn()} />
+        <WidgetTemplatesList setOpenWidgetTemplates={jest.fn()} />
       </WidgetBuilderProvider>
     );
 
@@ -54,7 +54,7 @@ describe('WidgetTemplatesList', () => {
   it('should render buttons when the user clicks on a widget template', async () => {
     render(
       <WidgetBuilderProvider>
-        <WidgetTemplatesList changeBuilderView={jest.fn()} />
+        <WidgetTemplatesList setOpenWidgetTemplates={jest.fn()} />
       </WidgetBuilderProvider>
     );
 
@@ -71,7 +71,7 @@ describe('WidgetTemplatesList', () => {
 
     render(
       <WidgetBuilderProvider>
-        <WidgetTemplatesList changeBuilderView={jest.fn()} />
+        <WidgetTemplatesList setOpenWidgetTemplates={jest.fn()} />
       </WidgetBuilderProvider>,
       {router}
     );
