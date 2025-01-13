@@ -10,6 +10,7 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.flags.providers import DeserializationError, get_provider, write
 from sentry.models.organization import Organization
+from sentry.utils import metrics
 
 
 @region_silo_endpoint
@@ -33,6 +34,7 @@ class OrganizationFlagsHooksEndpoint(OrganizationEndpoint):
                 return Response("Not authorized.", status=401)
             else:
                 write(provider_cls.handle(request.data))
+                metrics.incr("feature_flags.audit_log_event_posted", tags={"provider": provider})
                 return Response(status=200)
         except DeserializationError as exc:
             sentry_sdk.capture_exception()
