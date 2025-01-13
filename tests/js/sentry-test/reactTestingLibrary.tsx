@@ -13,6 +13,7 @@ import GlobalModal from 'sentry/components/globalModal';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {DANGEROUS_SET_TEST_HISTORY} from 'sentry/utils/browserHistory';
+import {ProvideAriaRouter} from 'sentry/utils/provideAriaRouter';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {lightTheme} from 'sentry/utils/theme';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -69,7 +70,8 @@ function makeAllTheProviders(options: ProviderOptions) {
           routes: router.routes,
         }}
       >
-        {content}
+        {/* ProvideAriaRouter may not be necessary in tests but matches routes.tsx */}
+        <ProvideAriaRouter>{content}</ProvideAriaRouter>
       </TestRouteContext.Provider>
     );
 
