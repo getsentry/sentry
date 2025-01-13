@@ -9,7 +9,6 @@ from typing import TYPE_CHECKING, Any, ClassVar, Self
 from django.conf import settings
 from django.core.cache import cache
 from django.db import models
-from django.db.models import QuerySet
 from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 from django.utils.translation import gettext_lazy
@@ -27,10 +26,7 @@ from sentry.db.models import (
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
-from sentry.incidents.models.alert_rule_activations import AlertRuleActivations
 from sentry.incidents.models.incident import Incident, IncidentStatus, IncidentTrigger
-from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
-from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
@@ -41,7 +37,6 @@ from sentry.notifications.models.notificationaction import (
 )
 from sentry.seer.anomaly_detection.delete_rule import delete_rule_in_seer
 from sentry.snuba.models import QuerySubscription
-from sentry.snuba.subscriptions import bulk_create_snuba_subscriptions
 from sentry.types.actor import Actor
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
@@ -158,59 +153,6 @@ class AlertRuleManager(BaseManager["AlertRule"]):
                     },
                 )
 
-    def conditionally_subscribe_project_to_alert_rules(
-        self,
-        project: Project,
-        activation_condition: AlertRuleActivationConditionType,
-        query_extra: str,
-        origin: str,
-        activator: str,
-    ) -> list[QuerySubscription]:
-        """
-        Subscribes a project to an alert rule given activation condition
-        Initializes an AlertRule activation instance
-        """
-        try:
-            project_alert_rules: QuerySet[AlertRule] = self.filter(
-                projects=project,
-                monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
-            )
-            created_subscriptions = []
-            for alert_rule in project_alert_rules:
-                # an alert rule should only ever have a single condition
-                if alert_rule.activation_condition.filter(
-                    condition_type=activation_condition.value
-                ).exists():
-                    # if an activated alert rule exists with the passed condition
-                    logger.info(
-                        "Attempt subscribe project to activated alert rule",
-                        extra={
-                            "origin": origin,
-                            "query_extra": query_extra,
-                            "condition": activation_condition,
-                        },
-                    )
-                    # attempt to subscribe the alert rule
-                    created_subscriptions.extend(
-                        alert_rule.subscribe_projects(
-                            projects=[project],
-                            monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
-                            query_extra=query_extra,
-                            activation_condition=activation_condition,
-                            activator=activator,
-                        )
-                    )
-            return created_subscriptions
-        except Exception as e:
-            logger.exception(
-                "Failed to subscribe project to activated alert rule",
-                extra={
-                    "origin": origin,
-                    "exception": e,
-                },
-            )
-        return []
-
 
 @region_silo_model
 class AlertRuleProjects(Model):
@@ -307,56 +249,6 @@ class AlertRule(Model):
 
     def get_audit_log_data(self) -> dict[str, Any]:
         return {"label": self.name}
-
-    def subscribe_projects(
-        self,
-        projects: Iterable[Project],
-        monitor_type: AlertRuleMonitorTypeInt = AlertRuleMonitorTypeInt.CONTINUOUS,
-        query_extra: str | None = None,
-        activation_condition: AlertRuleActivationConditionType | None = None,
-        activator: str | None = None,
-    ) -> list[QuerySubscription]:
-        """
-        Subscribes a list of projects to the alert rule instance
-        :return: The list of created subscriptions
-        """
-
-        logger.info(
-            "Subscribing projects to alert rule",
-            extra={
-                "alert_rule.monitor_type": self.monitor_type,
-                "conditional_monitor_type": monitor_type,
-                "query_extra": query_extra,
-            },
-        )
-        # NOTE: AlertRuleMonitorTypeInt.ACTIVATED will be conditionally subscribed given activation triggers
-        # On activated subscription, additional query parameters will be added to the constructed query in Snuba
-        created_subscriptions = []
-        if self.monitor_type == monitor_type:
-            # NOTE: QuerySubscriptions hold reference to Projects which should match the AlertRule's project reference
-            created_subscriptions = bulk_create_snuba_subscriptions(
-                projects,
-                INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
-                self.snuba_query,
-                query_extra=query_extra,
-            )
-            if self.monitor_type == AlertRuleMonitorTypeInt.ACTIVATED:
-                # NOTE: Activated Alert Rules are conditionally subscribed
-                # Meaning at time of subscription, the rule must have been activated
-                if not activator or activation_condition is None:
-                    raise Exception(
-                        "Alert activations require an activation condition and activator reference"
-                    )
-
-                for subscription in created_subscriptions:
-                    AlertRuleActivations.objects.create(
-                        alert_rule=self,
-                        query_subscription=subscription,
-                        condition_type=activation_condition.value,
-                        activator=activator,
-                    )
-
-        return created_subscriptions
 
 
 class AlertRuleTriggerManager(BaseManager["AlertRuleTrigger"]):

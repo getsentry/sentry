@@ -22,7 +22,6 @@ import {getDiscoverDatasetFromWidgetType} from 'sentry/views/dashboards/widgetBu
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 
 interface WidgetBuilderQueryFilterBuilderProps {
-  error: Record<string, any>;
   onQueryConditionChange: (valid: boolean) => void;
 }
 
@@ -44,6 +43,13 @@ function WidgetBuilderQueryFilterBuilder({
   const widget = convertBuilderStateToWidget(state);
 
   const canAddSearchConditions =
+    state.displayType !== DisplayType.TABLE &&
+    state.displayType !== DisplayType.BIG_NUMBER &&
+    state.dataset !== WidgetType.SPANS &&
+    state.query &&
+    state.query.length < 3;
+
+  const canHaveAlias =
     state.displayType !== DisplayType.TABLE &&
     state.displayType !== DisplayType.BIG_NUMBER;
 
@@ -146,8 +152,7 @@ function WidgetBuilderQueryFilterBuilder({
             widgetQuery={widget.queries[index]!}
             dataset={getDiscoverDatasetFromWidgetType(widgetType)}
           />
-          {canAddSearchConditions && (
-            // TODO: Hook up alias to query hook when it's implemented
+          {canHaveAlias && (
             <LegendAliasInput
               type="text"
               name="name"
@@ -163,7 +168,7 @@ function WidgetBuilderQueryFilterBuilder({
               }}
             />
           )}
-          {state.query && state.query?.length > 1 && canAddSearchConditions && (
+          {state.query && state.query?.length > 1 && (
             <DeleteButton onDelete={handleRemove(index)} />
           )}
         </QueryFieldRowWrapper>
