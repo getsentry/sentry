@@ -27,6 +27,7 @@ import IndicatorStore from 'sentry/stores/indicatorStore';
 import {space} from 'sentry/styles/space';
 import type {PlainRoute, RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {
+  Confidence,
   EventsStats,
   MultiSeriesEventsStats,
   Organization,
@@ -155,8 +156,8 @@ type State = {
   chartError?: boolean;
   chartErrorMessage?: string;
   comparisonDelta?: number;
+  confidence?: Confidence;
   isExtrapolatedChartData?: boolean;
-  isLowConfidenceChartData?: boolean;
   seasonality?: AlertRuleSeasonality;
 } & DeprecatedAsyncComponent['state'];
 
@@ -1004,7 +1005,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const confidence = isEventsStats(data)
       ? determineSeriesConfidence(data)
       : determineMultiSeriesConfidence(data);
-    this.setState({isLowConfidenceChartData: confidence === 'low'});
+    this.setState({confidence});
   }
 
   handleHistoricalTimeSeriesDataFetched(
@@ -1138,6 +1139,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       anomalies,
       chartError,
       chartErrorMessage,
+      confidence,
     } = this.state;
 
     if (chartError) {
@@ -1187,6 +1189,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       includeHistorical: comparisonType === AlertRuleComparisonType.DYNAMIC,
       onHistoricalDataLoaded: this.handleHistoricalTimeSeriesDataFetched,
       includeConfidence: alertType === 'eap_metrics',
+      confidence,
     };
 
     let formattedQuery = `event.type:${eventTypes?.join(',')}`;
@@ -1244,7 +1247,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       dataset,
       alertType,
       isExtrapolatedChartData,
-      isLowConfidenceChartData,
       triggersHaveChanged,
     } = this.state;
 
@@ -1379,7 +1381,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
                 'sum(ai.total_cost)',
               ].includes(aggregate)}
               isTransactionMigration={isMigration && !showErrorMigrationWarning}
-              isLowConfidenceChartData={isLowConfidenceChartData}
               onComparisonDeltaChange={value =>
                 this.handleFieldChange('comparisonDelta', value)
               }

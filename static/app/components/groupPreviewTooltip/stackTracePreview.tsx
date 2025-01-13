@@ -71,7 +71,6 @@ export function StackTracePreviewContent({
 
   const commonProps = {
     data: stacktrace,
-    expandFirstFrame: false,
     includeSystemFrames,
     platform,
     newestFirst,
@@ -89,7 +88,7 @@ export function StackTracePreviewContent({
     );
   }
 
-  return <StackTraceContent {...commonProps} hideIcon />;
+  return <StackTraceContent {...commonProps} expandFirstFrame={false} hideIcon />;
 }
 
 type StackTracePreviewProps = {

@@ -14,6 +14,8 @@ __all__ = [
     "AssignedToConditionHandler",
     "IssueCategoryConditionHandler",
     "IssueOccurrencesConditionHandler",
+    "LatestReleaseConditionHandler",
+    "LatestAdoptedReleaseConditionHandler",
 ]
 
 from .age_comparison_handler import AgeComparisonConditionHandler
@@ -26,6 +28,8 @@ from .existing_high_priority_issue_handler import ExistingHighPriorityIssueCondi
 from .first_seen_event_handler import FirstSeenEventConditionHandler
 from .issue_category_handler import IssueCategoryConditionHandler
 from .issue_occurrences_handler import IssueOccurrencesConditionHandler
+from .latest_adopted_release_handler import LatestAdoptedReleaseConditionHandler
+from .latest_release_handler import LatestReleaseConditionHandler
 from .level_handler import LevelConditionHandler
 from .new_high_priority_issue_handler import NewHighPriorityIssueConditionHandler
 from .reappeared_event_handler import ReappearedEventConditionHandler

@@ -4,14 +4,17 @@ import compassImage from 'sentry-images/spot/onboarding-compass.svg';
 
 import {Flex} from 'sentry/components/container/flex';
 import Link from 'sentry/components/links/link';
+import {MAX_PICKABLE_DAYS} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {RESERVED_EVENT_IDS} from 'sentry/views/issueDetails/useGroupEvent';
 import {useDefaultIssueEvent} from 'sentry/views/issueDetails/utils';
 
 export function EventMissingBanner() {
+  const location = useLocation();
   const organization = useOrganization();
   const defaultEventId = useDefaultIssueEvent();
   const {groupId, eventId = defaultEventId} = useParams<{
@@ -29,7 +32,16 @@ export function EventMissingBanner() {
       'Switch over to a [link:recommended] event instead, it should have more useful data.',
       {
         link: (
-          <Link to={`${baseUrl}/recommended/`} aria-label={t('View recommended event')} />
+          <Link
+            to={{
+              pathname: `${baseUrl}/recommended/`,
+              query: {
+                statsPeriod: `${MAX_PICKABLE_DAYS}d`,
+                ...(location.query.project ? {project: location.query.project} : {}),
+              },
+            }}
+            aria-label={t('View recommended event')}
+          />
         ),
       }
     ),
@@ -39,7 +51,18 @@ export function EventMissingBanner() {
       'Change up your filters. Try more environments, a wider date range, or a different query'
     ),
     tct('If nothing stands out, try [link:clearing your filters] all together', {
-      link: <Link to={`${baseUrl}/${eventId}/`} aria-label={t('Clear event filters')} />,
+      link: (
+        <Link
+          to={{
+            pathname: `${baseUrl}/${eventId}/`,
+            query: {
+              statsPeriod: `${MAX_PICKABLE_DAYS}d`,
+              ...(location.query.project ? {project: location.query.project} : {}),
+            },
+          }}
+          aria-label={t('Clear event filters')}
+        />
+      ),
     }),
   ];
 

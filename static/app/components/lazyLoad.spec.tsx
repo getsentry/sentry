@@ -8,11 +8,11 @@ type TestProps = {
   testProp?: boolean;
 };
 
-function FooComponent({}: TestProps) {
+function FooComponent() {
   return <div>my foo component</div>;
 }
 
-function BarComponent({}: TestProps) {
+function BarComponent() {
   return <div>my bar component</div>;
 }
 

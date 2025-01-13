@@ -2,7 +2,6 @@ import React from 'react';
 
 import Alert from 'sentry/components/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -30,9 +29,6 @@ import {useSystemSelectorOptions} from 'sentry/views/insights/database/component
 import {
   BASE_FILTERS,
   DEFAULT_DURATION_AGGREGATE,
-  MODULE_DESCRIPTION,
-  MODULE_DOC_LINK,
-  MODULE_TITLE,
 } from 'sentry/views/insights/database/settings';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
@@ -161,18 +157,7 @@ export function DatabaseLandingPage() {
 
   return (
     <React.Fragment>
-      <BackendHeader
-        headerTitle={
-          <React.Fragment>
-            {MODULE_TITLE}
-            <PageHeadingQuestionTooltip
-              docsUrl={MODULE_DOC_LINK}
-              title={MODULE_DESCRIPTION}
-            />
-          </React.Fragment>
-        }
-        module={ModuleName.DB}
-      />
+      <BackendHeader module={ModuleName.DB} />
       <ModuleBodyUpsellHook moduleName={ModuleName.DB}>
         <Layout.Body>
           <Layout.Main fullWidth>

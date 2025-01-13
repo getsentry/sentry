@@ -1,5 +1,5 @@
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {keepPreviousData, useApiQuery} from 'sentry/utils/queryClient';
 import type {QueryCount, QueryCounts} from 'sentry/views/issueList/utils';
 
 interface FetchIssueCountsParameters {
@@ -30,7 +30,8 @@ export const useFetchIssueCounts = (
   options: Partial<UseApiQueryOptions<Record<string, QueryCount>>> = {}
 ) => {
   return useApiQuery<QueryCounts>(makeFetchIssueCounts(params), {
-    staleTime: 0,
+    staleTime: 180000, // 3 minutes
+    placeholderData: keepPreviousData,
     ...options,
   });
 };

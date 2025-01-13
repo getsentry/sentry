@@ -190,7 +190,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
               analyticsEventKey="issue_details.all_events_clicked"
               analyticsEventName="Issue Details: All Events Clicked"
             >
-              {t('All Events')}
+              {issueTypeConfig.customCopy.allEvents || t('All Events')}
             </LinkButton>
           </Fragment>
         )}

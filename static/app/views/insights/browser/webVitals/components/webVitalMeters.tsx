@@ -30,7 +30,7 @@ type Props = {
   transaction?: string;
 };
 
-const WEB_VITALS_METERS_CONFIG = {
+export const WEB_VITALS_METERS_CONFIG = {
   lcp: {
     name: t('Largest Contentful Paint'),
     formatter: (value: number) => getFormattedDuration(value / 1000),

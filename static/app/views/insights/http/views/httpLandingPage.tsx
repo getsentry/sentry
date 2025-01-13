@@ -1,7 +1,6 @@
-import React, {Fragment} from 'react';
+import React from 'react';
 
 import * as Layout from 'sentry/components/layouts/thirds';
-import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -19,7 +18,6 @@ import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/modu
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {useModuleTitle} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {
@@ -27,12 +25,7 @@ import {
   isAValidSort,
 } from 'sentry/views/insights/http/components/tables/domainsTable';
 import {Referrer} from 'sentry/views/insights/http/referrers';
-import {
-  BASE_FILTERS,
-  FIELD_ALIASES,
-  MODULE_DESCRIPTION,
-  MODULE_DOC_LINK,
-} from 'sentry/views/insights/http/settings';
+import {BASE_FILTERS, FIELD_ALIASES} from 'sentry/views/insights/http/settings';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
@@ -54,7 +47,6 @@ export function HTTPLandingPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const {view} = useDomainViewFilters();
-  const moduleTitle = useModuleTitle(ModuleName.HTTP);
 
   const sortField = decodeScalar(location.query?.[QueryParameterNames.DOMAINS_SORT]);
 
@@ -165,15 +157,7 @@ export function HTTPLandingPage() {
     Referrer.LANDING_DOMAINS_LIST
   );
 
-  const headerTitle = (
-    <Fragment>
-      {moduleTitle}
-      <PageHeadingQuestionTooltip docsUrl={MODULE_DOC_LINK} title={MODULE_DESCRIPTION} />
-    </Fragment>
-  );
-
   const headerProps = {
-    headerTitle,
     module: ModuleName.HTTP,
   };
 

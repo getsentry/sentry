@@ -58,6 +58,16 @@ const DURATION_LABELS = {
   microseconds: t('microseconds'),
 };
 
+/**
+ *
+ * @param seconds Duration in seconds
+ * @param fixedDigits Number of digits after the decimal in output format
+ * @param abbreviation Use short-ish labels like "sec" for "second" and "wk" for "week" if available
+ * @param extraShort Use extra-short labels like "s" for "second" and "w" for week
+ * @param absolute Convert the number of second to absolute before formatting
+ * @param minimumUnit Smallest unit to consider while formatting. 55 seconds with a `minimumUnit` of `MINUTE` will return `"1 minute"` instead of `"55 seconds"`
+ * @returns Formatted string
+ */
 export default function getDuration(
   seconds: number,
   fixedDigits: number = 0,
