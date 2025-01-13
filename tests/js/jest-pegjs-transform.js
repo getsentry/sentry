@@ -1,7 +1,10 @@
 'use strict';
 
+const nodeCrypto = require('node:crypto');
+const peggy = require('peggy');
+
 function getCacheKey(fileData, _filePath, config, _options) {
-  return require('node:crypto')
+  return nodeCrypto
     .createHash('md5')
     .update(fileData)
     .update(config.configString)
@@ -10,7 +13,7 @@ function getCacheKey(fileData, _filePath, config, _options) {
 
 function process(sourceText) {
   return {
-    code: `module.exports = ${require('peggy').generate(sourceText, {output: 'source'})}`,
+    code: `module.exports = ${peggy.generate(sourceText, {output: 'source'})}`,
   };
 }
 
