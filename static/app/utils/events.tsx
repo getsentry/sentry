@@ -26,7 +26,7 @@ import {
   getExceptionGroupHeight,
   getExceptionGroupWidth,
 } from 'sentry/utils/eventExceptionGroup';
-import {getDaysSinceDatePrecise} from 'sentry/utils/getDaysSinceDate';
+import getDaysSinceDate, {getDaysSinceDatePrecise} from 'sentry/utils/getDaysSinceDate';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 
@@ -421,6 +421,7 @@ export function getAnalyticsDataForEvent(event?: Event | null): BaseEventAnalyti
     num_stack_frames: event ? getNumberOfStackFrames(event) : 0,
     num_in_app_stack_frames: event ? getNumberOfInAppStackFrames(event) : 0,
     num_threads_with_names: event ? getNumberOfThreadsWithNames(event) : 0,
+    event_age: event ? getDaysSinceDate(event.dateCreated ?? event.dateReceived) : -1,
     event_platform: event?.platform,
     event_runtime: event?.tags?.find(tag => tag.key === 'runtime.name')?.value,
     event_type: event?.type,
