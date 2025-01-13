@@ -72,7 +72,7 @@ class Feature(IntEnum):
     def as_choices(cls) -> list[tuple[int, str]]:
         return [(obj.value, obj.feature_name) for obj in cls]
 
-    def __str__(self) -> str:
+    def as_str(self) -> str:
         return self.feature_name
 
     @classmethod
@@ -207,7 +207,7 @@ class IntegrationFeature(Model):
         unique_together = (("target_id", "target_type", "feature"),)
 
     def feature_str(self) -> str:
-        return str(Feature.from_int(self.feature))
+        return Feature.from_int(self.feature).as_str()
 
     @property
     def description(self) -> str:
