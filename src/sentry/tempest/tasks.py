@@ -1,17 +1,15 @@
 import logging
-import os
 
 from requests import Response
 
 from sentry import http
+from sentry.conf.server import TEMPEST_URL
 from sentry.models.projectkey import ProjectKey, UseCase
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.tempest.models import MessageType, TempestCredentials
 
-# This is the URL to the tempest service
-TEMPEST_URL = os.getenv("TEMPEST", "http://127.0.0.1:9130")
 POLL_LIMIT = 348  # 348 every 5 min ~ 100k a day
 
 
