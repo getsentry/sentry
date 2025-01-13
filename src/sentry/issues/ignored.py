@@ -47,7 +47,7 @@ class IgnoredStatusDetails(TypedDict, total=False):
 
 def handle_archived_until_escalating(
     group_list: Sequence[Group],
-    acting_user: User | None,
+    acting_user: RpcUser | User | None,
     projects: Sequence[Project],
     sender: Any,
 ) -> dict[str, bool]:
@@ -89,7 +89,7 @@ def handle_archived_until_escalating(
 def handle_ignored(
     group_list: Sequence[Group],
     status_details: dict[str, Any],
-    acting_user: User | RpcUser,
+    acting_user: RpcUser | User | None,
     user: User | RpcUser | AnonymousUser,
 ) -> IgnoredStatusDetails:
     """

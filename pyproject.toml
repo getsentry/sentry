@@ -342,6 +342,7 @@ module = [
     "sentry.api.endpoints.release_thresholds.health_checks.*",
     "sentry.api.endpoints.relocations.artifacts.*",
     "sentry.api.helpers.deprecation",
+    "sentry.api.helpers.group_index.update",
     "sentry.api.helpers.source_map_helper",
     "sentry.api.serializers.models.organization_member.*",
     "sentry.audit_log.services.*",
