@@ -111,7 +111,9 @@ class FrameFilename:
     def __repr__(self) -> str:
         return f"FrameFilename: {self.full_path}"
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, FrameFilename):
+            return False
         return self.full_path == other.full_path
 
 
