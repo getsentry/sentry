@@ -104,6 +104,7 @@ function InviteMembersModal({
                 sendingInvites,
                 complete,
                 error,
+                isOverMemberLimit,
               }}
             >
               <Header closeButton>
@@ -139,7 +140,7 @@ function InviteMembersModal({
               invites={invites}
               inviteStatus={inviteStatus}
               isOverMemberLimit={
-                isOverMemberLimit && organization.features?.includes('invite-billing')
+                isOverMemberLimit && organization.features.includes('invite-billing')
               }
               member={memberResult.data}
               pendingInvites={pendingInvites}

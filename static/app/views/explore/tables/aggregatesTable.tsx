@@ -1,5 +1,4 @@
-import type {Dispatch, SetStateAction} from 'react';
-import {Fragment, useEffect, useMemo, useRef} from 'react';
+import {Fragment, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -10,17 +9,14 @@ import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
-import type {Confidence, NewQuery} from 'sentry/types/organization';
+import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import EventView from 'sentry/utils/discover/eventView';
 import {
   fieldAlignment,
   parseFunction,
   prettifyParsedFunction,
 } from 'sentry/utils/discover/fields';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   Table,
   TableBody,
@@ -41,21 +37,22 @@ import {
   useExploreVisualizes,
   useSetExploreSortBys,
 } from 'sentry/views/explore/contexts/pageParamsContext';
-import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {useAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
+import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import {TOP_EVENTS_LIMIT, useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
-import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 
 import {FieldRenderer} from './fieldRenderer';
 
 interface AggregatesTableProps {
-  confidence: Confidence;
-  setError: Dispatch<SetStateAction<string>>;
+  aggregatesTableResult: AggregatesTableResult;
+  confidences: Confidence[];
 }
 
-export function AggregatesTable({confidence, setError}: AggregatesTableProps) {
-  const {selection} = usePageFilters();
+export function AggregatesTable({
+  aggregatesTableResult,
+  confidences,
+}: AggregatesTableProps) {
   const topEvents = useTopEvents();
   const organization = useOrganization();
   const title = useExploreTitle();
@@ -63,66 +60,13 @@ export function AggregatesTable({confidence, setError}: AggregatesTableProps) {
   const groupBys = useExploreGroupBys();
   const visualizes = useExploreVisualizes();
 
-  const fields = useMemo(() => {
-    // When rendering the table, we want the group bys first
-    // then the aggregates.
-    const allFields: string[] = [];
-
-    for (const groupBy of groupBys) {
-      if (allFields.includes(groupBy)) {
-        continue;
-      }
-      allFields.push(groupBy);
-    }
-
-    for (const visualize of visualizes) {
-      for (const yAxis of visualize.yAxes) {
-        if (allFields.includes(yAxis)) {
-          continue;
-        }
-        allFields.push(yAxis);
-      }
-    }
-
-    return allFields.filter(Boolean);
-  }, [groupBys, visualizes]);
+  const {result, eventView, fields} = aggregatesTableResult;
 
   const sorts = useExploreSortBys();
   const setSorts = useSetExploreSortBys();
   const query = useExploreQuery();
 
-  const eventView = useMemo(() => {
-    const search = new MutableSearch(query);
-
-    // Filtering out all spans with op like 'ui.interaction*' which aren't
-    // embedded under transactions. The trace view does not support rendering
-    // such spans yet.
-    search.addFilterValues('!transaction.span_id', ['00']);
-
-    const discoverQuery: NewQuery = {
-      id: undefined,
-      name: 'Explore - Span Aggregates',
-      fields,
-      orderby: sorts.map(formatSort),
-      query: search.formatString(),
-      version: 2,
-      dataset,
-    };
-
-    return EventView.fromNewQueryWithPageFilters(discoverQuery, selection);
-  }, [dataset, fields, sorts, query, selection]);
-
   const columns = useMemo(() => eventView.getColumns(), [eventView]);
-
-  const result = useSpansQuery({
-    eventView,
-    initialData: [],
-    referrer: 'api.explore.spans-aggregates-table',
-  });
-
-  useEffect(() => {
-    setError(result.error?.message ?? '');
-  }, [setError, result.error?.message]);
 
   useAnalytics({
     dataset,
@@ -133,7 +77,7 @@ export function AggregatesTable({confidence, setError}: AggregatesTableProps) {
     organization,
     columns: groupBys,
     userQuery: query,
-    confidence,
+    confidences,
     title,
   });
 

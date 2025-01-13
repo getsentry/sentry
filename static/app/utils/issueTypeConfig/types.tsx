@@ -37,12 +37,17 @@ export type IssueTypeConfig = {
    * Custom copy for actions and other UI elements
    */
   customCopy: {
+    allEvents: string;
     resolution: string;
   };
   /**
    * Is the "Open in Discover" button available for this issue
    */
   discover: DisabledWithReasonConfig;
+  /**
+   * Is the Event and User Counts shown for this issue
+   */
+  eventAndUserCounts: DisabledWithReasonConfig;
   /**
    * Is the Events tab show for this issue
    */

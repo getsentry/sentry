@@ -2,7 +2,7 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {SdkDocumentation} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
-import type {ProductSolution} from 'sentry/components/onboarding/productSelection';
+import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

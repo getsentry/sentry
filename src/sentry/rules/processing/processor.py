@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import random
 import uuid
 from collections.abc import Callable, Collection, Mapping, MutableMapping, Sequence
 from datetime import timedelta
@@ -251,10 +252,11 @@ class RuleProcessor:
         return fast_conditions, slow_conditions
 
     def enqueue_rule(self, rule: Rule) -> None:
-        logger.info(
-            "rule_processor.rule_enqueued",
-            extra={"rule": rule.id, "group": self.group.id, "project": rule.project.id},
-        )
+        if random.random() < 0.01:
+            logger.info(
+                "rule_processor.rule_enqueued",
+                extra={"rule": rule.id, "group": self.group.id, "project": rule.project.id},
+            )
         buffer.backend.push_to_sorted_set(PROJECT_ID_BUFFER_LIST_KEY, rule.project.id)
 
         value = json.dumps(

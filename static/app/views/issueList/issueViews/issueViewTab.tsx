@@ -9,6 +9,7 @@ import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import EditableTabTitle from 'sentry/views/issueList/issueViews/editableTabTitle';
 import {IssueViewEllipsisMenu} from 'sentry/views/issueList/issueViews/issueViewEllipsisMenu';
+import {IssueViewQueryCount} from 'sentry/views/issueList/issueViews/issueViewQueryCount';
 import {
   generateTempViewId,
   type IssueView,
@@ -52,6 +53,7 @@ export function IssueViewTab({
         viewId: newViewId,
       },
     });
+    tabListState?.setSelectedKey(newViewId);
   };
 
   const handleDiscardChanges = () => {
@@ -117,6 +119,7 @@ export function IssueViewTab({
           (!tabListState && view.key === initialTabKey)
         }
       />
+      <IssueViewQueryCount view={view} />
       {/* If tablistState isn't initialized, we want to load the elipsis menu
           for the initial tab, that way it won't load in a second later
           and cause the tabs to shift and animate on load. */}

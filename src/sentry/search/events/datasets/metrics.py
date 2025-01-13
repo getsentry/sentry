@@ -6,7 +6,7 @@ from django.utils.functional import cached_property
 from snuba_sdk import Column, Condition, Function, Op, OrderBy
 
 from sentry import features
-from sentry.api.event_search import SearchFilter
+from sentry.api.event_search import ParenExpression, SearchFilter, parse_search_query
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.search.events import constants, fields
 from sentry.search.events.builder import metrics
@@ -1796,11 +1796,28 @@ class MetricsDatasetConfig(DatasetConfig):
         if column in self.total_score_weights and self.total_score_weights[column] is not None:
             return Function("toFloat64", [self.total_score_weights[column]], alias)
 
+        # Pull out browser.name filters from the query
+        parsed_terms = parse_search_query(self.builder.query)
+        query = " ".join(
+            term.to_query_string()
+            for term in parsed_terms
+            if (isinstance(term, SearchFilter) and term.key.name == "browser.name")
+            or (
+                isinstance(term, ParenExpression)
+                and all(  # type: ignore[unreachable]
+                    (isinstance(child_term, SearchFilter) and child_term.key.name == "browser.name")
+                    or child_term == "OR"
+                    for child_term in term.children
+                )
+            )
+        )
+
         total_query = metrics.MetricsQueryBuilder(
             dataset=self.builder.dataset,
             params={},
             snuba_params=self.builder.params,
             selected_columns=[f"sum({column})"],
+            query=query,
         )
 
         total_query.columns += self.builder.resolve_groupby()
@@ -1854,14 +1871,16 @@ class MetricsDatasetConfig(DatasetConfig):
                         "isZeroOrNull",
                         [
                             Function(
-                                "countIf",
+                                "sumIf",
                                 [
                                     Column("value"),
                                     Function(
                                         "equals",
                                         [
                                             Column("metric_id"),
-                                            self.resolve_metric(f"measurements.score.{vital}"),
+                                            self.resolve_metric(
+                                                f"measurements.score.weight.{vital}"
+                                            ),
                                         ],
                                     ),
                                 ],

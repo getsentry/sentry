@@ -9,7 +9,9 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
+import {decodeScalar} from 'sentry/utils/queryString';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
@@ -18,18 +20,13 @@ import {useReleaseSelection} from 'sentry/views/insights/common/queries/useRelea
 import {SpanSamplesContainer} from 'sentry/views/insights/mobile/common/components/spanSamplesPanelContainer';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-import type {ModuleName} from 'sentry/views/insights/types';
+import {type ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 
 type Props = {
   groupId: string;
   moduleName: ModuleName;
-  transactionName: string;
-  additionalFilters?: Record<string, string>;
   onClose?: () => void;
-  spanDescription?: string;
-  spanOp?: string;
-  transactionMethod?: string;
   transactionRoute?: string;
 };
 
@@ -39,17 +36,35 @@ const SECONDARY_SPAN_QUERY_KEY = 'secondarySpanSearchQuery';
 export function SpanSamplesPanel({
   groupId,
   moduleName,
-  transactionName,
-  transactionMethod,
-  spanDescription,
   onClose,
   transactionRoute,
-  spanOp,
-  additionalFilters,
 }: Props) {
   const router = useRouter();
   const organization = useOrganization();
   const {view} = useDomainViewFilters();
+
+  const {
+    [SpanMetricsField.APP_START_TYPE]: appStartType,
+    [SpanMetricsField.DEVICE_CLASS]: deviceClass,
+    transaction: transactionName,
+    transactionMethod,
+    spanOp,
+    spanDescription,
+  } = useLocationQuery({
+    fields: {
+      [SpanMetricsField.APP_START_TYPE]: decodeScalar,
+      [SpanMetricsField.DEVICE_CLASS]: decodeScalar,
+      transaction: decodeScalar,
+      transactionMethod: decodeScalar,
+      spanOp: decodeScalar,
+      spanDescription: decodeScalar,
+    },
+  });
+
+  const additionalFilters = {
+    ...(appStartType ? {[SpanMetricsField.APP_START_TYPE]: appStartType} : {}),
+    ...(deviceClass ? {[SpanMetricsField.DEVICE_CLASS]: deviceClass} : {}),
+  };
 
   transactionRoute ??= getTransactionSummaryBaseUrl(organization.slug, view);
 

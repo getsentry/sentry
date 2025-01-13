@@ -88,7 +88,7 @@ describe('AlertRuleDetails', () => {
 
   it('displays alert rule with list of issues', async () => {
     createWrapper();
-    expect(await screen.findAllByText('My alert rule')).toHaveLength(2);
+    expect(await screen.findByText('My alert rule')).toBeInTheDocument();
     expect(await screen.findByText('RequestError:')).toBeInTheDocument();
     expect(screen.getByText('Apr 11, 2019 1:08:59 AM UTC')).toBeInTheDocument();
     expect(screen.getByText('RequestError:')).toHaveAttribute(
@@ -181,7 +181,7 @@ describe('AlertRuleDetails', () => {
 
   it('incompatible rule banner hidden for good rule', async () => {
     createWrapper();
-    expect(await screen.findAllByText('My alert rule')).toHaveLength(2);
+    expect(await screen.findByText('My alert rule')).toBeInTheDocument();
     expect(
       screen.queryByText(
         'The conditions in this alert rule conflict and might not be working properly.'
