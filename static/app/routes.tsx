@@ -2183,7 +2183,9 @@ function buildRoutes() {
       </Route>
       <Route
         path="profile/:projectId/:eventId/"
-        component={make(() => import('sentry/views/profiling/profilesProvider'))}
+        component={make(
+          () => import('sentry/views/profiling/transactionProfileProvider')
+        )}
       >
         <Route
           path="flamegraph/"
