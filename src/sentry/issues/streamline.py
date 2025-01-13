@@ -1,4 +1,4 @@
-from sentry.models.group import Organization
+from sentry.models.organization import Organization
 from sentry.utils.options import sample_modulo
 
 
