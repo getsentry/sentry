@@ -759,7 +759,10 @@ class GroupSerializer(GroupSerializerBase):
             pass
 
     def __init__(
-        self, collapse=None, expand=None, environment_func: Callable[[], Environment] | None = None
+        self,
+        collapse=None,
+        expand=None,
+        environment_func: Callable[[], Environment | None] | None = None,
     ):
         GroupSerializerBase.__init__(self, collapse=collapse, expand=expand)
         self.environment_func = environment_func if environment_func is not None else lambda: None
