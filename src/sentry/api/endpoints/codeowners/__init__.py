@@ -25,7 +25,6 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):
     raw = serializers.CharField(required=True)
     organization_integration_id = serializers.IntegerField(required=False)
     date_updated = serializers.CharField(required=False)
-    instance: ProjectCodeOwners
 
     class Meta:
         model = ProjectCodeOwners
@@ -50,7 +49,7 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):
         # that are several megabytes large. To not break this functionality for existing customers
         # we temporarily allow rows that already exceed this limit to still be updated.
         # We do something similar with ProjectOwnership at the API level.
-        existing_raw = self.instance.raw if self.instance and self.instance.raw else ""
+        existing_raw = self.instance.raw if self.instance else ""
         max_length = self.get_max_length()
         if len(attrs["raw"]) > max_length and len(existing_raw) <= max_length:
             analytics.record(
