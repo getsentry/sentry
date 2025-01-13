@@ -40,6 +40,7 @@ export type BaseEventAnalyticsParams = {
   resolved_with: string[];
   error_has_replay?: boolean;
   error_has_user_feedback?: boolean;
+  event_age?: number;
   event_errors?: string;
   event_mechanism?: string;
   event_platform?: string;
