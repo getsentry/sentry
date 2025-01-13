@@ -285,11 +285,7 @@ export default typescript.config([
       'no-dupe-class-members': 'off', // TODO(ryan953): Fix violations and delete this line
       'no-import-assign': 'off', // TODO(ryan953): Fix violations and delete this line
       'no-prototype-builtins': 'off', // TODO(ryan953): Fix violations and delete this line
-      'no-redeclare': 'off', // TODO(ryan953): Fix violations and delete this line
-      'no-self-assign': 'off', // TODO(ryan953): Fix violations and delete this line
-      'no-undef': 'off', // TODO(ryan953): Fix violations and delete this line
       'no-unsafe-optional-chaining': 'off', // TODO(ryan953): Fix violations and delete this line
-      'no-unused-vars': 'off', // TODO(ryan953): Fix violations and delete this line
       'no-useless-catch': 'off', // TODO(ryan953): Fix violations and delete this line
       'no-useless-escape': 'off', // TODO(ryan953): Fix violations and delete this line
       'valid-typeof': 'off', // TODO(ryan953): Fix violations and delete this line
@@ -606,6 +602,46 @@ export default typescript.config([
   {
     name: 'plugin/prettier',
     ...prettier,
+  },
+  {
+    name: 'files/*.config.*',
+    files: ['*.config.*'],
+    languageOptions: {
+      globals: {
+        ...globals.commonjs,
+        ...globals.node,
+      },
+    },
+  },
+  {
+    name: 'files/scripts',
+    files: ['scripts/**/*.{js,ts}', 'tests/js/test-balancer/index.js'],
+    languageOptions: {
+      sourceType: 'commonjs',
+      globals: {
+        ...globals.commonjs,
+        ...globals.node,
+      },
+    },
+    rules: {
+      'no-console': 'off',
+    },
+  },
+  {
+    name: 'files/jest related',
+    files: [
+      'tests/js/jest-pegjs-transform.js',
+      'tests/js/sentry-test/echartsMock.js',
+      'tests/js/sentry-test/importStyleMock.js',
+      'tests/js/sentry-test/svgMock.js',
+    ],
+    languageOptions: {
+      sourceType: 'commonjs',
+      globals: {
+        ...globals.commonjs,
+      },
+    },
+    rules: {},
   },
   {
     name: 'files/devtoolbar',

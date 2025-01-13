@@ -114,7 +114,7 @@ function RouteError({error, disableLogSentry, disableReport, project}: Props) {
             link: (
               <a
                 onClick={() => {
-                  window.location.href = window.location.href;
+                  window.location.href = String(window.location.href);
                 }}
               />
             ),

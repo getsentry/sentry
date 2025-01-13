@@ -1,4 +1,4 @@
-/* eslint-env node */
+'use strict';
 import {existsSync, unlinkSync} from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -103,6 +103,4 @@ async function run() {
   await fs.rename(tmpOutputPath, outputPath);
 }
 
-run()
-  // eslint-disable-next-line no-console
-  .catch(error => console.error(`Failed to run extract-ios-device-names`, error));
+run().catch(error => console.error(`Failed to run extract-ios-device-names`, error));
