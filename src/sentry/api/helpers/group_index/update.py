@@ -78,10 +78,10 @@ def handle_discard(
     request: Request,
     group_list: Sequence[Group],
     projects: Sequence[Project],
-    user: RpcUser | User | AnonymousUser,
+    acting_user: RpcUser | User | None,
 ) -> Response:
     for project in projects:
-        if not features.has("projects:discard-groups", project, actor=user):
+        if not features.has("projects:discard-groups", project, actor=acting_user):
             return Response({"detail": ["You do not have that feature enabled"]}, status=400)
 
     if any(group.issue_category != GroupCategory.ERROR for group in group_list):
@@ -96,7 +96,7 @@ def handle_discard(
             try:
                 tombstone = GroupTombstone.objects.create(
                     previous_group_id=group.id,
-                    actor_id=coerce_id_from(user),
+                    actor_id=coerce_id_from(acting_user),
                     **{name: getattr(group, name) for name in TOMBSTONE_FIELDS_FROM_GROUP},
                 )
             except IntegrityError:
@@ -198,7 +198,7 @@ def update_groups(
 
     discard = result.get("discard")
     if discard:
-        return handle_discard(request, groups, projects, user)
+        return handle_discard(request, groups, projects, acting_user)
 
     status_details = result.pop("statusDetails", result)
     status = result.get("status")
@@ -880,7 +880,7 @@ def handle_is_subscribed(
         # assigned" just by clicking the "subscribe" button (and you
         # may no longer be assigned to the issue anyway).
         GroupSubscription.objects.create_or_update(
-            user_id=acting_user.id,
+            user_id=acting_user.id if acting_user else None,
             group=group,
             project=project_lookup[group.project_id],
             values={"is_active": is_subscribed, "reason": GroupSubscriptionReason.unknown},
