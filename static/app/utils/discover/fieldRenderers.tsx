@@ -153,6 +153,7 @@ export function nullableValue(value: string | null): string | React.ReactElement
   }
 }
 
+// TODO: Remove this, use `SIZE_UNIT_MULTIPLIERS` instead
 export const SIZE_UNITS = {
   bit: 1 / 8,
   byte: 1,
