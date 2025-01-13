@@ -1,10 +1,17 @@
 import logging
+from collections.abc import Callable
+from contextlib import contextmanager
 from typing import Any
 from unittest import mock
 
 import pytest
 
-from sentry.logging.handlers import GKEStructLogHandler, JSONRenderer, StructLogHandler
+from sentry.logging.handlers import (
+    GKEStructLogHandler,
+    JSONRenderer,
+    SamplingFilter,
+    StructLogHandler,
+)
 
 
 @pytest.fixture
@@ -24,6 +31,36 @@ def snafu() -> Any:
             raise Exception("snafu")
 
     return SNAFU()
+
+
+@contextmanager
+def filter_context(
+    logger: logging.Logger, filters: list[logging.Filter | Callable[[logging.LogRecord], bool]]
+):
+    """Manages adding and cleaning up log filters"""
+    for f in filters:
+        logger.addFilter(f)
+    try:
+        yield
+    finally:
+        for f in filters:
+            logger.removeFilter(f)
+
+
+@contextmanager
+def level_context(level: int):
+    curr_level = logging.getLogger().level
+    logging.basicConfig(level=level)
+    try:
+        yield
+    finally:
+        logging.basicConfig(level=curr_level)
+
+
+@pytest.fixture
+def set_level_debug():
+    with level_context(logging.DEBUG):
+        yield
 
 
 def make_logrecord(
@@ -131,3 +168,46 @@ def test_gke_emit() -> None:
         event="msg",
         **{"logging.googleapis.com/labels": {"name": "name"}},
     )
+
+
+@mock.patch("random.random", lambda: 0.1)
+def test_sampling_filter(caplog, set_level_debug):
+    logger = logging.getLogger(__name__)
+    with filter_context(logger, [SamplingFilter(0.2)]):
+        logger.info("msg1")
+        logger.info("message.2")
+
+    with filter_context(logger, [SamplingFilter(0.05)]):
+        logger.info("msg1")
+        logger.info("message.2")
+
+    captured_msgs = list(map(lambda r: r.msg, caplog.records))
+    assert sorted(captured_msgs) == ["message.2", "msg1"]
+
+
+@mock.patch("random.random", lambda: 0.1)
+def test_sampling_filter_level(caplog, set_level_debug):
+    logger = logging.getLogger(__name__)
+    with filter_context(logger, [SamplingFilter(0.05, level=logging.WARNING)]):
+        logger.debug("debug")
+        logger.info("info")
+        logger.warning("warning")
+        logger.error("error")
+        logger.critical("critical")
+
+    captured_msgs = list(map(lambda r: r.msg, caplog.records))
+    assert sorted(captured_msgs) == ["critical", "error"]
+
+
+@mock.patch("random.random", lambda: 0.1)
+def test_sampling_filter_level_default(caplog, set_level_debug):
+    logger = logging.getLogger(__name__)
+    with filter_context(logger, [SamplingFilter(0.05)]):
+        logger.debug("debug")
+        logger.info("info")
+        logger.warning("warning")
+        logger.error("error")
+        logger.critical("critical")
+
+    captured_msgs = list(map(lambda r: r.msg, caplog.records))
+    assert sorted(captured_msgs) == ["critical", "error", "warning"]

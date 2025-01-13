@@ -68,6 +68,7 @@
 
 ## Dev
 /devenv/                                                 @getsentry/owners-sentry-dev @getsentry/dev-infra
+/devservices/                                            @getsentry/owners-sentry-dev @getsentry/dev-infra
 /.github/                                                @getsentry/owners-sentry-dev
 /config/hooks/                                           @getsentry/owners-sentry-dev
 /scripts/                                                @getsentry/owners-sentry-dev
@@ -641,3 +642,12 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 # Tempest
 /src/sentry/tempest/                                       @getsentry/gdx
 /tests/sentry/tempest/                                     @getsentry/gdx
+
+# Workflow engine
+/src/sentry/workflow_engine/                               @getsentry/alerts-create-issues
+/tests/sentry/workflow_engine/                             @getsentry/alerts-create-issues
+
+/static/app/components/workflowEngine/                     @getsentry/alerts-create-issues
+/static/app/views/automations/                             @getsentry/alerts-create-issues
+/static/app/views/detectors/                               @getsentry/alerts-create-issues
+# End of Workflow Engine (ACI)

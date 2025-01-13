@@ -38,12 +38,12 @@ from sentry.event_manager import (
 from sentry.eventstore.models import Event
 from sentry.exceptions import HashDiscarded
 from sentry.grouping.api import GroupingConfig, load_grouping_config
+from sentry.grouping.grouptype import ErrorGroupType
 from sentry.grouping.utils import hash_from_values
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.issues.grouptype import (
-    ErrorGroupType,
     GroupCategory,
     PerformanceNPlusOneGroupType,
     PerformanceSlowDBQueryGroupType,
@@ -1519,7 +1519,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         # the basic strategy is to simply use the description
         assert spans == [{"hash": hash_values([span["description"]])} for span in data["spans"]]
 
-    @override_options({"transactions.do_post_process_in_save": 1.0})
     def test_transaction_sampler_and_receive(self) -> None:
         # make sure with the option on we don't get any errors
         manager = EventManager(
@@ -1578,7 +1577,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         manager.normalize()
         manager.save(self.project.id)
 
-    @override_options({"transactions.do_post_process_in_save": 1.0})
     @patch("sentry.event_manager.record_event_processed")
     @patch("sentry.event_manager.record_user_context_received")
     @patch("sentry.event_manager.record_release_received")
