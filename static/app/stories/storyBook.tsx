@@ -9,16 +9,11 @@ type StoryRenderFunction = () => ReactNode | ReactNode[];
 type StoryFunction = (storyName: string, storyRender: StoryRenderFunction) => void;
 type SetupFunction = (story: StoryFunction) => void;
 
-type StoryContext = {
-  name: string;
-  render: StoryRenderFunction;
-};
-
 export default function storyBook(
   bookContext: string | React.ComponentType<any>,
   setup: SetupFunction
 ): StoryRenderFunction {
-  const contexts: StoryContext[] = [];
+  const contexts: {name: string; render: StoryRenderFunction}[] = [];
 
   const storyFn: StoryFunction = (name: string, render: StoryRenderFunction) => {
     contexts.push({name, render});

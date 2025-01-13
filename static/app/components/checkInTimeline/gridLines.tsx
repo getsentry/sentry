@@ -15,7 +15,7 @@ import type {TimeWindowConfig} from './types';
 interface Props {
   timeWindowConfig: TimeWindowConfig;
   /**
-   * Render additional UI coomponents inside of the grid lines overlay
+   * Render additional UI components inside of the grid lines overlay
    */
   additionalUi?: React.ReactNode;
   /**

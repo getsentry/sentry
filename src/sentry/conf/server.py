@@ -29,7 +29,7 @@ from sentry.conf.types.sentry_config import SentryMode
 from sentry.conf.types.service_options import ServiceOptions
 from sentry.conf.types.uptime import UptimeRegionConfig
 from sentry.utils import json  # NOQA (used in getsentry config)
-from sentry.utils.celery import crontab_with_minute_jitter, make_split_task_queues
+from sentry.utils.celery import make_split_task_queues
 from sentry.utils.types import Type, type_from_value
 
 
@@ -1039,7 +1039,7 @@ CELERYBEAT_SCHEDULE_CONTROL = {
     "schedule-vsts-integration-subscription-check": {
         "task": "sentry.integrations.vsts.tasks.kickoff_vsts_subscription_check",
         # Run every 6 hours
-        "schedule": crontab_with_minute_jitter(hour="*/6"),
+        "schedule": crontab(hour="*/6", minute="0"),
         "options": {"expires": 60 * 25, "queue": "integrations.control"},
     },
     "deliver-webhooks-control": {
@@ -1114,8 +1114,8 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "collect-project-platforms": {
         "task": "sentry.tasks.collect_project_platforms",
-        # Run every 3 hours
-        "schedule": crontab_with_minute_jitter(hour=3),
+        # 19:00 PDT, 22:00 EDT, 3:00 UTC
+        "schedule": crontab(hour="3", minute="0"),
         "options": {"expires": 3600 * 24},
     },
     "deliver-from-outbox": {
