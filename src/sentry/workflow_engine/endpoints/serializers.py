@@ -118,6 +118,7 @@ class DataConditionGroupSerializer(Serializer):
             "organizationId": str(obj.organization_id),
             "logicType": obj.logic_type,
             "conditions": attrs.get("conditions"),
+            "actions": attrs.get("actions"),
         }
 
 
@@ -225,7 +226,7 @@ class WorkflowSerializer(Serializer):
             )
 
         for item in item_list:
-            attrs[item]["trigger_conditions"] = trigger_condition_map.get(
+            attrs[item]["trigger_condition_group"] = trigger_condition_map.get(
                 item.when_condition_group_id
             )  # when condition group
             attrs[item]["data_condition_groups"] = dcg_map.get(
@@ -240,7 +241,7 @@ class WorkflowSerializer(Serializer):
             "organizationId": str(obj.organization_id),
             "dateCreated": obj.date_added,
             "dateUpdated": obj.date_updated,
-            "triggerConditions": attrs.get("trigger_conditions"),
+            "triggerConditionGroup": attrs.get("trigger_condition_group"),
             "dataConditionGroups": attrs.get("data_condition_groups"),
             "environment": obj.environment.name if obj.environment else None,
         }
