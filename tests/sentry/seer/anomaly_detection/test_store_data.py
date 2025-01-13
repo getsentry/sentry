@@ -9,7 +9,7 @@ from sentry.seer.anomaly_detection.utils import fetch_historical_data, format_hi
 from sentry.snuba import errors, metrics_performance
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
-from sentry.testutils.cases import BaseMetricsTestCase, PerformanceIssueTestCase
+from sentry.testutils.cases import BaseMetricsTestCase, PerformanceIssueTestCase, SpanTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.utils.snuba import SnubaTSResult
@@ -31,7 +31,9 @@ def make_event(**kwargs: Any) -> dict[str, Any]:
 
 
 @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
-class AnomalyDetectionStoreDataTest(AlertRuleBase, BaseMetricsTestCase, PerformanceIssueTestCase):
+class AnomalyDetectionStoreDataTest(
+    AlertRuleBase, BaseMetricsTestCase, PerformanceIssueTestCase, SpanTestCase
+):
     def setUp(self):
         super().setUp()
 
@@ -136,6 +138,29 @@ class AnomalyDetectionStoreDataTest(AlertRuleBase, BaseMetricsTestCase, Performa
             },
             project_id=self.project.id,
         )
+        result = fetch_historical_data(self.organization, snuba_query, ["count()"], self.project)
+        assert result
+        assert {"time": int(self.time_1_ts), "count": 1} in result.data.get("data")
+        assert {"time": int(self.time_2_ts), "count": 1} in result.data.get("data")
+
+    def test_anomaly_detection_fetch_historical_data_eap_spans(self):
+        alert_rule = self.create_alert_rule(
+            organization=self.organization,
+            projects=[self.project],
+            dataset=Dataset.EventsAnalyticsPlatform,
+            query="",
+            time_window=30,
+        )
+        snuba_query = SnubaQuery.objects.get(id=alert_rule.snuba_query_id)
+
+        self.store_spans(
+            [
+                self.create_span({"description": "foo"}, start_ts=dt)
+                for dt in [self.time_1_dt, self.time_2_dt]
+            ],
+            is_eap=True,
+        )
+
         result = fetch_historical_data(self.organization, snuba_query, ["count()"], self.project)
         assert result
         assert {"time": int(self.time_1_ts), "count": 1} in result.data.get("data")
