@@ -14,9 +14,8 @@ class TempestTasksTest(TestCase):
 
     @patch("sentry.tempest.tasks.fetch_latest_id_from_tempest")
     def test_fetch_latest_item_id_task(self, mock_fetch):
-        mock_response = Mock()
-        mock_response.text = "20001"
-        mock_fetch.return_value = mock_response
+        mock_fetch.return_value = Mock()
+        mock_fetch.return_value.json.return_value = {"latest_id": 20001}
 
         fetch_latest_item_id(self.credentials.id)
 
@@ -28,9 +27,10 @@ class TempestTasksTest(TestCase):
 
     @patch("sentry.tempest.tasks.fetch_latest_id_from_tempest")
     def test_fetch_latest_item_id_error(self, mock_fetch):
-        mock_response = Mock()
-        mock_response.text = "Invalid credentials"
-        mock_fetch.return_value = mock_response
+        mock_fetch.return_value = Mock()
+        mock_fetch.return_value.json.return_value = {
+            "error": {"type": "Invalid credentials", "message": "..."}
+        }
 
         fetch_latest_item_id(self.credentials.id)
 
@@ -41,9 +41,13 @@ class TempestTasksTest(TestCase):
 
     @patch("sentry.tempest.tasks.fetch_latest_id_from_tempest")
     def test_fetch_latest_item_id_ip_not_allowlisted(self, mock_fetch):
-        mock_response = Mock()
-        mock_response.text = "IP address not allow-listed"
-        mock_fetch.return_value = mock_response
+        mock_fetch.return_value = Mock()
+        mock_fetch.return_value.json.return_value = {
+            "error": {
+                "type": "IP address not allow-listed",
+                "message": "...",
+            }
+        }
 
         fetch_latest_item_id(self.credentials.id)
 
@@ -54,7 +58,13 @@ class TempestTasksTest(TestCase):
 
     @patch("sentry.tempest.tasks.fetch_latest_id_from_tempest")
     def test_fetch_latest_item_id_unexpected_response(self, mock_fetch):
-        mock_fetch.return_value = "Some other error"
+        mock_fetch.return_value = Mock()
+        mock_fetch.return_value.json.return_value = {
+            "error": {
+                "type": "Internal error",
+                "message": "...",
+            }
+        }
 
         fetch_latest_item_id(self.credentials.id)
 
@@ -94,7 +104,7 @@ class TempestTasksTest(TestCase):
     @patch("sentry.tempest.tasks.fetch_items_from_tempest")
     def test_poll_tempest_crashes_invalid_json(self, mock_fetch):
         mock_fetch.return_value = Mock()
-        mock_fetch.return_value.json.return_value = "no valid json"
+        mock_fetch.return_value.json.return_value = {"error": "Some internal server error"}
 
         # Set this value since the test assumes that there is already an ID in the DB
         self.credentials.latest_fetched_item_id = "42"

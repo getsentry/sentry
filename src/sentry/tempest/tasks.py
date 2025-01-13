@@ -8,7 +8,7 @@ from sentry.models.projectkey import ProjectKey, UseCase
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.relay import schedule_invalidate_project_config
-from sentry.tempest.models import TempestCredentials
+from sentry.tempest.models import MessageType, TempestCredentials
 
 # This is the URL to the tempest service
 TEMPEST_URL = os.getenv("TEMPEST", "http://127.0.0.1:9130")
@@ -55,23 +55,48 @@ def fetch_latest_item_id(credentials_id: int) -> None:
             client_id=client_id,
             client_secret=credentials.client_secret,
         )
-        response_text = response.text
+        result = response.json()
 
-        if response_text.isdigit():  # If response is a number the fetch was a success
-            credentials.latest_fetched_item_id = response_text
-            credentials.save(update_fields=["latest_fetched_item_id"])
+        if "latest_id" in result:
+            credentials.latest_fetched_item_id = result["latest_id"]
+            credentials.message = ""
+            credentials.save(update_fields=["message", "latest_fetched_item_id"])
             return
+        elif "error" in result:
+            if result["error"]["type"] == "Invalid credentials":
+                credentials.message = "Seems like the provided credentials are invalid"
+                credentials.message_type = MessageType.ERROR
+                credentials.save(update_fields=["message", "message_type"])
 
-        # Things the user ought to know about
-        if response_text.startswith("Invalid credentials"):
-            credentials.message = "Seems like the provided credentials are invalid"
-            credentials.save(update_fields=["message"])
-            return
-        if response_text.startswith("IP address not allow-listed"):
-            credentials.message = "Seems like our IP is not allow-listed"
-            credentials.save(update_fields=["message"])
-            return
+                logger.info(
+                    "Invalid credentials",
+                    extra={
+                        "org_id": org_id,
+                        "project_id": project_id,
+                        "client_id": client_id,
+                        "status_code": response.status_code,
+                        "response_text": result,
+                    },
+                )
+                return
+            elif result["error"]["type"] == "IP address not allow-listed":
+                credentials.message = "Seems like our IP is not allow-listed"
+                credentials.message_type = MessageType.ERROR
+                credentials.save(update_fields=["message", "message_type"])
 
+                logger.info(
+                    "IP address not allow-listed",
+                    extra={
+                        "org_id": org_id,
+                        "project_id": project_id,
+                        "client_id": client_id,
+                        "status_code": response.status_code,
+                        "response_text": result,
+                    },
+                )
+                return
+
+        # Default in case things go wrong
         logger.info(
             "Fetching the latest item id failed.",
             extra={
@@ -79,9 +104,10 @@ def fetch_latest_item_id(credentials_id: int) -> None:
                 "project_id": project_id,
                 "client_id": client_id,
                 "status_code": response.status_code,
-                "response_text": response.text,
+                "response_text": result,
             },
         )
+
     except Exception as e:
         logger.info(
             "Fetching the latest item id failed.",
