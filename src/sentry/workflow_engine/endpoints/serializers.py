@@ -14,7 +14,9 @@ from sentry.workflow_engine.models import (
     DataSourceDetector,
     Detector,
     Workflow,
+    WorkflowDataConditionGroup,
 )
+from sentry.workflow_engine.models.data_condition_group_action import DataConditionGroupAction
 from sentry.workflow_engine.types import DataSourceTypeHandler
 
 
@@ -92,9 +94,20 @@ class DataConditionGroupSerializer(Serializer):
         for condition, serialized in zip(condition_list, serialize(condition_list, user=user)):
             conditions[condition.condition_group_id].append(serialized)
 
+        dcga_list = list(DataConditionGroupAction.objects.filter(condition_group__in=item_list))
+        actions = {dcga.action for dcga in dcga_list}
+
+        serialized_actions = {
+            action.id: serialized
+            for action, serialized in zip(actions, serialize(actions, user=user))
+        }
+        action_map = defaultdict(list)
+        for dcga in dcga_list:
+            action_map[dcga.condition_group_id].append(serialized_actions[dcga.action_id])
+
         for item in item_list:
             attrs[item]["conditions"] = conditions.get(item.id, [])
-
+            attrs[item]["actions"] = action_map.get(item.id, [])
         return attrs
 
     def serialize(
@@ -186,19 +199,38 @@ class DetectorSerializer(Serializer):
 class WorkflowSerializer(Serializer):
     def get_attrs(self, item_list, user, **kwargs):
         attrs: MutableMapping[Workflow, dict[str, Any]] = defaultdict(dict)
-        condition_groups = list(
+        trigger_conditions = list(
             DataConditionGroup.objects.filter(
                 id__in=[w.when_condition_group_id for w in item_list if w.when_condition_group_id]
             )
         )
-        condition_group_map = {
-            str(group.id): serialized
-            for group, serialized in zip(condition_groups, serialize(condition_groups, user=user))
-        }
-        for item in item_list:
-            attrs[item]["condition_group"] = condition_group_map.get(
-                str(item.when_condition_group_id)
+        trigger_condition_map = {
+            group.id: serialized
+            for group, serialized in zip(
+                trigger_conditions, serialize(trigger_conditions, user=user)
             )
+        }
+
+        wdcg_list = list(WorkflowDataConditionGroup.objects.filter(workflow__in=item_list))
+        condition_groups = {wdcg.data_condition_group for wdcg in wdcg_list}
+
+        serialized_condition_groups = {
+            dcg.id: serialized
+            for dcg, serialized in zip(condition_groups, serialize(condition_groups, user=user))
+        }
+        dcg_map = defaultdict(list)
+        for wdcg in wdcg_list:
+            dcg_map[wdcg.workflow_id].append(
+                serialized_condition_groups[wdcg.data_condition_group_id]
+            )
+
+        for item in item_list:
+            attrs[item]["trigger_conditions"] = trigger_condition_map.get(
+                item.when_condition_group_id
+            )  # when condition group
+            attrs[item]["data_condition_groups"] = dcg_map.get(
+                item.id, []
+            )  # data condition groups associated with workflow via WorkflowDataConditionGroup lookup table
         return attrs
 
     def serialize(self, obj: Workflow, attrs: Mapping[str, Any], user, **kwargs) -> dict[str, Any]:
@@ -206,9 +238,9 @@ class WorkflowSerializer(Serializer):
         return {
             "id": str(obj.id),
             "organizationId": str(obj.organization_id),
-            "enabled": obj.enabled,
             "dateCreated": obj.date_added,
             "dateUpdated": obj.date_updated,
-            "conditionGroup": attrs.get("condition_group"),
+            "triggerConditions": attrs.get("trigger_conditions"),
+            "dataConditionGroups": attrs.get("data_condition_groups"),
             "environment": obj.environment.name if obj.environment else None,
         }
