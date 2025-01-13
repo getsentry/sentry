@@ -187,7 +187,8 @@ export enum RateUnit {
 }
 
 // Rates normalized to /second unit
-export const RATE_UNIT_MULTIPLIERS = {
+// TODO: For consistency these should scale UP not down
+export const RATE_UNIT_MULTIPLIERS: Record<RateUnit, number> = {
   [RateUnit.PER_SECOND]: 1,
   [RateUnit.PER_MINUTE]: 1 / 60,
   [RateUnit.PER_HOUR]: 1 / (60 * 60),
