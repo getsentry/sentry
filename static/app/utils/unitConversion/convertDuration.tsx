@@ -6,6 +6,6 @@ export function convertDuration(
   toUnit: DurationUnit
 ): number {
   return (
-    (value * DURATION_UNIT_MULTIPLIERS[fromUnit]) / DURATION_UNIT_MULTIPLIERS[toUnit]
+    value * (DURATION_UNIT_MULTIPLIERS[fromUnit] / DURATION_UNIT_MULTIPLIERS[toUnit])
   );
 }
