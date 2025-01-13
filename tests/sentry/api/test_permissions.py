@@ -49,6 +49,11 @@ class ReadonlyPermissionsTest(DRFPermissionTestCase):
     def test_readonly_user_has_permission(self):
         assert self.user_permission.has_permission(self.make_request(self.readonly_user), None)
 
+    def test_readonly_user_has_object_permission(self):
+        assert not self.user_permission.has_object_permission(
+            self.make_request(self.readonly_user), None, None
+        )
+
     @override_options({"demo-mode.enabled": True, "demo-mode.users": ["readonly@example.com"]})
     def test_get_method(self):
         assert self.user_permission.has_permission(
