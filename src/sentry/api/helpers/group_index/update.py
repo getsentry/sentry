@@ -194,8 +194,6 @@ def update_groups(
 
     result = dict(serializer.validated_data)
 
-    acting_user = user if user.is_authenticated else None
-
     discard = result.get("discard")
     if discard:
         return handle_discard(request, groups, projects, acting_user)
@@ -219,7 +217,6 @@ def update_groups(
                 projects,
                 project_lookup,
                 acting_user,
-                user,
                 result,
             )
         except MultipleProjectsError:
@@ -232,7 +229,6 @@ def update_groups(
             project_lookup,
             status_details,
             acting_user,
-            user,
         )
 
     return prepare_response(
@@ -344,19 +340,22 @@ def handle_resolve_in_release(
     projects: Sequence[Project],
     project_lookup: Mapping[int, Project],
     acting_user: RpcUser | User | None,
-    user: RpcUser | User | AnonymousUser,
     result: MutableMapping[str, Any],
 ) -> tuple[dict[str, Any], int | None]:
     res_type = None
     release = None
     commit = None
     self_assign_issue = "0"
+    new_status_details = {}
     if acting_user:
         user_options = user_option_service.get_many(
             filter={"user_ids": [acting_user.id], "keys": ["self_assign_issue"]}
         )
         if user_options:
             self_assign_issue = user_options[0].value
+        serialized_user = user_service.serialize_many(
+            filter=dict(user_ids=[acting_user.id]), as_user=acting_user
+        )
     res_status = None
     if status == "resolvedInNextRelease" or status_details.get("inNextRelease"):
         # TODO(jess): We may want to support this for multi project, but punting on it for now
@@ -371,12 +370,7 @@ def handle_resolve_in_release(
             "version": ""
         }
 
-        serialized_user = user_service.serialize_many(filter=dict(user_ids=[user.id]), as_user=user)
-        new_status_details = {
-            "inNextRelease": True,
-        }
-        if serialized_user:
-            new_status_details["actor"] = serialized_user[0]
+        new_status_details = {"inNextRelease": True}
         res_type = GroupResolution.Type.in_next_release
         res_type_str = "in_next_release"
         res_status = GroupResolution.Status.pending
@@ -387,12 +381,7 @@ def handle_resolve_in_release(
         activity_type = ActivityType.SET_RESOLVED_IN_RELEASE.value
         activity_data = {"version": ""}
 
-        serialized_user = user_service.serialize_many(filter=dict(user_ids=[user.id]), as_user=user)
-        new_status_details = {
-            "inUpcomingRelease": True,
-        }
-        if serialized_user:
-            new_status_details["actor"] = serialized_user[0]
+        new_status_details = {"inUpcomingRelease": True}
         res_type = GroupResolution.Type.in_upcoming_release
         res_type_str = "in_upcoming_release"
         res_status = GroupResolution.Status.pending
@@ -409,12 +398,7 @@ def handle_resolve_in_release(
             "version": release.version
         }
 
-        serialized_user = user_service.serialize_many(filter=dict(user_ids=[user.id]), as_user=user)
-        new_status_details = {
-            "inRelease": release.version,
-        }
-        if serialized_user:
-            new_status_details["actor"] = serialized_user[0]
+        new_status_details = {"inRelease": release.version}
         res_type = GroupResolution.Type.in_release
         res_type_str = "in_release"
         res_status = GroupResolution.Status.resolved
@@ -426,19 +410,17 @@ def handle_resolve_in_release(
         commit = status_details["inCommit"]
         activity_type = ActivityType.SET_RESOLVED_IN_COMMIT.value
         activity_data = {"commit": commit.id}
-        serialized_user = user_service.serialize_many(filter=dict(user_ids=[user.id]), as_user=user)
+        new_status_details = {"inCommit": serialize(commit, acting_user)}
 
-        new_status_details = {
-            "inCommit": serialize(commit, user),
-        }
-        if serialized_user:
-            new_status_details["actor"] = serialized_user[0]
         res_type_str = "in_commit"
     else:
         res_type_str = "now"
         activity_type = ActivityType.SET_RESOLVED.value
         activity_data = {}
         new_status_details = {}
+
+    if serialized_user:
+        new_status_details["actor"] = serialized_user[0]
 
     metrics.incr("group.resolved", instance=res_type_str, skip_internal=True)
 
@@ -473,7 +455,6 @@ def handle_resolve_in_release(
                 res_type,
                 res_status,
                 acting_user,
-                user,
                 self_assign_issue,
                 activity_type,
                 activity_data,
@@ -482,7 +463,7 @@ def handle_resolve_in_release(
 
         issue_resolved.send_robust(
             organization_id=projects[0].organization_id,
-            user=(acting_user or user),
+            user=acting_user,
             group=group,
             project=project_lookup[group.project_id],
             resolution_type=res_type_str,
@@ -506,7 +487,6 @@ def process_group_resolution(
     res_type: int | None,
     res_status: int | None,
     acting_user: RpcUser | User | None,
-    user: RpcUser | User | AnonymousUser,
     self_assign_issue: str,
     activity_type: int,
     activity_data: MutableMapping[str, Any],
@@ -521,7 +501,7 @@ def process_group_resolution(
             "release": release,
             "type": res_type,
             "status": res_status,
-            "actor_id": user.id if user and user.is_authenticated else None,
+            "actor_id": acting_user.id if acting_user and acting_user.is_authenticated else None,
         }
 
         # We only set `current_release_version` if GroupResolution type is
@@ -700,7 +680,6 @@ def handle_other_status_updates(
     project_lookup: Mapping[int, Project],
     status_details: dict[str, Any],
     acting_user: RpcUser | User | None,
-    user: RpcUser | User | AnonymousUser,
 ) -> dict[str, Any]:
     group_ids = [group.id for group in group_list]
     queryset = Group.objects.filter(id__in=group_ids)
@@ -721,9 +700,7 @@ def handle_other_status_updates(
                     group_list, acting_user, projects, sender=update_groups
                 )
             else:
-                result["statusDetails"] = handle_ignored(
-                    group_list, status_details, acting_user, user
-                )
+                result["statusDetails"] = handle_ignored(group_list, status_details, acting_user)
             result["inbox"] = None
         else:
             result["statusDetails"] = {}
