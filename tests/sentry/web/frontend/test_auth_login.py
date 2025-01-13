@@ -510,6 +510,37 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         assert resp.redirect_chain == []
         assert "Please enter a correct username and password" in resp.content.decode()
 
+    @override_options(
+        {
+            "demo-mode.enabled": True,
+            "demo-mode.users": ["readonly@example.com"],
+            "demo-mode.orgs": [1],
+        }
+    )
+    def test_login_demo_mode_with_org(self):
+        readonly_user = self.create_user(
+            is_staff=False,
+            email="readonly@example.com",
+            password="foo",
+        )
+        demo_org = self.create_organization(owner=readonly_user, id=1)
+
+        self.client.get(self.path)
+
+        resp = self.client.post(
+            self.path,
+            # login with any password
+            {"username": readonly_user.username, "password": "bar", "op": "login"},
+            follow=True,
+        )
+
+        assert resp.status_code == 200
+        # successful login redirects to demo orgs issue stream
+        assert resp.redirect_chain == [
+            (reverse("sentry-login"), 302),
+            (f"/organizations/{demo_org.slug}/issues/", 302),
+        ]
+
 
 @pytest.mark.skipif(
     settings.SENTRY_NEWSLETTER != "sentry.newsletter.dummy.DummyNewsletter",
