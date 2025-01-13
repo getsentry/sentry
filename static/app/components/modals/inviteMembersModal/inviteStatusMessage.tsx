@@ -4,7 +4,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconCheckmark, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import useOrganization from 'sentry/utils/useOrganization';
 
 import type {InviteStatus} from './types';
 
@@ -69,14 +68,10 @@ interface InviteStatusMessageProps {
 
 export default function InviteStatusMessage({
   complete,
-  hasDuplicateEmails,
   inviteStatus,
   sendingInvites,
   willInvite,
 }: InviteStatusMessageProps) {
-  const organization = useOrganization();
-  const isNewInviteModal = organization.features.includes('invite-members-new-modal');
-
   if (sendingInvites) {
     return (
       <StatusMessage>
@@ -93,69 +88,12 @@ export default function InviteStatusMessage({
     const sentCount = statuses.filter(i => i.sent).length;
     const errorCount = statuses.filter(i => i.error).length;
 
-    const statusIndicator =
-      hasDuplicateEmails || errorCount > 0 ? (
-        <IconWarning color="yellow300" size="sm" />
-      ) : (
-        <IconCheckmark color="successText" size="sm" />
-      );
-
-    if (isNewInviteModal) {
-      return (
-        <CountMessage
-          sentCount={sentCount}
-          errorCount={errorCount}
-          isRequest={!willInvite}
-        />
-      );
-    }
-
-    if (willInvite) {
-      const invites = <strong>{tn('%s invite', '%s invites', sentCount)}</strong>;
-      const tctComponents = {
-        invites,
-        failed: errorCount,
-      };
-
-      return (
-        <StatusMessage status="success">
-          {statusIndicator}
-          <span>
-            {errorCount > 0
-              ? tct('Sent [invites], [failed] failed to send.', tctComponents)
-              : tct('Sent [invites]', tctComponents)}
-          </span>
-        </StatusMessage>
-      );
-    }
-    const inviteRequests = (
-      <strong>{tn('%s invite request', '%s invite requests', sentCount)}</strong>
-    );
-    const tctComponents = {
-      inviteRequests,
-      failed: errorCount,
-    };
-
     return (
-      <StatusMessage status="success">
-        {statusIndicator}
-        {errorCount > 0
-          ? tct(
-              '[inviteRequests] pending approval, [failed] failed to send.',
-              tctComponents
-            )
-          : tct('[inviteRequests] pending approval', tctComponents)}
-      </StatusMessage>
-    );
-  }
-
-  // TODO(mia): remove once old modal is removed
-  if (hasDuplicateEmails) {
-    return (
-      <StatusMessage status="error">
-        <IconWarning size="sm" color="errorText" />
-        {t('Duplicate emails between invite rows.')}
-      </StatusMessage>
+      <CountMessage
+        sentCount={sentCount}
+        errorCount={errorCount}
+        isRequest={!willInvite}
+      />
     );
   }
 
