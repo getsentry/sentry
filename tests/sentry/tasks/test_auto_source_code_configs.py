@@ -20,7 +20,6 @@ from sentry.tasks.auto_source_code_configs import (
 )
 from sentry.testutils.asserts import assert_failure_metric, assert_halt_metric
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.locking import UnableToAcquireLock
@@ -70,7 +69,7 @@ class TestTaskBehavior(BaseDeriveCodeMappings):
             assert derive_code_mappings(self.project.id, self.event_data) is None
             assert_halt_metric(mock_record, error)
 
-    @patch("sentry.tasks.derive_code_mappings.logger")
+    @patch("sentry.tasks.auto_source_code_configs.logger")
     def test_raises_other_api_errors(self, mock_logger, mock_record):
         with patch(
             "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org",
@@ -90,7 +89,7 @@ class TestTaskBehavior(BaseDeriveCodeMappings):
             assert not RepositoryProjectPathConfig.objects.exists()
             assert_failure_metric(mock_record, error)
 
-    @patch("sentry.tasks.derive_code_mappings.logger")
+    @patch("sentry.tasks.auto_source_code_configs.logger")
     def test_raises_generic_errors(self, mock_logger, mock_record):
         with patch(
             "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org",
@@ -651,26 +650,6 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
             "sentry/tasks.py",
         ]
 
-    @with_feature({"organizations:derive-code-mappings": False})
-    def test_feature_off(self):
-        event = self.store_event(data=self.test_data, project_id=self.project.id)
-
-        assert not RepositoryProjectPathConfig.objects.filter(project_id=self.project.id).exists()
-
-        with (
-            patch(
-                "sentry.tasks.derive_code_mappings.identify_stacktrace_paths",
-                return_value={
-                    self.project: ["sentry/models/release.py", "sentry/tasks.py"],
-                },
-            ) as mock_identify_stacktraces,
-            self.tasks(),
-        ):
-            derive_code_mappings(self.project.id, event.data)
-
-        assert mock_identify_stacktraces.call_count == 0
-        assert not RepositoryProjectPathConfig.objects.filter(project_id=self.project.id).exists()
-
     @patch("sentry.integrations.github.integration.GitHubIntegration.get_trees_for_org")
     @patch(
         "sentry.integrations.utils.code_mapping.CodeMappingTreesHelper.generate_code_mappings",
@@ -691,7 +670,7 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
 
         with (
             patch(
-                "sentry.tasks.derive_code_mappings.identify_stacktrace_paths",
+                "sentry.tasks.auto_source_code_configs.identify_stacktrace_paths",
                 return_value=["sentry/models/release.py", "sentry/tasks.py"],
             ) as mock_identify_stacktraces,
             self.tasks(),
@@ -720,7 +699,7 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
             )
         ],
     )
-    @patch("sentry.tasks.derive_code_mappings.logger")
+    @patch("sentry.tasks.auto_source_code_configs.logger")
     def test_derive_code_mappings_duplicates(
         self, mock_logger, mock_generate_code_mappings, mock_get_trees_for_org
     ):
@@ -748,7 +727,7 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
 
         with (
             patch(
-                "sentry.tasks.derive_code_mappings.identify_stacktrace_paths",
+                "sentry.tasks.auto_source_code_configs.identify_stacktrace_paths",
                 return_value=["sentry/models/release.py", "sentry/tasks.py"],
             ) as mock_identify_stacktraces,
             self.tasks(),

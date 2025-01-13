@@ -3,21 +3,21 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping
 from enum import StrEnum
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from sentry_sdk import set_tag, set_user
 
 from sentry import features
-from sentry.constants import ObjectStatus
 from sentry.db.models.fields.node import NodeData
 from sentry.integrations.github.integration import GitHubIntegration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
-from sentry.integrations.services.integration import RpcOrganizationIntegration, integration_service
+from sentry.integrations.services.integration import RpcOrganizationIntegration
 from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionEvent,
     SCMIntegrationInteractionType,
 )
 from sentry.integrations.utils.code_mapping import CodeMapping, CodeMappingTreesHelper
+from sentry.issues.auto_source_code_config.integrations import get_organization_installation
 from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -30,9 +30,6 @@ from sentry.utils.safe import get_path
 SUPPORTED_LANGUAGES = ["javascript", "python", "node", "ruby", "php", "go", "csharp"]
 
 logger = logging.getLogger(__name__)
-
-if TYPE_CHECKING:
-    from sentry.integrations.base import IntegrationInstallation
 
 
 class DeriveCodeMappingsErrorReason(StrEnum):
@@ -118,7 +115,7 @@ def derive_code_mappings(
         logger.info("No stacktrace paths found.", extra=extra)
         return
 
-    installation, organization_integration = get_installation(org)
+    installation, organization_integration = get_organization_installation(org)
     if not installation or not organization_integration:
         logger.info("No installation or organization integration found.", extra=extra)
         return
@@ -187,30 +184,6 @@ def get_stacktrace(data: NodeData) -> list[Mapping[str, Any]]:
         return [stacktrace]
 
     return []
-
-
-def get_installation(
-    organization: Organization,
-) -> tuple[IntegrationInstallation | None, RpcOrganizationIntegration | None]:
-    integrations = integration_service.get_integrations(
-        organization_id=organization.id,
-        providers=["github"],
-        status=ObjectStatus.ACTIVE,
-    )
-    if len(integrations) == 0:
-        return None, None
-
-    # XXX: We only operate on the first github integration for an organization.
-    integration = integrations[0]
-    organization_integration = integration_service.get_organization_integration(
-        integration_id=integration.id, organization_id=organization.id
-    )
-    if not organization_integration:
-        return None, None
-
-    installation = integration.get_installation(organization_id=organization.id)
-
-    return installation, organization_integration
 
 
 def set_project_codemappings(
