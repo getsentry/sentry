@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import call, patch
 
 from django.urls import reverse
 
@@ -123,8 +123,7 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
             sig = hmac_sha256_hex_digest(key="123", message=b"456")
             response = self.client.post(self.url, LD_REQUEST, headers={"X-LD-Signature": sig})
             assert response.status_code == 401
-            mock_incr.reset_mock()
-            assert mock_incr.call_count == 0
+            assert call("feature_flags.audit_log_event_posted") not in mock_incr.call_args_list
 
     def test_post_launchdarkly_deserialization_failed(self, mock_incr):
         signature = hmac_sha256_hex_digest(key="123", message=json.dumps({}).encode())
@@ -136,30 +135,26 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
             response = self.client.post(self.url, {}, headers={"X-LD-Signature": signature})
             assert response.status_code == 200
             assert FlagAuditLogModel.objects.count() == 0
-            mock_incr.reset_mock()
-            assert mock_incr.call_count == 0
+            assert call("feature_flags.audit_log_event_posted") not in mock_incr.call_args_list
 
     def test_post_invalid_provider(self, mock_incr):
         url = reverse(self.endpoint, args=(self.organization.slug, "test"))
         with self.feature(self.features):
             response = self.client.post(url, {})
             assert response.status_code == 404
-            mock_incr.reset_mock()
-            assert mock_incr.call_count == 0
+            assert call("feature_flags.audit_log_event_posted") not in mock_incr.call_args_list
 
     def test_post_disabled(self, mock_incr):
         response = self.client.post(self.url, data={})
         assert response.status_code == 404
         assert response.content == b'"Not enabled."'
-        mock_incr.reset_mock()
-        assert mock_incr.call_count == 0
+        assert call("feature_flags.audit_log_event_posted") not in mock_incr.call_args_list
 
     def test_post_missing_signature(self, mock_incr):
         with self.feature(self.features):
             response = self.client.post(self.url, {})
             assert response.status_code == 401, response.content
-            mock_incr.reset_mock()
-            assert mock_incr.call_count == 0
+            assert call("feature_flags.audit_log_event_posted") not in mock_incr.call_args_list
 
 
 LD_REQUEST = {
