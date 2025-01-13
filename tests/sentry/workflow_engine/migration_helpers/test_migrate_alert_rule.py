@@ -443,8 +443,8 @@ class AlertRuleMigrationHelpersTest(APITestCase):
         assert detector.name == "hojicha"
         assert detector.description == "a Japanese green tea roasted over charcoal"
 
-        assert not detector_state.active
         assert detector_state.state == str(DetectorPriorityLevel.OK.value)
+        assert detector_state.active is False
 
     def test_update_metric_alert_owner(self):
         migrate_alert_rule(self.metric_alert, self.rpc_user)
