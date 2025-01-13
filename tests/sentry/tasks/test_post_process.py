@@ -21,6 +21,7 @@ from sentry.eventstream.types import EventStreamEventType
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.source_code_management.commit_context import CommitInfo, FileBlameInfo
+from sentry.issues.auto_source_code_config.code_mapping import SUPPORTED_LANGUAGES
 from sentry.issues.grouptype import (
     FeedbackGroup,
     GroupCategory,
@@ -54,7 +55,6 @@ from sentry.rules import init_registry
 from sentry.rules.actions.base import EventAction
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
-from sentry.tasks.auto_source_code_configs import SUPPORTED_LANGUAGES
 from sentry.tasks.merge import merge_groups
 from sentry.tasks.post_process import (
     HIGHER_ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT,
