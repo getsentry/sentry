@@ -22,7 +22,8 @@ interface Options {
 export function useMonitorStats({monitors, timeWindowConfig}: Options) {
   const {start, end, elapsedMinutes, timelineWidth} = timeWindowConfig;
 
-  const rollup = Math.floor((elapsedMinutes * 60) / timelineWidth);
+  // Minimum rollup is 1 second
+  const rollup = Math.floor((elapsedMinutes * 60) / timelineWidth) || 1;
 
   const selectionQuery = {
     since: Math.floor(start.getTime() / 1000),
