@@ -439,24 +439,24 @@ def update_migrated_alert_rule(alert_rule: AlertRule, updated_fields: dict[str, 
         if "threshold_type" in updated_fields:
             threshold_type = (
                 Condition.GREATER
-                if alert_rule.threshold_type == AlertRuleThresholdType.ABOVE.value
+                if updated_fields["threshold_type"] == AlertRuleThresholdType.ABOVE.value
                 else Condition.LESS
             )
             resolve_threshold_type = (
                 Condition.LESS_OR_EQUAL
-                if alert_rule.threshold_type == AlertRuleThresholdType.ABOVE.value
+                if updated_fields["threshold_type"] == AlertRuleThresholdType.ABOVE.value
                 else Condition.GREATER_OR_EQUAL
             )
             for dc in data_conditions:
                 if dc.condition_result == DetectorPriorityLevel.OK:
-                    dc.update(**{"type": resolve_threshold_type})
+                    dc.update(type=resolve_threshold_type)
                 else:
-                    dc.update(**{"type": threshold_type})
+                    dc.update(type=threshold_type)
             resolve_condition = data_conditions.filter(condition_result=DetectorPriorityLevel.OK)
 
         if "resolve_threshold" in updated_fields:
             resolve_condition = data_conditions.filter(condition_result=DetectorPriorityLevel.OK)
-            resolve_condition.update(**{"comparison": updated_fields["resolve_threshold"]})
+            resolve_condition.update(comparison=updated_fields["resolve_threshold"])
 
     detector.update(**updated_detector_fields)
 
