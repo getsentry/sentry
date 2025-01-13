@@ -71,7 +71,6 @@ API_OWNERSHIP_ALLOWLIST_DONT_MODIFY = [
     "/api/0/userroles/{role_name}/",
     "/api/0/organizations/{organization_id_or_slug}/environments/",
     "/api/0/users/{user_id}/avatar/",
-    "/api/0/organizations/{organization_id_or_slug}/slugs/",
     "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/tags/{key}/",
     "/api/0/organizations/{organization_id_or_slug}/broadcasts/",
     "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/filters/{filter_id}/",

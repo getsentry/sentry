@@ -119,7 +119,14 @@ export function isValidGuide(guide?: string): guide is GuideKey {
   return !!(guide && Object.values<string>(GuideKey).includes(guide));
 }
 
-export function CronsLandingPanel() {
+interface CronsLandingPanelProps {
+  /**
+   * TODO(epurkhiser): Remove once crons exists only in alerts
+   */
+  linkToAlerts?: boolean;
+}
+
+export function CronsLandingPanel({linkToAlerts}: CronsLandingPanelProps) {
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
@@ -167,7 +174,10 @@ export function CronsLandingPanel() {
   if (!isValidPlatform(platform) || !isValidGuide(guide)) {
     return (
       <OnboardingPanelHook>
-        <PlatformPickerPanel onSelect={navigateToPlatformGuide} />
+        <PlatformPickerPanel
+          linkToAlerts={linkToAlerts}
+          onSelect={navigateToPlatformGuide}
+        />
       </OnboardingPanelHook>
     );
   }

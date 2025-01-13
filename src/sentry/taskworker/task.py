@@ -34,6 +34,7 @@ class Task(Generic[P, R]):
         expires: int | datetime.timedelta | None = None,
         processing_deadline_duration: int | datetime.timedelta | None = None,
         at_most_once: bool = False,
+        wait_for_delivery: bool = False,
     ):
         self.name = name
         self._func = func
@@ -52,6 +53,7 @@ class Task(Generic[P, R]):
             )
         self._retry = retry
         self.at_most_once = at_most_once
+        self.wait_for_delivery = wait_for_delivery
         update_wrapper(self, func)
 
     @property
@@ -84,7 +86,9 @@ class Task(Generic[P, R]):
             self._func(*args, **kwargs)
         else:
             # TODO(taskworker) promote parameters to headers
-            self._namespace.send_task(self.create_activation(*args, **kwargs))
+            self._namespace.send_task(
+                self.create_activation(*args, **kwargs), wait_for_delivery=self.wait_for_delivery
+            )
 
     def create_activation(self, *args: P.args, **kwargs: P.kwargs) -> TaskActivation:
         received_at = Timestamp()

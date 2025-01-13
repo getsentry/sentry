@@ -1,28 +1,48 @@
-import {useQuery} from 'sentry/utils/queryClient';
-import storiesContext from 'sentry/views/stories/storiesContext';
-import type {ResolvedStoryModule} from 'sentry/views/stories/types';
+import type React from 'react';
+import {useMemo} from 'react';
 
-interface UseStoriesLoaderOptions {
+import {useQuery, type UseQueryResult} from 'sentry/utils/queryClient';
+
+const context = require.context('sentry', true, /\.stories.tsx$/, 'lazy');
+
+export interface StoryDescriptor {
+  exports: Record<string, React.ComponentType | any>;
   filename: string;
 }
 
-interface StoryDescriptor {
-  filename: string;
-  resolved: ResolvedStoryModule;
+export function useStoryBookFiles() {
+  return useMemo(() => context.keys().map(file => file.replace(/^\.\//, 'app/')), []);
 }
 
-function importStory(filename: string): Promise<StoryDescriptor> {
-  return storiesContext()
-    .importStory(filename)
-    .then(story => ({
-      filename,
-      resolved: story,
-    }));
+async function importStory(filename: string): Promise<StoryDescriptor> {
+  const story = await context(filename.replace(/^app\//, './'));
+
+  return {
+    exports: story,
+    filename,
+  };
 }
 
-export default function useStoriesLoader({filename}: UseStoriesLoaderOptions) {
+type StoriesResult<T> = T extends string ? StoryDescriptor : StoryDescriptor[];
+
+interface UseStoriesLoaderOptions<T extends string | string[]> {
+  filename: T;
+}
+
+export default function useStoriesLoader<T extends string | string[]>(
+  options: UseStoriesLoaderOptions<T>
+): UseQueryResult<StoriesResult<T>, Error> {
   return useQuery({
-    queryKey: [filename],
-    queryFn: () => importStory(filename),
+    queryKey: [options.filename],
+    queryFn: (): Promise<StoriesResult<T>> => {
+      if (Array.isArray(options.filename)) {
+        return Promise.all(options.filename.map(importStory)) as Promise<
+          StoriesResult<T>
+        >;
+      }
+
+      return importStory(options.filename) as Promise<StoriesResult<T>>;
+    },
+    enabled: !!options.filename,
   });
 }

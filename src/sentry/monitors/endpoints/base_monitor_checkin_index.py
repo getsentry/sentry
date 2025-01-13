@@ -18,10 +18,6 @@ class MonitorCheckInMixin(BaseEndpointMixin):
         """
         Retrieve a list of check-ins for a monitor
         """
-        # we don't allow read permission with DSNs
-        if request.auth is not None and request.auth.kind == "project_key":  # type: ignore[union-attr]
-            return self.respond(status=401)
-
         start, end = get_date_range_from_params(request.GET)
         if start is None or end is None:
             raise ParseError(detail="Invalid date range")
