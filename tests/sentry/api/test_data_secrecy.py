@@ -11,7 +11,7 @@ class SuperuserDataSecrecyTestCase(APITestCase):
         super().setUp()
         self.login_as(self.user)
 
-    @with_feature("organizations:enterprise-data-secrecy")
+    @with_feature("organizations:enterprise-data-secrecy-legacy")
     def test_superuser_no_access(self):
         """
         Please contact the Enterprise team if your code change causes this test to fail
