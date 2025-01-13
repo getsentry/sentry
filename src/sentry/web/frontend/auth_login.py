@@ -673,8 +673,8 @@ class AuthLoginView(BaseView):
                         email=user.email, organization_id=organization.id
                     )
 
-                    # If the user is in a "pending invite acceptance" state and user_id is None,
-                    # they have to be redirected to the invitation page to explicitly accept the invite.
+                    # If the user is a member, the user_id is None, and they are in a "pending invite acceptance" state with a valid invitation link,
+                    # we redirect them to the invitation page to explicitly accept the invite
                     if (
                         membership
                         and membership.user_id is None
