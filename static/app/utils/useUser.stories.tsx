@@ -11,7 +11,9 @@ export default storyBook('useUser', story => {
 
     return (
       <Fragment>
-        <p><code>useUser</code> returns the currently logged in user.</p>
+        <p>
+          <code>useUser</code> returns the currently logged in user.
+        </p>
         <StructuredEventData data={user} />
       </Fragment>
     );
