@@ -18,9 +18,9 @@ from sentry.integrations.utils.code_mapping import (
     Repo,
     create_code_mapping,
 )
+from sentry.issues.auto_source_code_config.integrations import get_organization_installation
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.tasks.auto_source_code_configs import get_installation
 
 
 @region_silo_endpoint
@@ -42,7 +42,8 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
         :auth: required
         """
         stacktrace_filename = request.GET.get("stacktraceFilename")
-        installation, _ = get_installation(organization)  # only returns GitHub integrations
+        # It only returns the first GitHub integration
+        installation, _ = get_organization_installation(organization)
         if not installation:
             return self.respond(
                 {"text": "Could not find this integration installed on your organization"},
@@ -81,7 +82,7 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
         :param string sourceRoot:
         :auth: required
         """
-        installation, organization_integration = get_installation(organization)
+        installation, organization_integration = get_organization_installation(organization)
         if not installation or not organization_integration:
             return self.respond(
                 {"text": "Could not find this integration installed on your organization"},
