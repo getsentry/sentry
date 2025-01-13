@@ -4,7 +4,7 @@ import NewProviderForm from 'sentry/views/settings/featureFlags/newProviderForm'
 
 describe('NewProviderForm', () => {
   it('renders', () => {
-    const callback = ({}) => {};
+    const callback = () => {};
     render(<NewProviderForm onSetProvider={callback} onCreatedSecret={callback} />);
   });
 });

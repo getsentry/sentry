@@ -11,6 +11,9 @@ import theme from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {Widget} from 'sentry/views/dashboards/types';
+import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 import {getWidgetIcon} from 'sentry/views/dashboards/widgetLibrary/widgetCard';
 
@@ -21,6 +24,8 @@ type WidgetTemplatesListProps = {
 function WidgetTemplatesList({onSave}: WidgetTemplatesListProps) {
   const organization = useOrganization();
   const [selectedWidget, setSelectedWidget] = useState<number | null>(null);
+
+  const {dispatch} = useWidgetBuilderContext();
   const {widgetIndex} = useParams();
   const api = useApi();
 
@@ -50,7 +55,13 @@ function WidgetTemplatesList({onSave}: WidgetTemplatesListProps) {
           <TemplateContainer key={widget.id} lastWidget={lastWidget}>
             <TemplateCard
               selected={selectedWidget === index}
-              onClick={() => setSelectedWidget(index)}
+              onClick={() => {
+                setSelectedWidget(index);
+                dispatch({
+                  type: BuilderStateAction.SET_STATE,
+                  payload: convertWidgetToBuilderStateParams(widget),
+                });
+              }}
             >
               <IconWrapper backgroundColor={iconColor}>
                 <Icon color="white" />

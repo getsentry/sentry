@@ -1,8 +1,15 @@
+from __future__ import annotations
+
 import re
+from typing import TYPE_CHECKING
 
 from sentry.constants import TAG_LABELS
 from sentry.snuba.dataset import Dataset
 from sentry.utils.services import Service
+
+if TYPE_CHECKING:
+    from sentry.models.group import Group
+    from sentry.tagstore.types import GroupTagValue
 
 # Valid pattern for tag key names
 TAG_KEY_RE = re.compile(r"^[a-zA-Z0-9_\.:-]+$")
@@ -201,15 +208,14 @@ class TagStorage(Service):
 
     def get_group_tag_value_iter(
         self,
-        group,
-        environment_ids,
-        key,
-        callbacks=(),
-        orderby="-first_seen",
+        group: Group,
+        environment_ids: list[int | None],
+        key: str,
+        orderby: str = "-first_seen",
         limit: int = 1000,
         offset: int = 0,
-        tenant_ids=None,
-    ):
+        tenant_ids: dict[str, int | str] | None = None,
+    ) -> list[GroupTagValue]:
         """
         >>> get_group_tag_value_iter(group, 2, 3, 'environment')
         """
