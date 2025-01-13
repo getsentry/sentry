@@ -34,8 +34,8 @@ describe('jsSelfProfile', () => {
     expect(profile.duration).toBe(1000);
     expect(profile.startedAt).toBe(0);
     expect(profile.endedAt).toBe(1000);
-    expect(profile.callTree.children[0].frame.name).toBe('ReactDOM.render');
-    expect(profile.callTree.children[0].frame.resource).toBe('app.js');
+    expect(profile.callTree.children[0]!.frame.name).toBe('ReactDOM.render');
+    expect(profile.callTree.children[0]!.frame.resource).toBe('app.js');
   });
 
   it('tracks discarded samples', () => {
@@ -124,7 +124,7 @@ describe('jsSelfProfile', () => {
     );
     // For JsSelfProfile, first sample is appended with 0 weight because it
     // contains the stack sample of when startProfile was called
-    expect(profile.rawWeights.length).toBe(2);
+    expect(profile.rawWeights).toHaveLength(2);
   });
 
   it('handles the first stack sample differently', () => {
@@ -179,14 +179,14 @@ describe('jsSelfProfile', () => {
       throw new Error('root is null');
     }
 
-    expect(root.totalWeight).toEqual(1000);
-    expect(root.selfWeight).toEqual(0);
+    expect(root.totalWeight).toBe(1000);
+    expect(root.selfWeight).toBe(0);
 
-    expect(nthCallee(root, 0).selfWeight).toEqual(0);
-    expect(nthCallee(root, 0).totalWeight).toEqual(0);
+    expect(nthCallee(root, 0).selfWeight).toBe(0);
+    expect(nthCallee(root, 0).totalWeight).toBe(0);
 
-    expect(nthCallee(root, 1).selfWeight).toEqual(1000);
-    expect(nthCallee(root, 1).totalWeight).toEqual(1000);
+    expect(nthCallee(root, 1).selfWeight).toBe(1000);
+    expect(nthCallee(root, 1).totalWeight).toBe(1000);
   });
 
   it('rebuilds the stack', () => {
@@ -228,13 +228,13 @@ describe('jsSelfProfile', () => {
     expect(openSpy).toHaveBeenCalledTimes(2);
     expect(closeSpy).toHaveBeenCalledTimes(2);
 
-    const root = firstCallee(profile.callTree);
+    const root = firstCallee(profile.callTree)!;
 
-    expect(root.totalWeight).toEqual(1000);
-    expect(firstCallee(root).totalWeight).toEqual(1000);
+    expect(root.totalWeight).toBe(1000);
+    expect(firstCallee(root)!.totalWeight).toBe(1000);
 
-    expect(root.selfWeight).toEqual(0);
-    expect(firstCallee(root).selfWeight).toEqual(1000);
+    expect(root.selfWeight).toBe(0);
+    expect(firstCallee(root)!.selfWeight).toBe(1000);
   });
 
   it('marks direct recursion', () => {
@@ -260,7 +260,7 @@ describe('jsSelfProfile', () => {
       {type: 'flamechart'}
     );
 
-    expect(!!firstCallee(firstCallee(profile.callTree)).recursive).toBe(true);
+    expect(!!firstCallee(firstCallee(profile.callTree)!)!.recursive).toBe(true);
   });
 
   it('marks indirect recursion', () => {
@@ -293,7 +293,7 @@ describe('jsSelfProfile', () => {
       {type: 'flamechart'}
     );
 
-    expect(!!firstCallee(firstCallee(firstCallee(profile.callTree))).recursive).toBe(
+    expect(!!firstCallee(firstCallee(firstCallee(profile.callTree)!)!)!.recursive).toBe(
       true
     );
   });
@@ -416,7 +416,7 @@ describe('jsSelfProfile', () => {
       {type: 'flamechart'}
     );
 
-    expect(profile.callTree.children[0].count).toBe(3);
-    expect(profile.callTree.children[0].children[0].count).toBe(1);
+    expect(profile.callTree.children[0]!.count).toBe(3);
+    expect(profile.callTree.children[0]!.children[0]!.count).toBe(1);
   });
 });

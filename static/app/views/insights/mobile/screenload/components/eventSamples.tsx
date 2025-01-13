@@ -76,7 +76,7 @@ export function ScreenLoadEventSamples({
     return mutableQuery;
   }, [deviceClass, isProjectCrossPlatform, platform, release, transaction, subregions]);
 
-  const sort = decodeSorts(location.query[sortKey])[0] ?? DEFAULT_SORT;
+  const sort = decodeSorts(location.query[sortKey])[0]! ?? DEFAULT_SORT;
 
   const columnNameMap = {
     id: t(

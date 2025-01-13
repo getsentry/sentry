@@ -47,13 +47,13 @@ from sentry.eventstream.base import GroupState
 from sentry.eventtypes import EventType
 from sentry.eventtypes.transaction import TransactionEvent
 from sentry.exceptions import HashDiscarded
-from sentry.features.rollout import in_rollout_group
 from sentry.grouping.api import (
     NULL_GROUPHASH_INFO,
     GroupHashInfo,
     GroupingConfig,
     get_grouping_config_dict_for_project,
 )
+from sentry.grouping.grouptype import ErrorGroupType
 from sentry.grouping.ingest.config import is_in_transition, update_grouping_config_if_needed
 from sentry.grouping.ingest.hashing import (
     find_grouphash_with_group,
@@ -75,7 +75,6 @@ from sentry.ingest.transaction_clusterer.datasource.redis import (
     record_transaction_name as record_transaction_name_for_clustering,
 )
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
-from sentry.issues.grouptype import ErrorGroupType
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.killswitches import killswitch_matches_context
@@ -2529,8 +2528,6 @@ def _record_transaction_info(jobs: Sequence[Job], projects: ProjectsMapping) -> 
     for job in jobs:
         try:
             event = job["event"]
-            if not in_rollout_group("transactions.do_post_process_in_save", event.event_id):
-                continue
 
             project = event.project
             with sentry_sdk.start_span(op="event_manager.record_transaction_name_for_clustering"):

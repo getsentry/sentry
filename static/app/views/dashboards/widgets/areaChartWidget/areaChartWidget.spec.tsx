@@ -12,14 +12,6 @@ describe('AreaChartWidget', () => {
           title="eps()"
           description="Number of events per second"
           timeseries={[sampleLatencyTimeSeries, sampleSpanDurationTimeSeries]}
-          meta={{
-            fields: {
-              'eps()': 'rate',
-            },
-            units: {
-              'eps()': '1/second',
-            },
-          }}
         />
       );
     });

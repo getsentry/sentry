@@ -30,8 +30,6 @@ import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import MonitorProcessingErrors from 'sentry/views/monitors/components/processingErrors/monitorProcessingErrors';
-import {makeMonitorListErrorsQueryKey} from 'sentry/views/monitors/components/processingErrors/utils';
 
 import {
   CronsLandingPanel,
@@ -41,6 +39,8 @@ import {
 import {NewMonitorButton} from './components/newMonitorButton';
 import {OverviewTimeline} from './components/overviewTimeline';
 import {OwnerFilter} from './components/ownerFilter';
+import {MonitorProcessingErrors} from './components/processingErrors/monitorProcessingErrors';
+import {makeMonitorListErrorsQueryKey} from './components/processingErrors/utils';
 import type {CheckinProcessingError, Monitor, ProcessingErrorType} from './types';
 import {makeMonitorListQueryKey} from './utils';
 
@@ -96,7 +96,7 @@ export default function Monitors() {
   const showAddMonitor = !isValidPlatform(platform) || !isValidGuide(guide);
 
   return (
-    <SentryDocumentTitle title={`Crons — ${organization.slug}`}>
+    <SentryDocumentTitle title={t(`Crons`)} orgSlug={organization.slug}>
       <CronsListPageHeader organization={organization} />
       <Layout.Page>
         <Layout.Header>

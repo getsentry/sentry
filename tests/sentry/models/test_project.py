@@ -530,23 +530,6 @@ class CopyProjectSettingsTest(TestCase):
         for rule, other_rule in zip(rules, self.rules):
             assert rule.label == other_rule.label
 
-    def assert_settings_not_copied(self, project, teams=()):
-        for key in self.options_dict.keys():
-            assert project.get_option(key) is None
-
-        project_teams = ProjectTeam.objects.filter(project_id=project.id, team__in=teams)
-        assert len(project_teams) == len(teams)
-
-        project_envs = EnvironmentProject.objects.filter(project_id=project.id)
-        assert len(project_envs) == 0
-
-        assert not ProjectOwnership.objects.filter(project_id=project.id).exists()
-
-        # default rule
-        rules = Rule.objects.filter(project_id=project.id)
-        assert len(rules) == 1
-        assert rules[0].label == "Send a notification for new issues"
-
     def test_simple(self):
         project = self.create_project(fire_project_created=True)
 

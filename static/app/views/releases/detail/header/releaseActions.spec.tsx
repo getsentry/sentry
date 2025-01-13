@@ -66,7 +66,7 @@ describe('ReleaseActions', function () {
     render(
       <ReleaseActions
         organization={organization}
-        projectSlug={release.projects[0].slug}
+        projectSlug={release.projects[0]!.slug}
         release={release}
         refetchData={jest.fn()}
         releaseMeta={{...ReleaseMetaFixture(), projects: release.projects}}
@@ -87,7 +87,7 @@ describe('ReleaseActions', function () {
 
     expect(await screen.findByText('Archive Release 1.2.0')).toBeInTheDocument();
     const affectedProjects = screen.getAllByTestId('badge-display-name');
-    expect(affectedProjects.length).toBe(2);
+    expect(affectedProjects).toHaveLength(2);
 
     // confirm modal
     await userEvent.click(screen.getByTestId('confirm-button'));
@@ -116,7 +116,7 @@ describe('ReleaseActions', function () {
       <ReleaseActions
         {...RouteComponentPropsFixture()}
         organization={organization}
-        projectSlug={release.projects[0].slug}
+        projectSlug={release.projects[0]!.slug}
         release={{...release, status: ReleaseStatus.ARCHIVED}}
         refetchData={refetchDataMock}
         releaseMeta={{...ReleaseMetaFixture(), projects: release.projects}}
@@ -137,7 +137,7 @@ describe('ReleaseActions', function () {
 
     expect(await screen.findByText('Restore Release 1.2.0')).toBeInTheDocument();
     const affectedProjects = screen.getAllByTestId('badge-display-name');
-    expect(affectedProjects.length).toBe(2);
+    expect(affectedProjects).toHaveLength(2);
 
     // confirm modal
     await userEvent.click(screen.getByTestId('confirm-button'));
@@ -160,7 +160,7 @@ describe('ReleaseActions', function () {
     const {rerender} = render(
       <ReleaseActions
         organization={organization}
-        projectSlug={release.projects[0].slug}
+        projectSlug={release.projects[0]!.slug}
         release={release}
         refetchData={jest.fn()}
         releaseMeta={{...ReleaseMetaFixture(), projects: release.projects}}
@@ -189,7 +189,7 @@ describe('ReleaseActions', function () {
     rerender(
       <ReleaseActions
         organization={organization}
-        projectSlug={release.projects[0].slug}
+        projectSlug={release.projects[0]!.slug}
         release={release}
         refetchData={jest.fn()}
         releaseMeta={{...ReleaseMetaFixture(), projects: release.projects}}

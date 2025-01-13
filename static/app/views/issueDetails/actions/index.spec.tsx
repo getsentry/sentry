@@ -18,7 +18,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import ModalStore from 'sentry/stores/modalStore';
 import {GroupStatus, IssueCategory} from 'sentry/types/group';
 import * as analytics from 'sentry/utils/analytics';
-import GroupActions from 'sentry/views/issueDetails/actions';
+import {GroupActions} from 'sentry/views/issueDetails/actions';
 
 const project = ProjectFixture({
   id: '2448',
@@ -59,13 +59,8 @@ describe('GroupActions', function () {
   describe('render()', function () {
     it('renders correctly', async function () {
       render(
-        <GroupActions
-          group={group}
-          project={project}
-          organization={organization}
-          disabled={false}
-          event={null}
-        />
+        <GroupActions group={group} project={project} disabled={false} event={null} />,
+        {organization}
       );
       expect(await screen.findByRole('button', {name: 'Resolve'})).toBeInTheDocument();
     });
@@ -83,13 +78,8 @@ describe('GroupActions', function () {
 
     it('can subscribe', async function () {
       render(
-        <GroupActions
-          group={group}
-          project={project}
-          organization={organization}
-          disabled={false}
-          event={null}
-        />
+        <GroupActions group={group} project={project} disabled={false} event={null} />,
+        {organization}
       );
       await userEvent.click(screen.getByRole('button', {name: 'Subscribe'}));
 
@@ -115,13 +105,8 @@ describe('GroupActions', function () {
 
     it('can bookmark', async function () {
       render(
-        <GroupActions
-          group={group}
-          project={project}
-          organization={organization}
-          disabled={false}
-          event={null}
-        />
+        <GroupActions group={group} project={project} disabled={false} event={null} />,
+        {organization}
       );
 
       await userEvent.click(screen.getByLabelText('More Actions'));
@@ -145,13 +130,8 @@ describe('GroupActions', function () {
       });
 
       render(
-        <GroupActions
-          group={group}
-          project={project}
-          organization={organization}
-          event={event}
-          disabled={false}
-        />
+        <GroupActions group={group} project={project} event={event} disabled={false} />,
+        {organization}
       );
 
       await userEvent.click(screen.getByLabelText('More Actions'));
@@ -166,13 +146,8 @@ describe('GroupActions', function () {
       });
 
       render(
-        <GroupActions
-          group={group}
-          project={project}
-          organization={organization}
-          event={event}
-          disabled={false}
-        />
+        <GroupActions group={group} project={project} event={event} disabled={false} />,
+        {organization}
       );
 
       const onReprocessEventFunc = jest.spyOn(ModalStore, 'openModal');
@@ -195,13 +170,7 @@ describe('GroupActions', function () {
     render(
       <Fragment>
         <GlobalModal />
-        <GroupActions
-          group={group}
-          project={project}
-          organization={org}
-          disabled={false}
-          event={null}
-        />
+        <GroupActions group={group} project={project} disabled={false} event={null} />
       </Fragment>,
       {organization: org}
     );
@@ -233,13 +202,7 @@ describe('GroupActions', function () {
       render(
         <Fragment>
           <GlobalModal />
-          <GroupActions
-            group={group}
-            project={project}
-            organization={org}
-            disabled={false}
-            event={null}
-          />
+          <GroupActions group={group} project={project} disabled={false} event={null} />
         </Fragment>,
         {router, organization: org}
       );
@@ -269,7 +232,6 @@ describe('GroupActions', function () {
         <GroupActions
           group={issuePlatformGroup}
           project={project}
-          organization={org}
           disabled={false}
           event={null}
         />,
@@ -295,7 +257,6 @@ describe('GroupActions', function () {
         <GroupActions
           group={issuePlatformGroup}
           project={project}
-          organization={org}
           disabled={false}
           event={null}
         />,
@@ -321,13 +282,7 @@ describe('GroupActions', function () {
     });
 
     const {rerender} = render(
-      <GroupActions
-        group={group}
-        project={project}
-        organization={organization}
-        disabled={false}
-        event={null}
-      />,
+      <GroupActions group={group} project={project} disabled={false} event={null} />,
       {organization}
     );
 
@@ -350,7 +305,6 @@ describe('GroupActions', function () {
       <GroupActions
         group={{...group, status: GroupStatus.RESOLVED, statusDetails: {}}}
         project={project}
-        organization={organization}
         disabled={false}
         event={null}
       />
@@ -374,13 +328,7 @@ describe('GroupActions', function () {
     });
 
     render(
-      <GroupActions
-        group={group}
-        project={project}
-        organization={organization}
-        disabled={false}
-        event={null}
-      />,
+      <GroupActions group={group} project={project} disabled={false} event={null} />,
       {organization}
     );
 

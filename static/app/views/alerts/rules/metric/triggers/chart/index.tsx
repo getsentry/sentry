@@ -29,11 +29,16 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Series} from 'sentry/types/echarts';
 import type {
+  Confidence,
   EventsStats,
   MultiSeriesEventsStats,
+  NewQuery,
   Organization,
 } from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import type {TableData} from 'sentry/utils/discover/discoverQuery';
+import EventView from 'sentry/utils/discover/eventView';
+import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {getForceMetricsLayerQueryExtras} from 'sentry/utils/metrics/features';
@@ -43,6 +48,7 @@ import {
   MINUTES_THRESHOLD_TO_DISPLAY_SECONDS,
 } from 'sentry/utils/sessions';
 import {capitalize} from 'sentry/utils/string/capitalize';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
 import {shouldUseErrorsDiscoverDataset} from 'sentry/views/alerts/rules/utils';
@@ -51,6 +57,7 @@ import {isSessionAggregate, SESSION_AGGREGATE_TO_FIELD} from 'sentry/views/alert
 import {getComparisonMarkLines} from 'sentry/views/alerts/utils/getComparisonMarkLines';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
+import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
 
 import type {MetricRule, Trigger} from '../../types';
 import {
@@ -82,6 +89,7 @@ type Props = {
   triggers: Trigger[];
   anomalies?: Anomaly[];
   comparisonDelta?: number;
+  confidence?: Confidence;
   formattedAggregate?: string;
   header?: React.ReactNode;
   includeConfidence?: boolean;
@@ -189,6 +197,7 @@ const HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS: TimePeriodMap = {
 const noop: any = () => {};
 
 type State = {
+  extrapolationSampleCount: number | null;
   sampleRate: number;
   statsPeriod: TimePeriod;
   totalCount: number | null;
@@ -227,12 +236,16 @@ class TriggersChart extends PureComponent<Props, State> {
     statsPeriod: getStatsPeriodFromQuery(this.props.location.query.statsPeriod),
     totalCount: null,
     sampleRate: 1,
+    extrapolationSampleCount: null,
   };
 
   componentDidMount() {
     const {aggregate, showTotalCount} = this.props;
     if (showTotalCount && !isSessionAggregate(aggregate)) {
       this.fetchTotalCount();
+    }
+    if (this.props.dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
+      this.fetchExtrapolationSampleCount();
     }
   }
 
@@ -250,6 +263,9 @@ class TriggersChart extends PureComponent<Props, State> {
         !isEqual(prevState.statsPeriod, statsPeriod))
     ) {
       this.fetchTotalCount();
+    }
+    if (this.props.dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
+      this.fetchExtrapolationSampleCount();
     }
   }
 
@@ -339,6 +355,49 @@ class TriggersChart extends PureComponent<Props, State> {
     }
   }
 
+  async fetchExtrapolationSampleCount() {
+    const {location, api, organization, environment, projects, query} = this.props;
+    const search = new MutableSearch(query);
+
+    // Filtering out all spans with op like 'ui.interaction*' which aren't
+    // embedded under transactions. The trace view does not support rendering
+    // such spans yet.
+    search.addFilterValues('!transaction.span_id', ['00']);
+
+    const discoverQuery: NewQuery = {
+      id: undefined,
+      name: 'Alerts - Extrapolation Meta',
+      fields: ['count_sample()', 'min(sampling_rate)'],
+      query: search.formatString(),
+      version: 2,
+      dataset: DiscoverDatasets.SPANS_EAP_RPC,
+    };
+
+    const eventView = EventView.fromNewQueryWithPageFilters(discoverQuery, {
+      datetime: {
+        period: TimePeriod.SEVEN_DAYS,
+        start: null,
+        end: null,
+        utc: false,
+      },
+      environments: environment ? [environment] : [],
+      projects: projects.map(({id}) => Number(id)),
+    });
+
+    const response = await doDiscoverQuery<TableData>(
+      api,
+      `/organizations/${organization.slug}/events/`,
+      eventView.getEventsAPIPayload(location)
+    );
+
+    const extrapolationSampleCount = response[0]?.data?.[0]?.['count_sample()'];
+    this.setState({
+      extrapolationSampleCount: extrapolationSampleCount
+        ? Number(extrapolationSampleCount)
+        : null,
+    });
+  }
+
   renderChart({
     isLoading,
     isReloading,
@@ -375,8 +434,10 @@ class TriggersChart extends PureComponent<Props, State> {
       organization,
       showTotalCount,
       anomalies = [],
+      confidence,
+      dataset,
     } = this.props;
-    const {statsPeriod, totalCount} = this.state;
+    const {statsPeriod, totalCount, extrapolationSampleCount} = this.state;
     const statsPeriodOptions = this.availableTimePeriods[timeWindow];
     const period = this.getStatsPeriod();
 
@@ -386,7 +447,7 @@ class TriggersChart extends PureComponent<Props, State> {
 
     const showExtrapolatedChartData =
       shouldShowOnDemandMetricAlertUI(organization) &&
-      seriesAdditionalInfo?.[timeseriesData[0]?.seriesName]?.isExtrapolatedData;
+      seriesAdditionalInfo?.[timeseriesData[0]!?.seriesName]?.isExtrapolatedData;
 
     const totalCountLabel = isSessionAggregate(aggregate)
       ? SESSION_AGGREGATE_TO_HEADING[aggregate]
@@ -424,6 +485,15 @@ class TriggersChart extends PureComponent<Props, State> {
             minutesThresholdToDisplaySeconds={minutesThresholdToDisplaySeconds}
             isExtrapolatedData={showExtrapolatedChartData}
           />
+        )}
+
+        {dataset === Dataset.EVENTS_ANALYTICS_PLATFORM && (
+          <ChartFooter>
+            <ConfidenceFooter
+              sampleCount={extrapolationSampleCount ?? undefined}
+              confidence={confidence}
+            />
+          </ChartFooter>
         )}
 
         <ChartControls>
@@ -481,7 +551,7 @@ class TriggersChart extends PureComponent<Props, State> {
       onConfidenceDataLoaded,
     } = this.props;
 
-    const period = this.getStatsPeriod();
+    const period = this.getStatsPeriod()!;
     const renderComparisonStats = Boolean(
       organization.features.includes('change-alerts') && comparisonDelta
     );
@@ -528,8 +598,8 @@ class TriggersChart extends PureComponent<Props, State> {
               api={this.historicalAPI}
               period={
                 timeWindow === 5
-                  ? HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS[period]
-                  : HISTORICAL_TIME_PERIOD_MAP[period]
+                  ? HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS[period]!
+                  : HISTORICAL_TIME_PERIOD_MAP[period]!
               }
               dataLoadedCallback={onHistoricalDataLoaded}
             />
@@ -623,9 +693,7 @@ class TriggersChart extends PureComponent<Props, State> {
       );
     }
 
-    const useRpc =
-      organization.features.includes('eap-alerts-ui-uses-rpc') &&
-      dataset === Dataset.EVENTS_ANALYTICS_PLATFORM;
+    const useRpc = dataset === Dataset.EVENTS_ANALYTICS_PLATFORM;
 
     const baseProps = {
       api,
@@ -652,8 +720,8 @@ class TriggersChart extends PureComponent<Props, State> {
             api={this.historicalAPI}
             period={
               timeWindow === 5
-                ? HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS[period]
-                : HISTORICAL_TIME_PERIOD_MAP[period]
+                ? HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS[period]!
+                : HISTORICAL_TIME_PERIOD_MAP[period]!
             }
             dataLoadedCallback={onHistoricalDataLoaded}
           >
@@ -749,3 +817,7 @@ export function ErrorChart({isAllowIndexed, isQueryValid, errorMessage, ...props
     </ChartErrorWrapper>
   );
 }
+
+const ChartFooter = styled('div')`
+  margin: 0 ${space(2)} ${space(2)} ${space(2)};
+`;

@@ -62,4 +62,19 @@ describe('WidgetBuilder', () => {
       })
     );
   });
+
+  it('displays error', async function () {
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderNameAndDescription
+          error={{title: 'Title is required during creation.'}}
+        />
+      </WidgetBuilderProvider>,
+      {router, organization}
+    );
+
+    expect(
+      await screen.findByText('Title is required during creation.')
+    ).toBeInTheDocument();
+  });
 });

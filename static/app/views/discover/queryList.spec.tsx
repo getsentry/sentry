@@ -427,7 +427,7 @@ describe('Discover > QueryList', function () {
     });
     const yAxis = ['count()', 'failure_count()'];
     const savedQueryWithMultiYAxis = {
-      ...savedQueries.slice(1)[0],
+      ...savedQueries.slice(1)[0]!,
       yAxis,
     };
 
@@ -588,7 +588,7 @@ describe('Discover > QueryList', function () {
           expect.objectContaining({
             widget: {
               title: 'Saved query #1',
-              displayType: DisplayType.LINE,
+              displayType: DisplayType.AREA,
               queries: [
                 {
                   aggregates: ['count()'],
@@ -607,7 +607,7 @@ describe('Discover > QueryList', function () {
               defaultTitle: 'Saved query #1',
               defaultWidgetQuery:
                 'name=&aggregates=count()&columns=&fields=count()&conditions=&orderby=',
-              displayType: DisplayType.LINE,
+              displayType: DisplayType.AREA,
               source: DashboardWidgetSource.DISCOVERV2,
             }),
           })
@@ -656,7 +656,7 @@ describe('Discover > QueryList', function () {
       expect(openAddToDashboardModal).toHaveBeenCalledWith(
         expect.objectContaining({
           widget: {
-            displayType: 'line',
+            displayType: 'area',
             interval: undefined,
             limit: undefined,
             queries: [
@@ -679,7 +679,7 @@ describe('Discover > QueryList', function () {
             defaultTitle: 'Saved query #1',
             defaultWidgetQuery:
               'name=&aggregates=count()&columns=&fields=count()&conditions=&orderby=',
-            displayType: 'line',
+            displayType: 'area',
             source: 'discoverv2',
             statsPeriod: '14d',
           }),

@@ -14,7 +14,7 @@ from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_
 from rest_framework import serializers, status
 
 from bitfield.types import BitHandler
-from sentry import audit_log, roles
+from sentry import audit_log, features, options, roles
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import ONE_DAY, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
@@ -70,11 +70,10 @@ from sentry.datascrubbing import validate_pii_config_update, validate_pii_select
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (
     boost_low_volume_projects_of_org_with_query,
+    calculate_sample_rates_of_projects,
+    query_project_counts_by_org,
 )
-from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
-    get_boost_low_volume_projects_sample_rate,
-)
-from sentry.dynamic_sampling.types import DynamicSamplingMode
+from sentry.dynamic_sampling.types import DynamicSamplingMode, SamplingMeasure
 from sentry.dynamic_sampling.utils import (
     has_custom_dynamic_sampling,
     is_organization_mode_sampling,
@@ -997,7 +996,9 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                 if is_org_mode and (
                     "samplingMode" in changed_data or "targetSampleRate" in changed_data
                 ):
-                    boost_low_volume_projects_of_org_with_query.delay(organization.id)
+                    boost_low_volume_projects_of_org_with_query.delay(
+                        organization.id,
+                    )
 
             if was_pending_deletion:
                 self.create_audit_entry(
@@ -1028,15 +1029,34 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             return self.respond(context)
         return self.respond(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def _compute_project_target_sample_rates(self, organization):
-        for project in organization.project_set.all():
-            current_rate, _ = get_boost_low_volume_projects_sample_rate(
-                org_id=organization.id,
-                project_id=project.id,
-                error_sample_rate_fallback=None,
-            )
-            if current_rate:
-                project.update_option("sentry:target_sample_rate", round(current_rate, 4))
+    def _compute_project_target_sample_rates(self, organization: Organization):
+        # TODO: this will take a long time for organizations with a lot of projects
+        #       so we need to refactor this into an async task we can run and observe
+        org_id = organization.id
+        measure = SamplingMeasure.TRANSACTIONS
+        if options.get("dynamic-sampling.check_span_feature_flag") and features.has(
+            "organizations:dynamic-sampling-spans", organization
+        ):
+            measure = SamplingMeasure.SPANS
+
+        projects_with_tx_count_and_rates = []
+        for chunk in query_project_counts_by_org(
+            [org_id], measure, query_interval=timedelta(days=30)
+        ):
+            for row in chunk:
+                projects_with_tx_count_and_rates.append(row[1:])
+
+        rebalanced_projects = calculate_sample_rates_of_projects(
+            org_id, projects_with_tx_count_and_rates
+        )
+
+        if rebalanced_projects is not None:
+            for rebalanced_item in rebalanced_projects:
+                ProjectOption.objects.create_or_update(
+                    project_id=rebalanced_item.id,
+                    key="sentry:target_sample_rate",
+                    values={"value": round(rebalanced_item.new_sample_rate, 4)},
+                )
 
     def handle_delete(self, request: Request, organization: Organization):
         """

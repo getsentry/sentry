@@ -5,6 +5,7 @@ import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useSelectedProjectsHaveField from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 
 export function useHaveSelectedProjectsSentAnyReplayEvents() {
@@ -14,6 +15,7 @@ export function useHaveSelectedProjectsSentAnyReplayEvents() {
 }
 
 export function useReplayOnboardingSidebarPanel() {
+  const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
 
@@ -26,11 +28,22 @@ export function useReplayOnboardingSidebarPanel() {
     }
   }, [location.hash, organization]);
 
-  const activateSidebar = useCallback((event: {preventDefault: () => void}) => {
-    event.preventDefault();
-    window.location.hash = 'replay-sidequest';
-    SidebarPanelStore.activatePanel(SidebarPanelKey.REPLAYS_ONBOARDING);
-  }, []);
+  const activateSidebar = useCallback(
+    (projectId?: string) => {
+      navigate({
+        ...location,
+        hash: 'replay-sidequest',
+        query: projectId
+          ? {
+              ...location.query,
+              project: projectId,
+            }
+          : location.query,
+      });
+      SidebarPanelStore.activatePanel(SidebarPanelKey.REPLAYS_ONBOARDING);
+    },
+    [location, navigate]
+  );
 
   return {activateSidebar};
 }

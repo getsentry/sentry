@@ -14,7 +14,7 @@ describe('getDynamicText', function () {
         fixed: 'Text',
         value: 'Dynamic Content',
       })
-    ).toEqual('Dynamic Content');
+    ).toBe('Dynamic Content');
   });
 
   it('renders fixed content when `app/constants/IS_ACCEPTANCE_TEST` is true', function () {
@@ -28,6 +28,6 @@ describe('getDynamicText', function () {
         fixed: 'Text',
         value: 'Dynamic Content',
       })
-    ).toEqual('Text');
+    ).toBe('Text');
   });
 });

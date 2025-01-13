@@ -1,8 +1,13 @@
 from __future__ import annotations
 
 import logging
+import random
 from datetime import datetime, timedelta, timezone
 
+from arroyo import Topic as ArroyoTopic
+from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
+from sentry_kafka_schemas.codecs import Codec
+from sentry_kafka_schemas.schema_types.snuba_uptime_results_v1 import SnubaUptimeResult
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CHECKSTATUS_FAILURE,
     CHECKSTATUS_MISSED_WINDOW,
@@ -10,8 +15,8 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CheckResult,
 )
 
-from sentry import features, options
-from sentry.conf.types.kafka_definition import Topic
+from sentry import features, options, quotas
+from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.remote_subscriptions.consumers.result_consumer import (
     ResultProcessor,
     ResultsStrategyFactory,
@@ -24,14 +29,21 @@ from sentry.uptime.models import (
     ProjectUptimeSubscriptionMode,
     UptimeStatus,
     UptimeSubscription,
+    UptimeSubscriptionRegion,
 )
+from sentry.uptime.subscriptions.regions import get_active_region_configs
 from sentry.uptime.subscriptions.subscriptions import (
     delete_uptime_subscriptions_for_project,
     get_or_create_uptime_subscription,
     remove_uptime_subscription_if_unused,
 )
-from sentry.uptime.subscriptions.tasks import send_uptime_config_deletion
+from sentry.uptime.subscriptions.tasks import (
+    send_uptime_config_deletion,
+    update_remote_uptime_subscription,
+)
 from sentry.utils import metrics
+from sentry.utils.arroyo_producer import SingletonProducer
+from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
 logger = logging.getLogger(__name__)
 LAST_UPDATE_REDIS_TTL = timedelta(days=7)
@@ -51,6 +63,18 @@ ACTIVE_FAILURE_THRESHOLD = 3
 ACTIVE_RECOVERY_THRESHOLD = 1
 # The TTL of the redis key used to track consecutive statuses
 ACTIVE_THRESHOLD_REDIS_TTL = timedelta(minutes=60)
+SNUBA_UPTIME_RESULTS_CODEC: Codec[SnubaUptimeResult] = get_topic_codec(Topic.SNUBA_UPTIME_RESULTS)
+
+
+def _get_snuba_uptime_checks_producer() -> KafkaProducer:
+    cluster_name = get_topic_definition(Topic.SNUBA_UPTIME_RESULTS)["cluster"]
+    producer_config = get_kafka_producer_cluster_options(cluster_name)
+    producer_config.pop("compression.type", None)
+    producer_config.pop("message.max.bytes", None)
+    return KafkaProducer(build_kafka_configuration(default_config=producer_config))
+
+
+_snuba_uptime_checks_producer = SingletonProducer(_get_snuba_uptime_checks_producer)
 
 
 def build_last_update_key(project_subscription: ProjectUptimeSubscription) -> str:
@@ -73,15 +97,68 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
     def get_subscription_id(self, result: CheckResult) -> str:
         return result["subscription_id"]
 
+    def check_and_update_regions(self, subscription: UptimeSubscription):
+        """
+        This method will check if regions have been added or removed from our region configuration,
+        and updates regions associated with this uptime monitor to reflect the new state. This is
+        done probabilistically, so that the check is performed roughly once an hour for each uptime
+        monitor.
+        """
+        # Run region checks and updates roughly once an hour
+        chance_to_run = subscription.interval_seconds / timedelta(hours=1).total_seconds()
+        if random.random() >= chance_to_run:
+            return
+
+        subscription_region_slugs = {r.region_slug for r in subscription.regions.all()}
+        active_region_slugs = {c.slug for c in get_active_region_configs()}
+        if subscription_region_slugs == active_region_slugs:
+            # Regions haven't changed, exit early.
+            return
+
+        new_region_slugs = active_region_slugs - subscription_region_slugs
+        removed_region_slugs = subscription_region_slugs - active_region_slugs
+        if new_region_slugs:
+            new_regions = [
+                UptimeSubscriptionRegion(uptime_subscription=subscription, region_slug=slug)
+                for slug in new_region_slugs
+            ]
+            UptimeSubscriptionRegion.objects.bulk_create(new_regions, ignore_conflicts=True)
+
+        if removed_region_slugs:
+            for deleted_region in UptimeSubscriptionRegion.objects.filter(
+                uptime_subscription=subscription, region_slug__in=removed_region_slugs
+            ):
+                if subscription.subscription_id:
+                    # We need to explicitly send deletes here before we remove the region
+                    send_uptime_config_deletion(
+                        deleted_region.region_slug, subscription.subscription_id
+                    )
+                deleted_region.delete()
+
+        # Regardless of whether we added or removed regions, we need to send an updated config to all active
+        # regions for this subscription so that they all get an update set of currently active regions.
+        subscription.update(status=UptimeSubscription.Status.UPDATING.value)
+        update_remote_uptime_subscription.delay(subscription.id)
+
     def handle_result(self, subscription: UptimeSubscription | None, result: CheckResult):
-        logger.info("process_result", extra=result)
+        if random.random() < 0.01:
+            logger.info("process_result", extra=result)
 
         if subscription is None:
             # If no subscription in the Postgres, this subscription has been orphaned. Remove
             # from the checker
-            send_uptime_config_deletion(result["subscription_id"])
-            metrics.incr("uptime.result_processor.subscription_not_found", sample_rate=1.0)
+            # TODO: Send to region specifically from this check result once we update the schema
+            send_uptime_config_deletion(
+                get_active_region_configs()[0].slug, result["subscription_id"]
+            )
+            metrics.incr(
+                "uptime.result_processor.subscription_not_found",
+                sample_rate=1.0,
+                tags={"uptime_region": result.get("region", "default")},
+            )
             return
+
+        self.check_and_update_regions(subscription)
 
         project_subscriptions = list(subscription.projectuptimesubscription_set.all())
 
@@ -103,6 +180,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         metric_tags = {
             "status": result["status"],
             "mode": ProjectUptimeSubscriptionMode(project_subscription.mode).name.lower(),
+            "uptime_region": result.get("region", "default"),
         }
 
         status_reason = "none"
@@ -147,12 +225,14 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                         result["duration_ms"],
                         sample_rate=1.0,
                         unit="millisecond",
+                        tags=metric_tags,
                     )
                 metrics.distribution(
                     "uptime.result_processor.check_result.delay",
                     result["actual_check_time_ms"] - result["scheduled_check_time_ms"],
                     sample_rate=1.0,
                     unit="millisecond",
+                    tags=metric_tags,
                 )
 
             if project_subscription.mode == ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING:
@@ -172,6 +252,10 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             int(result["scheduled_check_time_ms"]),
             ex=LAST_UPDATE_REDIS_TTL,
         )
+
+        # After processing the result and updating Redis, produce message to Kafka
+        if options.get("uptime.snuba_uptime_results.enabled"):
+            self._produce_snuba_uptime_result(project_subscription, result)
 
     def handle_result_for_project_auto_onboarding_mode(
         self, project_subscription: ProjectUptimeSubscription, result: CheckResult
@@ -198,7 +282,10 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                     status_reason = result["status_reason"]["type"]
                 metrics.incr(
                     "uptime.result_processor.autodetection.failed_onboarding",
-                    tags={"failure_reason": status_reason},
+                    tags={
+                        "failure_reason": status_reason,
+                        "uptime_region": result.get("region", "default"),
+                    },
                     sample_rate=1.0,
                 )
                 logger.info(
@@ -229,7 +316,9 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                 )
                 remove_uptime_subscription_if_unused(onboarding_subscription)
                 metrics.incr(
-                    "uptime.result_processor.autodetection.graduated_onboarding", sample_rate=1.0
+                    "uptime.result_processor.autodetection.graduated_onboarding",
+                    sample_rate=1.0,
+                    tags={"uptime_region": result.get("region", "default")},
                 )
                 logger.info(
                     "uptime_onboarding_graduated",
@@ -273,12 +362,19 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                 metrics.incr(
                     "uptime.result_processor.restricted_by_provider",
                     sample_rate=1.0,
-                    tags={"host_provider_id": host_provider_id},
+                    tags={
+                        "host_provider_id": host_provider_id,
+                        "uptime_region": result.get("region", "default"),
+                    },
                 )
 
             if issue_creation_flag_enabled and not issue_creation_restricted_by_provider:
                 create_issue_platform_occurrence(result, project_subscription)
-                metrics.incr("uptime.result_processor.active.sent_occurrence", sample_rate=1.0)
+                metrics.incr(
+                    "uptime.result_processor.active.sent_occurrence",
+                    tags={"uptime_region": result.get("region", "default")},
+                    sample_rate=1.0,
+                )
                 logger.info(
                     "uptime_active_sent_occurrence",
                     extra={
@@ -299,7 +395,11 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                 "organizations:uptime-create-issues", project_subscription.project.organization
             ):
                 resolve_uptime_issue(project_subscription)
-                metrics.incr("uptime.result_processor.active.resolved", sample_rate=1.0)
+                metrics.incr(
+                    "uptime.result_processor.active.resolved",
+                    sample_rate=1.0,
+                    tags={"uptime_region": result.get("region", "default")},
+                )
                 logger.info(
                     "uptime_active_resolved",
                     extra={
@@ -328,6 +428,58 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                 tags={"status": status},
             )
         return result
+
+    def _produce_snuba_uptime_result(
+        self, project_subscription: ProjectUptimeSubscription, result: CheckResult
+    ) -> None:
+        """
+        Produces a message to Snuba's Kafka topic for uptime check results.
+
+        Args:
+            project_subscription: The project subscription associated with the result
+            result: The check result to be sent to Snuba
+        """
+        try:
+            project = project_subscription.project
+            retention_days = (
+                quotas.backend.get_event_retention(organization=project.organization) or 90
+            )
+
+            snuba_message: SnubaUptimeResult = {
+                # Copy over fields from original result
+                "guid": result["guid"],
+                "subscription_id": result["subscription_id"],
+                "status": result["status"],
+                "status_reason": result["status_reason"],
+                "trace_id": result["trace_id"],
+                "span_id": result["span_id"],
+                "scheduled_check_time_ms": result["scheduled_check_time_ms"],
+                "actual_check_time_ms": result["actual_check_time_ms"],
+                "duration_ms": result["duration_ms"],
+                "request_info": result["request_info"],
+                # Add required Snuba-specific fields
+                "organization_id": project.organization_id,
+                "project_id": project.id,
+                "retention_days": retention_days,
+                "region_slug": result.get("region"),
+            }
+
+            topic = get_topic_definition(Topic.SNUBA_UPTIME_RESULTS)["real_topic_name"]
+            payload = KafkaPayload(None, SNUBA_UPTIME_RESULTS_CODEC.encode(snuba_message), [])
+
+            _snuba_uptime_checks_producer.produce(ArroyoTopic(topic), payload)
+
+            metrics.incr(
+                "uptime.result_processor.snuba_message_produced",
+                sample_rate=1.0,
+            )
+
+        except Exception:
+            logger.exception("Failed to produce Snuba message for uptime result")
+            metrics.incr(
+                "uptime.result_processor.snuba_message_failed",
+                sample_rate=1.0,
+            )
 
 
 class UptimeResultsStrategyFactory(ResultsStrategyFactory[CheckResult, UptimeSubscription]):

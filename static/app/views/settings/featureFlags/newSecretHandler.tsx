@@ -10,6 +10,7 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import useOrganization from 'sentry/utils/useOrganization';
 
 function NewSecretHandler({
   secret,
@@ -20,9 +21,11 @@ function NewSecretHandler({
   provider: string;
   secret: string;
 }) {
+  const organization = useOrganization();
+
   return (
     <div>
-      <StyledAlert type="warning" showIcon system>
+      <StyledAlert type="success" showIcon system>
         {t('The secret has been posted.')}
       </StyledAlert>
 
@@ -43,7 +46,7 @@ function NewSecretHandler({
           >
             <TextCopyInput
               aria-label={t('Webhook URL')}
-            >{`https://sentry.io/api/0/organizations/sentry/flags/hooks/provider/${provider.toLowerCase()}/`}</TextCopyInput>
+            >{`https://sentry.io/api/0/organizations/${organization.slug}/flags/hooks/provider/${provider.toLowerCase()}/`}</TextCopyInput>
           </StyledFieldGroup>
           <StyledFieldGroup
             label={t('Secret')}

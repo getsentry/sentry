@@ -88,9 +88,7 @@ describe('ReplayList', () => {
       organization: mockOrg,
     });
 
-    await waitFor(() =>
-      expect(screen.getByText('Get to the root cause faster')).toBeInTheDocument()
-    );
+    await screen.findByText('Get to the root cause faster');
     expect(mockFetchReplayListRequest).not.toHaveBeenCalled();
   });
 
@@ -110,9 +108,7 @@ describe('ReplayList', () => {
       organization: mockOrg,
     });
 
-    await waitFor(() =>
-      expect(screen.getByText('Get to the root cause faster')).toBeInTheDocument()
-    );
+    await screen.findByText('Get to the root cause faster');
     expect(mockFetchReplayListRequest).not.toHaveBeenCalled();
   });
 
@@ -132,9 +128,7 @@ describe('ReplayList', () => {
       organization: mockOrg,
     });
 
-    await waitFor(() =>
-      expect(screen.getByText('Get to the root cause faster')).toBeInTheDocument()
-    );
+    await screen.findByText('Get to the root cause faster');
     expect(mockFetchReplayListRequest).not.toHaveBeenCalled();
   });
 
@@ -156,8 +150,8 @@ describe('ReplayList', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Introducing Rage and Dead Clicks')).toBeInTheDocument();
-      expect(screen.queryByTestId('replay-table')).toBeInTheDocument();
     });
+    expect(screen.getByTestId('replay-table')).toBeInTheDocument();
     expect(mockFetchReplayListRequest).toHaveBeenCalled();
   });
 

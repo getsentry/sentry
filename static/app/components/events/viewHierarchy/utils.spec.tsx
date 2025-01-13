@@ -91,32 +91,32 @@ describe('View Hierarchy Utils', function () {
     it('zooms in on small content', function () {
       maxCoordinateDimensions = {height: 2, width: 2};
       actual = calculateScale(bounds, maxCoordinateDimensions, border);
-      expect(actual).toEqual(5);
+      expect(actual).toBe(5);
     });
 
     it('shrinks larger content', function () {
       maxCoordinateDimensions = {height: 20, width: 20};
       actual = calculateScale(bounds, maxCoordinateDimensions, border);
-      expect(actual).toEqual(0.5);
+      expect(actual).toBe(0.5);
     });
 
     it('works with an irregular size where height is the dominant factor', function () {
       maxCoordinateDimensions = {height: 20, width: 2};
       actual = calculateScale(bounds, maxCoordinateDimensions, border);
-      expect(actual).toEqual(0.5);
+      expect(actual).toBe(0.5);
     });
 
     it('works with an irregular size where width is the dominant factor', function () {
       maxCoordinateDimensions = {height: 10, width: 32};
       actual = calculateScale(bounds, maxCoordinateDimensions, border);
-      expect(actual).toEqual(0.3125);
+      expect(actual).toBe(0.3125);
     });
 
     it('factors in the border', function () {
       maxCoordinateDimensions = {height: 20, width: 20};
       border = {x: 2, y: 2};
       actual = calculateScale(bounds, maxCoordinateDimensions, border);
-      expect(actual).toEqual(0.4);
+      expect(actual).toBe(0.4);
     });
   });
 

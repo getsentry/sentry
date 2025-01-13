@@ -18,6 +18,7 @@ const HUMAN_RESOURCE_NAMES = {
   event: 'Event',
   org: 'Organization',
   member: 'Member',
+  alerts: 'Alerts',
 };
 
 const DEFAULT_RESOURCE_PERMISSIONS: Permissions = {
@@ -27,6 +28,7 @@ const DEFAULT_RESOURCE_PERMISSIONS: Permissions = {
   Event: 'no-access',
   Organization: 'no-access',
   Member: 'no-access',
+  Alerts: 'no-access',
 };
 
 const PROJECT_RELEASES = 'project:releases';
@@ -42,7 +44,7 @@ type PermissionLevelResources = {
  * which is higher than Read. Used to sort scopes by access.
  */
 const permissionLevel = (scope: string): number => {
-  const permission = scope.split(':')[1];
+  const permission = scope.split(':')[1]!;
   return PERMISSION_LEVELS[permission];
 };
 
@@ -102,7 +104,7 @@ function toResourcePermissions(scopes: string[]): Permissions {
 
   topScopes(filteredScopes).forEach((scope: string | undefined) => {
     if (scope) {
-      const [resource, permission] = scope.split(':');
+      const [resource, permission] = scope.split(':') as [string, string];
       permissions[HUMAN_RESOURCE_NAMES[resource]] = permission;
     }
   });

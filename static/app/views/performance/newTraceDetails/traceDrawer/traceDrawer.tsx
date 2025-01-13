@@ -447,7 +447,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
                     meta={props.meta}
                     traceType={props.traceType}
                     tree={props.trace}
-                    node={props.trace.root.children[0]}
+                    node={props.trace.root.children[0]!}
                     rootEventResults={props.rootEventResults}
                     tagsInfiniteQueryResults={tagsInfiniteQueryResults}
                     traceEventView={props.traceEventView}
@@ -505,7 +505,7 @@ function TraceDrawerTab(props: TraceDrawerTabProps) {
         onClick={() => {
           if (props.tab.node !== 'vitals' && props.tab.node !== 'profiles') {
             traceAnalytics.trackTabView(node, organization);
-            props.onTabScrollToNode(root);
+            props.onTabScrollToNode(root!);
           }
           props.traceDispatch({type: 'activate tab', payload: props.index});
         }}
@@ -515,7 +515,7 @@ function TraceDrawerTab(props: TraceDrawerTabProps) {
         props.tab.node === 'vitals' ||
         props.tab.node === 'profiles' ? null : (
           <TabButtonIndicator
-            backgroundColor={makeTraceNodeBarColor(props.theme, root)}
+            backgroundColor={makeTraceNodeBarColor(props.theme, root!)}
           />
         )}
         <TabButton>{props.tab.label ?? node}</TabButton>
@@ -739,11 +739,9 @@ const TabsHeightContainer = styled('div')<{
   left: ${p => (p.layout === 'drawer left' ? '0' : 'initial')};
   right: ${p => (p.layout === 'drawer right' ? '0' : 'initial')};
   position: ${p => (p.absolute ? 'absolute' : 'relative')};
-  height: ${p => (p.hasIndicators ? '44px' : '26px')};
+  height: ${p => (p.hasIndicators ? '38px' : '26px')};
   border-bottom: 1px solid ${p => p.theme.border};
   display: flex;
-  flex-direction: column;
-  justify-content: end;
 `;
 
 const TabsLayout = styled('div')`

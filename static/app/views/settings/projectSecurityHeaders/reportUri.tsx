@@ -12,7 +12,7 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 const DEFAULT_ENDPOINT = 'https://sentry.example.com/api/security-report/';
 
 export function getSecurityDsn(keyList: ProjectKey[]) {
-  const endpoint = keyList.length ? keyList[0].dsn.security : DEFAULT_ENDPOINT;
+  const endpoint = keyList.length ? keyList[0]!.dsn.security : DEFAULT_ENDPOINT;
   return getDynamicText({
     value: endpoint,
     fixed: DEFAULT_ENDPOINT,

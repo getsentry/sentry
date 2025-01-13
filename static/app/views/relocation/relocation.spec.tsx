@@ -48,11 +48,11 @@ describe('Relocation', function () {
     sessionStorage.clear();
 
     ConfigStore.set('regions', [
-      {name: fakeRegions.Earth.name, url: fakeRegions.Earth.url},
-      {name: fakeRegions.Moon.name, url: fakeRegions.Moon.url},
+      {name: fakeRegions.Earth!.name, url: fakeRegions.Earth!.url},
+      {name: fakeRegions.Moon!.name, url: fakeRegions.Moon!.url},
     ]);
     ConfigStore.set('relocationConfig', {
-      selectableRegions: [fakeRegions.Earth.name, fakeRegions.Moon.name],
+      selectableRegions: [fakeRegions.Earth!.name, fakeRegions.Moon!.name],
     });
 
     // For tests that don't care about the difference between our "earth" and "moon" regions, we can
@@ -72,7 +72,7 @@ describe('Relocation', function () {
     // be safe to ignore this error, but we should remove the mock once we move to react testing
     // library.
     //
-    // eslint-disable-next-line no-console
+
     jest.spyOn(console, 'error').mockImplementation(jest.fn());
   });
 
@@ -102,12 +102,12 @@ describe('Relocation', function () {
 
   async function waitForRenderSuccess(step: string) {
     renderPage(step);
-    await waitFor(() => expect(screen.getByTestId(step)).toBeInTheDocument());
+    await screen.findByTestId(step);
   }
 
   async function waitForRenderError(step: string) {
     renderPage(step);
-    await waitFor(() => expect(screen.getByTestId('loading-error')).toBeInTheDocument());
+    await screen.findByTestId('loading-error');
   }
 
   describe('Get Started', function () {
@@ -166,7 +166,7 @@ describe('Relocation', function () {
       });
 
       await userEvent.type(screen.getByLabelText('org-slugs'), fakeOrgSlug);
-      await userEvent.type(screen.getByLabelText('region'), fakeRegions.Earth.name);
+      await userEvent.type(screen.getByLabelText('region'), fakeRegions.Earth!.name);
       await userEvent.click(screen.getByRole('menuitemradio'));
       expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled();
 
@@ -183,7 +183,7 @@ describe('Relocation', function () {
         JSON.stringify({
           orgSlugs: fakeOrgSlug,
           promoCode: fakePromoCode,
-          regionUrl: fakeRegions.Earth.url,
+          regionUrl: fakeRegions.Earth!.url,
         })
       );
 
@@ -204,7 +204,7 @@ describe('Relocation', function () {
       });
 
       await userEvent.type(screen.getByLabelText('org-slugs'), fakeOrgSlug);
-      await userEvent.type(screen.getByLabelText('region'), fakeRegions.Earth.name);
+      await userEvent.type(screen.getByLabelText('region'), fakeRegions.Earth!.name);
       await userEvent.click(screen.getByRole('menuitemradio'));
       expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled();
 
@@ -224,12 +224,12 @@ describe('Relocation', function () {
 
       // Note: only one fails, but that is enough.
       const failingFetchExistingEarthRelocation = MockApiClient.addMockResponse({
-        host: fakeRegions.Earth.url,
+        host: fakeRegions.Earth!.url,
         url: `/relocations/`,
         statusCode: 400,
       });
       const successfulFetchExistingMoonRelocation = MockApiClient.addMockResponse({
-        host: fakeRegions.Moon.url,
+        host: fakeRegions.Moon!.url,
         url: '/relocations/',
         body: [],
       });
@@ -254,14 +254,14 @@ describe('Relocation', function () {
       expect(screen.getByRole('button', {name: 'Retry'})).toBeInTheDocument();
 
       const successfulFetchExistingEarthRelocation = MockApiClient.addMockResponse({
-        host: fakeRegions.Earth.url,
+        host: fakeRegions.Earth!.url,
         url: '/relocations/',
         body: [],
       });
 
       await userEvent.click(screen.getByRole('button', {name: 'Retry'}));
       await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
-      await waitFor(() => expect(screen.getByTestId('get-started')).toBeInTheDocument());
+      await screen.findByTestId('get-started');
 
       await waitFor(() =>
         expect(successfulFetchExistingEarthRelocation).toHaveBeenCalledTimes(1)
@@ -269,8 +269,8 @@ describe('Relocation', function () {
       await waitFor(() =>
         expect(successfulFetchExistingMoonRelocation).toHaveBeenCalledTimes(2)
       );
-      expect(screen.queryByLabelText('org-slugs')).toBeInTheDocument();
-      expect(screen.queryByRole('button', {name: 'Continue'})).toBeInTheDocument();
+      expect(screen.getByLabelText('org-slugs')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Continue'})).toBeInTheDocument();
     });
   });
 
@@ -281,7 +281,7 @@ describe('Relocation', function () {
         JSON.stringify({
           orgSlugs: fakeOrgSlug,
           promoCode: fakePromoCode,
-          regionUrl: fakeRegions.Earth.url,
+          regionUrl: fakeRegions.Earth!.url,
         })
       );
     });
@@ -315,15 +315,15 @@ describe('Relocation', function () {
 
       // Note: only one fails, but that is enough.
       const failingFetchEarthPublicKey = MockApiClient.addMockResponse({
-        host: fakeRegions.Earth.url,
+        host: fakeRegions.Earth!.url,
         url: `/publickeys/relocations/`,
         statusCode: 400,
       });
       const successfulFetchMoonPublicKey = MockApiClient.addMockResponse({
-        host: fakeRegions.Moon.url,
+        host: fakeRegions.Moon!.url,
         url: '/publickeys/relocations/',
         body: {
-          public_key: fakeRegions.Moon.publicKey,
+          public_key: fakeRegions.Moon!.publicKey,
         },
       });
 
@@ -337,21 +337,21 @@ describe('Relocation', function () {
       expect(screen.getByRole('button', {name: 'Retry'})).toBeInTheDocument();
 
       const successfulFetchEarthPublicKey = MockApiClient.addMockResponse({
-        host: fakeRegions.Earth.url,
+        host: fakeRegions.Earth!.url,
         url: '/publickeys/relocations/',
         body: {
-          public_key: fakeRegions.Earth.publicKey,
+          public_key: fakeRegions.Earth!.publicKey,
         },
       });
 
       await userEvent.click(screen.getByRole('button', {name: 'Retry'}));
       await waitFor(() => expect(successfulFetchEarthPublicKey).toHaveBeenCalledTimes(1));
       await waitFor(() => expect(successfulFetchMoonPublicKey).toHaveBeenCalledTimes(2));
-      await waitFor(() => expect(screen.getByTestId('public-key')).toBeInTheDocument());
+      await screen.findByTestId('public-key');
 
       expect(fetchExistingRelocations).toHaveBeenCalledTimes(2);
-      expect(screen.queryByText('key.pub')).toBeInTheDocument();
-      expect(screen.queryByRole('button', {name: 'Continue'})).toBeInTheDocument();
+      expect(screen.getByText('key.pub')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Continue'})).toBeInTheDocument();
     });
 
     it('redirects to `get-started` page if expected local storage data is missing', async function () {
@@ -388,7 +388,7 @@ describe('Relocation', function () {
         'relocationOnboarding',
         JSON.stringify({
           // orgSlugs missing
-          regionUrl: fakeRegions.Earth.url,
+          regionUrl: fakeRegions.Earth!.url,
         })
       );
 
@@ -407,7 +407,7 @@ describe('Relocation', function () {
         JSON.stringify({
           orgSlugs: fakeOrgSlug,
           promoCode: fakePromoCode,
-          regionUrl: fakeRegions.Earth.url,
+          regionUrl: fakeRegions.Earth!.url,
         })
       );
     });
@@ -465,7 +465,7 @@ describe('Relocation', function () {
 
       await waitForRenderSuccess('get-started');
       await userEvent.type(screen.getByLabelText('org-slugs'), fakeOrgSlug);
-      await userEvent.type(screen.getByLabelText('region'), fakeRegions.Earth.name);
+      await userEvent.type(screen.getByLabelText('region'), fakeRegions.Earth!.name);
       await userEvent.click(screen.getByRole('menuitemradio'));
       await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
 
@@ -478,7 +478,7 @@ describe('Relocation', function () {
       await waitFor(() =>
         expect(postRelocation).toHaveBeenCalledWith(
           '/relocations/',
-          expect.objectContaining({host: fakeRegions.Earth.url, method: 'POST'})
+          expect.objectContaining({host: fakeRegions.Earth!.url, method: 'POST'})
         )
       );
       expect(addSuccessMessage).toHaveBeenCalledWith(
@@ -497,7 +497,7 @@ describe('Relocation', function () {
 
       await waitForRenderSuccess('get-started');
       await userEvent.type(screen.getByLabelText('org-slugs'), fakeOrgSlug);
-      await userEvent.type(screen.getByLabelText('region'), fakeRegions.Earth.name);
+      await userEvent.type(screen.getByLabelText('region'), fakeRegions.Earth!.name);
       await userEvent.click(screen.getByRole('menuitemradio'));
       await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
 
@@ -522,7 +522,7 @@ describe('Relocation', function () {
 
       await waitForRenderSuccess('get-started');
       await userEvent.type(screen.getByLabelText('org-slugs'), fakeOrgSlug);
-      await userEvent.type(screen.getByLabelText('region'), fakeRegions.Earth.name);
+      await userEvent.type(screen.getByLabelText('region'), fakeRegions.Earth!.name);
       await userEvent.click(screen.getByRole('menuitemradio'));
       await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
 
@@ -547,7 +547,7 @@ describe('Relocation', function () {
 
       await waitForRenderSuccess('get-started');
       await userEvent.type(screen.getByLabelText('org-slugs'), fakeOrgSlug);
-      await userEvent.type(screen.getByLabelText('region'), fakeRegions.Earth.name);
+      await userEvent.type(screen.getByLabelText('region'), fakeRegions.Earth!.name);
       await userEvent.click(screen.getByRole('menuitemradio'));
       await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
 
@@ -570,7 +570,7 @@ describe('Relocation', function () {
 
       await waitForRenderSuccess('get-started');
       await userEvent.type(screen.getByLabelText('org-slugs'), fakeOrgSlug);
-      await userEvent.type(screen.getByLabelText('region'), fakeRegions.Earth.name);
+      await userEvent.type(screen.getByLabelText('region'), fakeRegions.Earth!.name);
       await userEvent.click(screen.getByRole('menuitemradio'));
       await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
 

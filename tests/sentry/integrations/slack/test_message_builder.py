@@ -9,6 +9,7 @@ from django.urls import reverse
 from urllib3.response import HTTPResponse
 
 from sentry.eventstore.models import Event
+from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
 from sentry.incidents.models.alert_rule import (
     AlertRuleDetectionType,
@@ -33,7 +34,6 @@ from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricA
 from sentry.integrations.slack.message_builder.types import LEVEL_TO_COLOR
 from sentry.integrations.time_utils import time_since
 from sentry.issues.grouptype import (
-    ErrorGroupType,
     FeedbackGroup,
     MonitorIncidentType,
     PerformanceP95EndpointRegressionGroupType,
@@ -225,72 +225,6 @@ def build_test_message_blocks(
     return {
         "blocks": blocks,
         "text": popup_text,
-    }
-
-
-def build_test_message(
-    teams: set[Team],
-    users: set[User],
-    timestamp: datetime,
-    group: Group,
-    event: Event | None = None,
-    link_to_event: bool = False,
-) -> dict[str, Any]:
-    project = group.project
-
-    title = group.title
-    title_link = f"http://testserver/organizations/{project.organization.slug}/issues/{group.id}"
-    if event:
-        title = event.title
-        if link_to_event:
-            title_link += f"/events/{event.event_id}"
-    title_link += "/?referrer=slack"
-
-    return {
-        "text": "",
-        "color": "#E03E2F",  # red for error level
-        "actions": [
-            {"name": "status", "text": "Resolve", "type": "button", "value": "resolved"},
-            {
-                "name": "status",
-                "text": "Archive",
-                "type": "button",
-                "value": "archived",
-            },
-            {
-                "option_groups": [
-                    {
-                        "text": "Teams",
-                        "options": [
-                            {"text": f"#{team.slug}", "value": f"team:{team.id}"} for team in teams
-                        ],
-                    },
-                    {
-                        "text": "People",
-                        "options": [
-                            {
-                                "text": user.email,
-                                "value": f"user:{user.id}",
-                            }
-                            for user in users
-                        ],
-                    },
-                ],
-                "text": "Select Assignee...",
-                "selected_options": [],
-                "type": "select",
-                "name": "assign",
-            },
-        ],
-        "mrkdwn_in": ["text"],
-        "title": title,
-        "fields": [],
-        "footer": f"{project.slug.upper()}-1",
-        "ts": timestamp.timestamp(),
-        "title_link": title_link,
-        "callback_id": '{"issue":' + str(group.id) + "}",
-        "fallback": f"[{project.slug}] {title}",
-        "footer_icon": "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png",
     }
 
 

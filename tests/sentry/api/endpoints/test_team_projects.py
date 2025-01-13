@@ -1,5 +1,5 @@
-from unittest import TestCase
-from unittest.mock import Mock
+from unittest import TestCase, mock
+from unittest.mock import Mock, patch
 
 from sentry.api.endpoints.organization_projects_experiment import DISABLED_FEATURE_ERROR_STRING
 from sentry.constants import RESERVED_PROJECT_SLUGS
@@ -325,3 +325,29 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
             project=python_project, key="sentry:builtin_symbol_sources"
         )
         assert "electron" not in symbol_sources
+
+    @patch("sentry.api.endpoints.team_projects.TeamProjectsEndpoint.create_audit_entry")
+    def test_create_project_with_origin(self, create_audit_entry):
+        response = self.get_success_response(
+            self.organization.slug,
+            self.team.slug,
+            **self.data,
+            default_rules=False,
+            status_code=201,
+            origin="ui",
+        )
+        project = Project.objects.get(id=response.data["id"])
+
+        assert create_audit_entry.call_count == 1
+
+        # Verify audit log
+        create_audit_entry.assert_called_once_with(
+            request=mock.ANY,
+            organization=self.organization,
+            target_object=project.id,
+            event=1154,
+            data={
+                **project.get_audit_log_data(),
+                "origin": "ui",
+            },
+        )

@@ -85,7 +85,7 @@ export function ScreensOverview() {
   const {isProjectCrossPlatform, selectedPlatform} = useCrossPlatformProject();
   const [visibleScreens, setVisibleScreens] = useState<string[]>([]);
   const sortedBy = decodeScalar(location.query.sort, '-count');
-  const sortField = decodeSorts([sortedBy])[0].field;
+  const sortField = decodeSorts([sortedBy])[0]!.field;
 
   const transactionMetricsDataset = DiscoverDatasets.METRICS;
   const transactionMetricsFields = [
@@ -209,7 +209,7 @@ export function ScreensOverview() {
           });
         }}
         organization={organization}
-        query={getFreeTextFromQuery(derivedQuery)}
+        query={getFreeTextFromQuery(derivedQuery)!}
         placeholder={t('Search for Screen')}
         additionalConditions={tableSearchFilters}
       />

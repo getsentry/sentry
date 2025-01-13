@@ -65,12 +65,13 @@ function RuleListRow({
     rule.type === CombinedAlertType.METRIC && rule.monitorType === MonitorType.ACTIVATED;
   const isUptime = rule.type === CombinedAlertType.UPTIME;
 
-  const slug = isUptime ? rule.projectSlug : rule.projects[0];
+  const slug = isUptime ? rule.projectSlug : rule.projects[0]!;
 
   const editKey = {
     [CombinedAlertType.ISSUE]: 'rules',
     [CombinedAlertType.METRIC]: 'metric-rules',
     [CombinedAlertType.UPTIME]: 'uptime-rules',
+    [CombinedAlertType.CRONS]: 'crons-rules',
   } satisfies Record<CombinedAlertType, string>;
 
   const editLink = `/organizations/${orgId}/alerts/${editKey[rule.type]}/${slug}/${rule.id}/`;
@@ -79,6 +80,7 @@ function RuleListRow({
     [CombinedAlertType.ISSUE]: 'issue',
     [CombinedAlertType.METRIC]: 'metric',
     [CombinedAlertType.UPTIME]: 'uptime',
+    [CombinedAlertType.CRONS]: 'crons',
   } satisfies Record<CombinedAlertType, string>;
 
   const duplicateLink = {
@@ -174,7 +176,7 @@ function RuleListRow({
     }))
     .concat(unassignedOption);
 
-  const teamId = assignee?.split(':')[1];
+  const teamId = assignee?.split(':')[1]!;
   const teamName = filteredProjectTeams.find(team => team.id === teamId);
 
   const assigneeTeamActor = assignee && {

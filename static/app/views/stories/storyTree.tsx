@@ -1,167 +1,203 @@
-import type {ComponentProps} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
+import * as qs from 'query-string';
 
 import Link from 'sentry/components/links/link';
-import {IconFile} from 'sentry/icons';
+import {IconChevron, IconFile} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
-import type {StoriesQuery} from 'sentry/views/stories/types';
 
-interface Props extends ComponentProps<'div'> {
-  files: string[];
+import type {StoryTreeNode} from './index';
+
+function folderOrSearchScoreFirst(a: StoryTreeNode, b: StoryTreeNode) {
+  if (a.visible && !b.visible) {
+    return -1;
+  }
+
+  if (!a.visible && b.visible) {
+    return 1;
+  }
+
+  if (a.result && b.result) {
+    if (a.result.score === b.result.score) {
+      return a.name.localeCompare(b.name);
+    }
+    return b.result.score - a.result.score;
+  }
+
+  const aIsFolder = Object.keys(a.children).length > 0;
+  const bIsFolder = Object.keys(b.children).length > 0;
+
+  if (aIsFolder && !bIsFolder) {
+    return -1;
+  }
+
+  if (!aIsFolder && bIsFolder) {
+    return 1;
+  }
+
+  return a.name.localeCompare(b.name);
 }
 
-export default function StoryTree({files, style}: Props) {
-  const tree = toTree(files);
+function normalizeFilename(filename: string) {
+  // Do not uppercase the first three characters of the filename
+  if (filename.startsWith('use')) {
+    return filename.replace('.stories.tsx', '');
+  }
 
+  // capitalizes the filename
+  return filename.charAt(0).toUpperCase() + filename.slice(1).replace('.stories.tsx', '');
+}
+
+interface Props extends React.HTMLAttributes<HTMLDivElement> {
+  nodes: StoryTreeNode[];
+}
+
+// @TODO (JonasBadalic): Implement treeview pattern navigation
+// https://www.w3.org/WAI/ARIA/apg/patterns/treeview/
+export default function StoryTree({nodes, ...htmlProps}: Props) {
   return (
-    <nav style={style}>
-      <FolderContent path="" content={tree} />
+    <nav {...htmlProps}>
+      <StoryList>
+        {nodes.sort(folderOrSearchScoreFirst).map(node => {
+          if (!node.visible) {
+            return null;
+          }
+
+          return Object.keys(node.children).length === 0 ? (
+            <File node={node} key={node.name} />
+          ) : (
+            <Folder node={node} key={node.name} />
+          );
+        })}
+      </StoryList>
     </nav>
   );
 }
 
-function FolderContent({path, content}: {content: TreeMapping; path: string}) {
-  const location = useLocation<StoriesQuery>();
-  const currentFile = location.query.name;
+function Folder(props: {node: StoryTreeNode}) {
+  const [expanded, setExpanded] = useState(props.node.expanded);
 
-  // sort folders to the top
-  const entries = Object.entries(content).sort(
-    (a, b) => Number(!!Object.keys(b[1]).length) - Number(!!Object.keys(a[1]).length)
-  );
+  if (props.node.expanded !== expanded) {
+    setExpanded(props.node.expanded);
+  }
+
+  if (!props.node.visible) {
+    return null;
+  }
 
   return (
-    <UnorderedList>
-      {entries.map(([name, children]) => {
-        const childPath = toPath(path, name);
-
-        if (Object.keys(children).length === 0) {
-          const isCurrent = childPath === currentFile ? true : undefined;
-          const to = `/stories/?name=${childPath}`;
-          return (
-            <ListItem key={name} aria-current={isCurrent}>
-              <FolderLink to={to}>
-                <IconFile size="xs" />
-                {name}
-              </FolderLink>
-            </ListItem>
-          );
-        }
-
-        return (
-          <ListItem key={name}>
-            <Folder open>
-              <FolderName>{name}</FolderName>
-              <FolderContent path={childPath} content={children} />
-            </Folder>
-          </ListItem>
-        );
-      })}
-    </UnorderedList>
+    <li>
+      <FolderName
+        onClick={() => {
+          props.node.expanded = !props.node.expanded;
+          setExpanded(props.node.expanded);
+        }}
+      >
+        <IconChevron size="xs" direction={expanded ? 'down' : 'right'} />
+        {normalizeFilename(props.node.name)}
+      </FolderName>
+      {expanded && Object.keys(props.node.children).length > 0 && (
+        <StoryList>
+          {Object.values(props.node.children)
+            .sort(folderOrSearchScoreFirst)
+            .map(child => {
+              if (!child.visible) {
+                return null;
+              }
+              return Object.keys(child.children).length === 0 ? (
+                <File key={child.path} node={child} />
+              ) : (
+                <Folder key={child.path} node={child} />
+              );
+            })}
+        </StoryList>
+      )}
+    </li>
   );
 }
 
-interface TreeMapping extends Record<string, TreeMapping> {}
+function File(props: {node: StoryTreeNode}) {
+  const location = useLocation();
+  const query = qs.stringify({...location.query, name: props.node.path});
 
-function toTree(files: string[]): TreeMapping {
-  const root: Record<string, TreeMapping> = {};
-  for (const file of files) {
-    const parts = file.split('/');
-    let tree = root;
-    for (const part of parts) {
-      if (!(part in tree)) {
-        tree[part] = {};
-      }
-      tree = tree[part];
-    }
-  }
-  return root;
+  return (
+    <li>
+      <FolderLink
+        to={`/stories/?${query}`}
+        active={location.query.name === props.node.path}
+      >
+        {/* @TODO (JonasBadalic): Do file type icons make sense here? */}
+        <IconFile size="xs" />
+        {/* @TODO (JonasBadalic): Do we need to show the file extension? */}
+        {normalizeFilename(props.node.name)}
+      </FolderLink>
+    </li>
+  );
 }
 
-function toPath(path: string, name: string) {
-  return [path, name].filter(Boolean).join('/');
-}
+const StoryList = styled('ul')`
+  list-style-type: none;
+  padding-left: 10px;
 
-const UnorderedList = styled('ul')`
-  margin: 0;
-  padding: 0;
-  list-style: none;
-`;
-const ListItem = styled('li')`
-  position: relative;
-
-  &[aria-current] {
-    background: ${p => p.theme.blue300};
-    color: ${p => p.theme.white};
-    font-weight: ${p => p.theme.fontWeightBold};
-  }
-  &[aria-current] a:before {
-    background: ${p => p.theme.blue300};
-    content: '';
-    left: -100%;
-    position: absolute;
-    right: 0;
-    top: 0;
-    z-index: -1;
-    bottom: 0;
+  &:first-child {
+    padding-left: 0;
   }
 `;
 
-const Folder = styled('details')`
+const FolderName = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.75)};
+  padding: ${space(0.25)} 0 ${space(0.25)} ${space(0.5)};
   cursor: pointer;
-  padding-left: ${space(2)};
   position: relative;
 
   &:before {
-    content: '⏵';
+    background: ${p => p.theme.surface100};
+    content: '';
+    inset: 0px 0px 0px -100%;
     position: absolute;
-    left: ${space(0.5)};
-    top: ${space(0.25)};
+    z-index: -1;
+    opacity: 0;
   }
-  &[open]:before {
-    content: '⏷';
+
+  &:hover {
+    &:before {
+      opacity: 1;
+    }
   }
 `;
 
-const FolderName = styled('summary')`
-  padding: ${space(0.25)};
+const FolderLink = styled(Link, {
+  shouldForwardProp: prop => prop !== 'active',
+})<{active: boolean}>`
+  display: flex;
+  align-items: center;
+  margin-left: ${space(0.5)};
+  gap: ${space(0.75)};
+  color: ${p => p.theme.textColor};
+  padding: ${space(0.25)} 0 ${space(0.25)} ${space(0.5)};
+  position: relative;
 
-  color: inherit;
-  &:hover {
-    color: inherit;
-  }
-  &:hover:before {
-    background: ${p => p.theme.blue100};
+  &:before {
+    background: ${p => p.theme.surface100};
     content: '';
-    left: -100%;
+    inset: 0px 0px 0px -100%;
     position: absolute;
-    right: 0;
-    top: 0;
     z-index: -1;
-    bottom: 0;
+    opacity: ${p => (p.active ? 1 : 0)};
   }
-`;
 
-const FolderLink = styled(Link)`
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  align-items: baseline;
-  gap: ${space(0.5)};
-  padding: ${space(0.25)};
-  white-space: nowrap;
-
-  color: inherit;
   &:hover {
-    color: inherit;
+    color: ${p => p.theme.textColor};
+
+    &:before {
+      opacity: 1;
+    }
   }
-  &:hover:before {
-    background: ${p => p.theme.blue100};
-    content: '';
-    left: -100%;
-    position: absolute;
-    right: 0;
-    top: 0;
-    z-index: -1;
-    bottom: 0;
+
+  svg {
+    flex-shrink: 0;
   }
 `;
