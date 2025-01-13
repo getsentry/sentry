@@ -65,9 +65,6 @@ function WidgetBuilderSlideout({
   const {widgetIndex} = useParams();
   const theme = useTheme();
 
-  // TODO: remove this once we have a proper way to handle templates
-  // const showTemplates = localStorage.getItem('showTemplates') === 'true';
-
   const isEditing = widgetIndex !== undefined;
   const title = openWidgetTemplates
     ? t('Add from Widget Library')
