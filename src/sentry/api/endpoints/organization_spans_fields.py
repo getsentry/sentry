@@ -117,7 +117,7 @@ class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
                 limit=max_span_tags,
                 offset=0,
                 type=(
-                    AttributeKey.Type.TYPE_FLOAT
+                    AttributeKey.Type.TYPE_DOUBLE
                     if serialized["type"] == "number"
                     else AttributeKey.Type.TYPE_STRING
                 ),
