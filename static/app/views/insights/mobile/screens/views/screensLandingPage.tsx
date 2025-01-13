@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useState} from 'react';
+import {Fragment, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
@@ -24,6 +24,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
+import {useMobileVitalsDrawer} from 'sentry/views/insights/common/utils/useMobileVitalsDrawer';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {PlatformSelector} from 'sentry/views/insights/mobile/screenload/components/platformSelector';
 import {SETUP_CONTENT as TTFD_SETUP} from 'sentry/views/insights/mobile/screenload/data/setupContent';
@@ -287,6 +288,20 @@ export function ScreensLandingPage() {
     return undefined;
   };
 
+  const {openVitalsDrawer} = useMobileVitalsDrawer({
+    Component: <VitalDetailPanel vital={state.vital} status={state.status} />,
+    vital: state.vital,
+    onClose: () => {
+      setState({vital: undefined, status: undefined});
+    },
+  });
+
+  useEffect(() => {
+    if (state.vital) {
+      openVitalsDrawer();
+    }
+  });
+
   return (
     <ModulePageProviders moduleName="mobile-screens">
       <Layout.Page>
@@ -347,13 +362,6 @@ export function ScreensLandingPage() {
               </Layout.Main>
             </Layout.Body>
           </ModuleBodyUpsellHook>
-          <VitalDetailPanel
-            vital={state.vital}
-            status={state.status}
-            onClose={() => {
-              setState({vital: undefined, status: undefined});
-            }}
-          />
         </PageAlertProvider>
       </Layout.Page>
     </ModulePageProviders>

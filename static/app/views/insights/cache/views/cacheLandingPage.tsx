@@ -40,6 +40,8 @@ import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
 
+import {useSamplesDrawer} from '../../common/utils/useSamplesDrawer';
+
 const {CACHE_MISS_RATE} = SpanFunction;
 const {CACHE_ITEM_SIZE} = SpanMetricsField;
 
@@ -64,6 +66,12 @@ export function CacheLandingPage() {
 
   const sort = decodeSorts(sortField).filter(isAValidSort).at(0) ?? DEFAULT_SORT;
   const cursor = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_CURSOR]);
+
+  useSamplesDrawer({
+    Component: <CacheSamplePanel />,
+    moduleName: ModuleName.CACHE,
+    requiredParams: ['transaction'],
+  });
 
   const {
     isPending: isCacheMissRateLoading,
@@ -216,7 +224,6 @@ export function CacheLandingPage() {
           </Layout.Main>
         </Layout.Body>
       </ModuleBodyUpsellHook>
-      <CacheSamplePanel />
     </React.Fragment>
   );
 }
