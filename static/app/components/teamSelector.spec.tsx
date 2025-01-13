@@ -219,7 +219,7 @@ describe('Team Selector', function () {
       },
     });
 
-    createWrapper({organization: orgWithInviteAccess});
+    createWrapper({isInviting: true, organization: orgWithInviteAccess});
     await userEvent.type(screen.getByText('Select...'), '{keyDown}');
 
     expect(screen.getByText('#team1')).toBeInTheDocument();
@@ -236,7 +236,7 @@ describe('Team Selector', function () {
       },
     });
 
-    createWrapper({organization: orgWithInviteAccess});
+    createWrapper({isInviting: true, organization: orgWithInviteAccess});
     await userEvent.type(screen.getByText('Select...'), '{keyDown}');
 
     expect(screen.getByText('#team1')).toBeInTheDocument();

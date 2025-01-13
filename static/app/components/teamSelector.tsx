@@ -114,6 +114,10 @@ type Props = {
   allowCreate?: boolean;
   includeUnassigned?: boolean;
   /**
+   * Flag that indicates whether the dropdown is being displayed on the invite member modal
+   */
+  isInviting?: boolean;
+  /**
    * Can be used to restrict teams to a certain project and allow for new teams to be add to that project
    */
   project?: Project;
@@ -146,6 +150,7 @@ function TeamSelector(props: Props) {
   const {
     allowCreate,
     includeUnassigned,
+    isInviting = false,
     styles: stylesProp,
     onChange,
     useTeamDefaultIfOnlyOne = false,
@@ -162,7 +167,7 @@ function TeamSelector(props: Props) {
   const membersCanOnlyInviteMemberTeams =
     organization.allowMemberInvite && !organization.openMembership;
   // If Member Invites are enabled but Open Membership is disabled, only allow members to invite to teams they are a member of
-  const memberTeamsOnly = isMemberInvite && membersCanOnlyInviteMemberTeams;
+  const memberTeamsOnly = isInviting && isMemberInvite && membersCanOnlyInviteMemberTeams;
 
   // TODO(ts) This type could be improved when react-select types are better.
   const selectRef = useRef<any>(null);
