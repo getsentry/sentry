@@ -576,7 +576,9 @@ class Endpoint(APIView):
 
 
 class EnvironmentMixin:
-    def _get_environment_func(self, request: Request, organization_id):
+    def _get_environment_func(
+        self, request: Request, organization_id: int
+    ) -> Callable[[], Environment | None]:
         """\
         Creates a function that when called returns the ``Environment``
         associated with a request object, or ``None`` if no environment was
@@ -591,11 +593,15 @@ class EnvironmentMixin:
         """
         return functools.partial(self._get_environment_from_request, request, organization_id)
 
-    def _get_environment_id_from_request(self, request: Request, organization_id):
+    def _get_environment_id_from_request(
+        self, request: Request, organization_id: int
+    ) -> int | None:
         environment = self._get_environment_from_request(request, organization_id)
         return environment and environment.id
 
-    def _get_environment_from_request(self, request: Request, organization_id):
+    def _get_environment_from_request(
+        self, request: Request, organization_id: int
+    ) -> Environment | None:
         if not hasattr(request, "_cached_environment"):
             environment_param = request.GET.get("environment")
             if environment_param is None:

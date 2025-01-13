@@ -78,10 +78,10 @@ def handle_discard(
     request: Request,
     group_list: Sequence[Group],
     projects: Sequence[Project],
-    user,
+    acting_user: RpcUser | User | None,
 ) -> Response:
     for project in projects:
-        if not features.has("projects:discard-groups", project, actor=user):
+        if not features.has("projects:discard-groups", project, actor=acting_user):
             return Response({"detail": ["You do not have that feature enabled"]}, status=400)
 
     if any(group.issue_category != GroupCategory.ERROR for group in group_list):
@@ -96,7 +96,7 @@ def handle_discard(
             try:
                 tombstone = GroupTombstone.objects.create(
                     previous_group_id=group.id,
-                    actor_id=coerce_id_from(user),
+                    actor_id=coerce_id_from(acting_user),
                     **{name: getattr(group, name) for name in TOMBSTONE_FIELDS_FROM_GROUP},
                 )
             except IntegrityError:
@@ -119,7 +119,7 @@ def handle_discard(
 
 
 def self_subscribe_and_assign_issue(
-    acting_user, group: Group, self_assign_issue: str
+    acting_user: RpcUser | User | None, group: Group, self_assign_issue: str
 ) -> Actor | None:
     """
     Used during issue resolution to assign to acting user
@@ -343,7 +343,7 @@ def handle_resolve_in_release(
     group_list: Sequence[Group],
     projects: Sequence[Project],
     project_lookup: Mapping[int, Project],
-    acting_user,
+    acting_user: RpcUser | User | None,
     user: RpcUser | User | AnonymousUser,
     result: MutableMapping[str, Any],
 ) -> tuple[dict[str, Any], int | None]:
@@ -505,13 +505,13 @@ def process_group_resolution(
     commit: Commit | None,
     res_type: int | None,
     res_status: int | None,
-    acting_user,
+    acting_user: RpcUser | User | None,
     user: RpcUser | User | AnonymousUser,
     self_assign_issue: str,
     activity_type: int,
     activity_data: MutableMapping[str, Any],
     result: MutableMapping[str, Any],
-):
+) -> None:
     now = django_timezone.now()
     resolution = None
     created = None
@@ -650,7 +650,7 @@ def process_group_resolution(
             project=group.project,
             group=group,
             type=activity_type,
-            user_id=acting_user.id,
+            user_id=acting_user.id if acting_user else None,
             ident=resolution.id if resolution else None,
             data=dict(activity_data),
         )
@@ -665,7 +665,7 @@ def process_group_resolution(
 def merge_groups(
     group_list: Sequence[Group],
     project_lookup: Mapping[int, Project],
-    acting_user,
+    acting_user: RpcUser | User | None,
     referer: str,
 ) -> MergedGroup:
     issue_stream_regex = r"^(\/organizations\/[^\/]+)?\/issues\/$"
@@ -699,7 +699,7 @@ def handle_other_status_updates(
     projects: Sequence[Project],
     project_lookup: Mapping[int, Project],
     status_details: dict[str, Any],
-    acting_user,
+    acting_user: RpcUser | User | None,
     user: RpcUser | User | AnonymousUser,
 ) -> dict[str, Any]:
     group_ids = [group.id for group in group_list]
@@ -748,7 +748,7 @@ def prepare_response(
     group_list: Sequence[Group],
     project_lookup: Mapping[int, Project],
     projects: Sequence[Project],
-    acting_user,
+    acting_user: RpcUser | User | None,
     data: Mapping[str, Any],
     res_type: int | None,
     referer: str,
@@ -866,7 +866,7 @@ def handle_is_subscribed(
     is_subscribed: bool,
     group_list: Sequence[Group],
     project_lookup: Mapping[int, Project],
-    acting_user,
+    acting_user: RpcUser | User | None,
 ) -> dict[str, str]:
     # TODO(dcramer): we could make these more efficient by first
     # querying for which `GroupSubscription` rows are present (if N > 2),
@@ -880,7 +880,7 @@ def handle_is_subscribed(
         # assigned" just by clicking the "subscribe" button (and you
         # may no longer be assigned to the issue anyway).
         GroupSubscription.objects.create_or_update(
-            user_id=acting_user.id,
+            user_id=acting_user.id if acting_user else None,
             group=group,
             project=project_lookup[group.project_id],
             values={"is_active": is_subscribed, "reason": GroupSubscriptionReason.unknown},
@@ -893,7 +893,7 @@ def handle_is_bookmarked(
     is_bookmarked: bool,
     group_list: Sequence[Group],
     project_lookup: Mapping[int, Project],
-    acting_user,
+    acting_user: RpcUser | User | None,
 ) -> None:
     """
     Creates bookmarks and subscriptions for a user, or deletes the existing bookmarks and subscriptions.
@@ -929,7 +929,7 @@ def handle_has_seen(
     group_list: Sequence[Group],
     project_lookup: Mapping[int, Project],
     projects: Sequence[Project],
-    acting_user,
+    acting_user: RpcUser | User | None,
 ) -> None:
     is_member_map = {
         project.id: (
@@ -941,7 +941,7 @@ def handle_has_seen(
     if has_seen:
         for group in group_list:
             if is_member_map.get(group.project_id):
-                instance, created = create_or_update(
+                create_or_update(
                     GroupSeen,
                     group=group,
                     user_id=user_id,
@@ -957,7 +957,7 @@ def handle_has_seen(
 def handle_priority(
     priority: str,
     group_list: Sequence[Group],
-    acting_user,
+    acting_user: RpcUser | User | None,
     project_lookup: Mapping[int, Project],
 ) -> None:
     for group in group_list:
@@ -977,7 +977,7 @@ def handle_is_public(
     is_public: bool,
     group_list: Sequence[Group],
     project_lookup: Mapping[int, Project],
-    acting_user,
+    acting_user: RpcUser | User | None,
 ) -> str | None:
     """
     Handle the isPublic flag on a group update.
@@ -1021,7 +1021,7 @@ def handle_assigned_to(
     integration: str | None,
     group_list: Sequence[Group],
     project_lookup: Mapping[int, Project],
-    acting_user,
+    acting_user: RpcUser | User | None,
 ) -> ActorSerializerResponse | None:
     """
     Handle the assignedTo field on a group update.

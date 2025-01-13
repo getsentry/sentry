@@ -21,7 +21,6 @@ const mockUseLocation = jest.mocked(useLocation);
 
 const {
   errorFrames: [ERROR_1_JS_RANGEERROR, ERROR_2_NEXTJS_TYPEERROR, ERROR_3_JS_UNDEFINED],
-  feedbackFrames: [],
 } = hydrateErrors(
   ReplayRecordFixture({started_at: new Date('2023-06-09T12:00:00+00:00')}),
   [
