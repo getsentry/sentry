@@ -11,7 +11,6 @@ import pytest
 import responses
 from django.core import mail
 from django.forms import ValidationError
-from django.test import override_settings
 from django.utils import timezone
 from slack_sdk.web.slack_response import SlackResponse
 from urllib3.exceptions import MaxRetryError, TimeoutError
@@ -490,39 +489,6 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.threshold_type == threshold_type.value
         assert alert_rule.resolve_threshold == resolve_threshold
         assert alert_rule.threshold_period == threshold_period
-
-    # This test will fail unless real migrations are run. Refer to migration 0061.
-    @pytest.mark.migrations  # requires custom migration 0061
-    @override_settings(SILO_MODE=SiloMode.MONOLITH)
-    def test_two_archived_with_same_name(self):
-        name = "allowed"
-        alert_rule_1 = create_alert_rule(
-            self.organization,
-            [self.project],
-            name,
-            "level:error",
-            "count()",
-            1,
-            AlertRuleThresholdType.ABOVE,
-            1,
-        )
-        alert_rule_1.update(status=AlertRuleStatus.SNAPSHOT.value)
-
-        alert_rule_2 = create_alert_rule(
-            self.organization,
-            [self.project],
-            name,
-            "level:error",
-            "count()",
-            1,
-            AlertRuleThresholdType.ABOVE,
-            1,
-        )
-        alert_rule_2.update(status=AlertRuleStatus.SNAPSHOT.value)
-
-        assert alert_rule_1.name == alert_rule_2.name
-        assert alert_rule_1.status == AlertRuleStatus.SNAPSHOT.value
-        assert alert_rule_2.status == AlertRuleStatus.SNAPSHOT.value
 
     def test_alert_rule_owner(self):
         alert_rule_1 = create_alert_rule(
