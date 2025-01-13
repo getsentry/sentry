@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from django.db.models import DurationField, ExpressionWrapper, F, IntegerField, Value
 from django.db.models.fields.json import KeyTextTransform
@@ -12,39 +12,51 @@ from sentry.workflow_engine.processors.data_condition_group import evaluate_cond
 from sentry.workflow_engine.types import WorkflowJob
 
 
+def get_action_statuses(now: datetime, actions: BaseQuerySet[Action], group: Group):
+    # filter out actions that have recently fired for the Group according to workflow frequency
+    statuses = ActionGroupStatus.objects.filter(group=group, action__in=actions)
+
+    check_workflow_frequency = Cast(
+        Coalesce(
+            KeyTextTransform(
+                "frequency",
+                F(
+                    "action__dataconditiongroupaction__condition_group__workflowdataconditiongroup__workflow__config"
+                ),
+            ),
+            Value("30"),  # default 30
+        ),
+        output_field=IntegerField(),
+    )
+
+    frequency_in_minutes = ExpressionWrapper(
+        F("frequency") * timedelta(minutes=1),  # convert to timedelta
+        output_field=DurationField(),
+    )
+
+    time_since_last_update = ExpressionWrapper(
+        Value(now) - F("date_updated"), output_field=DurationField()
+    )
+
+    statuses = statuses.annotate(
+        frequency=check_workflow_frequency,
+        frequency_minutes=frequency_in_minutes,
+        difference=time_since_last_update,
+    )
+
+    return statuses
+
+
+# TODO(cathy): only reinforce workflow frequency for certain issue types
 def filter_recently_fired_workflow_actions(
     actions: BaseQuerySet[Action], group: Group
 ) -> BaseQuerySet[Action]:
-    # TODO(cathy): only reinforce workflow frequency for certain issue types
     now = timezone.now()
+    statuses = get_action_statuses(now, actions, group)
 
-    statuses = ActionGroupStatus.objects.filter(group=group, action__in=actions)
     actions_without_statuses = actions.exclude(id__in=statuses.values_list("action_id", flat=True))
-
-    # filter out actions that have recently fired for the Group according to workflow frequency
-    statuses = statuses.annotate(
-        frequency=Cast(
-            Coalesce(
-                KeyTextTransform(
-                    "frequency",
-                    F(
-                        "action__dataconditiongroupaction__condition_group__workflowdataconditiongroup__workflow__config"
-                    ),
-                ),
-                Value("30"),  # default 30
-            ),
-            output_field=IntegerField(),
-        ),
-        frequency_seconds=ExpressionWrapper(
-            F("frequency") * timedelta(minutes=1),  # convert to timedelta
-            output_field=DurationField(),
-        ),
-        difference=ExpressionWrapper(
-            Value(now) - F("date_updated"), output_field=DurationField()
-        ),  # how long ago the action fired
-    )
     actions_to_include = set(
-        statuses.filter(difference__gt=F("frequency_seconds")).values_list("action_id", flat=True)
+        statuses.filter(difference__gt=F("frequency_minutes")).values_list("action_id", flat=True)
     )
 
     ActionGroupStatus.objects.filter(action__in=actions_to_include, group=group).update(
@@ -59,9 +71,7 @@ def filter_recently_fired_workflow_actions(
     )
 
     actions_without_statuses_ids = {action.id for action in actions_without_statuses}
-    filtered_actions = Action.objects.filter(
-        id__in=actions_to_include | actions_without_statuses_ids
-    )
+    filtered_actions = actions.filter(id__in=actions_to_include | actions_without_statuses_ids)
 
     return filtered_actions
 
