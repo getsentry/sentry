@@ -709,7 +709,8 @@ def collect_apple_symbol_stats(json):
     eligible_symbols = 0
     neither_has_symbol = 0
     both_have_symbol = 0
-    old_has_symbol = 0
+    # Done to temporally collect information about the events for which we don't find symbols in symx:
+    old_has_symbol = []
     symx_has_symbol = 0
 
     for module in json.get("modules") or ():
@@ -740,7 +741,7 @@ def collect_apple_symbol_stats(json):
             else:
                 symx_has_symbol += 1
         elif old_has_this_symbol:
-            old_has_symbol += 1
+            old_has_symbol.append(module)
         else:
             neither_has_symbol += 1
             # NOTE: It might be possible to apply a heuristic based on `code_file` here to figure out if this is
