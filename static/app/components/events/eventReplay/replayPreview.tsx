@@ -1,5 +1,5 @@
 import type {ComponentProps} from 'react';
-import {useMemo} from 'react';
+import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
@@ -79,6 +79,15 @@ function ReplayPreview({
     event_replay_status: getReplayAnalyticsStatus({fetchError, replayRecord}),
   });
 
+  useEffect(() => {
+    if (fetchError) {
+      trackAnalytics('replay.render-missing-replay-alert', {
+        organization,
+        surface: 'issue details - old preview',
+      });
+    }
+  }, [organization, fetchError]);
+
   if (replayRecord?.is_archived) {
     return (
       <Alert type="warning" data-test-id="replay-error">
@@ -91,10 +100,6 @@ function ReplayPreview({
   }
 
   if (fetchError) {
-    trackAnalytics('replay.render-missing-replay-alert', {
-      organization,
-      surface: 'issue details - old preview',
-    });
     return <MissingReplayAlert orgSlug={orgSlug} />;
   }
 
