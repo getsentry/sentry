@@ -104,13 +104,7 @@ def record_new_project(project, user=None, user_id=None, **kwargs):
             organization_id=project.organization_id,
             task=OnboardingTask.SECOND_PLATFORM,
             user_id=user_id,
-            status=(
-                OnboardingTaskStatus.COMPLETE
-                if features.has(
-                    "organizations:quick-start-updates", project.organization, actor=user
-                )
-                else OnboardingTaskStatus.PENDING
-            ),
+            status=OnboardingTaskStatus.COMPLETE,
             project_id=project.id,
         )
         analytics.record(
@@ -737,42 +731,18 @@ def record_integration_added(
         )
         return
 
-    if features.has("organizations:quick-start-updates", organization, actor=user):
-        integration_types = get_integration_types(integration.provider)
+    integration_types = get_integration_types(integration.provider)
 
-        task_mapping = {
-            IntegrationDomain.SOURCE_CODE_MANAGEMENT: OnboardingTask.LINK_SENTRY_TO_SOURCE_CODE,
-            IntegrationDomain.MESSAGING: OnboardingTask.REAL_TIME_NOTIFICATIONS,
-        }
+    task_mapping = {
+        IntegrationDomain.SOURCE_CODE_MANAGEMENT: OnboardingTask.LINK_SENTRY_TO_SOURCE_CODE,
+        IntegrationDomain.MESSAGING: OnboardingTask.REAL_TIME_NOTIFICATIONS,
+    }
 
-        for integration_type in integration_types:
-            if integration_type in task_mapping:
-                OrganizationOnboardingTask.objects.create(
-                    organization_id=organization_id,
-                    task=task_mapping[integration_type],
-                    status=OnboardingTaskStatus.COMPLETE,
-                )
-                try_mark_onboarding_complete(organization_id, user)
-    else:
-        task = OrganizationOnboardingTask.objects.filter(
-            organization_id=organization_id,
-            task=OnboardingTask.INTEGRATIONS,
-        ).first()
-
-        if task:
-            providers = task.data.get("providers", [])
-            if integration.provider not in providers:
-                providers.append(integration.provider)
-            task.data["providers"] = providers
-            if task.status != OnboardingTaskStatus.COMPLETE:
-                task.status = OnboardingTaskStatus.COMPLETE
-                task.user_id = user_id
-                task.date_completed = django_timezone.now()
-            task.save()
-        else:
-            task = OrganizationOnboardingTask.objects.create(
+    for integration_type in integration_types:
+        if integration_type in task_mapping:
+            OrganizationOnboardingTask.objects.create(
                 organization_id=organization_id,
-                task=OnboardingTask.INTEGRATIONS,
+                task=task_mapping[integration_type],
                 status=OnboardingTaskStatus.COMPLETE,
-                data={"providers": [integration.provider]},
             )
+            try_mark_onboarding_complete(organization_id, user)
