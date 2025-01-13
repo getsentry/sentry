@@ -13,7 +13,7 @@ from sentry.integrations.utils.code_mapping import CodeMapping, Repo, RepoTree
 from sentry.models.organization import OrganizationStatus
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.tasks.derive_code_mappings import (
+from sentry.tasks.auto_source_code_configs import (
     DeriveCodeMappingsErrorReason,
     derive_code_mappings,
     identify_stacktrace_paths,

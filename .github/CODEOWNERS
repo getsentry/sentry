@@ -539,6 +539,7 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /src/sentry/tasks/auto_ongoing_issues.py                    @getsentry/issues
 /src/sentry/tasks/auto_remove_inbox.py                      @getsentry/issues
 /src/sentry/tasks/auto_resolve_issues.py                    @getsentry/issues
+/src/sentry/tasks/auto_source_code_configs.py               @getsentry/issues
 /src/sentry/tasks/check_new_issue_threshold_met.py          @getsentry/issues
 /src/sentry/tasks/clear_expired_resolutions.py              @getsentry/issues
 /src/sentry/tasks/clear_expired_rulesnoozes.py              @getsentry/issues
@@ -547,7 +548,6 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /src/sentry/tasks/commit_context.py                         @getsentry/issues
 /src/sentry/tasks/commits.py                                @getsentry/issues
 /src/sentry/tasks/delete_seer_grouping_records.py           @getsentry/issues
-/src/sentry/tasks/derive_code_mappings.py                   @getsentry/issues
 /src/sentry/tasks/embeddings_grouping/                      @getsentry/issues
 /src/sentry/tasks/groupowner.py                             @getsentry/issues
 /src/sentry/tasks/merge.py                                  @getsentry/issues
