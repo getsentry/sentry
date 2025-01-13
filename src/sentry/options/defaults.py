@@ -267,6 +267,19 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_REQUIRED,
 )
 
+# User Settings
+register(
+    "user-settings.signed-url-confirmation-emails-salt",
+    type=String,
+    default="signed-url-confirmation-emails-salt",
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "user-settings.signed-url-confirmation-emails",
+    default=False,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Staff
 register(
     "staff.ga-rollout",
@@ -1923,6 +1936,14 @@ register(
 )
 register("hybrid_cloud.disable_tombstone_cleanup", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
+# List of event IDs to pass through
+register(
+    "hybrid_cloud.audit_log_event_id_invalid_pass_list",
+    default=[],
+    type=Sequence,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Flagpole Configuration (used in getsentry)
 register("flagpole.debounce_reporting_seconds", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
@@ -2893,11 +2914,6 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "transactions.do_post_process_in_save",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE | FLAG_RATE,
-)
 
 # allows us to disable indexing during maintenance events
 register(
@@ -2912,5 +2928,12 @@ register(
     "sentry.search.events.project.check_event",
     default=0.0,
     type=Float,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "uptime.snuba_uptime_results.enabled",
+    type=Bool,
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

@@ -739,11 +739,9 @@ const TabsHeightContainer = styled('div')<{
   left: ${p => (p.layout === 'drawer left' ? '0' : 'initial')};
   right: ${p => (p.layout === 'drawer right' ? '0' : 'initial')};
   position: ${p => (p.absolute ? 'absolute' : 'relative')};
-  height: ${p => (p.hasIndicators ? '44px' : '26px')};
+  height: ${p => (p.hasIndicators ? '38px' : '26px')};
   border-bottom: 1px solid ${p => p.theme.border};
   display: flex;
-  flex-direction: column;
-  justify-content: end;
 `;
 
 const TabsLayout = styled('div')`

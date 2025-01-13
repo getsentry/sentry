@@ -193,9 +193,11 @@ export function EventFeatureFlagList({
       trackAnalytics('flags.table_rendered', {
         organization,
         numFlags: hydratedFlags.length,
+        projectSlug: project.slug,
+        orgSlug: organization.slug,
       });
     }
-  }, [hasFlags, hydratedFlags.length, organization]);
+  }, [hasFlags, hydratedFlags.length, organization, project.slug]);
 
   if (group.issueCategory !== IssueCategory.ERROR) {
     return null;

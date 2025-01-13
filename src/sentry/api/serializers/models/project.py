@@ -261,6 +261,7 @@ class ProjectSerializerBaseResponse(_ProjectSerializerOptionalBaseResponse):
     hasAccess: bool
     hasCustomMetrics: bool
     hasFeedbacks: bool
+    hasFlags: bool
     hasMinifiedStackTrace: bool
     hasMonitors: bool
     hasNewFeedbacks: bool
@@ -524,6 +525,7 @@ class ProjectSerializer(Serializer):
             "hasProfiles": bool(obj.flags.has_profiles),
             "hasReplays": bool(obj.flags.has_replays),
             "hasFeedbacks": bool(obj.flags.has_feedbacks),
+            "hasFlags": bool(obj.flags.has_flags),
             "hasNewFeedbacks": bool(obj.flags.has_new_feedbacks),
             "hasSessions": bool(obj.flags.has_sessions),
             # whether first span has been sent for each insight module
@@ -770,6 +772,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             platforms=attrs["platforms"],
             latestRelease=attrs["latest_release"],
             hasUserReports=attrs["has_user_reports"],
+            hasFlags=bool(obj.flags.has_flags),
         )
         if not self._collapse(LATEST_DEPLOYS_KEY):
             context[LATEST_DEPLOYS_KEY] = attrs["deploys"]
@@ -1166,26 +1169,4 @@ class SharedProjectSerializer(Serializer):
             "color": obj.color,
             "features": feature_list,
             "organization": {"slug": obj.organization.slug, "name": obj.organization.name},
-        }
-
-
-class MinimalProjectSerializer(Serializer):
-    def get_attrs(self, item_list: Sequence[Project], user: User, **kwargs: Any):
-        environments_by_project = get_environments_by_projects(item_list)
-        memberships_by_project = get_access_by_project(item_list, user)
-        return {
-            project: {
-                "environments": environments_by_project[project.id],
-                "isMember": memberships_by_project[project]["is_member"],
-            }
-            for project in item_list
-        }
-
-    def serialize(self, obj: Project, attrs: Mapping[str, Any], user: User):
-        return {
-            "slug": obj.slug,
-            "id": obj.id,
-            "platform": obj.platform,
-            "environments": attrs["environments"],
-            "isMember": attrs["isMember"],
         }
