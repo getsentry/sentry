@@ -27,16 +27,6 @@ describe('OrganizationGeneralSettings', function () {
   const {organization, router} = initializeOrg();
   let configState: Config;
 
-  const defaultProps = {
-    organization,
-    router,
-    location: router.location,
-    params: {orgId: organization.slug},
-    routes: router.routes,
-    route: {},
-    routeParams: router.params,
-  };
-
   beforeEach(function () {
     configState = ConfigStore.getState();
     OrganizationsStore.addOrReplace(organization);
@@ -58,7 +48,7 @@ describe('OrganizationGeneralSettings', function () {
   });
 
   it('can enable "early adopter"', async function () {
-    render(<OrganizationGeneralSettings {...defaultProps} />);
+    render(<OrganizationGeneralSettings />);
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'PUT',
@@ -81,7 +71,7 @@ describe('OrganizationGeneralSettings', function () {
       features: ['codecov-integration'],
       codecovAccess: false,
     });
-    render(<OrganizationGeneralSettings {...defaultProps} />, {
+    render(<OrganizationGeneralSettings />, {
       organization: organizationWithCodecovFeature,
     });
     const mock = MockApiClient.addMockResponse({
@@ -106,7 +96,7 @@ describe('OrganizationGeneralSettings', function () {
   });
 
   it('changes org slug and redirects to new slug', async function () {
-    render(<OrganizationGeneralSettings {...defaultProps} />, {router});
+    render(<OrganizationGeneralSettings />, {router});
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'PUT',
@@ -143,7 +133,7 @@ describe('OrganizationGeneralSettings', function () {
       body: {...org, slug: 'acme', links: {organizationUrl: 'https://acme.sentry.io'}},
     });
 
-    render(<OrganizationGeneralSettings {...defaultProps} />, {organization: org});
+    render(<OrganizationGeneralSettings />, {organization: org});
 
     const input = screen.getByRole('textbox', {name: /slug/i});
 
@@ -170,7 +160,7 @@ describe('OrganizationGeneralSettings', function () {
   it('disables the entire form if user does not have write access', function () {
     const readOnlyOrg = OrganizationFixture({access: ['org:read']});
 
-    render(<OrganizationGeneralSettings {...defaultProps} />, {
+    render(<OrganizationGeneralSettings />, {
       organization: readOnlyOrg,
     });
 
@@ -192,7 +182,7 @@ describe('OrganizationGeneralSettings', function () {
   });
 
   it('does not have remove organization button without org:admin permission', function () {
-    render(<OrganizationGeneralSettings {...defaultProps} />, {
+    render(<OrganizationGeneralSettings />, {
       organization: OrganizationFixture({
         access: ['org:write'],
       }),
@@ -206,7 +196,7 @@ describe('OrganizationGeneralSettings', function () {
   it('can remove organization when org admin', async function () {
     act(() => ProjectsStore.loadInitialData([ProjectFixture({slug: 'project'})]));
 
-    render(<OrganizationGeneralSettings {...defaultProps} />, {
+    render(<OrganizationGeneralSettings />, {
       organization: OrganizationFixture({access: ['org:admin']}),
     });
     renderGlobalModal();
