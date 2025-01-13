@@ -62,7 +62,7 @@ describe('FormSource', function () {
                 route: '/route/',
                 resultType: 'field',
                 sourceType: 'field',
-                to: '/route/#test-field',
+                to: {pathname: '/route/', hash: '#test-field'},
               },
             }),
           ],

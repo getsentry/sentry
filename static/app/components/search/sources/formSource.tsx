@@ -6,7 +6,6 @@ import FormSearchStore from 'sentry/stores/formSearchStore';
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
-import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 
@@ -62,7 +61,7 @@ class FormSource extends Component<Props, State> {
   }
 
   render() {
-    const {searchMap, query, params, children} = this.props;
+    const {searchMap, query, children} = this.props;
     const {fuzzy} = this.state;
 
     const results =
@@ -73,9 +72,7 @@ class FormSource extends Component<Props, State> {
             ...item,
             sourceType: 'field',
             resultType: 'field',
-            to: `${replaceRouterParams(item.route, params)}#${encodeURIComponent(
-              item.field.name
-            )}`,
+            to: {pathname: item.route, hash: `#${encodeURIComponent(item.field.name)}`},
           } as ResultItem,
           ...rest,
         };
