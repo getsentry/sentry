@@ -261,7 +261,11 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
     if (
       isLatestOrRecommendedEvent &&
       isEventError &&
-      router.location.query.query &&
+      // Expanding this list to ensure invalid date ranges get removed as well as queries
+      (router.location.query.query ||
+        router.location.query.start ||
+        router.location.query.end ||
+        router.location.query.statsPeriod) &&
       !hasStreamlinedUI
     ) {
       // If we get an error from the helpful event endpoint, it probably means
@@ -271,8 +275,7 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
         {
           ...router.location,
           query: {
-            ...router.location.query,
-            query: undefined,
+            project: router.location.query.project,
           },
         },
         {replace: true}
