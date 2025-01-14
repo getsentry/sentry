@@ -3,10 +3,6 @@ from sentry.utils.options import sample_modulo
 
 
 def apply_streamline_rollout_group(organization: Organization):
-    # If unset, the organization's users can opt-in/out.
-    if organization.get_option("sentry:streamline_ui_only") is not None:
-        return
-
     # If the rollout_result is false, the organization is not in the experiment.
     rollout_result = sample_modulo(
         "issues.details.streamline-experiment-rollout-rate", organization.id
