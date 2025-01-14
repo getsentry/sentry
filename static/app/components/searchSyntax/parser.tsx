@@ -985,7 +985,7 @@ export class TokenConverter {
 
     if (
       this.config.disallowWildcard &&
-      // @ts-expect-error TS(2531): Object is possibly 'null'.
+      // @ts-ignore TS(2531): Object is possibly 'null'.
       items.some(item => item.value.value.includes('*'))
     ) {
       return {

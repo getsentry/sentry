@@ -136,7 +136,7 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
         const label = release;
         if (yAxis in transformedReleaseSeries) {
           const data =
-            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+            // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             series[release]![yAxis]!?.data.map((datum: any) => {
               return {
                 name: datum[0] * 1000,

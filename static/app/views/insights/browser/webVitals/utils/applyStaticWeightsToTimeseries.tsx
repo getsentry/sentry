@@ -16,17 +16,17 @@ export function applyStaticWeightsToTimeseries(
         Object.keys(timeseriesData)
           .filter(key => key !== 'total')
           .filter(key =>
-            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+            // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             timeseriesData[key].some((series: any) => series.value > 0)
           ) as WebVitals[]
       )
     : PERFORMANCE_SCORE_WEIGHTS;
   return {
     ...Object.keys(weights).reduce((acc, webVital) => {
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       acc[webVital] = timeseriesData[webVital].map(({name, value}: any) => ({
         name,
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         value: value * weights[webVital] * 0.01,
       }));
       return acc;

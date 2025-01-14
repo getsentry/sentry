@@ -405,7 +405,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
     let buttonEventView = eventView;
     if (hasDatasetSelector(organization)) {
       alertType = defined(currentDataset)
-        ? // @ts-expect-error TS(2339): Property 'discover' does not exist on type '{ tran... Remove this comment to see the full error message
+        ? // @ts-ignore TS(2339): Property 'discover' does not exist on type '{ tran... Remove this comment to see the full error message
           {
             [DiscoverDatasets.TRANSACTIONS]: 'throughput',
             [DiscoverDatasets.ERRORS]: 'num_errors',
@@ -455,7 +455,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
             yAxis,
             router,
             widgetType: hasDatasetSelector(organization)
-              ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+              ? // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                 SAVED_QUERY_DATASET_TO_WIDGET_TYPE[
                   getSavedQueryDataset(organization, location, savedQuery)
                 ]
@@ -580,7 +580,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
             yAxis,
             router,
             widgetType: hasDatasetSelector(organization)
-              ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+              ? // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                 SAVED_QUERY_DATASET_TO_WIDGET_TYPE[
                   getSavedQueryDataset(organization, location, savedQuery)
                 ]

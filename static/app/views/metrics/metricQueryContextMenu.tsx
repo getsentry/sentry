@@ -270,7 +270,7 @@ function useCreateDashboardWidget(
         widget: convertToDashboardWidget([queryCopy], displayType),
         router,
         // Previously undetected because the type relied on implicit any.
-        // @ts-expect-error TS(2741): Property 'source' is missing in type '{ start: Dat... Remove this comment to see the full error message
+        // @ts-ignore TS(2741): Property 'source' is missing in type '{ start: Dat... Remove this comment to see the full error message
         widgetAsQueryParams,
         location: router.location,
         actions: ['add-and-open-dashboard', 'add-and-stay-on-current-page'],

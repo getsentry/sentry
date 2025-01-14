@@ -54,20 +54,20 @@ export default function useLocationQuery<
   Object.entries(fields).forEach(([field, decoderOrValue]) => {
     if (typeof decoderOrValue === 'function') {
       if (decoderOrValue === decodeScalar) {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         locationFields[field] = decoderOrValue(location.query[field], '');
       } else if (decoderOrValue === decodeBoolean) {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         locationFields[field] = decoderOrValue(location.query[field], false);
       } else if (decoderOrValue === decodeInteger) {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         locationFields[field] = decoderOrValue(location.query[field], 0);
       } else {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         locationFields[field] = decoderOrValue(location.query[field]);
       }
     } else {
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       forwardedFields[field] = decoderOrValue;
     }
   }, {});

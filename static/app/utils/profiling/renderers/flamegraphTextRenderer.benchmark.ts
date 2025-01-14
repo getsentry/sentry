@@ -1,7 +1,7 @@
 // Benchmarks allow us to make changes and evaluate performance before the code gets shipped to production.
 // They can be used to make performance improvements or to test impact of newly added functionality.
 // Run with: yarn run ts-node --project ./config/tsconfig.benchmark.json -r tsconfig-paths/register static/app/utils/profiling/renderers/textRenderer.benchmark.ts
-// @ts-expect-error TS(7016): Could not find a declaration file for module 'benc... Remove this comment to see the full error message
+// @ts-ignore TS(7016): Could not find a declaration file for module 'benc... Remove this comment to see the full error message
 import benchmarkjs from 'benchmark';
 import maxBy from 'lodash/maxBy';
 
@@ -42,7 +42,7 @@ function benchmark(name: string, callback: () => void) {
   suite.run({async: false});
 }
 
-// @ts-expect-error TS(2322): Type '{ devicePixelRatio: number; }' is not assign... Remove this comment to see the full error message
+// @ts-ignore TS(2322): Type '{ devicePixelRatio: number; }' is not assign... Remove this comment to see the full error message
 global.window = {devicePixelRatio: 1};
 
 const makeDrawFullScreen = (renderer: FlamegraphTextRenderer, flamegraph: Flamegraph) => {
@@ -55,7 +55,7 @@ const makeDrawFullScreen = (renderer: FlamegraphTextRenderer, flamegraph: Flameg
 
   const transform = transformMatrixBetweenRect(configView, new Rect(0, 0, 1000, 1000));
   return (searchResults?: FlamegraphSearch) => {
-    // @ts-expect-error TS(2345): Argument of type 'FlamegraphSearch | undefined' is... Remove this comment to see the full error message
+    // @ts-ignore TS(2345): Argument of type 'FlamegraphSearch | undefined' is... Remove this comment to see the full error message
     renderer.draw(flamegraph.configSpace, transform, searchResults);
   };
 };
@@ -73,7 +73,7 @@ const makeDrawCenterScreen = (
   const transform = transformMatrixBetweenRect(configView, new Rect(0, 0, 1000, 1000));
 
   return (searchResults?: FlamegraphSearch) => {
-    // @ts-expect-error TS(2345): Argument of type 'FlamegraphSearch | undefined' is... Remove this comment to see the full error message
+    // @ts-ignore TS(2345): Argument of type 'FlamegraphSearch | undefined' is... Remove this comment to see the full error message
     renderer.draw(configView, transform, searchResults);
   };
 };
@@ -91,29 +91,29 @@ const makeDrawRightSideOfScreen = (
   const transform = transformMatrixBetweenRect(configView, new Rect(0, 0, 1000, 1000));
 
   return (searchResults?: FlamegraphSearch) => {
-    // @ts-expect-error TS(2345): Argument of type 'FlamegraphSearch | undefined' is... Remove this comment to see the full error message
+    // @ts-ignore TS(2345): Argument of type 'FlamegraphSearch | undefined' is... Remove this comment to see the full error message
     renderer.draw(configView, transform, searchResults);
   };
 };
 
-// @ts-expect-error TS(2554): Expected 4-5 arguments, but got 3.
+// @ts-ignore TS(2554): Expected 4-5 arguments, but got 3.
 const androidProfile = importProfile(androidTrace as any, '', 'flamechart');
 const androidFlamegraph = new Flamegraph(
   androidProfile.profiles[androidProfile.activeProfileIndex] as any,
   0,
-  // @ts-expect-error TS(2554): Expected 1-2 arguments, but got 3.
+  // @ts-ignore TS(2554): Expected 1-2 arguments, but got 3.
   {
     inverted: false,
     sort: 'call order',
   }
 );
 
-// @ts-expect-error TS(2554): Expected 4-5 arguments, but got 3.
+// @ts-ignore TS(2554): Expected 4-5 arguments, but got 3.
 const iosProfile = importProfile(ios as any, '', 'flamechart');
 const iosFlamegraph = new Flamegraph(
   iosProfile.profiles[iosProfile.activeProfileIndex] as any,
   0,
-  // @ts-expect-error TS(2554): Expected 1-2 arguments, but got 3.
+  // @ts-ignore TS(2554): Expected 1-2 arguments, but got 3.
   {
     inverted: false,
     sort: 'call order',
@@ -127,7 +127,7 @@ const makeTextRenderer = (flamegraph: any) =>
       clientHeight: 1000,
       clientLeft: 0,
       clientTop: 0,
-      // @ts-expect-error TS(2322): Type '() => { fillRect: () => void; fillText: () =... Remove this comment to see the full error message
+      // @ts-ignore TS(2322): Type '() => { fillRect: () => void; fillText: () =... Remove this comment to see the full error message
       getContext: () => {
         return {
           fillRect: () => {},
@@ -177,9 +177,9 @@ const makeSearchResults = (flamegraph: Flamegraph): FlamegraphSearch => {
   )!;
 
   return {
-    // @ts-expect-error TS(2739): Type '{}' is missing the following properties from... Remove this comment to see the full error message
+    // @ts-ignore TS(2739): Type '{}' is missing the following properties from... Remove this comment to see the full error message
     results: Array.from(data.frames.values()).reduce((acc, frame) => {
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       acc[getFlamegraphFrameSearchId(frame)] = frame;
       return acc;
     }, {}),
@@ -194,15 +194,15 @@ const suite = (
 ) => {
   const results = makeSearchResults(flamegraph);
   benchmark(`${name} (full profile)`, () =>
-    // @ts-expect-error TS(2345): Argument of type 'Map<any, any>' is not assignable... Remove this comment to see the full error message
+    // @ts-ignore TS(2345): Argument of type 'Map<any, any>' is not assignable... Remove this comment to see the full error message
     makeDrawFullScreen(textRenderer, flamegraph)(new Map())
   );
   benchmark(`${name} (center half)`, () =>
-    // @ts-expect-error TS(2345): Argument of type 'Map<any, any>' is not assignable... Remove this comment to see the full error message
+    // @ts-ignore TS(2345): Argument of type 'Map<any, any>' is not assignable... Remove this comment to see the full error message
     makeDrawCenterScreen(textRenderer, flamegraph)(new Map())
   );
   benchmark(`${name} (right quarter)`, () =>
-    // @ts-expect-error TS(2345): Argument of type 'Map<any, any>' is not assignable... Remove this comment to see the full error message
+    // @ts-ignore TS(2345): Argument of type 'Map<any, any>' is not assignable... Remove this comment to see the full error message
     makeDrawRightSideOfScreen(textRenderer, flamegraph)(new Map())
   );
 

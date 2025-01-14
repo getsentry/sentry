@@ -508,7 +508,7 @@ class IssueListOverview extends Component<Props, State> {
 
     // Update the count based on the exact number of issues, these shown as is
     if (currentTabQuery) {
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       queryCounts[currentTabQuery] = {
         count: currentQueryCount,
         hasMore: false,
@@ -520,7 +520,7 @@ class IssueListOverview extends Component<Props, State> {
     // If all tabs' counts are fetched, skip and only set
     if (
       fetchAllCounts ||
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       !tabQueriesWithCounts.every(tabQuery => queryCounts[tabQuery] !== undefined)
     ) {
       const requestParams: CountsEndpointParams = {

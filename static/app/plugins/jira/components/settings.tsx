@@ -50,7 +50,7 @@ class Settings extends DefaultSettings<Props, State> {
         const initialData = {};
         data.config.forEach(field => {
           formData[field.name] = field.value || field.defaultValue;
-          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+          // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           initialData[field.name] = field.value;
         });
         this.setState(
@@ -97,9 +97,9 @@ class Settings extends DefaultSettings<Props, State> {
         const formData = {};
         const initialData = {};
         data.config.forEach(field => {
-          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+          // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           formData[field.name] = field.value || field.defaultValue;
-          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+          // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           initialData[field.name] = field.value;
         });
         const state = {
@@ -158,7 +158,7 @@ class Settings extends DefaultSettings<Props, State> {
     let submitLabel: string;
     if (this.state.editing) {
       fields = this.state.fieldList?.filter(f =>
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         PAGE_FIELD_LIST[this.state.page].includes(f.name)
       );
       onSubmit = this.onSubmit;

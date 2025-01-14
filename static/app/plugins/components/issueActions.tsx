@@ -270,7 +270,7 @@ class IssueActions extends PluginComponentBase<Props, State> {
         success: data => {
           const createFormData = {};
           data.forEach((field: any) => {
-            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+            // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             createFormData[field.name] = field.default;
           });
           this.setState(
@@ -290,7 +290,7 @@ class IssueActions extends PluginComponentBase<Props, State> {
         success: data => {
           const linkFormData = {};
           data.forEach((field: any) => {
-            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+            // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             linkFormData[field.name] = field.default;
           });
           this.setState(

@@ -76,7 +76,7 @@ export function CacheSamplePanel() {
     10
   );
 
-  // @ts-expect-error TS(7006): Parameter 'newStatusClass' implicitly has an 'any'... Remove this comment to see the full error message
+  // @ts-ignore TS(7006): Parameter 'newStatusClass' implicitly has an 'any'... Remove this comment to see the full error message
   const handleStatusClassChange = newStatusClass => {
     trackAnalytics('performance_views.sample_spans.filter_updated', {
       filter: 'status',

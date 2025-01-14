@@ -26,7 +26,7 @@ function CSPHelp({data: {effective_directive: key}}: HelpProps) {
       'https://developer.mozilla.org/en-US/docs/Web/Security/CSP/CSP_policy_directives#';
 
     if (key in linkOverrides) {
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       return `${baseLink}${linkOverrides[key]}`;
     }
 

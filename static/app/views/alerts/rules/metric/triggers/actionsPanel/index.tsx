@@ -402,7 +402,7 @@ class ActionsPanel extends PureComponent<Props> {
                         options={availableAction?.allowedTargetTypes?.map(
                           allowedType => ({
                             value: allowedType,
-                            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                            // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                             label: TargetLabel[allowedType],
                           })
                         )}
@@ -477,7 +477,7 @@ class ActionsPanel extends PureComponent<Props> {
                         isDisabled={disabled || loading}
                         value={action.priority}
                         placeholder={
-                          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                          // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                           DefaultPriorities[availableAction.type][triggerIndex]
                         }
                         options={PriorityOptions[availableAction.type].map(priority => ({

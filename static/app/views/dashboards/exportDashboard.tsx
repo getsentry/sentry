@@ -38,7 +38,7 @@ function getAPIParams(structure: any) {
   };
 
   for (const attr in regex) {
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     const match = url.match(regex[attr]);
     if (match?.length) {
       structure[attr] = match.length >= 3 ? match[2] : null;
@@ -67,14 +67,14 @@ function normalizeData(
       if (['widgets'].includes(property)) {
         // get the object properties so that we can loop through them
         const type = getPropertyStructure(property);
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         data = normalizeNestedObject(source[property], type);
       } else {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         data = source[property];
       }
 
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       payload[property] = data;
     }
   }

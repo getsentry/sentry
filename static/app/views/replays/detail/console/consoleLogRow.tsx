@@ -99,7 +99,7 @@ const ConsoleLog = styled('div')<{
 
   background-color: ${p =>
     ['warning', 'error'].includes(String(p.level))
-      ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      ? // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         p.theme.alert[String(p.level)].backgroundLight
       : 'inherit'};
 
@@ -139,7 +139,7 @@ const MediumFontSize = styled('span')`
 
 function ConsoleLevelIcon({level}: {level: string | undefined}) {
   return level && level in ICONS ? (
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     <MediumFontSize>{ICONS[level]}</MediumFontSize>
   ) : (
     <i />

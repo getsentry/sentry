@@ -123,7 +123,7 @@ export function Chart({
     ? transaction?.change
     : trendChangeType;
   const lineColor =
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     trendToColor[neutralColor ? 'neutral' : derivedTrendChangeType || trendChangeType];
 
   const events =
@@ -151,7 +151,7 @@ export function Chart({
   const seriesSelection = decodeList(
     location.query[getUnselectedSeries(trendChangeType)]
   ).reduce((selection, metric) => {
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     selection[metric] = false;
     return selection;
   }, {});

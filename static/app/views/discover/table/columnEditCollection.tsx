@@ -607,7 +607,7 @@ class ColumnEditCollection extends Component<Props, State> {
                 return 2;
               }
               const operation =
-                // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                 AGGREGATIONS[col.function[0]] ?? SESSIONS_OPERATIONS[col.function[0]];
               if (!operation || !operation.parameters) {
                 // Operation should be in the look-up table, but not all operations are (eg. private). This should be changed at some point.
@@ -705,7 +705,7 @@ function MetricTagQueryField({mri, ...props}: MetricTagQueryFieldProps) {
 
   const fieldOptions = useMemo(() => {
     return data.reduce(
-      // @ts-expect-error TS(7006): Parameter 'acc' implicitly has an 'any' type.
+      // @ts-ignore TS(7006): Parameter 'acc' implicitly has an 'any' type.
       (acc, tag) => {
         acc[`tag:${tag.key}`] = {
           label: tag.key,

@@ -169,7 +169,7 @@ function DashboardTable({
     if (column.key in SortKeys) {
       const urlSort = decodeScalar(location.query.sort, 'mydashboards');
       const isCurrentSort =
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         urlSort === SortKeys[column.key].asc || urlSort === SortKeys[column.key].desc;
       const sortDirection =
         !isCurrentSort || column.key === 'createdBy'
@@ -187,11 +187,11 @@ function DashboardTable({
           generateSortLink={() => {
             const newSort = isCurrentSort
               ? sortDirection === 'asc'
-                ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                ? // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                   SortKeys[column.key].desc
-                : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                : // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                   SortKeys[column.key].asc
-              : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+              : // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                 SortKeys[column.key].asc;
             return {
               ...location,
@@ -319,7 +319,7 @@ function DashboardTable({
       );
     }
 
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return <span>{dataRow[column.key]}</span>;
   };
 

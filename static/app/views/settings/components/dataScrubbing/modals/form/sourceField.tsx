@@ -103,7 +103,7 @@ class SourceField extends Component<Props, State> {
     return filteredSuggestions;
   }
 
-  // @ts-expect-error TS(7023): 'getNewSuggestions' implicitly has return type 'an... Remove this comment to see the full error message
+  // @ts-ignore TS(7023): 'getNewSuggestions' implicitly has return type 'an... Remove this comment to see the full error message
   getNewSuggestions(fieldValues: Array<SourceSuggestion | Array<SourceSuggestion>>) {
     const lastFieldValue = fieldValues[fieldValues.length - 1]!;
     const penultimateFieldValue = fieldValues[fieldValues.length - 2]!;

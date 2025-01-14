@@ -111,7 +111,7 @@ function createIncidentSeries(
       data: [
         {
           xAxis: incidentTimestamp,
-          // @ts-expect-error TS(2322): Type '{ xAxis: number; onClick: () => void | undef... Remove this comment to see the full error message
+          // @ts-ignore TS(2322): Type '{ xAxis: number; onClick: () => void | undef... Remove this comment to see the full error message
           onClick: () => handleIncidentClick?.(incident),
         },
       ],
@@ -452,7 +452,7 @@ export function transformSessionResponseToSeries(
       data: getCrashFreeRateSeries(
         response?.groups,
         response?.intervals,
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         SESSION_AGGREGATE_TO_FIELD[aggregate]
       ),
     },

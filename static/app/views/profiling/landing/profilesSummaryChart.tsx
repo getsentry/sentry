@@ -65,7 +65,7 @@ export function ProfilesSummaryChart({
 
         if (rawData.axis === 'count()') {
           return {
-            // @ts-expect-error TS(7006): Parameter 'value' implicitly has an 'any' type.
+            // @ts-ignore TS(7006): Parameter 'value' implicitly has an 'any' type.
             data: rawData.values.map((value, i) => ({
               name: timestamps[i]!,
 
@@ -80,7 +80,7 @@ export function ProfilesSummaryChart({
         }
 
         return {
-          // @ts-expect-error TS(7006): Parameter 'value' implicitly has an 'any' type.
+          // @ts-ignore TS(7006): Parameter 'value' implicitly has an 'any' type.
           data: rawData.values.map((value, i) => ({
             name: timestamps[i]!,
 

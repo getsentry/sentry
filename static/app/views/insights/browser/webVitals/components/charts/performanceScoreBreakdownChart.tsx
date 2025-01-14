@@ -64,7 +64,7 @@ export function PerformanceScoreBreakdownChart({
     useProjectWebVitalsScoresTimeseriesQuery({transaction, browserTypes, subregions});
 
   const period = pageFilters.selection.datetime.period;
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const performanceScoreSubtext = (period && DEFAULT_RELATIVE_PERIODS[period]) ?? '';
   const chartSeriesOrder = ORDER;
 
@@ -125,7 +125,7 @@ export function PerformanceScoreBreakdownChart({
             // Kind of a hack, but we can inject some html to escape styling for the subLabel.
             const subLabel =
               weights !== undefined
-                ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                ? // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                   ` </strong>(${weights[name.toLocaleLowerCase()].toFixed(
                     0
                   )}% of Perf Score)<strong>`

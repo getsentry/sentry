@@ -75,7 +75,7 @@ export default function IssueTrackingSignals({group}: Props) {
     'plugin-actions': getPluginNames,
     'integration-issue': getIntegrationNames,
     'sentry-app-issue': getAppIntegrationNames,
-    // @ts-expect-error TS(2551): Property 'plugin-action' does not exist on type '{... Remove this comment to see the full error message
+    // @ts-ignore TS(2551): Property 'plugin-action' does not exist on type '{... Remove this comment to see the full error message
   }[issue.type](issue) ?? {name: '', icon: undefined};
 
   return (

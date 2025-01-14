@@ -62,7 +62,7 @@ export function ProjectsPreviewTable({isLoading, period, sampleCounts}: Props) {
       items: balancingItems,
     });
     return initialBalancedItems.reduce((acc, item) => {
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       acc[item.id] = item.sampleRate;
       return acc;
     }, {});
@@ -72,13 +72,13 @@ export function ProjectsPreviewTable({isLoading, period, sampleCounts}: Props) {
     return balancedItems.map(item => ({
       ...item,
       sampleRate: formatPercent(item.sampleRate),
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       initialSampleRate: formatPercent(initialSampleRateById[item.id]),
     }));
   }, [balancedItems, initialSampleRateById]);
 
   const breakdownSampleRates = balancedItems.reduce((acc, item) => {
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     acc[item.id] = item.sampleRate;
     return acc;
   }, {});

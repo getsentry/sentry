@@ -218,7 +218,7 @@ export const MRISelect = memo(function MRISelect({
   }, [metricsMeta, value]);
 
   const handleMRIChange = useCallback(
-    // @ts-expect-error TS(7006): Parameter 'option' implicitly has an 'any' type.
+    // @ts-ignore TS(7006): Parameter 'option' implicitly has an 'any' type.
     option => {
       onChange(option.value);
     },

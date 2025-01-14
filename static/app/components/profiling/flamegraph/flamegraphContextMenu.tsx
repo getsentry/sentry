@@ -519,7 +519,7 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 function makeProjectIdLookupTable(projects: Project[]): Record<number, Project> {
   const table: Record<number, Project> = {};
   for (const project of projects) {
-    // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
+    // @ts-ignore TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
     table[project.id] = project;
   }
   return table;

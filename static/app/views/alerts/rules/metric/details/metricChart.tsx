@@ -382,7 +382,7 @@ class MetricChart extends PureComponent<Props, State> {
                       formatter: seriesParams => {
                         // seriesParams can be object instead of array
                         const pointSeries = toArray(seriesParams);
-                        // @ts-expect-error TS(2339): Property 'marker' does not exist on type 'Callback... Remove this comment to see the full error message
+                        // @ts-ignore TS(2339): Property 'marker' does not exist on type 'Callback... Remove this comment to see the full error message
                         const {marker, data: pointData} = pointSeries[0];
                         const seriesName =
                           formattedAggregate ?? pointSeries[0]?.seriesName ?? '';
@@ -416,7 +416,7 @@ class MetricChart extends PureComponent<Props, State> {
                               )
                             : undefined;
 
-                        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                         const comparisonPointY = comparisonSeries?.data[1] as
                           | number
                           | undefined;
@@ -588,7 +588,7 @@ class MetricChart extends PureComponent<Props, State> {
         end={viableEndDate}
         query={query}
         interval={interval}
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         field={SESSION_AGGREGATE_TO_FIELD[aggregate]}
         groupBy={['session.status']}
       >

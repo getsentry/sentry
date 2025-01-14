@@ -31,7 +31,7 @@ export class FlamegraphRendererDOM extends FlamegraphRenderer {
     super(canvas, flamegraph, theme, options);
 
     // safe renderer initialization does not skip the renderer
-    // @ts-expect-error TS(2740): Type '{}' is missing the following properties from... Remove this comment to see the full error message
+    // @ts-ignore TS(2740): Type '{}' is missing the following properties from... Remove this comment to see the full error message
     this.ctx = {};
 
     const newContainer = document.createElement('div');

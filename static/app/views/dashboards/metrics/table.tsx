@@ -118,7 +118,7 @@ const equalGroupBys = (a: Record<string, unknown>, b: Record<string, unknown>) =
 
 const getEmptyGroup = (tags: string[]) =>
   tags.reduce((acc, tag) => {
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     acc[tag] = '';
     return acc;
   }, {});
@@ -158,7 +158,7 @@ export function getTableData(
   expressions: MetricsQueryApiQueryParams[]
 ): TableData {
   const queries = expressions.filter(isNotQueryOnly) as MetricsQueryApiRequestQuery[];
-  // @ts-expect-error TS(2339): Property 'isHidden' does not exist on type 'Metric... Remove this comment to see the full error message
+  // @ts-ignore TS(2339): Property 'isHidden' does not exist on type 'Metric... Remove this comment to see the full error message
   const shownExpressions = expressions.filter(e => !e.isHidden);
   const tags = [...new Set(queries.flatMap(query => query.groupBy ?? []))];
 
@@ -183,14 +183,14 @@ export function getTableData(
 
   const rows: Row[] = groupByCombos.map(combo => {
     const row = Object.entries(combo).reduce((acc, [key, value]) => {
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       acc[key] = {value};
       return acc;
     }, {});
 
     normalizedResults.forEach(({name, results}) => {
       const entry = results.find(e => equalGroupBys(e.by, combo));
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       row[name] = {value: entry?.totals, formattedValue: entry?.formattedValue};
     });
 
@@ -206,7 +206,7 @@ export function getTableData(
     })),
     ...shownExpressions.map(query => ({
       name: query.name,
-      // @ts-expect-error TS(2339): Property 'id' does not exist on type 'MetricsQuery... Remove this comment to see the full error message
+      // @ts-ignore TS(2339): Property 'id' does not exist on type 'MetricsQuery... Remove this comment to see the full error message
       id: query.id,
       label:
         // TODO(metrics): consider consolidating with getMetricQueryName (different types)

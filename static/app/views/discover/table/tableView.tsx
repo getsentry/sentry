@@ -627,10 +627,10 @@ function TableView(props: TableViewProps) {
           const unit = tableData?.meta?.units?.[column.name];
           if (typeof cellValue === 'number' && unit) {
             if (Object.keys(SIZE_UNITS).includes(unit)) {
-              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+              // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
               cellValue *= SIZE_UNITS[unit];
             } else if (Object.keys(DURATION_UNITS).includes(unit)) {
-              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+              // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
               cellValue *= DURATION_UNITS[unit];
             }
           }

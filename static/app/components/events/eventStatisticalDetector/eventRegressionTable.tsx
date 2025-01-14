@@ -38,7 +38,7 @@ interface EventRegressionTableProps<K extends string> {
     string,
     {
       defaultValue?: React.ReactNode;
-      // @ts-expect-error TS(7051): Parameter has a name but no type. Did you mean 'ar... Remove this comment to see the full error message
+      // @ts-ignore TS(7051): Parameter has a name but no type. Did you mean 'ar... Remove this comment to see the full error message
       link?: (any) =>
         | {
             target: LocationDescriptor;

@@ -37,9 +37,9 @@ export default function ApiNewToken() {
   const getPreview = () => {
     let previewString = '';
     for (const k in permissions) {
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       if (permissions[k] !== 'no-access') {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         previewString += `${k.toLowerCase()}:${permissions[k]}\n`;
       }
     }

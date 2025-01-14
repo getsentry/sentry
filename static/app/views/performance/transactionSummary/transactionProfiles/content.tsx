@@ -432,7 +432,7 @@ function ProfileList({query: userQuery, transaction}: TransactionProfilesContent
   );
 
   const handleCursor = useCallback(
-    // @ts-expect-error TS(7006): Parameter 'newCursor' implicitly has an 'any' type... Remove this comment to see the full error message
+    // @ts-ignore TS(7006): Parameter 'newCursor' implicitly has an 'any' type... Remove this comment to see the full error message
     (newCursor, pathname, query) => {
       navigate({
         pathname,

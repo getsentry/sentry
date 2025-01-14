@@ -49,7 +49,7 @@ const getFunctionTags = (fields: Readonly<Field[]> | undefined) => {
       !isEquation(item.field) &&
       !isCustomMeasurement(item.field)
     ) {
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       acc[item.field] = {key: item.field, name: item.field, kind: FieldKind.FUNCTION};
     }
 
@@ -66,7 +66,7 @@ const getMeasurementTags = (
     | undefined
 ) => {
   const measurementsWithKind = Object.keys(measurements).reduce((tags, key) => {
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     tags[key] = {
       ...measurements[key],
       kind: FieldKind.MEASUREMENT,
@@ -79,7 +79,7 @@ const getMeasurementTags = (
   }
 
   return Object.keys(customMeasurements).reduce((tags, key) => {
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     tags[key] = {
       ...customMeasurements[key],
       kind: FieldKind.MEASUREMENT,
@@ -175,7 +175,7 @@ function SearchBar(props: SearchBarProps) {
   const functionTags = useMemo(() => getFunctionTags(fields), [fields]);
   const tagsWithKind = useMemo(() => {
     return Object.keys(tags).reduce((acc, key) => {
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       acc[key] = {
         ...tags[key],
         kind: FieldKind.TAG,
@@ -229,7 +229,7 @@ function SearchBar(props: SearchBarProps) {
               includeTransactions,
               // allows searching for tags on sessions as well
               includeSessions: includeSessionTagsValues,
-              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+              // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
               dataset: dataset ? DiscoverDatasetsToDatasetMap[dataset] : undefined,
             });
 

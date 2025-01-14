@@ -37,7 +37,7 @@ function SampleInfo(props: Props) {
   }
 
   if (subregions) {
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     ribbonFilters[SpanMetricsField.USER_GEO_SUBREGION] = `[${subregions.join(',')}]`;
   }
 
@@ -65,9 +65,9 @@ function SampleInfo(props: Props) {
   return (
     <StyledReadoutRibbon>
       <MetricReadout
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         title={getThroughputTitle(spanMetrics?.[SpanMetricsField.SPAN_OP])}
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         value={spanMetrics?.['spm()']}
         unit={RateUnit.PER_MINUTE}
         isLoading={isPending}
@@ -75,7 +75,7 @@ function SampleInfo(props: Props) {
 
       <MetricReadout
         title={DataTitles.avg}
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         value={spanMetrics?.[`avg(${SpanMetricsField.SPAN_SELF_TIME})`]}
         unit={DurationUnit.MILLISECOND}
         isLoading={isPending}
@@ -83,13 +83,13 @@ function SampleInfo(props: Props) {
 
       <MetricReadout
         title={DataTitles.timeSpent}
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         value={spanMetrics?.[0]?.[`sum(${SpanMetricsField.SPAN_SELF_TIME}))`]}
         unit={DurationUnit.MILLISECOND}
         tooltip={getTimeSpentExplanation(
-          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+          // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           spanMetrics?.[0]?.['time_spent_percentage()'],
-          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+          // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           spanMetrics?.[SpanMetricsField.SPAN_OP]
         )}
         isLoading={isPending}

@@ -26,17 +26,17 @@ function getVitalStateText(vital: WebVital | WebVital[], vitalState: any) {
     case VitalState.POOR:
       return Array.isArray(vital)
         ? t('Poor')
-        : // @ts-expect-error TS(2551): Property 'measurements.ttfb' does not exist on typ... Remove this comment to see the full error message
+        : // @ts-ignore TS(2551): Property 'measurements.ttfb' does not exist on typ... Remove this comment to see the full error message
           tct('(>[threshold][unit])', {threshold: webVitalPoor[vital], unit});
     case VitalState.MEH:
       return Array.isArray(vital)
         ? t('Meh')
-        : // @ts-expect-error TS(2551): Property 'measurements.ttfb' does not exist on typ... Remove this comment to see the full error message
+        : // @ts-ignore TS(2551): Property 'measurements.ttfb' does not exist on typ... Remove this comment to see the full error message
           tct('(>[threshold][unit])', {threshold: webVitalMeh[vital], unit});
     case VitalState.GOOD:
       return Array.isArray(vital)
         ? t('Good')
-        : // @ts-expect-error TS(2551): Property 'measurements.ttfb' does not exist on typ... Remove this comment to see the full error message
+        : // @ts-ignore TS(2551): Property 'measurements.ttfb' does not exist on typ... Remove this comment to see the full error message
           tct('(<=[threshold][unit])', {threshold: webVitalMeh[vital], unit});
     default:
       return null;

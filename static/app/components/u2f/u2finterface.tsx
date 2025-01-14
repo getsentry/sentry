@@ -1,6 +1,6 @@
 import {Component} from 'react';
 import * as Sentry from '@sentry/react';
-// @ts-expect-error TS(7016): Could not find a declaration file for module 'cbor... Remove this comment to see the full error message
+// @ts-ignore TS(7016): Could not find a declaration file for module 'cbor... Remove this comment to see the full error message
 import * as cbor from 'cbor-web';
 
 import {base64urlToBuffer, bufferToBase64url} from 'sentry/components/u2f/webAuthnHelper';

@@ -136,7 +136,7 @@ function AccountIdentities() {
   const appIdentities = useMemo(
     () =>
       identities
-        // @ts-expect-error TS(7006): Parameter 'identity' implicitly has an 'any' type.
+        // @ts-ignore TS(7006): Parameter 'identity' implicitly has an 'any' type.
         .filter(identity => identity.category !== UserIdentityCategory.ORG_IDENTITY)
         .sort(itemOrder),
     [identities]
@@ -145,7 +145,7 @@ function AccountIdentities() {
   const orgIdentities = useMemo(
     () =>
       identities
-        // @ts-expect-error TS(7006): Parameter 'identity' implicitly has an 'any' type.
+        // @ts-ignore TS(7006): Parameter 'identity' implicitly has an 'any' type.
         .filter(identity => identity.category === UserIdentityCategory.ORG_IDENTITY)
         .sort(itemOrder),
     [identities]
@@ -189,7 +189,7 @@ function AccountIdentities() {
               )}
             </EmptyMessage>
           ) : (
-            // @ts-expect-error TS(7006): Parameter 'identity' implicitly has an 'any' type.
+            // @ts-ignore TS(7006): Parameter 'identity' implicitly has an 'any' type.
             appIdentities.map(identity => (
               <IdentityItem
                 key={identity.id}
@@ -211,7 +211,7 @@ function AccountIdentities() {
               )}
             </EmptyMessage>
           ) : (
-            // @ts-expect-error TS(7006): Parameter 'identity' implicitly has an 'any' type.
+            // @ts-ignore TS(7006): Parameter 'identity' implicitly has an 'any' type.
             orgIdentities.map(identity => (
               <IdentityItem
                 key={identity.id}

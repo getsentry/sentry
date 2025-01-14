@@ -61,7 +61,7 @@ export function MetricSearchBar({
   );
 
   const supportedTags: TagCollection = useMemo(
-    // @ts-expect-error TS(7006): Parameter 'acc' implicitly has an 'any' type.
+    // @ts-ignore TS(7006): Parameter 'acc' implicitly has an 'any' type.
     () => tags.reduce((acc, tag) => ({...acc, [tag.key]: tag}), {}),
     [tags]
   );

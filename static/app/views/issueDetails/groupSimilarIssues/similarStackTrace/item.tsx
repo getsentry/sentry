@@ -96,7 +96,7 @@ class Item extends Component<Props, State> {
     }
 
     Object.keys(stateForId).forEach(key => {
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       if (stateForId[key] === this.state[key]) {
         return;
       }
@@ -152,9 +152,9 @@ class Item extends Component<Props, State> {
         <Columns>
           <StyledCount value={issue.count} />
           {similarInterfaces.map(interfaceName => {
-            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+            // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             const avgScore = aggregate?.[interfaceName];
-            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+            // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             const scoreList = scoresByInterface?.[interfaceName] || [];
 
             // Check for valid number (and not NaN)

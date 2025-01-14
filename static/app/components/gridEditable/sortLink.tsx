@@ -59,7 +59,7 @@ type StyledLinkProps = LinkProps & {align: Alignments};
 const StyledLink = styled((props: StyledLinkProps) => {
   // but prior to this style of destructure-omitting it, it was being omitted
   // with lodash.omit. I mean keeping it omitted here just in case.
-  // @ts-expect-error TS(2339): Property 'css' does not exist on type 'StyledLinkP... Remove this comment to see the full error message
+  // @ts-ignore TS(2339): Property 'css' does not exist on type 'StyledLinkP... Remove this comment to see the full error message
   const {align: _align, css: _css, ...forwardProps} = props;
   return <Link {...forwardProps} />;
 })`

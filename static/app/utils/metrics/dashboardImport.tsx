@@ -311,9 +311,9 @@ export class WidgetParser {
       const metricName = metric.slice(0, lastIndex);
       const aggregationSuffix = metric.slice(lastIndex + 1);
 
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       if (METRIC_SUFFIX_TO_AGGREGATION[aggregationSuffix]) {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         aggregation = METRIC_SUFFIX_TO_AGGREGATION[aggregationSuffix];
         metric = metricName;
       }
@@ -400,7 +400,7 @@ export class WidgetParser {
   private async mapToMetricsQuery(widget: any): Promise<MetricsQuery | null> {
     const {metric, aggregation, filters} = widget;
 
-    // @ts-expect-error TS(2339): Property 'name' does not exist on type 'MetricMeta... Remove this comment to see the full error message
+    // @ts-ignore TS(2339): Property 'name' does not exist on type 'MetricMeta... Remove this comment to see the full error message
     const metricMeta = this.availableMetrics.find(m => m.name === metric);
 
     if (!metricMeta) {

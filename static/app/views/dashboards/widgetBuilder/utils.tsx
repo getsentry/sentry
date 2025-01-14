@@ -447,7 +447,7 @@ export function getFieldOptionFormat(
           kind: FieldValueKind.FUNCTION,
           meta: {
             name: functionName,
-            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+            // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             parameters: AGGREGATIONS[field.function[0]].parameters.map((param: any) => ({
               ...param,
 

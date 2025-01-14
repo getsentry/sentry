@@ -289,7 +289,7 @@ export function transformSessionsResponseToTable(
   );
   const rows = data.groups.map((group, index) => ({
     id: String(index),
-    // @ts-expect-error TS(2345): Argument of type 'Record<string, string | number> ... Remove this comment to see the full error message
+    // @ts-ignore TS(2345): Argument of type 'Record<string, string | number> ... Remove this comment to see the full error message
     ...mapDerivedMetricsToFields(group.by),
     // if `sum(session)` or `count_unique(user)` are not
     // requested as a part of the payload for
@@ -352,7 +352,7 @@ export function transformSessionsResponseToSeries(
       // stripped.
       if (!injectedFields.includes(derivedMetricsToField(field))) {
         results.push({
-          // @ts-expect-error TS(2345): Argument of type '{ by: Record<string, string | nu... Remove this comment to see the full error message
+          // @ts-ignore TS(2345): Argument of type '{ by: Record<string, string | nu... Remove this comment to see the full error message
           seriesName: getSeriesName(field, group, queryAlias),
           data: data.intervals.map((interval, index) => ({
             name: interval,
@@ -377,7 +377,7 @@ export function transformSessionsResponseToSeries(
             }
           }
           results.push({
-            // @ts-expect-error TS(2345): Argument of type '{ by: Record<string, string | nu... Remove this comment to see the full error message
+            // @ts-ignore TS(2345): Argument of type '{ by: Record<string, string | nu... Remove this comment to see the full error message
             seriesName: getSeriesName(status, group, queryAlias),
             data: data.intervals.map((interval, index) => ({
               name: interval,
@@ -393,7 +393,7 @@ export function transformSessionsResponseToSeries(
 }
 
 function fieldsToDerivedMetrics(field: string): string {
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   return FIELD_TO_METRICS_EXPRESSION[field] ?? field;
 }
 

@@ -243,7 +243,7 @@ export function VitalChartInner(props: VitalChartInnerProps) {
       valueFormatter: (value: number, seriesName?: string) => {
         return tooltipFormatter(
           value,
-          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+          // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           aggregateOutputType(vitalFields[0] === WebVital.CLS ? seriesName : yAxis)
         );
       },
@@ -273,7 +273,7 @@ export function VitalChartInner(props: VitalChartInnerProps) {
         return {
           seriesName: adjustedSeries,
           ...rest,
-          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+          // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           color: theme[vitalStateColors[adjustedSeries]],
           lineStyle: {
             opacity: 1,

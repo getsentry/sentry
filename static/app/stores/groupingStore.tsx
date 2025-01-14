@@ -22,7 +22,7 @@ const MIN_SCORE = 0.6;
 // @param score: {[key: string]: number}
 const checkBelowThreshold = (scores = {}) => {
   const scoreKeys = Object.keys(scores);
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   return !scoreKeys.map(key => scores[key]).find(score => score >= MIN_SCORE);
 };
 
@@ -353,12 +353,12 @@ const storeConfig: GroupingStoreDefinition = {
             // v1 layout: '<interface>:...'
             const [interfaceName] = String(scoreKey).split(':') as [string];
 
-            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+            // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             if (!acc[interfaceName]) {
-              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+              // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
               acc[interfaceName] = [];
             }
-            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+            // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             acc[interfaceName].push([scoreKey, score]);
 
             return acc;
@@ -366,17 +366,17 @@ const storeConfig: GroupingStoreDefinition = {
 
         // Aggregate score by interface
         const aggregate = Object.keys(scoresByInterface)
-          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+          // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           .map(interfaceName => [interfaceName, scoresByInterface[interfaceName]])
           .reduce((acc, [interfaceName, allScores]) => {
             // `null` scores means feature was not present in both issues, do not
             // include in aggregate
-            // @ts-expect-error TS(7031): Binding element 'score' implicitly has an 'any' ty... Remove this comment to see the full error message
+            // @ts-ignore TS(7031): Binding element 'score' implicitly has an 'any' ty... Remove this comment to see the full error message
             const scores = allScores.filter(([, score]) => score !== null);
 
             const avg =
               scores.reduce((sum: any, [, score]: any) => sum + score, 0) / scores.length;
-            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+            // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             acc[interfaceName] = hasSimilarityEmbeddingsFeature ? scores[0][1] : avg;
             return acc;
           }, {});

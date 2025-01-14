@@ -154,7 +154,7 @@ class MetricAlertDetails extends Component<Props, State> {
     const timeOption =
       TIME_OPTIONS.find(item => item.value === period) ?? TIME_OPTIONS[1]!;
     const start = getUtcDateString(
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       moment(moment.utc().diff(TIME_WINDOWS[timeOption.value]))
     );
     const end = getUtcDateString(moment.utc());

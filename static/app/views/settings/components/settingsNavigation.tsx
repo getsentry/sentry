@@ -39,7 +39,7 @@ class SettingsNavigation extends Component<Props> {
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     Sentry.withScope(scope => {
       Object.keys(errorInfo).forEach(key => {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         scope.setExtra(key, errorInfo[key]);
       });
       scope.setExtra('url', window.location.href);

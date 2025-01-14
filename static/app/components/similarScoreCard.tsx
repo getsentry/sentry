@@ -38,7 +38,7 @@ function SimilarScoreCard({scoreList = []}: Props) {
     <Fragment>
       {scoreList.map(([key, score]) => {
         const title =
-          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+          // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           scoreComponents[key.replace(/similarity:\d\d\d\d-\d\d-\d\d/, 'similarity:*')];
 
         if (!title) {

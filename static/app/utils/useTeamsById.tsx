@@ -73,7 +73,7 @@ export function useTeamsById(options: UseTeamOptions = {}): UseTeamsResult {
 
   const query = useMemo<TeamQuery | null>(() => getQueryFromOptions(options), [options]);
   const missingIds = query
-    ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    ? // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       query[1].filter(id => !storeState.teams.find(team => team[query[0]] === id))
     : [];
 
@@ -102,7 +102,7 @@ export function useTeamsById(options: UseTeamOptions = {}): UseTeamsResult {
 
   const teams = useMemo<Team[]>(() => {
     return query
-      ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      ? // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         storeState.teams.filter(team => query[1].includes(team[query[0]]))
       : storeState.teams;
   }, [storeState.teams, query]);

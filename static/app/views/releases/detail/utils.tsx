@@ -36,7 +36,7 @@ export function getFilesByRepository(fileList: CommitFile[]) {
     }
 
     if (!filesByRepository[repoName]!.hasOwnProperty(filename)) {
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       filesByRepository[repoName]![filename] = {
         authors: {},
         types: new Set(),
@@ -44,11 +44,11 @@ export function getFilesByRepository(fileList: CommitFile[]) {
     }
 
     if (author.email) {
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       filesByRepository[repoName]![filename].authors[author.email] = author;
     }
 
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     filesByRepository[repoName]![filename].types.add(type);
 
     return filesByRepository;
@@ -184,7 +184,7 @@ function generateReleaseMarkLine(
       label: {
         position: 'insideEndBottom',
         formatter: hideLabel ? '' : title,
-        // @ts-expect-error TS(2322): Type '{ position: "insideEndBottom"; formatter: st... Remove this comment to see the full error message
+        // @ts-ignore TS(2322): Type '{ position: "insideEndBottom"; formatter: st... Remove this comment to see the full error message
         font: 'Rubik',
         fontSize: 14,
         color: theme.chartLabel,

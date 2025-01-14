@@ -126,7 +126,7 @@ export default function FeedbackList() {
                   onRowsRendered={onRowsRendered}
                   overscanRowCount={5}
                   ref={e => {
-                    // @ts-expect-error TS(2540): Cannot assign to 'current' because it is a read-on... Remove this comment to see the full error message
+                    // @ts-ignore TS(2540): Cannot assign to 'current' because it is a read-on... Remove this comment to see the full error message
                     listRef.current = e;
                     registerChild(e);
                   }}

@@ -87,7 +87,7 @@ function getInferredData(data: DeviceContext) {
   const screenHeight = data[DeviceContextKey.SCREEN_HEIGHT_PIXELS];
 
   if (screenResolution) {
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     const displayResolutionDescription = commonDisplayResolutions[screenResolution];
 
     const commonData = {
@@ -114,7 +114,7 @@ function getInferredData(data: DeviceContext) {
 
   if (defined(screenWidth) && defined(screenHeight)) {
     const displayResolution = `${screenWidth}x${screenHeight}`;
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     const displayResolutionDescription = commonDisplayResolutions[displayResolution];
 
     return {
@@ -366,9 +366,9 @@ export function getDeviceContextData({
         return {
           key: ctxKey,
           subject: ctxKey,
-          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+          // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           value: data[ctxKey],
-          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+          // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           meta: meta?.[ctxKey]?.[''],
         };
     }
