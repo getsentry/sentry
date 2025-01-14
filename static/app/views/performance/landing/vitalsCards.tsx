@@ -397,8 +397,7 @@ export function VitalBar(props: VitalBarProps) {
   vitals.forEach(vitalName => {
     const c = data?.[vitalName] ?? {};
     (Object.keys(counts) as Array<keyof typeof counts>).forEach(
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      countKey => (counts[countKey] += c[countKey])
+      countKey => (counts[countKey] += (c as any)[countKey])
     );
   });
 

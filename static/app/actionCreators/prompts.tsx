@@ -290,14 +290,12 @@ export async function batchedPromptsCheck<T extends readonly string[]>(
   for (const featureName of features) {
     const item = responseFeatures[featureName];
     if (item) {
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      result[featureName] = {
+      (result as any)[featureName] = {
         dismissedTime: item.dismissed_ts,
         snoozedTime: item.snoozed_ts,
       };
     } else {
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      result[featureName] = null;
+      (result as any)[featureName] = null;
     }
   }
   return result as {[key in T[number]]: PromptData};

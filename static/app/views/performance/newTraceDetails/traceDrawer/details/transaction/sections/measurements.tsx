@@ -88,11 +88,9 @@ export function Measurements({event, location, organization}: MeasurementsProps)
       let customMetricValue = value;
       if (typeof value === 'number' && unit && customMetricValue) {
         if (Object.keys(SIZE_UNITS).includes(unit)) {
-          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-          customMetricValue *= SIZE_UNITS[unit];
+          customMetricValue *= SIZE_UNITS[unit as keyof typeof SIZE_UNITS];
         } else if (Object.keys(DURATION_UNITS).includes(unit)) {
-          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-          customMetricValue *= DURATION_UNITS[unit];
+          customMetricValue *= DURATION_UNITS[unit as keyof typeof DURATION_UNITS];
         }
       }
 

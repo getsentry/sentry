@@ -199,8 +199,7 @@ export function useChartZoom({
 
   const handleDataZoom = useCallback<EChartDataZoomHandler>(
     evt => {
-      // @ts-expect-error TS(2339): Property 'batch' does not exist on type '{ end: nu... Remove this comment to see the full error message
-      const {startValue, endValue} = evt.batch[0] as {
+      const {startValue, endValue} = (evt as any).batch[0] as {
         endValue: number | null;
         startValue: number | null;
       };
@@ -231,8 +230,7 @@ export function useChartZoom({
     }
 
     // This attempts to activate the area zoom toolbox feature
-    // @ts-expect-error TS(2341): Property '_componentsViews' is private and only ac... Remove this comment to see the full error message
-    const zoom = chart._componentsViews?.find((c: any) => c._features?.dataZoom);
+    const zoom = (chart as any)._componentsViews?.find((c: any) => c._features?.dataZoom);
     if (zoom && !zoom._features.dataZoom._isZoomActive) {
       // Calling dispatchAction will re-trigger handleChartFinished
       chart.dispatchAction({

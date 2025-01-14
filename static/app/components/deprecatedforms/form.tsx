@@ -136,8 +136,7 @@ class Form<
         <StyledForm
           onSubmit={this.onSubmit}
           className={this.props.className}
-          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-          aria-label={this.props['aria-label']}
+          aria-label={(this.props as any)['aria-label']}
         >
           {isError && !hideErrors && (
             <div className="alert alert-error alert-block">

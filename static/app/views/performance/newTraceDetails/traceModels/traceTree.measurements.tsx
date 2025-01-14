@@ -19,11 +19,13 @@ const RENDERABLE_MEASUREMENTS = [
   MobileVital.TIME_TO_INITIAL_DISPLAY,
 ]
   .map(n => n.replace('measurements.', ''))
-  .reduce((acc, curr) => {
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    acc[curr] = true;
-    return acc;
-  }, {});
+  .reduce(
+    (acc, curr) => {
+      acc[curr] = true;
+      return acc;
+    },
+    {} as Record<string, boolean>
+  );
 
 const WEB_VITALS = [
   WebVital.TTFB,
@@ -76,10 +78,8 @@ export const TRACE_MEASUREMENT_LOOKUP: Record<string, Vital> = {};
 
 for (const key in {...MOBILE_VITAL_DETAILS, ...WEB_VITAL_DETAILS}) {
   TRACE_MEASUREMENT_LOOKUP[key.replace('measurements.', '')] = {
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    ...MOBILE_VITAL_DETAILS[key],
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    ...WEB_VITAL_DETAILS[key],
+    ...MOBILE_VITAL_DETAILS[key as keyof typeof MOBILE_VITAL_DETAILS],
+    ...WEB_VITAL_DETAILS[key as keyof typeof WEB_VITAL_DETAILS],
   };
 }
 
@@ -141,7 +141,6 @@ export function collectTraceMeasurements(
       score,
     });
 
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     if (!RENDERABLE_MEASUREMENTS[measurement]) {
       continue;
     }

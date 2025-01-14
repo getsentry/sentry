@@ -27,14 +27,12 @@ export function transformToAreaSeries({
       name: seriesName,
       data: data.map(({name, value}) => [name, value]),
       lineStyle: {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        color: colors?.[i],
+        color: (colors as any)?.[i],
         opacity: 1,
         width: 0.4,
       },
       areaStyle: {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        color: colors?.[i],
+        color: (colors as any)?.[i],
         opacity: 1.0,
       },
       // Define the z level so that the series remain stacked in the correct order

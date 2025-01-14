@@ -46,18 +46,19 @@ function partitionSizes(data: RawSpanType['data']): {
       nonSizeKeys: {},
     };
   }
-  const sizeKeys = SIZE_DATA_KEYS.reduce((keys, key) => {
-    if (data.hasOwnProperty(key) && defined(data[key])) {
-      try {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        keys[key] = parseFloat(data[key]);
-      } catch (e) {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        keys[key] = data[key];
+  const sizeKeys = SIZE_DATA_KEYS.reduce(
+    (keys, key) => {
+      if (data.hasOwnProperty(key) && defined(data[key])) {
+        try {
+          keys[key] = parseFloat(data[key]);
+        } catch (e) {
+          keys[key] = data[key];
+        }
       }
-    }
-    return keys;
-  }, {});
+      return keys;
+    },
+    {} as Record<string, number>
+  );
 
   const nonSizeKeys = {...data};
   SIZE_DATA_KEYS.forEach(key => delete nonSizeKeys[key]);
@@ -173,8 +174,7 @@ export function SpanKeys({node}: {node: TraceTreeNode<TraceTree.Span>}) {
     items.push({
       key,
       subject: key,
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      value: span[key],
+      value: (span as any)[key],
     });
   });
   timingKeys.forEach(timing => {

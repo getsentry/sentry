@@ -51,12 +51,9 @@ export function addMessage(
 
   // XXX: Debug for https://sentry.io/organizations/sentry/issues/1595204979/
   if (
-    // @ts-expect-error TS(2339): Property 'message' does not exist on type 'string ... Remove this comment to see the full error message
-    typeof msg?.message !== 'undefined' &&
-    // @ts-expect-error TS(2339): Property 'code' does not exist on type 'string | n... Remove this comment to see the full error message
-    typeof msg?.code !== 'undefined' &&
-    // @ts-expect-error TS(2339): Property 'extra' does not exist on type 'string | ... Remove this comment to see the full error message
-    typeof msg?.extra !== 'undefined'
+    typeof (msg as any)?.message !== 'undefined' &&
+    typeof (msg as any)?.code !== 'undefined' &&
+    typeof (msg as any)?.extra !== 'undefined'
   ) {
     Sentry.captureException(new Error('Attempt to XHR response to Indicators'));
   }

@@ -1,5 +1,6 @@
 import type {Theme} from '@emotion/react';
 import type {XAXisComponentOption} from 'echarts';
+import type {TimeAxisLabelFormatterOption} from 'echarts/types/src/coord/axisCommonTypes';
 import merge from 'lodash/merge';
 
 import type {BaseChartProps} from 'sentry/components/charts/baseChart';
@@ -84,8 +85,7 @@ function XAxis({
       showMaxLabel: false,
       showMinLabel: false,
 
-      // @ts-expect-error TS(2322): Type '(value: string | number, index: number) => s... Remove this comment to see the full error message
-      formatter: AxisLabelFormatter,
+      formatter: AxisLabelFormatter as TimeAxisLabelFormatterOption,
     },
     axisPointer: {
       show: true,

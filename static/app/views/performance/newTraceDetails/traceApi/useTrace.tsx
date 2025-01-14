@@ -89,15 +89,11 @@ export function getTraceQueryParams(
   };
   for (const key in queryParams) {
     if (
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      queryParams[key] === '' ||
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      queryParams[key] === null ||
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      queryParams[key] === undefined
+      queryParams[key as keyof typeof queryParams] === '' ||
+      queryParams[key as keyof typeof queryParams] === null ||
+      queryParams[key as keyof typeof queryParams] === undefined
     ) {
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      delete queryParams[key];
+      delete queryParams[key as keyof typeof queryParams];
     }
   }
 

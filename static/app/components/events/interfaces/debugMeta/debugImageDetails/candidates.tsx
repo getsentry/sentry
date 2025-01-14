@@ -100,8 +100,7 @@ class Candidates extends Component<Props, State> {
 
     const filteredCandidatesBySearch = candidates.filter(obj =>
       Object.keys(pick(obj, ['source_name', 'location'])).some(key => {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        const info = obj[key];
+        const info = obj[key as keyof typeof obj];
 
         if (key === 'location' && typeof Number(info) === 'number') {
           return false;

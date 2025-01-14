@@ -193,8 +193,7 @@ const cumulativeTotalDataTransformation: UsageChartProps['handleDataTransformati
   Object.keys(stats).forEach(k => {
     let count = 0;
 
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    chartData[k] = stats[k].map((stat: any) => {
+    (chartData as any)[k] = (stats as any)[k].map((stat: any) => {
       const [x, y] = stat.value;
       count = isCumulative ? count + y : y;
 
@@ -273,8 +272,7 @@ function chartMetadata({
     const isProjected = k === SeriesTypes.PROJECTED;
 
     // Map the array and destructure elements to avoid side-effects
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    chartData[k] = chartData[k]?.map((stat: any) => {
+    (chartData as any)[k] = (chartData as any)[k]?.map((stat: any) => {
       return {
         ...stat,
         tooltip: {show: false},

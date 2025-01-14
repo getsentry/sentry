@@ -78,21 +78,19 @@ export default class PercentageAreaChart extends Component<Props> {
             // Filter series that have 0 counts
             const date =
               `${
-                // @ts-expect-error TS(2532): Object is possibly 'undefined'.
-                series.length && moment(series[0].data[0]).format('MMM D, YYYY')
+                series.length && moment((series as any)[0].data[0]).format('MMM D, YYYY')
               }<br />` || '';
 
             return [
               '<div class="tooltip-series">',
               series
                 .filter(
-                  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                  ({seriesName, data}) => data[1] > 0.001 && seriesName !== FILLER_NAME
+                  ({seriesName, data}) =>
+                    (data as any)[1] > 0.001 && seriesName !== FILLER_NAME
                 )
                 .map(
                   ({marker, seriesName, data}) =>
-                    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                    `<div><span class="tooltip-label">${marker} <strong>${seriesName}</strong></span> ${data[1]}%</div>`
+                    `<div><span class="tooltip-label">${marker} <strong>${seriesName}</strong></span> ${(data as any)[1]}%</div>`
                 )
                 .join(''),
               '</div>',

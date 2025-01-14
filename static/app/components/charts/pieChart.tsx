@@ -95,7 +95,9 @@ class PieChart extends Component<Props> {
 
     // Note, we only take the first series unit!
     const [firstSeries] = series;
-    const seriesPercentages = this.getSeriesPercentages(firstSeries!);
+    const seriesPercentages: Record<string, unknown> = this.getSeriesPercentages(
+      firstSeries!
+    );
 
     return (
       <BaseChart
@@ -142,10 +144,8 @@ class PieChart extends Component<Props> {
           bottom: 10,
           formatter: name =>
             `${name} ${
-              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
               typeof seriesPercentages[name] !== 'undefined'
-                ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                  `(${seriesPercentages[name]}%)`
+                ? `(${seriesPercentages[name]}%)`
                 : ''
             }`,
         })}
@@ -153,11 +153,9 @@ class PieChart extends Component<Props> {
           formatter: data => {
             return [
               '<div class="tooltip-series">',
-              // @ts-expect-error TS(2339): Property 'marker' does not exist on type 'TopLevel... Remove this comment to see the full error message
-              `<div><span class="tooltip-label">${data.marker}<strong>${data.name}</strong></span> ${data.percent}%</div>`,
+              `<div><span class="tooltip-label">${(data as any).marker}<strong>${(data as any).name}</strong></span> ${(data as any).percent}%</div>`,
               '</div>',
-              // @ts-expect-error TS(2339): Property 'value' does not exist on type 'TopLevelF... Remove this comment to see the full error message
-              `<div class="tooltip-footer">${data.value}</div>`,
+              `<div class="tooltip-footer">${(data as any).value}</div>`,
               '</div>',
               '<div class="tooltip-arrow"></div>',
             ].join('');

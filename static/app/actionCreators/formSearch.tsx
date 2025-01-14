@@ -32,8 +32,7 @@ const createSearchMap = ({
     route,
     title: typeof field !== 'function' ? (field?.label as string) : undefined,
     description: typeof field !== 'function' ? (field?.help as string) : undefined,
-    // @ts-expect-error TS(2322): Type 'Function | (CustomType & BaseField) | ({ typ... Remove this comment to see the full error message
-    field,
+    field: field as Field,
   }));
 };
 

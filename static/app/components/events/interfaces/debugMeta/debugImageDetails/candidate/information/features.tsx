@@ -20,8 +20,7 @@ function Features({download}: Props) {
     download.status === CandidateDownloadStatus.UNAPPLIED
   ) {
     features = Object.keys(download.features).filter(
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      feature => download.features[feature]
+      feature => download.features[feature as keyof typeof download.features]
     );
   }
 

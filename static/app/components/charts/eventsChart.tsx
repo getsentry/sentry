@@ -165,15 +165,17 @@ class Chart extends Component<ChartProps, State> {
   handleLegendSelectChanged = (legendChange: any) => {
     const {disableableSeries = []} = this.props;
     const {selected} = legendChange;
-    const seriesSelection = Object.keys(selected).reduce((state, key) => {
-      // we only want them to be able to disable the Releases&Other series,
-      // and not any of the other possible series here
-      const disableable =
-        ['Releases', 'Other'].includes(key) || disableableSeries.includes(key);
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      state[key] = disableable ? selected[key] : true;
-      return state;
-    }, {});
+    const seriesSelection = Object.keys(selected).reduce(
+      (state, key) => {
+        // we only want them to be able to disable the Releases&Other series,
+        // and not any of the other possible series here
+        const disableable =
+          ['Releases', 'Other'].includes(key) || disableableSeries.includes(key);
+        state[key] = disableable ? selected[key] : true;
+        return state;
+      },
+      {} as Record<string, boolean>
+    );
 
     // we have to force an update here otherwise ECharts will
     // update its internal state and disable the series

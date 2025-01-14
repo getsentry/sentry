@@ -116,8 +116,8 @@ function TeamIssuesBreakdown({
       }
 
       for (const key of keys) {
-        // @ts-expect-error TS(2532): Object is possibly 'undefined'.
-        projectTotals[projectId][key] += counts[key];
+        projectTotals[projectId][key as keyof StatusCounts] +=
+          counts[key as keyof StatusCounts]!;
       }
 
       if (!allReviewedByDay[projectId]) {

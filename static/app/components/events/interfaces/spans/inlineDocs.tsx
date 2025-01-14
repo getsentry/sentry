@@ -24,8 +24,9 @@ function InlineDocs({platform}: Props) {
   }
 
   const componentKey = Object.keys(DOC_COMPONENTS).find(key => platform.startsWith(key));
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-  const DocComponent = componentKey ? DOC_COMPONENTS[componentKey] : null;
+  const DocComponent = componentKey
+    ? DOC_COMPONENTS[componentKey as keyof typeof DOC_COMPONENTS]
+    : null;
 
   return (
     <div>

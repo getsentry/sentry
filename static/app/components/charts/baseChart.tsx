@@ -419,16 +419,14 @@ function BaseChartUnwrapped({
               type: 'line',
               itemStyle: {...(s.lineStyle ?? {})},
               markLine:
-                // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                s?.data?.[0]?.[1] !== undefined
+                (s?.data?.[0] as any)?.[1] !== undefined
                   ? MarkLine({
                       silent: true,
                       lineStyle: {
                         type: 'solid',
                         width: 1.5,
                       },
-                      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                      data: [{yAxis: s?.data?.[0]?.[1]}],
+                      data: [{yAxis: (s?.data?.[0] as any)?.[1]}],
                       label: {
                         show: false,
                       },
