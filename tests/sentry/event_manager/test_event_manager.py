@@ -1578,7 +1578,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         manager.save(self.project.id)
 
     @patch("sentry.event_manager.record_event_processed")
-    @patch("sentry.event_manager.record_user_context_received")
     @patch("sentry.event_manager.record_release_received")
     @patch("sentry.ingest.transaction_clusterer.datasource.redis._record_sample")
     def test_transaction_sampler_and_receive_mock_called(
