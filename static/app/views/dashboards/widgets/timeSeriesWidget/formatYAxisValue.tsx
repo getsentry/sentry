@@ -42,6 +42,7 @@ export function formatYAxisValue(value: number, type: string, unit?: string): st
       const rateUnit = isARateUnit(unit) ? unit : RateUnit.PER_SECOND;
       return `${value.toLocaleString(undefined, {
         notation: 'compact',
+        maximumFractionDigits: 10,
       })}${RATE_UNIT_LABELS[rateUnit]}`;
     default:
       return value.toString();
