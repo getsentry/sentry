@@ -10,6 +10,7 @@ from django.db import models
 from django.db.models import UniqueConstraint
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
+from jsonschema import ValidationError
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model
@@ -124,9 +125,12 @@ def enforce_config_schema(sender, instance: Detector, **kwargs):
     This needs to be a signal because the grouptype registry's entries are not available at import time.
     """
     group_type = instance.group_type
-
     if not group_type:
         raise ValueError(f"No group type found with type {instance.type}")
 
+    if not isinstance(instance.config, dict):
+        raise ValidationError("Detector config must be a dictionary")
+
     config_schema = group_type.detector_config_schema
-    instance.validate_config(config_schema)
+    if instance.config:
+        instance.validate_config(config_schema)
