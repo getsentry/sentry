@@ -29,10 +29,8 @@ class OnboardingTask:
     USER_CONTEXT = 5
     RELEASE_TRACKING = 6
     SOURCEMAPS = 7
-    USER_REPORTS = 8
     ALERT_RULE = 10
     FIRST_TRANSACTION = 11
-    METRIC_ALERT = 12
     SESSION_REPLAY = 14
     REAL_TIME_NOTIFICATIONS = 15
     LINK_SENTRY_TO_SOURCE_CODE = 16
@@ -123,12 +121,8 @@ class OrganizationOnboardingTask(AbstractOnboardingTask):
         (OnboardingTask.SECOND_PLATFORM, "setup_second_platform"),
         (OnboardingTask.RELEASE_TRACKING, "setup_release_tracking"),
         (OnboardingTask.SOURCEMAPS, "setup_sourcemaps"),
-        # TODO(Telemety Experience): Check if we can remove this from the frontend
-        (OnboardingTask.USER_REPORTS, "setup_user_reports"),
         (OnboardingTask.ALERT_RULE, "setup_alert_rules"),
         (OnboardingTask.FIRST_TRANSACTION, "setup_transactions"),
-        # TODO(Telemety Experience): Check if we can remove this from the frontend
-        (OnboardingTask.METRIC_ALERT, "setup_metric_alert_rules"),
         (OnboardingTask.SESSION_REPLAY, "setup_session_replay"),
         (OnboardingTask.REAL_TIME_NOTIFICATIONS, "setup_real_time_notifications"),
         (OnboardingTask.LINK_SENTRY_TO_SOURCE_CODE, "link_sentry_to_source_code"),
