@@ -269,7 +269,14 @@ export const featureFlagOnboarding: OnboardingConfig = {
           language: 'python',
           code:
             featureFlagOptions.integration === IntegrationOptions.GENERIC
-              ? `from sentry_sdk.${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration].module} import add_feature_flag`
+              ? `from sentry_sdk.${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration].module} import add_feature_flag
+
+sentry_sdk.init(
+  dsn="${dsn.public}",
+  integrations=[
+    # your other integrations here
+  ]
+)`
               : `import sentry-sdk
 from sentry_sdk.integrations.${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration].module} import ${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration].integration}
 
