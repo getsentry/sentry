@@ -11,8 +11,6 @@ from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 
-NEEDED_USER_FIELDS = {"email", "id", "username"}
-
 
 @dataclasses.dataclass(frozen=True)
 class RelocationMetadata:
@@ -109,18 +107,6 @@ class RelocationSerializer(Serializer):
             "importedUserIds": attrs.imported_user_ids,
             "importedOrgIds": attrs.imported_org_ids,
         }
-
-    def get_attrs_old(
-        self, item_list: Sequence[Relocation], user: User, **kwargs: Any
-    ) -> MutableMapping[Relocation, Mapping[int, RpcUser]]:
-        user_ids = set()
-        for relocation in item_list:
-            user_ids.add(relocation.creator_id)
-            user_ids.add(relocation.owner_id)
-
-        users = user_service.get_many(filter=dict(user_ids=list(user_ids)))
-        user_map = {u.id: u for u in users}
-        return {r: user_map for r in item_list}
 
     def get_attrs(
         self, item_list: Sequence[Relocation], user: User, **kwargs: Any

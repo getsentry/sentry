@@ -108,7 +108,6 @@ class GroupStatsMixin:
 
     CUSTOM_SEGMENTS = 29  # for 30 segments use 1/29th intervals
     CUSTOM_SEGMENTS_12H = 35  # for 12h 36 segments, otherwise 15-16-17 bars is too few
-    CUSTOM_ROLLUP_6H = timedelta(hours=6).total_seconds()  # rollups should be increments of 6hs
 
     @abstractmethod
     def query_tsdb(

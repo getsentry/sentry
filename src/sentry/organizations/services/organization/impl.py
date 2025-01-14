@@ -46,7 +46,6 @@ from sentry.organizations.services.organization import (
     OrganizationSignalService,
     RpcOrganization,
     RpcOrganizationFlagsUpdate,
-    RpcOrganizationInvite,
     RpcOrganizationMember,
     RpcOrganizationMemberFlags,
     RpcOrganizationSignal,
@@ -501,10 +500,6 @@ class DatabaseBackedOrganizationService(OrganizationService):
         model = OrganizationMember.objects.get(id=organization_member.id)
         model.flags = self._deserialize_member_flags(organization_member.flags)  # type: ignore[assignment]  # TODO: make BitField a mypy plugin
         model.save()
-
-    @classmethod
-    def _serialize_invite(cls, om: OrganizationMember) -> RpcOrganizationInvite:
-        return RpcOrganizationInvite(id=om.id, token=om.token, email=om.email)
 
     def update_default_role(self, *, organization_id: int, default_role: str) -> RpcOrganization:
         org = Organization.objects.get(id=organization_id)
