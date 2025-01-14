@@ -2,7 +2,6 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import type {ResponseMeta} from 'sentry/api';
 import {Client, Request, resolveHostname} from 'sentry/api';
-import {PROJECT_MOVED} from 'sentry/constants/apiErrorCodes';
 
 import ConfigStore from './stores/configStore';
 import OrganizationStore from './stores/organizationStore';
@@ -40,30 +39,7 @@ describe('api', function () {
     });
   });
 
-  it.skip('does not call success callback if 302 was returned because of a project slug change', function () {
-    const successCb = jest.fn();
-    api.activeRequests = {
-      id: {alive: true, requestPromise: new Promise(() => null), cancel: jest.fn()},
-    };
-    api.wrapCallback(
-      'id',
-      successCb
-    )({
-      responseJSON: {
-        detail: {
-          code: PROJECT_MOVED,
-          message: '...',
-          extra: {
-            slug: 'new-slug',
-          },
-        },
-      },
-    });
-    expect(successCb).not.toHaveBeenCalled();
-  });
-
-  it.skip('handles error callback', function () {
-    jest.spyOn(api, 'wrapCallback').mockImplementation((_id: string, func: any) => func);
+  it('handles error callback', function () {
     const errorCb = jest.fn();
     const args = ['test', true, 1] as unknown as [ResponseMeta, string, string];
     api.handleRequestError(
