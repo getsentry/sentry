@@ -63,11 +63,11 @@ EOF
     else
         minor=$(echo "${python_version}" | sed 's/[0-9]*\.\([0-9]*\)\.\([0-9]*\)/\1/')
         patch=$(echo "${python_version}" | sed 's/[0-9]*\.\([0-9]*\)\.\([0-9]*\)/\2/')
-        if [ "$minor" -ne 12 ] || [ "$patch" -lt 1 ]; then
+        if [ "$minor" -ne 13 ] || [ "$patch" -lt 0 ]; then
             cat <<EOF
     ${red}${bold}
     ERROR: You're running a virtualenv with Python ${python_version}.
-    We only support >= 3.12.1, < 3.13.
+    We only support >= 3.13.0, < 3.14.
     Either run "rm -rf ${venv_name} && direnv allow" to
     OR set SENTRY_PYTHON_VERSION=${python_version} to an .env file to bypass this check."
 EOF
