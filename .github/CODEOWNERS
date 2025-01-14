@@ -530,6 +530,7 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /src/sentry/event_manager.py                                @getsentry/issues
 /src/sentry/eventstore/models.py                            @getsentry/issues
 /src/sentry/grouping/                                       @getsentry/issues
+/src/sentry/issues/                                         @getsentry/issues
 /src/sentry/mediators/                                      @getsentry/issues
 /src/sentry/ratelimits/                                     @getsentry/issues
 /src/sentry/search/events/builder/issue_platform.py         @getsentry/issues
@@ -569,6 +570,7 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /tests/sentry/api/test_issue_search.py                      @getsentry/issues
 /tests/sentry/deletions/test_group.py                       @getsentry/issues
 /tests/sentry/event_manager/                                @getsentry/issues
+/tests/sentry/issues/                                       @getsentry/issues
 /tests/sentry/grouping/                                     @getsentry/issues
 /tests/sentry/search/                                       @getsentry/issues
 /tests/sentry/tasks/test_auto_ongoing_issues.py             @getsentry/issues
