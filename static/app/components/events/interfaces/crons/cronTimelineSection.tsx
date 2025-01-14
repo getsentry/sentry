@@ -23,7 +23,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useDimensions} from 'sentry/utils/useDimensions';
-import useRouter from 'sentry/utils/useRouter';
+import {useLocation} from 'sentry/utils/useLocation';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {ResolutionSelector} from 'sentry/views/monitors/components/overviewTimeline/resolutionSelector';
@@ -45,8 +45,8 @@ interface Props {
 const DEFAULT_ENVIRONMENT = 'production';
 
 export function CronTimelineSection({event, organization, project}: Props) {
-  const {location} = useRouter();
-  const timeWindow: TimeWindow = location.query?.timeWindow ?? '24h';
+  const location = useLocation();
+  const timeWindow = (location.query?.timeWindow as TimeWindow) ?? '24h';
   const monitorId = event.tags.find(({key}) => key === 'monitor.id')?.value;
   const monitorSlug = event.tags.find(({key}) => key === 'monitor.slug')?.value;
   const environment = event.tags.find(({key}) => key === 'environment')?.value;
