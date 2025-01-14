@@ -184,3 +184,23 @@ class TempestTasksTest(TestCase):
 
         self.project.update_option("sentry:tempest_fetch_screenshots", False)
         assert self.project.get_option("sentry:tempest_fetch_screenshots") is False
+
+    @patch("sentry.tempest.tasks.schedule_invalidate_project_config")
+    @patch("sentry.tempest.tasks.fetch_items_from_tempest")
+    def test_poll_tempest_crashes_invalidates_config(self, mock_fetch, mock_invalidate):
+        """Test that project config is invalidated only when a new ProjectKey is created"""
+        mock_fetch.return_value.json.return_value = {"latest_id": "123"}
+
+        self.credentials.latest_fetched_item_id = "42"
+        self.credentials.save()
+
+        # First call -> should create new ProjectKey and thus invalidate config
+        poll_tempest_crashes(self.credentials.id)
+        mock_invalidate.assert_called_once_with(
+            project_id=self.project.id, trigger="tempest:poll_tempest_crashes"
+        )
+        mock_invalidate.reset_mock()
+
+        # Second call -> should reuse existing ProjectKey and thus not invalidate config
+        poll_tempest_crashes(self.credentials.id)
+        mock_invalidate.assert_not_called()
