@@ -79,10 +79,10 @@ function SampleInfo(props: Props) {
 
       <MetricReadout
         title={DataTitles.timeSpent}
-        value={spanMetrics?.[0]?.[`sum(${SpanMetricsField.SPAN_SELF_TIME}))`]}
+        value={spanMetrics?.[`sum(${SpanMetricsField.SPAN_SELF_TIME})`]}
         unit={DurationUnit.MILLISECOND}
         tooltip={getTimeSpentExplanation(
-          spanMetrics?.[0]?.['time_spent_percentage()'],
+          spanMetrics?.['time_spent_percentage()'],
           spanMetrics?.[SpanMetricsField.SPAN_OP]
         )}
         isLoading={isPending}
