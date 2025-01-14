@@ -12,6 +12,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import RelatedIssues from 'sentry/views/alerts/rules/metric/details/relatedIssues';
+import RelatedTransactions from 'sentry/views/alerts/rules/metric/details/relatedTransactions';
 import {
   Dataset,
   type MetricRule,
@@ -21,8 +22,6 @@ import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/rules/metric/u
 import {isCrashFreeAlert} from 'sentry/views/alerts/rules/metric/utils/isCrashFreeAlert';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
-
-import RelatedTransactions from '../alerts/rules/metric/details/relatedTransactions';
 
 interface MetricIssuesSectionProps {
   event: Event;
