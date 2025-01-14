@@ -12,7 +12,6 @@ import {mat3, vec2} from 'gl-matrix';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {FlamegraphContextMenu} from 'sentry/components/profiling/flamegraph/flamegraphContextMenu';
-import {ProfileDragDropImport} from 'sentry/components/profiling/flamegraph/flamegraphOverlays/profileDragDropImport';
 import {FlamegraphOptionsMenu} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphOptionsMenu';
 import {FlamegraphSearch} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphSearch';
 import type {FlamegraphThreadSelectorProps} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphThreadSelector';
@@ -1312,8 +1311,6 @@ function Flamegraph(): ReactElement {
     [dispatch]
   );
 
-  const onImport = useCallback(() => {}, []);
-
   useEffect(() => {
     if (defined(flamegraphProfiles.threadId)) {
       return;
@@ -1532,7 +1529,7 @@ function Flamegraph(): ReactElement {
           />
         }
         flamegraph={
-          <ProfileDragDropImport onImport={onImport}>
+          <Fragment>
             <FlamegraphWarnings
               flamegraph={flamegraph}
               requestState={profiles}
@@ -1553,7 +1550,7 @@ function Flamegraph(): ReactElement {
               setFlamegraphOverlayCanvasRef={setFlamegraphOverlayCanvasRef}
               contextMenu={FlamegraphContextMenu}
             />
-          </ProfileDragDropImport>
+          </Fragment>
         }
         flamegraphDrawer={
           <FlamegraphDrawer
