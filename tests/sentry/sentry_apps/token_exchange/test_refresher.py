@@ -43,9 +43,10 @@ class TestRefresher(TestCase):
         assert not ApiToken.objects.filter(id=self.token.id).exists()
 
     def test_validates_token_belongs_to_sentry_app(self):
+        new_application = ApiApplication.objects.create(owner_id=self.create_user().id)
         refresh_token = ApiToken.objects.create(
             user=self.user,
-            application=ApiApplication.objects.create(owner_id=self.create_user().id),
+            application=new_application,
         ).refresh_token
         assert refresh_token is not None
         self.refresher.refresh_token = refresh_token
@@ -53,8 +54,13 @@ class TestRefresher(TestCase):
         with pytest.raises(SentryAppIntegratorError) as e:
             self.refresher.run()
 
-        assert e.value.message == ""
-        assert e.value.extras == {}
+        assert e.value.message == "Token does not belong to the application"
+        assert e.value.extras == {
+            "webhook_context": {
+                "client_id_from_token": new_application.client_id[:4],
+                "given_client_id": self.client_id[:4],
+            }
+        }
 
     @patch("sentry.models.ApiToken.objects.get", side_effect=ApiToken.DoesNotExist)
     def test_token_must_exist(self, _):
@@ -82,7 +88,7 @@ class TestRefresher(TestCase):
             }
         }
 
-    @patch("sentry.sentry_apps.token_exchange.grant_exchanger.GrantExchanger._validate")
+    @patch("sentry.sentry_apps.token_exchange.refresher.Refresher._validate")
     @patch("sentry.models.ApiApplication.sentry_app", new_callable=PropertyMock)
     def test_sentry_app_must_exist(self, sentry_app, validate):
         sentry_app.side_effect = SentryApp.DoesNotExist()
@@ -92,7 +98,7 @@ class TestRefresher(TestCase):
         assert e.value.message == "Sentry App does not exist on attached Application"
         assert e.value.extras == {
             "webhook_context": {
-                "application_id": self.application.id,
+                "application_id": self.orm_install.sentry_app.application.id,
                 "installation_uuid": self.install.uuid,
             }
         }
