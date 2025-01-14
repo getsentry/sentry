@@ -828,6 +828,36 @@ describe('Visualize', () => {
     );
   });
 
+  it('uses the provided value for a value parameter field', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              field: ['count_if(transaction.duration,equals,300)'],
+            },
+          }),
+        }),
+      }
+    );
+
+    // Simulate clearing and typing a new value from the user
+    await userEvent.type(
+      screen.getByDisplayValue('300'),
+      '{backspace}{backspace}{backspace}400'
+    );
+
+    // Unfocus the field
+    await userEvent.tab();
+
+    expect(await screen.findByDisplayValue('400')).toBeInTheDocument();
+  });
+
   describe('spans', () => {
     beforeEach(() => {
       jest.mocked(useSpanTags).mockImplementation((type?: 'string' | 'number') => {

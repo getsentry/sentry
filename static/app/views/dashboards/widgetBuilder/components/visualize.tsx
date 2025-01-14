@@ -710,7 +710,7 @@ function AggregateParameterField({
     const inputProps = {
       required: parameter.required,
       value:
-        parameter.value ?? ('defaultValue' in parameter && parameter?.defaultValue) ?? '',
+        currentValue ?? ('defaultValue' in parameter && parameter?.defaultValue) ?? '',
       onUpdate: value => {
         onChange(value);
       },
