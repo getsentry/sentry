@@ -1,4 +1,4 @@
-import {formatSeriesName} from './formatSeriesname';
+import {formatSeriesName} from './formatSeriesName';
 
 describe('formatSeriesName', () => {
   describe('releases', () => {
