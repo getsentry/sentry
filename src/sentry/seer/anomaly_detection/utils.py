@@ -11,9 +11,10 @@ from sentry.api.serializers.snuba import SnubaTSResultSerializer
 from sentry.incidents.models.alert_rule import AlertRuleThresholdType
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.seer.anomaly_detection.types import AnomalyType, TimeSeriesPoint
-from sentry.snuba import metrics_performance
+from sentry.snuba import metrics_performance, spans_eap, spans_rpc
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.snuba.referrer import Referrer
@@ -240,6 +241,8 @@ def fetch_historical_data(
     if dataset_label == "events":
         # DATASET_OPTIONS expects the name 'errors'
         dataset_label = "errors"
+    elif dataset_label == "events_analytics_platform":
+        dataset_label = "spans"
     elif dataset_label in ["generic_metrics", "transactions"]:
         # XXX: performance alerts dataset differs locally vs in prod
         dataset_label = "metricsEnhanced"
@@ -263,6 +266,23 @@ def fetch_historical_data(
 
     if dataset == metrics_performance:
         return get_crash_free_historical_data(start, end, project, organization, granularity)
+    elif dataset in [spans_eap, spans_rpc]:
+        results = spans_rpc.run_timeseries_query(
+            params=snuba_params,
+            query_string=snuba_query.query,
+            y_axes=query_columns,
+            granularity_secs=granularity,
+            referrer=(
+                Referrer.ANOMALY_DETECTION_HISTORICAL_DATA_QUERY.value
+                if is_store_data_request
+                else Referrer.ANOMALY_DETECTION_RETURN_HISTORICAL_ANOMALIES.value
+            ),
+            config=SearchResolverConfig(
+                auto_fields=False,
+                use_aggregate_conditions=False,
+            ),
+        )
+        return results
     else:
         event_types = get_event_types(snuba_query, event_types)
         snuba_query_string = get_snuba_query_string(snuba_query, event_types)
