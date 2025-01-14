@@ -1,21 +1,16 @@
-import {Fragment, useCallback} from 'react';
-import styled from '@emotion/styled';
+import {Fragment} from 'react';
 import keyBy from 'lodash/keyBy';
-import * as qs from 'query-string';
 
-import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
-import Link from 'sentry/components/links/link';
+import {DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DurationUnit, RateUnit, SizeUnit} from 'sentry/utils/discover/fields';
 import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -27,7 +22,6 @@ import {TransactionDurationChart} from 'sentry/views/insights/cache/components/c
 import {SpanSamplesTable} from 'sentry/views/insights/cache/components/tables/spanSamplesTable';
 import {Referrer} from 'sentry/views/insights/cache/referrers';
 import {BASE_FILTERS} from 'sentry/views/insights/cache/settings';
-import DetailPanel from 'sentry/views/insights/common/components/detailPanel';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
@@ -45,7 +39,6 @@ import {
   getThroughputTitle,
 } from 'sentry/views/insights/common/views/spans/types';
 import {useDebouncedState} from 'sentry/views/insights/http/utils/useDebouncedState';
-import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {
   MetricsFields,
   type MetricsQueryFilters,
@@ -57,7 +50,9 @@ import {
   SpanMetricsField,
   type SpanMetricsQueryFilters,
 } from 'sentry/views/insights/types';
-import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
+
+import {SampleDrawerBody} from '../../common/components/sampleDrawerBody';
+import {SampleDrawerHeaderTransaction} from '../../common/components/sampleDrawerHeaderTransaction';
 
 // This is similar to http sample table, its difficult to use the generic span samples sidebar as we require a bunch of custom things.
 export function CacheSamplePanel() {
@@ -65,7 +60,6 @@ export function CacheSamplePanel() {
   const location = useLocation();
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const {view} = useDomainViewFilters();
 
   const query = useLocationQuery({
     fields: {
@@ -98,13 +92,6 @@ export function CacheSamplePanel() {
     });
   };
 
-  // `detailKey` controls whether the panel is open. If all required properties are ailable, concat them to make a key, otherwise set to `undefined` and hide the panel
-  const detailKey = query.transaction
-    ? [query.transaction].filter(Boolean).join(':')
-    : undefined;
-
-  const isPanelOpen = Boolean(detailKey);
-
   const filters: SpanMetricsQueryFilters = {
     ...BASE_FILTERS,
     transaction: query.transaction,
@@ -130,7 +117,6 @@ export function CacheSamplePanel() {
           `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
           `avg(${SpanMetricsField.CACHE_ITEM_SIZE})`,
         ],
-        enabled: isPanelOpen,
       },
       Referrer.SAMPLES_CACHE_METRICS_RIBBON
     );
@@ -142,7 +128,6 @@ export function CacheSamplePanel() {
           transaction: query.transaction,
         } satisfies MetricsQueryFilters),
         fields: [`avg(${MetricsFields.TRANSACTION_DURATION})`],
-        enabled: isPanelOpen && Boolean(query.transaction),
       },
       Referrer.SAMPLES_CACHE_TRANSACTION_DURATION
     );
@@ -177,7 +162,6 @@ export function CacheSamplePanel() {
         ],
         sorts: [SPAN_SAMPLES_SORT],
         limit,
-        enabled: isPanelOpen,
       },
       Referrer.SAMPLES_CACHE_SPAN_SAMPLES
     );
@@ -239,26 +223,6 @@ export function CacheSamplePanel() {
     });
   };
 
-  const handleClose = () => {
-    navigate({
-      pathname: location.pathname,
-      query: {
-        ...location.query,
-        transaction: undefined,
-        transactionMethod: undefined,
-      },
-    });
-  };
-
-  const handleOpen = useCallback(() => {
-    if (query.transaction) {
-      trackAnalytics('performance_views.sample_spans.opened', {
-        organization,
-        source: ModuleName.CACHE,
-      });
-    }
-  }, [organization, query.transaction]);
-
   const handleRefetch = () => {
     refetchCacheHits();
     refetchCacheMisses();
@@ -266,36 +230,15 @@ export function CacheSamplePanel() {
 
   return (
     <PageAlertProvider>
-      <DetailPanel detailKey={detailKey} onClose={handleClose} onOpen={handleOpen}>
-        <ModuleLayout.Layout>
-          <ModuleLayout.Full>
-            <HeaderContainer>
-              {project && (
-                <SpanSummaryProjectAvatar
-                  project={project}
-                  direction="left"
-                  size={40}
-                  hasTooltip
-                  tooltip={project.slug}
-                />
-              )}
-              <Title>
-                <Link
-                  to={normalizeUrl(
-                    `${getTransactionSummaryBaseUrl(organization.slug, view)}?${qs.stringify(
-                      {
-                        project: query.project,
-                        transaction: query.transaction,
-                      }
-                    )}`
-                  )}
-                >
-                  {query.transaction}
-                </Link>
-              </Title>
-            </HeaderContainer>
-          </ModuleLayout.Full>
+      <DrawerHeader>
+        <SampleDrawerHeaderTransaction
+          project={project}
+          transaction={query.transaction}
+        />
+      </DrawerHeader>
 
+      <SampleDrawerBody>
+        <ModuleLayout.Layout>
           <ModuleLayout.Full>
             <ReadoutRibbon>
               <MetricReadout
@@ -437,7 +380,7 @@ export function CacheSamplePanel() {
             </ModuleLayout.Full>
           </Fragment>
         </ModuleLayout.Layout>
-      </DetailPanel>
+      </SampleDrawerBody>
     </PageAlertProvider>
   );
 }
@@ -463,26 +406,3 @@ const CACHE_STATUS_OPTIONS = [
     label: t('Miss'),
   },
 ];
-
-const SpanSummaryProjectAvatar = styled(ProjectAvatar)`
-  padding-right: ${space(1)};
-`;
-
-// TODO - copy of static/app/views/starfish/views/spanSummaryPage/sampleList/index.tsx
-const HeaderContainer = styled('div')`
-  display: grid;
-  grid-template-rows: auto auto auto;
-  align-items: center;
-
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-rows: auto;
-    grid-template-columns: auto 1fr;
-  }
-`;
-
-const Title = styled('h4')`
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  margin: 0;
-`;

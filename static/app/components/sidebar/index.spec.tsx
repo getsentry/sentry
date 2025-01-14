@@ -89,6 +89,13 @@ describe('Sidebar', function () {
       url: `/organizations/${organization.slug}/sdk-updates/`,
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/onboarding-tasks/`,
+      method: 'GET',
+      body: {
+        onboardingTasks: [],
+      },
+    });
   });
 
   afterEach(function () {
@@ -196,7 +203,7 @@ describe('Sidebar', function () {
         organization: {...organization, features: ['onboarding']},
       });
 
-      const quickStart = await screen.findByText('Quick Start');
+      const quickStart = await screen.findByText('Onboarding');
 
       expect(quickStart).toBeInTheDocument();
       await userEvent.click(quickStart);

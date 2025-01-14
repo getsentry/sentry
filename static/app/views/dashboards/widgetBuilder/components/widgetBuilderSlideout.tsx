@@ -188,7 +188,7 @@ function WidgetBuilderSlideout({
                 </Section>
               )}
             </div>
-            <WidgetTemplatesList />
+            <WidgetTemplatesList onSave={onSave} />
           </Fragment>
         )}
       </SlideoutBodyWrapper>

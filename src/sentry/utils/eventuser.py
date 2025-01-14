@@ -297,7 +297,7 @@ class EventUser:
         )
 
     @classmethod
-    def for_tags(cls, project_id: int, values):
+    def for_tags(cls, project_id: int, values: list[str]) -> dict[str, EventUser]:
         """
         Finds matching EventUser objects from a list of tag values.
 
