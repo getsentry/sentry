@@ -1,6 +1,7 @@
 import {useCallback, useMemo} from 'react';
 
 import {fetchSpanFieldValues} from 'sentry/actionCreators/tags';
+import {getHasTag} from 'sentry/components/events/searchBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {CallbackSearchState} from 'sentry/components/searchQueryBuilder/types';
@@ -179,8 +180,10 @@ export function EAPSpanSearchQueryBuilder({
     return getFunctionTags(supportedAggregates);
   }, [supportedAggregates]);
 
-  const tags = useMemo(() => {
-    return {...functionTags, ...numberTags, ...stringTags};
+  const filterTags: TagCollection = useMemo(() => {
+    const tags: TagCollection = {...functionTags, ...numberTags, ...stringTags};
+    tags.has = getHasTag(tags);
+    return tags;
   }, [numberTags, stringTags, functionTags]);
 
   const filterKeySections = useMemo(() => {
@@ -231,9 +234,9 @@ export function EAPSpanSearchQueryBuilder({
   return (
     <SearchQueryBuilder
       placeholder={placeholderText}
-      filterKeys={tags}
+      filterKeys={filterTags}
       initialQuery={initialQuery}
-      fieldDefinitionGetter={getSpanFieldDefinitionFunction(tags)}
+      fieldDefinitionGetter={getSpanFieldDefinitionFunction(filterTags)}
       onSearch={onSearch}
       onBlur={onBlur}
       getFilterTokenWarning={getFilterTokenWarning}
