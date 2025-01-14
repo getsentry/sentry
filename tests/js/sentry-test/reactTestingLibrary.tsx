@@ -30,14 +30,14 @@ import {instrumentUserEvent} from '../instrumentedEnv/userEventIntegration';
 
 import {initializeOrg} from './initializeOrg';
 
-interface ProviderOptions {
+interface ProviderOptions<T = boolean> {
   /**
    * Do not shim the router use{Routes,Router,Navigate,Location} functions, and
    * instead allow them to work as normal, rendering inside of a memory router.
    *
    * When enabling this passing a `router` object *will do nothing*!
    */
-  disableRouterMocks?: boolean;
+  disableRouterMocks?: T;
   /**
    * Sets the history for the router.
    */
@@ -52,7 +52,7 @@ interface ProviderOptions {
   router?: Partial<InjectedRouter>;
 }
 
-interface Options extends ProviderOptions, rtl.RenderOptions {}
+interface Options<T = boolean> extends ProviderOptions<T>, rtl.RenderOptions {}
 
 function makeAllTheProviders(options: ProviderOptions) {
   const {organization, router} = initializeOrg({
@@ -191,6 +191,10 @@ class TestRouter {
   };
 }
 
+type RenderReturn<T extends boolean = boolean> = T extends true
+  ? rtl.RenderResult & {router: TestRouter}
+  : rtl.RenderResult;
+
 /**
  * Try avoiding unnecessary context and just mount your component. If it works,
  * then you dont need anything else.
@@ -199,16 +203,20 @@ class TestRouter {
  *
  * If your component requires additional context you can pass it in the
  * options.
+ *
+ * To test route changes, pass `disableRouterMocks: true`. This will return a
+ * `router` property which can be used to access the location or manually
+ * navigate to a route.
  */
-function render(
+function render<T extends boolean = false>(
   ui: React.ReactElement,
   {
     router: incomingRouter,
     organization: incomingOrganization,
     disableRouterMocks,
     ...rtlOptions
-  }: Options = {}
-) {
+  }: Options<T> = {}
+): RenderReturn<T> {
   const history = createMemoryHistory({
     initialEntries: [incomingRouter?.location?.pathname ?? LocationFixture().pathname],
   });
@@ -241,8 +249,8 @@ function render(
   return {
     ...renderResult,
     rerender,
-    router: testRouter,
-  };
+    ...(disableRouterMocks ? {router: testRouter} : {}),
+  } as RenderReturn<T>;
 }
 
 /**
