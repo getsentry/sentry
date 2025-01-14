@@ -52,6 +52,7 @@ from sentry.types.actor import Actor, ActorType
 from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, GroupSubStatus, PriorityLevel
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
+from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
 from sentry.users.services.user_option import user_option_service
 from sentry.utils import metrics
@@ -354,7 +355,7 @@ def handle_resolve_in_release(
         if user_options:
             self_assign_issue = user_options[0].value
         serialized_user = user_service.serialize_many(
-            filter=dict(user_ids=[acting_user.id]), as_user=acting_user
+            filter=dict(user_ids=[acting_user.id]), as_user=serialize_generic_user(acting_user)
         )
         if serialized_user:
             new_status_details["actor"] = serialized_user[0]
