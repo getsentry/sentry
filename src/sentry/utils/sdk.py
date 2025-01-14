@@ -49,7 +49,7 @@ UNSAFE_FILES = (
 # Tasks not included here are sampled with `SENTRY_BACKEND_APM_SAMPLING`.
 # If a parent task schedules other tasks, rates propagate to the children.
 SAMPLED_TASKS = {
-    "sentry.tasks.auto_source_code_configs.derive_code_mappings": settings.SAMPLED_DEFAULT_RATE,
+    "sentry.tasks.auto_source_code_config.derive_code_mappings": settings.SAMPLED_DEFAULT_RATE,
     "sentry.tasks.send_ping": settings.SAMPLED_DEFAULT_RATE,
     "sentry.tasks.store.process_event": settings.SENTRY_PROCESS_EVENT_APM_SAMPLING,
     "sentry.tasks.store.process_event_from_reprocessing": settings.SENTRY_PROCESS_EVENT_APM_SAMPLING,
