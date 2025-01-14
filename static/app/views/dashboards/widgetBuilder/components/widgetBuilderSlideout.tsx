@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from 'react';
+import {Fragment, useEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
@@ -30,6 +30,7 @@ import SaveButton from 'sentry/views/dashboards/widgetBuilder/components/saveBut
 import WidgetBuilderSortBySelector from 'sentry/views/dashboards/widgetBuilder/components/sortBySelector';
 import WidgetBuilderTypeSelector from 'sentry/views/dashboards/widgetBuilder/components/typeSelector';
 import Visualize from 'sentry/views/dashboards/widgetBuilder/components/visualize';
+import WidgetTemplatesList from 'sentry/views/dashboards/widgetBuilder/components/widgetTemplatesList';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 
 type WidgetBuilderSlideoutProps = {
@@ -40,7 +41,9 @@ type WidgetBuilderSlideoutProps = {
   onClose: () => void;
   onQueryConditionChange: (valid: boolean) => void;
   onSave: ({index, widget}: {index: number; widget: Widget}) => void;
+  openWidgetTemplates: boolean;
   setIsPreviewDraggable: (draggable: boolean) => void;
+  setOpenWidgetTemplates: (openWidgetTemplates: boolean) => void;
 };
 
 function WidgetBuilderSlideout({
@@ -52,6 +55,8 @@ function WidgetBuilderSlideout({
   dashboardFilters,
   setIsPreviewDraggable,
   isWidgetInvalid,
+  openWidgetTemplates,
+  setOpenWidgetTemplates,
 }: WidgetBuilderSlideoutProps) {
   const organization = useOrganization();
   const {state} = useWidgetBuilderContext();
@@ -61,7 +66,11 @@ function WidgetBuilderSlideout({
   const theme = useTheme();
 
   const isEditing = widgetIndex !== undefined;
-  const title = isEditing ? t('Edit Widget') : t('Create Custom Widget');
+  const title = openWidgetTemplates
+    ? t('Add from Widget Library')
+    : isEditing
+      ? t('Edit Widget')
+      : t('Create Custom Widget');
   const isChartWidget =
     state.displayType !== DisplayType.BIG_NUMBER &&
     state.displayType !== DisplayType.TABLE;
@@ -116,55 +125,76 @@ function WidgetBuilderSlideout({
         </CloseButton>
       </SlideoutHeaderWrapper>
       <SlideoutBodyWrapper>
-        <Section>
-          <WidgetBuilderFilterBar />
-        </Section>
-        <Section>
-          <WidgetBuilderDatasetSelector />
-        </Section>
-        {organization.features.includes('visibility-explore-dataset') &&
-          state.dataset === WidgetType.SPANS && (
+        {!openWidgetTemplates ? (
+          <Fragment>
             <Section>
-              <RPCToggle />
+              <WidgetBuilderFilterBar />
             </Section>
-          )}
-        <Section>
-          <WidgetBuilderTypeSelector error={error} setError={setError} />
-        </Section>
-        <div ref={previewRef}>
-          {isSmallScreen && (
             <Section>
-              <WidgetPreviewContainer
-                dashboard={dashboard}
-                dashboardFilters={dashboardFilters}
-                isWidgetInvalid={isWidgetInvalid}
+              <WidgetBuilderDatasetSelector />
+            </Section>
+            {organization.features.includes('visibility-explore-dataset') &&
+              state.dataset === WidgetType.SPANS && (
+                <Section>
+                  <RPCToggle />
+                </Section>
+              )}
+            <Section>
+              <WidgetBuilderTypeSelector error={error} setError={setError} />
+            </Section>
+            <div ref={previewRef}>
+              {isSmallScreen && (
+                <Section>
+                  <WidgetPreviewContainer
+                    dashboard={dashboard}
+                    dashboardFilters={dashboardFilters}
+                    isWidgetInvalid={isWidgetInvalid}
+                  />
+                </Section>
+              )}
+            </div>
+            <Section>
+              <Visualize error={error} setError={setError} />
+            </Section>
+            <Section>
+              <WidgetBuilderQueryFilterBuilder
+                onQueryConditionChange={onQueryConditionChange}
               />
             </Section>
-          )}
-        </div>
-        <Section>
-          <Visualize />
-        </Section>
-        <Section>
-          <WidgetBuilderQueryFilterBuilder
-            onQueryConditionChange={onQueryConditionChange}
-            error={error}
-          />
-        </Section>
-        {isChartWidget && (
-          <Section>
-            <WidgetBuilderGroupBySelector />
-          </Section>
+            {isChartWidget && (
+              <Section>
+                <WidgetBuilderGroupBySelector />
+              </Section>
+            )}
+            {showSortByStep && (
+              <Section>
+                <WidgetBuilderSortBySelector />
+              </Section>
+            )}
+            <Section>
+              <WidgetBuilderNameAndDescription error={error} setError={setError} />
+            </Section>
+            <SaveButton isEditing={isEditing} onSave={onSave} setError={setError} />
+          </Fragment>
+        ) : (
+          <Fragment>
+            <div ref={previewRef}>
+              {isSmallScreen && (
+                <Section>
+                  <WidgetPreviewContainer
+                    dashboard={dashboard}
+                    dashboardFilters={dashboardFilters}
+                    isWidgetInvalid={isWidgetInvalid}
+                  />
+                </Section>
+              )}
+            </div>
+            <WidgetTemplatesList
+              onSave={onSave}
+              setOpenWidgetTemplates={setOpenWidgetTemplates}
+            />
+          </Fragment>
         )}
-        {showSortByStep && (
-          <Section>
-            <WidgetBuilderSortBySelector />
-          </Section>
-        )}
-        <Section>
-          <WidgetBuilderNameAndDescription error={error} setError={setError} />
-        </Section>
-        <SaveButton isEditing={isEditing} onSave={onSave} setError={setError} />
       </SlideoutBodyWrapper>
     </SlideOverPanel>
   );

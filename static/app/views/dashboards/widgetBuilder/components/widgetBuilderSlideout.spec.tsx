@@ -66,6 +66,8 @@ describe('WidgetBuilderSlideout', () => {
           onSave={jest.fn()}
           setIsPreviewDraggable={jest.fn()}
           isOpen
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
         />
       </WidgetBuilderProvider>,
       {
@@ -103,6 +105,8 @@ describe('WidgetBuilderSlideout', () => {
           onSave={jest.fn()}
           setIsPreviewDraggable={jest.fn()}
           isOpen
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
         />
       </WidgetBuilderProvider>,
       {
@@ -137,6 +141,8 @@ describe('WidgetBuilderSlideout', () => {
           onSave={jest.fn()}
           setIsPreviewDraggable={jest.fn()}
           isOpen
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
         />
       </WidgetBuilderProvider>,
       {
@@ -170,6 +176,8 @@ describe('WidgetBuilderSlideout', () => {
           onSave={jest.fn()}
           setIsPreviewDraggable={jest.fn()}
           isOpen
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
         />
       </WidgetBuilderProvider>,
       {organization}
@@ -197,6 +205,8 @@ describe('WidgetBuilderSlideout', () => {
           onSave={jest.fn()}
           setIsPreviewDraggable={jest.fn()}
           isOpen
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
         />
       </WidgetBuilderProvider>,
       {organization}
@@ -226,6 +236,8 @@ describe('WidgetBuilderSlideout', () => {
           onSave={jest.fn()}
           setIsPreviewDraggable={jest.fn()}
           isOpen
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
         />
       </WidgetBuilderProvider>,
       {
@@ -251,5 +263,86 @@ describe('WidgetBuilderSlideout', () => {
     });
 
     expect(screen.getByText('Create Custom Widget')).toBeInTheDocument();
+  });
+
+  it('clears the alias when dataset changes', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderSlideout
+          dashboard={DashboardFixture([])}
+          dashboardFilters={{release: undefined}}
+          isWidgetInvalid
+          onClose={jest.fn()}
+          onQueryConditionChange={jest.fn()}
+          onSave={jest.fn()}
+          setIsPreviewDraggable={jest.fn()}
+          isOpen
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              field: ['count()'],
+              yAxis: [],
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.TABLE,
+            },
+          }),
+        }),
+      }
+    );
+
+    await userEvent.type(await screen.findByPlaceholderText('Add Alias'), 'test alias');
+    await userEvent.click(screen.getByText('Errors'));
+
+    expect(await screen.findByPlaceholderText('Add Alias')).toHaveValue('');
+  });
+
+  it('clears the alias when display type changes', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderSlideout
+          dashboard={DashboardFixture([])}
+          dashboardFilters={{release: undefined}}
+          isWidgetInvalid
+          onClose={jest.fn()}
+          onQueryConditionChange={jest.fn()}
+          onSave={jest.fn()}
+          setIsPreviewDraggable={jest.fn()}
+          isOpen
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              field: ['count()'],
+              yAxis: [],
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.TABLE,
+            },
+          }),
+        }),
+      }
+    );
+
+    await userEvent.type(
+      await screen.findByPlaceholderText('Add Alias'),
+      'test alias again'
+    );
+
+    await userEvent.click(screen.getByText('Table'));
+    await userEvent.click(screen.getByText('Area'));
+    await userEvent.click(screen.getByText('Area'));
+    await userEvent.click(screen.getByText('Table'));
+
+    expect(await screen.findByPlaceholderText('Add Alias')).toHaveValue('');
   });
 });

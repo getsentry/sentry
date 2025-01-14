@@ -3,6 +3,15 @@ import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlaceholder';
+import {CheckInTimeline} from 'sentry/components/checkInTimeline/checkInTimeline';
+import {
+  GridLineLabels,
+  GridLineOverlay,
+} from 'sentry/components/checkInTimeline/gridLines';
+import type {TimeWindow} from 'sentry/components/checkInTimeline/types';
+import {getConfigFromTimeRange} from 'sentry/components/checkInTimeline/utils/getConfigFromTimeRange';
+import {getTimeRangeFromEvent} from 'sentry/components/checkInTimeline/utils/getTimeRangeFromEvent';
 import {Overlay} from 'sentry/components/overlay';
 import Panel from 'sentry/components/panels/panel';
 import {IconOpen} from 'sentry/icons';
@@ -14,22 +23,18 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useDimensions} from 'sentry/utils/useDimensions';
-import useRouter from 'sentry/utils/useRouter';
+import {useLocation} from 'sentry/utils/useLocation';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {ResolutionSelector} from 'sentry/views/monitors/components/overviewTimeline/resolutionSelector';
-import {CheckInPlaceholder} from 'sentry/views/monitors/components/timeline/checkInPlaceholder';
-import {CheckInTimeline} from 'sentry/views/monitors/components/timeline/checkInTimeline';
+import {CronServiceIncidents} from 'sentry/views/monitors/components/serviceIncidents';
+import type {MonitorBucket} from 'sentry/views/monitors/types';
 import {
-  GridLineLabels,
-  GridLineOverlay,
-} from 'sentry/views/monitors/components/timeline/gridLines';
-import type {
-  MonitorBucket,
-  TimeWindow,
-} from 'sentry/views/monitors/components/timeline/types';
-import {getConfigFromTimeRange} from 'sentry/views/monitors/components/timeline/utils/getConfigFromTimeRange';
-import {getTimeRangeFromEvent} from 'sentry/views/monitors/components/timeline/utils/getTimeRangeFromEvent';
+  checkInStatusPrecedent,
+  statusToText,
+  tickStyle,
+} from 'sentry/views/monitors/utils';
+import {selectCheckInData} from 'sentry/views/monitors/utils/selectCheckInData';
 
 interface Props {
   event: Event;
@@ -40,8 +45,8 @@ interface Props {
 const DEFAULT_ENVIRONMENT = 'production';
 
 export function CronTimelineSection({event, organization, project}: Props) {
-  const {location} = useRouter();
-  const timeWindow: TimeWindow = location.query?.timeWindow ?? '24h';
+  const location = useLocation();
+  const timeWindow = (location.query?.timeWindow as TimeWindow) ?? '24h';
   const monitorId = event.tags.find(({key}) => key === 'monitor.id')?.value;
   const monitorSlug = event.tags.find(({key}) => key === 'monitor.slug')?.value;
   const environment = event.tags.find(({key}) => key === 'environment')?.value;
@@ -110,7 +115,9 @@ export function CronTimelineSection({event, organization, project}: Props) {
         <GridLineOverlay
           timeWindowConfig={timeWindowConfig}
           showCursor={!isPending}
-          showIncidents={!isPending}
+          additionalUi={
+            !isPending && <CronServiceIncidents timeWindowConfig={timeWindowConfig} />
+          }
         />
         {monitorStats && !isPending ? (
           <Fragment>
@@ -120,9 +127,14 @@ export function CronTimelineSection({event, organization, project}: Props) {
             </EventLineLabel>
             <FadeInContainer>
               <CheckInTimeline
-                bucketedData={monitorStats[monitorId]!}
+                statusLabel={statusToText}
+                statusStyle={tickStyle}
+                statusPrecedent={checkInStatusPrecedent}
                 timeWindowConfig={timeWindowConfig}
-                environment={environment ?? DEFAULT_ENVIRONMENT}
+                bucketedData={selectCheckInData(
+                  monitorStats[monitorId] ?? [],
+                  environment ?? DEFAULT_ENVIRONMENT
+                )}
               />
             </FadeInContainer>
           </Fragment>

@@ -428,7 +428,7 @@ describe('Visualize', () => {
     await userEvent.click(screen.getByRole('option', {name: 'count_miserable'}));
 
     expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
-      'transaction.duration'
+      'user'
     );
     expect(screen.getByRole('button', {name: 'Aggregate Selection'})).toHaveTextContent(
       'count_miserable'
@@ -437,7 +437,7 @@ describe('Visualize', () => {
     expect(mockNavigate).toHaveBeenCalledWith(
       expect.objectContaining({
         query: expect.objectContaining({
-          field: ['count_miserable(transaction.duration,300)'],
+          field: ['count_miserable(user,300)'],
         }),
       })
     );
@@ -465,9 +465,8 @@ describe('Visualize', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
     await userEvent.click(screen.getByRole('option', {name: 'count_miserable'}));
 
-    // TODO: This is supposed to only allow the user field
     expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
-      'transaction.duration'
+      'user'
     );
   });
 
@@ -646,6 +645,161 @@ describe('Visualize', () => {
     expect(screen.getByText('count_unique')).toBeInTheDocument();
     expect(screen.getAllByText('count')).toHaveLength(2);
     expect(screen.getAllByText('epm')).toHaveLength(1);
+  });
+
+  it('shows appropriate error messages for non-chart widget queries', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize
+          error={{
+            queries: [
+              {
+                fields: ['this field has an error'],
+                aggregates: ['this aggregate has an error'],
+              },
+            ],
+          }}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.BIG_NUMBER,
+            },
+          }),
+        }),
+      }
+    );
+
+    expect(await screen.findByText('this field has an error')).toBeInTheDocument();
+    expect(screen.queryByText('this aggregate has an error')).not.toBeInTheDocument();
+  });
+
+  it('shows appropriate error messages for chart type widget queries', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize
+          error={{
+            queries: [
+              {
+                fields: ['this field has an error'],
+                aggregates: ['this aggregate has an error'],
+              },
+            ],
+          }}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.LINE,
+            },
+          }),
+        }),
+      }
+    );
+
+    expect(await screen.findByText('this aggregate has an error')).toBeInTheDocument();
+    expect(screen.queryByText('this field has an error')).not.toBeInTheDocument();
+  });
+
+  it('shows radio buttons for big number widgets when there are multiple aggregates', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.BIG_NUMBER,
+              field: ['count_unique(user)'],
+            },
+          }),
+        }),
+      }
+    );
+
+    expect(await screen.findByLabelText('Aggregate Selection')).toHaveTextContent(
+      'count_unique'
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Add Field'}));
+
+    // There are two radio buttons, one for each aggregate, and the last one is selected
+    expect(screen.getAllByLabelText('aggregate-selector')).toHaveLength(2);
+    expect(screen.getByRole('radio', {name: 'field1'})).toBeChecked();
+  });
+
+  it('shifts the selected aggregate up when it is the last one and removed', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.BIG_NUMBER,
+              field: ['count_unique(1)', 'count_unique(2)', 'count_unique(3)'],
+              selectedAggregate: '2',
+            },
+          }),
+        }),
+      }
+    );
+
+    expect(await screen.findByRole('radio', {name: 'field2'})).toBeChecked();
+    await userEvent.click(screen.getAllByRole('button', {name: 'Remove field'})[2]!);
+
+    // The second field is now selected, but the URL param for selectedAggregate
+    // is cleared, so the last field is selected
+    expect(await screen.findByRole('radio', {name: 'field1'})).toBeChecked();
+    expect(mockNavigate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({
+          selectedAggregate: undefined,
+        }),
+      })
+    );
+  });
+
+  it('only shows the relevant options for the release dataset', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.RELEASE,
+              field: ['crash_free_rate(session)'],
+            },
+          }),
+        }),
+      }
+    );
+
+    expect(
+      await screen.findByRole('button', {name: 'Column Selection'})
+    ).toHaveTextContent('session');
+    await userEvent.click(screen.getByRole('button', {name: 'Column Selection'}));
+    const listbox = await screen.findAllByRole('option');
+    expect(listbox).toHaveLength(2);
+    expect(listbox[0]).toHaveTextContent('session');
+    expect(listbox[1]).toHaveTextContent('user');
   });
 
   describe('spans', () => {

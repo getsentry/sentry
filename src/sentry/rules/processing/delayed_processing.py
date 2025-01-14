@@ -1,5 +1,6 @@
 import logging
 import math
+import random
 import uuid
 from collections import defaultdict
 from collections.abc import Sequence
@@ -239,15 +240,16 @@ def build_group_to_groupevent(
         group = group_id_to_group.get(int(rule_group[1]))
 
         if not group or not event:
-            logger.info(
-                "delayed_processing.missing_event_or_group",
-                extra={
-                    "rule": rule_group[0],
-                    "project_id": project_id,
-                    "event_id": event_id,
-                    "group_id": group.id if group else None,
-                },
-            )
+            if random.random() < 0.01:
+                logger.info(
+                    "delayed_processing.missing_event_or_group",
+                    extra={
+                        "rule": rule_group[0],
+                        "project_id": project_id,
+                        "event_id": event_id,
+                        "group_id": group.id if group else None,
+                    },
+                )
             continue
 
         group_event = event.for_group(group)
@@ -587,10 +589,11 @@ def apply_delayed(project_id: int, batch_key: str | None = None, *args: Any, **k
         rules_to_fire = get_rules_to_fire(
             condition_group_results, rules_to_slow_conditions, rules_to_groups, project.id
         )
-        logger.info(
-            "delayed_processing.rule_to_fire",
-            extra={"rules_to_fire": list(rules_to_fire.keys()), "project_id": project_id},
-        )
+        if random.random() < 0.01:
+            logger.info(
+                "delayed_processing.rule_to_fire",
+                extra={"rules_to_fire": list(rules_to_fire.keys()), "project_id": project_id},
+            )
 
     parsed_rulegroup_to_event_data = parse_rulegroup_to_event_data(rulegroup_to_event_data)
     with metrics.timer("delayed_processing.fire_rules.duration"):

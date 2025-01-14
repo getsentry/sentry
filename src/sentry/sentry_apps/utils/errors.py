@@ -33,3 +33,17 @@ class SentryAppIntegratorError(Exception):
     ) -> None:
         if status_code:
             self.status_code = status_code
+
+
+# Represents an error that's our (sentry's) fault
+class SentryAppSentryError(Exception):
+    error_type = SentryAppErrorType.SENTRY
+    status_code = 500
+
+    def __init__(
+        self,
+        error: Exception | None = None,
+        status_code: int | None = None,
+    ) -> None:
+        if status_code:
+            self.status_code = status_code

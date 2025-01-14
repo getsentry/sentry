@@ -28,11 +28,16 @@ class Condition(models.TextChoices):
     EVERY_EVENT = "every_event"
     EXISTING_HIGH_PRIORITY_ISSUE = "existing_high_priority_issue"
     FIRST_SEEN_EVENT = "first_seen_event"
+    ISSUE_CATEGORY = "issue_category"
+    ISSUE_OCCURRENCES = "issue_occurrences"
+    LATEST_ADOPTED_RELEASE = "latest_adopted_release"
+    LATEST_RELEASE = "latest_release"
     LEVEL = "level"
     NEW_HIGH_PRIORITY_ISSUE = "new_high_priority_issue"
     REGRESSION_EVENT = "regression_event"
     REAPPEARED_EVENT = "reappeared_event"
     TAGGED_EVENT = "tagged_event"
+    ISSUE_PRIORITY_EQUALS = "issue_priority_equals"
 
 
 condition_ops = {

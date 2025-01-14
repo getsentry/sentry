@@ -322,6 +322,11 @@ urlpatterns += [
                     name="sentry-account-confirm-email",
                 ),
                 re_path(
+                    r"^confirm-signed-email/(?P<signed_data>[-A-Za-z0-9_]+)/$",
+                    accounts.confirm_signed_email,
+                    name="sentry-account-confirm-signed-email",
+                ),
+                re_path(
                     r"^user-confirm/(?P<key>[^\/]+)/$",
                     AccountConfirmationView.as_view(),
                     name="sentry-idp-email-verification",
@@ -1183,6 +1188,11 @@ urlpatterns += [
         r"^robots\.txt$",
         api.robots_txt,
         name="sentry-robots-txt",
+    ),
+    re_path(
+        r"^\.well-known/security\.txt$",
+        api.security_txt,
+        name="sentry-security-txt",
     ),
     # Force a 404 of favicon.ico.
     # This url is commonly requested by browsers, and without

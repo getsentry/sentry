@@ -72,8 +72,8 @@ class FlagAuditLogModel(Model):
 
     action = models.PositiveSmallIntegerField(choices=ACTION_TYPES)
     created_at = models.DateTimeField(default=timezone.now)
-    created_by = models.CharField(max_length=100)
-    created_by_type = models.PositiveSmallIntegerField(choices=CREATED_BY_TYPE_TYPES)
+    created_by = models.CharField(max_length=100, null=True)
+    created_by_type = models.PositiveSmallIntegerField(choices=CREATED_BY_TYPE_TYPES, null=True)
     flag = models.CharField(max_length=100)
     organization_id = HybridCloudForeignKey("sentry.Organization", null=False, on_delete="CASCADE")
     tags = models.JSONField()

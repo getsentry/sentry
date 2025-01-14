@@ -27,6 +27,7 @@ import IndicatorStore from 'sentry/stores/indicatorStore';
 import {space} from 'sentry/styles/space';
 import type {PlainRoute, RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {
+  Confidence,
   EventsStats,
   MultiSeriesEventsStats,
   Organization,
@@ -147,7 +148,6 @@ type State = {
   query: string;
   resolveThreshold: UnsavedMetricRule['resolveThreshold'];
   sensitivity: UnsavedMetricRule['sensitivity'];
-  thresholdPeriod: UnsavedMetricRule['thresholdPeriod'];
   thresholdType: UnsavedMetricRule['thresholdType'];
   timeWindow: number;
   triggerErrors: Map<number, {[fieldName: string]: string}>;
@@ -155,8 +155,8 @@ type State = {
   chartError?: boolean;
   chartErrorMessage?: string;
   comparisonDelta?: number;
+  confidence?: Confidence;
   isExtrapolatedChartData?: boolean;
-  isLowConfidenceChartData?: boolean;
   seasonality?: AlertRuleSeasonality;
 } & DeprecatedAsyncComponent['state'];
 
@@ -872,10 +872,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     );
   };
 
-  handleThresholdPeriodChange = (value: number) => {
-    this.setState({thresholdPeriod: value}, () => this.fetchAnomalies());
-  };
-
   handleResolveThresholdChange = (
     resolveThreshold: UnsavedMetricRule['resolveThreshold']
   ) => {
@@ -1004,7 +1000,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const confidence = isEventsStats(data)
       ? determineSeriesConfidence(data)
       : determineMultiSeriesConfidence(data);
-    this.setState({isLowConfidenceChartData: confidence === 'low'});
+    this.setState({confidence});
   }
 
   handleHistoricalTimeSeriesDataFetched(
@@ -1138,6 +1134,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       anomalies,
       chartError,
       chartErrorMessage,
+      confidence,
     } = this.state;
 
     if (chartError) {
@@ -1187,6 +1184,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       includeHistorical: comparisonType === AlertRuleComparisonType.DYNAMIC,
       onHistoricalDataLoaded: this.handleHistoricalTimeSeriesDataFetched,
       includeConfidence: alertType === 'eap_metrics',
+      confidence,
     };
 
     let formattedQuery = `event.type:${eventTypes?.join(',')}`;
@@ -1234,7 +1232,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       triggers,
       aggregate,
       thresholdType,
-      thresholdPeriod,
       comparisonDelta,
       comparisonType,
       resolveThreshold,
@@ -1244,7 +1241,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       dataset,
       alertType,
       isExtrapolatedChartData,
-      isLowConfidenceChartData,
       triggersHaveChanged,
     } = this.state;
 
@@ -1263,7 +1259,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         isMigration={isMigration}
         resolveThreshold={resolveThreshold}
         sensitivity={sensitivity}
-        thresholdPeriod={thresholdPeriod}
         thresholdType={thresholdType}
         comparisonType={comparisonType}
         currentProject={project.slug}
@@ -1271,7 +1266,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         availableActions={this.state.availableActions}
         onChange={this.handleChangeTriggers}
         onThresholdTypeChange={this.handleThresholdTypeChange}
-        onThresholdPeriodChange={this.handleThresholdPeriodChange}
         onResolveThresholdChange={this.handleResolveThresholdChange}
         onSensitivityChange={this.handleSensitivityChange}
       />
@@ -1379,7 +1373,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
                 'sum(ai.total_cost)',
               ].includes(aggregate)}
               isTransactionMigration={isMigration && !showErrorMigrationWarning}
-              isLowConfidenceChartData={isLowConfidenceChartData}
               onComparisonDeltaChange={value =>
                 this.handleFieldChange('comparisonDelta', value)
               }

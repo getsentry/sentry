@@ -24,14 +24,11 @@ from sentry.incidents.logic import (
 from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleDetectionType,
-    AlertRuleMonitorTypeInt,
     AlertRuleStatus,
     AlertRuleThresholdType,
     AlertRuleTrigger,
     AlertRuleTriggerActionMethod,
-    invoke_alert_subscription_callback,
 )
-from sentry.incidents.models.alert_rule_activations import AlertRuleActivations
 from sentry.incidents.models.incident import (
     Incident,
     IncidentActivity,
@@ -461,16 +458,6 @@ class SubscriptionProcessor:
                 )
                 return
 
-        # Trigger callbacks for any AlertRules that may need to know about the subscription update
-        # Current callback will update the activation metric values & delete querysubscription on finish
-        # TODO: register over/under triggers as alert rule callbacks as well
-        invoke_alert_subscription_callback(
-            AlertRuleMonitorTypeInt(self.alert_rule.monitor_type),
-            subscription=self.subscription,
-            alert_rule=self.alert_rule,
-            value=aggregation_value,
-        )
-
         if aggregation_value is None:
             metrics.incr("incidents.alert_rules.skipping_update_invalid_aggregation_value")
             return
@@ -651,19 +638,6 @@ class SubscriptionProcessor:
             # Only create a new incident if we don't already have an active incident for the AlertRule
             if not self.active_incident:
                 detected_at = self.calculate_event_date_from_update_date(self.last_update)
-                activation: AlertRuleActivations | None = None
-                if self.alert_rule.monitor_type == AlertRuleMonitorTypeInt.ACTIVATED:
-                    activations = list(self.subscription.alertruleactivations_set.all())
-                    if len(activations) != 1:
-                        logger.error(
-                            "activated alert rule subscription has unexpected activation instances",
-                            extra={
-                                "activations_count": len(activations),
-                            },
-                        )
-                    else:
-                        activation = activations[0]
-
                 self.active_incident = create_incident(
                     organization=self.alert_rule.organization,
                     incident_type=IncidentType.ALERT_TRIGGERED,
@@ -673,7 +647,6 @@ class SubscriptionProcessor:
                     date_started=detected_at,
                     date_detected=self.last_update,
                     projects=[self.subscription.project],
-                    activation=activation,
                     subscription=self.subscription,
                 )
             # Now create (or update if it already exists) the incident trigger so that
