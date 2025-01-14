@@ -527,9 +527,12 @@ def top_events_timeseries(
                     else item["data"]
                 ),
                 "order": item["order"],
-                # One of the queries in the builder has required, thus, we mark all of them
-                # This could mislead downstream consumers of the meta data
-                "meta": {"isMetricsExtractedData": top_events_builder.use_on_demand},
+                "meta": {
+                    # One of the queries in the builder has required, thus, we mark all of them
+                    # This could mislead downstream consumers of the meta data
+                    **{"isMetricsExtractedData": top_events_builder.use_on_demand},
+                    **result["meta"],
+                },
             },
             snuba_params.start_date,
             snuba_params.end_date,

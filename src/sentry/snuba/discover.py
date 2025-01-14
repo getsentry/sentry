@@ -587,6 +587,7 @@ def top_events_timeseries(
                         if zerofill_results
                         else item["data"]
                     ),
+                    "meta": result["meta"],
                     "order": item["order"],
                 },
                 snuba_params.start_date,

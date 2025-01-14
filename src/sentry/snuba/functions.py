@@ -270,7 +270,7 @@ def format_top_events_timeseries_results(
                         else item["data"]
                     ),
                     "order": item["order"],
-                    "meta": result["meta"],
+                    "meta": processed_result["meta"],
                 },
                 snuba_params.start_date,
                 snuba_params.end_date,
