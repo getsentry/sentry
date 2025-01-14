@@ -66,7 +66,7 @@ if settings.SENTRY_USE_BIG_INTS:
         MAX_VALUE = 9223372036854775807
 
         def get_internal_type(self) -> str:
-            return "PositiveIntegerField"
+            return "BigIntegerField"
 
         def get_prep_value(self, value: int) -> int:
             if value:
