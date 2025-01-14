@@ -52,13 +52,13 @@ export default function CorrelatedIssues({
 
   const timePeriod = useMemo((): TimePeriodType | null => {
     if (!openPeriod) {
-     return null
-     }
+      return null;
+    }
     const start = openPeriod.start;
-	  let end = openPeriod.end;
-	  if (!end) {
-	    end = new Date().toISOString()
-	  }
+    let end = openPeriod.end;
+    if (!end) {
+      end = new Date().toISOString();
+    }
     return {
       start,
       end,
@@ -74,7 +74,7 @@ export default function CorrelatedIssues({
       ),
       custom: true,
     };
-    }, [openPeriod]);
+  }, [openPeriod]);
 
   if (!rule || !timePeriod) {
     return null;
