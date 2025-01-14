@@ -5,7 +5,6 @@ from django.db import router, transaction
 from django.utils.functional import cached_property
 
 from sentry import analytics
-from sentry.coreapi import APIUnauthorized
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apitoken import ApiToken
 from sentry.sentry_apps.models.sentry_app import SentryApp
@@ -13,6 +12,7 @@ from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallat
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation
 from sentry.sentry_apps.token_exchange.util import token_expiration
 from sentry.sentry_apps.token_exchange.validator import Validator
+from sentry.sentry_apps.utils.errors import SentryAppIntegratorError, SentryAppSentryError
 from sentry.users.models.user import User
 
 logger = logging.getLogger("sentry.token-exchange")
@@ -37,7 +37,7 @@ class Refresher:
 
                 self._record_analytics()
                 return self._create_new_token()
-            except APIUnauthorized:
+            except (SentryAppIntegratorError, SentryAppSentryError):
                 logger.info(
                     "refresher.context",
                     extra={
@@ -58,7 +58,15 @@ class Refresher:
         Validator(install=self.install, client_id=self.client_id, user=self.user).run()
 
         if self.token.application != self.application:
-            raise APIUnauthorized("Token does not belong to the application")
+            raise SentryAppIntegratorError(
+                message="Token does not belong to the application",
+                extras={
+                    "webhook_context": {
+                        "client_id_from_token": self.token.application.client_id[:4],
+                        "given_client_id": self.client_id[:4],
+                    }
+                },
+            )
 
     def _create_new_token(self) -> ApiToken:
         token = ApiToken.objects.create(
@@ -78,18 +86,42 @@ class Refresher:
         try:
             return ApiToken.objects.get(refresh_token=self.refresh_token)
         except ApiToken.DoesNotExist:
-            raise APIUnauthorized("Token does not exist")
+            raise SentryAppIntegratorError(
+                message="Given refresh token does not exist",
+                extras={
+                    "webhook_context": {
+                        "token": self.refresh_token[:4],
+                        "installation_uuid": self.install.uuid,
+                    }
+                },
+            )
 
     @cached_property
     def application(self) -> ApiApplication:
         try:
             return ApiApplication.objects.get(client_id=self.client_id)
         except ApiApplication.DoesNotExist:
-            raise APIUnauthorized("Application does not exist")
+            raise SentryAppIntegratorError(
+                message="Could not find matching Application for given client_id",
+                extras={
+                    "webhook_context": {
+                        "client_id": self.client_id[:4],
+                        "installation_uuid": self.install.uuid,
+                    }
+                },
+            )
 
     @property
     def sentry_app(self) -> SentryApp:
         try:
             return self.application.sentry_app
         except SentryApp.DoesNotExist:
-            raise APIUnauthorized("Sentry App does not exist")
+            raise SentryAppSentryError(
+                message="Sentry App does not exist on attached Application",
+                extras={
+                    "webhook_context": {
+                        "application_id": self.application.id,
+                        "installation_uuid": self.install.uuid,
+                    }
+                },
+            )
