@@ -441,7 +441,7 @@ function EventNodeSelector({
         anchorRight={anchor === 'right'}
       >
         {totalErrors > 0 && (
-          <DropdownMenuHeader first>
+          <DropdownMenuHeader first header>
             {tn('Related Issue', 'Related Issues', totalErrors)}
           </DropdownMenuHeader>
         )}
@@ -466,7 +466,7 @@ function EventNodeSelector({
           );
         })}
         {events.length > 0 && (
-          <DropdownMenuHeader first={errors.length === 0}>
+          <DropdownMenuHeader first={errors.length === 0} header>
             {tn('Transaction', 'Transactions', events.length)}
           </DropdownMenuHeader>
         )}
