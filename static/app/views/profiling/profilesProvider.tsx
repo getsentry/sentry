@@ -46,24 +46,12 @@ interface FlamegraphViewProps {
 }
 
 type ProfileProviderValue = RequestState<Profiling.ProfileInput>;
-type SetProfileProviderValue = React.Dispatch<
-  React.SetStateAction<RequestState<Profiling.ProfileInput>>
->;
 export const ProfileContext = createContext<ProfileProviderValue | null>(null);
-const SetProfileProvider = createContext<SetProfileProviderValue | null>(null);
 
 export function useProfiles() {
   const context = useContext(ProfileContext);
   if (!context) {
     throw new Error('useProfiles was called outside of ProfileProvider');
-  }
-  return context;
-}
-
-export function useSetProfiles() {
-  const context = useContext(SetProfileProvider);
-  if (!context) {
-    throw new Error('useSetProfiles was called outside of SetProfileProvider');
   }
   return context;
 }
@@ -104,18 +92,16 @@ function ProfilesAndTransactionProvider(props: FlamegraphViewProps): React.React
       profileId={params.eventId!}
       projectSlug={projectSlug}
     >
-      <SetProfileProvider.Provider value={setProfiles}>
-        <ProfileTransactionContext.Provider value={profileTransaction}>
-          <ProfileHeader
-            eventId={params.eventId!}
-            projectId={projectSlug}
-            transaction={
-              profileTransaction.type === 'resolved' ? profileTransaction.data : null
-            }
-          />
-          {props.children}
-        </ProfileTransactionContext.Provider>
-      </SetProfileProvider.Provider>
+      <ProfileTransactionContext.Provider value={profileTransaction}>
+        <ProfileHeader
+          eventId={params.eventId!}
+          projectId={projectSlug}
+          transaction={
+            profileTransaction.type === 'resolved' ? profileTransaction.data : null
+          }
+        />
+        {props.children}
+      </ProfileTransactionContext.Provider>
     </ProfilesProvider>
   );
 }
