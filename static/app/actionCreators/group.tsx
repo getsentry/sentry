@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/react';
 
-import type {RequestCallbacks, RequestOptions} from 'sentry/api';
+import type {RequestCallbackOptions, RequestOptions} from 'sentry/api';
 import {Client} from 'sentry/api';
 import GroupStore from 'sentry/stores/groupStore';
 import type {Actor} from 'sentry/types/core';
@@ -287,7 +287,7 @@ function wrapRequest(
   api: Client,
   path: string,
   options: RequestOptions,
-  extraParams: RequestCallbacks = {}
+  extraParams: RequestCallbackOptions = {}
 ) {
   options.success = chainUtil(options.success, extraParams.success);
   options.error = chainUtil(options.error, extraParams.error);
@@ -301,7 +301,7 @@ type BulkDeleteParams = UpdateParams;
 export function bulkDelete(
   api: Client,
   params: BulkDeleteParams,
-  options: RequestCallbacks
+  options: RequestCallbackOptions
 ) {
   const {itemIds} = params;
   const path = getUpdateUrl(params);
@@ -321,6 +321,8 @@ export function bulkDelete(
         GroupStore.onDeleteSuccess(id, itemIds, response);
       },
       error: error => {
+        // @ts-expect-error There is a type error mismatch on error type
+        // which was previously not caught
         GroupStore.onDeleteError(id, itemIds, error);
       },
     },
@@ -336,7 +338,7 @@ type BulkUpdateParams = UpdateParams & {
 export function bulkUpdate(
   api: Client,
   params: BulkUpdateParams,
-  options: RequestCallbacks
+  options: RequestCallbackOptions
 ) {
   const {itemIds, failSilently, data} = params;
   const path = getUpdateUrl(params);
@@ -369,7 +371,7 @@ type MergeGroupsParams = UpdateParams;
 export function mergeGroups(
   api: Client,
   params: MergeGroupsParams,
-  options: RequestCallbacks
+  options: RequestCallbackOptions
 ) {
   const {itemIds} = params;
   const path = getUpdateUrl(params);

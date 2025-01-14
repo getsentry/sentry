@@ -463,10 +463,9 @@ export class Client {
     // The Response's body can only be resolved/used at most once.
     // So we clone the response so we can resolve the body content as text content.
     // Response objects need to be cloned before its body can be used.
-    let responseJSON: any;
     let responseText: any;
 
-    // Attempt to extract text out of the response, no matter the status
+    // Attempt to extract text out of the response, no matter the status.
     try {
       responseText = await response.text();
     } catch (error) {
@@ -484,6 +483,8 @@ export class Client {
     const requestIsExpectingJSON =
       requestHeaders.get('Accept') === Client.JSON_HEADERS.Accept;
 
+    let responseJSON: any;
+    // Attempt to parse the response as JSON
     if (status !== 204 && !(status >= 300 && status < 400)) {
       try {
         responseJSON = JSON.parse(responseText);
@@ -588,6 +589,7 @@ export class Client {
                 responseMeta
               );
             }
+            return;
           }
           // There's no reason we should be here with a 200 response, but we get
           // tons of events from this codepath with a 200 status nonetheless.
