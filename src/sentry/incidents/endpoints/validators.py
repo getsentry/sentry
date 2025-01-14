@@ -94,7 +94,6 @@ class MetricAlertComparisonConditionValidator(NumericComparisonConditionValidato
 class MetricAlertsDetectorValidator(BaseGroupTypeDetectorValidator):
     data_source = SnubaQueryDataSourceValidator(required=True)
     data_conditions = MetricAlertComparisonConditionValidator(many=True)
-    config = serializers.JSONField(required=False)
 
     def validate(self, attrs):
         """
