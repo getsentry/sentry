@@ -186,7 +186,6 @@ const IssuesTraceOverlayContainer = styled(ExternalLink)`
   position: absolute;
   inset: 0;
   z-index: 10;
-  cursor: pointer;
 `;
 
 interface EventTraceViewProps {
