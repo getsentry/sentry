@@ -360,10 +360,13 @@ export function sortProfileSamples<S extends SortableProfileSample>(
     return 0;
   });
 
-  const framesMapping = frameIds.reduce((acc, frameId, idx) => {
-    acc[frameId] = idx;
-    return acc;
-  }, {});
+  const framesMapping = frameIds.reduce(
+    (acc, frameId, idx) => {
+      acc[frameId] = idx;
+      return acc;
+    },
+    {} as Record<string, number>
+  );
 
   return [...samples].sort((a, b) => {
     // same stack id, these are the same
@@ -390,8 +393,8 @@ export function sortProfileSamples<S extends SortableProfileSample>(
         continue;
       }
 
-      const frameIdxA = framesMapping[frameIdA];
-      const frameIdxB = framesMapping[frameIdB];
+      const frameIdxA = framesMapping[frameIdA]!;
+      const frameIdxB = framesMapping[frameIdB]!;
 
       // same frame idx, so check the next frame in the stack
       if (frameIdxA === frameIdxB) {

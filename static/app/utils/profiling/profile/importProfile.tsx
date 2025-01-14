@@ -341,7 +341,7 @@ function measurementsFromContinuousMeasurements(
     return {};
   }
 
-  const measurements = {};
+  const measurements: Profiling.Measurements = {};
 
   for (const [key, continuousMeasurement] of Object.entries(continuousMeasurements)) {
     measurements[key] = measurementFromContinousMeasurement(
