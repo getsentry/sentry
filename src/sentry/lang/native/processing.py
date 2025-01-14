@@ -537,7 +537,7 @@ def emit_apple_symbol_stats(apple_symbol_stats, data):
         )
 
         # This is done to temporally collect information about the events for which symx is not working correctly.
-        if in_random_rollout("symbolicate.symx-logging-rate") and os_name:
+        if in_random_rollout("symbolicate.symx-logging-rate") and os_name and os_version:
             os_description = os_name + str(os_version)
             if os_description in options.get("symbolicate.symx-os-description-list"):
                 with sentry_sdk.isolation_scope() as scope:
