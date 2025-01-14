@@ -21,6 +21,7 @@ from sentry.onboarding_tasks import try_mark_onboarding_complete
 from sentry.plugins.bases.issue import IssueTrackingPlugin
 from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 from sentry.signals import (
+    alert_rule_created,
     cron_monitor_created,
     event_processed,
     first_cron_checkin_received,
@@ -649,6 +650,25 @@ def record_plugin_enabled(plugin, project, user, **kwargs):
         project_id=project.id,
         plugin=plugin.slug,
     )
+
+
+@alert_rule_created.connect(weak=False)
+def record_alert_rule_created(user, project: Project, rule_type: str, **kwargs):
+    if rule_type == "metric":
+        return
+    rows_affected, created = OrganizationOnboardingTask.objects.create_or_update(
+        organization_id=project.organization_id,
+        task=OnboardingTask.ALERT_RULE,
+        values={
+            "status": OnboardingTaskStatus.COMPLETE,
+            "user_id": user.id if user else None,
+            "project_id": project.id,
+            "date_completed": django_timezone.now(),
+        },
+    )
+
+    if rows_affected or created:
+        try_mark_onboarding_complete(project.organization_id, user)
 
 
 @issue_tracker_used.connect(weak=False)
