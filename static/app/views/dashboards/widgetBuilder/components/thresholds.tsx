@@ -71,6 +71,7 @@ function ThresholdsSection({dataType, dataUnit}: {dataType?: string; dataUnit?: 
         }}
         dataType={dataType}
         dataUnit={dataUnit}
+        // TODO: Add errors
         errors={{}}
       />
     </Fragment>
