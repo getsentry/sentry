@@ -87,7 +87,7 @@ function ThresholdRow({
   );
 }
 
-function ThresholdsStep({
+export function Thresholds({
   thresholdsConfig,
   onThresholdChange,
   onUnitChange,
@@ -101,7 +101,6 @@ function ThresholdsStep({
   const unitOptions = ['duration', 'rate'].includes(dataType)
     ? getThresholdUnitSelectOptions(dataType)
     : [];
-
   const thresholdRowProps: ThresholdRowProp[] = [
     {
       maxKey: ThresholdMaxKeys.MAX_1,
@@ -167,6 +166,28 @@ function ThresholdsStep({
   ];
 
   return (
+    <ThresholdsContainer>
+      {thresholdRowProps.map((props, index) => (
+        <ThresholdRow
+          {...props}
+          onThresholdChange={onThresholdChange}
+          onUnitChange={onUnitChange}
+          key={index}
+        />
+      ))}
+    </ThresholdsContainer>
+  );
+}
+
+function ThresholdsStep({
+  thresholdsConfig,
+  onThresholdChange,
+  onUnitChange,
+  errors,
+  dataType = '',
+  dataUnit = '',
+}: ThresholdsStepProps) {
+  return (
     <BuildStep
       title={t('Set thresholds')}
       description={tct(
@@ -179,16 +200,14 @@ function ThresholdsStep({
         }
       )}
     >
-      <ThresholdsContainer>
-        {thresholdRowProps.map((props, index) => (
-          <ThresholdRow
-            {...props}
-            onThresholdChange={onThresholdChange}
-            onUnitChange={onUnitChange}
-            key={index}
-          />
-        ))}
-      </ThresholdsContainer>
+      <Thresholds
+        thresholdsConfig={thresholdsConfig}
+        onThresholdChange={onThresholdChange}
+        onUnitChange={onUnitChange}
+        errors={errors}
+        dataType={dataType}
+        dataUnit={dataUnit}
+      />
     </BuildStep>
   );
 }
@@ -219,7 +238,7 @@ const StyledSelectField = styled(SelectField)`
   min-width: 150px;
 `;
 
-const HighlightedText = styled('span')`
+export const HighlightedText = styled('span')`
   font-family: ${p => p.theme.text.familyMono};
   color: ${p => p.theme.pink300};
 `;
