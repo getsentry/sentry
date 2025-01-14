@@ -19,6 +19,7 @@ export const enum SectionKey {
   UPTIME = 'uptime', // Only Uptime issues
   DOWNTIME = 'downtime',
   CRON_TIMELINE = 'cron-timeline', // Only Cron issues
+  CORRELATED_ISSUES = 'correlated-issues', // Only Metric issues
 
   HIGHLIGHTS = 'highlights',
   RESOURCES = 'resources', // Position controlled by flag

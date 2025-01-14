@@ -70,6 +70,7 @@ import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import CorrelatedIssues from 'sentry/views/issueDetails/correlatedIssues';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {EventDetails} from 'sentry/views/issueDetails/streamline/eventDetails';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
@@ -218,6 +219,14 @@ export function EventDetailsContent({
         <CronTimelineSection
           event={event}
           organization={organization}
+          project={project}
+        />
+      )}
+      {event.contexts?.metric_alert?.alert_rule_id && (
+        <CorrelatedIssues
+          organization={organization}
+          group={group}
+          event={event}
           project={project}
         />
       )}
