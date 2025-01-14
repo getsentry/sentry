@@ -61,7 +61,7 @@ class GroupSearchView(DefaultFieldsModelExisting):
     environments = models.ManyToManyField(
         "sentry.Environment", through="sentry.GroupSearchViewEnvironment"
     )
-    time_filters = models.JSONField(null=False, default=default_time_filters)
+    time_filters = models.JSONField(null=False, db_default=default_time_filters)
 
     class Meta:
         app_label = "sentry"

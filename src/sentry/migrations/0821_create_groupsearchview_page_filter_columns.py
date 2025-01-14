@@ -38,7 +38,7 @@ class Migration(CheckedMigration):
         migrations.AddField(
             model_name="groupsearchview",
             name="time_filters",
-            field=models.JSONField(default=sentry.models.groupsearchview.default_time_filters),
+            field=models.JSONField(db_default=sentry.models.groupsearchview.default_time_filters),
         ),
         migrations.CreateModel(
             name="GroupSearchViewEnvironment",
