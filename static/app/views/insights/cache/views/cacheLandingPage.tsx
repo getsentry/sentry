@@ -38,6 +38,7 @@ import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHead
 import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
 
 import {InsightsLineChartWidget} from '../../common/components/insightsLineChartWidget';
+import {useSamplesDrawer} from '../../common/utils/useSamplesDrawer';
 import {DataTitles, getThroughputChartTitle} from '../../common/views/spans/types';
 
 const {CACHE_MISS_RATE} = SpanFunction;
@@ -64,6 +65,12 @@ export function CacheLandingPage() {
 
   const sort = decodeSorts(sortField).filter(isAValidSort).at(0) ?? DEFAULT_SORT;
   const cursor = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_CURSOR]);
+
+  useSamplesDrawer({
+    Component: <CacheSamplePanel />,
+    moduleName: ModuleName.CACHE,
+    requiredParams: ['transaction'],
+  });
 
   const {
     isPending: isCacheMissRateLoading,
@@ -217,7 +224,6 @@ export function CacheLandingPage() {
           </Layout.Main>
         </Layout.Body>
       </ModuleBodyUpsellHook>
-      <CacheSamplePanel />
     </React.Fragment>
   );
 }
