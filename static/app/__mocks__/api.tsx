@@ -145,7 +145,7 @@ class Client implements ApiNamespace.Client {
         statusCode: 200,
         statusText: 'OK',
         responseText: '',
-        responseJSON: '',
+        responseJSON: {},
         body: '',
         method: 'GET',
         callCount: 0,

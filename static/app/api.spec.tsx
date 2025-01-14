@@ -1,7 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import type {Client, ResponseMeta} from 'sentry/api';
-import {isSimilarOrigin, Request, resolveHostname} from 'sentry/api';
+import type {ResponseMeta} from 'sentry/api';
+import {Client, Request, resolveHostname} from 'sentry/api';
 import {PROJECT_MOVED} from 'sentry/constants/apiErrorCodes';
 
 import ConfigStore from './stores/configStore';
@@ -254,6 +254,6 @@ describe('isSimilarOrigin', function () {
     ['https://woof.example.io', 'https://woof.sentry.io', false],
     ['https://woof.sentry.io', 'https://sentry.woof.io', false],
   ])('allows sibling domains %s and %s is %s', (target, origin, expected) => {
-    expect(isSimilarOrigin(target, origin)).toBe(expected);
+    expect(Client.isSimilarOrigin(target, origin)).toBe(expected);
   });
 });

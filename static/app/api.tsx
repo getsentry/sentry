@@ -20,62 +20,68 @@ import {sanitizePath} from 'sentry/utils/requestError/sanitizePath';
 
 import ConfigStore from './stores/configStore';
 
-export class Request {
-  /**
-   * Is the request still in flight
-   */
-  alive: boolean;
-  /**
-   * Promise which will be resolved when the request has completed
-   */
-  requestPromise: Promise<Response>;
-  /**
-   * AbortController to cancel the in-flight request. This will not be set in
-   * unsupported browsers.
-   */
-  aborter?: AbortController;
+export function resolveHostname(path: string, hostname?: string): string {
+  const configLinks = ConfigStore.get('links');
+  const systemFeatures = ConfigStore.get('features');
 
-  constructor(requestPromise: Promise<Response>, aborter?: AbortController) {
-    this.requestPromise = requestPromise;
-    this.aborter = aborter;
-    this.alive = true;
+  hostname = hostname ?? '';
+  if (!hostname && systemFeatures.has('system:multi-region')) {
+    // /_admin/ is special: since it doesn't update OrganizationStore, it's
+    // commonly the case that requests will be made for data which does not
+    // exist in the same region as the one in configLinks.regionUrl. Because of
+    // this we want to explicitly default those requests to be proxied through
+    // the control silo which can handle region resolution in exchange for a
+    // bit of latency.
+    const isAdmin = window.location.pathname.startsWith('/_admin/');
+    const isControlSilo = detectControlSiloPath(path);
+    if (!isAdmin && !isControlSilo && configLinks.regionUrl) {
+      hostname = configLinks.regionUrl;
+    }
+    if (isControlSilo && configLinks.sentryUrl) {
+      hostname = configLinks.sentryUrl;
+    }
   }
 
-  cancel() {
-    this.alive = false;
-    this.aborter?.abort();
-    metric('app.api.request-abort', 1);
+  // If we're making a request to the applications' root
+  // domain, we can drop the domain as webpack devserver will add one.
+  // TODO(hybridcloud) This can likely be removed when sentry.types.region.Region.to_url()
+  // loses the monolith mode condition.
+  if (window.__SENTRY_DEV_UI && hostname === configLinks.sentryUrl) {
+    hostname = '';
   }
+
+  // When running as yarn dev-ui we can't spread requests across domains because
+  // of CORS. Instead we extract the subdomain from the hostname
+  // and prepend the URL with `/region/$name` so that webpack-devserver proxy
+  // can route requests to the regions.
+  if (hostname && window.__SENTRY_DEV_UI) {
+    const domainpattern = /https?\:\/\/([^.]*)\.sentry\.io/;
+    const domainmatch = hostname.match(domainpattern);
+    if (domainmatch) {
+      hostname = '';
+      path = `/region/${domainmatch[1]}${path}`;
+    }
+  }
+  if (hostname) {
+    path = `${hostname}${path}`;
+  }
+
+  return path;
 }
 
-export type ApiResult<Data = any> = [
-  data: Data,
-  statusText: string | undefined,
-  resp: ResponseMeta | undefined,
-];
-
-export type ResponseMeta<R = any> = {
-  /**
-   * Get a header value from the response
-   */
-  getResponseHeader: (header: string) => string | null;
-  /**
-   * The response body decoded from json
-   */
-  responseJSON: R;
-  /**
-   * The string value of the response
-   */
-  responseText: string;
-  /**
-   * The response status code
-   */
-  status: Response['status'];
-  /**
-   * The response status code text
-   */
-  statusText: Response['statusText'];
-};
+function detectControlSiloPath(path: string): boolean {
+  // We sometimes include querystrings in paths.
+  // Using URL() to avoid handrolling URL parsing
+  const url = new URL(path, 'https://sentry.io');
+  path = url.pathname;
+  path = path.startsWith('/') ? path.substring(1) : path;
+  for (const pattern of controlsilopatterns) {
+    if (pattern.test(path)) {
+      return true;
+    }
+  }
+  return false;
+}
 
 /**
  * Check if the requested method does not require CSRF tokens
@@ -83,34 +89,6 @@ export type ResponseMeta<R = any> = {
 function csrfSafeMethod(method?: string): boolean {
   // these HTTP methods do not require CSRF protection
   return /^(GET|HEAD|OPTIONS|TRACE)$/.test(method ?? '');
-}
-
-/**
- * Check if we a request is going to the same or similar origin.
- * similar origins are those that share an ancestor. Example `sentry.sentry.io` and `us.sentry.io`
- * are similar origins, but sentry.sentry.io and sentry.example.io are not.
- */
-export function isSimilarOrigin(target: string, origin: string): boolean {
-  const targetUrl = new URL(target, origin);
-  const originUrl = new URL(origin);
-  // If one of the domains is a child of the other.
-  if (
-    originUrl.hostname.endsWith(targetUrl.hostname) ||
-    targetUrl.hostname.endsWith(originUrl.hostname)
-  ) {
-    return true;
-  }
-  // Check if the target and origin are on sibiling subdomains.
-  const targetHost = targetUrl.hostname.split('.');
-  const originHost = originUrl.hostname.split('.');
-
-  // Remove the subdomains. If don't have at least 2 segments we aren't subdomains.
-  targetHost.shift();
-  originHost.shift();
-  if (targetHost.length < 2 || originHost.length < 2) {
-    return false;
-  }
-  return targetHost.join('.') === originHost.join('.');
 }
 
 // TODO: Need better way of identifying anonymous pages that don't trigger redirect
@@ -181,36 +159,6 @@ export const initApiClientErrorHandling = () =>
   });
 
 /**
- * Construct a full request URL
- */
-function buildRequestUrl(baseUrl: string, path: string, options: RequestOptions) {
-  let params: string;
-  try {
-    params = qs.stringify(options.query ?? []);
-  } catch (err) {
-    Sentry.withScope(scope => {
-      scope.setExtra('path', path);
-      scope.setExtra('query', options.query);
-      Sentry.captureException(err);
-    });
-    throw err;
-  }
-
-  // Append the baseUrl if required
-  let fullUrl = path.includes(baseUrl) ? path : baseUrl + path;
-
-  // Apply path and domain transforms for hybrid-cloud
-  fullUrl = resolveHostname(fullUrl, options.host);
-
-  // Append query parameters
-  if (params) {
-    fullUrl += fullUrl.includes('?') ? `&${params}` : `?${params}`;
-  }
-
-  return fullUrl;
-}
-
-/**
  * Check if the API response says project has been renamed.  If so, redirect
  * user to new project slug
  */
@@ -222,26 +170,88 @@ export function hasProjectBeenRenamed(response: ResponseMeta) {
   // jQuery ajax will follow the redirect by default...
   //
   // TODO(epurkhiser): We use fetch now, is the above comment still true?
+  // TODO(jonas): This can happen as fetch allows us to intercept the redirect by setting redirect: 'manual'
+
   if (code !== PROJECT_MOVED) {
     return false;
   }
 
   const slug = response?.responseJSON?.detail?.extra?.slug;
-
   redirectToProject(slug);
   return true;
 }
 
-// TODO(ts): move this somewhere
-export type APIRequestMethod = 'POST' | 'GET' | 'DELETE' | 'PUT';
+function wrapCallback<T extends Function>(
+  id: string,
+  func: T,
+  cleanup: boolean,
+  activeRequests: Record<string, Request>
+) {
+  return (...args: FunctionArguments<T>) => {
+    const req = activeRequests[id];
 
+    if (!req) {
+      return undefined;
+    }
+
+    if (cleanup) {
+      delete activeRequests[id];
+    }
+
+    if (!req.alive) {
+      return undefined;
+    }
+
+    // Check if API response is a 302 -- means project slug was renamed and user
+    // needs to be redirected
+    // @ts-expect-error
+    if (hasProjectBeenRenamed(...args)) {
+      return undefined;
+    }
+
+    return func.apply(req, args);
+  };
+}
+
+type FunctionArguments<F extends Function> = F extends (...args: infer A) => any
+  ? A
+  : never;
 type FunctionCallback<Args extends any[] = any[]> = (...args: Args) => void;
 
-export type RequestCallbacks = {
+export type ApiResult<Data = any> = [
+  data: Data,
+  statusText: string | undefined,
+  resp: ResponseMeta | undefined,
+];
+
+export type ResponseMeta = {
+  /**
+   * Get a header value from the response
+   */
+  getResponseHeader: (header: string) => string | null;
+  /**
+   * The response body decoded from json
+   */
+  responseJSON: Record<string, any> | undefined;
+  /**
+   * The string value of the response
+   */
+  responseText: string;
+  /**
+   * The response status code
+   */
+  status: Response['status'];
+  /**
+   * The response status code text
+   */
+  statusText: Response['statusText'];
+};
+export type APIRequestMethod = 'POST' | 'GET' | 'DELETE' | 'PUT';
+export type RequestCallbackOptions = {
   /**
    * Callback for the request completing (success or error)
    */
-  complete?: (resp: ResponseMeta, textStatus: string) => void;
+  complete?: FunctionCallback<[ResponseMeta, string]>;
   /**
    * Callback for the request failing with an error
    */
@@ -250,10 +260,10 @@ export type RequestCallbacks = {
   /**
    * Callback for the request completing successfully
    */
-  success?: (data: any, textStatus?: string, resp?: ResponseMeta) => void;
+  success?: FunctionCallback<[any] | [any, string, ResponseMeta]>;
 };
 
-export type RequestOptions = RequestCallbacks & {
+export interface RequestOptions extends RequestCallbackOptions {
   /**
    * Set true, if an authentication required error is allowed for
    * a request.
@@ -292,7 +302,35 @@ export type RequestOptions = RequestCallbacks & {
    * want to cache a request on unmount.
    */
   skipAbort?: boolean;
-};
+}
+
+export class Request {
+  /**
+   * Is the request still in flight
+   */
+  alive: boolean;
+  /**
+   * Promise which will be resolved when the request has completed
+   */
+  requestPromise: Promise<Response>;
+  /**
+   * AbortController to cancel the in-flight request. This will not be set in
+   * unsupported browsers.
+   */
+  aborter?: AbortController;
+
+  constructor(requestPromise: Promise<Response>, aborter?: AbortController) {
+    this.requestPromise = requestPromise;
+    this.aborter = aborter;
+    this.alive = true;
+  }
+
+  cancel() {
+    this.alive = false;
+    this.aborter?.abort();
+    metric('app.api.request-abort', 1);
+  }
+}
 
 type ClientOptions = {
   /**
@@ -309,24 +347,18 @@ type ClientOptions = {
   headers?: HeadersInit;
 };
 
-type HandleRequestErrorOptions = {
-  id: string;
-  path: string;
-  requestOptions: Readonly<RequestOptions>;
-};
-
 /**
  * The API client is used to make HTTP requests to Sentry's backend.
  *
  * This is they preferred way to talk to the backend.
  */
 export class Client {
-  baseUrl: string;
-  activeRequests: Record<string, Request>;
+  public baseUrl: string;
+  public activeRequests: Record<string, Request>;
   headers: HeadersInit;
   credentials?: RequestCredentials;
 
-  static JSON_HEADERS = {
+  static readonly JSON_HEADERS = {
     Accept: 'application/json; charset=utf-8',
     'Content-Type': 'application/json',
   };
@@ -334,82 +366,66 @@ export class Client {
   constructor(options: ClientOptions = {}) {
     this.baseUrl = options.baseUrl ?? '/api/0';
     this.headers = options.headers ?? Client.JSON_HEADERS;
-    this.activeRequests = {};
     this.credentials = options.credentials ?? 'include';
-  }
-
-  wrapCallback<T extends any[]>(
-    id: string,
-    func: FunctionCallback<T> | undefined,
-    cleanup: boolean = false
-  ) {
-    return (...args: T) => {
-      const req = this.activeRequests[id];
-
-      if (cleanup === true) {
-        delete this.activeRequests[id];
-      }
-
-      if (!req?.alive) {
-        return undefined;
-      }
-
-      // Check if API response is a 302 -- means project slug was renamed and user
-      // needs to be redirected
-      // @ts-expect-error
-      if (hasProjectBeenRenamed(...args)) {
-        return undefined;
-      }
-
-      // Call success callback
-      return func?.apply(req, args);
-    };
+    this.activeRequests = {};
   }
 
   /**
-   * Attempt to cancel all active fetch requests
+   * Check if we a request is going to the same or similar origin.
+   * similar origins are those that share an ancestor. Example `sentry.sentry.io` and `us.sentry.io`
+   * are similar origins, but sentry.sentry.io and sentry.example.io are not.
    */
-  clear() {
-    Object.values(this.activeRequests).forEach(r => r.cancel());
+  public static isSimilarOrigin(target: string, origin: string): boolean {
+    const targetUrl = new URL(target, origin);
+    const originUrl = new URL(origin);
+    // If one of the domains is a child of the other.
+    if (
+      originUrl.hostname.endsWith(targetUrl.hostname) ||
+      targetUrl.hostname.endsWith(originUrl.hostname)
+    ) {
+      return true;
+    }
+    // Check if the target and origin are on sibiling subdomains.
+    const targetHost = targetUrl.hostname.split('.');
+    const originHost = originUrl.hostname.split('.');
+
+    // Remove the subdomains. If don't have at least 2 segments we aren't subdomains.
+    targetHost.shift();
+    originHost.shift();
+    if (targetHost.length < 2 || originHost.length < 2) {
+      return false;
+    }
+    return targetHost.join('.') === originHost.join('.');
   }
 
-  handleRequestError(
-    {id, path, requestOptions}: HandleRequestErrorOptions,
-    response: ResponseMeta,
-    textStatus: string,
-    errorThrown: string
-  ) {
-    const code = response?.responseJSON?.detail?.code;
-    const isSudoRequired = code === SUDO_REQUIRED || code === SUPERUSER_REQUIRED;
-
-    let didSuccessfullyRetry = false;
-
-    if (isSudoRequired) {
-      openSudo({
-        isSuperuser: code === SUPERUSER_REQUIRED,
-        sudo: code === SUDO_REQUIRED,
-        retryRequest: async () => {
-          try {
-            const data = await this.requestPromise(path, requestOptions);
-            requestOptions.success?.(data);
-            didSuccessfullyRetry = true;
-          } catch (err) {
-            requestOptions.error?.(err);
-          }
-        },
-        onClose: () =>
-          // If modal was closed, then forward the original response
-          !didSuccessfullyRetry && requestOptions.error?.(response),
+  /**
+   * Construct a full request URL
+   */
+  public static buildRequestUrl(baseUrl: string, path: string, options: RequestOptions) {
+    let params: string;
+    try {
+      params = qs.stringify(options.query ?? []);
+    } catch (err) {
+      Sentry.withScope(scope => {
+        scope.setExtra('path', path);
+        scope.setExtra('query', options.query);
+        Sentry.captureException(err);
       });
-      return;
+      throw err;
     }
 
-    // Call normal error callback
-    const errorCb = this.wrapCallback<[ResponseMeta, string, string]>(
-      id,
-      requestOptions.error
-    );
-    errorCb?.(response, textStatus, errorThrown);
+    // Append the baseUrl if required
+    let fullUrl = path.includes(baseUrl) ? path : baseUrl + path;
+
+    // Apply path and domain transforms for hybrid-cloud
+    fullUrl = resolveHostname(fullUrl, options.host);
+
+    // Append query parameters
+    if (params) {
+      fullUrl += fullUrl.includes('?') ? `&${params}` : `?${params}`;
+    }
+
+    return fullUrl;
   }
 
   /**
@@ -420,8 +436,7 @@ export class Client {
   request(path: string, options: Readonly<RequestOptions> = {}): Request {
     const method = options.method || (options.data ? 'POST' : 'GET');
 
-    let fullUrl = buildRequestUrl(this.baseUrl, path, options);
-
+    let url = Client.buildRequestUrl(this.baseUrl, path, options);
     let data = options.data;
 
     if (data !== undefined && method !== 'GET' && !(data instanceof FormData)) {
@@ -435,7 +450,7 @@ export class Client {
       const queryString = typeof data === 'string' ? data : qs.stringify(data);
 
       if (queryString.length > 0) {
-        fullUrl = fullUrl + (fullUrl.includes('?') ? '&' : '?') + queryString;
+        url = url + (url.includes('?') ? '&' : '?') + queryString;
       }
     }
 
@@ -458,45 +473,14 @@ export class Client {
         data: {status: resp?.status},
       });
       if (options.success !== undefined) {
-        this.wrapCallback<[any, string, ResponseMeta]>(id, options.success)(
-          responseData,
-          textStatus,
-          resp
-        );
+        wrapCallback(
+          id,
+          options.success,
+          false,
+          this.activeRequests
+        )(responseData, textStatus, resp);
       }
     };
-
-    /**
-     * Called when the request is non-2xx
-     */
-    const errorHandler = (
-      resp: ResponseMeta,
-      textStatus: string,
-      errorThrown: string
-    ) => {
-      metric.measure({
-        name: 'app.api.request-error',
-        start: startMarker,
-        data: {status: resp?.status},
-      });
-
-      this.handleRequestError(
-        {id, path, requestOptions: options},
-        resp,
-        textStatus,
-        errorThrown
-      );
-    };
-
-    /**
-     * Called when the request completes
-     */
-    const completeHandler = (resp: ResponseMeta, textStatus: string) =>
-      this.wrapCallback<[ResponseMeta, string]>(
-        id,
-        options.complete,
-        true
-      )(resp, textStatus);
 
     // AbortController is optional, though most browser should support it.
     const aborter =
@@ -504,28 +488,22 @@ export class Client {
         ? new AbortController()
         : undefined;
 
-    // GET requests may not have a body
-    const body = method !== 'GET' ? data : undefined;
-
     const requestHeaders = new Headers({...this.headers, ...options.headers});
 
     // Do not set the X-CSRFToken header when making a request outside of the
     // current domain. Because we use subdomains we loosely compare origins
-    if (!csrfSafeMethod(method) && isSimilarOrigin(fullUrl, window.location.origin)) {
+    if (!csrfSafeMethod(method) && Client.isSimilarOrigin(url, window.location.origin)) {
       requestHeaders.set('X-CSRFToken', getCsrfToken());
     }
 
-    const fetchRequest = fetch(fullUrl, {
+    const fetchRequest = fetch(url, {
       method,
-      body,
+      // GET requests may not have a body
+      body: method === 'GET' ? undefined : data,
       headers: requestHeaders,
       credentials: this.credentials,
       signal: aborter?.signal,
-    });
-
-    // XXX(epurkhiser): We migrated off of jquery, so for now we have a
-    // compatibility layer which mimics that of the jquery response objects.
-    fetchRequest
+    })
       .then(
         async response => {
           // The Response's body can only be resolved/used at most once.
@@ -536,6 +514,7 @@ export class Client {
 
           const {status, statusText} = response;
           let {ok} = response;
+
           let errorReason = 'Request not OK'; // the default error reason
           let twoHundredErrorReason: string | undefined;
 
@@ -598,43 +577,64 @@ export class Client {
 
           if (ok) {
             successHandler(responseMeta, statusText, responseData);
-          } else {
-            // There's no reason we should be here with a 200 response, but we get
-            // tons of events from this codepath with a 200 status nonetheless.
-            // Until we know why, let's do what is essentially some very fancy print debugging.
-            if (status === 200 && responseText) {
-              const parameterizedPath = sanitizePath(path);
-              const message = '200 treated as error';
+            return [responseData, statusText, responseMeta];
+          }
+          // There's no reason we should be here with a 200 response, but we get
+          // tons of events from this codepath with a 200 status nonetheless.
+          // Until we know why, let's do what is essentially some very fancy print debugging.
+          if (status === 200 && responseText) {
+            const parameterizedPath = sanitizePath(path);
+            const message = '200 treated as error';
 
-              Sentry.withScope(scope => {
-                scope.setTags({endpoint: `${method} ${parameterizedPath}`, errorReason});
-                scope.setExtras({
-                  twoHundredErrorReason,
-                  responseJSON,
-                  responseText,
-                  responseContentType,
-                  errorReason,
-                });
-                // Make sure all of these errors group, so we don't produce a bunch of noise
-                scope.setFingerprint([message]);
-
-                Sentry.captureException(
-                  new Error(`${message}: ${method} ${parameterizedPath}`)
-                );
+            Sentry.withScope(scope => {
+              scope.setTags({endpoint: `${method} ${parameterizedPath}`, errorReason});
+              scope.setExtras({
+                twoHundredErrorReason,
+                responseJSON,
+                responseText,
+                responseContentType,
+                errorReason,
               });
-            }
+              // Make sure all of these errors group, so we don't produce a bunch of noise
+              scope.setFingerprint([message]);
 
-            const shouldSkipErrorHandler =
-              globalErrorHandlers
-                .map(handler => handler(responseMeta, options))
-                .filter(Boolean).length > 0;
-
-            if (!shouldSkipErrorHandler) {
-              errorHandler(responseMeta, statusText, errorReason);
-            }
+              Sentry.captureException(
+                new Error(`${message}: ${method} ${parameterizedPath}`)
+              );
+            });
           }
 
-          completeHandler(responseMeta, statusText);
+          const shouldSkipErrorHandler =
+            globalErrorHandlers
+              .map(handler => handler(responseMeta, options))
+              .filter(Boolean).length > 0;
+
+          if (!shouldSkipErrorHandler) {
+            metric.measure({
+              name: 'app.api.request-error',
+              start: startMarker,
+              data: {status: responseMeta?.status},
+            });
+
+            this.handleRequestError(
+              {id, path, requestOptions: options},
+              responseMeta,
+              statusText,
+              errorReason
+            );
+            return [responseData, statusText, responseMeta];
+          }
+
+          // Call complete callback
+          if (options.complete) {
+            wrapCallback(
+              id,
+              options.complete,
+              true,
+              this.activeRequests
+            )(responseMeta, statusText);
+          }
+          return [responseData, statusText, responseMeta];
         },
         () => {
           // Ignore failed fetch calls or errors in the fetch request itself (e.g. cancelled requests)
@@ -668,17 +668,10 @@ export class Client {
     // or handle with a user friendly error message
     const preservedError = new Error('API Request Error');
 
-    return new Promise((resolve, reject) =>
+    return new Promise((resolve, reject) => {
       this.request(path, {
         ...options,
         preservedError,
-        success: (data, textStatus, resp) => {
-          if (includeAllArgs) {
-            resolve([data, textStatus, resp] as any);
-          } else {
-            resolve(data);
-          }
-        },
         error: (resp: ResponseMeta) => {
           const errorObjectToUse = new RequestError(
             options.method,
@@ -691,70 +684,69 @@ export class Client {
           // potentially be logged by Sentry's unhandled rejection handler
           reject(errorObjectToUse);
         },
-      })
-    );
+        success: (data: any, textStatus?: string, resp?: ResponseMeta) => {
+          if (includeAllArgs) {
+            resolve([data, textStatus, resp] as any);
+          } else {
+            resolve(data);
+          }
+        },
+      });
+    });
   }
-}
 
-export function resolveHostname(path: string, hostname?: string): string {
-  const configLinks = ConfigStore.get('links');
-  const systemFeatures = ConfigStore.get('features');
+  handleRequestError(
+    options: {
+      id: string;
+      path: string;
+      requestOptions: Readonly<RequestOptions>;
+    },
+    response: ResponseMeta,
+    textStatus: string,
+    errorThrown: string
+  ) {
+    const code = response?.responseJSON?.detail?.code;
+    const isSudoRequired = code === SUDO_REQUIRED || code === SUPERUSER_REQUIRED;
 
-  hostname = hostname ?? '';
-  if (!hostname && systemFeatures.has('system:multi-region')) {
-    // /_admin/ is special: since it doesn't update OrganizationStore, it's
-    // commonly the case that requests will be made for data which does not
-    // exist in the same region as the one in configLinks.regionUrl. Because of
-    // this we want to explicitly default those requests to be proxied through
-    // the control silo which can handle region resolution in exchange for a
-    // bit of latency.
-    const isAdmin = window.location.pathname.startsWith('/_admin/');
-    const isControlSilo = detectControlSiloPath(path);
-    if (!isAdmin && !isControlSilo && configLinks.regionUrl) {
-      hostname = configLinks.regionUrl;
+    let didSuccessfullyRetry = false;
+
+    if (isSudoRequired) {
+      openSudo({
+        isSuperuser: code === SUPERUSER_REQUIRED,
+        sudo: code === SUDO_REQUIRED,
+        retryRequest: async () => {
+          try {
+            const data = await this.requestPromise(options.path, options.requestOptions);
+            options.requestOptions.success?.(data);
+            didSuccessfullyRetry = true;
+          } catch (err) {
+            options.requestOptions.error?.(err);
+          }
+        },
+        onClose: () => {
+          if (!didSuccessfullyRetry && options.requestOptions.error) {
+            options.requestOptions.error(response, textStatus, errorThrown);
+          }
+        },
+      });
+      return;
     }
-    if (isControlSilo && configLinks.sentryUrl) {
-      hostname = configLinks.sentryUrl;
-    }
-  }
 
-  // If we're making a request to the applications' root
-  // domain, we can drop the domain as webpack devserver will add one.
-  // TODO(hybridcloud) This can likely be removed when sentry.types.region.Region.to_url()
-  // loses the monolith mode condition.
-  if (window.__SENTRY_DEV_UI && hostname === configLinks.sentryUrl) {
-    hostname = '';
-  }
-
-  // When running as yarn dev-ui we can't spread requests across domains because
-  // of CORS. Instead we extract the subdomain from the hostname
-  // and prepend the URL with `/region/$name` so that webpack-devserver proxy
-  // can route requests to the regions.
-  if (hostname && window.__SENTRY_DEV_UI) {
-    const domainpattern = /https?\:\/\/([^.]*)\.sentry\.io/;
-    const domainmatch = hostname.match(domainpattern);
-    if (domainmatch) {
-      hostname = '';
-      path = `/region/${domainmatch[1]}${path}`;
-    }
-  }
-  if (hostname) {
-    path = `${hostname}${path}`;
-  }
-
-  return path;
-}
-
-function detectControlSiloPath(path: string): boolean {
-  // We sometimes include querystrings in paths.
-  // Using URL() to avoid handrolling URL parsing
-  const url = new URL(path, 'https://sentry.io');
-  path = url.pathname;
-  path = path.startsWith('/') ? path.substring(1) : path;
-  for (const pattern of controlsilopatterns) {
-    if (pattern.test(path)) {
-      return true;
+    // Call normal error callback
+    if (options.requestOptions.error) {
+      wrapCallback(
+        options.id,
+        options.requestOptions.error,
+        false,
+        this.activeRequests
+      )(response, textStatus, errorThrown);
     }
   }
-  return false;
+
+  /**
+   * Attempt to cancel all active fetch requests
+   */
+  clear() {
+    Object.values(this.activeRequests).forEach(r => r.cancel());
+  }
 }
