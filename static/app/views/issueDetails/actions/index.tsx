@@ -158,6 +158,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
       alert_type: typeof alert_type === 'string' ? alert_type : undefined,
       ...getAnalyticsDataForGroup(group),
       ...getAnalyicsDataForProject(project),
+      org_streamline_only: organization.streamlineOnly ?? undefined,
     });
   };
 

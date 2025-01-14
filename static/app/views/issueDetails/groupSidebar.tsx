@@ -104,6 +104,7 @@ export default function GroupSidebar({
         typeof alert_date === 'string' ? getUtcDateString(Number(alert_date)) : undefined,
       alert_rule_id: typeof alert_rule_id === 'string' ? alert_rule_id : undefined,
       alert_type: typeof alert_type === 'string' ? alert_type : undefined,
+      org_streamline_only: organization.streamlineOnly ?? undefined,
       ...getAnalyticsDataForGroup(group),
       ...getAnalyicsDataForProject(project),
     });
