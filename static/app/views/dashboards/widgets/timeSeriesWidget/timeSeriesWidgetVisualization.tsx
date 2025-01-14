@@ -193,7 +193,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
               top: 0,
               left: 0,
               formatter(name: string) {
-                return formatSeriesName(name);
+                return props.aliases?.[name] ?? formatSeriesName(name);
               },
             }
           : undefined
