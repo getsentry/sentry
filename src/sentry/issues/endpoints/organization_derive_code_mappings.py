@@ -19,9 +19,9 @@ from sentry.issues.auto_source_code_config.code_mapping import (
     Repo,
     create_code_mapping,
 )
-from sentry.issues.auto_source_code_config.integrations import get_organization_installation
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.tasks.auto_source_code_config import get_installation
 
 
 @region_silo_endpoint
@@ -52,7 +52,7 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
 
         stacktrace_filename = request.GET.get("stacktraceFilename")
         # It only returns the first GitHub integration
-        installation, _ = get_organization_installation(organization)
+        installation, _ = get_installation(organization)
         if not installation:
             return self.respond(
                 {"text": "Could not find this integration installed on your organization"},
@@ -94,7 +94,7 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
         if not features.has("organizations:derive-code-mappings", organization):
             return Response(status=status.HTTP_403_FORBIDDEN)
 
-        installation, organization_integration = get_organization_installation(organization)
+        installation, organization_integration = get_installation(organization)
         if not installation or not organization_integration:
             return self.respond(
                 {"text": "Could not find this integration installed on your organization"},
