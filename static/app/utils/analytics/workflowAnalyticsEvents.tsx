@@ -98,11 +98,11 @@ export type TeamInsightsEventParameters = {
       | 'open_in_discover'
       | 'assign'
       | GroupStatus;
+    org_streamline_only: boolean | undefined;
     action_status_details?: string;
     action_substatus?: string;
     assigned_suggestion_reason?: string;
     assigned_type?: string;
-    org_streamline_only?: boolean | undefined;
   };
   'issue_details.attachment_tab.screenshot_modal_deleted': {};
   'issue_details.attachment_tab.screenshot_modal_download': {};

@@ -452,8 +452,8 @@ function useTrackView({
 }: {
   event: Event | null;
   group: Group | null;
+  organization: Organization;
   tab: Tab;
-  organization?: Organization;
   project?: Project;
 }) {
   const location = useLocation();
@@ -478,7 +478,7 @@ function useTrackView({
     ref_fallback,
     group_event_type: groupEventType,
     prefers_streamlined_ui: user?.options?.prefersIssueDetailsStreamlinedUI ?? false,
-    org_streamline_only: organization?.streamlineOnly ?? undefined,
+    org_streamline_only: organization.streamlineOnly ?? undefined,
   });
   // Set default values for properties that may be updated in subcomponents.
   // Must be separate from the above values, otherwise the actual values filled in

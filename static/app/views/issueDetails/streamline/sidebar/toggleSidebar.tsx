@@ -24,7 +24,7 @@ export function ToggleSidebar({size = 'lg'}: {size?: 'lg' | 'sm'}) {
         analyticsEventName="Issue Details: Sidebar Toggle"
         analyticsParams={{
           sidebar_open: !isSidebarOpen,
-          org_streamline_only: organization?.streamlineOnly ?? undefined,
+          org_streamline_only: organization.streamlineOnly ?? undefined,
         }}
       >
         <LeftChevron direction={direction} />

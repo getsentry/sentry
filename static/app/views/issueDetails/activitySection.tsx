@@ -49,7 +49,7 @@ function ActivitySection(props: Props) {
             onCreate(n, me);
             trackAnalytics('issue_details.comment_created', {
               organization,
-              org_streamline_only: organization?.streamlineOnly ?? undefined,
+              org_streamline_only: organization.streamlineOnly ?? undefined,
               streamline: false,
             });
             setInputId(uniqueId());
@@ -77,7 +77,7 @@ function ActivitySection(props: Props) {
                   trackAnalytics('issue_details.comment_deleted', {
                     organization,
                     streamline: false,
-                    org_streamline_only: organization?.streamlineOnly ?? undefined,
+                    org_streamline_only: organization.streamlineOnly ?? undefined,
                   });
                 }}
                 onUpdate={n => {
@@ -86,7 +86,7 @@ function ActivitySection(props: Props) {
                   trackAnalytics('issue_details.comment_updated', {
                     organization,
                     streamline: false,
-                    org_streamline_only: organization?.streamlineOnly ?? undefined,
+                    org_streamline_only: organization.streamlineOnly ?? undefined,
                   });
                 }}
                 {...noteProps}

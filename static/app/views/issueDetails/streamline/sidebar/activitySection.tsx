@@ -166,7 +166,7 @@ export default function StreamlinedActivitySection({
             trackAnalytics('issue_details.comment_deleted', {
               organization,
               streamline: true,
-              org_streamline_only: organization?.streamlineOnly ?? undefined,
+              org_streamline_only: organization.streamlineOnly ?? undefined,
             });
             addSuccessMessage(t('Comment removed'));
           },
@@ -189,7 +189,7 @@ export default function StreamlinedActivitySection({
           trackAnalytics('issue_details.comment_updated', {
             organization,
             streamline: true,
-            org_streamline_only: organization?.streamlineOnly ?? undefined,
+            org_streamline_only: organization.streamlineOnly ?? undefined,
           });
         },
       });
@@ -211,7 +211,7 @@ export default function StreamlinedActivitySection({
           trackAnalytics('issue_details.comment_created', {
             organization,
             streamline: true,
-            org_streamline_only: organization?.streamlineOnly ?? undefined,
+            org_streamline_only: organization.streamlineOnly ?? undefined,
           });
           addSuccessMessage(t('Comment posted'));
         },

@@ -191,7 +191,7 @@ export function EventSearch({
     ? 'new_org_issue_details_header'
     : 'new_org_issue_events_tab';
 
-  const searchSource = defined(organization?.streamlineOnly)
+  const searchSource = defined(organization.streamlineOnly)
     ? experimentSearchSource
     : hasStreamlinedUI
       ? 'issue_details_header'
