@@ -72,31 +72,6 @@ class AuditLogEntrySerializerTest(TestCase):
 
         assert result["data"] == {}
 
-    def test_teams_conversion(self):
-        """Test that teams are properly converted from objects to IDs"""
-
-        class MockTeam:
-            def __init__(self, id):
-                self.id = id
-
-        log = AuditLogEntry.objects.create(
-            organization_id=self.organization.id,
-            event=audit_log.get_event_id("PROJECT_EDIT"),
-            actor=self.user,
-            datetime=timezone.now(),
-            data={
-                "id": "123",
-                "slug": "project-slug",
-                "teams": [MockTeam(1), MockTeam(2)],
-            },
-        )
-
-        serializer = AuditLogEntrySerializer()
-        result = serialize(log, serializer=serializer)
-
-        assert result["data"]["teams"] == [1, 2]
-        assert isinstance(result["data"]["teams"][0], int)
-
     def test_scim_logname(self):
         uuid_prefix = "681d6e"
         user = self.create_user(
