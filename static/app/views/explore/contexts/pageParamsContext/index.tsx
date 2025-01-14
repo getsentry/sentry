@@ -268,8 +268,8 @@ export function useSetExploreMode() {
 export function useSetExploreQuery() {
   const setPageParams = useSetExplorePageParams();
   return useCallback(
-    (query: string) => {
-      setPageParams({query});
+    (query: string, mode?: Mode) => {
+      setPageParams({query, mode});
     },
     [setPageParams]
   );

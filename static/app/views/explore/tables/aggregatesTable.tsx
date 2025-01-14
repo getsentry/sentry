@@ -37,6 +37,7 @@ import {
   useExploreVisualizes,
   useSetExploreSortBys,
 } from 'sentry/views/explore/contexts/pageParamsContext';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {useAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
@@ -176,6 +177,7 @@ export function AggregatesTable({
                         data={row}
                         unit={meta?.units?.[field]}
                         meta={meta}
+                        mode={Mode.AGGREGATE}
                       />
                     </TableBodyCell>
                   );

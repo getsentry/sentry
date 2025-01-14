@@ -31,6 +31,7 @@ import {
   useExploreVisualizes,
   useSetExploreSortBys,
 } from 'sentry/views/explore/contexts/pageParamsContext';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {useAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
@@ -156,6 +157,7 @@ export function SpansTable({confidences, spansTableResult}: SpansTableProps) {
                         data={row}
                         unit={meta?.units?.[field]}
                         meta={meta}
+                        mode={Mode.SAMPLES}
                       />
                     </TableBodyCell>
                   );

@@ -4,7 +4,8 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {IconEllipsis} from 'sentry/icons';
+import {IconCopy} from 'sentry/icons/iconCopy';
+import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
@@ -26,6 +27,8 @@ export enum Actions {
   RELEASE = 'release',
   DRILLDOWN = 'drilldown',
   EDIT_THRESHOLD = 'edit_threshold',
+  SAMPLES = 'show_samples',
+  COPY = 'copy_to_clipboard',
 }
 
 export function updateQuery(
@@ -50,6 +53,7 @@ export function updateQuery(
   }
 
   switch (action) {
+    case Actions.SAMPLES:
     case Actions.ADD:
       // If the value is null/undefined create a has !has condition.
       if (value === null || value === undefined) {
@@ -85,6 +89,7 @@ export function updateQuery(
     // instead they have side effects
     case Actions.RELEASE:
     case Actions.DRILLDOWN:
+    case Actions.COPY:
       break;
     default:
       throw new Error(`Unknown action type. ${action}`);
@@ -137,6 +142,16 @@ export function excludeFromFilter(
   oldFilter.addFilterValues(negation, value);
 }
 
+const DEFAULT_ACTIONS = [
+  Actions.ADD,
+  Actions.EXCLUDE,
+  Actions.SHOW_GREATER_THAN,
+  Actions.SHOW_LESS_THAN,
+  Actions.RELEASE,
+  Actions.DRILLDOWN,
+  Actions.EDIT_THRESHOLD,
+];
+
 type CellActionsOpts = {
   column: TableColumn<keyof TableDataRow>;
   dataRow: TableDataRow;
@@ -177,12 +192,16 @@ function makeCellActions({
   }
   const actions: MenuItemProps[] = [];
 
+  const allowedActionsWithDefaults: Actions[] = defined(allowActions)
+    ? allowActions
+    : DEFAULT_ACTIONS;
+
   function addMenuItem(
     action: Actions,
     itemLabel: React.ReactNode,
     itemTextValue?: string
   ) {
-    if ((Array.isArray(allowActions) && allowActions.includes(action)) || !allowActions) {
+    if (allowedActionsWithDefaults.includes(action)) {
       actions.push({
         key: action,
         label: itemLabel,
@@ -196,6 +215,7 @@ function makeCellActions({
     !['duration', 'number', 'percentage'].includes(column.type) ||
     (value === null && column.column.kind === 'field')
   ) {
+    addMenuItem(Actions.SAMPLES, t('Show samples'));
     addMenuItem(Actions.ADD, t('Add to filter'));
 
     if (column.type !== 'date') {
@@ -233,6 +253,15 @@ function makeCellActions({
       t('Edit threshold')
     );
   }
+
+  addMenuItem(
+    Actions.COPY,
+    <CellActionContainer>
+      <span>{t('Copy to Clipboard')}</span>
+      <IconCopy />
+    </CellActionContainer>,
+    t('Copy to Clipboard')
+  );
 
   if (actions.length === 0) {
     return null;
@@ -319,4 +348,9 @@ const ActionMenuTrigger = styled(Button)`
   ${Container}:hover & {
     opacity: 1;
   }
+`;
+
+const CellActionContainer = styled('div')`
+  display: flex;
+  gap: ${space(0.5)};
 `;

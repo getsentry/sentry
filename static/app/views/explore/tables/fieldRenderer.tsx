@@ -1,7 +1,9 @@
 import styled from '@emotion/styled';
 
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Link from 'sentry/components/links/link';
 import TimeSince from 'sentry/components/timeSince';
+import {t} from 'sentry/locale';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {EventData, MetaType} from 'sentry/utils/discover/eventView';
 import EventView from 'sentry/utils/discover/eventView';
@@ -13,25 +15,26 @@ import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/ro
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import CellAction, {updateQuery} from 'sentry/views/discover/table/cellAction';
+import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
+import {ALLOWED_CELL_ACTIONS} from 'sentry/views/explore/components/table';
 import {
   useExploreQuery,
   useSetExploreQuery,
 } from 'sentry/views/explore/contexts/pageParamsContext';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
-
-import {ALLOWED_CELL_ACTIONS} from '../components/table';
 
 interface FieldProps {
   column: TableColumn<keyof TableDataRow>;
   data: EventData;
   meta: MetaType;
+  mode: Mode;
   unit?: string;
 }
 
-export function FieldRenderer({data, meta, unit, column}: FieldProps) {
+export function FieldRenderer({data, meta, unit, column, mode}: FieldProps) {
   const location = useLocation();
   const organization = useOrganization();
   const userQuery = useExploreQuery();
@@ -92,15 +95,38 @@ export function FieldRenderer({data, meta, unit, column}: FieldProps) {
     rendered = <Link to={target}>{rendered}</Link>;
   }
 
+  const allowedCellActions =
+    mode === Mode.AGGREGATE
+      ? [...ALLOWED_CELL_ACTIONS, Actions.SAMPLES]
+      : ALLOWED_CELL_ACTIONS;
+
   return (
     <CellAction
       column={column}
       dataRow={data as TableDataRow}
       handleCellAction={(actions, value) => {
-        updateQuery(query, actions, column, value);
-        setUserQuery(query.formatString());
+        switch (actions) {
+          case Actions.COPY:
+            navigator.clipboard
+              .writeText(value as string)
+              .then(() => {
+                addSuccessMessage(t('Copied to clipboard'));
+              })
+              .catch(() => {
+                addErrorMessage(t('Error copying to clipboard'));
+              });
+            break;
+          default:
+            updateQuery(query, actions, column, value);
+            setUserQuery(
+              query.formatString(),
+              // samples action means we switch to samples mode
+              // otherwise, don't do anything
+              actions === Actions.SAMPLES ? Mode.SAMPLES : undefined
+            );
+        }
       }}
-      allowActions={ALLOWED_CELL_ACTIONS}
+      allowActions={allowedCellActions}
     >
       {rendered}
     </CellAction>
