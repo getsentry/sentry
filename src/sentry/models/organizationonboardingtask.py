@@ -26,7 +26,6 @@ class OnboardingTask:
     FIRST_EVENT = 2
     INVITE_MEMBER = 3
     SECOND_PLATFORM = 4
-    USER_CONTEXT = 5
     RELEASE_TRACKING = 6
     SOURCEMAPS = 7
     ALERT_RULE = 10
