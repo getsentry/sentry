@@ -1,18 +1,23 @@
-import {useMemo, useState} from 'react';
+import {useState} from 'react';
 
-import {ContinuousProfileHeader} from 'sentry/components/profiling/continuousProfileHeader';
+import {ProfileHeader} from 'sentry/components/profiling/profileHeader';
 import type {RequestState} from 'sentry/types/core';
 import type {EventTransaction} from 'sentry/types/event';
+import {isSchema, isSentrySampledProfile} from 'sentry/utils/profiling/guards/profile';
 import {useSentryEvent} from 'sentry/utils/profiling/hooks/useSentryEvent';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 
-import {ContinuousProfileProvider, ProfileTransactionContext} from './profilesProvider';
+import {ProfileTransactionContext, TransactionProfileProvider} from './profilesProvider';
 
-function isValidDate(date: string): boolean {
-  return !isNaN(Date.parse(date));
+function getTransactionId(input: Profiling.ProfileInput): string | null {
+  if (isSchema(input)) {
+    return input.metadata.transactionID;
+  }
+  if (isSentrySampledProfile(input)) {
+    return input.transaction.id;
+  }
+  return null;
 }
 
 interface FlamegraphViewProps {
@@ -24,29 +29,8 @@ export default function ProfileAndTransactionProvider(
 ): React.ReactElement {
   const organization = useOrganization();
   const params = useParams();
-  const location = useLocation();
 
   const projectSlug = params.projectId!;
-
-  const profileMeta = useMemo(() => {
-    const start = decodeScalar(location.query.start);
-    const end = decodeScalar(location.query.end);
-    const profilerId = decodeScalar(location.query.profilerId);
-
-    if (!start || !end || !profilerId) {
-      return null;
-    }
-
-    if (!isValidDate(start) || !isValidDate(end)) {
-      return null;
-    }
-
-    return {
-      start,
-      end,
-      profiler_id: profilerId,
-    };
-  }, [location.query.start, location.query.end, location.query.profilerId]);
 
   const [profile, setProfile] = useState<RequestState<Profiling.ProfileInput>>({
     type: 'initial',
@@ -55,19 +39,20 @@ export default function ProfileAndTransactionProvider(
   const profileTransaction = useSentryEvent<EventTransaction>(
     organization.slug,
     projectSlug!,
-    decodeScalar(location.query.eventId) || null
+    profile.type === 'resolved' ? getTransactionId(profile.data) : null
   );
 
   return (
-    <ContinuousProfileProvider
+    <TransactionProfileProvider
       orgSlug={organization.slug}
-      profileMeta={profileMeta}
+      profileId={params.eventId!}
       projectSlug={projectSlug}
       profile={profile}
       setProfile={setProfile}
     >
       <ProfileTransactionContext.Provider value={profileTransaction}>
-        <ContinuousProfileHeader
+        <ProfileHeader
+          eventId={params.eventId!}
           projectId={projectSlug}
           transaction={
             profileTransaction.type === 'resolved' ? profileTransaction.data : null
@@ -75,6 +60,6 @@ export default function ProfileAndTransactionProvider(
         />
         {props.children}
       </ProfileTransactionContext.Provider>
-    </ContinuousProfileProvider>
+    </TransactionProfileProvider>
   );
 }

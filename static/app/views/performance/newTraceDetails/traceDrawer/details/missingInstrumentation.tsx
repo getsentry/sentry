@@ -73,7 +73,7 @@ export function MissingInstrumentationNodeDetails(
           <ProfilesProvider
             orgSlug={organization.slug}
             projectSlug={event?.projectSlug ?? ''}
-            profileId={profileId || ''}
+            profileMeta={profileId || ''}
           >
             <ProfileContext.Consumer>
               {profiles => (
@@ -191,7 +191,7 @@ function LegacyMissingInstrumentationNodeDetails({
           <ProfilesProvider
             orgSlug={organization.slug}
             projectSlug={node.event?.projectSlug ?? ''}
-            profileId={profileId || ''}
+            profileMeta={profileId || ''}
           >
             <ProfileContext.Consumer>
               {profiles => (

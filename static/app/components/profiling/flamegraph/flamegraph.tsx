@@ -68,7 +68,6 @@ import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 import {
   useProfiles,
   useProfileTransaction,
-  useSetProfiles,
 } from 'sentry/views/profiling/profilesProvider';
 
 import {FlamegraphDrawer} from './flamegraphDrawer/flamegraphDrawer';
@@ -219,7 +218,6 @@ function Flamegraph(): ReactElement {
   const dispatch = useDispatchFlamegraphState();
 
   const profiles = useProfiles();
-  const setProfiles = useSetProfiles();
   const profileGroup = useProfileGroup();
 
   const flamegraphTheme = useFlamegraphTheme();
@@ -1314,12 +1312,7 @@ function Flamegraph(): ReactElement {
     [dispatch]
   );
 
-  const onImport = useCallback(
-    (p: Profiling.ProfileInput) => {
-      setProfiles({type: 'resolved', data: p});
-    },
-    [setProfiles]
-  );
+  const onImport = useCallback(() => {}, []);
 
   useEffect(() => {
     if (defined(flamegraphProfiles.threadId)) {
