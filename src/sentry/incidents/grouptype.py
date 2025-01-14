@@ -18,7 +18,7 @@ from sentry.workflow_engine.handlers.detector import StatefulDetectorHandler
 from sentry.workflow_engine.models.data_source import DataPacket
 from sentry.workflow_engine.types import DetectorGroupKey
 
-COMPARISON_DELTA_CHOICES = [choice.value for choice in ComparisonDeltaChoices]
+COMPARISON_DELTA_CHOICES: list[None | int] = [choice.value for choice in ComparisonDeltaChoices]
 COMPARISON_DELTA_CHOICES.append(None)
 
 
