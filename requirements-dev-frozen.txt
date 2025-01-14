@@ -92,7 +92,7 @@ jsonschema==4.20.0
 jsonschema-path==0.3.2
 jsonschema-spec==0.2.4
 jsonschema-specifications==2023.7.1
-kombu==5.3.6
+kombu==5.4.2
 lazy-object-proxy==1.10.0
 lxml==5.3.0
 lxml-stubs==0.4.0
