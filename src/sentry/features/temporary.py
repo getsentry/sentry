@@ -509,6 +509,10 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:visibility-explore-dataset", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable RPC on the new explore page
     manager.add("organizations:visibility-explore-rpc", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable high date range options on new explore page
+    manager.add("organizations:visibility-explore-range-high", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable medium date range options on new explore page
+    manager.add("organizations:visibility-explore-range-medium", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enabled unresolved issue webhook for organization
     manager.add("organizations:webhooks-unresolved", OrganizationFeature, FeatureHandlerStrategy.OPTIONS, api_expose=True)
     # Enable dual writing for metric alert issues (see: alerts create issues)
