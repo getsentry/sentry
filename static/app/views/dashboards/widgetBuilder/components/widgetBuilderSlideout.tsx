@@ -41,7 +41,9 @@ type WidgetBuilderSlideoutProps = {
   onClose: () => void;
   onQueryConditionChange: (valid: boolean) => void;
   onSave: ({index, widget}: {index: number; widget: Widget}) => void;
+  openWidgetTemplates: boolean;
   setIsPreviewDraggable: (draggable: boolean) => void;
+  setOpenWidgetTemplates: (openWidgetTemplates: boolean) => void;
 };
 
 function WidgetBuilderSlideout({
@@ -53,6 +55,8 @@ function WidgetBuilderSlideout({
   dashboardFilters,
   setIsPreviewDraggable,
   isWidgetInvalid,
+  openWidgetTemplates,
+  setOpenWidgetTemplates,
 }: WidgetBuilderSlideoutProps) {
   const organization = useOrganization();
   const {state} = useWidgetBuilderContext();
@@ -61,11 +65,8 @@ function WidgetBuilderSlideout({
   const {widgetIndex} = useParams();
   const theme = useTheme();
 
-  // TODO: remove this once we have a proper way to handle templates
-  const showTemplates = localStorage.getItem('showTemplates') === 'true';
-
   const isEditing = widgetIndex !== undefined;
-  const title = showTemplates
+  const title = openWidgetTemplates
     ? t('Add from Widget Library')
     : isEditing
       ? t('Edit Widget')
@@ -124,7 +125,7 @@ function WidgetBuilderSlideout({
         </CloseButton>
       </SlideoutHeaderWrapper>
       <SlideoutBodyWrapper>
-        {!showTemplates ? (
+        {!openWidgetTemplates ? (
           <Fragment>
             <Section>
               <WidgetBuilderFilterBar />
@@ -188,7 +189,10 @@ function WidgetBuilderSlideout({
                 </Section>
               )}
             </div>
-            <WidgetTemplatesList onSave={onSave} />
+            <WidgetTemplatesList
+              onSave={onSave}
+              setOpenWidgetTemplates={setOpenWidgetTemplates}
+            />
           </Fragment>
         )}
       </SlideoutBodyWrapper>

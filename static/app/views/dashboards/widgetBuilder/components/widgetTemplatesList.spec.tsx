@@ -55,7 +55,7 @@ describe('WidgetTemplatesList', () => {
   it('should render the widget templates list', async () => {
     render(
       <WidgetBuilderProvider>
-        <WidgetTemplatesList onSave={onSave} />
+        <WidgetTemplatesList onSave={onSave} setOpenWidgetTemplates={jest.fn()} />
       </WidgetBuilderProvider>
     );
 
@@ -66,7 +66,7 @@ describe('WidgetTemplatesList', () => {
   it('should render buttons when the user clicks on a widget template', async () => {
     render(
       <WidgetBuilderProvider>
-        <WidgetTemplatesList onSave={onSave} />
+        <WidgetTemplatesList onSave={onSave} setOpenWidgetTemplates={jest.fn()} />
       </WidgetBuilderProvider>
     );
 
@@ -83,7 +83,7 @@ describe('WidgetTemplatesList', () => {
 
     render(
       <WidgetBuilderProvider>
-        <WidgetTemplatesList onSave={onSave} />
+        <WidgetTemplatesList onSave={onSave} setOpenWidgetTemplates={jest.fn()} />
       </WidgetBuilderProvider>,
       {router}
     );
@@ -107,7 +107,7 @@ describe('WidgetTemplatesList', () => {
   it('should show error message when the widget fails to save', async () => {
     render(
       <WidgetBuilderProvider>
-        <WidgetTemplatesList onSave={onSave} />
+        <WidgetTemplatesList onSave={onSave} setOpenWidgetTemplates={jest.fn()} />
       </WidgetBuilderProvider>
     );
 
