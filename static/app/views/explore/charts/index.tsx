@@ -268,7 +268,7 @@ export function ExploreCharts({
   );
 }
 
-function useExtrapolationMeta({
+export function useExtrapolationMeta({
   dataset,
   query,
 }: {

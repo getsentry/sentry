@@ -29,7 +29,7 @@ import type {
   EChartEventHandler,
   ReactEchartsRef,
 } from 'sentry/types/echarts';
-import type {Organization} from 'sentry/types/organization';
+import type {Confidence, Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {
   axisLabelFormatter,
@@ -51,6 +51,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
+import ConfidenceWarning from 'sentry/views/dashboards/widgetCard/confidenceWarning';
 import {getBucketSize} from 'sentry/views/dashboards/widgetCard/utils';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 
@@ -82,6 +83,7 @@ type WidgetCardChartProps = Pick<
   widget: Widget;
   widgetLegendState: WidgetLegendSelectionState;
   chartGroup?: string;
+  confidence?: Confidence;
   expandNumbers?: boolean;
   isMobile?: boolean;
   legendOptions?: LegendComponentOption;
@@ -93,6 +95,7 @@ type WidgetCardChartProps = Pick<
   }>;
   onZoom?: EChartDataZoomHandler;
   shouldResize?: boolean;
+  showConfidenceWarning?: boolean;
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
   windowWidth?: number;
 };
@@ -284,6 +287,8 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       noPadding,
       timeseriesResultsTypes,
       shouldResize,
+      confidence,
+      showConfidenceWarning,
     } = this.props;
 
     if (widget.displayType === 'table') {
@@ -527,19 +532,28 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
                       autoHeightResize={shouldResize ?? true}
                       noPadding={noPadding}
                     >
-                      {getDynamicText({
-                        value: this.chartComponent({
-                          ...zoomRenderProps,
-                          ...chartOptions,
-                          // Override default datazoom behaviour for updating Global Selection Header
-                          ...(onZoom ? {onDataZoom: onZoom} : {}),
-                          legend,
-                          series: [...series, ...(modifiedReleaseSeriesResults ?? [])],
-                          onLegendSelectChanged,
-                          forwardedRef,
-                        }),
-                        fixed: <Placeholder height="200px" testId="skeleton-ui" />,
-                      })}
+                      <RenderedChartContainer>
+                        {getDynamicText({
+                          value: this.chartComponent({
+                            ...zoomRenderProps,
+                            ...chartOptions,
+                            // Override default datazoom behaviour for updating Global Selection Header
+                            ...(onZoom ? {onDataZoom: onZoom} : {}),
+                            legend,
+                            series: [...series, ...(modifiedReleaseSeriesResults ?? [])],
+                            onLegendSelectChanged,
+                            forwardedRef,
+                          }),
+                          fixed: <Placeholder height="200px" testId="skeleton-ui" />,
+                        })}
+                      </RenderedChartContainer>
+
+                      {showConfidenceWarning && confidence && (
+                        <ConfidenceWarning
+                          query={widget.queries[0]?.conditions ?? ''}
+                          confidence={confidence}
+                        />
+                      )}
                     </ChartWrapper>
                   </TransitionChart>
                 );
@@ -549,19 +563,27 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
             <TransitionChart loading={loading} reloading={loading}>
               <LoadingScreen loading={loading} />
               <ChartWrapper autoHeightResize={shouldResize ?? true} noPadding={noPadding}>
-                {getDynamicText({
-                  value: this.chartComponent({
-                    ...zoomRenderProps,
-                    ...chartOptions,
-                    // Override default datazoom behaviour for updating Global Selection Header
-                    ...(onZoom ? {onDataZoom: onZoom} : {}),
-                    legend,
-                    series,
-                    onLegendSelectChanged,
-                    forwardedRef,
-                  }),
-                  fixed: <Placeholder height="200px" testId="skeleton-ui" />,
-                })}
+                <RenderedChartContainer>
+                  {getDynamicText({
+                    value: this.chartComponent({
+                      ...zoomRenderProps,
+                      ...chartOptions,
+                      // Override default datazoom behaviour for updating Global Selection Header
+                      ...(onZoom ? {onDataZoom: onZoom} : {}),
+                      legend,
+                      series,
+                      onLegendSelectChanged,
+                      forwardedRef,
+                    }),
+                    fixed: <Placeholder height="200px" testId="skeleton-ui" />,
+                  })}
+                </RenderedChartContainer>
+                {showConfidenceWarning && confidence && (
+                  <ConfidenceWarning
+                    query={widget.queries[0]?.conditions ?? ''}
+                    confidence={confidence}
+                  />
+                )}
               </ChartWrapper>
             </TransitionChart>
           );
@@ -623,6 +645,9 @@ const ChartWrapper = styled('div')<{autoHeightResize: boolean; noPadding?: boole
   ${p => p.autoHeightResize && 'height: 100%;'}
   width: 100%;
   padding: ${p => (p.noPadding ? `0` : `0 ${space(2)} ${space(2)}`)};
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
 `;
 
 const TableWrapper = styled('div')`
@@ -639,4 +664,8 @@ const StyledSimpleTableChart = styled(SimpleTableChart)`
 
 const StyledErrorPanel = styled(ErrorPanel)`
   padding: ${space(2)};
+`;
+
+const RenderedChartContainer = styled('div')`
+  flex: 1;
 `;

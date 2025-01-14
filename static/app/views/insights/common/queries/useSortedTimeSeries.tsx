@@ -135,7 +135,7 @@ function isMultiSeriesEventsStats(
   return Object.values(obj).every(series => isEventsStats(series));
 }
 
-function transformToSeriesMap(
+export function transformToSeriesMap(
   result: MultiSeriesEventsStats | GroupedMultiSeriesEventsStats | undefined,
   yAxis: string[]
 ): SeriesMap {
