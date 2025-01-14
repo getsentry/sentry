@@ -317,15 +317,51 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
         assert org.name == data["name"]
         assert OrganizationOption.objects.get_value(org, "sentry:aggregated_data_consent") is True
 
-    @override_options({"issues.details.streamline_rollout_rate": 1.0})
+    @override_options({"issues.details.streamline-experiment-rollout-rate": 0})
+    @override_options({"issues.details.streamline-experiment-split-rate": 1.0})
+    def test_streamline_only_is_unset_with_full_split_rate(self):
+        """
+        If the rollout rate is 0%, Ignore split rate, the organization should not be put into a bucket.
+        """
+        self.login_as(user=self.user)
+        response = self.get_success_response(name="acme")
+        organization = Organization.objects.get(id=response.data["id"])
+        assert (
+            OrganizationOption.objects.get_value(organization, "sentry:streamline_ui_only") is None
+        )
+
+    @override_options({"issues.details.streamline-experiment-rollout-rate": 0})
+    @override_options({"issues.details.streamline-experiment-split-rate": 0})
+    def test_streamline_only_is_unset_with_empty_split_rate(self):
+        """
+        If the rollout rate is 0%, Ignore split rate, the organization should not be put into a bucket.
+        """
+        self.login_as(user=self.user)
+        response = self.get_success_response(name="acme")
+        organization = Organization.objects.get(id=response.data["id"])
+        assert (
+            OrganizationOption.objects.get_value(organization, "sentry:streamline_ui_only") is None
+        )
+
+    @override_options({"issues.details.streamline-experiment-rollout-rate": 1.0})
+    @override_options({"issues.details.streamline-experiment-split-rate": 1.0})
     def test_streamline_only_is_true(self):
+        """
+        If the rollout rate is 100%, the split rate should be applied to all orgs.
+        In this case, with a split rate of 100%, all orgs should see the Streamline UI.
+        """
         self.login_as(user=self.user)
         response = self.get_success_response(name="acme")
         organization = Organization.objects.get(id=response.data["id"])
         assert OrganizationOption.objects.get_value(organization, "sentry:streamline_ui_only")
 
-    @override_options({"issues.details.streamline_rollout_rate": 0})
+    @override_options({"issues.details.streamline-experiment-rollout-rate": 1.0})
+    @override_options({"issues.details.streamline-experiment-split-rate": 0})
     def test_streamline_only_is_false(self):
+        """
+        If the rollout rate is 100%, the split rate should be applied to all orgs.
+        In this case, with a split rate of 0%, all orgs should see the Legacy UI.
+        """
         self.login_as(user=self.user)
         response = self.get_success_response(name="acme")
         organization = Organization.objects.get(id=response.data["id"])

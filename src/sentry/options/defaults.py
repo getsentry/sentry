@@ -816,8 +816,17 @@ register(
 )
 
 
+#  Percentage of orgs that will be put into a bucket using the split rate below.
 register(
-    "issues.details.streamline_rollout_rate",
+    "issues.details.streamline-experiment-rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# 50% of orgs will only see the Streamline UI, 50% will only see the Legacy UI.
+register(
+    "issues.details.streamline-experiment-split-rate",
     type=Float,
     default=0.5,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,

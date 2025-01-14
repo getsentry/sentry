@@ -307,6 +307,5 @@ class OrganizationIndexEndpoint(Endpoint):
             )
 
         apply_streamline_rollout_group(organization=org)
-        # If unset, the organization's users can opt-in/out.
-        # If true, they only receive the Streamline UI. If false, they only receive the Legacy UI.
+
         return Response(serialize(org, request.user), status=201)
