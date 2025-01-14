@@ -7,7 +7,6 @@ from sentry_protos.sentry.v1.taskworker_pb2 import (
     TASK_ACTIVATION_STATUS_COMPLETE,
     TASK_ACTIVATION_STATUS_FAILURE,
     TASK_ACTIVATION_STATUS_RETRY,
-    FetchNextTask,
     TaskActivation,
 )
 
@@ -102,9 +101,7 @@ class TestTaskWorker(TestCase):
 
             assert mock_client.get_task.called
             mock_client.update_task.assert_called_with(
-                task_id=SIMPLE_TASK.id,
-                status=TASK_ACTIVATION_STATUS_COMPLETE,
-                fetch_next_task=FetchNextTask(namespace=None),
+                task_id=SIMPLE_TASK.id, status=TASK_ACTIVATION_STATUS_COMPLETE, fetch_next_task=None
             )
 
     def test_run_once_with_next_task(self) -> None:
@@ -134,9 +131,7 @@ class TestTaskWorker(TestCase):
             assert mock_client.get_task.called
             assert mock_client.update_task.call_count == 2
             mock_client.update_task.assert_called_with(
-                task_id=SIMPLE_TASK.id,
-                status=TASK_ACTIVATION_STATUS_COMPLETE,
-                fetch_next_task=FetchNextTask(namespace=None),
+                task_id=SIMPLE_TASK.id, status=TASK_ACTIVATION_STATUS_COMPLETE, fetch_next_task=None
             )
 
 

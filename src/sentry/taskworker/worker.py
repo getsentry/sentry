@@ -311,9 +311,9 @@ class TaskWorker:
         task = self.fetch_task()
         if task:
             try:
-                self._child_tasks.put(task, block=False)
+                self._child_tasks.put(task, timeout=0.1)
             except queue.Full:
-                logger.exception(
+                logger.warning(
                     "taskworker.add_task.child_task_queue_full", extra={"task_id": task.id}
                 )
 
@@ -327,16 +327,20 @@ class TaskWorker:
             return False
 
         if fetch:
+            fetch_next = None
+            if not self._child_tasks.full():
+                fetch_next = FetchNextTask(namespace=self._namespace)
+
             next_task = self.client.update_task(
                 task_id=result.task_id,
                 status=result.status,
-                fetch_next_task=FetchNextTask(namespace=self._namespace),
+                fetch_next_task=fetch_next,
             )
             if next_task:
                 try:
                     self._child_tasks.put(next_task, block=False)
                 except queue.Full:
-                    logger.exception(
+                    logger.warning(
                         "taskworker.drain_result.child_task_queue_full",
                         extra={"task_id": next_task.id},
                     )
@@ -364,6 +368,8 @@ class TaskWorker:
             )
             process.start()
             active_children.append(process)
+            logger.info("taskworker.spawn_child", extra={"pid": process.pid})
+
         self._children = active_children
 
     def fetch_task(self) -> TaskActivation | None:
