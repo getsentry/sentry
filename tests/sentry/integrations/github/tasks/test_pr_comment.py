@@ -400,7 +400,13 @@ class TestFormatComment(TestCase):
         ]
 
         formatted_comment = format_comment(issues)
-        expected_comment = "## Suspect Issues\nThis pull request was deployed and Sentry observed the following issues:\n\n- ‼️ **TypeError** `sentry.tasks.auto_source_code_configs.derive_code_m...` [View Issue](https://sentry.sentry.io/issues/?referrer=github-pr-bot)\n- ‼️ **KafkaException** `query_subscription_consumer_process_message` [View Issue](https://sentry.sentry.io/stats/?referrer=github-pr-bot)\n\n<sub>Did you find this useful? React with a 👍 or 👎</sub>"
+        expected_comment = """## Suspect Issues
+This pull request was deployed and Sentry observed the following issues:
+
+- ‼️ **TypeError** `sentry.tasks.auto_source_code_configs.derive_co...` [View Issue](https://sentry.sentry.io/issues/?referrer=github-pr-bot)
+- ‼️ **KafkaException** `query_subscription_consumer_process_message` [View Issue](https://sentry.sentry.io/stats/?referrer=github-pr-bot)
+
+<sub>Did you find this useful? React with a 👍 or 👎</sub>"""
         assert formatted_comment == expected_comment
 
 
