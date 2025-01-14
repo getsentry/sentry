@@ -12,8 +12,12 @@ import {useTestRouteContext} from './useRouteContext';
  */
 type ParamKeys =
   | 'apiKey'
+  | 'appId'
+  | 'appSlug'
+  | 'authId'
   | 'dataExportId'
   | 'eventId'
+  | 'fineTuneType'
   | 'groupId'
   | 'id'
   | 'installationId'
@@ -28,7 +32,9 @@ type ParamKeys =
   | 'sentryAppSlug'
   | 'shareId'
   | 'spanSlug'
+  | 'tagKey'
   | 'teamId'
+  | 'traceSlug'
   | 'widgetIndex';
 
 /**
@@ -39,7 +45,7 @@ type ParamKeys =
  * const params = useParams<{projectId: string}>();
  * ```
  */
-export function useParams<P = Partial<Record<ParamKeys, string | undefined>>>(): P {
+export function useParams<P extends Partial<Record<ParamKeys, string | undefined>>>(): P {
   // When running in test mode we still read from the legacy route context to
   // keep test compatability while we fully migrate to react router 6
   const testRouteContext = useTestRouteContext();
