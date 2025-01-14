@@ -103,7 +103,6 @@ module = [
     "onelogin.saml2.idp_metadata_parser.*",
     "phabricator.*",
     "rb.*",
-    "requests_oauthlib.*",
     "sqlparse.*",
     "statsd.*",
     "u2flib_server.model.*",
