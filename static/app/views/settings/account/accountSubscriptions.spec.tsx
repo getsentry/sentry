@@ -69,7 +69,7 @@ describe('AccountSubscriptions', function () {
     expect(elements).toHaveLength(2);
 
     await userEvent.click(
-      screen.getAllByRole('checkbox', {name: 'Sentry Newsletter'})[0]
+      screen.getAllByRole('checkbox', {name: 'Sentry Newsletter'})[0]!
     );
 
     expect(mock).toHaveBeenCalledWith(

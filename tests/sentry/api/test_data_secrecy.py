@@ -11,7 +11,7 @@ class SuperuserDataSecrecyTestCase(APITestCase):
         super().setUp()
         self.login_as(self.user)
 
-    @with_feature("organizations:enterprise-data-secrecy")
+    @with_feature("organizations:enterprise-data-secrecy-legacy")
     def test_superuser_no_access(self):
         """
         Please contact the Enterprise team if your code change causes this test to fail
@@ -39,7 +39,7 @@ class SuperuserDataSecrecyTestCase(APITestCase):
 
 class DataSecrecyV2TestCase(APITestCase):
     # Picked an endpoint with OrganizationAndStaffPermission
-    endpoint = "sentry-api-0-organization-minimal-projects"
+    endpoint = "sentry-api-0-organization-projects"
     method = "get"
 
     def setUp(self):

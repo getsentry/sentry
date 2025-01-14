@@ -18,12 +18,13 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {
+  newExploreTarget,
   type SuggestedQuery,
-  useSetExploreSuggestedQuery,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
@@ -54,8 +55,6 @@ interface ToolbarSuggestedQueriesInnerProps extends ToolbarSuggestedQueriesProps
 function ToolbarSuggestedQueriesInner({dismiss}: ToolbarSuggestedQueriesInnerProps) {
   const {selection} = usePageFilters();
   const {projects} = useProjects();
-
-  const setExploreSuggestedQuery = useSetExploreSuggestedQuery();
 
   const suggestedQueries: SuggestedQuery[] = useMemo(() => {
     const counters = {
@@ -108,20 +107,33 @@ function ToolbarSuggestedQueriesInner({dismiss}: ToolbarSuggestedQueriesInnerPro
           {t("Feeling like a newb? Been there, done that. Here's a few to get you goin.")}
         </div>
         <SuggestedQueriesContainer>
-          {suggestedQueries.map(suggestedQuery => {
-            return (
-              <StyledTag
-                key={suggestedQuery.title}
-                type="info"
-                onClick={() => setExploreSuggestedQuery(suggestedQuery)}
-              >
-                {suggestedQuery.title}
-              </StyledTag>
-            );
-          })}
+          {suggestedQueries.map(suggestedQuery => (
+            <SuggestedQueryLink
+              key={suggestedQuery.title}
+              suggestedQuery={suggestedQuery}
+            />
+          ))}
         </SuggestedQueriesContainer>
       </StyledPanel>
     </ToolbarSection>
+  );
+}
+
+interface SuggestedQueryLinkProps {
+  suggestedQuery: SuggestedQuery;
+}
+
+function SuggestedQueryLink({suggestedQuery}: SuggestedQueryLinkProps) {
+  const location = useLocation();
+  const target = useMemo(
+    () => newExploreTarget(location, suggestedQuery),
+    [location, suggestedQuery]
+  );
+
+  return (
+    <Tag to={target} icon={null} type="info">
+      {suggestedQuery.title}
+    </Tag>
   );
 }
 
@@ -326,8 +338,4 @@ const SuggestedQueriesContainer = styled('div')`
   flex-wrap: wrap;
   gap: ${space(1)};
   margin-top: ${space(2)};
-`;
-
-const StyledTag = styled(Tag)`
-  cursor: pointer;
 `;

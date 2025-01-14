@@ -261,6 +261,11 @@ class OrganizationCodeMappingsTest(APITestCase):
         response = self.make_post({"stackRoot": "", "sourceRoot": ""})
         assert response.status_code == 201, response.content
 
+    def test_invalid_project_id(self):
+        response = self.make_post({"projectId": "dogs_are_great"})
+        assert response.status_code == 400, response.content
+        assert response.data == "Invalid projectId param. Expected an integer."
+
     def test_project_does_not_exist(self):
         bad_org = self.create_organization()
         bad_project = self.create_project(organization=bad_org)
@@ -270,7 +275,9 @@ class OrganizationCodeMappingsTest(APITestCase):
 
     def test_repo_does_not_exist_on_given_integrationId(self):
         bad_integration = self.create_integration(
-            organization=self.organization, provider="github", external_id="radsfas"
+            organization=self.organization,
+            external_id="radsfas",
+            provider="github",
         )
         bad_repo = Repository.objects.create(
             name="another", organization_id=self.organization.id, integration_id=bad_integration.id

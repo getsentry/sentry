@@ -1,14 +1,18 @@
-import {Fragment, useEffect, useState} from 'react';
-import {DndContext, type Translate, useDraggable} from '@dnd-kit/core';
+import {type CSSProperties, Fragment, useEffect, useState} from 'react';
+import {closestCorners, DndContext, useDraggable, useDroppable} from '@dnd-kit/core';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {decodeBoolean} from 'sentry/utils/queryString';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useKeyPress from 'sentry/utils/useKeyPress';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
@@ -19,7 +23,18 @@ import {
   type DashboardFilters,
   DisplayType,
   type Widget,
+  WidgetType,
 } from 'sentry/views/dashboards/types';
+import {
+  DEFAULT_WIDGET_DRAG_POSITIONING,
+  DRAGGABLE_PREVIEW_HEIGHT_PX,
+  DRAGGABLE_PREVIEW_WIDTH_PX,
+  PREVIEW_HEIGHT_PX,
+  SIDEBAR_HEIGHT,
+  snapPreviewToCorners,
+  WIDGET_PREVIEW_DRAG_ID,
+  type WidgetDragPositioning,
+} from 'sentry/views/dashboards/widgetBuilder/components/common/draggableUtils';
 import WidgetBuilderSlideout from 'sentry/views/dashboards/widgetBuilder/components/widgetBuilderSlideout';
 import WidgetPreview from 'sentry/views/dashboards/widgetBuilder/components/widgetPreview';
 import {
@@ -36,9 +51,9 @@ type WidgetBuilderV2Props = {
   isOpen: boolean;
   onClose: () => void;
   onSave: ({index, widget}: {index: number; widget: Widget}) => void;
+  openWidgetTemplates: boolean;
+  setOpenWidgetTemplates: (openWidgetTemplates: boolean) => void;
 };
-
-const WIDGET_PREVIEW_DRAG_ID = 'widget-preview-draggable';
 
 function WidgetBuilderV2({
   isOpen,
@@ -46,6 +61,8 @@ function WidgetBuilderV2({
   onSave,
   dashboardFilters,
   dashboard,
+  setOpenWidgetTemplates,
+  openWidgetTemplates,
 }: WidgetBuilderV2Props) {
   const escapeKeyPressed = useKeyPress('Escape');
   const organization = useOrganization();
@@ -57,14 +74,11 @@ function WidgetBuilderV2({
 
   const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.small})`);
 
-  const [{translate}, setTranslate] = useState<{
-    initialTranslate: Translate;
-    translate: Translate;
-  }>({
-    initialTranslate: {x: 0, y: 0},
-    translate: {x: 0, y: 0},
-  });
+  const [translate, setTranslate] = useState<WidgetDragPositioning>(
+    DEFAULT_WIDGET_DRAG_POSITIONING
+  );
 
+  // do we want to keep this?
   useEffect(() => {
     if (escapeKeyPressed) {
       if (isOpen) {
@@ -73,21 +87,17 @@ function WidgetBuilderV2({
     }
   }, [escapeKeyPressed, isOpen, onClose]);
 
-  const handleDragEnd = () => {
-    setTranslate(({translate: newTranslate}) => {
-      return {
-        translate: newTranslate,
-        initialTranslate: newTranslate,
-      };
-    });
+  const handleDragEnd = ({over}) => {
+    setTranslate(snapPreviewToCorners(over));
   };
 
   const handleDragMove = ({delta}) => {
-    setTranslate(({initialTranslate}) => ({
-      initialTranslate,
+    setTranslate(previousTranslate => ({
+      ...previousTranslate,
+      initialTranslate: previousTranslate.initialTranslate,
       translate: {
-        x: initialTranslate.x + delta.x,
-        y: initialTranslate.y + delta.y,
+        x: previousTranslate.initialTranslate.x + delta.x,
+        y: previousTranslate.initialTranslate.y + delta.y,
       },
     }));
   };
@@ -109,10 +119,7 @@ function WidgetBuilderV2({
                       isOpen={isOpen}
                       onClose={() => {
                         onClose();
-                        setTranslate({
-                          initialTranslate: {x: 0, y: 0},
-                          translate: {x: 0, y: 0},
-                        });
+                        setTranslate(DEFAULT_WIDGET_DRAG_POSITIONING);
                       }}
                       onSave={onSave}
                       onQueryConditionChange={setQueryConditionsValid}
@@ -120,13 +127,19 @@ function WidgetBuilderV2({
                       dashboardFilters={dashboardFilters}
                       setIsPreviewDraggable={setIsPreviewDraggable}
                       isWidgetInvalid={!queryConditionsValid}
+                      openWidgetTemplates={openWidgetTemplates}
+                      setOpenWidgetTemplates={setOpenWidgetTemplates}
                     />
                     {(!isSmallScreen || isPreviewDraggable) && (
-                      <DndContext onDragEnd={handleDragEnd} onDragMove={handleDragMove}>
+                      <DndContext
+                        onDragEnd={handleDragEnd}
+                        onDragMove={handleDragMove}
+                        collisionDetection={closestCorners}
+                      >
                         <WidgetPreviewContainer
                           dashboardFilters={dashboardFilters}
                           dashboard={dashboard}
-                          translate={translate}
+                          dragPosition={translate}
                           isDraggable={isPreviewDraggable}
                           isWidgetInvalid={!queryConditionsValid}
                         />
@@ -149,30 +162,63 @@ export function WidgetPreviewContainer({
   dashboardFilters,
   dashboard,
   isWidgetInvalid,
-  translate,
+  dragPosition,
   isDraggable,
 }: {
   dashboard: DashboardDetails;
   dashboardFilters: DashboardFilters;
   isWidgetInvalid: boolean;
+  dragPosition?: WidgetDragPositioning;
   isDraggable?: boolean;
-  translate?: Translate;
 }) {
   const {state} = useWidgetBuilderContext();
   const organization = useOrganization();
   const location = useLocation();
   const theme = useTheme();
+  const {useRpc} = useLocationQuery({
+    fields: {
+      useRpc: decodeBoolean,
+    },
+  });
 
+  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.small})`);
   // if small screen and draggable, enable dragging
-  const isDragEnabled =
-    window.innerWidth < parseInt(theme.breakpoints.small.replace('px', ''), 10) &&
-    isDraggable;
+  const isDragEnabled = isSmallScreen && isDraggable;
 
   const {attributes, listeners, setNodeRef, isDragging} = useDraggable({
     id: WIDGET_PREVIEW_DRAG_ID,
     disabled: !isDragEnabled,
     // May need to add 'handle' prop if we want to drag the preview by a specific area
   });
+
+  const {translate, top, left} = dragPosition ?? {};
+
+  const draggableStyle: CSSProperties = {
+    transform: isDragEnabled
+      ? `translate3d(${translate?.x ?? 0}px, ${translate?.y ?? 0}px, 0)`
+      : undefined,
+    top: isDragEnabled ? top ?? 0 : undefined,
+    left: isDragEnabled ? left ?? 0 : undefined,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragEnabled ? theme.zIndex.modal : theme.zIndex.initial,
+    cursor: isDragEnabled ? 'grab' : undefined,
+    margin: isDragEnabled ? '0' : undefined,
+    alignSelf: isDragEnabled ? 'flex-start' : undefined,
+    position: isDragEnabled ? 'fixed' : undefined,
+  };
+
+  const getPreviewHeight = () => {
+    if (isDragEnabled) {
+      return DRAGGABLE_PREVIEW_HEIGHT_PX;
+    }
+    if (state.displayType === DisplayType.TABLE) {
+      return 'auto';
+    }
+    if (state.displayType === DisplayType.BIG_NUMBER && !isSmallScreen) {
+      return '20vw';
+    }
+    return PREVIEW_HEIGHT_PX;
+  };
 
   return (
     <DashboardsMEPProvider>
@@ -188,17 +234,12 @@ export function WidgetPreviewContainer({
               location={location}
               forceTransactions={metricsDataSide.forceTransactionsOnly}
             >
+              {isDragEnabled && <DroppablePreviewContainer />}
               <DraggableWidgetContainer
                 ref={setNodeRef}
                 id={WIDGET_PREVIEW_DRAG_ID}
-                style={{
-                  transform: isDragEnabled
-                    ? `translate3d(${translate?.x ?? 0}px, ${translate?.y ?? 0}px, 0)`
-                    : undefined,
-                  opacity: isDragging ? 0.5 : 1,
-                  zIndex: isDragEnabled ? theme.zIndex.modal : theme.zIndex.initial,
-                  cursor: isDragEnabled ? 'grab' : undefined,
-                }}
+                style={draggableStyle}
+                aria-label={t('Draggable Widget Preview')}
                 {...attributes}
                 {...listeners}
               >
@@ -212,16 +253,16 @@ export function WidgetPreviewContainer({
                     damping: 50,
                   }}
                   style={{
-                    width: isDragEnabled ? '300px' : undefined,
-                    height:
-                      isDragEnabled && state.displayType !== DisplayType.TABLE
-                        ? '200px'
-                        : state.displayType === DisplayType.TABLE
-                          ? 'auto'
-                          : '400px',
+                    width: isDragEnabled ? DRAGGABLE_PREVIEW_WIDTH_PX : undefined,
+                    height: getPreviewHeight(),
+                    outline: isDragEnabled
+                      ? `${space(1)} solid ${theme.border}`
+                      : undefined,
                   }}
                 >
                   <WidgetPreview
+                    // While we test out RPC for spans, force a re-render if the spans toggle changes
+                    key={state.dataset === WidgetType.SPANS && useRpc ? 'spans' : 'other'}
                     dashboardFilters={dashboardFilters}
                     dashboard={dashboard}
                     isWidgetInvalid={isWidgetInvalid}
@@ -236,12 +277,42 @@ export function WidgetPreviewContainer({
   );
 }
 
+function DroppablePreviewContainer() {
+  const containers = ['top-left', 'top-right', 'bottom-left', 'bottom-right'];
+
+  return (
+    <DroppableGrid>
+      {containers.map(id => (
+        <Droppable key={id} id={id} />
+      ))}
+    </DroppableGrid>
+  );
+}
+
+function Droppable({id}: {id: string}) {
+  const {setNodeRef} = useDroppable({
+    id,
+  });
+
+  return <div ref={setNodeRef} id={id} />;
+}
+
 const fullPageCss = css`
   position: absolute;
   top: 0;
   right: 0;
   bottom: 0;
   left: 0;
+`;
+
+const fillAvailableCss = css`
+  height: 100%; /* default */
+  height: -webkit-fill-available; /* Chrome */
+  height: -moz-available; /* Firefox */
+  height: fill-available; /* others */
+  width: -webkit-fill-available; /* Chrome */
+  width: -moz-available; /* Firefox */
+  width: fill-available; /* others */
 `;
 
 const Backdrop = styled('div')`
@@ -257,7 +328,7 @@ const Backdrop = styled('div')`
 const SampleWidgetCard = styled(motion.div)`
   width: 100%;
   min-width: 100%;
-  border: 2px dashed ${p => p.theme.border};
+  border: 1px dashed ${p => p.theme.gray300};
   border-radius: ${p => p.theme.borderRadius};
   background-color: ${p => p.theme.background};
   z-index: ${p => p.theme.zIndex.initial};
@@ -265,9 +336,16 @@ const SampleWidgetCard = styled(motion.div)`
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     width: 30vw;
-    min-width: 400px;
+    min-width: 300px;
     z-index: ${p => p.theme.zIndex.modal};
     cursor: auto;
+  }
+
+  @media (max-width: ${p => p.theme.breakpoints.large}) and (min-width: ${p =>
+      p.theme.breakpoints.medium}) {
+    width: 25vw;
+    min-width: 100px;
+    max-width: 300px;
   }
 `;
 
@@ -296,9 +374,19 @@ const WidgetBuilderContainer = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 100vh;
   position: fixed;
-  width: -webkit-fill-available; /* Chrome */
-  width: -moz-available; /* Firefox */
-  width: fill-available; /* others */
+  ${fillAvailableCss};
+`;
+
+const DroppableGrid = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  position: fixed;
+  gap: ${space(4)};
+  margin: ${space(2)};
+  top: ${SIDEBAR_HEIGHT}px;
+  right: ${space(2)};
+  bottom: ${space(2)};
+  left: 0;
 `;

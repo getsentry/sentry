@@ -44,7 +44,6 @@ from sentry.backup.scopes import ExportScope
 from sentry.backup.validate import validate
 from sentry.data_secrecy.models import DataSecrecyWaiver
 from sentry.db.models.paranoia import ParanoidModel
-from sentry.incidents.models.alert_rule import AlertRuleMonitorTypeInt
 from sentry.incidents.models.incident import (
     IncidentActivity,
     IncidentSnapshot,
@@ -52,7 +51,6 @@ from sentry.incidents.models.incident import (
     PendingIncidentSnapshot,
     TimeSeriesSnapshot,
 )
-from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.models.project_integration import ProjectIntegration
@@ -120,6 +118,7 @@ from sentry.workflow_engine.models import (
     AlertRuleWorkflow,
     DataConditionGroup,
 )
+from sentry.workflow_engine.models.action_group_status import ActionGroupStatus
 
 __all__ = [
     "export_to_file",
@@ -523,21 +522,6 @@ class ExhaustiveFixtures(Fixtures):
         trigger = self.create_alert_rule_trigger(alert_rule=alert)
         assert alert.snuba_query is not None
         self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
-        activated_alert = self.create_alert_rule(
-            organization=org,
-            projects=[project],
-            monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
-            activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
-        )
-        self.create_alert_rule_activation(
-            alert_rule=activated_alert,
-            project=project,
-            metric_value=100,
-            activator="testing exhaustive",
-            activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
-        )
-        activated_trigger = self.create_alert_rule_trigger(alert_rule=activated_alert)
-        self.create_alert_rule_trigger_action(alert_rule_trigger=activated_trigger)
 
         # Incident*
         incident = self.create_incident(org, [project])
@@ -674,12 +658,9 @@ class ExhaustiveFixtures(Fixtures):
             condition_group=notification_condition_group,
         )
 
-        # TODO @saponifi3d: Update comparison to be DetectorState.Critical
         data_condition = self.create_data_condition(
-            condition="eq",
-            comparison="critical",
-            type="WorkflowCondition",
-            condition_result="True",
+            comparison=75,
+            condition_result=True,
             condition_group=notification_condition_group,
         )
 
@@ -695,16 +676,13 @@ class ExhaustiveFixtures(Fixtures):
             organization=org,
         )
 
-        # TODO @saponifi3d: Create or define trigger workflow action type
         trigger_workflows_action = self.create_action(type=Action.Type.WEBHOOK, data="")
         self.create_data_condition_group_action(
             action=trigger_workflows_action, condition_group=detector_conditions
         )
         self.create_data_condition(
-            condition="eq",
-            comparison="critical",
-            type="DetectorCondition",
-            condition_result="True",
+            comparison=75,
+            condition_result=True,
             condition_group=detector_conditions,
         )
         detector.workflow_condition_group = detector_conditions
@@ -714,6 +692,7 @@ class ExhaustiveFixtures(Fixtures):
         AlertRuleTriggerDataCondition.objects.create(
             alert_rule_trigger=trigger, data_condition=data_condition
         )
+        ActionGroupStatus.objects.create(action=send_notification_action, group=group)
 
         TempestCredentials.objects.create(
             project=project,

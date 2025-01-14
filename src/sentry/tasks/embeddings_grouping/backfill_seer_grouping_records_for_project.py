@@ -2,14 +2,17 @@ import logging
 from typing import Any
 
 import sentry_sdk
-from django.conf import settings
 
 from sentry import options
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.grouping.api import GroupingConfigNotFound
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.models.project import Project
-from sentry.seer.similarity.utils import killswitch_enabled, project_is_seer_eligible
+from sentry.seer.similarity.utils import (
+    ReferrerOptions,
+    killswitch_enabled,
+    project_is_seer_eligible,
+)
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.embeddings_grouping.utils import (
@@ -80,7 +83,7 @@ def backfill_seer_grouping_records_for_project(
     assert current_project_id is not None
 
     if options.get("seer.similarity-backfill-killswitch.enabled") or killswitch_enabled(
-        current_project_id
+        current_project_id, ReferrerOptions.BACKFILL
     ):
         logger.info("backfill_seer_grouping_records.killswitch_enabled")
         return
@@ -334,10 +337,7 @@ def call_next_backfill(
             )
             return
 
-        if isinstance(cohort, str):
-            cohort_projects = settings.SIMILARITY_BACKFILL_COHORT_MAP.get(cohort, [])
-        else:
-            cohort_projects = cohort
+        cohort_projects = cohort
 
         batch_project_id, last_processed_project_index = get_project_for_batch(
             last_processed_project_index, cohort_projects

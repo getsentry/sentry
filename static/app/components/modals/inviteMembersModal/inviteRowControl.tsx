@@ -1,17 +1,19 @@
-import {useCallback, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import type {MultiValueProps} from 'react-select';
 import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
 import type {StylesConfig} from 'sentry/components/forms/controls/selectControl';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {useInviteMembersContext} from 'sentry/components/modals/inviteMembersModal/inviteMembersContext';
 import RoleSelectControl from 'sentry/components/roleSelectControl';
 import TeamSelector from 'sentry/components/teamSelector';
-import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
-import type {OrgRole} from 'sentry/types/organization';
+import type {Organization, OrgRole} from 'sentry/types/organization';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import EmailValue from './emailValue';
 import type {InviteStatus} from './types';
@@ -19,49 +21,54 @@ import type {InviteStatus} from './types';
 type SelectOption = SelectValue<string>;
 
 type Props = {
-  disableRemove: boolean;
-  disabled: boolean;
-  emails: string[];
-  inviteStatus: InviteStatus;
-  isOverMemberLimit: boolean;
-  onChangeEmails: (emails: SelectOption[]) => void;
-  onChangeRole: (role: SelectOption) => void;
-  onChangeTeams: (teams: SelectOption[]) => void;
-  onRemove: () => void;
-  role: string;
   roleDisabledUnallowed: boolean;
   roleOptions: OrgRole[];
-  teams: string[];
-  className?: string;
 };
 
 function mapToOptions(values: string[]): SelectOption[] {
   return values.map(value => ({value, label: value}));
 }
 
-function InviteRowControl({
-  className,
-  disabled,
-  emails,
-  role,
-  teams,
-  roleOptions,
-  roleDisabledUnallowed,
-  inviteStatus,
-  onRemove,
-  onChangeEmails,
-  onChangeRole,
-  onChangeTeams,
-  disableRemove,
-  isOverMemberLimit,
-}: Props) {
+// If Member Invites are enabled but Open Membership is disabled, only allow members to invite to teams they are a member of
+function orgOnlyAllowsMemberInvitesWithinTeam(organization: Organization): boolean {
+  const isMemberInvite =
+    organization.access?.includes('member:invite') &&
+    !organization.access?.includes('member:admin');
+  const membersCanOnlyInviteMemberTeams =
+    organization.allowMemberInvite && !organization.openMembership;
+  return isMemberInvite && membersCanOnlyInviteMemberTeams;
+}
+
+function InviteRowControl({roleDisabledUnallowed, roleOptions}: Props) {
+  const organization = useOrganization();
+  const filterByUserMembership = orgOnlyAllowsMemberInvitesWithinTeam(organization);
+  const {
+    inviteStatus,
+    isOverMemberLimit,
+    pendingInvites,
+    setEmails,
+    setRole,
+    setTeams,
+    reset,
+  } = useInviteMembersContext();
+  const emails = [...(pendingInvites.emails ?? [])];
+  const role = pendingInvites.role ?? '';
+  const teams = [...(pendingInvites.teams ?? [])];
+
+  const onChangeEmails = (opts: SelectOption[]) => {
+    setEmails(opts?.map(v => v.value) ?? [], 0);
+  };
+  const onChangeRole = (value: SelectOption) => setRole(value?.value, 0);
+  const onChangeTeams = (opts: SelectOption[]) =>
+    setTeams(opts ? opts.map(v => v.value) : [], 0);
+
   const [inputValue, setInputValue] = useState('');
 
   const theme = useTheme();
 
   const isTeamRolesAllowedForRole = useCallback<(roleId: string) => boolean>(
     roleId => {
-      const roleOptionsMap = roleOptions.reduce(
+      const roleOptionsMap = roleOptions.reduce<Record<string, OrgRole>>(
         (rolesMap, roleOption) => ({...rolesMap, [roleOption.id]: roleOption}),
         {}
       );
@@ -71,85 +78,103 @@ function InviteRowControl({
   );
   const isTeamRolesAllowed = isTeamRolesAllowedForRole(role);
 
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
-    switch (event.key) {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLElement>) => {
+    switch (e.key) {
       case 'Enter':
       case ',':
       case ' ':
-        onChangeEmails([...mapToOptions(emails), {label: inputValue, value: inputValue}]);
+        e.preventDefault();
+        handleInput(inputValue);
         setInputValue('');
-        event.preventDefault();
         break;
       default:
       // do nothing.
     }
   };
 
+  const handleInput = input => {
+    const newEmails = input.trim() ? input.trim().split(/[\s,]+/) : [];
+    if (newEmails.length > 0) {
+      onChangeEmails([
+        ...mapToOptions(emails),
+        ...newEmails.map(email => ({label: email, value: email})),
+      ]);
+    }
+  };
+
+  useEffect(() => {
+    if (isOverMemberLimit) {
+      setRole('billing', 0);
+      setTeams([], 0);
+    }
+  }, [isOverMemberLimit, setRole, setTeams]);
+
   return (
-    <li className={className}>
-      <SelectControl
-        aria-label={t('Email Addresses')}
-        data-test-id="select-emails"
-        disabled={disabled}
-        placeholder={t('Enter one or more emails')}
-        inputValue={inputValue}
-        value={emails}
-        components={{
-          MultiValue: (props: MultiValueProps<SelectOption>) => (
-            <EmailValue status={inviteStatus[props.data.value]} valueProps={props} />
-          ),
-          DropdownIndicator: () => null,
-        }}
-        options={mapToOptions(emails)}
-        onBlur={(e: React.ChangeEvent<HTMLInputElement>) =>
-          e.target.value &&
-          onChangeEmails([
-            ...mapToOptions(emails),
-            {label: e.target.value, value: e.target.value},
-          ])
-        }
-        styles={getStyles(theme, inviteStatus)}
-        onInputChange={setInputValue}
-        onKeyDown={handleKeyDown}
-        onChange={onChangeEmails}
-        multiple
-        creatable
-        clearable
-        menuIsOpen={false}
-      />
-      <RoleSelectControl
-        aria-label={t('Role')}
-        data-test-id="select-role"
-        disabled={isOverMemberLimit ? true : disabled}
-        value={role}
-        roles={roleOptions}
-        disableUnallowed={roleDisabledUnallowed}
-        onChange={roleOption => {
-          onChangeRole(roleOption);
-          if (!isTeamRolesAllowedForRole(roleOption.value)) {
-            onChangeTeams([]);
-          }
-        }}
-      />
-      <TeamSelector
-        aria-label={t('Add to Team')}
-        data-test-id="select-teams"
-        disabled={isTeamRolesAllowed ? disabled : true}
-        placeholder={isTeamRolesAllowed ? t('None') : t('Role cannot join teams')}
-        value={isTeamRolesAllowed ? teams : []}
-        onChange={onChangeTeams}
-        useTeamDefaultIfOnlyOne
-        multiple
-        clearable
-      />
-      <Button
-        borderless
-        icon={<IconClose />}
-        onClick={onRemove}
-        disabled={disableRemove}
-        aria-label={t('Remove')}
-      />
-    </li>
+    <RowWrapper>
+      <div>
+        <Heading htmlFor="email-addresses">{t('Email addresses')}</Heading>
+        <SelectControl
+          id="email-addresses"
+          aria-label={t('Email Addresses')}
+          placeholder={t('Enter one or more emails')}
+          inputValue={inputValue}
+          value={emails}
+          components={{
+            MultiValue: (props: MultiValueProps<SelectOption>) => (
+              <EmailValue status={inviteStatus[props.data.value]!} valueProps={props} />
+            ),
+            DropdownIndicator: () => null,
+          }}
+          options={mapToOptions(emails)}
+          onBlur={(e: React.ChangeEvent<HTMLInputElement>) => {
+            handleInput(e.target.value);
+          }}
+          styles={getStyles(theme, inviteStatus)}
+          onInputChange={setInputValue}
+          onKeyDown={handleKeyDown}
+          onChange={onChangeEmails}
+          multiple
+          creatable
+          clearable
+          onClear={reset}
+          menuIsOpen={false}
+        />
+      </div>
+      <RoleTeamWrapper>
+        <div>
+          <Heading htmlFor="role">{t('Role')}</Heading>
+          <RoleSelectControl
+            id="role"
+            aria-label={t('Role')}
+            disabled={isOverMemberLimit}
+            value={role}
+            roles={roleOptions}
+            disableUnallowed={roleDisabledUnallowed}
+            onChange={roleOption => {
+              onChangeRole(roleOption);
+              if (!isTeamRolesAllowedForRole(roleOption.value)) {
+                onChangeTeams([]);
+              }
+            }}
+          />
+        </div>
+        <div>
+          <Heading htmlFor="team">{t('Add to team')}</Heading>
+          <TeamSelector
+            id="team"
+            aria-label={t('Add to Team')}
+            disabled={!isTeamRolesAllowed}
+            placeholder={isTeamRolesAllowed ? t('None') : t('Role cannot join teams')}
+            value={isTeamRolesAllowed ? teams : []}
+            onChange={onChangeTeams}
+            useTeamDefaultIfOnlyOne
+            filterByUserMembership={filterByUserMembership}
+            multiple
+            clearable
+          />
+        </div>
+      </RoleTeamWrapper>
+    </RowWrapper>
   );
 }
 
@@ -157,7 +182,7 @@ function InviteRowControl({
  * The email select control has custom selected item states as items
  * show their delivery status after the form is submitted.
  */
-function getStyles(theme: Theme, inviteStatus: Props['inviteStatus']): StylesConfig {
+function getStyles(theme: Theme, inviteStatus: InviteStatus): StylesConfig {
   return {
     multiValue: (provided, {data}: MultiValueProps<SelectOption>) => {
       const status = inviteStatus[data.value];
@@ -194,5 +219,25 @@ function getStyles(theme: Theme, inviteStatus: Props['inviteStatus']): StylesCon
     },
   };
 }
+
+const Heading = styled('label')`
+  margin-bottom: ${space(1)};
+  font-weight: ${p => p.theme.fontWeightBold};
+  text-transform: uppercase;
+  font-size: ${p => p.theme.fontSizeSmall};
+`;
+
+const RowWrapper = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1.5)};
+`;
+
+const RoleTeamWrapper = styled('div')`
+  display: grid;
+  gap: ${space(1.5)};
+  grid-template-columns: 1fr 1fr;
+  align-items: start;
+`;
 
 export default InviteRowControl;

@@ -7,7 +7,7 @@ import selectEvent from 'sentry-test/selectEvent';
 import AwsLambdaCloudformation from 'sentry/views/integrationPipeline/awsLambdaCloudformation';
 
 describe('AwsLambdaCloudformation', () => {
-  let windowAssignMock;
+  let windowAssignMock!: jest.Mock;
 
   beforeEach(() => {
     windowAssignMock = jest.fn();

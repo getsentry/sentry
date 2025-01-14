@@ -44,6 +44,13 @@ function WidgetBuilderQueryFilterBuilder({
 
   const canAddSearchConditions =
     state.displayType !== DisplayType.TABLE &&
+    state.displayType !== DisplayType.BIG_NUMBER &&
+    state.dataset !== WidgetType.SPANS &&
+    state.query &&
+    state.query.length < 3;
+
+  const canHaveAlias =
+    state.displayType !== DisplayType.TABLE &&
     state.displayType !== DisplayType.BIG_NUMBER;
 
   const onAddSearchConditions = () => {
@@ -51,6 +58,11 @@ function WidgetBuilderQueryFilterBuilder({
     dispatch({
       type: BuilderStateAction.SET_QUERY,
       payload: state.query?.length ? [...state.query, ''] : ['', ''],
+    });
+
+    dispatch({
+      type: BuilderStateAction.SET_LEGEND_ALIAS,
+      payload: state.legendAlias?.length ? [...state.legendAlias, ''] : ['', ''],
     });
   };
 
@@ -80,8 +92,18 @@ function WidgetBuilderQueryFilterBuilder({
         type: BuilderStateAction.SET_QUERY,
         payload: state.query?.filter((_, i) => i !== queryIndex) ?? [],
       });
+      dispatch({
+        type: BuilderStateAction.SET_LEGEND_ALIAS,
+        payload: state.legendAlias?.filter((_, i) => i !== queryIndex) ?? [],
+      });
     },
-    [dispatch, queryConditionValidity, state.query, onQueryConditionChange]
+    [
+      dispatch,
+      queryConditionValidity,
+      state.query,
+      onQueryConditionChange,
+      state.legendAlias,
+    ]
   );
 
   const getOnDemandFilterWarning = createOnDemandFilterWarning(
@@ -106,12 +128,12 @@ function WidgetBuilderQueryFilterBuilder({
         }
         optional
       />
-      {!state.query?.length ? (
-        <QueryFieldRowWrapper key={0}>
+      {state.query?.map((_, index) => (
+        <QueryFieldRowWrapper key={index}>
           <datasetConfig.SearchBar
             getFilterWarning={
               shouldDisplayOnDemandWidgetWarning(
-                widget.queries[0],
+                widget.queries[index]!,
                 widgetType,
                 organization
               )
@@ -119,66 +141,38 @@ function WidgetBuilderQueryFilterBuilder({
                 : undefined
             }
             pageFilters={selection}
-            onClose={handleClose(0)}
+            onClose={handleClose(index)}
             onSearch={queryString => {
               dispatch({
                 type: BuilderStateAction.SET_QUERY,
-                payload: [queryString],
+                payload:
+                  state.query?.map((q, i) => (i === index ? queryString : q)) ?? [],
               });
             }}
-            widgetQuery={widget.queries[0]}
+            widgetQuery={widget.queries[index]!}
             dataset={getDiscoverDatasetFromWidgetType(widgetType)}
           />
-          {canAddSearchConditions && (
-            // TODO: Hook up alias to query hook when it's implemented
+          {canHaveAlias && (
             <LegendAliasInput
               type="text"
               name="name"
               placeholder={t('Legend Alias')}
-              onChange={() => {}}
-            />
-          )}
-        </QueryFieldRowWrapper>
-      ) : (
-        state.query?.map((_, index) => (
-          <QueryFieldRowWrapper key={index}>
-            <datasetConfig.SearchBar
-              getFilterWarning={
-                shouldDisplayOnDemandWidgetWarning(
-                  widget.queries[index],
-                  widgetType,
-                  organization
-                )
-                  ? getOnDemandFilterWarning
-                  : undefined
-              }
-              pageFilters={selection}
-              onClose={handleClose(index)}
-              onSearch={queryString => {
+              value={state.legendAlias?.[index] || ''}
+              onChange={e => {
                 dispatch({
-                  type: BuilderStateAction.SET_QUERY,
-                  payload:
-                    state.query?.map((q, i) => (i === index ? queryString : q)) ?? [],
+                  type: BuilderStateAction.SET_LEGEND_ALIAS,
+                  payload: state.legendAlias?.length
+                    ? state.legendAlias?.map((q, i) => (i === index ? e.target.value : q))
+                    : [e.target.value],
                 });
               }}
-              widgetQuery={widget.queries[index]}
-              dataset={getDiscoverDatasetFromWidgetType(widgetType)}
             />
-            {canAddSearchConditions && (
-              // TODO: Hook up alias to query hook when it's implemented
-              <LegendAliasInput
-                type="text"
-                name="name"
-                placeholder={t('Legend Alias')}
-                onChange={() => {}}
-              />
-            )}
-            {state.query && state.query?.length > 1 && canAddSearchConditions && (
-              <DeleteButton onDelete={handleRemove(index)} />
-            )}
-          </QueryFieldRowWrapper>
-        ))
-      )}
+          )}
+          {state.query && state.query?.length > 1 && (
+            <DeleteButton onDelete={handleRemove(index)} />
+          )}
+        </QueryFieldRowWrapper>
+      ))}
       {canAddSearchConditions && (
         <Button size="sm" icon={<IconAdd isCircled />} onClick={onAddSearchConditions}>
           {t('Add Filter')}

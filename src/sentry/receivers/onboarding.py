@@ -30,6 +30,7 @@ from sentry.signals import (
     first_event_received,
     first_event_with_minified_stack_trace_received,
     first_feedback_received,
+    first_flag_received,
     first_insight_span_received,
     first_new_feedback_received,
     first_profile_received,
@@ -69,9 +70,8 @@ def record_new_project(project, user=None, user_id=None, **kwargs):
     else:
         user_id = None
         try:
-            default_user_id = (
-                Organization.objects.get(id=project.organization_id).get_default_owner().id
-            )
+            default_user = Organization.objects.get(id=project.organization_id).get_default_owner()
+            default_user_id = default_user.id
         except IndexError:
             logger.warning(
                 "Cannot initiate onboarding for organization (%s) due to missing owners",
@@ -104,15 +104,16 @@ def record_new_project(project, user=None, user_id=None, **kwargs):
             organization_id=project.organization_id,
             task=OnboardingTask.SECOND_PLATFORM,
             user_id=user_id,
-            status=(
-                OnboardingTaskStatus.COMPLETE
-                if features.has(
-                    "organizations:quick-start-updates", project.organization, actor=user
-                )
-                else OnboardingTaskStatus.PENDING
-            ),
+            status=OnboardingTaskStatus.COMPLETE,
             project_id=project.id,
         )
+        analytics.record(
+            "second_platform.added",
+            user_id=default_user_id,
+            organization_id=project.organization_id,
+            project_id=project.id,
+        )
+        try_mark_onboarding_complete(project.organization_id, user)
 
 
 @first_event_received.connect(weak=False)
@@ -273,6 +274,18 @@ def record_first_replay(project, **kwargs):
             )
             return
         try_mark_onboarding_complete(project.organization_id, user)
+
+
+@first_flag_received.connect(weak=False)
+def record_first_flag(project, **kwargs):
+    project.update(flags=F("flags").bitor(Project.flags.has_flags))
+
+    analytics.record(
+        "first_flag.sent",
+        organization_id=project.organization_id,
+        project_id=project.id,
+        platform=project.platform,
+    )
 
 
 @first_feedback_received.connect(weak=False)
@@ -718,41 +731,24 @@ def record_integration_added(
         )
         return
 
-    if features.has("organizations:quick-start-updates", organization, actor=user):
-        integration_types = get_integration_types(integration.provider)
+    integration_types = get_integration_types(integration.provider)
 
-        task_mapping = {
-            IntegrationDomain.SOURCE_CODE_MANAGEMENT: OnboardingTask.LINK_SENTRY_TO_SOURCE_CODE,
-            IntegrationDomain.MESSAGING: OnboardingTask.REAL_TIME_NOTIFICATIONS,
-        }
+    task_mapping = {
+        IntegrationDomain.SOURCE_CODE_MANAGEMENT: OnboardingTask.LINK_SENTRY_TO_SOURCE_CODE,
+        IntegrationDomain.MESSAGING: OnboardingTask.REAL_TIME_NOTIFICATIONS,
+    }
 
-        for integration_type in integration_types:
-            if integration_type in task_mapping:
+    for integration_type in integration_types:
+        if integration_type in task_mapping:
+            completed_integration = OrganizationOnboardingTask.objects.filter(
+                organization_id=organization_id,
+                task=task_mapping[integration_type],
+                status=OnboardingTaskStatus.COMPLETE,
+            )
+            if not completed_integration.exists():
                 OrganizationOnboardingTask.objects.create(
                     organization_id=organization_id,
                     task=task_mapping[integration_type],
                     status=OnboardingTaskStatus.COMPLETE,
                 )
-    else:
-        task = OrganizationOnboardingTask.objects.filter(
-            organization_id=organization_id,
-            task=OnboardingTask.INTEGRATIONS,
-        ).first()
-
-        if task:
-            providers = task.data.get("providers", [])
-            if integration.provider not in providers:
-                providers.append(integration.provider)
-            task.data["providers"] = providers
-            if task.status != OnboardingTaskStatus.COMPLETE:
-                task.status = OnboardingTaskStatus.COMPLETE
-                task.user_id = user_id
-                task.date_completed = django_timezone.now()
-            task.save()
-        else:
-            task = OrganizationOnboardingTask.objects.create(
-                organization_id=organization_id,
-                task=OnboardingTask.INTEGRATIONS,
-                status=OnboardingTaskStatus.COMPLETE,
-                data={"providers": [integration.provider]},
-            )
+    try_mark_onboarding_complete(organization_id, user)

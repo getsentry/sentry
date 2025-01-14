@@ -1,4 +1,3 @@
-// eslint-disable-next-line no-restricted-imports
 import * as React from 'react';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -27,10 +26,7 @@ const makeProxyMock = (video: Partial<HTMLVideoElement>) => {
       get(obj, prop) {
         return obj[prop];
       },
-      set(obj, prop) {
-        if (prop === 'current') {
-          obj.current = obj.current;
-        }
+      set(_obj, _prop) {
         return true;
       },
     }

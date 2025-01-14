@@ -36,6 +36,7 @@ CHUNK_UPLOAD_ACCEPT = (
     "portablepdbs",  # Portable PDB debug file
     "artifact_bundles",  # Artifact Bundles for JavaScript Source Maps
     "artifact_bundles_v2",  # The `assemble` endpoint will check for missing chunks
+    "proguard",  # Chunk-uploaded proguard mappings
 )
 
 
@@ -104,6 +105,11 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
 
         accept = CHUNK_UPLOAD_ACCEPT
 
+        # Sentry CLI versions ≤2.39.1 require "chunkSize" to be a power of two, and will error otherwise,
+        # with no way for the user to work around the error. This restriction has been removed from
+        # newer Sentry CLI versions.
+        # Be aware that changing "chunkSize" to something that is not a power of two will break
+        # Sentry CLI ≤2.39.1.
         return Response(
             {
                 "url": url,

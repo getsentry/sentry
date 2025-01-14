@@ -6,7 +6,6 @@ from .group_events import GroupEventsEndpoint
 from .group_hashes import GroupHashesEndpoint
 from .group_notes import GroupNotesEndpoint
 from .group_notes_details import GroupNotesDetailsEndpoint
-from .group_participants import GroupParticipantsEndpoint
 from .group_similar_issues import GroupSimilarIssuesEndpoint
 from .group_similar_issues_embeddings import GroupSimilarIssuesEmbeddingsEndpoint
 from .group_tombstone import GroupTombstoneEndpoint
@@ -15,6 +14,7 @@ from .organization_eventid import EventIdLookupEndpoint
 from .organization_group_index import OrganizationGroupIndexEndpoint
 from .organization_group_index_stats import OrganizationGroupIndexStatsEndpoint
 from .organization_group_search_views import OrganizationGroupSearchViewsEndpoint
+from .organization_issues_count import OrganizationIssuesCountEndpoint
 from .organization_release_previous_commits import OrganizationReleasePreviousCommitsEndpoint
 from .organization_searches import OrganizationSearchesEndpoint
 from .organization_shortid import ShortIdLookupEndpoint
@@ -39,7 +39,6 @@ __all__ = (
     "GroupHashesEndpoint",
     "GroupNotesDetailsEndpoint",
     "GroupNotesEndpoint",
-    "GroupParticipantsEndpoint",
     "GroupSimilarIssuesEmbeddingsEndpoint",
     "GroupSimilarIssuesEndpoint",
     "GroupTombstoneDetailsEndpoint",
@@ -47,6 +46,7 @@ __all__ = (
     "OrganizationGroupIndexEndpoint",
     "OrganizationGroupIndexStatsEndpoint",
     "OrganizationGroupSearchViewsEndpoint",
+    "OrganizationIssuesCountEndpoint",
     "OrganizationReleasePreviousCommitsEndpoint",
     "OrganizationSearchesEndpoint",
     "ProjectEventDetailsEndpoint",

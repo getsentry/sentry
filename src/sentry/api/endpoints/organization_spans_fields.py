@@ -232,7 +232,8 @@ class OrganizationSpansFieldValuesEndpoint(OrganizationSpansFieldsEndpointBase):
                 max_span_tag_values=max_span_tag_values,
             )
 
-        tag_values = executor.execute()
+        with handle_query_errors():
+            tag_values = executor.execute()
 
         tag_values.sort(key=lambda tag: tag.value)
 

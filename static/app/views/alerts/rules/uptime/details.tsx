@@ -5,6 +5,7 @@ import Breadcrumbs from 'sentry/components/breadcrumbs';
 import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {SectionHeading} from 'sentry/components/charts/styles';
+import {CodeSnippet} from 'sentry/components/codeSnippet';
 import IdBadge from 'sentry/components/idBadge';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -13,10 +14,12 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import getDuration from 'sentry/utils/duration/getDuration';
 import {type ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -68,6 +71,7 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
 
   return (
     <Layout.Page>
+      <SentryDocumentTitle title={`${uptimeRule.name} — Alerts`} />
       <Layout.Header>
         <Layout.HeaderContent>
           <Breadcrumbs
@@ -77,8 +81,7 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
                 to: `/organizations/${organization.slug}/alerts/rules/`,
               },
               {
-                label: uptimeRule.name,
-                to: null,
+                label: t('Uptime Monitor'),
               },
             ]}
           />
@@ -113,9 +116,21 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
           <UptimeIssues project={project} ruleId={uptimeRuleId} />
         </Layout.Main>
         <Layout.Side>
-          <SectionHeading>{t('Uptime Alert Details')}</SectionHeading>
+          <SectionHeading>{t('Checked URL')}</SectionHeading>
+          <CodeSnippet
+            hideCopyButton
+          >{`${uptimeRule.method} ${uptimeRule.url}`}</CodeSnippet>
+          <SectionHeading>{t('Configuration')}</SectionHeading>
           <KeyValueTable>
-            <KeyValueTableRow keyName={t('URL')} value={uptimeRule.url} />
+            <KeyValueTableRow
+              keyName={t('Check Interval')}
+              value={t('Every %s', getDuration(uptimeRule.intervalSeconds))}
+            />
+            <KeyValueTableRow
+              keyName={t('Timeout')}
+              value={t('After %s', getDuration(uptimeRule.timeoutMs / 1000, 2))}
+            />
+            <KeyValueTableRow keyName={t('Environment')} value={uptimeRule.environment} />
             <KeyValueTableRow
               keyName={t('Owner')}
               value={

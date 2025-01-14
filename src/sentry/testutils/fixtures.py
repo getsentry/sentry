@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping
+from collections.abc import Mapping
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -9,10 +9,10 @@ from django.utils import timezone
 from django.utils.functional import cached_property
 
 from sentry.eventstore.models import Event
-from sentry.incidents.models.alert_rule import AlertRule, AlertRuleMonitorTypeInt
+from sentry.grouping.grouptype import ErrorGroupType
+from sentry.incidents.models.alert_rule import AlertRule
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.issues.grouptype import ErrorGroupType
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.grouprelease import GroupRelease
@@ -26,10 +26,9 @@ from sentry.models.team import Team
 from sentry.monitors.models import Monitor, MonitorType, ScheduleType
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.silo.base import SiloMode
-from sentry.snuba.models import QuerySubscription
 from sentry.tempest.models import TempestCredentials
 from sentry.testutils.factories import Factories
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import assume_test_silo_mode
 
 # XXX(dcramer): this is a compatibility layer to transition to pytest-based fixtures
@@ -47,6 +46,7 @@ from sentry.users.models.identity import Identity, IdentityProvider
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.workflow_engine.models import DataSource, Detector, DetectorState, Workflow
+from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
@@ -61,7 +61,12 @@ class Fixtures:
 
     @cached_property
     def user(self) -> User:
-        return self.create_user("admin@localhost", is_superuser=True, is_staff=True)
+        return self.create_user(
+            "admin@localhost",
+            is_superuser=True,
+            is_staff=True,
+            is_sentry_app=False,
+        )
 
     @cached_property
     def organization(self):
@@ -103,7 +108,7 @@ class Fixtures:
             data={
                 "event_id": "a" * 32,
                 "message": "\u3053\u3093\u306b\u3061\u306f",
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
             },
             project_id=self.project.id,
         )
@@ -128,7 +133,7 @@ class Fixtures:
             external_id="github:1",
             metadata={
                 "access_token": "xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
-                "expires_at": iso_format(timezone.now() + timedelta(days=14)),
+                "expires_at": (timezone.now() + timedelta(days=14)).isoformat(),
             },
         )
         integration.add_organization(self.organization, self.user)
@@ -388,36 +393,6 @@ class Fixtures:
             projects = [self.project]
         return Factories.create_alert_rule(organization, projects, *args, **kwargs)
 
-    def create_alert_rule_activation(
-        self,
-        alert_rule: AlertRule | None = None,
-        query_subscriptions: Iterable[QuerySubscription] | None = None,
-        project=None,
-        monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
-        activator=None,
-        activation_condition=None,
-        *args,
-        **kwargs,
-    ):
-        if not alert_rule:
-            alert_rule = self.create_alert_rule(monitor_type=monitor_type)
-        if not query_subscriptions:
-            projects = [project] if project else [self.project]
-            # subscribing an activated alert rule will create an activation
-            query_subscriptions = alert_rule.subscribe_projects(
-                projects=projects,
-                monitor_type=monitor_type,
-                activation_condition=activation_condition,
-                activator=activator,
-            )
-
-        created_activations = []
-        for sub in query_subscriptions:
-            created_activations.append(
-                Factories.create_alert_rule_activation(alert_rule, sub, *args, **kwargs)
-            )
-        return created_activations
-
     def create_alert_rule_trigger(self, alert_rule=None, *args, **kwargs):
         if not alert_rule:
             alert_rule = self.create_alert_rule()
@@ -615,9 +590,8 @@ class Fixtures:
 
     def create_data_condition(
         self,
-        condition="eq",
         comparison="10",
-        type="",
+        type=Condition.EQUAL,
         condition_result=None,
         condition_group=None,
         **kwargs,
@@ -628,7 +602,6 @@ class Fixtures:
             condition_group = self.create_data_condition_group()
 
         return Factories.create_data_condition(
-            condition=condition,
             comparison=comparison,
             type=type,
             condition_result=condition_result,
@@ -678,7 +651,7 @@ class Fixtures:
         type: str = "test",
         subscription_id: str | None = None,
         status: UptimeSubscription.Status = UptimeSubscription.Status.ACTIVE,
-        url="http://sentry.io/",
+        url: str | None = None,
         host_provider_id="TEST",
         url_domain="sentry",
         url_domain_suffix="io",
@@ -689,13 +662,16 @@ class Fixtures:
         body=None,
         date_updated: None | datetime = None,
         trace_sampling: bool = False,
+        region_slugs: list[str] | None = None,
     ) -> UptimeSubscription:
         if date_updated is None:
             date_updated = timezone.now()
         if headers is None:
             headers = []
+        if region_slugs is None:
+            region_slugs = []
 
-        return Factories.create_uptime_subscription(
+        subscription = Factories.create_uptime_subscription(
             type=type,
             subscription_id=subscription_id,
             status=status,
@@ -711,6 +687,10 @@ class Fixtures:
             body=body,
             trace_sampling=trace_sampling,
         )
+        for region_slug in region_slugs:
+            Factories.create_uptime_subscription_region(subscription, region_slug)
+
+        return subscription
 
     def create_project_uptime_subscription(
         self,
@@ -718,7 +698,7 @@ class Fixtures:
         env: Environment | None = None,
         uptime_subscription: UptimeSubscription | None = None,
         mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
-        name="Test Name",
+        name: str | None = None,
         owner: User | Team | None = None,
         uptime_status=UptimeStatus.OK,
     ) -> ProjectUptimeSubscription:

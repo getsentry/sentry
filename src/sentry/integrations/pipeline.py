@@ -104,15 +104,19 @@ class IntegrationPipeline(Pipeline):
             and org_context.member
             and "org:integrations" not in org_context.member.scopes
         ):
+            error_message = (
+                "You must be an organization owner, manager or admin to install this integration."
+            )
             logger.info(
                 "build-integration.permission_error",
                 extra={
-                    "error_message": "User has no 'org:integrations' scope.",
+                    "error_message": error_message,
                     "organization_id": self.organization.id,
                     "user_id": self.request.user.id,
                     "provider_key": self.provider.key,
                 },
             )
+            return self.error(error_message)
 
         try:
             data = self.provider.build_integration(self.state.data)

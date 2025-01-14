@@ -7,7 +7,7 @@ from django.utils import timezone
 from sentry import audit_log, buffer, tsdb
 from sentry.buffer.redis import RedisBuffer
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
-from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
+from sentry.issues.grouptype import MetricIssuePOC, PerformanceSlowDBQueryGroupType
 from sentry.models.activity import Activity
 from sentry.models.apikey import ApiKey
 from sentry.models.auditlogentry import AuditLogEntry
@@ -46,7 +46,7 @@ pytestmark = [requires_snuba]
 
 
 class GroupDetailsTest(APITestCase, SnubaTestCase):
-    def test_with_numerical_id(self):
+    def test_with_numerical_id(self) -> None:
         self.login_as(user=self.user)
 
         group = self.create_group()
@@ -63,7 +63,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert response.data["id"] == str(group.id)
 
-    def test_with_qualified_short_id(self):
+    def test_with_qualified_short_id(self) -> None:
         self.login_as(user=self.user)
 
         group = self.create_group()
@@ -80,7 +80,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 404, response.content
 
-    def test_with_first_release(self):
+    def test_with_first_release(self) -> None:
         self.login_as(user=self.user)
 
         event = self.store_event(data={"release": "1.0"}, project_id=self.project.id)
@@ -95,7 +95,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert response.data["id"] == str(group.id)
         assert response.data["firstRelease"]["version"] == "1.0"
 
-    def test_no_releases(self):
+    def test_no_releases(self) -> None:
         self.login_as(user=self.user)
         event = self.store_event(data={}, project_id=self.project.id)
 
@@ -108,7 +108,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert response.data["firstRelease"] is None
         assert response.data["lastRelease"] is None
 
-    def test_pending_delete_pending_merge_excluded(self):
+    def test_pending_delete_pending_merge_excluded(self) -> None:
         group1 = self.create_group(status=GroupStatus.PENDING_DELETION)
         group2 = self.create_group(status=GroupStatus.DELETION_IN_PROGRESS)
 
@@ -129,7 +129,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         response = self.client.get(url, format="json")
         assert response.status_code == 404
 
-    def test_environment(self):
+    def test_environment(self) -> None:
         group = self.create_group()
         self.login_as(user=self.user)
 
@@ -149,7 +149,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         response = self.client.get(url, {"environment": "invalid"}, format="json")
         assert response.status_code == 404
 
-    def test_platform_external_issue_annotation(self):
+    def test_platform_external_issue_annotation(self) -> None:
         self.login_as(user=self.user)
 
         group = self.create_group()
@@ -166,7 +166,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             {"url": "https://example.com/issues/2", "displayName": "Issue#2"}
         ]
 
-    def test_plugin_external_issue_annotation(self):
+    def test_plugin_external_issue_annotation(self) -> None:
         group = self.create_group()
         GroupMeta.objects.create(group=group, key="trello:tid", value="134")
 
@@ -183,7 +183,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             {"url": "https://trello.com/c/134", "displayName": "Trello-134"}
         ]
 
-    def test_integration_external_issue_annotation(self):
+    def test_integration_external_issue_annotation(self) -> None:
         group = self.create_group()
         integration = self.create_integration(
             organization=group.organization,
@@ -203,7 +203,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             {"url": "https://example.com/browse/api-123", "displayName": "api-123"}
         ]
 
-    def test_permalink_superuser(self):
+    def test_permalink_superuser(self) -> None:
         superuser = self.create_user(is_superuser=True)
         self.login_as(user=superuser, superuser=True)
 
@@ -215,7 +215,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert "http://" in result
         assert f"{group.organization.slug}/issues/{group.id}" in result
 
-    def test_permalink_sentry_app_installation_token(self):
+    def test_permalink_sentry_app_installation_token(self) -> None:
         project = self.create_project(organization=self.organization, teams=[self.team])
         internal_app = self.create_internal_integration(
             name="Internal app",
@@ -235,7 +235,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert f"{group.organization.slug}/issues/{group.id}" in result
 
     @override_settings(SENTRY_SELF_HOSTED=False)
-    def test_ratelimit(self):
+    def test_ratelimit(self) -> None:
         self.login_as(user=self.user)
         group = self.create_group()
         url = f"/api/0/issues/{group.id}/"
@@ -245,7 +245,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             response = self.client.get(url, sort_by="date", limit=1)
             assert response.status_code == 429
 
-    def test_with_deleted_user_activity(self):
+    def test_with_deleted_user_activity(self) -> None:
         self.login_as(user=self.user)
         user = self.create_user("foo@example.com")
 
@@ -267,7 +267,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
 
-    def test_collapse_tags(self):
+    def test_collapse_tags(self) -> None:
         self.login_as(user=self.user)
         group = self.create_group()
         url = f"/api/0/issues/{group.id}/"
@@ -281,7 +281,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         response = self.client.get(url, {"collapse": ["tags"]})
         assert "tags" not in response.data
 
-    def test_count_with_buffer(self):
+    def test_count_with_buffer(self) -> None:
         """Test that group count includes the count from the buffer."""
         self.login_as(user=self.user)
 
@@ -310,9 +310,119 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             assert response.data["id"] == str(group.id)
             assert response.data["count"] == "16"
 
+    def test_open_periods_non_metric(self) -> None:
+        self.login_as(user=self.user)
+        group = self.create_group()
+        url = f"/api/0/issues/{group.id}/"
+
+        # open periods are not supported for non-metric issue groups
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200, response.content
+        assert response.data["openPeriods"] == []
+
+    def test_open_periods_new_group(self) -> None:
+        self.login_as(user=self.user)
+        group = self.create_group()
+        url = f"/api/0/issues/{group.id}/"
+
+        # test a new group has an open period
+        group.type = MetricIssuePOC.type_id
+        group.save()
+
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200, response.content
+        assert response.data["openPeriods"] == [
+            {"start": group.first_seen, "end": None, "duration": None, "isOpen": True}
+        ]
+
+    def test_open_periods_resolved_group(self) -> None:
+        self.login_as(user=self.user)
+        group = self.create_group()
+        url = f"/api/0/issues/{group.id}/"
+
+        # test a new group has an open period
+        group.type = MetricIssuePOC.type_id
+        group.save()
+
+        group.status = GroupStatus.RESOLVED
+        group.save()
+        resolved_time = timezone.now()
+        Activity.objects.create(
+            group=group,
+            project=group.project,
+            type=ActivityType.SET_RESOLVED.value,
+            datetime=resolved_time,
+        )
+
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200, response.content
+        assert response.data["openPeriods"] == [
+            {
+                "start": group.first_seen,
+                "end": resolved_time,
+                "duration": resolved_time - group.first_seen,
+                "isOpen": False,
+            }
+        ]
+
+    def test_open_periods_unresolved_group(self) -> None:
+        self.login_as(user=self.user)
+        group = self.create_group()
+        url = f"/api/0/issues/{group.id}/"
+
+        group.type = MetricIssuePOC.type_id
+        group.save()
+
+        group.status = GroupStatus.RESOLVED
+        group.save()
+        resolved_time = timezone.now()
+        Activity.objects.create(
+            group=group,
+            project=group.project,
+            type=ActivityType.SET_RESOLVED.value,
+            datetime=resolved_time,
+        )
+
+        # test that another open period is created
+        unresolved_time = timezone.now()
+        group.status = GroupStatus.UNRESOLVED
+        group.save()
+        Activity.objects.create(
+            group=group,
+            project=group.project,
+            type=ActivityType.SET_UNRESOLVED.value,
+            datetime=unresolved_time,
+        )
+
+        second_resolved_time = timezone.now()
+        group.status = GroupStatus.RESOLVED
+        group.save()
+        Activity.objects.create(
+            group=group,
+            project=group.project,
+            type=ActivityType.SET_RESOLVED.value,
+            datetime=second_resolved_time,
+        )
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200, response.content
+        assert response.data["openPeriods"] == [
+            {
+                "start": unresolved_time,
+                "end": second_resolved_time,
+                "duration": second_resolved_time - unresolved_time,
+                "isOpen": False,
+            },
+            {
+                "start": group.first_seen,
+                "end": resolved_time,
+                "duration": resolved_time - group.first_seen,
+                "isOpen": False,
+            },
+        ]
+
 
 class GroupUpdateTest(APITestCase):
-    def test_resolve(self):
+    def test_resolve(self) -> None:
         self.login_as(user=self.user)
 
         group = self.create_group()
@@ -329,7 +439,7 @@ class GroupUpdateTest(APITestCase):
             user_id=self.user.id, group=group, is_active=True
         ).exists()
 
-    def test_resolved_in_next_release_non_semver(self):
+    def test_resolved_in_next_release_non_semver(self) -> None:
         self.login_as(user=self.user)
         project = self.create_project_with_releases()
         group = self.create_group_with_no_release(project)
@@ -435,13 +545,13 @@ class GroupUpdateTest(APITestCase):
         assert group.status == GroupStatus.UNRESOLVED
         assert group.substatus == GroupSubStatus.REGRESSED
 
-    def test_resolved_in_next_release_semver_no_first_release(self):
+    def test_resolved_in_next_release_semver_no_first_release(self) -> None:
         self.resolved_in_next_release_helper(with_first_release=False)
 
-    def test_resolved_in_next_release_semver_and_first_release(self):
+    def test_resolved_in_next_release_semver_and_first_release(self) -> None:
         self.resolved_in_next_release_helper(with_first_release=True)
 
-    def test_resolved_in_next_release_no_release(self):
+    def test_resolved_in_next_release_no_release(self) -> None:
         self.login_as(user=self.user)
         project = self.create_project_with_releases()
         group = self.create_group_with_no_release(project)
@@ -458,7 +568,7 @@ class GroupUpdateTest(APITestCase):
         assert not GroupResolution.objects.filter(group=group).exists()
         assert response.data["statusDetails"] == {}
 
-    def test_snooze_duration(self):
+    def test_snooze_duration(self) -> None:
         group = self.create_group(status=GroupStatus.RESOLVED)
 
         self.login_as(user=self.user)
@@ -486,7 +596,7 @@ class GroupUpdateTest(APITestCase):
             user_id=self.user.id, group=group, is_active=True
         ).exists()
 
-    def test_bookmark(self):
+    def test_bookmark(self) -> None:
         self.login_as(user=self.user)
 
         group = self.create_group()
@@ -504,7 +614,7 @@ class GroupUpdateTest(APITestCase):
             user_id=self.user.id, group=group, is_active=True
         ).exists()
 
-    def test_assign_username(self):
+    def test_assign_username(self) -> None:
         self.login_as(user=self.user)
 
         group = self.create_group()
@@ -540,7 +650,7 @@ class GroupUpdateTest(APITestCase):
 
         assert not GroupAssignee.objects.filter(group=group, user_id=self.user.id).exists()
 
-    def test_assign_id(self):
+    def test_assign_id(self) -> None:
         self.login_as(user=self.user)
 
         group = self.create_group()
@@ -576,7 +686,7 @@ class GroupUpdateTest(APITestCase):
 
         assert not GroupAssignee.objects.filter(group=group, user_id=self.user.id).exists()
 
-    def test_assign_id_via_api_key(self):
+    def test_assign_id_via_api_key(self) -> None:
         # XXX: This test is written to verify that using api keys works when
         # hitting an endpoint that uses `client.{get,put,post}` to redirect to
         # another endpoint. This catches a regression that happened when
@@ -597,7 +707,7 @@ class GroupUpdateTest(APITestCase):
         assert response.status_code == 200, response.content
         assert GroupAssignee.objects.filter(group=group, user_id=self.user.id).exists()
 
-    def test_assign_team(self):
+    def test_assign_team(self) -> None:
         self.login_as(user=self.user)
 
         group = self.create_group()
@@ -626,7 +736,7 @@ class GroupUpdateTest(APITestCase):
 
         assert not GroupAssignee.objects.filter(group=group, team=team).exists()
 
-    def test_assign_unavailable_team(self):
+    def test_assign_unavailable_team(self) -> None:
         self.login_as(user=self.user)
 
         group = self.create_group()
@@ -637,7 +747,7 @@ class GroupUpdateTest(APITestCase):
 
         assert response.status_code == 400, response.content
 
-    def test_mark_seen(self):
+    def test_mark_seen(self) -> None:
         self.login_as(user=self.user)
 
         group = self.create_group()
@@ -656,7 +766,7 @@ class GroupUpdateTest(APITestCase):
 
         assert not GroupSeen.objects.filter(group=group, user_id=self.user.id).exists()
 
-    def test_mark_seen_as_non_member(self):
+    def test_mark_seen_as_non_member(self) -> None:
         user = self.create_user("foo@example.com", is_superuser=True)
         self.login_as(user=user, superuser=True)
 
@@ -670,7 +780,7 @@ class GroupUpdateTest(APITestCase):
 
         assert not GroupSeen.objects.filter(group=group, user_id=self.user.id).exists()
 
-    def test_seen_by_deleted_user(self):
+    def test_seen_by_deleted_user(self) -> None:
         group = self.create_group()
         url = f"/api/0/issues/{group.id}/"
         self.login_as(user=self.user)
@@ -692,7 +802,7 @@ class GroupUpdateTest(APITestCase):
         assert len(last_seen_data) == 1
         assert last_seen_data[0]["id"] == str(self.user.id)
 
-    def test_subscription(self):
+    def test_subscription(self) -> None:
         self.login_as(user=self.user)
         group = self.create_group()
 
@@ -711,7 +821,7 @@ class GroupUpdateTest(APITestCase):
         ).exists()
 
     @with_feature("organizations:team-workflow-notifications")
-    def test_team_subscription(self):
+    def test_team_subscription(self) -> None:
         group = self.create_group()
         team = self.create_team(organization=group.project.organization, members=[self.user])
 
@@ -752,7 +862,7 @@ class GroupUpdateTest(APITestCase):
         )  # user participants are processed first
         assert response.data["participants"][1]["type"] == "team"
 
-    def test_discard(self):
+    def test_discard(self) -> None:
         self.login_as(user=self.user)
         group = self.create_group()
 
@@ -775,7 +885,7 @@ class GroupUpdateTest(APITestCase):
         assert tombstone.project == group.project
         assert tombstone.data == group.data
 
-    def test_discard_performance_issue(self):
+    def test_discard_performance_issue(self) -> None:
         self.login_as(user=self.user)
         group = self.create_group(type=PerformanceSlowDBQueryGroupType.type_id)
         GroupHash.objects.create(hash="x" * 32, project=group.project, group=group)
@@ -793,7 +903,7 @@ class GroupUpdateTest(APITestCase):
         assert GroupHash.objects.filter(group_id=group.id).exists()
 
     @override_settings(SENTRY_SELF_HOSTED=False)
-    def test_ratelimit(self):
+    def test_ratelimit(self) -> None:
         self.login_as(user=self.user)
         group = self.create_group()
         url = f"/api/0/issues/{group.id}/"
@@ -805,7 +915,7 @@ class GroupUpdateTest(APITestCase):
 
 
 class GroupDeleteTest(APITestCase):
-    def test_delete_deferred(self):
+    def test_delete_deferred(self) -> None:
         self.login_as(user=self.user)
 
         group = self.create_group()
@@ -824,7 +934,7 @@ class GroupDeleteTest(APITestCase):
 
         Group.objects.filter(id=group.id).update(status=GroupStatus.UNRESOLVED)
 
-    def test_delete_and_tasks_run(self):
+    def test_delete_and_tasks_run(self) -> None:
         self.login_as(user=self.user)
 
         group = self.create_group()
@@ -851,7 +961,7 @@ class GroupDeleteTest(APITestCase):
                 == group.id
             )
 
-    def test_delete_performance_issue(self):
+    def test_delete_performance_issue(self) -> None:
         """Test that a performance issue cannot be deleted"""
         self.login_as(user=self.user)
 
@@ -868,7 +978,7 @@ class GroupDeleteTest(APITestCase):
         assert GroupHash.objects.filter(group_id=group.id).exists()
 
     @override_settings(SENTRY_SELF_HOSTED=False)
-    def test_ratelimit(self):
+    def test_ratelimit(self) -> None:
         self.login_as(user=self.user)
         group = self.create_group()
         url = f"/api/0/issues/{group.id}/"
@@ -878,7 +988,7 @@ class GroupDeleteTest(APITestCase):
             response = self.client.delete(url, sort_by="date", limit=1)
             assert response.status_code == 429
 
-    def test_collapse_release(self):
+    def test_collapse_release(self) -> None:
         self.login_as(user=self.user)
         group = self.create_group()
         url = f"/api/0/issues/{group.id}/"

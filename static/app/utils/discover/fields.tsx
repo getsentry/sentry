@@ -149,6 +149,20 @@ export enum DurationUnit {
   YEAR = 'year',
 }
 
+// Durations normalized to millisecond unit
+export const DURATION_UNIT_MULTIPLIERS: Record<DurationUnit, number> = {
+  nanosecond: 1 / 1000 ** 2,
+  microsecond: 1 / 1000,
+  millisecond: 1,
+  second: 1000,
+  minute: 1000 * 60,
+  hour: 1000 * 60 * 60,
+  day: 1000 * 60 * 60 * 24,
+  week: 1000 * 60 * 60 * 24 * 7,
+  month: 1000 * 60 * 60 * 24 * 30,
+  year: 1000 * 60 * 60 * 24 * 365,
+};
+
 export enum SizeUnit {
   BIT = 'bit',
   BYTE = 'byte',
@@ -166,6 +180,24 @@ export enum SizeUnit {
   EXABYTE = 'exabyte',
 }
 
+// Sizes normalized to byte unit
+export const SIZE_UNIT_MULTIPLIERS: Record<SizeUnit, number> = {
+  bit: 1 / 8,
+  byte: 1,
+  kibibyte: 1024,
+  mebibyte: 1024 ** 2,
+  gibibyte: 1024 ** 3,
+  tebibyte: 1024 ** 4,
+  pebibyte: 1024 ** 5,
+  exbibyte: 1024 ** 6,
+  kilobyte: 1000,
+  megabyte: 1000 ** 2,
+  gigabyte: 1000 ** 3,
+  terabyte: 1000 ** 4,
+  petabyte: 1000 ** 5,
+  exabyte: 1000 ** 6,
+};
+
 export enum RateUnit {
   PER_SECOND = '1/second',
   PER_MINUTE = '1/minute',
@@ -173,7 +205,7 @@ export enum RateUnit {
 }
 
 // Rates normalized to /second unit
-export const RATE_UNIT_MULTIPLIERS = {
+export const RATE_UNIT_MULTIPLIERS: Record<RateUnit, number> = {
   [RateUnit.PER_SECOND]: 1,
   [RateUnit.PER_MINUTE]: 1 / 60,
   [RateUnit.PER_HOUR]: 1 / (60 * 60),
@@ -265,7 +297,7 @@ export const AGGREGATIONS = {
         kind: 'dropdown',
         options: CONDITIONS_ARGUMENTS,
         dataType: 'string',
-        defaultValue: CONDITIONS_ARGUMENTS[0].value,
+        defaultValue: CONDITIONS_ARGUMENTS[0]!.value,
         required: true,
       },
       {
@@ -297,7 +329,7 @@ export const AGGREGATIONS = {
         kind: 'dropdown',
         options: WEB_VITALS_QUALITY,
         dataType: 'string',
-        defaultValue: WEB_VITALS_QUALITY[0].value,
+        defaultValue: WEB_VITALS_QUALITY[0]!.value,
         required: true,
       },
     ],
@@ -684,7 +716,7 @@ export function getAggregations(dataset: DiscoverDatasets) {
           kind: 'dropdown',
           options: CONDITIONS_ARGUMENTS,
           dataType: 'string',
-          defaultValue: CONDITIONS_ARGUMENTS[0].value,
+          defaultValue: CONDITIONS_ARGUMENTS[0]!.value,
           required: true,
         },
         {
@@ -805,7 +837,7 @@ export function measurementType(field: string): MeasurementType {
 export function getMeasurementSlug(field: string): string | null {
   const results = field.match(MEASUREMENT_PATTERN);
   if (results && results.length >= 2) {
-    return results[1];
+    return results[1]!;
   }
   return null;
 }
@@ -819,7 +851,7 @@ export function getAggregateArg(field: string): string | null {
   const result = parseFunction(field);
 
   if (result && result.arguments.length > 0) {
-    return result.arguments[0];
+    return result.arguments[0]!;
   }
 
   return null;
@@ -829,8 +861,8 @@ export function parseFunction(field: string): ParsedFunction | null {
   const results = field.match(AGGREGATE_PATTERN);
   if (results && results.length === 3) {
     return {
-      name: results[1],
-      arguments: parseArguments(results[2]),
+      name: results[1]!,
+      arguments: parseArguments(results[2]!),
     };
   }
 
@@ -929,7 +961,7 @@ export function getEquationAliasIndex(field: string): number {
   const results = field.match(EQUATION_ALIAS_PATTERN);
 
   if (results && results.length === 2) {
-    return parseInt(results[1], 10);
+    return parseInt(results[1]!, 10);
   }
   return -1;
 }
@@ -1186,7 +1218,7 @@ export function aggregateFunctionOutputType(
   }
 
   if (firstArg && STARFISH_FIELDS[firstArg]) {
-    return STARFISH_FIELDS[firstArg].outputType;
+    return STARFISH_FIELDS[firstArg]!.outputType;
   }
 
   if (STARFISH_AGGREGATION_FIELDS[funcName]) {
@@ -1372,7 +1404,7 @@ export function isLegalYAxisType(match: ColumnType | MetricType) {
 export function getSpanOperationName(field: string): string | null {
   const results = field.match(SPAN_OP_BREAKDOWN_PATTERN);
   if (results && results.length >= 2) {
-    return results[1];
+    return results[1]!;
   }
   return null;
 }

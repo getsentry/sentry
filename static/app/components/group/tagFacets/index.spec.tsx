@@ -139,9 +139,9 @@ describe('Tag Facets', function () {
       );
       await waitFor(() => {
         expect(screen.getByRole('listitem', {name: 'os'})).toBeInTheDocument();
-        expect(screen.getByRole('listitem', {name: 'device'})).toBeInTheDocument();
-        expect(screen.getByRole('listitem', {name: 'release'})).toBeInTheDocument();
       });
+      expect(screen.getByRole('listitem', {name: 'device'})).toBeInTheDocument();
+      expect(screen.getByRole('listitem', {name: 'release'})).toBeInTheDocument();
     });
 
     it('expands first tag distribution by default', async function () {

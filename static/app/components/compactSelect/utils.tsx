@@ -152,7 +152,7 @@ export function getHiddenOptions<Value extends SelectKey>(
   let currentIndex = 0;
 
   while (currentIndex < remainingItems.length) {
-    const item = remainingItems[currentIndex];
+    const item = remainingItems[currentIndex]!;
     const delta = 'options' in item ? item.options.length : 1;
 
     if (accumulator + delta > limit) {
@@ -164,12 +164,12 @@ export function getHiddenOptions<Value extends SelectKey>(
     currentIndex += 1;
   }
 
-  for (let i = threshold[0]; i < remainingItems.length; i++) {
-    const item = remainingItems[i];
+  for (let i = threshold[0]!; i < remainingItems.length; i++) {
+    const item = remainingItems[i]!;
     if ('options' in item) {
-      const startingIndex = i === threshold[0] ? threshold[1] : 0;
+      const startingIndex = i === threshold[0] ? threshold[1]! : 0;
       for (let j = startingIndex; j < item.options.length; j++) {
-        hiddenOptionsSet.add(item.options[j].key);
+        hiddenOptionsSet.add(item.options[j]!.key);
       }
     } else {
       hiddenOptionsSet.add(item.key);

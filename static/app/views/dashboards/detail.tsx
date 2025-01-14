@@ -59,6 +59,8 @@ import {
 import WidgetBuilderV2 from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilder';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
+import {getDefaultWidget} from 'sentry/views/dashboards/widgetBuilder/utils/getDefaultWidget';
+import {DATA_SET_TO_WIDGET_TYPE} from 'sentry/views/dashboards/widgetBuilder/widgetBuilder';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import {MetricsDataSwitcherAlert} from 'sentry/views/performance/landing/metricsDataSwitcherAlert';
 
@@ -130,6 +132,7 @@ type State = {
   dashboardState: DashboardState;
   isWidgetBuilderOpen: boolean;
   modifiedDashboard: DashboardDetails | null;
+  openWidgetTemplates: boolean;
   widgetLegendState: WidgetLegendSelectionState;
   widgetLimitReached: boolean;
 } & WidgetViewerContextProps;
@@ -157,7 +160,7 @@ export function handleUpdateDashboardSplit({
   );
 
   if (widgetIndex >= 0) {
-    updatedDashboard.widgets[widgetIndex].widgetType = splitDecision;
+    updatedDashboard.widgets[widgetIndex]!.widgetType = splitDecision;
   }
   onDashboardUpdate?.(updatedDashboard);
 
@@ -185,7 +188,6 @@ export function checkUserHasEditAccess(
   dashboardCreator?: User
 ): boolean {
   if (
-    !organization.features.includes('dashboards-edit-access') ||
     hasEveryAccess(['org:write'], {organization}) || // Managers and Owners
     !dashboardPermissions ||
     dashboardPermissions.isEditableByEveryone ||
@@ -250,6 +252,7 @@ class DashboardDetail extends Component<Props, State> {
       router: this.props.router,
     }),
     isWidgetBuilderOpen: this.isRedesignedWidgetBuilder,
+    openWidgetTemplates: localStorage.getItem('showTemplates') === 'true',
   };
 
   componentDidMount() {
@@ -687,7 +690,10 @@ class DashboardDetail extends Component<Props, State> {
           modifiedDashboard: cloneDashboard(modifiedDashboard ?? dashboard),
         },
         () => {
-          this.setState({isWidgetBuilderOpen: true});
+          this.setState({
+            isWidgetBuilderOpen: true,
+            openWidgetTemplates: localStorage.getItem('showTemplates') === 'true',
+          });
           let pathname = `/organizations/${organization.slug}/dashboard/${dashboardId}/widget-builder/widget/new/`;
           if (!defined(dashboardId)) {
             pathname = `/organizations/${organization.slug}/dashboards/new/widget-builder/widget/new/`;
@@ -698,7 +704,11 @@ class DashboardDetail extends Component<Props, State> {
               pathname,
               query: {
                 ...location.query,
-                dataset,
+                ...(localStorage.getItem('showTemplates') !== 'true'
+                  ? convertWidgetToBuilderStateParams(
+                      getDefaultWidget(DATA_SET_TO_WIDGET_TYPE[dataset ?? DataSet.ERRORS])
+                    )
+                  : {}),
               },
             })
           );
@@ -737,6 +747,7 @@ class DashboardDetail extends Component<Props, State> {
     const widgetIndex = currentDashboard.widgets.indexOf(widget);
     this.setState({
       isWidgetBuilderOpen: true,
+      openWidgetTemplates: false,
     });
     const path = defined(dashboardId)
       ? `/organizations/${organization.slug}/dashboard/${dashboardId}/widget-builder/widget/${widgetIndex}/edit/`
@@ -815,7 +826,11 @@ class DashboardDetail extends Component<Props, State> {
 
   handleCloseWidgetBuilder = () => {
     const {organization, router, location, params} = this.props;
-    this.setState({isWidgetBuilderOpen: false});
+
+    this.setState({
+      isWidgetBuilderOpen: false,
+      openWidgetTemplates: localStorage.getItem('showTemplates') === 'true',
+    });
     router.push(
       getDashboardLocation({
         organization,
@@ -823,6 +838,10 @@ class DashboardDetail extends Component<Props, State> {
         location,
       })
     );
+  };
+
+  handleChangeWidgetBuilderView = (openWidgetTemplates: boolean) => {
+    this.setState({openWidgetTemplates});
   };
 
   onCommit = () => {
@@ -1303,6 +1322,10 @@ class DashboardDetail extends Component<Props, State> {
 
                                   <WidgetBuilderV2
                                     isOpen={this.state.isWidgetBuilderOpen}
+                                    openWidgetTemplates={this.state.openWidgetTemplates}
+                                    setOpenWidgetTemplates={
+                                      this.handleChangeWidgetBuilderView
+                                    }
                                     onClose={this.handleCloseWidgetBuilder}
                                     dashboardFilters={
                                       getDashboardFiltersFromURL(location) ??

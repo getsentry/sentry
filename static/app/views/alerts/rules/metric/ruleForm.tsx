@@ -25,9 +25,9 @@ import ListItem from 'sentry/components/list/listItem';
 import {t, tct} from 'sentry/locale';
 import IndicatorStore from 'sentry/stores/indicatorStore';
 import {space} from 'sentry/styles/space';
-import {ActivationConditionType, MonitorType} from 'sentry/types/alerts';
 import type {PlainRoute, RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {
+  Confidence,
   EventsStats,
   MultiSeriesEventsStats,
   Organization,
@@ -148,18 +148,15 @@ type State = {
   query: string;
   resolveThreshold: UnsavedMetricRule['resolveThreshold'];
   sensitivity: UnsavedMetricRule['sensitivity'];
-  thresholdPeriod: UnsavedMetricRule['thresholdPeriod'];
   thresholdType: UnsavedMetricRule['thresholdType'];
   timeWindow: number;
   triggerErrors: Map<number, {[fieldName: string]: string}>;
   triggers: Trigger[];
-  activationCondition?: ActivationConditionType;
   chartError?: boolean;
   chartErrorMessage?: string;
   comparisonDelta?: number;
+  confidence?: Confidence;
   isExtrapolatedChartData?: boolean;
-  isLowConfidenceChartData?: boolean;
-  monitorType?: MonitorType;
   seasonality?: AlertRuleSeasonality;
 } & DeprecatedAsyncComponent['state'];
 
@@ -208,7 +205,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
   }
 
   getDefaultState(): State {
-    const {rule, location, organization} = this.props;
+    const {rule, location} = this.props;
     const triggersClone = [...rule.triggers];
     const {
       aggregate: _aggregate,
@@ -232,8 +229,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const query = isErrorMigration
       ? `is:unresolved ${rule.query ?? ''}`
       : rule.query ?? '';
-
-    const hasActivatedAlerts = organization.features.includes('activated-alert-rules');
 
     return {
       ...super.getDefaultState(),
@@ -266,11 +261,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       project: this.props.project,
       owner: rule.owner,
       alertType: getAlertTypeFromAggregateDataset({aggregate, dataset}),
-      monitorType: hasActivatedAlerts
-        ? rule.monitorType || MonitorType.CONTINUOUS
-        : undefined,
-      activationCondition:
-        rule.activationCondition || ActivationConditionType.RELEASE_CREATION,
     };
   }
 
@@ -482,8 +472,8 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       );
       const warningTriggerIndex = criticalTriggerIndex ^ 1;
       const triggersCopy = [...triggers];
-      const criticalTrigger = triggersCopy[criticalTriggerIndex];
-      const warningTrigger = triggersCopy[warningTriggerIndex];
+      const criticalTrigger = triggersCopy[criticalTriggerIndex]!;
+      const warningTrigger = triggersCopy[warningTriggerIndex]!;
       criticalTrigger.alertThreshold = 0;
       warningTrigger.alertThreshold = ''; // we need to set this to empty
       this.setState({triggers: triggersCopy});
@@ -524,8 +514,8 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       ({label}) => label === AlertRuleTriggerType.CRITICAL
     );
     const warningTriggerIndex = criticalTriggerIndex ^ 1;
-    const criticalTrigger = triggers[criticalTriggerIndex];
-    const warningTrigger = triggers[warningTriggerIndex];
+    const criticalTrigger = triggers[criticalTriggerIndex]!;
+    const warningTrigger = triggers[warningTriggerIndex]!;
 
     const isEmptyWarningThreshold = isEmpty(warningTrigger.alertThreshold);
     const warningThreshold = warningTrigger.alertThreshold ?? 0;
@@ -643,24 +633,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     this.setState({query, dataset, isQueryValid});
   };
 
-  handleMonitorTypeSelect = (activatedAlertFields: {
-    activationCondition?: ActivationConditionType | undefined;
-    monitorType?: MonitorType;
-    monitorWindowSuffix?: string | undefined;
-    monitorWindowValue?: number | undefined;
-  }) => {
-    const {monitorType} = activatedAlertFields;
-    let updatedFields = activatedAlertFields;
-    if (monitorType === MonitorType.CONTINUOUS) {
-      updatedFields = {
-        ...updatedFields,
-        activationCondition: undefined,
-        monitorWindowValue: undefined,
-      };
-    }
-    this.setState(updatedFields as State);
-  };
-
   validateOnDemandMetricAlert() {
     if (
       !isOnDemandMetricAlert(this.state.dataset, this.state.aggregate, this.state.query)
@@ -669,18 +641,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     }
 
     return !this.state.aggregate.includes(AggregationKey.PERCENTILE);
-  }
-
-  validateActivatedAlerts() {
-    const {organization} = this.props;
-    const {monitorType, activationCondition, timeWindow} = this.state;
-
-    const hasActivatedAlerts = organization.features.includes('activated-alert-rules');
-    return (
-      !hasActivatedAlerts ||
-      monitorType !== MonitorType.ACTIVATED ||
-      (activationCondition !== undefined && timeWindow)
-    );
   }
 
   validateSubmit = model => {
@@ -695,7 +655,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const triggerErrors = this.validateTriggers();
     const validTriggers = Array.from(triggerErrors).length === 0;
     const validOnDemandAlert = this.validateOnDemandMetricAlert();
-    const validActivatedAlerts = this.validateActivatedAlerts();
 
     if (!validTriggers) {
       this.setState(state => ({
@@ -717,13 +676,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     if (!validOnDemandAlert) {
       addErrorMessage(
         t('%s is not supported for on-demand metric alerts', this.state.aggregate)
-      );
-      return false;
-    }
-
-    if (!validActivatedAlerts) {
-      addErrorMessage(
-        t('Activation condition and monitor window must be set for activated alerts')
       );
       return false;
     }
@@ -760,8 +712,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       comparisonDelta,
       timeWindow,
       eventTypes,
-      monitorType,
-      activationCondition,
       sensitivity,
       seasonality,
       comparisonType,
@@ -772,7 +722,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         trigger.label !== AlertRuleTriggerType.WARNING || !isEmpty(trigger.alertThreshold)
     );
 
-    const hasActivatedAlerts = organization.features.includes('activated-alert-rules');
     // form model has all form state data, however we use local state to keep
     // track of the list of triggers (and actions within triggers)
     const loadingIndicator = IndicatorStore.addMessage(
@@ -794,13 +743,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
         metric.startSpan({name: 'saveAlertRule'});
 
-        let activatedAlertFields = {};
-        if (hasActivatedAlerts) {
-          activatedAlertFields = {
-            monitorType,
-            activationCondition,
-          };
-        }
         const detectionTypes = new Map([
           [AlertRuleComparisonType.COUNT, 'static'],
           [AlertRuleComparisonType.CHANGE, 'percent'],
@@ -817,7 +759,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
           {
             ...rule, // existing rule
             ...model.getTransformedData(), // form data
-            ...activatedAlertFields,
             projects: [project.slug],
             triggers: sanitizedTriggers,
             resolveThreshold:
@@ -929,10 +870,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       }),
       () => this.fetchAnomalies()
     );
-  };
-
-  handleThresholdPeriodChange = (value: number) => {
-    this.setState({thresholdPeriod: value}, () => this.fetchAnomalies());
   };
 
   handleResolveThresholdChange = (
@@ -1063,7 +1000,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const confidence = isEventsStats(data)
       ? determineSeriesConfidence(data)
       : determineMultiSeriesConfidence(data);
-    this.setState({isLowConfidenceChartData: confidence === 'low'});
+    this.setState({confidence});
   }
 
   handleHistoricalTimeSeriesDataFetched(
@@ -1197,6 +1134,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       anomalies,
       chartError,
       chartErrorMessage,
+      confidence,
     } = this.state;
 
     if (chartError) {
@@ -1246,6 +1184,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       includeHistorical: comparisonType === AlertRuleComparisonType.DYNAMIC,
       onHistoricalDataLoaded: this.handleHistoricalTimeSeriesDataFetched,
       includeConfidence: alertType === 'eap_metrics',
+      confidence,
     };
 
     let formattedQuery = `event.type:${eventTypes?.join(',')}`;
@@ -1293,7 +1232,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       triggers,
       aggregate,
       thresholdType,
-      thresholdPeriod,
       comparisonDelta,
       comparisonType,
       resolveThreshold,
@@ -1303,10 +1241,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       dataset,
       alertType,
       isExtrapolatedChartData,
-      isLowConfidenceChartData,
       triggersHaveChanged,
-      activationCondition,
-      monitorType,
     } = this.state;
 
     const wizardBuilderChart = this.renderTriggerChart();
@@ -1324,7 +1259,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         isMigration={isMigration}
         resolveThreshold={resolveThreshold}
         sensitivity={sensitivity}
-        thresholdPeriod={thresholdPeriod}
         thresholdType={thresholdType}
         comparisonType={comparisonType}
         currentProject={project.slug}
@@ -1332,7 +1266,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         availableActions={this.state.availableActions}
         onChange={this.handleChangeTriggers}
         onThresholdTypeChange={this.handleThresholdTypeChange}
-        onThresholdPeriodChange={this.handleThresholdPeriodChange}
         onResolveThresholdChange={this.handleResolveThresholdChange}
         onSensitivityChange={this.handleSensitivityChange}
       />
@@ -1420,7 +1353,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         >
           <List symbol="colored-numeric">
             <RuleConditionsForm
-              activationCondition={activationCondition}
               aggregate={aggregate}
               alertType={alertType}
               allowChangeEventTypes={
@@ -1441,13 +1373,10 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
                 'sum(ai.total_cost)',
               ].includes(aggregate)}
               isTransactionMigration={isMigration && !showErrorMigrationWarning}
-              isLowConfidenceChartData={isLowConfidenceChartData}
-              monitorType={monitorType}
               onComparisonDeltaChange={value =>
                 this.handleFieldChange('comparisonDelta', value)
               }
               onFilterSearch={this.handleFilterUpdate}
-              onMonitorTypeSelect={this.handleMonitorTypeSelect}
               onTimeWindowChange={value => this.handleFieldChange('timeWindow', value)}
               organization={organization}
               project={project}

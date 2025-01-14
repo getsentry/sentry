@@ -7,6 +7,7 @@ import {
   type DashboardDetails,
   type DashboardFilters,
   DisplayType,
+  WidgetType,
 } from 'sentry/views/dashboards/types';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
@@ -51,6 +52,7 @@ function WidgetPreview({
   return (
     <WidgetCard
       disableFullscreen
+      borderless
       isWidgetInvalid={isWidgetInvalid}
       shouldResize={state.displayType !== DisplayType.TABLE}
       organization={organization}
@@ -80,6 +82,8 @@ function WidgetPreview({
       // dashboard state to be added
       onWidgetSplitDecision={() => {}}
       // onWidgetSplitDecision={onWidgetSplitDecision}
+
+      showConfidenceWarning={widget.widgetType === WidgetType.SPANS}
     />
   );
 }

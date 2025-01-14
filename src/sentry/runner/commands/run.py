@@ -417,6 +417,11 @@ def cron(**options: Any) -> None:
     default=True,
 )
 @click.option(
+    "--stale-threshold-sec",
+    type=click.IntRange(min=60),
+    help="Routes stale messages to stale topic if provided. This feature is currently being tested, do not pass in production yet.",
+)
+@click.option(
     "--log-level",
     type=click.Choice(["debug", "info", "warning", "error", "critical"], case_sensitive=False),
     help="log level to pass to the arroyo consumer",
@@ -500,6 +505,7 @@ def dev_consumer(consumer_names: tuple[str, ...]) -> None:
             synchronize_commit_group=None,
             synchronize_commit_log_topic=None,
             enable_dlq=False,
+            stale_threshold_sec=None,
             healthcheck_file_path=None,
             enforce_schema=True,
         )

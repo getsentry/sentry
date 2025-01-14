@@ -1,9 +1,10 @@
-import {useCallback, useState} from 'react';
+import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
+import * as Sentry from '@sentry/react';
 
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
@@ -21,7 +22,8 @@ import {
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Confidence} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
+import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   type AggregationKey,
@@ -37,6 +39,7 @@ import {
   useExploreDataset,
   useExploreMode,
   useExploreQuery,
+  useExploreVisualizes,
   useSetExploreQuery,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -44,20 +47,24 @@ import {
   SpanTagsProvider,
   useSpanTags,
 } from 'sentry/views/explore/contexts/spanTagsContext';
+import {useExploreAggregatesTable} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
+import {useExploreSpansTable} from 'sentry/views/explore/hooks/useExploreSpansTable';
+import {useExploreTimeseries} from 'sentry/views/explore/hooks/useExploreTimeseries';
+import {useExploreTracesTable} from 'sentry/views/explore/hooks/useExploreTracesTable';
+import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
 import {ExploreTables} from 'sentry/views/explore/tables';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
+import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
 
-interface ExploreContentProps {
-  location: Location;
-}
-
-function ExploreContentImpl({}: ExploreContentProps) {
+function ExploreContentImpl() {
   const location = useLocation();
   const navigate = useNavigate();
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const dataset = useExploreDataset();
   const mode = useExploreMode();
+  const visualizes = useExploreVisualizes();
+  const [samplesTab, setSamplesTab] = useTab();
 
   const numberTags = useSpanTags('number');
   const stringTags = useSpanTags('string');
@@ -79,11 +86,47 @@ function ExploreContentImpl({}: ExploreContentProps) {
     });
   }, [location, navigate]);
 
-  const [confidence, setConfidence] = useState<Confidence>(null);
-  const [chartError, setChartError] = useState<string>('');
-  const [tableError, setTableError] = useState<string>('');
-
   const maxPickableDays = 7;
+
+  const queryType: 'aggregate' | 'samples' | 'traces' =
+    mode === Mode.AGGREGATE
+      ? 'aggregate'
+      : samplesTab === Tab.TRACE
+        ? 'traces'
+        : 'samples';
+
+  const aggregatesTableResult = useExploreAggregatesTable({
+    query,
+    enabled: queryType === 'aggregate',
+  });
+  const spansTableResult = useExploreSpansTable({
+    query,
+    enabled: queryType === 'samples',
+  });
+  const tracesTableResult = useExploreTracesTable({
+    query,
+    enabled: queryType === 'traces',
+  });
+  const {timeseriesResult, canUsePreviousResults} = useExploreTimeseries({query});
+  const confidences = useMemo(
+    () =>
+      visualizes.map(visualize => {
+        const dedupedYAxes = dedupeArray(visualize.yAxes);
+        const series = dedupedYAxes
+          .flatMap(yAxis => timeseriesResult.data[yAxis])
+          .filter(defined);
+        return combineConfidenceForSeries(series);
+      }),
+    [timeseriesResult.data, visualizes]
+  );
+
+  const tableError =
+    queryType === 'aggregate'
+      ? aggregatesTableResult.result.error?.message ?? ''
+      : queryType === 'traces'
+        ? tracesTableResult.result.error?.message ?? ''
+        : spansTableResult.result.error?.message ?? '';
+  const chartError = timeseriesResult.error?.message ?? '';
 
   return (
     <SentryDocumentTitle title={t('Traces')} orgSlug={organization.slug}>
@@ -99,6 +142,12 @@ function ExploreContentImpl({}: ExploreContentProps) {
                     'Find problematic spans/traces or compute real-time metrics via aggregation.'
                   )}
                   linkLabel={t('Read the Discussion')}
+                />
+                <FeatureBadge
+                  title={t(
+                    'This feature is available for early adopters and the UX may change'
+                  )}
+                  type="beta"
                 />
               </Layout.Title>
             </Layout.HeaderContent>
@@ -172,11 +221,19 @@ function ExploreContentImpl({}: ExploreContentProps) {
                 </Alert>
               )}
               <ExploreCharts
+                canUsePreviousResults={canUsePreviousResults}
+                confidences={confidences}
                 query={query}
-                setConfidence={setConfidence}
-                setError={setChartError}
+                timeseriesResult={timeseriesResult}
               />
-              <ExploreTables confidence={confidence} setError={setTableError} />
+              <ExploreTables
+                aggregatesTableResult={aggregatesTableResult}
+                spansTableResult={spansTableResult}
+                tracesTableResult={tracesTableResult}
+                confidences={confidences}
+                samplesTab={samplesTab}
+                setSamplesTab={setSamplesTab}
+              />
             </MainSection>
           </Body>
         </Layout.Page>
@@ -195,11 +252,13 @@ function ExploreTagsProvider({children}) {
   );
 }
 
-export function ExploreContent(props: ExploreContentProps) {
+export function ExploreContent() {
+  Sentry.setTag('explore.visited', 'yes');
+
   return (
     <PageParamsProvider>
       <ExploreTagsProvider>
-        <ExploreContentImpl {...props} />
+        <ExploreContentImpl />
       </ExploreTagsProvider>
     </PageParamsProvider>
   );

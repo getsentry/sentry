@@ -1,7 +1,7 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {motion} from 'framer-motion';
+import {AnimatePresence, motion} from 'framer-motion';
 import partition from 'lodash/partition';
 
 import HighlightTopRight from 'sentry-images/pattern/highlight-top-right.svg';
@@ -14,7 +14,7 @@ import {Chevron} from 'sentry/components/chevron';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import type {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardingTasks';
-import {taskIsDone} from 'sentry/components/onboardingWizard/utils';
+import {findCompleteTasks, taskIsDone} from 'sentry/components/onboardingWizard/utils';
 import ProgressRing from 'sentry/components/progressRing';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import type {CommonSidebarProps} from 'sentry/components/sidebar/types';
@@ -34,10 +34,16 @@ import {space} from 'sentry/styles/space';
 import {type OnboardingTask, OnboardingTaskKey} from 'sentry/types/onboarding';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeEnabled} from 'sentry/utils/demoMode';
+import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
+
+/**
+ * How long (in ms) to delay before beginning to mark tasks complete
+ */
+const INITIAL_MARK_COMPLETE_TIMEOUT = 100;
 
 const orderedGettingStartedTasks = [
   OnboardingTaskKey.FIRST_PROJECT,
@@ -45,8 +51,8 @@ const orderedGettingStartedTasks = [
   OnboardingTaskKey.INVITE_MEMBER,
   OnboardingTaskKey.ALERT_RULE,
   OnboardingTaskKey.SOURCEMAPS,
-  OnboardingTaskKey.RELEASE_TRACKING,
   OnboardingTaskKey.LINK_SENTRY_TO_SOURCE_CODE,
+  OnboardingTaskKey.RELEASE_TRACKING,
 ];
 
 const orderedBeyondBasicsTasks = [
@@ -57,7 +63,9 @@ const orderedBeyondBasicsTasks = [
 ];
 
 function groupTasksByCompletion(tasks: OnboardingTask[]) {
-  const [completedTasks, incompletedTasks] = partition(tasks, task => taskIsDone(task));
+  const [completedTasks, incompletedTasks] = partition(tasks, task =>
+    findCompleteTasks(task)
+  );
   return {
     completedTasks,
     incompletedTasks,
@@ -129,7 +137,7 @@ function TaskStatusIcon({status, tooltipText, progress}: TaskStatusIconProps) {
           `}
         />
       ) : status === 'pending' ? (
-        <IconSync // TODO(Telemetry): Remove pending status
+        <IconSync
           css={css`
             color: ${theme.pink400};
             height: ${theme.fontSizeLarge};
@@ -259,7 +267,6 @@ function Task({task, hidePanel, showWaitingIndicator}: TaskProps) {
         todo_id: task.task,
         todo_title: task.title,
         action: 'clickthrough',
-        new_experience: true,
       });
 
       e.stopPropagation();
@@ -297,7 +304,6 @@ function Task({task, hidePanel, showWaitingIndicator}: TaskProps) {
         todo_id: task.task,
         todo_title: task.title,
         action: 'skipped',
-        new_experience: true,
       });
       updateOnboardingTask(api, organization, {
         task: taskKey,
@@ -322,7 +328,7 @@ function Task({task, hidePanel, showWaitingIndicator}: TaskProps) {
   }, [task.status, task.pendingTitle]);
 
   return (
-    <TaskWrapper>
+    <TaskWrapper layout={showSkipConfirmation ? false : true}>
       <TaskCard
         onClick={
           task.status === 'complete' || task.status === 'skipped'
@@ -341,7 +347,7 @@ function Task({task, hidePanel, showWaitingIndicator}: TaskProps) {
                     <Button
                       borderless
                       size="zero"
-                      aria-label={t('Close')}
+                      aria-label={t('Skip Task')}
                       title={t('Skip Task')}
                       icon={<IconClose color="gray300" isCircled />}
                       onClick={event => {
@@ -365,11 +371,86 @@ function Task({task, hidePanel, showWaitingIndicator}: TaskProps) {
       />
       {showSkipConfirmation && (
         <SkipConfirmation
-          onConfirm={() => handleMarkSkipped(task.task)}
+          onConfirm={() => {
+            handleMarkSkipped(task.task);
+            setShowSkipConfirmation(false);
+          }}
           onDismiss={() => setShowSkipConfirmation(false)}
         />
       )}
     </TaskWrapper>
+  );
+}
+
+interface ExpandedTaskGroupProps {
+  hidePanel: () => void;
+  sortedTasks: OnboardingTask[];
+  taskKeyForWaitingIndicator: OnboardingTaskKey | undefined;
+}
+
+function ExpandedTaskGroup({
+  sortedTasks,
+  hidePanel,
+  taskKeyForWaitingIndicator,
+}: ExpandedTaskGroupProps) {
+  const api = useApi();
+  const organization = useOrganization();
+
+  const markCompletionTimeout = useRef<number | undefined>();
+
+  function completionTimeout(time: number): Promise<void> {
+    window.clearTimeout(markCompletionTimeout.current);
+    return new Promise(resolve => {
+      markCompletionTimeout.current = window.setTimeout(resolve, time);
+    });
+  }
+
+  const markTasksAsSeen = useCallback(() => {
+    const unseenDoneTasks = sortedTasks
+      .filter(task => taskIsDone(task) && !task.completionSeen)
+      .map(task => task.task);
+
+    for (const unseenDoneTask of unseenDoneTasks) {
+      updateOnboardingTask(api, organization, {
+        task: unseenDoneTask,
+        completionSeen: true,
+      });
+    }
+  }, [api, organization, sortedTasks]);
+
+  const markSeenOnOpen = useCallback(
+    async function () {
+      // Add a minor delay to marking tasks complete to account for the animation
+      // opening of the group
+      await completionTimeout(INITIAL_MARK_COMPLETE_TIMEOUT);
+      markTasksAsSeen();
+    },
+    [markTasksAsSeen]
+  );
+
+  useEffect(() => {
+    markSeenOnOpen();
+    return () => {
+      window.clearTimeout(markCompletionTimeout.current);
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return (
+    <Fragment>
+      <hr />
+      <TaskGroupBody>
+        <AnimatePresence initial={false}>
+          {sortedTasks.map(sortedTask => (
+            <Task
+              key={sortedTask.task}
+              task={sortedTask}
+              hidePanel={hidePanel}
+              showWaitingIndicator={taskKeyForWaitingIndicator === sortedTask.task}
+            />
+          ))}
+        </AnimatePresence>
+      </TaskGroupBody>
+    </Fragment>
   );
 }
 
@@ -398,10 +479,15 @@ function TaskGroup({
   const organization = useOrganization();
   const [isExpanded, setIsExpanded] = useState(expanded);
   const {completedTasks, incompletedTasks} = groupTasksByCompletion(tasks);
+
   const [taskGroupComplete, setTaskGroupComplete] = useLocalStorageState(
     `quick-start:${organization.slug}:${group}-completed`,
     false
   );
+
+  const doneTasks = useMemo(() => {
+    return tasks.filter(task => taskIsDone(task));
+  }, [tasks]);
 
   useEffect(() => {
     setIsExpanded(expanded);
@@ -431,16 +517,23 @@ function TaskGroup({
     <TaskGroupWrapper>
       <TaskGroupHeader
         title={<strong>{title}</strong>}
-        description={tct('[totalCompletedTasks] out of [totalTasks] tasks completed', {
-          totalCompletedTasks: completedTasks.length,
-          totalTasks: tasks.length,
-        })}
-        hasProgress={completedTasks.length > 0}
+        description={
+          tasks.length > 1
+            ? tct('[totalCompletedTasks] out of [totalTasks] tasks completed', {
+                totalCompletedTasks: doneTasks.length,
+                totalTasks: tasks.length,
+              })
+            : tct('[totalCompletedTasks] out of [totalTasks] task completed', {
+                totalCompletedTasks: doneTasks.length,
+                totalTasks: tasks.length,
+              })
+        }
+        hasProgress={doneTasks.length > 0}
         onClick={toggleable ? () => setIsExpanded(!isExpanded) : undefined}
         icon={
           <TaskStatusIcon
-            status={completedTasks.length === tasks.length ? 'complete' : 'inProgress'}
-            progress={completedTasks.length / tasks.length}
+            status={doneTasks.length === tasks.length ? 'complete' : 'inProgress'}
+            progress={doneTasks.length / tasks.length}
           />
         }
         actions={
@@ -454,22 +547,11 @@ function TaskGroup({
         }
       />
       {isExpanded && (
-        <Fragment>
-          <hr />
-          <TaskGroupBody>
-            {incompletedTasks.map(task => (
-              <Task
-                key={task.task}
-                task={task}
-                hidePanel={hidePanel}
-                showWaitingIndicator={taskKeyForWaitingIndicator === task.task}
-              />
-            ))}
-            {completedTasks.map(task => (
-              <Task key={task.task} task={task} hidePanel={hidePanel} />
-            ))}
-          </TaskGroupBody>
-        </Fragment>
+        <ExpandedTaskGroup
+          sortedTasks={[...incompletedTasks, ...completedTasks]}
+          hidePanel={hidePanel}
+          taskKeyForWaitingIndicator={taskKeyForWaitingIndicator}
+        />
       )}
     </TaskGroupWrapper>
   );
@@ -585,7 +667,7 @@ const TaskGroupHeader = styled(TaskCard)<{hasProgress: boolean}>`
   }
 `;
 
-const TaskGroupBody = styled(motion.ul)`
+const TaskGroupBody = styled('ul')`
   border-radius: ${p => p.theme.borderRadius};
   list-style-type: none;
   padding: 0;
@@ -594,7 +676,29 @@ const TaskGroupBody = styled(motion.ul)`
 
 const TaskWrapper = styled(motion.li)`
   gap: ${space(1)};
+  background-color: ${p => p.theme.background};
 `;
+
+TaskWrapper.defaultProps = {
+  initial: false,
+  animate: 'animate',
+  layout: true,
+  variants: {
+    initial: {
+      opacity: 0,
+      y: 40,
+    },
+    animate: {
+      opacity: 1,
+      y: 0,
+      transition: testableTransition({
+        delay: 0.8,
+        when: 'beforeChildren',
+        staggerChildren: 0.3,
+      }),
+    },
+  },
+};
 
 const TaskActions = styled('div')`
   display: flex;

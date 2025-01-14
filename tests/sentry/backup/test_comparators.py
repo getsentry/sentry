@@ -18,7 +18,6 @@ from sentry.backup.comparators import (
     UnorderedListComparator,
     UserPasswordObfuscatingComparator,
     UUID4Comparator,
-    get_default_comparators,
 )
 from sentry.backup.dependencies import ImportKind, NormalizedModelName, PrimaryKeyMap, dependencies
 from sentry.backup.findings import ComparatorFindingKind, InstanceID
@@ -2144,19 +2143,3 @@ def test_good_user_password_obfuscating_comparator_scrubbed_short():
 
     assert right["scrubbed"]
     assert right["scrubbed"]["UserPasswordObfuscatingComparator::password"] == ["..."]
-
-
-def test_default_comparators(insta_snapshot):
-    serialized = []
-    defs = get_default_comparators()
-    for model_name, comparators in sorted(defs.items()):
-        serialized.append(
-            {
-                "model_name": model_name,
-                "comparators": [
-                    {"class": c.__class__.__name__, "fields": sorted(list(c.fields))}
-                    for c in comparators
-                ],
-            }
-        )
-    insta_snapshot(serialized)

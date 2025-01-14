@@ -3,15 +3,24 @@ import {LinkButton} from 'sentry/components/button';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
-export function NewMonitorButton(props: Omit<LinkButtonProps, 'to' | 'external'>) {
+interface Props extends Omit<LinkButtonProps, 'to' | 'external'> {
+  /**
+   * TODO(epurkhiser): Remove once crons exists only in alerts
+   */
+  linkToAlerts?: boolean;
+}
+
+export function NewMonitorButton({linkToAlerts, ...props}: Props) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
   return (
     <LinkButton
       to={{
-        pathname: `/organizations/${organization.slug}/crons/create/`,
-        query: {project: selection.projects},
+        pathname: linkToAlerts
+          ? `/organizations/${organization.slug}/alerts/new/crons/`
+          : `/organizations/${organization.slug}/crons/create/`,
+        query: linkToAlerts ? undefined : {project: selection.projects},
       }}
       priority="primary"
       {...props}

@@ -57,6 +57,8 @@ import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import type {SpanMetricsQueryFilters} from 'sentry/views/insights/types';
 import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
 
+import {useSamplesDrawer} from '../../common/utils/useSamplesDrawer';
+
 type Query = {
   aggregate?: string;
   domain?: string;
@@ -81,7 +83,14 @@ export function HTTPDomainSummaryPage() {
       project: decodeScalar,
       domain: decodeScalar,
       [SpanMetricsField.USER_GEO_SUBREGION]: decodeList,
+      transaction: decodeScalar,
     },
+  });
+
+  useSamplesDrawer({
+    Component: <HTTPSamplesPanel />,
+    moduleName: ModuleName.HTTP,
+    requiredParams: ['transaction'],
   });
 
   const project = projects.find(p => projectId === p.id);
@@ -274,7 +283,7 @@ export function HTTPDomainSummaryPage() {
                       value={domainMetrics?.[0]?.['sum(span.self_time)']}
                       unit={DurationUnit.MILLISECOND}
                       tooltip={getTimeSpentExplanation(
-                        domainMetrics?.[0]?.['time_spent_percentage()'],
+                        domainMetrics?.[0]!?.['time_spent_percentage()'],
                         'http'
                       )}
                       isLoading={areDomainMetricsLoading}
@@ -335,8 +344,6 @@ export function HTTPDomainSummaryPage() {
           </Layout.Main>
         </Layout.Body>
       </ModuleBodyUpsellHook>
-
-      <HTTPSamplesPanel />
     </React.Fragment>
   );
 }

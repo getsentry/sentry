@@ -9,7 +9,7 @@ from sentry.search.events.types import EventsResponse, SnubaParams
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
 
 ARRAY_COLUMNS = ["measurements", "span_op_breakdowns"]
@@ -26,7 +26,7 @@ class TimeseriesBase(SnubaTestCase, TestCase):
             data={
                 "event_id": "a" * 32,
                 "message": "very bad",
-                "timestamp": iso_format(self.day_ago + timedelta(hours=1)),
+                "timestamp": (self.day_ago + timedelta(hours=1)).isoformat(),
                 "fingerprint": ["group1"],
                 "tags": {"important": "yes"},
                 "user": {"id": 1},
@@ -37,7 +37,7 @@ class TimeseriesBase(SnubaTestCase, TestCase):
             data={
                 "event_id": "b" * 32,
                 "message": "oh my",
-                "timestamp": iso_format(self.day_ago + timedelta(hours=1, minutes=1)),
+                "timestamp": (self.day_ago + timedelta(hours=1, minutes=1)).isoformat(),
                 "fingerprint": ["group2"],
                 "tags": {"important": "no"},
             },
@@ -47,7 +47,7 @@ class TimeseriesBase(SnubaTestCase, TestCase):
             data={
                 "event_id": "c" * 32,
                 "message": "very bad",
-                "timestamp": iso_format(self.day_ago + timedelta(hours=2, minutes=1)),
+                "timestamp": (self.day_ago + timedelta(hours=2, minutes=1)).isoformat(),
                 "fingerprint": ["group2"],
                 "tags": {"important": "yes"},
             },
@@ -167,7 +167,7 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
     def test_comparison_aggregate_function(self):
         self.store_event(
             data={
-                "timestamp": iso_format(self.day_ago + timedelta(hours=1)),
+                "timestamp": (self.day_ago + timedelta(hours=1)).isoformat(),
                 "user": {"id": 1},
             },
             project_id=self.project.id,
@@ -191,21 +191,21 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
 
         self.store_event(
             data={
-                "timestamp": iso_format(self.day_ago + timedelta(days=-1, hours=1)),
+                "timestamp": (self.day_ago + timedelta(days=-1, hours=1)).isoformat(),
                 "user": {"id": 1},
             },
             project_id=self.project.id,
         )
         self.store_event(
             data={
-                "timestamp": iso_format(self.day_ago + timedelta(days=-1, hours=1, minutes=2)),
+                "timestamp": (self.day_ago + timedelta(days=-1, hours=1, minutes=2)).isoformat(),
                 "user": {"id": 2},
             },
             project_id=self.project.id,
         )
         self.store_event(
             data={
-                "timestamp": iso_format(self.day_ago + timedelta(days=-1, hours=2, minutes=1)),
+                "timestamp": (self.day_ago + timedelta(days=-1, hours=2, minutes=1)).isoformat(),
             },
             project_id=self.project.id,
         )
@@ -253,8 +253,8 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
         event_data = load_data("transaction")
         # Half of duration so we don't get weird rounding differences when comparing the results
         event_data["breakdowns"]["span_ops"]["ops.http"]["value"] = 300
-        event_data["start_timestamp"] = iso_format(self.day_ago + timedelta(minutes=30))
-        event_data["timestamp"] = iso_format(self.day_ago + timedelta(minutes=30, seconds=3))
+        event_data["start_timestamp"] = (self.day_ago + timedelta(minutes=30)).isoformat()
+        event_data["timestamp"] = (self.day_ago + timedelta(minutes=30, seconds=3)).isoformat()
         self.store_event(data=event_data, project_id=self.project.id)
         ProjectTransactionThreshold.objects.create(
             project=self.project,
@@ -294,8 +294,8 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
         event_data = load_data("transaction")
         # Half of duration so we don't get weird rounding differences when comparing the results
         event_data["breakdowns"]["span_ops"]["ops.http"]["value"] = 300
-        event_data["start_timestamp"] = iso_format(self.day_ago + timedelta(minutes=30))
-        event_data["timestamp"] = iso_format(self.day_ago + timedelta(minutes=30, seconds=3))
+        event_data["start_timestamp"] = (self.day_ago + timedelta(minutes=30)).isoformat()
+        event_data["timestamp"] = (self.day_ago + timedelta(minutes=30, seconds=3)).isoformat()
         self.store_event(data=event_data, project_id=self.project.id)
         ProjectTransactionThreshold.objects.create(
             project=self.project,

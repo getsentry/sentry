@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import uuid
 from collections.abc import MutableMapping, Sequence
-from datetime import datetime, timedelta
+from datetime import datetime
 from time import time
 from typing import TYPE_CHECKING, Any, TypedDict
 
@@ -14,9 +14,7 @@ from django.utils import timezone
 from google.api_core.exceptions import ServiceUnavailable
 
 from sentry import features, options, projectoptions
-from sentry.eventstream.types import EventStreamEventType
 from sentry.exceptions import PluginError
-from sentry.features.rollout import in_rollout_group
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.killswitches import killswitch_matches_context
@@ -24,14 +22,13 @@ from sentry.replays.lib.event_linking import transform_event_for_linking_payload
 from sentry.replays.lib.kafka import initialize_replays_publisher
 from sentry.sentry_metrics.client import generic_metrics_backend
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.signals import event_processed, issue_unignored, transaction_processed
+from sentry.signals import event_processed, issue_unignored
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache
 from sentry.utils.event_frames import get_sdk_name
-from sentry.utils.event_tracker import TransactionStageStatus, track_sampled_event
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.locking.backends import LockBackend
 from sentry.utils.locking.manager import LockManager
@@ -40,11 +37,13 @@ from sentry.utils.safe import get_path, safe_execute
 from sentry.utils.sdk import bind_organization_context, set_current_event_project
 from sentry.utils.sdk_crashes.sdk_crash_detection_config import build_sdk_crash_detection_configs
 from sentry.utils.services import build_instance_from_options_of_type
+from sentry.workflow_engine.types import WorkflowJob
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import Event, GroupEvent
     from sentry.eventstream.base import GroupState
     from sentry.models.group import Group
+    from sentry.models.groupinbox import InboxReasonDetails
     from sentry.models.project import Project
     from sentry.models.team import Team
     from sentry.ownership.grammar import Rule
@@ -436,15 +435,13 @@ def update_existing_attachments(job):
     1) ingested prior to the event via the standalone attachment endpoint.
     2) part of a different group before reprocessing started.
     """
-    # Patch attachments that were ingested on the standalone path.
-    with sentry_sdk.start_span(op="tasks.post_process_group.update_existing_attachments"):
-        from sentry.models.eventattachment import EventAttachment
+    from sentry.models.eventattachment import EventAttachment
 
-        event = job["event"]
+    event = job["event"]
 
-        EventAttachment.objects.filter(project_id=event.project_id, event_id=event.event_id).update(
-            group_id=event.group_id
-        )
+    EventAttachment.objects.filter(project_id=event.project_id, event_id=event.event_id).update(
+        group_id=event.group_id
+    )
 
 
 def fetch_buffered_group_stats(group):
@@ -473,24 +470,12 @@ def should_retry_fetch(attempt: int, e: Exception) -> bool:
 fetch_retry_policy = ConditionalRetryPolicy(should_retry_fetch, exponential_delay(1.00))
 
 
-def should_update_escalating_metrics(event: Event, is_transaction_event: bool) -> bool:
+def should_update_escalating_metrics(event: Event) -> bool:
     return (
         features.has("organizations:escalating-metrics-backend", event.project.organization)
-        and not is_transaction_event
         and event.group is not None
         and event.group.issue_type.should_detect_escalation()
     )
-
-
-def _get_event_id_from_cache_key(cache_key: str) -> str | None:
-    """
-    format is "e:{}:{}",event_id,project_id
-    """
-
-    try:
-        return cache_key.split(":")[1]
-    except IndexError:
-        return None
 
 
 @instrumented_task(
@@ -514,44 +499,22 @@ def post_process_group(
     """
     Fires post processing hooks for a group.
     """
-    from sentry.ingest.types import ConsumerType
     from sentry.utils import snuba
 
     with snuba.options_override({"consistent": True}):
         from sentry import eventstore
-        from sentry.eventstore.processing import (
-            event_processing_store,
-            transaction_processing_store,
-        )
-        from sentry.ingest.transaction_clusterer.datasource.redis import (
-            record_transaction_name as record_transaction_name_for_clustering,
-        )
+        from sentry.eventstore.processing import event_processing_store
         from sentry.issues.occurrence_consumer import EventLookupError
         from sentry.models.organization import Organization
         from sentry.models.project import Project
         from sentry.reprocessing2 import is_reprocessed_event
 
-        if eventstream_type == EventStreamEventType.Transaction.value:
-            processing_store = transaction_processing_store
-        else:
-            processing_store = event_processing_store
         if occurrence_id is None:
             # We use the data being present/missing in the processing store
             # to ensure that we don't duplicate work should the forwarding consumers
             # need to rewind history.
-            data = processing_store.get(cache_key)
+            data = event_processing_store.get(cache_key)
             if not data:
-                event_id = _get_event_id_from_cache_key(cache_key)
-                if event_id:
-                    if in_rollout_group(
-                        "transactions.do_post_process_in_save",
-                        event_id,
-                    ):
-                        # if we're doing the work for transactions in save_event_transaction
-                        # instead of here, this is expected, so simply increment a metric
-                        # instead of logging
-                        metrics.incr("post_process.skipped_do_post_process_in_save")
-                        return
 
                 logger.info(
                     "post_process.skipped",
@@ -559,7 +522,7 @@ def post_process_group(
                 )
                 return
             with metrics.timer("tasks.post_process.delete_event_cache"):
-                processing_store.delete_by_key(cache_key)
+                event_processing_store.delete_by_key(cache_key)
             occurrence = None
             event = process_event(data, group_id)
         else:
@@ -631,25 +594,6 @@ def post_process_group(
         is_reprocessed = is_reprocessed_event(event.data)
         sentry_sdk.set_tag("is_reprocessed", is_reprocessed)
 
-        is_transaction_event = event.get_event_type() == "transaction"
-
-        # Simplified post processing for transaction events.
-        # This should eventually be completely removed and transactions
-        # will not go through any post processing.
-        if is_transaction_event:
-            record_transaction_name_for_clustering(event.project, event.data)
-            with sentry_sdk.start_span(op="tasks.post_process_group.transaction_processed_signal"):
-                transaction_processed.send_robust(
-                    sender=post_process_group,
-                    project=event.project,
-                    event=event,
-                )
-            track_sampled_event(
-                event.event_id,
-                ConsumerType.Transactions,
-                TransactionStageStatus.POST_PROCESS_FINISHED,
-            )
-
         metric_tags = {}
         if group_id:
             group_state: GroupState = {
@@ -662,7 +606,7 @@ def post_process_group(
             group_event = update_event_group(event, group_state)
             bind_organization_context(event.project.organization)
             _capture_event_stats(event)
-            if should_update_escalating_metrics(event, is_transaction_event):
+            if should_update_escalating_metrics(event):
                 _update_escalating_metrics(event)
 
             group_event.occurrence = occurrence
@@ -679,35 +623,30 @@ def post_process_group(
             )
             metric_tags["occurrence_type"] = group_event.group.issue_type.slug
 
-        if not is_reprocessed and event.data.get("received"):
-            duration = time() - event.data["received"]
-            metrics.timing(
-                "events.time-to-post-process",
-                duration,
-                instance=event.data["platform"],
-                tags=metric_tags,
-            )
+        if not is_reprocessed:
+            received_at = event.data.get("received")
+            saved_at = event.data.get("nodestore_insert")
+            post_processed_at = time()
 
-            # We see occasional metrics being recorded with very old data,
-            # temporarily log some information about these groups to help
-            # investigate.
-            if duration and duration > 432_000:  # 5 days (5*24*60*60)
-                logger.warning(
-                    "tasks.post_process.old_time_to_post_process",
-                    extra={
-                        "group_id": group_id,
-                        "project_id": project_id,
-                        "duration": duration,
-                        "received": event.data["received"],
-                        "platform": event.data["platform"],
-                        "reprocessing": json.dumps(
-                            get_path(event.data, "contexts", "reprocessing")
-                        ),
-                        "original_issue_id": json.dumps(
-                            get_path(event.data, "contexts", "reprocessing", "original_issue_id")
-                        ),
-                    },
+            if saved_at:
+                metrics.timing(
+                    "events.saved_to_post_processed",
+                    post_processed_at - saved_at,
+                    instance=event.data["platform"],
+                    tags=metric_tags,
                 )
+            else:
+                metrics.incr("events.missing_nodestore_insert", tags=metric_tags)
+
+            if received_at:
+                metrics.timing(
+                    "events.time-to-post-process",
+                    post_processed_at - received_at,
+                    instance=event.data["platform"],
+                    tags=metric_tags,
+                )
+            else:
+                metrics.incr("events.missing_received", tags=metric_tags)
 
 
 def run_post_process_job(job: PostProcessJob) -> None:
@@ -919,7 +858,7 @@ def process_snoozes(job: PostProcessJob) -> None:
         )
 
         if not snooze_condition_still_applies:
-            snooze_details = {
+            snooze_details: InboxReasonDetails = {
                 "until": snooze.until,
                 "count": snooze.count,
                 "window": snooze.window,
@@ -1002,10 +941,19 @@ def process_workflow_engine(job: PostProcessJob) -> None:
     # If the flag is enabled, use the code below
     from sentry.workflow_engine.processors.workflow import process_workflows
 
-    evt = job["event"]
+    # PostProcessJob event is optional, WorkflowJob event is required
+    if "event" not in job:
+        logger.error("Missing event to create WorkflowJob", extra={"job": job})
+        return
+
+    try:
+        workflow_job = WorkflowJob({**job})  # type: ignore[typeddict-item]
+    except Exception:
+        logger.exception("Could not create WorkflowJob", extra={"job": job})
+        return
 
     with sentry_sdk.start_span(op="tasks.post_process_group.workflow_engine.process_workflow"):
-        process_workflows(evt)
+        process_workflows(workflow_job)
 
 
 def process_rules(job: PostProcessJob) -> None:
@@ -1068,22 +1016,7 @@ def process_code_mappings(job: PostProcessJob) -> None:
         else:
             return
 
-        org = event.project.organization
-        org_slug = org.slug
-        next_time = timezone.now() + timedelta(hours=1)
-
-        if features.has("organizations:derive-code-mappings", org):
-            extra: dict[str, Any] = {
-                "organization.slug": org_slug,
-                "project.slug": project.slug,
-                "group_id": group_id,
-                "next_time": next_time,
-            }
-            logger.info(
-                "derive_code_mappings: Queuing code mapping derivation",
-                extra=extra,
-            )
-            derive_code_mappings.delay(project.id, event.data)
+        derive_code_mappings.delay(project.id, event.data)
 
     except Exception:
         logger.exception("derive_code_mappings: Failed to process code mappings")
@@ -1287,15 +1220,13 @@ def sdk_crash_monitoring(job: PostProcessJob):
     if not features.has("organizations:sdk-crash-detection", event.project.organization):
         return
 
-    configs = build_sdk_crash_detection_configs()
-    if not configs or len(configs) == 0:
-        return None
+    with sentry_sdk.start_span(op="post_process.build_sdk_crash_config"):
+        configs = build_sdk_crash_detection_configs()
+        if not configs or len(configs) == 0:
+            return None
 
-    with sentry_sdk.start_span(op="tasks.post_process_group.sdk_crash_monitoring"):
-        sdk_crash_detection.detect_sdk_crash(
-            event=event,
-            configs=configs,
-        )
+    with sentry_sdk.start_span(op="post_process.detect_sdk_crash"):
+        sdk_crash_detection.detect_sdk_crash(event=event, configs=configs)
 
 
 def plugin_post_process_group(plugin_slug, event, **kwargs):
@@ -1544,6 +1475,21 @@ def detect_base_urls_for_uptime(job: PostProcessJob):
     detect_base_url_for_project(job["event"].project, url)
 
 
+def check_if_flags_sent(job: PostProcessJob) -> None:
+    from sentry.models.project import Project
+    from sentry.signals import first_flag_received
+
+    event = job["event"]
+    project = event.project
+    flag_context = get_path(event.data, "contexts", "flags")
+
+    if flag_context:
+        metrics.incr("feature_flags.event_has_flags_context")
+        metrics.distribution("feature_flags.num_flags_sent", len(flag_context))
+        if not project.flags.has_flags:
+            first_flag_received.send_robust(project=project, sender=Project)
+
+
 GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
     GroupCategory.ERROR: [
         _capture_group_stats,
@@ -1566,6 +1512,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         process_replay_link,
         link_event_to_user_report,
         detect_base_urls_for_uptime,
+        check_if_flags_sent,
     ],
     GroupCategory.FEEDBACK: [
         feedback_filter_decorator(process_snoozes),

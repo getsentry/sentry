@@ -5,7 +5,9 @@ from uuid import uuid4
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.incidents.grouptype import MetricAlertFire
 from sentry.incidents.utils.types import QuerySubscriptionUpdate
+from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
+from sentry.models.project import Project
 from sentry.snuba.models import SnubaQuery
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import EventType
@@ -78,7 +80,7 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
 
     def create_detector_and_workflow(
         self,
-        name_prefix="test",
+        name_prefix: str = "test",
         workflow_triggers: DataConditionGroup | None = None,
         detector_type: str = MetricAlertFire.slug,
         **kwargs,
@@ -93,8 +95,7 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
             # create a trigger condition for a new event
             self.create_data_condition(
                 condition_group=workflow_triggers,
-                type=Condition.GROUP_EVENT_ATTR_COMPARISON,
-                condition="group.times_seen",
+                type=Condition.EVENT_SEEN_COUNT,
                 comparison=1,
                 condition_result=True,
             )
@@ -118,7 +119,7 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
 
         return workflow, detector, detector_workflow, workflow_triggers
 
-    def create_test_query_data_source(self, detector) -> tuple[DataSource, DataPacket]:
+    def create_test_query_data_source(self, detector: Detector) -> tuple[DataSource, DataPacket]:
         """
         Create a DataSource and DataPacket for testing; this will create a fake QuerySubscriptionUpdate and link it to a data_source.
 
@@ -183,24 +184,20 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
 
     def create_group_event(
         self,
-        project=None,
-        event=None,
-        occurrence=None,
+        project: Project | None = None,
+        event: Event | None = None,
+        occurrence: IssueOccurrence | None = None,
         fingerprint="test_fingerprint",
     ) -> tuple[Group, Event, GroupEvent]:
         project = project or self.project
-        group = self.create_group(project=project)
-
         event = event or self.create_event(
             project.id,
             datetime.now(),
             fingerprint,
         )
 
-        event.for_group = group
-
-        if occurrence is not None and occurrence.get("event_id", None) is None:
-            occurrence["event_id"] = event.event_id
+        group = self.create_group(project=project)
+        event.for_group(group)
 
         group_event = GroupEvent(
             self.project.id,

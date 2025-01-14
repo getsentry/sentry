@@ -3,7 +3,6 @@ import React from 'react';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t, tct} from 'sentry/locale';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
 import ResourceSummaryCharts from 'sentry/views/insights/browser/resources/components/charts/resourceSummaryCharts';
 import RenderBlockingSelector from 'sentry/views/insights/browser/resources/components/renderBlockingSelector';
@@ -23,6 +22,7 @@ import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/modu
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
+import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
 import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {SampleList} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
@@ -44,9 +44,20 @@ function ResourceSummary() {
   const {groupId} = useParams();
   const filters = useResourceModuleFilters();
   const selectedSpanOp = filters[SPAN_OP];
-  const {
-    query: {transaction},
-  } = useLocation();
+
+  useSamplesDrawer({
+    Component: (
+      <SampleList
+        groupId={groupId!}
+        moduleName={ModuleName.RESOURCE}
+        transactionRoute={webVitalsModuleURL}
+        referrer={TraceViewSources.ASSETS_MODULE}
+      />
+    ),
+    moduleName: ModuleName.RESOURCE,
+    requiredParams: ['transaction'],
+  });
+
   const {data, isPending} = useSpanMetrics(
     {
       search: MutableSearch.fromQueryObject({
@@ -127,25 +138,17 @@ function ResourceSummary() {
 
               {isImage && (
                 <ModuleLayout.Full>
-                  <SampleImages groupId={groupId} projectId={data?.[0]?.['project.id']} />
+                  <SampleImages
+                    groupId={groupId!}
+                    projectId={data?.[0]?.['project.id']}
+                  />
                 </ModuleLayout.Full>
               )}
 
-              <ResourceSummaryCharts groupId={groupId} />
+              <ResourceSummaryCharts groupId={groupId!} />
 
               <ModuleLayout.Full>
                 <ResourceSummaryTable />
-              </ModuleLayout.Full>
-
-              <ModuleLayout.Full>
-                <SampleList
-                  transactionRoute={webVitalsModuleURL}
-                  subregions={filters[SpanMetricsField.USER_GEO_SUBREGION]}
-                  groupId={groupId}
-                  moduleName={ModuleName.RESOURCE}
-                  transactionName={transaction as string}
-                  referrer={TraceViewSources.ASSETS_MODULE}
-                />
               </ModuleLayout.Full>
             </ModuleLayout.Layout>
           </Layout.Main>

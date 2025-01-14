@@ -1,0 +1,273 @@
+name: test-devservices-backend
+
+on:
+  schedule:
+    - cron: '0 * * * *'
+# Cancel in progress workflows on pull_requests.
+# https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+# hack for https://github.com/actions/cache/issues/810#issuecomment-1222550359
+env:
+  SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
+  USE_NEW_DEVSERVICES: 1
+  IS_DEV: 1
+  SNUBA_NO_WORKERS: 1
+
+jobs:
+  devservices-api-docs:
+    name: api docs test
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4
+        id: setup-node
+        with:
+          node-version-file: '.volta.json'
+
+      - name: Setup sentry python env
+        uses: ./.github/actions/test-setup-sentry-devservices
+        id: setup
+
+      - name: Bring up devservices
+        run: devservices up
+
+      - name: Run API docs tests
+        # install ts-node for ts build scripts to execute properly without potentially installing
+        # conflicting deps when running scripts locally
+        # see: https://github.com/getsentry/sentry/pull/32328/files
+        run: |
+          yarn add ts-node && make test-api-docs
+
+      - name: Inspect failure
+        if: failure()
+        run: devservices logs
+
+  devservices-backend-test:
+    name: backend test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      id-token: write
+    strategy:
+      # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
+      # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
+      fail-fast: false
+      matrix:
+        # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
+        instance: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+        pg-version: ['14']
+
+    env:
+      # XXX: `MATRIX_INSTANCE_TOTAL` must be hardcoded to the length of `strategy.matrix.instance`.
+      # If this increases, make sure to also increase `flags.backend.after_n_builds` in `codecov.yml`.
+      MATRIX_INSTANCE_TOTAL: 11
+
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Setup sentry env
+        id: setup
+        uses: ./.github/actions/test-setup-sentry-devservices
+
+      - name: Bring up devservices
+        run: devservices up --mode backend-ci
+
+      - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
+        run: |
+          make test-python-ci
+
+      - name: Collect test data
+        uses: ./.github/actions/collect-test-data
+        if: ${{ !cancelled() }}
+        with:
+          artifact_path: .artifacts/pytest.json
+          gcs_bucket: ${{ secrets.COLLECT_TEST_DATA_GCS_BUCKET }}
+          gcp_project_id: ${{ secrets.COLLECT_TEST_DATA_GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ secrets.SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL }}
+          service_account_email: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
+          matrix_instance_number: ${{ steps.setup.outputs.matrix-instance-number }}
+
+      # Upload coverage data even if running the tests step fails since
+      # it reduces large coverage fluctuations
+      - name: Handle artifacts
+        if: ${{ always() }}
+        uses: ./.github/actions/artifacts
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          commit_sha: ${{ github.event.pull_request.head.sha }}
+
+      - name: Inspect failure
+        if: failure()
+        run: devservices logs
+
+  devservices-backend-migration-tests:
+    name: backend migration tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      matrix:
+        pg-version: ['14']
+
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Setup sentry env
+        uses: ./.github/actions/test-setup-sentry-devservices
+        id: setup
+
+      - name: Bring up devservices
+        run: devservices up
+
+      - name: run tests
+        run: |
+          PYTEST_ADDOPTS="$PYTEST_ADDOPTS -m migrations --migrations --reruns 0" make test-python-ci
+
+      # Upload coverage data even if running the tests step fails since
+      # it reduces large coverage fluctuations
+      - name: Handle artifacts
+        if: ${{ always() }}
+        uses: ./.github/actions/artifacts
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          commit_sha: ${{ github.event.pull_request.head.sha }}
+
+      - name: Inspect failure
+        if: failure()
+        run: devservices logs
+
+  devservices-cli:
+    name: cli test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        pg-version: ['14']
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Setup sentry env
+        uses: ./.github/actions/test-setup-sentry-devservices
+        id: setup
+
+      - name: Bring up devservices
+        run: devservices up --mode migrations
+
+      - name: Run test
+        run: |
+          make test-cli
+
+      # Upload coverage data even if running the tests step fails since
+      # it reduces large coverage fluctuations
+      - name: Handle artifacts
+        if: ${{ always() }}
+        uses: ./.github/actions/artifacts
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          commit_sha: ${{ github.event.pull_request.head.sha }}
+
+      - name: Inspect failure
+        if: failure()
+        run: devservices logs
+
+  devservices-migration:
+    name: check migration
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        pg-version: ['14']
+
+    steps:
+      - name: Checkout sentry
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Setup sentry env
+        uses: ./.github/actions/test-setup-sentry-devservices
+        id: setup
+
+      - name: Bring up devservices
+        run: devservices up --mode migrations
+
+      - name: Migration & lockfile checks
+        env:
+          SENTRY_LOG_LEVEL: ERROR
+          PGPASSWORD: postgres
+        run: |
+          ./.github/workflows/scripts/migration-check.sh
+
+      - name: Inspect failure
+        if: failure()
+        run: devservices logs
+
+  devservices-monolith-dbs:
+    name: monolith-dbs test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Setup sentry env
+        uses: ./.github/actions/test-setup-sentry-devservices
+        id: setup
+
+      - name: Bring up devservices
+        run: devservices up --mode migrations
+
+      - name: Run test
+        run: |
+          make test-monolith-dbs
+
+      - name: Collect test data
+        uses: ./.github/actions/collect-test-data
+        if: ${{ !cancelled() }}
+        with:
+          artifact_path: .artifacts/pytest.monolith-dbs.json
+          gcs_bucket: ${{ secrets.COLLECT_TEST_DATA_GCS_BUCKET }}
+          gcp_project_id: ${{ secrets.COLLECT_TEST_DATA_GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ secrets.SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL }}
+          service_account_email: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
+
+      # Upload coverage data even if running the tests step fails since
+      # it reduces large coverage fluctuations
+      - name: Handle artifacts
+        if: ${{ always() }}
+        uses: ./.github/actions/artifacts
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          commit_sha: ${{ github.event.pull_request.head.sha }}
+
+      - name: Inspect failure
+        if: failure()
+        run: devservices logs
+
+  # This check runs once all dependent jobs have passed
+  # It symbolizes that all required Backend checks have succesfully passed (Or skipped)
+  # This step is the only required backend check
+  devservices-backend-required-check:
+    needs:
+      [
+        devservices-api-docs,
+        devservices-backend-test,
+        devservices-backend-migration-tests,
+        devservices-cli,
+        devservices-migration,
+        devservices-monolith-dbs,
+      ]
+    name: Devservices Backend
+    # This is necessary since a failed/skipped dependent job would cause this job to be skipped
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      # If any jobs we depend on fail, we will fail since this is a required check
+      # NOTE: A timeout is considered a failure
+      - name: Check for failures
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: |
+          echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1
