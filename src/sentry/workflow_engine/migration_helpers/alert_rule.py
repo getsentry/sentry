@@ -446,15 +446,16 @@ def dual_delete_migrated_alert_rule_trigger(
     trigger: AlertRuleTrigger,
     user: RpcUser | None = None,
 ) -> None:
-    # get the detector trigger that corresponds to this AlertRuleTrigger (how?)
+    # get the detector trigger that corresponds to this AlertRuleTrigger:
+    # get the detector, then match the trigger's threshold and trigger type to the detectortrigger
     # get the data condition that corresponds to this AlertRuleTrigger using the table
-    # are we going to have orphaned resolve conditions?
+    # delete both
     pass
 
 
 def dual_delete_migrated_alert_rule_trigger_action(
-    action: AlertRuleTriggerAction,
+    legacy_action: AlertRuleTriggerAction,
     user: RpcUser | None = None,
 ) -> None:
-    # how do we get the corresponding action lol
+    # need to create alertruletriggeraction to action lookup table
     pass
