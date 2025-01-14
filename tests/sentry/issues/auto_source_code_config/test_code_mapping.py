@@ -192,7 +192,7 @@ class TestDerivedCodeMappings(TestCase):
         code_mappings = self.code_mapping_helper.generate_code_mappings(stacktraces)
         assert code_mappings == []
 
-    @patch("sentry.integrations.utils.code_mapping.logger")
+    @patch("sentry.issues.auto_source_code_config.code_mapping.logger")
     def test_matches_top_src_file(self, logger):
         stacktraces = ["setup.py"]
         code_mappings = self.code_mapping_helper.generate_code_mappings(stacktraces)
@@ -246,7 +246,7 @@ class TestDerivedCodeMappings(TestCase):
         code_mappings = self.code_mapping_helper.generate_code_mappings(stacktraces)
         assert sorted(code_mappings) == sorted(self.expected_code_mappings)
 
-    @patch("sentry.integrations.utils.code_mapping.logger")
+    @patch("sentry.issues.auto_source_code_config.code_mapping.logger")
     def test_more_than_one_repo_match(self, logger):
         # XXX: There's a chance that we could infer package names but that is risky
         # repo 1: src/sentry/web/urls.py
