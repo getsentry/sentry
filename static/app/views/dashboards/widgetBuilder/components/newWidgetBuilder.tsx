@@ -51,6 +51,8 @@ type WidgetBuilderV2Props = {
   isOpen: boolean;
   onClose: () => void;
   onSave: ({index, widget}: {index: number; widget: Widget}) => void;
+  openWidgetTemplates: boolean;
+  setOpenWidgetTemplates: (openWidgetTemplates: boolean) => void;
 };
 
 function WidgetBuilderV2({
@@ -59,6 +61,8 @@ function WidgetBuilderV2({
   onSave,
   dashboardFilters,
   dashboard,
+  setOpenWidgetTemplates,
+  openWidgetTemplates,
 }: WidgetBuilderV2Props) {
   const escapeKeyPressed = useKeyPress('Escape');
   const organization = useOrganization();
@@ -123,6 +127,8 @@ function WidgetBuilderV2({
                       dashboardFilters={dashboardFilters}
                       setIsPreviewDraggable={setIsPreviewDraggable}
                       isWidgetInvalid={!queryConditionsValid}
+                      openWidgetTemplates={openWidgetTemplates}
+                      setOpenWidgetTemplates={setOpenWidgetTemplates}
                     />
                     {(!isSmallScreen || isPreviewDraggable) && (
                       <DndContext
