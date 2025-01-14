@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useMemo} from 'react';
 import moment from 'moment-timezone';
 
 import {LinkButton} from 'sentry/components/button';
@@ -8,12 +8,16 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import RelatedIssues from 'sentry/views/alerts/rules/metric/details/relatedIssues';
-import {Dataset, TimePeriod} from 'sentry/views/alerts/rules/metric/types';
+import {
+  Dataset,
+  type MetricRule,
+  TimePeriod,
+} from 'sentry/views/alerts/rules/metric/types';
 import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
 import {isCrashFreeAlert} from 'sentry/views/alerts/rules/metric/utils/isCrashFreeAlert';
-import {fetchAlertRule} from 'sentry/views/alerts/utils/apiCalls';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
@@ -30,26 +34,23 @@ export default function CorrelatedIssues({
   group,
   project,
 }: CorrelatedIssuesProps) {
-  const [rule, setRule] = useState<any>(null);
   const ruleId = event.contexts?.metric_alert?.alert_rule_id;
-  useEffect(() => {
-    async function getRuleData() {
-      if (!ruleId) {
-        return;
-      }
-      const ruleData = await fetchAlertRule(organization.slug, ruleId, {
-        expand: 'latestIncident',
-      });
-      setRule(ruleData);
+  const {data: rule} = useApiQuery<MetricRule>(
+    [
+      `/organizations/${organization.slug}/alert-rules/${ruleId}/`,
+      {
+        query: {
+          expand: 'latestIncident',
+        },
+      },
+    ],
+    {
+      staleTime: Infinity,
+      retry: false,
     }
-    getRuleData();
-  }, [ruleId, organization.slug]);
+  );
 
   const openPeriod = group.openPeriods?.[0];
-  if (!ruleId || !openPeriod) {
-    return null;
-  }
-
   const timePeriod = useMemo((): TimePeriodType | null => {
     if (!openPeriod) {
       return null;
@@ -83,10 +84,9 @@ export default function CorrelatedIssues({
   const {dataset, query} = rule;
 
   const queryParams = {
-    start,
-    end,
+    start: timePeriod.start,
+    end: timePeriod.end,
     groupStatsPeriod: 'auto',
-    limit: 5,
     ...(rule.environment ? {environment: rule.environment} : {}),
     sort: rule.aggregate === 'count_unique(user)' ? 'user' : 'freq',
     query,
@@ -110,23 +110,21 @@ export default function CorrelatedIssues({
       help={t('A list of issues that are correlated with this event')}
       actions={actions}
     >
-      {[Dataset.METRICS, Dataset.SESSIONS, Dataset.ERRORS].includes(dataset) && (
-        <RelatedIssues
-          organization={organization}
-          rule={rule}
-          projects={[project]}
-          timePeriod={timePeriod}
-          query={
-            dataset === Dataset.ERRORS
-              ? // Not using (query) AND (event.type:x) because issues doesn't support it yet
-                `${extractEventTypeFilterFromRule(rule)} ${query}`.trim()
-              : isCrashFreeAlert(dataset)
-                ? `${query} error.unhandled:true`.trim()
-                : undefined
-          }
-          skipHeader
-        />
-      )}
+      <RelatedIssues
+        organization={organization}
+        rule={rule}
+        projects={[project]}
+        timePeriod={timePeriod}
+        query={
+          dataset === Dataset.ERRORS
+            ? // Not using (query) AND (event.type:x) because issues doesn't support it yet
+              `${extractEventTypeFilterFromRule(rule)} ${query}`.trim()
+            : isCrashFreeAlert(dataset)
+              ? `${query} error.unhandled:true`.trim()
+              : undefined
+        }
+        skipHeader
+      />
     </InterimSection>
   );
 }
