@@ -59,3 +59,4 @@ types-redis<4
 types-requests>=2.32.0.20241016
 types-setuptools>=68
 types-simplejson>=3.17.7.2
+types-unidiff
