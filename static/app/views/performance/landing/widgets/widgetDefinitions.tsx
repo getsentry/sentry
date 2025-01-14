@@ -75,7 +75,7 @@ export enum PerformanceWidgetSetting {
   HIGHEST_CACHE_MISS_RATE_TRANSACTIONS = 'highest_cache__miss_rate_transactions',
 }
 
-const WIDGET_PALETTE = !CHART_PALETTE[5];
+const WIDGET_PALETTE = CHART_PALETTE[5];
 export const WIDGET_DEFINITIONS: ({
   organization,
 }: {
