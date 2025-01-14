@@ -388,7 +388,7 @@ def update_migrated_alert_rule(alert_rule: AlertRule, updated_fields: dict[str, 
     except AlertRuleDetector.DoesNotExist:
         logger.exception(
             "AlertRuleDetector does not exist",
-            extra={"alert_rule_id": AlertRule.id},
+            extra={"alert_rule_id": alert_rule.id},
         )
         return None
 
@@ -399,30 +399,27 @@ def update_migrated_alert_rule(alert_rule: AlertRule, updated_fields: dict[str, 
     except DetectorState.DoesNotExist:
         logger.exception(
             "DetectorState does not exist",
-            extra={"alert_rule_id": AlertRule.id, "detector_id": detector.id},
+            extra={"alert_rule_id": alert_rule.id, "detector_id": detector.id},
         )
         return None
 
     updated_detector_fields: dict[str, Any] = {}
     config = detector.config.copy()
 
-    if "name" in updated_fields:
-        updated_detector_fields["name"] = updated_fields["name"]
-    if "description" in updated_fields:
-        updated_detector_fields["description"] = updated_fields["description"]
-    if "user_id" in updated_fields:
-        updated_detector_fields["owner_user_id"] = updated_fields["user_id"]
-    if "team_id" in updated_fields:
-        updated_detector_fields["owner_team_id"] = updated_fields["team_id"]
+    fields_to_detector_fields = {
+        "name": "name",
+        "description": "description",
+        "user_id": "owner_user_id",
+        "team_id": "owner_team_id",
+    }
+    for field, detector_field in fields_to_detector_fields.items():
+        if updated_field := updated_fields.get(field):
+            updated_detector_fields[detector_field] = updated_field
     # update config fields
-    if "threshold_period" in updated_fields:
-        config["threshold_period"] = updated_fields["threshold_period"]
-    if "sensitivity" in updated_fields:
-        config["sensitivity"] = updated_fields["sensitivity"]
-    if "seasonality" in updated_fields:
-        config["seasonality"] = updated_fields["seasonality"]
-    if "comparison_delta" in updated_fields:
-        config["comparison_delta"] = updated_fields["comparison_delta"]
+    config_fields = ["threshold_period", "sensitivity", "seasonality", "comparison_delta"]
+    for field in config_fields:
+        if field in updated_fields:
+            config[field] = updated_fields[field]
     updated_detector_fields["config"] = config
 
     # if the user updated resolve_threshold or threshold_type, then we also need to update the detector triggers
@@ -432,7 +429,7 @@ def update_migrated_alert_rule(alert_rule: AlertRule, updated_fields: dict[str, 
             # this shouldn't be possible due to the way we dual write
             logger.error(
                 "AlertRuleDetector has no associated DataConditionGroup",
-                extra={"alert_rule_id": AlertRule.id},
+                extra={"alert_rule_id": alert_rule.id},
             )
             return None
         data_conditions = DataCondition.objects.filter(condition_group=data_condition_group)
@@ -452,7 +449,6 @@ def update_migrated_alert_rule(alert_rule: AlertRule, updated_fields: dict[str, 
                     dc.update(type=resolve_threshold_type)
                 else:
                     dc.update(type=threshold_type)
-            resolve_condition = data_conditions.filter(condition_result=DetectorPriorityLevel.OK)
 
         if "resolve_threshold" in updated_fields:
             resolve_condition = data_conditions.filter(condition_result=DetectorPriorityLevel.OK)
@@ -501,13 +497,13 @@ def dual_delete_migrated_alert_rule(
         # isn't flagged into dual write
         logger.info(
             "AlertRuleDetector does not exist",
-            extra={"alert_rule_id": AlertRule.id},
+            extra={"alert_rule_id": alert_rule.id},
         )
         return
     except AlertRuleWorkflow.DoesNotExist:
         logger.info(
             "AlertRuleWorkflow does not exist",
-            extra={"alert_rule_id": AlertRule.id},
+            extra={"alert_rule_id": alert_rule.id},
         )
         return
 
@@ -519,7 +515,7 @@ def dual_delete_migrated_alert_rule(
     if data_source is None:
         logger.info(
             "DataSource does not exist",
-            extra={"alert_rule_id": AlertRule.id},
+            extra={"alert_rule_id": alert_rule.id},
         )
     # NOTE: for migrated alert rules, each workflow is associated with a single detector
     # make sure there are no other detectors associated with the workflow, then delete it if so
