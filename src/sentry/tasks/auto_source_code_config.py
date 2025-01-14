@@ -83,9 +83,10 @@ def process_error(error: ApiError, extra: dict[str, str]) -> None:
     )
 
 
+# XXX: To be deleted after new queue is live
 @instrumented_task(
-    name="sentry.tasks.derive_code_mappings.derive_code_mappings",  # XXX: To be renamed to auto_source_code_config
-    queue="derive_code_mappings",  # XXX: To be renamed to auto_source_code_config
+    name="sentry.tasks.derive_code_mappings.derive_code_mappings",
+    queue="derive_code_mappings",
     default_retry_delay=60 * 10,
     max_retries=3,
 )
@@ -93,6 +94,20 @@ def derive_code_mappings(
     project_id: int,
     data: NodeData | None = None,  # We will deprecate this
     event_id: str | None = None,
+) -> None:
+    derive_code_mappings_new(project_id, data)
+
+
+# XXX: Temporary, use the new queue when live
+@instrumented_task(
+    name="sentry.tasks.derive_code_mappings.derive_code_mappings",
+    queue="derive_code_mappings",
+    default_retry_delay=60 * 10,
+    max_retries=3,
+)
+def derive_code_mappings_new(
+    project_id: int,
+    data: NodeData,
 ) -> None:
     """
     Derive code mappings for a project given data from a recent event.
