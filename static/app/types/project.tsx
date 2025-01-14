@@ -88,6 +88,7 @@ export type Project = {
   stats?: TimeseriesValue[];
   subjectPrefix?: string;
   symbolSources?: string;
+  tempestFetchScreenshots?: boolean;
   transactionStats?: TimeseriesValue[];
 } & AvatarProject;
 
