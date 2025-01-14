@@ -1,6 +1,5 @@
 import logging
 
-from sentry import features
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.notifications.types import FallthroughChoiceType
@@ -48,18 +47,17 @@ def create_default_rules(project: Project, default_rules=True, RuleModel=Rule, *
         )
         return
 
-    if features.has("organizations:quick-start-updates", project.organization, actor=user):
-        # When a user creates a new project and opts to set up an issue alert within it,
-        # the corresponding task in the quick start sidebar is automatically marked as complete.
-        alert_rule_created.send(
-            user=user,
-            project=project,
-            rule_id=rule.id,
-            # The default rule created within a new project is always of type 'issue'
-            rule_type="issue",
-            sender=type(project),
-            is_api_token=False,
-        )
+    # When a user creates a new project and opts to set up an issue alert within it,
+    # the corresponding task in the quick start sidebar is automatically marked as complete.
+    alert_rule_created.send(
+        user=user,
+        project=project,
+        rule_id=rule.id,
+        # The default rule created within a new project is always of type 'issue'
+        rule_type="issue",
+        sender=type(project),
+        is_api_token=False,
+    )
 
 
 project_created.connect(create_default_rules, dispatch_uid="create_default_rules", weak=False)
