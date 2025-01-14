@@ -267,7 +267,6 @@ function Task({task, hidePanel, showWaitingIndicator}: TaskProps) {
         todo_id: task.task,
         todo_title: task.title,
         action: 'clickthrough',
-        new_experience: true,
       });
 
       e.stopPropagation();
@@ -305,7 +304,6 @@ function Task({task, hidePanel, showWaitingIndicator}: TaskProps) {
         todo_id: task.task,
         todo_title: task.title,
         action: 'skipped',
-        new_experience: true,
       });
       updateOnboardingTask(api, organization, {
         task: taskKey,
