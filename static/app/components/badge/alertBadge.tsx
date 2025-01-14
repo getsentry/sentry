@@ -1,25 +1,14 @@
 import styled from '@emotion/styled';
 
 import {DiamondStatus} from 'sentry/components/diamondStatus';
-import {
-  IconCheckmark,
-  IconEllipsis,
-  IconExclamation,
-  IconFire,
-  IconIssues,
-  IconShow,
-} from 'sentry/icons';
+import {IconCheckmark, IconExclamation, IconFire, IconIssues} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {ColorOrAlias} from 'sentry/utils/theme';
-import {ActivationStatus, IncidentStatus} from 'sentry/views/alerts/types';
+import {IncidentStatus} from 'sentry/views/alerts/types';
 
 type Props = {
-  /**
-   * The rule is actively monitoring
-   */
-  activationStatus?: ActivationStatus;
   /**
    * @deprecated use withText
    */
@@ -42,7 +31,7 @@ type Props = {
  * This badge is a composition of DiamondStatus specifically used for incident
  * alerts.
  */
-function AlertBadge({status, withText, isIssue, activationStatus}: Props) {
+function AlertBadge({status, withText, isIssue}: Props) {
   let statusText = t('Resolved');
   let Icon: React.ComponentType<SVGIconProps> = IconCheckmark;
   let color: ColorOrAlias = 'successText';
@@ -59,15 +48,6 @@ function AlertBadge({status, withText, isIssue, activationStatus}: Props) {
     statusText = t('Warning');
     Icon = IconExclamation;
     color = 'warningText';
-  }
-
-  if (activationStatus === ActivationStatus.WAITING) {
-    statusText = t('Ready');
-    Icon = IconEllipsis;
-    color = 'purple300';
-  } else if (activationStatus === ActivationStatus.MONITORING) {
-    statusText = t('Monitoring');
-    Icon = IconShow;
   }
 
   return (
