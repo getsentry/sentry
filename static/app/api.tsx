@@ -431,12 +431,17 @@ export class Client {
   // Check if API response is a 302 -- means project slug was renamed and user needs to be redirected
   // Handle API 302 response for project renames. This code exists, but is in practice
   // never called as we never set redirect: 'manual' on the fetch request.
-  static projectMovedMiddleware(request: Request, response: ResponseMeta) {
-    if (request.alive && response?.responseJSON?.detail?.code === PROJECT_MOVED) {
-      redirectToProject(response?.responseJSON?.detail?.extra?.slug);
+  static projectMovedMiddleware(
+    request: Request,
+    responseJSON: ResponseMeta['responseJSON']
+  ): boolean {
+    if (request.alive && responseJSON?.detail?.code === PROJECT_MOVED) {
+      // This shows a redirect modal with a countdown timer that redirects to the new project slug
+      redirectToProject(responseJSON?.detail?.extra?.slug);
+      return true;
     }
 
-    return;
+    return false;
   }
 
   // @TODO(jonasbadalic): add comments explaining what this does
@@ -565,8 +570,21 @@ export class Client {
         // determine if the request was expecting JSON or not.
         return Client.bodyParserMiddleware(requestHeaders, response);
       })
+      .then(response => {
+        if (Client.projectMovedMiddleware(request, response.responseJSON)) {
+          return {suspended: true};
+        }
+        return response;
+      })
       .then(
         body => {
+          // The user is going to be redirected to a new project, terminate the promise chain here
+          // and do not call any option callbacks. This suspends the promise and ensures a callback
+          // side effects are not triggered before the user is redirected.
+          if ('suspended' in body) {
+            return;
+          }
+
           const responseMeta: ResponseMeta = {
             status: body.status,
             statusText: body.statusText,
