@@ -11,7 +11,13 @@ from sentry.snuba.models import QuerySubscriptionDataSourceHandler, SnubaQuery
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode
-from sentry.workflow_engine.models import Action, DataCondition, DataConditionGroup, DataSource, Workflow
+from sentry.workflow_engine.models import (
+    Action,
+    DataCondition,
+    DataConditionGroup,
+    DataSource,
+    Workflow,
+)
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.data_condition_group_action import DataConditionGroupAction
 from sentry.workflow_engine.models.workflow_data_condition_group import WorkflowDataConditionGroup
