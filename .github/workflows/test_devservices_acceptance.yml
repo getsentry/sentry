@@ -16,7 +16,6 @@ concurrency:
 env:
   SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
   NODE_OPTIONS: '--max-old-space-size=4096'
-  USE_NEW_DEVSERVICES: 1
   IS_DEV: 1
   CHARTCUTERIE_CONFIG_PATH: ${{ github.workspace }}/config/chartcuterie
   SNUBA_NO_WORKERS: 1

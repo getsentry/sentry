@@ -12,7 +12,6 @@ concurrency:
 # hack for https://github.com/actions/cache/issues/810#issuecomment-1222550359
 env:
   SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
-  USE_NEW_DEVSERVICES: 1
   IS_DEV: 1
   SNUBA_NO_WORKERS: 1
 

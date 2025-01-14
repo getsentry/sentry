@@ -108,7 +108,7 @@ Then, use it to run sync this one time.
 
     FRONTEND_ONLY = os.environ.get("SENTRY_DEVENV_FRONTEND_ONLY") is not None
 
-    USE_NEW_DEVSERVICES = os.environ.get("USE_NEW_DEVSERVICES") == "1"
+    USE_OLD_DEVSERVICES = os.environ.get("USE_OLD_DEVSERVICES") == "1"
 
     from devenv.lib import node
 
@@ -264,7 +264,26 @@ Then, use it to run sync this one time.
         print("Skipping python migrations since SENTRY_DEVENV_FRONTEND_ONLY is set.")
         return 0
 
-    if USE_NEW_DEVSERVICES:
+    if USE_OLD_DEVSERVICES:
+        # Ensure new devservices is not being used, otherwise ports will conflict
+        proc.run(
+            (f"{venv_dir}/bin/devservices", "down"),
+            pathprepend=f"{reporoot}/.devenv/bin",
+            exit=True,
+        )
+        # TODO: check healthchecks for redis and postgres to short circuit this
+        proc.run(
+            (
+                f"{venv_dir}/bin/{repo}",
+                "devservices",
+                "up",
+                "redis",
+                "postgres",
+            ),
+            pathprepend=f"{reporoot}/.devenv/bin",
+            exit=True,
+        )
+    else:
         # Ensure old sentry devservices is not being used, otherwise ports will conflict
         proc.run(
             (
@@ -277,19 +296,6 @@ Then, use it to run sync this one time.
         )
         proc.run(
             (f"{venv_dir}/bin/devservices", "up", "--mode", "migrations"),
-            pathprepend=f"{reporoot}/.devenv/bin",
-            exit=True,
-        )
-    else:
-        # TODO: check healthchecks for redis and postgres to short circuit this
-        proc.run(
-            (
-                f"{venv_dir}/bin/{repo}",
-                "devservices",
-                "up",
-                "redis",
-                "postgres",
-            ),
             pathprepend=f"{reporoot}/.devenv/bin",
             exit=True,
         )
@@ -310,7 +316,7 @@ Then, use it to run sync this one time.
         return 1
 
     postgres_container = (
-        "sentry_postgres" if os.environ.get("USE_NEW_DEVSERVICES") != "1" else "sentry-postgres-1"
+        "sentry_postgres" if os.environ.get("USE_OLD_DEVSERVICES") == "1" else "sentry-postgres-1"
     )
 
     # faster prerequisite check than starting up sentry and running createuser idempotently
