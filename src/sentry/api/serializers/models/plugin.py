@@ -8,7 +8,7 @@ from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 
 # Dict with the plugin_name as the key, and enabling_feature_name as the value
-SHADOW_DEPRECATED_PLUGINS = {
+SHADOW_DEPRECATED_PLUGINS: dict[str, str] = {
     # "exampleslug": "organizations:integrations-ignore-exampleslug-deprecation"
 }
 
@@ -25,7 +25,7 @@ def is_plugin_deprecated(plugin, project: Project) -> bool:
     return is_past_deprecation_date or (
         plugin.slug in SHADOW_DEPRECATED_PLUGINS
         and not features.has(
-            SHADOW_DEPRECATED_PLUGINS.get(plugin.slug), getattr(project, "organization", None)
+            SHADOW_DEPRECATED_PLUGINS[plugin.slug], getattr(project, "organization", None)
         )
     )
 
@@ -50,7 +50,7 @@ class PluginSerializer(Serializer):
                     except NotImplementedError:
                         pass
 
-        contexts = []
+        contexts: list[str] = []
         if hasattr(obj, "get_custom_contexts"):
             contexts.extend(x.type for x in obj.get_custom_contexts() or ())
 
