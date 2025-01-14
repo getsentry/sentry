@@ -277,7 +277,7 @@ class OrganizationCodeMappingsTest(APITestCase):
         bad_integration = self.create_integration(
             organization=self.organization,
             external_id="radsfas",
-            provider="slack",
+            provider="github",
         )
         bad_repo = Repository.objects.create(
             name="another", organization_id=self.organization.id, integration_id=bad_integration.id
