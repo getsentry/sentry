@@ -79,19 +79,17 @@ function Content() {
   const handleClearSearch = useCallback(
     (searchIndex: number) => {
       const newQueries = [...queries];
-      if (typeof newQueries[searchIndex] !== undefined) {
-        delete newQueries[searchIndex];
-        browserHistory.push({
-          ...location,
-          query: {
-            ...location.query,
-            cursor: undefined,
-            query: newQueries,
-          },
-        });
-        return true;
-      }
-      return false;
+      // TODO: do we need to return false when `newQueries[searchIndex] === undefined`?
+      delete newQueries[searchIndex];
+      browserHistory.push({
+        ...location,
+        query: {
+          ...location.query,
+          cursor: undefined,
+          query: newQueries,
+        },
+      });
+      return true;
     },
     [location, queries]
   );
