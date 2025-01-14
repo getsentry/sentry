@@ -13,12 +13,11 @@ from sentry.api.bases.organization import (
 from sentry.api.serializers import serialize
 from sentry.integrations.github.integration import GitHubIntegration
 from sentry.issues.auto_source_code_config.code_mapping import (
-    CodeMapping,
     CodeMappingTreesHelper,
     FrameFilename,
-    Repo,
     create_code_mapping,
 )
+from sentry.issues.auto_source_code_config.types import CodeMapping, RepoAndBranch
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.tasks.auto_source_code_config import get_installation
@@ -69,7 +68,7 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
             )
         trees = installation.get_trees_for_org()
         trees_helper = CodeMappingTreesHelper(trees)
-        possible_code_mappings: list[dict[str, str]] = []
+        possible_code_mappings: list[CodeMapping] = []
         resp_status: int = status.HTTP_204_NO_CONTENT
         if stacktrace_filename:
             frame_filename = FrameFilename(stacktrace_filename)
@@ -123,7 +122,7 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
         code_mapping = CodeMapping(
             stacktrace_root=stack_root,
             source_path=source_root,
-            repo=Repo(name=repo_name, branch=branch),
+            repo=RepoAndBranch(name=repo_name, branch=branch),
         )
         new_code_mapping = create_code_mapping(organization_integration, project, code_mapping)
         return self.respond(

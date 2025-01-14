@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, Any
 
 from sentry_sdk import set_tag, set_user
 
-from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.db.models.fields.node import NodeData
 from sentry.integrations.github.integration import GitHubIntegration
@@ -17,11 +16,7 @@ from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionEvent,
     SCMIntegrationInteractionType,
 )
-from sentry.issues.auto_source_code_config.code_mapping import (
-    SUPPORTED_LANGUAGES,
-    CodeMapping,
-    CodeMappingTreesHelper,
-)
+from sentry.issues.auto_source_code_config.code_mapping import CodeMapping, CodeMappingTreesHelper
 from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -83,13 +78,28 @@ def process_error(error: ApiError, extra: dict[str, str]) -> None:
     )
 
 
+# XXX: To be deleted after new queue is live
 @instrumented_task(
-    name="sentry.tasks.derive_code_mappings.derive_code_mappings",  # XXX: To be renamed to auto_source_code_config
-    queue="derive_code_mappings",  # XXX: To be renamed to auto_source_code_config
+    name="sentry.tasks.derive_code_mappings.derive_code_mappings",
+    queue="derive_code_mappings",
     default_retry_delay=60 * 10,
     max_retries=3,
 )
 def derive_code_mappings(
+    project_id: int,
+    data: NodeData,
+) -> None:
+    derive_code_mappings_new(project_id, data)
+
+
+# XXX: Temporary, use the new queue when live
+@instrumented_task(
+    name="sentry.tasks.derive_code_mappings.derive_code_mappings_new",
+    queue="derive_code_mappings",
+    default_retry_delay=60 * 10,
+    max_retries=3,
+)
+def derive_code_mappings_new(
     project_id: int,
     data: NodeData,
 ) -> None:
@@ -104,16 +114,7 @@ def derive_code_mappings(
     # When you look at the performance page the user is a default column
     set_user({"username": org.slug})
     set_tag("project.slug", project.slug)
-    extra: dict[str, Any] = {
-        "organization.slug": org.slug,
-    }
-
-    if not (
-        features.has("organizations:derive-code-mappings", org)
-        and data.get("platform") in SUPPORTED_LANGUAGES
-    ):
-        logger.info("Event should not be processed.", extra=extra)
-        return
+    extra: dict[str, Any] = {"organization.slug": org.slug}
 
     stacktrace_paths: list[str] = identify_stacktrace_paths(data)
     if not stacktrace_paths:

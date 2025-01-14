@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
+from datetime import datetime
 from typing import Any, Literal, Self, TypedDict, Union, overload
 
 import sentry_sdk
@@ -29,6 +30,20 @@ from ..track_response import TrackResponseMixin
 
 # TODO(mgaeta): HACK Fix the line where _request() returns "{}".
 BaseApiResponseX = Union[BaseApiResponse, Mapping[str, Any], Response]
+
+
+class RateLimitInfo:
+    def __init__(self, info: dict[str, int]) -> None:
+        self.limit = info["limit"]
+        self.remaining = info["remaining"]
+        self.reset = info["reset"]
+        self.used = info["used"]
+
+    def next_window(self) -> str:
+        return datetime.fromtimestamp(self.reset).strftime("%H:%M:%S")
+
+    def __repr__(self) -> str:
+        return f"RateLimitInfo(limit={self.limit},rem={self.remaining},reset={self.reset})"
 
 
 class SessionSettings(TypedDict):
