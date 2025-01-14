@@ -83,6 +83,10 @@ export default function CorrelatedIssues({
 
   const {dataset, query} = rule;
 
+  if (![Dataset.METRICS, Dataset.SESSIONS, Dataset.ERRORS].includes(dataset)) {
+    return null;
+  }
+
   const queryParams = {
     start: timePeriod.start,
     end: timePeriod.end,
