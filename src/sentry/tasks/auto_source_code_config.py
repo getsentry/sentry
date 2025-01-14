@@ -84,7 +84,7 @@ def process_error(error: ApiError, extra: dict[str, str]) -> None:
 
 
 @instrumented_task(
-    name="sentry.tasks.auto_source_code_config.derive_code_mappings",
+    name="sentry.tasks.derive_code_mappings.derive_code_mappings",  # XXX: To be renamed to auto_source_code_config
     queue="derive_code_mappings",  # XXX: To be renamed to auto_source_code_config
     default_retry_delay=60 * 10,
     max_retries=3,
