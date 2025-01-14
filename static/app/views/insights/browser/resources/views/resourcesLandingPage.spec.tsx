@@ -82,7 +82,7 @@ describe('ResourcesLandingPage', function () {
         "sort": "-count",
         "statsPeriod": "10d",
       },
-      "skipAbort": undefined,
+      "cancelable": undefined,w
       "success": [Function],
     },
   ],
@@ -123,7 +123,7 @@ describe('ResourcesLandingPage', function () {
         "sort": "-time_spent_percentage()",
         "statsPeriod": "10d",
       },
-      "skipAbort": undefined,
+      "cancelable": undefined,
       "success": [Function],
     },
   ],

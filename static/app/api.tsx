@@ -86,9 +86,15 @@ function detectControlSiloPath(path: string): boolean {
 /**
  * Check if the requested method does not require CSRF tokens
  */
+
+// @TODO(jonasbadalic) The naming is confusing. We should rename this to something like `methodRequiresCSRFToken` as
+// this actually checks if the method requires the cs
+const CSRF_SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS', 'TRACE']);
 function isCSRFSafeMethod(method?: string): boolean {
-  // these HTTP methods do not require CSRF protection
-  return /^(GET|HEAD|OPTIONS|TRACE)$/.test(method ?? '');
+  if (!method) {
+    return false;
+  }
+  return CSRF_SAFE_METHODS.has(method);
 }
 
 // TODO: Need better way of identifying anonymous pages that don't trigger redirect
@@ -210,6 +216,13 @@ export interface RequestOptions extends RequestCallbackOptions {
    */
   allowAuthError?: boolean;
   /**
+   * By default, requests will be aborted anytime api.clear() is called,
+   * which is commonly used on unmounts. When cancelable is set to false, the
+   * request is opted out of this behavior. Useful for when you still
+   * want to cache a request on unmount.
+   */
+  cancelable?: boolean;
+  /**
    * Values to attach to the body of the request.
    */
   data?: any;
@@ -235,13 +248,6 @@ export interface RequestOptions extends RequestCallbackOptions {
    * Query parameters to add to the requested URL.
    */
   query?: Record<string, any>;
-  /**
-   * By default, requests will be aborted anytime api.clear() is called,
-   * which is commonly used on unmounts. When skipAbort is true, the
-   * request is opted out of this behavior. Useful for when you still
-   * want to cache a request on unmount.
-   */
-  skipAbort?: boolean;
 }
 
 export class Request {
@@ -371,7 +377,8 @@ export class Client {
     // Apply path and domain transforms for hybrid-cloud
     fullUrl = resolveHostname(fullUrl, options.host);
 
-    // Append query parameters
+    // Append query parameters. This is duplicated with line below where we check if the data is a string,
+    // in which case, we append it to the URL as query parameters and set data as undefined.
     if (params) {
       fullUrl += fullUrl.includes('?') ? `&${params}` : `?${params}`;
     }
@@ -528,11 +535,14 @@ export class Client {
     const [url, data] = Client.makeRequestUrl(this.baseUrl, path, options);
     const requestHeaders = Client.makeRequestHeaders(url, this.headers, options);
 
+    const cancelable = options.cancelable ?? true;
+
     // Feature detect AbortController
-    const abortController =
-      typeof AbortController !== 'undefined' && !options.skipAbort
+    const abortController = cancelable
+      ? typeof AbortController === 'function'
         ? new AbortController()
-        : undefined;
+        : undefined
+      : undefined;
 
     const fetchRequest = fetch(url, {
       method,

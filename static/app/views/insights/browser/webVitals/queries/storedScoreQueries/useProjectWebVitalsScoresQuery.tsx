@@ -91,7 +91,7 @@ export const useProjectWebVitalsScoresQuery = ({
       enabled,
       refetchOnWindowFocus: false,
     },
-    skipAbort: true,
+    cancelable: false,
     referrer: 'api.performance.browser.web-vitals.project-scores',
   });
 
