@@ -102,6 +102,7 @@ export type TeamInsightsEventParameters = {
     action_substatus?: string;
     assigned_suggestion_reason?: string;
     assigned_type?: string;
+    org_streamline_only?: boolean | undefined;
   };
   'issue_details.attachment_tab.screenshot_modal_deleted': {};
   'issue_details.attachment_tab.screenshot_modal_download': {};

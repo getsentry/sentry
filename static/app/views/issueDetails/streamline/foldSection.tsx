@@ -114,6 +114,7 @@ export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function Fo
         sectionKey,
         organization,
         open: !isCollapsed,
+        org_streamline_only: organization?.streamlineOnly ?? undefined,
       });
       setIsCollapsed(!isCollapsed);
     },
