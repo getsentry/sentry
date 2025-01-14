@@ -44,7 +44,7 @@ django==5.1.4
 django-crispy-forms==1.14.0
 django-csp==3.8
 django-pg-zero-downtime-migrations==0.16
-django-stubs-ext==5.1.1
+django-stubs-ext==5.1.2
 djangorestframework==3.15.2
 docker==7.1.0
 drf-spectacular==0.26.3
@@ -184,7 +184,7 @@ sentry-arroyo==2.19.9
 sentry-cli==2.16.0
 sentry-covdefaults-disable-branch-coverage==1.0.2
 sentry-devenv==1.14.2
-sentry-forked-django-stubs==5.1.1.post1
+sentry-forked-django-stubs==5.1.2.post1
 sentry-forked-djangorestframework-stubs==3.15.2.post1
 sentry-forked-email-reply-parser==0.5.12.post1
 sentry-kafka-schemas==0.1.128
