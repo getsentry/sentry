@@ -740,14 +740,12 @@ def record_integration_added(
 
     for integration_type in integration_types:
         if integration_type in task_mapping:
-            integration = OrganizationOnboardingTask.objects.filter(
+            completed_integration = OrganizationOnboardingTask.objects.filter(
                 organization_id=organization_id,
                 task=task_mapping[integration_type],
                 status=OnboardingTaskStatus.COMPLETE,
             )
-            if integration.exists():
-                continue
-            else:
+            if not completed_integration.exists():
                 OrganizationOnboardingTask.objects.create(
                     organization_id=organization_id,
                     task=task_mapping[integration_type],
