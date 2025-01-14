@@ -50,12 +50,15 @@ export default function CorrelatedIssues({
     return null;
   }
 
-  const start = openPeriod.start;
-  let end = openPeriod.end;
-  if (!end) {
-    end = moment().toISOString();
-  }
-  const getTimePeriod = (): TimePeriodType => {
+  const timePeriod = useMemo((): TimePeriodType | null => {
+    if (!openPeriod) {
+     return null
+     }
+    const start = openPeriod.start;
+	  let end = openPeriod.end;
+	  if (!end) {
+	    end = new Date().toISOString()
+	  }
     return {
       start,
       end,
@@ -71,9 +74,7 @@ export default function CorrelatedIssues({
       ),
       custom: true,
     };
-  };
-
-  const timePeriod = getTimePeriod();
+    }, [openPeriod]);
 
   if (!rule || !timePeriod) {
     return null;
