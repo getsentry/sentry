@@ -132,9 +132,9 @@ type State = {
   dashboardState: DashboardState;
   isWidgetBuilderOpen: boolean;
   modifiedDashboard: DashboardDetails | null;
-  openWidgetTemplates: boolean;
   widgetLegendState: WidgetLegendSelectionState;
   widgetLimitReached: boolean;
+  openWidgetTemplates?: boolean;
 } & WidgetViewerContextProps;
 
 export function handleUpdateDashboardSplit({
@@ -252,7 +252,7 @@ class DashboardDetail extends Component<Props, State> {
       router: this.props.router,
     }),
     isWidgetBuilderOpen: this.isRedesignedWidgetBuilder,
-    openWidgetTemplates: localStorage.getItem('showTemplates') === 'true',
+    openWidgetTemplates: undefined,
   };
 
   componentDidMount() {
@@ -846,7 +846,7 @@ class DashboardDetail extends Component<Props, State> {
 
     this.setState({
       isWidgetBuilderOpen: false,
-      openWidgetTemplates: localStorage.getItem('showTemplates') === 'true',
+      openWidgetTemplates: undefined,
     });
     router.push(
       getDashboardLocation({
@@ -1349,7 +1349,9 @@ class DashboardDetail extends Component<Props, State> {
 
                                   <WidgetBuilderV2
                                     isOpen={this.state.isWidgetBuilderOpen}
-                                    openWidgetTemplates={this.state.openWidgetTemplates}
+                                    openWidgetTemplates={
+                                      this.state.openWidgetTemplates ?? false
+                                    }
                                     setOpenWidgetTemplates={
                                       this.handleChangeWidgetBuilderView
                                     }
