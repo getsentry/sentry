@@ -3,6 +3,8 @@ import operator
 from typing import Any, TypeVar, cast
 
 from django.db import models
+from django.db.models.signals import pre_save
+from django.dispatch import receiver
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, region_silo_model, sane_repr
@@ -121,3 +123,15 @@ class DataCondition(DefaultFieldsModel):
 
         result = handler.evaluate_value(value, self.comparison)
         return self.get_condition_result() if result else None
+
+
+@receiver(pre_save, sender=DataCondition)
+def enforce_comparison_schema(sender, instance: DataCondition, **kwargs):
+    from jsonschema import ValidationError, validate
+
+    schema = condition_handler_registry.get(instance.type).comparison_json_schema()
+
+    try:
+        validate(instance.comparison, schema)
+    except ValidationError as e:
+        raise ValidationError(f"Invalid config: {e.message}")

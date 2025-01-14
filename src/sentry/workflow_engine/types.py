@@ -56,5 +56,10 @@ class DataSourceTypeHandler(Generic[T]):
 
 class DataConditionHandler(Generic[T]):
     @staticmethod
+    def comparison_json_schema() -> dict[str, Any]:
+        # TODO(cathy): raise NotImplementedError
+        return {}
+
+    @staticmethod
     def evaluate_value(value: T, comparison: Any) -> DataConditionResult:
         raise NotImplementedError

@@ -12,12 +12,28 @@ from sentry.workflow_engine.types import DataConditionHandler, WorkflowJob
 @condition_handler_registry.register(Condition.AGE_COMPARISON)
 class AgeComparisonConditionHandler(DataConditionHandler[WorkflowJob]):
     @staticmethod
+    def comparison_json_schema() -> dict[str, Any]:
+        return {
+            "type": "object",
+            "properties": {
+                "comparison_type": {
+                    "type": "string",
+                    "enum": [AgeComparisonType.OLDER, AgeComparisonType.NEWER],
+                },
+                "value": {"type": "integer", "minimum": 0},
+                "time": {"type": "string", "enum": list(timeranges.keys())},
+            },
+            "required": ["comparison_type", "value", "time"],
+            "additionalProperties": False,
+        }
+
+    @staticmethod
     def evaluate_value(job: WorkflowJob, comparison: Any) -> bool:
         event = job["event"]
         first_seen = event.group.first_seen
         current_time = timezone.now()
-        comparison_type = comparison.get("comparison_type")
-        time = comparison.get("time")
+        comparison_type = comparison["comparison_type"]
+        time = comparison["time"]
 
         if (
             not comparison_type
@@ -31,7 +47,7 @@ class AgeComparisonConditionHandler(DataConditionHandler[WorkflowJob]):
             return False
 
         try:
-            value = int(comparison.get("value"))
+            value = int(comparison["value"])
         except (TypeError, ValueError):
             return False
 
