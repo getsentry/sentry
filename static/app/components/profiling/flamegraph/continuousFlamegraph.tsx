@@ -66,11 +66,11 @@ import {
 import {formatTo} from 'sentry/utils/profiling/units/units';
 import {useDevicePixelRatio} from 'sentry/utils/useDevicePixelRatio';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
-import {
-  useContinuousProfile,
-  useContinuousProfileSegment,
-} from 'sentry/views/profiling/continuousProfileProvider';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
+import {
+  useProfiles,
+  useProfileTransaction,
+} from 'sentry/views/profiling/profilesProvider';
 
 import {FlamegraphDrawer} from './flamegraphDrawer/flamegraphDrawer';
 import {FlamegraphWarnings} from './flamegraphOverlays/FlamegraphWarnings';
@@ -246,9 +246,9 @@ export function ContinuousFlamegraph(): ReactElement {
   const devicePixelRatio = useDevicePixelRatio();
   const dispatch = useDispatchFlamegraphState();
 
-  const profiles = useContinuousProfile();
+  const profiles = useProfiles();
   const profileGroup = useProfileGroup();
-  const segment = useContinuousProfileSegment();
+  const segment = useProfileTransaction();
 
   const configSpaceQueryParam = useMemo(() => decodeConfigSpace(), []);
 

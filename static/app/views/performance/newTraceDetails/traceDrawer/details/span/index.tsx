@@ -253,7 +253,7 @@ export function SpanNodeDetails({
           <ProfilesProvider
             orgSlug={organization.slug}
             projectSlug={node.event?.projectSlug}
-            profileId={profileId || ''}
+            profileMeta={profileId || ''}
           >
             <ProfileContext.Consumer>
               {profiles => (
