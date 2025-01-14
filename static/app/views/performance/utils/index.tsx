@@ -369,11 +369,7 @@ export function getProject(
   eventData: EventData,
   projects: Project[]
 ): Project | undefined {
-  const projectSlug = (eventData?.project as string) || undefined;
-
-  if (typeof projectSlug === undefined) {
-    return undefined;
-  }
+  const projectSlug = eventData.project as string | undefined;
 
   return projects.find(currentProject => currentProject.slug === projectSlug);
 }

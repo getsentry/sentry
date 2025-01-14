@@ -87,8 +87,7 @@ export function TracesChart() {
       }
       const data = series[i]!['count()'];
       data.color = CHART_PALETTE[2][i];
-      data.seriesName =
-        `span ${i + 1}: ${queries[i] || t('All spans')}` || t('All spans');
+      data.seriesName = `span ${i + 1}: ${queries[i] || t('All spans')}`;
       allData.push(data);
     }
 
