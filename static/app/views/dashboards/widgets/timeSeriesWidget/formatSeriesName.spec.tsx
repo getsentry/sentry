@@ -20,6 +20,16 @@ describe('formatSeriesName', () => {
     });
   });
 
+  describe('versions', () => {
+    it.each([
+      ['frontend@31804d9a5f0b5e4f53055467cd258e1c', '31804d9a5f0b'],
+      ['android@5.3.1', '5.3.1'],
+      ['ios@5.3.1-rc1', '5.3.1-rc1'],
+    ])('Formats %s as %s', (name, result) => {
+      expect(formatSeriesName(name)).toEqual(result);
+    });
+  });
+
   describe('aggregates of measurements', () => {
     it.each([
       ['p75(measurements.lcp)', 'LCP'],
