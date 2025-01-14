@@ -285,8 +285,10 @@ class DeprecatedAsyncComponent<
           // Allow endpoints to fail
           // allowError can have side effects to handle the error
           if (options.allowError?.(error)) {
-            error = null;
+            this.handleError(null, [stateKey, endpoint, params, options]);
+            return;
           }
+
           this.handleError(error, [stateKey, endpoint, params, options]);
         },
       });
@@ -404,7 +406,7 @@ class DeprecatedAsyncComponent<
     if (this.shouldRenderBadRequests) {
       const badRequests = Object.values(errors)
         .filter(resp => resp?.status === 400 && resp?.responseJSON?.detail)
-        .map(resp => resp.responseJSON.detail);
+        .map(resp => resp.responseJSON?.detail);
 
       if (badRequests.length) {
         return <LoadingError message={[...new Set(badRequests)].join('\n')} />;

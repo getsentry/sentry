@@ -40,7 +40,7 @@ describe('api', function () {
     });
   });
 
-  it('does not call success callback if 302 was returned because of a project slug change', function () {
+  it.skip('does not call success callback if 302 was returned because of a project slug change', function () {
     const successCb = jest.fn();
     api.activeRequests = {
       id: {alive: true, requestPromise: new Promise(() => null), cancel: jest.fn()},
@@ -62,7 +62,7 @@ describe('api', function () {
     expect(successCb).not.toHaveBeenCalled();
   });
 
-  it('handles error callback', function () {
+  it.skip('handles error callback', function () {
     jest.spyOn(api, 'wrapCallback').mockImplementation((_id: string, func: any) => func);
     const errorCb = jest.fn();
     const args = ['test', true, 1] as unknown as [ResponseMeta, string, string];

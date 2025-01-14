@@ -86,7 +86,7 @@ function detectControlSiloPath(path: string): boolean {
 /**
  * Check if the requested method does not require CSRF tokens
  */
-function csrfSafeMethod(method?: string): boolean {
+function isCSRFSafeMethod(method?: string): boolean {
   // these HTTP methods do not require CSRF protection
   return /^(GET|HEAD|OPTIONS|TRACE)$/.test(method ?? '');
 }
@@ -158,66 +158,6 @@ export const initApiClientErrorHandling = () =>
     return true;
   });
 
-/**
- * Check if the API response says project has been renamed.  If so, redirect
- * user to new project slug
- */
-// TODO(ts): refine this type later
-export function hasProjectBeenRenamed(response: ResponseMeta) {
-  const code = response?.responseJSON?.detail?.code;
-
-  // XXX(billy): This actually will never happen because we can't intercept the 302
-  // jQuery ajax will follow the redirect by default...
-  //
-  // TODO(epurkhiser): We use fetch now, is the above comment still true?
-  // TODO(jonas): This can happen as fetch allows us to intercept the redirect by setting redirect: 'manual'
-
-  if (code !== PROJECT_MOVED) {
-    return false;
-  }
-
-  const slug = response?.responseJSON?.detail?.extra?.slug;
-  redirectToProject(slug);
-  return true;
-}
-
-function wrapCallback<T extends Function>(
-  id: string,
-  func: T,
-  cleanup: boolean,
-  activeRequests: Record<string, Request>
-) {
-  return (...args: FunctionArguments<T>) => {
-    const req = activeRequests[id];
-
-    if (!req) {
-      return undefined;
-    }
-
-    if (cleanup) {
-      delete activeRequests[id];
-    }
-
-    if (!req.alive) {
-      return undefined;
-    }
-
-    // Check if API response is a 302 -- means project slug was renamed and user
-    // needs to be redirected
-    // @ts-expect-error
-    if (hasProjectBeenRenamed(...args)) {
-      return undefined;
-    }
-
-    return func.apply(req, args);
-  };
-}
-
-type FunctionArguments<F extends Function> = F extends (...args: infer A) => any
-  ? A
-  : never;
-type FunctionCallback<Args extends any[] = any[]> = (...args: Args) => void;
-
 export type ApiResult<Data = any> = [
   data: Data,
   statusText: string | undefined,
@@ -246,21 +186,21 @@ export type ResponseMeta = {
    */
   statusText: Response['statusText'];
 };
+
 export type APIRequestMethod = 'POST' | 'GET' | 'DELETE' | 'PUT';
 export type RequestCallbackOptions = {
   /**
    * Callback for the request completing (success or error)
    */
-  complete?: FunctionCallback<[ResponseMeta, string]>;
+  complete?: (responseMeta: ResponseMeta, statusText: string) => void;
   /**
    * Callback for the request failing with an error
    */
-  // TODO(ts): Update this when sentry is mostly migrated to TS
-  error?: FunctionCallback;
+  error?: (response: ResponseMeta, statusText: string, errorThrown: string) => void;
   /**
    * Callback for the request completing successfully
    */
-  success?: FunctionCallback<[any] | [any, string, ResponseMeta]>;
+  success?: (responseData: any, statusText: string, responseMeta: ResponseMeta) => void;
 };
 
 export interface RequestOptions extends RequestCallbackOptions {
@@ -306,6 +246,10 @@ export interface RequestOptions extends RequestCallbackOptions {
 
 export class Request {
   /**
+   * The unique identifier for the request
+   */
+  id: string;
+  /**
    * Is the request still in flight
    */
   alive: boolean;
@@ -320,6 +264,8 @@ export class Request {
   aborter?: AbortController;
 
   constructor(requestPromise: Promise<Response>, aborter?: AbortController) {
+    this.id = uniqueId();
+
     this.requestPromise = requestPromise;
     this.aborter = aborter;
     this.alive = true;
@@ -332,7 +278,7 @@ export class Request {
   }
 }
 
-type ClientOptions = {
+export type ClientOptions = {
   /**
    * The base URL path to prepend to API request URIs.
    */
@@ -355,8 +301,8 @@ type ClientOptions = {
 export class Client {
   public baseUrl: string;
   public activeRequests: Record<string, Request>;
-  headers: HeadersInit;
-  credentials?: RequestCredentials;
+  public headers: HeadersInit;
+  public credentials?: RequestCredentials;
 
   static readonly JSON_HEADERS = {
     Accept: 'application/json; charset=utf-8',
@@ -399,9 +345,14 @@ export class Client {
   }
 
   /**
-   * Construct a full request URL
+   * Construct a full request URL and ensures that the data for GET requests is stringified.
+   * Warning: This function mutates the options object to clear the data for GET requests.
    */
-  public static buildRequestUrl(baseUrl: string, path: string, options: RequestOptions) {
+  public static makeRequestUrl(
+    baseUrl: string,
+    path: string,
+    options: RequestOptions
+  ): [string, any] {
     let params: string;
     try {
       params = qs.stringify(options.query ?? []);
@@ -425,7 +376,145 @@ export class Client {
       fullUrl += fullUrl.includes('?') ? `&${params}` : `?${params}`;
     }
 
-    return fullUrl;
+    if (
+      options.data !== undefined &&
+      options.method !== 'GET' &&
+      !(options.data instanceof FormData)
+    ) {
+      options.data = JSON.stringify(options.data);
+    }
+
+    // TODO(epurkhiser): Mimicking the old jQuery API, data could be a string /
+    // object for GET requests. jQuery just sticks it onto the URL as query
+    // parameters
+    if (options.method === 'GET' && options.data) {
+      const queryString =
+        typeof options.data === 'string' ? options.data : qs.stringify(options.data);
+
+      if (queryString.length > 0) {
+        fullUrl = fullUrl + (fullUrl.includes('?') ? '&' : '?') + queryString;
+      }
+
+      // The data is being sent as query parameters, so we don't need to send it in the body.
+      options.data = undefined;
+    }
+
+    return [fullUrl, options.data];
+  }
+
+  public static makeRequestHeaders(
+    url: string,
+    headers: HeadersInit,
+    options: RequestOptions
+  ): Headers {
+    const requestHeaders = new Headers({...headers, ...options.headers});
+
+    // Do not set the X-CSRFToken header when making a request outside of the
+    // current domain. Because we use subdomains we loosely compare origins
+    if (
+      !isCSRFSafeMethod(options.method) &&
+      Client.isSimilarOrigin(url, window.location.origin)
+    ) {
+      requestHeaders.set('X-CSRFToken', getCsrfToken());
+    }
+
+    return requestHeaders;
+  }
+
+  // Check if API response is a 302 -- means project slug was renamed and user needs to be redirected
+  // Handle API 302 response for project renames. This code exists, but is in practice
+  // never called as we never set redirect: 'manual' on the fetch request.
+  static projectMovedMiddleware(request: Request, response: ResponseMeta) {
+    if (request.alive && response?.responseJSON?.detail?.code === PROJECT_MOVED) {
+      redirectToProject(response?.responseJSON?.detail?.extra?.slug);
+    }
+
+    return;
+  }
+
+  // @TODO(jonasbadalic): add comments explaining what this does
+  static async bodyParserMiddleware(
+    requestHeaders: Headers,
+    response: Response
+  ): Promise<{
+    errorReason: string;
+    isResponseJSON: boolean;
+    ok: boolean;
+    response: Response;
+    responseJSON: ResponseMeta['responseJSON'];
+    responseText: ResponseMeta['responseText'];
+    status: ResponseMeta['status'];
+    statusText: ResponseMeta['statusText'];
+    twoHundredErrorReason: string | undefined;
+  }> {
+    let {ok} = response;
+    const {status, statusText} = response;
+
+    let errorReason = 'Request not OK'; // the default error reason
+    let twoHundredErrorReason: string | undefined;
+
+    // The Response's body can only be resolved/used at most once.
+    // So we clone the response so we can resolve the body content as text content.
+    // Response objects need to be cloned before its body can be used.
+    let responseJSON: any;
+    let responseText: any;
+
+    // Attempt to extract text out of the response, no matter the status
+    try {
+      responseText = await response.text();
+    } catch (error) {
+      twoHundredErrorReason = 'Failed awaiting response.text()';
+      ok = false;
+      if (error.name === 'AbortError') {
+        errorReason = 'Request was aborted';
+      } else {
+        errorReason = error.toString();
+      }
+    }
+
+    const isResponseJSON =
+      response.headers.get('content-type')?.includes('json') ?? false;
+    const requestIsExpectingJSON =
+      requestHeaders.get('Accept') === Client.JSON_HEADERS.Accept;
+
+    if (status !== 204 && !(status >= 300 && status < 400)) {
+      try {
+        responseJSON = JSON.parse(responseText);
+      } catch (error) {
+        twoHundredErrorReason = 'Failed trying to parse responseText';
+        if (error.name === 'AbortError') {
+          ok = false;
+          errorReason = 'Request was aborted';
+        } else if (isResponseJSON && error instanceof SyntaxError) {
+          // If the MIME type is `application/json` but decoding failed,
+          // this should be an error.
+          ok = false;
+          errorReason = 'JSON parse error';
+        } else if (
+          // Empty responses from POST 201 requests are valid
+          responseText?.length > 0 &&
+          requestIsExpectingJSON &&
+          error instanceof SyntaxError
+        ) {
+          // Was expecting json but was returned something else. Possibly HTML.
+          // Ideally this would not be a 200, but we should reject the promise
+          ok = false;
+          errorReason = 'JSON parse error. Possibly returned HTML';
+        }
+      }
+    }
+
+    return {
+      status,
+      statusText,
+      isResponseJSON,
+      response,
+      responseJSON,
+      responseText,
+      twoHundredErrorReason,
+      errorReason,
+      ok,
+    };
   }
 
   /**
@@ -436,168 +525,81 @@ export class Client {
   request(path: string, options: Readonly<RequestOptions> = {}): Request {
     const method = options.method || (options.data ? 'POST' : 'GET');
 
-    let url = Client.buildRequestUrl(this.baseUrl, path, options);
-    let data = options.data;
+    const [url, data] = Client.makeRequestUrl(this.baseUrl, path, options);
+    const requestHeaders = Client.makeRequestHeaders(url, this.headers, options);
 
-    if (data !== undefined && method !== 'GET' && !(data instanceof FormData)) {
-      data = JSON.stringify(data);
-    }
-
-    // TODO(epurkhiser): Mimicking the old jQuery API, data could be a string /
-    // object for GET requests. jQuery just sticks it onto the URL as query
-    // parameters
-    if (method === 'GET' && data) {
-      const queryString = typeof data === 'string' ? data : qs.stringify(data);
-
-      if (queryString.length > 0) {
-        url = url + (url.includes('?') ? '&' : '?') + queryString;
-      }
-    }
-
-    const id = uniqueId();
-    const startMarker = `api-request-start-${id}`;
-
-    metric.mark({name: startMarker});
-
-    /**
-     * Called when the request completes with a 2xx status
-     */
-    const successHandler = (
-      resp: ResponseMeta,
-      textStatus: string,
-      responseData: any
-    ) => {
-      metric.measure({
-        name: 'app.api.request-success',
-        start: startMarker,
-        data: {status: resp?.status},
-      });
-      if (options.success !== undefined) {
-        wrapCallback(
-          id,
-          options.success,
-          false,
-          this.activeRequests
-        )(responseData, textStatus, resp);
-      }
-    };
-
-    // AbortController is optional, though most browser should support it.
-    const aborter =
+    // Feature detect AbortController
+    const abortController =
       typeof AbortController !== 'undefined' && !options.skipAbort
         ? new AbortController()
         : undefined;
 
-    const requestHeaders = new Headers({...this.headers, ...options.headers});
-
-    // Do not set the X-CSRFToken header when making a request outside of the
-    // current domain. Because we use subdomains we loosely compare origins
-    if (!csrfSafeMethod(method) && Client.isSimilarOrigin(url, window.location.origin)) {
-      requestHeaders.set('X-CSRFToken', getCsrfToken());
-    }
-
     const fetchRequest = fetch(url, {
       method,
-      // GET requests may not have a body
-      body: method === 'GET' ? undefined : data,
+      body: data,
       headers: requestHeaders,
       credentials: this.credentials,
-      signal: aborter?.signal,
-    })
+      signal: abortController?.signal,
+    });
+
+    const request = new Request(fetchRequest, abortController);
+    this.activeRequests[request.id] = request;
+
+    const startMarker = `api-request-start-${request.id}`;
+    metric.mark({name: startMarker});
+
+    fetchRequest
+      .then(response => {
+        // The body parser middleware needs the request headers to be able to
+        // determine if the request was expecting JSON or not.
+        return Client.bodyParserMiddleware(requestHeaders, response);
+      })
       .then(
-        async response => {
-          // The Response's body can only be resolved/used at most once.
-          // So we clone the response so we can resolve the body content as text content.
-          // Response objects need to be cloned before its body can be used.
-          let responseJSON: any;
-          let responseText: any;
-
-          const {status, statusText} = response;
-          let {ok} = response;
-
-          let errorReason = 'Request not OK'; // the default error reason
-          let twoHundredErrorReason: string | undefined;
-
-          // Try to get text out of the response no matter the status
-          try {
-            responseText = await response.text();
-          } catch (error) {
-            twoHundredErrorReason = 'Failed awaiting response.text()';
-            ok = false;
-            if (error.name === 'AbortError') {
-              errorReason = 'Request was aborted';
-            } else {
-              errorReason = error.toString();
-            }
-          }
-
-          const responseContentType = response.headers.get('content-type');
-          const isResponseJSON = responseContentType?.includes('json');
-          const wasExpectingJson =
-            requestHeaders.get('Accept') === Client.JSON_HEADERS.Accept;
-
-          const isStatus3XX = status >= 300 && status < 400;
-          if (status !== 204 && !isStatus3XX) {
-            try {
-              responseJSON = JSON.parse(responseText);
-            } catch (error) {
-              twoHundredErrorReason = 'Failed trying to parse responseText';
-              if (error.name === 'AbortError') {
-                ok = false;
-                errorReason = 'Request was aborted';
-              } else if (isResponseJSON && error instanceof SyntaxError) {
-                // If the MIME type is `application/json` but decoding failed,
-                // this should be an error.
-                ok = false;
-                errorReason = 'JSON parse error';
-              } else if (
-                // Empty responses from POST 201 requests are valid
-                responseText?.length > 0 &&
-                wasExpectingJson &&
-                error instanceof SyntaxError
-              ) {
-                // Was expecting json but was returned something else. Possibly HTML.
-                // Ideally this would not be a 200, but we should reject the promise
-                ok = false;
-                errorReason = 'JSON parse error. Possibly returned HTML';
-              }
-            }
-          }
-
+        body => {
           const responseMeta: ResponseMeta = {
-            status,
-            statusText,
-            responseJSON,
-            responseText,
-            getResponseHeader: (header: string) => response.headers.get(header),
+            status: body.status,
+            statusText: body.statusText,
+            responseJSON: body.responseJSON,
+            responseText: body.responseText,
+            getResponseHeader: (header: string) => body.response.headers.get(header),
           };
 
-          // Respect the response content-type header
-          const responseData = isResponseJSON ? responseJSON : responseText;
-
-          if (ok) {
-            successHandler(responseMeta, statusText, responseData);
-            return [responseData, statusText, responseMeta];
+          if (body.ok) {
+            metric.measure({
+              name: 'app.api.request-success',
+              start: startMarker,
+              data: {status: responseMeta?.status},
+            });
+            if (options.success !== undefined) {
+              options.success(
+                // Respect the response content-type header
+                body.isResponseJSON ? body.responseJSON : body.responseText,
+                body.statusText,
+                responseMeta
+              );
+            }
           }
           // There's no reason we should be here with a 200 response, but we get
           // tons of events from this codepath with a 200 status nonetheless.
           // Until we know why, let's do what is essentially some very fancy print debugging.
-          if (status === 200 && responseText) {
+          if (body.status === 200 && body.responseText) {
             const parameterizedPath = sanitizePath(path);
             const message = '200 treated as error';
 
             Sentry.withScope(scope => {
-              scope.setTags({endpoint: `${method} ${parameterizedPath}`, errorReason});
+              scope.setTags({
+                endpoint: `${method} ${parameterizedPath}`,
+                errorReason: body.errorReason,
+              });
               scope.setExtras({
-                twoHundredErrorReason,
-                responseJSON,
-                responseText,
-                responseContentType,
-                errorReason,
+                twoHundredErrorReason: body.twoHundredErrorReason,
+                responseJSON: body.responseJSON,
+                responseText: body.responseText,
+                responseContentType: body.response.headers.get('content-type'),
+                errorReason: body.errorReason,
               });
               // Make sure all of these errors group, so we don't produce a bunch of noise
               scope.setFingerprint([message]);
-
               Sentry.captureException(
                 new Error(`${message}: ${method} ${parameterizedPath}`)
               );
@@ -617,24 +619,16 @@ export class Client {
             });
 
             this.handleRequestError(
-              {id, path, requestOptions: options},
+              {id: request.id, path, requestOptions: options},
               responseMeta,
-              statusText,
-              errorReason
+              body.statusText,
+              body.errorReason
             );
-            return [responseData, statusText, responseMeta];
           }
 
-          // Call complete callback
           if (options.complete) {
-            wrapCallback(
-              id,
-              options.complete,
-              true,
-              this.activeRequests
-            )(responseMeta, statusText);
+            options.complete(responseMeta, body.statusText);
           }
-          return [responseData, statusText, responseMeta];
         },
         () => {
           // Ignore failed fetch calls or errors in the fetch request itself (e.g. cancelled requests)
@@ -645,10 +639,10 @@ export class Client {
         // eslint-disable-next-line no-console
         console.error(error);
         Sentry.captureException(error);
+      })
+      .finally(() => {
+        delete this.activeRequests[request.id];
       });
-
-    const request = new Request(fetchRequest, aborter);
-    this.activeRequests[id] = request;
 
     return request;
   }
@@ -673,16 +667,9 @@ export class Client {
         ...options,
         preservedError,
         error: (resp: ResponseMeta) => {
-          const errorObjectToUse = new RequestError(
-            options.method,
-            path,
-            preservedError,
-            resp
-          );
-
           // Although `this.request` logs all error responses, this error object can
           // potentially be logged by Sentry's unhandled rejection handler
-          reject(errorObjectToUse);
+          reject(new RequestError(options.method, path, preservedError, resp));
         },
         success: (data: any, textStatus?: string, resp?: ResponseMeta) => {
           if (includeAllArgs) {
@@ -717,14 +704,20 @@ export class Client {
         retryRequest: async () => {
           try {
             const data = await this.requestPromise(options.path, options.requestOptions);
-            options.requestOptions.success?.(data);
+            if (options.requestOptions.success) {
+              options.requestOptions.success(data, textStatus, response);
+            }
             didSuccessfullyRetry = true;
           } catch (err) {
-            options.requestOptions.error?.(err);
+            options.requestOptions.error?.(response, textStatus, err);
           }
         },
         onClose: () => {
-          if (!didSuccessfullyRetry && options.requestOptions.error) {
+          if (didSuccessfullyRetry) {
+            return;
+          }
+
+          if (options.requestOptions.error) {
             options.requestOptions.error(response, textStatus, errorThrown);
           }
         },
@@ -734,12 +727,7 @@ export class Client {
 
     // Call normal error callback
     if (options.requestOptions.error) {
-      wrapCallback(
-        options.id,
-        options.requestOptions.error,
-        false,
-        this.activeRequests
-      )(response, textStatus, errorThrown);
+      options.requestOptions.error(response, textStatus, errorThrown);
     }
   }
 
@@ -748,5 +736,6 @@ export class Client {
    */
   clear() {
     Object.values(this.activeRequests).forEach(r => r.cancel());
+    this.activeRequests = {};
   }
 }

@@ -5,9 +5,7 @@ import type * as ApiNamespace from 'sentry/api';
 const RealApi: typeof ApiNamespace = jest.requireActual('sentry/api');
 
 export class Request {}
-
 export const initApiClientErrorHandling = RealApi.initApiClientErrorHandling;
-export const hasProjectBeenRenamed = RealApi.hasProjectBeenRenamed;
 
 const respond = (asyncDelay: AsyncDelay, fn?: Function, ...args: any[]): void => {
   if (!fn) {
@@ -21,8 +19,6 @@ const respond = (asyncDelay: AsyncDelay, fn?: Function, ...args: any[]): void =>
 
   fn(...args);
 };
-
-type FunctionCallback<Args extends any[] = any[]> = (...args: Args) => void;
 
 /**
  * Callables for matching requests based on arbitrary conditions.
@@ -186,22 +182,6 @@ class Client implements ApiNamespace.Client {
    */
   clear() {
     Object.values(this.activeRequests).forEach(r => r.cancel());
-  }
-
-  wrapCallback<T extends any[]>(
-    _id: string,
-    func: FunctionCallback<T> | undefined,
-    _cleanup: boolean = false
-  ) {
-    const asyncDelay = Client.asyncDelay;
-
-    return (...args: T) => {
-      // @ts-expect-error
-      if (RealApi.hasProjectBeenRenamed(...args)) {
-        return;
-      }
-      respond(asyncDelay, func, ...args);
-    };
   }
 
   requestPromise(

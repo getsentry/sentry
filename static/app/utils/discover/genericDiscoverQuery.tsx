@@ -3,8 +3,7 @@ import {useQuery} from '@tanstack/react-query';
 import type {Location} from 'history';
 
 import type {EventQuery} from 'sentry/actionCreators/events';
-import type {ResponseMeta} from 'sentry/api';
-import {Client} from 'sentry/api';
+import {type ApiRequestResult, Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import type {ImmutableEventView, LocationQuery} from 'sentry/utils/discover/eventView';
 import type EventView from 'sentry/utils/discover/eventView';
@@ -87,7 +86,7 @@ type BaseDiscoverQueryProps = {
    */
   noPagination?: boolean;
   options?: Omit<
-    UseQueryOptions<[any, string | undefined, ResponseMeta<any> | undefined], QueryError>,
+    UseQueryOptions<ApiRequestResult<any>, QueryError>,
     'queryKey' | 'queryFn'
   >;
   /**
@@ -347,7 +346,7 @@ export async function doDiscoverQuery<T>(
     retry?: RetryOptions;
     skipAbort?: boolean;
   } = {}
-): Promise<[T, string | undefined, ResponseMeta<T> | undefined]> {
+): Promise<ApiRequestResult<T>> {
   const {queryBatching, retry, skipAbort} = options;
   if (queryBatching?.batchRequest) {
     return queryBatching.batchRequest(api, url, {
@@ -426,7 +425,7 @@ export function useGenericDiscoverQuery<T, P>(props: Props<T, P>) {
   const url = `/organizations/${orgSlug}/${route}/`;
   const apiPayload = getPayload<T, P>(props);
 
-  const res = useQuery<[T, string | undefined, ResponseMeta<T> | undefined], QueryError>({
+  const res = useQuery<ApiRequestResult<T>, QueryError>({
     queryKey: [route, apiPayload],
     queryFn: ({signal: _signal}) =>
       doDiscoverQuery<T>(api, url, apiPayload, {
