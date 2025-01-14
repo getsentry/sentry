@@ -168,8 +168,8 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
         assert second_task is not None
 
-        assert second_task.project.platform == "python"
-        assert task.project.platform != second_task.project.platform
+        assert second_task.project.get("platform") == "python"
+        assert task.project.get("platform") != second_task.project.get("platform")
 
     def test_first_transaction_received(self):
         project = self.create_project()
