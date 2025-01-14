@@ -532,7 +532,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
                       autoHeightResize={shouldResize ?? true}
                       noPadding={noPadding}
                     >
-                      <div style={{flex: 1}}>
+                      <RenderedChartContainer>
                         {getDynamicText({
                           value: this.chartComponent({
                             ...zoomRenderProps,
@@ -546,7 +546,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
                           }),
                           fixed: <Placeholder height="200px" testId="skeleton-ui" />,
                         })}
-                      </div>
+                      </RenderedChartContainer>
 
                       {showConfidenceWarning && confidence && (
                         <ConfidenceWarning
@@ -563,7 +563,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
             <TransitionChart loading={loading} reloading={loading}>
               <LoadingScreen loading={loading} />
               <ChartWrapper autoHeightResize={shouldResize ?? true} noPadding={noPadding}>
-                <div style={{flex: 1}}>
+                <RenderedChartContainer>
                   {getDynamicText({
                     value: this.chartComponent({
                       ...zoomRenderProps,
@@ -577,7 +577,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
                     }),
                     fixed: <Placeholder height="200px" testId="skeleton-ui" />,
                   })}
-                </div>
+                </RenderedChartContainer>
                 {showConfidenceWarning && confidence && (
                   <ConfidenceWarning
                     query={widget.queries[0]?.conditions ?? ''}
@@ -664,4 +664,8 @@ const StyledSimpleTableChart = styled(SimpleTableChart)`
 
 const StyledErrorPanel = styled(ErrorPanel)`
   padding: ${space(2)};
+`;
+
+const RenderedChartContainer = styled('div')`
+  flex: 1;
 `;
