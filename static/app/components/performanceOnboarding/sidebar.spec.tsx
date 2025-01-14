@@ -56,6 +56,14 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
       body: [broadcast],
     });
 
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/onboarding-tasks/`,
+      method: 'GET',
+      body: {
+        onboardingTasks: [],
+      },
+    });
+
     const statusPageData: StatuspageIncident[] = [];
     jest
       .spyOn(incidentsHook, 'useServiceIncidents')
@@ -68,10 +76,11 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('displays boost performance card', async function () {
+  it('displays "Set up Tracing" card', async function () {
     ProjectsStore.loadInitialData([
       ProjectFixture({platform: 'javascript-react', firstTransactionEvent: false}),
     ]);
+
     renderSidebar({
       organization: {
         ...organization,
@@ -79,7 +88,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
       },
     });
 
-    const quickStart = await screen.findByText('Quick Start');
+    const quickStart = await screen.findByText('Onboarding');
 
     expect(quickStart).toBeInTheDocument();
     await userEvent.click(quickStart);
@@ -88,11 +97,12 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
     expect(sidebar).toBeInTheDocument();
 
     expect(screen.getByText('Capture your first error')).toBeInTheDocument();
-    expect(screen.getByText('Level Up')).toBeInTheDocument();
-    expect(screen.getByText('Boost performance')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByText('Beyond the Basics'));
+    expect(await screen.findByText('Set up Tracing')).toBeInTheDocument();
 
     await userEvent.click(quickStart);
-    expect(screen.queryByText('Boost performance')).not.toBeInTheDocument();
+    expect(screen.queryByText('Set up Tracing')).not.toBeInTheDocument();
   });
 
   it('checklist feature supported by platform but disabled', async function () {
@@ -108,7 +118,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
 
     window.open = jest.fn().mockImplementation(() => true);
 
-    const quickStart = await screen.findByText('Quick Start');
+    const quickStart = await screen.findByText('Onboarding');
 
     expect(quickStart).toBeInTheDocument();
     await userEvent.click(quickStart);
@@ -117,11 +127,11 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
     expect(sidebar).toBeInTheDocument();
 
     expect(screen.getByText('Capture your first error')).toBeInTheDocument();
-    expect(screen.getByText('Level Up')).toBeInTheDocument();
-    expect(screen.getByText('Boost performance')).toBeInTheDocument();
-    const performanceCard = screen.getByTestId('setup_transactions');
 
-    await userEvent.click(performanceCard);
+    await userEvent.click(screen.getByText('Beyond the Basics'));
+    expect(await screen.findByText('Set up Tracing')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByText('Set up Tracing'));
     expect(window.open).toHaveBeenCalledWith(
       'https://docs.sentry.io/product/performance/getting-started/',
       '_blank'
@@ -140,7 +150,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
     });
     window.open = jest.fn().mockImplementation(() => true);
 
-    const quickStart = await screen.findByText('Quick Start');
+    const quickStart = await screen.findByText('Onboarding');
 
     expect(quickStart).toBeInTheDocument();
     await userEvent.click(quickStart);
@@ -149,11 +159,11 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
     expect(sidebar).toBeInTheDocument();
 
     expect(screen.getByText('Capture your first error')).toBeInTheDocument();
-    expect(screen.getByText('Level Up')).toBeInTheDocument();
-    expect(screen.getByText('Boost performance')).toBeInTheDocument();
-    const performanceCard = screen.getByTestId('setup_transactions');
 
-    await userEvent.click(performanceCard);
+    await userEvent.click(screen.getByText('Beyond the Basics'));
+    expect(await screen.findByText('Set up Tracing')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByText('Set up Tracing'));
     expect(window.open).not.toHaveBeenCalled();
     expect(router.push).toHaveBeenCalledWith(
       '/organizations/org-slug/performance/?project=2#performance-sidequest'
@@ -172,7 +182,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
     });
     window.open = jest.fn().mockImplementation(() => true);
 
-    const quickStart = await screen.findByText('Quick Start');
+    const quickStart = await screen.findByText('Onboarding');
 
     expect(quickStart).toBeInTheDocument();
     await userEvent.click(quickStart);
@@ -181,11 +191,10 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
     expect(sidebar).toBeInTheDocument();
 
     expect(screen.getByText('Capture your first error')).toBeInTheDocument();
-    expect(screen.getByText('Level Up')).toBeInTheDocument();
-    expect(screen.getByText('Boost performance')).toBeInTheDocument();
-    const performanceCard = screen.getByTestId('setup_transactions');
+    await userEvent.click(screen.getByText('Beyond the Basics'));
+    expect(await screen.findByText('Set up Tracing')).toBeInTheDocument();
 
-    await userEvent.click(performanceCard);
+    await userEvent.click(screen.getByText('Set up Tracing'));
     expect(window.open).not.toHaveBeenCalled();
     expect(router.push).toHaveBeenCalledWith(
       '/organizations/org-slug/performance/?project=2#performance-sidequest'
@@ -207,7 +216,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
 
     window.open = jest.fn().mockImplementation(() => true);
 
-    const quickStart = await screen.findByText('Quick Start');
+    const quickStart = await screen.findByText('Onboarding');
 
     expect(quickStart).toBeInTheDocument();
     await userEvent.click(quickStart);
@@ -216,8 +225,8 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
     expect(sidebar).toBeInTheDocument();
 
     expect(screen.getByText('Capture your first error')).toBeInTheDocument();
-    expect(screen.getByText('Level Up')).toBeInTheDocument();
-    expect(screen.queryByText('Boost performance')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByText('Beyond the Basics'));
+    expect(screen.queryByText('Set up Tracing')).not.toBeInTheDocument();
   });
 
   it('displays checklist', async function () {
