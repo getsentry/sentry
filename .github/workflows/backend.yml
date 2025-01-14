@@ -56,9 +56,10 @@ jobs:
 
       - name: Setup sentry python env
         # TODO(hubertdeng): Rename to setup-sentry when all repos are no longer using ./.github/actions/setup-sentry
-        uses: ./.github/actions/setup-sentry-new-devservices
+        uses: ./.github/actions/setup-sentry
         id: setup
         with:
+          use-new-devservices: true
           mode: default
 
       - name: Run API docs tests
@@ -100,9 +101,10 @@ jobs:
 
       - name: Setup sentry env
         # TODO(hubertdeng): Rename to setup-sentry when all repos are no longer using ./.github/actions/setup-sentry
-        uses: ./.github/actions/setup-sentry-new-devservices
+        uses: ./.github/actions/setup-sentry
         id: setup
         with:
+          use-new-devservices: true
           mode: backend-ci
 
       - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
@@ -148,9 +150,10 @@ jobs:
 
       - name: Setup sentry env
         # TODO(hubertdeng): Rename to setup-sentry when all repos are no longer using ./.github/actions/setup-sentry
-        uses: ./.github/actions/setup-sentry-new-devservices
+        uses: ./.github/actions/setup-sentry
         id: setup
         with:
+          use-new-devservices: true
           mode: default
 
       - name: run tests
@@ -184,9 +187,10 @@ jobs:
 
       - name: Setup sentry env
         # TODO(hubertdeng): Rename to setup-sentry when all repos are no longer using ./.github/actions/setup-sentry
-        uses: ./.github/actions/setup-sentry-new-devservices
+        uses: ./.github/actions/setup-sentry
         id: setup
         with:
+          use-new-devservices: true
           mode: migrations
 
       - name: Run test
@@ -254,9 +258,10 @@ jobs:
 
       - name: Setup sentry env
         # TODO(hubertdeng): Rename to setup-sentry when all repos are no longer using ./.github/actions/setup-sentry
-        uses: ./.github/actions/setup-sentry-new-devservices
+        uses: ./.github/actions/setup-sentry
         id: setup
         with:
+          use-new-devservices: true
           mode: migrations
 
       - name: Migration & lockfile checks
@@ -284,9 +289,10 @@ jobs:
 
       - name: Setup sentry env
         # TODO(hubertdeng): Rename to setup-sentry when all repos are no longer using ./.github/actions/setup-sentry
-        uses: ./.github/actions/setup-sentry-new-devservices
+        uses: ./.github/actions/setup-sentry
         id: setup
         with:
+          use-new-devservices: true
           mode: migrations
 
       - name: Run test

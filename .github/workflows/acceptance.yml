@@ -115,9 +115,10 @@ jobs:
 
       - name: Setup sentry env
         # TODO(hubertdeng): Rename to setup-sentry when all repos are no longer using ./.github/actions/setup-sentry
-        uses: ./.github/actions/setup-sentry-new-devservices
+        uses: ./.github/actions/setup-sentry
         id: setup
         with:
+          use-new-devservices: true
           mode: acceptance-ci
 
       - name: Run acceptance tests (#${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
