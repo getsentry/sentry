@@ -12,7 +12,7 @@ asgiref==3.8.1
 attrs==24.2.0
 avalara==20.9.0
 beautifulsoup4==4.7.1
-billiard==4.2.0
+billiard==4.2.1
 boto3==1.34.128
 botocore==1.34.128
 brotli==1.1.0
