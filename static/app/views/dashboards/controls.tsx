@@ -7,6 +7,7 @@ import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
+import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import {Hovercard} from 'sentry/components/hovercard';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -159,6 +160,19 @@ function Controls({
     dashboard.createdBy
   );
 
+  const addWidgetDropdownItems: MenuItemProps[] = [
+    {
+      key: 'from-widget-library',
+      label: t('From Widget Library'),
+      onAction: () => {},
+    },
+    {
+      key: 'create-custom-widget',
+      label: t('Create Custom Widget'),
+      onAction: () => {},
+    },
+  ];
+
   return (
     <StyledButtonBar gap={1} key="controls">
       <FeedbackWidgetButton />
@@ -247,6 +261,22 @@ function Controls({
                     priority="primary"
                     data-test-id="add-widget-library"
                     disabled={widgetLimitReached}
+                  />
+                ) : organization.features.includes(
+                    'dashboards-widget-builder-redesign'
+                  ) ? (
+                  <DropdownMenu
+                    items={addWidgetDropdownItems}
+                    isDisabled={widgetLimitReached || !hasEditAccess}
+                    triggerLabel={t('Add Widget')}
+                    triggerProps={{
+                      'aria-label': t('Widget actions'),
+                      size: 'sm',
+                      showChevron: true,
+                      icon: <IconAdd isCircled size="sm" />,
+                      priority: 'primary',
+                    }}
+                    position="bottom-end"
                   />
                 ) : (
                   <Button

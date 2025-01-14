@@ -734,6 +734,20 @@ class DashboardDetail extends Component<Props, State> {
     );
   };
 
+  // onAddWidgetFromWidgetLibrary = (dataset: DataSet) => {
+  //   this.setState({
+  //     openWidgetTemplates: true,
+  //   });
+  //   this.onAddWidget(dataset);
+  // }
+
+  // onAddCustomWidget = (dataset: DataSet) => {
+  //   this.setState({
+  //     openWidgetTemplates: false,
+  //   });
+  //   this.onAddWidget(dataset);
+  // };
+
   onEditWidget = (widget: Widget) => {
     const {router, organization, params, location, dashboard} = this.props;
     const {modifiedDashboard} = this.state;
