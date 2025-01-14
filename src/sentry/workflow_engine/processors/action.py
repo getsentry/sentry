@@ -12,8 +12,8 @@ from sentry.workflow_engine.processors.data_condition_group import evaluate_cond
 from sentry.workflow_engine.types import WorkflowJob
 
 
-def get_action_statuses(now: datetime, actions: BaseQuerySet[Action], group: Group):
-    # filter out actions that have recently fired for the Group according to workflow frequency
+def get_action_last_updated_statuses(now: datetime, actions: BaseQuerySet[Action], group: Group):
+    # Annotate the actions with the amount of time since the last update
     statuses = ActionGroupStatus.objects.filter(group=group, action__in=actions)
 
     check_workflow_frequency = Cast(
@@ -52,7 +52,7 @@ def filter_recently_fired_workflow_actions(
     actions: BaseQuerySet[Action], group: Group
 ) -> BaseQuerySet[Action]:
     now = timezone.now()
-    statuses = get_action_statuses(now, actions, group)
+    statuses = get_action_last_updated_statuses(now, actions, group)
 
     actions_without_statuses = actions.exclude(id__in=statuses.values_list("action_id", flat=True))
     actions_to_include = set(
