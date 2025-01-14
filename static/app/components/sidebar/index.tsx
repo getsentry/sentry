@@ -459,6 +459,13 @@ function Sidebar() {
       >
         <SidebarItem
           {...sidebarItemProps}
+          label={t('Analytics')}
+          to={`/organizations/${organization.slug}/${DOMAIN_VIEW_BASE_URL}/analytics/`}
+          id="analytics"
+          icon={<SubitemDot collapsed />}
+        />
+        <SidebarItem
+          {...sidebarItemProps}
           label={FRONTEND_SIDEBAR_LABEL}
           to={`/organizations/${organization.slug}/${DOMAIN_VIEW_BASE_URL}/${FRONTEND_LANDING_SUB_PATH}/`}
           id="performance-domains-web"

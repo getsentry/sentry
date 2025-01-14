@@ -176,14 +176,13 @@ const TagHeading = styled('h5')`
   color: ${p => p.theme.linkColor};
 `;
 
+const TagItem = styled('div')`
+  padding: 0;
+`;
 const UnstyledUnorderedList = styled('ul')`
   list-style: none;
   padding-left: 0;
   margin-bottom: 0;
-`;
-
-const TagItem = styled('div')`
-  padding: 0;
 `;
 
 const TagBarBackground = styled('div')<{widthPercent: string}>`

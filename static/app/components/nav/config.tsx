@@ -130,6 +130,10 @@ export function createNavConfig({organization}: {organization: Organization}): N
         feature: {features: ['performance-view']},
         submenu: [
           {
+            label: t('Analytics'),
+            to: `/${prefix}/${DOMAIN_VIEW_BASE_URL}/analytics/`,
+          },
+          {
             label: FRONTEND_SIDEBAR_LABEL,
             to: `/${prefix}/${DOMAIN_VIEW_BASE_URL}/${FRONTEND_LANDING_SUB_PATH}/`,
           },

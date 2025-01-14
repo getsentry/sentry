@@ -1785,6 +1785,11 @@ function buildRoutes() {
 
   const domainViewRoutes = (
     <Route path={`/${DOMAIN_VIEW_BASE_URL}/`} withOrgPath>
+      <Route path="analytics/">
+        <IndexRoute
+          component={make(() => import('sentry/views/insights/pages/analytics'))}
+        />
+      </Route>
       <Route path={`${FRONTEND_LANDING_SUB_PATH}/`}>
         <IndexRoute
           component={make(
