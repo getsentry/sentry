@@ -17,20 +17,22 @@ class BaseActionTranslator(ABC):
 
     def __init__(self, action: dict[str, Any]):
         self.action = action
-        self._missing_fields: list[str] = []
-        self._required_fields: list[str] = []
+
+    @property
+    @abstractmethod
+    def required_fields(self) -> list[str]:
+        """Return the required fields for this action"""
+        pass
 
     @property
     def missing_fields(self) -> list[str]:
-        return self._missing_fields
-
-    @property
-    def required_fields(self) -> list[str]:
-        return self._required_fields
+        """Return the missing fields for this action"""
+        return [field for field in self.required_fields if self.action.get(field) is None]
 
     @property
     @abstractmethod
     def target_type(self) -> ActionTarget:
+        """Return the target type for this action"""
         pass
 
     @property
@@ -54,6 +56,7 @@ class BaseActionTranslator(ABC):
     @property
     @abstractmethod
     def blob_type(self) -> type["DataBlob"] | None:
+        """Return the blob type for this action, if any"""
         pass
 
     def is_valid(self) -> bool:
@@ -61,10 +64,7 @@ class BaseActionTranslator(ABC):
         Validate that all required fields for this action are present.
         Should be overridden by subclasses to add specific validation.
         """
-        self._missing_fields = [
-            field for field in self.required_fields if self.action.get(field) is None
-        ]
-        return len(self._missing_fields) == 0
+        return len(self.missing_fields) == 0
 
     def get_sanitized_data(self) -> dict[str, Any]:
         """
@@ -118,7 +118,6 @@ class SlackActionTranslator(BaseActionTranslator):
         return SlackDataBlob
 
 
-# Keep existing DataBlob classes
 @dataclass
 class DataBlob:
     """DataBlob is a generic type that represents the data blob for a notification action."""
