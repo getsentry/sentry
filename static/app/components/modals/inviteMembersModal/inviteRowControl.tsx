@@ -12,7 +12,8 @@ import TeamSelector from 'sentry/components/teamSelector';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
-import type {OrgRole} from 'sentry/types/organization';
+import type {Organization, OrgRole} from 'sentry/types/organization';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import EmailValue from './emailValue';
 import type {InviteStatus} from './types';
@@ -28,7 +29,19 @@ function mapToOptions(values: string[]): SelectOption[] {
   return values.map(value => ({value, label: value}));
 }
 
+// If Member Invites are enabled but Open Membership is disabled, only allow members to invite to teams they are a member of
+function orgOnlyAllowsMemberInvitesWithinTeam(organization: Organization): boolean {
+  const isMemberInvite =
+    organization.access?.includes('member:invite') &&
+    !organization.access?.includes('member:admin');
+  const membersCanOnlyInviteMemberTeams =
+    organization.allowMemberInvite && !organization.openMembership;
+  return isMemberInvite && membersCanOnlyInviteMemberTeams;
+}
+
 function InviteRowControl({roleDisabledUnallowed, roleOptions}: Props) {
+  const organization = useOrganization();
+  const filterByUserMembership = orgOnlyAllowsMemberInvitesWithinTeam(organization);
   const {
     inviteStatus,
     isOverMemberLimit,
@@ -155,6 +168,7 @@ function InviteRowControl({roleDisabledUnallowed, roleOptions}: Props) {
             value={isTeamRolesAllowed ? teams : []}
             onChange={onChangeTeams}
             useTeamDefaultIfOnlyOne
+            filterByUserMembership={filterByUserMembership}
             multiple
             clearable
           />
