@@ -743,7 +743,12 @@ def collect_apple_symbol_stats(json):
                 symx_has_symbol += 1
         elif old_has_this_symbol:
             old_has_symbol.append(
-                {"debug_id": module.get("debug_id", "unknown"), "found_in": found_source}
+                {
+                    "arch": module.get("arch"),
+                    "code_file": module.get("code_file"),
+                    "debug_id": module.get("debug_id"),
+                    "found_in": found_source,
+                }
             )
         else:
             neither_has_symbol += 1
