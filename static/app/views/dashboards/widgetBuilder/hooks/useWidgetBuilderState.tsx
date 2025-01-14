@@ -253,6 +253,11 @@ function useWidgetBuilderState(): {
             setFields(
               config.defaultWidgetQuery.fields?.map(field => explodeField({field}))
             );
+            setSort(
+              nextDisplayType === DisplayType.BIG_NUMBER
+                ? []
+                : decodeSorts(config.defaultWidgetQuery.orderby)
+            );
           } else {
             setFields([]);
             setYAxis(
@@ -260,9 +265,9 @@ function useWidgetBuilderState(): {
                 explodeField({field: aggregate})
               )
             );
+            setSort(decodeSorts(config.defaultWidgetQuery.orderby));
           }
           setQuery([config.defaultWidgetQuery.conditions]);
-          setSort(decodeSorts(config.defaultWidgetQuery.orderby));
           setSelectedAggregate(undefined);
           break;
         case BuilderStateAction.SET_FIELDS:
