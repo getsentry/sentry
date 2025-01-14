@@ -3,7 +3,7 @@ from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import audit_log
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -14,6 +14,7 @@ from sentry.models.project import Project
 from sentry.tempest.models import TempestCredentials
 from sentry.tempest.permissions import TempestCredentialsPermission
 from sentry.tempest.serializers import DRFTempestCredentialsSerializer, TempestCredentialsSerializer
+from sentry.tempest.utils import has_tempest_access
 
 
 @region_silo_endpoint
@@ -26,13 +27,8 @@ class TempestCredentialsEndpoint(ProjectEndpoint):
 
     permission_classes = (TempestCredentialsPermission,)
 
-    def has_feature(self, request: Request, project: Project) -> bool:
-        return features.has(
-            "organizations:tempest-access", project.organization, actor=request.user
-        )
-
     def get(self, request: Request, project: Project) -> Response:
-        if not self.has_feature(request, project):
+        if not has_tempest_access(project.organization, request.user):
             raise NotFound
 
         tempest_credentials_qs = TempestCredentials.objects.filter(project=project)
@@ -44,15 +40,24 @@ class TempestCredentialsEndpoint(ProjectEndpoint):
         )
 
     def post(self, request: Request, project: Project) -> Response:
-        if not self.has_feature(request, project):
+        if not has_tempest_access(project.organization, request.user):
             raise NotFound
 
         serializer = DRFTempestCredentialsSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         try:
-            serializer.save(created_by_id=request.user.id, project=project)
+            credentials = serializer.save(created_by_id=request.user.id, project=project)
         except IntegrityError:
             return Response(
                 {"detail": "A credential with this client ID already exists."}, status=400
             )
+
+        self.create_audit_entry(
+            request,
+            organization=project.organization,
+            target_object=credentials.id,
+            event=audit_log.get_event_id("TEMPEST_CLIENT_ID_ADD"),
+            data=credentials.get_audit_log_data(),
+        )
+
         return Response(serializer.data, status=201)

@@ -127,7 +127,7 @@ describe('Dashboards - DashboardTable', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders dashboard list', function () {
+  it('renders dashboard list', async function () {
     render(
       <DashboardTable
         onDashboardsChange={jest.fn()}
@@ -137,11 +137,11 @@ describe('Dashboards - DashboardTable', function () {
       />
     );
 
-    expect(screen.getByText('Dashboard 1')).toBeInTheDocument();
-    expect(screen.getByText('Dashboard 2')).toBeInTheDocument();
+    expect(await screen.findByText('Dashboard 1')).toBeInTheDocument();
+    expect(await screen.findByText('Dashboard 2')).toBeInTheDocument();
   });
 
-  it('returns landing page url for dashboards', function () {
+  it('returns landing page url for dashboards', async function () {
     render(
       <DashboardTable
         onDashboardsChange={jest.fn()}
@@ -152,17 +152,17 @@ describe('Dashboards - DashboardTable', function () {
       {router}
     );
 
-    expect(screen.getByRole('link', {name: 'Dashboard 1'})).toHaveAttribute(
+    expect(await screen.findByRole('link', {name: 'Dashboard 1'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/dashboard/1/'
     );
-    expect(screen.getByRole('link', {name: 'Dashboard 2'})).toHaveAttribute(
+    expect(await screen.findByRole('link', {name: 'Dashboard 2'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/dashboard/2/'
     );
   });
 
-  it('persists global selection headers', function () {
+  it('persists global selection headers', async function () {
     render(
       <DashboardTable
         onDashboardsChange={jest.fn()}
@@ -173,7 +173,7 @@ describe('Dashboards - DashboardTable', function () {
       {router}
     );
 
-    expect(screen.getByRole('link', {name: 'Dashboard 1'})).toHaveAttribute(
+    expect(await screen.findByRole('link', {name: 'Dashboard 1'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/dashboard/1/?statsPeriod=7d'
     );
@@ -205,7 +205,7 @@ describe('Dashboards - DashboardTable', function () {
     expect(dashboardUpdateMock).toHaveBeenCalled();
   });
 
-  it('cannot delete last dashboard', function () {
+  it('cannot delete last dashboard', async function () {
     const singleDashboard = [
       DashboardListItemFixture({
         id: '1',
@@ -224,7 +224,7 @@ describe('Dashboards - DashboardTable', function () {
       />
     );
 
-    expect(screen.getAllByTestId('dashboard-delete')[0]).toHaveAttribute(
+    expect((await screen.findAllByTestId('dashboard-delete'))[0]).toHaveAttribute(
       'aria-disabled',
       'true'
     );
@@ -295,7 +295,6 @@ describe('Dashboards - DashboardTable', function () {
         'dashboards-edit',
         'discover-query',
         'dashboards-table-view',
-        'dashboards-edit-access',
       ],
     });
 
@@ -308,7 +307,7 @@ describe('Dashboards - DashboardTable', function () {
       />
     );
 
-    expect((await screen.findAllByTestId('grid-head-cell')).length).toBe(5);
+    expect(await screen.findAllByTestId('grid-head-cell')).toHaveLength(5);
     expect(screen.getByText('Access')).toBeInTheDocument();
     await userEvent.click((await screen.findAllByTestId('edit-access-dropdown'))[0]!);
     expect(screen.getAllByPlaceholderText('Search Teams')[0]).toBeInTheDocument();

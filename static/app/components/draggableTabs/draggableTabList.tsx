@@ -33,7 +33,7 @@ import {useDimensions} from 'sentry/utils/useDimensions';
 import {useDimensionsMultiple} from 'sentry/utils/useDimensionsMultiple';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {IssueViewsContext} from 'sentry/views/issueList/groupSearchViewTabs/issueViews';
+import {IssueViewsContext} from 'sentry/views/issueList/issueViews/issueViews';
 
 import type {DraggableTabListItemProps} from './item';
 import {Item} from './item';
@@ -439,7 +439,7 @@ export function DraggableTabList({items, onAddView, ...props}: DraggableTabListP
       disabledKeys={disabledKeys}
       {...props}
     >
-      {item => <Item {...item} />}
+      {item => <Item {...item} key={item.key} />}
     </BaseDraggableTabList>
   );
 }

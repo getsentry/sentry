@@ -655,7 +655,7 @@ describe('Dashboards > WidgetCard', function () {
     });
     const mockCall = spy.mock.calls?.at(-1)?.[0];
     // @ts-expect-error
-    expect(mockCall?.yAxis.axisLabel.formatter(24, 'p95(measurements.custom)')).toEqual(
+    expect(mockCall?.yAxis.axisLabel.formatter(24, 'p95(measurements.custom)')).toBe(
       '24ms'
     );
   });
@@ -756,7 +756,7 @@ describe('Dashboards > WidgetCard', function () {
     expect(
       // @ts-expect-error
       mockCall?.yAxis.axisLabel.formatter(60000, 'p50(transaction.duration)')
-    ).toEqual('60s');
+    ).toBe('60s');
     // @ts-expect-error
     expect(mockCall?.yAxis?.minInterval).toEqual(SECOND);
   });

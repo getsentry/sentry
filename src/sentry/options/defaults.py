@@ -267,6 +267,19 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_REQUIRED,
 )
 
+# User Settings
+register(
+    "user-settings.signed-url-confirmation-emails-salt",
+    type=String,
+    default="signed-url-confirmation-emails-salt",
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "user-settings.signed-url-confirmation-emails",
+    default=False,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Staff
 register(
     "staff.ga-rollout",
@@ -283,15 +296,6 @@ register(
 # Superuser read/write
 register(
     "superuser.read-write.ga-rollout",
-    type=Bool,
-    default=False,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# API
-# GA Option for endpoints to work with id or slug as path parameters
-register(
-    "api.id-or-slug-enabled",
     type=Bool,
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
@@ -457,6 +461,13 @@ register(
     "replay.replay-video.disabled",
     type=Bool,
     default=False,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Billing skip for mobile replay orgs.
+register(
+    "replay.replay-video.billing-skip-org-ids",
+    type=Sequence,
+    default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Disables replay-video for a specific organization.
@@ -1143,6 +1154,16 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# The ratio of events for which we emit verbose apple symbol stats.
+#
+# This is to allow collecting more information on why symx is not performing as it should.
+register("symbolicate.symx-logging-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# The list of specific os_name+os_version for which we log extra infromation.
+#
+# This is done since SYMX is not performing bad across the board but rather only in specific case (what we are interested in).
+register("symbolicate.symx-os-description-list", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Drop delete_old_primary_hash messages for a particular project.
 register("reprocessing2.drop-delete-old-primary-hash", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -1924,6 +1945,14 @@ register(
     "hybrid_cloud.disable_relative_upload_urls", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 register("hybrid_cloud.disable_tombstone_cleanup", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# List of event IDs to pass through
+register(
+    "hybrid_cloud.audit_log_event_id_invalid_pass_list",
+    default=[],
+    type=Sequence,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Flagpole Configuration (used in getsentry)
 register("flagpole.debounce_reporting_seconds", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -2895,11 +2924,6 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "transactions.do_post_process_in_save",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE | FLAG_RATE,
-)
 
 # allows us to disable indexing during maintenance events
 register(
@@ -2914,5 +2938,12 @@ register(
     "sentry.search.events.project.check_event",
     default=0.0,
     type=Float,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "uptime.snuba_uptime_results.enabled",
+    type=Bool,
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

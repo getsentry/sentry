@@ -41,9 +41,9 @@ describe('useReplayCount', () => {
         initialProps,
       });
 
-      expect(result.current.getOne('1111')).toBe(undefined);
-      expect(result.current.getOne('2222')).toBe(undefined);
-      expect(result.current.getOne('3333')).toBe(undefined);
+      expect(result.current.getOne('1111')).toBeUndefined();
+      expect(result.current.getOne('2222')).toBeUndefined();
+      expect(result.current.getOne('3333')).toBeUndefined();
       expect(result.current.hasOne('1111')).toBeFalsy();
       expect(result.current.hasOne('2222')).toBeFalsy();
       expect(result.current.hasOne('3333')).toBeFalsy();
@@ -77,8 +77,8 @@ describe('useReplayCount', () => {
         initialProps,
       });
 
-      expect(result.current.getOne('1111')).toBe(undefined);
-      expect(result.current.getOne('2222')).toBe(undefined);
+      expect(result.current.getOne('1111')).toBeUndefined();
+      expect(result.current.getOne('2222')).toBeUndefined();
       expect(result.current.hasOne('1111')).toBeFalsy();
       expect(result.current.hasOne('2222')).toBeFalsy();
 

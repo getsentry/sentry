@@ -6,72 +6,87 @@ import type {LineChartSeries} from 'sentry/components/charts/lineChart';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import {DateTime} from 'sentry/components/dateTime';
 import Link from 'sentry/components/links/link';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelFooter from 'sentry/components/panels/panelFooter';
 import PanelHeader from 'sentry/components/panels/panelHeader';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SentryApp} from 'sentry/types/integrations';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
-import withOrganization from 'sentry/utils/withOrganization';
-import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import RequestLog from './requestLog';
 
-type Props = RouteComponentProps<{appSlug: string}, {}> & {
-  organization: Organization;
+type Interactions = {
+  componentInteractions: {
+    [key: string]: [number, number][];
+  };
+  views: [number, number][];
 };
 
-type State = DeprecatedAsyncView['state'] & {
-  app: SentryApp;
-  interactions: {
-    componentInteractions: {
-      [key: string]: [number, number][];
-    };
-    views: [number, number][];
-  };
-  stats: {
-    installStats: [number, number][];
-    totalInstalls: number;
-    totalUninstalls: number;
-    uninstallStats: [number, number][];
-  };
+type Stats = {
+  installStats: [number, number][];
+  totalInstalls: number;
+  totalUninstalls: number;
+  uninstallStats: [number, number][];
 };
 
-class SentryApplicationDashboard extends DeprecatedAsyncView<Props, State> {
-  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
-    const {appSlug} = this.props.params;
+function SentryApplicationDashboard() {
+  const organization = useOrganization();
+  const {appSlug} = useParams<{appSlug: string}>();
 
-    // Default time range for now: 90 days ago to now
-    const now = Math.floor(new Date().getTime() / 1000);
-    const ninety_days_ago = 3600 * 24 * 90;
+  // Default time range for now: 90 days ago to now
+  const now = Math.floor(new Date().getTime() / 1000);
+  const ninety_days_ago = 3600 * 24 * 90;
 
-    return [
-      [
-        'stats',
-        `/sentry-apps/${appSlug}/stats/`,
-        {query: {since: now - ninety_days_ago, until: now}},
-      ],
+  const {
+    data: app,
+    isPending: isAppPending,
+    isError: isAppError,
+  } = useApiQuery<SentryApp>([`/sentry-apps/${appSlug}/`], {staleTime: 0});
 
-      [
-        'interactions',
-        `/sentry-apps/${appSlug}/interaction/`,
-        {query: {since: now - ninety_days_ago, until: now}},
-      ],
-      ['app', `/sentry-apps/${appSlug}/`],
-    ];
+  const {
+    data: interactions,
+    isPending: isInteractionsPending,
+    isError: isInteractionsError,
+  } = useApiQuery<Interactions>(
+    [
+      `/sentry-apps/${appSlug}/interaction/`,
+      {query: {since: now - ninety_days_ago, until: now}},
+    ],
+    {staleTime: 0}
+  );
+
+  const {
+    data: stats,
+    isPending: isStatsPending,
+    isError: isStatsError,
+  } = useApiQuery<Stats>(
+    [
+      `/sentry-apps/${appSlug}/stats/`,
+      {query: {since: now - ninety_days_ago, until: now}},
+    ],
+    {staleTime: 0}
+  );
+
+  if (isAppPending || isStatsPending || isInteractionsPending) {
+    return <LoadingIndicator />;
   }
 
-  getTitle() {
-    return t('Integration Dashboard');
+  if (isAppError || isStatsError || isInteractionsError) {
+    return <LoadingError />;
   }
 
-  renderInstallData() {
-    const {app, stats} = this.state;
-    const {totalUninstalls, totalInstalls} = stats;
+  const {installStats, uninstallStats, totalUninstalls, totalInstalls} = stats;
+  const {views, componentInteractions} = interactions;
+
+  const renderInstallData = () => {
     return (
       <Fragment>
         <h5>{t('Installation & Interaction Data')}</h5>
@@ -91,14 +106,12 @@ class SentryApplicationDashboard extends DeprecatedAsyncView<Props, State> {
             <p>{totalUninstalls}</p>
           </StatsSection>
         </Row>
-        {this.renderInstallCharts()}
+        {renderInstallCharts()}
       </Fragment>
     );
-  }
+  };
 
-  renderInstallCharts() {
-    const {installStats, uninstallStats} = this.state.stats;
-
+  const renderInstallCharts = () => {
     const installSeries = {
       data: installStats.map(point => ({
         name: point[0] * 1000,
@@ -136,13 +149,9 @@ class SentryApplicationDashboard extends DeprecatedAsyncView<Props, State> {
         </ChartWrapper>
       </Panel>
     );
-  }
+  };
 
-  renderIntegrationViews() {
-    const {views} = this.state.interactions;
-    const {organization} = this.props;
-    const {appSlug} = this.props.params;
-
+  const renderIntegrationViews = () => {
     return (
       <Panel>
         <PanelHeader>{t('Integration Views')}</PanelHeader>
@@ -164,10 +173,9 @@ class SentryApplicationDashboard extends DeprecatedAsyncView<Props, State> {
         </PanelFooter>
       </Panel>
     );
-  }
+  };
 
-  renderComponentInteractions() {
-    const {componentInteractions} = this.state.interactions;
+  const renderComponentInteractions = () => {
     const componentInteractionsDetails = {
       'stacktrace-link': t(
         'Each link click or context menu open counts as one interaction'
@@ -199,24 +207,21 @@ class SentryApplicationDashboard extends DeprecatedAsyncView<Props, State> {
         </PanelFooter>
       </Panel>
     );
-  }
+  };
 
-  renderBody() {
-    const {app} = this.state;
-
-    return (
-      <div>
-        <SettingsPageHeader title={`${t('Integration Dashboard')} - ${app.name}`} />
-        {app.status === 'published' && this.renderInstallData()}
-        {app.status === 'published' && this.renderIntegrationViews()}
-        {app.schema.elements && this.renderComponentInteractions()}
-        <RequestLog app={app} />
-      </div>
-    );
-  }
+  return (
+    <div>
+      <SentryDocumentTitle title={t('Integration Dashboard')} />
+      <SettingsPageHeader title={`${t('Integration Dashboard')} - ${app.name}`} />
+      {app.status === 'published' && renderInstallData()}
+      {app.status === 'published' && renderIntegrationViews()}
+      {app.schema.elements && renderComponentInteractions()}
+      <RequestLog app={app} />
+    </div>
+  );
 }
 
-export default withOrganization(SentryApplicationDashboard);
+export default SentryApplicationDashboard;
 
 type InteractionsChartProps = {
   data: {

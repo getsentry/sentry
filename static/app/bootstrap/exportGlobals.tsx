@@ -5,7 +5,7 @@ import moment from 'moment-timezone';
 
 import plugins from 'sentry/plugins';
 
-const globals = {
+const globals: Record<string, any> = {
   // The following globals are used in sentry-plugins webpack externals
   // configuration.
   React,
@@ -43,6 +43,11 @@ const SentryApp = {
 };
 
 globals.SentryApp = SentryApp;
-Object.keys(globals).forEach(name => (window[name] = globals[name]));
+Object.keys(globals).forEach(name => {
+  Object.defineProperty(window, name, {
+    value: globals[name],
+    writable: true,
+  });
+});
 
 export {globals as exportedGlobals};

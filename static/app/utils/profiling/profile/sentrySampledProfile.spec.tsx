@@ -24,8 +24,8 @@ describe('SentrySampledProfile', () => {
       ['foo', 'close'],
       ['main', 'close'],
     ]);
-    expect(profile.startedAt).toEqual(0);
-    expect(profile.endedAt).toEqual(1000);
+    expect(profile.startedAt).toBe(0);
+    expect(profile.endedAt).toBe(1000);
   });
 
   it('tracks discarded samples', () => {
@@ -144,7 +144,7 @@ describe('SentrySampledProfile', () => {
       {type: 'flamechart'}
     );
 
-    expect(profile.rawWeights.length).toBe(2);
+    expect(profile.rawWeights).toHaveLength(2);
   });
 
   it('derives a profile name from the transaction.name and thread_id', () => {
@@ -443,7 +443,7 @@ describe('SentrySampledProfile', () => {
 
     expect(profile.callTree.frame).toBe(Frame.Root);
     expect(profile.callTree.children).toHaveLength(1);
-    expect(profile.callTree.children[0]!.frame.name).toEqual('f0');
+    expect(profile.callTree.children[0]!.frame.name).toBe('f0');
     // the f1 frame is filtered out, so the f0 frame has no children
     expect(profile.callTree.children[0]!.children).toHaveLength(0);
   });

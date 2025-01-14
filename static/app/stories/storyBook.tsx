@@ -1,36 +1,42 @@
-import type {JSXElementConstructor, ReactNode} from 'react';
-import {Children} from 'react';
+import type {ReactNode} from 'react';
+import {Children, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/container/flex';
 import SideBySide from 'sentry/components/stories/sideBySide';
 import {space} from 'sentry/styles/space';
 
-type RenderFn = () => ReactNode | ReactNode[];
-type StoryFn = (storyName: string, storyRender: RenderFn) => void;
-type SetupFn = (story: StoryFn) => void;
-
-type Context = {
-  name: string;
-  render: RenderFn;
-};
+type StoryRenderFunction = () => ReactNode | ReactNode[];
+type StoryFunction = (storyName: string, storyRender: StoryRenderFunction) => void;
+type SetupFunction = (story: StoryFunction) => void;
 
 export default function storyBook(
-  bookContext: string | JSXElementConstructor<any>,
-  setup: SetupFn
-) {
-  const contexts: Context[] = [];
+  bookContext: string | React.ComponentType<any>,
+  setup: SetupFunction
+): StoryRenderFunction {
+  const contexts: {name: string; render: StoryRenderFunction}[] = [];
 
-  const storyFn: StoryFn = (name: string, render: RenderFn) => {
+  const storyFn: StoryFunction = (name: string, render: StoryRenderFunction) => {
     contexts.push({name, render});
   };
 
   setup(storyFn);
 
+  // @TODO (JonasBadalic): we can props or use a context to communciate with the storyFile component
   return function RenderStory() {
+    const title =
+      typeof bookContext === 'string'
+        ? bookContext
+        : bookContext.displayName ?? bookContext.name ?? bookContext.constructor.name;
+
     return (
-      <Flex column gap={space(4)}>
-        <BookHeading bookContext={bookContext} />
+      <Fragment>
+        {typeof bookContext === 'string' ? (
+          <BookTitle>{title}</BookTitle>
+        ) : (
+          <BookTitle>
+            <code>{`<${title}/>`}</code>
+          </BookTitle>
+        )}
         {contexts.map(({name, render}, i) => {
           const children = render();
           const isOneChild = Children.count(children) === 1;
@@ -43,28 +49,9 @@ export default function storyBook(
             </Story>
           );
         })}
-      </Flex>
+      </Fragment>
     );
   };
-}
-
-function BookHeading({bookContext}) {
-  if (typeof bookContext === 'string') {
-    return <BookTitle>{bookContext}</BookTitle>;
-  }
-
-  const componentName =
-    bookContext.displayName ?? bookContext.name ?? bookContext.constructor.name;
-
-  if (!componentName) {
-    return null;
-  }
-
-  return (
-    <BookTitle>
-      <code>{`<${componentName}/>`}</code>
-    </BookTitle>
-  );
 }
 
 const BookTitle = styled('h3')`
@@ -72,6 +59,8 @@ const BookTitle = styled('h3')`
 `;
 
 const Story = styled('section')`
+  margin-top: ${space(4)};
+
   & > p {
     margin: ${space(3)} 0;
   }

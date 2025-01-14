@@ -56,8 +56,8 @@ describe('convertBuilderStateToWidget', function () {
 
     const widget = convertBuilderStateToWidget(mockState);
 
-    expect(widget.queries[0]!.orderby).toEqual('-geo.country');
-    expect(widget.queries[1]!.orderby).toEqual('-geo.country');
+    expect(widget.queries[0]!.orderby).toBe('-geo.country');
+    expect(widget.queries[1]!.orderby).toBe('-geo.country');
   });
 
   it('does not convert aggregates to aliased format', function () {
@@ -68,8 +68,8 @@ describe('convertBuilderStateToWidget', function () {
 
     const widget = convertBuilderStateToWidget(mockState);
 
-    expect(widget.queries[0]!.orderby).toEqual('-count()');
-    expect(widget.queries[1]!.orderby).toEqual('-count()');
+    expect(widget.queries[0]!.orderby).toBe('-count()');
+    expect(widget.queries[1]!.orderby).toBe('-count()');
   });
 
   it('adds aliases to the widget queries', function () {
@@ -94,9 +94,30 @@ describe('convertBuilderStateToWidget', function () {
 
     const widget = convertBuilderStateToWidget(mockState);
 
-    expect(widget.queries[0]!.name).toEqual('test');
-    expect(widget.queries[0]!.conditions).toEqual('transaction.duration:>100');
-    expect(widget.queries[1]!.name).toEqual('test2');
-    expect(widget.queries[1]!.conditions).toEqual('transaction.duration:>50');
+    expect(widget.queries[0]!.name).toBe('test');
+    expect(widget.queries[0]!.conditions).toBe('transaction.duration:>100');
+    expect(widget.queries[1]!.name).toBe('test2');
+    expect(widget.queries[1]!.conditions).toBe('transaction.duration:>50');
+  });
+
+  it('propagates the selected aggregate to the widget query', () => {
+    const mockState: WidgetBuilderState = {
+      selectedAggregate: 0,
+      query: ['transaction.duration:>100'],
+    };
+
+    const widget = convertBuilderStateToWidget(mockState);
+
+    expect(widget.queries[0]!.selectedAggregate).toBe(0);
+  });
+
+  it('sets selectedAggregate to undefined if not provided', () => {
+    const mockState: WidgetBuilderState = {
+      query: ['transaction.duration:>100'],
+    };
+
+    const widget = convertBuilderStateToWidget(mockState);
+
+    expect(widget.queries[0]!.selectedAggregate).toBeUndefined();
   });
 });

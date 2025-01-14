@@ -34,7 +34,7 @@ export function CredentialRow({
         {credential.createdByEmail ? credential.createdByEmail : '\u2014'}
       </Flex>
 
-      <Flex align="center">
+      <Flex align="center" justify="flex-end">
         <Tooltip
           title={t('You must be an organization admin to remove credentials.')}
           disabled={!!removeCredential}
@@ -47,7 +47,7 @@ export function CredentialRow({
             disabled={isRemoving || !removeCredential}
           >
             <Button
-              size="sm"
+              size="xs"
               disabled={isRemoving || !removeCredential}
               aria-label={t('Remove credentials')}
               icon={

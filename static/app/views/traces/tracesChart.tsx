@@ -17,9 +17,7 @@ import {CHART_HEIGHT} from 'sentry/views/insights/database/settings';
 
 import {areQueriesEmpty} from './utils';
 
-interface Props {}
-
-export function TracesChart({}: Props) {
+export function TracesChart() {
   const location = useLocation();
 
   const queries = useMemo(() => {
@@ -88,7 +86,7 @@ export function TracesChart({}: Props) {
         continue;
       }
       const data = series[i]!['count()'];
-      data.color = CHART_PALETTE[2]![i]!;
+      data.color = CHART_PALETTE[2][i];
       data.seriesName =
         `span ${i + 1}: ${queries[i] || t('All spans')}` || t('All spans');
       allData.push(data);

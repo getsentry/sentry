@@ -12,7 +12,7 @@ from django.core.cache import cache
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, OrderBy, Query, Request
 
-from sentry import analytics, features, options
+from sentry import features, options
 from sentry.api.utils import default_start_end_dates
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group
@@ -37,12 +37,7 @@ from sentry.search.events.filter import _flip_field_sort
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT, TagKeyStatus, TagStorage
-from sentry.tagstore.exceptions import (
-    GroupTagKeyNotFound,
-    GroupTagValueNotFound,
-    TagKeyNotFound,
-    TagValueNotFound,
-)
+from sentry.tagstore.exceptions import GroupTagKeyNotFound, TagKeyNotFound
 from sentry.tagstore.types import GroupTagKey, GroupTagValue, TagKey, TagValue
 from sentry.utils import metrics, snuba
 from sentry.utils.hashlib import md5_text
@@ -114,32 +109,6 @@ def _translate_filter_keys(project_ids, group_ids, environment_ids) -> dict[str,
 
 
 class SnubaTagStorage(TagStorage):
-    def __get_tag_key(self, project_id, group_id, environment_id, key):
-        tag = f"tags[{key}]"
-        filters = {"project_id": get_project_list(project_id)}
-        if environment_id:
-            filters["environment"] = [environment_id]
-        if group_id is not None:
-            filters["group_id"] = [group_id]
-        conditions = [[tag, "!=", ""], DEFAULT_TYPE_CONDITION]
-        aggregations = [["uniq", tag, "values_seen"], ["count()", "", "count"]]
-
-        result = snuba.query(
-            dataset=Dataset.Events,
-            conditions=conditions,
-            filter_keys=filters,
-            aggregations=aggregations,
-            referrer="tagstore.__get_tag_key",
-        )
-        if result is None or result["count"] == 0:
-            raise TagKeyNotFound if group_id is None else GroupTagKeyNotFound
-        else:
-            data = {"key": key, "values_seen": result["values_seen"], "count": result["count"]}
-            if group_id is None:
-                return TagKey(**data)
-            else:
-                return GroupTagKey(group_id=group_id, **data)
-
     def __get_tag_key_and_top_values(
         self,
         project_id,
@@ -194,7 +163,7 @@ class SnubaTagStorage(TagStorage):
                 key_ctor = functools.partial(GroupTagKey, group_id=group.id)
                 value_ctor = functools.partial(GroupTagValue, group_id=group.id)
 
-            top_values = [
+            top_values = tuple(
                 value_ctor(
                     key=key,
                     value=value,
@@ -203,7 +172,7 @@ class SnubaTagStorage(TagStorage):
                     last_seen=parse_datetime(data["last_seen"]),
                 )
                 for value, data in result.items()
-            ]
+            )
 
             return key_ctor(
                 key=key,
@@ -373,37 +342,6 @@ class SnubaTagStorage(TagStorage):
             results.add(ctor(**params))
         return results
 
-    def __get_tag_value(self, project_id, group_id, environment_id, key, value, tenant_ids=None):
-        tag = f"tags[{key}]"
-        filters = {"project_id": get_project_list(project_id)}
-        if environment_id:
-            filters["environment"] = [environment_id]
-        if group_id is not None:
-            filters["group_id"] = [group_id]
-        conditions = [[tag, "=", value]]
-        aggregations = [
-            ["count()", "", "times_seen"],
-            ["min", SEEN_COLUMN, "first_seen"],
-            ["max", SEEN_COLUMN, "last_seen"],
-        ]
-
-        data = snuba.query(
-            dataset=Dataset.Events,
-            conditions=conditions,
-            filter_keys=filters,
-            aggregations=aggregations,
-            referrer="tagstore.__get_tag_value",
-            tenant_ids=tenant_ids,
-        )
-        if not data["times_seen"] > 0:
-            raise TagValueNotFound if group_id is None else GroupTagValueNotFound
-        else:
-            data.update({"key": key, "value": value})
-            if group_id is None:
-                return TagValue(**fix_tag_value_data(data))
-            else:
-                return GroupTagValue(group_id=group_id, **fix_tag_value_data(data))
-
     def get_tag_key(
         self,
         project_id,
@@ -485,11 +423,6 @@ class SnubaTagStorage(TagStorage):
             **optimize_kwargs,
         )
 
-    def get_tag_value(self, project_id, environment_id, key, value, tenant_ids=None):
-        return self.__get_tag_value(
-            project_id, None, environment_id, key, value, tenant_ids=tenant_ids
-        )
-
     def get_tag_values(self, project_id, environment_id, key, tenant_ids=None):
         key = self.__get_tag_key_and_top_values(
             project_id,
@@ -527,27 +460,6 @@ class SnubaTagStorage(TagStorage):
             tenant_ids=tenant_ids,
             **kwargs,
         )
-
-    def get_group_tag_value(
-        self, project_id, group_id, environment_id, key, value, tenant_ids=None
-    ):
-        return self.__get_tag_value(
-            project_id, group_id, environment_id, key, value, tenant_ids=tenant_ids
-        )
-
-    def get_group_tag_values(self, group, environment_id, key, tenant_ids=None):
-        # NB this uses a 'top' values function, but the limit is None so it should
-        # return all values for this key.
-        key = self.__get_tag_key_and_top_values(
-            group.project_id,
-            group,
-            environment_id,
-            key,
-            limit=None,
-            raise_on_empty=False,
-            tenant_ids=tenant_ids,
-        )
-        return set(key.top_values)
 
     def __get_group_list_tag_value(
         self,
@@ -658,34 +570,6 @@ class SnubaTagStorage(TagStorage):
             for group_id, data in nested_groups.items()
         }
 
-    def get_group_seen_values_for_environments(
-        self, project_ids, group_id_list, environment_ids, start=None, end=None, tenant_ids=None
-    ):
-        # Get the total times seen, first seen, and last seen across multiple environments
-        filters = {"project_id": project_ids, "group_id": group_id_list}
-        if environment_ids:
-            filters["environment"] = environment_ids
-
-        aggregations = [
-            ["count()", "", "times_seen"],
-            ["min", SEEN_COLUMN, "first_seen"],
-            ["max", SEEN_COLUMN, "last_seen"],
-        ]
-
-        result = snuba.query(
-            dataset=Dataset.Events,
-            start=start,
-            end=end,
-            groupby=["group_id"],
-            conditions=[DEFAULT_TYPE_CONDITION],
-            filter_keys=filters,
-            aggregations=aggregations,
-            referrer="tagstore.get_group_seen_values_for_environments",
-            tenant_ids=tenant_ids,
-        )
-
-        return {issue: fix_tag_value_data(data) for issue, data in result.items()}
-
     def apply_group_filters_conditions(self, group: Group, conditions, filters):
         dataset = Dataset.Events
         if group:
@@ -777,7 +661,7 @@ class SnubaTagStorage(TagStorage):
         for keyobj in keys_with_counts:
             key = keyobj.key
             values = values_by_key.get(key, dict())
-            keyobj.top_values = [
+            keyobj.top_values = tuple(
                 GroupTagValue(
                     group_id=group.id,
                     key=keyobj.key,
@@ -787,7 +671,7 @@ class SnubaTagStorage(TagStorage):
                     last_seen=parse_datetime(data["last_seen"]),
                 )
                 for value, data in values.items()
-            ]
+            )
 
         return keys_with_counts
 
@@ -841,47 +725,6 @@ class SnubaTagStorage(TagStorage):
             return rpe.first_seen
 
         return None
-
-    def get_group_tag_values_for_users(self, event_users, limit=100, tenant_ids=None):
-        """While not specific to a group_id, this is currently only used in issues, so the Events dataset is used"""
-        filters = {"project_id": [eu.project_id for eu in event_users]}
-        conditions = [
-            ["tags[sentry:user]", "IN", [_f for _f in [eu.tag_value for eu in event_users] if _f]]
-        ]
-        aggregations = [
-            ["count()", "", "times_seen"],
-            ["min", SEEN_COLUMN, "first_seen"],
-            ["max", SEEN_COLUMN, "last_seen"],
-        ]
-
-        result = snuba.query(
-            dataset=Dataset.Events,
-            groupby=["group_id", "user_id"],
-            conditions=conditions,
-            filter_keys=filters,
-            aggregations=aggregations,
-            orderby="-last_seen",
-            limit=limit,
-            referrer="tagstore.get_group_tag_values_for_users",
-            tenant_ids=tenant_ids,
-        )
-
-        values = []
-        for issue, users in result.items():
-            for name, data in users.items():
-                values.append(
-                    GroupTagValue(
-                        group_id=issue, key="sentry:user", value=name, **fix_tag_value_data(data)
-                    )
-                )
-        for project_id in {eu.project_id for eu in event_users}:
-            analytics.record(
-                "eventuser_endpoint.request",
-                project_id=project_id,
-                endpoint="sentry.tagstore.snuba.backend.SnubaTagStorage.get_group_tag_values_for_users",
-            )
-
-        return values
 
     def __get_groups_user_counts(
         self,
@@ -1444,15 +1287,14 @@ class SnubaTagStorage(TagStorage):
 
     def get_group_tag_value_iter(
         self,
-        group,
-        environment_ids,
-        key,
-        callbacks=(),
-        orderby="-first_seen",
+        group: Group,
+        environment_ids: list[int | None],
+        key: str,
+        orderby: str = "-first_seen",
         limit: int = 1000,
         offset: int = 0,
-        tenant_ids=None,
-    ):
+        tenant_ids: dict[str, int | str] | None = None,
+    ) -> list[GroupTagValue]:
         filters = {
             "project_id": get_project_list(group.project_id),
             "tags_key": [key],
@@ -1482,9 +1324,6 @@ class SnubaTagStorage(TagStorage):
             GroupTagValue(group_id=group.id, key=key, value=value, **fix_tag_value_data(data))
             for value, data in results.items()
         ]
-
-        for cb in callbacks:
-            cb(group_tag_values)
 
         return group_tag_values
 
@@ -1517,40 +1356,3 @@ class SnubaTagStorage(TagStorage):
             [(int(getattr(gtv, score_field).timestamp() * 1000), gtv) for gtv in group_tag_values],
             reverse=desc,
         )
-
-    def get_group_tag_value_qs(self, project_id, group_id, environment_id, key, value=None):
-        # This method is not implemented because it is only used by the Django
-        # search backend.
-        raise NotImplementedError
-
-    def get_group_event_filter(
-        self, project_id, group_id, environment_ids, tags, start, end, tenant_ids=None
-    ):
-        filters = {"project_id": get_project_list(project_id), "group_id": [group_id]}
-        if environment_ids:
-            filters["environment"] = environment_ids
-
-        conditions = []
-        for tag_name, tag_val in tags.items():
-            operator = "IN" if isinstance(tag_val, list) else "="
-            conditions.append([f"tags[{tag_name}]", operator, tag_val])
-
-        result = snuba.raw_query(
-            dataset=Dataset.Events,
-            start=start,
-            end=end,
-            selected_columns=["event_id"],
-            conditions=conditions,
-            orderby="-timestamp",
-            filter_keys=filters,
-            limit=1000,
-            referrer="tagstore.get_group_event_filter",
-            tenant_ids=tenant_ids,
-        )
-
-        event_id_set = {row["event_id"] for row in result["data"]}
-
-        if not event_id_set:
-            return None
-
-        return {"event_id__in": event_id_set}
