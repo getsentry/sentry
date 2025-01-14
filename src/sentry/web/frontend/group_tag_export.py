@@ -6,21 +6,23 @@ from rest_framework.request import Request
 
 from sentry.api.base import EnvironmentMixin
 from sentry.data_export.base import ExportError
-from sentry.data_export.processors.issues_by_tag import IssuesByTagProcessor
+from sentry.data_export.processors.issues_by_tag import (
+    GroupTagValueAndEventUser,
+    IssuesByTagProcessor,
+)
 from sentry.models.environment import Environment
-from sentry.tagstore.types import GroupTagValue
 from sentry.web.frontend.base import ProjectView, region_silo_view
 from sentry.web.frontend.csv import CsvResponder
 
 
-class GroupTagCsvResponder(CsvResponder[GroupTagValue]):
+class GroupTagCsvResponder(CsvResponder[GroupTagValueAndEventUser]):
     def __init__(self, key: str) -> None:
         self.key = key
 
     def get_header(self) -> tuple[str, ...]:
         return tuple(IssuesByTagProcessor.get_header_fields(self.key))
 
-    def get_row(self, item: GroupTagValue) -> tuple[str, ...]:
+    def get_row(self, item: GroupTagValueAndEventUser) -> tuple[str, ...]:
         fields = IssuesByTagProcessor.get_header_fields(self.key)
         item_dict = IssuesByTagProcessor.serialize_row(item, self.key)
         return tuple(item_dict[field] for field in fields)

@@ -65,7 +65,7 @@ export type ResultItem = {
   /**
    * The path to visit when the result is clicked.
    */
-  to?: string;
+  to?: string | {hash: string; pathname: string};
 };
 
 /**

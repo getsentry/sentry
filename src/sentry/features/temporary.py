@@ -148,8 +148,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:invite-billing", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=False, api_expose=False)
     # Enable inviting members to organizations.
     manager.add("organizations:invite-members", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=True, api_expose=True)
-    # Enable new invite members modal.
-    manager.add("organizations:invite-members-new-modal", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable rate limits for inviting members.
     manager.add("organizations:invite-members-rate-limits", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=True, api_expose=False)
     # Enable displaying the trace view on issue details
@@ -160,12 +158,12 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:issue-platform-deletion", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Issue Platform deletion UI
     manager.add("organizations:issue-platform-deletion-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enables a toggle for entering the new issue details UI
-    manager.add("organizations:issue-details-new-experience-toggle", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables opt-in access to the streamlined issue details UI for all users of an organization
     manager.add("organizations:issue-details-streamline", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables streamlined issue details UI for all users of an organization without opt-out
     manager.add("organizations:issue-details-streamline-enforce", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enables updates to platform issue details pages (on top of the new experience)
+    manager.add("organizations:issue-details-platform-updates", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Whether to allow issue only search on the issue list
     manager.add("organizations:issue-search-allow-postgres-only-search", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Whether to make a side/parallel query against events -> group_attributes when searching issues
