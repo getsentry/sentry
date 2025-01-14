@@ -23,10 +23,10 @@ export function formatYAxisValue(value: number, type: string, unit?: string): st
     case 'percentage':
       return formatPercentage(value, 3);
     case 'duration':
-      const inputUnit = isADurationUnit(unit) ? unit : DurationUnit.MILLISECOND;
+      const durationUnit = isADurationUnit(unit) ? unit : DurationUnit.MILLISECOND;
       const durationInMilliseconds = convertDuration(
         value,
-        inputUnit,
+        durationUnit,
         DurationUnit.MILLISECOND
       );
       return formatYAxisDuration(durationInMilliseconds);
