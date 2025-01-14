@@ -980,7 +980,7 @@ CELERY_QUEUES_REGION = [
     Queue("replays.delete_replay", routing_key="replays.delete_replay"),
     Queue("counters-0", routing_key="counters-0"),
     Queue("triggers-0", routing_key="triggers-0"),
-    # XXX: Temporarilty keep in place until we have migrated to the new queue
+    # XXX: Remove it after it clears up
     Queue("derive_code_mappings", routing_key="derive_code_mappings"),
     Queue("auto_source_code_config", routing_key="auto_source_code_config"),
     Queue("transactions.name_clusterer", routing_key="transactions.name_clusterer"),
