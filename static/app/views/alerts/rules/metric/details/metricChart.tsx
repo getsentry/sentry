@@ -389,8 +389,7 @@ class MetricChart extends PureComponent<Props, State> {
                         // @ts-expect-error TS(2339): Property 'marker' does not exist on type 'Callback... Remove this comment to see the full error message
                         const {marker, data: pointData} = pointSeries[0];
                         const seriesName =
-                          // @ts-expect-error TS(2532): Object is possibly 'undefined'.
-                          formattedAggregate ?? pointSeries[0].seriesName ?? '';
+                          formattedAggregate ?? pointSeries[0]?.seriesName ?? '';
                         const [pointX, pointY] = pointData as [number, number];
                         const pointYFormatted = alertTooltipValueFormatter(
                           pointY,

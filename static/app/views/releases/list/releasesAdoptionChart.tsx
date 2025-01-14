@@ -254,7 +254,7 @@ class ReleasesAdoptionChart extends Component<Props> {
                             };
                             const intervalStart = moment(timestamp).format('MMM D LT');
                             const intervalEnd = (
-                              series[0].dataIndex === numDataPoints - 1
+                              series[0]?.dataIndex === numDataPoints - 1
                                 ? moment(response?.end)
                                 : moment(timestamp).add(
                                     parseInt(periodObj.period!, 10),

@@ -101,8 +101,7 @@ function DebugFileCustomRepository({
                 >
                   {fields.map((field, i) => (
                     <FieldFromConfig
-                      // @ts-expect-error TS(2532): Object is possibly 'undefined'.
-                      key={field.name || i}
+                      key={field?.name || i}
                       // @ts-expect-error TS(2322): Type '(CustomType & BaseField) | ({ type: "select"... Remove this comment to see the full error message
                       field={field}
                       inline={false}

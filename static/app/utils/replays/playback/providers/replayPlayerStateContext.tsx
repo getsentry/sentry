@@ -200,7 +200,7 @@ function invokeUserAction(replayer: Replayer, userAction: UserAction): void {
 
       return;
     default:
-      throw Error('Unknown action: ' + action.type);
+      throw Error('Unknown action: ' + (userAction as any).type);
   }
 }
 
