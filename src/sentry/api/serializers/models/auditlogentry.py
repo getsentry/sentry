@@ -16,7 +16,10 @@ def fix(data):
         if hasattr(data["teams"][0], "id"):
             data["teams"] = [t.id for t in data["teams"]]
 
-    return data
+    # Only return fields in the `data` field that are actually used by the frontend
+    # Do not add fields to this list that contain sensitive information
+    required_fields = {"id", "slug", "old_slug", "new_slug", "name"}
+    return {k: v for k, v in data.items() if k in required_fields}
 
 
 def override_actor_id(user):
