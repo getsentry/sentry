@@ -1,8 +1,4 @@
-// XXX(epurkhiser): The pipeline view renders a Router inside of it and
-// does not need the providers provided by our wrapped render function.
-// Use the original to avoid doubling up.
-// eslint-disable-next-line no-restricted-imports
-import {render, screen} from '@testing-library/react';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import PipelineView from 'sentry/views/integrationPipeline/pipelineView';
 
@@ -21,7 +17,12 @@ describe('PipelineView', () => {
   });
 
   it('renders awsLambdaProjectSelect', () => {
-    render(<PipelineView pipelineName="awsLambdaProjectSelect" someField="someVal" />);
+    render(<PipelineView pipelineName="awsLambdaProjectSelect" someField="someVal" />, {
+      // XXX(epurkhiser): The pipeline view renders a Router inside of it. Stop
+      // our test renderer from rendering it's Router by setting the wrapper to
+      // undefined.
+      wrapper: undefined,
+    });
 
     expect(screen.getByText('mock_AwsLambdaProjectSelect')).toBeInTheDocument();
 
@@ -31,8 +32,13 @@ describe('PipelineView', () => {
   it('errros on invalid pipelineName', () => {
     jest.spyOn(console, 'error').mockImplementation(() => {});
 
-    expect(() => render(<PipelineView pipelineName="other" />)).toThrow(
-      'Invalid pipeline name other'
-    );
+    expect(() =>
+      render(<PipelineView pipelineName="other" />, {
+        // XXX(epurkhiser): The pipeline view renders a Router inside of it. Stop
+        // our test renderer from rendering it's Router by setting the wrapper to
+        // undefined.
+        wrapper: undefined,
+      })
+    ).toThrow('Invalid pipeline name other');
   });
 });
