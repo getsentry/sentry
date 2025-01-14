@@ -9,10 +9,6 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.models.savedsearch import SortOptions
 
 
-def default_time_filters():
-    return {"period": "14d"}
-
-
 @region_silo_model
 class GroupSearchViewProject(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Organization
@@ -61,7 +57,7 @@ class GroupSearchView(DefaultFieldsModelExisting):
     environments = models.ManyToManyField(
         "sentry.Environment", through="sentry.GroupSearchViewEnvironment"
     )
-    time_filters = models.JSONField(null=False, db_default=default_time_filters)
+    time_filters = models.JSONField(null=False, db_default={"period": "14d"})
 
     class Meta:
         app_label = "sentry"
