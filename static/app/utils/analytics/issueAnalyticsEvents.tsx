@@ -158,6 +158,7 @@ export type IssueEventParameters = {
   'issue_details.streamline_ui_toggle': {
     isEnabled: boolean;
   };
+  'issue_details.view_full_trace_waterfall_clicked': {};
   'issue_details.view_hierarchy.hover_rendering_system': {
     platform?: string;
     user_org_role?: string;
@@ -453,6 +454,8 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
     'Issue Group Details: Tags distribution value bar clicked',
   'integrations.integration_reinstall_clicked': 'Integration Reinstall Button Clicked',
   'one_other_related_trace_issue.clicked': 'One Other Related Trace Issue Clicked',
+  'issue_details.view_full_trace_waterfall_clicked':
+    ' Issue Details: View Full Trace Waterfall Clicked',
 
   // Performance Issue specific events here
   'issue_details.performance.autogrouped_siblings_toggle':
