@@ -815,6 +815,33 @@ describe('useWidgetBuilderState', () => {
 
       expect(result.current.state.selectedAggregate).toBeUndefined();
     });
+
+    it('resets the sort when the dataset is switched for big number widgets', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            dataset: WidgetType.ERRORS,
+            displayType: DisplayType.BIG_NUMBER,
+            sort: ['-testField'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.sort).toEqual([{field: 'testField', kind: 'desc'}]);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DATASET,
+          payload: WidgetType.TRANSACTIONS,
+        });
+      });
+
+      expect(result.current.state.sort).toEqual([]);
+    });
   });
 
   describe('fields', () => {
