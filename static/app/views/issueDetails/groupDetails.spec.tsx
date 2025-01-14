@@ -16,12 +16,18 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {IssueCategory} from 'sentry/types/group';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import GroupDetails from 'sentry/views/issueDetails/groupDetails';
 
 const SAMPLE_EVENT_ALERT_TEXT =
   'You are viewing a sample error. Configure Sentry to start viewing real errors.';
 
+jest.mock('sentry/utils/useNavigate', () => ({
+  useNavigate: jest.fn(),
+}));
+
 describe('groupDetails', () => {
+  let mockNavigate: jest.Mock;
   const group = GroupFixture({issueCategory: IssueCategory.ERROR});
   const event = EventFixture();
   const project = ProjectFixture({teams: [TeamFixture()]});
@@ -86,9 +92,11 @@ describe('groupDetails', () => {
   };
 
   beforeEach(() => {
+    mockNavigate = jest.fn();
     MockApiClient.clearMockResponses();
     OrganizationStore.onUpdate(defaultInit.organization);
     act(() => ProjectsStore.loadInitialData(defaultInit.projects));
+    jest.mocked(useNavigate).mockReturnValue(mockNavigate);
 
     MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/`,
@@ -295,6 +303,47 @@ describe('groupDetails', () => {
     createWrapper();
 
     await waitFor(() => expect(recommendedMock).toHaveBeenCalledTimes(1));
+  });
+
+  it("refires request when recommended endpoint doesn't return an event", async function () {
+    const recommendedWithSearchMock = MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/events/recommended/`,
+      query: {
+        query: 'foo:bar',
+        statsPeriod: '14d',
+      },
+      statusCode: 404,
+      body: {
+        detail: 'No matching event',
+      },
+    });
+
+    createWrapper({
+      ...defaultInit,
+      router: {
+        ...defaultInit.router,
+        location: LocationFixture({
+          query: {
+            query: 'foo:bar',
+            statsPeriod: '14d',
+          },
+        }),
+      },
+    });
+
+    await waitFor(() => expect(recommendedWithSearchMock).toHaveBeenCalledTimes(1));
+
+    await waitFor(() =>
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining(
+          // query and period should be removed
+          {query: {}}
+        ),
+        {
+          replace: true,
+        }
+      )
+    );
   });
 
   it('uses /latest endpoint when default is set to latest', async function () {
