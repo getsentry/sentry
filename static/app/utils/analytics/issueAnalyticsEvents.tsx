@@ -96,9 +96,18 @@ export type IssueEventParameters = {
   'issue.search_sidebar_clicked': {};
   'issue.share_from_icon': {};
   'issue.shared_publicly': {};
-  'issue_details.comment_created': {streamline: boolean};
-  'issue_details.comment_deleted': {streamline: boolean};
-  'issue_details.comment_updated': {streamline: boolean};
+  'issue_details.comment_created': {
+    org_streamline_only: boolean | undefined;
+    streamline: boolean;
+  };
+  'issue_details.comment_deleted': {
+    org_streamline_only: boolean | undefined;
+    streamline: boolean;
+  };
+  'issue_details.comment_updated': {
+    org_streamline_only: boolean | undefined;
+    streamline: boolean;
+  };
   'issue_details.copy_event_id_clicked': StreamlineGroupEventParams;
   'issue_details.copy_event_link_clicked': StreamlineGroupEventParams;
   'issue_details.escalating_feedback_received': {
@@ -130,6 +139,7 @@ export type IssueEventParameters = {
   };
   'issue_details.section_fold': {
     open: boolean;
+    org_streamline_only: boolean | undefined;
     sectionKey: string;
   };
   'issue_details.set_priority': SetPriorityParams;
