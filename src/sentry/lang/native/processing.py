@@ -544,6 +544,10 @@ def emit_apple_symbol_stats(apple_symbol_stats, data):
                     scope.set_context(
                         "Event Info", {"id": data.get("event_id"), "modules": str(old)}
                     )
+                    logger.info(
+                        "Failed to find symbols using symx",
+                        extra={"id": data.get("event_id"), "modules": old},
+                    )
                     sentry_sdk.capture_message("Failed to find symbols using symx")
 
     if symx := apple_symbol_stats.get("symx"):
