@@ -483,7 +483,7 @@ function NewTraceDetailsTransactionBar(props: Props) {
             <ProfilesProvider
               orgSlug={organization.slug}
               projectSlug={embeddedChildren.projectSlug ?? ''}
-              profileId={profileId || ''}
+              profileMeta={profileId || ''}
             >
               <ProfileContext.Consumer>
                 {profiles => (
