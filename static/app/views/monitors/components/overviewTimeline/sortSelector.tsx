@@ -3,7 +3,8 @@ import type {SelectOption} from 'sentry/components/compactSelect/types';
 import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {FormSize} from 'sentry/utils/theme';
-import useRouter from 'sentry/utils/useRouter';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 export enum MonitorSortOrder {
   ASCENDING = '1',
@@ -46,19 +47,24 @@ interface Props {
 }
 
 export function SortSelector({onChangeOrder, onChangeSort, order, sort, size}: Props) {
-  const {replace, location} = useRouter();
+  const location = useLocation();
+  const navigate = useNavigate();
 
-  const selectedSort: MonitorSortOption =
-    sort ?? location.query?.sort ?? MonitorSortOption.STATUS;
+  const selectedSort =
+    sort ?? (location.query?.sort as MonitorSortOption) ?? MonitorSortOption.STATUS;
 
-  const selectedOrder: MonitorSortOrder =
-    order ?? location.query?.asc ?? MonitorSortOrder.ASCENDING;
+  const selectedOrder =
+    order ?? (location.query?.ascs as MonitorSortOrder) ?? MonitorSortOrder.ASCENDING;
 
-  const defaultOnChange = (newSort: MonitorSortOption, newOrder: MonitorSortOrder) => {
-    replace({...location, query: {...location.query, asc: newOrder, sort: newSort}});
-  };
+  const defaultOnChange = (newSort: MonitorSortOption, newOrder: MonitorSortOrder) =>
+    navigate(
+      {...location, query: {...location.query, asc: newOrder, sort: newSort}},
+      {replace: true}
+    );
+
   const handleChangeSort =
     onChangeSort ?? (newSort => defaultOnChange(newSort.value, selectedOrder));
+
   const handleChangeOrder =
     onChangeOrder ?? (newOrder => defaultOnChange(selectedSort, newOrder.value));
 
