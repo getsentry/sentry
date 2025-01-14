@@ -70,12 +70,13 @@ import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import CorrelatedIssues from 'sentry/views/issueDetails/correlatedIssues';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {EventDetails} from 'sentry/views/issueDetails/streamline/eventDetails';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {TraceDataSection} from 'sentry/views/issueDetails/traceDataSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
+
+import MetricIssuesSection from '../metricIssuesSection';
 
 const LLMMonitoringSection = lazy(
   () => import('sentry/components/events/interfaces/llm-monitoring/llmMonitoringSection')
@@ -223,7 +224,7 @@ export function EventDetailsContent({
         />
       )}
       {event.contexts?.metric_alert?.alert_rule_id && (
-        <CorrelatedIssues
+        <MetricIssuesSection
           organization={organization}
           group={group}
           event={event}
