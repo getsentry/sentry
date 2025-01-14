@@ -4,6 +4,8 @@ from collections.abc import Callable, Iterable, Mapping, Sequence
 from functools import partial
 from typing import Optional, Union
 
+from django.contrib.auth.models import AnonymousUser
+
 from sentry.api.event_search import (
     AggregateFilter,
     ParenExpression,
@@ -260,7 +262,7 @@ value_converters: Mapping[str, ValueConverter] = {
 def convert_query_values(
     search_filters: ParsedTerms,
     projects: Sequence[Project],
-    user: User | RpcUser | None,
+    user: User | RpcUser | AnonymousUser | None,
     environments: Sequence[Environment] | None,
     value_converters=value_converters,
     allow_aggregate_filters=False,
