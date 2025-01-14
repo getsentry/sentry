@@ -58,9 +58,16 @@ describe('formatYAxisValue', () => {
   describe('rate', () => {
     it.each([
       [0, '1/second', '0'],
+      [-3, '1/second', '-3/s'],
       [0.712, '1/second', '0.712/s'],
       [12712, '1/second', '12.7K/s'],
       [1231, '1/minute', '1.23K/min'],
+      [0.0003, '1/second', '0.0003/s'],
+      [0.35, '1/second', '0.35/s'],
+      [10, '1/second', '10/s'],
+      [10.0, '1/second', '10/s'],
+      [110000, '1/second', '110K/s'],
+      [1231, '1/minute', '1.2K/min'],
     ])('Formats %s as %s', (value, unit, formattedValue) => {
       expect(formatYAxisValue(value, 'rate', unit)).toEqual(formattedValue);
     });

@@ -1,12 +1,12 @@
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {ABYTE_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldRenderers';
-import {DurationUnit, type RateUnit} from 'sentry/utils/discover/fields';
-import {formatAbbreviatedNumber, formatRate} from 'sentry/utils/formatters';
+import {DurationUnit, RATE_UNIT_LABELS, RateUnit} from 'sentry/utils/discover/fields';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {convertDuration} from 'sentry/utils/unitConversion/convertDuration';
 
-import {isADurationUnit} from '../common/typePredicates';
+import {isADurationUnit, isARateUnit} from '../common/typePredicates';
 
 import {formatYAxisDuration} from './formatYAxisDuration';
 
@@ -39,7 +39,10 @@ export function formatYAxisValue(value: number, type: string, unit?: string): st
 
       return formatter(bytes);
     case 'rate':
-      return formatRate(value, unit as RateUnit);
+      const rateUnit = isARateUnit(unit) ? unit : RateUnit.PER_SECOND;
+      return `${value.toLocaleString(undefined, {
+        notation: 'compact',
+      })}${RATE_UNIT_LABELS[rateUnit]}`;
     default:
       return value.toString();
   }
