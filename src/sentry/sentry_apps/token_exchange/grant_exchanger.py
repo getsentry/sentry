@@ -110,7 +110,7 @@ class GrantExchanger:
         except ApiGrant.DoesNotExist:
             raise SentryAppIntegratorError(
                 "Could not find grant for given code",
-                extras={"webhook_context": {"code": self.code}},
+                extras={"webhook_context": {"code": self.code[:4]}},
             )
 
     @property
@@ -120,7 +120,7 @@ class GrantExchanger:
         except ApiApplication.DoesNotExist:
             raise SentryAppSentryError(
                 "Could not find application from grant",
-                extras={"webhook_context": {"code": self.code, "grant_id": self.grant.id}},
+                extras={"webhook_context": {"code": self.code[:4], "grant_id": self.grant.id}},
             )
 
     @property
