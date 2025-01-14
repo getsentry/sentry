@@ -20,7 +20,7 @@ import type {TableColumn} from 'sentry/views/discover/table/types';
 import {ALLOWED_CELL_ACTIONS} from 'sentry/views/explore/components/table';
 import {
   useExploreQuery,
-  useSetExploreQuery,
+  useSetExploreQueryWithMode,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
@@ -38,7 +38,7 @@ export function FieldRenderer({data, meta, unit, column, mode}: FieldProps) {
   const location = useLocation();
   const organization = useOrganization();
   const userQuery = useExploreQuery();
-  const setUserQuery = useSetExploreQuery();
+  const setUserQueryWithMode = useSetExploreQueryWithMode();
   const dateSelection = EventView.fromLocation(location).normalizeDateSelection(location);
   const query = new MutableSearch(userQuery);
   const field = column.name;
@@ -118,7 +118,7 @@ export function FieldRenderer({data, meta, unit, column, mode}: FieldProps) {
             break;
           default:
             updateQuery(query, actions, column, value);
-            setUserQuery(
+            setUserQueryWithMode(
               query.formatString(),
               // samples action means we switch to samples mode
               // otherwise, don't do anything

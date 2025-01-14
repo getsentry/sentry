@@ -5,6 +5,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import EventView from 'sentry/utils/discover/eventView';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 
 import {FieldRenderer} from './fieldRenderer';
 
@@ -47,6 +48,7 @@ describe('FieldRenderer tests', function () {
         column={eventView.getColumns()[3]!}
         data={mockedEventData}
         meta={{}}
+        mode={Mode.SAMPLES}
       />,
       {organization}
     );
@@ -60,6 +62,7 @@ describe('FieldRenderer tests', function () {
         column={eventView.getColumns()[0]!}
         data={mockedEventData}
         meta={{}}
+        mode={Mode.SAMPLES}
       />,
       {organization}
     );
@@ -77,6 +80,7 @@ describe('FieldRenderer tests', function () {
         column={eventView.getColumns()[4]!}
         data={mockedEventData}
         meta={{}}
+        mode={Mode.SAMPLES}
       />,
       {organization}
     );
@@ -94,6 +98,7 @@ describe('FieldRenderer tests', function () {
         column={eventView.getColumns()[2]!}
         data={mockedEventData}
         meta={{}}
+        mode={Mode.SAMPLES}
       />,
       {organization}
     );
@@ -111,6 +116,7 @@ describe('FieldRenderer tests', function () {
         column={eventView.getColumns()[1]!}
         data={mockedEventData}
         meta={{}}
+        mode={Mode.SAMPLES}
       />,
       {organization}
     );
