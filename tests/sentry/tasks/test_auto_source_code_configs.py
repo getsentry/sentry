@@ -652,7 +652,7 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
 
     @patch("sentry.integrations.github.integration.GitHubIntegration.get_trees_for_org")
     @patch(
-        "sentry.integrations.utils.code_mapping.CodeMappingTreesHelper.generate_code_mappings",
+        "sentry.issues.auto_source_code_config.code_mapping.CodeMappingTreesHelper.generate_code_mappings",
         return_value=[
             CodeMapping(
                 repo=Repo(name="repo", branch="master"),
@@ -690,7 +690,7 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
 
     @patch("sentry.integrations.github.integration.GitHubIntegration.get_trees_for_org")
     @patch(
-        "sentry.integrations.utils.code_mapping.CodeMappingTreesHelper.generate_code_mappings",
+        "sentry.issues.auto_source_code_config.code_mapping.CodeMappingTreesHelper.generate_code_mappings",
         return_value=[
             CodeMapping(
                 repo=Repo(name="repo", branch="master"),
