@@ -7,7 +7,7 @@ import {SELF_NOTIFICATION_SETTINGS_TYPES} from 'sentry/views/settings/account/no
 import {NOTIFICATION_SETTING_FIELDS} from 'sentry/views/settings/account/notifications/fields2';
 import NotificationSettings from 'sentry/views/settings/account/notifications/notificationSettings';
 
-function renderMockRequests({}: {}) {
+function renderMockRequests() {
   MockApiClient.addMockResponse({
     url: '/users/me/notifications/',
     method: 'GET',
@@ -22,7 +22,7 @@ describe('NotificationSettings', function () {
   it('should render', async function () {
     const {router, organization} = initializeOrg();
 
-    renderMockRequests({});
+    renderMockRequests();
 
     render(<NotificationSettings organizations={[organization]} />, {
       router,
@@ -52,7 +52,7 @@ describe('NotificationSettings', function () {
       },
     });
 
-    renderMockRequests({});
+    renderMockRequests();
 
     render(<NotificationSettings organizations={[organization]} />, {
       router,
@@ -87,7 +87,7 @@ describe('NotificationSettings', function () {
     const organizationNoFlag = OrganizationFixture();
     organizationNoFlag.features.push('user-spend-notifications-settings');
 
-    renderMockRequests({});
+    renderMockRequests();
 
     render(<NotificationSettings organizations={[organization, organizationNoFlag]} />, {
       router,

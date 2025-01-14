@@ -1,15 +1,18 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import Input from 'sentry/components/input';
+import Radio from 'sentry/components/radio';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 import {
   type AggregationKeyWithAlias,
   type AggregationRefinement,
@@ -20,6 +23,8 @@ import {
   type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import {FieldKind} from 'sentry/utils/fields';
+import {decodeScalar} from 'sentry/utils/queryString';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
 import useOrganization from 'sentry/utils/useOrganization';
 import useTags from 'sentry/utils/useTags';
@@ -62,6 +67,14 @@ function Visualize({error, setError}: VisualizeProps) {
   const {state, dispatch} = useWidgetBuilderContext();
   let tags = useTags();
   const {customMeasurements} = useCustomMeasurements();
+  const {selectedAggregate: queryParamSelectedAggregate} = useLocationQuery({
+    fields: {
+      selectedAggregate: decodeScalar,
+    },
+  });
+  const [selectedAggregateSet, setSelectedAggregateSet] = useState(
+    defined(queryParamSelectedAggregate)
+  );
 
   const isChartWidget =
     state.displayType !== DisplayType.TABLE &&
@@ -238,6 +251,25 @@ function Visualize({error, setError}: VisualizeProps) {
 
             return (
               <FieldRow key={index}>
+                {fields.length > 1 && state.displayType === DisplayType.BIG_NUMBER && (
+                  <RadioLineItem
+                    index={index}
+                    role="radio"
+                    aria-label="aggregate-selector"
+                  >
+                    <Radio
+                      checked={index === state.selectedAggregate}
+                      onChange={() => {
+                        dispatch({
+                          type: BuilderStateAction.SET_SELECTED_AGGREGATE,
+                          payload: index,
+                        });
+                      }}
+                      onClick={() => setSelectedAggregateSet(true)}
+                      aria-label={'field' + index}
+                    />
+                  </RadioLineItem>
+                )}
                 <FieldBar data-testid={'field-bar'}>
                   {field.kind === FieldValueKind.EQUATION ? (
                     <StyledArithmeticInput
@@ -462,7 +494,7 @@ function Visualize({error, setError}: VisualizeProps) {
                       type="text"
                       name="name"
                       placeholder={t('Add Alias')}
-                      value={field.alias}
+                      value={field.alias ?? ''}
                       onChange={e => {
                         const newFields = cloneDeep(fields);
                         newFields[index]!.alias = e.target.value;
@@ -478,12 +510,27 @@ function Visualize({error, setError}: VisualizeProps) {
                     icon={<IconDelete />}
                     size="zero"
                     disabled={fields.length <= 1}
-                    onClick={() =>
+                    onClick={() => {
                       dispatch({
                         type: updateAction,
                         payload: fields?.filter((_field, i) => i !== index) ?? [],
-                      })
-                    }
+                      });
+
+                      if (
+                        state.displayType === DisplayType.BIG_NUMBER &&
+                        selectedAggregateSet
+                      ) {
+                        // Unset the selected aggregate if it's the last one
+                        // so the state will automatically choose the last aggregate
+                        // as new fields are added
+                        if (state.selectedAggregate === fields.length - 1) {
+                          dispatch({
+                            type: BuilderStateAction.SET_SELECTED_AGGREGATE,
+                            payload: undefined,
+                          });
+                        }
+                      }
+                    }}
                     aria-label={t('Remove field')}
                   />
                 </FieldExtras>

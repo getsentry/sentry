@@ -24,7 +24,6 @@ from sentry.incidents.logic import (
 from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleDetectionType,
-    AlertRuleMonitorTypeInt,
     AlertRuleSeasonality,
     AlertRuleSensitivity,
     AlertRuleStatus,
@@ -50,10 +49,7 @@ from sentry.incidents.subscription_processor import (
     partition,
     update_alert_rule_stats,
 )
-from sentry.incidents.utils.types import (
-    DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
-    AlertRuleActivationConditionType,
-)
+from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.issues.grouptype import MetricIssuePOC
 from sentry.models.project import Project
 from sentry.seer.anomaly_detection.get_anomaly_data import get_anomaly_data_from_seer
@@ -217,10 +213,6 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         return self.rule.snuba_query.subscriptions.filter(project=self.project).get()
 
     @cached_property
-    def activated_sub(self):
-        return self.activated_rule.snuba_query.subscriptions.filter(project=self.project).get()
-
-    @cached_property
     def other_sub(self):
         return self.rule.snuba_query.subscriptions.filter(project=self.other_project).get()
 
@@ -234,7 +226,6 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             threshold_type=AlertRuleThresholdType.ABOVE,
             resolve_threshold=10,
             threshold_period=1,
-            monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS,
             event_types=[
                 SnubaQueryEventType.EventType.ERROR,
                 SnubaQueryEventType.EventType.DEFAULT,
@@ -253,40 +244,6 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
     @cached_property
     def rule(self):
         return self.create_rule_trigger_and_action(projects=[self.project, self.other_project])
-
-    @cached_property
-    def activated_rule(self):
-        rule = self.create_alert_rule(
-            projects=[self.project, self.other_project],
-            name="some rule",
-            query="",
-            aggregate="count()",
-            time_window=1,
-            threshold_type=AlertRuleThresholdType.ABOVE,
-            resolve_threshold=10,
-            threshold_period=1,
-            monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
-            activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
-            event_types=[
-                SnubaQueryEventType.EventType.ERROR,
-                SnubaQueryEventType.EventType.DEFAULT,
-            ],
-        )
-        rule.subscribe_projects(
-            projects=[self.project],
-            monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
-            activation_condition=AlertRuleActivationConditionType.DEPLOY_CREATION,
-            activator="testing",
-        )
-        # Make sure the trigger exists
-        trigger = create_alert_rule_trigger(rule, CRITICAL_TRIGGER_LABEL, 100)
-        create_alert_rule_trigger_action(
-            trigger,
-            AlertRuleTriggerAction.Type.EMAIL,
-            AlertRuleTriggerAction.TargetType.USER,
-            str(self.user.id),
-        )
-        return rule
 
     @cached_property
     def comparison_rule_above(self):
@@ -327,16 +284,8 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         return self.rule.alertruletrigger_set.get()
 
     @cached_property
-    def activated_trigger(self):
-        return self.activated_rule.alertruletrigger_set.get()
-
-    @cached_property
     def action(self):
         return self.trigger.alertruletriggeraction_set.get()
-
-    @cached_property
-    def activated_action(self):
-        return self.activated_trigger.alertruletriggeraction_set.get()
 
     def build_subscription_update(self, subscription, time_delta=None, value=EMPTY):
         if time_delta is not None:

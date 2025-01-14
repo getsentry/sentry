@@ -3,12 +3,20 @@ from __future__ import annotations
 import functools
 from collections.abc import Callable
 
+from mypy.build import PRI_MYPY
 from mypy.errorcodes import ATTR_DEFINED
 from mypy.messages import format_type
-from mypy.nodes import ARG_POS
-from mypy.plugin import AttributeContext, ClassDefContext, FunctionSigContext, Plugin
+from mypy.nodes import ARG_POS, MypyFile, TypeInfo
+from mypy.plugin import (
+    AttributeContext,
+    ClassDefContext,
+    FunctionSigContext,
+    Plugin,
+    SemanticAnalyzerPluginInterface,
+)
 from mypy.plugins.common import add_attribute_to_class
 from mypy.subtypes import find_member
+from mypy.typeanal import make_optional_type
 from mypy.types import (
     AnyType,
     CallableType,
@@ -62,14 +70,33 @@ _FUNCTION_SIGNATURE_HOOKS = {
 }
 
 
+_AUTH_TOKEN_TP = "sentry.auth.services.auth.model.AuthenticatedToken"
+
+
+def _has_symbols(api: SemanticAnalyzerPluginInterface, *symbols: str) -> bool:
+    for symbol in symbols:
+        if not api.lookup_fully_qualified_or_none(symbol):
+            return False
+    else:
+        return True
+
+
+def _request_auth_tp(api: SemanticAnalyzerPluginInterface) -> Type:
+    st = api.lookup_fully_qualified(_AUTH_TOKEN_TP)
+    assert isinstance(st.node, TypeInfo), st.node
+    return make_optional_type(Instance(st.node, ()))
+
+
 def _adjust_http_request_members(ctx: ClassDefContext) -> None:
     if ctx.cls.name == "HttpRequest":
+        if not _has_symbols(ctx.api, _AUTH_TOKEN_TP):
+            return ctx.api.defer()
+
         # added by sentry.api.base and sentry.web.frontend.base
         # TODO: idk why I can't use the real type here :/
         add_attribute_to_class(ctx.api, ctx.cls, "access", AnyType(TypeOfAny.explicit))
         # added by sentry.middleware.auth
-        # TODO: figure out how to get the real types here
-        add_attribute_to_class(ctx.api, ctx.cls, "auth", AnyType(TypeOfAny.explicit))
+        add_attribute_to_class(ctx.api, ctx.cls, "auth", _request_auth_tp(ctx.api))
         # added by csp.middleware.CSPMiddleware
         add_attribute_to_class(ctx.api, ctx.cls, "csp_nonce", ctx.api.named_type("builtins.str"))
         # added by sudo.middleware.SudoMiddleware
@@ -89,6 +116,15 @@ def _adjust_http_request_members(ctx: ClassDefContext) -> None:
         # added by sentry.middleware.superuser
         # TODO: figure out how to get the real types here
         add_attribute_to_class(ctx.api, ctx.cls, "superuser", AnyType(TypeOfAny.explicit))
+
+
+def _adjust_request_members(ctx: ClassDefContext) -> None:
+    if ctx.cls.name == "Request":
+        if not _has_symbols(ctx.api, _AUTH_TOKEN_TP):
+            return ctx.api.defer()
+
+        # sentry.auth.middleware / sentry.api.authentication
+        add_attribute_to_class(ctx.api, ctx.cls, "auth", _request_auth_tp(ctx.api))
 
 
 def _lazy_service_wrapper_attribute(ctx: AttributeContext, *, attr: str) -> Type:
@@ -124,6 +160,8 @@ class SentryMypyPlugin(Plugin):
         # XXX: this is a hack -- I don't know if there's a better callback to modify a class
         if fullname == "_io.BytesIO":
             return _adjust_http_request_members
+        elif fullname == "django.http.request.HttpRequest":
+            return _adjust_request_members
         else:
             return None
 
@@ -133,6 +171,12 @@ class SentryMypyPlugin(Plugin):
             return functools.partial(_lazy_service_wrapper_attribute, attr=attr)
         else:
             return None
+
+    def get_additional_deps(self, file: MypyFile) -> list[tuple[int, str, int]]:
+        if file.fullname in {"django.http", "django.http.request", "rest_framework.request"}:
+            return [(PRI_MYPY, "sentry.auth.services.auth.model", -1)]
+        else:
+            return []
 
 
 def plugin(version: str) -> type[SentryMypyPlugin]:
