@@ -66,6 +66,7 @@ describe('ResourcesLandingPage', function () {
   [
     "/organizations/org-slug/events/",
     {
+      "cancelable": undefined,
       "error": [Function],
       "method": "GET",
       "query": {
@@ -98,6 +99,7 @@ describe('ResourcesLandingPage', function () {
   [
     "/organizations/org-slug/events/",
     {
+      "cancelable": undefined,
       "error": [Function],
       "method": "GET",
       "query": {
