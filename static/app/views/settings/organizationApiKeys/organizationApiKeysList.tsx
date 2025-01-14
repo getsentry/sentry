@@ -10,15 +10,13 @@ import {PanelTable} from 'sentry/components/panels/panelTable';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {PlainRoute, RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
-import recreateRoute from 'sentry/utils/recreateRoute';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import type {DeprecatedApiKey} from './types';
 
-type Props = RouteComponentProps<{}, {}> & {
+type Props = {
   /**
    * Busy differs from loading in that busy is a result of an action like removing
    */
@@ -30,17 +28,14 @@ type Props = RouteComponentProps<{}, {}> & {
    */
   loading: boolean;
 
-  onAddApiKey: () => {};
+  onAddApiKey: () => void;
 
-  onRemove: (id: DeprecatedApiKey['id']) => {};
+  onRemove: (id: DeprecatedApiKey['id']) => void;
   organization: Organization;
-  routes: PlainRoute[];
 };
 
 function OrganizationApiKeysList({
   organization,
-  params,
-  routes,
   keys,
   busy,
   loading,
@@ -93,18 +88,13 @@ function OrganizationApiKeysList({
         headers={[t('Name'), t('Key'), t('Actions')]}
       >
         {keys?.map(({id, key, label}) => {
-          const apiDetailsUrl = recreateRoute(`${id}/`, {
-            params: {...params, orgId: organization.slug},
-            routes,
-          });
-
           return (
             <Fragment key={key}>
               <Cell>
-                <Link to={apiDetailsUrl}>{label}</Link>
+                <Link to={`/settings/${organization.slug}/api-keys/${id}/`}>{label}</Link>
               </Cell>
 
-              <TextCopyInput size="sm" monospace>
+              <TextCopyInput size="md" monospace>
                 {key}
               </TextCopyInput>
 

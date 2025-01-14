@@ -19,7 +19,6 @@ from sentry.eventstore.models import Event
 from sentry.eventstore.processing import event_processing_store
 from sentry.eventstream.types import EventStreamEventType
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource
-from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.source_code_management.commit_context import CommitInfo, FileBlameInfo
 from sentry.issues.grouptype import (
@@ -60,11 +59,9 @@ from sentry.tasks.merge import merge_groups
 from sentry.tasks.post_process import (
     HIGHER_ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT,
     ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT,
-    _get_event_id_from_cache_key,
     feedback_filter_decorator,
     locks,
     post_process_group,
-    process_event,
     run_post_process_job,
 )
 from sentry.testutils.cases import BaseTestCase, PerformanceIssueTestCase, SnubaTestCase, TestCase
@@ -73,7 +70,6 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.redis import mock_redis_buffer
-from sentry.testutils.performance_issues.store_transaction import store_transaction
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
@@ -2202,6 +2198,54 @@ class DetectBaseUrlsForUptimeTestMixin(BasePostProgressGroupMixin):
         self.assert_organization_key(self.organization, False)
 
 
+@patch("sentry.analytics.record")
+@patch("sentry.utils.metrics.incr")
+@patch("sentry.utils.metrics.distribution")
+class CheckIfFlagsSentTestMixin(BasePostProgressGroupMixin):
+    def test_set_has_flags(self, mock_dist, mock_incr, mock_record):
+        project = self.create_project()
+        event_id = "a" * 32
+        event = self.create_event(
+            data={
+                "event_id": event_id,
+                "contexts": {
+                    "flags": {
+                        "values": [
+                            {
+                                "flag": "test-flag-1",
+                                "result": False,
+                            },
+                            {
+                                "flag": "test-flag-2",
+                                "result": True,
+                            },
+                        ]
+                    }
+                },
+            },
+            project_id=project.id,
+        )
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+
+        project.refresh_from_db()
+        assert project.flags.has_flags
+
+        mock_incr.assert_any_call("feature_flags.event_has_flags_context")
+        mock_dist.assert_any_call("feature_flags.num_flags_sent", 2)
+        mock_record.assert_called_with(
+            "first_flag.sent",
+            organization_id=self.organization.id,
+            project_id=project.id,
+            platform=project.platform,
+        )
+
+
 class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
     def test_has_escalated(self, mock_run_post_process_job):
@@ -2484,6 +2528,7 @@ class PostProcessGroupErrorTest(
     UserReportEventLinkTestMixin,
     DetectBaseUrlsForUptimeTestMixin,
     ProcessSimilarityTestMixin,
+    CheckIfFlagsSentTestMixin,
 ):
     def setUp(self):
         super().setUp()
@@ -2583,47 +2628,6 @@ class PostProcessGroupPerformanceTest(
             )
         return cache_key
 
-    @patch("sentry.sentry_metrics.client.generic_metrics_backend.counter")
-    @patch("sentry.tasks.post_process.run_post_process_job")
-    @patch("sentry.rules.processing.processor.RuleProcessor")
-    @patch("sentry.signals.transaction_processed.send_robust")
-    @patch("sentry.signals.event_processed.send_robust")
-    def test_process_transaction_event_with_no_group(
-        self,
-        event_processed_signal_mock,
-        transaction_processed_signal_mock,
-        mock_processor,
-        run_post_process_job_mock,
-        generic_metrics_backend_mock,
-    ):
-        min_ago = before_now(minutes=1)
-        event = store_transaction(
-            test_case=self,
-            project_id=self.project.id,
-            user_id=self.create_user(name="user1").name,
-            fingerprint=[],
-            environment=None,
-            timestamp=min_ago,
-        )
-        assert len(event.groups) == 0
-        cache_key = write_event_to_cache(event)
-        post_process_group(
-            is_new=False,
-            is_regression=False,
-            is_new_group_environment=False,
-            cache_key=cache_key,
-            group_id=None,
-            group_states=None,
-            project_id=self.project.id,
-            eventstream_type=EventStreamEventType.Transaction,
-        )
-
-        assert transaction_processed_signal_mock.call_count == 1
-        assert event_processed_signal_mock.call_count == 0
-        assert mock_processor.call_count == 0
-        assert run_post_process_job_mock.call_count == 0
-        assert generic_metrics_backend_mock.call_count == 0
-
     @patch("sentry.tasks.post_process.handle_owner_assignment")
     @patch("sentry.tasks.post_process.handle_auto_assignment")
     @patch("sentry.tasks.post_process.process_rules")
@@ -2663,7 +2667,6 @@ class PostProcessGroupPerformanceTest(
             eventstream_type=EventStreamEventType.Error,
         )
 
-        assert transaction_processed_signal_mock.call_count == 1
         assert event_processed_signal_mock.call_count == 0
         assert mock_processor.call_count == 0
         assert run_post_process_job_mock.call_count == 1
@@ -2710,98 +2713,6 @@ class PostProcessGroupAggregateEventTest(
                 eventstream_type=EventStreamEventType.Error,
             )
         return cache_key
-
-
-class TransactionClustererTestCase(TestCase, SnubaTestCase):
-    @patch("sentry.ingest.transaction_clusterer.datasource.redis._record_sample")
-    def test_process_transaction_event_clusterer(
-        self,
-        mock_store_transaction_name,
-    ):
-        min_ago = before_now(minutes=1)
-        event = process_event(
-            data={
-                "project": self.project.id,
-                "event_id": "b" * 32,
-                "transaction": "foo",
-                "start_timestamp": str(min_ago),
-                "timestamp": str(min_ago),
-                "type": "transaction",
-                "transaction_info": {
-                    "source": "url",
-                },
-                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
-            },
-            group_id=0,
-        )
-        cache_key = write_event_to_cache(event)
-        post_process_group(
-            is_new=False,
-            is_regression=False,
-            is_new_group_environment=False,
-            cache_key=cache_key,
-            group_id=None,
-            project_id=self.project.id,
-            eventstream_type=EventStreamEventType.Transaction,
-        )
-
-        assert mock_store_transaction_name.mock_calls == [
-            mock.call(ClustererNamespace.TRANSACTIONS, self.project, "foo")
-        ]
-
-
-class ProcessingStoreTransactionEmptyTestcase(TestCase):
-    @patch("sentry.tasks.post_process.logger")
-    def test_logger_called_when_empty(self, mock_logger):
-        post_process_group(
-            is_new=False,
-            is_regression=False,
-            is_new_group_environment=False,
-            cache_key="e:1:2",
-            group_id=None,
-            project_id=self.project.id,
-            eventstream_type=EventStreamEventType.Transaction,
-        )
-        assert mock_logger.info.called
-        mock_logger.info.assert_called_with(
-            "post_process.skipped", extra={"cache_key": "e:1:2", "reason": "missing_cache"}
-        )
-
-    @patch("sentry.tasks.post_process.logger")
-    @patch("sentry.utils.metrics.incr")
-    @override_options({"transactions.do_post_process_in_save": 1.0})
-    def test_logger_called_when_empty_option_on(self, mock_metric_incr, mock_logger):
-        post_process_group(
-            is_new=False,
-            is_regression=False,
-            is_new_group_environment=False,
-            cache_key="e:1:2",
-            group_id=None,
-            project_id=self.project.id,
-            eventstream_type=EventStreamEventType.Transaction,
-        )
-        assert not mock_logger.info.called
-        mock_metric_incr.assert_called_with("post_process.skipped_do_post_process_in_save")
-
-    @patch("sentry.tasks.post_process.logger")
-    @override_options({"transactions.do_post_process_in_save": 1.0})
-    def test_logger_called_when_empty_option_on_invalid_cache_key(self, mock_logger):
-        post_process_group(
-            is_new=False,
-            is_regression=False,
-            is_new_group_environment=False,
-            cache_key="invalidhehe",
-            group_id=None,
-            project_id=self.project.id,
-            eventstream_type=EventStreamEventType.Transaction,
-        )
-        mock_logger.info.assert_called_with(
-            "post_process.skipped", extra={"cache_key": "invalidhehe", "reason": "missing_cache"}
-        )
-
-    def test_get_event_id_from_cache_key(self):
-        assert _get_event_id_from_cache_key("e:1:2") == "1"
-        assert _get_event_id_from_cache_key("invalid") is None
 
 
 class PostProcessGroupGenericTest(

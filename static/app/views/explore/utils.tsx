@@ -1,6 +1,8 @@
 import * as qs from 'query-string';
 
 import type {PageFilters} from 'sentry/types/core';
+import type {Series} from 'sentry/types/echarts';
+import type {Confidence} from 'sentry/types/organization';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import type {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -48,4 +50,30 @@ export function getExploreUrl({
   return normalizeUrl(
     `/organizations/${orgSlug}/traces/?${qs.stringify(queryParams, {skipNull: true})}`
   );
+}
+
+export function combineConfidenceForSeries(series: Series[]): Confidence {
+  let lows = 0;
+  let highs = 0;
+  let nulls = 0;
+
+  for (const s of series) {
+    if (s.confidence === 'low') {
+      lows += 1;
+    } else if (s.confidence === 'high') {
+      highs += 1;
+    } else {
+      nulls += 1;
+    }
+  }
+
+  if (lows <= 0 && highs <= 0 && nulls >= 0) {
+    return null;
+  }
+
+  if (lows / (lows + highs) > 0.5) {
+    return 'low';
+  }
+
+  return 'high';
 }

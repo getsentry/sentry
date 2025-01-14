@@ -148,7 +148,11 @@ function CompactSelect<Value extends SelectKey>({
             );
           }
 
-          return <Item {...item}>{item.label}</Item>;
+          return (
+            <Item {...item} key={item.key}>
+              {item.label}
+            </Item>
+          );
         }}
       </List>
 

@@ -29,24 +29,24 @@ class Action(DefaultFieldsModel):
     __repr__ = sane_repr("id", "type")
 
     class Type(models.TextChoices):
-        EMAIL = "email"
         SLACK = "slack"
-        DISCORD = "discord"
         MSTEAMS = "msteams"
+        DISCORD = "discord"
+
         PAGERDUTY = "pagerduty"
         OPSGENIE = "opsgenie"
+
         GITHUB = "github"
         GITHUB_ENTERPRISE = "github_enterprise"
         JIRA = "jira"
         JIRA_SERVER = "jira_server"
         AZURE_DEVOPS = "azure_devops"
-        WEBHOOK = "webhook"
-        PLUGIN = "plugin"
+
+        EMAIL = "email"
         SENTRY_APP = "sentry_app"
 
-    class LegacyNotificationType(models.TextChoices):
-        ISSUE_ALERT = "issue"
-        METRIC_ALERT = "metric"
+        PLUGIN = "plugin"
+        WEBHOOK = "webhook"
 
     # The type field is used to denote the type of action we want to trigger
     type = models.TextField(choices=Type.choices)

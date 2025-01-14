@@ -3,10 +3,10 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   platformProductAvailability,
   ProductSelection,
-  ProductSolution,
 } from 'sentry/components/onboarding/productSelection';
 import ConfigStore from 'sentry/stores/configStore';
 
