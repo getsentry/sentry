@@ -37,7 +37,7 @@ const FLAG_OPTION_TO_IMPORT: Record<IntegrationOptions, FlagImports> = {
   },
   [IntegrationOptions.GENERIC]: {
     module: 'feature_flags',
-    integration: 'FeatureFlagsIntegration',
+    integration: '',
   },
 };
 
@@ -256,16 +256,21 @@ export const featureFlagOnboarding: OnboardingConfig = {
   configure: ({featureFlagOptions = {integration: ''}, dsn}) => [
     {
       type: StepType.CONFIGURE,
-      description: tct('Add [name] to your integrations list.', {
-        name: (
-          <code>{`${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration].integration}()`}</code>
-        ),
-      }),
+      description:
+        featureFlagOptions.integration === IntegrationOptions.GENERIC
+          ? `This provider doesn't require any changes to your configuration or integrations list. Simply import and use the API function:`
+          : tct('Add [name] to your integrations list.', {
+              name: (
+                <code>{`${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration].integration}()`}</code>
+              ),
+            }),
       configurations: [
         {
           language: 'python',
-          code: `
-import sentry-sdk
+          code:
+            featureFlagOptions.integration === IntegrationOptions.GENERIC
+              ? `from sentry_sdk.${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration].module} import add_feature_flag`
+              : `import sentry-sdk
 from sentry_sdk.integrations.${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration].module} import ${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration].integration}
 
 sentry_sdk.init(
@@ -273,8 +278,7 @@ sentry_sdk.init(
   integrations=[
     ${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration].integration}(),
   ]
-)
-`,
+)`,
         },
       ],
     },
