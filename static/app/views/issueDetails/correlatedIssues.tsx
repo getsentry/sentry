@@ -14,23 +14,22 @@ import {Dataset, TimePeriod} from 'sentry/views/alerts/rules/metric/types';
 import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
 import {isCrashFreeAlert} from 'sentry/views/alerts/rules/metric/utils/isCrashFreeAlert';
 import {fetchAlertRule} from 'sentry/views/alerts/utils/apiCalls';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
-import {SectionKey} from '../streamline/context';
-import {InterimSection} from '../streamline/interimSection';
-
-interface MetricDetailsProps {
+interface CorrelatedIssuesProps {
   event: Event;
   group: Group;
   organization: Organization;
   project: Project;
 }
 
-export default function MetricDetails({
+export default function CorrelatedIssues({
   organization,
   event,
   group,
   project,
-}: MetricDetailsProps) {
+}: CorrelatedIssuesProps) {
   const [rule, setRule] = useState<any>(null);
   const ruleId = event.contexts?.metric_alert?.alert_rule_id;
   useEffect(() => {
