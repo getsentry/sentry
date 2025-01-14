@@ -238,7 +238,7 @@ unidiff==0.7.4
 uritemplate==4.1.1
 urllib3==2.2.2
 vine==5.1.0
-virtualenv==20.25.0
+virtualenv==20.26.6
 wcwidth==0.2.10
 werkzeug==3.0.6
 wheel==0.38.4
