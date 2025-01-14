@@ -61,7 +61,7 @@ ATTR_CHOICES = {
     "stacktrace.filename": Columns.STACK_FILENAME,
     "stacktrace.abs_path": Columns.STACK_ABS_PATH,
     "stacktrace.package": Columns.STACK_PACKAGE,
-    "unreal.crashtype": Columns.UNREAL_CRASH_TYPE,
+    "unreal.crash_type": Columns.UNREAL_CRASH_TYPE,
     "app.in_foreground": Columns.APP_IN_FOREGROUND,
     "os.distribution_name": Columns.OS_DISTRIBUTION_NAME,
     "os.distribution_version": Columns.OS_DISTRIBUTION_VERSION,
