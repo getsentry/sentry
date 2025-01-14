@@ -11,14 +11,7 @@ from sentry.snuba.models import QuerySubscriptionDataSourceHandler, SnubaQuery
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode
-from sentry.workflow_engine.models import (
-    Action,
-    DataCondition,
-    DataConditionGroup,
-    DataSource,
-    Detector,
-    Workflow,
-)
+from sentry.workflow_engine.models import Action, DataCondition, DataConditionGroup, DataSource, Workflow
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.data_condition_group_action import DataConditionGroupAction
 from sentry.workflow_engine.models.workflow_data_condition_group import WorkflowDataConditionGroup
@@ -28,12 +21,9 @@ from sentry.workflow_engine.types import DetectorPriorityLevel
 
 class TestDetectorSerializer(TestCase):
     def test_serialize_simple(self):
-        detector = Detector.objects.create(
-            organization_id=self.organization.id,
-            name="Test Detector",
-            type=MetricAlertFire.slug,
+        detector = self.create_detector(
+            organization_id=self.organization.id, name="Test Detector", type=MetricAlertFire.slug
         )
-
         result = serialize(detector)
 
         assert result == {
@@ -59,12 +49,9 @@ class TestDetectorSerializer(TestCase):
             comparison=100,
             condition_result=DetectorPriorityLevel.HIGH,
         )
-
         action = Action.objects.create(type=Action.Type.EMAIL, data={"foo": "bar"})
-
         DataConditionGroupAction.objects.create(condition_group=condition_group, action=action)
-
-        detector = Detector.objects.create(
+        detector = self.create_detector(
             organization_id=self.organization.id,
             name="Test Detector",
             type=MetricAlertFire.slug,
@@ -145,7 +132,7 @@ class TestDetectorSerializer(TestCase):
 
     def test_serialize_bulk(self):
         detectors = [
-            Detector.objects.create(
+            self.create_detector(
                 organization_id=self.organization.id,
                 name=f"Test Detector {i}",
                 type=MetricAlertFire.slug,

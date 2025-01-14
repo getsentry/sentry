@@ -129,8 +129,6 @@ def enforce_config_schema(sender, instance: Detector, **kwargs):
         raise ValueError(f"No group type found with type {instance.type}")
 
     if not isinstance(instance.config, dict):
-        # if config isn't passed it gets set as a DatabaseDefault object
-        # the schema can't process anything but a non-empty dict
         raise ValidationError("Detector config must be a dictionary")
 
     config_schema = group_type.detector_config_schema
