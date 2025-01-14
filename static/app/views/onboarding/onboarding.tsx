@@ -387,7 +387,7 @@ function Onboarding(props: Props) {
             numSteps={onboardingSteps.length}
             currentStepIndex={stepIndex}
             onClick={i => {
-              if (i < stepIndex && shallProjectBeDeleted) {
+              if ((i as number) < stepIndex && shallProjectBeDeleted) {
                 openConfirmModal({
                   ...goBackDeletionAlertModalProps,
                   // @ts-expect-error TS(2345): Argument of type 'number | MouseEvent<HTMLDivEleme... Remove this comment to see the full error message

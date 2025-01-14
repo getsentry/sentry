@@ -135,7 +135,9 @@ export default class TableField extends Component<InputFieldProps> {
         <HeaderContainer>
           {mappedKeys.map((fieldKey, i) => (
             <Header key={fieldKey}>
-              <HeaderLabel>{columnLabels?.[fieldKey]}</HeaderLabel>
+              <HeaderLabel>
+                {columnLabels?.[fieldKey as keyof typeof columnLabels]}
+              </HeaderLabel>
               {i === mappedKeys.length - 1 && button}
             </Header>
           ))}

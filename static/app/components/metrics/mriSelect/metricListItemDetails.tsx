@@ -25,6 +25,7 @@ import {
 } from 'sentry/utils/metrics/useMetricsTags';
 import {useVirtualMetricsContext} from 'sentry/utils/metrics/virtualMetricsContext';
 import {useQueryClient} from 'sentry/utils/queryClient';
+import type {Color} from 'sentry/utils/theme';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 
@@ -301,7 +302,7 @@ const TagWrapper = styled('span')`
   white-space: nowrap;
 `;
 
-const Disclaimer = styled('div')<{textColor?: string}>`
+const Disclaimer = styled('div')<{textColor?: Color}>`
   display: grid;
   gap: ${space(0.5)};
   grid-template-columns: max-content 1fr;

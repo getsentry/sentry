@@ -291,9 +291,11 @@ export const FIELD_FORMATTERS: FieldFormatters = {
       const {unit} = baggage ?? {};
       return (
         <NumberContainer>
-          {unit && SIZE_UNITS[unit] && typeof data[field] === 'number' ? (
+          {unit &&
+          SIZE_UNITS[unit as keyof typeof SIZE_UNITS] &&
+          typeof data[field] === 'number' ? (
             <FileSize
-              bytes={data[field] * SIZE_UNITS[unit]}
+              bytes={data[field] * SIZE_UNITS[unit as keyof typeof SIZE_UNITS]}
               base={ABYTE_UNITS.includes(unit) ? 10 : 2}
             />
           ) : (

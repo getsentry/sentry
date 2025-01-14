@@ -812,7 +812,8 @@ const LegendDot = styled('div')<{color: string}>`
   width: ${space(1)};
   height: ${space(1)};
   border-radius: 100%;
-  background-color: ${p => p.theme[p.color] ?? p.color};
+  background-color: ${p =>
+    (p.theme[p.color as keyof typeof p.theme] as string | undefined) ?? p.color};
 `;
 
 const EmptyValueContainer = styled('span')`

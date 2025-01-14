@@ -27,7 +27,7 @@ import {IssueDetailsEventNavigation} from 'sentry/views/issueDetails/streamline/
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
-const TabName = {
+const TabName: Partial<Record<Tab, string>> = {
   [Tab.DETAILS]: t('Events'),
   [Tab.EVENTS]: t('Events'),
   [Tab.REPLAYS]: t('Replays'),

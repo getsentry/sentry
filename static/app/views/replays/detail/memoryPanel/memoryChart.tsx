@@ -66,14 +66,13 @@ export default function MemoryChart({
             return `
             <div class="tooltip-series">${seriesTooltips.join('')}</div>
               <div class="tooltip-footer">
-                ${t('Date: %s', getFormattedDate(startTimestampMs + firstValue!.axisValue, 'MMM D, YYYY hh:mm:ss A z', {local: false}))}
+                ${t('Date: %s', getFormattedDate(startTimestampMs + (firstValue as any).axisValue, 'MMM D, YYYY hh:mm:ss A z', {local: false}))}
               </div>
               <div class="tooltip-footer" style="border: none;">
                 ${t(
                   'Time within replay: %s',
                   formatDuration({
-                    // @ts-expect-error TS(2532): Object is possibly 'undefined'.
-                    duration: [firstValue.axisValue, 'ms'],
+                    duration: [(firstValue as any).axisValue, 'ms'],
                     precision: 'ms',
                     style: 'hh:mm:ss.sss',
                   })

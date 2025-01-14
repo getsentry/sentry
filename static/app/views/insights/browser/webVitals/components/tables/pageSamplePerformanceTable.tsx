@@ -302,10 +302,10 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
     ) {
       return (
         <AlignRight>
-          {row[key] === undefined ? (
+          {(row as any)[key] === undefined ? (
             <NoValue>{' \u2014 '}</NoValue>
           ) : (
-            getFormattedDuration((row[key] as number) / 1000)
+            getFormattedDuration(((row as any)[key] as number) / 1000)
           )}
         </AlignRight>
       );
@@ -313,10 +313,10 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
     if (['measurements.cls', 'opportunity'].includes(key)) {
       return (
         <AlignRight>
-          {row[key] === undefined ? (
+          {(row as any)[key] === undefined ? (
             <NoValue>{' \u2014 '}</NoValue>
           ) : (
-            Math.round((row[key] as number) * 100) / 100
+            Math.round(((row as any)[key] as number) * 100) / 100
           )}
         </AlignRight>
       );
@@ -407,7 +407,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
     if (key === SpanIndexedField.SPAN_DESCRIPTION) {
       return (
         <NoOverflow>
-          <Tooltip title={row[key]}>{row[key]}</Tooltip>
+          <Tooltip title={(row as any)[key]}>{(row as any)[key]}</Tooltip>
         </NoOverflow>
       );
     }

@@ -195,7 +195,7 @@ export function WebVitalsDetailPanel({
     if (key === 'score') {
       return (
         <AlignCenter>
-          <PerformanceBadge score={row[`${webVital}Score`]} />
+          <PerformanceBadge score={row[`${webVital!}Score`]} />
         </AlignCenter>
       );
     }

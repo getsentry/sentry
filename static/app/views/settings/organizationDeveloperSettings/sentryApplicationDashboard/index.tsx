@@ -184,10 +184,16 @@ class SentryApplicationDashboard extends DeprecatedAsyncComponent<Props, State> 
           <StyledFooter>
             {Object.keys(componentInteractions).map(
               (component, idx) =>
-                componentInteractionsDetails[component] && (
+                componentInteractionsDetails[
+                  component as keyof typeof componentInteractionsDetails
+                ] && (
                   <Fragment key={idx}>
                     <strong>{`${component}: `}</strong>
-                    {componentInteractionsDetails[component]}
+                    {
+                      componentInteractionsDetails[
+                        component as keyof typeof componentInteractionsDetails
+                      ]
+                    }
                     <br />
                   </Fragment>
                 )

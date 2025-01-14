@@ -179,7 +179,7 @@ const ValueRow = styled('div')`
   align-items: center;
 `;
 
-const WarningIconContainer = styled('span')<{size: IconSize | string}>`
+const WarningIconContainer = styled('span')<{size: IconSize}>`
   display: inline-block;
   height: ${p => p.theme.iconSizes[p.size] ?? p.size};
   line-height: ${p => p.theme.iconSizes[p.size] ?? p.size};
@@ -187,7 +187,7 @@ const WarningIconContainer = styled('span')<{size: IconSize | string}>`
   color: ${p => p.theme.errorText};
 `;
 
-const FireIconContainer = styled('span')<{size: IconSize | string}>`
+const FireIconContainer = styled('span')<{size: IconSize}>`
   display: inline-block;
   height: ${p => p.theme.iconSizes[p.size] ?? p.size};
   line-height: ${p => p.theme.iconSizes[p.size] ?? p.size};

@@ -574,7 +574,7 @@ function SpanDetail(props: Props) {
               )}
               {unknownKeys.map(key => (
                 <Row title={key} key={key}>
-                  {maybeStringify(span[key])}
+                  {maybeStringify(span[key as never])}
                 </Row>
               ))}
             </tbody>
@@ -643,7 +643,7 @@ const StyledText = styled('p')`
   margin: ${space(2)} 0;
 `;
 
-function TextTr({children}) {
+function TextTr({children}: any) {
   return (
     <tr>
       <td className="key" />

@@ -36,8 +36,7 @@ export function getDefaultExpanded(
   value: any,
   autoCollapseLimit = MAX_ITEMS_BEFORE_AUTOCOLLAPSE
 ) {
-  // @ts-expect-error TS(7023): 'recurse' implicitly has return type 'any' because... Remove this comment to see the full error message
-  function recurse(prefix: string, levels: number, val: any) {
+  function recurse(prefix: string, levels: number, val: any): Array<any> {
     if (!levels) {
       return [];
     }

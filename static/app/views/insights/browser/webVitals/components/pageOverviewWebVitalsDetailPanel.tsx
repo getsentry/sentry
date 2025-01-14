@@ -192,11 +192,12 @@ export function PageOverviewWebVitalsDetailPanel({
     const {key} = col;
     const projectSlug = getProjectSlug(row);
     if (key === 'score') {
-      // @ts-expect-error TS(2551): Property 'measurements.null' does not exist on typ... Remove this comment to see the full error message
-      if (row[`measurements.${webVital}`] !== undefined) {
+      if (row[`measurements.${webVital}` as keyof typeof row] !== undefined) {
         return (
           <AlignCenter>
-            <PerformanceBadge score={row[`${webVital}Score`]} />
+            <PerformanceBadge
+              score={row[`${webVital}Score` as keyof typeof row] as number}
+            />
           </AlignCenter>
         );
       }
@@ -283,11 +284,12 @@ export function PageOverviewWebVitalsDetailPanel({
   const renderInpBodyCell = (col: Column, row: InteractionSpanSampleRowWithScore) => {
     const {key} = col;
     if (key === 'score') {
-      // @ts-expect-error TS(2551): Property 'measurements.cls' does not exist on type... Remove this comment to see the full error message
-      if (row[`measurements.${webVital}`] !== undefined) {
+      if (row[`measurements.${webVital}` as keyof typeof row] !== undefined) {
         return (
           <AlignCenter>
-            <PerformanceBadge score={row[`${webVital}Score`]} />
+            <PerformanceBadge
+              score={row[`${webVital}Score` as keyof typeof row] as number}
+            />
           </AlignCenter>
         );
       }

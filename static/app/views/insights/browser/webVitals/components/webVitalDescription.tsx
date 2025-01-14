@@ -226,9 +226,9 @@ export function WebVitalDescription({score, value, webVital}: Props) {
       <SupportedBrowsers>
         {Object.values(Browser).map(browser => (
           <BrowserItem key={browser}>
-            {vitalSupportedBrowsers[WebVital[webVital.toUpperCase()]]?.includes(
-              browser
-            ) ? (
+            {vitalSupportedBrowsers[
+              WebVital[webVital.toUpperCase() as Uppercase<typeof webVital>]
+            ]?.includes(browser) ? (
               <IconCheckmark color="successText" size="sm" />
             ) : (
               <IconClose color="dangerText" size="sm" />
@@ -292,7 +292,7 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
   margin: 20px 65px;
 `;
 
-const ScoreBadge = styled('div')<{status: string}>`
+const ScoreBadge = styled('div')<{status: keyof typeof PERFORMANCE_SCORE_COLORS}>`
   display: flex;
   justify-content: center;
   align-items: center;

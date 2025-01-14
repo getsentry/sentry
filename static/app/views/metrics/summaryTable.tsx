@@ -253,8 +253,11 @@ export const SummaryTable = memo(function SummaryTable({
                 </TextOverflowCell>
                 {totalColumns.map(aggregate => (
                   <NumberCell key={aggregate}>
-                    {row[aggregate]
-                      ? formatMetricUsingUnit(row[aggregate], row.unit)
+                    {row[aggregate as keyof typeof row]
+                      ? formatMetricUsingUnit(
+                          row[aggregate as keyof typeof row] as number | null,
+                          row.unit
+                        )
                       : '\u2014'}
                   </NumberCell>
                 ))}

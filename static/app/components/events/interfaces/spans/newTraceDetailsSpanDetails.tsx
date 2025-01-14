@@ -575,7 +575,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
                 }
                 return (
                   <Row title={key} key={key}>
-                    <GeneralSpanDetailsValue value={span[key]} />
+                    <GeneralSpanDetailsValue value={span[key as never]} />
                   </Row>
                 );
               })}

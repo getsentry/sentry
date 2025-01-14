@@ -194,7 +194,7 @@ const tagColors = {
   tag: theme.blue300,
   codeowners: theme.pink300,
   release: theme.pink200,
-};
+} as const;
 
 const StyledHovercard = styled(Hovercard)`
   width: 400px;
@@ -239,7 +239,10 @@ const RuleReasonItem = styled('div')`
 const OwnershipTag = styled(({tagType, ...props}: any) => (
   <div {...props}>{tagType}</div>
 ))`
-  background: ${p => tagColors[p.tagType.indexOf('tags') === -1 ? p.tagType : 'tag']};
+  background: ${p =>
+    tagColors[
+      p.tagType.indexOf('tags') === -1 ? (p.tagType as keyof typeof tagColors) : 'tag'
+    ]};
   color: ${p => p.theme.white};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   padding: ${space(0.25)} ${space(0.5)};

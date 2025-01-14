@@ -268,8 +268,7 @@ export const MetricChart = memo(
                 });
 
                 const formattedDate = defaultFormatAxisLabel(
-                  // @ts-expect-error TS(2532): Object is possibly 'undefined'.
-                  params[0].value[0] as number,
+                  (params[0]!.value as any)[0] as number,
                   timeseriesFormatters.isGroupedByDate,
                   timeseriesFormatters.utc,
                   timeseriesFormatters.showTimeInTooltip,

@@ -153,8 +153,7 @@ type TreeTransformerOpts = {
  * a transform to those nodes.
  */
 export function treeTransformer({tree, transform}: TreeTransformerOpts) {
-  // @ts-expect-error TS(7023): 'nodeVisitor' implicitly has return type 'any' bec... Remove this comment to see the full error message
-  const nodeVisitor = (token: TokenResult<Token> | null) => {
+  const nodeVisitor = (token: TokenResult<Token> | null): any => {
     if (token === null) {
       return null;
     }
@@ -203,8 +202,7 @@ export function treeTransformer({tree, transform}: TreeTransformerOpts) {
       case Token.VALUE_TEXT_LIST:
         return transform({
           ...token,
-          // TODO(ts): Not sure why `v` cannot be inferred here
-          items: token.items.map((v: any) => ({...v, value: nodeVisitor(v.value)})),
+          items: token.items.map(v => ({...v, value: nodeVisitor(v.value)})),
         });
 
       default:
@@ -296,8 +294,7 @@ function stringifyTokenFilter(token: TokenResult<Token.FILTER>) {
   return stringifiedToken;
 }
 
-// @ts-expect-error TS(7023): 'stringifyToken' implicitly has return type 'any' ... Remove this comment to see the full error message
-export function stringifyToken(token: TokenResult<Token>) {
+export function stringifyToken(token: TokenResult<Token>): string {
   switch (token.type) {
     case Token.FREE_TEXT:
     case Token.SPACES:

@@ -71,8 +71,7 @@ function trackIndividualSearchFilters({
       const values =
         token.value.type === Token.VALUE_TEXT_LIST ||
         token.value.type === Token.VALUE_NUMBER_LIST
-          ? // @ts-expect-error TS(2531): Object is possibly 'null'.
-            token.value.items.map(item => item.value.text)
+          ? token.value.items.map(item => item.value!.text)
           : [token.value.text];
 
       trackAnalytics('search.searched_filter', {
