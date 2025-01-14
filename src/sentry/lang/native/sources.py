@@ -733,6 +733,7 @@ def collect_apple_symbol_stats(json):
                 if source_id.startswith("sentry:symx"):
                     symx_has_this_symbol = True
                 elif source_id.startswith("sentry:") and source_id.endswith("os-source"):
+                    found_source = source_id
                     old_has_this_symbol = True
 
         if symx_has_this_symbol:
@@ -741,7 +742,9 @@ def collect_apple_symbol_stats(json):
             else:
                 symx_has_symbol += 1
         elif old_has_this_symbol:
-            old_has_symbol.append(module)
+            old_has_symbol.append(
+                {"debug_id": module.get("debug_id", "unknown"), "found_in": found_source}
+            )
         else:
             neither_has_symbol += 1
             # NOTE: It might be possible to apply a heuristic based on `code_file` here to figure out if this is
