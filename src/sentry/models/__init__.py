@@ -97,8 +97,6 @@ from .releaseprojectenvironment import *  # NOQA
 from .releases.release_project import *  # NOQA
 from .relocation import *  # NOQA
 from .repository import *  # NOQA
-from .rollbackorganization import *  # NOQA
-from .rollbackuser import *  # NOQA
 from .rule import *  # NOQA
 from .rulefirehistory import RuleFireHistory  # NOQA
 from .rulesnooze import RuleSnooze  # NOQA
