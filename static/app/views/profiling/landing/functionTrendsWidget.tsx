@@ -34,6 +34,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 
+import {MAX_FUNCTIONS} from './constants';
 import {
   Accordion,
   AccordionItem,
@@ -45,7 +46,6 @@ import {
   WidgetContainer,
 } from './styles';
 
-const MAX_FUNCTIONS = 3;
 const DEFAULT_CURSOR_NAME = 'fnTrendCursor';
 
 interface FunctionTrendsWidgetProps {
@@ -272,7 +272,7 @@ function FunctionTrendsEntry({
 
   return (
     <Fragment>
-      <StyledAccordionItem>
+      <AccordionItem>
         <Button
           icon={<IconChevron size="xs" direction={isExpanded ? 'up' : 'down'} />}
           aria-label={t('Expand')}
@@ -300,7 +300,7 @@ function FunctionTrendsEntry({
             {after}
           </DurationChange>
         </Tooltip>
-      </StyledAccordionItem>
+      </AccordionItem>
       {isExpanded && (
         <FunctionTrendsChartContainer>
           <FunctionTrendsChart func={func} trendFunction={trendFunction} />
@@ -484,11 +484,6 @@ function getTooltipFormatter(label: string, baseline: number) {
 
 const StyledPagination = styled(Pagination)`
   margin: 0;
-`;
-
-const StyledAccordionItem = styled(AccordionItem)`
-  display: grid;
-  grid-template-columns: auto auto 1fr auto;
 `;
 
 const FunctionName = styled(TextOverflow)`

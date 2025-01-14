@@ -23,7 +23,6 @@ import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Series} from 'sentry/types/echarts';
 import type {EventsStatsSeries} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
@@ -44,6 +43,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {getProfileTargetId} from 'sentry/views/profiling/utils';
 
+import {MAX_FUNCTIONS} from './constants';
 import {
   Accordion,
   AccordionItem,
@@ -55,7 +55,6 @@ import {
   WidgetContainer,
 } from './styles';
 
-const MAX_FUNCTIONS = 3;
 const DEFAULT_CURSOR_NAME = 'slowFnCursor';
 
 type BreakdownFunction = 'avg()' | 'p50()' | 'p75()' | 'p95()' | 'p99()';
@@ -176,7 +175,7 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
           </EmptyStateWarning>
         )}
         {hasFunctions && totalsQuery.isFetched && (
-          <StyledAccordion>
+          <Accordion>
             {functionsData.map((f, i, l) => {
               const projectEntry = totalsQuery.data?.data?.find(
                 row => row['project.id'] === f['project.id']
@@ -199,7 +198,7 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
                 />
               );
             })}
-          </StyledAccordion>
+          </Accordion>
         )}
       </ContentContainer>
     </WidgetContainer>
@@ -296,7 +295,7 @@ function SlowestFunctionEntry<F extends BreakdownFunction>({
 
   return (
     <Fragment>
-      <StyledAccordionItem>
+      <AccordionItem>
         <Button
           icon={<IconChevron size="xs" direction={isExpanded ? 'up' : 'down'} />}
           aria-label={t('Expand')}
@@ -334,7 +333,7 @@ function SlowestFunctionEntry<F extends BreakdownFunction>({
           items={examples}
           menuTitle={t('Example Profiles')}
         />
-      </StyledAccordionItem>
+      </AccordionItem>
       {isExpanded && (
         <FunctionChartContainer>
           <FunctionChart
@@ -456,17 +455,6 @@ type TotalsField = (typeof totalsFields)[number];
 
 const StyledPagination = styled(Pagination)`
   margin: 0;
-`;
-
-const StyledAccordion = styled(Accordion)`
-  display: flex;
-  flex-direction: column;
-`;
-
-const StyledAccordionItem = styled(AccordionItem)`
-  display: grid;
-  grid-template-columns: auto auto 1fr auto auto;
-  padding: ${space(0.5)} ${space(2)};
 `;
 
 const FunctionName = styled(TextOverflow)`
