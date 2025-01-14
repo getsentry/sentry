@@ -13,6 +13,7 @@ from sentry.eventstore.models import Event
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group, GroupStatus
 from sentry.models.rulefirehistory import RuleFireHistory
+from sentry.notifications.models.notificationmessage import NotificationMessage
 from sentry.snuba.dataset import Dataset
 from sentry.tasks.delete_seer_grouping_records import call_delete_seer_grouping_records_by_hash
 from sentry.utils.snuba import bulk_snuba_queries
@@ -51,6 +52,7 @@ DIRECT_GROUP_RELATED_MODELS = (
 _GROUP_RELATED_MODELS = DIRECT_GROUP_RELATED_MODELS + (
     models.UserReport,
     models.EventAttachment,
+    NotificationMessage,
 )
 
 
