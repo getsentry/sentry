@@ -64,6 +64,7 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
     queries: widgetQueries,
     widgetType: state.dataset,
     limit: state.limit,
+    thresholds: state.thresholds,
   };
 }
 
