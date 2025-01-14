@@ -86,6 +86,7 @@ type Props = WithRouterProps & {
   onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
   shouldResize?: boolean;
+  showConfidenceWarning?: boolean;
   showContextMenu?: boolean;
   showStoredAlert?: boolean;
   tableItemLimit?: number;
@@ -131,6 +132,7 @@ function WidgetCard(props: Props) {
     legendOptions,
     widgetLegendState,
     disableFullscreen,
+    showConfidenceWarning,
   } = props;
 
   if (widget.displayType === DisplayType.TOP_N) {
@@ -337,6 +339,7 @@ function WidgetCard(props: Props) {
               onLegendSelectChanged={onLegendSelectChanged}
               legendOptions={legendOptions}
               widgetLegendState={widgetLegendState}
+              showConfidenceWarning={showConfidenceWarning}
             />
           </WidgetFrame>
         )}
