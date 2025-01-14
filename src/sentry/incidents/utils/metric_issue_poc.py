@@ -70,7 +70,7 @@ def create_or_update_metric_issue(
         return None
 
     # collect the data from the incident to treat as an event
-    event_data: dict[str, str | int] = {
+    event_data: dict[str, Any] = {
         "event_id": uuid4().hex,
         "project_id": project.id,
         "timestamp": incident.date_started.isoformat(),
