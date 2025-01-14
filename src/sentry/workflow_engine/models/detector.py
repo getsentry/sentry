@@ -124,9 +124,9 @@ def enforce_config_schema(sender, instance: Detector, **kwargs):
     This needs to be a signal because the grouptype registry's entries are not available at import time.
     """
     group_type = instance.group_type
-
     if not group_type:
         raise ValueError(f"No group type found with type {instance.type}")
 
     config_schema = group_type.detector_config_schema
-    instance.validate_config(config_schema)
+    if instance.config:
+        instance.validate_config(config_schema)

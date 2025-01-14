@@ -2,6 +2,7 @@ from unittest import mock
 
 from sentry.api.serializers import serialize
 from sentry.incidents.grouptype import MetricAlertFire
+from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.models.environment import Environment
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import (
@@ -75,6 +76,10 @@ class ProjectDetectorIndexPostTest(ProjectDetectorIndexBaseTest):
                     "result": DetectorPriorityLevel.HIGH,
                 }
             ],
+            "config": {
+                "threshold_period": 1,
+                "detection_type": AlertRuleDetectionType.STATIC.value,
+            },
         }
 
     def test_missing_group_type(self):

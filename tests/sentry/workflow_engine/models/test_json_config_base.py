@@ -101,7 +101,7 @@ class TestMetricAlertFireDetectorConfig(TestJsonConfigBase, APITestCase):
 
         @dataclass(frozen=True)
         class TestGroupType(GroupType):
-            type_id = 2
+            type_id = 3
             slug = "test_metric_alert_fire"
             description = "Metric alert fired"
             category = GroupCategory.METRIC_ALERT.value
