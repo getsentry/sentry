@@ -91,7 +91,7 @@ def make_eap_request(
         filter=rpc_filters,
         granularity_secs=interval,
         key=AttributeKey(
-            name=ts.metric.mri.split("/")[1].split("@")[0], type=AttributeKey.TYPE_DOUBLE
+            name=ts.metric.mri.split("/")[1].split("@")[0], type=AttributeKey.TYPE_FLOAT
         ),
     )
     aggregate_resp = snuba_rpc.rpc(aggregate_req, AggregateBucketResponse)

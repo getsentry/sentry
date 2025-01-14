@@ -51,7 +51,7 @@ class SearchResolverQueryTest(TestCase):
         query, _ = self.resolver.resolve_query("ai.total_tokens.used:123")
         assert query == TraceItemFilter(
             comparison_filter=ComparisonFilter(
-                key=AttributeKey(name="ai_total_tokens_used", type=AttributeKey.Type.TYPE_DOUBLE),
+                key=AttributeKey(name="ai_total_tokens_used", type=AttributeKey.Type.TYPE_FLOAT),
                 op=ComparisonFilter.OP_EQUALS,
                 value=AttributeValue(val_double=123),
             )
@@ -95,7 +95,7 @@ class SearchResolverQueryTest(TestCase):
         query, _ = self.resolver.resolve_query("ai.total_tokens.used:[123,456,789]")
         assert query == TraceItemFilter(
             comparison_filter=ComparisonFilter(
-                key=AttributeKey(name="ai_total_tokens_used", type=AttributeKey.Type.TYPE_DOUBLE),
+                key=AttributeKey(name="ai_total_tokens_used", type=AttributeKey.Type.TYPE_FLOAT),
                 op=ComparisonFilter.OP_IN,
                 value=AttributeValue(val_double_array=DoubleArray(values=[123, 456, 789])),
             )
@@ -105,7 +105,7 @@ class SearchResolverQueryTest(TestCase):
         query, _ = self.resolver.resolve_query("ai.total_tokens.used:>123")
         assert query == TraceItemFilter(
             comparison_filter=ComparisonFilter(
-                key=AttributeKey(name="ai_total_tokens_used", type=AttributeKey.Type.TYPE_DOUBLE),
+                key=AttributeKey(name="ai_total_tokens_used", type=AttributeKey.Type.TYPE_FLOAT),
                 op=ComparisonFilter.OP_GREATER_THAN,
                 value=AttributeValue(val_double=123),
             )
@@ -281,7 +281,7 @@ class SearchResolverColumnTest(TestCase):
     def test_simple_number_tag(self):
         resolved_column, virtual_context = self.resolver.resolve_column("tags[foo, number]")
         assert resolved_column.proto_definition == AttributeKey(
-            name="foo", type=AttributeKey.Type.TYPE_DOUBLE
+            name="foo", type=AttributeKey.Type.TYPE_FLOAT
         )
         assert virtual_context is None
 
@@ -289,7 +289,7 @@ class SearchResolverColumnTest(TestCase):
         resolved_column, virtual_context = self.resolver.resolve_column("sum(span.self_time)")
         assert resolved_column.proto_definition == AttributeAggregation(
             aggregate=Function.FUNCTION_SUM,
-            key=AttributeKey(name="sentry.exclusive_time_ms", type=AttributeKey.Type.TYPE_DOUBLE),
+            key=AttributeKey(name="sentry.exclusive_time_ms", type=AttributeKey.Type.TYPE_FLOAT),
             label="sum(span.self_time)",
             extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
@@ -299,7 +299,7 @@ class SearchResolverColumnTest(TestCase):
         resolved_column, virtual_context = self.resolver.resolve_column("sum()")
         assert resolved_column.proto_definition == AttributeAggregation(
             aggregate=Function.FUNCTION_SUM,
-            key=AttributeKey(name="sentry.duration_ms", type=AttributeKey.Type.TYPE_DOUBLE),
+            key=AttributeKey(name="sentry.duration_ms", type=AttributeKey.Type.TYPE_FLOAT),
             label="sum()",
             extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
@@ -309,7 +309,7 @@ class SearchResolverColumnTest(TestCase):
         resolved_column, virtual_context = self.resolver.resolve_column("sum() as test")
         assert resolved_column.proto_definition == AttributeAggregation(
             aggregate=Function.FUNCTION_SUM,
-            key=AttributeKey(name="sentry.duration_ms", type=AttributeKey.Type.TYPE_DOUBLE),
+            key=AttributeKey(name="sentry.duration_ms", type=AttributeKey.Type.TYPE_FLOAT),
             label="test",
             extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
@@ -319,7 +319,7 @@ class SearchResolverColumnTest(TestCase):
         resolved_column, virtual_context = self.resolver.resolve_column("count()")
         assert resolved_column.proto_definition == AttributeAggregation(
             aggregate=Function.FUNCTION_COUNT,
-            key=AttributeKey(name="sentry.duration_ms", type=AttributeKey.Type.TYPE_DOUBLE),
+            key=AttributeKey(name="sentry.duration_ms", type=AttributeKey.Type.TYPE_FLOAT),
             label="count()",
             extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
@@ -327,7 +327,7 @@ class SearchResolverColumnTest(TestCase):
         resolved_column, virtual_context = self.resolver.resolve_column("count(span.duration)")
         assert resolved_column.proto_definition == AttributeAggregation(
             aggregate=Function.FUNCTION_COUNT,
-            key=AttributeKey(name="sentry.duration_ms", type=AttributeKey.Type.TYPE_DOUBLE),
+            key=AttributeKey(name="sentry.duration_ms", type=AttributeKey.Type.TYPE_FLOAT),
             label="count(span.duration)",
             extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
@@ -337,7 +337,7 @@ class SearchResolverColumnTest(TestCase):
         resolved_column, virtual_context = self.resolver.resolve_column("p50()")
         assert resolved_column.proto_definition == AttributeAggregation(
             aggregate=Function.FUNCTION_P50,
-            key=AttributeKey(name="sentry.duration_ms", type=AttributeKey.Type.TYPE_DOUBLE),
+            key=AttributeKey(name="sentry.duration_ms", type=AttributeKey.Type.TYPE_FLOAT),
             label="p50()",
             extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )

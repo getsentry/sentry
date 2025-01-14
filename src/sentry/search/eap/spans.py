@@ -332,7 +332,7 @@ class SearchResolver:
                         )
                 elif isinstance(value, (float, int)):
                     return AttributeValue(val_int=int(value))
-            elif column_type == constants.DOUBLE:
+            elif column_type == constants.FLOAT:
                 if operator in constants.IN_OPERATORS:
                     if isinstance(value, list):
                         return AttributeValue(

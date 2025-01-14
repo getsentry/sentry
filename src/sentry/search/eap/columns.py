@@ -136,7 +136,7 @@ class ResolvedFunction(ResolvedAttribute):
 
         see: https://www.notion.so/sentry/Should-count-return-an-int-in-the-v1-RPC-API-1348b10e4b5d80498bfdead194cc304e
         """
-        return constants.DOUBLE
+        return constants.FLOAT
 
 
 def simple_sentry_field(field) -> ResolvedColumn:
