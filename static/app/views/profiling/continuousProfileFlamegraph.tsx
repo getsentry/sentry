@@ -89,7 +89,7 @@ function ContinuousProfileFlamegraph(): React.ReactElement {
       <FlamegraphStateProvider initialState={initialFlamegraphPreferencesState}>
         <ProfileGroupTypeProvider
           input={profiles.type === 'resolved' ? profiles.data : null}
-          traceID={params.eventID!}
+          traceID={params.eventId!}
         >
           <FlamegraphThemeProvider>
             <FlamegraphStateQueryParamSync />
