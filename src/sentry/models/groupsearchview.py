@@ -4,9 +4,14 @@ from django.db.models import UniqueConstraint
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import region_silo_model
 from sentry.db.models.base import DefaultFieldsModelExisting
+from sentry.db.models.fields.array import ArrayField
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models.savedsearch import SortOptions
+
+
+def default_time_filters():
+    return {"period": "14d"}
 
 
 @region_silo_model
@@ -25,6 +30,15 @@ class GroupSearchView(DefaultFieldsModelExisting):
         max_length=16, default=SortOptions.DATE, choices=SortOptions.as_choices()
     )
     position = models.PositiveSmallIntegerField()
+
+    # projects = [] -> "My Projects"
+    # projects = [-1] -> "All Projects"
+    projects = ArrayField(models.IntegerField(), default=[], null=False)
+
+    # environments = [] -> "All Environments"
+    environments = ArrayField(models.IntegerField(), default=[], null=False)
+
+    time_filters = models.JSONField(null=True, default=default_time_filters)
 
     class Meta:
         app_label = "sentry"
