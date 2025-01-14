@@ -995,7 +995,7 @@ def process_code_mappings(job: PostProcessJob) -> None:
         return
 
     from sentry.issues.auto_source_code_config.code_mapping import SUPPORTED_LANGUAGES
-    from sentry.tasks.auto_source_code_configs import derive_code_mappings
+    from sentry.tasks.auto_source_code_config import derive_code_mappings
 
     try:
         event = job["event"]

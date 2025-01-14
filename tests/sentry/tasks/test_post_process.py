@@ -227,14 +227,14 @@ class DeriveCodeMappingsProcessGroupTestMixin(BasePostProgressGroupMixin):
             event=event,
         )
 
-    @patch("sentry.tasks.auto_source_code_configs.derive_code_mappings")
+    @patch("sentry.tasks.auto_source_code_config.derive_code_mappings")
     def test_derive_invalid_platform(self, mock_derive_code_mappings):
         event = self._create_event({"platform": "elixir"})
         self._call_post_process_group(event)
 
         assert mock_derive_code_mappings.delay.call_count == 0
 
-    @patch("sentry.tasks.auto_source_code_configs.derive_code_mappings")
+    @patch("sentry.tasks.auto_source_code_config.derive_code_mappings")
     def test_derive_supported_languages(self, mock_derive_code_mappings):
         for platform in SUPPORTED_LANGUAGES:
             event = self._create_event({"platform": platform})
@@ -242,7 +242,7 @@ class DeriveCodeMappingsProcessGroupTestMixin(BasePostProgressGroupMixin):
 
             assert mock_derive_code_mappings.delay.call_count == 1
 
-    @patch("sentry.tasks.auto_source_code_configs.derive_code_mappings")
+    @patch("sentry.tasks.auto_source_code_config.derive_code_mappings")
     def test_only_maps_a_given_project_once_per_hour(self, mock_derive_code_mappings):
         dogs_project = self.create_project()
         maisey_event = self._create_event(
@@ -287,7 +287,7 @@ class DeriveCodeMappingsProcessGroupTestMixin(BasePostProgressGroupMixin):
             self._call_post_process_group(bodhi_event)
             assert mock_derive_code_mappings.delay.call_count == 2
 
-    @patch("sentry.tasks.auto_source_code_configs.derive_code_mappings")
+    @patch("sentry.tasks.auto_source_code_config.derive_code_mappings")
     def test_only_maps_a_given_issue_once_per_day(self, mock_derive_code_mappings):
         dogs_project = self.create_project()
         maisey_event1 = self._create_event(
@@ -337,7 +337,7 @@ class DeriveCodeMappingsProcessGroupTestMixin(BasePostProgressGroupMixin):
             self._call_post_process_group(maisey_event4)
             assert mock_derive_code_mappings.delay.call_count == 2
 
-    @patch("sentry.tasks.auto_source_code_configs.derive_code_mappings")
+    @patch("sentry.tasks.auto_source_code_config.derive_code_mappings")
     def test_skipping_an_issue_doesnt_mark_it_processed(self, mock_derive_code_mappings):
         dogs_project = self.create_project()
         maisey_event = self._create_event(
