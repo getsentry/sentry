@@ -1463,6 +1463,71 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert other["order"] == 5
         assert [{"count": 3}] in [attrs for _, attrs in other["data"]]
 
+    def test_simple_top_events_meta(self):
+        with self.feature(self.enabled_features):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": self.day_ago.isoformat(),
+                    "end": (self.day_ago + timedelta(hours=2)).isoformat(),
+                    "interval": "1h",
+                    "yAxis": "sum(transaction.duration)",
+                    "orderby": ["-sum(transaction.duration)"],
+                    "field": ["transaction", "sum(transaction.duration)"],
+                    "topEvents": "5",
+                },
+                format="json",
+            )
+
+        data = response.data
+        assert response.status_code == 200, response.content
+
+        for transaction, transaction_data in data.items():
+            assert transaction_data["meta"]["fields"] == {
+                "time": "date",
+                "transaction": "string",
+                "sum_transaction_duration": "duration",
+            }
+
+            assert transaction_data["meta"]["units"] == {
+                "time": None,
+                "transaction": None,
+                "sum_transaction_duration": "millisecond",
+            }
+
+    def test_simple_top_events_meta_no_alias(self):
+        with self.feature(self.enabled_features):
+            response = self.client.get(
+                self.url,
+                data={
+                    "transformAliasToInputFormat": 1,
+                    "start": self.day_ago.isoformat(),
+                    "end": (self.day_ago + timedelta(hours=2)).isoformat(),
+                    "interval": "1h",
+                    "yAxis": "sum(transaction.duration)",
+                    "orderby": ["-sum(transaction.duration)"],
+                    "field": ["transaction", "sum(transaction.duration)"],
+                    "topEvents": "5",
+                },
+                format="json",
+            )
+
+        data = response.data
+        assert response.status_code == 200, response.content
+
+        for transaction, transaction_data in data.items():
+            assert transaction_data["meta"]["fields"] == {
+                "time": "date",
+                "transaction": "string",
+                "sum(transaction.duration)": "duration",
+            }
+
+            assert transaction_data["meta"]["units"] == {
+                "time": None,
+                "transaction": None,
+                "sum(transaction.duration)": "millisecond",
+            }
+
     def test_top_events_with_projects_other(self):
         with self.feature(self.enabled_features):
             response = self.client.get(
