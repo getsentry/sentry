@@ -44,7 +44,7 @@ class Migration(CheckedMigration):
         ),
         migrations.AddField(
             model_name="notificationmessage",
-            name="open_period",
+            name="open_period_start",
             field=models.DateTimeField(null=True),
         ),
     ]
