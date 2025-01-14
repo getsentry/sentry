@@ -33,7 +33,7 @@ class Migration(CheckedMigration):
         migrations.AddField(
             model_name="groupsearchview",
             name="is_my_projects",
-            field=models.BooleanField(default=False),
+            field=models.BooleanField(db_default=False),
         ),
         migrations.AddField(
             model_name="groupsearchview",
