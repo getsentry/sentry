@@ -18,8 +18,6 @@ from sentry.models.organizationonboardingtask import (
 )
 from sentry.models.project import Project
 from sentry.onboarding_tasks import try_mark_onboarding_complete
-from sentry.plugins.bases.issue import IssueTrackingPlugin
-from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 from sentry.signals import (
     alert_rule_created,
     cron_monitor_created,
@@ -585,23 +583,6 @@ def record_sourcemaps_received_for_project(project, event, **kwargs):
 
 @plugin_enabled.connect(weak=False)
 def record_plugin_enabled(plugin, project, user, **kwargs):
-    if isinstance(plugin, IssueTrackingPlugin) or isinstance(plugin, IssueTrackingPlugin2):
-        task = OnboardingTask.ISSUE_TRACKER
-        status = OnboardingTaskStatus.PENDING
-    else:
-        return
-
-    success = OrganizationOnboardingTask.objects.record(
-        organization_id=project.organization_id,
-        task=task,
-        status=status,
-        user_id=user.id if user else None,
-        project_id=project.id,
-        data={"plugin": plugin.slug},
-    )
-    if success:
-        try_mark_onboarding_complete(project.organization_id, user)
-
     analytics.record(
         "plugin.enabled",
         user_id=user.id if user else None,
