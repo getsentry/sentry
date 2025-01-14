@@ -146,7 +146,22 @@ function useTimelineZoom<E extends HTMLElement>({enabled = true, onSelect}: Opti
   }, [enabled, handleMouseMove, handleMouseDown, handleMouseUp]);
 
   const timelineSelector = (
-    <AnimatePresence>{isActive && <Selection role="presentation" />}</AnimatePresence>
+    <AnimatePresence>
+      {isActive && (
+        <Selection
+          role="presentation"
+          initial="initial"
+          animate="animate"
+          exit="exit"
+          transition={testableTransition({duration: 0.2})}
+          variants={{
+            initial: {opacity: 0},
+            animate: {opacity: 1},
+            exit: {opacity: 0},
+          }}
+        />
+      )}
+    </AnimatePresence>
   );
 
   return {selectionContainerRef: containerRef, isActive, timelineSelector};
@@ -164,17 +179,5 @@ const Selection = styled(motion.div)`
   width: var(--selectionWidth);
   z-index: 2;
 `;
-
-Selection.defaultProps = {
-  initial: 'initial',
-  animate: 'animate',
-  exit: 'exit',
-  transition: testableTransition({duration: 0.2}),
-  variants: {
-    initial: {opacity: 0},
-    animate: {opacity: 1},
-    exit: {opacity: 0},
-  },
-};
 
 export {useTimelineZoom};

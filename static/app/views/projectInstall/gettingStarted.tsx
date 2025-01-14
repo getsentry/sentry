@@ -8,8 +8,4 @@ const GettingStarted = styled(Layout.Page)`
   padding-top: ${space(3)};
 `;
 
-GettingStarted.defaultProps = {
-  withPadding: true,
-};
-
 export default GettingStarted;

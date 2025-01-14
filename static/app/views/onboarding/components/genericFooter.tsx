@@ -3,7 +3,18 @@ import {motion} from 'framer-motion';
 
 import testableTransition from 'sentry/utils/testableTransition';
 
-const GenericFooter = styled(motion.div)`
+const GenericFooter = styled((props: React.ComponentProps<typeof motion.div>) => (
+  <motion.div
+    initial="initial"
+    animate="animate"
+    exit="exit"
+    variants={{animate: {}}}
+    transition={testableTransition({
+      staggerChildren: 0.2,
+    })}
+    {...props}
+  />
+))`
   width: 100%;
   position: fixed;
   bottom: 0;
@@ -15,15 +26,5 @@ const GenericFooter = styled(motion.div)`
   justify-content: space-between;
   box-shadow: ${p => p.theme.dropShadowHeavyTop};
 `;
-
-GenericFooter.defaultProps = {
-  initial: 'initial',
-  animate: 'animate',
-  exit: 'exit',
-  variants: {animate: {}},
-  transition: testableTransition({
-    staggerChildren: 0.2,
-  }),
-};
 
 export default GenericFooter;

@@ -106,10 +106,6 @@ const LetterAvatar = styled(
   ${imageStyle};
 `;
 
-LetterAvatar.defaultProps = {
-  round: false,
-};
-
 export default forwardRef<SVGSVGElement, Props>((props, ref) => (
   <LetterAvatar forwardedRef={ref} {...props} />
 ));

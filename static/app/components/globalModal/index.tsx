@@ -233,7 +233,19 @@ function GlobalModal({onClose}: Props) {
         >
           <AnimatePresence>
             {visible && (
-              <Modal role="dialog" aria-modal css={options.modalCss}>
+              <Modal
+                role="dialog"
+                aria-modal
+                css={options.modalCss}
+                initial={{opacity: 0, y: -10}}
+                animate={{opacity: 1, y: 0}}
+                exit={{opacity: 0, y: 15}}
+                transition={testableTransition({
+                  type: 'spring',
+                  stiffness: 450,
+                  damping: 25,
+                })}
+              >
                 <Content role="document">{renderedChild}</Content>
               </Modal>
             )}
@@ -284,16 +296,6 @@ const Modal = styled(motion.div)`
     padding: ${space(4)} ${space(2)};
   }
 `;
-
-Modal.defaultProps = {
-  initial: {opacity: 0, y: -10},
-  animate: {opacity: 1, y: 0},
-  exit: {opacity: 0, y: 15},
-  transition: testableTransition({
-    opacity: {duration: 0.2},
-    y: {duration: 0.25},
-  }),
-};
 
 const Content = styled('div')`
   background: ${p => p.theme.background};
