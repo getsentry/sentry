@@ -189,7 +189,7 @@ def fetch_latest_id_from_tempest(
     }
 
     response = http.safe_urlopen(
-        url=settings.TEMPEST_URL + "/latest-id",
+        url=settings.SENTRY_TEMPEST_URL + "/latest-id",
         method="POST",
         headers={"Content-Type": "application/json"},
         json=payload,
@@ -220,7 +220,7 @@ def fetch_items_from_tempest(
     }
 
     response = http.safe_urlopen(
-        url=settings.TEMPEST_URL + "/crashes",
+        url=settings.SENTRY_TEMPEST_URL + "/crashes",
         method="POST",
         headers={"Content-Type": "application/json"},
         json=payload,
