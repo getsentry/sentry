@@ -253,6 +253,10 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
     refetch: refetchGroupCall,
   } = useGroup({groupId});
 
+  /**
+   * TODO(streamline-ui): Remove this whole hook once the legacy UI is removed. The streamlined UI exposes the
+   * filters on the page so the user is expected to clear it themselves, and the empty state is actually expected.
+   */
   useEffect(() => {
     const eventIdUrl = params.eventId ?? defaultIssueEvent;
     const isLatestOrRecommendedEvent =
