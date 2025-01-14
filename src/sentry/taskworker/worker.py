@@ -113,7 +113,7 @@ def child_worker(
             break
 
         try:
-            activation = child_tasks.get_nowait()
+            activation = child_tasks.get(timeout=0.1)
         except queue.Empty:
             continue
 
