@@ -1,6 +1,7 @@
 import {ConfigFixture} from 'sentry-fixture/config';
 import {EnvironmentsFixture} from 'sentry-fixture/environments';
 import {EventFixture} from 'sentry-fixture/event';
+import {EventsStatsFixture} from 'sentry-fixture/events';
 import {GroupFixture} from 'sentry-fixture/group';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -344,6 +345,77 @@ describe('groupDetails', () => {
         }
       )
     );
+  });
+
+  it('does not refire for request with streamlined UI', async function () {
+    // Bunch of mocks to load streamlined UI
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/flags/logs/',
+      body: {data: []},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/users/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/attachments/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/tags/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/releases/stats/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/events-stats/`,
+      body: {'count()': EventsStatsFixture(), 'count_unique(user)': EventsStatsFixture()},
+      method: 'GET',
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/events/`,
+      body: {data: [{'count_unique(user)': 21}]},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/sentry-app-installations/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/sentry-app-components/`,
+      body: [],
+    });
+
+    const recommendedWithSearchMock = MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/events/recommended/`,
+      query: {
+        query: 'foo:bar',
+        statsPeriod: '14d',
+      },
+      statusCode: 404,
+      body: {
+        detail: 'No matching event',
+      },
+    });
+
+    createWrapper({
+      ...defaultInit,
+      router: {
+        ...defaultInit.router,
+        location: LocationFixture({
+          query: {
+            query: 'foo:bar',
+            statsPeriod: '14d',
+            streamline: '1',
+          },
+        }),
+      },
+    });
+
+    await waitFor(() => expect(recommendedWithSearchMock).toHaveBeenCalledTimes(1));
+
+    await waitFor(() => expect(mockNavigate).not.toHaveBeenCalled());
   });
 
   it('uses /latest endpoint when default is set to latest', async function () {

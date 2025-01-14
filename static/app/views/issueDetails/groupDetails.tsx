@@ -258,6 +258,10 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
    * filters on the page so the user is expected to clear it themselves, and the empty state is actually expected.
    */
   useEffect(() => {
+    if (hasStreamlinedUI) {
+      return;
+    }
+
     const eventIdUrl = params.eventId ?? defaultIssueEvent;
     const isLatestOrRecommendedEvent =
       eventIdUrl === 'latest' || eventIdUrl === 'recommended';
@@ -269,8 +273,7 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
       (router.location.query.query ||
         router.location.query.start ||
         router.location.query.end ||
-        router.location.query.statsPeriod) &&
-      !hasStreamlinedUI
+        router.location.query.statsPeriod)
     ) {
       // If we get an error from the helpful event endpoint, it probably means
       // the query failed validation. We should remove the query to try again if
