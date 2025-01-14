@@ -41,7 +41,7 @@ function LastIssueTrigger({rule}: {rule: IssueAlert}) {
 }
 
 /**
- * Displays the last activation for activated alert rules or the last incident for continuous alerts
+ * Displays the last incident for continuous alerts
  */
 function LastMetricAlertIncident({rule}: {rule: MetricAlert}) {
   if (!rule.latestIncident) {

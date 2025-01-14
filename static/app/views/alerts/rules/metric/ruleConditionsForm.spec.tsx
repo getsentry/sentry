@@ -25,7 +25,6 @@ describe('RuleConditionsForm', () => {
     isEditing: true,
     onComparisonDeltaChange: () => {},
     onFilterSearch: mockSearch,
-    onMonitorTypeSelect: () => {},
     onTimeWindowChange: () => {},
     project: projects[0]!,
     thresholdChart: <div>chart</div>,
