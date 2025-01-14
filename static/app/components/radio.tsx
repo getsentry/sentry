@@ -1,3 +1,4 @@
+import isPropValid from '@emotion/is-prop-valid';
 import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -19,7 +20,9 @@ const checkedCss = (p: CheckedProps, theme: Theme) => css`
   opacity: ${p.disabled ? 0.4 : null};
 `;
 
-const Radio = styled((props: CheckedProps) => <input type="radio" {...props} />)`
+const Radio = styled((props: CheckedProps) => <input type="radio" {...props} />, {
+  shouldForwardProp: isPropValid,
+})`
   display: flex;
   padding: 0;
   width: ${p => (p.radioSize === 'small' ? '1rem' : '1.5rem')};
