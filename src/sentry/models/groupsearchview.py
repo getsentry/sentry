@@ -3,7 +3,7 @@ from django.db.models import UniqueConstraint
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import region_silo_model
-from sentry.db.models.base import DefaultFieldsModelExisting
+from sentry.db.models.base import DefaultFieldsModel, DefaultFieldsModelExisting
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models.savedsearch import SortOptions
@@ -14,7 +14,7 @@ def default_time_filters():
 
 
 @region_silo_model
-class GroupSearchViewProject(DefaultFieldsModelExisting):
+class GroupSearchViewProject(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Organization
 
     group_search_view = FlexibleForeignKey("sentry.GroupSearchView", on_delete=models.CASCADE)
@@ -27,7 +27,7 @@ class GroupSearchViewProject(DefaultFieldsModelExisting):
 
 
 @region_silo_model
-class GroupSearchViewEnvironment(DefaultFieldsModelExisting):
+class GroupSearchViewEnvironment(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Organization
 
     group_search_view = FlexibleForeignKey("sentry.GroupSearchView", on_delete=models.CASCADE)

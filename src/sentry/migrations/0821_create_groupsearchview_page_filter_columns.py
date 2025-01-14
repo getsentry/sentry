@@ -49,8 +49,8 @@ class Migration(CheckedMigration):
                         primary_key=True, serialize=False
                     ),
                 ),
-                ("date_updated", models.DateTimeField(default=django.utils.timezone.now)),
-                ("date_added", models.DateTimeField(default=django.utils.timezone.now, null=True)),
+                ("date_updated", models.DateTimeField(auto_now=True)),
+                ("date_added", models.DateTimeField(auto_now_add=True)),
                 (
                     "environment",
                     sentry.db.models.fields.foreignkey.FlexibleForeignKey(
@@ -85,8 +85,8 @@ class Migration(CheckedMigration):
                         primary_key=True, serialize=False
                     ),
                 ),
-                ("date_updated", models.DateTimeField(default=django.utils.timezone.now)),
-                ("date_added", models.DateTimeField(default=django.utils.timezone.now, null=True)),
+                ("date_updated", models.DateTimeField(auto_now=True)),
+                ("date_added", models.DateTimeField(auto_now_add=True)),
                 (
                     "group_search_view",
                     sentry.db.models.fields.foreignkey.FlexibleForeignKey(
