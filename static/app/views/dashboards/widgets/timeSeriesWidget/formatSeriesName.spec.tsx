@@ -31,8 +31,17 @@ describe('formatSeriesName', () => {
 
   describe('equations', () => {
     it.each([
-      ['equation|', ''],
-      ['equation|', ''],
+      ['equation|p75(measurements.cls) + 1', 'p75(measurements.cls) + 1'],
+      ['equation|p75(measurements.cls)', 'p75(measurements.cls)'],
+    ])('Formats %s as %s', (name, result) => {
+      expect(formatSeriesName(name)).toEqual(result);
+    });
+  });
+
+  describe('combinations', () => {
+    it.each([
+      ['equation|p75(measurements.cls) + 1;76123', 'p75(measurements.cls) + 1'],
+      ['equation|p75(measurements.cls);76123', 'p75(measurements.cls)'],
     ])('Formats %s as %s', (name, result) => {
       expect(formatSeriesName(name)).toEqual(result);
     });
