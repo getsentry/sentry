@@ -13,7 +13,7 @@ import {
 } from 'sentry/views/insights/common/views/spans/types';
 import {SpanMetricsField} from 'sentry/views/insights/types';
 
-import {DATA_TYPE} from '../../settings';
+import {DATA_TYPE, FIELD_ALIASES} from '../../settings';
 
 const {
   SPAN_SELF_TIME,
@@ -97,6 +97,7 @@ function ResourceSummaryCharts(props: {groupId: string}) {
             spanMetricsSeriesData?.[`avg(${HTTP_RESPONSE_TRANSFER_SIZE})`],
             spanMetricsSeriesData?.[`avg(${HTTP_RESPONSE_CONTENT_LENGTH})`],
           ]}
+          aliases={FIELD_ALIASES}
           isLoading={areSpanMetricsSeriesLoading}
           error={spanMetricsSeriesError}
         />
