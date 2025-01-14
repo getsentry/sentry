@@ -107,7 +107,6 @@ module = [
     "sqlparse.*",
     "statsd.*",
     "u2flib_server.model.*",
-    "unidiff.*",
 ]
 ignore_missing_imports = true
 # end: missing 3rd party stubs
