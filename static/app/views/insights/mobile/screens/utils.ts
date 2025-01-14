@@ -4,6 +4,9 @@ import getDuration from 'sentry/utils/duration/getDuration';
 import {VitalState} from 'sentry/views/performance/vitalDetail/utils';
 
 const formatMetricValue = (metric: MetricValue): string => {
+  if (metric.value == null) {
+    return '-';
+  }
   if (typeof metric.value === 'number' && metric.type === 'duration' && metric.unit) {
     const seconds =
       (metric.value * ((metric.unit && DURATION_UNITS[metric.unit]) ?? 1)) / 1000;
