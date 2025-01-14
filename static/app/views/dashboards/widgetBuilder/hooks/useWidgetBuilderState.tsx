@@ -246,6 +246,7 @@ function useWidgetBuilderState(): {
               ...(yAxisWithoutAlias?.slice(0, MAX_NUM_Y_AXES) ?? []),
             ]);
           }
+          setThresholds(undefined);
           setSelectedAggregate(undefined);
           break;
         case BuilderStateAction.SET_DATASET:
@@ -284,6 +285,8 @@ function useWidgetBuilderState(): {
             );
             setSort(decodeSorts(config.defaultWidgetQuery.orderby));
           }
+
+          setThresholds(undefined);
           setQuery([config.defaultWidgetQuery.conditions]);
           setSelectedAggregate(undefined);
           break;

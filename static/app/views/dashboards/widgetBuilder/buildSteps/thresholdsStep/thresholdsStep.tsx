@@ -18,12 +18,12 @@ type ThresholdErrors = {
 };
 
 type ThresholdsStepProps = {
-  errors: ThresholdErrors;
   onThresholdChange: (maxKey: ThresholdMaxKeys, value: string) => void;
   onUnitChange: (unit: string) => void;
   thresholdsConfig: ThresholdsConfig | null;
   dataType?: string;
   dataUnit?: string;
+  errors?: ThresholdErrors;
 };
 
 type ThresholdRowProp = {
