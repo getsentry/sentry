@@ -120,13 +120,13 @@ export default function ProfilingContent({location}: ProfilingContentProps) {
                     <WidgetsContainer>
                       <LandingWidgetSelector
                         cursorName={LEFT_WIDGET_CURSOR}
-                        widgetHeight="340px"
+                        widgetHeight="410px"
                         defaultWidget="slowest functions"
                         storageKey="profiling-landing-widget-0"
                       />
                       <LandingWidgetSelector
                         cursorName={RIGHT_WIDGET_CURSOR}
-                        widgetHeight="340px"
+                        widgetHeight="410px"
                         defaultWidget="regressed functions"
                         storageKey="profiling-landing-widget-1"
                       />
