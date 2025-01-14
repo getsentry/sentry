@@ -35,6 +35,10 @@ type Props = {
   dashboardState: DashboardState;
   dashboards: DashboardListItem[];
   onAddWidget: (dataset: DataSet) => void;
+  onAddWidgetFromNewWidgetBuilder: (
+    dataset: DataSet,
+    openWidgetTemplates: boolean
+  ) => void;
   onCancel: () => void;
   onCommit: () => void;
   onDelete: () => void;
@@ -57,6 +61,7 @@ function Controls({
   onDelete,
   onCancel,
   onAddWidget,
+  onAddWidgetFromNewWidgetBuilder,
 }: Props) {
   const [isFavorited, setIsFavorited] = useState(dashboard.isFavorited);
 
@@ -164,12 +169,12 @@ function Controls({
     {
       key: 'from-widget-library',
       label: t('From Widget Library'),
-      onAction: () => {},
+      onAction: () => onAddWidgetFromNewWidgetBuilder(defaultDataset, true),
     },
     {
       key: 'create-custom-widget',
       label: t('Create Custom Widget'),
-      onAction: () => {},
+      onAction: () => onAddWidgetFromNewWidgetBuilder(defaultDataset, false),
     },
   ];
 
@@ -270,7 +275,7 @@ function Controls({
                     isDisabled={widgetLimitReached || !hasEditAccess}
                     triggerLabel={t('Add Widget')}
                     triggerProps={{
-                      'aria-label': t('Widget actions'),
+                      'aria-label': t('Add Widget'),
                       size: 'sm',
                       showChevron: true,
                       icon: <IconAdd isCircled size="sm" />,

@@ -2151,7 +2151,30 @@ describe('Dashboards > Detail', function () {
           {organization: initialData.organization}
         );
         await userEvent.click(await screen.findByRole('button', {name: 'Add Widget'}));
+        await userEvent.click(
+          await screen.findByRole('menuitemradio', {name: 'Create Custom Widget'})
+        );
         expect(await screen.findByText('Create Custom Widget')).toBeInTheDocument();
+      });
+
+      it('opens the widget builder library slideout when clicking add widget from widget library', async function () {
+        render(
+          <DashboardDetail
+            {...RouteComponentPropsFixture()}
+            initialState={DashboardState.VIEW}
+            dashboard={DashboardFixture([])}
+            dashboards={[]}
+            onDashboardUpdate={jest.fn()}
+            newWidget={undefined}
+            onSetNewWidget={() => {}}
+          />,
+          {organization: initialData.organization}
+        );
+        await userEvent.click(await screen.findByRole('button', {name: 'Add Widget'}));
+        await userEvent.click(
+          await screen.findByRole('menuitemradio', {name: 'From Widget Library'})
+        );
+        expect(await screen.findByText('Add from Widget Library')).toBeInTheDocument();
       });
 
       it('opens the widget builder slideout when clicking add widget in edit mode', async function () {
@@ -2167,8 +2190,31 @@ describe('Dashboards > Detail', function () {
           />,
           {organization: initialData.organization}
         );
-        await userEvent.click(await screen.findByTestId('widget-add'));
+        await userEvent.click(await screen.findByLabelText('Add Widget'));
+        await userEvent.click(
+          await screen.findByRole('menuitemradio', {name: 'Create Custom Widget'})
+        );
         expect(await screen.findByText('Create Custom Widget')).toBeInTheDocument();
+      });
+
+      it('opens the widget builder library slideout when clicking add widget from widget library in edit mode', async function () {
+        render(
+          <DashboardDetail
+            {...RouteComponentPropsFixture()}
+            initialState={DashboardState.EDIT}
+            dashboard={DashboardFixture([])}
+            dashboards={[]}
+            onDashboardUpdate={jest.fn()}
+            newWidget={undefined}
+            onSetNewWidget={() => {}}
+          />,
+          {organization: initialData.organization}
+        );
+        await userEvent.click(await screen.findByLabelText('Add Widget'));
+        await userEvent.click(
+          await screen.findByRole('menuitemradio', {name: 'From Widget Library'})
+        );
+        expect(await screen.findByText('Add from Widget Library')).toBeInTheDocument();
       });
 
       it('allows for editing a widget in edit mode', async function () {
@@ -2242,7 +2288,10 @@ describe('Dashboards > Detail', function () {
           }
         );
 
-        await userEvent.click(await screen.findByTestId('widget-add'));
+        await userEvent.click(await screen.findByLabelText('Add Widget'));
+        await userEvent.click(
+          await screen.findByRole('menuitemradio', {name: 'Create Custom Widget'})
+        );
 
         expect(await screen.findByText('Create Custom Widget')).toBeInTheDocument();
 
@@ -2338,6 +2387,9 @@ describe('Dashboards > Detail', function () {
         );
 
         await userEvent.click(await screen.findByRole('button', {name: 'Add Widget'}));
+        await userEvent.click(
+          await screen.findByRole('menuitemradio', {name: 'Create Custom Widget'})
+        );
 
         expect(await screen.findByText('Create Custom Widget')).toBeInTheDocument();
 
