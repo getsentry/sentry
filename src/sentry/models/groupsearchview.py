@@ -2,6 +2,7 @@ from django.db import models
 from django.db.models import UniqueConstraint
 
 from sentry.backup.scopes import RelocationScope
+from sentry.constants import ENVIRONMENT_NAME_MAX_LENGTH
 from sentry.db.models import region_silo_model
 from sentry.db.models.base import DefaultFieldsModelExisting
 from sentry.db.models.fields.array import ArrayField
@@ -36,7 +37,9 @@ class GroupSearchView(DefaultFieldsModelExisting):
     projects = ArrayField(models.IntegerField(), default=[], null=False)
 
     # environments = [] -> "All Environments"
-    environments = ArrayField(models.IntegerField(), default=[], null=False)
+    environments = ArrayField(
+        models.CharField(max_length=ENVIRONMENT_NAME_MAX_LENGTH), default=[], null=False
+    )
 
     time_filters = models.JSONField(null=True, default=default_time_filters)
 
