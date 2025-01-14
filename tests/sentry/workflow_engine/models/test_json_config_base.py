@@ -90,14 +90,6 @@ class TestMetricAlertFireDetectorConfig(TestJsonConfigBase, APITestCase):
     def setUp(self):
         super().setUp()
         self.metric_alert = self.create_alert_rule(threshold_period=1)
-        self.config = (
-            {
-                "threshold_period": self.metric_alert.threshold_period,
-                "sensitivity": self.metric_alert.sensitivity,
-                "seasonality": self.metric_alert.seasonality,
-                "comparison_delta": self.metric_alert.comparison_delta,
-            },
-        )
 
         @dataclass(frozen=True)
         class TestGroupType(GroupType):
@@ -106,6 +98,48 @@ class TestMetricAlertFireDetectorConfig(TestJsonConfigBase, APITestCase):
             description = "Metric alert fired"
             category = GroupCategory.METRIC_ALERT.value
             detector_config_schema = MetricAlertFire.detector_config_schema
+
+    def test_detector_correct_schema(self):
+        self.create_detector(
+            name=self.metric_alert.name,
+            project_id=self.project.id,
+            type="test_metric_alert_fire",
+            owner_user_id=self.metric_alert.user_id,
+            config={
+                "threshold_period": self.metric_alert.threshold_period,
+                "comparison_delta": self.metric_alert.comparison_delta,
+                "detection_type": self.metric_alert.detection_type,
+                "sensitivity": self.metric_alert.sensitivity,
+                "seasonality": self.metric_alert.seasonality,
+            },
+        )
+
+    def test_empty_config(self):
+        self.create_detector(
+            name=self.metric_alert.name,
+            project_id=self.project.id,
+            type="test_metric_alert_fire",
+            owner_user_id=self.metric_alert.user_id,
+            config={},
+        )
+
+    def test_no_config(self):
+        self.create_detector(
+            name=self.metric_alert.name,
+            project_id=self.project.id,
+            type="test_metric_alert_fire",
+            owner_user_id=self.metric_alert.user_id,
+        )
+
+    def test_incorrect_config(self):
+        with pytest.raises(ValidationError):
+            self.create_detector(
+                name=self.metric_alert.name,
+                project_id=self.project.id,
+                type="test_metric_alert_fire",
+                owner_user_id=self.metric_alert.user_id,
+                config=["some", "stuff"],
+            )
 
     def test_mismatched_schema(self):
         with pytest.raises(ValidationError):
@@ -137,18 +171,3 @@ class TestMetricAlertFireDetectorConfig(TestJsonConfigBase, APITestCase):
                     "seasonality": self.metric_alert.seasonality,
                 },
             )
-
-    def test_detector_correct_schema(self):
-        self.create_detector(
-            name=self.metric_alert.name,
-            project_id=self.project.id,
-            type="test_metric_alert_fire",
-            owner_user_id=self.metric_alert.user_id,
-            config={
-                "threshold_period": self.metric_alert.threshold_period,
-                "comparison_delta": self.metric_alert.comparison_delta,
-                "detection_type": self.metric_alert.detection_type,
-                "sensitivity": self.metric_alert.sensitivity,
-                "seasonality": self.metric_alert.seasonality,
-            },
-        )
