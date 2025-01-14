@@ -17,11 +17,12 @@ import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetB
 import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 import {getWidgetIcon} from 'sentry/views/dashboards/widgetLibrary/widgetCard';
 
-type WidgetTemplatesListProps = {
+interface WidgetTemplatesListProps {
   onSave: ({index, widget}: {index: number; widget: Widget}) => void;
-};
+  setOpenWidgetTemplates: (openWidgetTemplates: boolean) => void;
+}
 
-function WidgetTemplatesList({onSave}: WidgetTemplatesListProps) {
+function WidgetTemplatesList({onSave, setOpenWidgetTemplates}: WidgetTemplatesListProps) {
   const organization = useOrganization();
   const [selectedWidget, setSelectedWidget] = useState<number | null>(null);
 
@@ -71,7 +72,9 @@ function WidgetTemplatesList({onSave}: WidgetTemplatesListProps) {
                 <WidgetDescription>{widget.description}</WidgetDescription>
                 {selectedWidget === index && (
                   <ButtonsWrapper>
-                    <Button size="sm">{t('Customize')}</Button>
+                    <Button size="sm" onClick={() => setOpenWidgetTemplates(false)}>
+                      {t('Customize')}
+                    </Button>
                     <Button size="sm" onClick={() => handleSave(widget)}>
                       {t('Add to dashboard')}
                     </Button>
