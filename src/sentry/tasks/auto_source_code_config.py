@@ -17,11 +17,7 @@ from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionEvent,
     SCMIntegrationInteractionType,
 )
-from sentry.issues.auto_source_code_config.code_mapping import (
-    SUPPORTED_LANGUAGES,
-    CodeMapping,
-    CodeMappingTreesHelper,
-)
+from sentry.issues.auto_source_code_config.code_mapping import CodeMapping, CodeMappingTreesHelper
 from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.models.project import Project
