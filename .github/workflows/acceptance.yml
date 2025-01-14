@@ -115,7 +115,7 @@ jobs:
 
       - name: Setup sentry env
         # TODO(hubertdeng): Rename to setup-sentry when all repos are no longer using ./.github/actions/setup-sentry
-        uses: ./.github/actions/setup-sentry-without-devservices
+        uses: ./.github/actions/setup-sentry-new-devservices
         id: setup
         with:
           mode: acceptance-ci
