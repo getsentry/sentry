@@ -9,7 +9,7 @@ import {inputStyles} from 'sentry/components/input';
 export interface TextAreaProps
   extends Omit<
       React.TextareaHTMLAttributes<HTMLTextAreaElement>,
-      'css' | 'onResize' | 'height' | 'style'
+      'css' | 'onResize' | 'style'
     >,
     InputStylesProps {
   /**
