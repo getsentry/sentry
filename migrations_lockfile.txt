@@ -15,7 +15,7 @@ remote_subscriptions: 0003_drop_remote_subscription
 
 replays: 0004_index_together
 
-sentry: 0814_drop_alertactivations
+sentry: 0815_add_action_cols_to_threads_model
 
 social_auth: 0002_default_auto_field
 
