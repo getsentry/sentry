@@ -6,7 +6,7 @@ import pytest
 
 from sentry.incidents.models.alert_rule import AlertRuleThresholdType
 from sentry.seer.anomaly_detection.utils import fetch_historical_data, format_historical_data
-from sentry.snuba import errors, metrics_performance
+from sentry.snuba import errors, metrics_performance, spans_rpc
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
 from sentry.testutils.cases import BaseMetricsTestCase, PerformanceIssueTestCase, SpanTestCase
@@ -165,6 +165,17 @@ class AnomalyDetectionStoreDataTest(
         assert result
         assert {"time": int(self.time_1_ts), "count": 1} in result.data.get("data")
         assert {"time": int(self.time_2_ts), "count": 1} in result.data.get("data")
+
+        formatted_result = format_historical_data(
+            data=result,
+            query_columns=["count()"],
+            dataset=spans_rpc,
+            organization=self.organization,
+        )
+
+        for row in formatted_result:
+            if row["timestamp"] == int(self.time_1_ts) or row["timestamp"] == int(self.time_2_ts):
+                assert row["value"] == 1
 
     def test_anomaly_detection_fetch_historical_data_is_unresolved_query(self):
         alert_rule = self.create_alert_rule(organization=self.organization, projects=[self.project])
