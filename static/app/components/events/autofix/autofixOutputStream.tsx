@@ -240,7 +240,6 @@ const StreamContent = styled('div')`
   padding: ${space(2)};
   white-space: pre-wrap;
   word-break: break-word;
-  font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
   height: 7rem;
   overflow-y: auto;

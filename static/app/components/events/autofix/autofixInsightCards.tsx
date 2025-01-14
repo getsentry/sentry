@@ -362,7 +362,7 @@ function ChainLink({
               exit={{opacity: 0, x: 20}}
               transition={{duration: 0.4}}
             >
-              {t('Not satisfied? Let’s rethink it.')}
+              {t('Did we go wrong somewhere? →')}
             </RethinkMessage>
           )}
         </AnimatePresence>
