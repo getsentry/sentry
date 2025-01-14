@@ -68,7 +68,7 @@ class GrantExchanger:
             raise SentryAppIntegratorError(message="Forbidden grant")
 
         if not self._grant_is_active():
-            raise SentryAppIntegratorError("Grant has already expired")
+            raise SentryAppIntegratorError("Grant has already expired", status_code=403)
 
     def _grant_belongs_to_install(self) -> bool:
         return self.grant.sentry_app_installation.id == self.install.id
@@ -111,6 +111,7 @@ class GrantExchanger:
             raise SentryAppIntegratorError(
                 "Could not find grant for given code",
                 extras={"webhook_context": {"code": self.code[:4]}},
+                status_code=404,
             )
 
     @property

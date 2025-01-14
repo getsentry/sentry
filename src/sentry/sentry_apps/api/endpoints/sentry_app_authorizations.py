@@ -73,7 +73,7 @@ class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
                     user=promote_request_api_user(request),
                 ).run()
             else:
-                return SentryAppIntegratorError(
+                raise SentryAppIntegratorError(
                     message="Invalid grant_type", status_code=status.HTTP_403_FORBIDDEN
                 )
         except SentryAppIntegratorError as e:
