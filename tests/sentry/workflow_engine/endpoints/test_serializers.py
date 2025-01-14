@@ -16,7 +16,6 @@ from sentry.workflow_engine.models import (
     DataCondition,
     DataConditionGroup,
     DataSource,
-    Detector,
     Workflow,
 )
 from sentry.workflow_engine.models.data_condition import Condition
@@ -28,12 +27,9 @@ from sentry.workflow_engine.types import DetectorPriorityLevel
 
 class TestDetectorSerializer(TestCase):
     def test_serialize_simple(self):
-        detector = Detector.objects.create(
-            organization_id=self.organization.id,
-            name="Test Detector",
-            type=MetricAlertFire.slug,
+        detector = self.create_detector(
+            organization_id=self.organization.id, name="Test Detector", type=MetricAlertFire.slug
         )
-
         result = serialize(detector)
 
         assert result == {
@@ -59,12 +55,9 @@ class TestDetectorSerializer(TestCase):
             comparison=100,
             condition_result=DetectorPriorityLevel.HIGH,
         )
-
         action = Action.objects.create(type=Action.Type.EMAIL, data={"foo": "bar"})
-
         DataConditionGroupAction.objects.create(condition_group=condition_group, action=action)
-
-        detector = Detector.objects.create(
+        detector = self.create_detector(
             organization_id=self.organization.id,
             name="Test Detector",
             type=MetricAlertFire.slug,
@@ -145,7 +138,7 @@ class TestDetectorSerializer(TestCase):
 
     def test_serialize_bulk(self):
         detectors = [
-            Detector.objects.create(
+            self.create_detector(
                 organization_id=self.organization.id,
                 name=f"Test Detector {i}",
                 type=MetricAlertFire.slug,
