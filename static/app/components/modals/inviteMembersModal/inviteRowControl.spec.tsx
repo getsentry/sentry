@@ -7,7 +7,7 @@ import {
   InviteMembersContext,
   type InviteMembersContextValue,
 } from 'sentry/components/modals/inviteMembersModal/inviteMembersContext';
-import InviteRowControlNew from 'sentry/components/modals/inviteMembersModal/inviteRowControlNew';
+import InviteRowControlNew from 'sentry/components/modals/inviteMembersModal/inviteRowControl';
 import TeamStore from 'sentry/stores/teamStore';
 import type {DetailedTeam} from 'sentry/types/organization';
 
@@ -25,6 +25,11 @@ describe('InviteRowControlNew', function () {
     },
   ];
   const teams: DetailedTeam[] = teamData.map(data => TeamFixture(data));
+
+  const billingProps = {
+    ...defaultInviteProps,
+    isOverMemberLimit: true,
+  };
 
   const getComponent = (props: InviteMembersContextValue) => (
     <InviteMembersContext.Provider value={props}>
@@ -60,6 +65,17 @@ describe('InviteRowControlNew', function () {
     expect(screen.getByRole('textbox', {name: 'Email Addresses'})).toBeInTheDocument();
     expect(screen.getByRole('textbox', {name: 'Role'})).toBeInTheDocument();
     expect(screen.getByRole('textbox', {name: 'Add to Team'})).toBeInTheDocument();
+  });
+
+  it('renders with invite-billing flag', function () {
+    render(getComponent(billingProps));
+
+    expect(screen.getByRole('textbox', {name: 'Email Addresses'})).toBeInTheDocument();
+    const roleInput = screen.getByRole('textbox', {name: 'Role'});
+    expect(roleInput).toBeInTheDocument();
+    expect(roleInput).toBeDisabled();
+    const teamInput = screen.getByRole('textbox', {name: 'Add to Team'});
+    expect(teamInput).toBeInTheDocument();
   });
 
   describe.each([

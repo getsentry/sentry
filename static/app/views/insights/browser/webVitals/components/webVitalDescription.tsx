@@ -274,7 +274,6 @@ const Value = styled('h2')`
 
 const WebVitalName = styled('h4')`
   margin-bottom: ${space(1)};
-  margin-top: 40px;
   max-width: 400px;
   ${p => p.theme.overflowEllipsis}
 `;

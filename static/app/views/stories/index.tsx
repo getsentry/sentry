@@ -1,6 +1,7 @@
 import {useCallback, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
+import Alert from 'sentry/components/alert';
 import {InputGroup} from 'sentry/components/inputGroup';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconSearch} from 'sentry/icons/iconSearch';
@@ -11,20 +12,17 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import OrganizationContainer from 'sentry/views/organizationContainer';
 import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
-import EmptyStory from 'sentry/views/stories/emptyStory';
-import ErrorStory from 'sentry/views/stories/errorStory';
-import storiesContext from 'sentry/views/stories/storiesContext';
-import StoryFile from 'sentry/views/stories/storyFile';
+import StoryFile, {StoryExports} from 'sentry/views/stories/storyFile';
 import StoryHeader from 'sentry/views/stories/storyHeader';
 import StoryTree from 'sentry/views/stories/storyTree';
-import useStoriesLoader from 'sentry/views/stories/useStoriesLoader';
+import useStoriesLoader, {useStoryBookFiles} from 'sentry/views/stories/useStoriesLoader';
 
 export default function Stories() {
   const searchInput = useRef<HTMLInputElement>(null);
   const location = useLocation<{name: string; query?: string}>();
 
+  const files = useStoryBookFiles();
   const story = useStoriesLoader({filename: location.query.name});
-  const files = useMemo(() => storiesContext().files(), []);
   const nodes = useStoryTree(location.query.query ?? '', files);
 
   const navigate = useNavigate();
@@ -67,21 +65,56 @@ export default function Stories() {
             </VerticalScroll>
           ) : story.isError ? (
             <VerticalScroll style={{gridArea: 'body'}}>
-              <ErrorStory error={story.error} />
+              <Alert type="error" showIcon>
+                <strong>{story.error.name}:</strong> {story.error.message}
+              </Alert>
             </VerticalScroll>
           ) : story.isSuccess ? (
-            // @TODO (JonasBadalic): check that a story actually has exports, else it could still be empty
-            <Main style={{gridArea: 'body'}}>
-              <StoryFile story={story.data} />
-            </Main>
+            Object.keys(story.data.exports).length > 0 ? (
+              <StoryMainContainer style={{gridArea: 'body'}}>
+                <StoryFile story={story.data} />
+              </StoryMainContainer>
+            ) : (
+              <VerticalScroll style={{gridArea: 'body'}}>
+                <strong>The file you selected does not export a story.</strong>
+              </VerticalScroll>
+            )
           ) : (
-            <VerticalScroll style={{gridArea: 'body'}}>
-              <EmptyStory />
-            </VerticalScroll>
+            <StoryMainContainer style={{gridArea: 'body'}}>
+              <StoriesLandingPage />
+            </StoryMainContainer>
           )}
         </Layout>
       </OrganizationContainer>
     </RouteAnalyticsContextProvider>
+  );
+}
+
+function StoriesLandingPage() {
+  const files = useStoryBookFiles();
+  const landingPageStories = useMemo(() => {
+    const stories: string[] = [];
+    for (const file of files) {
+      if (
+        file.endsWith('styles/colors.stories.tsx') ||
+        file.endsWith('styles/typography.stories.tsx')
+      ) {
+        stories.push(file);
+      }
+    }
+    return stories;
+  }, [files]);
+
+  const stories = useStoriesLoader({filename: landingPageStories});
+
+  return stories.isFetching ? (
+    <LoadingIndicator />
+  ) : stories.isError ? (
+    <Alert type="error" showIcon>
+      <strong>{stories.error.name}:</strong> {stories.error.message}
+    </Alert>
+  ) : (
+    stories.data?.map(story => <StoryExports key={story.filename} story={story} />)
   );
 }
 
@@ -258,12 +291,13 @@ const VerticalScroll = styled('main')`
  * Avoid <Panel> here because nested panels will have a modified theme.
  * Therefore stories will look different in prod.
  */
-const Main = styled(VerticalScroll)`
+const StoryMainContainer = styled(VerticalScroll)`
   background: ${p => p.theme.background};
   border-radius: ${p => p.theme.panelBorderRadius};
   border: 1px solid ${p => p.theme.border};
 
   padding: var(--stories-grid-space);
+  padding-top: 0;
   overflow-x: hidden;
   overflow-y: auto;
 

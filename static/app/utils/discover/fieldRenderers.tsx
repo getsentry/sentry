@@ -153,6 +153,7 @@ export function nullableValue(value: string | null): string | React.ReactElement
   }
 }
 
+// TODO: Remove this, use `SIZE_UNIT_MULTIPLIERS` instead
 export const SIZE_UNITS = {
   bit: 1 / 8,
   byte: 1,
@@ -179,6 +180,7 @@ export const ABYTE_UNITS = [
   'exabyte',
 ];
 
+// TODO: Remove this, use `DURATION_UNIT_MULTIPLIERS` instead
 export const DURATION_UNITS = {
   nanosecond: 1 / 1000 ** 2,
   microsecond: 1 / 1000,

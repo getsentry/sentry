@@ -1,7 +1,6 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import type {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
@@ -57,11 +56,7 @@ import {ExploreTables} from 'sentry/views/explore/tables';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
 import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
 
-interface ExploreContentProps {
-  location: Location;
-}
-
-function ExploreContentImpl({}: ExploreContentProps) {
+function ExploreContentImpl() {
   const location = useLocation();
   const navigate = useNavigate();
   const organization = useOrganization();
@@ -257,13 +252,13 @@ function ExploreTagsProvider({children}: any) {
   );
 }
 
-export function ExploreContent(props: ExploreContentProps) {
+export function ExploreContent() {
   Sentry.setTag('explore.visited', 'yes');
 
   return (
     <PageParamsProvider>
       <ExploreTagsProvider>
-        <ExploreContentImpl {...props} />
+        <ExploreContentImpl />
       </ExploreTagsProvider>
     </PageParamsProvider>
   );

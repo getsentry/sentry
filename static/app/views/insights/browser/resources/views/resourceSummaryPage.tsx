@@ -22,6 +22,7 @@ import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/modu
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
+import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
 import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {SampleList} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
@@ -43,6 +44,20 @@ function ResourceSummary() {
   const {groupId} = useParams();
   const filters = useResourceModuleFilters();
   const selectedSpanOp = filters[SPAN_OP];
+
+  useSamplesDrawer({
+    Component: (
+      <SampleList
+        groupId={groupId!}
+        moduleName={ModuleName.RESOURCE}
+        transactionRoute={webVitalsModuleURL}
+        referrer={TraceViewSources.ASSETS_MODULE}
+      />
+    ),
+    moduleName: ModuleName.RESOURCE,
+    requiredParams: ['transaction'],
+  });
+
   const {data, isPending} = useSpanMetrics(
     {
       search: MutableSearch.fromQueryObject({
@@ -144,15 +159,6 @@ function ResourceSummary() {
 
               <ModuleLayout.Full>
                 <ResourceSummaryTable />
-              </ModuleLayout.Full>
-
-              <ModuleLayout.Full>
-                <SampleList
-                  groupId={groupId!}
-                  moduleName={ModuleName.RESOURCE}
-                  transactionRoute={webVitalsModuleURL}
-                  referrer={TraceViewSources.ASSETS_MODULE}
-                />
               </ModuleLayout.Full>
             </ModuleLayout.Layout>
           </Layout.Main>

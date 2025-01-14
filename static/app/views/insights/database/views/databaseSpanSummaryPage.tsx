@@ -47,6 +47,8 @@ import {
 } from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
+import {useSamplesDrawer} from '../../common/utils/useSamplesDrawer';
+
 type Query = {
   transaction: string;
   transactionMethod: string;
@@ -146,6 +148,18 @@ export function DatabaseSpanSummaryPage({params}: Props) {
     [SpanMetricsField.SPAN_DOMAIN]: string[];
     [SpanMetricsField.SPAN_GROUP]: string;
   };
+
+  useSamplesDrawer({
+    Component: (
+      <SampleList
+        groupId={span[SpanMetricsField.SPAN_GROUP]}
+        moduleName={ModuleName.DB}
+        referrer={TraceViewSources.QUERIES_MODULE}
+      />
+    ),
+    moduleName: ModuleName.DB,
+    requiredParams: ['transaction'],
+  });
 
   const {
     isPending: isThroughputDataLoading,
@@ -291,12 +305,6 @@ export function DatabaseSpanSummaryPage({params}: Props) {
                 </ModuleLayout.Full>
               )}
             </ModuleLayout.Layout>
-
-            <SampleList
-              groupId={span[SpanMetricsField.SPAN_GROUP]}
-              moduleName={ModuleName.DB}
-              referrer={TraceViewSources.QUERIES_MODULE}
-            />
           </Layout.Main>
         </Layout.Body>
       </ModuleBodyUpsellHook>

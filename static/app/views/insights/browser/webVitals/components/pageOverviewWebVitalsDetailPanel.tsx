@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import type {LineChartSeries} from 'sentry/components/charts/lineChart';
+import {DrawerHeader} from 'sentry/components/globalDrawer/components';
 import type {
   GridColumnHeader,
   GridColumnOrder,
@@ -38,7 +39,7 @@ import type {
 } from 'sentry/views/insights/browser/webVitals/types';
 import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import useProfileExists from 'sentry/views/insights/browser/webVitals/utils/useProfileExists';
-import DetailPanel from 'sentry/views/insights/common/components/detailPanel';
+import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
 import {SpanIndexedField, type SubregionCode} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
@@ -77,9 +78,7 @@ const inpSort: GridColumnSortBy<keyof InteractionSpanSampleRowWithScore> = {
 
 export function PageOverviewWebVitalsDetailPanel({
   webVital,
-  onClose,
 }: {
-  onClose: () => void;
   webVital: WebVitals | null;
 }) {
   const location = useLocation();
@@ -377,7 +376,9 @@ export function PageOverviewWebVitalsDetailPanel({
 
   return (
     <PageAlertProvider>
-      <DetailPanel detailKey={webVital ?? undefined} onClose={onClose}>
+      <DrawerHeader />
+
+      <SampleDrawerBody>
         {webVital && (
           <WebVitalDetailHeader
             value={
@@ -420,7 +421,7 @@ export function PageOverviewWebVitalsDetailPanel({
           )}
         </TableContainer>
         <PageAlert />
-      </DetailPanel>
+      </SampleDrawerBody>
     </PageAlertProvider>
   );
 }

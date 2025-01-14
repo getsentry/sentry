@@ -1780,11 +1780,9 @@ export class VirtualizedList {
       }
     } else {
       // If no anchor is provided, we default to 'auto'
-      if (position < top) {
-        position = position;
-      } else if (position > top + height) {
+      if (position > top + height) {
         position = index * 24 - height + 24;
-      } else {
+      } else if (position >= top) {
         return;
       }
     }

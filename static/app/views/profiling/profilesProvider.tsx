@@ -85,13 +85,15 @@ function ProfilesAndTransactionProvider(props: FlamegraphViewProps): React.React
   const organization = useOrganization();
   const params = useParams();
 
+  const projectSlug = params.projectId!;
+
   const [profiles, setProfiles] = useState<RequestState<Profiling.ProfileInput>>({
     type: 'initial',
   });
 
   const profileTransaction = useSentryEvent<EventTransaction>(
     organization.slug,
-    params.projectId!,
+    projectSlug!,
     profiles.type === 'resolved' ? getTransactionId(profiles.data) : null
   );
 
@@ -100,13 +102,13 @@ function ProfilesAndTransactionProvider(props: FlamegraphViewProps): React.React
       onUpdateProfiles={setProfiles}
       orgSlug={organization.slug}
       profileId={params.eventId!}
-      projectSlug={params.projectId!}
+      projectSlug={projectSlug}
     >
       <SetProfileProvider.Provider value={setProfiles}>
         <ProfileTransactionContext.Provider value={profileTransaction}>
           <ProfileHeader
             eventId={params.eventId!}
-            projectId={params.projectId!}
+            projectId={projectSlug}
             transaction={
               profileTransaction.type === 'resolved' ? profileTransaction.data : null
             }
@@ -123,8 +125,7 @@ interface ProfilesProviderProps {
   orgSlug: Organization['slug'];
   profileId: string;
   projectSlug: Project['slug'];
-  // @ts-expect-error TS(7051): Parameter has a name but no type. Did you mean 'ar... Remove this comment to see the full error message
-  onUpdateProfiles?: (any) => void;
+  onUpdateProfiles?: (profiles: RequestState<Profiling.ProfileInput>) => void;
 }
 
 export function ProfilesProvider({

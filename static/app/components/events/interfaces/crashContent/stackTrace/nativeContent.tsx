@@ -25,7 +25,6 @@ type Props = {
   event: Event;
   platform: PlatformKey;
   className?: string;
-  expandFirstFrame?: boolean;
   groupingCurrentLevel?: Group['metadata']['current_level'];
   hiddenFrameCount?: number;
   hideIcon?: boolean;
@@ -50,7 +49,6 @@ export function NativeContent({
   hideIcon,
   groupingCurrentLevel,
   includeSystemFrames = true,
-  expandFirstFrame = true,
   maxDepth,
   meta,
 }: Props) {
@@ -200,7 +198,6 @@ export function NativeContent({
           frame,
           prevFrame,
           nextFrame,
-          isExpanded: expandFirstFrame && lastFrameIndex === frameIndex,
           emptySourceNotation: inlined
             ? false
             : lastFrameIndex === frameIndex && frameIndex === 0,

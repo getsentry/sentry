@@ -1,11 +1,9 @@
-import {Fragment, useCallback} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import * as qs from 'query-string';
 
-import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
-import Link from 'sentry/components/links/link';
+import {DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
@@ -26,7 +24,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {computeAxisMax} from 'sentry/views/insights/common/components/chart';
-import DetailPanel from 'sentry/views/insights/common/components/detailPanel';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
@@ -54,7 +51,6 @@ import {BASE_FILTERS} from 'sentry/views/insights/http/settings';
 import decodePanel from 'sentry/views/insights/http/utils/queryParameterDecoders/panel';
 import decodeResponseCodeClass from 'sentry/views/insights/http/utils/queryParameterDecoders/responseCodeClass';
 import {useDebouncedState} from 'sentry/views/insights/http/utils/useDebouncedState';
-import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {
   ModuleName,
   SpanFunction,
@@ -63,7 +59,9 @@ import {
   type SpanMetricsQueryFilters,
 } from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
-import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
+
+import {SampleDrawerBody} from '../../common/components/sampleDrawerBody';
+import {SampleDrawerHeaderTransaction} from '../../common/components/sampleDrawerHeaderTransaction';
 
 export function HTTPSamplesPanel() {
   const navigate = useNavigate();
@@ -83,7 +81,6 @@ export function HTTPSamplesPanel() {
   });
 
   const organization = useOrganization();
-  const {view} = useDomainViewFilters();
 
   const {projects} = useProjects();
   const {selection} = usePageFilters();
@@ -293,60 +290,18 @@ export function HTTPSamplesPanel() {
     }
   };
 
-  const handleClose = () => {
-    navigate({
-      pathname: location.pathname,
-      query: {
-        ...location.query,
-        transaction: undefined,
-        transactionMethod: undefined,
-      },
-    });
-  };
-
-  const handleOpen = useCallback(() => {
-    if (query.transaction) {
-      trackAnalytics('performance_views.sample_spans.opened', {
-        organization,
-        source: ModuleName.HTTP,
-      });
-    }
-  }, [organization, query.transaction]);
-
   return (
     <PageAlertProvider>
-      <DetailPanel detailKey={detailKey} onClose={handleClose} onOpen={handleOpen}>
-        <ModuleLayout.Layout>
-          <ModuleLayout.Full>
-            <HeaderContainer>
-              {project && (
-                <SpanSummaryProjectAvatar
-                  project={project}
-                  direction="left"
-                  size={40}
-                  hasTooltip
-                  tooltip={project.slug}
-                />
-              )}
-              <Title>
-                <Link
-                  to={`${getTransactionSummaryBaseUrl(organization.slug, view)}?${qs.stringify(
-                    {
-                      project: query.project,
-                      transaction: query.transaction,
-                    }
-                  )}`}
-                >
-                  {query.transaction &&
-                  query.transactionMethod &&
-                  !query.transaction.startsWith(query.transactionMethod)
-                    ? `${query.transactionMethod} ${query.transaction}`
-                    : query.transaction}
-                </Link>
-              </Title>
-            </HeaderContainer>
-          </ModuleLayout.Full>
+      <DrawerHeader>
+        <SampleDrawerHeaderTransaction
+          project={project}
+          transaction={query.transaction}
+          transactionMethod={query.transactionMethod}
+        />
+      </DrawerHeader>
 
+      <SampleDrawerBody>
+        <ModuleLayout.Layout>
           <ModuleLayout.Full>
             <ReadoutRibbon>
               <MetricReadout
@@ -555,7 +510,7 @@ export function HTTPSamplesPanel() {
             </Fragment>
           )}
         </ModuleLayout.Layout>
-      </DetailPanel>
+      </SampleDrawerBody>
     </PageAlertProvider>
   );
 }
@@ -569,10 +524,6 @@ const SPAN_SAMPLES_SORT = {
   field: 'span_id',
   kind: 'desc' as const,
 };
-
-const SpanSummaryProjectAvatar = styled(ProjectAvatar)`
-  padding-right: ${space(1)};
-`;
 
 const HTTP_RESPONSE_CODE_CLASS_OPTIONS = [
   {
@@ -596,25 +547,6 @@ const HTTP_RESPONSE_CODE_CLASS_OPTIONS = [
     label: t('5XXs'),
   },
 ];
-
-// TODO - copy of static/app/views/starfish/views/spanSummaryPage/sampleList/index.tsx
-const HeaderContainer = styled('div')`
-  display: grid;
-  grid-template-rows: auto auto auto;
-  align-items: center;
-
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-rows: auto;
-    grid-template-columns: auto 1fr;
-  }
-`;
-
-const Title = styled('h4')`
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  margin: 0;
-`;
 
 const PanelControls = styled('div')`
   display: flex;

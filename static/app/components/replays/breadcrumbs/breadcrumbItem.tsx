@@ -271,16 +271,20 @@ function CrumbHydrationButton({
   frame: HydrationErrorFrame;
   replay: ReplayReader;
 }) {
-  const {leftOffsetMs, rightOffsetMs} = getReplayDiffOffsetsFromFrame(replay, frame);
+  const {frameOrEvent, leftOffsetMs, rightOffsetMs} = getReplayDiffOffsetsFromFrame(
+    replay,
+    frame
+  );
 
   return (
     <div>
       <OpenReplayComparisonButton
+        frameOrEvent={frameOrEvent}
+        initialLeftOffsetMs={leftOffsetMs}
+        initialRightOffsetMs={rightOffsetMs}
         replay={replay}
-        leftOffsetMs={leftOffsetMs}
-        rightOffsetMs={rightOffsetMs}
-        surface="replay-breadcrumbs"
         size="xs"
+        surface="replay-breadcrumbs"
       >
         {t('Open Hydration Diff')}
       </OpenReplayComparisonButton>

@@ -193,9 +193,6 @@ export default function useInviteModal({organization, initialData, source}: Prop
       {
         organization,
         modal_session: sessionId.current,
-        sent_invites: sentCount,
-        failed_invites: errorCount,
-        is_new_modal: organization.features.includes('invite-members-new-modal'),
       }
     );
   }, [organization, state.inviteStatus, state.sendingInvites, willInvite]);
@@ -203,11 +200,9 @@ export default function useInviteModal({organization, initialData, source}: Prop
   const sendInvites = useCallback(async () => {
     setState(prev => ({...prev, sendingInvites: true}));
     await Promise.all(invites.map(sendInvite));
-    if (organization.features.includes('invite-members-new-modal')) {
-      removeSentInvites();
-    }
+    removeSentInvites();
     setState(prev => ({...prev, sendingInvites: false, complete: true}));
-  }, [organization, invites, sendInvite, removeSentInvites]);
+  }, [invites, sendInvite, removeSentInvites]);
 
   const addInviteRow = useCallback(() => {
     setState(prev => ({
