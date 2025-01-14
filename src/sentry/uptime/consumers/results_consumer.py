@@ -461,7 +461,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                 "organization_id": project.organization_id,
                 "project_id": project.id,
                 "retention_days": retention_days,
-                "region_slug": result.get("region"),
+                "region": result["region"],
             }
 
             topic = get_topic_definition(Topic.SNUBA_UPTIME_RESULTS)["real_topic_name"]
