@@ -403,7 +403,7 @@ class TestFormatComment(TestCase):
         expected_comment = """## Suspect Issues
 This pull request was deployed and Sentry observed the following issues:
 
-- ‼️ **TypeError** `sentry.tasks.auto_source_code_config.derive_co...` [View Issue](https://sentry.sentry.io/issues/?referrer=github-pr-bot)
+- ‼️ **TypeError** `sentry.tasks.auto_source_code_config.derive_cod...` [View Issue](https://sentry.sentry.io/issues/?referrer=github-pr-bot)
 - ‼️ **KafkaException** `query_subscription_consumer_process_message` [View Issue](https://sentry.sentry.io/stats/?referrer=github-pr-bot)
 
 <sub>Did you find this useful? React with a 👍 or 👎</sub>"""
