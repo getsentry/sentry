@@ -103,7 +103,7 @@ class SentryAppsPermission(SentryPermission):
         if context.organization.status != OrganizationStatus.ACTIVE or not context.member:
             raise SentryAppError(
                 message="User must be a part of the Org they're trying to create the app in",
-                status_code=403,
+                status_code=401,
             )
 
         assert request.method, "method must be present in request to get permissions"
@@ -128,13 +128,11 @@ class IntegrationPlatformEndpoint(Endpoint):
 
     def _handle_sentry_app_exception(self, exception: Exception):
         if isinstance(exception, SentryAppIntegratorError) or isinstance(exception, SentryAppError):
-            response = Response(
-                {
-                    "detail": exception.message,
-                    "context": exception.extras.get("public_context", {}),
-                },
-                status=exception.status_code,
-            )
+            response_body = {"detail": exception.message}
+            context = exception.extras.get("public_context", None)
+            response_body.update({"context": context}) if context else ""
+
+            response = Response(response_body, status=exception.status_code)
             response.exception = True
             return response
 
@@ -157,7 +155,7 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
         organization_slug = request.data.get("organization")
         if not organization_slug or not isinstance(organization_slug, str):
             error_message = "Please provide a valid value for the 'organization' field."
-            raise SentryAppError(message=error_message)
+            raise SentryAppError(message=error_message, status_code=404)
         return organization_slug
 
     def _get_organization_for_superuser_or_staff(
@@ -169,7 +167,7 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
 
         if context is None:
             error_message = f"Organization '{organization_slug}' does not exist."
-            raise SentryAppError(message=error_message)
+            raise SentryAppError(message=error_message, status_code=404)
 
         return context
 
@@ -181,7 +179,7 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
         )
         if context is None or context.member is None:
             error_message = f"User does not belong to the '{organization_slug}' organization."
-            raise SentryAppError(message=to_single_line_str(error_message))
+            raise SentryAppError(message=to_single_line_str(error_message), status_code=403)
         return context
 
     def _get_org_context(self, request: Request) -> RpcUserOrganizationContext:
