@@ -8,7 +8,7 @@ class ActionAlertRuleTriggerAction(DefaultFieldsModel):
     A lookup model for Actions (new) and AlertRuleTriggerActions (legacy)
     """
 
-    __relocation_scope__ = RelocationScope.Organization
+    __relocation_scope__ = RelocationScope.Excluded
 
     action = FlexibleForeignKey("workflow_engine.Action")
     alert_rule_trigger_action = FlexibleForeignKey("sentry.AlertRuleTriggerAction")
