@@ -826,6 +826,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.auto_ongoing_issues",
     "sentry.tasks.check_am2_compatibility",
     "sentry.tasks.statistical_detectors",
+    "sentry.tempest.tasks",
     "sentry.debug_files.tasks",
     "sentry.tasks.on_demand_metrics",
     "sentry.middleware.integrations.tasks",
@@ -3165,6 +3166,7 @@ SEER_AUTOFIX_GITHUB_APP_USER_ID = 157164994
 
 SEER_AUTOFIX_FORCE_USE_REPOS: list[dict] = []
 
+SENTRY_TEMPEST_ENCRYPTION_KEY = os.getenv("SENTRY_TEMPEST_ENCRYPTION_KEY")
 
 # This is the URL to the profiling service
 SENTRY_VROOM = os.getenv("VROOM", "http://127.0.0.1:8085")
