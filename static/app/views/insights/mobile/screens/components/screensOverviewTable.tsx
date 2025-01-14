@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import * as qs from 'query-string';
 
-import Duration from 'sentry/components/duration';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
@@ -39,10 +38,20 @@ function ScreensOverviewTable({data, eventView, isLoading, pageLinks}: Props) {
     [`count()`]: t('Screen Loads'),
     [`division(mobile.slow_frames,mobile.total_frames)`]: t('Slow Frame Rate'),
     [`division(mobile.frozen_frames,mobile.total_frames)`]: t('Frozen Frame Rate'),
+    [`avg(mobile.frames_delay)`]: t('Frame Delay'),
     [`avg(measurements.time_to_initial_display)`]: t('TTID'),
     [`avg(measurements.time_to_full_display)`]: t('TTFD'),
     ['avg(measurements.app_start_warm)']: t('Warm Start'),
     ['avg(measurements.app_start_cold)']: t('Cold Start'),
+  };
+  const columnTooltipMap = {
+    ['avg(measurements.app_start_cold)']: t('Average Cold Start duration'),
+    [`avg(measurements.app_start_warm)`]: t('Average Warm Start duration'),
+    [`division(mobile.slow_frames,mobile.total_frames)`]: t('Slow Frame Rate'),
+    [`division(mobile.frozen_frames,mobile.total_frames)`]: t('Frozen Frame Rate'),
+    [`avg(mobile.frames_delay)`]: t('Average Frame Delay'),
+    [`avg(measurements.time_to_initial_display)`]: t('Average Time to Initial Display'),
+    [`avg(measurements.time_to_full_display)`]: t('Average Time to Full Display'),
   };
 
   function renderBodyCell(column, row): React.ReactNode | null {
@@ -75,17 +84,17 @@ function ScreensOverviewTable({data, eventView, isLoading, pageLinks}: Props) {
       );
     }
 
-    // backend doesn't provide unit for frames_delay, manually format it right now
-    if (field === `avg(mobile.frames_delay)`) {
-      return (
-        <NumberContainer>
-          {row[field] ? (
-            <Duration seconds={row[field]} fixedDigits={2} abbreviation />
-          ) : (
-            '-'
-          )}
-        </NumberContainer>
-      );
+    if (
+      field === 'division(mobile.slow_frames,mobile.total_frames)' ||
+      field === 'division(mobile.frozen_frames,mobile.total_frames)'
+    ) {
+      if (isFinite(row[field])) {
+        return (
+          <NumberContainer>
+            {row[field] ? formatPercentage(row[field], 2, {minimumValue: 0.0001}) : '-'}
+          </NumberContainer>
+        );
+      }
     }
 
     if (
@@ -107,7 +116,7 @@ function ScreensOverviewTable({data, eventView, isLoading, pageLinks}: Props) {
   return (
     <ScreensTable
       columnNameMap={columnNameMap}
-      columnTooltipMap={{}}
+      columnTooltipMap={columnTooltipMap}
       data={data}
       eventView={eventView}
       isLoading={isLoading}
@@ -118,6 +127,7 @@ function ScreensOverviewTable({data, eventView, isLoading, pageLinks}: Props) {
         'avg(measurements.app_start_warm)',
         `division(mobile.slow_frames,mobile.total_frames)`,
         `division(mobile.frozen_frames,mobile.total_frames)`,
+        `avg(mobile.frames_delay)`,
         `avg(measurements.time_to_initial_display)`,
         `avg(measurements.time_to_full_display)`,
         `count()`,

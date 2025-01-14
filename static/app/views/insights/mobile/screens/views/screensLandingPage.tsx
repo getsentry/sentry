@@ -146,7 +146,9 @@ export function ScreensLandingPage() {
     {
       title: t('Avg. Frame Delay'),
       description: t('Average frame delay'),
-      docs: t('The average delay divided by the total rendering time.'),
+      docs: t(
+        'The average total time of delay caused by frames which were not rendered on time.'
+      ),
       setup: undefined,
       platformDocLinks: {
         Android: 'https://developer.android.com/topic/performance/vitals/render',
