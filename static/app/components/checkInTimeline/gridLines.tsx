@@ -159,7 +159,7 @@ export function GridLineOverlay({
   } = useTimelineZoom<HTMLDivElement>({enabled: !!allowZoom, onSelect: handleZoom});
 
   const {cursorContainerRef, timelineCursor} = useTimelineCursor<HTMLDivElement>({
-    enabled: showCursor && !selectionIsActive,
+    enabled: !!showCursor && !selectionIsActive,
     sticky: stickyCursor,
     labelText: makeCursorLabel,
   });
