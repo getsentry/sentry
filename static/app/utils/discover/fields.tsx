@@ -170,7 +170,7 @@ export const DURATION_UNIT_LABELS: Record<DurationUnit, string> = {
   second: 's',
   minute: 'min',
   hour: 'hr',
-  day: 'day',
+  day: 'd',
   week: 'wk',
   month: 'mo',
   year: 'yr',
