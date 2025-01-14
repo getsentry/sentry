@@ -148,7 +148,7 @@ class OrganizationOnboardingTask(AbstractOnboardingTask):
 
     # Tasks which should be completed for the onboarding to be considered
     # complete.
-    NEW_REQUIRED_ONBOARDING_TASKS = frozenset(
+    REQUIRED_ONBOARDING_TASKS = frozenset(
         [
             OnboardingTask.FIRST_PROJECT,
             OnboardingTask.FIRST_EVENT,
@@ -163,9 +163,9 @@ class OrganizationOnboardingTask(AbstractOnboardingTask):
         ]
     )
 
-    NEW_REQUIRED_ONBOARDING_TASKS_WITH_SOURCE_MAPS = frozenset(
+    REQUIRED_ONBOARDING_TASKS_WITH_SOURCE_MAPS = frozenset(
         [
-            *NEW_REQUIRED_ONBOARDING_TASKS,
+            *REQUIRED_ONBOARDING_TASKS,
             OnboardingTask.SOURCEMAPS,
         ]
     )
