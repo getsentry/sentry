@@ -5,6 +5,8 @@ import logging
 from collections.abc import MutableMapping
 from typing import Any
 
+from django.http.request import HttpRequest
+from django.http.response import HttpResponseBase
 from django.views.decorators.csrf import csrf_exempt
 from psycopg2 import OperationalError
 from rest_framework import status
@@ -34,7 +36,7 @@ class JiraWebhookBase(Endpoint, abc.ABC):
     provider = "jira"
 
     @csrf_exempt
-    def dispatch(self, request: Request, *args, **kwargs) -> Response:
+    def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponseBase:
         return super().dispatch(request, *args, **kwargs)
 
     def handle_exception_with_details(
