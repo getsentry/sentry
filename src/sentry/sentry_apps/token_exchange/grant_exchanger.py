@@ -6,7 +6,6 @@ from django.db import router, transaction
 from django.utils.functional import cached_property
 
 from sentry import analytics
-from sentry.coreapi import APIUnauthorized
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apitoken import ApiToken
@@ -15,6 +14,7 @@ from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallat
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation
 from sentry.sentry_apps.token_exchange.util import token_expiration
 from sentry.sentry_apps.token_exchange.validator import Validator
+from sentry.sentry_apps.utils.errors import SentryAppIntegratorError, SentryAppSentryError
 from sentry.silo.safety import unguarded_write
 from sentry.users.models.user import User
 
@@ -41,7 +41,7 @@ class GrantExchanger:
                 # Once it's exchanged it's no longer valid and should not be
                 # exchangeable, so we delete it.
                 self._delete_grant()
-            except APIUnauthorized:
+            except (SentryAppIntegratorError, SentryAppSentryError):
                 logger.info(
                     "grant-exchanger.context",
                     extra={
@@ -65,10 +65,10 @@ class GrantExchanger:
         Validator(install=self.install, client_id=self.client_id, user=self.user).run()
 
         if not self._grant_belongs_to_install() or not self._sentry_app_user_owns_grant():
-            raise APIUnauthorized("Forbidden grant")
+            raise SentryAppIntegratorError(message="Forbidden grant")
 
         if not self._grant_is_active():
-            raise APIUnauthorized("Grant has already expired")
+            raise SentryAppIntegratorError("Grant has already expired")
 
     def _grant_belongs_to_install(self) -> bool:
         return self.grant.sentry_app_installation.id == self.install.id
@@ -108,18 +108,27 @@ class GrantExchanger:
                 .get(code=self.code)
             )
         except ApiGrant.DoesNotExist:
-            raise APIUnauthorized("Could not find grant")
+            raise SentryAppIntegratorError(
+                "Could not find grant for given code",
+                extras={"webhook_context": {"code": self.code}},
+            )
 
     @property
     def application(self) -> ApiApplication:
         try:
             return self.grant.application
         except ApiApplication.DoesNotExist:
-            raise APIUnauthorized("Could not find application")
+            raise SentryAppSentryError(
+                "Could not find application from grant",
+                extras={"webhook_context": {"code": self.code, "grant_id": self.grant.id}},
+            )
 
     @property
     def sentry_app(self) -> SentryApp:
         try:
             return self.application.sentry_app
         except SentryApp.DoesNotExist:
-            raise APIUnauthorized("Could not find sentry app")
+            raise SentryAppSentryError(
+                "Could not find integration from application",
+                extras={"webhook_context": {"application_id": self.application.id}},
+            )

@@ -15,6 +15,7 @@ from sentry.sentry_apps.api.bases.sentryapps import SentryAppAuthorizationsBaseE
 from sentry.sentry_apps.token_exchange.grant_exchanger import GrantExchanger
 from sentry.sentry_apps.token_exchange.refresher import Refresher
 from sentry.sentry_apps.token_exchange.util import GrantTypes
+from sentry.sentry_apps.utils.errors import SentryAppIntegratorError
 
 logger = logging.getLogger(__name__)
 
@@ -73,7 +74,9 @@ class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
                     user=promote_request_api_user(request),
                 ).run()
             else:
-                return Response({"error": "Invalid grant_type"}, status=403)
+                return SentryAppIntegratorError(
+                    message="Invalid grant_type", status_code=status.HTTP_403_FORBIDDEN
+                )
         except APIUnauthorized as e:
             logger.warning(
                 e,
