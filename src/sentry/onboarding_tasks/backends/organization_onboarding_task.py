@@ -3,7 +3,7 @@ from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from django.utils import timezone
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.models.organizationonboardingtask import (
@@ -48,24 +48,18 @@ class OrganizationOnboardingTaskBackend(OnboardingTaskBackend[OrganizationOnboar
         )
 
         organization = Organization.objects.get_from_cache(id=organization_id)
-        if features.has("organizations:quick-start-updates", organization, actor=user):
 
-            projects = Project.objects.filter(organization=organization)
-            project_with_source_maps = next(
-                (p for p in projects if p.platform in SOURCE_MAPS), None
-            )
+        projects = Project.objects.filter(organization=organization)
+        project_with_source_maps = next((p for p in projects if p.platform in SOURCE_MAPS), None)
 
-            # If a project supports source maps, we require them to complete the quick start.
-            # It's possible that the first project doesn't have source maps,
-            # but the second project (which users are guided to create in the "Add Sentry to other parts of the app" step) may have source maps.
-            required_tasks = (
-                OrganizationOnboardingTask.NEW_REQUIRED_ONBOARDING_TASKS_WITH_SOURCE_MAPS
-                if project_with_source_maps
-                else OrganizationOnboardingTask.NEW_REQUIRED_ONBOARDING_TASKS
-            )
-
-        else:
-            required_tasks = OrganizationOnboardingTask.REQUIRED_ONBOARDING_TASKS
+        # If a project supports source maps, we require them to complete the quick start.
+        # It's possible that the first project doesn't have source maps,
+        # but the second project (which users are guided to create in the "Add Sentry to other parts of the app" step) may have source maps.
+        required_tasks = (
+            OrganizationOnboardingTask.NEW_REQUIRED_ONBOARDING_TASKS_WITH_SOURCE_MAPS
+            if project_with_source_maps
+            else OrganizationOnboardingTask.NEW_REQUIRED_ONBOARDING_TASKS
+        )
 
         if completed >= required_tasks:
             try:
