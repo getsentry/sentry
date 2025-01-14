@@ -24,16 +24,19 @@ import {AggregationKey, WebVital} from 'sentry/utils/fields';
 import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 
-const generateFields = fields =>
+const generateFields = (fields: string[]) =>
   fields.map(field => ({
     field,
   }));
 
-const generateSorts = sorts =>
-  sorts.map(sortName => ({
-    field: sortName,
-    kind: 'desc',
-  }));
+const generateSorts = (sorts: string[]) =>
+  sorts.map(
+    sortName =>
+      ({
+        field: sortName,
+        kind: 'desc',
+      }) as const
+  );
 
 const REQUIRED_CONSTRUCTOR_PROPS = {
   createdBy: undefined,
@@ -2928,7 +2931,10 @@ describe('EventView.isEqualTo()', function () {
     const eventView = new EventView(state);
 
     for (const key in differences) {
-      const eventView2 = new EventView({...state, [key]: differences[key]});
+      const eventView2 = new EventView({
+        ...state,
+        [key]: differences[key as keyof typeof differences],
+      });
       expect(eventView.isEqualTo(eventView2)).toBe(false);
     }
   });

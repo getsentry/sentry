@@ -104,6 +104,7 @@ describe('IssueListOverview (actions)', function () {
     organization,
     tags: [
       tags.reduce((acc, tag) => {
+        // @ts-expect-error TS(7053): Element implicitly has an any type because
         acc[tag.key] = tag;
 
         return acc;

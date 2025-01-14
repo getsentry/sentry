@@ -9,7 +9,7 @@ describe('withConfig HoC', function () {
     jest.clearAllMocks();
   });
 
-  function MyComponent(props) {
+  function MyComponent(props: any) {
     return <span>{props.experimentAssignment}</span>;
   }
 

@@ -24,7 +24,7 @@ const makeProxyMock = (video: Partial<HTMLVideoElement>) => {
     {current: video},
     {
       get(obj, prop) {
-        return obj[prop];
+        return obj[prop as never];
       },
       set(obj, prop) {
         if (prop === 'current') {

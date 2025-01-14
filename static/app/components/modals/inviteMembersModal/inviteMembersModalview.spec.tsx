@@ -1,4 +1,4 @@
-import type {ComponentProps} from 'react';
+import type {ComponentProps, PropsWithChildren} from 'react';
 import styled from '@emotion/styled';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -6,7 +6,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import InviteMembersModalView from 'sentry/components/modals/inviteMembersModal/inviteMembersModalview';
 
 describe('InviteMembersModalView', function () {
-  const styledWrapper = styled(c => c.children);
+  const styledWrapper = styled((c: PropsWithChildren) => c.children);
   const modalProps: ComponentProps<typeof InviteMembersModalView> = {
     Footer: styledWrapper(),
     addInviteRow: () => {},

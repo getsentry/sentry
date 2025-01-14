@@ -175,10 +175,8 @@ describe('useErrorFilters', () => {
 
   describe('getProjectOptions', () => {
     it('should default to having nothing in the list of method types', () => {
-      const errorFrames = [];
-
       const {result} = renderHook(useErrorFilters, {
-        initialProps: {errorFrames},
+        initialProps: {errorFrames: []},
       });
 
       expect(result.current.getProjectOptions()).toStrictEqual([]);
