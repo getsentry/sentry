@@ -129,7 +129,21 @@ class DataCondition(DefaultFieldsModel):
 def enforce_comparison_schema(sender, instance: DataCondition, **kwargs):
     from jsonschema import ValidationError, validate
 
-    schema = condition_handler_registry.get(instance.type).comparison_json_schema()
+    condition_type = Condition(instance.type)
+    if condition_type in condition_ops:
+        # don't enforce schema for default ops, this can be any type
+        return
+
+    try:
+        handler = condition_handler_registry.get(instance.type)
+    except NoRegistrationExistsError:
+        logger.exception(
+            "No registration exists for condition",
+            extra={"type": instance.type, "id": instance.id},
+        )
+        return None
+
+    schema = handler().comparison_json_schema
 
     try:
         validate(instance.comparison, schema)

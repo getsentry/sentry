@@ -11,8 +11,8 @@ from sentry.workflow_engine.types import DataConditionHandler, WorkflowJob
 
 @condition_handler_registry.register(Condition.AGE_COMPARISON)
 class AgeComparisonConditionHandler(DataConditionHandler[WorkflowJob]):
-    @staticmethod
-    def comparison_json_schema() -> dict[str, Any]:
+    @property
+    def comparison_json_schema(self) -> dict[str, Any]:
         return {
             "type": "object",
             "properties": {

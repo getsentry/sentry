@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from abc import abstractmethod
 from enum import IntEnum
 from typing import TYPE_CHECKING, Any, Generic, TypedDict, TypeVar
 
@@ -55,8 +56,9 @@ class DataSourceTypeHandler(Generic[T]):
 
 
 class DataConditionHandler(Generic[T]):
-    @staticmethod
-    def comparison_json_schema() -> dict[str, Any]:
+    @property
+    @abstractmethod
+    def comparison_json_schema(self) -> dict[str, Any]:
         # TODO(cathy): raise NotImplementedError
         return {}
 
