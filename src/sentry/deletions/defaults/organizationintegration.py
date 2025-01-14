@@ -1,3 +1,5 @@
+from typing import Any
+
 from sentry.constants import ObjectStatus
 from sentry.deletions.base import BaseRelation, ModelDeletionTask, ModelRelation
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -20,7 +22,7 @@ class OrganizationIntegrationDeletionTask(ModelDeletionTask[OrganizationIntegrat
 
         return relations
 
-    def delete_instance(self, instance: OrganizationIntegration) -> None:
+    def delete_instance(self, instance: OrganizationIntegration, **kwargs: Any) -> None:
         try:
             repository_service.disassociate_organization_integration(
                 organization_id=instance.organization_id,

@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from typing import Any
 
 from django.db import router
 
@@ -18,6 +19,6 @@ class ModelApiGrantDeletionTask(ModelDeletionTask[ApiGrant]):
         # no status to track
         pass
 
-    def delete_instance(self, instance: ApiGrant) -> None:
+    def delete_instance(self, instance: ApiGrant, **kwargs: Any) -> None:
         with unguarded_write(router.db_for_write(ApiGrant)):
             super().delete_instance(instance)
