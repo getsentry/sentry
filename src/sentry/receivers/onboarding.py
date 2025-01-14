@@ -672,22 +672,6 @@ def record_alert_rule_created(user, project: Project, rule_type: str, **kwargs):
 
 @issue_tracker_used.connect(weak=False)
 def record_issue_tracker_used(plugin, project, user, **kwargs):
-    rows_affected, created = OrganizationOnboardingTask.objects.create_or_update(
-        organization_id=project.organization_id,
-        task=OnboardingTask.ISSUE_TRACKER,
-        status=OnboardingTaskStatus.PENDING,
-        values={
-            "status": OnboardingTaskStatus.COMPLETE,
-            "user_id": user.id,
-            "project_id": project.id,
-            "date_completed": django_timezone.now(),
-            "data": {"plugin": plugin.slug},
-        },
-    )
-
-    if rows_affected or created:
-        try_mark_onboarding_complete(project.organization_id, user)
-
     if user and user.is_authenticated:
         user_id = default_user_id = user.id
     else:

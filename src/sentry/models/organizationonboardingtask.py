@@ -20,6 +20,7 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.db.models.manager.base import BaseManager
 
 
+# NOTE: There are gaps in the numberation because a few tasks were removed, e.g. in the PR https://github.com/getsentry/sentry/pull/83360
 class OnboardingTask:
     FIRST_PROJECT = 1
     FIRST_EVENT = 2
