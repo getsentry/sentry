@@ -324,22 +324,6 @@ class TeamWithProjectsSerializer(TeamSerializer):
         super().__init__(expand=["projects", "externalTeams"])
 
 
-def get_scim_teams_members(
-    team_list: Sequence[Team],
-) -> dict[Team, list[dict[str, Any]]]:
-    members = RangeQuerySetWrapper(
-        OrganizationMember.objects.filter(teams__in=team_list)
-        .prefetch_related("teams")
-        .distinct("id"),
-        limit=10000,
-    )
-    member_map: dict[Team, list[dict[str, Any]]] = defaultdict(list)
-    for member in members:
-        for team in member.teams.all():
-            member_map[team].append({"value": str(member.id), "display": member.get_email()})
-    return member_map
-
-
 class SCIMTeamMemberListItem(TypedDict):
     value: str
     display: str
