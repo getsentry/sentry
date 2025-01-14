@@ -1,6 +1,4 @@
 import {useRef} from 'react';
-import {LocationFixture} from 'sentry-fixture/locationFixture';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -39,7 +37,7 @@ describe('disableRouterMocks', () => {
   it('starts with the correct initial location', () => {
     const {router} = render(<div />, {
       disableRouterMocks: true,
-      router: RouterFixture({location: LocationFixture({pathname: '/foo/'})}),
+      initialRouterConfig: {location: '/foo/'},
     });
 
     expect(router.location.pathname).toBe('/foo/');

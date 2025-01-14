@@ -4,6 +4,7 @@ import {CacheProvider, ThemeProvider} from '@emotion/react';
 import {
   createMemoryHistory,
   createRouter,
+  type InitialEntry,
   type MemoryHistory,
   type Router,
   type RouterNavigateOptions,
@@ -30,14 +31,14 @@ import {instrumentUserEvent} from '../instrumentedEnv/userEventIntegration';
 
 import {initializeOrg} from './initializeOrg';
 
-interface ProviderOptions<T = boolean> {
+interface ProviderOptions {
   /**
    * Do not shim the router use{Routes,Router,Navigate,Location} functions, and
    * instead allow them to work as normal, rendering inside of a memory router.
    *
    * When enabling this passing a `router` object *will do nothing*!
    */
-  disableRouterMocks?: T;
+  disableRouterMocks?: boolean;
   /**
    * Sets the history for the router.
    */
@@ -52,7 +53,23 @@ interface ProviderOptions<T = boolean> {
   router?: Partial<InjectedRouter>;
 }
 
-interface Options<T = boolean> extends ProviderOptions<T>, rtl.RenderOptions {}
+interface BaseRenderOptions<T extends boolean = boolean>
+  extends Omit<ProviderOptions, 'history' | 'disableRouterMocks'>,
+    rtl.RenderOptions {
+  disableRouterMocks?: T;
+}
+
+type RouterConfig = {
+  location: InitialEntry;
+};
+
+type RenderOptions<T extends boolean = false> = T extends true
+  ? BaseRenderOptions<T> & {initialRouterConfig?: RouterConfig}
+  : BaseRenderOptions<T>;
+
+type RenderReturn<T extends boolean = boolean> = T extends true
+  ? rtl.RenderResult & {router: TestRouter}
+  : rtl.RenderResult;
 
 function makeAllTheProviders(options: ProviderOptions) {
   const {organization, router} = initializeOrg({
@@ -191,10 +208,6 @@ class TestRouter {
   };
 }
 
-type RenderReturn<T extends boolean = boolean> = T extends true
-  ? rtl.RenderResult & {router: TestRouter}
-  : rtl.RenderResult;
-
 /**
  * Try avoiding unnecessary context and just mount your component. If it works,
  * then you dont need anything else.
@@ -206,25 +219,26 @@ type RenderReturn<T extends boolean = boolean> = T extends true
  *
  * To test route changes, pass `disableRouterMocks: true`. This will return a
  * `router` property which can be used to access the location or manually
- * navigate to a route.
+ * navigate to a route. To set the initial location with mocks disabled,
+ * pass an `initialRouterConfig`.
  */
 function render<T extends boolean = false>(
   ui: React.ReactElement,
-  {
-    router: incomingRouter,
-    organization: incomingOrganization,
-    disableRouterMocks,
-    ...rtlOptions
-  }: Options<T> = {}
+  options: RenderOptions<T> = {} as RenderOptions<T>
 ): RenderReturn<T> {
+  const initialEntry =
+    (options.disableRouterMocks
+      ? options.initialRouterConfig?.location
+      : options.router?.location?.pathname) ?? LocationFixture().pathname;
+
   const history = createMemoryHistory({
-    initialEntries: [incomingRouter?.location?.pathname ?? LocationFixture().pathname],
+    initialEntries: [initialEntry],
   });
 
   const AllTheProviders = makeAllTheProviders({
-    organization: incomingOrganization,
-    router: incomingRouter,
-    disableRouterMocks,
+    organization: options.organization,
+    router: options.router,
+    disableRouterMocks: options.disableRouterMocks,
     history,
   });
 
@@ -233,7 +247,7 @@ function render<T extends boolean = false>(
     history,
   });
 
-  const renderResult = rtl.render(<RouterProvider router={memoryRouter} />, rtlOptions);
+  const renderResult = rtl.render(<RouterProvider router={memoryRouter} />, options);
 
   const rerender = (newUi: React.ReactElement) => {
     const newRouter = makeRouter({
@@ -249,7 +263,7 @@ function render<T extends boolean = false>(
   return {
     ...renderResult,
     rerender,
-    ...(disableRouterMocks ? {router: testRouter} : {}),
+    ...(options.disableRouterMocks ? {router: testRouter} : {}),
   } as RenderReturn<T>;
 }
 
@@ -260,7 +274,7 @@ function render<T extends boolean = false>(
  */
 const fireEvent = rtl.fireEvent;
 
-function renderGlobalModal(options?: Options) {
+function renderGlobalModal(options?: BaseRenderOptions) {
   const result = render(<GlobalModal />, options);
 
   /**
