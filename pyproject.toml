@@ -287,7 +287,6 @@ module = [
     "sentry.snuba.metrics.query_builder",
     "sentry.snuba.spans_metrics",
     "sentry.tagstore.snuba.backend",
-    "sentry.tagstore.types",
     "sentry.tasks.auth",
     "sentry.tasks.base",
     "sentry.testutils.cases",
