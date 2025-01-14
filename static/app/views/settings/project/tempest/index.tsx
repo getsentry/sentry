@@ -94,9 +94,9 @@ export default function TempestSettings({organization, project}: Props) {
 
       <Form
         apiMethod="PUT"
-        apiEndpoint={`/organizations/${organization.slug}/`}
+        apiEndpoint={`/projects/${organization.slug}/${project.slug}/`}
         initialData={{
-          tempestFetchScreenshots: project.options?.tempestFetchScreenshots,
+          tempestFetchScreenshots: project?.tempestFetchScreenshots,
         }}
         saveOnBlur
         hideFooter
