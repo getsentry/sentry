@@ -149,8 +149,8 @@ export function GridLineOverlay({
     (startX: number, endX: number) =>
       updateDateTime(
         {
-          start: dateFromPosition(startX).toDate(),
-          end: dateFromPosition(endX).toDate(),
+          start: dateFromPosition(startX).startOf('minute').toDate(),
+          end: dateFromPosition(endX).add(1, 'minute').startOf('minute').toDate(),
         },
         router
       ),
