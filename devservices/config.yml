@@ -10,6 +10,13 @@ x-sentry-service-config:
         branch: master
         repo_link: https://github.com/getsentry/snuba.git
         mode: containerized
+    local-snuba:
+      description: Provides the ability to run snuba locally with sentry
+      remote:
+        repo_name: snuba
+        branch: master
+        repo_link: https://github.com/getsentry/snuba.git
+        mode: default
     relay:
       description: Service event forwarding and ingestion service
       remote:
@@ -58,6 +65,9 @@ x-sentry-service-config:
     taskbroker: [snuba, postgres, relay, taskbroker]
     backend-ci: [snuba, postgres, redis, bigtable, redis-cluster, symbolicator]
     rabbitmq: [postgres, snuba, rabbitmq]
+    symbolicator: [postgres, snuba, symbolicator]
+    local-snuba: [postgres, local-snuba]
+    minimal: [postgres, snuba]
 
 services:
   postgres:
