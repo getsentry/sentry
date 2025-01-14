@@ -275,7 +275,9 @@ class OrganizationCodeMappingsTest(APITestCase):
 
     def test_repo_does_not_exist_on_given_integrationId(self):
         bad_integration = self.create_integration(
-            organization=self.organization, provider="github", external_id="radsfas"
+            organization=self.organization,
+            external_id="radsfas",
+            provider="slack",
         )
         bad_repo = Repository.objects.create(
             name="another", organization_id=self.organization.id, integration_id=bad_integration.id
