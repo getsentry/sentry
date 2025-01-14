@@ -15,6 +15,7 @@ import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
 import {
+  type AggregateParameter,
   type AggregationKeyWithAlias,
   type AggregationRefinement,
   classifyTagKey,
@@ -141,6 +142,23 @@ function getColumnOptions(
   }
 
   return formatColumnOptions(dataset, fieldValues, columnFilterMethod);
+}
+
+function validateParameter(
+  columnOptions: SelectValue<string>[],
+  parameter: AggregateParameter,
+  value: string | undefined
+) {
+  if (parameter.kind === 'dropdown') {
+    return Boolean(parameter.options.find(option => option.value === value)?.value);
+  }
+  if (parameter.kind === 'column') {
+    return Boolean(columnOptions.find(option => option.value === value)?.value);
+  }
+  if (parameter.kind === 'value') {
+    return true;
+  }
+  return false;
 }
 
 interface VisualizeProps {
@@ -486,7 +504,8 @@ function Visualize({error, setError}: VisualizeProps) {
                                 // Handle setting an aggregate from a field
                                 const newFunction: AggregateFunction = [
                                   aggregateSelection.value as AggregationKeyWithAlias,
-                                  (currentField.field ||
+                                  ((newAggregate?.value.meta?.parameters.length > 0 &&
+                                    currentField.field) ||
                                     newAggregate?.value.meta?.parameters?.[0]
                                       ?.defaultValue) ??
                                     '',
@@ -495,32 +514,30 @@ function Visualize({error, setError}: VisualizeProps) {
                                   newAggregate?.value.meta?.parameters?.[2]
                                     ?.defaultValue ?? undefined,
                                 ];
+                                const newColumnOptions = getColumnOptions(
+                                  state.dataset ?? WidgetType.ERRORS,
+                                  {
+                                    kind: FieldValueKind.FUNCTION,
+                                    function: newFunction,
+                                  },
+                                  fieldOptions,
+                                  // If no column filter method is provided, show all options
+                                  columnFilterMethod ?? (() => true)
+                                );
                                 if (
                                   newAggregate?.value.meta &&
                                   'parameters' in newAggregate.value.meta
                                 ) {
                                   newAggregate?.value.meta.parameters.forEach(
                                     (parameter, parameterIndex) => {
-                                      const newParameterOptions = getColumnOptions(
-                                        state.dataset ?? WidgetType.ERRORS,
-                                        {
-                                          kind: FieldValueKind.FUNCTION,
-                                          function: newFunction,
-                                        },
-                                        fieldOptions,
-                                        // If no column filter method is provided, show all options
-                                        columnFilterMethod ?? (() => true)
-                                      );
-                                      const isValidColumn = Boolean(
-                                        newParameterOptions.find(
-                                          option =>
-                                            option.value ===
-                                            newFunction[parameterIndex + 1]
-                                        )?.value
+                                      const isValidParameter = validateParameter(
+                                        newColumnOptions,
+                                        parameter,
+                                        newFunction[parameterIndex + 1]
                                       );
                                       // Increment by 1 to skip past the aggregate name
                                       newFunction[parameterIndex + 1] =
-                                        (isValidColumn
+                                        (isValidParameter
                                           ? newFunction[parameterIndex + 1]
                                           : parameter.defaultValue) ?? '';
                                     }
@@ -564,7 +581,7 @@ function Visualize({error, setError}: VisualizeProps) {
                                 field.function[parameterIndex + 2] || '';
                               const key = `${field.function.join('_')}-${parameterIndex}`;
                               return (
-                                <AggregateParameter
+                                <AggregateParameterField
                                   key={key}
                                   parameter={parameter}
                                   fieldValue={field}
@@ -678,7 +695,7 @@ function Visualize({error, setError}: VisualizeProps) {
 
 export default Visualize;
 
-function AggregateParameter({
+function AggregateParameterField({
   parameter,
   fieldValue,
   onChange,
