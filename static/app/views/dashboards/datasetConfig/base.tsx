@@ -1,6 +1,6 @@
 import trimStart from 'lodash/trimStart';
 
-import type {Client, ResponseMeta} from 'sentry/api';
+import type {ApiResult, Client} from 'sentry/api';
 import type {SearchBarProps} from 'sentry/components/events/searchBar';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
@@ -159,7 +159,7 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     onDemandControlContext?: OnDemandControlContext,
     referrer?: string,
     mepSetting?: MEPState | null
-  ) => Promise<[SeriesResponse, string | undefined, ResponseMeta | undefined]>;
+  ) => Promise<ApiResult<SeriesResponse>>;
   /**
    * Get the result type of the series. ie duration, size, percentage, etc
    */
@@ -182,7 +182,7 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     cursor?: string,
     referrer?: string,
     mepSetting?: MEPState | null
-  ) => Promise<[TableResponse, string | undefined, ResponseMeta | undefined]>;
+  ) => Promise<ApiResult<TableResponse>>;
   /**
    * Generate the list of sort options for table
    * displays on the 'Sort by' step of the Widget Builder.

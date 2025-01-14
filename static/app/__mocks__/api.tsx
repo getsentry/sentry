@@ -4,7 +4,6 @@ import type * as ApiNamespace from 'sentry/api';
 
 const RealApi: typeof ApiNamespace = jest.requireActual('sentry/api');
 
-export class Request {}
 export const initApiClientErrorHandling = RealApi.initApiClientErrorHandling;
 
 const respond = (asyncDelay: AsyncDelay, fn?: Function, ...args: any[]): void => {

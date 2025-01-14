@@ -2,7 +2,7 @@ import * as Sentry from '@sentry/react';
 import trimStart from 'lodash/trimStart';
 
 import {doEventsRequest} from 'sentry/actionCreators/events';
-import type {Client, ResponseMeta} from 'sentry/api';
+import type {ApiResult, Client} from 'sentry/api';
 import {isMultiSeriesStats} from 'sentry/components/charts/utils';
 import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -655,9 +655,7 @@ export async function doOnDemandMetricsRequest(
   api,
   requestData,
   widgetType
-): Promise<
-  [EventsStats | MultiSeriesEventsStats, string | undefined, ResponseMeta | undefined]
-> {
+): Promise<ApiResult<EventsStats | MultiSeriesEventsStats>> {
   try {
     const isEditing = location.pathname.endsWith('/edit/');
 
