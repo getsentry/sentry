@@ -1,9 +1,9 @@
 import logging
 
+from django.conf import settings
 from requests import Response
 
 from sentry import http
-from sentry.conf.server import TEMPEST_URL
 from sentry.models.projectkey import ProjectKey, UseCase
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -189,7 +189,7 @@ def fetch_latest_id_from_tempest(
     }
 
     response = http.safe_urlopen(
-        url=TEMPEST_URL + "/latest-id",
+        url=settings.TEMPEST_URL + "/latest-id",
         method="POST",
         headers={"Content-Type": "application/json"},
         json=payload,
@@ -220,7 +220,7 @@ def fetch_items_from_tempest(
     }
 
     response = http.safe_urlopen(
-        url=TEMPEST_URL + "/crashes",
+        url=settings.TEMPEST_URL + "/crashes",
         method="POST",
         headers={"Content-Type": "application/json"},
         json=payload,
