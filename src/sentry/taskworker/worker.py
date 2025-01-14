@@ -105,7 +105,7 @@ def child_worker(
                 "taskworker.worker.max_task_count_reached",
                 tags={"count": processed_task_count},
             )
-            logger.info("taskwworker.max_task_count_reached")
+            logger.info("taskworker.max_task_count_reached")
             break
 
         if shutdown_event.is_set():
