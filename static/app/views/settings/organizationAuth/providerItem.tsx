@@ -122,7 +122,7 @@ function ProviderItem({provider, active, onConfigure}: Props) {
 
           <div>
             {active ? (
-              <ActiveIndicator />
+              <ActiveIndicator>{t('Active')}</ActiveIndicator>
             ) : (
               // renderInstallButton is overridden by renderDisabled above
               (
@@ -174,10 +174,6 @@ const ActiveIndicator = styled('div')`
   border-radius: 2px;
   font-size: 0.8em;
 `;
-
-ActiveIndicator.defaultProps = {
-  children: t('Active'),
-};
 
 const DisabledHovercard = styled(Hovercard)`
   width: 350px;
