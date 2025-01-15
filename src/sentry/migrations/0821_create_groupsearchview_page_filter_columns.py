@@ -2,11 +2,11 @@
 
 import django.db.models.deletion
 import django.utils.timezone
+from django.db import migrations, models
+
 import sentry.db.models.fields.bounded
 import sentry.db.models.fields.foreignkey
 import sentry.models.groupsearchview
-from django.db import migrations, models
-
 from sentry.new_migrations.migrations import CheckedMigration
 
 
