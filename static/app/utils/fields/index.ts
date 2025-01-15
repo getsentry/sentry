@@ -1155,6 +1155,7 @@ export const SPAN_OP_FIELDS: Record<SpanOpBreakdown, FieldDefinition> = {
 };
 
 type TraceFields =
+  | SpanIndexedField.IS_TRANSACTION
   | SpanIndexedField.SPAN_ACTION
   | SpanIndexedField.SPAN_DESCRIPTION
   | SpanIndexedField.SPAN_DOMAIN
@@ -1224,6 +1225,11 @@ export const TRACE_FIELD_DEFINITIONS: Record<TraceFields, FieldDefinition> = {
     desc: t('The HTTP response status code'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+  },
+  [SpanIndexedField.IS_TRANSACTION]: {
+    desc: t('The span is also a transaction'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.BOOLEAN,
   },
 };
 
