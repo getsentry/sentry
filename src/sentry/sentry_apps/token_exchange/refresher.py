@@ -61,11 +61,9 @@ class Refresher:
             assert self.token.application is not None, "Application must exist on ApiToken"
             raise SentryAppIntegratorError(
                 message="Token does not belong to the application",
-                extras={
-                    "webhook_context": {
-                        "client_id_from_token": self.token.application.client_id[:4],
-                        "given_client_id": self.client_id[:4],
-                    }
+                webhook_context={
+                    "client_id_from_token": self.token.application.client_id[:4],
+                    "given_client_id": self.client_id[:4],
                 },
             )
 
@@ -89,11 +87,9 @@ class Refresher:
         except ApiToken.DoesNotExist:
             raise SentryAppIntegratorError(
                 message="Given refresh token does not exist",
-                extras={
-                    "webhook_context": {
-                        "token": self.refresh_token[:4],
-                        "installation_uuid": self.install.uuid,
-                    }
+                webhook_context={
+                    "token": self.refresh_token[:4],
+                    "installation_uuid": self.install.uuid,
                 },
             )
 
@@ -104,11 +100,9 @@ class Refresher:
         except ApiApplication.DoesNotExist:
             raise SentryAppIntegratorError(
                 message="Could not find matching Application for given client_id",
-                extras={
-                    "webhook_context": {
-                        "client_id": self.client_id[:4],
-                        "installation_uuid": self.install.uuid,
-                    }
+                webhook_context={
+                    "client_id": self.client_id[:4],
+                    "installation_uuid": self.install.uuid,
                 },
             )
 
@@ -119,10 +113,8 @@ class Refresher:
         except SentryApp.DoesNotExist:
             raise SentryAppSentryError(
                 message="Sentry App does not exist on attached Application",
-                extras={
-                    "webhook_context": {
-                        "application_id": self.application.id,
-                        "installation_uuid": self.install.uuid,
-                    }
+                webhook_context={
+                    "application_id": self.application.id,
+                    "installation_uuid": self.install.uuid,
                 },
             )

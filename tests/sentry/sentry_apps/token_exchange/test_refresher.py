@@ -55,12 +55,11 @@ class TestRefresher(TestCase):
             self.refresher.run()
 
         assert e.value.message == "Token does not belong to the application"
-        assert e.value.extras == {
-            "webhook_context": {
-                "client_id_from_token": new_application.client_id[:4],
-                "given_client_id": self.client_id[:4],
-            }
+        assert e.value.webhook_context == {
+            "client_id_from_token": new_application.client_id[:4],
+            "given_client_id": self.client_id[:4],
         }
+        assert e.value.public_context == {}
 
     @patch("sentry.models.ApiToken.objects.get", side_effect=ApiToken.DoesNotExist)
     def test_token_must_exist(self, _):
@@ -68,12 +67,11 @@ class TestRefresher(TestCase):
             self.refresher.run()
 
         assert e.value.message == "Given refresh token does not exist"
-        assert e.value.extras == {
-            "webhook_context": {
-                "token": self.token.refresh_token[:4],
-                "installation_uuid": self.install.uuid,
-            }
+        assert e.value.webhook_context == {
+            "token": self.token.refresh_token[:4],
+            "installation_uuid": self.install.uuid,
         }
+        assert e.value.public_context == {}
 
     @patch("sentry.models.ApiApplication.objects.get", side_effect=ApiApplication.DoesNotExist)
     def test_api_application_must_exist(self, _):
@@ -81,12 +79,11 @@ class TestRefresher(TestCase):
             self.refresher.run()
 
         assert e.value.message == "Could not find matching Application for given client_id"
-        assert e.value.extras == {
-            "webhook_context": {
-                "client_id": self.client_id[:4],
-                "installation_uuid": self.install.uuid,
-            }
+        assert e.value.webhook_context == {
+            "client_id": self.client_id[:4],
+            "installation_uuid": self.install.uuid,
         }
+        assert e.value.public_context == {}
 
     @patch("sentry.sentry_apps.token_exchange.refresher.Refresher._validate")
     @patch("sentry.models.ApiApplication.sentry_app", new_callable=PropertyMock)
@@ -96,12 +93,11 @@ class TestRefresher(TestCase):
             self.refresher.run()
 
         assert e.value.message == "Sentry App does not exist on attached Application"
-        assert e.value.extras == {
-            "webhook_context": {
-                "application_id": self.orm_install.sentry_app.application.id,
-                "installation_uuid": self.install.uuid,
-            }
+        assert e.value.webhook_context == {
+            "application_id": self.orm_install.sentry_app.application.id,
+            "installation_uuid": self.install.uuid,
         }
+        assert e.value.public_context == {}
 
     @patch("sentry.analytics.record")
     def test_records_analytics(self, record):

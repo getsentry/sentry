@@ -29,10 +29,8 @@ class Validator:
         if not self.user.is_sentry_app:
             raise SentryAppIntegratorError(
                 "User is not a Sentry App(custom integration)",
-                extras={
-                    "webhook_context": {
-                        "user": self.user.name,
-                    }
+                webhook_context={
+                    "user": self.user.name,
                 },
             )
 
@@ -40,16 +38,14 @@ class Validator:
         if self.sentry_app.proxy_user != self.user:
             raise SentryAppIntegratorError(
                 "Integration does not belong to given user",
-                extras={
-                    "webhook_context": {"user": self.user.name, "integration": self.sentry_app.slug}
-                },
+                webhook_context={"user": self.user.name, "integration": self.sentry_app.slug},
             )
 
     def _validate_installation(self) -> None:
         if self.install.sentry_app.id != self.sentry_app.id:
             raise SentryAppIntegratorError(
                 f"Given installation is not for integration: {self.sentry_app.slug}",
-                extras={"webhook_context": {"installation_uuid": self.install.uuid}},
+                webhook_context={"installation_uuid": self.install.uuid},
             )
 
     @cached_property
@@ -59,7 +55,7 @@ class Validator:
         except SentryApp.DoesNotExist:
             raise SentryAppSentryError(
                 "Integration does not exist",
-                extras={"webhook_context": {"application_id": self.application.id}},
+                webhook_context={"application_id": self.application.id},
             )
 
     @cached_property
@@ -69,5 +65,5 @@ class Validator:
         except ApiApplication.DoesNotExist:
             raise SentryAppSentryError(
                 "Application does not exist",
-                extras={"webhook_context": {"client_id": self.client_id[:4]}},
+                webhook_context={"client_id": self.client_id[:4]},
             )

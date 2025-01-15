@@ -32,11 +32,10 @@ class TestValidator(TestCase):
         with pytest.raises(SentryAppIntegratorError) as e:
             self.validator.run()
         assert e.value.message == "User is not a Sentry App(custom integration)"
-        assert e.value.extras == {
-            "webhook_context": {
-                "user": self.validator.user.name,
-            }
+        assert e.value.webhook_context == {
+            "user": self.validator.user.name,
         }
+        assert e.value.public_context == {}
 
     def test_request_user_must_own_sentry_app(self):
         self.validator.user = self.create_user(is_sentry_app=True)
@@ -45,9 +44,11 @@ class TestValidator(TestCase):
             self.validator.run()
 
         assert e.value.message == "Integration does not belong to given user"
-        assert e.value.extras == {
-            "webhook_context": {"user": self.user.name, "integration": self.install.sentry_app.slug}
+        assert e.value.webhook_context == {
+            "user": self.user.name,
+            "integration": self.install.sentry_app.slug,
         }
+        assert e.value.public_context == {}
 
     def test_installation_belongs_to_sentry_app_with_client_id(self):
         self.validator.install = self.create_sentry_app_installation()
@@ -58,9 +59,8 @@ class TestValidator(TestCase):
             e.value.message
             == f"Given installation is not for integration: {self.install.sentry_app.slug}"
         )
-        assert e.value.extras == {
-            "webhook_context": {"installation_uuid": self.validator.install.uuid}
-        }
+        assert e.value.webhook_context == {"installation_uuid": self.validator.install.uuid}
+        assert e.value.public_context == {}
 
     @patch("sentry.models.ApiApplication.sentry_app", new_callable=PropertyMock)
     def test_raises_when_sentry_app_cannot_be_found(self, sentry_app):
@@ -69,9 +69,8 @@ class TestValidator(TestCase):
         with pytest.raises(SentryAppSentryError) as e:
             self.validator.run()
         assert e.value.message == "Integration does not exist"
-        assert e.value.extras == {
-            "webhook_context": {"application_id": self.install.sentry_app.application.id}
-        }
+        assert e.value.webhook_context == {"application_id": self.install.sentry_app.application.id}
+        assert e.value.public_context == {}
 
     def test_raises_with_invalid_client_id(self):
         self.validator.client_id = "123"
@@ -79,4 +78,5 @@ class TestValidator(TestCase):
         with pytest.raises(SentryAppSentryError) as e:
             self.validator.run()
         assert e.value.message == "Application does not exist"
-        assert e.value.extras == {"webhook_context": {"client_id": self.validator.client_id[:4]}}
+        assert e.value.webhook_context == {"client_id": self.validator.client_id[:4]}
+        assert e.value.public_context == {}
