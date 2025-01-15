@@ -65,6 +65,10 @@ export type IssueTypeConfig = {
    */
   issueSummary: DisabledWithReasonConfig;
   /**
+   * Is the Log Level icon shown for this issue
+   */
+  logLevel: DisabledWithReasonConfig;
+  /**
    * Is the Merged Issues tab shown for this issue
    */
   mergedIssues: DisabledWithReasonConfig;

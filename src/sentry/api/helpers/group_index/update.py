@@ -52,6 +52,7 @@ from sentry.types.actor import Actor, ActorType
 from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, GroupSubStatus, PriorityLevel
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
+from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
 from sentry.users.services.user_option import user_option_service
 from sentry.utils import metrics
@@ -78,10 +79,10 @@ def handle_discard(
     request: Request,
     group_list: Sequence[Group],
     projects: Sequence[Project],
-    user,
+    acting_user: RpcUser | User | None,
 ) -> Response:
     for project in projects:
-        if not features.has("projects:discard-groups", project, actor=user):
+        if not features.has("projects:discard-groups", project, actor=acting_user):
             return Response({"detail": ["You do not have that feature enabled"]}, status=400)
 
     if any(group.issue_category != GroupCategory.ERROR for group in group_list):
@@ -96,7 +97,7 @@ def handle_discard(
             try:
                 tombstone = GroupTombstone.objects.create(
                     previous_group_id=group.id,
-                    actor_id=coerce_id_from(user),
+                    actor_id=coerce_id_from(acting_user),
                     **{name: getattr(group, name) for name in TOMBSTONE_FIELDS_FROM_GROUP},
                 )
             except IntegrityError:
@@ -119,7 +120,7 @@ def handle_discard(
 
 
 def self_subscribe_and_assign_issue(
-    acting_user, group: Group, self_assign_issue: str
+    acting_user: RpcUser | User | None, group: Group, self_assign_issue: str
 ) -> Actor | None:
     """
     Used during issue resolution to assign to acting user
@@ -194,8 +195,6 @@ def update_groups(
 
     result = dict(serializer.validated_data)
 
-    acting_user = user if user.is_authenticated else None
-
     discard = result.get("discard")
     if discard:
         return handle_discard(request, groups, projects, acting_user)
@@ -219,7 +218,6 @@ def update_groups(
                 projects,
                 project_lookup,
                 acting_user,
-                user,
                 result,
             )
         except MultipleProjectsError:
@@ -232,7 +230,6 @@ def update_groups(
             project_lookup,
             status_details,
             acting_user,
-            user,
         )
 
     return prepare_response(
@@ -343,20 +340,26 @@ def handle_resolve_in_release(
     group_list: Sequence[Group],
     projects: Sequence[Project],
     project_lookup: Mapping[int, Project],
-    acting_user,
-    user: RpcUser | User | AnonymousUser,
+    acting_user: RpcUser | User | None,
     result: MutableMapping[str, Any],
 ) -> tuple[dict[str, Any], int | None]:
     res_type = None
     release = None
     commit = None
     self_assign_issue = "0"
+    new_status_details = {}
     if acting_user:
         user_options = user_option_service.get_many(
             filter={"user_ids": [acting_user.id], "keys": ["self_assign_issue"]}
         )
         if user_options:
             self_assign_issue = user_options[0].value
+        serialized_user = user_service.serialize_many(
+            filter=dict(user_ids=[acting_user.id]), as_user=serialize_generic_user(acting_user)
+        )
+        if serialized_user:
+            new_status_details["actor"] = serialized_user[0]
+
     res_status = None
     if status == "resolvedInNextRelease" or status_details.get("inNextRelease"):
         # TODO(jess): We may want to support this for multi project, but punting on it for now
@@ -371,12 +374,7 @@ def handle_resolve_in_release(
             "version": ""
         }
 
-        serialized_user = user_service.serialize_many(filter=dict(user_ids=[user.id]), as_user=user)
-        new_status_details = {
-            "inNextRelease": True,
-        }
-        if serialized_user:
-            new_status_details["actor"] = serialized_user[0]
+        new_status_details["inNextRelease"] = True
         res_type = GroupResolution.Type.in_next_release
         res_type_str = "in_next_release"
         res_status = GroupResolution.Status.pending
@@ -387,12 +385,7 @@ def handle_resolve_in_release(
         activity_type = ActivityType.SET_RESOLVED_IN_RELEASE.value
         activity_data = {"version": ""}
 
-        serialized_user = user_service.serialize_many(filter=dict(user_ids=[user.id]), as_user=user)
-        new_status_details = {
-            "inUpcomingRelease": True,
-        }
-        if serialized_user:
-            new_status_details["actor"] = serialized_user[0]
+        new_status_details["inUpcomingRelease"] = True
         res_type = GroupResolution.Type.in_upcoming_release
         res_type_str = "in_upcoming_release"
         res_status = GroupResolution.Status.pending
@@ -409,12 +402,7 @@ def handle_resolve_in_release(
             "version": release.version
         }
 
-        serialized_user = user_service.serialize_many(filter=dict(user_ids=[user.id]), as_user=user)
-        new_status_details = {
-            "inRelease": release.version,
-        }
-        if serialized_user:
-            new_status_details["actor"] = serialized_user[0]
+        new_status_details["inRelease"] = release.version
         res_type = GroupResolution.Type.in_release
         res_type_str = "in_release"
         res_status = GroupResolution.Status.resolved
@@ -426,13 +414,8 @@ def handle_resolve_in_release(
         commit = status_details["inCommit"]
         activity_type = ActivityType.SET_RESOLVED_IN_COMMIT.value
         activity_data = {"commit": commit.id}
-        serialized_user = user_service.serialize_many(filter=dict(user_ids=[user.id]), as_user=user)
+        new_status_details["inCommit"] = serialize(commit, acting_user)
 
-        new_status_details = {
-            "inCommit": serialize(commit, user),
-        }
-        if serialized_user:
-            new_status_details["actor"] = serialized_user[0]
         res_type_str = "in_commit"
     else:
         res_type_str = "now"
@@ -473,7 +456,6 @@ def handle_resolve_in_release(
                 res_type,
                 res_status,
                 acting_user,
-                user,
                 self_assign_issue,
                 activity_type,
                 activity_data,
@@ -482,7 +464,7 @@ def handle_resolve_in_release(
 
         issue_resolved.send_robust(
             organization_id=projects[0].organization_id,
-            user=(acting_user or user),
+            user=acting_user,
             group=group,
             project=project_lookup[group.project_id],
             resolution_type=res_type_str,
@@ -505,13 +487,12 @@ def process_group_resolution(
     commit: Commit | None,
     res_type: int | None,
     res_status: int | None,
-    acting_user,
-    user: RpcUser | User | AnonymousUser,
+    acting_user: RpcUser | User | None,
     self_assign_issue: str,
     activity_type: int,
     activity_data: MutableMapping[str, Any],
     result: MutableMapping[str, Any],
-):
+) -> None:
     now = django_timezone.now()
     resolution = None
     created = None
@@ -521,7 +502,7 @@ def process_group_resolution(
             "release": release,
             "type": res_type,
             "status": res_status,
-            "actor_id": user.id if user and user.is_authenticated else None,
+            "actor_id": acting_user.id if acting_user and acting_user.is_authenticated else None,
         }
 
         # We only set `current_release_version` if GroupResolution type is
@@ -650,7 +631,7 @@ def process_group_resolution(
             project=group.project,
             group=group,
             type=activity_type,
-            user_id=acting_user.id,
+            user_id=acting_user.id if acting_user else None,
             ident=resolution.id if resolution else None,
             data=dict(activity_data),
         )
@@ -665,7 +646,7 @@ def process_group_resolution(
 def merge_groups(
     group_list: Sequence[Group],
     project_lookup: Mapping[int, Project],
-    acting_user,
+    acting_user: RpcUser | User | None,
     referer: str,
 ) -> MergedGroup:
     issue_stream_regex = r"^(\/organizations\/[^\/]+)?\/issues\/$"
@@ -699,8 +680,7 @@ def handle_other_status_updates(
     projects: Sequence[Project],
     project_lookup: Mapping[int, Project],
     status_details: dict[str, Any],
-    acting_user,
-    user: RpcUser | User | AnonymousUser,
+    acting_user: RpcUser | User | None,
 ) -> dict[str, Any]:
     group_ids = [group.id for group in group_list]
     queryset = Group.objects.filter(id__in=group_ids)
@@ -721,9 +701,7 @@ def handle_other_status_updates(
                     group_list, acting_user, projects, sender=update_groups
                 )
             else:
-                result["statusDetails"] = handle_ignored(
-                    group_list, status_details, acting_user, user
-                )
+                result["statusDetails"] = handle_ignored(group_list, status_details, acting_user)
             result["inbox"] = None
         else:
             result["statusDetails"] = {}
@@ -748,7 +726,7 @@ def prepare_response(
     group_list: Sequence[Group],
     project_lookup: Mapping[int, Project],
     projects: Sequence[Project],
-    acting_user,
+    acting_user: RpcUser | User | None,
     data: Mapping[str, Any],
     res_type: int | None,
     referer: str,
@@ -866,7 +844,7 @@ def handle_is_subscribed(
     is_subscribed: bool,
     group_list: Sequence[Group],
     project_lookup: Mapping[int, Project],
-    acting_user,
+    acting_user: RpcUser | User | None,
 ) -> dict[str, str]:
     # TODO(dcramer): we could make these more efficient by first
     # querying for which `GroupSubscription` rows are present (if N > 2),
@@ -880,7 +858,7 @@ def handle_is_subscribed(
         # assigned" just by clicking the "subscribe" button (and you
         # may no longer be assigned to the issue anyway).
         GroupSubscription.objects.create_or_update(
-            user_id=acting_user.id,
+            user_id=acting_user.id if acting_user else None,
             group=group,
             project=project_lookup[group.project_id],
             values={"is_active": is_subscribed, "reason": GroupSubscriptionReason.unknown},
@@ -893,7 +871,7 @@ def handle_is_bookmarked(
     is_bookmarked: bool,
     group_list: Sequence[Group],
     project_lookup: Mapping[int, Project],
-    acting_user,
+    acting_user: RpcUser | User | None,
 ) -> None:
     """
     Creates bookmarks and subscriptions for a user, or deletes the existing bookmarks and subscriptions.
@@ -929,7 +907,7 @@ def handle_has_seen(
     group_list: Sequence[Group],
     project_lookup: Mapping[int, Project],
     projects: Sequence[Project],
-    acting_user,
+    acting_user: RpcUser | User | None,
 ) -> None:
     is_member_map = {
         project.id: (
@@ -941,7 +919,7 @@ def handle_has_seen(
     if has_seen:
         for group in group_list:
             if is_member_map.get(group.project_id):
-                instance, created = create_or_update(
+                create_or_update(
                     GroupSeen,
                     group=group,
                     user_id=user_id,
@@ -957,7 +935,7 @@ def handle_has_seen(
 def handle_priority(
     priority: str,
     group_list: Sequence[Group],
-    acting_user,
+    acting_user: RpcUser | User | None,
     project_lookup: Mapping[int, Project],
 ) -> None:
     for group in group_list:
@@ -977,7 +955,7 @@ def handle_is_public(
     is_public: bool,
     group_list: Sequence[Group],
     project_lookup: Mapping[int, Project],
-    acting_user,
+    acting_user: RpcUser | User | None,
 ) -> str | None:
     """
     Handle the isPublic flag on a group update.
@@ -1021,7 +999,7 @@ def handle_assigned_to(
     integration: str | None,
     group_list: Sequence[Group],
     project_lookup: Mapping[int, Project],
-    acting_user,
+    acting_user: RpcUser | User | None,
 ) -> ActorSerializerResponse | None:
     """
     Handle the assignedTo field on a group update.

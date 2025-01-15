@@ -7,7 +7,7 @@ from typing import Any
 import orjson
 import requests
 from django.conf import settings
-from django.contrib.auth.models import AbstractBaseUser, AnonymousUser
+from django.contrib.auth.models import AnonymousUser
 from rest_framework.response import Response
 
 from sentry import eventstore, features
@@ -26,6 +26,7 @@ from sentry.seer.signed_seer_api import get_seer_salted_url, sign_with_seer_secr
 from sentry.tasks.autofix import check_autofix_status
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 
 logger = logging.getLogger(__name__)
@@ -52,7 +53,7 @@ class GroupAutofixEndpoint(GroupEndpoint):
     }
 
     def _get_serialized_event(
-        self, event_id: str, group: Group, user: AbstractBaseUser | AnonymousUser
+        self, event_id: str, group: Group, user: User | RpcUser | AnonymousUser
     ) -> tuple[dict[str, Any] | None, Event | GroupEvent | None]:
         event = eventstore.backend.get_event_by_id(group.project.id, event_id, group_id=group.id)
 

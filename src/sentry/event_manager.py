@@ -103,7 +103,7 @@ from sentry.net.http import connection_from_url
 from sentry.plugins.base import plugins
 from sentry.quotas.base import index_data_category
 from sentry.receivers.features import record_event_processed
-from sentry.receivers.onboarding import record_release_received, record_user_context_received
+from sentry.receivers.onboarding import record_release_received
 from sentry.reprocessing2 import is_reprocessed_event
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.signals import (
@@ -2538,7 +2538,6 @@ def _record_transaction_info(jobs: Sequence[Job], projects: ProjectsMapping) -> 
             # instead of sending a signal. we should consider potentially
             # deleting these
             record_event_processed(project, event)
-            record_user_context_received(project, event)
             record_release_received(project, event)
         except Exception:
             sentry_sdk.capture_exception()
@@ -2626,41 +2625,18 @@ def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> S
     set_measurement(measurement_name="jobs", value=len(jobs))
     set_measurement(measurement_name="projects", value=len(projects))
 
-    with metrics.timer("save_transaction_events.get_or_create_release_many"):
-        _get_or_create_release_many(jobs, projects)
-
-    with metrics.timer("save_transaction_events.get_event_user_many"):
-        _get_event_user_many(jobs, projects)
-
-    with metrics.timer("save_transaction_events.derive_plugin_tags_many"):
-        _derive_plugin_tags_many(jobs, projects)
-
-    with metrics.timer("save_transaction_events.derive_interface_tags_many"):
-        _derive_interface_tags_many(jobs)
-
-    with metrics.timer("save_transaction_events.calculate_span_grouping"):
-        _calculate_span_grouping(jobs, projects)
-
-    with metrics.timer("save_transaction_events.materialize_metadata_many"):
-        _materialize_metadata_many(jobs)
-
-    with metrics.timer("save_transaction_events.get_or_create_environment_many"):
-        _get_or_create_environment_many(jobs, projects)
-
-    with metrics.timer("save_transaction_events.get_or_create_release_associated_models"):
-        _get_or_create_release_associated_models(jobs, projects)
-
-    with metrics.timer("save_transaction_events.tsdb_record_all_metrics"):
-        _tsdb_record_all_metrics(jobs)
-
-    with metrics.timer("save_transaction_events.materialize_event_metrics"):
-        _materialize_event_metrics(jobs)
-
-    with metrics.timer("save_transaction_events.nodestore_save_many"):
-        _nodestore_save_many(jobs=jobs, app_feature="transactions")
-
-    with metrics.timer("save_transaction_events.eventstream_insert_many"):
-        _eventstream_insert_many(jobs)
+    _get_or_create_release_many(jobs, projects)
+    _get_event_user_many(jobs, projects)
+    _derive_plugin_tags_many(jobs, projects)
+    _derive_interface_tags_many(jobs)
+    _calculate_span_grouping(jobs, projects)
+    _materialize_metadata_many(jobs)
+    _get_or_create_environment_many(jobs, projects)
+    _get_or_create_release_associated_models(jobs, projects)
+    _tsdb_record_all_metrics(jobs)
+    _materialize_event_metrics(jobs)
+    _nodestore_save_many(jobs=jobs, app_feature="transactions")
+    _eventstream_insert_many(jobs)
 
     for job in jobs:
         track_sampled_event(
@@ -2669,17 +2645,10 @@ def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> S
             TransactionStageStatus.SNUBA_TOPIC_PUT,
         )
 
-    with metrics.timer("save_transaction_events.track_outcome_accepted_many"):
-        _track_outcome_accepted_many(jobs)
-
-    with metrics.timer("save_transaction_events.detect_performance_problems"):
-        _detect_performance_problems(jobs, projects)
-
-    with metrics.timer("save_transaction_events.send_occurrence_to_platform"):
-        _send_occurrence_to_platform(jobs, projects)
-
-    with metrics.timer("save_transaction_events.record_transaction_info"):
-        _record_transaction_info(jobs, projects)
+    _track_outcome_accepted_many(jobs)
+    _detect_performance_problems(jobs, projects)
+    _send_occurrence_to_platform(jobs, projects)
+    _record_transaction_info(jobs, projects)
 
     return jobs
 

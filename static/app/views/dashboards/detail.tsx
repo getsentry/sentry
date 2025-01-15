@@ -134,6 +134,7 @@ type State = {
   modifiedDashboard: DashboardDetails | null;
   widgetLegendState: WidgetLegendSelectionState;
   widgetLimitReached: boolean;
+  openWidgetTemplates?: boolean;
 } & WidgetViewerContextProps;
 
 export function handleUpdateDashboardSplit({
@@ -251,6 +252,7 @@ class DashboardDetail extends Component<Props, State> {
       router: this.props.router,
     }),
     isWidgetBuilderOpen: this.isRedesignedWidgetBuilder,
+    openWidgetTemplates: undefined,
   };
 
   componentDidMount() {
@@ -675,7 +677,6 @@ class DashboardDetail extends Component<Props, State> {
       location,
       params: {dashboardId},
     } = this.props;
-    const {modifiedDashboard} = this.state;
 
     if (dataset === DataSet.METRICS) {
       this.handleAddMetricWidget();
@@ -683,30 +684,7 @@ class DashboardDetail extends Component<Props, State> {
     }
 
     if (organization.features.includes('dashboards-widget-builder-redesign')) {
-      this.setState(
-        {
-          modifiedDashboard: cloneDashboard(modifiedDashboard ?? dashboard),
-        },
-        () => {
-          this.setState({isWidgetBuilderOpen: true});
-          let pathname = `/organizations/${organization.slug}/dashboard/${dashboardId}/widget-builder/widget/new/`;
-          if (!defined(dashboardId)) {
-            pathname = `/organizations/${organization.slug}/dashboards/new/widget-builder/widget/new/`;
-          }
-          router.push(
-            normalizeUrl({
-              // TODO: Replace with the old widget builder path when swapping over
-              pathname,
-              query: {
-                ...location.query,
-                ...convertWidgetToBuilderStateParams(
-                  getDefaultWidget(DATA_SET_TO_WIDGET_TYPE[dataset ?? DataSet.ERRORS])
-                ),
-              },
-            })
-          );
-        }
-      );
+      this.onAddWidgetFromNewWidgetBuilder(dataset ?? DataSet.ERRORS);
 
       return;
     }
@@ -732,6 +710,52 @@ class DashboardDetail extends Component<Props, State> {
     );
   };
 
+  onAddWidgetFromNewWidgetBuilder = (dataset: DataSet, openWidgetTemplates?: boolean) => {
+    const {
+      organization,
+      dashboard,
+      router,
+      location,
+      params: {dashboardId},
+    } = this.props;
+    const {modifiedDashboard} = this.state;
+    if (organization.features.includes('dashboards-widget-builder-redesign')) {
+      this.setState(
+        {
+          modifiedDashboard: cloneDashboard(modifiedDashboard ?? dashboard),
+        },
+        () => {
+          this.setState({
+            isWidgetBuilderOpen: true,
+            openWidgetTemplates: openWidgetTemplates ?? false,
+          });
+          let pathname = `/organizations/${organization.slug}/dashboard/${dashboardId}/widget-builder/widget/new/`;
+          if (!defined(dashboardId)) {
+            pathname = `/organizations/${organization.slug}/dashboards/new/widget-builder/widget/new/`;
+          }
+          router.push(
+            normalizeUrl({
+              // TODO: Replace with the old widget builder path when swapping over
+              pathname,
+              query: {
+                ...location.query,
+                ...(!openWidgetTemplates
+                  ? convertWidgetToBuilderStateParams(
+                      getDefaultWidget(DATA_SET_TO_WIDGET_TYPE[dataset ?? DataSet.ERRORS])
+                    )
+                  : {}),
+              },
+            })
+          );
+        }
+      );
+
+      return;
+    }
+
+    return;
+  };
+
   onEditWidget = (widget: Widget) => {
     const {router, organization, params, location, dashboard} = this.props;
     const {modifiedDashboard} = this.state;
@@ -740,6 +764,7 @@ class DashboardDetail extends Component<Props, State> {
     const widgetIndex = currentDashboard.widgets.indexOf(widget);
     this.setState({
       isWidgetBuilderOpen: true,
+      openWidgetTemplates: false,
     });
     const path = defined(dashboardId)
       ? `/organizations/${organization.slug}/dashboard/${dashboardId}/widget-builder/widget/${widgetIndex}/edit/`
@@ -819,7 +844,10 @@ class DashboardDetail extends Component<Props, State> {
   handleCloseWidgetBuilder = () => {
     const {organization, router, location, params} = this.props;
 
-    this.setState({isWidgetBuilderOpen: false});
+    this.setState({
+      isWidgetBuilderOpen: false,
+      openWidgetTemplates: undefined,
+    });
     router.push(
       getDashboardLocation({
         organization,
@@ -827,6 +855,10 @@ class DashboardDetail extends Component<Props, State> {
         location,
       })
     );
+  };
+
+  handleChangeWidgetBuilderView = (openWidgetTemplates: boolean) => {
+    this.setState({openWidgetTemplates});
   };
 
   onCommit = () => {
@@ -1024,6 +1056,7 @@ class DashboardDetail extends Component<Props, State> {
                     onCancel={this.onCancel}
                     onCommit={this.onCommit}
                     onAddWidget={this.onAddWidget}
+                    onAddWidgetFromNewWidgetBuilder={this.onAddWidgetFromNewWidgetBuilder}
                     onChangeEditAccess={this.onChangeEditAccess}
                     onDelete={this.onDelete(dashboard)}
                     dashboardState={dashboardState}
@@ -1065,6 +1098,9 @@ class DashboardDetail extends Component<Props, State> {
                           handleUpdateWidgetList={this.handleUpdateWidgetList}
                           handleAddCustomWidget={this.handleAddCustomWidget}
                           handleAddMetricWidget={this.handleAddMetricWidget}
+                          onAddWidgetFromNewWidgetBuilder={
+                            this.onAddWidgetFromNewWidgetBuilder
+                          }
                           isPreview={this.isPreview}
                           router={router}
                           location={location}
@@ -1171,6 +1207,9 @@ class DashboardDetail extends Component<Props, State> {
                         onCancel={this.onCancel}
                         onCommit={this.onCommit}
                         onAddWidget={this.onAddWidget}
+                        onAddWidgetFromNewWidgetBuilder={
+                          this.onAddWidgetFromNewWidgetBuilder
+                        }
                         onDelete={this.onDelete(dashboard)}
                         onChangeEditAccess={this.onChangeEditAccess}
                         dashboardState={dashboardState}
@@ -1295,6 +1334,9 @@ class DashboardDetail extends Component<Props, State> {
                                     handleUpdateWidgetList={this.handleUpdateWidgetList}
                                     handleAddCustomWidget={this.handleAddCustomWidget}
                                     handleAddMetricWidget={this.handleAddMetricWidget}
+                                    onAddWidgetFromNewWidgetBuilder={
+                                      this.onAddWidgetFromNewWidgetBuilder
+                                    }
                                     router={router}
                                     location={location}
                                     newWidget={newWidget}
@@ -1307,6 +1349,12 @@ class DashboardDetail extends Component<Props, State> {
 
                                   <WidgetBuilderV2
                                     isOpen={this.state.isWidgetBuilderOpen}
+                                    openWidgetTemplates={
+                                      this.state.openWidgetTemplates ?? false
+                                    }
+                                    setOpenWidgetTemplates={
+                                      this.handleChangeWidgetBuilderView
+                                    }
                                     onClose={this.handleCloseWidgetBuilder}
                                     dashboardFilters={
                                       getDashboardFiltersFromURL(location) ??

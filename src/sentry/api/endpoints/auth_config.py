@@ -1,5 +1,7 @@
 from django.conf import settings
 from django.contrib.auth import REDIRECT_FIELD_NAME
+from django.http.request import HttpRequest
+from django.http.response import HttpResponseBase
 from django.urls import reverse
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -30,7 +32,7 @@ class AuthConfigEndpoint(Endpoint, OrganizationMixin):
     # Disable authentication and permission requirements.
     permission_classes = ()
 
-    def dispatch(self, request: Request, *args, **kwargs) -> Response:
+    def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponseBase:
         self.determine_active_organization(request)
         return super().dispatch(request, *args, **kwargs)
 

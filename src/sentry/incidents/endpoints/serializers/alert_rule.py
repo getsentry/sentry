@@ -6,6 +6,7 @@ from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
 from typing import Any, TypedDict
 
+from django.contrib.auth.models import AnonymousUser
 from django.db.models import Max, Q, prefetch_related_objects
 from drf_spectacular.utils import extend_schema_serializer
 
@@ -101,7 +102,7 @@ class AlertRuleSerializer(Serializer):
         self.prepare_component_fields = prepare_component_fields
 
     def get_attrs(
-        self, item_list: Sequence[Any], user: User | RpcUser, **kwargs: Any
+        self, item_list: Sequence[Any], user: User | RpcUser | AnonymousUser, **kwargs: Any
     ) -> defaultdict[AlertRule, Any]:
         alert_rules = {item.id: item for item in item_list}
         prefetch_related_objects(item_list, "snuba_query__environment")
@@ -239,7 +240,11 @@ class AlertRuleSerializer(Serializer):
         return result
 
     def serialize(
-        self, obj: AlertRule, attrs: Mapping[Any, Any], user: User | RpcUser, **kwargs: Any
+        self,
+        obj: AlertRule,
+        attrs: Mapping[Any, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
     ) -> AlertRuleSerializerResponse:
         from sentry.incidents.endpoints.utils import translate_threshold
         from sentry.incidents.logic import translate_aggregate_field
@@ -306,7 +311,7 @@ class AlertRuleSerializer(Serializer):
 
 class DetailedAlertRuleSerializer(AlertRuleSerializer):
     def get_attrs(
-        self, item_list: Sequence[Any], user: User | RpcUser, **kwargs: Any
+        self, item_list: Sequence[Any], user: User | RpcUser | AnonymousUser, **kwargs: Any
     ) -> defaultdict[AlertRule, Any]:
         result = super().get_attrs(item_list, user, **kwargs)
         query_to_alert_rule = {ar.snuba_query_id: ar for ar in item_list}
@@ -322,7 +327,11 @@ class DetailedAlertRuleSerializer(AlertRuleSerializer):
         return result
 
     def serialize(
-        self, obj: AlertRule, attrs: Mapping[Any, Any], user: User | RpcUser, **kwargs
+        self,
+        obj: AlertRule,
+        attrs: Mapping[Any, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs,
     ) -> AlertRuleSerializerResponse:
         data = super().serialize(obj, attrs, user)
         data["eventTypes"] = sorted(attrs.get("event_types", []))
@@ -335,7 +344,7 @@ class CombinedRuleSerializer(Serializer):
         self.expand = expand or []
 
     def get_attrs(
-        self, item_list: Sequence[Any], user: User | RpcUser, **kwargs: Any
+        self, item_list: Sequence[Any], user: User | RpcUser | AnonymousUser, **kwargs: Any
     ) -> MutableMapping[Any, Any]:
         results = super().get_attrs(item_list, user)
 
@@ -412,7 +421,7 @@ class CombinedRuleSerializer(Serializer):
         self,
         obj: Rule | AlertRule | ProjectUptimeSubscription,
         attrs: Mapping[Any, Any],
-        user: User | RpcUser,
+        user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> MutableMapping[Any, Any]:
         updated_attrs = {**attrs}
