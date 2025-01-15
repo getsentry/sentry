@@ -14,6 +14,12 @@ export const NULL_DOMAIN_DESCRIPTION = t('Unknown Domain');
 export const CHART_HEIGHT = 160;
 export const SPAN_ID_DISPLAY_LENGTH = 16;
 
+export const FIELD_ALIASES = {
+  'http_response_rate(3)': '3XX',
+  'http_response_rate(4)': '4XX',
+  'http_response_rate(5)': '5XX',
+};
+
 export const BASE_FILTERS = {
   'span.module': ModuleName.HTTP,
   'span.op': 'http.client', // `span.module` alone isn't enough, since some SDKs create other `http.*` spans like `http.client.response_body`

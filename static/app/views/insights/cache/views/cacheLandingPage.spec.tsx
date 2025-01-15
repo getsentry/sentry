@@ -113,6 +113,7 @@ describe('CacheLandingPage', function () {
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: 'spm()',
+          transformAliasToInputFormat: '1',
         },
       })
     );
