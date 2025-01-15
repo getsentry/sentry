@@ -13,7 +13,6 @@ EXCLUDED_ACTION_DATA_KEYS = ["uuid", "id"]
 
 class BaseActionTranslator(ABC):
     action_type: ClassVar[Action.Type]
-    registry_id: ClassVar[str]
 
     def __init__(self, action: dict[str, Any]):
         self.action = action
@@ -89,7 +88,6 @@ issue_alert_action_translator_registry = Registry[type[BaseActionTranslator]]()
 )
 class SlackActionTranslator(BaseActionTranslator):
     action_type = Action.Type.SLACK
-    registry_id = "sentry.integrations.slack.notify_action.SlackNotifyServiceAction"
 
     @property
     def required_fields(self) -> list[str]:
@@ -121,7 +119,6 @@ class SlackActionTranslator(BaseActionTranslator):
 )
 class DiscordActionTranslator(BaseActionTranslator):
     action_type = Action.Type.DISCORD
-    registry_id = "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction"
 
     @property
     def required_fields(self) -> list[str]:
@@ -149,7 +146,6 @@ class DiscordActionTranslator(BaseActionTranslator):
 )
 class MSTeamsActionTranslator(BaseActionTranslator):
     action_type = Action.Type.MSTEAMS
-    registry_id = "sentry.integrations.msteams.notify_action.MsTeamsNotifyServiceAction"
 
     @property
     def required_fields(self) -> list[str]:
