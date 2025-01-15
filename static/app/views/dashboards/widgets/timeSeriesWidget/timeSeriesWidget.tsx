@@ -27,7 +27,7 @@ export function TimeSeriesWidget(props: TimeSeriesWidgetProps) {
     return (
       <WidgetFrame title={props.title} description={props.description}>
         <LoadingPlaceholder>
-          <TransparentLoadingMask visible />
+          <LoadingMask visible />
           <LoadingIndicator mini />
         </LoadingPlaceholder>
       </WidgetFrame>
@@ -84,4 +84,8 @@ const LoadingPlaceholder = styled('div')`
   display: flex;
   justify-content: center;
   align-items: center;
+`;
+
+const LoadingMask = styled(TransparentLoadingMask)`
+  background: ${p => p.theme.background};
 `;
