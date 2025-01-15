@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, Any
 
 from sentry_sdk import set_tag, set_user
 
-from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.db.models.fields.node import NodeData
 from sentry.integrations.github.integration import GitHubIntegration
@@ -102,16 +101,7 @@ def derive_code_mappings(
     # When you look at the performance page the user is a default column
     set_user({"username": org.slug})
     set_tag("project.slug", project.slug)
-    extra: dict[str, Any] = {
-        "organization.slug": org.slug,
-    }
-
-    if not (
-        features.has("organizations:derive-code-mappings", org)
-        and data.get("platform") in SUPPORTED_LANGUAGES
-    ):
-        logger.info("Event should not be processed.", extra=extra)
-        return
+    extra: dict[str, Any] = {"organization.slug": org.slug}
 
     stacktrace_paths: list[str] = identify_stacktrace_paths(data)
     if not stacktrace_paths:

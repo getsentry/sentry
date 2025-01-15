@@ -573,6 +573,36 @@ describe('useWidgetBuilderState', () => {
 
       expect(result.current.state.selectedAggregate).toBeUndefined();
     });
+
+    it('resets thresholds when the display type is switched', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            dataset: WidgetType.ERRORS,
+            displayType: DisplayType.BIG_NUMBER,
+            thresholds: '{"max_values":{"max1":200,"max2":300},"unit":"milliseconds"}',
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.thresholds).toEqual({
+        max_values: {max1: 200, max2: 300},
+        unit: 'milliseconds',
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.TABLE,
+        });
+      });
+
+      expect(result.current.state.thresholds).toBeUndefined();
+    });
   });
 
   describe('dataset', () => {
@@ -814,6 +844,63 @@ describe('useWidgetBuilderState', () => {
       });
 
       expect(result.current.state.selectedAggregate).toBeUndefined();
+    });
+
+    it('resets the sort when the dataset is switched for big number widgets', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            dataset: WidgetType.ERRORS,
+            displayType: DisplayType.BIG_NUMBER,
+            sort: ['-testField'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.sort).toEqual([{field: 'testField', kind: 'desc'}]);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DATASET,
+          payload: WidgetType.TRANSACTIONS,
+        });
+      });
+
+      expect(result.current.state.sort).toEqual([]);
+    });
+
+    it('resets thresholds when the dataset is switched', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            dataset: WidgetType.ERRORS,
+            displayType: DisplayType.BIG_NUMBER,
+            thresholds: '{"max_values":{"max1":200,"max2":300},"unit":"milliseconds"}',
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.thresholds).toEqual({
+        max_values: {max1: 200, max2: 300},
+        unit: 'milliseconds',
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DATASET,
+          payload: WidgetType.TRANSACTIONS,
+        });
+      });
+
+      expect(result.current.state.thresholds).toBeUndefined();
     });
   });
 

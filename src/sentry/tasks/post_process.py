@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import uuid
 from collections.abc import MutableMapping, Sequence
-from datetime import datetime, timedelta
+from datetime import datetime
 from time import time
 from typing import TYPE_CHECKING, Any, TypedDict
 
@@ -1016,22 +1016,7 @@ def process_code_mappings(job: PostProcessJob) -> None:
         else:
             return
 
-        org = event.project.organization
-        org_slug = org.slug
-        next_time = timezone.now() + timedelta(hours=1)
-
-        if features.has("organizations:derive-code-mappings", org):
-            extra: dict[str, Any] = {
-                "organization.slug": org_slug,
-                "project.slug": project.slug,
-                "group_id": group_id,
-                "next_time": next_time,
-            }
-            logger.info(
-                "derive_code_mappings: Queuing code mapping derivation",
-                extra=extra,
-            )
-            derive_code_mappings.delay(project.id, event.data)
+        derive_code_mappings.delay(project.id, event.data)
 
     except Exception:
         logger.exception("derive_code_mappings: Failed to process code mappings")

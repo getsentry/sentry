@@ -281,14 +281,12 @@ export default typescript.config([
       ...eslint.configs.recommended.rules,
       'no-cond-assign': ['error', 'always'],
       'no-case-declarations': 'off', // TODO(ryan953): Fix violations and delete this line
-      'no-constant-binary-expression': 'off', // TODO(ryan953): Fix violations and delete this line
       'no-dupe-class-members': 'off', // TODO(ryan953): Fix violations and delete this line
       'no-import-assign': 'off', // TODO(ryan953): Fix violations and delete this line
       'no-prototype-builtins': 'off', // TODO(ryan953): Fix violations and delete this line
       'no-unsafe-optional-chaining': 'off', // TODO(ryan953): Fix violations and delete this line
       'no-useless-catch': 'off', // TODO(ryan953): Fix violations and delete this line
       'no-useless-escape': 'off', // TODO(ryan953): Fix violations and delete this line
-      'valid-typeof': 'off', // TODO(ryan953): Fix violations and delete this line
     },
   },
   {
@@ -684,7 +682,7 @@ export default typescript.config([
   },
   {
     name: 'files/sentry-stories',
-    files: ['**/*.stories.{tsx}'],
+    files: ['**/*.stories.tsx'],
     rules: {
       'no-loss-of-precision': 'off', // Sometimes we have wild numbers hard-coded in stories
     },
