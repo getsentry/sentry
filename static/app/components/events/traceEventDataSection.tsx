@@ -14,6 +14,7 @@ import type {PlatformKey, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
 import useApi from 'sentry/utils/useApi';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
@@ -32,12 +33,14 @@ export const displayOptions = {
 };
 
 type State = {
-  display: Array<keyof typeof displayOptions>;
   fullStackTrace: boolean;
   sortBy: keyof typeof sortByOptions;
 };
 
-type ChildProps = Omit<State, 'sortBy'> & {recentFirst: boolean};
+type ChildProps = Omit<State, 'sortBy'> & {
+  display: Array<keyof typeof displayOptions>;
+  recentFirst: boolean;
+};
 
 type Props = {
   children: (childProps: ChildProps) => React.ReactNode;
@@ -87,8 +90,12 @@ export function TraceEventDataSection({
   const [state, setState] = useState<State>({
     sortBy: recentFirst ? 'recent-first' : 'recent-last',
     fullStackTrace: !hasAppOnlyFrames ? true : fullStackTrace,
-    display: [],
   });
+
+  const [display, setDisplay] = useLocalStorageState<Array<keyof typeof displayOptions>>(
+    'issue-details-stracktrace-display',
+    []
+  );
 
   const isMobile = isMobilePlatform(platform);
 
@@ -144,7 +151,7 @@ export function TraceEventDataSection({
           is_mobile: isMobile,
           checked: true,
         });
-      } else if (state.display.includes('raw-stack-trace')) {
+      } else if (display.includes('raw-stack-trace')) {
         trackAnalytics('stack-trace.display_option_raw_stack_trace_clicked', {
           organization,
           project_slug: projectSlug,
@@ -162,7 +169,7 @@ export function TraceEventDataSection({
           is_mobile: isMobile,
           checked: true,
         });
-      } else if (state.display.includes('absolute-addresses')) {
+      } else if (display.includes('absolute-addresses')) {
         trackAnalytics('stack-trace.display_option_absolute_addresses_clicked', {
           organization,
           project_slug: projectSlug,
@@ -180,7 +187,7 @@ export function TraceEventDataSection({
           is_mobile: isMobile,
           checked: true,
         });
-      } else if (state.display.includes('absolute-file-paths')) {
+      } else if (display.includes('absolute-file-paths')) {
         trackAnalytics('stack-trace.display_option_absolute_file_paths_clicked', {
           organization,
           project_slug: projectSlug,
@@ -203,7 +210,7 @@ export function TraceEventDataSection({
             checked: true,
           }
         );
-      } else if (state.display.includes('minified')) {
+      } else if (display.includes('minified')) {
         trackAnalytics(
           platform.startsWith('javascript')
             ? 'stack-trace.display_option_minified_clicked'
@@ -226,7 +233,7 @@ export function TraceEventDataSection({
           is_mobile: isMobile,
           checked: true,
         });
-      } else if (state.display.includes('verbose-function-names')) {
+      } else if (display.includes('verbose-function-names')) {
         trackAnalytics('stack-trace.display_option_verbose_function_names_clicked', {
           organization,
           project_slug: projectSlug,
@@ -236,9 +243,9 @@ export function TraceEventDataSection({
         });
       }
 
-      setState(currentState => ({...currentState, display: vals}));
+      setDisplay(vals);
     },
-    [organization, platform, projectSlug, isMobile, state]
+    [organization, platform, projectSlug, isMobile, display, setDisplay]
   );
 
   function getDisplayOptions(): {
@@ -257,8 +264,8 @@ export function TraceEventDataSection({
         {
           label: displayOptions['absolute-addresses'],
           value: 'absolute-addresses',
-          disabled: state.display.includes('raw-stack-trace') || !hasAbsoluteAddresses,
-          tooltip: state.display.includes('raw-stack-trace')
+          disabled: display.includes('raw-stack-trace') || !hasAbsoluteAddresses,
+          tooltip: display.includes('raw-stack-trace')
             ? t('Not available on raw stack trace')
             : !hasAbsoluteAddresses
               ? t('Absolute addresses not available')
@@ -267,8 +274,8 @@ export function TraceEventDataSection({
         {
           label: displayOptions['absolute-file-paths'],
           value: 'absolute-file-paths',
-          disabled: state.display.includes('raw-stack-trace') || !hasAbsoluteFilePaths,
-          tooltip: state.display.includes('raw-stack-trace')
+          disabled: display.includes('raw-stack-trace') || !hasAbsoluteFilePaths,
+          tooltip: display.includes('raw-stack-trace')
             ? t('Not available on raw stack trace')
             : !hasAbsoluteFilePaths
               ? t('Absolute file paths not available')
@@ -287,8 +294,8 @@ export function TraceEventDataSection({
         {
           label: displayOptions['verbose-function-names'],
           value: 'verbose-function-names',
-          disabled: state.display.includes('raw-stack-trace') || !hasVerboseFunctionNames,
-          tooltip: state.display.includes('raw-stack-trace')
+          disabled: display.includes('raw-stack-trace') || !hasVerboseFunctionNames,
+          tooltip: display.includes('raw-stack-trace')
             ? t('Not available on raw stack trace')
             : !hasVerboseFunctionNames
               ? t('Verbose function names not available')
@@ -337,7 +344,7 @@ export function TraceEventDataSection({
   }
 
   const nativePlatform = isNativePlatform(platform);
-  const minified = state.display.includes('minified');
+  const minified = display.includes('minified');
 
   // Apple crash report endpoint
   const appleCrashEndpoint = `/projects/${organization.slug}/${projectSlug}/events/${eventId}/apple-crash-report?minified=${minified}`;
@@ -345,13 +352,13 @@ export function TraceEventDataSection({
 
   const sortByTooltip = !hasNewestFirst
     ? t('Not available on stack trace with single frame')
-    : state.display.includes('raw-stack-trace')
+    : display.includes('raw-stack-trace')
       ? t('Not available on raw stack trace')
       : undefined;
 
   const childProps = {
     recentFirst: state.sortBy === 'recent-first',
-    display: state.display,
+    display,
     fullStackTrace: state.fullStackTrace,
   };
 
@@ -365,7 +372,7 @@ export function TraceEventDataSection({
       actions={
         !stackTraceNotFound && (
           <ButtonBar gap={1}>
-            {!state.display.includes('raw-stack-trace') && (
+            {!display.includes('raw-stack-trace') && (
               <Tooltip
                 title={t('Only full version available')}
                 disabled={hasAppOnlyFrames}
@@ -385,7 +392,7 @@ export function TraceEventDataSection({
                 </SegmentedControl>
               </Tooltip>
             )}
-            {state.display.includes('raw-stack-trace') && nativePlatform && (
+            {display.includes('raw-stack-trace') && nativePlatform && (
               <LinkButton
                 size="xs"
                 href={rawStackTraceDownloadLink}
@@ -429,7 +436,7 @@ export function TraceEventDataSection({
               multiple
               triggerLabel=""
               position="bottom-end"
-              value={state.display}
+              value={display}
               onChange={opts => handleDisplayChange(opts.map(opt => opt.value))}
               options={[{label: t('Display'), options: getDisplayOptions()}]}
             />
