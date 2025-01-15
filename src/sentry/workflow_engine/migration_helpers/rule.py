@@ -169,7 +169,7 @@ def update_migrated_issue_alert(
     delete_workflow_actions(if_dcg=if_dcg, actions=data["actions"], user=user)
     create_workflow_actions(if_dcg=if_dcg, actions=data["actions"])  # action(s) must exist
 
-    updated_data = {
+    updated_data: dict[str, Any] = {
         "name": data["name"],
         "environment_id": data["environment"],
         "enabled": True,
