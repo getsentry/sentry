@@ -1,12 +1,14 @@
-import {type CSSProperties, Fragment, useEffect, useState} from 'react';
+import {type CSSProperties, Fragment, useCallback, useEffect, useState} from 'react';
 import {closestCorners, DndContext, useDraggable, useDroppable} from '@dnd-kit/core';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
+import cloneDeep from 'lodash/cloneDeep';
 
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
+import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
@@ -45,6 +47,11 @@ import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboar
 import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
+export interface ThresholdMetaState {
+  dataType?: string;
+  dataUnit?: string;
+}
+
 type WidgetBuilderV2Props = {
   dashboard: DashboardDetails;
   dashboardFilters: DashboardFilters;
@@ -71,6 +78,7 @@ function WidgetBuilderV2({
   const [queryConditionsValid, setQueryConditionsValid] = useState<boolean>(true);
   const theme = useTheme();
   const [isPreviewDraggable, setIsPreviewDraggable] = useState(false);
+  const [thresholdMetaState, setThresholdMetaState] = useState<ThresholdMetaState>({});
 
   const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.small})`);
 
@@ -102,6 +110,22 @@ function WidgetBuilderV2({
     }));
   };
 
+  const handleWidgetDataFetched = useCallback(
+    (tableData: TableDataWithTitle[]) => {
+      const tableMeta = {...tableData[0]!.meta};
+      const keys = Object.keys(tableMeta);
+      const field = keys[0]!;
+      const dataType = tableMeta[field];
+      const dataUnit = tableMeta.units?.[field];
+
+      const newState = cloneDeep(thresholdMetaState);
+      newState.dataType = dataType;
+      newState.dataUnit = dataUnit;
+      setThresholdMetaState(newState);
+    },
+    [thresholdMetaState]
+  );
+
   return (
     <Fragment>
       {isOpen && <Backdrop style={{opacity: 0.5, pointerEvents: 'auto'}} />}
@@ -129,6 +153,8 @@ function WidgetBuilderV2({
                       isWidgetInvalid={!queryConditionsValid}
                       openWidgetTemplates={openWidgetTemplates}
                       setOpenWidgetTemplates={setOpenWidgetTemplates}
+                      onDataFetched={handleWidgetDataFetched}
+                      thresholdMetaState={thresholdMetaState}
                     />
                     {(!isSmallScreen || isPreviewDraggable) && (
                       <DndContext
@@ -142,6 +168,7 @@ function WidgetBuilderV2({
                           dragPosition={translate}
                           isDraggable={isPreviewDraggable}
                           isWidgetInvalid={!queryConditionsValid}
+                          onDataFetched={handleWidgetDataFetched}
                         />
                       </DndContext>
                     )}
@@ -164,12 +191,14 @@ export function WidgetPreviewContainer({
   isWidgetInvalid,
   dragPosition,
   isDraggable,
+  onDataFetched,
 }: {
   dashboard: DashboardDetails;
   dashboardFilters: DashboardFilters;
   isWidgetInvalid: boolean;
   dragPosition?: WidgetDragPositioning;
   isDraggable?: boolean;
+  onDataFetched?: (tableData: TableDataWithTitle[]) => void;
 }) {
   const {state} = useWidgetBuilderContext();
   const organization = useOrganization();
@@ -266,6 +295,7 @@ export function WidgetPreviewContainer({
                     dashboardFilters={dashboardFilters}
                     dashboard={dashboard}
                     isWidgetInvalid={isWidgetInvalid}
+                    onDataFetched={onDataFetched}
                   />
                 </SampleWidgetCard>
               </DraggableWidgetContainer>

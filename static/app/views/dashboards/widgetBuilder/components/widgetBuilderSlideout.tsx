@@ -9,6 +9,7 @@ import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -23,11 +24,15 @@ import WidgetBuilderDatasetSelector from 'sentry/views/dashboards/widgetBuilder/
 import WidgetBuilderFilterBar from 'sentry/views/dashboards/widgetBuilder/components/filtersBar';
 import WidgetBuilderGroupBySelector from 'sentry/views/dashboards/widgetBuilder/components/groupBySelector';
 import WidgetBuilderNameAndDescription from 'sentry/views/dashboards/widgetBuilder/components/nameAndDescFields';
-import {WidgetPreviewContainer} from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilder';
+import {
+  type ThresholdMetaState,
+  WidgetPreviewContainer,
+} from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilder';
 import WidgetBuilderQueryFilterBuilder from 'sentry/views/dashboards/widgetBuilder/components/queryFilterBuilder';
 import RPCToggle from 'sentry/views/dashboards/widgetBuilder/components/rpcToggle';
 import SaveButton from 'sentry/views/dashboards/widgetBuilder/components/saveButton';
 import WidgetBuilderSortBySelector from 'sentry/views/dashboards/widgetBuilder/components/sortBySelector';
+import ThresholdsSection from 'sentry/views/dashboards/widgetBuilder/components/thresholds';
 import WidgetBuilderTypeSelector from 'sentry/views/dashboards/widgetBuilder/components/typeSelector';
 import Visualize from 'sentry/views/dashboards/widgetBuilder/components/visualize';
 import WidgetTemplatesList from 'sentry/views/dashboards/widgetBuilder/components/widgetTemplatesList';
@@ -44,6 +49,8 @@ type WidgetBuilderSlideoutProps = {
   openWidgetTemplates: boolean;
   setIsPreviewDraggable: (draggable: boolean) => void;
   setOpenWidgetTemplates: (openWidgetTemplates: boolean) => void;
+  onDataFetched?: (tableData: TableDataWithTitle[]) => void;
+  thresholdMetaState?: ThresholdMetaState;
 };
 
 function WidgetBuilderSlideout({
@@ -57,6 +64,8 @@ function WidgetBuilderSlideout({
   isWidgetInvalid,
   openWidgetTemplates,
   setOpenWidgetTemplates,
+  onDataFetched,
+  thresholdMetaState,
 }: WidgetBuilderSlideoutProps) {
   const organization = useOrganization();
   const {state} = useWidgetBuilderContext();
@@ -149,6 +158,7 @@ function WidgetBuilderSlideout({
                     dashboard={dashboard}
                     dashboardFilters={dashboardFilters}
                     isWidgetInvalid={isWidgetInvalid}
+                    onDataFetched={onDataFetched}
                   />
                 </Section>
               )}
@@ -161,6 +171,14 @@ function WidgetBuilderSlideout({
                 onQueryConditionChange={onQueryConditionChange}
               />
             </Section>
+            {state.displayType === DisplayType.BIG_NUMBER && (
+              <Section>
+                <ThresholdsSection
+                  dataType={thresholdMetaState?.dataType}
+                  dataUnit={thresholdMetaState?.dataUnit}
+                />
+              </Section>
+            )}
             {isChartWidget && (
               <Section>
                 <WidgetBuilderGroupBySelector />
@@ -185,6 +203,7 @@ function WidgetBuilderSlideout({
                     dashboard={dashboard}
                     dashboardFilters={dashboardFilters}
                     isWidgetInvalid={isWidgetInvalid}
+                    onDataFetched={onDataFetched}
                   />
                 </Section>
               )}
