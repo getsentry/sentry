@@ -682,7 +682,7 @@ export default typescript.config([
   },
   {
     name: 'files/sentry-stories',
-    files: ['**/*.stories.{tsx}'],
+    files: ['**/*.stories.tsx'],
     rules: {
       'no-loss-of-precision': 'off', // Sometimes we have wild numbers hard-coded in stories
     },
