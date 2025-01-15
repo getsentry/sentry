@@ -165,10 +165,9 @@ def create_tagged_event_data_condition(
 def create_age_comparison_data_condition(
     data: dict[str, Any], dcg: DataConditionGroup
 ) -> DataCondition:
-    # TODO: Add comparison validation (error if not enough information)
     comparison = {
         "comparison_type": data["comparison_type"],
-        "value": data["value"],
+        "value": int(data["value"]),
         "time": data["time"],
     }
 

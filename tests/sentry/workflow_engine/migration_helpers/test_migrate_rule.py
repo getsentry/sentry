@@ -84,7 +84,7 @@ class RuleMigrationHelpersTest(APITestCase):
             type=Condition.AGE_COMPARISON,
             comparison={
                 "comparison_type": AgeComparisonType.OLDER,
-                "value": "10",
+                "value": 10,
                 "time": "hour",
             },
             condition_result=True,
