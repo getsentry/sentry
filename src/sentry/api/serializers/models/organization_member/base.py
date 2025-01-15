@@ -107,16 +107,23 @@ class OrganizationMemberSerializer(Serializer):
             # For invited members, use the invitation email
             email = obj.email
 
+        # helping mypy - we know email will never be None based on the model
+        assert email is not None
+        email = str(email)
+
         inviter_name = None
         if obj.inviter_id:
             inviter = attrs["inviter"]
             if inviter:
                 inviter_name = inviter.get_display_name()
 
+        # helping mypy - we know name will be a string since we fall back to email
+        name = str(serialized_user["name"] if serialized_user else email)
+
         data: OrganizationMemberResponse = {
             "id": str(obj.id),
             "email": email,
-            "name": serialized_user["name"] if serialized_user else email,
+            "name": name,
             "user": attrs["user"],
             "orgRole": obj.role,
             "pending": obj.is_pending,
