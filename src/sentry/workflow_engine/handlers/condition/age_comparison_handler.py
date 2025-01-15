@@ -6,11 +6,13 @@ from sentry.rules.age import AgeComparisonType, age_comparison_map
 from sentry.rules.filters.age_comparison import timeranges
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
-from sentry.workflow_engine.types import DataConditionHandler, WorkflowJob
+from sentry.workflow_engine.types import DataConditionHandler, DataConditionHandlerType, WorkflowJob
 
 
 @condition_handler_registry.register(Condition.AGE_COMPARISON)
 class AgeComparisonConditionHandler(DataConditionHandler[WorkflowJob]):
+    type = DataConditionHandlerType.ACTION_FILTER
+
     comparison_json_schema = {
         "type": "object",
         "properties": {
