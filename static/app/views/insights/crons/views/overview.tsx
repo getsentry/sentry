@@ -6,7 +6,6 @@ import {openBulkEditMonitorsModal} from 'sentry/actionCreators/modal';
 import {deleteProjectProcessingErrorByType} from 'sentry/actionCreators/monitors';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -121,7 +120,6 @@ function CronsOverview() {
         module={ModuleName.CRONS}
         headerActions={
           <ButtonBar gap={1}>
-            <FeedbackWidgetButton />
             <Button
               icon={<IconList />}
               size="sm"
