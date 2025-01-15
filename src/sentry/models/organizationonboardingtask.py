@@ -20,6 +20,8 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.db.models.manager.base import BaseManager
 
 
+# NOTE: There are gaps in the numberation because a
+# few tasks were removed as they are no longer used in the quick start sidebar
 class OnboardingTask:
     FIRST_PROJECT = 1
     FIRST_EVENT = 2
@@ -33,7 +35,6 @@ class OnboardingTask:
     ALERT_RULE = 10
     FIRST_TRANSACTION = 11
     METRIC_ALERT = 12
-    INTEGRATIONS = 13
     SESSION_REPLAY = 14
     REAL_TIME_NOTIFICATIONS = 15
     LINK_SENTRY_TO_SOURCE_CODE = 16
@@ -135,7 +136,6 @@ class OrganizationOnboardingTask(AbstractOnboardingTask):
         (OnboardingTask.ALERT_RULE, "setup_alert_rules"),
         (OnboardingTask.FIRST_TRANSACTION, "setup_transactions"),
         (OnboardingTask.METRIC_ALERT, "setup_metric_alert_rules"),
-        (OnboardingTask.INTEGRATIONS, "setup_integrations"),
         (OnboardingTask.SESSION_REPLAY, "setup_session_replay"),
         (OnboardingTask.REAL_TIME_NOTIFICATIONS, "setup_real_time_notifications"),
         (OnboardingTask.LINK_SENTRY_TO_SOURCE_CODE, "link_sentry_to_source_code"),
