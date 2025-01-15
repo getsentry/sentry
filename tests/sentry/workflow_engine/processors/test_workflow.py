@@ -97,16 +97,20 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
         self.job = WorkflowJob({"event": self.group_event})
 
     def test_workflow_trigger(self):
-        triggered_workflows = evaluate_workflow_triggers({self.workflow}, self.job)
+        triggered_workflows, workflows_to_enqueue = evaluate_workflow_triggers(
+            {self.workflow}, self.job
+        )
         assert triggered_workflows == {self.workflow}
+        assert not workflows_to_enqueue
 
     def test_no_workflow_trigger(self):
-        triggered_workflows = evaluate_workflow_triggers(set(), self.job)
+        triggered_workflows, workflows_to_enqueue = evaluate_workflow_triggers(set(), self.job)
         assert not triggered_workflows
+        assert not workflows_to_enqueue
 
     def test_workflow_many_filters(self):
-        if self.workflow.when_condition_group is not None:
-            self.workflow.when_condition_group.logic_type = DataConditionGroup.Type.ALL
+        assert self.workflow.when_condition_group
+        self.workflow.when_condition_group.update(logic_type=DataConditionGroup.Type.ALL)
 
         self.create_data_condition(
             condition_group=self.workflow.when_condition_group,
@@ -115,12 +119,15 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
             condition_result=75,
         )
 
-        triggered_workflows = evaluate_workflow_triggers({self.workflow}, self.job)
+        triggered_workflows, workflows_to_enqueue = evaluate_workflow_triggers(
+            {self.workflow}, self.job
+        )
         assert triggered_workflows == {self.workflow}
+        assert not workflows_to_enqueue
 
-    def test_workflow_filterd_out(self):
-        if self.workflow.when_condition_group is not None:
-            self.workflow.when_condition_group.logic_type = DataConditionGroup.Type.ALL
+    def test_workflow_filtered_out(self):
+        assert self.workflow.when_condition_group
+        self.workflow.when_condition_group.update(logic_type=DataConditionGroup.Type.ALL)
 
         self.create_data_condition(
             condition_group=self.workflow.when_condition_group,
@@ -128,29 +135,91 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
             comparison=self.detector.id + 1,
         )
 
-        triggered_workflows = evaluate_workflow_triggers({self.workflow}, self.job)
+        triggered_workflows, workflows_to_enqueue = evaluate_workflow_triggers(
+            {self.workflow}, self.job
+        )
         assert not triggered_workflows
+        assert not workflows_to_enqueue
 
     def test_many_workflows(self):
         workflow_two, _, _, _ = self.create_detector_and_workflow(name_prefix="two")
-        triggered_workflows = evaluate_workflow_triggers({self.workflow, workflow_two}, self.job)
+        triggered_workflows, workflows_to_enqueue = evaluate_workflow_triggers(
+            {self.workflow, workflow_two}, self.job
+        )
 
         assert triggered_workflows == {self.workflow, workflow_two}
+        assert not workflows_to_enqueue
 
-    def test_enqueues_workflow_with_slow_conditions(self):
-        self.workflow.when_condition_group.update(logic_type=DataConditionGroup.Type.ALL)
+    def test_skips_slow_conditions(self):
+        # triggers workflow if the logic_type is ANY and a condition is met
         self.create_data_condition(
             condition_group=self.workflow.when_condition_group,
             type=Condition.EVENT_FREQUENCY_COUNT,
             comparison={
                 "interval": "1h",
                 "value": 100,
-                "comparison_interval": "1d",
             },
             condition_result=True,
         )
 
-        triggered_workflows = evaluate_workflow_triggers({self.workflow}, self.job)
-        assert triggered_workflows == {}
+        triggered_workflows, workflows_to_enqueue = evaluate_workflow_triggers(
+            {self.workflow}, self.job
+        )
+        assert triggered_workflows == {self.workflow}
+        assert not workflows_to_enqueue
+
+
+class TestEnqueueWorkflow(BaseWorkflowTest):
+    def setUp(self):
+        (
+            self.workflow,
+            self.detector,
+            self.detector_workflow,
+            self.workflow_triggers,
+        ) = self.create_detector_and_workflow()
+
+        occurrence = self.build_occurrence(evidence_data={"detector_id": self.detector.id})
+        self.group, self.event, self.group_event = self.create_group_event(
+            occurrence=occurrence,
+        )
+        self.job = WorkflowJob({"event": self.group_event})
+        self.create_data_condition(
+            condition_group=self.workflow.when_condition_group,
+            type=Condition.EVENT_FREQUENCY_COUNT,
+            comparison={
+                "interval": "1h",
+                "value": 100,
+            },
+            condition_result=True,
+        )
+
+    def test_enqueues_workflow_all_logic_type(self):
+        assert self.workflow.when_condition_group
+        self.workflow.when_condition_group.update(logic_type=DataConditionGroup.Type.ALL)
+
+        triggered_workflows, workflows_to_enqueue = evaluate_workflow_triggers(
+            {self.workflow}, self.job
+        )
+        assert not triggered_workflows
+        assert workflows_to_enqueue == {self.workflow}
+
+        # TODO: test buffer enqueue
+
+    def test_enqueues_workflow_any_logic_type(self):
+        assert self.workflow.when_condition_group
+        self.workflow.when_condition_group.conditions.all().delete()
+
+        self.create_data_condition(
+            condition_group=self.workflow.when_condition_group,
+            type=Condition.REGRESSION_EVENT,  # fast condition, does not pass
+            comparison=True,
+            condition_result=True,
+        )
+
+        triggered_workflows, workflows_to_enqueue = evaluate_workflow_triggers(
+            {self.workflow}, self.job
+        )
+        assert not triggered_workflows
+        assert workflows_to_enqueue == {self.workflow}
 
         # TODO: test buffer enqueue

@@ -84,7 +84,7 @@ def get_slow_conditions(workflow: Workflow) -> list[DataCondition]:
     slow_conditions = [
         condition
         for condition in workflow.when_condition_group.conditions.all()
-        if is_slow_condition(condition)
+        if workflow.when_condition_group and is_slow_condition(condition)
     ]
     return slow_conditions
 

@@ -1,15 +1,16 @@
 import logging
 import random
+from collections import defaultdict
 
 import sentry_sdk
 
 from sentry import buffer
-from sentry.eventstore.models import GroupEvent
 from sentry.models.project import Project
 from sentry.utils import json, metrics
-from sentry.workflow_engine.models import DataCondition, Detector, Workflow
+from sentry.workflow_engine.models import Detector, Workflow, WorkflowDataConditionGroup
 from sentry.workflow_engine.models.workflow import get_slow_conditions
 from sentry.workflow_engine.processors.action import evaluate_workflow_action_filters
+from sentry.workflow_engine.processors.data_condition_group import evaluate_condition_group
 from sentry.workflow_engine.processors.detector import get_detector_by_event
 from sentry.workflow_engine.types import WorkflowJob
 
@@ -18,44 +19,72 @@ logger = logging.getLogger(__name__)
 WORKFLOW_ENGINE_PROJECT_ID_BUFFER_LIST_KEY = "workflow_engine_project_id_buffer_list"
 
 
-def enqueue_workflow(
-    workflow: Workflow, event: GroupEvent, slow_conditions: list[DataCondition]
+def get_data_condition_groups_to_fire(workflows: set[Workflow], job) -> dict[int, list[int]]:
+    workflow_action_groups: dict[int, list[int]] = defaultdict(list)
+
+    workflow_ids = {workflow.id for workflow in workflows}
+
+    workflow_dcgs = WorkflowDataConditionGroup.objects.filter(
+        workflow_id__in=workflow_ids
+    ).select_related("condition_group", "workflow")
+
+    for workflow_dcg in workflow_dcgs:
+        action_condition = workflow_dcg.condition_group
+        evaluation, result = evaluate_condition_group(action_condition, job)
+
+        if evaluation:
+            workflow_action_groups[workflow_dcg.workflow_id].add(action_condition.id)
+
+    return workflow_action_groups
+
+
+def enqueue_workflows(
+    workflows: set[Workflow],
+    job: WorkflowJob,
 ) -> None:
+    event = job["event"]
     project_id = event.group.project.id
-    if random.random() < 0.01:
-        logger.info(
-            "process_workflows.workflow_enqueued",
-            extra={"workflow": workflow.id, "group": event.group.id, "project": project_id},
+    workflow_action_groups = get_data_condition_groups_to_fire(workflows, job)
+
+    for workflow in workflows:
+        if random.random() < 0.01:
+            logger.info(
+                "process_workflows.workflow_enqueued",
+                extra={"workflow": workflow.id, "group": event.group.id, "project": project_id},
+            )
+        buffer.backend.push_to_sorted_set(WORKFLOW_ENGINE_PROJECT_ID_BUFFER_LIST_KEY, project_id)
+
+        if_dcgs = workflow_action_groups.get(workflow.id, [])
+        if not if_dcgs:
+            continue
+
+        if_dcg_fields = ":".join(map(str, if_dcgs))
+
+        value = json.dumps({"event_id": event.event_id, "occurrence_id": event.occurrence_id})
+        buffer.backend.push_to_hash(
+            model=Project,
+            filters={"project": project_id},
+            field=f"{workflow.id}:{event.group.id}:{if_dcg_fields}",
+            value=value,
         )
-    buffer.backend.push_to_sorted_set(
-        WORKFLOW_ENGINE_PROJECT_ID_BUFFER_LIST_KEY, workflow.organization
-    )
-
-    slow_condition_ids = [condition.id for condition in slow_conditions]
-    slow_condition_fields = ":".join(map(str, slow_condition_ids))
-
-    value = json.dumps({"event_id": event.event_id, "occurrence_id": event.occurrence_id})
-    buffer.backend.push_to_hash(
-        model=Project,
-        filters={"project": project_id},
-        field=f"{workflow.id}:{event.group.id}:{slow_condition_fields}",
-        value=value,
-    )
-    metrics.incr("delayed_workflow.group_added")
+        metrics.incr("delayed_workflow.group_added")
 
 
-def evaluate_workflow_triggers(workflows: set[Workflow], job: WorkflowJob) -> set[Workflow]:
+def evaluate_workflow_triggers(
+    workflows: set[Workflow], job: WorkflowJob
+) -> tuple[set[Workflow], set[Workflow]]:
     triggered_workflows: set[Workflow] = set()
+    workflows_to_enqueue: set[Workflow] = set()
 
     for workflow in workflows:
         if workflow.evaluate_trigger_conditions(job):
             triggered_workflows.add(workflow)
         else:
-            if slow_conditions := get_slow_conditions(workflow):
+            if get_slow_conditions(workflow):
                 # enqueue to be evaluated later
-                enqueue_workflow(workflow, job["event"], slow_conditions)
+                workflows_to_enqueue.add(workflow)
 
-    return triggered_workflows
+    return triggered_workflows, workflows_to_enqueue
 
 
 def process_workflows(job: WorkflowJob) -> set[Workflow]:
@@ -76,7 +105,8 @@ def process_workflows(job: WorkflowJob) -> set[Workflow]:
 
     # Get the workflows, evaluate the when_condition_group, finally evaluate the actions for workflows that are triggered
     workflows = set(Workflow.objects.filter(detectorworkflow__detector_id=detector.id).distinct())
-    triggered_workflows = evaluate_workflow_triggers(workflows, job)
+    triggered_workflows, workflows_to_enqueue = evaluate_workflow_triggers(workflows, job)
+
     actions = evaluate_workflow_action_filters(triggered_workflows, job)
 
     with sentry_sdk.start_span(op="workflow_engine.process_workflows.trigger_actions"):
