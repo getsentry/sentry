@@ -132,8 +132,7 @@ function Headers({
 export default Headers;
 
 const GraphHeaderWrapper = styled('div')<{isSavedSearchesOpen?: boolean}>`
-  width: 200px;
-  margin-right: ${space(2)};
+  width: 180px;
 
   @media (max-width: ${p =>
       p.isSavedSearchesOpen ? p.theme.breakpoints.xlarge : p.theme.breakpoints.large}) {
