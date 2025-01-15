@@ -104,7 +104,18 @@ export enum IssueType {
   REPLAY_HYDRATION_ERROR = 'replay_hydration_error',
 }
 
+// Update this if adding an issue type that you don't want to show up in search!
+export const VISIBLE_ISSUE_TYPES = Object.values(IssueType).filter(
+  type =>
+    ![
+      IssueType.PROFILE_FRAME_DROP_EXPERIMENTAL,
+      IssueType.PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL,
+    ].includes(type)
+);
+
 export enum IssueTitle {
+  ERROR = 'Error',
+
   // Performance
   PERFORMANCE_CONSECUTIVE_DB_QUERIES = 'Consecutive DB Queries',
   PERFORMANCE_CONSECUTIVE_HTTP = 'Consecutive HTTP',
@@ -136,6 +147,8 @@ export enum IssueTitle {
 }
 
 const ISSUE_TYPE_TO_ISSUE_TITLE = {
+  error: IssueTitle.ERROR,
+
   performance_consecutive_db_queries: IssueTitle.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
   performance_consecutive_http: IssueTitle.PERFORMANCE_CONSECUTIVE_HTTP,
   performance_file_io_main_thread: IssueTitle.PERFORMANCE_FILE_IO_MAIN_THREAD,
