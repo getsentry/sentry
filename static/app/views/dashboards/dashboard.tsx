@@ -96,6 +96,10 @@ type Props = {
   isPreview?: boolean;
   newWidget?: Widget;
   onAddWidget?: (dataset?: DataSet) => void;
+  onAddWidgetFromNewWidgetBuilder?: (
+    dataset: DataSet,
+    openWidgetTemplates?: boolean
+  ) => void;
   onEditWidget?: (widget: Widget) => void;
   onSetNewWidget?: () => void;
   paramDashboardId?: string;
@@ -563,8 +567,14 @@ class Dashboard extends Component<Props, State> {
 
   render() {
     const {layouts, isMobile} = this.state;
-    const {isEditingDashboard, dashboard, widgetLimitReached, organization, isPreview} =
-      this.props;
+    const {
+      isEditingDashboard,
+      dashboard,
+      widgetLimitReached,
+      organization,
+      isPreview,
+      onAddWidgetFromNewWidgetBuilder,
+    } = this.props;
     const {widgets} = dashboard;
 
     const columnDepths = calculateColumnDepths(layouts[DESKTOP]!);
@@ -611,7 +621,10 @@ class Dashboard extends Component<Props, State> {
               key={ADD_WIDGET_BUTTON_DRAG_ID}
               data-grid={this.addWidgetLayout}
             >
-              <AddWidget onAddWidget={this.handleStartAdd} />
+              <AddWidget
+                onAddWidget={this.handleStartAdd}
+                onAddWidgetFromNewWidgetBuilder={onAddWidgetFromNewWidgetBuilder}
+              />
             </AddWidgetWrapper>
           )}
       </GridLayout>
