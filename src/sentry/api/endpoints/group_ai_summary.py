@@ -7,7 +7,7 @@ from typing import Any
 import orjson
 import requests
 from django.conf import settings
-from django.contrib.auth.models import AbstractBaseUser, AnonymousUser
+from django.contrib.auth.models import AnonymousUser
 from pydantic import BaseModel
 from rest_framework.response import Response
 
@@ -24,6 +24,8 @@ from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.seer.signed_seer_api import get_seer_salted_url, sign_with_seer_secret
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 from sentry.utils.cache import cache
 
 logger = logging.getLogger(__name__)
@@ -59,7 +61,7 @@ class GroupAiSummaryEndpoint(GroupEndpoint):
     def _get_event(
         self,
         group: Group,
-        user: AbstractBaseUser | AnonymousUser,
+        user: User | RpcUser | AnonymousUser,
         provided_event_id: str | None = None,
     ) -> tuple[dict[str, Any] | None, GroupEvent | None]:
         event = None
