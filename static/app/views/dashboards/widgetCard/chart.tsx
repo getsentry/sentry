@@ -475,7 +475,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
     return (
       <ChartZoom period={period} start={start} end={end} utc={utc}>
         {zoomRenderProps => {
-          return widgetLegendState.widgetRequiresLegendUnselection(widget) ? (
+          return (
             <ReleaseSeries
               end={end}
               start={start}
@@ -483,6 +483,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
               environments={environments}
               projects={projects}
               memoized
+              enabled={widgetLegendState.widgetRequiresLegendUnselection(widget)}
             >
               {({releaseSeries}) => {
                 // make series name into seriesName:widgetId form for individual widget legend control
@@ -527,33 +528,6 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
                 );
               }}
             </ReleaseSeries>
-          ) : (
-            <TransitionChart loading={loading} reloading={loading}>
-              <LoadingScreen loading={loading} />
-              <ChartWrapper autoHeightResize={shouldResize ?? true} noPadding={noPadding}>
-                <RenderedChartContainer>
-                  {getDynamicText({
-                    value: this.chartComponent({
-                      ...zoomRenderProps,
-                      ...chartOptions,
-                      // Override default datazoom behaviour for updating Global Selection Header
-                      ...(onZoom ? {onDataZoom: onZoom} : {}),
-                      legend,
-                      series,
-                      onLegendSelectChanged,
-                      forwardedRef,
-                    }),
-                    fixed: <Placeholder height="200px" testId="skeleton-ui" />,
-                  })}
-                </RenderedChartContainer>
-                {showConfidenceWarning && confidence && (
-                  <ConfidenceWarning
-                    query={widget.queries[0]?.conditions ?? ''}
-                    confidence={confidence}
-                  />
-                )}
-              </ChartWrapper>
-            </TransitionChart>
           );
         }}
       </ChartZoom>
