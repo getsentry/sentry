@@ -557,7 +557,7 @@ function TaskGroup({
   );
 }
 
-interface NewSidebarProps
+interface SidebarProps
   extends Pick<CommonSidebarProps, 'orientation' | 'collapsed'>,
     Pick<
       ReturnType<typeof useOnboardingTasks>,
@@ -566,13 +566,13 @@ interface NewSidebarProps
   onClose: () => void;
 }
 
-export function NewOnboardingSidebar({
+export function OnboardingSidebar({
   onClose,
   orientation,
   collapsed,
   gettingStartedTasks,
   beyondBasicsTasks,
-}: NewSidebarProps) {
+}: SidebarProps) {
   const walkthrough = isDemoModeEnabled();
 
   const sortedGettingStartedTasks = gettingStartedTasks.sort(
