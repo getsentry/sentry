@@ -10,7 +10,4 @@ class IssuePriorityCondition(DataConditionHandler[WorkflowJob]):
     @staticmethod
     def evaluate_value(job: WorkflowJob, comparison: Any) -> bool:
         group = job["event"].group
-        if not group:
-            return False
-
         return group.priority == comparison
