@@ -167,6 +167,7 @@ def rpc(
             project_ids=[project.id for project in projects],
             start_timestamp=start_time_proto,
             end_timestamp=end_time_proto,
+            trace_item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
         ),
         aggregate=AggregateBucketRequest.FUNCTION_SUM,
         filter=TraceItemFilter(
