@@ -16,7 +16,10 @@ export function ReplayTextDiff() {
 
   const {data, isLoading} = useExtractPageHtml({
     replay,
-    offsetMsToStopAt: [leftOffsetMs, rightOffsetMs],
+    // Add 1 to each offset so we read the HTML just after the specified time
+    // and can therefore see the results of the mutations that happened at the
+    // requested times, instead of landing on those times directly.
+    offsetMsToStopAt: [leftOffsetMs + 1, rightOffsetMs + 1],
   });
 
   const [leftBody, rightBody] = useMemo(
