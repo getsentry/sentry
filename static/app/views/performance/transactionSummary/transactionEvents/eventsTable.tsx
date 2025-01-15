@@ -96,6 +96,7 @@ type Props = {
   customColumns?: ('attachments' | 'minidump')[];
   domainViewFilters?: DomainViewFilters;
   excludedTags?: string[];
+  hasStreamlinedUI?: boolean;
   hidePagination?: boolean;
   isEventLoading?: boolean;
   isRegressionIssue?: boolean;
@@ -130,7 +131,8 @@ class EventsTable extends Component<Props, State> {
 
   handleCellAction = (column: TableColumn<keyof TableDataRow>) => {
     return (action: Actions, value: React.ReactText) => {
-      const {eventView, location, organization, excludedTags} = this.props;
+      const {eventView, location, organization, excludedTags, hasStreamlinedUI} =
+        this.props;
 
       trackAnalytics('performance_views.transactionEvents.cellaction', {
         organization,
@@ -146,6 +148,31 @@ class EventsTable extends Component<Props, State> {
       }
 
       updateQuery(searchConditions, action, column, value);
+
+      if (hasStreamlinedUI && column.key === 'environment') {
+        const currentEnvs = Array.isArray(location.query.environment)
+          ? location.query.environment
+          : location.query.environment
+            ? [location.query.environment]
+            : [];
+
+        let newEnvs = currentEnvs;
+        if (action === Actions.ADD) {
+          newEnvs.includes(String(value)) ? newEnvs : newEnvs.push(String(value));
+        } else {
+          newEnvs = newEnvs.filter(env => env !== value);
+        }
+
+        browserHistory.push({
+          pathname: location.pathname,
+          query: {
+            ...location.query,
+            cursor: undefined,
+            environment: newEnvs,
+          },
+        });
+        return;
+      }
 
       browserHistory.push({
         pathname: location.pathname,
