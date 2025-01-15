@@ -115,6 +115,7 @@ export function ScreensOverview() {
 
   const secondaryDataset = isSpanPrimary ? transactionMetricsDataset : spanMetricsDataset;
   const secondaryFields = isSpanPrimary ? transactionMetricsFields : spanMetricsFields;
+  const hasVisibleScreens = visibleScreens.length > 0;
 
   const {
     data: primaryData,
@@ -139,7 +140,7 @@ export function ScreensOverview() {
     selection,
     location,
     undefined,
-    visibleScreens.length > 0,
+    hasVisibleScreens,
     visibleScreens
   );
 
@@ -192,8 +193,7 @@ export function ScreensOverview() {
     return primaryData;
   }, [primaryData, secondaryData]);
 
-  const loading = primaryLoading || secondaryLoading;
-
+  const loading = primaryLoading || (hasVisibleScreens && secondaryLoading);
   return (
     <Container>
       <SearchBar
