@@ -29,11 +29,9 @@ class OnboardingTask:
     SECOND_PLATFORM = 4
     RELEASE_TRACKING = 6
     SOURCEMAPS = 7
-    USER_REPORTS = 8
     ISSUE_TRACKER = 9
     ALERT_RULE = 10
     FIRST_TRANSACTION = 11
-    METRIC_ALERT = 12
     INTEGRATIONS = 13
     SESSION_REPLAY = 14
     REAL_TIME_NOTIFICATIONS = 15
@@ -127,13 +125,11 @@ class OrganizationOnboardingTask(AbstractOnboardingTask):
         (OnboardingTask.SECOND_PLATFORM, "setup_second_platform"),
         (OnboardingTask.RELEASE_TRACKING, "setup_release_tracking"),
         (OnboardingTask.SOURCEMAPS, "setup_sourcemaps"),
-        (OnboardingTask.USER_REPORTS, "setup_user_reports"),
         # TODO(Telemety Experience): This task is no longer shown
         # in the new experience and shall remove it from code
         (OnboardingTask.ISSUE_TRACKER, "setup_issue_tracker"),
         (OnboardingTask.ALERT_RULE, "setup_alert_rules"),
         (OnboardingTask.FIRST_TRANSACTION, "setup_transactions"),
-        (OnboardingTask.METRIC_ALERT, "setup_metric_alert_rules"),
         (OnboardingTask.INTEGRATIONS, "setup_integrations"),
         (OnboardingTask.SESSION_REPLAY, "setup_session_replay"),
         (OnboardingTask.REAL_TIME_NOTIFICATIONS, "setup_real_time_notifications"),
