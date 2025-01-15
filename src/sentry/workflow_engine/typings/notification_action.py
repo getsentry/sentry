@@ -13,7 +13,6 @@ EXCLUDED_ACTION_DATA_KEYS = ["uuid", "id"]
 
 class BaseActionTranslator(ABC):
     action_type: ClassVar[Action.Type]
-    registry_id: ClassVar[str]
 
     def __init__(self, action: dict[str, Any]):
         self.action = action
@@ -42,22 +41,19 @@ class BaseActionTranslator(ABC):
         pass
 
     @property
-    @abstractmethod
     def target_identifier(self) -> str | None:
         """Return the target identifier for this action, if any"""
-        pass
+        return None
 
     @property
-    @abstractmethod
     def target_display(self) -> str | None:
         """Return the display name for the target, if any"""
-        pass
+        return None
 
     @property
-    @abstractmethod
     def blob_type(self) -> type["DataBlob"] | None:
         """Return the blob type for this action, if any"""
-        pass
+        return None
 
     def is_valid(self) -> bool:
         """
@@ -79,8 +75,9 @@ class BaseActionTranslator(ABC):
             )
             return dataclasses.asdict(blob_instance)
         else:
-            # Remove excluded keys
-            return {k: v for k, v in self.action.items() if k not in EXCLUDED_ACTION_DATA_KEYS}
+            # Remove excluded keys and required fields
+            excluded_keys = EXCLUDED_ACTION_DATA_KEYS + self.required_fields
+            return {k: v for k, v in self.action.items() if k not in excluded_keys}
 
 
 issue_alert_action_translator_registry = Registry[type[BaseActionTranslator]]()
@@ -91,7 +88,6 @@ issue_alert_action_translator_registry = Registry[type[BaseActionTranslator]]()
 )
 class SlackActionTranslator(BaseActionTranslator):
     action_type = Action.Type.SLACK
-    registry_id = "sentry.integrations.slack.notify_action.SlackNotifyServiceAction"
 
     @property
     def required_fields(self) -> list[str]:
@@ -118,6 +114,60 @@ class SlackActionTranslator(BaseActionTranslator):
         return SlackDataBlob
 
 
+@issue_alert_action_translator_registry.register(
+    "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction"
+)
+class DiscordActionTranslator(BaseActionTranslator):
+    action_type = Action.Type.DISCORD
+
+    @property
+    def required_fields(self) -> list[str]:
+        return ["server", "channel_id"]
+
+    @property
+    def target_type(self) -> ActionTarget:
+        return ActionTarget.SPECIFIC
+
+    @property
+    def integration_id(self) -> Any | None:
+        return self.action.get("server")
+
+    @property
+    def target_identifier(self) -> str | None:
+        return self.action.get("channel_id")
+
+    @property
+    def blob_type(self) -> type["DataBlob"]:
+        return DiscordDataBlob
+
+
+@issue_alert_action_translator_registry.register(
+    "sentry.integrations.msteams.notify_action.MsTeamsNotifyServiceAction"
+)
+class MSTeamsActionTranslator(BaseActionTranslator):
+    action_type = Action.Type.MSTEAMS
+
+    @property
+    def required_fields(self) -> list[str]:
+        return ["team", "channel_id", "channel"]
+
+    @property
+    def target_type(self) -> ActionTarget:
+        return ActionTarget.SPECIFIC
+
+    @property
+    def integration_id(self) -> Any | None:
+        return self.action.get("team")
+
+    @property
+    def target_identifier(self) -> str | None:
+        return self.action.get("channel_id")
+
+    @property
+    def target_display(self) -> str | None:
+        return self.action.get("channel")
+
+
 @dataclass
 class DataBlob:
     """DataBlob is a generic type that represents the data blob for a notification action."""
@@ -131,3 +181,12 @@ class SlackDataBlob(DataBlob):
 
     tags: str = ""
     notes: str = ""
+
+
+@dataclass
+class DiscordDataBlob(DataBlob):
+    """
+    DiscordDataBlob is a specific type that represents the data blob for a Discord notification action.
+    """
+
+    tags: str = ""
