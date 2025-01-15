@@ -17,7 +17,7 @@ import {
   ExpandedContext,
   ExpandedContextProvider,
 } from 'sentry/components/sidebar/expandedContextProvider';
-import {NewOnboardingStatus} from 'sentry/components/sidebar/newOnboardingStatus';
+import {OnboardingStatus} from 'sentry/components/sidebar/onboardingStatus';
 import {DismissableRollbackBanner} from 'sentry/components/sidebar/rollback/dismissableBanner';
 import {isDone} from 'sentry/components/sidebar/utils';
 import {
@@ -621,7 +621,7 @@ function Sidebar() {
               {...sidebarItemProps}
             />
             <SidebarSection hasNewNav={hasNewNav} noMargin noPadding>
-              <NewOnboardingStatus
+              <OnboardingStatus
                 currentPanel={activePanel}
                 onShowPanel={() => togglePanel(SidebarPanelKey.ONBOARDING_WIZARD)}
                 hidePanel={hidePanel}

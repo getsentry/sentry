@@ -1,7 +1,7 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {NewOnboardingSidebar} from 'sentry/components/onboardingWizard/newSidebar';
+import {OnboardingSidebar} from 'sentry/components/onboardingWizard/sidebar';
 import {type OnboardingTask, OnboardingTaskKey} from 'sentry/types/onboarding';
 
 const gettingStartedTasks: OnboardingTask[] = [
@@ -46,10 +46,10 @@ const beyondBasicsTasks: OnboardingTask[] = [
   },
 ];
 
-describe('NewSidebar', function () {
+describe('Sidebar', function () {
   it('should render the sidebar with the correct groups and tasks', async function () {
     render(
-      <NewOnboardingSidebar
+      <OnboardingSidebar
         onClose={jest.fn()}
         orientation="left"
         collapsed={false}
@@ -83,7 +83,7 @@ describe('NewSidebar', function () {
 
   it('if first group completed, second group should be expanded by default', function () {
     render(
-      <NewOnboardingSidebar
+      <OnboardingSidebar
         onClose={jest.fn()}
         orientation="left"
         collapsed={false}
@@ -114,7 +114,7 @@ describe('NewSidebar', function () {
     });
 
     render(
-      <NewOnboardingSidebar
+      <OnboardingSidebar
         onClose={jest.fn()}
         orientation="left"
         collapsed={false}
