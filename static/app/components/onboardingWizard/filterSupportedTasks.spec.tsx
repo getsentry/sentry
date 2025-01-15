@@ -31,18 +31,6 @@ describe('filterSupportedTasks', function () {
       status: 'pending',
     },
     {
-      task: OnboardingTaskKey.USER_REPORTS,
-      title: '',
-      description: '',
-      skippable: true,
-      requisites: [],
-      actionType: 'app',
-      location: '',
-      display: true,
-      requisiteTasks: [],
-      status: 'pending',
-    },
-    {
       task: OnboardingTaskKey.FIRST_TRANSACTION,
       title: '',
       description: '',
@@ -67,7 +55,7 @@ describe('filterSupportedTasks', function () {
       [supportedProject, unsupportedProject],
       onboardingTasks
     );
-    expect(supportedTasks).toHaveLength(4);
+    expect(supportedTasks).toHaveLength(3);
   });
 
   it('filters out for unsupported platform', function () {
@@ -92,12 +80,10 @@ describe('filterSupportedTasks', function () {
     const supportedTasks = filterSupportedTasks([project1, project2], onboardingTasks);
     expect(
       supportedTasks.filter(task =>
-        [
-          OnboardingTaskKey.FIRST_PROJECT,
-          OnboardingTaskKey.SESSION_REPLAY,
-          OnboardingTaskKey.USER_REPORTS,
-        ].includes(task.task)
+        [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.SESSION_REPLAY].includes(
+          task.task
+        )
       )
-    ).toHaveLength(3);
+    ).toHaveLength(2);
   });
 });
