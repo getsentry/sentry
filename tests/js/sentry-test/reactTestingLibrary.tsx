@@ -59,8 +59,11 @@ interface BaseRenderOptions<T extends boolean = boolean>
   disableRouterMocks?: T;
 }
 
+type LocationConfig = string | {pathname: string; query?: Record<string, string>};
+
 type RouterConfig = {
-  location: InitialEntry;
+  location?: LocationConfig;
+  route?: string;
 };
 
 type RenderOptions<T extends boolean = false> = T extends true
@@ -159,9 +162,11 @@ function makeAllTheProviders(options: ProviderOptions) {
 function makeRouter({
   children,
   history,
+  route,
 }: {
   history: MemoryHistory;
   children?: React.ReactNode;
+  route?: string;
 }) {
   // By default react-router 6 catches exceptions and displays the stack
   // trace. For tests we want them to bubble out
@@ -171,7 +176,7 @@ function makeRouter({
 
   const routes: RouteObject[] = [
     {
-      path: '*',
+      path: route ?? '*',
       element: children,
       errorElement: <ErrorBoundary />,
     },
@@ -194,7 +199,13 @@ class TestRouter {
   }
 
   get location() {
-    return this.router.state.location;
+    // Return parsed query params for convenience
+    const query = qs.parse(this.router.state.location.search);
+
+    return {
+      ...this.router.state.location,
+      query,
+    };
   }
 
   navigate = (to: To | number, opts?: RouterNavigateOptions) => {
@@ -206,6 +217,26 @@ class TestRouter {
       }
     });
   };
+}
+
+function parseLocationConfig(location: LocationConfig | undefined): InitialEntry {
+  if (!location) {
+    return LocationFixture().pathname;
+  }
+
+  if (typeof location === 'string') {
+    return location;
+  }
+
+  if (location.query) {
+    const queryString = qs.stringify(location.query);
+    return {
+      pathname: location.pathname,
+      search: queryString,
+    };
+  }
+
+  return location.pathname;
 }
 
 /**
@@ -228,7 +259,7 @@ function render<T extends boolean = false>(
 ): RenderReturn<T> {
   const initialEntry =
     (options.disableRouterMocks
-      ? options.initialRouterConfig?.location
+      ? parseLocationConfig(options.initialRouterConfig?.location)
       : options.router?.location?.pathname) ?? LocationFixture().pathname;
 
   const history = createMemoryHistory({
@@ -245,6 +276,7 @@ function render<T extends boolean = false>(
   const memoryRouter = makeRouter({
     children: <AllTheProviders>{ui}</AllTheProviders>,
     history,
+    route: options.disableRouterMocks ? options.initialRouterConfig?.route : undefined,
   });
 
   const renderResult = rtl.render(<RouterProvider router={memoryRouter} />, options);
@@ -253,6 +285,7 @@ function render<T extends boolean = false>(
     const newRouter = makeRouter({
       children: <AllTheProviders>{newUi}</AllTheProviders>,
       history,
+      route: options.disableRouterMocks ? options.initialRouterConfig?.route : undefined,
     });
 
     renderResult.rerender(<RouterProvider router={newRouter} />);
