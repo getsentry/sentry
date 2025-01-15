@@ -89,8 +89,8 @@ def process_error(error: ApiError, extra: dict[str, str]) -> None:
 )
 def derive_code_mappings(
     project_id: int,
+    event_id: str,
     data: NodeData | None = None,  # We will deprecate this
-    event_id: str | None = None,
 ) -> None:
     """
     Derive code mappings for a project given data from a recent event.
@@ -103,21 +103,17 @@ def derive_code_mappings(
     # When you look at the performance page the user is a default column
     set_user({"username": org.slug})
     set_tag("project.slug", project.slug)
-    extra: dict[str, Any] = {"organization.slug": org.slug}
+    extra: dict[str, Any] = {"organization.slug": org.slug, "event_id": event_id}
 
-    # XXX: In the next PR we will only use event_id
-    if event_id:
-        event = eventstore.backend.get_event_by_id(project_id, event_id)
-        if event is None:
-            logger.error("Event not found.", extra={"project_id": project_id, "event_id": event_id})
-            return
-        data = event.data
-
-    if data is None:
-        logger.error("Data is None.", extra=extra)
+    event = eventstore.backend.get_event_by_id(project_id, event_id)
+    if event is None:
+        logger.error("Event not found.", extra={"project_id": project_id, "event_id": event_id})
         return
 
-    stacktrace_paths: list[str] = identify_stacktrace_paths(data)
+    if event.data is None:
+        logger.error("Data is None.", extra=extra)
+        return
+    stacktrace_paths: list[str] = identify_stacktrace_paths(event.data)
     if not stacktrace_paths:
         logger.info("No stacktrace paths found.", extra=extra)
         return
