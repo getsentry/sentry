@@ -73,11 +73,7 @@ from sentry.models.dashboard_widget import (
 from sentry.models.dynamicsampling import CustomDynamicSamplingRule
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupbookmark import GroupBookmark
-from sentry.models.groupsearchview import (
-    GroupSearchView,
-    GroupSearchViewEnvironment,
-    GroupSearchViewProject,
-)
+from sentry.models.groupsearchview import GroupSearchView, GroupSearchViewProject
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupshare import GroupShare
 from sentry.models.groupsubscription import GroupSubscription
@@ -504,7 +500,7 @@ class ExhaustiveFixtures(Fixtures):
         )
 
         # Environment*
-        env = self.create_environment(project=project)
+        self.create_environment(project=project)
 
         # Monitor
         Monitor.objects.create(
@@ -628,10 +624,6 @@ class ExhaustiveFixtures(Fixtures):
         GroupSearchViewProject.objects.create(
             group_search_view=group_search_view,
             project=project,
-        )
-        GroupSearchViewEnvironment.objects.create(
-            group_search_view=group_search_view,
-            environment=env,
         )
 
         Activity.objects.create(

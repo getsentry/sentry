@@ -32,6 +32,11 @@ class Migration(CheckedMigration):
     operations = [
         migrations.AddField(
             model_name="groupsearchview",
+            name="environments",
+            field=sentry.db.models.fields.array.ArrayField(null=True),
+        ),
+        migrations.AddField(
+            model_name="groupsearchview",
             name="is_all_projects",
             field=models.BooleanField(db_default=False),
         ),
@@ -39,42 +44,6 @@ class Migration(CheckedMigration):
             model_name="groupsearchview",
             name="time_filters",
             field=models.JSONField(db_default={"period": "14d"}),
-        ),
-        migrations.CreateModel(
-            name="GroupSearchViewEnvironment",
-            fields=[
-                (
-                    "id",
-                    sentry.db.models.fields.bounded.BoundedBigAutoField(
-                        primary_key=True, serialize=False
-                    ),
-                ),
-                ("date_updated", models.DateTimeField(auto_now=True)),
-                ("date_added", models.DateTimeField(auto_now_add=True)),
-                (
-                    "environment",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, to="sentry.environment"
-                    ),
-                ),
-                (
-                    "group_search_view",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, to="sentry.groupsearchview"
-                    ),
-                ),
-            ],
-            options={
-                "db_table": "sentry_groupsearchviewenvironment",
-                "unique_together": {("group_search_view", "environment")},
-            },
-        ),
-        migrations.AddField(
-            model_name="groupsearchview",
-            name="environments",
-            field=models.ManyToManyField(
-                through="sentry.GroupSearchViewEnvironment", to="sentry.environment"
-            ),
         ),
         migrations.CreateModel(
             name="GroupSearchViewProject",
