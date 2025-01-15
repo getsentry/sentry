@@ -1500,7 +1500,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             response = self.client.get(
                 self.url,
                 data={
-                    "transformAliasToInputFormat": 1,
+                    "transformAliasToInputFormat": "1",
                     "start": self.day_ago.isoformat(),
                     "end": (self.day_ago + timedelta(hours=2)).isoformat(),
                     "interval": "1h",
