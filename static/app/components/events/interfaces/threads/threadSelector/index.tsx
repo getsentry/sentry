@@ -156,7 +156,7 @@ function ThreadSelector({threads, event, exception, activeThread, onChange}: Pro
               );
             }}
           >
-            <HeaderText gap={space(0.5)} align="center">
+            <HeaderText>
               {t('ID')}
               {sortAttribute === SortAttribute.ID && sortIcon}
             </HeaderText>
@@ -169,7 +169,7 @@ function ThreadSelector({threads, event, exception, activeThread, onChange}: Pro
               );
             }}
           >
-            <HeaderText gap={space(0.5)} align="center">
+            <HeaderText>
               {t('Name')}
               {sortAttribute === SortAttribute.NAME && sortIcon}
             </HeaderText>
@@ -182,7 +182,7 @@ function ThreadSelector({threads, event, exception, activeThread, onChange}: Pro
               );
             }}
           >
-            <HeaderText gap={space(0.5)} align="center">
+            <HeaderText>
               {t('Label')}
               {sortAttribute === SortAttribute.LABEL && sortIcon}
             </HeaderText>
@@ -196,7 +196,7 @@ function ThreadSelector({threads, event, exception, activeThread, onChange}: Pro
                 );
               }}
             >
-              <HeaderText gap={space(0.5)} align="center">
+              <HeaderText>
                 {t('State')}
                 {sortAttribute === SortAttribute.STATE && sortIcon}
               </HeaderText>
@@ -249,10 +249,11 @@ const StyledGrid = styled(ThreadSelectorGrid)`
   color: ${p => p.theme.subText};
   font-weight: ${p => p.theme.fontWeightBold};
   border-bottom: 1px solid ${p => p.theme.border};
-  margin-bottom: 2px;
+  margin-bottom: ${space(0.5)};
 `;
 
 const SortableThreadSelectorGridCell = styled(ThreadSelectorGridCell)`
+  margin-bottom: ${space(0.5)};
   cursor: pointer;
   user-select: none;
   border-radius: ${p => p.theme.borderRadius};
@@ -262,5 +263,9 @@ const SortableThreadSelectorGridCell = styled(ThreadSelectorGridCell)`
 `;
 
 const HeaderText = styled(Flex)`
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: ${space(0.5)};
   padding: 0 ${space(0.5)};
 `;
