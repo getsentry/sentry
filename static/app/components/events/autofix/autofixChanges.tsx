@@ -4,9 +4,12 @@ import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
 import ClippedBox from 'sentry/components/clippedBox';
 import {AutofixDiff} from 'sentry/components/events/autofix/autofixDiff';
-import type {
-  AutofixChangesStep,
-  AutofixCodebaseChange,
+import AutofixInsightCards from 'sentry/components/events/autofix/autofixInsightCards';
+import {
+  type AutofixChangesStep,
+  type AutofixCodebaseChange,
+  type AutofixRepository,
+  AutofixStatus,
 } from 'sentry/components/events/autofix/types';
 import {useAutofixData} from 'sentry/components/events/autofix/useAutofix';
 import {IconFix} from 'sentry/icons';
@@ -16,8 +19,10 @@ import testableTransition from 'sentry/utils/testableTransition';
 
 type AutofixChangesProps = {
   groupId: string;
+  repos: AutofixRepository[];
   runId: string;
   step: AutofixChangesStep;
+  shouldHighlightRethink?: boolean;
 };
 
 function AutofixRepoChange({
@@ -29,22 +34,26 @@ function AutofixRepoChange({
   groupId: string;
   runId: string;
 }) {
+  if (!change.details) {
+    return null;
+  }
+
   return (
-    <Content>
+    <div>
       <RepoChangesHeader>
         <div>
-          <Title>{change.title}</Title>
+          <Title>{change.details.title}</Title>
           <PullRequestTitle>{change.repo_name}</PullRequestTitle>
         </div>
       </RepoChangesHeader>
       <AutofixDiff
-        diff={change.diff}
+        diff={change.details.diff}
         groupId={groupId}
         runId={runId}
         repoId={change.repo_external_id}
         editable={!change.pull_request}
       />
-    </Content>
+    </div>
   );
 }
 
@@ -69,57 +78,80 @@ const cardAnimationProps: AnimationProps = {
   }),
 };
 
-export function AutofixChanges({step, groupId, runId}: AutofixChangesProps) {
+export function AutofixChanges({
+  step,
+  groupId,
+  runId,
+  repos,
+  shouldHighlightRethink,
+}: AutofixChangesProps) {
   const data = useAutofixData({groupId});
+
+  if (step.status === AutofixStatus.PROCESSING) {
+    return null;
+  }
 
   if (step.status === 'ERROR' || data?.status === 'ERROR') {
     return (
-      <Content>
-        <PreviewContent>
-          {data?.error_message ? (
-            <Fragment>
-              <PrefixText>{t('Something went wrong')}</PrefixText>
-              <span>{data.error_message}</span>
-            </Fragment>
-          ) : (
-            <span>{t('Something went wrong.')}</span>
-          )}
-        </PreviewContent>
-      </Content>
+      <div>
+        {data?.error_message ? (
+          <Fragment>
+            <PrefixText>{t('Something went wrong')}</PrefixText>
+            <span>{data.error_message}</span>
+          </Fragment>
+        ) : (
+          <span>{t('Something went wrong.')}</span>
+        )}
+      </div>
     );
   }
 
-  if (!step.changes.length) {
+  if (
+    step.status === AutofixStatus.COMPLETED &&
+    Object.values(step.codebase_changes).every(change => !change.details)
+  ) {
     return (
-      <Content>
-        <PreviewContent>
-          <span>{t('Could not find a fix.')}</span>
-        </PreviewContent>
-      </Content>
+      <PreviewContent>
+        <span>{t('Could not find a fix.')}</span>
+      </PreviewContent>
     );
   }
 
-  const allChangesHavePullRequests = step.changes.every(change => change.pull_request);
+  const allChangesHavePullRequests = Object.values(step.codebase_changes).every(
+    change => change.pull_request
+  );
 
   return (
-    <AnimatePresence initial>
-      <AnimationWrapper key="card" {...cardAnimationProps}>
-        <ChangesContainer allChangesHavePullRequests={allChangesHavePullRequests}>
-          <ClippedBox clipHeight={408}>
-            <HeaderText>
-              <IconFix size="sm" />
-              {t('Fixes')}
-            </HeaderText>
-            {step.changes.map((change, i) => (
-              <Fragment key={change.repo_external_id}>
-                {i > 0 && <Separator />}
-                <AutofixRepoChange change={change} groupId={groupId} runId={runId} />
-              </Fragment>
-            ))}
-          </ClippedBox>
-        </ChangesContainer>
-      </AnimationWrapper>
-    </AnimatePresence>
+    <Fragment>
+      <AutofixInsightCards
+        insights={step.insights}
+        repos={repos}
+        hasStepBelow
+        hasStepAbove
+        stepIndex={step.index}
+        groupId={groupId}
+        runId={runId}
+        shouldHighlightRethink={shouldHighlightRethink}
+      />
+      <AnimatePresence initial>
+        <AnimationWrapper key="card" {...cardAnimationProps}>
+          <ChangesContainer allChangesHavePullRequests={allChangesHavePullRequests}>
+            <StyledClippedBox clipHeight={408}>
+              <HeaderText>
+                <IconFix size="sm" />
+                {t('Fixes')}
+              </HeaderText>
+              {Object.values(step.codebase_changes).map((change, i) => (
+                <Fragment key={change.repo_external_id}>
+                  {i > 0 && <Separator />}
+                  <AutofixRepoChange change={change} groupId={groupId} runId={runId} />
+                </Fragment>
+              ))}
+            </StyledClippedBox>
+          </ChangesContainer>
+        </AnimationWrapper>
+      </AnimatePresence>
+    </Fragment>
   );
 }
 
@@ -149,10 +181,6 @@ const ChangesContainer = styled('div')<{allChangesHavePullRequests: boolean}>`
   padding-top: ${space(1)};
 `;
 
-const Content = styled('div')`
-  padding: 0 ${space(1)} ${space(1)} ${space(1)};
-`;
-
 const Title = styled('div')`
   font-weight: ${p => p.theme.fontWeightBold};
   margin-bottom: ${space(0.5)};
@@ -164,9 +192,10 @@ const PullRequestTitle = styled('div')`
 
 const RepoChangesHeader = styled('div')`
   padding: ${space(2)} 0;
-  display: grid;
-  align-items: center;
-  grid-template-columns: 1fr auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: ${space(2)};
 `;
 
 const Separator = styled('hr')`
@@ -181,4 +210,8 @@ const HeaderText = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
+`;
+
+const StyledClippedBox = styled(ClippedBox)`
+  padding-bottom: ${space(2)};
 `;

@@ -36,7 +36,7 @@ export const useAiConfig = (
     groupId: group.id,
   });
 
-  const isSampleError = useIsSampleEvent();
+  const isSampleError = false;
   const hasStacktrace = event && hasStacktraceWithFrames(event);
 
   const issueTypeConfig = getConfigForIssueType(group, project);

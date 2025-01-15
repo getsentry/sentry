@@ -3,12 +3,10 @@ import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import AutofixActionSelector from 'sentry/components/events/autofix/autofixActionSelector';
 import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
-import {AutofixSetupWriteAccessModal} from 'sentry/components/events/autofix/autofixSetupWriteAccessModal';
 import {
   type AutofixCodebaseChange,
   AutofixStatus,
@@ -19,7 +17,6 @@ import {
   makeAutofixQueryKey,
   useAutofixData,
 } from 'sentry/components/events/autofix/useAutofix';
-import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
 import Input from 'sentry/components/input';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
@@ -40,6 +37,9 @@ import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import {AutofixSetupWriteAccessModal} from 'sentry/components/events/autofix/autofixSetupWriteAccessModal';
+import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
+import {openModal} from 'sentry/actionCreators/modal';
 
 function useSendMessage({groupId, runId}: {groupId: string; runId: string}) {
   const api = useApi({persistInFlight: true});
@@ -370,10 +370,10 @@ function RootCauseAndFeedbackInputArea({
 
 function StepIcon({step}: {step: AutofixStep}) {
   if (step.type === AutofixStepType.CHANGES) {
-    if (step.changes?.length === 0) {
+    if (step.status === AutofixStatus.ERROR) {
       return <IconSad size="sm" color="gray300" />;
     }
-    if (step.changes.every(change => change.pull_request)) {
+    if (Object.values(step.codebase_changes).every(change => change.pull_request)) {
       return <IconCheckmark size="sm" color="green300" isCircled />;
     }
     return null;
@@ -438,7 +438,9 @@ function AutofixMessageBox({
   >(null);
 
   const changes =
-    isChangesStep && step?.type === AutofixStepType.CHANGES ? step.changes : [];
+    isChangesStep && step?.type === AutofixStepType.CHANGES
+      ? Object.values(step.codebase_changes)
+      : [];
   const prsMade =
     step?.status === AutofixStatus.COMPLETED &&
     changes.length >= 1 &&
@@ -447,7 +449,7 @@ function AutofixMessageBox({
     !prsMade &&
     step?.status === AutofixStatus.COMPLETED &&
     changes.length >= 1 &&
-    changes.every(change => change.branch_name);
+    changes.every(change => change.details?.branch_name);
 
   const isDisabled =
     step?.status === AutofixStatus.ERROR ||
@@ -493,8 +495,9 @@ function AutofixMessageBox({
   };
 
   function BranchButton({change}: {change: AutofixCodebaseChange}) {
+    const command = `git fetch --all && git switch ${change.details!.branch_name}`;
     const {onClick} = useCopyToClipboard({
-      text: `git fetch --all && git switch ${change.branch_name}`,
+      text: command,
       successMessage: t('Command copied. Next stop: your terminal.'),
     });
 
@@ -505,7 +508,7 @@ function AutofixMessageBox({
         priority="primary"
         onClick={onClick}
         aria-label={t('Check out in %s', change.repo_name)}
-        title={t('git fetch --all && git switch %s', change.branch_name)}
+        title={command}
         icon={<IconCopy size="xs" />}
       >
         {t('Check out in %s', change.repo_name)}
@@ -676,7 +679,7 @@ function AutofixMessageBox({
                 <StyledScrollCarousel aria-label={t('Check out branches')}>
                   {changes.map(
                     change =>
-                      change.branch_name && (
+                      change.details!.branch_name && (
                         <BranchButton
                           key={`${change.repo_external_id}-${Math.random()}`}
                           change={change}

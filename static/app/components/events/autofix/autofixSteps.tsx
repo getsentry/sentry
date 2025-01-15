@@ -4,7 +4,7 @@ import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
 import {AutofixChanges} from 'sentry/components/events/autofix/autofixChanges';
 import AutofixInsightCards, {
-  useUpdateInsightCard,
+  useSendFeedbackOnChanges,
 } from 'sentry/components/events/autofix/autofixInsightCards';
 import AutofixMessageBox from 'sentry/components/events/autofix/autofixMessageBox';
 import {AutofixOutputStream} from 'sentry/components/events/autofix/autofixOutputStream';
@@ -16,6 +16,7 @@ import {
   type AutofixData,
   type AutofixProgressItem,
   type AutofixRepository,
+  AutofixStatus,
   type AutofixStep,
   AutofixStepType,
 } from 'sentry/components/events/autofix/types';
@@ -85,7 +86,7 @@ export function Step({
                 </StepMessage>
               )}
               {step.type === AutofixStepType.DEFAULT && (
-                <AutofixInsightCards
+                <AutofixInsightCards // TODO: Move this inside root cause step component when we also move insight cards inside root cause analysis
                   insights={step.insights}
                   repos={repos}
                   hasStepBelow={hasStepBelow}
@@ -107,7 +108,13 @@ export function Step({
                 />
               )}
               {step.type === AutofixStepType.CHANGES && (
-                <AutofixChanges step={step} groupId={groupId} runId={runId} />
+                <AutofixChanges
+                  step={step}
+                  groupId={groupId}
+                  runId={runId}
+                  repos={repos}
+                  shouldHighlightRethink={shouldHighlightRethink}
+                />
               )}
             </Fragment>
           </AnimationWrapper>
@@ -146,15 +153,9 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
     }
   };
 
-  const {mutate: sendFeedbackOnChanges} = useUpdateInsightCard({groupId, runId});
+  const {mutate: sendFeedbackOnChanges} = useSendFeedbackOnChanges({groupId, runId});
   const iterateOnChangesStep = (text: string) => {
-    const planStep = steps?.[steps.length - 2];
-    if (!planStep || planStep.type !== AutofixStepType.DEFAULT) {
-      return;
-    }
     sendFeedbackOnChanges({
-      step_index: planStep.index,
-      retain_insight_card_index: planStep.insights.length - 1,
       message: text,
     });
   };
@@ -184,7 +185,6 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
       return;
     }
 
-    const currentStepsLength = steps.length;
     const currentInsightsCount = steps.reduce((count, step) => {
       if (step.type === AutofixStepType.DEFAULT) {
         return count + step.insights.length;
@@ -192,9 +192,17 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
       return count;
     }, 0);
 
+    const lastStep = steps[steps.length - 1];
+
+    if (!lastStep) {
+      return;
+    }
+
     const hasNewSteps =
-      currentStepsLength > prevStepsLengthRef.current &&
-      steps[currentStepsLength - 1]!.type !== AutofixStepType.DEFAULT;
+      steps.length > prevStepsLengthRef.current &&
+      (lastStep.type === AutofixStepType.ROOT_CAUSE_ANALYSIS ||
+        (lastStep.type === AutofixStepType.CHANGES &&
+          lastStep.status === AutofixStatus.COMPLETED));
     const hasNewInsights = currentInsightsCount > prevInsightsCountRef.current;
 
     if (hasNewSteps || hasNewInsights) {
@@ -203,7 +211,7 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
       }
     }
 
-    prevStepsLengthRef.current = currentStepsLength;
+    prevStepsLengthRef.current = steps.length;
     prevInsightsCountRef.current = currentInsightsCount;
   }, [steps, isBottomVisible]);
 
@@ -217,23 +225,28 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
   }
 
   const lastStep = steps[steps.length - 1];
+
+  if (!lastStep) {
+    return null;
+  }
+
   const logs: AutofixProgressItem[] = lastStep!.progress?.filter(isProgressLog) ?? [];
   const activeLog =
-    lastStep!.completedMessage ??
-    replaceHeadersWithBold(logs.at(-1)?.message ?? '') ??
-    '';
+    lastStep.completedMessage ?? replaceHeadersWithBold(logs.at(-1)?.message ?? '') ?? '';
 
   const isRootCauseSelectionStep =
-    lastStep!.type === AutofixStepType.ROOT_CAUSE_ANALYSIS &&
-    lastStep!.status === 'COMPLETED';
+    lastStep.type === AutofixStepType.ROOT_CAUSE_ANALYSIS &&
+    lastStep.status === AutofixStatus.COMPLETED;
 
   const isChangesStep =
-    lastStep!.type === AutofixStepType.CHANGES && lastStep!.status === 'COMPLETED';
+    lastStep.type === AutofixStepType.CHANGES &&
+    lastStep.status === AutofixStatus.COMPLETED;
 
   return (
     <div>
       <StepsContainer ref={containerRef}>
         {steps.map((step, index) => {
+          // TODO: Refactor and clean this up, very hard to follow
           const previousStep = index > 0 ? steps[index - 1] : null;
           const previousStepErrored =
             previousStep !== null &&
@@ -245,27 +258,25 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
             step.type === AutofixStepType.DEFAULT &&
             step.insights.length > 0 &&
             nextStep.insights.length > 0;
-          const twoNonDefaultStepsInARow =
-            previousStep &&
-            (previousStep?.type !== AutofixStepType.DEFAULT ||
-              previousStep?.insights.length === 0) &&
-            step.type !== AutofixStepType.DEFAULT;
           const stepBelowProcessingAndEmpty =
             nextStep?.type === AutofixStepType.DEFAULT &&
             nextStep?.status === 'PROCESSING' &&
             nextStep?.insights?.length === 0;
 
           const isNextStepLastStep = index === steps.length - 2;
+
           const shouldHighlightRethink =
             (nextStep?.type === AutofixStepType.ROOT_CAUSE_ANALYSIS &&
               isNextStepLastStep) ||
             (nextStep?.type === AutofixStepType.CHANGES &&
-              nextStep.changes.length > 0 &&
-              !nextStep.changes.every(change => change.pull_request));
+              Object.keys(nextStep.codebase_changes).length > 0 &&
+              !Object.values(nextStep.codebase_changes).every(
+                change => change.pull_request
+              ) &&
+              isNextStepLastStep);
 
           return (
             <div ref={el => (stepsRef.current[index] = el)} key={step.id}>
-              {twoNonDefaultStepsInARow && <br />}
               <Step
                 step={step}
                 hasStepBelow={
@@ -283,15 +294,14 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
             </div>
           );
         })}
-        {lastStep!.output_stream && (
-          <AutofixOutputStream stream={lastStep!.output_stream} />
+        {lastStep.status === AutofixStatus.PROCESSING && lastStep.output_stream && (
+          <AutofixOutputStream stream={lastStep.output_stream} />
         )}
       </StepsContainer>
-
       <AutofixMessageBox
         displayText={activeLog ?? ''}
-        step={lastStep!}
-        responseRequired={lastStep!.status === 'WAITING_FOR_USER_RESPONSE'}
+        step={lastStep}
+        responseRequired={lastStep.status === AutofixStatus.WAITING_FOR_USER_RESPONSE}
         onSend={
           !isRootCauseSelectionStep
             ? !isChangesStep

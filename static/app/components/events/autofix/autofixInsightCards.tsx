@@ -364,17 +364,17 @@ function AutofixInsightCards({
       ) : stepIndex === 0 && !hasStepBelow ? (
         <NoInsightsYet />
       ) : hasStepBelow ? (
-        <EmptyResultsContainer>
-          <ChainLink
-            insightCardAboveIndex={null}
-            stepIndex={stepIndex}
-            groupId={groupId}
-            runId={runId}
-            isHighlighted={shouldHighlightRethink}
-            isLastCard
-          />
-        </EmptyResultsContainer>
-      ) : null}
+        // <EmptyResultsContainer>
+        <ChainLink
+          insightCardAboveIndex={null}
+          stepIndex={stepIndex}
+          groupId={groupId}
+          runId={runId}
+          isHighlighted={shouldHighlightRethink}
+          isLastCard
+        />
+      ) : // </EmptyResultsContainer>
+      null}
     </InsightsContainer>
   );
 }
@@ -398,6 +398,39 @@ export function useUpdateInsightCard({groupId, runId}: {groupId: string; runId: 
             message: params.message,
             step_index: params.step_index,
             retain_insight_card_index: params.retain_insight_card_index,
+          },
+        },
+      });
+    },
+    onSuccess: _ => {
+      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(groupId)});
+      addSuccessMessage(t('Thanks, rethinking this...'));
+    },
+    onError: () => {
+      addErrorMessage(t('Something went wrong when sending Autofix your message.'));
+    },
+  });
+}
+
+export function useSendFeedbackOnChanges({
+  groupId,
+  runId,
+}: {
+  groupId: string;
+  runId: string;
+}) {
+  const api = useApi({persistInFlight: true});
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (params: {message: string}) => {
+      return api.requestPromise(`/issues/${groupId}/autofix/update/`, {
+        method: 'POST',
+        data: {
+          run_id: runId,
+          payload: {
+            type: 'continue_with_feedback',
+            message: params.message,
           },
         },
       });

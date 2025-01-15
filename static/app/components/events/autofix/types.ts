@@ -143,20 +143,24 @@ export interface AutofixRootCauseStep extends BaseStep {
   termination_reason?: string;
 }
 
-export type AutofixCodebaseChange = {
+export type AutofixCodebaseChangeDetails = {
   description: string;
   diff: FilePatch[];
-  repo_name: string;
+  diff_str: string;
   title: string;
-  branch_name?: string;
-  diff_str?: string;
-  pull_request?: AutofixPullRequestDetails;
-  repo_external_id?: string;
-  repo_id?: number; // The repo_id is only here for temporary backwards compatibility for LA customers, and we should remove it soon. Use repo_external_id instead.
 };
 
-export interface AutofixChangesStep extends BaseStep {
-  changes: AutofixCodebaseChange[];
+export type AutofixCodebaseChange = {
+  details: AutofixCodebaseChangeDetails | null;
+  // file_changes: AutofixFileChange[];
+  branch_name?: string;
+  pull_request: AutofixPullRequestDetails | null;
+  repo_external_id: string;
+  repo_name: string;
+};
+
+export interface AutofixChangesStep extends Omit<AutofixDefaultStep, 'type'> {
+  codebase_changes: Record<string, AutofixCodebaseChange>;
   type: AutofixStepType.CHANGES;
 }
 
