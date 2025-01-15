@@ -131,20 +131,8 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
     return !isEqual(currentProps, nextProps);
   }
 
-  tableResultComponent({
-    loading,
-    errorMessage,
-    tableResults,
-  }: TableResultProps): React.ReactNode {
+  tableResultComponent({loading, tableResults}: TableResultProps): React.ReactNode {
     const {location, widget, selection} = this.props;
-    if (errorMessage) {
-      return (
-        <StyledErrorPanel>
-          <IconWarning color="gray500" size="lg" />
-        </StyledErrorPanel>
-      );
-    }
-
     if (typeof tableResults === 'undefined') {
       // Align height to other charts.
       return <LoadingPlaceholder />;
@@ -178,19 +166,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
     });
   }
 
-  bigNumberComponent({
-    loading,
-    errorMessage,
-    tableResults,
-  }: TableResultProps): React.ReactNode {
-    if (errorMessage) {
-      return (
-        <StyledErrorPanel>
-          <IconWarning color="gray500" size="lg" />
-        </StyledErrorPanel>
-      );
-    }
-
+  bigNumberComponent({loading, tableResults}: TableResultProps): React.ReactNode {
     if (typeof tableResults === 'undefined' || loading) {
       return <BigNumber>{'\u2014'}</BigNumber>;
     }
@@ -291,12 +267,20 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       showConfidenceWarning,
     } = this.props;
 
+    if (errorMessage) {
+      return (
+        <StyledErrorPanel>
+          <IconWarning color="gray500" size="lg" />
+        </StyledErrorPanel>
+      );
+    }
+
     if (widget.displayType === 'table') {
       return getDynamicText({
         value: (
           <TransitionChart loading={loading} reloading={loading}>
             <LoadingScreen loading={loading} />
-            {this.tableResultComponent({tableResults, loading, errorMessage})}
+            {this.tableResultComponent({tableResults, loading})}
           </TransitionChart>
         ),
         fixed: <Placeholder height="200px" testId="skeleton-ui" />,
@@ -308,17 +292,9 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
         <TransitionChart loading={loading} reloading={loading}>
           <LoadingScreen loading={loading} />
           <BigNumberResizeWrapper>
-            {this.bigNumberComponent({tableResults, loading, errorMessage})}
+            {this.bigNumberComponent({tableResults, loading})}
           </BigNumberResizeWrapper>
         </TransitionChart>
-      );
-    }
-
-    if (errorMessage) {
-      return (
-        <StyledErrorPanel>
-          <IconWarning color="gray500" size="lg" />
-        </StyledErrorPanel>
       );
     }
 
@@ -464,14 +440,6 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
     return (
       <ChartZoom period={period} start={start} end={end} utc={utc}>
         {zoomRenderProps => {
-          if (errorMessage) {
-            return (
-              <StyledErrorPanel>
-                <IconWarning color="gray500" size="lg" />
-              </StyledErrorPanel>
-            );
-          }
-
           const otherRegex = new RegExp(`(?:.* : ${OTHER}$)|^${OTHER}$`);
           const shouldColorOther = timeseriesResults?.some(({seriesName}) =>
             seriesName?.match(otherRegex)
