@@ -161,7 +161,7 @@ def _ensure_monitor_with_config(
             },
         )
         if created:
-            signal_monitor_created(project, None, True)
+            signal_monitor_created(project, None, True, monitor, None)
 
     # Update existing monitor
     if monitor and not created:
