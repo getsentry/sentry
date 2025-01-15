@@ -52,8 +52,9 @@ export default function FeedbackList() {
     loadMoreRows,
     hits,
   } = useFetchInfiniteListData<FeedbackIssueListItem>({
-    queryKey: listQueryKey,
+    queryKey: listQueryKey ?? [''],
     uniqueField: 'id',
+    enabled: Boolean(listQueryKey),
   });
 
   const checkboxState = useListItemCheckboxState({
