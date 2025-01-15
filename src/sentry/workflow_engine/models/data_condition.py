@@ -5,6 +5,7 @@ from typing import Any, TypeVar, cast
 from django.db import models
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
+from jsonschema import ValidationError, validate
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, region_silo_model, sane_repr
@@ -127,7 +128,6 @@ class DataCondition(DefaultFieldsModel):
 
 @receiver(pre_save, sender=DataCondition)
 def enforce_comparison_schema(sender, instance: DataCondition, **kwargs):
-    from jsonschema import ValidationError, validate
 
     condition_type = Condition(instance.type)
     if condition_type in condition_ops:
@@ -135,7 +135,7 @@ def enforce_comparison_schema(sender, instance: DataCondition, **kwargs):
         return
 
     try:
-        handler = condition_handler_registry.get(instance.type)
+        handler = condition_handler_registry.get(condition_type)
     except NoRegistrationExistsError:
         logger.exception(
             "No registration exists for condition",
