@@ -28,6 +28,7 @@ const metricIssueConfig: IssueCategoryConfigMapping = {
     userFeedback: {enabled: false},
     usesIssuePlatform: true,
     stats: {enabled: false},
+    tags: {enabled: false},
     tagsTab: {enabled: false},
     issueSummary: {enabled: false},
   },
