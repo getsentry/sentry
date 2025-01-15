@@ -20,7 +20,12 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 import {useWidgetSyncContext} from '../../contexts/widgetSyncContext';
-import type {Aliases, Release, TimeseriesData} from '../common/types';
+import type {
+  Aliases,
+  Release,
+  TimeseriesData,
+  TimeseriesSelection,
+} from '../common/types';
 
 import {formatTooltipValue} from './formatTooltipValue';
 import {formatYAxisValue} from './formatYAxisValue';
@@ -32,7 +37,9 @@ export interface TimeSeriesWidgetVisualizationProps {
   timeseries: TimeseriesData[];
   aliases?: Aliases;
   dataCompletenessDelay?: number;
+  onTimeseriesSelectionChange?: (TimeseriesSelection) => void;
   releases?: Release[];
+  timeseriesSelection?: TimeseriesSelection;
 }
 
 export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizationProps) {
@@ -195,9 +202,13 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
               formatter(name: string) {
                 return props.aliases?.[name] ?? formatSeriesName(name);
               },
+              selected: props.timeseriesSelection,
             }
           : undefined
       }
+      onLegendSelectChanged={event => {
+        props?.onTimeseriesSelectionChange?.(event.selected);
+      }}
       tooltip={{
         trigger: 'axis',
         axisPointer: {
