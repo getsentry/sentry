@@ -161,7 +161,6 @@ module = [
     "sentry.api.serializers.models.organization",
     "sentry.api.serializers.models.project",
     "sentry.api.serializers.models.role",
-    "sentry.api.serializers.models.rule",
     "sentry.auth.helper",
     "sentry.auth.provider",
     "sentry.auth.system",
