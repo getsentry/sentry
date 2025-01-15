@@ -629,48 +629,7 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         assert response.data["meta"]["units"] == {"count()": None}
         assert response.data["data"] == [{"count()": 0}]
 
-    def test_simple_measurements(self):
-        keys = [
-            ("app_start_cold", "duration", "millisecond"),
-            ("app_start_warm", "duration", "millisecond"),
-            ("frames_frozen", "number", None),  # should be integer but keeping it consistent
-            ("frames_frozen_rate", "percentage", None),
-            ("frames_slow", "number", None),  # should be integer but keeping it consistent
-            ("frames_slow_rate", "percentage", None),
-            ("frames_total", "number", None),  # should be integer but keeping it consistent
-            ("time_to_initial_display", "duration", "millisecond"),
-            ("time_to_full_display", "duration", "millisecond"),
-            ("stall_count", "number", None),  # should be integer but keeping it consistent
-            ("stall_percentage", "percentage", None),
-            ("stall_stall_longest_time", "number", None),
-            ("stall_stall_total_time", "number", None),
-            ("cls", "number", None),
-            ("fcp", "duration", "millisecond"),
-            ("fid", "duration", "millisecond"),
-            ("fp", "duration", "millisecond"),
-            ("inp", "duration", "millisecond"),
-            ("lcp", "duration", "millisecond"),
-            ("ttfb", "duration", "millisecond"),
-            ("ttfb.requesttime", "duration", "millisecond"),
-            ("score.cls", "number", None),
-            ("score.fcp", "number", None),
-            ("score.fid", "number", None),
-            ("score.inp", "number", None),
-            ("score.lcp", "number", None),
-            ("score.ttfb", "number", None),
-            ("score.total", "number", None),
-            ("score.weight.cls", "number", None),
-            ("score.weight.fcp", "number", None),
-            ("score.weight.fid", "number", None),
-            ("score.weight.inp", "number", None),
-            ("score.weight.lcp", "number", None),
-            ("score.weight.ttfb", "number", None),
-            ("cache.item_size", "number", None),
-            ("messaging.message.body.size", "number", None),
-            ("messaging.message.receive.latency", "number", None),
-            ("messaging.message.retry.count", "number", None),
-        ]
-
+    def _test_simple_measurements(self, keys):
         self.store_spans(
             [
                 self.create_span(
@@ -721,6 +680,51 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
                     "project.name": self.project.slug,
                 }
             ]
+
+    def test_simple_measurements(self):
+        keys = [
+            ("app_start_cold", "duration", "millisecond"),
+            ("app_start_warm", "duration", "millisecond"),
+            ("frames_frozen", "number", None),  # should be integer but keeping it consistent
+            ("frames_frozen_rate", "percentage", None),
+            ("frames_slow", "number", None),  # should be integer but keeping it consistent
+            ("frames_slow_rate", "percentage", None),
+            ("frames_total", "number", None),  # should be integer but keeping it consistent
+            ("time_to_initial_display", "duration", "millisecond"),
+            ("time_to_full_display", "duration", "millisecond"),
+            ("stall_count", "number", None),  # should be integer but keeping it consistent
+            ("stall_percentage", "percentage", None),
+            ("stall_stall_longest_time", "number", None),
+            ("stall_stall_total_time", "number", None),
+            ("cls", "number", None),
+            ("fcp", "duration", "millisecond"),
+            ("fid", "duration", "millisecond"),
+            ("fp", "duration", "millisecond"),
+            ("inp", "duration", "millisecond"),
+            ("lcp", "duration", "millisecond"),
+            ("ttfb", "duration", "millisecond"),
+            ("ttfb.requesttime", "duration", "millisecond"),
+            ("score.cls", "number", None),
+            ("score.fcp", "number", None),
+            ("score.fid", "number", None),
+            ("score.inp", "number", None),
+            ("score.lcp", "number", None),
+            ("score.ttfb", "number", None),
+            ("score.total", "number", None),
+            ("score.weight.cls", "number", None),
+            ("score.weight.fcp", "number", None),
+            ("score.weight.fid", "number", None),
+            ("score.weight.inp", "number", None),
+            ("score.weight.lcp", "number", None),
+            ("score.weight.ttfb", "number", None),
+            ("messaging.message.receive.latency", "duration", "millisecond"),
+            ("messaging.message.retry.count", "number", None),
+            # size fields aren't property support pre-RPC
+            ("cache.item_size", "number", None),
+            ("messaging.message.body.size", "number", None),
+        ]
+
+        self._test_simple_measurements(keys)
 
     def test_environment(self):
         self.create_environment(self.project, name="prod")
@@ -2029,3 +2033,47 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
             "measurements.messaging.message.body.size": "byte",
             "messaging.message.body.size": "byte",
         }
+
+    def test_simple_measurements(self):
+        keys = [
+            ("app_start_cold", "duration", "millisecond"),
+            ("app_start_warm", "duration", "millisecond"),
+            ("frames_frozen", "number", None),  # should be integer but keeping it consistent
+            ("frames_frozen_rate", "percentage", None),
+            ("frames_slow", "number", None),  # should be integer but keeping it consistent
+            ("frames_slow_rate", "percentage", None),
+            ("frames_total", "number", None),  # should be integer but keeping it consistent
+            ("time_to_initial_display", "duration", "millisecond"),
+            ("time_to_full_display", "duration", "millisecond"),
+            ("stall_count", "number", None),  # should be integer but keeping it consistent
+            ("stall_percentage", "percentage", None),
+            ("stall_stall_longest_time", "number", None),
+            ("stall_stall_total_time", "number", None),
+            ("cls", "number", None),
+            ("fcp", "duration", "millisecond"),
+            ("fid", "duration", "millisecond"),
+            ("fp", "duration", "millisecond"),
+            ("inp", "duration", "millisecond"),
+            ("lcp", "duration", "millisecond"),
+            ("ttfb", "duration", "millisecond"),
+            ("ttfb.requesttime", "duration", "millisecond"),
+            ("score.cls", "number", None),
+            ("score.fcp", "number", None),
+            ("score.fid", "number", None),
+            ("score.inp", "number", None),
+            ("score.lcp", "number", None),
+            ("score.ttfb", "number", None),
+            ("score.total", "number", None),
+            ("score.weight.cls", "number", None),
+            ("score.weight.fcp", "number", None),
+            ("score.weight.fid", "number", None),
+            ("score.weight.inp", "number", None),
+            ("score.weight.lcp", "number", None),
+            ("score.weight.ttfb", "number", None),
+            ("cache.item_size", "size", "byte"),
+            ("messaging.message.body.size", "size", "byte"),
+            ("messaging.message.receive.latency", "duration", "millisecond"),
+            ("messaging.message.retry.count", "number", None),
+        ]
+
+        self._test_simple_measurements(keys)
