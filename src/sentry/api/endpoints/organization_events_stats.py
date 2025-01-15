@@ -277,7 +277,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             return Response({"detail": f"Metric type must be one of: {metric_types}"}, status=400)
 
         force_metrics_layer = request.GET.get("forceMetricsLayer") == "true"
-        use_rpc = request.GET.get("useRpc", "0") == "1"
+        use_rpc = request.GET.get("useRpc", "0") == "1" and dataset == spans_eap
 
         def _get_event_stats(
             scoped_dataset: Any,
@@ -289,7 +289,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             comparison_delta: timedelta | None,
         ) -> SnubaTSResult | dict[str, SnubaTSResult]:
             if top_events > 0:
-                if use_rpc and dataset == spans_eap:
+                if use_rpc:
                     return spans_rpc.run_top_events_timeseries_query(
                         params=snuba_params,
                         query_string=query,
@@ -328,7 +328,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     ),
                 )
 
-            if use_rpc and dataset == spans_eap:
+            if use_rpc:
                 return spans_rpc.run_timeseries_query(
                     params=snuba_params,
                     query_string=query,
@@ -571,7 +571,8 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     zerofill_results=zerofill_results,
                     comparison_delta=comparison_delta,
                     dataset=dataset,
-                    transform_alias_to_input_format=transform_alias_to_input_format,
+                    # use_rpc should always transform_alias_to_input_format
+                    transform_alias_to_input_format=transform_alias_to_input_format or use_rpc,
                 ),
                 status=200,
             )

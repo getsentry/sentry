@@ -657,7 +657,8 @@ SPAN_FUNCTION_DEFINITIONS = {
     ),
     "count_unique": FunctionDefinition(
         internal_function=Function.FUNCTION_UNIQ,
-        default_search_type="number",
+        default_search_type="integer",
+        infer_search_type_from_arguments=False,
         arguments=[
             ArgumentDefinition(
                 argument_types={"string"},
