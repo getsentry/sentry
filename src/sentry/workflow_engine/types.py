@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from abc import abstractmethod
 from enum import IntEnum
-from typing import TYPE_CHECKING, Any, Generic, TypedDict, TypeVar
+from typing import TYPE_CHECKING, Any, ClassVar, Generic, TypedDict, TypeVar
 
 from sentry.types.group import PriorityLevel
 
@@ -56,11 +55,7 @@ class DataSourceTypeHandler(Generic[T]):
 
 
 class DataConditionHandler(Generic[T]):
-    @property
-    @abstractmethod
-    def comparison_json_schema(self) -> dict[str, Any]:
-        # TODO(cathy): raise NotImplementedError
-        return {}
+    comparison_json_schema: ClassVar[dict[str, Any]] = {}
 
     @staticmethod
     def evaluate_value(value: T, comparison: Any) -> DataConditionResult:

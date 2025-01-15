@@ -11,21 +11,19 @@ from sentry.workflow_engine.types import DataConditionHandler, WorkflowJob
 
 @condition_handler_registry.register(Condition.AGE_COMPARISON)
 class AgeComparisonConditionHandler(DataConditionHandler[WorkflowJob]):
-    @property
-    def comparison_json_schema(self) -> dict[str, Any]:
-        return {
-            "type": "object",
-            "properties": {
-                "comparison_type": {
-                    "type": "string",
-                    "enum": [AgeComparisonType.OLDER, AgeComparisonType.NEWER],
-                },
-                "value": {"type": "integer", "minimum": 0},
-                "time": {"type": "string", "enum": list(timeranges.keys())},
+    comparison_json_schema = {
+        "type": "object",
+        "properties": {
+            "comparison_type": {
+                "type": "string",
+                "enum": [AgeComparisonType.OLDER, AgeComparisonType.NEWER],
             },
-            "required": ["comparison_type", "value", "time"],
-            "additionalProperties": False,
-        }
+            "value": {"type": "integer", "minimum": 0},
+            "time": {"type": "string", "enum": list(timeranges.keys())},
+        },
+        "required": ["comparison_type", "value", "time"],
+        "additionalProperties": False,
+    }
 
     @staticmethod
     def evaluate_value(job: WorkflowJob, comparison: Any) -> bool:

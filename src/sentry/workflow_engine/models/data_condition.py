@@ -143,7 +143,7 @@ def enforce_comparison_schema(sender, instance: DataCondition, **kwargs):
         )
         return None
 
-    schema = handler().comparison_json_schema
+    schema = handler.comparison_json_schema
 
     try:
         validate(instance.comparison, schema)
