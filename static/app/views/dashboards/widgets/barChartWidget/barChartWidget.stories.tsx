@@ -53,8 +53,8 @@ export default storyBook(BarChartWidget, story => {
     return (
       <Fragment>
         <p>
-          The visualization of <JSXNode name="BarChartWidget" /> a stacked area chart. It
-          has some bells and whistles including automatic axes labels, and a hover
+          The visualization of <JSXNode name="BarChartWidget" /> is a stacked bar chart.
+          It has some bells and whistles including automatic axes labels, and a hover
           tooltip. Like other widgets, it automatically fills the parent element.
         </p>
         <SmallSizingWindow>
