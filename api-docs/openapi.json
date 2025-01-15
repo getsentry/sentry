@@ -106,7 +106,7 @@
     "/api/0/organizations/{organization_id_or_slug}/repos/{repo_id}/commits/": {
       "$ref": "paths/organizations/repo-commits.json"
     },
-    "/api/0/organizations/{organization_id_or_slug}/shortids/{short_id}/": {
+    "/api/0/organizations/{organization_id_or_slug}/shortids/{issue_id}/": {
       "$ref": "paths/organizations/shortid.json"
     },
     "/api/0/projects/": {

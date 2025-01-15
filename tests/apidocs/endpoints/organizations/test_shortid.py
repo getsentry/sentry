@@ -12,7 +12,7 @@ class OrganizationShortIDDocs(APIDocsTestCase):
             "sentry-api-0-short-id-lookup",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "short_id": group.qualified_short_id,
+                "issue_id": group.qualified_short_id,
             },
         )
 
