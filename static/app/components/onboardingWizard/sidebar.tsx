@@ -328,7 +328,26 @@ function Task({task, hidePanel, showWaitingIndicator}: TaskProps) {
   }, [task.status, task.pendingTitle]);
 
   return (
-    <TaskWrapper layout={showSkipConfirmation ? false : true}>
+    <TaskWrapper
+      initial
+      animate="animate"
+      layout={showSkipConfirmation ? false : true}
+      variants={{
+        initial: {
+          opacity: 0,
+          y: 40,
+        },
+        animate: {
+          opacity: 1,
+          y: 0,
+          transition: testableTransition({
+            delay: 0.8,
+            when: 'beforeChildren',
+            staggerChildren: 0.3,
+          }),
+        },
+      }}
+    >
       <TaskCard
         onClick={
           task.status === 'complete' || task.status === 'skipped'
@@ -678,27 +697,6 @@ const TaskWrapper = styled(motion.li)`
   gap: ${space(1)};
   background-color: ${p => p.theme.background};
 `;
-
-TaskWrapper.defaultProps = {
-  initial: false,
-  animate: 'animate',
-  layout: true,
-  variants: {
-    initial: {
-      opacity: 0,
-      y: 40,
-    },
-    animate: {
-      opacity: 1,
-      y: 0,
-      transition: testableTransition({
-        delay: 0.8,
-        when: 'beforeChildren',
-        staggerChildren: 0.3,
-      }),
-    },
-  },
-};
 
 const TaskActions = styled('div')`
   display: flex;

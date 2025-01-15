@@ -7,7 +7,7 @@ import testableTransition from 'sentry/utils/testableTransition';
 
 const Background = styled(motion.g)``;
 
-Background.defaultProps = {
+const backgroundAnimationProps = {
   initial: {opacity: 0},
   animate: {opacity: 1},
   transition: testableTransition({duration: 0.5}),
@@ -15,7 +15,7 @@ Background.defaultProps = {
 
 const MainWindows = styled(motion.g)``;
 
-MainWindows.defaultProps = {
+const mainWindowsAnimationProps = {
   initial: {rotate: -2, scale: 0.95, opacity: 0},
   animate: {rotate: 0, scale: 1, opacity: 1},
   transition: testableTransition({type: 'spring', delay: 0.2, stiffness: 200, bounce: 5}),
@@ -23,7 +23,7 @@ MainWindows.defaultProps = {
 
 const SecondWindow = styled(motion.g)``;
 
-SecondWindow.defaultProps = {
+const secondWindowAnimationProps = {
   initial: {rotate: 10, scale: 0.9, opacity: 0},
   animate: {rotate: 0, scale: 1, opacity: 1},
   transition: testableTransition({type: 'spring', delay: 0.7, stiffness: 200, bounce: 5}),
@@ -49,14 +49,14 @@ const Cable = styled(motion.path)`
 
 // All stroke lengths are computed using SVGGeometryElement.getTotalLength()
 const CablePlug = styled(Cable)``;
-CablePlug.defaultProps = {
+const cablePlugAnimationProps = {
   ...cableAnimate,
   style: {'--stroke-length': 717.05} as any,
   transition: testableTransition({duration: 2, delay: 1.3}),
 };
 
 const CableWindow1 = styled(Cable)``;
-CableWindow1.defaultProps = {
+const cableWindow1AnimationProps = {
   ...cableAnimate,
   custom: {length: 89.28},
   style: {'--stroke-length': 89.28} as any,
@@ -64,14 +64,14 @@ CableWindow1.defaultProps = {
 };
 
 const CableWindow2 = styled(Cable)``;
-CableWindow2.defaultProps = {
+const cableWindow2AnimationProps = {
   ...cableAnimate,
   style: {'--stroke-length': 132.26} as any,
   transition: testableTransition({duration: 0.9, delay: 1}),
 };
 
 const PowerBolts = styled(motion.g)``;
-PowerBolts.defaultProps = {
+const powerBoltsAnimationProps = {
   initial: {rotate: 10, scale: 0.9, opacity: 0},
   animate: {rotate: 0, scale: 1, opacity: 1},
   transition: testableTransition({type: 'spring', delay: 3.2, stiffness: 200, bounce: 5}),
@@ -83,7 +83,7 @@ const PowerBolt = styled(motion.g)`
 `;
 
 const Sparks = styled(motion.g)``;
-Sparks.defaultProps = {
+const sparksAnimationProps = {
   initial: 'initial',
   animate: 'animate',
   variants: {
@@ -103,7 +103,7 @@ const Spark = styled(motion.g)`
   animation-iteration-count: infinite;
 `;
 
-Spark.defaultProps = {
+const sparkAnimationProps = {
   variants: {
     initial: () => ({
       rotate: (Math.random() - 0.5) * 80,
@@ -211,7 +211,7 @@ function NoProjectEmptyState() {
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
-      <Background>
+      <Background {...backgroundAnimationProps}>
         <path d="M425.89 15.49v118.33h128c.38 0 0-118 0-118l-128-.33z" fill="#E7E1EC" />
         <path
           d="M296.03 495.11H24.41V342.56h71.07v11.55h32.37v16.74h63.63v-58.06h152.37V167.68h191.44v106h-62v70.33l-178 .56.74 150.54z"
@@ -336,7 +336,7 @@ function NoProjectEmptyState() {
           fill="white"
         />
       </OilPuddle>
-      <MainWindows>
+      <MainWindows {...mainWindowsAnimationProps}>
         <path
           d="M59.76 411.11c-16.58 0-30.25 0-35.35-.08v1c4.55.08 15.16.1 28.07.1h7.49l-.21-1.02z"
           fill="#C7BFD0"
@@ -886,19 +886,22 @@ function NoProjectEmptyState() {
           d="M210.42 399.94C207.02 400.733 203.72 401.903 200.58 403.43C194.29 406.6 191.32 410.6 192 415.01C192.109 416.221 192.571 417.373 193.331 418.323C194.09 419.273 195.112 419.978 196.27 420.35C196.921 420.537 197.593 420.638 198.27 420.65C198.27 420.65 198.81 420.65 199.47 420.65C202.199 420.273 204.708 418.949 206.56 416.91C207.86 415.52 208.33 414.26 207.93 413.28C207.698 412.839 207.346 412.473 206.914 412.225C206.482 411.977 205.988 411.857 205.49 411.88H205.25C204.295 411.892 203.36 412.158 202.543 412.652C201.725 413.146 201.054 413.85 200.6 414.69C199.75 416.38 199.182 418.197 198.92 420.07C198.92 420.17 198.76 421.27 198.76 421.27C198.21 425.68 198.32 431.53 199.12 441.48C200.03 452.59 200.74 501.77 187.22 521.48C180.02 531.97 160.76 538.35 145.86 541.85C129.263 545.653 112.331 547.804 95.31 548.27C90.99 548.34 86.98 548.22 83.4 547.92C80.88 547.63 76.74 547.03 76.74 547.03C71.07 545.95 67.4 544.16 66.13 541.86C65.29 540.34 65.47 538.57 66.66 536.74C68.99 533.14 77.56 532 84.21 532.09C90.56 532.2 97.72 533.56 99.4 536.36C99.7398 536.873 99.9301 537.47 99.9495 538.084C99.9689 538.699 99.8168 539.307 99.51 539.84C97.93 542.71 92.34 545.16 83.34 546.92L76.67 548C66.9121 549.234 57.0942 549.935 47.26 550.1C46.09 550.1 44.92 550.1 43.75 550.1C25.37 550.1 7.21998 546.34 5.64998 537.58C4.87998 533.34 8.98998 529.13 16.37 526.58C21.59 524.79 27.06 523.12 32.37 521.5L32.78 521.38C49.3 516.38 59.32 512.99 59.3 509.38C59.3 507.48 56.3 505.69 50.25 503.91C44.2351 502.367 38.0385 501.647 31.83 501.77C19.93 501.77 4.65998 503.99 0.759978 510.23C0.44301 510.701 0.27958 511.259 0.292113 511.826C0.304647 512.394 0.492536 512.943 0.829986 513.4C3.69999 517.8 16.77 521.1 32.62 521.4H32.78C40.6178 521.525 48.453 521.02 56.21 519.89C72.14 517.58 82.57 512.48 87.21 504.71C90.67 498.92 90.88 491.71 87.83 483.43C82.31 468.33 86.67 451.22 86.71 451.05"
           stroke="#2F1D4A"
           strokeLinecap="round"
+          {...cablePlugAnimationProps}
         />
         <CableWindow1
           d="M449.67 100C449.88 100 470.67 100.15 471.44 113.58C471.93 122.43 467.35 129.14 462.91 135.58C459.57 140.46 456.12 145.51 455.07 151.31C453.01 162.76 457.84 169.63 458.07 169.91"
           stroke="#2F1D4A"
           strokeLinecap="round"
+          {...cableWindow1AnimationProps}
         />
         <CableWindow2
           d="M449.12 75.66C449.4 75.66 477.47 77.99 482.79 100.03C487.04 117.62 469.94 131.03 457.45 140.77C452.7 144.49 448.61 147.7 446.51 150.45C438.43 161.11 439.58 170.88 439.63 171.29"
           stroke="#2F1D4A"
           strokeLinecap="round"
+          {...cableWindow2AnimationProps}
         />
       </g>
-      <SecondWindow>
+      <SecondWindow {...secondWindowAnimationProps}>
         <path
           d="M439.03 116.58l-164.95.31a6.12 6.12 0 01-6.12-6.12l-5.32-63.66a6.12 6.12 0 016.11-6.12l169.45-5a6.12 6.12 0 016.11 6.12l.84 68.37a6.1 6.1 0 01-6.12 6.1z"
           fill="white"
@@ -1238,7 +1241,7 @@ function NoProjectEmptyState() {
           fill="#BF5328"
         />
       </Alert>
-      <PowerBolts>
+      <PowerBolts {...powerBoltsAnimationProps}>
         <PowerBolt
           css={css`
             animation-name: ${makeShake()};
@@ -1298,11 +1301,12 @@ function NoProjectEmptyState() {
           />
         </PowerBolt>
       </PowerBolts>
-      <Sparks>
+      <Sparks {...sparksAnimationProps}>
         <Spark
           css={css`
             animation-name: ${makeOpacityJitter()};
           `}
+          {...sparkAnimationProps}
         >
           <path
             d="M249.66 498.04a.5.5 0 01-.31-.11l-6.56-5.31a.49.49 0 01-.08-.7.51.51 0 01.71-.07l6.56 5.3a.5.5 0 01-.03.8.5.5 0 01-.29.09z"
@@ -1333,6 +1337,7 @@ function NoProjectEmptyState() {
           css={css`
             animation-name: ${makeOpacityJitter()};
           `}
+          {...sparkAnimationProps}
         >
           <path
             d="M251.06 478.5a.5.5 0 01-.37-.16l-7-7.53a.51.51 0 010-.71c.05-.05.1-.08.16-.1a.49.49 0 01.39 0c.06.02.11.05.16.1l7 7.53a.49.49 0 01.1.54.5.5 0 01-.46.3l.02.03z"
@@ -1363,6 +1368,7 @@ function NoProjectEmptyState() {
           css={css`
             animation-name: ${makeOpacityJitter()};
           `}
+          {...sparkAnimationProps}
         >
           <path
             d="M451.99 95.34a.5.5 0 01-.49-.38.5.5 0 01.36-.6c.42-.11 5.87-2.22 9.43-3.61a.5.5 0 01.64.66.5.5 0 01-.27.27c-.92.36-9 3.5-9.55 3.65l-.12.01z"
@@ -1393,6 +1399,7 @@ function NoProjectEmptyState() {
           css={css`
             animation-name: ${makeOpacityJitter()};
           `}
+          {...sparkAnimationProps}
         >
           <path
             d="M447.66 68.27a.5.5 0 01-.34-.13.51.51 0 010-.71l8.24-8.93a.5.5 0 01.7.71l-8.23 8.9a.5.5 0 01-.37.16z"

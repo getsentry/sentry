@@ -63,7 +63,7 @@ const Text = styled('div')<Omit<TextProps, 'theme'>>`
 
 const AnimatedText = motion(Text);
 
-AnimatedText.defaultProps = {
+const animatedTextDefaultProps = {
   initial: {opacity: 0, y: -10},
   animate: {opacity: 1, y: 0},
   exit: {opacity: 0, y: 10},
@@ -95,7 +95,11 @@ function ProgressRing({
   const TextComponent = animateText ? AnimatedText : Text;
 
   let textNode = (
-    <TextComponent key={text?.toString()} {...{textCss, percent}}>
+    <TextComponent
+      key={text?.toString()}
+      {...(animateText ? animatedTextDefaultProps : {})}
+      {...{textCss, percent}}
+    >
       {text}
     </TextComponent>
   );

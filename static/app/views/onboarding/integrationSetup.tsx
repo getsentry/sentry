@@ -158,7 +158,11 @@ function IntegrationSetup({project, integrationSlug, platform}: Props) {
           <AddInstallationInstructions />
         </motion.div>
 
-        <DocsWrapper>
+        <motion.div
+          initial={{opacity: 0, y: 40}}
+          animate={{opacity: 1, y: 0}}
+          exit={{opacity: 0, y: 40}}
+        >
           <AddIntegrationButton
             provider={provider}
             onAddIntegration={() => setInstalled(true)}
@@ -168,7 +172,7 @@ function IntegrationSetup({project, integrationSlug, platform}: Props) {
             analyticsParams={{view: 'onboarding', already_installed: false}}
             modalParams={{projectId: project.id}}
           />
-        </DocsWrapper>
+        </motion.div>
       </Fragment>
     );
   };
@@ -253,14 +257,6 @@ function IntegrationSetup({project, integrationSlug, platform}: Props) {
     </Fragment>
   );
 }
-
-const DocsWrapper = styled(motion.div)``;
-
-DocsWrapper.defaultProps = {
-  initial: {opacity: 0, y: 40},
-  animate: {opacity: 1, y: 0},
-  exit: {opacity: 0},
-};
 
 const Divider = styled('hr')`
   height: 1px;

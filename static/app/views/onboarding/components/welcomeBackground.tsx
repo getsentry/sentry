@@ -3,29 +3,33 @@ import {motion} from 'framer-motion';
 
 import testableTransition from 'sentry/utils/testableTransition';
 
-const Light = styled(motion.g)`
-  transform-box: fill-box;
-`;
-
-Light.defaultProps = {
-  initial: {
-    originX: '50%',
-    originY: '0',
-  },
-  animate: {
-    rotate: [-5, 8, -5],
-    transition: testableTransition({
-      duration: 3,
-      repeat: Infinity,
-      repeatType: 'loop',
-    }),
-  },
-};
-
 function WelcomeBackground() {
   return (
-    <Container>
-      <Compass xmlns="http://www.w3.org/2000/svg" width="150" viewBox="0 0 143.7 123.4">
+    <Container
+      variants={{
+        animate: {},
+        exit: {},
+      }}
+      transition={testableTransition({staggerChildren: 0.2})}
+    >
+      <Compass
+        xmlns="http://www.w3.org/2000/svg"
+        width="150"
+        viewBox="0 0 143.7 123.4"
+        variants={{
+          initial: {
+            opacity: 0,
+            scale: 0.9,
+          },
+          animate: {
+            opacity: 1,
+            scale: 1,
+            transition: testableTransition({duration: 0.5}),
+          },
+          exit: {y: -120, opacity: 0},
+        }}
+        transition={testableTransition({duration: 0.9})}
+      >
         <path
           d="M141 47c-2-10-18-22-26-26s-21-9-40-8-31 8-31 8l-2-1c7-5 8-11 8-13s-4-6-13-6-22 2-29 9-10 19 0 21 24-4 24-4l4 2-7 11-7 28c-2 17 5 26 12 33 8 8 32 23 68 19 29-3 34-15 37-18s3-10 3-10l1-32c0-6 0-7-2-13ZM39 15s-8 1-9 7l1 1s-10 3-16 2-9-2-6-8S22 7 22 7a49 49 0 0 1 14-2c7-1 9 2 9 3s0 5-4 10Z"
           fill="#fff"
@@ -103,7 +107,26 @@ function WelcomeBackground() {
           fill="#2f1d4a"
         />
       </Compass>
-      <Log xmlns="http://www.w3.org/2000/svg" width="225" viewBox="0 0 243.3 103.5">
+      <Log
+        xmlns="http://www.w3.org/2000/svg"
+        width="225"
+        viewBox="0 0 243.3 103.5"
+        variants={{
+          initial: {
+            opacity: 0,
+            scale: 0.9,
+          },
+          animate: {
+            opacity: 1,
+            scale: 1,
+            transition: testableTransition({duration: 0.5}),
+          },
+          exit: {y: -200, opacity: 0},
+        }}
+        transition={testableTransition({
+          duration: 1.1,
+        })}
+      >
         <path
           d="M13 51s-3 6-2 20a45 45 0 0 0 7 24l14 8h154s15-7 15-36a54 54 0 0 0-2-13c-4-19-16-24-16-24h-7a16 16 0 0 0 1-12l-5-4a17 17 0 0 0-8 1l-15 14-116 1s-12 5-20 21Z"
           fill="#fff"
@@ -211,46 +234,10 @@ const Compass = styled(Illustration)`
   top: 32px;
 `;
 
-Compass.defaultProps = {
-  variants: {
-    initial: {
-      opacity: 0,
-      scale: 0.9,
-    },
-    animate: {
-      opacity: 1,
-      scale: 1,
-      transition: testableTransition({duration: 0.5}),
-    },
-    exit: {y: -120, opacity: 0},
-  },
-  transition: testableTransition({
-    duration: 0.9,
-  }),
-};
-
 const Log = styled(Illustration)`
   right: -60px;
   bottom: 0;
 `;
-
-Log.defaultProps = {
-  variants: {
-    initial: {
-      opacity: 0,
-      scale: 0.9,
-    },
-    animate: {
-      opacity: 1,
-      scale: 1,
-      transition: testableTransition({duration: 0.5}),
-    },
-    exit: {y: -200, opacity: 0},
-  },
-  transition: testableTransition({
-    duration: 1.1,
-  }),
-};
 
 const Container = styled(motion.div)`
   pointer-events: none;
@@ -264,10 +251,3 @@ const Container = styled(motion.div)`
     display: none;
   }
 `;
-Container.defaultProps = {
-  variants: {
-    animate: {},
-    exit: {},
-  },
-  transition: testableTransition({staggerChildren: 0.2}),
-};
