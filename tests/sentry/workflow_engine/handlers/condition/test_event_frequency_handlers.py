@@ -1,4 +1,5 @@
 import pytest
+from jsonschema import ValidationError
 
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group
@@ -48,6 +49,27 @@ class TestEventFrequencyCountCondition(ConditionTestCase):
         assert dc.condition_result is True
         assert dc.condition_group == dcg
 
+    def test_json_schema(self):
+        with pytest.raises(ValidationError):
+            self.create_data_condition(
+                type=self.condition,
+                comparison={
+                    "interval": "asdf",
+                    "value": 100,
+                },
+                condition_result=True,
+            )
+
+        with pytest.raises(ValidationError):
+            self.create_data_condition(
+                type=self.condition,
+                comparison={
+                    "interval": "1d",
+                    "value": -1,
+                },
+                condition_result=True,
+            )
+
 
 class TestEventFrequencyPercentCondition(ConditionTestCase):
     condition = Condition.EVENT_FREQUENCY_PERCENT
@@ -86,6 +108,40 @@ class TestEventFrequencyPercentCondition(ConditionTestCase):
         }
         assert dc.condition_result is True
         assert dc.condition_group == dcg
+
+    def test_json_schema(self):
+        with pytest.raises(ValidationError):
+            self.create_data_condition(
+                type=self.condition,
+                comparison={
+                    "interval": "asdf",
+                    "value": 100,
+                    "comparison_interval": "1d",
+                },
+                condition_result=True,
+            )
+
+        with pytest.raises(ValidationError):
+            self.create_data_condition(
+                type=self.condition,
+                comparison={
+                    "interval": "1d",
+                    "value": -1,
+                    "comparison_interval": "1d",
+                },
+                condition_result=True,
+            )
+
+        with pytest.raises(ValidationError):
+            self.create_data_condition(
+                type=self.condition,
+                comparison={
+                    "interval": "1d",
+                    "value": 100,
+                    "comparison_interval": "asdf",
+                },
+                condition_result=True,
+            )
 
 
 class EventFrequencyQueryTest(EventFrequencyQueryTestBase):

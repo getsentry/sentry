@@ -5,7 +5,11 @@ from typing import Any
 from sentry import tsdb
 from sentry.issues.constants import get_issue_tsdb_group_model
 from sentry.models.group import Group
-from sentry.rules.conditions.event_frequency import STANDARD_INTERVALS, percent_increase
+from sentry.rules.conditions.event_frequency import (
+    COMPARISON_INTERVALS,
+    STANDARD_INTERVALS,
+    percent_increase,
+)
 from sentry.tsdb.base import TSDBModel
 from sentry.workflow_engine.handlers.condition.event_frequency_base_handler import (
     BaseEventFrequencyConditionHandler,
@@ -56,6 +60,16 @@ class EventFrequencyConditionHandler(BaseEventFrequencyConditionHandler):
 
 @condition_handler_registry.register(Condition.EVENT_FREQUENCY_COUNT)
 class EventFrequencyCountHandler(EventFrequencyConditionHandler, DataConditionHandler[int]):
+    comparison_json_schema = {
+        "type": "object",
+        "properties": {
+            "interval": {"type": "string", "enum": list(STANDARD_INTERVALS.keys())},
+            "value": {"type": "integer", "minimum": 0},
+        },
+        "required": ["interval", "value"],
+        "additionalProperties": False,
+    }
+
     @staticmethod
     def evaluate_value(value: int, comparison: Any) -> DataConditionResult:
         return value > comparison["value"]
@@ -63,6 +77,17 @@ class EventFrequencyCountHandler(EventFrequencyConditionHandler, DataConditionHa
 
 @condition_handler_registry.register(Condition.EVENT_FREQUENCY_PERCENT)
 class EventFrequencyPercentHandler(EventFrequencyConditionHandler, DataConditionHandler[list[int]]):
+    comparison_json_schema = {
+        "type": "object",
+        "properties": {
+            "interval": {"type": "string", "enum": list(STANDARD_INTERVALS.keys())},
+            "value": {"type": "integer", "minimum": 0},
+            "comparison_interval": {"type": "string", "enum": list(COMPARISON_INTERVALS.keys())},
+        },
+        "required": ["interval", "value", "comparison_interval"],
+        "additionalProperties": False,
+    }
+
     @staticmethod
     def evaluate_value(value: list[int], comparison: Any) -> DataConditionResult:
         if len(value) != 2:

@@ -47,11 +47,11 @@ class ConditionTestCase(BaseWorkflowTest):
         assert data_condition.evaluate_value(job) != data_condition.get_condition_result()
 
     # Slow conditions are evaluated in delayed processing and take in the results directly
-    def assert_slow_cond_passes(self, data_condition: DataCondition, job: list[int]) -> None:
-        assert data_condition.evaluate_value(job) == data_condition.get_condition_result()
+    def assert_slow_cond_passes(self, data_condition: DataCondition, value: Any) -> None:
+        assert data_condition.evaluate_value(value) == data_condition.get_condition_result()
 
-    def assert_slow_cond_does_not_pass(self, data_condition: DataCondition, job: list[int]) -> None:
-        assert data_condition.evaluate_value(job) != data_condition.get_condition_result()
+    def assert_slow_cond_does_not_pass(self, data_condition: DataCondition, value: Any) -> None:
+        assert data_condition.evaluate_value(value) != data_condition.get_condition_result()
 
     # TODO: activity
 

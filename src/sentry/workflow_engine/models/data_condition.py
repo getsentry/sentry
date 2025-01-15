@@ -154,3 +154,28 @@ SLOW_CONDITIONS = [
 
 def is_slow_condition(cond: DataCondition) -> bool:
     return Condition(cond.type) in SLOW_CONDITIONS
+
+
+@receiver(pre_save, sender=DataCondition)
+def enforce_comparison_schema(sender, instance: DataCondition, **kwargs):
+
+    condition_type = Condition(instance.type)
+    if condition_type in CONDITION_OPS:
+        # don't enforce schema for default ops, this can be any type
+        return
+
+    try:
+        handler = condition_handler_registry.get(condition_type)
+    except NoRegistrationExistsError:
+        logger.exception(
+            "No registration exists for condition",
+            extra={"type": instance.type, "id": instance.id},
+        )
+        return None
+
+    schema = handler.comparison_json_schema
+
+    try:
+        validate(instance.comparison, schema)
+    except ValidationError as e:
+        raise ValidationError(f"Invalid config: {e.message}")
