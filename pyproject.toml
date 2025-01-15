@@ -281,7 +281,6 @@ module = [
     "sentry.testutils.cases",
     "sentry.utils.auth",
     "sentry.utils.committers",
-    "sentry.web.forms.accounts",
     "sentry.web.frontend.auth_login",
     "sentry.web.frontend.auth_organization_login",
     "sentry.web.frontend.base",
