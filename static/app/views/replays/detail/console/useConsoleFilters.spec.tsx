@@ -52,7 +52,7 @@ const frames = hydrateBreadcrumbs(ReplayRecordFixture(), [
       arguments: [
         'event - does not exist',
         {
-          cancelable: true,
+          skipAbort: false,
           duration: 160,
           entryType: 'event',
           name: 'keyup',

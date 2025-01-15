@@ -183,6 +183,22 @@ class Client implements ApiNamespace.Client {
     Object.values(this.activeRequests).forEach(r => r.cancel());
   }
 
+  wrapCallback<T extends any[]>(
+    _id: string,
+    func: (...args: T) => void,
+    _cleanup: boolean = false
+  ) {
+    const asyncDelay = Client.asyncDelay;
+
+    return (...args: T) => {
+      // @ts-expect-error
+      if (RealApi.hasProjectBeenRenamed(...args)) {
+        return;
+      }
+      respond(asyncDelay, func, ...args);
+    };
+  }
+
   requestPromise(
     path: string,
     {

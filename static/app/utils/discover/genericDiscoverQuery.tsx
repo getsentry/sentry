@@ -67,11 +67,6 @@ type BaseDiscoverQueryProps = {
    */
   location: Location;
   /**
-   * A flag to skip aborting the request when api.clear() is called, which happens
-   * frequently on component unmounts.
-   */
-  cancelable?: boolean;
-  /**
    * Explicit cursor value if you aren't using `location.query.cursor` because there are
    * multiple paginated results on the page.
    */
@@ -108,6 +103,11 @@ type BaseDiscoverQueryProps = {
    * A callback to set an error so that the error can be rendered in parent components
    */
   setError?: (errObject: QueryError | undefined) => void;
+  /**
+   * A flag to skip aborting the request when api.clear() is called, which happens
+   * frequently on component unmounts.
+   */
+  skipAbort?: boolean;
 };
 
 export type DiscoverQueryPropsWithContext = BaseDiscoverQueryProps & OptionalContextProps;
@@ -339,12 +339,12 @@ export async function doDiscoverQuery<T>(
   url: string,
   params: DiscoverQueryRequestParams,
   options: {
-    cancelable?: boolean;
     queryBatching?: QueryBatching;
     retry?: RetryOptions;
+    skipAbort?: boolean;
   } = {}
 ): Promise<ApiResult<T>> {
-  const {queryBatching, retry, cancelable} = options;
+  const {queryBatching, retry, skipAbort} = options;
   if (queryBatching?.batchRequest) {
     return queryBatching.batchRequest(api, url, {
       query: params,
@@ -373,7 +373,7 @@ export async function doDiscoverQuery<T>(
           // marking params as any so as to not cause typescript errors
           ...(params as any),
         },
-        cancelable,
+        skipAbort,
       });
     } catch (err) {
       error = err;
@@ -427,7 +427,7 @@ export function useGenericDiscoverQuery<T, P>(props: Props<T, P>) {
     queryFn: ({signal: _signal}) =>
       doDiscoverQuery<T>(api, url, apiPayload, {
         queryBatching: props.queryBatching,
-        cancelable: props.cancelable,
+        skipAbort: props.skipAbort,
       }),
     ...options,
   });

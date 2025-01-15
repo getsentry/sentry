@@ -75,7 +75,7 @@ export const useProjectRawWebVitalsQuery = ({
     options: {
       refetchOnWindowFocus: false,
     },
-    cancelable: false,
+    skipAbort: true,
     referrer: 'api.performance.browser.web-vitals.project',
   });
   return result;
