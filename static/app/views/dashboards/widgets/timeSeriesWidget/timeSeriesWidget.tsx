@@ -63,6 +63,8 @@ export function TimeSeriesWidget(props: TimeSeriesWidgetProps) {
             aliases={props.aliases}
             dataCompletenessDelay={props.dataCompletenessDelay}
             SeriesConstructor={props.SeriesConstructor}
+            timeseriesSelection={props.timeseriesSelection}
+            onTimeseriesSelectionChange={props.onTimeseriesSelectionChange}
           />
         </TimeSeriesWrapper>
       )}
