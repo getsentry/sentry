@@ -128,9 +128,10 @@ class IntegrationPlatformEndpoint(Endpoint):
 
     def _handle_sentry_app_exception(self, exception: Exception):
         if isinstance(exception, SentryAppIntegratorError) or isinstance(exception, SentryAppError):
-            response_body = {"detail": exception.message}
+            response_body: dict[str, Any] = {"detail": exception.message}
             context = exception.extras.get("public_context", None)
-            response_body.update({"context": context}) if context else ""
+            if context is not None:
+                response_body.update({"context": context})
 
             response = Response(response_body, status=exception.status_code)
             response.exception = True
