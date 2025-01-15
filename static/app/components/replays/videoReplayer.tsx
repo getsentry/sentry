@@ -414,7 +414,8 @@ export class VideoReplayer {
       // Edge case: Don't show previous video if the orientation is different
       if (
         index === (this._currentIndex || 0) - 1 &&
-        (videoElem.videoHeight === nextVideo.videoHeight && videoElem.videoWidth === nextVideo.videoWidth)
+        videoElem.videoHeight === nextVideo.videoHeight &&
+        videoElem.videoWidth === nextVideo.videoWidth
       ) {
         if (videoElem.duration) {
           // we need to set the previous video to the end so that it's shown in case the next video has a gap at the beginning
