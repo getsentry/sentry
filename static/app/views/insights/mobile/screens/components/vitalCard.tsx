@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {space} from 'sentry/styles/space';
 import {PERFORMANCE_SCORE_COLORS} from 'sentry/views/insights/browser/webVitals/utils/performanceScoreColors';
@@ -25,6 +26,7 @@ function VitalCard({
   return (
     <Fragment>
       <MeterBarContainer clickable={onClick !== undefined} onClick={onClick}>
+        {onClick && <InteractionStateLayer />}
         <MeterBarBody>
           {description && (
             <StyledQuestionTooltip
