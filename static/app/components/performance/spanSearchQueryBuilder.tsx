@@ -182,7 +182,7 @@ export function EAPSpanSearchQueryBuilder({
 
   const filterTags: TagCollection = useMemo(() => {
     const tags: TagCollection = {...functionTags, ...numberTags, ...stringTags};
-    tags.has = getHasTag(tags);
+    tags.has = getHasTag({...stringTags}); // TODO: add number tags
     return tags;
   }, [numberTags, stringTags, functionTags]);
 
