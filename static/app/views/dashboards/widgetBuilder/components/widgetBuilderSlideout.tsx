@@ -75,7 +75,8 @@ function WidgetBuilderSlideout({
     state.displayType !== DisplayType.BIG_NUMBER &&
     state.displayType !== DisplayType.TABLE;
 
-  const previewRef = useRef<HTMLDivElement>(null);
+  const customPreviewRef = useRef<HTMLDivElement>(null);
+  const templatesPreviewRef = useRef<HTMLDivElement>(null);
 
   const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.small})`);
 
@@ -91,12 +92,17 @@ function WidgetBuilderSlideout({
       {threshold: 0}
     );
 
-    if (previewRef.current) {
-      observer.observe(previewRef.current);
+    // need two different refs to account for preview when customizing templates
+    if (customPreviewRef.current) {
+      observer.observe(customPreviewRef.current);
+    }
+
+    if (templatesPreviewRef.current) {
+      observer.observe(templatesPreviewRef.current);
     }
 
     return () => observer.disconnect();
-  }, [setIsPreviewDraggable]);
+  }, [setIsPreviewDraggable, openWidgetTemplates]);
 
   return (
     <SlideOverPanel
@@ -142,13 +148,14 @@ function WidgetBuilderSlideout({
             <Section>
               <WidgetBuilderTypeSelector error={error} setError={setError} />
             </Section>
-            <div ref={previewRef}>
+            <div ref={customPreviewRef}>
               {isSmallScreen && (
                 <Section>
                   <WidgetPreviewContainer
                     dashboard={dashboard}
                     dashboardFilters={dashboardFilters}
                     isWidgetInvalid={isWidgetInvalid}
+                    openWidgetTemplates={openWidgetTemplates}
                   />
                 </Section>
               )}
@@ -178,13 +185,14 @@ function WidgetBuilderSlideout({
           </Fragment>
         ) : (
           <Fragment>
-            <div ref={previewRef}>
+            <div ref={templatesPreviewRef}>
               {isSmallScreen && (
                 <Section>
                   <WidgetPreviewContainer
                     dashboard={dashboard}
                     dashboardFilters={dashboardFilters}
                     isWidgetInvalid={isWidgetInvalid}
+                    openWidgetTemplates={openWidgetTemplates}
                   />
                 </Section>
               )}
@@ -192,6 +200,7 @@ function WidgetBuilderSlideout({
             <WidgetTemplatesList
               onSave={onSave}
               setOpenWidgetTemplates={setOpenWidgetTemplates}
+              setIsPreviewDraggable={setIsPreviewDraggable}
             />
           </Fragment>
         )}

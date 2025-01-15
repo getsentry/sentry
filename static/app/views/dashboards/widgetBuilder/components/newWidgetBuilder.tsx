@@ -3,6 +3,7 @@ import {closestCorners, DndContext, useDraggable, useDroppable} from '@dnd-kit/c
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
+import omit from 'lodash/omit';
 
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -142,6 +143,7 @@ function WidgetBuilderV2({
                           dragPosition={translate}
                           isDraggable={isPreviewDraggable}
                           isWidgetInvalid={!queryConditionsValid}
+                          openWidgetTemplates={openWidgetTemplates}
                         />
                       </DndContext>
                     )}
@@ -164,12 +166,14 @@ export function WidgetPreviewContainer({
   isWidgetInvalid,
   dragPosition,
   isDraggable,
+  openWidgetTemplates,
 }: {
   dashboard: DashboardDetails;
   dashboardFilters: DashboardFilters;
   isWidgetInvalid: boolean;
   dragPosition?: WidgetDragPositioning;
   isDraggable?: boolean;
+  openWidgetTemplates?: boolean;
 }) {
   const {state} = useWidgetBuilderContext();
   const organization = useOrganization();
@@ -180,7 +184,6 @@ export function WidgetPreviewContainer({
       useRpc: decodeBoolean,
     },
   });
-
   const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.small})`);
   // if small screen and draggable, enable dragging
   const isDragEnabled = isSmallScreen && isDraggable;
@@ -195,7 +198,7 @@ export function WidgetPreviewContainer({
 
   const draggableStyle: CSSProperties = {
     transform: isDragEnabled
-      ? `translate3d(${translate?.x ?? 0}px, ${translate?.y ?? 0}px, 0)`
+      ? `translate3d(${isDragging ? translate?.x : 0}px, ${isDragging ? translate?.y : 0}px, 0)`
       : undefined,
     top: isDragEnabled ? top ?? 0 : undefined,
     left: isDragEnabled ? left ?? 0 : undefined,
@@ -207,9 +210,26 @@ export function WidgetPreviewContainer({
     position: isDragEnabled ? 'fixed' : undefined,
   };
 
+  // check if the state is in the url because the state variable has default values
+  const hasUrlParams =
+    Object.keys(
+      omit(location.query, [
+        'environment',
+        'project',
+        'release',
+        'start',
+        'end',
+        'statsPeriod',
+      ])
+    ).length > 0;
+
   const getPreviewHeight = () => {
     if (isDragEnabled) {
       return DRAGGABLE_PREVIEW_HEIGHT_PX;
+    }
+    // if none of the widget templates are selected
+    if (openWidgetTemplates && !hasUrlParams) {
+      return PREVIEW_HEIGHT_PX;
     }
     if (state.displayType === DisplayType.TABLE) {
       return 'auto';
@@ -260,13 +280,24 @@ export function WidgetPreviewContainer({
                       : undefined,
                   }}
                 >
-                  <WidgetPreview
-                    // While we test out RPC for spans, force a re-render if the spans toggle changes
-                    key={state.dataset === WidgetType.SPANS && useRpc ? 'spans' : 'other'}
-                    dashboardFilters={dashboardFilters}
-                    dashboard={dashboard}
-                    isWidgetInvalid={isWidgetInvalid}
-                  />
+                  {openWidgetTemplates && !hasUrlParams ? (
+                    <WidgetPreviewPlaceholder>
+                      <h6 style={{margin: 0}}>{t('Widget Title')}</h6>
+                      <TemplateWidgetPreviewPlaceholder>
+                        <p style={{margin: 0}}>{t('Select a widget to preview')}</p>
+                      </TemplateWidgetPreviewPlaceholder>
+                    </WidgetPreviewPlaceholder>
+                  ) : (
+                    <WidgetPreview
+                      // While we test out RPC for spans, force a re-render if the spans toggle changes
+                      key={
+                        state.dataset === WidgetType.SPANS && useRpc ? 'spans' : 'other'
+                      }
+                      dashboardFilters={dashboardFilters}
+                      dashboard={dashboard}
+                      isWidgetInvalid={isWidgetInvalid}
+                    />
+                  )}
                 </SampleWidgetCard>
               </DraggableWidgetContainer>
             </MEPSettingProvider>
@@ -389,4 +420,23 @@ const DroppableGrid = styled('div')`
   right: ${space(2)};
   bottom: ${space(2)};
   left: 0;
+`;
+
+const TemplateWidgetPreviewPlaceholder = styled('div')`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 95%;
+  color: ${p => p.theme.subText};
+  font-style: italic;
+  font-size: ${p => p.theme.fontSizeMedium};
+  font-weight: ${p => p.theme.fontWeightNormal};
+`;
+
+const WidgetPreviewPlaceholder = styled('div')`
+  width: 100%;
+  height: 100%;
+  padding: ${space(2)};
 `;
