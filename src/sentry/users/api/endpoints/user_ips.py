@@ -36,5 +36,5 @@ class UserIPsEndpoint(UserEndpoint):
             queryset=queryset,
             order_by="-last_seen",
             paginator_cls=DateTimePaginator,
-            on_results=lambda x: serialize(x, request, serializer=UserIPSerializer()),
+            on_results=lambda x: serialize(x, request.user, serializer=UserIPSerializer()),
         )

@@ -6,6 +6,7 @@ from datetime import datetime
 from enum import Enum
 from typing import TYPE_CHECKING, Any, TypedDict, Union
 
+from django.contrib.auth.models import AnonymousUser
 from django.db.models.base import Model
 
 from sentry.api.serializers import Serializer, register, serialize
@@ -18,6 +19,7 @@ from sentry.models.authidentity import AuthIdentity
 from sentry.pipeline.provider import PipelineProvider
 from sentry.users.models.identity import Identity
 from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
 from social_auth.models import UserSocialAuth
 
 if TYPE_CHECKING:
@@ -137,7 +139,10 @@ class UserIdentityConfigSerializerResponse(TypedDict):
 @register(UserIdentityConfig)
 class UserIdentityConfigSerializer(Serializer):
     def get_attrs(
-        self, item_list: Sequence[UserIdentityConfig], user: Any, **kwargs: Any
+        self,
+        item_list: Sequence[UserIdentityConfig],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
     ) -> MutableMapping[Any, Any]:
         result: MutableMapping[UserIdentityConfig, Any] = {}
         organizations = {
@@ -157,7 +162,11 @@ class UserIdentityConfigSerializer(Serializer):
         return result
 
     def serialize(
-        self, obj: UserIdentityConfig, attrs: Mapping[str, Any], user: User, **kwargs: Any
+        self,
+        obj: UserIdentityConfig,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
     ) -> UserIdentityConfigSerializerResponse:
         from sentry.api.serializers.models.organization import ControlSiloOrganizationSerializer
 

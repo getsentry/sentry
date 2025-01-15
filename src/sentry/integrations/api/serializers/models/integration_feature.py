@@ -1,9 +1,12 @@
 from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any
 
+from django.contrib.auth.models import AnonymousUser
+
 from sentry.api.serializers import Serializer, register
 from sentry.integrations.models.integration_feature import IntegrationFeature
 from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
 
 
 @register(IntegrationFeature)
@@ -11,7 +14,7 @@ class IntegrationFeatureSerializer(Serializer):
     def get_attrs(
         self,
         item_list: Sequence[IntegrationFeature],
-        user: User,
+        user: User | RpcUser | AnonymousUser,
         has_target: bool = True,
         **kwargs: Any,
     ) -> MutableMapping[Any, Any]:
@@ -27,7 +30,7 @@ class IntegrationFeatureSerializer(Serializer):
         self,
         obj: IntegrationFeature,
         attrs: Mapping[Any, Any],
-        user: User,
+        user: User | RpcUser | AnonymousUser,
         has_target: bool = True,
         **kwargs,
     ):

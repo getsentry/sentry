@@ -3,16 +3,24 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Any
 
+from django.contrib.auth.models import AnonymousUser
+
 from sentry.api.serializers.base import Serializer
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.services.integration.service import integration_service
 from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 
 
 # Serializer for External Issues Model
 # Maps an external issue to to additional integration information such as key or name
 class ExternalIssueSerializer(Serializer):
-    def get_attrs(self, item_list: Sequence[ExternalIssue], user: User, **kwargs: Any):
+    def get_attrs(
+        self,
+        item_list: Sequence[ExternalIssue],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ):
         result = {}
         for item in item_list:
             # Get the integration (e.g. Jira, GitHub, etc) associated with that issue
