@@ -12,9 +12,9 @@ export default storyBook(CompactSelect, story => {
     return (
       <Fragment>
         <p>
-          <code>CompactSelect</code> is a general-purpose dropdown select component. It's
-          a capable alternative to <code>select</code> elements, and supports features
-          like sections, search, multi-select, loading states, and more.
+          <code>CompactSelect</code> is a general-purpose dropdown select component.
+          It&apos;s a capable alternative to <code>select</code> elements, and supports
+          features like sections, search, multi-select, loading states, and more.
         </p>
 
         <p>
@@ -47,8 +47,8 @@ export default storyBook(CompactSelect, story => {
       <Fragment>
         <p>
           In the most basic case, a <code>value</code>, <code>onChange</code> handler and
-          an array of <code>options</code> are all that's needed. The component does not
-          maintain its own selection state.
+          an array of <code>options</code> are all that&apos;s needed. The component does
+          not maintain its own selection state.
         </p>
 
         <CompactSelect value={value} onChange={handleValueChange} options={options} />
@@ -83,8 +83,8 @@ export default storyBook(CompactSelect, story => {
       <Fragment>
         <p>
           <code>CompactSelect</code> can also be made searchable, clearable,
-          multi-selectable, etc. It's also possible to group items into sections, and set
-          the props for the trigger.
+          multi-selectable, etc. It&apos;s also possible to group items into sections, and
+          set the props for the trigger.
         </p>
 
         <CompactSelect
@@ -125,12 +125,13 @@ export default storyBook(CompactSelect, story => {
     return (
       <Fragment>
         <p>
-          In some cases, it's useful to add caching to <code>CompactSelect</code>. If your
-          select is loading data asynchronously as the user types, a naive implementation
-          will interrupt the user flow. Consider the country selector below. Try typing
-          "c" then a second later "a", then "n". You'll notice that the loading state
-          interrupts the flow, because it clears the options list. This happens if the
-          data hook clears previous results while data is loading (very common).
+          In some cases, it&apos;s useful to add caching to <code>CompactSelect</code>. If
+          your select is loading data asynchronously as the user types, a naive
+          implementation will interrupt the user flow. Consider the country selector
+          below. Try typing <kbd>c</kbd> then a second later <kbd>a</kbd>, then{' '}
+          <kbd>n</kbd>. You&apos;ll notice that the loading state interrupts the flow,
+          because it clears the options list. This happens if the data hook clears
+          previous results while data is loading (very common).
         </p>
         <div>
           <CompactSelect

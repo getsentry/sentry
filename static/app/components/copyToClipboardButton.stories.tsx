@@ -16,7 +16,7 @@ export default storyBook(CopyToClipboardButton, story => {
       <p>
         By default the button will stick the <JSXProperty name="text" value={String} />{' '}
         value onto your clipboard; as if you typed <kbd>CTRL+C</kbd> or <kbd>CMD+C</kbd>.
-        It'll show toast messages, and includes{' '}
+        It&apos;ll show toast messages, and includes{' '}
         <JSXProperty name="onCopy" value={Function} /> &
         <JSXProperty name="onError" value={Function} /> callbacks.
       </p>
@@ -37,10 +37,10 @@ export default storyBook(CopyToClipboardButton, story => {
     return (
       <Fragment>
         <p>
-          There's also a hook you can use to get the same behavior and apply it to any
-          other component.
+          There&apos;s also a hook you can use to get the same behavior and apply it to
+          any other component.
         </p>
-        <p>Here's an example where I've chosen a different icon:</p>
+        <p>Here&apos;s an example where I&apos;ve chosen a different icon:</p>
         <Button icon={<IconLink />} aria-label={label} onClick={onClick} />
       </Fragment>
     );
@@ -54,8 +54,8 @@ export default storyBook(CopyToClipboardButton, story => {
     <Fragment>
       <p>
         Try to keep the <JSXProperty name="size" value="" /> and{' '}
-        <JSXProperty name="iconSize" value="" /> props set to the same value. Here's a
-        grid of all the possible combinations.
+        <JSXProperty name="iconSize" value="" /> props set to the same value. Here&apos;s
+        a grid of all the possible combinations.
       </p>
       <Matrix
         render={CopyToClipboardButton}

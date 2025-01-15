@@ -27,8 +27,8 @@ export default storyBook(AreaChartWidget, story => {
           Each timeseries is shown using a solid block of color. This chart is used to
           visualize multiple timeseries that represent parts of something. For example, a
           chart that shows time spent in the app broken down by component. In all other
-          ways, it behaves like <JSXNode name="LineChartWidget" />, though it doesn't
-          support features like "Previous Period Data".
+          ways, it behaves like <JSXNode name="LineChartWidget" />, though it doesn&apos;t
+          support features like &quot;Previous Period Data&quot;.
         </p>
         <p>
           <em>NOTE:</em> This chart is not appropriate for showing a single timeseries!
@@ -99,7 +99,7 @@ export default storyBook(AreaChartWidget, story => {
         <p>
           <JSXNode name="AreaChartWidget" /> supports the usual loading and error states.
           The loading state shows a spinner. The error state shows a message, and an
-          optional "Retry" button.
+          optional &quot;Retry&quot; button.
         </p>
 
         <SideBySide>

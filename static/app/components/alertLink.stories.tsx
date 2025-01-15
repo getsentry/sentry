@@ -77,7 +77,7 @@ export default storyBook(AlertLink, story => {
     return (
       <Fragment>
         <p>
-          The <JSXProperty name="system" value /> prop is a boolean that's{' '}
+          The <JSXProperty name="system" value /> prop is a boolean that&apos;s{' '}
           <code>false</code> by default.
         </p>
         <AlertLink>The default style.</AlertLink>
@@ -90,8 +90,8 @@ export default storyBook(AlertLink, story => {
     return (
       <Fragment>
         <p>
-          The <JSXProperty name="withoutMarginBottom" value /> prop is a boolean that's{' '}
-          <code>false</code> by default.
+          The <JSXProperty name="withoutMarginBottom" value /> prop is a boolean
+          that&apos;s <code>false</code> by default.
         </p>
         <AlertLink withoutMarginBottom>This one has no bottom margin.</AlertLink>
         <AlertLink>This one has bottom margin by default.</AlertLink>
@@ -104,8 +104,8 @@ export default storyBook(AlertLink, story => {
     return (
       <Fragment>
         <p>
-          The <JSXProperty name="size" value /> prop can be either <code>"small"</code> or{' '}
-          <code>"normal"</code>.{' '}
+          The prop can be either <JSXProperty name="size" value="small" />
+          or <JSXProperty name="size" value="normal" />.
         </p>
         <AlertLink priority="info" size="normal">
           Normal

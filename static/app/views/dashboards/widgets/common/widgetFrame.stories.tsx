@@ -14,8 +14,9 @@ export default storyBook(WidgetFrame, story => {
       <Fragment>
         <p>
           <JSXNode name="WidgetFrame" /> is a container element used for all widgets in
-          the Dashboards Widget Platform. It's mostly an under-the-hood component, but it
-          can be useful to emulate widget-like states, like widget cards with actions.
+          the Dashboards Widget Platform. It&apos;s mostly an under-the-hood component,
+          but it can be useful to emulate widget-like states, like widget cards with
+          actions.
         </p>
       </Fragment>
     );
@@ -31,7 +32,7 @@ export default storyBook(WidgetFrame, story => {
         </p>
 
         <p>
-          The description can be a React element, but don't go overboard. Stick to
+          The description can be a React element, but don&apos;t go overboard. Stick to
           strings, or <code>tct</code> output consisting of text and links.
         </p>
 

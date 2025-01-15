@@ -120,7 +120,7 @@ export default storyBook(LineChartWidget, story => {
         <p>
           <JSXNode name="LineChartWidget" /> supports the usual loading and error states.
           The loading state shows a spinner. The error state shows a message, and an
-          optional "Retry" button.
+          optional &quot;Retry&quot; button.
         </p>
 
         <SideBySide>

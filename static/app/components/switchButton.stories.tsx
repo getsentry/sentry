@@ -16,9 +16,9 @@ export default storyBook('Switch', story => {
     return (
       <Fragment>
         <p>
-          The <JSXNode name="Switch" /> component is a toggle button. It doesn't have any
-          property to specify a text label, so you'll need to add your own accompanying
-          label if you need one.
+          The <JSXNode name="Switch" /> component is a toggle button. It doesn&apos;t have
+          any property to specify a text label, so you&apos;ll need to add your own
+          accompanying label if you need one.
         </p>
         <p>
           Here we are specifying the label with an HTML <code>label</code> element, which
@@ -44,8 +44,9 @@ export default storyBook('Switch', story => {
     return (
       <Fragment>
         <p>
-          The <JSXProperty name="size" value /> prop has two options: <code>"sm"</code>{' '}
-          and <code>"lg"</code>. The default value is <code>"sm"</code>.
+          The prop has two options: <JSXProperty name="size" value="sm" />
+          and <JSXProperty name="size" value="lg" />. The default value is{' '}
+          <JSXProperty name="size" value="sm" />.
         </p>
         <SwitchItem htmlFor="lg-switch">
           Large switch

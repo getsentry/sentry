@@ -75,7 +75,7 @@ export default storyBook('Layout Components', story => {
         component.
       </p>
       <p>
-        The page's breadcrumbs are defined by the{' '}
+        The page&apos;s breadcrumbs are defined by the{' '}
         <JSXNode
           name="BreadcrumbsProvider"
           props={{crumb: {label: 'Automations', to: '/automations'}}}
@@ -83,7 +83,7 @@ export default storyBook('Layout Components', story => {
         component.
       </p>
       <p>
-        The page's action buttons are defined by the{' '}
+        The page&apos;s action buttons are defined by the{' '}
         <JSXNode name="ActionsProvider" props={{actions: <JSXNode name="Button" />}} />{' '}
         component.
       </p>

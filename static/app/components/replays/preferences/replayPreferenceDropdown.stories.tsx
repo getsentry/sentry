@@ -20,7 +20,7 @@ export default storyBook(ReplayPreferenceDropdown, story => {
     return (
       <Fragment>
         <p>
-          Most often you'll want to save preferences into localStorage using the{' '}
+          Most often you&apos;ll want to save preferences into localStorage using the{' '}
           <code>LocalStorageReplayPreferences</code> strategy.
         </p>
         <p>
@@ -82,7 +82,7 @@ export default storyBook(ReplayPreferenceDropdown, story => {
     return (
       <Fragment>
         <p>
-          You can hide the fast-forward checkbox in case that's not supported or
+          You can hide the fast-forward checkbox in case that&apos;s not supported or
           desirable.
         </p>
         <ReplayPreferencesContextProvider prefsStrategy={StaticReplayPreferences}>

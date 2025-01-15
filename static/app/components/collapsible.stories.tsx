@@ -31,8 +31,8 @@ export default storyBook(Collapsible, story => {
   story('Bugs', () => (
     <Fragment>
       <p>
-        It's possible to use <JSXNode name="ul" /> or <JSXNode name="ol" />, but beware
-        that the button will appear inside the list as well.
+        It&apos;s possible to use <JSXNode name="ul" /> or <JSXNode name="ol" />, but
+        beware that the button will appear inside the list as well.
       </p>
       <SideBySide>
         <ol>

@@ -100,7 +100,7 @@ function ReplaysList() {
               {t('Unindexed search field')}
               <EmptyStateSubheading>
                 {tct('Field [field] requires an [sdkPrompt]', {
-                  field: <strong>'click'</strong>,
+                  field: <strong>&apos;click&apos;</strong>,
                   sdkPrompt: <strong>{t('SDK version >= 7.44.0')}</strong>,
                 })}
               </EmptyStateSubheading>

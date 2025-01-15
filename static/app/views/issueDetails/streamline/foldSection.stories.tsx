@@ -21,7 +21,7 @@ import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
       </CodeSnippet>
       <p>
         The <code>SectionKey</code> required in props is used to create a local storage
-        state key to remember the user's previous state for the fold section.
+        state key to remember the users previous state for the fold section.
       </p>
     </Fragment>
   ));
@@ -101,7 +101,7 @@ import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
     return (
       <Fragment>
         <p>
-          Important Note: User's local storage preferences overwrite this prop, if they
+          Important Note: Users local storage preferences overwrite this prop, if they
           have manually opened this section before, it will stay open and ignore this
           prop.
         </p>

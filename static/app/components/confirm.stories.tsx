@@ -22,7 +22,7 @@ export default storyBook(Confirm, story => {
           a trigger, or by calling <code>openConfirmModal()</code> in a callback.
         </p>
         <p>
-          It's recommended to call <code>openConfirmModal()</code>.
+          It&apos;s recommended to call <code>openConfirmModal()</code>.
         </p>
         <p>Current state is: {state}.</p>
         <SideBySide>
@@ -161,7 +161,7 @@ export default storyBook(Confirm, story => {
   story('<Confirm> child render func', () => (
     <Fragment>
       <p>
-        Here's an example where <JSXProperty name="children" value={Function} /> is a
+        Here&apos;s an example where <JSXProperty name="children" value={Function} /> is a
         render function:
       </p>
       <Confirm>{({open}) => <Button onClick={open}>Open the modal</Button>}</Confirm>

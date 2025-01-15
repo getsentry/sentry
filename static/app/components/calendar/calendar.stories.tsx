@@ -17,7 +17,7 @@ export default storyBook('Calendar', story => {
           <JSXProperty name="onChange" value={Function} />.
         </p>
         <p>
-          Under the hook we're using{' '}
+          Under the hook we&apos;re using{' '}
           <ExternalLink href="https://github.com/hypeserver/react-date-range">
             react-date-range v1.4.x
           </ExternalLink>

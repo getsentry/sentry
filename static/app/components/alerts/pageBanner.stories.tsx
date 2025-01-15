@@ -23,7 +23,7 @@ export default storyBook(PageBanner, story => {
 
   story('Example', () => (
     <Fragment>
-      <p>Here's an example Banner announcing this UI Component Library:</p>
+      <p>Here&apos;s an example Banner announcing this UI Component Library:</p>
       <PageBanner
         button={storiesButton}
         description="Build new products faster by exploring reusable the UI components available inside Sentry."
@@ -71,8 +71,8 @@ export default storyBook(PageBanner, story => {
     return (
       <Fragment>
         <p>
-          The banner will resize if it's shrunk really narrow. To make it expand inside a
-          flex parent set <kbd>flex-grow:1</kbd>.
+          The banner will resize if it&apos;s shrunk really narrow. To make it expand
+          inside a flex parent set <kbd>flex-grow:1</kbd>.
         </p>
         <p>
           <Button size="sm" onClick={() => setFlexGrow(!flexGrow)}>

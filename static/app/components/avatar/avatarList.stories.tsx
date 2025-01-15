@@ -69,8 +69,9 @@ export default storyBook(AvatarList, story => {
       <Fragment>
         <p>
           You can set <JSXProperty name="typeAvatars" value={String} /> at any time, but
-          it's especially important when passing in teams or teams + users together. This
-          is rendered as the suffix to the tooltip on the summary avatar "10 other users"
+          it&apos;s especially important when passing in teams or teams + users together.
+          This is rendered as the suffix to the tooltip on the summary avatar &quot;10
+          other users&quot;
           <SizingWindow display="block" style={{width: '50%'}}>
             {isLoading ? (
               <Placeholder />

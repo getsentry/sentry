@@ -33,8 +33,8 @@ export default storyBook(BigNumberWidget, story => {
 
         <p>
           <JSXNode name="BigNumberWidget" /> also supports string values. This is not
-          commonly used, but it's capable of rendering timestamps and in fact most fields
-          defined in our field renderer pipeline
+          commonly used, but it&apos;s capable of rendering timestamps and in fact most
+          fields defined in our field renderer pipeline
         </p>
 
         <SideBySide>
@@ -142,7 +142,7 @@ export default storyBook(BigNumberWidget, story => {
         <p>
           <JSXNode name="BigNumberWidget" /> supports the usual loading and error states.
           The loading state shows a simple placeholder. The error state also shows an
-          optional "Retry" button.
+          optional &quot;Retry&quot; button.
         </p>
 
         <SideBySide>

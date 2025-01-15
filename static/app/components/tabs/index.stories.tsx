@@ -2,6 +2,7 @@ import {Fragment, useState} from 'react';
 import range from 'lodash/range';
 
 import JSXNode from 'sentry/components/stories/jsxNode';
+import JSXProperty from 'sentry/components/stories/jsxProperty';
 import Matrix, {type PropMatrix} from 'sentry/components/stories/matrix';
 import SideBySide from 'sentry/components/stories/sideBySide';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
@@ -197,10 +198,11 @@ export default storyBook(Tabs, story => {
     return (
       <div>
         <p>
-          Use the variant prop to control which tab design to use. The default, "flat", is
-          used in the above examples, but you can also use "filled" variant, as shown
-          below. Note that the "filled" variant does not work when the oritentation is
-          vertical
+          Use the variant prop to control which tab design to use. The default,{' '}
+          <JSXProperty name="variant" value="flat" />, is used in the above examples, but
+          you can also use <JSXProperty name="variant" value="filled" /> variant, as shown
+          below. Note that the <JSXProperty name="variant" value="filled" /> variant does
+          not work when the oritentation is vertical
         </p>
         <SizingWindow>
           <Tabs>
@@ -217,7 +219,10 @@ export default storyBook(Tabs, story => {
           </Tabs>
         </SizingWindow>
         <br />
-        <p>You can also use the "floating" variant, which is used below</p>
+        <p>
+          You can also use the <JSXProperty name="variant" value="foating" />
+          variant, which is used below
+        </p>
         <SizingWindow>
           <Tabs>
             <TabList variant="floating" hideBorder>

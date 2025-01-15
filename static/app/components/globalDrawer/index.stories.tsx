@@ -15,15 +15,15 @@ export default storyBook('GlobalDrawer', story => {
     <Fragment>
       <p>
         <JSXNode name="GlobalDrawer" /> is a way to show a slide-out drawer on the right
-        side of the UI. It's an application-wide singleton component, which means that
-        only one drawer can be open at any given time and its position is always the same.
-        The drawer is opened and closed via React hooks. The contents of the drawer are
-        unstyled.
+        side of the UI. It&apos;s an application-wide singleton component, which means
+        that only one drawer can be open at any given time and its position is always the
+        same. The drawer is opened and closed via React hooks. The contents of the drawer
+        are unstyled.
       </p>
       <p>
-        By default the drawer can be closed with an "Escape" key press, with an outside
-        click, or on URL location change. This behavior can be changed by passing in
-        options to <code>openDrawer</code>. More on this below.
+        By default the drawer can be closed with an <kbd>Escape</kbd> key press, with an
+        outside click, or on URL location change. This behavior can be changed by passing
+        in options to <code>openDrawer</code>. More on this below.
       </p>
     </Fragment>
   ));
@@ -180,7 +180,7 @@ function MyDrawer({title}: {title: string}) {
         </LeftButton>
 
         <p>
-          Finally, "Escape" key press. You can control this with the{' '}
+          Finally, <kbd>Escape</kbd> key press. You can control this with the{' '}
           <code>closeOnEscapeKeypress</code> prop.
         </p>
 
@@ -192,7 +192,7 @@ function MyDrawer({title}: {title: string}) {
             })
           }
         >
-          Open Drawer. Does not close on "Escape".
+          Open Drawer. Does not close on <kbd>Escape</kbd>.
         </LeftButton>
       </Fragment>
     );
@@ -201,8 +201,8 @@ function MyDrawer({title}: {title: string}) {
   story('Automatically Opening Drawer on URLs', () => (
     <Fragment>
       <p>
-        It's good practice to represent the drawer state in the URL. If a page opens a
-        details drawer, that should update the URL. Opening that URL should open the
+        It&apos;s good practice to represent the drawer state in the URL. If a page opens
+        a details drawer, that should update the URL. Opening that URL should open the
         drawer. The simplest way to do this is via <code>useEffect</code> and checking the
         URL.
       </p>
@@ -239,10 +239,10 @@ function ModalContent() {
       </CodeSnippet>
 
       <p>
-        You don't need to worry about closing the drawer, since it'll close automatically
-        on URL change. If the drawer contents rely on the URL and change it, you'll need
-        to specify <code>shouldCloseOnLocationChange</code> to prevent the drawer from
-        closing (or re-triggering) unnecessarily.
+        You don&apos;t need to worry about closing the drawer, since it&apos;ll close
+        automatically on URL change. If the drawer contents rely on the URL and change it,
+        you&apos;ll need to specify <code>shouldCloseOnLocationChange</code> to prevent
+        the drawer from closing (or re-triggering) unnecessarily.
       </p>
     </Fragment>
   ));
@@ -254,9 +254,9 @@ function ModalContent() {
         <p>
           <JSXNode name="DrawerHeader" /> and <JSXNode name="DrawerBody" /> are helper
           components. You can use them to make your drawers look consistent with the rest
-          of the application. <JSXNode name="DrawerHeader" /> includes a "Close" button
-          and a spot to render a title. <JSXNode name="DrawerBody" /> specifies correct
-          padding, scrolling, and overflow.
+          of the application. <JSXNode name="DrawerHeader" /> includes a &quot;Close&quot;
+          button and a spot to render a title. <JSXNode name="DrawerBody" /> specifies
+          correct padding, scrolling, and overflow.
         </p>
 
         <CodeSnippet language="jsx">

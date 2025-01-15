@@ -529,15 +529,15 @@ export default storyBook(SearchQueryBuilder, story => {
               parameter.
               <ul>
                 <li>
-                  <code>'value'</code>: If this parameter is a value it also requires a{' '}
-                  <code>dataType</code> and, optionally, a list of <code>options</code>{' '}
-                  that will be displayed as suggestions.
+                  <JSXProperty name="kind" value="value" />: If this parameter is a value
+                  it also requires a <code>dataType</code> and, optionally, a list of{' '}
+                  <code>options</code> that will be displayed as suggestions.
                 </li>
                 <li>
-                  <code>'column'</code>: Column parameters suggest other existing filter
-                  keys. This also requires <code>columnTypes</code> to be defined, which
-                  may be a list of data types that the column may be or a predicate
-                  function.
+                  <JSXProperty name="kind" value="column" />: Column parameters suggest
+                  other existing filter keys. This also requires <code>columnTypes</code>{' '}
+                  to be defined, which may be a list of data types that the column may be
+                  or a predicate function.
                 </li>
               </ul>
             </li>
@@ -581,24 +581,24 @@ export default storyBook(SearchQueryBuilder, story => {
     return (
       <Fragment>
         <p>
-          <code>onChange</code> is called whenever the search query changes. This can be
-          used to update the UI as the user updates the query.
+          <JSXProperty name="onChange" value={Function} /> is called whenever the search
+          query changes. This can be used to update the UI as the user updates the query.
         </p>
         <p>
-          <code>onSearch</code> is called when the user presses enter. This can be used to
-          submit the search query.
+          <JSXProperty name="onSearch" value={Function} /> is called when the user presses
+          enter. This can be used to submit the search query.
         </p>
         <p>
           <ul>
             <li>
               <strong>
-                Last <code>onChange</code> value
+                Last <JSXProperty name="onChange" value /> value
               </strong>
               : <code>{onChangeValue}</code>
             </li>
             <li>
               <strong>
-                Last <code>onSearch</code> value
+                Last <JSXProperty name="onSearch" value /> value
               </strong>
               : <code>{onSearchValue}</code>
             </li>

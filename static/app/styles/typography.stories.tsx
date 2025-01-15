@@ -160,8 +160,8 @@ export default function TypographyStories() {
     <FixedWidth>
       <h3>Typography</h3>
       <p>
-        We've built Sentry's type system around Rubik - a playful open-source typeface.
-        For code and code-like elements, we use <code>Roboto Mono</code>.
+        We&apos;ve built Sentry&apos;s type system around Rubik - a playful open-source
+        typeface. For code and code-like elements, we use <code>Roboto Mono</code>.
       </p>
       <hr />
       <h4>Type scale</h4>
@@ -170,8 +170,8 @@ export default function TypographyStories() {
         common elements, such as Heading 1, Heading 2, Paragraph, and Button/Label.
       </p>
       <p>
-        Sentry's type scale is based on the Rubik typeface. The root font size is 16px
-        (1rem = 16px).
+        Sentry&apos;s type scale is based on the Rubik typeface. The root font size is
+        16px (1rem = 16px).
       </p>
       <PanelTable headers={['Scale', 'Weight', 'Size', 'Line Height', 'Letter Spacing']}>
         {TYPE_SCALE.map(({name, ...props}) => {
@@ -273,7 +273,8 @@ export default function TypographyStories() {
       <h4>External Links</h4>
       <p>
         External links lead users to pages outside the application. Examples include links
-        to Sentry's blog/marketing pages, terms of service, third-party documentation,…
+        to Sentry&apos;s blog/marketing pages, terms of service, third-party
+        documentation,…
       </p>
       <p>
         The following styling rules apply to external links only. Internal links, on the
@@ -293,8 +294,8 @@ export default function TypographyStories() {
           Add a solid underline in <ColorSwatch color="blue100" />
         </li>
         <li>
-          Don't include any preceding articles (a, the, this, our) in the linked text, for
-          example:
+          Don&apos;t include any preceding articles (a, the, this, our) in the linked
+          text, for example:
           <ul>
             <li>
               <Flex gap={space(1)} align="baseline">
@@ -333,8 +334,8 @@ export default function TypographyStories() {
       </p>
       <h5>Standalone</h5>
       <p>
-        When a link appears on its own and the user likely knows that it's a link given
-        the context, like in a footer:
+        When a link appears on its own and the user likely knows that it&apos;s a link
+        given the context, like in a footer:
       </p>
       <ExamplePanel>
         <Flex column>
@@ -347,7 +348,7 @@ export default function TypographyStories() {
           Use <ColorSwatch color="gray500" />, <ColorSwatch color="gray400" />, or{' '}
           <ColorSwatch color="gray300" />, depending on the context
         </li>
-        <li>Don't add any underline</li>
+        <li>Don&apos;t add any underline</li>
         <li>
           On hover:
           <ul>
@@ -395,7 +396,7 @@ export default function TypographyStories() {
       <p>
         <Flex gap={space(1)} align="flex-start">
           <PositiveLabel />
-          Don't add full stops (.) to the end of each item, unless the item contains
+          Don&apos;t add full stops (.) to the end of each item, unless the item contains
           multiple sentences.
         </Flex>
       </p>
@@ -619,7 +620,7 @@ const NegativeLabel = styled(
   ({className, style}: {className?: string; style?: CSSProperties}) => (
     <div className={className} style={style}>
       <IconClose color="red400" />
-      DON'T
+      DON&apos;T
     </div>
   )
 )`

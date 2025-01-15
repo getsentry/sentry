@@ -15,8 +15,8 @@ export default storyBook(QuestionTooltip, story => {
           The <JSXNode name="QuestionTooltip" /> component is a small{' '}
           <JSXNode name="IconQuestion" /> where you can specify a tooltip to go with it.
           It is useful for placing after headers and titles to include additional
-          information. You'll see it often at the top of Sentry's pages, near the page
-          titles.
+          information. You&apos;ll see it often at the top of Sentry&apos;s pages, near
+          the page titles.
         </p>
         <p>
           An example <JSXNode name="QuestionTooltip" /> looks like this:
@@ -49,22 +49,28 @@ export default storyBook(QuestionTooltip, story => {
         </p>
         <IconExamples>
           <div>
-            "xs" <QuestionTooltip size="xs" title="xs" />
+            <JSXProperty name="size" value="xs" />{' '}
+            <QuestionTooltip size="xs" title="xs" />
           </div>
           <div>
-            "sm" <QuestionTooltip size="sm" title="sm" />
+            <JSXProperty name="size" value="sm" />{' '}
+            <QuestionTooltip size="sm" title="sm" />
           </div>
           <div>
-            "md" <QuestionTooltip size="md" title="md" />
+            <JSXProperty name="size" value="md" />{' '}
+            <QuestionTooltip size="md" title="md" />
           </div>
           <div>
-            "lg" <QuestionTooltip size="lg" title="lg" />
+            <JSXProperty name="size" value="lg" />{' '}
+            <QuestionTooltip size="lg" title="lg" />
           </div>
           <div>
-            "xl" <QuestionTooltip size="xl" title="xl" />
+            <JSXProperty name="size" value="xl" />{' '}
+            <QuestionTooltip size="xl" title="xl" />
           </div>
           <div>
-            "xxl" <QuestionTooltip size="xxl" title="xxl" />
+            <JSXProperty name="size" value="xxl" />{' '}
+            <QuestionTooltip size="xxl" title="xxl" />
           </div>
         </IconExamples>
       </Fragment>

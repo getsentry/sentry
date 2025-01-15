@@ -27,7 +27,7 @@ export default storyBook(OnboardingPanel, story => {
         <OnboardingPanel image={<img src={emptyStateImg} />}>
           <h3>What do users think?</h3>
           <p>
-            You can't read minds. At least we hope not. Ask users for feedback on the
+            You can&apos;t read minds. At least we hope not. Ask users for feedback on the
             impact of their crashes or bugs and you shall receive.
           </p>
           <ButtonList gap={1}>
@@ -45,8 +45,8 @@ export default storyBook(OnboardingPanel, story => {
           <OnboardingPanel image={<img src={emptyStateImg} />}>
             <h3>What do users think?</h3>
             <p>
-              You can't read minds. At least we hope not. Ask users for feedback on the
-              impact of their crashes or bugs and you shall receive.
+              You can&apos;t read minds. At least we hope not. Ask users for feedback on
+              the impact of their crashes or bugs and you shall receive.
             </p>
           </OnboardingPanel>
         </SizingWindow>
@@ -58,20 +58,20 @@ export default storyBook(OnboardingPanel, story => {
     return (
       <Fragment>
         <p>
-          You're not required to specify an <JSXProperty name="image" value /> with this
-          component, in which case your <JSXNode name="OnboardingPanel" /> might look
+          You&apos;re not required to specify an <JSXProperty name="image" value /> with
+          this component, in which case your <JSXNode name="OnboardingPanel" /> might look
           something like this.
         </p>
         <p>
-          Here, we've specified the optional property
+          Here, we&apos;ve specified the optional property
           <JSXProperty name="noCenter" value="true" />, which makes the content
           left-aligned. Note that the <JSXProperty name="noCenter" value /> prop is only
-          valid if there isn't an image specified!
+          valid if there isn&apos;t an image specified!
         </p>
         <OnboardingPanel noCenter>
           <h3>What do users think?</h3>
           <p>
-            You can't read minds. At least we hope not. Ask users for feedback on the
+            You can&apos;t read minds. At least we hope not. Ask users for feedback on the
             impact of their crashes or bugs and you shall receive.
           </p>
           <ButtonList gap={1}>

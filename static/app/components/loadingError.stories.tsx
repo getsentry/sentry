@@ -14,7 +14,7 @@ export default storyBook(LoadingError, story => {
         <p>
           You can use this <JSXNode name="LoadingError" /> to easily render an error
           message if a smaller component on your page fails to load. This is useful for
-          rendering a default error message if there's an error returned from a
+          rendering a default error message if there&apos;s an error returned from a
           <code>useApiQuery</code> call, for example.
         </p>
         <SizingWindow style={{height: '150px'}}>

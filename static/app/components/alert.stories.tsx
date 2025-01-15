@@ -89,7 +89,7 @@ export default storyBook(Alert, story => {
     return (
       <Fragment>
         <p>
-          The <JSXProperty name="opaque" value /> prop is a boolean that's{' '}
+          The <JSXProperty name="opaque" value /> prop is a boolean that&apos;s{' '}
           <code>false</code> by default.
         </p>
         <SizingWindow display="block">

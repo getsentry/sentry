@@ -18,7 +18,7 @@ import storyBook from 'sentry/stories/storyBook';
 export default storyBook('Timeline (Updated 06/17/24)', story => {
   story('Usage', () => (
     <CodeSnippet language="js">
-      import Timeline from 'sentry/components/timeline';
+      import Timeline from &apos;sentry/components/timeline&apos;;
     </CodeSnippet>
   ));
 
@@ -195,7 +195,7 @@ export default storyBook('Timeline (Updated 06/17/24)', story => {
       <p>
         <code>{'<Timeline.Container />'}</code> expects to contain{' '}
         <code>{'<Timeline.Item />'}</code> components. Adds a vertical line behind the
-        elements, even if the item is not marked 'isActive'.
+        elements, even if the item is not marked &apos;isActive&apos;.
       </p>
       <h6>Example</h6>
       <Timeline.Container>

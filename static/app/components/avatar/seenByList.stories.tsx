@@ -61,11 +61,11 @@ export default storyBook(SeenByList, story => {
     return (
       <Fragment>
         <p>
-          In this example we've explicitly put `user` at the start of the list, that's
-          you! But it'll be filtered out. The idea is that that viewer is more interested
-          in who else has seen a resource. On the issue stream, for example, we indicate
-          if the viewer (you) has seen an issue by changing the font-weight to normal
-          after viewed.
+          In this example we&apos;ve explicitly put `user` at the start of the list,
+          that&apos;s you! But it&apos;ll be filtered out. The idea is that that viewer is
+          more interested in who else has seen a resource. On the issue stream, for
+          example, we indicate if the viewer (you) has seen an issue by changing the
+          font-weight to normal after viewed.
         </p>
         <SizingWindow display="block" style={{width: '50%'}}>
           {fetching ? <Placeholder /> : <SeenByList seenBy={[user, ...members]} />}

@@ -121,8 +121,8 @@ export default function ColorStories() {
       <hr />
       <h4>Accent Colors</h4>
       <p>
-        Accent colors help shift the user's focus to certain interactive and high-priority
-        elements, like links, buttons, and warning banners.
+        Accent colors help shift the user&apos;s focus to certain interactive and
+        high-priority elements, like links, buttons, and warning banners.
       </p>
       <h5>Hues</h5>
       <p>There are 6 hues to choose from. Each has specific connotations:</p>
@@ -162,7 +162,7 @@ export default function ColorStories() {
           <strong>The 300 level</strong> has full opacity and serves well as text and icon
           colors (with the exception of Yellow 300, which does not meet{' '}
           <ExternalLink href="https://www.w3.org/WAI/WCAG21/Understanding/contrast-minimum.html">
-            WCAG's contrast standards
+            WCAG&apos;s contrast standards
           </ExternalLink>
           ).
         </li>
@@ -196,7 +196,7 @@ export default function ColorStories() {
         to confirm text contrast ratios.
       </p>
       <p>
-        In Sentry's color palette, only Gray 300 and above satisfy the contrast
+        In Sentry&apos;s color palette, only Gray 300 and above satisfy the contrast
         requirement for normal text. This applies to both light and dark mode.
       </p>
       <p>
@@ -345,7 +345,7 @@ const PositiveLabel = styled(({className}: {className?: string}) => (
 const NegativeLabel = styled(({className}: {className?: string}) => (
   <div className={className}>
     <IconClose color="red400" />
-    DON'T
+    DON&apos;T
   </div>
 ))`
   color: ${p => p.theme.red400};

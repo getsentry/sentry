@@ -13,7 +13,7 @@ import theme from 'sentry/utils/theme';
 export default storyBook('KeyValueData', story => {
   story('Usage', () => (
     <CodeSnippet language="js">
-      import KeyValueData from 'sentry/components/keyValueData';
+      import KeyValueData from &apos;sentry/components/keyValueData&apos;;
     </CodeSnippet>
   ));
   story('<KeyValueData.Content />', () => (
@@ -115,10 +115,10 @@ export default storyBook('KeyValueData', story => {
     <Fragment>
       <p>
         <code>{'<KeyValueData.Container/>'}</code> can be used in combination with{' '}
-        <code>{'<KeyValueData.Card/>'}</code> components to create a 'masonry' style
-        layout for space efficiency. They leverage the{' '}
+        <code>{'<KeyValueData.Card/>'}</code> components to create a &apos;masonry&apos;
+        style layout for space efficiency. They leverage the{' '}
         <code>useIssueDetailsColumnCount</code> hook to distribute cards into the
-        available space evenly. They don't accept any props, and just require{' '}
+        available space evenly. They don&apos;t accept any props, and just require{' '}
         <code>children</code>.
       </p>
       <p>

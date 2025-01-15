@@ -216,8 +216,8 @@ export function AutofixSetupContent({
       <Divider />
       <Header>Set up Autofix</Header>
       <p>
-        Sentry's AI-enabled Autofix uses all of the contextual data surrounding this error
-        to work with you to find the root cause and create a fix.
+        Sentry&apos;s AI-enabled Autofix uses all of the contextual data surrounding this
+        error to work with you to find the root cause and create a fix.
       </p>
       <p>To use Autofix, please follow the instructions below.</p>
       <AutofixSetupSteps autofixSetup={data} />

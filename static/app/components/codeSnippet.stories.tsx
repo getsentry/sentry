@@ -14,8 +14,8 @@ export default storyBook(CodeSnippet, story => {
         The <JSXNode name="CodeSnippet" /> component is useful when you want to render
         code instructions in onboarding or other setup situations. By default, the code
         snippet is able to be copied, selected, and has rounded corners and shows in light
-        mode. It'll also apply formatting automatically, if the language (passed in with
-        the <JSXProperty name="language" value={String} />
+        mode. It&apos;ll also apply formatting automatically, if the language (passed in
+        with the <JSXProperty name="language" value={String} />
         prop) is known.
       </p>
 

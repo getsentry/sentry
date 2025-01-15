@@ -19,13 +19,14 @@ export default storyBook(AutoSizedText, story => {
 
         <SmallSizingWindow>
           <AutoSizedText>
-            <OneLineSpan>NEWSFLASH, y'all!</OneLineSpan>
+            <OneLineSpan>NEWSFLASH, y&apos;all!</OneLineSpan>
           </AutoSizedText>
         </SmallSizingWindow>
 
         <p>
-          This was built for the "Big Number" widget in our Dashboards product. It's not
-          possible to <i>perfectly</i> size the text using only CSS and HTML!
+          This was built for the &quot;Big Number&quot; widget in our Dashboards product.
+          It&apos;s not possible to <i>perfectly</i> size the text using only CSS and
+          HTML!
         </p>
         <p>
           To use <JSXNode name="AutoSizedText" />, set it as the child of positioned

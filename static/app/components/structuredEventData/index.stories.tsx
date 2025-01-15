@@ -106,8 +106,8 @@ export default storyBook(StructuredEventData, story => {
       <Fragment>
         <p>
           You can keep track of the expanded/collapsed state so the component looks the
-          same even if it's re-rendered on the screen at a later time (like in a virtual
-          scrolling list).
+          same even if it&apos;s re-rendered on the screen at a later time (like in a
+          virtual scrolling list).
         </p>
         <p>
           The <JSXProperty name="onToggleExpand" value={Function} /> callback is not

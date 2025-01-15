@@ -1135,7 +1135,7 @@ function ScrapingSourceFileAvailableChecklistItem({
           <Fragment>
             <p>{t('Sentry symbolification error message:')}</p>
             <ScrapingSymbolificationErrorMessage>
-              "{sourceResolutionResults.sourceFileScrapingStatus.details}"
+              &quot;{sourceResolutionResults.sourceFileScrapingStatus.details}&quot;
             </ScrapingSymbolificationErrorMessage>
           </Fragment>
         )}
@@ -1205,7 +1205,7 @@ function ScrapingSourceMapAvailableChecklistItem({
           <Fragment>
             <p>{t('Sentry symbolification error message:')}</p>
             <ScrapingSymbolificationErrorMessage>
-              "{sourceResolutionResults.sourceMapScrapingStatus.details}"
+              &quot;{sourceResolutionResults.sourceMapScrapingStatus.details}&quot;
             </ScrapingSymbolificationErrorMessage>
           </Fragment>
         )}

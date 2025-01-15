@@ -95,11 +95,11 @@ export default storyBook(CheckInTimeline, story => {
       <PageFiltersContainer>
         <p>
           The <JSXNode name="CheckInTimeline" /> component may be used to render a
-          timeline of 'check-ins'.
+          timeline of &apos;check-ins&apos;.
         </p>
         <p>
-          The timeline is given a list of "Buckets" where each bucket contains a time
-          range of check-ins. Buckets are contiguous, so if there is a 5 second
+          The timeline is given a list of &quot;Buckets&quot; where each bucket contains a
+          time range of check-ins. Buckets are contiguous, so if there is a 5 second
           resolution, each bucket contains 5 seconds worth of check-in data. Buckets that
           are contiguously the same status will be merged together visually.
         </p>

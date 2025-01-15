@@ -337,7 +337,6 @@ export default typescript.config([
       ...react.configs.flat.recommended.rules,
       ...react.configs.flat['jsx-runtime'].rules,
       'react/display-name': 'off', // TODO(ryan953): Fix violations and delete this line
-      'react/no-unescaped-entities': 'off', // TODO(ryan953): Fix violations and delete this line
       'react/no-unknown-property': ['error', {ignore: ['css']}],
       'react/prop-types': 'off', // TODO(ryan953): Fix violations and delete this line
     },

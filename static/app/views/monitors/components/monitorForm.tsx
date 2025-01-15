@@ -365,7 +365,9 @@ function MonitorForm({
                       stacked
                       inline={false}
                     />
-                    {parsedSchedule && <CronstrueText>"{parsedSchedule}"</CronstrueText>}
+                    {parsedSchedule && (
+                      <CronstrueText>&quot;{parsedSchedule}&quot;</CronstrueText>
+                    )}
                   </MultiColumnInput>
                 );
               }
