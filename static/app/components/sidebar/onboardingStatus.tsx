@@ -4,7 +4,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
-import {NewOnboardingSidebar} from 'sentry/components/onboardingWizard/newSidebar';
+import {OnboardingSidebar} from 'sentry/components/onboardingWizard/sidebar';
 import {getMergedTasks} from 'sentry/components/onboardingWizard/taskConfig';
 import {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardingTasks';
 import {findCompleteTasks} from 'sentry/components/onboardingWizard/utils';
@@ -26,15 +26,15 @@ import useProjects from 'sentry/utils/useProjects';
 import type {CommonSidebarProps} from './types';
 import {SidebarPanelKey} from './types';
 
-type NewOnboardingStatusProps = CommonSidebarProps;
+type OnboardingStatusProps = CommonSidebarProps;
 
-export function NewOnboardingStatus({
+export function OnboardingStatus({
   collapsed,
   currentPanel,
   orientation,
   hidePanel,
   onShowPanel,
-}: NewOnboardingStatusProps) {
+}: OnboardingStatusProps) {
   const organization = useOrganization();
   const onboardingContext = useContext(OnboardingContext);
   const {projects} = useProjects();
@@ -148,7 +148,7 @@ export function NewOnboardingStatus({
         )}
       </Container>
       {isActive && (
-        <NewOnboardingSidebar
+        <OnboardingSidebar
           orientation={orientation}
           collapsed={collapsed}
           onClose={hidePanel}

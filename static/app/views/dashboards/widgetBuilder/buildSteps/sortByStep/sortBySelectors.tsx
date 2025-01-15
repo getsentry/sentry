@@ -55,6 +55,7 @@ export function SortBySelectors({
   disableSortDirection,
   widgetQuery,
   displayType,
+  tags,
 }: Props) {
   const datasetConfig = getDatasetConfig(widgetType);
   const organization = useOrganization();
@@ -103,7 +104,7 @@ export function SortBySelectors({
         title={disableSortReason}
         disabled={!disableSort || (disableSortDirection && disableSort)}
       >
-        {displayType === DisplayType.TABLE || widgetType === WidgetType.SPANS ? (
+        {displayType === DisplayType.TABLE ? (
           <SelectControl
             name="sortBy"
             aria-label={t('Sort by')}
@@ -135,7 +136,8 @@ export function SortBySelectors({
             }
             fieldOptions={datasetConfig.getTimeseriesSortOptions!(
               organization,
-              widgetQuery
+              widgetQuery,
+              tags
             )}
             filterPrimaryOptions={
               datasetConfig.filterSeriesSortOptions

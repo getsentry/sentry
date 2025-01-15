@@ -28,6 +28,8 @@ import {builtinModules} from 'node:module';
 import typescript from 'typescript-eslint';
 
 invariant(react.configs.flat, 'For typescript');
+invariant(react.configs.flat.recommended, 'For typescript');
+invariant(react.configs.flat['jsx-runtime'], 'For typescript');
 
 const restrictedImportPatterns = [
   {
@@ -262,7 +264,7 @@ export default typescript.config([
       'no-sequences': 'error',
       'no-throw-literal': 'error',
       'object-shorthand': ['error', 'properties'],
-      'require-await': 'error', // TODO: see also @typescript-eslint/require-await
+      'require-await': 'error', // Enabled in favor of @typescript-eslint/require-await, which requires type info
       'spaced-comment': [
         'error',
         'always',
@@ -316,8 +318,7 @@ export default typescript.config([
     name: 'plugin/react',
     // https://github.com/jsx-eslint/eslint-plugin-react/tree/master/docs/rules
     plugins: {
-      ...(react.configs.flat.recommended?.plugins ?? {}),
-      // @ts-ignore noUncheckedIndexedAccess
+      ...react.configs.flat.recommended.plugins,
       ...react.configs.flat['jsx-runtime'].plugins,
     },
     rules: {
@@ -333,8 +334,7 @@ export default typescript.config([
       'react/sort-comp': 'error',
 
       // https://github.com/jsx-eslint/eslint-plugin-react/blob/master/index.js
-      ...(react.configs.flat.recommended?.rules ?? {}),
-      // @ts-ignore noUncheckedIndexedAccess
+      ...react.configs.flat.recommended.rules,
       ...react.configs.flat['jsx-runtime'].rules,
       'react/display-name': 'off', // TODO(ryan953): Fix violations and delete this line
       'react/no-unescaped-entities': 'off', // TODO(ryan953): Fix violations and delete this line
@@ -358,7 +358,7 @@ export default typescript.config([
     name: 'plugin/typescript-eslint/custom',
     rules: {
       'no-shadow': 'off', // Disabled in favor of @typescript-eslint/no-shadow
-      'no-use-before-define': 'off',
+      'no-use-before-define': 'off', // See also @typescript-eslint/no-use-before-define
 
       '@typescript-eslint/naming-convention': [
         'error',
@@ -387,7 +387,7 @@ export default typescript.config([
         },
       ],
       '@typescript-eslint/no-shadow': 'error',
-      '@typescript-eslint/no-use-before-define': 'off', // TODO(ryan953): Configure this and enable it
+      '@typescript-eslint/no-use-before-define': 'off', // Enabling this will cause a lot of thrash to the git history
     },
   },
   // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/base.ts
@@ -682,7 +682,7 @@ export default typescript.config([
   },
   {
     name: 'files/sentry-stories',
-    files: ['**/*.stories.{tsx}'],
+    files: ['**/*.stories.tsx'],
     rules: {
       'no-loss-of-precision': 'off', // Sometimes we have wild numbers hard-coded in stories
     },

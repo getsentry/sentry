@@ -284,7 +284,13 @@ function parsePageParam(dir: 'previous' | 'next') {
  *
  * See https://tanstack.com/query/v4/docs/overview for docs on React Query.
  */
-export function useInfiniteApiQuery<TResponseData>({queryKey}: {queryKey: ApiQueryKey}) {
+export function useInfiniteApiQuery<TResponseData>({
+  queryKey,
+  enabled,
+}: {
+  queryKey: ApiQueryKey;
+  enabled?: boolean;
+}) {
   const api = useApi({persistInFlight: PERSIST_IN_FLIGHT});
   const query = useInfiniteQuery({
     queryKey,
@@ -292,6 +298,7 @@ export function useInfiniteApiQuery<TResponseData>({queryKey}: {queryKey: ApiQue
     getPreviousPageParam: parsePageParam('previous'),
     getNextPageParam: parsePageParam('next'),
     initialPageParam: undefined,
+    enabled: enabled ?? true,
   });
 
   return query;
