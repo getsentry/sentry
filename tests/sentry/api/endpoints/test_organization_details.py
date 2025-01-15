@@ -733,6 +733,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "targetSampleRate": 0.1,
             "samplingMode": "organization",
             "rollbackEnabled": True,
+            "streamlineOnly": None,
         }
 
         # needed to set require2FA
