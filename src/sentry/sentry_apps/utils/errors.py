@@ -1,18 +1,11 @@
 from enum import Enum
-from typing import Any, TypedDict
+from typing import Any
 
 
 class SentryAppErrorType(Enum):
     CLIENT = "client"
     INTEGRATOR = "integrator"
     SENTRY = "sentry"
-
-
-class ErrorContext(TypedDict, total=False):
-    # Info that gets sent only to the integrator via webhook
-    webhook_context: dict[str, Any]
-    # Info that gets sent to the end user via endpoint Response AND sent to integrator
-    public_context: dict[str, Any]
 
 
 class SentryAppBaseError(Exception):
@@ -23,10 +16,14 @@ class SentryAppBaseError(Exception):
         self,
         message: str,
         status_code: int | None = None,
-        extras: ErrorContext | None = None,
+        public_context: dict[str, Any] | None = None,
+        webhook_context: dict[str, Any] | None = None,
     ) -> None:
         self.status_code = status_code or self.status_code
-        self.extras = extras or {}
+        # Info that gets sent only to the integrator via webhook
+        self.public_context = public_context or {}
+        # Info that gets sent to the end user via endpoint Response AND sent to integrator
+        self.webhook_context = webhook_context or {}
         self.message = message
 
 

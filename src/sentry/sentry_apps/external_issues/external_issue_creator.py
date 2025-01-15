@@ -48,5 +48,5 @@ class ExternalIssueCreator:
             )
             raise SentryAppSentryError(
                 message="Failed to create external issue obj",
-                extras={"webhook_context": {"error": str(e)}},
+                webhook_context={"error": str(e)},
             ) from e

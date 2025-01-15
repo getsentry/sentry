@@ -129,9 +129,9 @@ class IntegrationPlatformEndpoint(Endpoint):
     def _handle_sentry_app_exception(self, exception: Exception):
         if isinstance(exception, SentryAppIntegratorError) or isinstance(exception, SentryAppError):
             response_body: dict[str, Any] = {"detail": exception.message}
-            context = exception.extras.get("public_context", None)
-            if context is not None:
-                response_body.update({"context": context})
+            public_context = exception.public_context
+            if public_context:
+                response_body.update({"context": public_context})
 
             response = Response(response_body, status=exception.status_code)
             response.exception = True
@@ -265,11 +265,9 @@ class SentryAppPermission(SentryPermission):
                 raise SentryAppError(
                     message="User must be in the app owner's organization for unpublished apps",
                     status_code=403,
-                    extras={
-                        "public_context": {
-                            "integration": sentry_app.slug,
-                            "user_organizations": [org.slug for org in organizations],
-                        }
+                    public_context={
+                        "integration": sentry_app.slug,
+                        "user_organizations": [org.slug for org in organizations],
                     },
                 )
 
@@ -359,9 +357,7 @@ class SentryAppInstallationsPermission(SentryPermission):
             raise SentryAppError(
                 message="User must belong to the given organization",
                 status_code=403,
-                extras={
-                    "public_context": {"user_organizations": [org.slug for org in organizations]}
-                },
+                public_context={"user_organizations": [org.slug for org in organizations]},
             )
         assert request.method, "method must be present in request to get permissions"
         return ensure_scoped_permission(request, self.scope_map.get(request.method))
