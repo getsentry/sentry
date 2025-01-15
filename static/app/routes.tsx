@@ -1206,6 +1206,10 @@ function buildRoutes() {
           component={make(() => import('sentry/views/dashboards/view'))}
         />
       </Route>
+      <Route
+        path="/organizations/:orgId/shared/dashboard/:shareId/"
+        component={make(() => import('sentry/views/dashboards/view'))}
+      />
     </Fragment>
   );
 
