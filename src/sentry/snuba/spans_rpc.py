@@ -141,7 +141,7 @@ def run_table_query(
             elif resolved_column.proto_type == INT:
                 result_value = result.val_int
             elif resolved_column.proto_type == FLOAT:
-                result_value = result.val_float
+                result_value = result.val_double
             elif resolved_column.proto_type == BOOLEAN:
                 result_value = result.val_bool
             result_value = process_value(result_value)
