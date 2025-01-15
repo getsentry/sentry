@@ -69,14 +69,14 @@ class TestDetectorSerializer(TestCase):
         )
         type_name = data_source_type_registry.get_key(QuerySubscriptionDataSourceHandler)
         data_source = self.create_data_source(
-            organization_id=self.organization.id,
+            organization=self.organization,
             type=type_name,
             query_id=subscription.id,
         )
         data_source.detectors.set([detector])
 
         result = serialize(detector)
-
+        # print("result: ", result)
         assert result == {
             "id": str(detector.id),
             "organizationId": str(self.organization.id),
@@ -112,7 +112,7 @@ class TestDetectorSerializer(TestCase):
                 "conditions": [
                     {
                         "id": str(condition.id),
-                        "condition": Condition.GREATER,
+                        "condition": Condition.GREATER.value,
                         "comparison": 100,
                         "result": DetectorPriorityLevel.HIGH,
                     }
@@ -160,7 +160,7 @@ class TestDataSourceSerializer(TestCase):
             self.project, INCIDENTS_SNUBA_SUBSCRIPTION_TYPE, snuba_query
         )
         data_source = self.create_data_source(
-            organization_id=self.organization.id,
+            organization=self.organization,
             type=type_name,
             query_id=subscription.id,
         )
