@@ -97,6 +97,14 @@ def derive_code_mappings(
 
     This task is queued at most once per hour per project, based on the ingested events.
     """
+    project = Project.objects.get(id=project_id)
+    org: Organization = Organization.objects.get(id=project.organization_id)
+    set_tag("organization.slug", org.slug)
+    # When you look at the performance page the user is a default column
+    set_user({"username": org.slug})
+    set_tag("project.slug", project.slug)
+    extra: dict[str, Any] = {"organization.slug": org.slug}
+
     # XXX: In the next PR we will only use event_id
     if event_id:
         event = eventstore.backend.get_event_by_id(project_id, event_id)
@@ -105,13 +113,9 @@ def derive_code_mappings(
             return
         data = event.data
 
-    project = Project.objects.get(id=project_id)
-    org: Organization = Organization.objects.get(id=project.organization_id)
-    set_tag("organization.slug", org.slug)
-    # When you look at the performance page the user is a default column
-    set_user({"username": org.slug})
-    set_tag("project.slug", project.slug)
-    extra: dict[str, Any] = {"organization.slug": org.slug}
+    if data is None:
+        logger.error("Data is None.", extra=extra)
+        return
 
     stacktrace_paths: list[str] = identify_stacktrace_paths(data)
     if not stacktrace_paths:
