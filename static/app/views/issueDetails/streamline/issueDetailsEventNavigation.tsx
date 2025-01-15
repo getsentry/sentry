@@ -95,7 +95,12 @@ export function IssueDetailsEventNavigation({
     [EventNavOptions.RECOMMENDED]: isSmallScreen ? t('Rec.') : t('Recommended'),
     [EventNavOptions.OLDEST]: t('First'),
     [EventNavOptions.LATEST]: t('Last'),
-    [EventNavOptions.CUSTOM]: t('Specific'),
+  };
+
+  const EventNavTooltips = {
+    [EventNavOptions.RECOMMENDED]: t('Recommended event matching filters'),
+    [EventNavOptions.OLDEST]: t('First event matching filters'),
+    [EventNavOptions.LATEST]: t('Last event matching filters'),
   };
 
   const onTabChange = (tabKey: typeof selectedOption) => {
@@ -178,7 +183,9 @@ export function IssueDetailsEventNavigation({
                 hidden={label === EventNavOptions.CUSTOM}
                 textValue={EventNavLabels[label]}
               >
-                {EventNavLabels[label]}
+                <Tooltip title={EventNavTooltips[label]} skipWrapper>
+                  {EventNavLabels[label]}
+                </Tooltip>
               </TabList.Item>
             );
           })}

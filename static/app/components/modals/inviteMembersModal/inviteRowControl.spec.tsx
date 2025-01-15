@@ -1,5 +1,6 @@
 import {TeamFixture} from 'sentry-fixture/team';
 
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {
@@ -7,7 +8,7 @@ import {
   InviteMembersContext,
   type InviteMembersContextValue,
 } from 'sentry/components/modals/inviteMembersModal/inviteMembersContext';
-import InviteRowControlNew from 'sentry/components/modals/inviteMembersModal/inviteRowControlNew';
+import InviteRowControlNew from 'sentry/components/modals/inviteMembersModal/inviteRowControl';
 import TeamStore from 'sentry/stores/teamStore';
 import type {DetailedTeam} from 'sentry/types/organization';
 
@@ -17,11 +18,13 @@ describe('InviteRowControlNew', function () {
       id: '1',
       slug: 'moo-deng',
       name: "Moo Deng's Team",
+      isMember: true,
     },
     {
       id: '2',
       slug: 'moo-waan',
       name: "Moo Waan's Team",
+      isMember: false,
     },
   ];
   const teams: DetailedTeam[] = teamData.map(data => TeamFixture(data));
@@ -152,5 +155,37 @@ describe('InviteRowControlNew', function () {
     await userEvent.click(screen.getByRole('menuitemcheckbox', {name: '#moo-deng'}));
     await userEvent.click(screen.getByRole('menuitemcheckbox', {name: '#moo-waan'}));
     expect(mockSetTeams).toHaveBeenCalledTimes(2);
+  });
+
+  it('shows all teams if Open Membership is enabled', async function () {
+    const {organization: orgWithInviteAccess} = initializeOrg({
+      organization: {
+        access: ['member:invite'],
+        allowMemberInvite: true,
+        openMembership: true,
+      },
+    });
+    render(getComponent(defaultInviteProps), {organization: orgWithInviteAccess});
+    const teamInput = screen.getByRole('textbox', {name: 'Add to Team'});
+    expect(teamInput).toBeEnabled();
+    await userEvent.click(teamInput);
+    expect(screen.getByText('#moo-deng')).toBeInTheDocument();
+    expect(screen.getByText('#moo-waan')).toBeInTheDocument();
+  });
+
+  it('only shows member teams if Open Membership is disabled', async function () {
+    const {organization: orgWithInviteAccess} = initializeOrg({
+      organization: {
+        access: ['member:invite'],
+        allowMemberInvite: true,
+        openMembership: false,
+      },
+    });
+    render(getComponent(defaultInviteProps), {organization: orgWithInviteAccess});
+    const teamInput = screen.getByRole('textbox', {name: 'Add to Team'});
+    expect(teamInput).toBeEnabled();
+    await userEvent.click(teamInput);
+    expect(screen.getByText('#moo-deng')).toBeInTheDocument();
+    expect(screen.queryByText('#moo-waan')).not.toBeInTheDocument();
   });
 });

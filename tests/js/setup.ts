@@ -69,7 +69,6 @@ jest
   .spyOn(performanceForSentry, 'VisuallyCompleteWithData')
   .mockImplementation(props => props.children as ReactElement);
 jest.mock('scroll-to-element', () => jest.fn());
-jest.mock('sentry/utils/search/searchBoxTextArea');
 
 DANGEROUS_SET_TEST_HISTORY({
   goBack: jest.fn(),

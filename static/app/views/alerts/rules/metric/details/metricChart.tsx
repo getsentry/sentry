@@ -35,7 +35,6 @@ import {IconCheckmark, IconClock, IconFire, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import {ActivationConditionType, MonitorType} from 'sentry/types/alerts';
 import type {DateString} from 'sentry/types/core';
 import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
@@ -97,7 +96,6 @@ type Props = WithRouterProps & {
   formattedAggregate?: string;
   incidents?: Incident[];
   isOnDemandAlert?: boolean;
-  selectedIncident?: Incident | null;
 };
 
 type State = Record<string, never>;
@@ -281,7 +279,6 @@ class MetricChart extends PureComponent<Props, State> {
     const {
       anomalies,
       router,
-      selectedIncident,
       interval,
       filter,
       incidents,
@@ -317,7 +314,6 @@ class MetricChart extends PureComponent<Props, State> {
       seriesName: formattedAggregate,
       incidents,
       anomalies,
-      selectedIncident,
       showWaitingForData:
         shouldShowOnDemandMetricAlertUI(organization) && this.props.isOnDemandAlert,
       handleIncidentClick,
@@ -536,7 +532,6 @@ class MetricChart extends PureComponent<Props, State> {
       query,
       location,
       isOnDemandAlert,
-      selectedIncident,
     } = this.props;
     const {aggregate, timeWindow, environment, dataset} = rule;
 
@@ -566,26 +561,6 @@ class MetricChart extends PureComponent<Props, State> {
       moment.utc(timePeriod.end).add(timeWindow, 'minutes')
     );
 
-    let activationFilter = '';
-    if (
-      rule.monitorType === MonitorType.ACTIVATED &&
-      selectedIncident &&
-      selectedIncident.activation
-    ) {
-      const {activation} = selectedIncident;
-      const {activator, conditionType} = activation;
-      switch (conditionType) {
-        case String(ActivationConditionType.RELEASE_CREATION):
-          activationFilter = ` AND (release:${activator})`;
-          break;
-        case String(ActivationConditionType.DEPLOY_CREATION):
-          activationFilter = ` AND (deploy:${activator})`;
-          break;
-        default:
-          break;
-      }
-    }
-
     const queryExtras: Record<string, string> = {
       ...getMetricDatasetQueryExtras({
         organization,
@@ -609,7 +584,7 @@ class MetricChart extends PureComponent<Props, State> {
         environment={environment ? [environment] : undefined}
         start={viableStartDate}
         end={viableEndDate}
-        query={query + activationFilter}
+        query={query}
         interval={interval}
         field={SESSION_AGGREGATE_TO_FIELD[aggregate]}
         groupBy={['session.status']}
@@ -626,7 +601,7 @@ class MetricChart extends PureComponent<Props, State> {
       <EventsRequest
         api={api}
         organization={organization}
-        query={query + activationFilter}
+        query={query}
         environment={environment ? [environment] : undefined}
         project={project.id ? [Number(project.id)] : []}
         interval={interval}
