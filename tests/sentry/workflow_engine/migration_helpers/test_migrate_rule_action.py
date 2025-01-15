@@ -243,6 +243,10 @@ class TestNotificationActionMigrationUtils(TestCase):
         # Only 2 actions should be created, the first one is malformed
         assert len(actions) == 2
 
+        self.assert_actions_migrated_correctly(
+            actions, action_data[1:], "workspace", "channel_id", "channel"
+        )
+
         # Assert the logger was called with the correct arguments
         mock_logger.assert_called_with(
             "Action blob is malformed: missing required fields",
@@ -254,3 +258,121 @@ class TestNotificationActionMigrationUtils(TestCase):
         )
 
         self.assert_actions_migrated_correctly(actions, action_data[1:])
+
+    def test_discord_action_migration(self):
+        action_data = [
+            {
+                "server": "1",
+                "id": "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction",
+                "channel_id": "1112223334445556677",
+                "tags": "environment",
+                "uuid": "12345678-90ab-cdef-0123-456789abcdef",
+            },
+            {
+                "server": "2",
+                "id": "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction",
+                "channel_id": "99988877766555444333",
+                "tags": "",
+                "uuid": "22345678-90ab-cdef-0123-456789abcdef",
+            },
+        ]
+
+        actions = build_notification_actions_from_rule_data_actions(action_data)
+
+        self.assert_actions_migrated_correctly(actions, action_data, "server", "channel_id", None)
+
+    @patch("sentry.workflow_engine.migration_helpers.rule_action.logger.error")
+    def test_discord_action_migration_malformed(self, mock_logger):
+        action_data = [
+            # Missing required fields
+            {
+                "server": "1",
+                "uuid": "12345678-90ab-cdef-0123-456789abcdef",
+                "id": "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction",
+            },
+            {
+                "server": "1",
+                "id": "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction",
+                "channel_id": "1112223334445556677",
+                "tags": "environment",
+                "uuid": "12345678-90ab-cdef-0123-456789abcdef",
+            },
+        ]
+
+        actions = build_notification_actions_from_rule_data_actions(action_data)
+        assert len(actions) == 1
+
+        self.assert_actions_migrated_correctly(
+            actions, action_data[1:], "server", "channel_id", None
+        )
+
+        # Assert the logger was called with the correct arguments
+        mock_logger.assert_called_with(
+            "Action blob is malformed: missing required fields",
+            extra={
+                "registry_id": "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction",
+                "action_uuid": "12345678-90ab-cdef-0123-456789abcdef",
+                "missing_fields": ["channel_id"],
+            },
+        )
+
+    def test_msteams_action_migration(self):
+        action_data = [
+            # MsTeams Action will  always include, channel and channel_id
+            # It won't store anything in the data blob
+            {
+                "team": "12345",
+                "id": "sentry.integrations.msteams.notify_action.MsTeamsNotifyServiceAction",
+                "channel": "Bufo",
+                "channel_id": "1:hksdhfdskfhsdfdhsk@thread.tacv2",
+                "uuid": "10987654-3210-9876-5432-109876543210",
+            },
+            {
+                "team": "230405",
+                "id": "sentry.integrations.msteams.notify_action.MsTeamsNotifyServiceAction",
+                "channel": "Sentry FE Non-Prod",
+                "channel_id": "19:c3c894b8d4194fb1aa7f89da84bfcd69@thread.tacv2",
+                "uuid": "4777a764-11fd-418c-b61b-533767424425",
+            },
+        ]
+
+        actions = build_notification_actions_from_rule_data_actions(action_data)
+
+        self.assert_actions_migrated_correctly(
+            actions, action_data, "team", "channel_id", "channel"
+        )
+
+    @patch("sentry.workflow_engine.migration_helpers.rule_action.logger.error")
+    def test_msteams_action_migration_malformed(self, mock_logger):
+        action_data = [
+            # Missing required fields
+            {
+                "team": "1",
+                "uuid": "12345678-90ab-cdef-0123-456789abcdef",
+                "id": "sentry.integrations.msteams.notify_action.MsTeamsNotifyServiceAction",
+            },
+            {
+                "team": "1",
+                "id": "sentry.integrations.msteams.notify_action.MsTeamsNotifyServiceAction",
+                "channel": "Bufo",
+                "channel_id": "1:hksdhfdskfhsdfdhsk@thread.tacv2",
+                "uuid": "10987654-3210-9876-5432-109876543210",
+            },
+        ]
+
+        actions = build_notification_actions_from_rule_data_actions(action_data)
+        assert len(actions) == 1
+
+        self.assert_actions_migrated_correctly(
+            actions, action_data[1:], "team", "channel_id", "channel"
+        )
+
+        # Assert the logger was called with the correct arguments
+        mock_logger.assert_called_with(
+            "Action blob is malformed: missing required fields",
+            extra={
+                "registry_id": "sentry.integrations.msteams.notify_action.MsTeamsNotifyServiceAction",
+                "action_uuid": "12345678-90ab-cdef-0123-456789abcdef",
+                "missing_fields": ["channel_id", "channel"],
+            },
+        )
