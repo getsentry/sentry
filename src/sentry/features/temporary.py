@@ -35,7 +35,7 @@ def register_temporary_features(manager: FeatureManager):
     # Enables user registration.
     manager.add("auth:register", SystemFeature, FeatureHandlerStrategy.INTERNAL, default=True)
     # Switch to new queue for auto source code config
-    manager.add("new-auto-source-code-config-queue", SystemFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    manager.add("new-auto-source-code-config-queue", SystemFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION is not enabled).
     manager.add("organizations:create", SystemFeature, FeatureHandlerStrategy.INTERNAL, default=True)
     # Controls whether or not the relocation endpoints can be used.
