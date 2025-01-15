@@ -10,13 +10,6 @@ x-sentry-service-config:
         branch: master
         repo_link: https://github.com/getsentry/snuba.git
         mode: containerized
-    local-snuba:
-      description: Provides the ability to run snuba locally with sentry
-      remote:
-        repo_name: snuba
-        branch: master
-        repo_link: https://github.com/getsentry/snuba.git
-        mode: default
     relay:
       description: Service event forwarding and ingestion service
       remote:
@@ -39,6 +32,13 @@ x-sentry-service-config:
         branch: master
         repo_link: https://github.com/getsentry/symbolicator.git
         mode: default
+    vroom:
+      description: Sentry's profiling service, processing and deriving data about your profiles
+      remote:
+        repo_name: vroom
+        branch: main
+        repo_link: https://github.com/getsentry/vroom.git
+        mode: default
     bigtable:
       description: Bigtable emulator
     redis-cluster:
@@ -58,6 +58,9 @@ x-sentry-service-config:
         mode: containerized
     rabbitmq:
       description: Messaging and streaming broker
+    memcached:
+      description: Memcached used for caching
+
   modes:
     default: [snuba, postgres, relay]
     migrations: [postgres, redis]
@@ -66,8 +69,21 @@ x-sentry-service-config:
     backend-ci: [snuba, postgres, redis, bigtable, redis-cluster, symbolicator]
     rabbitmq: [postgres, snuba, rabbitmq]
     symbolicator: [postgres, snuba, symbolicator]
-    local-snuba: [postgres, local-snuba]
+    memcached: [postgres, snuba, memcached]
+    profiling: [postgres, snuba, vroom]
     minimal: [postgres, snuba]
+    full:
+      [
+        postgres,
+        snuba,
+        relay,
+        redis,
+        redis-cluster,
+        symbolicator,
+        taskbroker,
+        rabbitmq,
+        vroom,
+      ]
 
 services:
   postgres:
@@ -135,6 +151,14 @@ services:
       - host.docker.internal:host-gateway
     environment:
       - IP=0.0.0.0
+  memcached:
+    image: ghcr.io/getsentry/image-mirror-library-memcached:1.5-alpine
+    ports:
+      - '127.0.0.1:11211:11211'
+    networks:
+      - devservices
+    extra_hosts:
+      - host.docker.internal:host-gateway
 
 networks:
   devservices:
