@@ -43,6 +43,7 @@ import {
 import {useSampleScatterPlotSeries} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart/useSampleScatterPlotSeries';
 import {DurationChartWithSamples} from 'sentry/views/insights/http/components/charts/durationChartWithSamples';
 import {ResponseCodeCountChart} from 'sentry/views/insights/http/components/charts/responseCodeCountChart';
+import {OpenInExploreButton} from 'sentry/views/insights/http/components/openInDiscoverButton';
 import {SpanSamplesTable} from 'sentry/views/insights/http/components/tables/spanSamplesTable';
 import {HTTP_RESPONSE_STATUS_CODES} from 'sentry/views/insights/http/data/definitions';
 import {useSpanSamples} from 'sentry/views/insights/http/queries/useSpanSamples';
@@ -473,6 +474,7 @@ export function HTTPSamplesPanel() {
                 >
                   {t('Try Different Samples')}
                 </Button>
+                <OpenInExploreButton query={search} />
               </ModuleLayout.Full>
             </Fragment>
           )}
