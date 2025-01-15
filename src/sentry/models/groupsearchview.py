@@ -55,7 +55,7 @@ class GroupSearchView(DefaultFieldsModelExisting):
     # Projects = [] maps to "My Projects" (This is so when a project is deleted, it correctly defaults to "My Projects")
     projects = models.ManyToManyField("sentry.Project", through="sentry.GroupSearchViewProject")
     # If is_all_projects is True, then override `projects` to be "All Projects"
-    is_all_projects = models.BooleanField(db_default=True)
+    is_all_projects = models.BooleanField(db_default=False)
     # Environments = [] maps to "All Environments"
     environments = models.ManyToManyField(
         "sentry.Environment", through="sentry.GroupSearchViewEnvironment"
