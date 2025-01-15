@@ -10,9 +10,11 @@ from rest_framework.response import Response
 
 from sentry.api.serializers import serialize
 from sentry.exceptions import PluginError
+from sentry.integrations.services.integration import integration_service
 from sentry.models.repository import Repository
 from sentry.plugins.config import ConfigValidator
 from sentry.signals import repo_linked
+from sentry.users.services.usersocialauth.service import usersocialauth_service
 
 from .base import ProviderMixin
 
@@ -31,6 +33,31 @@ class RepositoryProvider(ProviderMixin):
 
     def __init__(self, id):
         self.id = id
+
+    def needs_auth(self, user, **kwargs):
+        """
+        Return ``True`` if the authenticated user needs to associate an auth
+        service before performing actions with this provider.
+        """
+        if self.auth_provider is None:
+            return False
+
+        organization = kwargs.get("organization")
+        if organization:
+            ois = integration_service.get_organization_integrations(
+                providers=[self.auth_provider], organization_id=organization.id
+            )
+            has_auth = len(ois) > 0
+            if has_auth:
+                return False
+
+        if not user.is_authenticated:
+            return True
+
+        auths = usersocialauth_service.get_many(
+            filter={"user_id": user.id, "provider": self.auth_provider}
+        )
+        return len(auths) == 0
 
     def dispatch(self, request: Request, organization, **kwargs):
         if self.needs_auth(request.user):
