@@ -24,15 +24,15 @@ type FlagImports = {
 
 const FLAG_OPTION_TO_IMPORT: Record<IntegrationOptions, FlagImports> = {
   [IntegrationOptions.LAUNCHDARKLY]: {
-    module: 'launchdarkly',
+    module: 'integrations.launchdarkly',
     integration: 'LaunchDarklyIntegration',
   },
   [IntegrationOptions.OPENFEATURE]: {
-    module: 'openfeature',
+    module: 'integrations.openfeature',
     integration: 'OpenFeatureIntegration',
   },
   [IntegrationOptions.UNLEASH]: {
-    module: 'unleash',
+    module: 'integrations.unleash',
     integration: 'UnleashIntegration',
   },
   [IntegrationOptions.GENERIC]: {
@@ -188,7 +188,7 @@ export const performanceOnboarding: OnboardingConfig = {
           ),
           language: 'python',
           code: `
-import sentry-sdk
+import sentry_sdk
 
 sentry_sdk.init(
   dsn="${params.dsn.public}",
@@ -258,7 +258,7 @@ export const featureFlagOnboarding: OnboardingConfig = {
       type: StepType.CONFIGURE,
       description:
         featureFlagOptions.integration === IntegrationOptions.GENERIC
-          ? `This provider doesn't require any changes to your configuration or integrations list. Simply import and use the API function:`
+          ? `This provider doesn't use an integration. Simply initialize Sentry and import the API.`
           : tct('Add [name] to your integrations list.', {
               name: (
                 <code>{`${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration].integration}()`}</code>
@@ -269,7 +269,8 @@ export const featureFlagOnboarding: OnboardingConfig = {
           language: 'python',
           code:
             featureFlagOptions.integration === IntegrationOptions.GENERIC
-              ? `from sentry_sdk.${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration].module} import add_feature_flag
+              ? `import sentry_sdk
+from sentry_sdk.${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration].module} import add_feature_flag
 
 sentry_sdk.init(
   dsn="${dsn.public}",
@@ -277,8 +278,8 @@ sentry_sdk.init(
     # your other integrations here
   ]
 )`
-              : `import sentry-sdk
-from sentry_sdk.integrations.${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration].module} import ${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration].integration}
+              : `import sentry_sdk
+from sentry_sdk.${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration].module} import ${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration].integration}
 
 sentry_sdk.init(
   dsn="${dsn.public}",
