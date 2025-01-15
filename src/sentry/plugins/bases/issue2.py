@@ -1,20 +1,25 @@
 from __future__ import annotations
 
+from collections.abc import Callable
+from typing import TYPE_CHECKING, NotRequired, TypedDict
+
 from django.conf import settings
+from django.http.response import HttpResponseBase
 from django.urls import re_path, reverse
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
+from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers.models.plugin import PluginSerializer
 
 # api compat
 from sentry.exceptions import PluginError  # NOQA
 from sentry.models.activity import Activity
+from sentry.models.group import Group
 from sentry.models.groupmeta import GroupMeta
 from sentry.plugins.base.v1 import Plugin
-from sentry.plugins.endpoints import PluginGroupEndpoint
 from sentry.signals import issue_tracker_used
 from sentry.types.activity import ActivityType
 from sentry.users.services.usersocialauth.model import RpcUserSocialAuth
@@ -22,6 +27,45 @@ from sentry.users.services.usersocialauth.service import usersocialauth_service
 from sentry.utils.auth import get_auth_providers
 from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
+
+if TYPE_CHECKING:
+    from django.utils.functional import _StrPromise
+
+
+@region_silo_endpoint
+class PluginGroupEndpoint(GroupEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
+    }
+    view: Callable[[Request, Group], HttpResponseBase] = None  # type: ignore[assignment]  # populated by .as_view
+
+    def _handle(self, request: Request, group, *args, **kwargs):
+        GroupMeta.objects.populate_cache([group])
+
+        return self.view(request, group, *args, **kwargs)
+
+    def get(self, request: Request, group, *args, **kwargs) -> Response:
+        return self._handle(request, group, *args, **kwargs)
+
+    def post(self, request: Request, group, *args, **kwargs) -> Response:
+        return self._handle(request, group, *args, **kwargs)
+
+    def respond(self, *args, **kwargs):
+        return Response(*args, **kwargs)
+
+
+class _PluginIssueIssue(TypedDict):
+    issue_id: int
+    url: str
+    label: str
+
+
+class _PluginIssue(TypedDict):
+    slug: str
+    allowed_actions: tuple[str, ...]
+    title: str | _StrPromise
+    issue: NotRequired[_PluginIssueIssue]
 
 
 # TODO(dcramer): remove this in favor of GroupEndpoint
@@ -31,8 +75,8 @@ class IssueGroupActionEndpoint(PluginGroupEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
         "POST": ApiPublishStatus.PRIVATE,
     }
-    view_method_name = None
-    plugin = None
+    view_method_name: str = None  # type: ignore[assignment]  # populated by .as_view
+    plugin: IssuePlugin2 = None  # type: ignore[assignment]  # populated by .as_view
 
     def _handle(self, request: Request, group, *args, **kwargs):
         GroupMeta.objects.populate_cache([group])
@@ -90,7 +134,7 @@ class IssueTrackingPlugin2(Plugin):
             )
         return _urls
 
-    def get_auth_for_user(self, user, **kwargs) -> RpcUserSocialAuth:
+    def get_auth_for_user(self, user, **kwargs) -> RpcUserSocialAuth | None:
         """
         Return a ``RpcUserSocialAuth`` object for the given user based on this plugins ``auth_provider``.
         """
@@ -99,10 +143,9 @@ class IssueTrackingPlugin2(Plugin):
         if not user.is_authenticated:
             return None
 
-        auth = usersocialauth_service.get_one_or_none(
+        return usersocialauth_service.get_one_or_none(
             filter={"user_id": user.id, "provider": self.auth_provider}
         )
-        return auth
 
     def needs_auth(self, request: Request, project, **kwargs):
         """
@@ -358,7 +401,7 @@ class IssueTrackingPlugin2(Plugin):
         if not self.is_configured(project=group.project):
             return
 
-        item = {
+        item: _PluginIssue = {
             "slug": self.slug,
             "allowed_actions": self.allowed_actions,
             "title": self.get_title(),

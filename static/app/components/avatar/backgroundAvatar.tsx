@@ -22,11 +22,6 @@ const BackgroundAvatar = styled(({round: _round, forwardedRef, ...props}: Props)
   ${imageStyle};
 `;
 
-BackgroundAvatar.defaultProps = {
-  round: false,
-  suggested: true,
-};
-
 export default forwardRef<SVGSVGElement, Props>((props, ref) => (
-  <BackgroundAvatar forwardedRef={ref} {...props} />
+  <BackgroundAvatar suggested round={false} forwardedRef={ref} {...props} />
 ));

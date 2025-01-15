@@ -20,7 +20,10 @@ import {GlobalDrawer} from 'sentry/components/globalDrawer';
 import GlobalModal from 'sentry/components/globalModal';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
-import {DANGEROUS_SET_TEST_HISTORY} from 'sentry/utils/browserHistory';
+import {
+  DANGEROUS_SET_REACT_ROUTER_6_HISTORY,
+  DANGEROUS_SET_TEST_HISTORY,
+} from 'sentry/utils/browserHistory';
 import {ProvideAriaRouter} from 'sentry/utils/provideAriaRouter';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {lightTheme} from 'sentry/utils/theme';
@@ -59,7 +62,9 @@ interface BaseRenderOptions<T extends boolean = boolean>
   disableRouterMocks?: T;
 }
 
-type LocationConfig = string | {pathname: string; query?: Record<string, string>};
+type LocationConfig =
+  | string
+  | {pathname: string; query?: Record<string, string | number | string[]>};
 
 type RouterConfig = {
   location?: LocationConfig;
@@ -73,6 +78,45 @@ type RenderOptions<T extends boolean = false> = T extends true
 type RenderReturn<T extends boolean = boolean> = T extends true
   ? rtl.RenderResult & {router: TestRouter}
   : rtl.RenderResult;
+
+// Inject legacy react-router 3 style router mocked navigation functions
+// into the memory history used in react router 6
+function patchBrowserHistoryMocksEnabled(
+  history: MemoryHistory,
+  router: InjectedRouter<Record<string, string>, any>
+) {
+  Object.defineProperty(history, 'location', {get: () => router.location});
+  history.replace = router.replace;
+  history.push = (path: any) => {
+    if (typeof path === 'object' && path.search) {
+      path.query = qs.parse(path.search);
+      delete path.search;
+      delete path.hash;
+      delete path.state;
+      delete path.key;
+    }
+
+    // XXX(epurkhiser): This is a hack for react-router 3 to 6. react-router
+    // 6 will not convert objects into strings before pushing. We can detect
+    // this by looking for an empty hash, which we normally do not set for
+    // our browserHistory.push calls
+    if (typeof path === 'object' && path.hash === '') {
+      const queryString = path.query ? qs.stringify(path.query) : null;
+      path = `${path.pathname}${queryString ? `?${queryString}` : ''}`;
+    }
+
+    router.push(path);
+  };
+
+  DANGEROUS_SET_TEST_HISTORY({
+    goBack: router.goBack,
+    push: router.push,
+    replace: router.replace,
+    listen: jest.fn(() => {}),
+    listenBefore: jest.fn(),
+    getCurrentLocation: jest.fn(() => ({pathname: '', query: {}})),
+  });
+}
 
 function makeAllTheProviders(options: ProviderOptions) {
   const {organization, router} = initializeOrg({
@@ -106,46 +150,9 @@ function makeAllTheProviders(options: ProviderOptions) {
       </TestRouteContext.Provider>
     );
 
-    const history = options.history ?? createMemoryHistory();
-
-    // Inject legacy react-router 3 style router mocked navigation functions
-    // into the memory history used in react router 6
-    //
-    // TODO(epurkhiser): In a world without react-router 3 we should figure out
-    // how to write our tests in a simpler way without all these shims
     if (!options.disableRouterMocks) {
-      Object.defineProperty(history, 'location', {get: () => router.location});
-      history.replace = router.replace;
-      history.push = (path: any) => {
-        if (typeof path === 'object' && path.search) {
-          path.query = qs.parse(path.search);
-          delete path.search;
-          delete path.hash;
-          delete path.state;
-          delete path.key;
-        }
-
-        // XXX(epurkhiser): This is a hack for react-router 3 to 6. react-router
-        // 6 will not convert objects into strings before pushing. We can detect
-        // this by looking for an empty hash, which we normally do not set for
-        // our browserHistory.push calls
-        if (typeof path === 'object' && path.hash === '') {
-          const queryString = path.query ? qs.stringify(path.query) : null;
-          path = `${path.pathname}${queryString ? `?${queryString}` : ''}`;
-        }
-
-        router.push(path);
-      };
+      patchBrowserHistoryMocksEnabled(options.history ?? createMemoryHistory(), router);
     }
-
-    DANGEROUS_SET_TEST_HISTORY({
-      goBack: router.goBack,
-      push: router.push,
-      replace: router.replace,
-      listen: jest.fn(() => {}),
-      listenBefore: jest.fn(),
-      getCurrentLocation: jest.fn(() => ({pathname: '', query: {}})),
-    });
 
     return (
       <CacheProvider value={{...cache, compat: true}}>
@@ -278,6 +285,10 @@ function render<T extends boolean = false>(
     history,
     route: options.disableRouterMocks ? options.initialRouterConfig?.route : undefined,
   });
+
+  if (options.disableRouterMocks) {
+    DANGEROUS_SET_REACT_ROUTER_6_HISTORY(memoryRouter);
+  }
 
   const renderResult = rtl.render(<RouterProvider router={memoryRouter} />, options);
 
