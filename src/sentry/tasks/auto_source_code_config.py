@@ -96,7 +96,7 @@ def derive_code_mappings(
 
 # XXX: Temporary, use the new queue when live
 @instrumented_task(
-    name="sentry.tasks.derive_code_mappings.derive_code_mappings",
+    name="sentry.tasks.derive_code_mappings.derive_code_mappings_new",
     queue="derive_code_mappings",
     default_retry_delay=60 * 10,
     max_retries=3,
