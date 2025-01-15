@@ -62,12 +62,14 @@ describe('formatYAxisValue', () => {
       [0.712, '1/second', '0.712/s'],
       [12700, '1/second', '12.7K/s'],
       [0.0003, '1/second', '0.0003/s'],
+      [0.00000153, '1/second', '0.00000153/s'],
       [0.35, '1/second', '0.35/s'],
       [10, '1/second', '10/s'],
       [10.0, '1/second', '10/s'],
       [1231, '1/minute', '1.231K/min'],
       [110000, '1/second', '110K/s'],
       [110001, '1/second', '110.001K/s'],
+      [123456789, '1/second', '123.457M/s'],
     ])('Formats %s as %s', (value, unit, formattedValue) => {
       expect(formatYAxisValue(value, 'rate', unit)).toEqual(formattedValue);
     });
