@@ -622,10 +622,13 @@ def record_sourcemaps_received_for_project(project, event, **kwargs):
 
 @alert_rule_created.connect(weak=False)
 def record_alert_rule_created(user, project: Project, rule_type: str, **kwargs):
-    task = OnboardingTask.METRIC_ALERT if rule_type == "metric" else OnboardingTask.ALERT_RULE
+    # The quick start now only has a task for issue alert rules.
+    # Please see https://github.com/getsentry/sentry/blob/c06a3aa5fb104406f2a44994d32983e99bc2a479/static/app/components/onboardingWizard/taskConfig.tsx#L351-L352
+    if rule_type == "metric":
+        return
     rows_affected, created = OrganizationOnboardingTask.objects.create_or_update(
         organization_id=project.organization_id,
-        task=task,
+        task=OnboardingTask.ALERT_RULE,
         values={
             "status": OnboardingTaskStatus.COMPLETE,
             "user_id": user.id if user else None,
