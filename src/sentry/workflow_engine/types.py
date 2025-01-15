@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from abc import abstractproperty
 from enum import IntEnum, StrEnum
-from typing import TYPE_CHECKING, Any, Generic, TypedDict, TypeVar
+from typing import TYPE_CHECKING, Any, ClassVar, Generic, TypedDict, TypeVar
 
 from sentry.types.group import PriorityLevel
 
@@ -62,9 +61,7 @@ class DataSourceTypeHandler(Generic[T]):
 
 
 class DataConditionHandler(Generic[T]):
-    @abstractproperty
-    def type(self) -> DataConditionHandlerType:
-        pass
+    type: ClassVar[DataConditionHandlerType] = DataConditionHandlerType.ACTION_FILTER
 
     @staticmethod
     def evaluate_value(value: T, comparison: Any) -> DataConditionResult:
