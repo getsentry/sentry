@@ -207,7 +207,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           : undefined
       }
       onLegendSelectChanged={event => {
-        props?.onTimeseriesSelectionChange(event.selected);
+        props?.onTimeseriesSelectionChange?.(event.selected);
       }}
       tooltip={{
         trigger: 'axis',
