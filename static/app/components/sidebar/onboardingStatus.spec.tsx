@@ -3,7 +3,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {NewOnboardingStatus} from 'sentry/components/sidebar/newOnboardingStatus';
+import {OnboardingStatus} from 'sentry/components/sidebar/onboardingStatus';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {OnboardingTaskKey} from 'sentry/types/onboarding';
 import type {Organization} from 'sentry/types/organization';
@@ -40,7 +40,7 @@ describe('Onboarding Status', function () {
     const handleShowPanel = jest.fn();
 
     render(
-      <NewOnboardingStatus
+      <OnboardingStatus
         currentPanel=""
         onShowPanel={handleShowPanel}
         hidePanel={jest.fn()}
@@ -84,7 +84,7 @@ describe('Onboarding Status', function () {
     const handleHidePanel = jest.fn();
 
     render(
-      <NewOnboardingStatus
+      <OnboardingStatus
         currentPanel={SidebarPanelKey.ONBOARDING_WIZARD}
         onShowPanel={jest.fn()}
         hidePanel={handleHidePanel}
