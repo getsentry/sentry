@@ -26,12 +26,16 @@ class TestIssuePriorityCondition(ConditionTestCase):
         migrate_alert_rule(self.metric_alert, self.rpc_user)
 
     def test_simple(self):
-        _, data_condition_warning, _ = migrate_metric_data_conditions(
+        data_condition_warning_tuple = migrate_metric_data_conditions(
             self.alert_rule_trigger_warning
         )
-        _, data_condition_critical, _ = migrate_metric_data_conditions(
+        data_condition_critical_tuple = migrate_metric_data_conditions(
             self.alert_rule_trigger_critical
         )
+        assert data_condition_warning_tuple is not None
+        assert data_condition_critical_tuple is not None
+        data_condition_warning = data_condition_warning_tuple[1]
+        data_condition_critical = data_condition_critical_tuple[1]
 
         self.group.update(priority=PriorityLevel.MEDIUM)
         self.assert_passes(data_condition_warning, self.job)
