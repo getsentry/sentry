@@ -806,6 +806,8 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
                 DateUpdatedComparator("date_added", "date_updated"),
             ],
             "sentry.groupsearchview": [DateUpdatedComparator("date_updated")],
+            "sentry.groupsearchviewproject": [DateUpdatedComparator("date_updated")],
+            "sentry.groupsearchviewenvironment": [DateUpdatedComparator("date_updated")],
             "sentry.incident": [UUID4Comparator("detection_uuid")],
             "sentry.incidentactivity": [UUID4Comparator("notification_uuid")],
             "sentry.incidenttrigger": [DateUpdatedComparator("date_modified")],
