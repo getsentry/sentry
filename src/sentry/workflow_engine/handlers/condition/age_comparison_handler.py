@@ -12,7 +12,7 @@ from sentry.workflow_engine.types import DataConditionHandler, DataConditionHand
 @condition_handler_registry.register(Condition.AGE_COMPARISON)
 class AgeComparisonConditionHandler(DataConditionHandler[WorkflowJob]):
     type = DataConditionHandlerType.ACTION_FILTER
-      
+
     comparison_json_schema = {
         "type": "object",
         "properties": {
