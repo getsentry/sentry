@@ -133,10 +133,7 @@ export type GenericPerformanceWidgetProps<T extends WidgetDataConstraint> = {
   Visualizations: Visualizations<T>;
 
   chartDefinition: ChartDefinition;
-  chartHeight: number;
-
   chartSetting: PerformanceWidgetSetting;
-  containerType: PerformanceWidgetContainerTypes;
   eventView: EventView;
 
   fields: string[];
@@ -151,6 +148,14 @@ export type GenericPerformanceWidgetProps<T extends WidgetDataConstraint> = {
 
   InteractiveTitle?: InteractiveTitle<T> | null;
   Subtitle?: Subtitle<T>;
+  /**
+   * @default 200
+   */
+  chartHeight?: number;
+  /**
+   * @default 'panel'
+   */
+  containerType?: PerformanceWidgetContainerTypes;
 };
 
 export type GenericPerformanceWithData<T extends WidgetDataConstraint> =
