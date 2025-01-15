@@ -11,7 +11,7 @@ import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import filterThreadInfo from './filterThreadInfo';
+import filterThreadInfo, {type ThreadInfo} from './filterThreadInfo';
 import Option from './option';
 import {ThreadSelectorGrid, ThreadSelectorGridCell} from './styles';
 import {getMappedThreadState} from './threadStates';
@@ -24,7 +24,7 @@ type Props = {
   /**
    * Expects threads to be sorted by crashed first
    */
-  threads: Thread[];
+  threads: Readonly<Thread[]>;
 };
 
 const enum SortAttribute {
@@ -55,16 +55,16 @@ function ThreadSelector({threads, event, exception, activeThread, onChange}: Pro
     defined(getMappedThreadState(thread.state))
   );
   const threadInfoMap = useMemo(() => {
-    return threads.reduce((acc, thread) => {
+    return threads.reduce<Record<number, ThreadInfo>>((acc, thread) => {
       acc[thread.id] = filterThreadInfo(event, thread, exception);
       return acc;
     }, {});
   }, [threads, event, exception]);
 
   const orderedThreads = useMemo(() => {
-    const sortedThreads = threads.sort((threadA, threadB) => {
-      const threadInfoA = threadInfoMap[threadA.id];
-      const threadInfoB = threadInfoMap[threadB.id];
+    const sortedThreads: Readonly<Thread[]> = threads.toSorted((threadA, threadB) => {
+      const threadInfoA = threadInfoMap[threadA.id] ?? {};
+      const threadInfoB = threadInfoMap[threadB.id] ?? {};
 
       switch (sortAttribute) {
         case SortAttribute.ID:
@@ -96,7 +96,7 @@ function ThreadSelector({threads, event, exception, activeThread, onChange}: Pro
   }, [threads, sortAttribute, isSortAscending, currentThread, threadInfoMap]);
 
   const items = orderedThreads.map((thread: Thread) => {
-    const threadInfo = threadInfoMap[thread.id];
+    const threadInfo = threadInfoMap[thread.id] ?? {};
     return {
       value: thread.id,
       textValue: `#${thread.id}: ${thread.name ?? ''} ${threadInfo.label ?? ''} ${threadInfo.filename ?? ''} ${threadInfo.state ?? ''}`,
@@ -104,7 +104,7 @@ function ThreadSelector({threads, event, exception, activeThread, onChange}: Pro
         <Option
           thread={thread}
           details={threadInfo}
-          crashedInfo={threadInfo.crashedInfo}
+          crashedInfo={threadInfo?.crashedInfo}
           hasThreadStates={hasThreadStates}
         />
       ),
