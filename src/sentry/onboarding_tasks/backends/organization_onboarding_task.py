@@ -56,9 +56,9 @@ class OrganizationOnboardingTaskBackend(OnboardingTaskBackend[OrganizationOnboar
         # It's possible that the first project doesn't have source maps,
         # but the second project (which users are guided to create in the "Add Sentry to other parts of the app" step) may have source maps.
         required_tasks = (
-            OrganizationOnboardingTask.REQUIRED_ONBOARDING_TASKS_WITH_SOURCE_MAPS
+            OrganizationOnboardingTask.NEW_REQUIRED_ONBOARDING_TASKS_WITH_SOURCE_MAPS
             if project_with_source_maps
-            else OrganizationOnboardingTask.REQUIRED_ONBOARDING_TASKS
+            else OrganizationOnboardingTask.NEW_REQUIRED_ONBOARDING_TASKS
         )
 
         if completed >= required_tasks:
