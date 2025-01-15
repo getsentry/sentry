@@ -47,7 +47,7 @@ class GroupSearchView(DefaultFieldsModelExisting):
     is_all_projects = models.BooleanField(db_default=False)
     # Environments = [] maps to "All Environments"
     environments = ArrayField(
-        models.CharField(max_length=ENVIRONMENT_NAME_MAX_LENGTH, null=False), db_default=[]
+        models.CharField(max_length=ENVIRONMENT_NAME_MAX_LENGTH), default=list
     )
     time_filters = models.JSONField(null=False, db_default={"period": "14d"})
 
