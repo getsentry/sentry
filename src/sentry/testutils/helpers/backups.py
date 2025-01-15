@@ -632,7 +632,7 @@ class ExhaustiveFixtures(Fixtures):
         )
         GroupSearchViewEnvironment.objects.create(
             group_search_view=group_search_view,
-            environment=Environment.objects.create(project=project, name="production"),
+            environment=Environment.objects.create(projects=[project], name="production"),
         )
 
         Activity.objects.create(
