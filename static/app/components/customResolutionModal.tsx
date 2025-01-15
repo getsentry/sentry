@@ -1,4 +1,5 @@
 import {Fragment, useState} from 'react';
+import {css} from '@emotion/react';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
@@ -83,7 +84,12 @@ function CustomResolutionModal(props: CustomResolutionModalProps) {
         />
       </Body>
       <Footer>
-        <Button css={{marginRight: space(1.5)}} onClick={props.closeModal}>
+        <Button
+          css={css`
+            margin-right: ${space(1.5)};
+          `}
+          onClick={props.closeModal}
+        >
           {t('Cancel')}
         </Button>
         <Button type="submit" priority="primary">
