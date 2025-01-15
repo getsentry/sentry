@@ -82,6 +82,7 @@ export interface ReleaseSeriesProps extends WithRouterProps {
   start: DateString;
   theme: Theme;
   emphasizeReleases?: string[];
+  enabled?: boolean;
   memoized?: boolean;
   period?: string | null;
   preserveQueryParams?: boolean;
@@ -105,7 +106,7 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
 
   componentDidMount() {
     this._isMounted = true;
-    const {releases} = this.props;
+    const {releases, enabled = true} = this.props;
 
     if (releases) {
       // No need to fetch releases if passed in from props
@@ -113,17 +114,23 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
       return;
     }
 
-    this.fetchData();
+    if (enabled) {
+      this.fetchData();
+    }
   }
 
   componentDidUpdate(prevProps) {
+    const {enabled = true} = this.props;
+
     if (
-      !isEqual(prevProps.projects, this.props.projects) ||
-      !isEqual(prevProps.environments, this.props.environments) ||
-      !isEqual(prevProps.start, this.props.start) ||
-      !isEqual(prevProps.end, this.props.end) ||
-      !isEqual(prevProps.period, this.props.period) ||
-      !isEqual(prevProps.query, this.props.query)
+      (!isEqual(prevProps.projects, this.props.projects) ||
+        !isEqual(prevProps.environments, this.props.environments) ||
+        !isEqual(prevProps.start, this.props.start) ||
+        !isEqual(prevProps.end, this.props.end) ||
+        !isEqual(prevProps.period, this.props.period) ||
+        !isEqual(prevProps.query, this.props.query) ||
+        (!prevProps.enabled && this.props.enabled)) &&
+      enabled
     ) {
       this.fetchData();
     } else if (!isEqual(prevProps.emphasizeReleases, this.props.emphasizeReleases)) {
