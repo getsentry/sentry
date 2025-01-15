@@ -3,6 +3,9 @@ import operator
 from typing import Any, TypeVar, cast
 
 from django.db import models
+from django.db.models.signals import pre_save
+from django.dispatch import receiver
+from jsonschema import ValidationError, validate
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, region_silo_model, sane_repr
@@ -40,7 +43,7 @@ class Condition(models.TextChoices):
     ISSUE_PRIORITY_EQUALS = "issue_priority_equals"
 
 
-condition_ops = {
+CONDITION_OPS = {
     Condition.EQUAL: operator.eq,
     Condition.GREATER_OR_EQUAL: operator.ge,
     Condition.GREATER: operator.gt,
@@ -103,9 +106,9 @@ class DataCondition(DefaultFieldsModel):
             )
             return None
 
-        if condition_type in condition_ops:
+        if condition_type in CONDITION_OPS:
             # If the condition is a base type, handle it directly
-            op = condition_ops[Condition(self.type)]
+            op = CONDITION_OPS[Condition(self.type)]
             result = op(cast(Any, value), self.comparison)
             return self.get_condition_result() if result else None
 
@@ -121,3 +124,28 @@ class DataCondition(DefaultFieldsModel):
 
         result = handler.evaluate_value(value, self.comparison)
         return self.get_condition_result() if result else None
+
+
+@receiver(pre_save, sender=DataCondition)
+def enforce_comparison_schema(sender, instance: DataCondition, **kwargs):
+
+    condition_type = Condition(instance.type)
+    if condition_type in CONDITION_OPS:
+        # don't enforce schema for default ops, this can be any type
+        return
+
+    try:
+        handler = condition_handler_registry.get(condition_type)
+    except NoRegistrationExistsError:
+        logger.exception(
+            "No registration exists for condition",
+            extra={"type": instance.type, "id": instance.id},
+        )
+        return None
+
+    schema = handler.comparison_json_schema
+
+    try:
+        validate(instance.comparison, schema)
+    except ValidationError as e:
+        raise ValidationError(f"Invalid config: {e.message}")
