@@ -19,10 +19,15 @@ import {getWidgetIcon} from 'sentry/views/dashboards/widgetLibrary/widgetCard';
 
 interface WidgetTemplatesListProps {
   onSave: ({index, widget}: {index: number; widget: Widget}) => void;
+  setIsPreviewDraggable: (isPreviewDraggable: boolean) => void;
   setOpenWidgetTemplates: (openWidgetTemplates: boolean) => void;
 }
 
-function WidgetTemplatesList({onSave, setOpenWidgetTemplates}: WidgetTemplatesListProps) {
+function WidgetTemplatesList({
+  onSave,
+  setOpenWidgetTemplates,
+  setIsPreviewDraggable,
+}: WidgetTemplatesListProps) {
   const organization = useOrganization();
   const [selectedWidget, setSelectedWidget] = useState<number | null>(null);
 
@@ -72,7 +77,14 @@ function WidgetTemplatesList({onSave, setOpenWidgetTemplates}: WidgetTemplatesLi
                 <WidgetDescription>{widget.description}</WidgetDescription>
                 {selectedWidget === index && (
                   <ButtonsWrapper>
-                    <Button size="sm" onClick={() => setOpenWidgetTemplates(false)}>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setOpenWidgetTemplates(false);
+                        // reset preview when customizing templates
+                        setIsPreviewDraggable(false);
+                      }}
+                    >
                       {t('Customize')}
                     </Button>
                     <Button size="sm" onClick={() => handleSave(widget)}>

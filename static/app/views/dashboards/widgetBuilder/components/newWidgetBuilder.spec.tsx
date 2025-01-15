@@ -240,4 +240,23 @@ describe('NewWidgetBuiler', function () {
     expect(await screen.findByText('Select group')).toBeInTheDocument();
     expect(await screen.findByText('Add Group')).toBeInTheDocument();
   });
+
+  it('renders empty widget preview when no widget selected from templates', async function () {
+    render(
+      <WidgetBuilderV2
+        isOpen
+        onClose={onCloseMock}
+        dashboard={DashboardFixture([])}
+        dashboardFilters={{}}
+        onSave={onSaveMock}
+        openWidgetTemplates
+        setOpenWidgetTemplates={jest.fn()}
+      />,
+      {router, organization}
+    );
+
+    expect(await screen.findByText('Add from Widget Library')).toBeInTheDocument();
+
+    expect(await screen.findByText('Select a widget to preview')).toBeInTheDocument();
+  });
 });
