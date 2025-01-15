@@ -68,7 +68,7 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
             )
         trees = installation.get_trees_for_org()
         trees_helper = CodeMappingTreesHelper(trees)
-        possible_code_mappings: list[CodeMapping] = []
+        possible_code_mappings: list[dict[str, str]] = []
         resp_status: int = status.HTTP_204_NO_CONTENT
         if stacktrace_filename:
             frame_filename = FrameFilename(stacktrace_filename)
