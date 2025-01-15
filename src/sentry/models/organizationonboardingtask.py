@@ -50,7 +50,6 @@ class OnboardingTaskStatus:
 #   FIRST_EVENT:      { 'platform':  'flask', }
 #   INVITE_MEMBER:    { 'invited_member': user.id, 'teams': [team.id] }
 #   ISSUE_TRACKER:    { 'plugin': 'plugin_name' }
-#   ISSUE_ASSIGNMENT: { 'assigned_member': user.id }
 #   SECOND_PLATFORM:  { 'platform': 'javascript' }
 #
 # NOTE: Currently the `PENDING` status is applicable for the following
@@ -58,7 +57,6 @@ class OnboardingTaskStatus:
 #
 #   FIRST_EVENT:     User confirms that sdk has been installed
 #   INVITE_MEMBER:   Until the member has successfully joined org
-#   SECOND_PLATFORM: User confirms that sdk has been installed
 #   USER_CONTEXT:    User has added user context to sdk
 #   ISSUE_TRACKER:   Tracker added, issue not yet created
 
