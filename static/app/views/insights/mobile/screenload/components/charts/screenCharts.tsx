@@ -136,7 +136,7 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
         const label = release;
         if (yAxis in transformedReleaseSeries) {
           const data =
-            series[release]![yAxis]!?.data.map(datum => {
+            series[release]![yAxis]?.data.map(datum => {
               return {
                 name: datum[0] * 1000,
                 value: datum[1][0].count,

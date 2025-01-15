@@ -283,7 +283,7 @@ export function CacheSamplePanel() {
                 value={cacheTransactionMetrics?.[0]?.['sum(span.self_time)']}
                 unit={DurationUnit.MILLISECOND}
                 tooltip={getTimeSpentExplanation(
-                  cacheTransactionMetrics?.[0]!?.['time_spent_percentage()']
+                  cacheTransactionMetrics?.[0]?.['time_spent_percentage()']
                 )}
                 isLoading={areCacheTransactionMetricsFetching}
               />
@@ -309,7 +309,7 @@ export function CacheSamplePanel() {
             <TransactionDurationChart
               samples={spansWithDuration}
               averageTransactionDuration={
-                transactionDurationData?.[0]!?.[
+                transactionDurationData?.[0]?.[
                   `avg(${MetricsFields.TRANSACTION_DURATION})`
                 ]
               }

@@ -126,8 +126,8 @@ export const useTransactionWebVitalsScoresQuery = ({
           const {totalScore, clsScore, fcpScore, lcpScore, ttfbScore, inpScore} =
             getWebVitalScoresFromTableDataRow(row);
           return {
-            transaction: row.transaction!?.toString(),
-            project: row.project!?.toString(),
+            transaction: row.transaction?.toString(),
+            project: row.project?.toString(),
             'project.id': parseInt(row['project.id']!.toString(), 10),
             'p75(measurements.lcp)': row['p75(measurements.lcp)'] as number,
             'p75(measurements.fcp)': row['p75(measurements.fcp)'] as number,

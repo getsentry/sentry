@@ -260,7 +260,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
 
   chartComponent(chartProps): React.ReactNode {
     const {widget} = this.props;
-    const stacked = widget.queries[0]!?.columns.length > 0;
+    const stacked = widget.queries[0]?.columns.length > 0;
 
     switch (widget.displayType) {
       case 'bar':

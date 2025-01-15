@@ -204,7 +204,7 @@ function MultiChartWidgetQueries({
     return [
       widgetToQuery({widget, metricsNewInputs}),
       ...(isMetricsEquationWidget(widget)
-        ? formulaDependencies[widget.id]!?.dependencies?.map(dependency =>
+        ? formulaDependencies[widget.id]?.dependencies?.map(dependency =>
             widgetToQuery({widget: dependency, isQueryOnly: true, metricsNewInputs})
           )
         : []),

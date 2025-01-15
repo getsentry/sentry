@@ -411,7 +411,7 @@ export default typescript.config([
       '@typescript-eslint/no-duplicate-enum-values': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-empty-object-type': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-explicit-any': 'off', // TODO(ryan953): Fix violations and delete this line
-      '@typescript-eslint/no-extra-non-null-assertion': 'off', // TODO(ryan953): Fix violations and delete this line
+      '@typescript-eslint/no-extra-non-null-assertion': 'error', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-namespace': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-non-null-asserted-optional-chain': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-require-imports': 'off', // TODO(ryan953): Fix violations and delete this line

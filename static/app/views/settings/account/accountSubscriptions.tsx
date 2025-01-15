@@ -105,7 +105,7 @@ function AccountSubscriptions() {
     }, {})
   );
 
-  subGroups.sort(([a], [b]) => a[0]!?.localeCompare(b[0]!));
+  subGroups.sort(([a], [b]) => a[0]?.localeCompare(b[0]!));
 
   const handleToggle = (subscription: Subscription) => {
     const subscribed = !subscription.subscribed;

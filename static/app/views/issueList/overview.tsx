@@ -163,7 +163,7 @@ class IssueListOverview extends Component<Props, State> {
   componentDidMount() {
     this._performanceObserver = makeIssuesINPObserver();
     this._poller = new CursorPoller({
-      linkPreviousHref: parseLinkHeader(this.state.pageLinks)?.previous!?.href,
+      linkPreviousHref: parseLinkHeader(this.state.pageLinks)?.previous?.href,
       success: this.onRealtimePoll,
     });
 

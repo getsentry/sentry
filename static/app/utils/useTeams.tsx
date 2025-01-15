@@ -138,8 +138,8 @@ async function fetchTeams(
   const pageLinks = resp?.getResponseHeader('Link');
   if (pageLinks) {
     const paginationObject = parseLinkHeader(pageLinks);
-    hasMore = paginationObject?.next!?.results;
-    nextCursor = paginationObject?.next!?.cursor;
+    hasMore = paginationObject?.next?.results;
+    nextCursor = paginationObject?.next?.cursor;
   }
 
   return {results: data, hasMore, nextCursor};

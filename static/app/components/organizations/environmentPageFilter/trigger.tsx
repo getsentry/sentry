@@ -27,7 +27,7 @@ function BaseEnvironmentPageFilterTrigger(
   // Show 2 environments only if the combined string's length does not exceed 25.
   // Otherwise show only 1 environment.
   const envsToShow =
-    value[0]!?.length + value[1]!?.length <= 23 ? value.slice(0, 2) : value.slice(0, 1);
+    value[0]?.length + value[1]?.length <= 23 ? value.slice(0, 2) : value.slice(0, 1);
 
   // e.g. "production, staging"
   const enumeratedLabel = envsToShow.map(env => trimSlug(env, 25)).join(', ');
