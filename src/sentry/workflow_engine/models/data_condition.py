@@ -43,7 +43,7 @@ class Condition(models.TextChoices):
     ISSUE_PRIORITY_EQUALS = "issue_priority_equals"
 
 
-condition_ops = {
+CONDITION_OPS = {
     Condition.EQUAL: operator.eq,
     Condition.GREATER_OR_EQUAL: operator.ge,
     Condition.GREATER: operator.gt,
@@ -106,9 +106,9 @@ class DataCondition(DefaultFieldsModel):
             )
             return None
 
-        if condition_type in condition_ops:
+        if condition_type in CONDITION_OPS:
             # If the condition is a base type, handle it directly
-            op = condition_ops[Condition(self.type)]
+            op = CONDITION_OPS[Condition(self.type)]
             result = op(cast(Any, value), self.comparison)
             return self.get_condition_result() if result else None
 
@@ -130,7 +130,7 @@ class DataCondition(DefaultFieldsModel):
 def enforce_comparison_schema(sender, instance: DataCondition, **kwargs):
 
     condition_type = Condition(instance.type)
-    if condition_type in condition_ops:
+    if condition_type in CONDITION_OPS:
         # don't enforce schema for default ops, this can be any type
         return
 

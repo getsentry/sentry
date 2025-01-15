@@ -57,16 +57,16 @@ class TestAgeComparisonCondition(ConditionTestCase):
         assert dc.condition_group == dcg
 
     def test_json_schema(self):
+        self.dc.comparison.update({"time": "asdf"})
         with pytest.raises(ValidationError):
-            self.dc.comparison.update({"time": "asdf"})
             self.dc.save()
 
+        self.dc.comparison.update({"value": "bad_value"})
         with pytest.raises(ValidationError):
-            self.dc.comparison.update({"value": "bad_value"})
             self.dc.save()
 
+        self.dc.comparison.update({"comparison_type": "bad_value"})
         with pytest.raises(ValidationError):
-            self.dc.comparison.update({"comparison_type": "bad_value"})
             self.dc.save()
 
     def test_older_applies_correctly(self):
