@@ -63,7 +63,9 @@ class GroupAutofixEndpoint(GroupEndpoint):
         serialized_event = serialize(event, user, EventSerializer())
         return serialized_event, event
 
-    def _get_profile_for_event(self, event: Event | GroupEvent, project: Project) -> dict[str, Any]:
+    def _get_profile_for_event(
+        self, event: Event | GroupEvent, project: Project
+    ) -> dict[str, Any] | None:
         context = event.data.get("contexts", {})
         profile_id = context.get("profile", {}).get("profile_id")  # transaction profile
 
@@ -92,6 +94,9 @@ class GroupAutofixEndpoint(GroupEndpoint):
                 context = results[0].data.get("contexts", {})
                 profile_id = context.get("profile", {}).get("profile_id")
 
+        if not profile_id:
+            return None
+
         response = get_from_profiling_service(
             "GET",
             f"/organizations/{project.organization_id}/projects/{project.id}/profiles/{profile_id}",
@@ -107,7 +112,7 @@ class GroupAutofixEndpoint(GroupEndpoint):
             }
             return result
         else:
-            return {}
+            return None
 
     def _convert_profile_to_execution_tree(self, profile_data: dict) -> list[dict]:
         """
