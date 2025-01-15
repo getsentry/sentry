@@ -1,10 +1,12 @@
 import {useRef} from 'react';
+import {useSearchParams} from 'react-router-dom';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import Link from 'sentry/components/links/link';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useParams} from 'sentry/utils/useParams';
 
 describe('rerender', () => {
   // Taken from https://testing-library.com/docs/example-update-props/
@@ -118,5 +120,62 @@ describe('disableRouterMocks', () => {
     });
 
     expect(screen.getByText('/mock-pathname/')).toBeInTheDocument();
+  });
+
+  it('works with useParams()', async () => {
+    function TestComp() {
+      const params = useParams<{projectId: string}>();
+
+      return <div>{params.projectId}</div>;
+    }
+
+    render(<TestComp />, {
+      disableRouterMocks: true,
+      initialRouterConfig: {
+        route: '/projects/:projectId/',
+        location: '/projects/123/',
+      },
+    });
+
+    expect(await screen.findByText('123')).toBeInTheDocument();
+  });
+
+  it('works with useSearchParams()', async () => {
+    function TestComp() {
+      const [searchParams, setSearchParams] = useSearchParams();
+
+      return (
+        <div>
+          <button onClick={() => setSearchParams({id: '200', name: 'Jane Doe'})}>
+            Click me
+          </button>
+          <div>ID: {searchParams.get('id') ?? 'None'}</div>
+          <div>Name: {searchParams.get('name') ?? 'None'}</div>
+        </div>
+      );
+    }
+
+    const {router} = render(<TestComp />, {
+      disableRouterMocks: true,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/issues/',
+          query: {
+            id: '100',
+            name: 'John Doe',
+          },
+        },
+      },
+    });
+
+    expect(await screen.findByText('ID: 100')).toBeInTheDocument();
+    expect(screen.getByText('Name: John Doe')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByText('Click me'));
+
+    expect(await screen.findByText('ID: 200')).toBeInTheDocument();
+    expect(screen.getByText('Name: Jane Doe')).toBeInTheDocument();
+
+    expect(router.location.query).toEqual({id: '200', name: 'Jane Doe'});
   });
 });
