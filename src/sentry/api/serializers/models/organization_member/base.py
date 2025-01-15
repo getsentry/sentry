@@ -102,7 +102,7 @@ class OrganizationMemberSerializer(Serializer):
         serialized_user = attrs["user"]
         if obj.user_id:
             # Only use the user's primary email from the serialized user data
-            email = serialized_user["email"] if serialized_user else None
+            email = serialized_user["email"] if serialized_user else obj.email
         else:
             # For invited members, use the invitation email
             email = obj.email
