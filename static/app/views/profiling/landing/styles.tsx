@@ -51,6 +51,8 @@ export const StatusContainer = styled('div')`
 `;
 
 export const Accordion = styled('ul')`
+  display: flex;
+  flex-direction: column;
   padding: ${space(1)} 0 0 0;
   margin: 0;
   list-style-type: none;
@@ -58,11 +60,13 @@ export const Accordion = styled('ul')`
 `;
 
 export const AccordionItem = styled('li')`
+  display: grid;
+  grid-template-columns: auto auto 1fr auto auto;
   line-height: ${p => p.theme.text.lineHeightBody};
-  display: flex;
   align-items: center;
   gap: ${space(1)};
   border-top: 1px solid ${p => p.theme.border};
-  padding: ${space(1)} ${space(2)};
+  padding: ${space(0.5)} ${space(2)};
   font-size: ${p => p.theme.fontSizeMedium};
+  min-height: 35px;
 `;

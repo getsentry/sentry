@@ -20,7 +20,6 @@ from sentry.tasks.derive_code_mappings import (
 )
 from sentry.testutils.asserts import assert_failure_metric, assert_halt_metric
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.locking import UnableToAcquireLock
@@ -650,26 +649,6 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
             "sentry/models/release.py",
             "sentry/tasks.py",
         ]
-
-    @with_feature({"organizations:derive-code-mappings": False})
-    def test_feature_off(self):
-        event = self.store_event(data=self.test_data, project_id=self.project.id)
-
-        assert not RepositoryProjectPathConfig.objects.filter(project_id=self.project.id).exists()
-
-        with (
-            patch(
-                "sentry.tasks.derive_code_mappings.identify_stacktrace_paths",
-                return_value={
-                    self.project: ["sentry/models/release.py", "sentry/tasks.py"],
-                },
-            ) as mock_identify_stacktraces,
-            self.tasks(),
-        ):
-            derive_code_mappings(self.project.id, event.data)
-
-        assert mock_identify_stacktraces.call_count == 0
-        assert not RepositoryProjectPathConfig.objects.filter(project_id=self.project.id).exists()
 
     @patch("sentry.integrations.github.integration.GitHubIntegration.get_trees_for_org")
     @patch(

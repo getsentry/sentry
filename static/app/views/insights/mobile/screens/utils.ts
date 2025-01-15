@@ -5,6 +5,9 @@ import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {VitalState} from 'sentry/views/performance/vitalDetail/utils';
 
 const formatMetricValue = (metric: MetricValue, field?: string | undefined): string => {
+  if (metric.value == null) {
+    return '-';
+  }
   if (typeof metric.value === 'number' && metric.type === 'duration' && metric.unit) {
     const seconds =
       (metric.value * ((metric.unit && DURATION_UNITS[metric.unit]) ?? 1)) / 1000;
@@ -18,8 +21,8 @@ const formatMetricValue = (metric: MetricValue, field?: string | undefined): str
     return '-';
   }
   if (
-    (field === 'division(mobile.slow_frames,mobile.total_frames)' ||
-      field === 'division(mobile.frozen_frames,mobile.total_frames)')
+    field === 'division(mobile.slow_frames,mobile.total_frames)' ||
+    field === 'division(mobile.frozen_frames,mobile.total_frames)'
   ) {
     if (typeof metric.value === 'number' && isFinite(metric.value)) {
       return formatPercentage(metric.value, 2, {minimumValue: 0.0001});

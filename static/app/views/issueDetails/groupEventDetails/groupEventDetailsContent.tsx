@@ -76,6 +76,8 @@ import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSectio
 import {TraceDataSection} from 'sentry/views/issueDetails/traceDataSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
+import MetricIssuesSection from '../metricIssuesSection';
+
 const LLMMonitoringSection = lazy(
   () => import('sentry/components/events/interfaces/llm-monitoring/llmMonitoringSection')
 );
@@ -218,6 +220,14 @@ export function EventDetailsContent({
         <CronTimelineSection
           event={event}
           organization={organization}
+          project={project}
+        />
+      )}
+      {event.contexts?.metric_alert?.alert_rule_id && (
+        <MetricIssuesSection
+          organization={organization}
+          group={group}
+          event={event}
           project={project}
         />
       )}

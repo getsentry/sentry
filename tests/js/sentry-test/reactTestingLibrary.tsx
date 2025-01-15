@@ -1,10 +1,18 @@
-import {type RouteObject, RouterProvider, useRouteError} from 'react-router-dom';
+import {type RouteObject, RouterProvider, type To, useRouteError} from 'react-router-dom';
 import {cache} from '@emotion/css'; // eslint-disable-line @emotion/no-vanilla
 import {CacheProvider, ThemeProvider} from '@emotion/react';
-import {createMemoryHistory, createRouter} from '@remix-run/router';
+import {
+  createMemoryHistory,
+  createRouter,
+  type InitialEntry,
+  type MemoryHistory,
+  type Router,
+  type RouterNavigateOptions,
+} from '@remix-run/router';
 import * as rtl from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 import userEvent from '@testing-library/user-event'; // eslint-disable-line no-restricted-imports
 import * as qs from 'query-string';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 
@@ -13,6 +21,7 @@ import GlobalModal from 'sentry/components/globalModal';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {DANGEROUS_SET_TEST_HISTORY} from 'sentry/utils/browserHistory';
+import {ProvideAriaRouter} from 'sentry/utils/provideAriaRouter';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {lightTheme} from 'sentry/utils/theme';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -31,6 +40,10 @@ interface ProviderOptions {
    */
   disableRouterMocks?: boolean;
   /**
+   * Sets the history for the router.
+   */
+  history?: MemoryHistory;
+  /**
    * Sets the OrganizationContext. You may pass null to provide no organization
    */
   organization?: Partial<Organization> | null;
@@ -40,7 +53,26 @@ interface ProviderOptions {
   router?: Partial<InjectedRouter>;
 }
 
-interface Options extends ProviderOptions, rtl.RenderOptions {}
+interface BaseRenderOptions<T extends boolean = boolean>
+  extends Omit<ProviderOptions, 'history' | 'disableRouterMocks'>,
+    rtl.RenderOptions {
+  disableRouterMocks?: T;
+}
+
+type LocationConfig = string | {pathname: string; query?: Record<string, string>};
+
+type RouterConfig = {
+  location?: LocationConfig;
+  route?: string;
+};
+
+type RenderOptions<T extends boolean = false> = T extends true
+  ? BaseRenderOptions<T> & {initialRouterConfig?: RouterConfig}
+  : BaseRenderOptions<T>;
+
+type RenderReturn<T extends boolean = boolean> = T extends true
+  ? rtl.RenderResult & {router: TestRouter}
+  : rtl.RenderResult;
 
 function makeAllTheProviders(options: ProviderOptions) {
   const {organization, router} = initializeOrg({
@@ -69,11 +101,12 @@ function makeAllTheProviders(options: ProviderOptions) {
           routes: router.routes,
         }}
       >
-        {content}
+        {/* ProvideAriaRouter may not be necessary in tests but matches routes.tsx */}
+        <ProvideAriaRouter>{content}</ProvideAriaRouter>
       </TestRouteContext.Provider>
     );
 
-    const history = createMemoryHistory();
+    const history = options.history ?? createMemoryHistory();
 
     // Inject legacy react-router 3 style router mocked navigation functions
     // into the memory history used in react router 6
@@ -114,36 +147,96 @@ function makeAllTheProviders(options: ProviderOptions) {
       getCurrentLocation: jest.fn(() => ({pathname: '', query: {}})),
     });
 
-    // By default react-router 6 catches exceptions and displays the stack
-    // trace. For tests we want them to bubble out
-    function ErrorBoundary(): React.ReactNode {
-      throw useRouteError();
-    }
-
-    const routes: RouteObject[] = [
-      {
-        path: '*',
-        element: wrappedContent,
-        errorElement: <ErrorBoundary />,
-      },
-    ];
-
-    const memoryRouter = createRouter({
-      future: {v7_prependBasename: true},
-      history,
-      routes,
-    }).initialize();
-
     return (
       <CacheProvider value={{...cache, compat: true}}>
         <ThemeProvider theme={lightTheme}>
           <QueryClientProvider client={makeTestQueryClient()}>
-            <RouterProvider router={memoryRouter} />
+            {wrappedContent}
           </QueryClientProvider>
         </ThemeProvider>
       </CacheProvider>
     );
   };
+}
+
+function makeRouter({
+  children,
+  history,
+  route,
+}: {
+  history: MemoryHistory;
+  children?: React.ReactNode;
+  route?: string;
+}) {
+  // By default react-router 6 catches exceptions and displays the stack
+  // trace. For tests we want them to bubble out
+  function ErrorBoundary(): React.ReactNode {
+    throw useRouteError();
+  }
+
+  const routes: RouteObject[] = [
+    {
+      path: route ?? '*',
+      element: children,
+      errorElement: <ErrorBoundary />,
+    },
+  ];
+
+  const router = createRouter({
+    future: {v7_prependBasename: true},
+    history,
+    routes,
+  }).initialize();
+
+  return router;
+}
+
+class TestRouter {
+  private router: Router;
+
+  constructor(router: Router) {
+    this.router = router;
+  }
+
+  get location() {
+    // Return parsed query params for convenience
+    const query = qs.parse(this.router.state.location.search);
+
+    return {
+      ...this.router.state.location,
+      query,
+    };
+  }
+
+  navigate = (to: To | number, opts?: RouterNavigateOptions) => {
+    rtl.act(() => {
+      if (typeof to === 'number') {
+        this.router.navigate(to);
+      } else {
+        this.router.navigate(to, opts);
+      }
+    });
+  };
+}
+
+function parseLocationConfig(location: LocationConfig | undefined): InitialEntry {
+  if (!location) {
+    return LocationFixture().pathname;
+  }
+
+  if (typeof location === 'string') {
+    return location;
+  }
+
+  if (location.query) {
+    const queryString = qs.stringify(location.query);
+    return {
+      pathname: location.pathname,
+      search: queryString,
+    };
+  }
+
+  return location.pathname;
 }
 
 /**
@@ -154,18 +247,57 @@ function makeAllTheProviders(options: ProviderOptions) {
  *
  * If your component requires additional context you can pass it in the
  * options.
+ *
+ * To test route changes, pass `disableRouterMocks: true`. This will return a
+ * `router` property which can be used to access the location or manually
+ * navigate to a route. To set the initial location with mocks disabled,
+ * pass an `initialRouterConfig`.
  */
-function render(
+function render<T extends boolean = false>(
   ui: React.ReactElement,
-  {router, organization, disableRouterMocks, ...rtlOptions}: Options = {}
-) {
-  const AllTheProviders = makeAllTheProviders({
-    organization,
-    router,
-    disableRouterMocks,
+  options: RenderOptions<T> = {} as RenderOptions<T>
+): RenderReturn<T> {
+  const initialEntry =
+    (options.disableRouterMocks
+      ? parseLocationConfig(options.initialRouterConfig?.location)
+      : options.router?.location?.pathname) ?? LocationFixture().pathname;
+
+  const history = createMemoryHistory({
+    initialEntries: [initialEntry],
   });
 
-  return rtl.render(ui, {wrapper: AllTheProviders, ...rtlOptions});
+  const AllTheProviders = makeAllTheProviders({
+    organization: options.organization,
+    router: options.router,
+    disableRouterMocks: options.disableRouterMocks,
+    history,
+  });
+
+  const memoryRouter = makeRouter({
+    children: <AllTheProviders>{ui}</AllTheProviders>,
+    history,
+    route: options.disableRouterMocks ? options.initialRouterConfig?.route : undefined,
+  });
+
+  const renderResult = rtl.render(<RouterProvider router={memoryRouter} />, options);
+
+  const rerender = (newUi: React.ReactElement) => {
+    const newRouter = makeRouter({
+      children: <AllTheProviders>{newUi}</AllTheProviders>,
+      history,
+      route: options.disableRouterMocks ? options.initialRouterConfig?.route : undefined,
+    });
+
+    renderResult.rerender(<RouterProvider router={newRouter} />);
+  };
+
+  const testRouter = new TestRouter(memoryRouter);
+
+  return {
+    ...renderResult,
+    rerender,
+    ...(options.disableRouterMocks ? {router: testRouter} : {}),
+  } as RenderReturn<T>;
 }
 
 /**
@@ -175,7 +307,7 @@ function render(
  */
 const fireEvent = rtl.fireEvent;
 
-function renderGlobalModal(options?: Options) {
+function renderGlobalModal(options?: BaseRenderOptions) {
   const result = render(<GlobalModal />, options);
 
   /**

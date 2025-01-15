@@ -163,7 +163,7 @@ class SnubaTagStorage(TagStorage):
                 key_ctor = functools.partial(GroupTagKey, group_id=group.id)
                 value_ctor = functools.partial(GroupTagValue, group_id=group.id)
 
-            top_values = [
+            top_values = tuple(
                 value_ctor(
                     key=key,
                     value=value,
@@ -172,7 +172,7 @@ class SnubaTagStorage(TagStorage):
                     last_seen=parse_datetime(data["last_seen"]),
                 )
                 for value, data in result.items()
-            ]
+            )
 
             return key_ctor(
                 key=key,
@@ -661,7 +661,7 @@ class SnubaTagStorage(TagStorage):
         for keyobj in keys_with_counts:
             key = keyobj.key
             values = values_by_key.get(key, dict())
-            keyobj.top_values = [
+            keyobj.top_values = tuple(
                 GroupTagValue(
                     group_id=group.id,
                     key=keyobj.key,
@@ -671,7 +671,7 @@ class SnubaTagStorage(TagStorage):
                     last_seen=parse_datetime(data["last_seen"]),
                 )
                 for value, data in values.items()
-            ]
+            )
 
         return keys_with_counts
 
@@ -1287,15 +1287,14 @@ class SnubaTagStorage(TagStorage):
 
     def get_group_tag_value_iter(
         self,
-        group,
-        environment_ids,
-        key,
-        callbacks=(),
-        orderby="-first_seen",
+        group: Group,
+        environment_ids: list[int | None],
+        key: str,
+        orderby: str = "-first_seen",
         limit: int = 1000,
         offset: int = 0,
-        tenant_ids=None,
-    ):
+        tenant_ids: dict[str, int | str] | None = None,
+    ) -> list[GroupTagValue]:
         filters = {
             "project_id": get_project_list(group.project_id),
             "tags_key": [key],
@@ -1325,9 +1324,6 @@ class SnubaTagStorage(TagStorage):
             GroupTagValue(group_id=group.id, key=key, value=value, **fix_tag_value_data(data))
             for value, data in results.items()
         ]
-
-        for cb in callbacks:
-            cb(group_tag_values)
 
         return group_tag_values
 

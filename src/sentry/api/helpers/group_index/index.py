@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from datetime import datetime
 from typing import Any
@@ -64,9 +66,9 @@ def parse_and_convert_issue_search_query(
 
 def build_query_params_from_request(
     request: Request,
-    organization: "Organization",
-    projects: Sequence["Project"],
-    environments: Sequence["Environment"] | None,
+    organization: Organization,
+    projects: Sequence[Project],
+    environments: Sequence[Environment] | None,
 ) -> MutableMapping[str, Any]:
     query_kwargs = {"projects": projects, "sort_by": request.GET.get("sort", DEFAULT_SORT_OPTION)}
 
@@ -152,9 +154,9 @@ def build_query_params_from_request(
 
 
 def validate_search_filter_permissions(
-    organization: "Organization",
+    organization: Organization,
     search_filters: Sequence[SearchFilter],
-    user: "User",
+    user: User | AnonymousUser,
 ) -> None:
     """
     Verifies that an organization is allowed to perform the query that they
@@ -256,7 +258,7 @@ def calculate_stats_period(
 def prep_search(
     cls: Any,
     request: Request,
-    project: "Project",
+    project: Project,
     extra_query_kwargs: Mapping[str, Any] | None = None,
 ) -> tuple[CursorResult[Group], Mapping[str, Any]]:
     try:
@@ -283,7 +285,7 @@ def prep_search(
 
 def get_first_last_release(
     request: Request,
-    group: "Group",
+    group: Group,
 ) -> tuple[Mapping[str, Any] | None, Mapping[str, Any] | None]:
     first_release = group.get_first_release()
     if first_release is not None:
@@ -303,7 +305,7 @@ def get_first_last_release(
     return first_release, last_release
 
 
-def get_release_info(request: Request, group: "Group", version: str) -> Mapping[str, Any]:
+def get_release_info(request: Request, group: Group, version: str) -> Mapping[str, Any]:
     try:
         release = Release.objects.get(
             projects=group.project,
@@ -318,7 +320,7 @@ def get_release_info(request: Request, group: "Group", version: str) -> Mapping[
 
 def get_first_last_release_info(
     request: Request,
-    group: "Group",
+    group: Group,
     versions: Sequence[str],
 ) -> Sequence[Mapping[str, Any]]:
     releases = {

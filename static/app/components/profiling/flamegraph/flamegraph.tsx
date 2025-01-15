@@ -12,7 +12,6 @@ import {mat3, vec2} from 'gl-matrix';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {FlamegraphContextMenu} from 'sentry/components/profiling/flamegraph/flamegraphContextMenu';
-import {ProfileDragDropImport} from 'sentry/components/profiling/flamegraph/flamegraphOverlays/profileDragDropImport';
 import {FlamegraphOptionsMenu} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphOptionsMenu';
 import {FlamegraphSearch} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphSearch';
 import type {FlamegraphThreadSelectorProps} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphThreadSelector';
@@ -68,7 +67,6 @@ import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 import {
   useProfiles,
   useProfileTransaction,
-  useSetProfiles,
 } from 'sentry/views/profiling/profilesProvider';
 
 import {FlamegraphDrawer} from './flamegraphDrawer/flamegraphDrawer';
@@ -219,7 +217,6 @@ function Flamegraph(): ReactElement {
   const dispatch = useDispatchFlamegraphState();
 
   const profiles = useProfiles();
-  const setProfiles = useSetProfiles();
   const profileGroup = useProfileGroup();
 
   const flamegraphTheme = useFlamegraphTheme();
@@ -1314,13 +1311,6 @@ function Flamegraph(): ReactElement {
     [dispatch]
   );
 
-  const onImport = useCallback(
-    (p: Profiling.ProfileInput) => {
-      setProfiles({type: 'resolved', data: p});
-    },
-    [setProfiles]
-  );
-
   useEffect(() => {
     if (defined(flamegraphProfiles.threadId)) {
       return;
@@ -1539,7 +1529,7 @@ function Flamegraph(): ReactElement {
           />
         }
         flamegraph={
-          <ProfileDragDropImport onImport={onImport}>
+          <Fragment>
             <FlamegraphWarnings
               flamegraph={flamegraph}
               requestState={profiles}
@@ -1560,7 +1550,7 @@ function Flamegraph(): ReactElement {
               setFlamegraphOverlayCanvasRef={setFlamegraphOverlayCanvasRef}
               contextMenu={FlamegraphContextMenu}
             />
-          </ProfileDragDropImport>
+          </Fragment>
         }
         flamegraphDrawer={
           <FlamegraphDrawer
