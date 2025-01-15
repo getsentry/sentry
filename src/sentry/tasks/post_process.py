@@ -1016,7 +1016,8 @@ def process_code_mappings(job: PostProcessJob) -> None:
         else:
             return
 
-        derive_code_mappings.delay(project.id, event.data)
+        # XXX: We will stop calling data after we deploy this change
+        derive_code_mappings.delay(project.id, data=event.data, event_id=event.event_id)
 
     except Exception:
         logger.exception("derive_code_mappings: Failed to process code mappings")
