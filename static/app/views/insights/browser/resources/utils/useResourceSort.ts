@@ -34,7 +34,7 @@ export function useResourceSort(
   const location = useLocation<Query>();
 
   return (
-    decodeSorts(location.query[sortParameterName]).filter(isAValidSort)[0]! ?? fallback
+    decodeSorts(location.query[sortParameterName]).filter(isAValidSort)[0] ?? fallback
   );
 }
 

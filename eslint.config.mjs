@@ -423,7 +423,6 @@ export default typescript.config([
       '@typescript-eslint/no-dynamic-delete': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-extraneous-class': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-invalid-void-type': 'off', // TODO(ryan953): Fix violations and delete this line
-      '@typescript-eslint/no-non-null-asserted-nullish-coalescing': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-non-null-assertion': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/prefer-literal-enum-member': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/unified-signatures': 'off', // TODO(ryan953): Fix violations and delete this line
@@ -434,7 +433,6 @@ export default typescript.config([
       '@typescript-eslint/consistent-generic-constructors': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/consistent-indexed-object-style': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/consistent-type-definitions': 'off', // TODO(ryan953): Fix violations and delete this line
-      '@typescript-eslint/no-confusing-non-null-assertion': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-empty-function': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-inferrable-types': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/prefer-for-of': 'off', // TODO(ryan953): Fix violations and delete this line
