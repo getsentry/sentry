@@ -20,6 +20,8 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.db.models.manager.base import BaseManager
 
 
+# NOTE: There are gaps in the numberation because a
+# few tasks were removed as they are no longer used in the quick start sidebar
 class OnboardingTask:
     FIRST_PROJECT = 1
     FIRST_EVENT = 2
@@ -28,11 +30,9 @@ class OnboardingTask:
     USER_CONTEXT = 5
     RELEASE_TRACKING = 6
     SOURCEMAPS = 7
-    USER_REPORTS = 8
     ISSUE_TRACKER = 9
     ALERT_RULE = 10
     FIRST_TRANSACTION = 11
-    METRIC_ALERT = 12
     INTEGRATIONS = 13
     SESSION_REPLAY = 14
     REAL_TIME_NOTIFICATIONS = 15
@@ -108,7 +108,6 @@ class AbstractOnboardingTask(Model):
 
     # abstract
     TASK_LOOKUP_BY_KEY: dict[str, int]
-    SKIPPABLE_TASKS: frozenset[int]
     NEW_SKIPPABLE_TASKS: frozenset[int]
 
     class Meta:
@@ -129,13 +128,11 @@ class OrganizationOnboardingTask(AbstractOnboardingTask):
         (OnboardingTask.USER_CONTEXT, "setup_user_context"),
         (OnboardingTask.RELEASE_TRACKING, "setup_release_tracking"),
         (OnboardingTask.SOURCEMAPS, "setup_sourcemaps"),
-        (OnboardingTask.USER_REPORTS, "setup_user_reports"),
         # TODO(Telemety Experience): This task is no longer shown
         # in the new experience and shall remove it from code
         (OnboardingTask.ISSUE_TRACKER, "setup_issue_tracker"),
         (OnboardingTask.ALERT_RULE, "setup_alert_rules"),
         (OnboardingTask.FIRST_TRANSACTION, "setup_transactions"),
-        (OnboardingTask.METRIC_ALERT, "setup_metric_alert_rules"),
         (OnboardingTask.INTEGRATIONS, "setup_integrations"),
         (OnboardingTask.SESSION_REPLAY, "setup_session_replay"),
         (OnboardingTask.REAL_TIME_NOTIFICATIONS, "setup_real_time_notifications"),
@@ -151,27 +148,6 @@ class OrganizationOnboardingTask(AbstractOnboardingTask):
 
     # Tasks which should be completed for the onboarding to be considered
     # complete.
-    REQUIRED_ONBOARDING_TASKS = frozenset(
-        [
-            OnboardingTask.FIRST_PROJECT,
-            OnboardingTask.FIRST_EVENT,
-            OnboardingTask.INVITE_MEMBER,
-            OnboardingTask.SECOND_PLATFORM,
-            # TODO(Telemety Experience): This task is no longer shown
-            # in the new experience and shall be removed after GA
-            OnboardingTask.USER_CONTEXT,
-            OnboardingTask.RELEASE_TRACKING,
-            OnboardingTask.SOURCEMAPS,
-            OnboardingTask.ALERT_RULE,
-            OnboardingTask.FIRST_TRANSACTION,
-            # TODO(Telemety Experience): This task is no longer shown
-            # in the new experience and shall be removed after GA
-            OnboardingTask.METRIC_ALERT,
-            OnboardingTask.INTEGRATIONS,
-            OnboardingTask.SESSION_REPLAY,
-        ]
-    )
-
     NEW_REQUIRED_ONBOARDING_TASKS = frozenset(
         [
             OnboardingTask.FIRST_PROJECT,
@@ -191,25 +167,6 @@ class OrganizationOnboardingTask(AbstractOnboardingTask):
         [
             *NEW_REQUIRED_ONBOARDING_TASKS,
             OnboardingTask.SOURCEMAPS,
-        ]
-    )
-
-    SKIPPABLE_TASKS = frozenset(
-        [
-            OnboardingTask.INVITE_MEMBER,
-            OnboardingTask.SECOND_PLATFORM,
-            OnboardingTask.USER_CONTEXT,
-            OnboardingTask.RELEASE_TRACKING,
-            OnboardingTask.SOURCEMAPS,
-            # TODO(Telemetry Experience): This task is not shown in the quick start
-            # but it is still used in the frontend, check if we can remove it from code
-            OnboardingTask.USER_REPORTS,
-            OnboardingTask.ISSUE_TRACKER,
-            OnboardingTask.ALERT_RULE,
-            OnboardingTask.FIRST_TRANSACTION,
-            OnboardingTask.METRIC_ALERT,
-            OnboardingTask.INTEGRATIONS,
-            OnboardingTask.SESSION_REPLAY,
         ]
     )
 
