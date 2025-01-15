@@ -6,8 +6,9 @@ export function convertSeriesToTimeseries(series: DiscoverSeries): TimeseriesDat
   return {
     field: series.seriesName,
     meta: series.meta,
+    color: series.color,
     data: (series?.data ?? []).map(datum => ({
-      timestamp: datum.name.toString(),
+      timestamp: new Date(datum.name).toISOString(),
       value: datum.value,
     })),
   };

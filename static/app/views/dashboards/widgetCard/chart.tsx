@@ -297,10 +297,43 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
         </TransitionChart>
       );
     }
-
     const {location, selection, onLegendSelectChanged, widgetLegendState} = this.props;
     const {start, end, period, utc} = selection.datetime;
     const {projects, environments} = selection;
+
+    const otherRegex = new RegExp(`(?:.* : ${OTHER}$)|^${OTHER}$`);
+    const shouldColorOther = timeseriesResults?.some(({seriesName}) =>
+      seriesName?.match(otherRegex)
+    );
+    const colors = timeseriesResults
+      ? (theme.charts
+          .getColorPalette(timeseriesResults.length - (shouldColorOther ? 3 : 2))
+          ?.slice() as string[])
+      : [];
+    // TODO(wmak): Need to change this when updating dashboards to support variable topEvents
+    if (shouldColorOther) {
+      colors[colors.length] = theme.chartOther;
+    }
+
+    // Create a list of series based on the order of the fields,
+    const series = timeseriesResults
+      ? timeseriesResults
+          .map((values, i: number) => {
+            let seriesName = '';
+            if (values.seriesName !== undefined) {
+              seriesName = isEquation(values.seriesName)
+                ? getEquation(values.seriesName)
+                : values.seriesName;
+            }
+            return {
+              ...values,
+              seriesName,
+              fieldName: seriesName,
+              color: colors[i],
+            };
+          })
+          .filter(Boolean) // NOTE: `timeseriesResults` is a sparse array! We have to filter out the empty slots after the colors are assigned, since the colors are assigned based on sparse array index
+      : [];
 
     const legend = {
       left: 0,
@@ -437,44 +470,11 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       },
     };
 
+    const forwardedRef = this.props.chartGroup ? this.handleRef : undefined;
+
     return (
       <ChartZoom period={period} start={start} end={end} utc={utc}>
         {zoomRenderProps => {
-          const otherRegex = new RegExp(`(?:.* : ${OTHER}$)|^${OTHER}$`);
-          const shouldColorOther = timeseriesResults?.some(({seriesName}) =>
-            seriesName?.match(otherRegex)
-          );
-          const colors = timeseriesResults
-            ? (theme.charts
-                .getColorPalette(timeseriesResults.length - (shouldColorOther ? 3 : 2))
-                ?.slice() as string[])
-            : [];
-          // TODO(wmak): Need to change this when updating dashboards to support variable topEvents
-          if (shouldColorOther) {
-            colors[colors.length] = theme.chartOther;
-          }
-
-          // Create a list of series based on the order of the fields,
-          const series = timeseriesResults
-            ? timeseriesResults
-                .map((values, i: number) => {
-                  let seriesName = '';
-                  if (values.seriesName !== undefined) {
-                    seriesName = isEquation(values.seriesName)
-                      ? getEquation(values.seriesName)
-                      : values.seriesName;
-                  }
-                  return {
-                    ...values,
-                    seriesName,
-                    color: colors[i],
-                  };
-                })
-                .filter(Boolean) // NOTE: `timeseriesResults` is a sparse array! We have to filter out the empty slots after the colors are assigned, since the colors are assigned based on sparse array index
-            : [];
-
-          const forwardedRef = this.props.chartGroup ? this.handleRef : undefined;
-
           return widgetLegendState.widgetRequiresLegendUnselection(widget) ? (
             <ReleaseSeries
               end={end}
