@@ -912,16 +912,19 @@ const TraceStylingWrapper = styled('div')`
     }
 
     &.Poor {
+      background-color: ${p => p.theme.red100};
       color: ${p => p.theme.red300};
       border: 1px solid ${p => p.theme.red300};
     }
 
     &.Meh {
+      background-color: ${p => p.theme.yellow100};
       color: ${p => p.theme.yellow400};
       border: 1px solid ${p => p.theme.yellow300};
     }
 
     &.Good {
+      background-color: ${p => p.theme.green100};
       color: ${p => p.theme.green300};
       border: 1px solid ${p => p.theme.green300};
     }
