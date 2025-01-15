@@ -423,21 +423,6 @@ class GitHubRepositoryProvider(GitHubMixin, RepositoryProvider):
                 else:
                     return self._format_commits(repo, res["commits"])
 
-        def get_pr_commits(self, repo, number, actor=None):
-            # (not currently used by sentry)
-            if actor is None:
-                raise NotImplementedError("Cannot fetch commits anonymously")
-
-            # use config name because that is kept in sync via webhooks
-            name = repo.config["name"]
-            try:
-                with self.get_client(actor) as client:
-                    res = client.get_pr_commits(name, number)
-            except Exception as e:
-                self.raise_error(e)
-            else:
-                return self._format_commits(repo, res)
-
 
 class GitHubAppsRepositoryProvider(GitHubRepositoryProvider):
     name = "GitHub Apps"
