@@ -1584,7 +1584,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         self,
         mock_record_sample: mock.MagicMock,
         mock_record_release: mock.MagicMock,
-        mock_record_user: mock.MagicMock,
         mock_record_event: mock.MagicMock,
     ) -> None:
         manager = EventManager(
@@ -1644,7 +1643,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         event = manager.save(self.project.id)
 
         mock_record_event.assert_called_once_with(self.project, event)
-        mock_record_user.assert_called_once_with(self.project, event)
         mock_record_release.assert_called_once_with(self.project, event)
         assert mock_record_sample.mock_calls == [
             mock.call(ClustererNamespace.TRANSACTIONS, self.project, "wait")
