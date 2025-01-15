@@ -408,7 +408,6 @@ export default typescript.config([
       // Recommended overrides
       '@typescript-eslint/ban-ts-comment': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-array-constructor': 'off', // TODO(ryan953): Fix violations and delete this line
-      '@typescript-eslint/no-duplicate-enum-values': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-empty-object-type': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-explicit-any': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-extra-non-null-assertion': 'off', // TODO(ryan953): Fix violations and delete this line
