@@ -177,6 +177,15 @@ class AlertRuleMonitorTypeInt(IntEnum):
     ACTIVATED = 1
 
 
+class ComparisonDeltaChoices(models.IntegerChoices):
+    FIVE_MINUTES = (300, "5 minutes ago")
+    FIFTEEN_MINUTES = (900, "15 minutes ago")
+    ONE_HOUR = (3600, "1 hour ago")
+    ONE_DAY = (86400, "1 day ago")
+    ONE_WEEK = (604800, "1 week ago")
+    ONE_MONTH = (2592000, "1 month ago")
+
+
 @region_silo_model
 class AlertRule(Model):
     __relocation_scope__ = RelocationScope.Organization
@@ -202,7 +211,7 @@ class AlertRule(Model):
     threshold_period = models.IntegerField()
     # This represents a time delta, in seconds. If not null, this is used to determine which time
     # window to query to compare the result from the current time_window to.
-    comparison_delta = models.IntegerField(null=True)
+    comparison_delta = models.IntegerField(choices=ComparisonDeltaChoices.choices, null=True)
     date_modified = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
     monitor_type = models.IntegerField(default=AlertRuleMonitorTypeInt.CONTINUOUS)

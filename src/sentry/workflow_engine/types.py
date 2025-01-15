@@ -62,6 +62,7 @@ class DataSourceTypeHandler(Generic[T]):
 
 class DataConditionHandler(Generic[T]):
     type: ClassVar[DataConditionHandlerType] = DataConditionHandlerType.ACTION_FILTER
+    comparison_json_schema: ClassVar[dict[str, Any]] = {}
 
     @staticmethod
     def evaluate_value(value: T, comparison: Any) -> DataConditionResult:

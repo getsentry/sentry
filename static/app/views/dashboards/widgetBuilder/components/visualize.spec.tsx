@@ -428,7 +428,7 @@ describe('Visualize', () => {
     await userEvent.click(screen.getByRole('option', {name: 'count_miserable'}));
 
     expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
-      'transaction.duration'
+      'user'
     );
     expect(screen.getByRole('button', {name: 'Aggregate Selection'})).toHaveTextContent(
       'count_miserable'
@@ -437,7 +437,7 @@ describe('Visualize', () => {
     expect(mockNavigate).toHaveBeenCalledWith(
       expect.objectContaining({
         query: expect.objectContaining({
-          field: ['count_miserable(transaction.duration,300)'],
+          field: ['count_miserable(user,300)'],
         }),
       })
     );
@@ -465,9 +465,8 @@ describe('Visualize', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
     await userEvent.click(screen.getByRole('option', {name: 'count_miserable'}));
 
-    // TODO: This is supposed to only allow the user field
     expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
-      'transaction.duration'
+      'user'
     );
   });
 
@@ -773,6 +772,90 @@ describe('Visualize', () => {
         }),
       })
     );
+  });
+
+  it('only shows the relevant options for the release dataset', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.RELEASE,
+              field: ['crash_free_rate(session)'],
+            },
+          }),
+        }),
+      }
+    );
+
+    expect(
+      await screen.findByRole('button', {name: 'Column Selection'})
+    ).toHaveTextContent('session');
+    await userEvent.click(screen.getByRole('button', {name: 'Column Selection'}));
+    const listbox = await screen.findAllByRole('option');
+    expect(listbox).toHaveLength(2);
+    expect(listbox[0]).toHaveTextContent('session');
+    expect(listbox[1]).toHaveTextContent('user');
+  });
+
+  it('clears out the field when the selected aggregate has no parameters', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              field: ['transaction.duration'],
+            },
+          }),
+        }),
+      }
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
+    await userEvent.click(screen.getByRole('option', {name: 'count'}));
+
+    expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
+      'None'
+    );
+  });
+
+  it('uses the provided value for a value parameter field', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              field: ['count_if(transaction.duration,equals,300)'],
+            },
+          }),
+        }),
+      }
+    );
+
+    // Simulate clearing and typing a new value from the user
+    await userEvent.type(
+      screen.getByDisplayValue('300'),
+      '{backspace}{backspace}{backspace}400'
+    );
+
+    // Unfocus the field
+    await userEvent.tab();
+
+    expect(await screen.findByDisplayValue('400')).toBeInTheDocument();
   });
 
   describe('spans', () => {

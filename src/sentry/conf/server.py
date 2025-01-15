@@ -809,6 +809,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.unmerge",
     "sentry.tasks.update_user_reports",
     "sentry.tasks.user_report",
+    "sentry.tempest.tasks",
     "sentry.profiles.task",
     "sentry.release_health.tasks",
     "sentry.rules.processing.delayed_processing",
@@ -825,6 +826,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.auto_ongoing_issues",
     "sentry.tasks.check_am2_compatibility",
     "sentry.tasks.statistical_detectors",
+    "sentry.tempest.tasks",
     "sentry.debug_files.tasks",
     "sentry.tasks.on_demand_metrics",
     "sentry.middleware.integrations.tasks",
@@ -951,7 +953,6 @@ CELERY_QUEUES_REGION = [
         "dynamicsampling",
         routing_key="dynamicsampling",
     ),
-    Queue("tempest", routing_key="tempest"),
     Queue("incidents", routing_key="incidents"),
     Queue("incident_snapshots", routing_key="incident_snapshots"),
     Queue("incidents", routing_key="incidents"),
@@ -972,6 +973,7 @@ CELERY_QUEUES_REGION = [
     Queue("sleep", routing_key="sleep"),
     Queue("stats", routing_key="stats"),
     Queue("subscriptions", routing_key="subscriptions"),
+    Queue("tempest", routing_key="tempest"),
     Queue("unmerge", routing_key="unmerge"),
     Queue("update", routing_key="update"),
     Queue("uptime", routing_key="uptime"),
@@ -1039,7 +1041,7 @@ CELERYBEAT_SCHEDULE_CONTROL = {
     "schedule-vsts-integration-subscription-check": {
         "task": "sentry.integrations.vsts.tasks.kickoff_vsts_subscription_check",
         # Run every 6 hours
-        "schedule": crontab(hour="*/6"),
+        "schedule": crontab(hour="*/6", minute="0"),
         "options": {"expires": 60 * 25, "queue": "integrations.control"},
     },
     "deliver-webhooks-control": {
@@ -1115,7 +1117,7 @@ CELERYBEAT_SCHEDULE_REGION = {
     "collect-project-platforms": {
         "task": "sentry.tasks.collect_project_platforms",
         # 19:00 PDT, 22:00 EDT, 3:00 UTC
-        "schedule": crontab(hour="3"),
+        "schedule": crontab(hour="3", minute="0"),
         "options": {"expires": 3600 * 24},
     },
     "deliver-from-outbox": {
@@ -1187,6 +1189,12 @@ CELERYBEAT_SCHEDULE_REGION = {
         "task": "sentry.uptime.tasks.subscription_checker",
         "schedule": crontab(minute="*/10"),
         "options": {"expires": 10 * 60},
+    },
+    "poll_tempest": {
+        "task": "sentry.tempest.tasks.poll_tempest",
+        # Run every 5 minute
+        "schedule": crontab(minute="*/5"),
+        "options": {"expires": 5 * 60},
     },
     "transaction-name-clusterer": {
         "task": "sentry.ingest.transaction_clusterer.tasks.spawn_clusterers",
@@ -2537,7 +2545,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "24.12.1"
+SELF_HOSTED_STABLE_VERSION = "25.1.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -3161,6 +3169,8 @@ SEER_AUTOFIX_FORCE_USE_REPOS: list[dict] = []
 
 # This is the URL to the profiling service
 SENTRY_VROOM = os.getenv("VROOM", "http://127.0.0.1:8085")
+
+SENTRY_TEMPEST_URL = os.getenv("TEMPEST", "http://127.0.0.1:9130")
 
 SENTRY_REPLAYS_SERVICE_URL = "http://localhost:8090"
 

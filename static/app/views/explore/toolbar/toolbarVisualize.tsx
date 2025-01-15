@@ -39,9 +39,7 @@ type ParsedVisualize = {
   label: string;
 };
 
-interface ToolbarVisualizeProps {}
-
-export function ToolbarVisualize({}: ToolbarVisualizeProps) {
+export function ToolbarVisualize() {
   const visualizes = useExploreVisualizes();
   const setVisualizes = useSetExploreVisualizes();
 

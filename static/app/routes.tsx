@@ -7,6 +7,7 @@ import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
 import type {HookName} from 'sentry/types/hooks';
 import errorHandler from 'sentry/utils/errorHandler';
+import {ProvideAriaRouter} from 'sentry/utils/provideAriaRouter';
 import retryableImport from 'sentry/utils/retryableImport';
 import withDomainRedirect from 'sentry/utils/withDomainRedirect';
 import withDomainRequired from 'sentry/utils/withDomainRequired';
@@ -2183,7 +2184,9 @@ function buildRoutes() {
       </Route>
       <Route
         path="profile/:projectId/:eventId/"
-        component={make(() => import('sentry/views/profiling/profilesProvider'))}
+        component={make(
+          () => import('sentry/views/profiling/transactionProfileProvider')
+        )}
       >
         <Route
           path="flamegraph/"
@@ -2450,15 +2453,17 @@ function buildRoutes() {
   );
 
   const appRoutes = (
-    <Route>
-      {experimentalSpaRoutes}
-      <Route path="/" component={errorHandler(App)}>
-        {rootRoutes}
-        {organizationRoutes}
-        {legacyRedirectRoutes}
-        <Route path="*" component={errorHandler(RouteNotFound)} />
+    <ProvideAriaRouter>
+      <Route>
+        {experimentalSpaRoutes}
+        <Route path="/" component={errorHandler(App)}>
+          {rootRoutes}
+          {organizationRoutes}
+          {legacyRedirectRoutes}
+          <Route path="*" component={errorHandler(RouteNotFound)} />
+        </Route>
       </Route>
-    </Route>
+    </ProvideAriaRouter>
   );
 
   return appRoutes;

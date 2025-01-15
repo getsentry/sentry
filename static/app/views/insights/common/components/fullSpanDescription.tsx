@@ -85,8 +85,6 @@ export function FullSpanDescription({
         result = prettyPrintJsonString(description);
       } else if (fullSpan?.sentry_tags?.description) {
         result = prettyPrintJsonString(fullSpan?.sentry_tags.description);
-      } else if (fullSpan?.sentry_tags?.description) {
-        result = prettyPrintJsonString(fullSpan?.sentry_tags?.description);
       } else {
         stringifiedQuery = description || fullSpan?.sentry_tags?.description || 'N/A';
       }

@@ -149,6 +149,33 @@ export enum DurationUnit {
   YEAR = 'year',
 }
 
+// Durations normalized to millisecond unit
+export const DURATION_UNIT_MULTIPLIERS: Record<DurationUnit, number> = {
+  nanosecond: 1 / 1000 ** 2,
+  microsecond: 1 / 1000,
+  millisecond: 1,
+  second: 1000,
+  minute: 1000 * 60,
+  hour: 1000 * 60 * 60,
+  day: 1000 * 60 * 60 * 24,
+  week: 1000 * 60 * 60 * 24 * 7,
+  month: 1000 * 60 * 60 * 24 * 30,
+  year: 1000 * 60 * 60 * 24 * 365,
+};
+
+export const DURATION_UNIT_LABELS: Record<DurationUnit, string> = {
+  nanosecond: 'ns',
+  microsecond: 'μs',
+  millisecond: 'ms',
+  second: 's',
+  minute: 'min',
+  hour: 'hr',
+  day: 'd',
+  week: 'wk',
+  month: 'mo',
+  year: 'yr',
+};
+
 export enum SizeUnit {
   BIT = 'bit',
   BYTE = 'byte',
@@ -166,6 +193,41 @@ export enum SizeUnit {
   EXABYTE = 'exabyte',
 }
 
+// Sizes normalized to byte unit
+export const SIZE_UNIT_MULTIPLIERS: Record<SizeUnit, number> = {
+  bit: 1 / 8,
+  byte: 1,
+  kibibyte: 1024,
+  mebibyte: 1024 ** 2,
+  gibibyte: 1024 ** 3,
+  tebibyte: 1024 ** 4,
+  pebibyte: 1024 ** 5,
+  exbibyte: 1024 ** 6,
+  kilobyte: 1000,
+  megabyte: 1000 ** 2,
+  gigabyte: 1000 ** 3,
+  terabyte: 1000 ** 4,
+  petabyte: 1000 ** 5,
+  exabyte: 1000 ** 6,
+};
+
+export const SIZE_UNIT_LABELS: Record<SizeUnit, string> = {
+  bit: 'b',
+  byte: 'B',
+  kibibyte: 'KiB',
+  kilobyte: 'KB',
+  mebibyte: 'MiB',
+  megabyte: 'MB',
+  gibibyte: 'GiB',
+  gigabyte: 'GB',
+  tebibyte: 'TiB',
+  terabyte: 'TB',
+  pebibyte: 'PiB',
+  petabyte: 'PB',
+  exbibyte: 'EiB',
+  exabyte: 'EB',
+};
+
 export enum RateUnit {
   PER_SECOND = '1/second',
   PER_MINUTE = '1/minute',
@@ -173,19 +235,19 @@ export enum RateUnit {
 }
 
 // Rates normalized to /second unit
-export const RATE_UNIT_MULTIPLIERS = {
+export const RATE_UNIT_MULTIPLIERS: Record<RateUnit, number> = {
   [RateUnit.PER_SECOND]: 1,
   [RateUnit.PER_MINUTE]: 1 / 60,
   [RateUnit.PER_HOUR]: 1 / (60 * 60),
 };
 
-export const RATE_UNIT_LABELS = {
+export const RATE_UNIT_LABELS: Record<RateUnit, string> = {
   [RateUnit.PER_SECOND]: '/s',
   [RateUnit.PER_MINUTE]: '/min',
   [RateUnit.PER_HOUR]: '/hr',
 };
 
-export const RATE_UNIT_TITLE = {
+export const RATE_UNIT_TITLE: Record<RateUnit, string> = {
   [RateUnit.PER_SECOND]: 'Per Second',
   [RateUnit.PER_MINUTE]: 'Per Minute',
   [RateUnit.PER_HOUR]: 'Per Hour',

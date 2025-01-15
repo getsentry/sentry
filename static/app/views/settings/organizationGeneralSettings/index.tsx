@@ -16,7 +16,6 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useApi from 'sentry/utils/useApi';
@@ -30,7 +29,7 @@ import {OrganizationRegionAction} from 'sentry/views/settings/organizationGenera
 
 import OrganizationSettingsForm from './organizationSettingsForm';
 
-export default function OrganizationGeneralSettings({}: RouteComponentProps<{}, {}>) {
+export default function OrganizationGeneralSettings() {
   const api = useApi();
   const organization = useOrganization();
   const {projects} = useProjects();
