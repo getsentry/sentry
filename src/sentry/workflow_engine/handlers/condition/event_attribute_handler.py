@@ -13,7 +13,7 @@ from sentry.workflow_engine.types import DataConditionHandler, DataConditionHand
 
 @condition_handler_registry.register(Condition.EVENT_ATTRIBUTE)
 class EventAttributeConditionHandler(DataConditionHandler[WorkflowJob]):
-    type: DataConditionHandlerType = DataConditionHandlerType.ACTION_FILTER
+    type = DataConditionHandlerType.ACTION_FILTER
 
     @staticmethod
     def get_attribute_values(event: GroupEvent, attribute: str) -> list[str]:

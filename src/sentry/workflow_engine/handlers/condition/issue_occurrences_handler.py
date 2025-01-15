@@ -8,7 +8,7 @@ from sentry.workflow_engine.types import DataConditionHandler, DataConditionHand
 
 @condition_handler_registry.register(Condition.ISSUE_OCCURRENCES)
 class IssueOccurrencesConditionHandler(DataConditionHandler[WorkflowJob]):
-    type: DataConditionHandlerType = DataConditionHandlerType.ACTION_FILTER
+    type = DataConditionHandlerType.ACTION_FILTER
 
     @staticmethod
     def evaluate_value(job: WorkflowJob, comparison: Any) -> bool:

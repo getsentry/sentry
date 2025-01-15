@@ -12,7 +12,7 @@ from sentry.workflow_engine.types import DataConditionHandler, DataConditionHand
 
 @condition_handler_registry.register(Condition.ASSIGNED_TO)
 class AssignedToConditionHandler(DataConditionHandler[WorkflowJob]):
-    type: DataConditionHandlerType = DataConditionHandlerType.ACTION_FILTER
+    type = DataConditionHandlerType.ACTION_FILTER
 
     @staticmethod
     def get_assignees(group: Group) -> Sequence[GroupAssignee]:

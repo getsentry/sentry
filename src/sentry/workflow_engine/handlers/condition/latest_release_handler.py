@@ -41,7 +41,7 @@ def get_latest_release_for_env(
 
 @condition_handler_registry.register(Condition.LATEST_RELEASE)
 class LatestReleaseConditionHandler(DataConditionHandler[WorkflowJob]):
-    type: DataConditionHandlerType = DataConditionHandlerType.ACTION_FILTER
+    type = DataConditionHandlerType.ACTION_FILTER
 
     @staticmethod
     def evaluate_value(job: WorkflowJob, comparison: Any) -> bool:
