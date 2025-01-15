@@ -1,7 +1,7 @@
 import {useRef} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
-import type {LineSeriesOption} from 'echarts';
+import type {BarSeriesOption, LineSeriesOption} from 'echarts';
 import type {
   TooltipFormatterCallback,
   TopLevelFormatterParams,
@@ -33,7 +33,10 @@ import {ReleaseSeries} from './releaseSeries';
 import {splitSeriesIntoCompleteAndIncomplete} from './splitSeriesIntoCompleteAndIncomplete';
 
 export interface TimeSeriesWidgetVisualizationProps {
-  SeriesConstructor: (timeserie: TimeseriesData, complete?: boolean) => LineSeriesOption;
+  SeriesConstructor: (
+    timeserie: TimeseriesData,
+    complete?: boolean
+  ) => LineSeriesOption | BarSeriesOption;
   timeseries: TimeseriesData[];
   aliases?: Aliases;
   dataCompletenessDelay?: number;

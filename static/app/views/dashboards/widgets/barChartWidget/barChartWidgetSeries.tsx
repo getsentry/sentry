@@ -1,4 +1,4 @@
-import LineSeries from 'sentry/components/charts/series/lineSeries';
+import BarSeries from 'sentry/components/charts/series/barSeries';
 
 import type {TimeseriesData} from '../common/types';
 
@@ -7,14 +7,14 @@ import type {TimeseriesData} from '../common/types';
  * @param timeserie
  * @param complete Whether this series is fully ingested and processed data, or it's still behind the ingestion delay
  */
-export function AreaChartWidgetSeries(timeserie: TimeseriesData, complete?: boolean) {
+export function BarChartWidgetSeries(timeserie: TimeseriesData, complete?: boolean) {
   return complete
-    ? LineSeries({
+    ? BarSeries({
         name: timeserie.field,
         color: timeserie.color,
         stack: 'complete',
         animation: false,
-        areaStyle: {
+        itemStyle: {
           color: timeserie.color,
           opacity: 1.0,
         },
@@ -22,7 +22,7 @@ export function AreaChartWidgetSeries(timeserie: TimeseriesData, complete?: bool
           return [datum.timestamp, datum.value];
         }),
       })
-    : LineSeries({
+    : BarSeries({
         name: timeserie.field,
         color: timeserie.color,
         stack: 'incomplete',
@@ -30,10 +30,7 @@ export function AreaChartWidgetSeries(timeserie: TimeseriesData, complete?: bool
         data: timeserie.data.map(datum => {
           return [datum.timestamp, datum.value];
         }),
-        lineStyle: {
-          type: 'dotted',
-        },
-        areaStyle: {
+        itemStyle: {
           color: timeserie.color,
           opacity: 0.8,
         },
