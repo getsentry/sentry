@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 import responses
 
-from sentry.eventstore.models import GroupEvent
+from sentry.eventstore.models import Event
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.utils.code_mapping import CodeMapping, Repo, RepoTree
@@ -42,9 +42,7 @@ class BaseDeriveCodeMappings(TestCase):
             metadata={"domain_name": "github.com/Test-Org"},
         )
 
-    def create_event(
-        self, frames: list[dict[str, str | bool]], platform: str = "python"
-    ) -> GroupEvent:
+    def create_event(self, frames: list[dict[str, str | bool]], platform: str = "python") -> Event:
         test_data = {"platform": platform or self.platform, "stacktrace": {"frames": frames}}
         return self.store_event(data=test_data, project_id=self.project.id)
 

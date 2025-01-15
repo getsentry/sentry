@@ -31,7 +31,7 @@ from sentry.auth.access import RpcBackedAccess
 from sentry.auth.services.auth.model import RpcAuthState, RpcMemberSsoState
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
 from sentry.event_manager import EventManager
-from sentry.eventstore.models import GroupEvent
+from sentry.eventstore.models import Event
 from sentry.hybridcloud.models.outbox import RegionOutbox, outbox_context
 from sentry.hybridcloud.models.webhookpayload import WebhookPayload
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
@@ -981,7 +981,7 @@ class Factories:
         assert_no_errors: bool = True,
         default_event_type: EventType | None = None,
         sent_at: datetime | None = None,
-    ) -> GroupEvent:
+    ) -> Event:
         """
         Like `create_event`, but closer to how events are actually
         ingested. Prefer to use this method over `create_event`
