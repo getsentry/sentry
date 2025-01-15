@@ -13,7 +13,7 @@ import sentry_sdk
 
 from sentry import options
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
-from sentry.issues.ingest import process_occurrence_data
+from sentry.issues.ingest import hash_fingerprint_parts
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.issues.status_change_consumer import bulk_get_groups_from_fingerprints
 from sentry.issues.status_change_message import StatusChangeMessage
@@ -637,7 +637,6 @@ def generate_fingerprint(regression_type: RegressionType, name: str | int) -> st
 
 def generate_issue_group_key(project_id: int, fingerprint: str) -> tuple[int, str]:
     data = {
-        "fingerprint": [fingerprint],
+        "fingerprint": hash_fingerprint_parts([fingerprint]),
     }
-    process_occurrence_data(data)
     return project_id, data["fingerprint"][0]
