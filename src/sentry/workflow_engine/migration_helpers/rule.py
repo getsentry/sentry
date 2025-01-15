@@ -205,8 +205,6 @@ def update_dcg(
     return dcg
 
 
-def delete_workflow_actions(
-    if_dcg: DataConditionGroup, actions: list[dict[str, Any]], user: RpcUser | None = None
-):
+def delete_workflow_actions(if_dcg: DataConditionGroup):
     # TODO: delete actions, need registry
     pass
