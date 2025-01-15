@@ -17,11 +17,8 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.autofix.utils import get_autofix_repos_from_project_code_mappings, get_autofix_state
-from sentry.eventstore.models import Event, GroupEvent
 from sentry.integrations.utils.code_mapping import get_sorted_code_mapping_configs
 from sentry.models.group import Group
-from sentry.models.project import Project
-from sentry.profiles.utils import get_from_profiling_service
 from sentry.seer.signed_seer_api import get_seer_salted_url, sign_with_seer_secret
 from sentry.tasks.autofix import check_autofix_status
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -54,162 +51,14 @@ class GroupAutofixEndpoint(GroupEndpoint):
 
     def _get_serialized_event(
         self, event_id: str, group: Group, user: User | RpcUser | AnonymousUser
-    ) -> tuple[dict[str, Any] | None, Event | GroupEvent | None]:
+    ) -> dict[str, Any] | None:
         event = eventstore.backend.get_event_by_id(group.project.id, event_id, group_id=group.id)
 
         if not event:
-            return None, None
+            return None
 
         serialized_event = serialize(event, user, EventSerializer())
-        return serialized_event, event
-
-    def _get_profile_for_event(self, event: Event | GroupEvent, project: Project) -> dict[str, Any]:
-        context = event.data.get("contexts", {})
-        profile_id = context.get("profile", {}).get("profile_id")  # transaction profile
-
-        profile_matches_event = True
-        if not profile_id:
-            # find most recent profile for this transaction instead
-            profile_matches_event = False
-            transaction_name = event.data.get("transaction", "")
-            if not transaction_name:
-                return {}
-
-            event_filter = eventstore.Filter(
-                project_ids=[project.id],
-                conditions=[
-                    ["transaction", "=", transaction_name],
-                    ["profile.id", "IS NOT NULL", None],
-                ],
-            )
-            results = eventstore.backend.get_events(
-                filter=event_filter,
-                referrer="api.group_ai_autofix",
-                tenant_ids={"organization_id": project.organization_id},
-                limit=1,
-            )
-            if results:
-                context = results[0].data.get("contexts", {})
-                profile_id = context.get("profile", {}).get("profile_id")
-
-        response = get_from_profiling_service(
-            "GET",
-            f"/organizations/{project.organization_id}/projects/{project.id}/profiles/{profile_id}",
-            params={"format": "sample"},
-        )
-
-        if response.status == 200:
-            profile = orjson.loads(response.data)
-            execution_tree = self._convert_profile_to_execution_tree(profile)
-            result = {
-                "profile_matches_issue": profile_matches_event,
-                "execution_tree": execution_tree,
-            }
-            return result
-        else:
-            return {}
-
-    def _convert_profile_to_execution_tree(self, profile_data: dict) -> list[dict]:
-        """
-        Converts profile data into a hierarchical representation of code execution,
-        including only items from the MainThread and app frames.
-        """
-        profile = profile_data["profile"]
-        frames = profile["frames"]
-        stacks = profile["stacks"]
-        samples = profile["samples"]
-
-        thread_metadata = profile.get("thread_metadata", {})
-        main_thread_id = None
-        for key, value in thread_metadata.items():
-            if value["name"] == "MainThread":
-                main_thread_id = key
-                break
-
-        def create_frame_node(frame_index: int) -> dict:
-            """Create a node representation for a single frame"""
-            frame = frames[frame_index]
-            return {
-                "function": frame.get("function", ""),
-                "module": frame.get("module", ""),
-                "filename": frame.get("filename", ""),
-                "lineno": frame.get("lineno", 0),
-                "in_app": frame.get("in_app", False),
-                "children": [],
-            }
-
-        def find_or_create_child(parent: dict, frame_data: dict) -> dict:
-            """Find existing child node or create new one"""
-            for child in parent["children"]:
-                if (
-                    child["function"] == frame_data["function"]
-                    and child["module"] == frame_data["module"]
-                    and child["filename"] == frame_data["filename"]
-                ):
-                    return child
-
-            parent["children"].append(frame_data)
-            return frame_data
-
-        def merge_stack_into_tree(tree: list[dict], stack_frames: list[dict]):
-            """Merge a stack trace into the tree"""
-            if not stack_frames:
-                return
-
-            # Find or create root node
-            root = None
-            for existing_root in tree:
-                if (
-                    existing_root["function"] == stack_frames[0]["function"]
-                    and existing_root["module"] == stack_frames[0]["module"]
-                    and existing_root["filename"] == stack_frames[0]["filename"]
-                ):
-                    root = existing_root
-                    break
-
-            if root is None:
-                root = stack_frames[0]
-                tree.append(root)
-
-            # Merge remaining frames
-            current = root
-            for frame in stack_frames[1:]:
-                current = find_or_create_child(current, frame)
-
-        def process_stack(stack_index: int) -> list[dict]:
-            """Process a stack and return its frame hierarchy, filtering out non-app frames"""
-            frame_indices = stacks[stack_index]
-
-            if not frame_indices:
-                return []
-
-            # Create nodes for app frames only, maintaining order
-            nodes = []
-            for idx in reversed(frame_indices):
-                frame = frames[idx]
-                if frame.get("in_app", False) and not (
-                    frame.get("filename", "").startswith("<")
-                    and frame.get("filename", "").endswith(">")
-                ):
-                    nodes.append(create_frame_node(idx))
-
-            return nodes
-
-        # Process all samples to build execution tree
-        execution_tree: list[dict] = []
-
-        for sample in samples:
-            stack_id = sample["stack_id"]
-            thread_id = sample["thread_id"]
-
-            if str(thread_id) != str(main_thread_id):
-                continue
-
-            stack_frames = process_stack(stack_id)
-            if stack_frames:
-                merge_stack_into_tree(execution_tree, stack_frames)
-
-        return execution_tree
+        return serialized_event
 
     def _make_error_metadata(self, autofix: dict, reason: str):
         return {
@@ -235,7 +84,6 @@ class GroupAutofixEndpoint(GroupEndpoint):
         group: Group,
         repos: list[dict],
         serialized_event: dict[str, Any],
-        profile: dict[str, Any] | None,
         instruction: str,
         timeout_secs: int,
         pr_to_comment_on_url: str | None = None,
@@ -252,7 +100,6 @@ class GroupAutofixEndpoint(GroupEndpoint):
                     "short_id": group.qualified_short_id,
                     "events": [serialized_event],
                 },
-                "profile": profile,
                 "instruction": instruction,
                 "timeout_secs": timeout_secs,
                 "last_updated": datetime.now().isoformat(),
@@ -294,7 +141,7 @@ class GroupAutofixEndpoint(GroupEndpoint):
         # This event_id is the event that the user is looking at when they click the "Fix" button
         event_id = data.get("event_id", None)
         if event_id is None:
-            event: Event | GroupEvent | None = group.get_recommended_event_for_environments()
+            event = group.get_recommended_event_for_environments()
             if not event:
                 event = group.get_latest_event()
 
@@ -316,7 +163,7 @@ class GroupAutofixEndpoint(GroupEndpoint):
             return self._respond_with_error("AI Autofix is not enabled for this project.", 403)
 
         # For now we only send the event that the user is looking at, in the near future we want to send multiple events.
-        serialized_event, event = self._get_serialized_event(event_id, group, request.user)
+        serialized_event = self._get_serialized_event(event_id, group, request.user)
 
         if serialized_event is None:
             return self._respond_with_error("Cannot fix issues without an event.", 400)
@@ -332,27 +179,12 @@ class GroupAutofixEndpoint(GroupEndpoint):
                 400,
             )
 
-        # find best profile for this event
-        try:
-            profile = self._get_profile_for_event(event, group.project) if event else None
-        except Exception as e:
-            logger.exception(
-                "Failed to get profile for event",
-                extra={
-                    "group_id": group.id,
-                    "created_at": created_at,
-                    "exception": e,
-                },
-            )
-            profile = None
-
         try:
             run_id = self._call_autofix(
                 request.user,
                 group,
                 repos,
                 serialized_event,
-                profile,
                 data.get("instruction", data.get("additional_context", "")),
                 TIMEOUT_SECONDS,
                 data.get("pr_to_comment_on_url", None),  # support optional PR id for copilot
