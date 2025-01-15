@@ -14,8 +14,6 @@ import {
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import {CacheHitMissChart} from 'sentry/views/insights/cache/components/charts/hitMissChart';
-import {ThroughputChart} from 'sentry/views/insights/cache/components/charts/throughputChart';
 import {CacheSamplePanel} from 'sentry/views/insights/cache/components/samplePanel';
 import {
   isAValidSort,
@@ -36,11 +34,12 @@ import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDisc
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
-import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
 
+import {InsightsLineChartWidget} from '../../common/components/insightsLineChartWidget';
 import {useSamplesDrawer} from '../../common/utils/useSamplesDrawer';
+import {DataTitles, getThroughputChartTitle} from '../../common/views/spans/types';
 
 const {CACHE_MISS_RATE} = SpanFunction;
 const {CACHE_ITEM_SIZE} = SpanMetricsField;
@@ -81,6 +80,7 @@ export function CacheLandingPage() {
     {
       yAxis: [`${CACHE_MISS_RATE}()`],
       search: MutableSearch.fromQueryObject(BASE_FILTERS),
+      transformAliasToInputFormat: true,
     },
     Referrer.LANDING_CACHE_HIT_MISS_CHART
   );
@@ -93,6 +93,7 @@ export function CacheLandingPage() {
     {
       search: MutableSearch.fromQueryObject(BASE_FILTERS),
       yAxis: ['spm()'],
+      transformAliasToInputFormat: true,
     },
     Referrer.LANDING_CACHE_THROUGHPUT_CHART
   );
@@ -191,18 +192,17 @@ export function CacheLandingPage() {
               </ModuleLayout.Full>
               <ModulesOnboarding moduleName={ModuleName.CACHE}>
                 <ModuleLayout.Half>
-                  <CacheHitMissChart
-                    series={{
-                      seriesName: DataTitles[`${CACHE_MISS_RATE}()`],
-                      data: cacheMissRateData[`${CACHE_MISS_RATE}()`]?.data,
-                    }}
+                  <InsightsLineChartWidget
+                    title={DataTitles[`cache_miss_rate()`]}
+                    series={[cacheMissRateData[`${CACHE_MISS_RATE}()`]]}
                     isLoading={isCacheMissRateLoading}
                     error={cacheMissRateError}
                   />
                 </ModuleLayout.Half>
                 <ModuleLayout.Half>
-                  <ThroughputChart
-                    series={throughputData['spm()']}
+                  <InsightsLineChartWidget
+                    title={getThroughputChartTitle('cache.get_item')}
+                    series={[throughputData['spm()']]}
                     isLoading={isThroughputDataLoading}
                     error={throughputError}
                   />

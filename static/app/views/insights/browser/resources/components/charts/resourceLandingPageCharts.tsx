@@ -2,13 +2,14 @@ import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
 import {EMPTY_OPTION_VALUE, MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useSynchronizeCharts} from 'sentry/views/insights/common/components/chart';
+import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {
+  getDurationChartTitle,
+  getThroughputChartTitle,
+} from 'sentry/views/insights/common/views/spans/types';
 import type {ModuleFilters} from 'sentry/views/insights/common/views/spans/useModuleFilters';
 import {SpanMetricsField} from 'sentry/views/insights/types';
-
-import {DurationChart} from './durationChart';
-import {ThroughputChart} from './throughputChart';
 
 const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_DOMAIN} = SpanMetricsField;
 
@@ -28,20 +29,25 @@ export function ResourceLandingPageCharts({appliedFilters, extraQuery}: Props) {
     {
       search: new MutableSearch(query),
       yAxis: ['spm()', `avg(${SPAN_SELF_TIME})`],
+      transformAliasToInputFormat: true,
     },
     'api.starfish.span-time-charts'
   );
 
-  useSynchronizeCharts(1, !isPending);
-
   return (
     <ChartsContainer>
       <ChartsContainerItem>
-        <ThroughputChart series={data['spm()']} isLoading={isPending} error={error} />
+        <InsightsLineChartWidget
+          title={getThroughputChartTitle('resource')}
+          series={[data['spm()']]}
+          isLoading={isPending}
+          error={error}
+        />
       </ChartsContainerItem>
 
       <ChartsContainerItem>
-        <DurationChart
+        <InsightsLineChartWidget
+          title={getDurationChartTitle('resource')}
           series={[data[`avg(${SPAN_SELF_TIME})`]]}
           isLoading={isPending}
           error={error}
