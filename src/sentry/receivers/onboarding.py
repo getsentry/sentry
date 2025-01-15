@@ -476,44 +476,6 @@ event_processed.connect(record_release_received, weak=False)
 transaction_processed.connect(record_release_received, weak=False)
 
 
-def record_user_context_received(project, event, **kwargs):
-    user_context = event.data.get("user")
-    if not user_context:
-        return
-    # checking to see if only ip address is being sent (our js library does this automatically)
-    # testing for this in test_no_user_tracking_for_ip_address_only
-    # list(d.keys()) pattern is to make this python3 safe
-    elif list(user_context.keys()) != ["ip_address"]:
-        success = OrganizationOnboardingTask.objects.record(
-            organization_id=project.organization_id,
-            task=OnboardingTask.USER_CONTEXT,
-            status=OnboardingTaskStatus.COMPLETE,
-            project_id=project.id,
-        )
-        if success:
-            organization = Organization.objects.get_from_cache(id=project.organization_id)
-            try:
-                owner: RpcUser = organization.get_default_owner()
-            except IndexError:
-                logger.warning(
-                    "Cannot record user context received for organization (%s) due to missing owners",
-                    project.organization_id,
-                )
-                return
-
-            analytics.record(
-                "first_user_context.sent",
-                user_id=owner.id,
-                organization_id=project.organization_id,
-                project_id=project.id,
-            )
-
-            try_mark_onboarding_complete(project.organization_id, owner)
-
-
-event_processed.connect(record_user_context_received, weak=False)
-
-
 @first_event_with_minified_stack_trace_received.connect(weak=False)
 def record_event_with_first_minified_stack_trace_for_project(project, event, **kwargs):
     organization = Organization.objects.get_from_cache(id=project.organization_id)
@@ -547,9 +509,6 @@ def record_event_with_first_minified_stack_trace_for_project(project, event, **k
                 project_platform=project.platform,
                 url=dict(event.tags).get("url", None),
             )
-
-
-transaction_processed.connect(record_user_context_received, weak=False)
 
 
 @event_processed.connect(weak=False)
