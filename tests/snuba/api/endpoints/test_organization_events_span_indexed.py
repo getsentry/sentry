@@ -1505,6 +1505,47 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
             },
         ]
 
+    def test_byte_fields(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "description": "foo",
+                        "data": {
+                            "cache.item_size": 1,
+                            "messaging.message.body.size": 2,
+                        },
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "cache.item_size",
+                    "measurements.cache.item_size",
+                    "messaging.message.body.size",
+                    "measurements.messaging.message.body.size",
+                ],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.data["data"] == [
+            {
+                "id": mock.ANY,
+                "project.name": self.project.slug,
+                "cache.item_size": 1.0,
+                "measurements.cache.item_size": 1.0,
+                "measurements.messaging.message.body.size": 2.0,
+                "messaging.message.body.size": 2.0,
+            },
+        ]
+
 
 class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpointTest):
     """These tests aren't fully passing yet, currently inheriting xfail from the eap tests"""
@@ -1929,3 +1970,62 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
             },
         ]
         assert meta["dataset"] == self.dataset
+
+    def test_byte_fields(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "description": "foo",
+                        "data": {
+                            "cache.item_size": 1,
+                            "messaging.message.body.size": 2,
+                        },
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "cache.item_size",
+                    "measurements.cache.item_size",
+                    "messaging.message.body.size",
+                    "measurements.messaging.message.body.size",
+                ],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.data["data"] == [
+            {
+                "id": mock.ANY,
+                "project.name": self.project.slug,
+                "cache.item_size": 1.0,
+                "measurements.cache.item_size": 1.0,
+                "measurements.messaging.message.body.size": 2.0,
+                "messaging.message.body.size": 2.0,
+            },
+        ]
+
+        assert response.data["meta"]["fields"] == {
+            "id": "string",
+            "project.name": "string",
+            "cache.item_size": "size",
+            "measurements.cache.item_size": "size",
+            "measurements.messaging.message.body.size": "size",
+            "messaging.message.body.size": "size",
+        }
+
+        assert response.data["meta"]["units"] == {
+            "id": None,
+            "project.name": None,
+            "cache.item_size": "byte",
+            "measurements.cache.item_size": "byte",
+            "measurements.messaging.message.body.size": "byte",
+            "messaging.message.body.size": "byte",
+        }
