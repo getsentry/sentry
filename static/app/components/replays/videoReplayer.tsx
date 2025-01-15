@@ -173,7 +173,7 @@ export class VideoReplayer {
 
     const handleSeeking = event => {
       // Centers the video when seeking (and video is not playing)
-      // Only call this for current segment?
+      // Only call this for the segment that's being seeked to
       if (index === this._currentIndex) {
         this._callbacks.onLoaded!(event);
       }
