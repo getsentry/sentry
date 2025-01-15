@@ -163,8 +163,9 @@ export function MostRegressedProfileFunctions(props: MostRegressedProfileFunctio
 
   const onChangeTrendType = useCallback((v: any) => setTrendType(v.value), []);
 
-  const hasDifferentialFlamegraphPageFeature =
-    false && organization.features.includes('profiling-differential-flamegraph-page');
+  const hasDifferentialFlamegraphPageFeature = organization.features.includes(
+    'profiling-differential-flamegraph-page'
+  );
 
   return (
     <RegressedFunctionsContainer>

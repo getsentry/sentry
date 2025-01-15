@@ -490,7 +490,7 @@ function SpanDetailsBody({
         <ProfilesProvider
           orgSlug={organization.slug}
           projectSlug={detail.event.projectSlug}
-          profileId={profileId || ''}
+          profileMeta={profileId || ''}
         >
           <ProfileContext.Consumer>
             {profiles => (

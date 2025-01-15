@@ -22,6 +22,7 @@ import {space} from 'sentry/styles/space';
 import type {Team} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useTeams} from 'sentry/utils/useTeams';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
@@ -246,6 +247,16 @@ function EditAccessSelector({
             !isDefaultState &&
             !isEqual(newDashboardPermissions, dashboard.permissions)
           ) {
+            trackAnalytics('dashboards2.edit_access.save', {
+              organization,
+              editable_by: newDashboardPermissions.isEditableByEveryone
+                ? 'all'
+                : newDashboardPermissions.teamsWithEditAccess.length > 0
+                  ? 'team_selection'
+                  : 'owner_only',
+              team_count: newDashboardPermissions.teamsWithEditAccess.length || undefined,
+            });
+
             onChangeEditAccess?.(newDashboardPermissions);
           }
           setMenuOpen(!isMenuOpen);
@@ -293,7 +304,11 @@ function EditAccessSelector({
       triggerProps={{borderless: listOnly, style: listOnly ? {padding: 2} : {}}}
       searchPlaceholder={t('Search Teams')}
       isOpen={isMenuOpen}
-      onOpenChange={() => {
+      onOpenChange={newOpenState => {
+        if (newOpenState === true) {
+          trackAnalytics('dashboards2.edit_access.start', {organization});
+        }
+
         setStagedOptions(selectedOptions);
         setMenuOpen(!isMenuOpen);
       }}

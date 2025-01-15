@@ -49,7 +49,7 @@ function PlatformOrIntegration({params}: Props) {
 
   return (
     <OnboardingContextProvider>
-      <GettingStarted>
+      <GettingStarted withPadding>
         <ProjectInstallPlatform
           project={project}
           loading={loadingProjects}

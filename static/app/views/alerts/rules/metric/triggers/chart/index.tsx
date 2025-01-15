@@ -1,4 +1,5 @@
 import {type ComponentProps, Fragment, PureComponent} from 'react';
+import React from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
@@ -254,18 +255,18 @@ class TriggersChart extends PureComponent<Props, State> {
       this.props;
     const {statsPeriod} = this.state;
     if (
-      showTotalCount &&
-      !isSessionAggregate(aggregate) &&
-      (!isEqual(prevProps.projects, projects) ||
-        prevProps.environment !== environment ||
-        prevProps.query !== query ||
-        !isEqual(prevProps.timeWindow, timeWindow) ||
-        !isEqual(prevState.statsPeriod, statsPeriod))
+      !isEqual(prevProps.projects, projects) ||
+      prevProps.environment !== environment ||
+      prevProps.query !== query ||
+      !isEqual(prevProps.timeWindow, timeWindow) ||
+      !isEqual(prevState.statsPeriod, statsPeriod)
     ) {
-      this.fetchTotalCount();
-    }
-    if (this.props.dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
-      this.fetchExtrapolationSampleCount();
+      if (showTotalCount && !isSessionAggregate(aggregate)) {
+        this.fetchTotalCount();
+      }
+      if (this.props.dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
+        this.fetchExtrapolationSampleCount();
+      }
     }
   }
 
@@ -488,22 +489,22 @@ class TriggersChart extends PureComponent<Props, State> {
           />
         )}
 
-        {dataset === Dataset.EVENTS_ANALYTICS_PLATFORM && (
-          <ChartFooter>
-            <ConfidenceFooter
-              sampleCount={extrapolationSampleCount ?? undefined}
-              confidence={confidence}
-            />
-          </ChartFooter>
-        )}
-
         <ChartControls>
           {showTotalCount ? (
             <InlineContainer data-test-id="alert-total-events">
-              <SectionHeading>{totalCountLabel}</SectionHeading>
-              <SectionValue>
-                {totalCount !== null ? totalCount.toLocaleString() : '\u2014'}
-              </SectionValue>
+              {dataset === Dataset.EVENTS_ANALYTICS_PLATFORM ? (
+                <ConfidenceFooter
+                  sampleCount={extrapolationSampleCount ?? undefined}
+                  confidence={confidence}
+                />
+              ) : (
+                <React.Fragment>
+                  <SectionHeading>{totalCountLabel}</SectionHeading>
+                  <SectionValue>
+                    {totalCount !== null ? totalCount.toLocaleString() : '\u2014'}
+                  </SectionValue>
+                </React.Fragment>
+              )}
             </InlineContainer>
           ) : (
             <InlineContainer />
@@ -826,7 +827,3 @@ export function ErrorChart({isAllowIndexed, isQueryValid, errorMessage, ...props
     </ChartErrorWrapper>
   );
 }
-
-const ChartFooter = styled('div')`
-  margin: 0 ${space(2)} ${space(2)} ${space(2)};
-`;

@@ -273,7 +273,6 @@ class RuleConditionsForm extends PureComponent<Props, State> {
 
     if (this.props.comparisonType === AlertRuleComparisonType.DYNAMIC) {
       options = pick(TIME_WINDOW_MAP, [
-        TimeWindow.FIVE_MINUTES,
         TimeWindow.FIFTEEN_MINUTES,
         TimeWindow.THIRTY_MINUTES,
         TimeWindow.ONE_HOUR,

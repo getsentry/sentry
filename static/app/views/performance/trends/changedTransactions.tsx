@@ -636,15 +636,6 @@ const StyledHeaderTitleLegend = styled(HeaderTitleLegend)`
   margin: ${space(2)} ${space(3)};
 `;
 
-const MenuAction = styled('div')<{['data-test-id']?: string}>`
-  white-space: nowrap;
-  color: ${p => p.theme.textColor};
-`;
-
-MenuAction.defaultProps = {
-  'data-test-id': 'menu-action',
-};
-
 const StyledEmptyStateWarning = styled(EmptyStateWarning)`
   min-height: 300px;
   justify-content: center;

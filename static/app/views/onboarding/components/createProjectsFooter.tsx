@@ -187,7 +187,7 @@ export function CreateProjectsFooter({
   return (
     <GenericFooter>
       {genSkipOnboardingLink()}
-      <SelectionWrapper>
+      <SelectionWrapper transition={testableTransition({duration: 1.8})}>
         {selectedPlatform ? (
           <Fragment>
             <div>
@@ -205,7 +205,7 @@ export function CreateProjectsFooter({
           </Fragment>
         ) : null}
       </SelectionWrapper>
-      <ButtonWrapper>
+      <ButtonWrapper transition={testableTransition({duration: 1.3})}>
         <Button
           priority="primary"
           onClick={handleProjectCreation}
@@ -230,12 +230,6 @@ const SelectionWrapper = styled(motion.div)`
   }
 `;
 
-SelectionWrapper.defaultProps = {
-  transition: testableTransition({
-    duration: 1.8,
-  }),
-};
-
 const ButtonWrapper = styled(motion.div)`
   display: flex;
   height: 100%;
@@ -243,12 +237,6 @@ const ButtonWrapper = styled(motion.div)`
   margin-right: ${space(4)};
   margin-left: ${space(4)};
 `;
-
-ButtonWrapper.defaultProps = {
-  transition: testableTransition({
-    duration: 1.3,
-  }),
-};
 
 const SelectedPlatformIcon = styled(PlatformIcon)`
   margin-right: ${space(1)};
