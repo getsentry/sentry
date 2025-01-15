@@ -11,7 +11,7 @@ import type {AutofixInsight} from 'sentry/components/events/autofix/types';
 import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
 import Input from 'sentry/components/input';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconArrow, IconChevron, IconRefresh, IconThumb} from 'sentry/icons';
+import {IconArrow, IconChevron, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import marked, {singleLineRenderer} from 'sentry/utils/marked';
@@ -368,7 +368,7 @@ function ChainLink({
         </AnimatePresence>
         <RethinkButton
           ref={setReferenceElement}
-          icon={<IconThumb direction="down" size="sm" />}
+          icon={<IconRefresh size="sm" />}
           size="zero"
           className="rethink-button"
           title={t('Rethink from here')}
