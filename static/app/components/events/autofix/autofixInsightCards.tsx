@@ -412,39 +412,6 @@ export function useUpdateInsightCard({groupId, runId}: {groupId: string; runId: 
   });
 }
 
-export function useSendFeedbackOnChanges({
-  groupId,
-  runId,
-}: {
-  groupId: string;
-  runId: string;
-}) {
-  const api = useApi({persistInFlight: true});
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (params: {message: string}) => {
-      return api.requestPromise(`/issues/${groupId}/autofix/update/`, {
-        method: 'POST',
-        data: {
-          run_id: runId,
-          payload: {
-            type: 'continue_with_feedback',
-            message: params.message,
-          },
-        },
-      });
-    },
-    onSuccess: _ => {
-      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(groupId)});
-      addSuccessMessage(t('Thanks, rethinking this...'));
-    },
-    onError: () => {
-      addErrorMessage(t('Something went wrong when sending Autofix your message.'));
-    },
-  });
-}
-
 function ChainLink({
   groupId,
   runId,
@@ -630,11 +597,6 @@ const NoInsightsYet = styled('div')`
   justify-content: center;
   flex-direction: column;
   color: ${p => p.theme.subText};
-`;
-
-const EmptyResultsContainer = styled('div')`
-  position: relative;
-  bottom: -${space(1)};
 `;
 
 const InsightsContainer = styled('div')``;

@@ -4,7 +4,7 @@ import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
 import {AutofixChanges} from 'sentry/components/events/autofix/autofixChanges';
 import AutofixInsightCards, {
-  useSendFeedbackOnChanges,
+  useUpdateInsightCard,
 } from 'sentry/components/events/autofix/autofixInsightCards';
 import AutofixMessageBox from 'sentry/components/events/autofix/autofixMessageBox';
 import {AutofixOutputStream} from 'sentry/components/events/autofix/autofixOutputStream';
@@ -153,9 +153,15 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
     }
   };
 
-  const {mutate: sendFeedbackOnChanges} = useSendFeedbackOnChanges({groupId, runId});
+  const {mutate: sendFeedbackOnChanges} = useUpdateInsightCard({groupId, runId});
   const iterateOnChangesStep = (text: string) => {
+    const changesStep = steps?.[steps.length - 1];
+    if (!changesStep || changesStep.type !== AutofixStepType.CHANGES) {
+      return;
+    }
     sendFeedbackOnChanges({
+      step_index: changesStep.index,
+      retain_insight_card_index: changesStep.insights.length - 1,
       message: text,
     });
   };
