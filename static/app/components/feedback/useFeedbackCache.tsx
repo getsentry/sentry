@@ -53,6 +53,9 @@ export default function useFeedbackCache() {
 
   const updateCachedListPage = useCallback(
     (ids: TFeedbackIds, payload: Partial<FeedbackIssue>) => {
+      if (!listQueryKey) {
+        return;
+      }
       const listData = queryClient.getQueryData<ListCache>(listQueryKey);
       if (listData) {
         const pages = listData.pages.map(([data, statusText, resp]) => [
@@ -93,6 +96,9 @@ export default function useFeedbackCache() {
 
   const invalidateCachedListPage = useCallback(
     (ids: TFeedbackIds) => {
+      if (!listQueryKey) {
+        return;
+      }
       if (ids === 'all') {
         queryClient.invalidateQueries({
           queryKey: listQueryKey,

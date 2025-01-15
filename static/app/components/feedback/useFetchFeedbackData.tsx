@@ -20,7 +20,7 @@ export default function useFetchFeedbackData({feedbackId}: Props) {
     issueQueryKey ?? [''],
     {
       staleTime: 0,
-      enabled: Boolean(issueQueryKey?.[0]),
+      enabled: Boolean(issueQueryKey),
     }
   );
 
@@ -28,7 +28,7 @@ export default function useFetchFeedbackData({feedbackId}: Props) {
     eventQueryKey ?? [''],
     {
       staleTime: 0,
-      enabled: Boolean(eventQueryKey?.[0]),
+      enabled: Boolean(eventQueryKey),
     }
   );
 

@@ -52,7 +52,7 @@ export default function useMutateFeedback({
       const options = isSingleId
         ? {}
         : ids === 'all'
-          ? listQueryKey[1]!
+          ? listQueryKey?.[1]!
           : {query: {id: ids, project: projectIds}};
       return fetchMutation(api)(['PUT', url, options, payload]);
     },

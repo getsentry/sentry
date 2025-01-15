@@ -36,11 +36,13 @@ function uniqueItems<Data extends Record<string, unknown>>(
 interface Props {
   queryKey: NonNullable<ApiQueryKey | undefined>;
   uniqueField: string;
+  enabled?: boolean;
 }
 
 export default function useFetchInfiniteListData<Data extends Record<string, unknown>>({
   queryKey,
   uniqueField,
+  enabled,
 }: Props) {
   const {
     data,
@@ -54,6 +56,7 @@ export default function useFetchInfiniteListData<Data extends Record<string, unk
     isPending, // If anything is loaded yet
   } = useInfiniteApiQuery<Data[]>({
     queryKey,
+    enabled,
   });
 
   const issues = useMemo(
