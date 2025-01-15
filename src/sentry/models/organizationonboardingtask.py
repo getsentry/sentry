@@ -27,7 +27,6 @@ class OnboardingTask:
     FIRST_EVENT = 2
     INVITE_MEMBER = 3
     SECOND_PLATFORM = 4
-    USER_CONTEXT = 5
     RELEASE_TRACKING = 6
     SOURCEMAPS = 7
     ISSUE_TRACKER = 9
@@ -57,7 +56,6 @@ class OnboardingTaskStatus:
 #
 #   FIRST_EVENT:     User confirms that sdk has been installed
 #   INVITE_MEMBER:   Until the member has successfully joined org
-#   USER_CONTEXT:    User has added user context to sdk
 #   ISSUE_TRACKER:   Tracker added, issue not yet created
 
 
@@ -123,7 +121,6 @@ class OrganizationOnboardingTask(AbstractOnboardingTask):
         (OnboardingTask.FIRST_EVENT, "send_first_event"),
         (OnboardingTask.INVITE_MEMBER, "invite_member"),
         (OnboardingTask.SECOND_PLATFORM, "setup_second_platform"),
-        (OnboardingTask.USER_CONTEXT, "setup_user_context"),
         (OnboardingTask.RELEASE_TRACKING, "setup_release_tracking"),
         (OnboardingTask.SOURCEMAPS, "setup_sourcemaps"),
         # TODO(Telemety Experience): This task is no longer shown
