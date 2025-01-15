@@ -123,16 +123,18 @@ export function AutofixChanges({
 
   return (
     <Fragment>
-      <AutofixInsightCards
-        insights={step.insights}
-        repos={repos}
-        hasStepBelow
-        hasStepAbove
-        stepIndex={step.index}
-        groupId={groupId}
-        runId={runId}
-        shouldHighlightRethink={shouldHighlightRethink}
-      />
+      {step.insights && step.insights.length > 0 && (
+        <AutofixInsightCards
+          insights={step.insights}
+          repos={repos}
+          hasStepBelow
+          hasStepAbove
+          stepIndex={step.index}
+          groupId={groupId}
+          runId={runId}
+          shouldHighlightRethink={shouldHighlightRethink}
+        />
+      )}
       <AnimatePresence initial>
         <AnimationWrapper key="card" {...cardAnimationProps}>
           <ChangesContainer allChangesHavePullRequests={allChangesHavePullRequests}>
