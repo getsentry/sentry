@@ -411,7 +411,7 @@ export class VideoReplayer {
 
     for (const [index, videoElem] of this._videos) {
       // On safari, some clips have a ~1 second gap in the beginning so we also need to show the previous video to hide this gap
-      // Edge case: Don't show previous video if the orientation is different
+      // Edge case: Don't show previous video if size is different (eg. orientation changes)
       if (
         index === (this._currentIndex || 0) - 1 &&
         videoElem.videoHeight === nextVideo.videoHeight &&
