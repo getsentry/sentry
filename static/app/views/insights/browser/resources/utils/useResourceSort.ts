@@ -29,8 +29,8 @@ export type ValidSort = Sort & {
  */
 export function useResourceSort(
   sortParameterName: QueryParameterNames | 'sort' = 'sort',
-  fallback: Sort = DEFAULT_SORT
-) {
+  fallback: ValidSort = DEFAULT_SORT
+): ValidSort {
   const location = useLocation<Query>();
 
   return (
@@ -38,7 +38,7 @@ export function useResourceSort(
   );
 }
 
-const DEFAULT_SORT: Sort = {
+const DEFAULT_SORT: ValidSort = {
   kind: 'desc',
   field: SORTABLE_FIELDS[4],
 };
