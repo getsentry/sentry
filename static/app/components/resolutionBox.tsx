@@ -25,15 +25,20 @@ type Props = {
   activities?: GroupActivity[];
 };
 
-function renderReason(
-  statusDetails: ResolvedStatusDetails,
-  projectId: string,
-  activities: GroupActivity[]
-) {
+export function renderResolutionReason({
+  statusDetails,
+  projectId,
+  activities = [],
+  hasStreamlinedUI = false,
+}: Props & {hasStreamlinedUI?: boolean}) {
   const actor = statusDetails.actor ? (
     <strong>
-      <UserAvatar user={statusDetails.actor} size={20} className="avatar" />
-      <span style={{marginLeft: 5}}>{statusDetails.actor.name}</span>
+      {!hasStreamlinedUI && (
+        <UserAvatar user={statusDetails.actor} size={20} className="avatar" />
+      )}
+      <span style={{marginLeft: hasStreamlinedUI ? 0 : 5}}>
+        {statusDetails.actor.name}
+      </span>
     </strong>
   ) : null;
 
@@ -115,7 +120,7 @@ function renderReason(
       ),
     });
   }
-  return t('This issue has been marked as resolved.');
+  return hasStreamlinedUI ? null : t('This issue has been marked as resolved.');
 }
 
 function ResolutionBox({statusDetails, projectId, activities = []}: Props) {
@@ -123,7 +128,7 @@ function ResolutionBox({statusDetails, projectId, activities = []}: Props) {
     <BannerContainer priority="default">
       <BannerSummary>
         <StyledIconCheckmark color="successText" />
-        <span>{renderReason(statusDetails, projectId, activities)}</span>
+        <span>{renderResolutionReason({statusDetails, projectId, activities})}</span>
       </BannerSummary>
     </BannerContainer>
   );
