@@ -67,8 +67,29 @@ type LocationConfig =
   | {pathname: string; query?: Record<string, string | number | string[]>};
 
 type RouterConfig = {
+  /**
+   * Sets the initial location for the router.
+   */
   location?: LocationConfig;
+  /**
+   * Defines a single route for the router. Necessary for testing useParams();
+   *
+   * Example:
+   *
+   * route: '/issues/:issueId/'
+   */
   route?: string;
+  /**
+   * Sets the initial routes for the router.
+   *
+   * Defines multiple valid routes for the router. Necessary for testing
+   * useParams() if you have multiple routes that render the same component.
+   *
+   * Example:
+   *
+   * routes: ['/issues/:issueId/', '/issues/:issueId/events/:eventId/']
+   */
+  routes?: string[];
 };
 
 type RenderOptions<T extends boolean = false> = T extends true
@@ -166,28 +187,49 @@ function makeAllTheProviders(options: ProviderOptions) {
   };
 }
 
-function makeRouter({
-  children,
-  history,
-  route,
-}: {
-  history: MemoryHistory;
-  children?: React.ReactNode;
-  route?: string;
-}) {
+function createRoutesFromConfig(
+  children: React.ReactNode,
+  config: RouterConfig | undefined
+): RouteObject[] {
   // By default react-router 6 catches exceptions and displays the stack
   // trace. For tests we want them to bubble out
   function ErrorBoundary(): React.ReactNode {
     throw useRouteError();
   }
 
-  const routes: RouteObject[] = [
-    {
-      path: route ?? '*',
-      element: children,
-      errorElement: <ErrorBoundary />,
-    },
-  ];
+  const fallbackRoute = {path: '*', element: children, errorElement: <ErrorBoundary />};
+
+  if (config?.route) {
+    return [
+      {path: config.route, element: children, errorElement: <ErrorBoundary />},
+      fallbackRoute,
+    ];
+  }
+
+  if (config?.routes) {
+    return [
+      ...config.routes.map(route => ({
+        path: route,
+        element: children,
+        errorElement: <ErrorBoundary />,
+      })),
+      fallbackRoute,
+    ];
+  }
+
+  return [{path: '*', element: children, errorElement: <ErrorBoundary />}];
+}
+
+function makeRouter({
+  children,
+  history,
+  config,
+}: {
+  children: React.ReactNode;
+  config: RouterConfig | undefined;
+  history: MemoryHistory;
+}) {
+  const routes = createRoutesFromConfig(children, config);
 
   const router = createRouter({
     future: {v7_prependBasename: true},
@@ -283,7 +325,7 @@ function render<T extends boolean = false>(
   const memoryRouter = makeRouter({
     children: <AllTheProviders>{ui}</AllTheProviders>,
     history,
-    route: options.disableRouterMocks ? options.initialRouterConfig?.route : undefined,
+    config: options.disableRouterMocks ? options.initialRouterConfig : undefined,
   });
 
   if (options.disableRouterMocks) {
@@ -296,7 +338,7 @@ function render<T extends boolean = false>(
     const newRouter = makeRouter({
       children: <AllTheProviders>{newUi}</AllTheProviders>,
       history,
-      route: options.disableRouterMocks ? options.initialRouterConfig?.route : undefined,
+      config: options.disableRouterMocks ? options.initialRouterConfig : undefined,
     });
 
     renderResult.rerender(<RouterProvider router={newRouter} />);
