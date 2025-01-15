@@ -50,6 +50,7 @@ from .issue_mark_reviewed import *  # noqa: F401,F403
 from .issue_priority import *  # noqa: F401,F403
 from .issue_resolved import *  # noqa: F401,F403
 from .issue_search_endpoint_queried import *  # noqa: F401,F403
+from .issue_tracker_used import *  # noqa: F401,F403
 from .issue_unignored import *  # noqa: F401,F403
 from .issue_unresolved import *  # noqa: F401,F403
 from .issueowners_assignment import *  # noqa: F401,F403
