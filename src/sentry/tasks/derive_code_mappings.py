@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 from sentry_sdk import set_tag, set_user
 
+from sentry import eventstore
 from sentry.constants import ObjectStatus
 from sentry.db.models.fields.node import NodeData
 from sentry.integrations.github.integration import GitHubIntegration
@@ -88,13 +89,22 @@ def process_error(error: ApiError, extra: dict[str, str]) -> None:
 )
 def derive_code_mappings(
     project_id: int,
-    data: NodeData,
+    data: NodeData | None = None,  # We will deprecate this
+    event_id: str | None = None,
 ) -> None:
     """
     Derive code mappings for a project given data from a recent event.
 
     This task is queued at most once per hour per project, based on the ingested events.
     """
+    # XXX: In the next PR we will only use event_id
+    if event_id:
+        event = eventstore.backend.get_event_by_id(project_id, event_id)
+        if event is None:
+            logger.error("Event not found.", extra={"project_id": project_id, "event_id": event_id})
+            return
+        data = event.data
+
     project = Project.objects.get(id=project_id)
     org: Organization = Organization.objects.get(id=project.organization_id)
     set_tag("organization.slug", org.slug)

@@ -8,7 +8,7 @@ import pytest
 from django.utils import timezone
 from django.utils.functional import cached_property
 
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import GroupEvent
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.integrations.models.integration import Integration
@@ -283,7 +283,7 @@ class Fixtures:
             user=user, provider=provider, uid=uid, extra_data=extra_data
         )
 
-    def store_event(self, *args, **kwargs) -> Event:
+    def store_event(self, *args, **kwargs) -> GroupEvent:
         return Factories.store_event(*args, **kwargs)
 
     def create_tempest_credentials(self, project: Project, *args, **kwargs) -> TempestCredentials:
