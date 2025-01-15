@@ -1,8 +1,9 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {Button} from 'sentry/components/button';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import SideBySide from 'sentry/components/stories/sideBySide';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
@@ -10,7 +11,7 @@ import storyBook from 'sentry/stories/storyBook';
 import type {DateString} from 'sentry/types/core';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
-import type {Release, TimeseriesData} from '../common/types';
+import type {Release, TimeseriesData, TimeseriesSelection} from '../common/types';
 import {shiftTimeserieToNow} from '../timeSeriesWidget/shiftTimeserieToNow';
 
 import {LineChartWidget} from './lineChartWidget';
@@ -54,6 +55,15 @@ export default storyBook(LineChartWidget, story => {
     const {datetime} = selection;
     const {start, end} = datetime;
 
+    const [timeseriesSelection, setTimeseriesSelection] = useState<TimeseriesSelection>({
+      'p50(span.duration)': true,
+      'p99(span.duration)': true,
+    });
+
+    const toggleTimeseriesSelection = (seriesName: string): void => {
+      setTimeseriesSelection(s => ({...s, [seriesName]: !s[seriesName]}));
+    };
+
     const throughputTimeSeries = toTimeSeriesSelection(
       sampleThroughputTimeSeries as unknown as TimeseriesData,
       start,
@@ -94,6 +104,12 @@ export default storyBook(LineChartWidget, story => {
           a dotted line. By default the delay is <code>0</code>.
         </p>
 
+        <p>
+          To control the timeseries selection, you can use the{' '}
+          <code>timeseriesSelection</code> and <code>onTimeseriesSelectionChange</code>{' '}
+          props.
+        </p>
+
         <SideBySide>
           <MediumWidget>
             <LineChartWidget
@@ -107,8 +123,28 @@ export default storyBook(LineChartWidget, story => {
                 'p50(span.duration)': '50th Percentile',
                 'p99(span.duration)': '99th Percentile',
               }}
+              timeseriesSelection={timeseriesSelection}
+              onTimeseriesSelectionChange={newSelection => {
+                setTimeseriesSelection(newSelection);
+              }}
             />
           </MediumWidget>
+
+          <Button
+            onClick={() => {
+              toggleTimeseriesSelection('p50(span.duration)');
+            }}
+          >
+            Toggle 50th Percentile
+          </Button>
+
+          <Button
+            onClick={() => {
+              toggleTimeseriesSelection('p99(span.duration)');
+            }}
+          >
+            Toggle 99th Percentile
+          </Button>
         </SideBySide>
       </Fragment>
     );
