@@ -1,4 +1,3 @@
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.rules.age import AgeComparisonType
 from sentry.rules.conditions.first_seen_event import FirstSeenEventCondition
@@ -10,6 +9,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.types.actor import Actor
 from sentry.users.services.user.service import user_service
 from sentry.workflow_engine.migration_helpers.rule import (
+    UpdatedIssueAlertData,
     migrate_issue_alert,
     update_migrated_issue_alert,
 )
@@ -104,7 +104,7 @@ class RuleMigrationHelpersTest(APITestCase):
 
     def test_update_issue_alert_no_actions(self):
         migrate_issue_alert(self.issue_alert, self.rpc_user)
-        conditions = [
+        conditions_payload = [
             {
                 "id": FirstSeenEventCondition.id,
             },
@@ -112,14 +112,14 @@ class RuleMigrationHelpersTest(APITestCase):
                 "id": LatestReleaseFilter.id,
             },
         ]
-        payload = {
+        payload: UpdatedIssueAlertData = {
             "name": "hello world",
             "owner": Actor.from_id(user_id=self.user.id),
             "environment": self.environment.id,
             "action_match": "none",
             "filter_match": "all",
             "actions": [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
-            "conditions": conditions,
+            "conditions": conditions_payload,
             "frequency": 60,
         }
         update_migrated_issue_alert(self.issue_alert, payload, self.rpc_user)
@@ -130,13 +130,14 @@ class RuleMigrationHelpersTest(APITestCase):
         assert self.issue_alert.project
         assert workflow.organization_id == self.issue_alert.project.organization.id
         assert workflow.config == {"frequency": 60}
+        assert workflow.owner_user_id == self.user.id
+        assert workflow.owner_team_id is None
 
         assert workflow.when_condition_group
         assert workflow.when_condition_group.logic_type == DataConditionGroup.Type.NONE
 
-        assert len(RegionScheduledDeletion.objects.filter(model_name="DataCondition")) == 3
-
         conditions = DataCondition.objects.filter(condition_group=workflow.when_condition_group)
+        assert conditions.count() == 1
         assert conditions.filter(
             type=Condition.FIRST_SEEN_EVENT,
             comparison=True,
@@ -146,6 +147,7 @@ class RuleMigrationHelpersTest(APITestCase):
         if_dcg = WorkflowDataConditionGroup.objects.get(workflow=workflow).condition_group
         assert if_dcg.logic_type == DataConditionGroup.Type.ALL
         filters = DataCondition.objects.filter(condition_group=if_dcg)
+        assert filters.count() == 1
         assert filters.filter(
             type=Condition.LATEST_RELEASE,
             comparison=True,
@@ -154,27 +156,34 @@ class RuleMigrationHelpersTest(APITestCase):
 
         assert DataConditionGroupAction.objects.filter(condition_group=if_dcg).count() == 0
 
-    def test_with_null_environment(self):
+    def test_required_fields_only(self):
         migrate_issue_alert(self.issue_alert, self.rpc_user)
-        conditions = [
-            {
-                "id": FirstSeenEventCondition.id,
-            },
-            {
-                "id": LatestReleaseFilter.id,
-            },
-        ]
-        payload = {
+        payload: UpdatedIssueAlertData = {
             "name": "hello world",
-            "owner": Actor.from_id(user_id=self.user.id),
+            "owner": None,
             "environment": None,
+            "conditions": [],
             "action_match": "none",
-            "filter_match": "all",
+            "filter_match": None,
             "actions": [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
-            "conditions": conditions,
+            "frequency": None,
         }
         update_migrated_issue_alert(self.issue_alert, payload, self.rpc_user)
 
         issue_alert_workflow = AlertRuleWorkflow.objects.get(rule=self.issue_alert)
         workflow = Workflow.objects.get(id=issue_alert_workflow.workflow.id)
         assert workflow.environment is None
+        assert workflow.owner_user_id is None
+        assert workflow.owner_team_id is None
+        assert workflow.config == {"frequency": workflow.DEFAULT_FREQUENCY}
+
+        assert workflow.when_condition_group
+        assert workflow.when_condition_group.logic_type == DataConditionGroup.Type.NONE
+
+        conditions = DataCondition.objects.filter(condition_group=workflow.when_condition_group)
+        assert conditions.count() == 0
+
+        if_dcg = WorkflowDataConditionGroup.objects.get(workflow=workflow).condition_group
+        assert if_dcg.logic_type == DataConditionGroup.Type.ANY_SHORT_CIRCUIT
+        filters = DataCondition.objects.filter(condition_group=if_dcg)
+        assert filters.count() == 0

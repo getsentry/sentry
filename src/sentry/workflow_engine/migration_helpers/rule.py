@@ -1,11 +1,11 @@
 import logging
-from typing import Any
+from typing import Any, TypedDict
 
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.organization import Organization
 from sentry.models.rule import Rule
 from sentry.rules.processing.processor import split_conditions_and_filters
+from sentry.types.actor import Actor
 from sentry.users.services.user import RpcUser
 from sentry.workflow_engine.migration_helpers.issue_alert_conditions import (
     translate_to_data_condition,
@@ -76,7 +76,7 @@ def create_workflow(
     frequency: int | None = None,
     environment_id: int | None = None,
 ):
-    config = {"frequency": frequency or 30}
+    config = {"frequency": frequency or Workflow.DEFAULT_FREQUENCY}
     workflow = Workflow.objects.create(
         organization=organization,
         name=rule.label,
@@ -117,7 +117,20 @@ def create_workflow_actions(if_dcg: DataConditionGroup, actions: list[dict[str, 
     pass
 
 
-def update_migrated_issue_alert(rule: Rule, data: dict[str, Any], user: RpcUser | None = None):
+class UpdatedIssueAlertData(TypedDict):
+    name: str
+    conditions: list[dict[str, Any]]
+    action_match: str
+    filter_match: str | None
+    actions: list[dict[str, Any]]
+    environment: int | None
+    owner: Actor | None
+    frequency: int | None
+
+
+def update_migrated_issue_alert(
+    rule: Rule, data: UpdatedIssueAlertData, user: RpcUser | None = None
+):
     try:
         alert_rule_workflow = AlertRuleWorkflow.objects.get(rule=rule)
     except AlertRuleWorkflow.DoesNotExist:
@@ -126,16 +139,17 @@ def update_migrated_issue_alert(rule: Rule, data: dict[str, Any], user: RpcUser 
 
     workflow: Workflow = alert_rule_workflow.workflow
     if not workflow.when_condition_group:
-        # won't let me throw a logger exception here
+        logger.error(
+            "Workflow does not have a when_condition_group", extra={"workflow_id": workflow.id}
+        )
         return
 
     conditions, filters = split_conditions_and_filters(data["conditions"])
 
-    update_when_dcg(
-        when_dcg=workflow.when_condition_group,
+    update_dcg(
+        dcg=workflow.when_condition_group,
         conditions=conditions,
-        action_match=data["action_match"],
-        user=user,
+        match=data["action_match"],
     )
 
     try:
@@ -146,11 +160,11 @@ def update_migrated_issue_alert(rule: Rule, data: dict[str, Any], user: RpcUser 
         )
         # if no IF DCG exists, create one
         if_dcg = create_if_dcg(
-            workflow=workflow, filters=filters, filter_match=data.get("filter_match")
+            workflow=workflow, filters=filters, filter_match=data["filter_match"]
         )
         WorkflowDataConditionGroup.objects.create(workflow=workflow, condition_group=if_dcg)
 
-    update_if_dcg(if_dcg=if_dcg, filters=filters, filter_match=data.get("filter_match"), user=user)
+    update_dcg(dcg=if_dcg, conditions=filters, match=data["filter_match"])
 
     delete_workflow_actions(if_dcg=if_dcg, actions=data["actions"], user=user)
     create_workflow_actions(if_dcg=if_dcg, actions=data["actions"])  # action(s) must exist
@@ -161,9 +175,9 @@ def update_migrated_issue_alert(rule: Rule, data: dict[str, Any], user: RpcUser 
         "enabled": True,
         "owner_team_id": None,
         "owner_user_id": None,
-        "config": {"frequency": data.get("frequency", 30)},
+        "config": {"frequency": data["frequency"] or Workflow.DEFAULT_FREQUENCY},
     }
-    owner = data.get("owner")
+    owner = data["owner"]
     if owner:
         if owner and owner.is_user:
             updated_data["owner_user_id"] = owner.id
@@ -172,49 +186,23 @@ def update_migrated_issue_alert(rule: Rule, data: dict[str, Any], user: RpcUser 
     workflow.update(**updated_data)
 
 
-def update_when_dcg(
-    when_dcg: DataConditionGroup,
+def update_dcg(
+    dcg: DataConditionGroup,
     conditions: list[dict[str, Any]],
-    action_match: str,
-    user: RpcUser | None = None,
+    match: str | None = None,
 ):
-    delete_data_conditions(dcg=when_dcg, user=user)
+    DataCondition.objects.filter(condition_group=dcg).delete()
 
-    if when_dcg.logic_type != action_match:
-        if action_match == "any":
-            action_match = DataConditionGroup.Type.ANY_SHORT_CIRCUIT.value
+    if dcg.logic_type != match:
+        if match == "any" or match is None:
+            match = DataConditionGroup.Type.ANY_SHORT_CIRCUIT.value
 
-        when_dcg.update(logic_type=action_match)
+        dcg.update(logic_type=match)
 
     for condition in conditions:
-        translate_to_data_condition(dict(condition), dcg=when_dcg)
+        translate_to_data_condition(dict(condition), dcg=dcg)
 
-    return when_dcg
-
-
-def update_if_dcg(
-    if_dcg: DataConditionGroup,
-    filters: list[dict[str, Any]],
-    filter_match: str | None = None,
-    user: RpcUser | None = None,
-):
-    delete_data_conditions(dcg=if_dcg, user=user)
-
-    if if_dcg.logic_type != filter_match:
-        if filter_match == "any" or filter_match is None:
-            filter_match = DataConditionGroup.Type.ANY_SHORT_CIRCUIT.value
-
-        if_dcg.update(logic_type=filter_match)
-
-    for filter in filters:
-        translate_to_data_condition(dict(filter), dcg=if_dcg)
-
-    return if_dcg
-
-
-def delete_data_conditions(dcg: DataConditionGroup, user: RpcUser | None = None):
-    for data_condition in DataCondition.objects.filter(condition_group=dcg):
-        RegionScheduledDeletion.schedule(instance=data_condition, days=0, actor=user)
+    return dcg
 
 
 def delete_workflow_actions(
