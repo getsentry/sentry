@@ -54,7 +54,9 @@ export function useAddToDashboard() {
           fields = sampleFields.filter(Boolean);
         }
       } else {
-        fields = [...groupBys, ...yAxes].filter(Boolean);
+        fields = [...groupBys, ...yAxes, ...sortBys.map(sort => sort.field)].filter(
+          Boolean
+        );
       }
 
       const search = new MutableSearch(query);
