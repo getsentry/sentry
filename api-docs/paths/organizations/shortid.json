@@ -16,7 +16,7 @@
       {
         "name": "issue_id",
         "in": "path",
-        "description": "the short ID or issue ID to look up.",
+        "description": "The short ID or issue ID to look up.",
         "required": true,
         "schema": {
           "type": "string"
