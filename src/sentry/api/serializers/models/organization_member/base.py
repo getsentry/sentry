@@ -44,6 +44,9 @@ class OrganizationMemberSerializer(Serializer):
         users_by_id: MutableMapping[str, Any] = {}
         email_map: MutableMapping[str, str] = {}
         for u in user_service.serialize_many(filter={"user_ids": users_set}):
+            # Filter out the emails from the user data
+            if "emails" in u:
+                del u["emails"]
             users_by_id[u["id"]] = u
             email_map[u["id"]] = u["email"]
 
@@ -96,13 +99,20 @@ class OrganizationMemberSerializer(Serializer):
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> OrganizationMemberResponse:
+        serialized_user = attrs["user"]
+        if obj.user_id:
+            # Only use the user's primary email from the serialized user data
+            email = serialized_user["email"] if serialized_user else None
+        else:
+            # For invited members, use the invitation email
+            email = obj.email
+
         inviter_name = None
         if obj.inviter_id:
             inviter = attrs["inviter"]
             if inviter:
                 inviter_name = inviter.get_display_name()
-        serialized_user = attrs["user"]
-        email = attrs["email"]
+
         data: OrganizationMemberResponse = {
             "id": str(obj.id),
             "email": email,

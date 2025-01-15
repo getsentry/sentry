@@ -56,6 +56,12 @@ class OrganizationMemberWithRolesSerializer(OrganizationMemberWithTeamsSerialize
                 serializer=UserSerializeType.DETAILED,
             )
         }
+
+        # Filter out emails from the serialized user data
+        for user_data in users_by_id.values():
+            if "emails" in user_data:
+                del user_data["emails"]
+
         for item in item_list:
             result.setdefault(item, {})["serializedUser"] = users_by_id.get(str(item.user_id), {})
         return result
