@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import datetime
 from typing import Any
 
-from django.db.models import DateTimeField, Field, IntegerField, Q
+from django.db.models import DateTimeField, Field, IntegerField, Q, Value
 from django.db.models.constraints import CheckConstraint, UniqueConstraint
+from django.db.models.functions import Coalesce
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
@@ -111,52 +113,27 @@ class NotificationMessage(Model):
                 ),
                 name="singular_parent_message_per_incident_and_trigger_action",
             ),
-            # 1 parent message per rule fire history and rule action (without open period)
+            # 1 parent message per rule fire history and rule action (open_period_start null not distinct)
             UniqueConstraint(
-                fields=("rule_fire_history", "rule_action_uuid"),
+                "rule_fire_history",
+                "rule_action_uuid",
+                Coalesce("open_period_start", Value(timezone.make_aware(datetime.datetime.min))),
                 condition=Q(
                     error_code__isnull=True,
                     parent_notification_message__isnull=True,
-                    rule_fire_history__isnull=False,
-                    rule_action_uuid__isnull=False,
-                    open_period_start__isnull=True,
                 ),
-                name="singular_parent_message_per_rule_fire_history_rule_action_without_open_period_start",
+                name="singular_parent_message_per_rule_fire_history_rule_action_open_period",
             ),
-            # 1 parent message per rule fire history and rule action (with open period)
+            # 1 parent message per action and group (open_period_start null not distinct)
             UniqueConstraint(
-                fields=("rule_fire_history", "rule_action_uuid", "open_period_start"),
+                "action",
+                "group",
+                Coalesce("open_period_start", Value(timezone.make_aware(datetime.datetime.min))),
                 condition=Q(
                     error_code__isnull=True,
                     parent_notification_message__isnull=True,
-                    rule_fire_history__isnull=False,
-                    rule_action_uuid__isnull=False,
-                    open_period_start__isnull=False,
                 ),
-                name="singular_parent_message_per_rule_fire_history_rule_action_with_open_period_start",
-            ),
-            # 1 parent message per action and group (without open period)
-            UniqueConstraint(
-                fields=("action", "group"),
-                condition=Q(
-                    error_code__isnull=True,
-                    parent_notification_message__isnull=True,
-                    action__isnull=False,
-                    group__isnull=False,
-                    open_period_start__isnull=True,
-                ),
-                name="singular_parent_message_per_action_group_without_open_period_start",
-            ),
-            # 1 parent message per action and group (with open period)
-            UniqueConstraint(
-                fields=("action", "group", "open_period_start"),
-                condition=Q(
-                    error_code__isnull=True,
-                    parent_notification_message__isnull=True,
-                    action__isnull=False,
-                    group__isnull=False,
-                ),
-                name="singular_parent_message_per_action_group_with_open_period_start",
+                name="singular_parent_message_per_action_group_open_period",
             ),
         ]
 
