@@ -108,7 +108,7 @@ class AbstractOnboardingTask(Model):
 
     # abstract
     TASK_LOOKUP_BY_KEY: dict[str, int]
-    NEW_SKIPPABLE_TASKS: frozenset[int]
+    SKIPPABLE_TASKS: frozenset[int]
 
     class Meta:
         abstract = True
@@ -170,7 +170,7 @@ class OrganizationOnboardingTask(AbstractOnboardingTask):
         ]
     )
 
-    NEW_SKIPPABLE_TASKS = frozenset(
+    SKIPPABLE_TASKS = frozenset(
         [
             OnboardingTask.INVITE_MEMBER,
             OnboardingTask.SECOND_PLATFORM,
