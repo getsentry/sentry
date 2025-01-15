@@ -27,13 +27,11 @@ class OnboardingTask:
     FIRST_EVENT = 2
     INVITE_MEMBER = 3
     SECOND_PLATFORM = 4
-    USER_CONTEXT = 5
     RELEASE_TRACKING = 6
     SOURCEMAPS = 7
     ISSUE_TRACKER = 9
     ALERT_RULE = 10
     FIRST_TRANSACTION = 11
-    INTEGRATIONS = 13
     SESSION_REPLAY = 14
     REAL_TIME_NOTIFICATIONS = 15
     LINK_SENTRY_TO_SOURCE_CODE = 16
@@ -50,7 +48,6 @@ class OnboardingTaskStatus:
 #   FIRST_EVENT:      { 'platform':  'flask', }
 #   INVITE_MEMBER:    { 'invited_member': user.id, 'teams': [team.id] }
 #   ISSUE_TRACKER:    { 'plugin': 'plugin_name' }
-#   ISSUE_ASSIGNMENT: { 'assigned_member': user.id }
 #   SECOND_PLATFORM:  { 'platform': 'javascript' }
 #
 # NOTE: Currently the `PENDING` status is applicable for the following
@@ -58,8 +55,6 @@ class OnboardingTaskStatus:
 #
 #   FIRST_EVENT:     User confirms that sdk has been installed
 #   INVITE_MEMBER:   Until the member has successfully joined org
-#   SECOND_PLATFORM: User confirms that sdk has been installed
-#   USER_CONTEXT:    User has added user context to sdk
 #   ISSUE_TRACKER:   Tracker added, issue not yet created
 
 
@@ -125,7 +120,6 @@ class OrganizationOnboardingTask(AbstractOnboardingTask):
         (OnboardingTask.FIRST_EVENT, "send_first_event"),
         (OnboardingTask.INVITE_MEMBER, "invite_member"),
         (OnboardingTask.SECOND_PLATFORM, "setup_second_platform"),
-        (OnboardingTask.USER_CONTEXT, "setup_user_context"),
         (OnboardingTask.RELEASE_TRACKING, "setup_release_tracking"),
         (OnboardingTask.SOURCEMAPS, "setup_sourcemaps"),
         # TODO(Telemety Experience): This task is no longer shown
@@ -133,7 +127,6 @@ class OrganizationOnboardingTask(AbstractOnboardingTask):
         (OnboardingTask.ISSUE_TRACKER, "setup_issue_tracker"),
         (OnboardingTask.ALERT_RULE, "setup_alert_rules"),
         (OnboardingTask.FIRST_TRANSACTION, "setup_transactions"),
-        (OnboardingTask.INTEGRATIONS, "setup_integrations"),
         (OnboardingTask.SESSION_REPLAY, "setup_session_replay"),
         (OnboardingTask.REAL_TIME_NOTIFICATIONS, "setup_real_time_notifications"),
         (OnboardingTask.LINK_SENTRY_TO_SOURCE_CODE, "link_sentry_to_source_code"),
