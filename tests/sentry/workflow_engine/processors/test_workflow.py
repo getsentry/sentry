@@ -136,3 +136,21 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
         triggered_workflows = evaluate_workflow_triggers({self.workflow, workflow_two}, self.job)
 
         assert triggered_workflows == {self.workflow, workflow_two}
+
+    def test_enqueues_workflow_with_slow_conditions(self):
+        self.workflow.when_condition_group.update(logic_type=DataConditionGroup.Type.ALL)
+        self.create_data_condition(
+            condition_group=self.workflow.when_condition_group,
+            type=Condition.EVENT_FREQUENCY_COUNT,
+            comparison={
+                "interval": "1h",
+                "value": 100,
+                "comparison_interval": "1d",
+            },
+            condition_result=True,
+        )
+
+        triggered_workflows = evaluate_workflow_triggers({self.workflow}, self.job)
+        assert triggered_workflows == {}
+
+        # TODO: test buffer enqueue
