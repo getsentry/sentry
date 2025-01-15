@@ -7,7 +7,7 @@ pytestmark = [requires_snuba]
 
 
 class ShortIdLookupEndpointTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.group = self.create_group(project=self.project, short_id=self.project.next_short_id())
         self.url = reverse(
             "sentry-api-0-short-id-lookup",
@@ -27,7 +27,7 @@ class ShortIdLookupEndpointTest(APITestCase):
         assert response.data["groupId"] == str(self.group.id)
         assert response.data["group"]["id"] == str(self.group.id)
 
-    def test_access_non_member_project(self):
+    def test_access_non_member_project(self) -> None:
         # disable Open Membership
         self.organization.flags.allow_joinleave = False
         self.organization.save()
