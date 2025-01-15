@@ -88,7 +88,7 @@ class TestGrantExchanger(TestCase):
             self.grant_exchanger.run()
         assert e.value.message == "Integration does not exist"
         assert e.value.extras == {
-            "webhook_context": {"application_id": self.install.sentry_app.application.id}
+            "webhook_context": {"application_id": self.install.sentry_app.application_id}
         }
 
     def test_deletes_grant_on_successful_exchange(self):

@@ -58,6 +58,7 @@ class Refresher:
         Validator(install=self.install, client_id=self.client_id, user=self.user).run()
 
         if self.token.application != self.application:
+            assert self.token.application is not None, "Application must exist on ApiToken"
             raise SentryAppIntegratorError(
                 message="Token does not belong to the application",
                 extras={
