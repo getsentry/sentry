@@ -18,11 +18,10 @@ const formatMetricValue = (metric: MetricValue, field?: string | undefined): str
     return '-';
   }
   if (
-    typeof metric.value === 'number' &&
     (field === 'division(mobile.slow_frames,mobile.total_frames)' ||
       field === 'division(mobile.frozen_frames,mobile.total_frames)')
   ) {
-    if (isFinite(metric.value)) {
+    if (typeof metric.value === 'number' && isFinite(metric.value)) {
       return formatPercentage(metric.value, 2, {minimumValue: 0.0001});
     }
     return '-';
