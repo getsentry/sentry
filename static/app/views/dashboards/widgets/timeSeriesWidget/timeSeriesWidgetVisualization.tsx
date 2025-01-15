@@ -100,7 +100,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   // TODO: Raise error if attempting to plot series of different types or units
   const firstSeriesField = firstSeries?.field;
-  const type = firstSeries?.meta?.fields?.[firstSeriesField] ?? 'number';
+  const type = firstSeries?.meta?.fields?.[firstSeriesField] ?? FALLBACK_TYPE;
   const unit = firstSeries?.meta?.units?.[firstSeriesField] ?? undefined;
 
   const formatTooltip: TooltipFormatterCallback<TopLevelFormatterParams> = (
@@ -140,8 +140,18 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     return getFormatter({
       isGroupedByDate: true,
       showTimeInTooltip: true,
-      valueFormatter: value => {
-        return formatTooltipValue(value, type, unit);
+      valueFormatter: (value, field) => {
+        if (!field) {
+          return formatTooltipValue(value, FALLBACK_TYPE);
+        }
+
+        const timeserie = props.timeseries.find(t => t.field === field);
+
+        return formatTooltipValue(
+          value,
+          timeserie?.meta?.fields?.[field] ?? FALLBACK_TYPE,
+          timeserie?.meta?.units?.[field] ?? undefined
+        );
       },
       nameFormatter: formatSeriesName,
       truncate: true,
@@ -242,3 +252,5 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     />
   );
 }
+
+const FALLBACK_TYPE = 'number';
