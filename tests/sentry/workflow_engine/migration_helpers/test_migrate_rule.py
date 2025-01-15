@@ -1,11 +1,18 @@
+from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.rules.age import AgeComparisonType
+from sentry.rules.conditions.first_seen_event import FirstSeenEventCondition
 from sentry.rules.conditions.reappeared_event import ReappearedEventCondition
 from sentry.rules.conditions.regression_event import RegressionEventCondition
 from sentry.rules.filters.age_comparison import AgeComparisonFilter
+from sentry.rules.filters.latest_release import LatestReleaseFilter
 from sentry.testutils.cases import APITestCase
+from sentry.types.actor import Actor
 from sentry.users.services.user.service import user_service
-from sentry.workflow_engine.migration_helpers.rule import migrate_issue_alert
+from sentry.workflow_engine.migration_helpers.rule import (
+    migrate_issue_alert,
+    update_migrated_issue_alert,
+)
 from sentry.workflow_engine.models import (
     AlertRuleDetector,
     AlertRuleWorkflow,
@@ -90,3 +97,84 @@ class RuleMigrationHelpersTest(APITestCase):
             condition_result=True,
         ).exists()
         assert DataConditionGroupAction.objects.filter(condition_group=if_dcg).count() == 0
+
+    def test_update_issue_alert(self):
+        # TODO: update after action registry is merged
+        pass
+
+    def test_update_issue_alert_no_actions(self):
+        migrate_issue_alert(self.issue_alert, self.rpc_user)
+        conditions = [
+            {
+                "id": FirstSeenEventCondition.id,
+            },
+            {
+                "id": LatestReleaseFilter.id,
+            },
+        ]
+        payload = {
+            "name": "hello world",
+            "owner": Actor.from_id(user_id=self.user.id),
+            "environment": self.environment.id,
+            "action_match": "none",
+            "filter_match": "all",
+            "actions": [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
+            "conditions": conditions,
+            "frequency": 60,
+        }
+        update_migrated_issue_alert(self.issue_alert, payload, self.rpc_user)
+
+        issue_alert_workflow = AlertRuleWorkflow.objects.get(rule=self.issue_alert)
+        workflow = Workflow.objects.get(id=issue_alert_workflow.workflow.id)
+        assert workflow.name == payload["name"]
+        assert self.issue_alert.project
+        assert workflow.organization_id == self.issue_alert.project.organization.id
+        assert workflow.config == {"frequency": 60}
+
+        assert workflow.when_condition_group
+        assert workflow.when_condition_group.logic_type == DataConditionGroup.Type.NONE
+
+        assert len(RegionScheduledDeletion.objects.filter(model_name="DataCondition")) == 3
+
+        conditions = DataCondition.objects.filter(condition_group=workflow.when_condition_group)
+        assert conditions.filter(
+            type=Condition.FIRST_SEEN_EVENT,
+            comparison=True,
+            condition_result=True,
+        ).exists()
+
+        if_dcg = WorkflowDataConditionGroup.objects.get(workflow=workflow).condition_group
+        assert if_dcg.logic_type == DataConditionGroup.Type.ALL
+        filters = DataCondition.objects.filter(condition_group=if_dcg)
+        assert filters.filter(
+            type=Condition.LATEST_RELEASE,
+            comparison=True,
+            condition_result=True,
+        ).exists()
+
+        assert DataConditionGroupAction.objects.filter(condition_group=if_dcg).count() == 0
+
+    def test_with_null_environment(self):
+        migrate_issue_alert(self.issue_alert, self.rpc_user)
+        conditions = [
+            {
+                "id": FirstSeenEventCondition.id,
+            },
+            {
+                "id": LatestReleaseFilter.id,
+            },
+        ]
+        payload = {
+            "name": "hello world",
+            "owner": Actor.from_id(user_id=self.user.id),
+            "environment": None,
+            "action_match": "none",
+            "filter_match": "all",
+            "actions": [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
+            "conditions": conditions,
+        }
+        update_migrated_issue_alert(self.issue_alert, payload, self.rpc_user)
+
+        issue_alert_workflow = AlertRuleWorkflow.objects.get(rule=self.issue_alert)
+        workflow = Workflow.objects.get(id=issue_alert_workflow.workflow.id)
+        assert workflow.environment is None
