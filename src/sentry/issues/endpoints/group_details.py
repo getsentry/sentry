@@ -271,7 +271,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 )
                 integration_issues = serialize(
                     external_issues,
-                    request,
+                    request.user,
                     serializer=ExternalIssueSerializer(),
                 )
                 data.update({"integrationIssues": integration_issues})
@@ -280,7 +280,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 platform_external_issues = PlatformExternalIssue.objects.filter(group_id=group.id)
                 sentry_app_issues = serialize(
                     list(platform_external_issues),
-                    request,
+                    request.user,
                     serializer=PlatformExternalIssueSerializer(),
                 )
                 data.update({"sentryAppIssues": sentry_app_issues})
