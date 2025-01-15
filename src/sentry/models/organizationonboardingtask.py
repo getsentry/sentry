@@ -151,27 +151,6 @@ class OrganizationOnboardingTask(AbstractOnboardingTask):
 
     # Tasks which should be completed for the onboarding to be considered
     # complete.
-    REQUIRED_ONBOARDING_TASKS = frozenset(
-        [
-            OnboardingTask.FIRST_PROJECT,
-            OnboardingTask.FIRST_EVENT,
-            OnboardingTask.INVITE_MEMBER,
-            OnboardingTask.SECOND_PLATFORM,
-            # TODO(Telemety Experience): This task is no longer shown
-            # in the new experience and shall be removed after GA
-            OnboardingTask.USER_CONTEXT,
-            OnboardingTask.RELEASE_TRACKING,
-            OnboardingTask.SOURCEMAPS,
-            OnboardingTask.ALERT_RULE,
-            OnboardingTask.FIRST_TRANSACTION,
-            # TODO(Telemety Experience): This task is no longer shown
-            # in the new experience and shall be removed after GA
-            OnboardingTask.METRIC_ALERT,
-            OnboardingTask.INTEGRATIONS,
-            OnboardingTask.SESSION_REPLAY,
-        ]
-    )
-
     NEW_REQUIRED_ONBOARDING_TASKS = frozenset(
         [
             OnboardingTask.FIRST_PROJECT,
@@ -191,25 +170,6 @@ class OrganizationOnboardingTask(AbstractOnboardingTask):
         [
             *NEW_REQUIRED_ONBOARDING_TASKS,
             OnboardingTask.SOURCEMAPS,
-        ]
-    )
-
-    SKIPPABLE_TASKS = frozenset(
-        [
-            OnboardingTask.INVITE_MEMBER,
-            OnboardingTask.SECOND_PLATFORM,
-            OnboardingTask.USER_CONTEXT,
-            OnboardingTask.RELEASE_TRACKING,
-            OnboardingTask.SOURCEMAPS,
-            # TODO(Telemetry Experience): This task is not shown in the quick start
-            # but it is still used in the frontend, check if we can remove it from code
-            OnboardingTask.USER_REPORTS,
-            OnboardingTask.ISSUE_TRACKER,
-            OnboardingTask.ALERT_RULE,
-            OnboardingTask.FIRST_TRANSACTION,
-            OnboardingTask.METRIC_ALERT,
-            OnboardingTask.INTEGRATIONS,
-            OnboardingTask.SESSION_REPLAY,
         ]
     )
 
