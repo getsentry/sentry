@@ -93,6 +93,22 @@ client.addHooks(new Sentry.OpenFeatureIntegrationHook());
 // Evaluating flags will record the result on the Sentry client.
 const result = client.getBooleanValue('my-flag', false);`,
   },
+  [IntegrationOptions.UNLEASH]: {
+    importStatement: `import { UnleashClient } from 'unleash-proxy-client';`,
+    integration: 'unleashIntegration(UnleashClient)',
+    sdkInit: `const unleash = new UnleashClient({
+  url: "https://<your-unleash-instance>/api/frontend",
+  clientKey: "<your-client-side-token>",
+  appName: "my-webapp",
+});
+
+unleash.start();
+
+// Evaluate a flag with a default value. You may have to wait for your client to synchronize first.
+unleash.isEnabled("test-flag");
+
+Sentry.captureException(new Error("Something went wrong!"));`,
+  },
   [IntegrationOptions.GENERIC]: {
     importStatement: ``,
     integration: 'featureFlagsIntegration()',
