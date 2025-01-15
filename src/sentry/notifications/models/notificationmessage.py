@@ -70,19 +70,37 @@ class NotificationMessage(Model):
         db_table = "sentry_notificationmessage"
         # A notification message should exist for either issue or metric alert, but never both
         constraints = [
+            # A notification message should only exist for one of the following conditions:
+            # 1. Metric Alert
+            # 2. Issue Alert (with or without an open period)
+            # 3. Action/Group (with or without an open period)
             CheckConstraint(
                 condition=(
+                    # Metric Alert condition
                     (
                         Q(incident__isnull=False, trigger_action__isnull=False)
                         & Q(rule_fire_history__isnull=True, rule_action_uuid__isnull=True)
+                        & Q(action__isnull=True, group__isnull=True)
+                        & Q(open_period_start__isnull=True)
                     )
+                    # Issue Alert condition
                     | (
                         Q(incident__isnull=True, trigger_action__isnull=True)
                         & Q(rule_fire_history__isnull=False, rule_action_uuid__isnull=False)
+                        & Q(action__isnull=True, group__isnull=True)
+                        # open_period_start can exist with issue alerts
+                    )
+                    # Action/Group condition
+                    | (
+                        Q(incident__isnull=True, trigger_action__isnull=True)
+                        & Q(rule_fire_history__isnull=True, rule_action_uuid__isnull=True)
+                        & Q(action__isnull=False, group__isnull=False)
+                        # open_period_start can exist with action/group
                     )
                 ),
-                name="notification_for_issue_xor_metric_alert",
+                name="notification_type_mutual_exclusivity",
             ),
+            # 1 parent message per incident and trigger action
             UniqueConstraint(
                 fields=("incident", "trigger_action"),
                 condition=Q(
@@ -93,6 +111,7 @@ class NotificationMessage(Model):
                 ),
                 name="singular_parent_message_per_incident_and_trigger_action",
             ),
+            # 1 parent message per rule fire history and rule action (without open period)
             UniqueConstraint(
                 fields=("rule_fire_history", "rule_action_uuid"),
                 condition=Q(
@@ -100,9 +119,45 @@ class NotificationMessage(Model):
                     parent_notification_message__isnull=True,
                     rule_fire_history__isnull=False,
                     rule_action_uuid__isnull=False,
+                    open_period_start__isnull=True,
                 ),
-                name="singular_parent_message_per_rule_fire_history_and_rule_action",
+                name="singular_parent_message_per_rule_fire_history_rule_action_without_open_period_start",
+            ),
+            # 1 parent message per rule fire history and rule action (with open period)
+            UniqueConstraint(
+                fields=("rule_fire_history", "rule_action_uuid", "open_period_start"),
+                condition=Q(
+                    error_code__isnull=True,
+                    parent_notification_message__isnull=True,
+                    rule_fire_history__isnull=False,
+                    rule_action_uuid__isnull=False,
+                    open_period_start__isnull=False,
+                ),
+                name="singular_parent_message_per_rule_fire_history_rule_action_with_open_period_start",
+            ),
+            # 1 parent message per action and group (without open period)
+            UniqueConstraint(
+                fields=("action", "group"),
+                condition=Q(
+                    error_code__isnull=True,
+                    parent_notification_message__isnull=True,
+                    action__isnull=False,
+                    group__isnull=False,
+                    open_period_start__isnull=True,
+                ),
+                name="singular_parent_message_per_action_group_without_open_period_start",
+            ),
+            # 1 parent message per action and group (with open period)
+            UniqueConstraint(
+                fields=("action", "group", "open_period_start"),
+                condition=Q(
+                    error_code__isnull=True,
+                    parent_notification_message__isnull=True,
+                    action__isnull=False,
+                    group__isnull=False,
+                ),
+                name="singular_parent_message_per_action_group_with_open_period_start",
             ),
         ]
 
-    __repr__ = sane_repr("release_id", "commit_id", "order")
+    __repr__ = sane_repr("id", "message_identifier", "error_code")
