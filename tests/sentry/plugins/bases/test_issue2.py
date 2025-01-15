@@ -69,7 +69,9 @@ class GetAuthForUserTest(TestCase):
         auth = self.create_usersocialauth(user=user, provider="test")
         p = IssueTrackingPlugin2()
         p.auth_provider = "test"
-        self.assertEqual(p.get_auth_for_user(user).id, auth.id)
+        got_auth = p.get_auth_for_user(user)
+        assert got_auth is not None
+        assert got_auth.id == auth.id
 
 
 class IssuePlugin2GroupActionTest(TestCase):
