@@ -20,12 +20,13 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.db.models.manager.base import BaseManager
 
 
+# NOTE: There are gaps in the numberation because a
+# few tasks were removed as they are no longer used in the quick start sidebar
 class OnboardingTask:
     FIRST_PROJECT = 1
     FIRST_EVENT = 2
     INVITE_MEMBER = 3
     SECOND_PLATFORM = 4
-    USER_CONTEXT = 5
     RELEASE_TRACKING = 6
     SOURCEMAPS = 7
     USER_REPORTS = 8
