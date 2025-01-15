@@ -175,8 +175,8 @@ export function TeamUnresolvedIssues({
                       <ProjectBadge avatarSize={18} project={project} />
                     </ProjectBadgeContainer>
 
-                    <ScoreWrapper>{totals?.periodAvg}</ScoreWrapper>
-                    <ScoreWrapper>{totals?.today}</ScoreWrapper>
+                    <ScoreWrapper>{totals.periodAvg}</ScoreWrapper>
+                    <ScoreWrapper>{totals.today}</ScoreWrapper>
                     <ScoreWrapper>
                       <SubText
                         color={
