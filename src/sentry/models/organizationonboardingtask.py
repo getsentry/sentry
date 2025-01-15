@@ -20,6 +20,8 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.db.models.manager.base import BaseManager
 
 
+# NOTE: There are gaps in the numberation because a
+# few tasks were removed as they are no longer used in the quick start sidebar
 class OnboardingTask:
     FIRST_PROJECT = 1
     FIRST_EVENT = 2
@@ -28,7 +30,6 @@ class OnboardingTask:
     USER_CONTEXT = 5
     RELEASE_TRACKING = 6
     SOURCEMAPS = 7
-    USER_REPORTS = 8
     ISSUE_TRACKER = 9
     ALERT_RULE = 10
     FIRST_TRANSACTION = 11
@@ -128,7 +129,6 @@ class OrganizationOnboardingTask(AbstractOnboardingTask):
         (OnboardingTask.USER_CONTEXT, "setup_user_context"),
         (OnboardingTask.RELEASE_TRACKING, "setup_release_tracking"),
         (OnboardingTask.SOURCEMAPS, "setup_sourcemaps"),
-        (OnboardingTask.USER_REPORTS, "setup_user_reports"),
         # TODO(Telemety Experience): This task is no longer shown
         # in the new experience and shall remove it from code
         (OnboardingTask.ISSUE_TRACKER, "setup_issue_tracker"),
