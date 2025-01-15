@@ -937,7 +937,7 @@ describe('WidgetBuilder', function () {
   });
 
   describe('spans dataset timeseries', function () {
-    it('returns only the selected aggregates and group by as options', async function () {
+    it('returns group by and aggregate as primary options', async function () {
       const widget: Widget = {
         id: '1',
         title: 'Test Widget',
@@ -967,16 +967,16 @@ describe('WidgetBuilder', function () {
       });
 
       await screen.findByText('Sort by a y-axis');
-      await selectEvent.openMenu(await screen.findByText('count(span.duration)'));
+      await selectEvent.openMenu(screen.getAllByText('count(\u2026)')[1]!);
 
-      // 3 options in the dropdown
-      expect(screen.queryAllByTestId('menu-list-item-label')).toHaveLength(3);
+      // 12 options in the dropdown
+      expect(screen.queryAllByTestId('menu-list-item-label')).toHaveLength(12);
 
-      // Appears once in the dropdown and once in the sort by field
-      expect(await screen.findAllByText('count(span.duration)')).toHaveLength(2);
+      // Appears once in the y-axis section, dropdown, and in the sort by field
+      expect(await screen.findAllByText('count(\u2026)')).toHaveLength(3);
 
-      // Appears once in the dropdown
-      expect(await screen.findAllByText('avg(span.duration)')).toHaveLength(1);
+      // Appears once in the y-axis section and in the dropdown
+      expect(await screen.findAllByText('avg(\u2026)')).toHaveLength(2);
 
       // Appears once in the dropdown and once in the group by field
       expect(await screen.findAllByText('transaction')).toHaveLength(2);
