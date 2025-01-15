@@ -1,3 +1,35 @@
+25.1.0
+------
+
+### Various fixes & improvements
+
+- fix(issues): inherit ShortIdLookupEndpoint from GroupEndpoint (#83502) by @oioki
+- feat(widget-builder): Create blank widget preview for templates (#83509) by @nikkikapadia
+- fix(eslint): Cleanup some TS cruft in the eslint.config.mjs file (#83468) by @ryan953
+- feat(eap): Add has filters to eap search query builder (#83437) by @Zylphrex
+- feat(explore): Add is_transaction to explore fields (#83423) by @Zylphrex
+- styles(explore): Fix spacing between explore toolbar visualize (#83449) by @Zylphrex
+- feat(streamline): Add an option to remove opt-out for new users (#83205) by @leeandher
+- ref(issue-details): Remove all query params from legacy UI when no event is found. (#83441) by @leeandher
+- Revert "ref(quick-start): Update backend enums names (#83361)" (0729289d) by @getsentry-bot
+- feat(symx): Add os as a tag (#83504) by @loewenheim
+- ref(quick-start): Update backend enums names (#83361) by @priscilawebdev
+- ref: fix type for serializers.models.rule (#83444) by @asottile-sentry
+- ref: fix typing for plugins.bases.issue{,2} (#83445) by @asottile-sentry
+- ref: standardize user param as User | RpcUser | AnonymousUser in Serializers (#83436) by @asottile-sentry
+- Reapply "ref: upgrade to python 3.13" (#83448) by @asottile-sentry
+- feat(widget-builder): Add widget dropdown for templates (#83426) by @nikkikapadia
+- ref(quick-start): Update comments in onboarding tasks model (#83496) by @priscilawebdev
+- ref(quick-start): Remove unused functions (#83499) by @priscilawebdev
+- ref(quick-start): Remove 'INTEGRATIONS' from onboarding task (#83488) by @priscilawebdev
+- ref(quick-start): Remove 'USER_CONTEXT' from onboarding tasks (#83489) by @priscilawebdev
+- ref(quick-start): Remove 'METRIC_ALERT' from onboarding task (#83487) by @priscilawebdev
+- ref(quick-start): Add 'default=True' to the flag manager (#83483) by @priscilawebdev
+- ref(quick-start): Remove 'USER_REPORTS' from onboarding task (#83490) by @priscilawebdev
+- fix(symx): Remove log message (#83491) by @tobias-wilfert
+
+_Plus 26 more_
+
 24.12.2
 -------
 

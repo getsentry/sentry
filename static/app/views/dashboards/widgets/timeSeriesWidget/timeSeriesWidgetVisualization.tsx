@@ -1,7 +1,7 @@
 import {useRef} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
-import type {LineSeriesOption} from 'echarts';
+import type {BarSeriesOption, LineSeriesOption} from 'echarts';
 import type {
   TooltipFormatterCallback,
   TopLevelFormatterParams,
@@ -20,7 +20,12 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 import {useWidgetSyncContext} from '../../contexts/widgetSyncContext';
-import type {Aliases, Release, TimeseriesData} from '../common/types';
+import type {
+  Aliases,
+  Release,
+  TimeseriesData,
+  TimeseriesSelection,
+} from '../common/types';
 
 import {formatTooltipValue} from './formatTooltipValue';
 import {formatYAxisValue} from './formatYAxisValue';
@@ -28,11 +33,16 @@ import {ReleaseSeries} from './releaseSeries';
 import {splitSeriesIntoCompleteAndIncomplete} from './splitSeriesIntoCompleteAndIncomplete';
 
 export interface TimeSeriesWidgetVisualizationProps {
-  SeriesConstructor: (timeserie: TimeseriesData, complete?: boolean) => LineSeriesOption;
+  SeriesConstructor: (
+    timeserie: TimeseriesData,
+    complete?: boolean
+  ) => LineSeriesOption | BarSeriesOption;
   timeseries: TimeseriesData[];
   aliases?: Aliases;
   dataCompletenessDelay?: number;
+  onTimeseriesSelectionChange?: (TimeseriesSelection) => void;
   releases?: Release[];
+  timeseriesSelection?: TimeseriesSelection;
 }
 
 export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizationProps) {
@@ -98,10 +108,28 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   // show an error.
   const firstSeries = props.timeseries[0]!;
 
-  // TODO: Raise error if attempting to plot series of different types or units
+  let yAxisType: string;
+
+  const types = Array.from(
+    new Set(
+      props.timeseries
+        .map(timeserie => {
+          return timeserie?.meta?.fields[timeserie.field];
+        })
+        .filter(Boolean)
+    )
+  ) as string[];
+
+  if (types.length === 0 || types.length > 1) {
+    yAxisType = FALLBACK_TYPE;
+  } else {
+    yAxisType = types[0]!;
+  }
+
   const firstSeriesField = firstSeries?.field;
-  const type = firstSeries?.meta?.fields?.[firstSeriesField] ?? 'number';
-  const unit = firstSeries?.meta?.units?.[firstSeriesField] ?? undefined;
+
+  // TODO: It would be smart, here, to check the units and convert if necessary
+  const yAxisUnit = firstSeries?.meta?.units?.[firstSeriesField] ?? undefined;
 
   const formatTooltip: TooltipFormatterCallback<TopLevelFormatterParams> = (
     params,
@@ -140,8 +168,18 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     return getFormatter({
       isGroupedByDate: true,
       showTimeInTooltip: true,
-      valueFormatter: value => {
-        return formatTooltipValue(value, type, unit);
+      valueFormatter: (value, field) => {
+        if (!field) {
+          return formatTooltipValue(value, FALLBACK_TYPE);
+        }
+
+        const timeserie = props.timeseries.find(t => t.field === field);
+
+        return formatTooltipValue(
+          value,
+          timeserie?.meta?.fields?.[field] ?? FALLBACK_TYPE,
+          timeserie?.meta?.units?.[field] ?? undefined
+        );
       },
       nameFormatter: formatSeriesName,
       truncate: true,
@@ -193,11 +231,15 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
               top: 0,
               left: 0,
               formatter(name: string) {
-                return formatSeriesName(name);
+                return props.aliases?.[name] ?? formatSeriesName(name);
               },
+              selected: props.timeseriesSelection,
             }
           : undefined
       }
+      onLegendSelectChanged={event => {
+        props?.onTimeseriesSelectionChange?.(event.selected);
+      }}
       tooltip={{
         trigger: 'axis',
         axisPointer: {
@@ -217,7 +259,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         animation: false,
         axisLabel: {
           formatter(value: number) {
-            return formatYAxisValue(value, type, unit);
+            return formatYAxisValue(value, yAxisType, yAxisUnit);
           },
         },
         axisPointer: {
@@ -242,3 +284,5 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     />
   );
 }
+
+const FALLBACK_TYPE = 'number';

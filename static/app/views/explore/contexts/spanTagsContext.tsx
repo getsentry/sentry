@@ -101,6 +101,7 @@ export function SpanTagsProvider({children, dataset, enabled}: SpanTagsProviderP
       SpanIndexedField.USER_ID,
       SpanIndexedField.USER_IP,
       SpanIndexedField.USER_USERNAME,
+      SpanIndexedField.IS_TRANSACTION, // boolean field but we can expose it as a string
     ].map(tag => [
       tag,
       {
