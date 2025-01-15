@@ -102,8 +102,8 @@ export function ScreensOverview() {
   const spanMetricsFields = [
     SpanMetricsField.PROJECT_ID,
     SpanMetricsField.TRANSACTION,
-    `avg(mobile.slow_frames)`,
-    `avg(mobile.frozen_frames)`,
+    `division(mobile.slow_frames,mobile.total_frames)`,
+    `division(mobile.frozen_frames,mobile.total_frames)`,
     `avg(mobile.frames_delay)`,
   ];
 
