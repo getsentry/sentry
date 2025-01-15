@@ -24,16 +24,20 @@ type FlagImports = {
 
 const FLAG_OPTION_TO_IMPORT: Record<IntegrationOptions, FlagImports> = {
   [IntegrationOptions.LAUNCHDARKLY]: {
-    module: 'launchdarkly',
+    module: 'integrations.launchdarkly',
     integration: 'LaunchDarklyIntegration',
   },
   [IntegrationOptions.OPENFEATURE]: {
-    module: 'openfeature',
+    module: 'integrations.openfeature',
     integration: 'OpenFeatureIntegration',
+  },
+  [IntegrationOptions.UNLEASH]: {
+    module: 'integrations.unleash',
+    integration: 'UnleashIntegration',
   },
   [IntegrationOptions.GENERIC]: {
     module: 'feature_flags',
-    integration: 'FeatureFlagsIntegration',
+    integration: '',
   },
 };
 
@@ -184,7 +188,7 @@ export const performanceOnboarding: OnboardingConfig = {
           ),
           language: 'python',
           code: `
-import sentry-sdk
+import sentry_sdk
 
 sentry_sdk.init(
   dsn="${params.dsn.public}",
@@ -252,17 +256,30 @@ export const featureFlagOnboarding: OnboardingConfig = {
   configure: ({featureFlagOptions = {integration: ''}, dsn}) => [
     {
       type: StepType.CONFIGURE,
-      description: tct('Add [name] to your integrations list.', {
-        name: (
-          <code>{`${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration].integration}()`}</code>
-        ),
-      }),
+      description:
+        featureFlagOptions.integration === IntegrationOptions.GENERIC
+          ? `This provider doesn't use an integration. Simply initialize Sentry and import the API.`
+          : tct('Add [name] to your integrations list.', {
+              name: (
+                <code>{`${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration].integration}()`}</code>
+              ),
+            }),
       configurations: [
         {
           language: 'python',
-          code: `
-import sentry-sdk
-from sentry_sdk.integrations.${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration].module} import ${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration].integration}
+          code:
+            featureFlagOptions.integration === IntegrationOptions.GENERIC
+              ? `import sentry_sdk
+from sentry_sdk.${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration].module} import add_feature_flag
+
+sentry_sdk.init(
+  dsn="${dsn.public}",
+  integrations=[
+    # your other integrations here
+  ]
+)`
+              : `import sentry_sdk
+from sentry_sdk.${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration].module} import ${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration].integration}
 
 sentry_sdk.init(
   dsn="${dsn.public}",
