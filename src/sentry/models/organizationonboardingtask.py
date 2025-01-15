@@ -100,7 +100,6 @@ class AbstractOnboardingTask(Model):
 
     # abstract
     TASK_LOOKUP_BY_KEY: dict[str, int]
-    SKIPPABLE_TASKS: frozenset[int]
     NEW_SKIPPABLE_TASKS: frozenset[int]
 
     class Meta:
