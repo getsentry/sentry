@@ -1,3 +1,35 @@
+24.12.2
+-------
+
+### Various fixes & improvements
+
+- feat(devservices): Add option to setup sentry with new devservices to existing action (#83415) by @hubertdeng123
+- ref(react19): Remove various styled defaultProps (#83409) by @scttcper
+- feat(new-trace-issues): Updating designs for trace preview in issue details (#83430) by @Abdkhan14
+- feat(metric-issues): Add "correlated issues" section  (#83353) by @snigdhas
+- fix(ui): Clamp timeline zoom to the minute (#83435) by @evanpurkhiser
+- fix(eslint): Enable no-constant-binary-expression and fix violations (#83273) by @ryan953
+- feat(eap): Support eap autocompleting booleans (#83433) by @Zylphrex
+- fix(migrations): Actually fix BoundedPositiveBigIntegerField (#83431) by @wedamija
+- ref: delete dead serializer code (#83429) by @asottile-sentry
+- feat(ui): List available param keys in useParams (#83428) by @scttcper
+- ref: fix types for mentions serializer (#83424) by @asottile-sentry
+- :recycle: feat(workflow_engine): issue alert action migration util for slack (#83123) by @iamrajjoshi
+- feat(metric-issues): Hide log level indicator for non-error issues (#83354) by @snigdhas
+- ref: use types-requests-oauthlib (#83418) by @asottile-sentry
+- ref: use types-unidiff (#83416) by @asottile-sentry
+- ref(profiling) drop drag and drop functionality (#83420) by @JonasBa
+- ref: upgrade django-stubs (#83413) by @asottile-sentry
+- chore(alerts): Remove lingering activated alerts code (#83342) by @ceorourke
+- chore(analytics): Add experimental analytics for new streamlined orgs  (#83390) by @leeandher
+- feat(dashboards): Improve duration Y axis label formatting (#83337) by @gggritso
+- ref(profiling): Merge profile provider for both modes (#83338) by @Zylphrex
+- fix(migrations): Set the correct internal type for BoundedPositiveBigIntegerField (#83412) by @wedamija
+- fix: check user in helper (#83407) by @oioki
+- fix(widget-builder): Aggregates with no column not wiped (#83410) by @narsaynorath
+
+_Plus 775 more_
+
 24.12.1
 -------
 

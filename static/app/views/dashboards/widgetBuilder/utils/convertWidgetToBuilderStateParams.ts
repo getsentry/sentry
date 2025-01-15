@@ -7,6 +7,7 @@ import {
 } from 'sentry/views/dashboards/types';
 import {
   serializeFields,
+  serializeThresholds,
   type WidgetBuilderStateQueryParams,
 } from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 
@@ -59,5 +60,6 @@ export function convertWidgetToBuilderStateParams(
     sort,
     legendAlias,
     selectedAggregate: firstWidgetQuery?.selectedAggregate,
+    thresholds: widget.thresholds ? serializeThresholds(widget.thresholds) : undefined,
   };
 }
