@@ -33,7 +33,7 @@ cssselect==1.0.3
 cssutils==2.9.0
 datadog==0.49.1
 distro==1.8.0
-django==5.1.4
+django==5.1.5
 django-crispy-forms==1.14.0
 django-csp==3.8
 django-pg-zero-downtime-migrations==0.16
