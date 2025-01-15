@@ -31,15 +31,15 @@ class OwnerResponseField(TypedDict):
 
 
 class SentryAppSerializerOptionalFields(TypedDict, total=False):
-    author: str | None
-    overview: str | None
-    popularity: int | None
-    redirectUrl: str | None
-    webhookUrl: str | None
-    datePublished: datetime | None
-    clientSecret: str | None
-    clientId: str | None
-    owner: OwnerResponseField | None
+    author: str
+    overview: str
+    popularity: int
+    redirectUrl: str
+    webhookUrl: str
+    datePublished: datetime
+    clientSecret: str
+    clientId: str
+    owner: OwnerResponseField
 
 
 class SentryAppSerializerResponse(SentryAppSerializerOptionalFields):
@@ -101,7 +101,7 @@ class SentryAppSerializer(Serializer):
         attrs: Mapping[str, Any],
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
-    ):
+    ) -> SentryAppSerializerResponse:
         from sentry.sentry_apps.logic import consolidate_events
 
         application = attrs["application"]

@@ -72,7 +72,7 @@ class URLField(serializers.URLField):
         return url
 
 
-@extend_schema_serializer(exclude_fields=["popularity"])
+@extend_schema_serializer(exclude_fields=["popularity", "features"])
 class SentryAppParser(Serializer):
     name = serializers.CharField(help_text="The name of the custom integration.")
     author = serializers.CharField(
@@ -94,14 +94,18 @@ class SentryAppParser(Serializer):
         allow_blank=True,
         allow_null=True,
         required=False,
-        help_text="The features available via the custom integration",
+        help_text="The list of features that the custom integration supports.",
     )
-    schema = SchemaField(required=False, allow_null=True, help_text="??")
+    schema = SchemaField(
+        required=False,
+        allow_null=True,
+        help_text="The UI components schema, used to render the custom integration's configuration UI elements. See https://docs.sentry.io/organization/integrations/integration-platform/ui-components/ for more information.",
+    )
     webhookUrl = URLField(
         required=False,
         allow_null=True,
         allow_blank=True,
-        help_text="The URL where webhook events will be sent.",
+        help_text="The webhook destination URL where events will be sent.",
     )
     redirectUrl = URLField(
         required=False,
@@ -128,7 +132,9 @@ class SentryAppParser(Serializer):
         help_text="Whether or not an installation of the custom integration should be verified.",
     )
     allowedOrigins = serializers.ListField(
-        child=serializers.CharField(max_length=255), required=False, help_text="FILL THIS IN"
+        child=serializers.CharField(max_length=255),
+        required=False,
+        help_text="The list of allowed origins for CORS.",
     )
     # Bounds chosen to match PositiveSmallIntegerField (https://docs.djangoproject.com/en/3.2/ref/models/fields/#positivesmallintegerfield)
     popularity = serializers.IntegerField(
