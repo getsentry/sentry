@@ -103,7 +103,7 @@ class AbstractOnboardingTask(Model):
 
     # abstract
     TASK_LOOKUP_BY_KEY: dict[str, int]
-    SKIPPABLE_TASKS: frozenset[int]
+    NEW_SKIPPABLE_TASKS: frozenset[int]
 
     class Meta:
         abstract = True
@@ -141,7 +141,7 @@ class OrganizationOnboardingTask(AbstractOnboardingTask):
 
     # Tasks which should be completed for the onboarding to be considered
     # complete.
-    REQUIRED_ONBOARDING_TASKS = frozenset(
+    NEW_REQUIRED_ONBOARDING_TASKS = frozenset(
         [
             OnboardingTask.FIRST_PROJECT,
             OnboardingTask.FIRST_EVENT,
@@ -156,14 +156,14 @@ class OrganizationOnboardingTask(AbstractOnboardingTask):
         ]
     )
 
-    REQUIRED_ONBOARDING_TASKS_WITH_SOURCE_MAPS = frozenset(
+    NEW_REQUIRED_ONBOARDING_TASKS_WITH_SOURCE_MAPS = frozenset(
         [
-            *REQUIRED_ONBOARDING_TASKS,
+            *NEW_REQUIRED_ONBOARDING_TASKS,
             OnboardingTask.SOURCEMAPS,
         ]
     )
 
-    SKIPPABLE_TASKS = frozenset(
+    NEW_SKIPPABLE_TASKS = frozenset(
         [
             OnboardingTask.INVITE_MEMBER,
             OnboardingTask.SECOND_PLATFORM,

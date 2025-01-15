@@ -17,7 +17,7 @@ class SkipOnboardingTaskTest(APITestCase):
         """
         Test if the tasks marked as skippable in the new quick start are skipped
         """
-        skippable_tasks = OrganizationOnboardingTask.SKIPPABLE_TASKS
+        skippable_tasks = OrganizationOnboardingTask.NEW_SKIPPABLE_TASKS
 
         def get_skipped_tasks():
             return set(

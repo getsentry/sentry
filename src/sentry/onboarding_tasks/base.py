@@ -31,7 +31,7 @@ class OnboardingTaskBackend(Service, Generic[T]):
         return self.Model.STATUS_LOOKUP_BY_KEY.get(key)
 
     def get_skippable_tasks(self, organization: Organization, user: User | RpcUser | AnonymousUser):
-        return self.Model.SKIPPABLE_TASKS
+        return self.Model.NEW_SKIPPABLE_TASKS
 
     def fetch_onboarding_tasks(self, organization, user):
         raise NotImplementedError
