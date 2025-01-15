@@ -1,4 +1,3 @@
-import {useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
@@ -38,8 +37,6 @@ export function IssueViewQueryCount({view}: IssueViewQueryCountProps) {
   const pageFilters = usePageFilters();
   const theme = useTheme();
 
-  const [count, setCount] = useState<number>(0);
-
   // TODO(msun): Once page filters are saved to views, remember to use the view's specific
   // page filters here instead of the global pageFilters, if they exist.
   const {
@@ -55,17 +52,9 @@ export function IssueViewQueryCount({view}: IssueViewQueryCountProps) {
     ...constructCountTimeFrame(pageFilters.selection.datetime),
   });
 
-  useEffect(() => {
-    // Only update the count once the query has finished fetching
-    // This preserves the previous count while the query is fetching a new one
-    if (queryCount && !isFetching) {
-      setCount(
-        queryCount?.[view.unsavedChanges ? view.unsavedChanges[0] : view.query] ?? 0
-      );
-    } else if (isError) {
-      setCount(0);
-    }
-  }, [queryCount, isFetching, isError, view.query, view.unsavedChanges]);
+  const count = isError
+    ? 0
+    : queryCount?.[view.unsavedChanges ? view.unsavedChanges[0] : view.query] ?? 0;
 
   return (
     <QueryCountBubble

@@ -87,11 +87,7 @@ def process_error(error: ApiError, extra: dict[str, str]) -> None:
     default_retry_delay=60 * 10,
     max_retries=3,
 )
-def derive_code_mappings(
-    project_id: int,
-    event_id: str,
-    data: NodeData | None = None,  # We will deprecate this
-) -> None:
+def derive_code_mappings(project_id: int, event_id: str) -> None:
     """
     Derive code mappings for a project given data from a recent event.
 
@@ -110,9 +106,6 @@ def derive_code_mappings(
         logger.error("Event not found.", extra={"project_id": project_id, "event_id": event_id})
         return
 
-    if event.data is None:
-        logger.error("Data is None.", extra=extra)
-        return
     stacktrace_paths: list[str] = identify_stacktrace_paths(event.data)
     if not stacktrace_paths:
         logger.info("No stacktrace paths found.", extra=extra)
