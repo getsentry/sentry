@@ -79,7 +79,7 @@ def process_error(error: ApiError, extra: dict[str, str]) -> None:
     )
 
 
-# XXX: To be deleted after new queue is live
+# XXX: To be deleted after queue is empty
 @instrumented_task(
     name="sentry.tasks.derive_code_mappings.derive_code_mappings",
     queue="derive_code_mappings",
@@ -91,24 +91,24 @@ def derive_code_mappings(
     data: NodeData | None = None,  # We will deprecate this
     event_id: str | None = None,
 ) -> None:
-    derive_code_mappings_new(project_id, data)
+    auto_source_code_config(project_id, data)
 
 
-# XXX: Temporary, use the new queue when live
 @instrumented_task(
-    name="sentry.tasks.derive_code_mappings.derive_code_mappings_new",
-    queue="derive_code_mappings",
+    name="sentry.tasks.auto_source_code_config",
+    queue="auto_source_code_config",
     default_retry_delay=60 * 10,
     max_retries=3,
 )
-def derive_code_mappings_new(
+def auto_source_code_config(
     project_id: int,
     data: NodeData,
 ) -> None:
     """
-    Derive code mappings for a project given data from a recent event.
+    Process errors for customers with source code management installed and calculate code mappings
+    among other things.
 
-    This task is queued at most once per hour per project, based on the ingested events.
+    This task is queued at most once per hour per project.
     """
     project = Project.objects.get(id=project_id)
     org: Organization = Organization.objects.get(id=project.organization_id)
