@@ -33,7 +33,7 @@ class Migration(CheckedMigration):
         migrations.AddField(
             model_name="groupsearchview",
             name="environments",
-            field=sentry.db.models.fields.array.ArrayField(null=True),
+            field=sentry.db.models.fields.array.ArrayField(db_default=[], null=True),
         ),
         migrations.AddField(
             model_name="groupsearchview",
