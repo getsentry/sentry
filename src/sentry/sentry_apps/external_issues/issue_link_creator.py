@@ -32,7 +32,7 @@ class IssueLinkCreator:
 
     def _verify_action(self) -> None:
         if self.action not in VALID_ACTIONS:
-            raise SentryAppSentryError(message=f"Invalid action: {self.action}")
+            raise SentryAppSentryError(message=f"Invalid action: {self.action}", status_code=401)
 
     def _make_external_request(self) -> dict[str, Any]:
         response = IssueLinkRequester(
