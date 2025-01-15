@@ -6,13 +6,12 @@ from urllib.parse import urlencode, urlparse, urlunparse
 from uuid import uuid4
 
 from django.utils.functional import cached_property
-from jsonschema import ValidationError
 
-from sentry.coreapi import APIError
 from sentry.http import safe_urlread
 from sentry.sentry_apps.external_requests.utils import send_and_save_sentry_app_request, validate
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation
 from sentry.sentry_apps.services.app.model import RpcSentryApp
+from sentry.sentry_apps.utils.errors import SentryAppIntegratorError
 from sentry.utils import json
 
 logger = logging.getLogger("sentry.sentry_apps.external_requests")
@@ -78,23 +77,27 @@ class SelectRequester:
                 message = "select-requester.request-failed"
 
             logger.info(message, extra=extra)
-            raise APIError(
-                f"Something went wrong while getting SelectFields from {self.sentry_app.slug}"
+            raise SentryAppIntegratorError(
+                message=f"Something went wrong while getting SelectFields from {self.sentry_app.slug}",
+                webhook_context={"error_type": message, **extra},
             ) from e
 
         if not self._validate_response(response):
-            logger.info(
-                "select-requester.invalid-response",
-                extra={
-                    "response": response,
-                    "sentry_app_slug": self.sentry_app.slug,
-                    "install_uuid": self.install.uuid,
-                    "project_slug": self.project_slug,
-                    "url": url,
+            extras = {
+                "response": response,
+                "sentry_app_slug": self.sentry_app.slug,
+                "install_uuid": self.install.uuid,
+                "project_slug": self.project_slug,
+                "url": url,
+            }
+            logger.info("select-requester.invalid-response", extra=extras)
+
+            raise SentryAppIntegratorError(
+                message=f"Invalid response format for SelectField in {self.sentry_app.slug} from uri: {self.uri}",
+                webhook_context={
+                    "error_type": "select-requester.invalid-integrator-response",
+                    **extras,
                 },
-            )
-            raise ValidationError(
-                f"Invalid response format for SelectField in {self.sentry_app.slug} from uri: {self.uri}"
             )
         return self._format_response(response)
 
@@ -130,14 +133,13 @@ class SelectRequester:
 
         for option in resp:
             if not ("value" in option and "label" in option):
-                logger.info(
-                    "select-requester.invalid-response",
-                    extra={
-                        "resposnse": resp,
-                        "error_msg": "Missing `value` or `label` in option data for SelectField",
+                raise SentryAppIntegratorError(
+                    message="Missing `value` or `label` in option data for SelectField",
+                    webhook_context={
+                        "error_type": "select-requester.missing-fields",
+                        "response": resp,
                     },
                 )
-                raise ValidationError("Missing `value` or `label` in option data for SelectField")
 
             choices.append([option["value"], option["label"]])
 
