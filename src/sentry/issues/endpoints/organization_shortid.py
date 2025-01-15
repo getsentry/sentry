@@ -13,7 +13,7 @@ from sentry.models.group import Group
 class ShortIdLookupEndpoint(GroupEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, group: Group) -> Response:
@@ -21,11 +21,9 @@ class ShortIdLookupEndpoint(GroupEndpoint):
         Resolve a Short ID
         ``````````````````
 
-        This resolves a short ID to the project slug and internal issue ID.
+        This resolves a short ID or internal issue ID to the project slug and group details.
 
-        :pparam string organization_id_or_slug: the id or slug of the organization the
-                                          short ID should be looked up in.
-        :pparam string short_id: the short ID to look up.
+        :pparam string issue_id: the short ID or issue ID to look up.
         :auth: required
         """
         return Response(
