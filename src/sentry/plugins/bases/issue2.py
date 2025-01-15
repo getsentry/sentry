@@ -5,6 +5,7 @@ from django.urls import re_path, reverse
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import analytics
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.serializers.models.plugin import PluginSerializer
@@ -15,7 +16,6 @@ from sentry.models.activity import Activity
 from sentry.models.groupmeta import GroupMeta
 from sentry.plugins.base.v1 import Plugin
 from sentry.plugins.endpoints import PluginGroupEndpoint
-from sentry.signals import issue_tracker_used
 from sentry.types.activity import ActivityType
 from sentry.users.services.usersocialauth.model import RpcUserSocialAuth
 from sentry.users.services.usersocialauth.service import usersocialauth_service
@@ -269,9 +269,15 @@ class IssueTrackingPlugin2(Plugin):
             data=issue_information,
         )
 
-        issue_tracker_used.send_robust(
-            plugin=self, project=group.project, user=request.user, sender=type(self)
+        analytics.record(
+            "issue_tracker.used",
+            user_id=request.user.id,
+            default_user_id=group.project.organization.get_default_owner().id,
+            organization_id=group.project.organization_id,
+            project_id=group.project.id,
+            issue_tracker=self.slug,
         )
+
         return Response(
             {
                 "issue_url": self.get_issue_url(group, issue["id"]),

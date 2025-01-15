@@ -29,7 +29,6 @@ class OnboardingTask:
     RELEASE_TRACKING = 6
     SOURCEMAPS = 7
     USER_REPORTS = 8
-    ISSUE_TRACKER = 9
     ALERT_RULE = 10
     FIRST_TRANSACTION = 11
     METRIC_ALERT = 12
@@ -49,7 +48,6 @@ class OnboardingTaskStatus:
 #
 #   FIRST_EVENT:      { 'platform':  'flask', }
 #   INVITE_MEMBER:    { 'invited_member': user.id, 'teams': [team.id] }
-#   ISSUE_TRACKER:    { 'plugin': 'plugin_name' }
 #   ISSUE_ASSIGNMENT: { 'assigned_member': user.id }
 #   SECOND_PLATFORM:  { 'platform': 'javascript' }
 #
@@ -60,7 +58,6 @@ class OnboardingTaskStatus:
 #   INVITE_MEMBER:   Until the member has successfully joined org
 #   SECOND_PLATFORM: User confirms that sdk has been installed
 #   USER_CONTEXT:    User has added user context to sdk
-#   ISSUE_TRACKER:   Tracker added, issue not yet created
 
 
 class OrganizationOnboardingTaskManager(BaseManager["OrganizationOnboardingTask"]):
@@ -129,9 +126,6 @@ class OrganizationOnboardingTask(AbstractOnboardingTask):
         (OnboardingTask.RELEASE_TRACKING, "setup_release_tracking"),
         (OnboardingTask.SOURCEMAPS, "setup_sourcemaps"),
         (OnboardingTask.USER_REPORTS, "setup_user_reports"),
-        # TODO(Telemety Experience): This task is no longer shown
-        # in the new experience and shall remove it from code
-        (OnboardingTask.ISSUE_TRACKER, "setup_issue_tracker"),
         (OnboardingTask.ALERT_RULE, "setup_alert_rules"),
         (OnboardingTask.FIRST_TRANSACTION, "setup_transactions"),
         (OnboardingTask.METRIC_ALERT, "setup_metric_alert_rules"),
