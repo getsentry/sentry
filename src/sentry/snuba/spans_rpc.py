@@ -55,7 +55,7 @@ def run_table_query(
         SearchResolver(params=params, config=config) if search_resolver is None else search_resolver
     )
     meta = resolver.resolve_meta(referrer=referrer)
-    query, query_contexts = resolver.resolve_query(query_string)
+    where, having, query_contexts = resolver.resolve_query(query_string)
     columns, column_contexts = resolver.resolve_columns(selected_columns)
     contexts = resolver.clean_contexts(query_contexts + column_contexts)
     # We allow orderby function_aliases if they're a selected_column
@@ -88,7 +88,8 @@ def run_table_query(
     """Run the query"""
     rpc_request = TraceItemTableRequest(
         meta=meta,
-        filter=query,
+        filter=where,
+        aggregation_filter=having,
         columns=labeled_columns,
         group_by=(
             [
@@ -166,7 +167,7 @@ def get_timeseries_query(
 ) -> TimeSeriesRequest:
     resolver = SearchResolver(params=params, config=config)
     meta = resolver.resolve_meta(referrer=referrer)
-    query, query_contexts = resolver.resolve_query(query_string)
+    query, _, query_contexts = resolver.resolve_query(query_string)
     (aggregations, _) = resolver.resolve_aggregates(y_axes)
     (groupbys, _) = resolver.resolve_columns(groupby)
     if extra_conditions is not None:
