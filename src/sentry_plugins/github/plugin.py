@@ -428,9 +428,6 @@ class GitHubAppsRepositoryProvider(GitHubRepositoryProvider):
     auth_provider = "github_apps"
     logger = logging.getLogger("sentry.plugins.github_apps")
 
-    def get_install_url(self):
-        return options.get("github.apps-install-url")
-
     def link_auth(self, user, organization, data):
         integration_id = data["integration_id"]
 
