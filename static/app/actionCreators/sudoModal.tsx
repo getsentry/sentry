@@ -7,6 +7,7 @@ interface OpenSudoModalOptions extends ModalOptions {
   needsReload?: boolean;
   onClose?: () => void;
   retryRequest?: () => Promise<any>;
+  sudo?: boolean;
 }
 
 export async function openSudo({
