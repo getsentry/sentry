@@ -158,7 +158,9 @@ class EventsTable extends Component<Props, State> {
 
         let newEnvs = currentEnvs;
         if (action === Actions.ADD) {
-          newEnvs.includes(String(value)) ? newEnvs : newEnvs.push(String(value));
+          if (!newEnvs.includes(String(value))) {
+            newEnvs.push(String(value));
+          }
         } else {
           newEnvs = newEnvs.filter(env => env !== value);
         }
