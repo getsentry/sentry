@@ -275,9 +275,10 @@ function WidgetViewerModal(props: Props) {
   const order = orderby.startsWith('-');
   const rawOrderby = trimStart(orderby, '-');
 
-  const fields = defined(tableWidget.queries[0]!.fields)
-    ? tableWidget.queries[0]!.fields
-    : [...columns, ...aggregates];
+  const fields =
+    widget.displayType === DisplayType.TABLE && defined(tableWidget.queries[0]!.fields)
+      ? tableWidget.queries[0]!.fields
+      : [...columns, ...aggregates];
 
   // Some Discover Widgets (Line, Area, Bar) allow the user to specify an orderby
   // that is not explicitly selected as an aggregate or column. We need to explicitly
