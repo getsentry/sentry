@@ -92,9 +92,6 @@ from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of
 from sentry.types.actor import Actor
-from tests.sentry.workflow_engine.migration_helpers.test_migrate_alert_rule import (
-    assert_alert_rule_migrated,
-)
 
 pytestmark = [pytest.mark.sentry_metrics]
 
@@ -623,11 +620,6 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             * 60
             * DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER
         )
-
-    @with_feature("organizations:workflow-engine-metric-alert-processing")
-    def test_create_alert_rule_aci(self):
-        alert_rule = self.create_alert_rule()
-        assert_alert_rule_migrated(alert_rule, self.project.id)
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")

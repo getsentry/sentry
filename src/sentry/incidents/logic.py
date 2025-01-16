@@ -536,8 +536,6 @@ def create_alert_rule(
 
     :return: The created `AlertRule`
     """
-    from sentry.workflow_engine.migration_helpers.alert_rule import migrate_alert_rule
-
     has_anomaly_detection = features.has(
         "organizations:anomaly-detection-alerts", organization
     ) and features.has("organizations:anomaly-detection-rollout", organization)
@@ -639,10 +637,6 @@ def create_alert_rule(
         )
 
     schedule_update_project_config(alert_rule, projects)
-
-    if features.has("organizations:workflow-engine-metric-alert-processing", organization):
-        migrate_alert_rule(alert_rule, user)
-
     return alert_rule
 
 
