@@ -177,10 +177,6 @@ class OrganizationOnboardingTask(AbstractOnboardingTask):
         ]
     )
 
-    # This enum will be removed soon.
-    # It has been temporarily added for backward and forward compatibility with getsentry.
-    NEW_REQUIRED_ONBOARDING_TASKS = frozenset(REQUIRED_ONBOARDING_TASKS)
-
     objects: ClassVar[OrganizationOnboardingTaskManager] = OrganizationOnboardingTaskManager()
 
     class Meta:
