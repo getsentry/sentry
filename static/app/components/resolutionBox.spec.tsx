@@ -1,6 +1,7 @@
 import {CommitFixture} from 'sentry-fixture/commit';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {ReleaseFixture} from 'sentry-fixture/release';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {render} from 'sentry-test/reactTestingLibrary';
@@ -12,6 +13,26 @@ import ResolutionBox from './resolutionBox';
 describe('ResolutionBox', function () {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
+  const release = ReleaseFixture({version: '1.0'});
+
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/repos/`,
+      method: 'GET',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/releases/${release.version}/`,
+      method: 'GET',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/releases/${release.version}/deploys/`,
+      method: 'GET',
+      body: [],
+    });
+  });
 
   it('handles default', function () {
     const {container} = render(
@@ -53,6 +74,18 @@ describe('ResolutionBox', function () {
     );
   });
   it('handles in next release (semver current_release_version)', function () {
+    const currentReleaseVersion = '1.2.0';
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/releases/${currentReleaseVersion}/`,
+      method: 'GET',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/releases/${currentReleaseVersion}/deploys/`,
+      method: 'GET',
+      body: [],
+    });
+
     const {container} = render(
       <ResolutionBox
         statusDetails={{
@@ -66,7 +99,7 @@ describe('ResolutionBox', function () {
             id: '1',
             type: GroupActivityType.SET_RESOLVED_IN_RELEASE,
             data: {
-              current_release_version: 'frontend@1.0.0',
+              current_release_version: currentReleaseVersion,
             },
             dateCreated: new Date().toISOString(),
             project,
@@ -75,28 +108,28 @@ describe('ResolutionBox', function () {
       />
     );
     expect(container).toHaveTextContent(
-      'Foo Bar marked this issue as resolved in versions greater than 1.0.0'
+      'Foo Bar marked this issue as resolved in versions greater than 1.2.0'
     );
   });
   it('handles inRelease', function () {
     const {container} = render(
       <ResolutionBox
         statusDetails={{
-          inRelease: '1.0',
+          inRelease: release.version,
         }}
         project={project}
         organization={organization}
       />
     );
     expect(container).toHaveTextContent(
-      'This issue has been marked as resolved in version 1.0.'
+      `This issue has been marked as resolved in version ${release.version}.`
     );
   });
   it('handles inRelease with actor', function () {
     const {container} = render(
       <ResolutionBox
         statusDetails={{
-          inRelease: '1.0',
+          inRelease: release.version,
           actor: {
             id: '111',
             name: 'David Cramer',
@@ -110,7 +143,7 @@ describe('ResolutionBox', function () {
       />
     );
     expect(container).toHaveTextContent(
-      'David Cramer marked this issue as resolved in version 1.0.'
+      `David Cramer marked this issue as resolved in version ${release.version}.`
     );
   });
   it('handles inCommit', function () {
