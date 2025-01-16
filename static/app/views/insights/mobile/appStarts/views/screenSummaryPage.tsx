@@ -109,27 +109,7 @@ export function ScreenSummaryContentPage() {
   }, [location, appStartType, navigate]);
 
   useSamplesDrawer({
-    Component: (
-      <SpanSamplesPanel
-        groupId={spanGroup}
-        moduleName={ModuleName.APP_START}
-        onClose={() => {
-          navigate(
-            {
-              pathname: location.pathname,
-              query: omit(
-                location.query,
-                'spanGroup',
-                'transactionMethod',
-                'spanDescription',
-                'spanOp'
-              ),
-            },
-            {replace: true}
-          );
-        }}
-      />
-    ),
+    Component: <SpanSamplesPanel groupId={spanGroup} moduleName={ModuleName.APP_START} />,
     moduleName: ModuleName.APP_START,
     requiredParams: [
       'transaction',
@@ -137,6 +117,21 @@ export function ScreenSummaryContentPage() {
       'spanOp',
       SpanMetricsField.APP_START_TYPE,
     ],
+    onClose: () => {
+      navigate(
+        {
+          pathname: location.pathname,
+          query: omit(
+            location.query,
+            'spanGroup',
+            'transactionMethod',
+            'spanDescription',
+            'spanOp'
+          ),
+        },
+        {replace: true}
+      );
+    },
   });
 
   return (
