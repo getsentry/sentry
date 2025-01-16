@@ -74,7 +74,7 @@ class Migration(CheckedMigration):
                 condition=models.Q(
                     ("error_code__isnull", True), ("parent_notification_message__isnull", True)
                 ),
-                name="singular_parent_message_per_rule_fire_history_rule_action_open_period",
+                name="singular_parent_message_per_rule_fire_history_rule_action_open_",
             ),
         ),
         migrations.AddConstraint(

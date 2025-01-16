@@ -122,7 +122,7 @@ class NotificationMessage(Model):
                     error_code__isnull=True,
                     parent_notification_message__isnull=True,
                 ),
-                name="singular_parent_message_per_rule_fire_history_rule_action_open_period",
+                name="singular_parent_message_per_rule_fire_history_rule_action_open_",
             ),
             # 1 parent message per action and group (open_period_start null not distinct)
             UniqueConstraint(
