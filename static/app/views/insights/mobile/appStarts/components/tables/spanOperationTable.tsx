@@ -42,7 +42,12 @@ import {
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {useTableQuery} from 'sentry/views/insights/mobile/screenload/components/tables/screensTable';
 import {MobileCursors} from 'sentry/views/insights/mobile/screenload/constants';
-import {SpanMetricsField, type SubregionCode} from 'sentry/views/insights/types';
+import {isModuleEnabled} from 'sentry/views/insights/pages/utils';
+import {
+  ModuleName,
+  SpanMetricsField,
+  type SubregionCode,
+} from 'sentry/views/insights/types';
 
 const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_GROUP, SPAN_OP, PROJECT_ID} =
   SpanMetricsField;
@@ -58,11 +63,16 @@ export function SpanOperationTable({
   primaryRelease,
   secondaryRelease,
 }: Props) {
-  const moduleURL = useModuleURL('app_start');
+  const organization = useOrganization();
+  const isMobileScreensEnabled = isModuleEnabled(ModuleName.MOBILE_SCREENS, organization);
+  const moduleURL = useModuleURL(
+    isMobileScreensEnabled ? ModuleName.MOBILE_SCREENS : ModuleName.APP_START
+  );
+  const baseUrl = isMobileScreensEnabled ? `${moduleURL}/details` : `${moduleURL}/spans`;
+
   const navigate = useNavigate();
   const location = useLocation();
   const {selection} = usePageFilters();
-  const organization = useOrganization();
   const {isProjectCrossPlatform, selectedPlatform} = useCrossPlatformProject();
   const cursor = decodeScalar(location.query?.[MobileCursors.SPANS_TABLE]);
 
@@ -162,7 +172,6 @@ export function SpanOperationTable({
     if (column.key === SPAN_DESCRIPTION) {
       const label = row[SpanMetricsField.SPAN_DESCRIPTION];
 
-      const pathname = `${moduleURL}/spans/`;
       const query = {
         ...location.query,
         transaction,
@@ -174,7 +183,7 @@ export function SpanOperationTable({
 
       return (
         <OverflowEllipsisTextContainer>
-          <Link to={`${pathname}?${qs.stringify(query)}`}>{label}</Link>
+          <Link to={`${baseUrl}?${qs.stringify(query)}`}>{label}</Link>
         </OverflowEllipsisTextContainer>
       );
     }
