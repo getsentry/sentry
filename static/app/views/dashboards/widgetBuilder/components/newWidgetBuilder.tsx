@@ -145,37 +145,41 @@ function WidgetBuilderV2({
               >
                 <ContainerWithoutSidebar sidebarCollapsed={sidebarCollapsed}>
                   <WidgetBuilderContainer>
-                    <WidgetBuilderSlideout
-                      isOpen={isOpen}
-                      onClose={() => {
-                        onClose();
-                        setTranslate(DEFAULT_WIDGET_DRAG_POSITIONING);
-                      }}
-                      onSave={onSave}
-                      onQueryConditionChange={setQueryConditionsValid}
-                      dashboard={dashboard}
-                      dashboardFilters={dashboardFilters}
-                      setIsPreviewDraggable={setIsPreviewDraggable}
-                      isWidgetInvalid={!queryConditionsValid}
-                      openWidgetTemplates={openWidgetTemplates}
-                      setOpenWidgetTemplates={setOpenWidgetTemplates}
-                      onDataFetched={handleWidgetDataFetched}
-                      thresholdMetaState={thresholdMetaState}
-                    />
+                    <SlideoutContainer>
+                      <WidgetBuilderSlideout
+                        isOpen={isOpen}
+                        onClose={() => {
+                          onClose();
+                          setTranslate(DEFAULT_WIDGET_DRAG_POSITIONING);
+                        }}
+                        onSave={onSave}
+                        onQueryConditionChange={setQueryConditionsValid}
+                        dashboard={dashboard}
+                        dashboardFilters={dashboardFilters}
+                        setIsPreviewDraggable={setIsPreviewDraggable}
+                        isWidgetInvalid={!queryConditionsValid}
+                        openWidgetTemplates={openWidgetTemplates}
+                        setOpenWidgetTemplates={setOpenWidgetTemplates}
+                        onDataFetched={handleWidgetDataFetched}
+                        thresholdMetaState={thresholdMetaState}
+                      />
+                    </SlideoutContainer>
                     {(!isSmallScreen || isPreviewDraggable) && (
                       <DndContext
                         onDragEnd={handleDragEnd}
                         onDragMove={handleDragMove}
                         collisionDetection={closestCorners}
                       >
-                        <WidgetPreviewContainer
-                          dashboardFilters={dashboardFilters}
-                          dashboard={dashboard}
-                          dragPosition={translate}
-                          isDraggable={isPreviewDraggable}
-                          isWidgetInvalid={!queryConditionsValid}
-                          onDataFetched={handleWidgetDataFetched}
-                        />
+                        <SurroundingWidgetContainer>
+                          <WidgetPreviewContainer
+                            dashboardFilters={dashboardFilters}
+                            dashboard={dashboard}
+                            dragPosition={translate}
+                            isDraggable={isPreviewDraggable}
+                            isWidgetInvalid={!queryConditionsValid}
+                            onDataFetched={handleWidgetDataFetched}
+                          />
+                        </SurroundingWidgetContainer>
                       </DndContext>
                     )}
                   </WidgetBuilderContainer>
@@ -408,7 +412,6 @@ const WidgetBuilderContainer = styled('div')`
   z-index: ${p => p.theme.zIndex.widgetBuilderDrawer};
   display: flex;
   align-items: center;
-  justify-content: space-between;
   position: absolute;
   inset: 0;
 `;
@@ -424,4 +427,16 @@ const DroppableGrid = styled('div')`
   right: ${space(2)};
   bottom: ${space(2)};
   left: 0;
+`;
+
+const SlideoutContainer = styled('div')`
+  height: 100%;
+`;
+
+const SurroundingWidgetContainer = styled('div')`
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 `;
