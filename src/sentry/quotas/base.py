@@ -693,22 +693,9 @@ class Quota(Service):
 
         return PermitCheckInStatus.ACCEPT
 
-    def check_accept_checkin(self, data_category: DataCategory, project_id: int, slug: str):
-        """
-        Will return a `PermitCheckInStatus`.
-        """
-        from sentry.monitors.constants import PermitCheckInStatus
-
-        return PermitCheckInStatus.ACCEPT
-
     def update_monitor_slug(self, previous_slug: str, new_slug: str, project_id: int):
         """
         Updates a monitor seat assignment's slug.
-        """
-
-    def update_seat_slug(self, previous_slug: str, new_slug: str, project_id: int):
-        """
-        Updates a seat assignment's slug.
         """
 
     def should_emit_profile_duration_outcome(
