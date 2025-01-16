@@ -560,14 +560,12 @@ export class Client {
               start: startMarker,
               data: {status: responseMeta?.status},
             });
-            if (options.success !== undefined) {
-              options.success(
-                // Respect the response content-type header
-                body.isResponseJSON ? body.responseJSON : body.responseText,
-                body.statusText,
-                responseMeta
-              );
-            }
+            options.success?.(
+              // Respect the response content-type header
+              body.isResponseJSON ? body.responseJSON : body.responseText,
+              body.statusText,
+              responseMeta
+            );
             return;
           }
 
@@ -619,10 +617,7 @@ export class Client {
               body.errorReason
             );
           }
-
-          if (options.complete) {
-            options.complete(responseMeta, body.statusText);
-          }
+          options.complete?.(responseMeta, body.statusText);
         },
         () => {
           // Ignore failed fetch calls or errors in the fetch request itself (e.g. cancelled requests)
@@ -696,9 +691,7 @@ export class Client {
         retryRequest: async () => {
           try {
             const data = await this.requestPromise(options.path, options.requestOptions);
-            if (options.requestOptions.success) {
-              options.requestOptions.success(data, textStatus, response);
-            }
+            options.requestOptions.success?.(data, textStatus, response);
             didSuccessfullyRetry = true;
           } catch (err) {
             options.requestOptions.error?.(response, textStatus, err);
@@ -709,18 +702,14 @@ export class Client {
             return;
           }
 
-          if (options.requestOptions.error) {
-            options.requestOptions.error(response, textStatus, errorThrown);
-          }
+          options.requestOptions.error?.(response, textStatus, errorThrown);
         },
       });
       return;
     }
 
     // Call normal error callback
-    if (options.requestOptions.error) {
-      options.requestOptions.error(response, textStatus, errorThrown);
-    }
+    options.requestOptions.error?.(response, textStatus, errorThrown);
   }
 
   /**
