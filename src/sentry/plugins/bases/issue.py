@@ -253,8 +253,5 @@ class IssueTrackingPlugin(Plugin):
 
         return tag_list
 
-    def get_issue_doc_html(self, **kwargs):
-        return ""
-
 
 IssuePlugin = IssueTrackingPlugin
