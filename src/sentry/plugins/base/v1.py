@@ -249,9 +249,6 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
 
         return True
 
-    def get_form_initial(self, project=None):
-        return {}
-
     # The following methods are specific to web requests
 
     def get_title(self) -> str | _StrPromise:

@@ -201,9 +201,6 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
         """
         return self.conf_title or self.get_title()
 
-    def get_form_initial(self, project=None):
-        return {}
-
     def has_project_conf(self):
         return self.project_conf_form is not None
 
