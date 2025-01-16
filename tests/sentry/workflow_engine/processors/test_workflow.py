@@ -1,12 +1,22 @@
+from datetime import timedelta
 from unittest import mock
 
+from sentry import buffer
 from sentry.eventstream.base import GroupState
 from sentry.grouping.grouptype import ErrorGroupType
+from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.workflow_engine.models import DataConditionGroup
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.processors.workflow import evaluate_workflow_triggers, process_workflows
+from sentry.workflow_engine.processors.workflow import (
+    WORKFLOW_ENGINE_PROJECT_ID_BUFFER_LIST_KEY,
+    evaluate_workflow_triggers,
+    process_workflows,
+)
 from sentry.workflow_engine.types import WorkflowJob
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
+
+FROZEN_TIME = before_now(days=1).replace(hour=1, minute=30, second=0, microsecond=0)
 
 
 class TestProcessWorkflows(BaseWorkflowTest):
@@ -169,7 +179,10 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
         assert not workflows_to_enqueue
 
 
+@freeze_time(FROZEN_TIME)
 class TestEnqueueWorkflow(BaseWorkflowTest):
+    buffer_timestamp = (FROZEN_TIME + timedelta(seconds=1)).timestamp()
+
     def setUp(self):
         (
             self.workflow,
@@ -183,6 +196,16 @@ class TestEnqueueWorkflow(BaseWorkflowTest):
             occurrence=occurrence,
         )
         self.job = WorkflowJob({"event": self.group_event})
+        self.create_workflow_action(self.workflow)
+        self.mock_redis_buffer = mock_redis_buffer()
+        self.mock_redis_buffer.__enter__()
+
+    def tearDown(self):
+        self.mock_redis_buffer.__exit__(None, None, None)
+
+    def test_enqueues_workflow_all_logic_type(self):
+        assert self.workflow.when_condition_group
+        self.workflow.when_condition_group.update(logic_type=DataConditionGroup.Type.ALL)
         self.create_data_condition(
             condition_group=self.workflow.when_condition_group,
             type=Condition.EVENT_FREQUENCY_COUNT,
@@ -193,22 +216,33 @@ class TestEnqueueWorkflow(BaseWorkflowTest):
             condition_result=True,
         )
 
-    def test_enqueues_workflow_all_logic_type(self):
-        assert self.workflow.when_condition_group
-        self.workflow.when_condition_group.update(logic_type=DataConditionGroup.Type.ALL)
-
         triggered_workflows, workflows_to_enqueue = evaluate_workflow_triggers(
             {self.workflow}, self.job
         )
         assert not triggered_workflows
         assert workflows_to_enqueue == {self.workflow}
 
-        # TODO: test buffer enqueue
+        process_workflows(self.job)
+
+        project_ids = buffer.backend.get_sorted_set(
+            WORKFLOW_ENGINE_PROJECT_ID_BUFFER_LIST_KEY, 0, self.buffer_timestamp
+        )
+        assert project_ids
+        assert project_ids[0][0] == self.project.id
 
     def test_enqueues_workflow_any_logic_type(self):
         assert self.workflow.when_condition_group
         self.workflow.when_condition_group.conditions.all().delete()
 
+        self.create_data_condition(
+            condition_group=self.workflow.when_condition_group,
+            type=Condition.EVENT_FREQUENCY_COUNT,
+            comparison={
+                "interval": "1h",
+                "value": 100,
+            },
+            condition_result=True,
+        )
         self.create_data_condition(
             condition_group=self.workflow.when_condition_group,
             type=Condition.REGRESSION_EVENT,  # fast condition, does not pass
@@ -222,4 +256,9 @@ class TestEnqueueWorkflow(BaseWorkflowTest):
         assert not triggered_workflows
         assert workflows_to_enqueue == {self.workflow}
 
-        # TODO: test buffer enqueue
+        process_workflows(self.job)
+
+        project_ids = buffer.backend.get_sorted_set(
+            WORKFLOW_ENGINE_PROJECT_ID_BUFFER_LIST_KEY, 0, self.buffer_timestamp
+        )
+        assert project_ids[0][0] == self.project.id
