@@ -270,19 +270,6 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
         """
         return self.description
 
-    def get_resource_links(self) -> Sequence[tuple[str, str]]:
-        """
-        Returns a list of tuples pointing to various resources for this plugin.
-
-        >>> def get_resource_links(self):
-        >>>     return [
-        >>>         ('Documentation', 'https://docs.sentry.io'),
-        >>>         ('Report Issue', 'https://github.com/getsentry/sentry/issues'),
-        >>>         ('View Source', 'https://github.com/getsentry/sentry'),
-        >>>     ]
-        """
-        return self.resource_links
-
     def get_view_response(self, request, group):
         self.selected = request.path == self.get_url(group)
 

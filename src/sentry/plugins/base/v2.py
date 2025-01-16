@@ -270,19 +270,6 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
         """
         return self.description
 
-    def get_resource_links(self):
-        """
-        Returns a list of tuples pointing to various resources for this plugin.
-
-        >>> def get_resource_links(self):
-        >>>     return [
-        >>>         ('Documentation', 'https://docs.sentry.io'),
-        >>>         ('Report Issue', 'https://github.com/getsentry/sentry/issues'),
-        >>>         ('View Source', 'https://github.com/getsentry/sentry'),
-        >>>     ]
-        """
-        return self.resource_links
-
     def get_rules(self, **kwargs):
         """
         Return a list of Rule classes to add to the registry.
