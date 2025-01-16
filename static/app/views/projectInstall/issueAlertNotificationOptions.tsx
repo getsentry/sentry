@@ -112,8 +112,8 @@ export function useCreateNotificationAction() {
   useEffect(() => {
     if (messagingIntegrationsQuery.isSuccess) {
       const providerKeys = Object.keys(providersToIntegrations);
-      const firstProvider = providerKeys[0]! ?? undefined;
-      const firstIntegration = providersToIntegrations[firstProvider]?.[0] ?? undefined;
+      const firstProvider = providerKeys[0];
+      const firstIntegration = providersToIntegrations[String(firstProvider)]?.[0];
       setProvider(firstProvider);
       setIntegration(firstIntegration);
       setShouldRenderSetupButton(!firstProvider);
