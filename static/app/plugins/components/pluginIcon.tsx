@@ -72,28 +72,29 @@ export const ICON_PATHS = {
 };
 
 type Props = {
+  /**
+   * @default '_default'
+   */
   pluginId?: string;
+  /**
+   * @default 20
+   */
   size?: number;
 };
 
 const PluginIcon = styled('div')<Props>`
   position: relative;
-  height: ${p => p.size}px;
-  width: ${p => p.size}px;
-  min-width: ${p => p.size}px;
+  height: ${p => p.size ?? 20}px;
+  width: ${p => p.size ?? 20}px;
+  min-width: ${p => p.size ?? 20}px;
   border-radius: 2px;
   border: 0;
   display: inline-block;
   background-size: contain;
   background-position: center center;
   background-repeat: no-repeat;
-  background-image: url(${({pluginId}) =>
+  background-image: url(${({pluginId = '_default'}) =>
     (pluginId !== undefined && ICON_PATHS[pluginId]) || DEFAULT_ICON});
 `;
-
-PluginIcon.defaultProps = {
-  pluginId: '_default',
-  size: 20,
-};
 
 export default PluginIcon;
