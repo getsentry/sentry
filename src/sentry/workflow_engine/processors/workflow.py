@@ -5,7 +5,6 @@ from collections import defaultdict
 import sentry_sdk
 
 from sentry import buffer
-from sentry.models.project import Project
 from sentry.utils import json, metrics
 from sentry.workflow_engine.models import Detector, Workflow, WorkflowDataConditionGroup
 from sentry.workflow_engine.models.workflow import get_slow_conditions
@@ -64,7 +63,7 @@ def enqueue_workflows(
 
         value = json.dumps({"event_id": event.event_id, "occurrence_id": event.occurrence_id})
         buffer.backend.push_to_hash(
-            model=Project,
+            model=Workflow,
             filters={"project": project_id},
             field=f"{workflow.id}:{event.group.id}:{if_dcg_fields}",
             value=value,
