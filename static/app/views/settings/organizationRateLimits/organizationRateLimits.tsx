@@ -1,3 +1,5 @@
+import {css} from '@emotion/react';
+
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import RangeField from 'sentry/components/forms/fields/rangeField';
 import Form from 'sentry/components/forms/form';
@@ -91,7 +93,11 @@ function OrganizationRateLimit({organization}: OrganizationRateLimitProps) {
                   'The maximum number of events to accept across this entire organization.'
                 )}
               >
-                <TextBlock css={{marginBottom: 0}}>
+                <TextBlock
+                  css={css`
+                    margin-bottom: 0;
+                  `}
+                >
                   {tct(
                     'Your account is limited to a maximum of [maxRate] events per [maxRateInterval] seconds.',
                     {

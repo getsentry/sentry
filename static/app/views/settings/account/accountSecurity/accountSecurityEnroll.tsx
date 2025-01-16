@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {QRCodeCanvas} from 'qrcode.react';
 
@@ -438,7 +439,9 @@ class AccountSecurityEnroll extends DeprecatedAsyncComponent<Props, State> {
                     : t('Authentication Method Inactive')
                 }
                 enabled={isActive}
-                css={{marginLeft: 6}}
+                css={css`
+                  margin-left: 6px;
+                `}
               />
             </Fragment>
           }

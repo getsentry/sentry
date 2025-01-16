@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
@@ -122,7 +123,11 @@ function SwitchOrganization({canCreateOrganization}: Props) {
                 })}
               </OrganizationList>
               {organizations && !!organizations.length && canCreateOrganization && (
-                <Divider css={{marginTop: 0}} />
+                <Divider
+                  css={css`
+                    margin-top: 0;
+                  `}
+                />
               )}
               <CreateOrganization canCreateOrganization={canCreateOrganization} />
             </SwitchOrganizationMenu>

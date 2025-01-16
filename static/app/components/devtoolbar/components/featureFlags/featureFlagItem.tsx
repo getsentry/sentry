@@ -1,4 +1,5 @@
 import {Fragment, useContext, useState} from 'react';
+import {css} from '@emotion/react';
 
 import AnalyticsProvider, {
   AnalyticsContext,
@@ -26,7 +27,10 @@ export default function FeatureFlagItem({flag}: {flag: FeatureFlag}) {
       <Cell
         css={[
           verticalPaddingCss,
-          {alignItems: 'flex-start', marginLeft: 'var(--space200)'},
+          css`
+            align-items: flex-start;
+            margin-left: var(--space200);
+          `,
         ]}
       >
         {featureFlags?.urlTemplate?.(flag.name) ? (
@@ -46,7 +50,12 @@ export default function FeatureFlagItem({flag}: {flag: FeatureFlag}) {
           <span>{flag.name}</span>
         )}
       </Cell>
-      <Cell css={{marginRight: 'var(--space200)', justifyContent: 'center'}}>
+      <Cell
+        css={css`
+          margin-right: var(--space200);
+          justify-content: center;
+        `}
+      >
         <FlagValueInput flag={flag} />
       </Cell>
     </Fragment>
@@ -85,12 +94,12 @@ function FlagValueBooleanInput({flag}: {flag: FeatureFlag}) {
   return (
     <label
       htmlFor={`toggle-${flag.name}`}
-      css={{
-        display: 'flex',
-        alignItems: 'flex-end',
-        alignSelf: 'flex-end',
-        gap: 'var(--space100)',
-      }}
+      css={css`
+        display: flex;
+        align-items: flex-end;
+        align-self: flex-end;
+        gap: var(--space100);
+      `}
     >
       <code>{String(isActive)}</code>
       <Switch

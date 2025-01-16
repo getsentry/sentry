@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {css} from '@emotion/react';
 
 import AnalyticsProvider from 'sentry/components/devtoolbar/components/analyticsProvider';
 import ReleaseIsssues from 'sentry/components/devtoolbar/components/releases/releaseIssues';
@@ -67,21 +68,31 @@ function getDiff(
       css={[
         releaseBoxCss,
         releaseNumbersCss,
-        {
-          backgroundColor: diffColor[1],
-          borderColor: diffColor[0],
-        },
+        css`
+          background-color: ${diffColor[1]};
+          border-color: ${diffColor[0]};
+        `,
       ]}
     >
-      <span css={[smallCss, {color: diffColor[0], fontWeight: 'bold'}]}>Change</span>
+      <span
+        css={[
+          smallCss,
+          css`
+            color: ${diffColor[0]};
+            font-weight: bold;
+          `,
+        ]}
+      >
+        Change
+      </span>
       <span
         css={[
           resetFlexRowCss,
-          {
-            alignItems: 'center',
-            gap: 'var(--space25)',
-            color: diffColor[0],
-          },
+          css`
+            align-items: center;
+            gap: var(--space25);
+            color: ${diffColor[0]};
+          `,
         ]}
       >
         {diff}
@@ -95,7 +106,15 @@ function getDiff(
 
 function ReleaseSummary({orgSlug, release}: {orgSlug: string; release: Release}) {
   return (
-    <PanelItem css={[releaseBoxCss, {width: '92%', alignItems: 'flex-start'}]}>
+    <PanelItem
+      css={[
+        releaseBoxCss,
+        css`
+          width: 92%;
+          align-items: flex-start;
+        `,
+      ]}
+    >
       <ReleaseInfoHeader css={infoHeaderCss}>
         <AnalyticsProvider nameVal="latest release" keyVal="latest-release">
           <SentryAppLink
@@ -112,9 +131,22 @@ function ReleaseSummary({orgSlug, release}: {orgSlug: string; release: Release})
         </AnalyticsProvider>
       </ReleaseInfoHeader>
       <ReleaseInfoSubheader
-        css={[resetFlexColumnCss, subtextCss, {alignItems: 'flex-start'}]}
+        css={[
+          resetFlexColumnCss,
+          subtextCss,
+          css`
+            align-items: flex-start;
+          `,
+        ]}
       >
-        <span css={[resetFlexRowCss, {gap: 'var(--space25)'}]}>
+        <span
+          css={[
+            resetFlexRowCss,
+            css`
+              gap: var(--space25);
+            `,
+          ]}
+        >
           <TimeSince date={release.lastDeploy?.dateFinished || release.dateCreated} />
           {release.lastDeploy?.dateFinished &&
             ` \u2022 ${release.lastDeploy.environment}`}
@@ -152,7 +184,12 @@ function CrashFreeRate({
 
   if (isCurrLoading || isPrevLoading) {
     return (
-      <PanelItem css={{width: '100%', padding: 'var(--space150)'}}>
+      <PanelItem
+        css={css`
+          width: 100%;
+          padding: var(--space150);
+        `}
+      >
         <Placeholder
           height={crashComparisonPlaceholderHeight}
           css={[
@@ -173,25 +210,50 @@ function CrashFreeRate({
 
   return (
     <div>
-      <span css={[smallCss, panelDescCss, panelSectionCssNoBorder, {paddingBottom: 0}]}>
+      <span
+        css={[
+          smallCss,
+          panelDescCss,
+          panelSectionCssNoBorder,
+          css`
+            padding-bottom: 0;
+          `,
+        ]}
+      >
         Crash Free Session Rate
       </span>
       <div
-        css={[
-          {
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr 1fr',
-            gap: 'var(--space100)',
-            padding: 'var(--space75) var(--space150) var(--space150) var(--space150)',
-          },
-        ]}
+        css={css`
+          display: grid;
+          grid-template-columns: 1fr 1fr 1fr;
+          gap: var(--space100);
+          padding: var(--space75) var(--space150) var(--space150) var(--space150);
+        `}
       >
         <div css={[releaseBoxCss, releaseNumbersCss]}>
-          <span css={[smallCss, {fontWeight: 'bold'}]}>Latest</span>
+          <span
+            css={[
+              smallCss,
+              css`
+                font-weight: bold;
+              `,
+            ]}
+          >
+            Latest
+          </span>
           {currCrashFreeRate}%
         </div>
         <div css={[releaseBoxCss, releaseNumbersCss]}>
-          <span css={[smallCss, {fontWeight: 'bold'}]}>Previous</span>
+          <span
+            css={[
+              smallCss,
+              css`
+                font-weight: bold;
+              `,
+            ]}
+          >
+            Previous
+          </span>
           {prevCrashFreeRate}%
         </div>
         {getDiff(
@@ -224,7 +286,16 @@ export default function ReleasesPanel() {
   return (
     <PanelLayout title="Latest Release" showProjectBadge link={{url: '/releases/'}}>
       <AnalyticsProvider nameVal="header" keyVal="header">
-        <span css={[smallCss, panelDescCss, panelSectionCssNoBorder, {paddingBottom: 0}]}>
+        <span
+          css={[
+            smallCss,
+            panelDescCss,
+            panelSectionCssNoBorder,
+            css`
+              padding-bottom: 0;
+            `,
+          ]}
+        >
           Latest Release
         </span>
       </AnalyticsProvider>

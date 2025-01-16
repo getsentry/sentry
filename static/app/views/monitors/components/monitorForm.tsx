@@ -1,4 +1,5 @@
 import {Fragment, useRef} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 
@@ -350,7 +351,11 @@ function MonitorForm({
                       hideLabel
                       placeholder="* * * * *"
                       defaultValue={DEFAULT_CRONTAB}
-                      css={{input: {fontFamily: commonTheme.text.familyMono}}}
+                      css={css`
+                        input {
+                          font-family: ${commonTheme.text.familyMono};
+                        }
+                      `}
                       required
                       stacked
                       inline={false}

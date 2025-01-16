@@ -40,7 +40,10 @@ export default function ReleaseIsssues({releaseVersion}: {releaseVersion: string
             smallCss,
             panelDescCss,
             panelSectionCssNoBorder,
-            {paddingTop: 'var(--space25)', paddingBottom: 0},
+            css`
+              padding-top: var(--space25);
+              padding-bottom: 0;
+            `,
           ]}
         >
           New Issues in This Release
@@ -74,13 +77,13 @@ export default function ReleaseIsssues({releaseVersion}: {releaseVersion: string
                     panelInsetContentCss,
                     releaseBoxCss,
                     resetFlexColumnCss,
-                    {
-                      padding: 'var(--space400)',
-                      alignItems: 'center',
-                      gap: 'var(--space150)',
-                      height: '212px',
-                      justifyContent: 'center',
-                    },
+                    css`
+                      padding: var(--space400);
+                      align-items: center;
+                      gap: var(--space150);
+                      height: 212px;
+                      justify-content: center;
+                    `,
                   ]}
                 >
                   <IconSearch size="lg" />
