@@ -2,7 +2,7 @@ import {getPreloadedDataPromise} from './getPreloadedData';
 
 describe('getPreloadedDataPromise', () => {
   beforeEach(() => {
-    (window as any).__sentry_preload = {
+    window.__sentry_preload = {
       orgSlug: 'slug',
     };
   });
