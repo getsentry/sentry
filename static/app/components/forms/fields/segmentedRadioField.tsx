@@ -9,8 +9,9 @@ import Radio from 'sentry/components/radio';
 import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
 
-export interface SegmentedRadioFieldProps extends Omit<InputFieldProps, 'type'> {
-  choices?: RadioGroupProps<any>['choices'];
+export interface SegmentedRadioFieldProps<Choices extends string = string>
+  extends Omit<InputFieldProps, 'type'> {
+  choices?: RadioGroupProps<Choices>['choices'];
 }
 
 function handleChange(
@@ -23,7 +24,9 @@ function handleChange(
   onBlur(id, e);
 }
 
-function SegmentedRadioField(props: SegmentedRadioFieldProps) {
+function SegmentedRadioField<Choices extends string = string>(
+  props: SegmentedRadioFieldProps<Choices>
+) {
   return (
     <FormField {...props}>
       {({id, onChange, onBlur, value, disabled, ...fieldProps}) => (
