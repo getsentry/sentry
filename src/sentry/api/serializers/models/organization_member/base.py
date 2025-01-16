@@ -100,13 +100,23 @@ class OrganizationMemberSerializer(Serializer):
     ) -> OrganizationMemberResponse:
         serialized_user = attrs["user"]
         if obj.user_id:
-            # Only use the user's primary email from the serialized user data
+            # if the OrganizationMember has a user_id, the user has an account
+            # `email` on the OrganizationMember will be null, so we need to pull
+            # the email address from the user's actual account
             email = serialized_user["email"] if serialized_user else obj.email
         else:
-            # For invited members, use the invitation email
+            # when there is no user_id, the OrganizationMember is an invited user
+            # and the email field on OrganizationMember will be populated, so we
+            # will use it directly
             email = obj.email
 
-        # helping mypy - we know email will never be None based on the model
+        # helping mypy - the email will always be populated at this point
+        # in the case that it is a user that has an account, we pull the email
+        # address above from the serialized_user. The email field on OrganizationMember
+        # is null in the case, so it is necessary.
+        #
+        # invited users do not yet have a full account and the email field
+        # on OrganizationMember will be populated in such cases
         assert email is not None
 
         inviter_name = None
