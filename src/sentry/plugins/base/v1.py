@@ -336,7 +336,7 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin):
         >>>     return event_version not in seen_versions
         """
 
-    def post_process(self, group, event, is_new, **kwargs):
+    def post_process(self, *, group, event, is_new, **kwargs) -> None:
         """
         Post processes an event after it has been saved.
 
