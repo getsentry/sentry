@@ -390,7 +390,6 @@ def update_migrated_alert_rule(alert_rule: AlertRule, updated_fields: dict[str, 
     ]
     | None
 ):
-    # TODO: maybe pull this into a helper method?
     try:
         alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=alert_rule)
     except AlertRuleDetector.DoesNotExist:
@@ -461,8 +460,6 @@ def update_migrated_alert_rule(alert_rule: AlertRule, updated_fields: dict[str, 
     # reset detector status, as the rule was updated
     detector_state.update(active=False, state=DetectorPriorityLevel.OK)
 
-    # TODO: do we need to create an audit log entry here?
-    # do we need to return the detector's data conditions/DCG?
     return detector_state, detector
 
 
