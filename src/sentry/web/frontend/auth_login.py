@@ -683,8 +683,8 @@ class AuthLoginView(BaseView):
                         and membership.is_pending
                         and invitation_link
                     ):
-                        accept_link_position = invitation_link.find("/accept")
-                        return self.redirect(invitation_link[accept_link_position:])
+                        accept_path = urllib.parse.urlparse(invitation_link).path
+                        return self.redirect(accept_path)
 
                     # Refresh the organization we fetched prior to login in order to check its login state.
                     org_context = organization_service.get_organization_by_slug(
