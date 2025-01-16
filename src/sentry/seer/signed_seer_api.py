@@ -20,7 +20,6 @@ def make_signed_seer_api_request(
     path: str,
     body: bytes,
     timeout: int | None = None,
-    use_nonce: bool = False,
 ) -> BaseHTTPResponse:
     host = connection_pool.host
     if connection_pool.port:
@@ -29,8 +28,8 @@ def make_signed_seer_api_request(
     url = f"{connection_pool.scheme}://{host}{path}"
     parsed = urlparse(url)
 
-    # Generate nonce but don't use it in signature yet
-    nonce = uuid4().hex if random() < use_nonce else None
+    # Generate nonce based on option
+    nonce = uuid4().hex if random() < options.get("seer.api.use-nonce-signature") else None
     path_with_nonce = f"{parsed.path}?nonce={nonce}" if nonce else parsed.path
 
     auth_headers = sign_with_seer_secret(body)
