@@ -37,7 +37,7 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
   const fields =
     state.displayType === DisplayType.TABLE
       ? state.fields?.map(generateFieldAsString)
-      : [...new Set([...(columns ?? []), ...(aggregates ?? [])])];
+      : [...(columns ?? []), ...(aggregates ?? [])];
 
   // If there's no sort, use the first field as the default sort
   const defaultSort = fields?.[0] ?? defaultQuery.orderby;
