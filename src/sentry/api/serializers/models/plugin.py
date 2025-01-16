@@ -67,7 +67,6 @@ class PluginSerializer(Serializer):
             "hasConfiguration": obj.has_project_conf(),
             "metadata": obj.get_metadata(),
             "contexts": contexts,
-            "status": obj.get_status(),
             "doc": doc,
             "firstPartyAlternative": getattr(obj, "alternative", None),
             "deprecationDate": (
