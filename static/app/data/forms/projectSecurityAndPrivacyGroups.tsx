@@ -63,10 +63,10 @@ const formGroups: JsonFormObject[] = [
       {
         name: 'storeCrashReports',
         type: 'select',
-        label: t('Store Native Crash Reports'),
+        label: t('Store Minidumps As Attachments'),
         help: ({organization}) =>
           tct(
-            'Store native crash reports such as Minidumps for improved processing and download in issue details. Overrides [organizationSettingsLink: organization settings].',
+            'Store minidumps as attachments for improved processing and download in issue details. Overrides [organizationSettingsLink: organization settings].',
             {
               organizationSettingsLink: (
                 <Link to={`/settings/${organization.slug}/security-and-privacy/`} />
