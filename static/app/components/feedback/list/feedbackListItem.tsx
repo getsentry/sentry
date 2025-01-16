@@ -117,6 +117,7 @@ export default function FeedbackListItem({
           <Row justify="flex-start" gap={space(0.75)}>
             {feedbackItem.project ? (
               <StyledProjectBadge
+                disableLink
                 project={feedbackItem.project}
                 avatarSize={14}
                 hideName
