@@ -32,7 +32,7 @@ const createSearchMap = ({
     route,
     title: typeof field !== 'function' ? (field?.label as string) : undefined,
     description: typeof field !== 'function' ? (field?.help as string) : undefined,
-    field: field as Field,
+    field: field!,
   }));
 };
 
