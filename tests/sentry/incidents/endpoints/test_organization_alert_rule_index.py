@@ -50,6 +50,9 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
+from tests.sentry.workflow_engine.migration_helpers.test_migrate_alert_rule import (
+    assert_alert_rule_migrated,
+)
 
 pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
@@ -222,6 +225,22 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             resp.renderer_context["request"].META["REMOTE_ADDR"]
             == list(audit_log_entry)[0].ip_address
         )
+
+    @with_feature("organizations:workflow-engine-metric-alert-processing")
+    def test_create_alert_rule_aci(self):
+        with (
+            outbox_runner(),
+            self.feature(["organizations:incidents", "organizations:performance-view"]),
+        ):
+            resp = self.get_success_response(
+                self.organization.slug,
+                status_code=201,
+                **self.alert_rule_dict,
+            )
+        assert "id" in resp.data
+        alert_rule = AlertRule.objects.get(id=resp.data["id"])
+        assert resp.data == serialize(alert_rule, self.user)
+        assert_alert_rule_migrated(alert_rule, self.project.id)
 
     @with_feature("organizations:slack-metric-alert-description")
     @with_feature("organizations:incidents")

@@ -41,6 +41,49 @@ from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
+def assert_alert_rule_migrated(alert_rule, project_id):
+    alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=alert_rule)
+    alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=alert_rule)
+
+    workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
+    assert workflow.name == alert_rule.name
+    assert alert_rule.organization
+    assert workflow.organization_id == alert_rule.organization.id
+    detector = Detector.objects.get(id=alert_rule_detector.detector.id)
+    assert detector.name == alert_rule.name
+    assert detector.project_id == project_id
+    assert detector.enabled is True
+    assert detector.description == alert_rule.description
+    assert detector.owner_user_id == alert_rule.user_id
+    assert detector.owner_team == alert_rule.team
+    assert detector.type == MetricAlertFire.slug
+    assert detector.config == {
+        "threshold_period": alert_rule.threshold_period,
+        "sensitivity": None,
+        "seasonality": None,
+        "comparison_delta": None,
+        "detection_type": AlertRuleDetectionType.STATIC,
+    }
+
+    detector_workflow = DetectorWorkflow.objects.get(detector=detector)
+    assert detector_workflow.workflow == workflow
+
+    assert workflow.when_condition_group is None
+
+    assert alert_rule.snuba_query
+    query_subscription = QuerySubscription.objects.get(snuba_query=alert_rule.snuba_query.id)
+    data_source = DataSource.objects.get(
+        organization_id=alert_rule.organization_id, query_id=query_subscription.id
+    )
+    assert data_source.type == "snuba_query_subscription"
+    detector_state = DetectorState.objects.get(detector=detector)
+    assert detector_state.active is False
+    assert detector_state.state == str(DetectorPriorityLevel.OK.value)
+
+    data_source_detector = DataSourceDetector.objects.get(data_source=data_source)
+    assert data_source_detector.detector == detector
+
+
 class AlertRuleMigrationHelpersTest(APITestCase):
     def setUp(self):
         METADATA = {
@@ -101,49 +144,7 @@ class AlertRuleMigrationHelpersTest(APITestCase):
         Test that when we call the helper methods we create all the ACI models correctly for an alert rule
         """
         migrate_alert_rule(self.metric_alert, self.rpc_user)
-
-        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=self.metric_alert)
-        alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=self.metric_alert)
-
-        workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
-        assert workflow.name == self.metric_alert.name
-        assert self.metric_alert.organization
-        assert workflow.organization_id == self.metric_alert.organization.id
-        detector = Detector.objects.get(id=alert_rule_detector.detector.id)
-        assert detector.name == self.metric_alert.name
-        assert detector.project_id == self.project.id
-        assert detector.enabled is True
-        assert detector.description == self.metric_alert.description
-        assert detector.owner_user_id == self.metric_alert.user_id
-        assert detector.owner_team == self.metric_alert.team
-        assert detector.type == MetricAlertFire.slug
-        assert detector.config == {
-            "threshold_period": self.metric_alert.threshold_period,
-            "sensitivity": None,
-            "seasonality": None,
-            "comparison_delta": None,
-            "detection_type": AlertRuleDetectionType.STATIC,
-        }
-
-        detector_workflow = DetectorWorkflow.objects.get(detector=detector)
-        assert detector_workflow.workflow == workflow
-
-        assert workflow.when_condition_group is None
-
-        assert self.metric_alert.snuba_query
-        query_subscription = QuerySubscription.objects.get(
-            snuba_query=self.metric_alert.snuba_query.id
-        )
-        data_source = DataSource.objects.get(
-            organization_id=self.metric_alert.organization_id, query_id=query_subscription.id
-        )
-        assert data_source.type == "snuba_query_subscription"
-        detector_state = DetectorState.objects.get(detector=detector)
-        assert detector_state.active is False
-        assert detector_state.state == str(DetectorPriorityLevel.OK.value)
-
-        data_source_detector = DataSourceDetector.objects.get(data_source=data_source)
-        assert data_source_detector.detector == detector
+        assert_alert_rule_migrated(self.metric_alert, self.project.id)
 
     def test_create_metric_alert_no_data_source(self):
         """
