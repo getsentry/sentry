@@ -13,6 +13,8 @@ from sentry.utils.event_frames import EventFrame, try_munge_frame_path
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
+SUPPORTED_LANGUAGES = ["javascript", "python", "node", "ruby", "php", "go", "csharp"]
+
 SLASH = "/"
 BACKSLASH = "\\"  # This is the Python representation of a single backslash
 
@@ -109,7 +111,9 @@ class FrameFilename:
     def __repr__(self) -> str:
         return f"FrameFilename: {self.full_path}"
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, FrameFilename):
+            return False
         return self.full_path == other.full_path
 
 

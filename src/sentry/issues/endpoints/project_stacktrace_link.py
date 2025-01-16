@@ -17,8 +17,8 @@ from sentry.api.serializers import serialize
 from sentry.integrations.api.serializers.models.integration import IntegrationSerializer
 from sentry.integrations.base import IntegrationFeatures
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.utils.code_mapping import get_sorted_code_mapping_configs
 from sentry.integrations.utils.stacktrace_link import StacktraceLinkOutcome, get_stacktrace_config
+from sentry.issues.auto_source_code_config.code_mapping import get_sorted_code_mapping_configs
 from sentry.models.project import Project
 
 logger = logging.getLogger(__name__)

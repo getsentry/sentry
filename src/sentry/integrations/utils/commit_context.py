@@ -18,7 +18,9 @@ from sentry.integrations.source_code_management.commit_context import (
     FileBlameInfo,
     SourceLineInfo,
 )
-from sentry.integrations.utils.code_mapping import convert_stacktrace_frame_path_to_source_path
+from sentry.issues.auto_source_code_config.code_mapping import (
+    convert_stacktrace_frame_path_to_source_path,
+)
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.shared_integrations.exceptions import ApiError

@@ -57,6 +57,7 @@ register(
     default=2**31,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register("system.new-auto-source-code-config-queue", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # URL configuration
 # Absolute URL to the sentry root directory. Should not include a trailing slash.
