@@ -1996,11 +1996,11 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
             assert datum["meta"] == {
                 "dataset": "metricsEnhanced",
                 "datasetReason": "unchanged",
-                "fields": {},
+                "fields": {"count": "integer", "networkId": "string", "time": "date"},
                 "isMetricsData": False,
                 "isMetricsExtractedData": True,
                 "tips": {},
-                "units": {},
+                "units": {"count": None, "networkId": None, "time": None},
             }
 
     def _test_is_metrics_extracted_data(
@@ -2184,11 +2184,11 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
             assert datum["meta"] == {
                 "dataset": "metricsEnhanced",
                 "datasetReason": "unchanged",
-                "fields": {},
+                "fields": {"count": "integer", "networkId": "string", "time": "date"},
                 "isMetricsData": False,
                 "isMetricsExtractedData": True,
                 "tips": {},
-                "units": {},
+                "units": {"count": None, "networkId": None, "time": None},
             }
 
     def test_order_by_aggregate_top_events_asc(self):
@@ -2226,11 +2226,11 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
             assert datum["meta"] == {
                 "dataset": "metricsEnhanced",
                 "datasetReason": "unchanged",
-                "fields": {},
+                "fields": {"count": "integer", "networkId": "string", "time": "date"},
                 "isMetricsData": False,
                 "isMetricsExtractedData": True,
                 "tips": {},
-                "units": {},
+                "units": {"count": None, "networkId": None, "time": None},
             }
 
     def test_order_by_aggregate_top_events_graph_different_aggregate(self):
@@ -2268,11 +2268,19 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
             assert datum["meta"] == {
                 "dataset": "metricsEnhanced",
                 "datasetReason": "unchanged",
-                "fields": {},
+                "fields": {
+                    "networkId": "string",
+                    "p95_transaction_duration": "duration",
+                    "time": "date",
+                },
                 "isMetricsData": False,
                 "isMetricsExtractedData": True,
                 "tips": {},
-                "units": {},
+                "units": {
+                    "networkId": None,
+                    "p95_transaction_duration": "millisecond",
+                    "time": None,
+                },
             }
 
     def test_cannot_order_by_tag(self):
