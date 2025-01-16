@@ -178,11 +178,6 @@ describe('IntegrationRepos', function () {
         ],
       });
       MockApiClient.addMockResponse({
-        url: `/organizations/${org.slug}/repos/`,
-        method: 'POST',
-        body: RepositoryFixture({integrationId: '1'}),
-      });
-      MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/integrations/${integration.id}/repos/`,
         body: {repos: [{identifier: 'example/repo-name', name: 'repo-name'}]},
       });
@@ -210,11 +205,6 @@ describe('IntegrationRepos', function () {
         url: `/organizations/${org.slug}/repos/`,
         method: 'GET',
         body: [RepositoryFixture({name: 'repo-name-other', externalSlug: '9876'})],
-      });
-      MockApiClient.addMockResponse({
-        url: `/organizations/${org.slug}/repos/`,
-        method: 'POST',
-        body: RepositoryFixture({integrationId: '1'}),
       });
       const getItems = MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/integrations/${integration.id}/repos/`,
