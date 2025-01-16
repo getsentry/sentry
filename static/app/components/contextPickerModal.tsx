@@ -22,11 +22,7 @@ import Projects from 'sentry/utils/projects';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 import IntegrationIcon from 'sentry/views/settings/organizationIntegrations/integrationIcon';
 
-type Props = ModalRenderProps & {
-  integrationConfigs: Integration[];
-
-  loading: boolean;
-
+type SharedProps = ModalRenderProps & {
   /**
    * Does modal need to prompt for organization.
    * TODO(billy): This can be derived from `nextPath`
@@ -48,6 +44,15 @@ type Props = ModalRenderProps & {
    * @param path type will match nextPath's type {@link Props.nextPath}
    */
   onFinish: (path: string | {pathname: string; query?: Query}) => number | void;
+
+  allowAllProjectsSelection?: boolean;
+};
+
+type Props = SharedProps & {
+  integrationConfigs: Integration[];
+
+  loading: boolean;
+
   /**
    * Callback for when organization is selected
    */
@@ -64,8 +69,6 @@ type Props = ModalRenderProps & {
   organizations: Organization[];
 
   projects: Project[];
-
-  allowAllProjectsSelection?: boolean;
 };
 
 function autoFocusReactSelect(reactSelectRef: any) {
@@ -401,16 +404,7 @@ class ContextPickerModal extends Component<Props> {
   }
 }
 
-type ContainerProps = Omit<
-  Props,
-  | 'projects'
-  | 'loading'
-  | 'organizations'
-  | 'organization'
-  | 'onSelectOrganization'
-  | 'integrationConfigs'
-> & {
-  allowAllProjectsSelection?: boolean;
+type ContainerProps = SharedProps & {
   configUrl?: string;
 
   /**
