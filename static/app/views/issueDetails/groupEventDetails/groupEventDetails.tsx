@@ -152,7 +152,8 @@ function GroupEventDetails() {
           <ResolutionBox
             statusDetails={group.statusDetails}
             activities={group.activity}
-            projectId={project.id}
+            project={project}
+            organization={organization}
           />
         </GroupStatusBannerWrapper>
       );
