@@ -279,25 +279,6 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin):
         >>>     return self.render('myplugin/about.html')
         """
 
-    def before_events(self, request, group_list, **kwargs):
-        """
-        Allows preprocessing of groups in the list view.
-
-        This is generally useful if you need to cache lookups
-        for something like ``tags`` which would otherwise do
-        multiple queries.
-
-        If you use this **at all** you should ensure it's already
-        reset on each execution.
-
-        As an example, here's how we might get a reference to ticket ids we were
-        storing per event, in an efficient O(1) manner.
-
-        >>> def before_events(self, request, event_list, **kwargs):
-        >>>     prefix = self.get_conf_key()
-        >>>     GroupMeta.objects.get_value_bulk(event_list, '%s:tid' % prefix)
-        """
-
     def tags(self, request, group, tag_list, **kwargs):
         """
         Modifies the tag list for a grouped message.
