@@ -33,6 +33,7 @@ SearchType = (
 STRING = AttributeKey.TYPE_STRING
 BOOLEAN = AttributeKey.TYPE_BOOLEAN
 FLOAT = AttributeKey.TYPE_FLOAT
+DOUBLE = AttributeKey.TYPE_DOUBLE
 INT = AttributeKey.TYPE_INT
 
 # TODO: we need a datetime type
