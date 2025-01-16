@@ -1,4 +1,5 @@
 import {CommitFixture} from 'sentry-fixture/commit';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {UserFixture} from 'sentry-fixture/user';
 
@@ -9,13 +10,22 @@ import {GroupActivityType} from 'sentry/types/group';
 import ResolutionBox from './resolutionBox';
 
 describe('ResolutionBox', function () {
+  const organization = OrganizationFixture();
+  const project = ProjectFixture();
+
   it('handles default', function () {
-    const {container} = render(<ResolutionBox statusDetails={{}} projectId="1" />);
+    const {container} = render(
+      <ResolutionBox statusDetails={{}} project={project} organization={organization} />
+    );
     expect(container).toHaveTextContent('This issue has been marked as resolved.');
   });
   it('handles inNextRelease', function () {
     const {container} = render(
-      <ResolutionBox statusDetails={{inNextRelease: true}} projectId="1" />
+      <ResolutionBox
+        statusDetails={{inNextRelease: true}}
+        project={project}
+        organization={organization}
+      />
     );
     expect(container).toHaveTextContent(
       'This issue has been marked as resolved in the upcoming release.'
@@ -34,7 +44,8 @@ describe('ResolutionBox', function () {
             email: 'david@sentry.io',
           },
         }}
-        projectId="1"
+        project={project}
+        organization={organization}
       />
     );
     expect(container).toHaveTextContent(
@@ -48,7 +59,8 @@ describe('ResolutionBox', function () {
           inNextRelease: true,
           actor: UserFixture(),
         }}
-        projectId="1"
+        project={project}
+        organization={organization}
         activities={[
           {
             id: '1',
@@ -57,7 +69,7 @@ describe('ResolutionBox', function () {
               current_release_version: 'frontend@1.0.0',
             },
             dateCreated: new Date().toISOString(),
-            project: ProjectFixture(),
+            project,
           },
         ]}
       />
@@ -72,7 +84,8 @@ describe('ResolutionBox', function () {
         statusDetails={{
           inRelease: '1.0',
         }}
-        projectId="1"
+        project={project}
+        organization={organization}
       />
     );
     expect(container).toHaveTextContent(
@@ -92,7 +105,8 @@ describe('ResolutionBox', function () {
             email: 'david@sentry.io',
           },
         }}
-        projectId="1"
+        project={project}
+        organization={organization}
       />
     );
     expect(container).toHaveTextContent(
@@ -105,7 +119,8 @@ describe('ResolutionBox', function () {
         statusDetails={{
           inCommit: CommitFixture(),
         }}
-        projectId="1"
+        project={project}
+        organization={organization}
       />
     );
     expect(container).toHaveTextContent(
@@ -126,7 +141,8 @@ describe('ResolutionBox', function () {
             email: 'david@sentry.io',
           },
         }}
-        projectId="1"
+        project={project}
+        organization={organization}
       />
     );
     expect(container).toHaveTextContent(

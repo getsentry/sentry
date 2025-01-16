@@ -377,9 +377,10 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
                   {group.status === 'resolved'
                     ? renderResolutionReason({
                         statusDetails: group.statusDetails,
-                        projectId: project.id,
                         activities: group.activity,
                         hasStreamlinedUI,
+                        project,
+                        organization,
                       })
                     : null}
                   {group.status === 'ignored'
