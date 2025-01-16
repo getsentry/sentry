@@ -19,6 +19,9 @@ class UserExamples:
                     "hasAuthProvider": False,
                     "id": "2",
                     "isEarlyAdopter": False,
+                    "allowMemberInvite": True,
+                    "allowMemberProjectCreation": True,
+                    "allowSuperuserAccess": False,
                     "links": {
                         "organizationUrl": "https://the-interstellar-jurisdiction.sentry.io",
                         "regionUrl": "https://us.sentry.io",
