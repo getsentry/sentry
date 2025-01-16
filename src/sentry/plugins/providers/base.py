@@ -32,12 +32,6 @@ class ProviderMixin:
         rpc_organization = serialize_rpc_organization(org=organization)
         usersocialauth_service.link_auth(usa=usa, organization=rpc_organization)
 
-    def get_auth_url(self, user, **kwargs):
-        if self.auth_provider is None:
-            return
-
-        return reverse("socialauth_associate", args=[self.auth_provider])
-
     def get_auth(self, user: RpcUser | User, **kwargs) -> RpcUserSocialAuth | None:
         if self.auth_provider is None:
             return None
