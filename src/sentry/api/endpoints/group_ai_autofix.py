@@ -23,6 +23,8 @@ from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.profiles.utils import get_from_profiling_service
 from sentry.seer.signed_seer_api import get_seer_salted_url, sign_with_seer_secret
+from sentry.snuba.dataset import Dataset
+from sentry.snuba.referrer import Referrer
 from sentry.tasks.autofix import check_autofix_status
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.models.user import User
@@ -66,34 +68,46 @@ class GroupAutofixEndpoint(GroupEndpoint):
     def _get_profile_for_event(
         self, event: Event | GroupEvent, project: Project
     ) -> dict[str, Any] | None:
-        context = event.data.get("contexts", {})
-        profile_id = context.get("profile", {}).get("profile_id")  # transaction profile
+        # find most recent profile for this transaction instead
+        profile_matches_event = False
+        transaction_name = event.transaction
+        if not transaction_name:
+            return None
 
-        profile_matches_event = True
-        if not profile_id:
-            # find most recent profile for this transaction instead
+        event_filter = eventstore.Filter(
+            project_ids=[project.id],
+            conditions=[
+                ["transaction", "=", transaction_name],
+                ["trace_id", "=", event.trace_id],
+                ["profile_id", "IS NOT NULL", None],
+            ],
+        )
+        results = eventstore.backend.get_events(
+            filter=event_filter,
+            dataset=Dataset.Transactions,
+            referrer=Referrer.API_GROUP_AI_AUTOFIX,
+            tenant_ids={"organization_id": project.organization_id},
+            limit=10,
+        )
+
+        # iterate through each result's spans and find the one that contains the span corresponding to our error event
+        span_id = event.data.get("contexts", {}).get("trace", {}).get("span_id")
+        profile_id = None
+        if results and span_id:
+            for result in results:
+                spans = result.data.get("spans", [])
+                for span in spans:
+                    if span.get("span_id") == span_id:
+                        profile_matches_event = True
+                        profile_id = (
+                            result.data.get("contexts", {}).get("profile", {}).get("profile_id")
+                        )
+                        break
+                if profile_id:
+                    break
+        if not profile_id and results:  # fallback to a similar transaction in the trace
             profile_matches_event = False
-            transaction_name = event.data.get("transaction", "")
-            if not transaction_name:
-                return {}
-
-            event_filter = eventstore.Filter(
-                project_ids=[project.id],
-                conditions=[
-                    ["transaction", "=", transaction_name],
-                    ["profile.id", "IS NOT NULL", None],
-                ],
-            )
-            results = eventstore.backend.get_events(
-                filter=event_filter,
-                referrer="api.group_ai_autofix",
-                tenant_ids={"organization_id": project.organization_id},
-                limit=1,
-            )
-            if results:
-                context = results[0].data.get("contexts", {})
-                profile_id = context.get("profile", {}).get("profile_id")
-
+            profile_id = results[0].data.get("contexts", {}).get("profile", {}).get("profile_id")
         if not profile_id:
             return None
 
