@@ -1,9 +1,13 @@
 import {DURATION_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import getDuration from 'sentry/utils/duration/getDuration';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {VitalState} from 'sentry/views/performance/vitalDetail/utils';
 
-const formatMetricValue = (metric: MetricValue): string => {
+const formatMetricValue = (metric: MetricValue, field?: string | undefined): string => {
+  if (metric.value == null) {
+    return '-';
+  }
   if (typeof metric.value === 'number' && metric.type === 'duration' && metric.unit) {
     const seconds =
       (metric.value * ((metric.unit && DURATION_UNITS[metric.unit]) ?? 1)) / 1000;
@@ -11,7 +15,19 @@ const formatMetricValue = (metric: MetricValue): string => {
   }
 
   if (typeof metric.value === 'number' && metric.type === 'number') {
-    return metric.value.toFixed(2);
+    if (isFinite(metric.value)) {
+      return metric.value.toFixed(2);
+    }
+    return '-';
+  }
+  if (
+    field === 'division(mobile.slow_frames,mobile.total_frames)' ||
+    field === 'division(mobile.frozen_frames,mobile.total_frames)'
+  ) {
+    if (typeof metric.value === 'number' && isFinite(metric.value)) {
+      return formatPercentage(metric.value, 2, {minimumValue: 0.0001});
+    }
+    return '-';
   }
 
   return String(metric.value);
@@ -37,7 +53,7 @@ export type VitalItem = {
   description: string;
   docs: React.ReactNode;
   field: string;
-  getStatus: (value: MetricValue) => VitalStatus;
+  getStatus: (value: MetricValue, field?: string | undefined) => VitalStatus;
   platformDocLinks: Record<string, string>;
   sdkDocLinks: Record<string, string>;
   setup: React.ReactNode | undefined;
@@ -116,10 +132,13 @@ export function getWarmAppStartPerformance(metric: MetricValue): VitalStatus {
   };
 }
 
-export function getDefaultMetricPerformance(metric: MetricValue): VitalStatus {
+export function getDefaultMetricPerformance(
+  metric: MetricValue,
+  field?: string | undefined
+): VitalStatus {
   return {
     description: undefined,
-    formattedValue: formatMetricValue(metric),
+    formattedValue: formatMetricValue(metric, field),
     value: metric,
     score: PerformanceScore.NONE,
   };

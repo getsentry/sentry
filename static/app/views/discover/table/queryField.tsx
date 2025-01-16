@@ -698,7 +698,7 @@ class QueryField extends Component<Props> {
   }
 }
 
-function validateColumnTypes(
+export function validateColumnTypes(
   columnTypes: ValidateColumnTypes,
   input: FieldValueColumns
 ): boolean {

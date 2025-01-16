@@ -6,7 +6,7 @@ from typing import cast
 
 import sentry_sdk
 from parsimonious.exceptions import ParseError
-from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta
+from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta, TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     AttributeKey,
     AttributeValue,
@@ -68,6 +68,7 @@ class SearchResolver:
             project_ids=self.params.project_ids,
             start_timestamp=self.params.rpc_start_date,
             end_timestamp=self.params.rpc_end_date,
+            trace_item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
         )
 
     @sentry_sdk.trace

@@ -32,7 +32,7 @@ const UptimeStatusText: Record<
 };
 
 /**
- * Takes in an alert rule (activated metric, metric, issue) and renders the
+ * Takes in an alert rule (metric or issue) and renders the
  * appropriate tooltip and AlertBadge
  */
 export default function CombinedAlertBadge({rule}: Props) {

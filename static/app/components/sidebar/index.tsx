@@ -11,14 +11,13 @@ import FeedbackOnboardingSidebar from 'sentry/components/feedback/feedbackOnboar
 import Hook from 'sentry/components/hook';
 import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {getMergedTasks} from 'sentry/components/onboardingWizard/taskConfig';
-import {hasQuickStartUpdatesFeature} from 'sentry/components/onboardingWizard/utils';
 import PerformanceOnboardingSidebar from 'sentry/components/performanceOnboarding/sidebar';
 import ReplaysOnboardingSidebar from 'sentry/components/replaysOnboarding/sidebar';
 import {
   ExpandedContext,
   ExpandedContextProvider,
 } from 'sentry/components/sidebar/expandedContextProvider';
-import {NewOnboardingStatus} from 'sentry/components/sidebar/newOnboardingStatus';
+import {OnboardingStatus} from 'sentry/components/sidebar/onboardingStatus';
 import {DismissableRollbackBanner} from 'sentry/components/sidebar/rollback/dismissableBanner';
 import {isDone} from 'sentry/components/sidebar/utils';
 import {
@@ -83,7 +82,6 @@ import {ProfilingOnboardingSidebar} from '../profiling/profilingOnboardingSideba
 
 import {Broadcasts} from './broadcasts';
 import SidebarHelp from './help';
-import OnboardingStatus from './onboardingStatus';
 import ServiceIncidents from './serviceIncidents';
 import {SidebarAccordion} from './sidebarAccordion';
 import SidebarDropdown from './sidebarDropdown';
@@ -623,22 +621,12 @@ function Sidebar() {
               {...sidebarItemProps}
             />
             <SidebarSection hasNewNav={hasNewNav} noMargin noPadding>
-              {hasQuickStartUpdatesFeature(organization) ? (
-                <NewOnboardingStatus
-                  currentPanel={activePanel}
-                  onShowPanel={() => togglePanel(SidebarPanelKey.ONBOARDING_WIZARD)}
-                  hidePanel={hidePanel}
-                  {...sidebarItemProps}
-                />
-              ) : (
-                <OnboardingStatus
-                  org={organization}
-                  currentPanel={activePanel}
-                  onShowPanel={() => togglePanel(SidebarPanelKey.ONBOARDING_WIZARD)}
-                  hidePanel={hidePanel}
-                  {...sidebarItemProps}
-                />
-              )}
+              <OnboardingStatus
+                currentPanel={activePanel}
+                onShowPanel={() => togglePanel(SidebarPanelKey.ONBOARDING_WIZARD)}
+                hidePanel={hidePanel}
+                {...sidebarItemProps}
+              />
             </SidebarSection>
 
             <SidebarSection hasNewNav={hasNewNav} centeredItems={horizontal}>

@@ -104,7 +104,18 @@ export enum IssueType {
   REPLAY_HYDRATION_ERROR = 'replay_hydration_error',
 }
 
+// Update this if adding an issue type that you don't want to show up in search!
+export const VISIBLE_ISSUE_TYPES = Object.values(IssueType).filter(
+  type =>
+    ![
+      IssueType.PROFILE_FRAME_DROP_EXPERIMENTAL,
+      IssueType.PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL,
+    ].includes(type)
+);
+
 export enum IssueTitle {
+  ERROR = 'Error',
+
   // Performance
   PERFORMANCE_CONSECUTIVE_DB_QUERIES = 'Consecutive DB Queries',
   PERFORMANCE_CONSECUTIVE_HTTP = 'Consecutive HTTP',
@@ -126,7 +137,6 @@ export enum IssueTitle {
   PROFILE_JSON_DECODE_MAIN_THREAD = 'JSON Decoding on Main Thread',
   PROFILE_REGEX_MAIN_THREAD = 'Regex on Main Thread',
   PROFILE_FRAME_DROP = 'Frame Drop',
-  PROFILE_FRAME_DROP_EXPERIMENTAL = 'Frame Drop',
   PROFILE_FUNCTION_REGRESSION = 'Function Regression',
   PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL = 'Function Duration Regression (Experimental)',
 
@@ -136,6 +146,8 @@ export enum IssueTitle {
 }
 
 const ISSUE_TYPE_TO_ISSUE_TITLE = {
+  error: IssueTitle.ERROR,
+
   performance_consecutive_db_queries: IssueTitle.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
   performance_consecutive_http: IssueTitle.PERFORMANCE_CONSECUTIVE_HTTP,
   performance_file_io_main_thread: IssueTitle.PERFORMANCE_FILE_IO_MAIN_THREAD,
@@ -155,7 +167,7 @@ const ISSUE_TYPE_TO_ISSUE_TITLE = {
   profile_json_decode_main_thread: IssueTitle.PROFILE_JSON_DECODE_MAIN_THREAD,
   profile_regex_main_thread: IssueTitle.PROFILE_REGEX_MAIN_THREAD,
   profile_frame_drop: IssueTitle.PROFILE_FRAME_DROP,
-  profile_frame_drop_experimental: IssueTitle.PROFILE_FRAME_DROP_EXPERIMENTAL,
+  profile_frame_drop_experimental: IssueTitle.PROFILE_FRAME_DROP,
   profile_function_regression: IssueTitle.PROFILE_FUNCTION_REGRESSION,
   profile_function_regression_exp: IssueTitle.PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL,
 

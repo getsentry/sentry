@@ -57,6 +57,7 @@ register(
     default=2**31,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register("system.new-auto-source-code-config-queue", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # URL configuration
 # Absolute URL to the sentry root directory. Should not include a trailing slash.
@@ -825,6 +826,23 @@ register(
     "issues.priority.projects-allowlist",
     type=Sequence,
     default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+
+#  Percentage of orgs that will be put into a bucket using the split rate below.
+register(
+    "issues.details.streamline-experiment-rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# 50% of orgs will only see the Streamline UI, 50% will only see the Legacy UI.
+register(
+    "issues.details.streamline-experiment-split-rate",
+    type=Float,
+    default=0.5,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
