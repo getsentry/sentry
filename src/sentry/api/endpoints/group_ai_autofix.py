@@ -68,7 +68,6 @@ class GroupAutofixEndpoint(GroupEndpoint):
     def _get_profile_for_event(
         self, event: Event | GroupEvent, project: Project
     ) -> dict[str, Any] | None:
-        # find most recent profile for this transaction instead
         profile_matches_event = False
         transaction_name = event.transaction
         if not transaction_name:
@@ -90,7 +89,7 @@ class GroupAutofixEndpoint(GroupEndpoint):
             limit=10,
         )
 
-        # iterate through each result's spans and find the one that contains the span corresponding to our error event
+        # iterate through each transaction's spans and find the one that contains the span corresponding to our error event
         span_id = event.data.get("contexts", {}).get("trace", {}).get("span_id")
         profile_id = None
         if results and span_id:
