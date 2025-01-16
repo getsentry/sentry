@@ -312,6 +312,18 @@ export async function demoEndModal(options: DemoEndModalOptions) {
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }
 
+export type DemoEmailModalOptions = {
+  onAddedEmail: (email: string) => void;
+  onFailure: () => void;
+};
+
+export async function demoEmailModal(options: DemoEmailModalOptions) {
+  const mod = await import('sentry/components/modals/demoEmailModal');
+  const {default: Modal, modalCss} = mod;
+
+  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
+}
+
 export async function openDashboardWidgetQuerySelectorModal(
   options: DashboardWidgetQuerySelectorModalOptions
 ) {

@@ -35,7 +35,9 @@ export function GetUTMData(): UTMState {
   let touches: {[key: string]: string} = {};
   try {
     const saved = localStorage.getItem(lsKey);
-    if (saved) touches = JSON.parse(saved);
+    if (saved) {
+      touches = JSON.parse(saved);
+    }
   } catch (error) {
     // Noop, we don't care
   }
@@ -57,7 +59,9 @@ export function GetUTMData(): UTMState {
 
           // If a last touch is safed, send it.
           const ltk = toLastTouchKey(utm);
-          if (touches[ltk]) a[ltk] = touches[ltk];
+          if (touches[ltk]) {
+            a[ltk] = touches[ltk];
+          }
           return a;
         },
         {} as {[key: string]: string}

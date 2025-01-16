@@ -1,7 +1,8 @@
+import {setForceHide} from 'sentry/actionCreators/guides';
 import ConfigStore from 'sentry/stores/configStore';
 import {OnboardingTaskKey} from 'sentry/types/onboarding';
 
-import {demoSignupModal} from '../../actionCreators/modal';
+import {demoEmailModal, demoSignupModal} from '../../actionCreators/modal';
 
 const SIGN_UP_MODAL_DELAY = 20_000;
 
@@ -40,6 +41,33 @@ export function openDemoSignupModal() {
   setTimeout(() => {
     demoSignupModal();
   }, SIGN_UP_MODAL_DELAY);
+}
+
+export function openDemoEmailModal() {
+  if (!isDemoModeEnabled()) {
+    return;
+  }
+
+  // email already added
+  if (localStorage.getItem('sandbox_email_added') === '1') {
+    return;
+  }
+
+  demoEmailModal({onAddedEmail, onFailure: handleFailure});
+}
+
+function onAddedEmail(email) {
+  setForceHide(false);
+  localStorage.setItem('email', email);
+  localStorage.setItem(
+    'time_entered',
+    JSON.stringify(Math.floor(new Date().getTime() / 1000))
+  );
+  localStorage.setItem('sandbox_email_added', '1');
+}
+
+function handleFailure() {
+  setForceHide(false);
 }
 
 // Function to determine which tour has completed depending on the guide that is being passed in.

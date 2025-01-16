@@ -13,7 +13,9 @@ export default function EmailForm({onSubmit, IconArrow}: Props) {
       onSubmit={event => {
         event.preventDefault();
         const email = (event.target as HTMLFormElement).email.value;
-        if (onSubmit) onSubmit(email);
+        if (onSubmit) {
+          onSubmit(email);
+        }
       }}
     >
       <EmailFormInput

@@ -1,22 +1,22 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Client} from 'sentry/api';
+import {IconArrow} from 'sentry/icons';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import EmailForm from 'sentry/utils/demoMode/emailForm';
+import {GetUTMData, UpdateTouches} from 'sentry/utils/demoMode/utm';
 
-import {trackAnalytics} from '../../analytics';
 import TopRight from '../assets/highlight-top-right.svg';
 import sandboxDemo from '../assets/sandboxHeader.jpg';
 
-import EmailForm from './email';
-import {GetUTMData, UpdateTouches} from './utm';
-
 type Props = {
-  IconArrow: any;
   closeModal: () => void;
   onAddedEmail: (email: string) => void;
   onFailure: () => void;
 };
 
-export default function Modal({onAddedEmail, closeModal, onFailure, IconArrow}: Props) {
+export default function Modal({onAddedEmail, closeModal, onFailure}: Props) {
   const onBack = () => {
     // go back to the referrer or the welcome page
     let newUrl = 'https://sentry.io/welcome/';
@@ -57,12 +57,16 @@ export default function Modal({onAddedEmail, closeModal, onFailure, IconArrow}: 
           <EmailForm
             onSubmit={email => {
               const utmState = GetUTMData();
-              if (closeModal) closeModal();
+              if (closeModal) {
+                closeModal();
+              }
 
               const api = new Client();
 
               // always save the email before the API call
-              if (onAddedEmail) onAddedEmail(email);
+              if (onAddedEmail) {
+                onAddedEmail(email);
+              }
 
               api
                 .requestPromise('/demo/email-capture/', {
@@ -144,4 +148,14 @@ const Subheader = styled('h4')`
   font-weight: bold;
   color: #6c5fc7;
   font-size: 14px;
+`;
+
+export const modalCss = css`
+  width: 100%;
+  max-width: 1000px;
+  [role='document'] {
+    position: relative;
+    padding: 50px 60px;
+    overflow: hidden;
+  }
 `;
