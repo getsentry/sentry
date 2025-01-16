@@ -517,6 +517,26 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase, HybridCloudTest
             == "The role 'admin' is deprecated and may no longer be assigned."
         )
 
+    def test_does_not_include_secondary_emails(self):
+        # Create a user with multiple email addresses
+        user3 = self.create_user("primary@example.com", username="multi_email_user")
+        self.create_useremail(user3, "secondary1@example.com")
+        self.create_useremail(user3, "secondary2@example.com")
+
+        # Add user to organization
+        self.create_member(organization=self.organization, user=user3)
+
+        response = self.get_success_response(self.organization.slug)
+
+        # Find the member in the response
+        member_data = next(m for m in response.data if m["email"] == "primary@example.com")
+
+        # Check that only primary email is present and no other email addresses are exposed
+        assert member_data["email"] == "primary@example.com"
+        assert "emails" not in member_data["user"]
+        assert all("email" not in team for team in member_data.get("teams", []))
+        assert all("email" not in role for role in member_data.get("teamRoles", []))
+
 
 class OrganizationMemberPermissionRoleTest(OrganizationMemberListTestBase, HybridCloudTestMixin):
     method = "post"
