@@ -33,10 +33,6 @@ class SessionStackPlugin(CorePluginMixin, Plugin2):
     conf_key = slug
     required_field = "account_email"
 
-    sessionstack_resource_links = [
-        ("Documentation", "http://docs.sessionstack.com/integrations/sentry/")
-    ]
-
     feature_descriptions = [
         FeatureDescription(
             """
@@ -45,9 +41,6 @@ class SessionStackPlugin(CorePluginMixin, Plugin2):
             IntegrationFeatures.SESSION_REPLAY,
         )
     ]
-
-    def get_resource_links(self):
-        return self.resource_links + self.sessionstack_resource_links
 
     def has_project_conf(self):
         return True

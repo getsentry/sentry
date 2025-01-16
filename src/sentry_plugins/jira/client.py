@@ -28,7 +28,6 @@ class JiraClient(ApiClient):
     ISSUE_URL = "/rest/api/2/issue/{}"
     SEARCH_URL = "/rest/api/2/search/"
     COMMENT_URL = "/rest/api/2/issue/{}/comment"
-    HTTP_TIMEOUT = 5
     plugin_name = "jira"
 
     cache_time = 60
@@ -74,9 +73,6 @@ class JiraClient(ApiClient):
 
     def get_priorities(self):
         return self.get_cached(self.PRIORITIES_URL)
-
-    def get_users_for_project(self, project):
-        return self.get(self.USERS_URL, params={"project": project})
 
     def search_users_for_project(self, project, username):
         return self.get(self.USERS_URL, params={"project": project, "username": username})

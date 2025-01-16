@@ -15,23 +15,6 @@ class ReleaseHook:
     def __init__(self, project):
         self.project = project
 
-    def start_release(self, version, **values):
-        if not Release.is_valid_version(version):
-            raise HookValidationError("Invalid release version: %s" % version)
-
-        try:
-            with transaction.atomic(router.db_for_write(Release)):
-                release = Release.objects.create(
-                    version=version, organization_id=self.project.organization_id, **values
-                )
-        except IntegrityError:
-            release = Release.objects.get(
-                version=version, organization_id=self.project.organization_id
-            )
-            release.update(**values)
-
-        release.add_project(self.project)
-
     # TODO(dcramer): this is being used by the release details endpoint, but
     # it'd be ideal if most if not all of this logic lived there, and this
     # hook simply called out to the endpoint

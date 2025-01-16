@@ -43,32 +43,6 @@ class SegmentPlugin(CorePluginMixin, DataForwardingPlugin):
     def get_rate_limit(self):
         return (200, 1)
 
-    def get_event_props(self, event):
-        props = {
-            "eventId": event.event_id,
-            "transaction": event.get_tag("transaction") or "",
-            "release": event.get_tag("sentry:release") or "",
-            "level": event.get_tag("level") or "",
-            "environment": event.get_tag("environment") or "",
-        }
-        if "request" in event.interfaces:
-            http = event.interfaces["request"]
-            headers = http.headers
-            if not isinstance(headers, dict):
-                headers = dict(headers or ())
-
-            props.update(
-                {
-                    "requestUrl": http.url,
-                    "requestMethod": http.method,
-                    "requestReferer": headers.get("Referer", ""),
-                }
-            )
-        if "exception" in event.interfaces:
-            exc = event.interfaces["exception"].values[0]
-            props.update({"exceptionType": exc.type})
-        return props
-
     # https://segment.com/docs/spec/track/
     def get_event_payload(self, event):
         context = {"library": {"name": "sentry", "version": self.version}}
