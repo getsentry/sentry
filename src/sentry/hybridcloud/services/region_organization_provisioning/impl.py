@@ -12,6 +12,7 @@ from sentry.hybridcloud.services.control_organization_provisioning import (
 from sentry.hybridcloud.services.region_organization_provisioning import (
     RegionOrganizationProvisioningRpcService,
 )
+from sentry.issues.streamline import apply_streamline_rollout_group
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
@@ -54,6 +55,8 @@ class DatabaseBackedRegionOrganizationProvisioningRpcService(
         org = Organization.objects.create(
             id=organization_id, name=organization_name, slug=slug, is_test=is_test
         )
+
+        apply_streamline_rollout_group(organization=org)
 
         # Slug changes mean there was either a collision with the organization slug
         # or a bug in the slugify implementation, so we reject the organization creation
