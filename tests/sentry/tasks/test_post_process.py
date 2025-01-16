@@ -381,7 +381,7 @@ class DeriveCodeMappingsProcessGroupTestMixin(BasePostProgressGroupMixin):
     def test_new_queue(self, mock_derive_code_mappings, mock_auto_source_code_config):
         event = self._create_event(data={}, project_id=self.project.id)
 
-        with self.feature({"new-auto-source-code-config-queue": False}):
+        with self.options({"system.new-auto-source-code-config-queue": False}):
             self._call_post_process_group(event)
             assert mock_derive_code_mappings.delay.call_count == 1
             assert mock_auto_source_code_config.delay.call_count == 0
@@ -392,7 +392,7 @@ class DeriveCodeMappingsProcessGroupTestMixin(BasePostProgressGroupMixin):
     def test_old_queue(self, mock_derive_code_mappings, mock_auto_source_code_config):
         event = self._create_event(data={}, project_id=self.project.id)
 
-        with self.feature({"new-auto-source-code-config-queue": True}):
+        with self.options({"system.new-auto-source-code-config-queue": True}):
             self._call_post_process_group(event)
             assert mock_derive_code_mappings.delay.call_count == 0
             assert mock_auto_source_code_config.delay.call_count == 1
