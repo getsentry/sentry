@@ -25,9 +25,9 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 type OnTapProps = NonNullable<React.ComponentProps<typeof U2fContainer>['onTap']>;
 
-type DefaultProps = {
+interface DefaultProps {
   closeButton?: boolean;
-};
+}
 
 type State = {
   authenticators: Array<Authenticator>;
@@ -39,19 +39,18 @@ type State = {
   superuserReason: string;
 };
 
-type Props = DefaultProps &
-  Pick<ModalRenderProps, 'Body' | 'Header'> & {
-    closeModal: () => void;
-    /**
-     * User is a superuser without an active su session
-     */
-    isSuperuser?: boolean;
-    needsReload?: boolean;
-    /**
-     * expects a function that returns a Promise
-     */
-    retryRequest?: () => Promise<any>;
-  };
+interface SudoProps extends DefaultProps, Pick<ModalRenderProps, 'Body' | 'Header'> {
+  closeModal: () => void;
+  /**
+   * User is a superuser without an active su session
+   */
+  isSuperuser?: boolean;
+  needsReload?: boolean;
+  /**
+   * expects a function that returns a Promise
+   */
+  retryRequest?: () => Promise<any>;
+}
 
 function SudoModal({
   closeModal,
@@ -61,7 +60,7 @@ function SudoModal({
   Header,
   Body,
   closeButton,
-}: Props) {
+}: SudoProps) {
   const user = useUser();
   const navigate = useNavigate();
   const api = useApi();

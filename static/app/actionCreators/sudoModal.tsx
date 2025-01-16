@@ -1,14 +1,13 @@
 import type {ModalOptions} from 'sentry/actionCreators/modal';
 import ModalStore from 'sentry/stores/modalStore';
 
-type OpenSudoModalOptions = ModalOptions & {
+interface OpenSudoModalOptions extends ModalOptions {
   closeButton?: boolean;
   isSuperuser?: boolean;
   needsReload?: boolean;
   onClose?: () => void;
   retryRequest?: () => Promise<any>;
-  sudo?: boolean;
-};
+}
 
 export async function openSudo({
   onClose,

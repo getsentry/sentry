@@ -214,10 +214,14 @@ export class Request {
     this.alive = true;
   }
 
-  cancel() {
-    this.alive = false;
-    this.aborter?.abort();
-    metric('app.api.request-abort', 1);
+  cancel(): boolean {
+    if (this.aborter) {
+      this.alive = false;
+      this.aborter.abort();
+      metric('app.api.request-abort', 1);
+      return true;
+    }
+    return false;
   }
 }
 
@@ -370,12 +374,29 @@ export class Client {
   // never called as we never set redirect: 'manual' on the fetch request.
   static projectMovedMiddleware(
     request: Request,
-    responseJSON: ResponseMeta['responseJSON']
+    responseJSON: ResponseMeta['responseJSON'],
+    responseText: ResponseMeta['responseText']
   ): boolean {
     if (request.alive && responseJSON?.detail?.code === PROJECT_MOVED) {
       // This shows a redirect modal with a countdown timer that redirects to the new project slug
       redirectToProject(responseJSON?.detail?.extra?.slug);
       return true;
+    }
+
+    // @TODO(jonasbadalic): see my comment in body parser middleware where JSON parsing is done.
+    // The previous code was never parsing JSON in the event of a 302 response and since that
+    // was not something I wanted to touch as it has downstream effects, I added an isolated code path here
+    if (request.alive && responseText) {
+      try {
+        const maybeJSON = JSON.parse(responseText);
+        if (maybeJSON?.detail?.code === PROJECT_MOVED) {
+          // This shows a redirect modal with a countdown timer that redirects to the new project slug
+          redirectToProject(maybeJSON?.detail?.extra?.slug);
+          return true;
+        }
+      } catch (_) {
+        // Do nothing
+      }
     }
 
     return false;
@@ -411,7 +432,7 @@ export class Client {
     try {
       responseText = await response.text();
     } catch (error) {
-      twoHundredErrorReason = 'Failed awaiting response.text()';
+      twoHundredErrorReason = 'Failed attempting to read response.text()';
       ok = false;
       if (error.name === 'AbortError') {
         errorReason = 'Request was aborted';
@@ -426,30 +447,34 @@ export class Client {
       requestHeaders.get('Accept') === Client.JSON_HEADERS.Accept;
 
     let responseJSON: any;
+
     // Attempt to parse the response as JSON
+    // @TODO(jonasbadalic): this seems wrong. The project redirect modal expects a 302 with a JSON body,
+    // but given this condition here, it will never be parsed as JSON.
     if (status !== 204 && !(status >= 300 && status < 400)) {
-      try {
-        responseJSON = JSON.parse(responseText);
-      } catch (error) {
-        twoHundredErrorReason = 'Failed trying to parse responseText';
-        if (error.name === 'AbortError') {
-          ok = false;
-          errorReason = 'Request was aborted';
-        } else if (isResponseJSON && error instanceof SyntaxError) {
+      // We may have failed on responseText, so we need to check if it's undefined and make sure we
+      //  dont override the original error reason by attempting to parse a falsy value
+      if (responseText !== undefined) {
+        try {
+          responseJSON = JSON.parse(responseText);
+        } catch (error) {
+          twoHundredErrorReason = 'Failed attempting to parse JSON from responseText';
           // If the MIME type is `application/json` but decoding failed,
           // this should be an error.
-          ok = false;
-          errorReason = 'JSON parse error';
-        } else if (
-          // Empty responses from POST 201 requests are valid
-          responseText?.length > 0 &&
-          requestIsExpectingJSON &&
-          error instanceof SyntaxError
-        ) {
-          // Was expecting json but was returned something else. Possibly HTML.
-          // Ideally this would not be a 200, but we should reject the promise
-          ok = false;
-          errorReason = 'JSON parse error. Possibly returned HTML';
+          if (isResponseJSON && error instanceof SyntaxError) {
+            ok = false;
+            errorReason = 'JSON parse error';
+          } else if (
+            // Empty responses from POST 201 requests are valid
+            responseText?.length > 0 &&
+            requestIsExpectingJSON &&
+            error instanceof SyntaxError
+          ) {
+            // Was expecting json but was returned something else. Possibly HTML.
+            // Ideally this would not be a 200, but we should reject the promise
+            ok = false;
+            errorReason = 'JSON parse error. Possibly returned HTML';
+          }
         }
       }
     }
@@ -473,22 +498,17 @@ export class Client {
    * Consider using `requestPromise` for the async Promise version of this method.
    */
   request(path: string, options: Readonly<RequestOptions> = {}): Request {
-    const method = options.method || (options.data ? 'POST' : 'GET');
-
     const [url, data] = Client.makeRequestUrl(this.baseUrl, path, options);
     const requestHeaders = Client.makeRequestHeaders(url, this.headers, options);
 
-    const cancelable = options.cancelable ?? true;
-
     // Feature detect AbortController
-    const abortController = cancelable
-      ? typeof AbortController === 'function'
+    const abortController =
+      (options.cancelable ?? true) && typeof AbortController === 'function'
         ? new AbortController()
-        : undefined
-      : undefined;
+        : undefined;
 
     const fetchRequest = fetch(url, {
-      method,
+      method: options.method || (options.data ? 'POST' : 'GET'),
       body: data,
       headers: requestHeaders,
       credentials: this.credentials,
@@ -508,7 +528,13 @@ export class Client {
         return Client.bodyParserMiddleware(requestHeaders, response);
       })
       .then(response => {
-        if (Client.projectMovedMiddleware(request, response.responseJSON)) {
+        if (
+          Client.projectMovedMiddleware(
+            request,
+            response.responseJSON,
+            response.responseText
+          )
+        ) {
           return {suspended: true};
         }
         return response;
@@ -546,16 +572,17 @@ export class Client {
             }
             return;
           }
+
           // There's no reason we should be here with a 200 response, but we get
           // tons of events from this codepath with a 200 status nonetheless.
           // Until we know why, let's do what is essentially some very fancy print debugging.
-          if (body.status === 200 && body.responseText) {
+          if (body.status === 200) {
             const parameterizedPath = sanitizePath(path);
             const message = '200 treated as error';
 
             Sentry.withScope(scope => {
               scope.setTags({
-                endpoint: `${method} ${parameterizedPath}`,
+                endpoint: `${options.method || (options.data ? 'POST' : 'GET')} ${parameterizedPath}`,
                 errorReason: body.errorReason,
               });
               scope.setExtras({
@@ -568,7 +595,9 @@ export class Client {
               // Make sure all of these errors group, so we don't produce a bunch of noise
               scope.setFingerprint([message]);
               Sentry.captureException(
-                new Error(`${message}: ${method} ${parameterizedPath}`)
+                new Error(
+                  `${message}: ${options.method || (options.data ? 'POST' : 'GET')} ${parameterizedPath}`
+                )
               );
             });
           }
@@ -599,7 +628,7 @@ export class Client {
         },
         () => {
           // Ignore failed fetch calls or errors in the fetch request itself (e.g. cancelled requests)
-          // Not related to errors in responses
+          // not related to errors in responses
         }
       )
       .catch(error => {
@@ -662,12 +691,10 @@ export class Client {
     const code = response?.responseJSON?.detail?.code;
     const isSudoRequired = code === SUDO_REQUIRED || code === SUPERUSER_REQUIRED;
 
-    let didSuccessfullyRetry = false;
-
     if (isSudoRequired) {
+      let didSuccessfullyRetry = false;
       openSudo({
         isSuperuser: code === SUPERUSER_REQUIRED,
-        sudo: code === SUDO_REQUIRED,
         retryRequest: async () => {
           try {
             const data = await this.requestPromise(options.path, options.requestOptions);
@@ -702,8 +729,11 @@ export class Client {
    * Attempt to cancel all active fetch requests
    */
   clear() {
-    Object.values(this.activeRequests).forEach(r => r.cancel());
-    this.activeRequests = {};
+    for (const request of Object.values(this.activeRequests)) {
+      if (request?.cancel()) {
+        delete this.activeRequests[request.id];
+      }
+    }
   }
 }
 
