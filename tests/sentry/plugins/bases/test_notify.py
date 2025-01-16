@@ -1,5 +1,4 @@
 from unittest import mock
-from urllib.parse import parse_qs, urlparse
 
 from requests.exceptions import HTTPError, SSLError
 
@@ -20,27 +19,6 @@ class DummyNotificationPlugin(CorePluginMixin, NotificationPlugin):
 
 
 class NotifyPluginTest(TestCase):
-    def test_add_notification_referrer_param(self):
-        n = DummyNotificationPlugin()
-        n.slug = "slack"
-        url = "https://sentry.io/"
-        assert n.add_notification_referrer_param(url) == url + "?referrer=" + n.slug
-
-        url = "https://sentry.io/?referrer=notslack"
-        assert n.add_notification_referrer_param(url) == "https://sentry.io/?referrer=slack"
-
-        url = "https://sentry.io/?utm_source=google"
-        with_referrer = n.add_notification_referrer_param(url)
-
-        # XXX(py3): Handle ordering differences between py2/3
-        assert parse_qs(urlparse(with_referrer).query) == parse_qs(
-            "referrer=slack&utm_source=google"
-        )
-
-        n.slug = ""
-        url = "https://sentry.io/"
-        assert n.add_notification_referrer_param(url) == "https://sentry.io/"
-
     def test_notify_failure(self):
         errors = (
             ApiError("The server is sad"),

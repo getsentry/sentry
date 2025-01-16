@@ -1,6 +1,5 @@
 import logging
 from urllib.error import HTTPError as UrllibHTTPError
-from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 from django import forms
 from requests.exceptions import HTTPError, SSLError
@@ -186,15 +185,3 @@ class NotificationPlugin(Plugin):
         else:
             test_results = "No errors returned"
         return test_results
-
-    def add_notification_referrer_param(self, url):
-        if self.slug:
-            parsed_url = urlparse(url)
-            query = parse_qs(parsed_url.query)
-            query["referrer"] = self.slug
-
-            url_list = list(parsed_url)
-            url_list[4] = urlencode(query, doseq=True)
-            return urlunparse(url_list)
-
-        return url
