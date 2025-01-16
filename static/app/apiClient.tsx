@@ -730,7 +730,7 @@ export class Client {
    */
   clear() {
     for (const request of Object.values(this.activeRequests)) {
-      if (request?.cancel()) {
+      if (request.cancel()) {
         delete this.activeRequests[request.id];
       }
     }
