@@ -92,7 +92,7 @@ export function CronTimelineSection({event, organization, project}: Props) {
         size="xs"
         icon={<IconOpen />}
         to={{
-          pathname: `/organizations/${organization.slug}/crons/${project.slug}/${monitorSlug}`,
+          pathname: `/organizations/${organization.slug}/alerts/rules/crons/${project.slug}/${monitorSlug}/details/`,
           query: {environment},
         }}
       >

@@ -109,7 +109,7 @@ def record_new_project(project, user=None, user_id=None, **kwargs):
             organization_id=project.organization_id,
             project_id=project.id,
         )
-        try_mark_onboarding_complete(project.organization_id, user)
+        try_mark_onboarding_complete(project.organization_id)
 
 
 @first_event_received.connect(weak=False)
@@ -260,16 +260,7 @@ def record_first_replay(project, **kwargs):
             platform=project.platform,
         )
         logger.info("record_first_replay_analytics_end")
-        # TODO(Telemetry): Remove this once we remove the feature flag 'quick-start-updates'
-        try:
-            user: RpcUser = project.organization.get_default_owner()
-        except IndexError:
-            logger.warning(
-                "Cannot record first replay for organization (%s) due to missing owners",
-                project.organization_id,
-            )
-            return
-        try_mark_onboarding_complete(project.organization_id, user)
+        try_mark_onboarding_complete(project.organization_id)
 
 
 @first_flag_received.connect(weak=False)
@@ -428,18 +419,7 @@ def record_member_joined(organization_id: int, organization_member_id: int, **kw
         },
     )
     if created or rows_affected:
-        # TODO(Telemetry): Remove this once we remove the feature flag 'quick-start-updates'
-        try:
-            user: RpcUser = Organization.objects.get_from_cache(
-                id=organization_id
-            ).get_default_owner()
-        except IndexError:
-            logger.warning(
-                "Cannot record member joined an organization (%s) due to missing owners",
-                organization_id,
-            )
-            return
-        try_mark_onboarding_complete(organization_id, user)
+        try_mark_onboarding_complete(organization_id)
 
 
 def record_release_received(project, event, **kwargs):
@@ -469,7 +449,7 @@ def record_release_received(project, event, **kwargs):
             project_id=project.id,
             organization_id=project.organization_id,
         )
-        try_mark_onboarding_complete(project.organization_id, owner)
+        try_mark_onboarding_complete(project.organization_id)
 
 
 event_processed.connect(record_release_received, weak=False)
@@ -541,7 +521,7 @@ def record_sourcemaps_received(project, event, **kwargs):
             project_platform=project.platform,
             url=dict(event.tags).get("url", None),
         )
-        try_mark_onboarding_complete(project.organization_id, owner)
+        try_mark_onboarding_complete(project.organization_id)
 
 
 @event_processed.connect(weak=False)
@@ -597,7 +577,7 @@ def record_alert_rule_created(user, project: Project, rule_type: str, **kwargs):
     )
 
     if rows_affected or created:
-        try_mark_onboarding_complete(project.organization_id, user)
+        try_mark_onboarding_complete(project.organization_id)
 
 
 @integration_added.connect(weak=False)
@@ -608,16 +588,6 @@ def record_integration_added(
         integration_id=integration_id
     )
     if integration is None:
-        return
-
-    organization = Organization.objects.get_from_cache(id=organization_id)
-    try:
-        user: RpcUser = organization.get_default_owner()
-    except IndexError:
-        logger.warning(
-            "Cannot record first integration for organization (%s) due to missing owners",
-            organization_id,
-        )
         return
 
     integration_types = get_integration_types(integration.provider)
@@ -640,4 +610,4 @@ def record_integration_added(
                     task=task_mapping[integration_type],
                     status=OnboardingTaskStatus.COMPLETE,
                 )
-    try_mark_onboarding_complete(organization_id, user)
+    try_mark_onboarding_complete(organization_id)
