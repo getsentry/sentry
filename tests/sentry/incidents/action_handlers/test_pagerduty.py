@@ -260,3 +260,9 @@ class PagerDutyActionHandlerTest(FireTest):
     def test_custom_severity_resolved(self):
         self.action.update(sentry_app_config={"priority": "critical"})
         self.run_fire_test("resolve")
+
+    @responses.activate
+    def test_custom_severity_with_default_severity(self):
+        # default closed incident severity is info, setting severity to default should be ignored
+        self.action.update(sentry_app_config={"severity": "default"})
+        self.run_fire_test()

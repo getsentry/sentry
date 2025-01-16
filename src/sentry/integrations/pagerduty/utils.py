@@ -10,6 +10,7 @@ from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.pagerduty.client import PAGERDUTY_DEFAULT_SEVERITY
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcOrganizationIntegration
 from sentry.shared_integrations.client.proxy import infer_org_integration
@@ -131,7 +132,7 @@ def attach_custom_severity(
         return data
 
     severity = app_config.get("priority", None)
-    if severity is not None:
+    if severity is not None and severity in PAGERDUTY_DEFAULT_SEVERITY:
         data["payload"]["severity"] = severity
 
     return data
