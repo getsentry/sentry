@@ -321,6 +321,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     on_demand_metrics_type=on_demand_metrics_type,
                     include_other=include_other,
                     query_source=query_source,
+                    transform_alias_to_input_format=transform_alias_to_input_format,
                     fallback_to_transactions=features.has(
                         "organizations:performance-discover-dataset-selector",
                         organization,
