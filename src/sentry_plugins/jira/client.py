@@ -75,9 +75,6 @@ class JiraClient(ApiClient):
     def get_priorities(self):
         return self.get_cached(self.PRIORITIES_URL)
 
-    def get_users_for_project(self, project):
-        return self.get(self.USERS_URL, params={"project": project})
-
     def search_users_for_project(self, project, username):
         return self.get(self.USERS_URL, params={"project": project, "username": username})
 
