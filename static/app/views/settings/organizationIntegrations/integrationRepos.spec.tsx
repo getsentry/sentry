@@ -209,9 +209,7 @@ describe('IntegrationRepos', function () {
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/repos/`,
         method: 'GET',
-        body: [
-          RepositoryFixture({name: 'repo-name-other', externalSlug: '9876', id: '123'}),
-        ],
+        body: [RepositoryFixture({name: 'repo-name-other', externalSlug: '9876'})],
       });
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/repos/`,
@@ -222,7 +220,7 @@ describe('IntegrationRepos', function () {
         url: `/organizations/${org.slug}/integrations/${integration.id}/repos/`,
         method: 'GET',
         body: {
-          repos: [{identifier: '9876', name: 'repo-name', id: '456'}],
+          repos: [{identifier: '9876', name: 'repo-name'}],
         },
       });
       const updateRepo = MockApiClient.addMockResponse({

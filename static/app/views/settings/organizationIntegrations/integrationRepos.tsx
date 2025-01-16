@@ -76,7 +76,6 @@ function IntegrationRepos(props: Props) {
 
   const handleAddRepository = (repo: Repository) => {
     setItemList([...itemList, repo]);
-    RepositoryStore.resetRepositories();
   };
 
   const itemListPageLinks = getResponseHeader?.('Link') ?? undefined;
