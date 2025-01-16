@@ -27,7 +27,7 @@ export function TimeSeriesWidget(props: TimeSeriesWidgetProps) {
     return (
       <WidgetFrame title={props.title} description={props.description}>
         <LoadingPlaceholder>
-          <TransparentLoadingMask visible />
+          <LoadingMask visible />
           <LoadingIndicator mini />
         </LoadingPlaceholder>
       </WidgetFrame>
@@ -63,6 +63,8 @@ export function TimeSeriesWidget(props: TimeSeriesWidgetProps) {
             aliases={props.aliases}
             dataCompletenessDelay={props.dataCompletenessDelay}
             SeriesConstructor={props.SeriesConstructor}
+            timeseriesSelection={props.timeseriesSelection}
+            onTimeseriesSelectionChange={props.onTimeseriesSelectionChange}
           />
         </TimeSeriesWrapper>
       )}
@@ -82,4 +84,8 @@ const LoadingPlaceholder = styled('div')`
   display: flex;
   justify-content: center;
   align-items: center;
+`;
+
+const LoadingMask = styled(TransparentLoadingMask)`
+  background: ${p => p.theme.background};
 `;

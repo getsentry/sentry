@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 import responses
 
-from sentry.db.models.fields.node import NodeData
+from sentry.eventstore.models import Event
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.issues.auto_source_code_config.code_mapping import CodeMapping, Repo, RepoTree
@@ -42,9 +42,9 @@ class BaseDeriveCodeMappings(TestCase):
             metadata={"domain_name": "github.com/Test-Org"},
         )
 
-    def generate_data(self, frames: list[dict[str, str | bool]], platform: str = "") -> NodeData:
+    def create_event(self, frames: list[dict[str, str | bool]], platform: str = "python") -> Event:
         test_data = {"platform": platform or self.platform, "stacktrace": {"frames": frames}}
-        return self.store_event(data=test_data, project_id=self.project.id).data
+        return self.store_event(data=test_data, project_id=self.project.id)
 
 
 @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -53,10 +53,7 @@ class TestTaskBehavior(BaseDeriveCodeMappings):
 
     def setUp(self):
         super().setUp()
-        self.event_data = self.generate_data(
-            [{"filename": "foo.py", "in_app": True}],
-            platform="javascript",
-        )
+        self.event = self.create_event([{"filename": "foo.py", "in_app": True}])
 
     def test_does_not_raise_installation_removed(self, mock_record):
         error = ApiError(
@@ -66,7 +63,7 @@ class TestTaskBehavior(BaseDeriveCodeMappings):
             "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org",
             side_effect=error,
         ):
-            assert derive_code_mappings(self.project.id, self.event_data) is None
+            assert derive_code_mappings(self.project.id, event_id=self.event.event_id) is None
             assert_halt_metric(mock_record, error)
 
     @patch("sentry.tasks.auto_source_code_config.logger")
@@ -75,7 +72,7 @@ class TestTaskBehavior(BaseDeriveCodeMappings):
             "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org",
             side_effect=ApiError("foo"),
         ):
-            derive_code_mappings(self.project.id, self.event_data)
+            derive_code_mappings(self.project.id, event_id=self.event.event_id)
             assert mock_logger.error.call_count == 1
             assert_halt_metric(mock_record, ApiError("foo"))
 
@@ -85,7 +82,7 @@ class TestTaskBehavior(BaseDeriveCodeMappings):
             "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org",
             side_effect=UnableToAcquireLock(),
         ):
-            derive_code_mappings(self.project.id, self.event_data)
+            derive_code_mappings(self.project.id, event_id=self.event.event_id)
             assert not RepositoryProjectPathConfig.objects.exists()
             assert_failure_metric(mock_record, error)
 
@@ -95,7 +92,7 @@ class TestTaskBehavior(BaseDeriveCodeMappings):
             "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org",
             side_effect=Exception("foo"),
         ):
-            derive_code_mappings(self.project.id, self.event_data)
+            derive_code_mappings(self.project.id, event_id=self.event.event_id)
             assert_failure_metric(mock_record, DeriveCodeMappingsErrorReason.UNEXPECTED_ERROR)
 
 
@@ -106,7 +103,7 @@ class TestBackSlashDeriveCodeMappings(BaseDeriveCodeMappings):
         # The lack of a \ after the drive letter in the third frame signals that
         # this is a relative path. This may be unlikely to occur in practice,
         # but worth testing nonetheless.
-        self.event_data = self.generate_data(
+        self.event = self.create_event(
             [
                 {"in_app": True, "filename": "\\sentry\\mouse.py"},
                 {"in_app": True, "filename": "\\sentry\\dog\\cat\\parrot.py"},
@@ -124,7 +121,7 @@ class TestBackSlashDeriveCodeMappings(BaseDeriveCodeMappings):
             mock_get_trees_for_org.return_value = {
                 repo_name: RepoTree(Repo(repo_name, "master"), ["sentry/mouse.py"])
             }
-            derive_code_mappings(self.project.id, self.event_data)
+            derive_code_mappings(self.project.id, event_id=self.event.event_id)
             code_mapping = RepositoryProjectPathConfig.objects.all()[0]
             assert code_mapping.stack_root == "\\"
             assert code_mapping.source_root == ""
@@ -139,7 +136,7 @@ class TestBackSlashDeriveCodeMappings(BaseDeriveCodeMappings):
             mock_get_trees_for_org.return_value = {
                 repo_name: RepoTree(Repo(repo_name, "master"), ["sentry/tasks.py"])
             }
-            derive_code_mappings(self.project.id, self.event_data)
+            derive_code_mappings(self.project.id, event_id=self.event.event_id)
             code_mapping = RepositoryProjectPathConfig.objects.all()[0]
             assert code_mapping.stack_root == "C:sentry\\"
             assert code_mapping.source_root == "sentry/"
@@ -154,7 +151,7 @@ class TestBackSlashDeriveCodeMappings(BaseDeriveCodeMappings):
             mock_get_trees_for_org.return_value = {
                 repo_name: RepoTree(Repo(repo_name, "master"), ["src/sentry/tasks.py"])
             }
-            derive_code_mappings(self.project.id, self.event_data)
+            derive_code_mappings(self.project.id, event_id=self.event.event_id)
             code_mapping = RepositoryProjectPathConfig.objects.all()[0]
             assert code_mapping.stack_root == "C:sentry\\"
             assert code_mapping.source_root == "src/sentry/"
@@ -169,7 +166,7 @@ class TestBackSlashDeriveCodeMappings(BaseDeriveCodeMappings):
             mock_get_trees_for_org.return_value = {
                 repo_name: RepoTree(Repo(repo_name, "master"), ["sentry/models/release.py"])
             }
-            derive_code_mappings(self.project.id, self.event_data)
+            derive_code_mappings(self.project.id, event_id=self.event.event_id)
             code_mapping = RepositoryProjectPathConfig.objects.all()[0]
             assert code_mapping.stack_root == "D:\\Users\\code\\"
             assert code_mapping.source_root == ""
@@ -180,7 +177,7 @@ class TestJavascriptDeriveCodeMappings(BaseDeriveCodeMappings):
     def setUp(self):
         super().setUp()
         self.platform = "javascript"
-        self.event_data = self.generate_data(
+        self.event = self.create_event(
             [
                 {
                     "filename": "../node_modules/@sentry/browser/node_modules/@sentry/core/esm/hub.js",
@@ -202,7 +199,7 @@ class TestJavascriptDeriveCodeMappings(BaseDeriveCodeMappings):
         )
 
     def test_find_stacktrace_paths_single_project(self):
-        stacktrace_paths = identify_stacktrace_paths(self.event_data)
+        stacktrace_paths = identify_stacktrace_paths(self.event.data)
         assert set(stacktrace_paths) == {
             "./app/utils/handleXhrErrorResponse.tsx",
             "some/path/Test.tsx",
@@ -210,21 +207,21 @@ class TestJavascriptDeriveCodeMappings(BaseDeriveCodeMappings):
         }
 
     def test_find_stacktrace_empty(self):
-        data = self.generate_data([{}])
-        data["stacktrace"]["frames"] = [None]
-        stacktrace_paths = identify_stacktrace_paths(data)
+        event = self.create_event([{}])
+        event.data["stacktrace"]["frames"] = [None]
+        stacktrace_paths = identify_stacktrace_paths(event.data)
         assert stacktrace_paths == []
 
     def test_find_stacktrace_paths_bad_data(self):
-        data = self.generate_data([{}])
-        data["stacktrace"]["frames"] = [
+        event = self.create_event([{}])
+        event.data["stacktrace"]["frames"] = [
             {
                 "abs_path": "https://example.com/static/chunks/foo.bar.js",
                 "data": {"sourcemap": "https://example.com/_next/static/chunks/foo.bar.js.map"},
                 "in_app": True,
             }
         ]
-        stacktrace_paths = identify_stacktrace_paths(data)
+        stacktrace_paths = identify_stacktrace_paths(event.data)
         assert stacktrace_paths == []
 
     @responses.activate
@@ -239,7 +236,7 @@ class TestJavascriptDeriveCodeMappings(BaseDeriveCodeMappings):
                     ["static/app/utils/handleXhrErrorResponse.tsx"],
                 )
             }
-            derive_code_mappings(self.project.id, self.event_data)
+            derive_code_mappings(self.project.id, event_id=self.event.event_id)
             code_mapping = RepositoryProjectPathConfig.objects.all()[0]
             # ./app/foo.tsx -> app/foo.tsx -> static/app/foo.tsx
             assert code_mapping.stack_root == "./"
@@ -258,7 +255,7 @@ class TestJavascriptDeriveCodeMappings(BaseDeriveCodeMappings):
                     ["app/utils/handleXhrErrorResponse.tsx"],
                 )
             }
-            derive_code_mappings(self.project.id, self.event_data)
+            derive_code_mappings(self.project.id, event_id=self.event.event_id)
             code_mapping = RepositoryProjectPathConfig.objects.all()[0]
             # ./app/foo.tsx -> app/foo.tsx -> app/foo.tsx
             assert code_mapping.stack_root == "./"
@@ -274,7 +271,7 @@ class TestJavascriptDeriveCodeMappings(BaseDeriveCodeMappings):
             mock_get_trees_for_org.return_value = {
                 repo_name: RepoTree(Repo(repo_name, "master"), ["some/path/Test.tsx"])
             }
-            derive_code_mappings(self.project.id, self.event_data)
+            derive_code_mappings(self.project.id, event_id=self.event.event_id)
             code_mapping = RepositoryProjectPathConfig.objects.all()[0]
             # some/path/Test.tsx -> Test.tsx -> some/path/Test.tsx
             assert code_mapping.stack_root == ""
@@ -290,7 +287,7 @@ class TestJavascriptDeriveCodeMappings(BaseDeriveCodeMappings):
             mock_get_trees_for_org.return_value = {
                 repo_name: RepoTree(Repo(repo_name, "master"), ["sentry/app.tsx"])
             }
-            derive_code_mappings(self.project.id, self.event_data)
+            derive_code_mappings(self.project.id, event_id=self.event.event_id)
             assert not RepositoryProjectPathConfig.objects.exists()
 
 
@@ -298,7 +295,7 @@ class TestRubyDeriveCodeMappings(BaseDeriveCodeMappings):
     def setUp(self):
         super().setUp()
         self.platform = "ruby"
-        self.event_data = self.generate_data(
+        self.event = self.create_event(
             [
                 {
                     "filename": "some/path/test.rb",
@@ -312,7 +309,7 @@ class TestRubyDeriveCodeMappings(BaseDeriveCodeMappings):
         )
 
     def test_find_stacktrace_paths_single_project(self):
-        stacktrace_paths = identify_stacktrace_paths(self.event_data)
+        stacktrace_paths = identify_stacktrace_paths(self.event.data)
         assert set(stacktrace_paths) == {"some/path/test.rb", "lib/tasks/crontask.rake"}
 
     @responses.activate
@@ -324,7 +321,7 @@ class TestRubyDeriveCodeMappings(BaseDeriveCodeMappings):
             mock_get_trees_for_org.return_value = {
                 repo_name: RepoTree(Repo(repo_name, "master"), ["some/path/test.rb"])
             }
-            derive_code_mappings(self.project.id, self.event_data)
+            derive_code_mappings(self.project.id, event_id=self.event.event_id)
             code_mapping = RepositoryProjectPathConfig.objects.all()[0]
             assert code_mapping.stack_root == ""
             assert code_mapping.source_root == ""
@@ -339,7 +336,7 @@ class TestRubyDeriveCodeMappings(BaseDeriveCodeMappings):
             mock_get_trees_for_org.return_value = {
                 repo_name: RepoTree(Repo(repo_name, "master"), ["lib/tasks/crontask.rake"])
             }
-            derive_code_mappings(self.project.id, self.event_data)
+            derive_code_mappings(self.project.id, event_id=self.event.event_id)
             code_mapping = RepositoryProjectPathConfig.objects.all()[0]
             assert code_mapping.stack_root == ""
             assert code_mapping.source_root == ""
@@ -350,7 +347,7 @@ class TestNodeDeriveCodeMappings(BaseDeriveCodeMappings):
     def setUp(self):
         super().setUp()
         self.platform = "node"
-        self.event_data = self.generate_data(
+        self.event = self.create_event(
             [
                 {
                     "filename": "app:///utils/errors.js",
@@ -368,7 +365,7 @@ class TestNodeDeriveCodeMappings(BaseDeriveCodeMappings):
         )
 
     def test_find_stacktrace_paths_single_project(self):
-        stacktrace_paths = identify_stacktrace_paths(self.event_data)
+        stacktrace_paths = identify_stacktrace_paths(self.event.data)
         assert set(stacktrace_paths) == {
             "app:///utils/errors.js",
             "../../../../../../packages/api/src/response.ts",
@@ -384,7 +381,7 @@ class TestNodeDeriveCodeMappings(BaseDeriveCodeMappings):
             mock_get_trees_for_org.return_value = {
                 repo_name: RepoTree(Repo(repo_name, "master"), ["utils/errors.js"])
             }
-            derive_code_mappings(self.project.id, self.event_data)
+            derive_code_mappings(self.project.id, event_id=self.event.event_id)
             code_mapping = RepositoryProjectPathConfig.objects.all()[0]
             assert code_mapping.stack_root == "app:///"
             assert code_mapping.source_root == ""
@@ -398,7 +395,7 @@ class TestNodeDeriveCodeMappings(BaseDeriveCodeMappings):
             mock_get_trees_for_org.return_value = {
                 repo_name: RepoTree(Repo(repo_name, "master"), ["sentry/utils/errors.js"])
             }
-            derive_code_mappings(self.project.id, self.event_data)
+            derive_code_mappings(self.project.id, event_id=self.event.event_id)
             code_mapping = RepositoryProjectPathConfig.objects.all()[0]
             assert code_mapping.stack_root == "app:///"
             assert code_mapping.source_root == "sentry/"
@@ -413,7 +410,7 @@ class TestNodeDeriveCodeMappings(BaseDeriveCodeMappings):
             mock_get_trees_for_org.return_value = {
                 repo_name: RepoTree(Repo(repo_name, "master"), ["packages/api/src/response.ts"])
             }
-            derive_code_mappings(self.project.id, self.event_data)
+            derive_code_mappings(self.project.id, event_id=self.event.event_id)
             code_mapping = RepositoryProjectPathConfig.objects.all()[0]
             assert code_mapping.stack_root == "../../../../../../"
             assert code_mapping.source_root == ""
@@ -430,7 +427,7 @@ class TestNodeDeriveCodeMappings(BaseDeriveCodeMappings):
                     Repo(repo_name, "master"), ["services/event/EventLifecycle/index.js"]
                 )
             }
-            derive_code_mappings(self.project.id, self.event_data)
+            derive_code_mappings(self.project.id, event_id=self.event.event_id)
             code_mapping = RepositoryProjectPathConfig.objects.all()[0]
             assert code_mapping.stack_root == "app:///../"
             assert code_mapping.source_root == ""
@@ -441,7 +438,7 @@ class TestGoDeriveCodeMappings(BaseDeriveCodeMappings):
     def setUp(self):
         super().setUp()
         self.platform = "go"
-        self.event_data = self.generate_data(
+        self.event = self.create_event(
             [
                 {"in_app": True, "filename": "/Users/JohnDoe/code/sentry/capybara.go"},
                 {
@@ -469,7 +466,7 @@ class TestGoDeriveCodeMappings(BaseDeriveCodeMappings):
             mock_get_trees_for_org.return_value = {
                 repo_name: RepoTree(Repo(repo_name, "master"), ["sentry/capybara.go"])
             }
-            derive_code_mappings(self.project.id, self.event_data)
+            derive_code_mappings(self.project.id, event_id=self.event.event_id)
             code_mapping = RepositoryProjectPathConfig.objects.all()[0]
             assert code_mapping.stack_root == "/Users/JohnDoe/code/"
             assert code_mapping.source_root == ""
@@ -484,7 +481,7 @@ class TestGoDeriveCodeMappings(BaseDeriveCodeMappings):
             mock_get_trees_for_org.return_value = {
                 repo_name: RepoTree(Repo(repo_name, "master"), ["sentry/kangaroo.go"])
             }
-            derive_code_mappings(self.project.id, self.event_data)
+            derive_code_mappings(self.project.id, event_id=self.event.event_id)
             code_mapping = RepositoryProjectPathConfig.objects.all()[0]
             assert code_mapping.stack_root == "/Users/JohnDoe/Documents/code/"
             assert code_mapping.source_root == ""
@@ -499,7 +496,7 @@ class TestGoDeriveCodeMappings(BaseDeriveCodeMappings):
             mock_get_trees_for_org.return_value = {
                 repo_name: RepoTree(Repo(repo_name, "master"), ["notsentry/main.go"])
             }
-            derive_code_mappings(self.project.id, self.event_data)
+            derive_code_mappings(self.project.id, event_id=self.event.event_id)
             assert not RepositoryProjectPathConfig.objects.exists()
 
 
@@ -507,7 +504,7 @@ class TestPhpDeriveCodeMappings(BaseDeriveCodeMappings):
     def setUp(self):
         super().setUp()
         self.platform = "php"
-        self.event_data = self.generate_data(
+        self.event = self.create_event(
             [
                 {"in_app": True, "filename": "/sentry/capybara.php"},
                 {"in_app": True, "filename": "/sentry/potato/kangaroo.php"},
@@ -528,7 +525,7 @@ class TestPhpDeriveCodeMappings(BaseDeriveCodeMappings):
             mock_get_trees_for_org.return_value = {
                 repo_name: RepoTree(Repo(repo_name, "master"), ["sentry/potato/kangaroo.php"])
             }
-            derive_code_mappings(self.project.id, self.event_data)
+            derive_code_mappings(self.project.id, event_id=self.event.event_id)
             code_mapping = RepositoryProjectPathConfig.objects.all()[0]
             assert code_mapping.stack_root == "/"
             assert code_mapping.source_root == ""
@@ -543,7 +540,7 @@ class TestPhpDeriveCodeMappings(BaseDeriveCodeMappings):
             mock_get_trees_for_org.return_value = {
                 repo_name: RepoTree(Repo(repo_name, "master"), ["src/sentry/potato/kangaroo.php"])
             }
-            derive_code_mappings(self.project.id, self.event_data)
+            derive_code_mappings(self.project.id, event_id=self.event.event_id)
             code_mapping = RepositoryProjectPathConfig.objects.all()[0]
             assert code_mapping.stack_root == "/sentry/"
             assert code_mapping.source_root == "src/sentry/"
@@ -554,7 +551,7 @@ class TestCSharpDeriveCodeMappings(BaseDeriveCodeMappings):
     def setUp(self):
         super().setUp()
         self.platform = "csharp"
-        self.event_data = self.generate_data(
+        self.event = self.create_event(
             [
                 {"in_app": True, "filename": "/sentry/capybara.cs"},
                 {"in_app": True, "filename": "/sentry/potato/kangaroo.cs"},
@@ -566,7 +563,7 @@ class TestCSharpDeriveCodeMappings(BaseDeriveCodeMappings):
             self.platform,
         )
 
-        self.event_data_backslashes = self.generate_data(
+        self.event_data_backslashes = self.create_event(
             [
                 {"in_app": True, "filename": "\\sentry\\capybara.cs"},
                 {"in_app": True, "filename": "\\sentry\\potato\\kangaroo.cs"},
@@ -583,7 +580,7 @@ class TestCSharpDeriveCodeMappings(BaseDeriveCodeMappings):
             mock_get_trees_for_org.return_value = {
                 repo_name: RepoTree(Repo(repo_name, "master"), ["sentry/potato/kangaroo.cs"])
             }
-            derive_code_mappings(self.project.id, self.event_data)
+            derive_code_mappings(self.project.id, event_id=self.event.event_id)
             code_mapping = RepositoryProjectPathConfig.objects.all()[0]
             assert code_mapping.stack_root == "/"
             assert code_mapping.source_root == ""
@@ -598,7 +595,7 @@ class TestCSharpDeriveCodeMappings(BaseDeriveCodeMappings):
             mock_get_trees_for_org.return_value = {
                 repo_name: RepoTree(Repo(repo_name, "master"), ["src/sentry/potato/kangaroo.cs"])
             }
-            derive_code_mappings(self.project.id, self.event_data)
+            derive_code_mappings(self.project.id, event_id=self.event.event_id)
             code_mapping = RepositoryProjectPathConfig.objects.all()[0]
             assert code_mapping.stack_root == "/sentry/"
             assert code_mapping.source_root == "src/sentry/"
@@ -613,7 +610,7 @@ class TestCSharpDeriveCodeMappings(BaseDeriveCodeMappings):
             mock_get_trees_for_org.return_value = {
                 repo_name: RepoTree(Repo(repo_name, "master"), ["sentry/src/functions.cs"])
             }
-            derive_code_mappings(self.project.id, self.event_data)
+            derive_code_mappings(self.project.id, event_id=self.event.event_id)
             assert not RepositoryProjectPathConfig.objects.exists()
 
 
@@ -684,8 +681,8 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
         assert code_mapping.automatically_generated is True
 
     def test_skips_not_supported_platforms(self):
-        data = self.generate_data([{}], platform="elixir")
-        assert derive_code_mappings(self.project.id, data) is None
+        event = self.create_event([{}], platform="elixir")
+        assert derive_code_mappings(self.project.id, event.data) is None
         assert len(RepositoryProjectPathConfig.objects.filter(project_id=self.project.id)) == 0
 
     @patch("sentry.integrations.github.integration.GitHubIntegration.get_trees_for_org")

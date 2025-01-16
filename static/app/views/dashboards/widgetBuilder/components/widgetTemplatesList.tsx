@@ -1,24 +1,54 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useCallback, useState} from 'react';
+import {useParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 
+import {validateWidget} from 'sentry/actionCreators/dashboards';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import theme from 'sentry/utils/theme';
+import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+import type {Widget} from 'sentry/views/dashboards/types';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 import {getWidgetIcon} from 'sentry/views/dashboards/widgetLibrary/widgetCard';
 
-function WidgetTemplatesList() {
+interface WidgetTemplatesListProps {
+  onSave: ({index, widget}: {index: number; widget: Widget}) => void;
+  setIsPreviewDraggable: (isPreviewDraggable: boolean) => void;
+  setOpenWidgetTemplates: (openWidgetTemplates: boolean) => void;
+}
+
+function WidgetTemplatesList({
+  onSave,
+  setOpenWidgetTemplates,
+  setIsPreviewDraggable,
+}: WidgetTemplatesListProps) {
   const organization = useOrganization();
   const [selectedWidget, setSelectedWidget] = useState<number | null>(null);
 
   const {dispatch} = useWidgetBuilderContext();
+  const {widgetIndex} = useParams();
+  const api = useApi();
 
   const widgets = getTopNConvertedDefaultWidgets(organization);
+
+  const handleSave = useCallback(
+    async (widget: Widget) => {
+      try {
+        const newWidget = {...widget, id: undefined};
+        await validateWidget(api, organization.slug, newWidget);
+        onSave({index: Number(widgetIndex), widget: newWidget});
+      } catch (error) {
+        addErrorMessage(t('Unable to add widget'));
+      }
+    },
+    [api, organization.slug, widgetIndex, onSave]
+  );
 
   return (
     <Fragment>
@@ -47,8 +77,19 @@ function WidgetTemplatesList() {
                 <WidgetDescription>{widget.description}</WidgetDescription>
                 {selectedWidget === index && (
                   <ButtonsWrapper>
-                    <Button size="sm">{t('Customize')}</Button>
-                    <Button size="sm">{t('Add to dashboard')}</Button>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setOpenWidgetTemplates(false);
+                        // reset preview when customizing templates
+                        setIsPreviewDraggable(false);
+                      }}
+                    >
+                      {t('Customize')}
+                    </Button>
+                    <Button size="sm" onClick={() => handleSave(widget)}>
+                      {t('Add to dashboard')}
+                    </Button>
                   </ButtonsWrapper>
                 )}
               </div>

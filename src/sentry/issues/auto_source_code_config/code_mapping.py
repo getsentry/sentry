@@ -16,6 +16,8 @@ logger = logging.getLogger(__name__)
 
 SUPPORTED_LANGUAGES = ["javascript", "python", "node", "ruby", "php", "go", "csharp"]
 
+SUPPORTED_LANGUAGES = ["javascript", "python", "node", "ruby", "php", "go", "csharp"]
+
 SLASH = "/"
 BACKSLASH = "\\"  # This is the Python representation of a single backslash
 

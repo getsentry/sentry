@@ -29,6 +29,7 @@ from sentry.models.team import Team
 from sentry.roles import organization_roles, team_roles
 from sentry.scim.endpoints.constants import SCIM_SCHEMA_GROUP
 from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 from sentry.utils.query import RangeQuerySetWrapper
 
 if TYPE_CHECKING:
@@ -40,7 +41,7 @@ if TYPE_CHECKING:
 
 def _get_team_memberships(
     team_list: Sequence[Team],
-    user: User | AnonymousUser,
+    user: User | RpcUser | AnonymousUser,
     optimization: SingularRpcAccessOrgOptimization | None = None,
 ) -> dict[int, str | None]:
     """Get memberships the user has in the provided team list"""
@@ -63,7 +64,9 @@ def _get_team_memberships(
     }
 
 
-def get_member_totals(team_list: Sequence[Team], user: User | AnonymousUser) -> dict[int, int]:
+def get_member_totals(
+    team_list: Sequence[Team], user: User | RpcUser | AnonymousUser
+) -> dict[int, int]:
     """Get the total number of members in each team"""
     if not user.is_authenticated:
         return {}
@@ -81,7 +84,7 @@ def get_member_totals(team_list: Sequence[Team], user: User | AnonymousUser) -> 
 
 def get_org_roles(
     org_ids: set[int],
-    user: User | AnonymousUser,
+    user: User | RpcUser | AnonymousUser,
     optimization: SingularRpcAccessOrgOptimization | None = None,
 ) -> dict[int, str]:
     """
@@ -106,7 +109,9 @@ def get_org_roles(
     }
 
 
-def get_access_requests(item_list: Sequence[Team], user: User | AnonymousUser) -> frozenset[int]:
+def get_access_requests(
+    item_list: Sequence[Team], user: User | RpcUser | AnonymousUser
+) -> frozenset[int]:
     if user.is_authenticated:
         return frozenset(
             OrganizationAccessRequest.objects.filter(
@@ -181,7 +186,7 @@ class BaseTeamSerializer(Serializer):
         return key in self.collapse
 
     def get_attrs(
-        self, item_list: Sequence[Team], user: User, **kwargs: Any
+        self, item_list: Sequence[Team], user: User | RpcUser | AnonymousUser, **kwargs: Any
     ) -> dict[Team, dict[str, Any]]:
         from sentry.api.serializers.models.project import ProjectSerializer
 
@@ -276,7 +281,11 @@ class BaseTeamSerializer(Serializer):
         return result
 
     def serialize(
-        self, obj: Team, attrs: Mapping[str, Any], user: Any, **kwargs: Any
+        self,
+        obj: Team,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
     ) -> BaseTeamSerializerResponse:
         return {
             "id": str(obj.id),
@@ -298,7 +307,11 @@ class BaseTeamSerializer(Serializer):
 # See TeamSerializerResponse for explanation as to why this is needed
 class TeamSerializer(BaseTeamSerializer):
     def serialize(
-        self, obj: Team, attrs: Mapping[str, Any], user: Any, **kwargs: Any
+        self,
+        obj: Team,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
     ) -> TeamSerializerResponse:
         result = super().serialize(obj, attrs, user, **kwargs)
 
@@ -322,22 +335,6 @@ class TeamWithProjectsSerializer(TeamSerializer):
 
     def __init__(self) -> None:
         super().__init__(expand=["projects", "externalTeams"])
-
-
-def get_scim_teams_members(
-    team_list: Sequence[Team],
-) -> dict[Team, list[dict[str, Any]]]:
-    members = RangeQuerySetWrapper(
-        OrganizationMember.objects.filter(teams__in=team_list)
-        .prefetch_related("teams")
-        .distinct("id"),
-        limit=10000,
-    )
-    member_map: dict[Team, list[dict[str, Any]]] = defaultdict(list)
-    for member in members:
-        for team in member.teams.all():
-            member_map[team].append({"value": str(member.id), "display": member.get_email()})
-    return member_map
 
 
 class SCIMTeamMemberListItem(TypedDict):
@@ -391,7 +388,7 @@ class TeamSCIMSerializer(Serializer):
         self.expand = expand or []
 
     def get_attrs(
-        self, item_list: Sequence[Team], user: Any, **kwargs: Any
+        self, item_list: Sequence[Team], user: User | RpcUser | AnonymousUser, **kwargs: Any
     ) -> dict[Team, dict[str, Any]]:
 
         result: dict[int, dict[str, Any]] = {
@@ -412,7 +409,11 @@ class TeamSCIMSerializer(Serializer):
         return {teams_by_id[team_id]: attrs for team_id, attrs in result.items()}
 
     def serialize(
-        self, obj: Team, attrs: Mapping[str, Any], user: Any, **kwargs: Any
+        self,
+        obj: Team,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
     ) -> OrganizationTeamSCIMSerializerResponse:
         result: OrganizationTeamSCIMSerializerResponse = {
             "schemas": [SCIM_SCHEMA_GROUP],

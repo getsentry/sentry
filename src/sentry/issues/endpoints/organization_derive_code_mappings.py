@@ -2,7 +2,6 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -46,9 +45,6 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
         :param string stacktraceFilename:
         :auth: required
         """
-        if not features.has("organizations:derive-code-mappings", organization):
-            return Response(status=status.HTTP_403_FORBIDDEN)
-
         stacktrace_filename = request.GET.get("stacktraceFilename")
         # It only returns the first GitHub integration
         installation, _ = get_installation(organization)
@@ -90,9 +86,6 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
         :param string sourceRoot:
         :auth: required
         """
-        if not features.has("organizations:derive-code-mappings", organization):
-            return Response(status=status.HTTP_403_FORBIDDEN)
-
         installation, organization_integration = get_installation(organization)
         if not installation or not organization_integration:
             return self.respond(

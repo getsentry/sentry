@@ -1,8 +1,9 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import WidgetTemplatesList from 'sentry/views/dashboards/widgetBuilder/components/widgetTemplatesList';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
@@ -30,10 +31,21 @@ const router = RouterFixture({
   location: LocationFixture({query: {}}),
 });
 
+jest.mock('sentry/actionCreators/indicator');
+
 describe('WidgetTemplatesList', () => {
+  const onSave = jest.fn();
+
   beforeEach(() => {
     const mockNavigate = jest.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/widgets/',
+      method: 'POST',
+      body: {},
+      statusCode: 400,
+    });
   });
 
   afterEach(() => {
@@ -43,7 +55,11 @@ describe('WidgetTemplatesList', () => {
   it('should render the widget templates list', async () => {
     render(
       <WidgetBuilderProvider>
-        <WidgetTemplatesList />
+        <WidgetTemplatesList
+          onSave={onSave}
+          setOpenWidgetTemplates={jest.fn()}
+          setIsPreviewDraggable={jest.fn()}
+        />
       </WidgetBuilderProvider>
     );
 
@@ -54,7 +70,11 @@ describe('WidgetTemplatesList', () => {
   it('should render buttons when the user clicks on a widget template', async () => {
     render(
       <WidgetBuilderProvider>
-        <WidgetTemplatesList />
+        <WidgetTemplatesList
+          onSave={onSave}
+          setOpenWidgetTemplates={jest.fn()}
+          setIsPreviewDraggable={jest.fn()}
+        />
       </WidgetBuilderProvider>
     );
 
@@ -71,7 +91,11 @@ describe('WidgetTemplatesList', () => {
 
     render(
       <WidgetBuilderProvider>
-        <WidgetTemplatesList />
+        <WidgetTemplatesList
+          onSave={onSave}
+          setOpenWidgetTemplates={jest.fn()}
+          setIsPreviewDraggable={jest.fn()}
+        />
       </WidgetBuilderProvider>,
       {router}
     );
@@ -90,5 +114,29 @@ describe('WidgetTemplatesList', () => {
         }),
       })
     );
+  });
+
+  it('should show error message when the widget fails to save', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <WidgetTemplatesList
+          onSave={onSave}
+          setOpenWidgetTemplates={jest.fn()}
+          setIsPreviewDraggable={jest.fn()}
+        />
+      </WidgetBuilderProvider>
+    );
+
+    const widgetTemplate = await screen.findByText('Duration Distribution');
+    await userEvent.click(widgetTemplate);
+
+    await userEvent.click(await screen.findByText('Add to dashboard'));
+
+    await waitFor(() => {
+      expect(addErrorMessage).toHaveBeenCalledWith('Unable to add widget');
+    });
+
+    // show we're still on the widget templates list
+    expect(await screen.findByText('Add to dashboard')).toBeInTheDocument();
   });
 });

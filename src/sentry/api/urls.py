@@ -181,6 +181,7 @@ from sentry.issues.endpoints import (
     OrganizationGroupIndexEndpoint,
     OrganizationGroupIndexStatsEndpoint,
     OrganizationGroupSearchViewsEndpoint,
+    OrganizationIssuesCountEndpoint,
     OrganizationReleasePreviousCommitsEndpoint,
     OrganizationSearchesEndpoint,
     ProjectEventDetailsEndpoint,
@@ -486,7 +487,6 @@ from .endpoints.organization_events_trends import (
 from .endpoints.organization_events_trends_v2 import OrganizationEventsNewTrendsStatsEndpoint
 from .endpoints.organization_events_vitals import OrganizationEventsVitalsEndpoint
 from .endpoints.organization_index import OrganizationIndexEndpoint
-from .endpoints.organization_issues_count import OrganizationIssuesCountEndpoint
 from .endpoints.organization_issues_resolved_in_release import (
     OrganizationIssuesResolvedInReleaseEndpoint,
 )
@@ -1286,7 +1286,7 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-dashboard-favorite",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/shortids/(?P<short_id>[^\/]+)/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/shortids/(?P<issue_id>[^\/]+)/$",
         ShortIdLookupEndpoint.as_view(),
         name="sentry-api-0-short-id-lookup",
     ),

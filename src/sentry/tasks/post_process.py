@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import uuid
 from collections.abc import MutableMapping, Sequence
-from datetime import datetime, timedelta
+from datetime import datetime
 from time import time
 from typing import TYPE_CHECKING, Any, TypedDict
 
@@ -995,7 +995,7 @@ def process_code_mappings(job: PostProcessJob) -> None:
         return
 
     from sentry.issues.auto_source_code_config.code_mapping import SUPPORTED_LANGUAGES
-    from sentry.tasks.auto_source_code_config import derive_code_mappings
+    from sentry.tasks.auto_source_code_config import auto_source_code_config, derive_code_mappings
 
     try:
         event = job["event"]
@@ -1017,21 +1017,9 @@ def process_code_mappings(job: PostProcessJob) -> None:
         else:
             return
 
-        org = event.project.organization
-        org_slug = org.slug
-        next_time = timezone.now() + timedelta(hours=1)
-
-        if features.has("organizations:derive-code-mappings", org):
-            extra: dict[str, Any] = {
-                "organization.slug": org_slug,
-                "project.slug": project.slug,
-                "group_id": group_id,
-                "next_time": next_time,
-            }
-            logger.info(
-                "derive_code_mappings: Queuing code mapping derivation",
-                extra=extra,
-            )
+        if features.has("new-auto-source-code-config-queue"):
+            auto_source_code_config.delay(project.id, event.data)
+        else:
             derive_code_mappings.delay(project.id, event.data)
 
     except Exception:
@@ -1498,8 +1486,12 @@ def check_if_flags_sent(job: PostProcessJob) -> None:
     event = job["event"]
     project = event.project
     flag_context = get_path(event.data, "contexts", "flags")
-    if flag_context and not project.flags.has_flags:
-        first_flag_received.send_robust(project=project, sender=Project)
+
+    if flag_context:
+        metrics.incr("feature_flags.event_has_flags_context")
+        metrics.distribution("feature_flags.num_flags_sent", len(flag_context))
+        if not project.flags.has_flags:
+            first_flag_received.send_robust(project=project, sender=Project)
 
 
 GROUP_CATEGORY_POST_PROCESS_PIPELINE = {

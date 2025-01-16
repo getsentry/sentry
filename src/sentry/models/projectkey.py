@@ -72,6 +72,8 @@ class UseCase(enum.Enum):
     PROFILING = "profiling"
     """ An internal project key for submitting escalating issues metrics."""
     ESCALATING_ISSUES = "escalating_issues"
+    """ An internal project key for submitting events from tempest."""
+    TEMPEST = "tempest"
 
 
 @region_silo_model

@@ -173,7 +173,10 @@ export class VideoReplayer {
 
     const handleSeeking = event => {
       // Centers the video when seeking (and video is not playing)
-      this._callbacks.onLoaded!(event);
+      // Only call this for the segment that's being seeked to
+      if (index === this._currentIndex) {
+        this._callbacks.onLoaded!(event);
+      }
     };
 
     el.addEventListener('ended', handleEnded);
@@ -408,7 +411,12 @@ export class VideoReplayer {
 
     for (const [index, videoElem] of this._videos) {
       // On safari, some clips have a ~1 second gap in the beginning so we also need to show the previous video to hide this gap
-      if (index === (this._currentIndex || 0) - 1) {
+      // Edge case: Don't show previous video if size is different (eg. orientation changes)
+      if (
+        index === (this._currentIndex || 0) - 1 &&
+        videoElem.videoHeight === nextVideo.videoHeight &&
+        videoElem.videoWidth === nextVideo.videoWidth
+      ) {
         if (videoElem.duration) {
           // we need to set the previous video to the end so that it's shown in case the next video has a gap at the beginning
           // setting it to the end of the video causes the 'ended' bug in Chrome so we set it to 1 ms before the video ends

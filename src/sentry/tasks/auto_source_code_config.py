@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 from sentry_sdk import set_tag, set_user
 
+from sentry import eventstore
 from sentry.constants import ObjectStatus
 from sentry.db.models.fields.node import NodeData
 from sentry.integrations.github.integration import GitHubIntegration
@@ -88,9 +89,26 @@ def process_error(error: ApiError, extra: dict[str, str]) -> None:
 )
 def derive_code_mappings(
     project_id: int,
-    data: NodeData,
+    data: NodeData | None = None,  # We will deprecate this
+    event_id: str | None = None,
+    **kwargs: Any,
 ) -> None:
-    derive_code_mappings_new(project_id, data)
+    auto_source_code_config(project_id, data=data, event_id=event_id, **kwargs)
+
+
+@instrumented_task(
+    name="sentry.tasks.auto_source_code_config",
+    queue="auto_source_code_config",
+    default_retry_delay=60 * 10,
+    max_retries=3,
+)
+def auto_source_code_config(
+    project_id: int,
+    data: NodeData,
+    event_id: str | None = None,
+    **kwargs: Any,
+) -> None:
+    derive_code_mappings_new(project_id, data, event_id)
 
 
 # XXX: Temporary, use the new queue when live
@@ -103,11 +121,13 @@ def derive_code_mappings(
 def derive_code_mappings_new(
     project_id: int,
     data: NodeData,
+    event_id: str | None = None,
 ) -> None:
     """
-    Derive code mappings for a project given data from a recent event.
+    Process errors for customers with source code management installed and calculate code mappings
+    among other things.
 
-    This task is queued at most once per hour per project, based on the ingested events.
+    This task is queued at most once per hour per project.
     """
     project = Project.objects.get(id=project_id)
     org: Organization = Organization.objects.get(id=project.organization_id)
@@ -116,6 +136,14 @@ def derive_code_mappings_new(
     set_user({"username": org.slug})
     set_tag("project.slug", project.slug)
     extra: dict[str, Any] = {"organization.slug": org.slug}
+
+    # XXX: In the next PR we will only use event_id
+    if event_id:
+        event = eventstore.backend.get_event_by_id(project_id, event_id)
+        if event is None:
+            logger.error("Event not found.", extra={"project_id": project_id, "event_id": event_id})
+            return
+        data = event.data
 
     stacktrace_paths: list[str] = identify_stacktrace_paths(data)
     if not stacktrace_paths:
