@@ -1,7 +1,7 @@
 import ConfigStore from 'sentry/stores/configStore';
 import {OnboardingTaskKey} from 'sentry/types/onboarding';
 
-import {demoSignupModal} from '../actionCreators/modal';
+import {demoSignupModal} from '../../actionCreators/modal';
 
 const SIGN_UP_MODAL_DELAY = 20_000;
 

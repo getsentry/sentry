@@ -1,0 +1,147 @@
+import styled from '@emotion/styled';
+
+import {Client} from 'sentry/api';
+
+import {trackAnalytics} from '../../analytics';
+import TopRight from '../assets/highlight-top-right.svg';
+import sandboxDemo from '../assets/sandboxHeader.jpg';
+
+import EmailForm from './email';
+import {GetUTMData, UpdateTouches} from './utm';
+
+type Props = {
+  IconArrow: any;
+  closeModal: () => void;
+  onAddedEmail: (email: string) => void;
+  onFailure: () => void;
+};
+
+export default function Modal({onAddedEmail, closeModal, onFailure, IconArrow}: Props) {
+  const onBack = () => {
+    // go back to the referrer or the welcome page
+    let newUrl = 'https://sentry.io/welcome/';
+    const {referrer} = window.document;
+    // if we have a referrer and the URL is different than our current origin
+    // then we can send the back there
+    // otherwise, send them to welcome page
+    if (referrer && !referrer.startsWith(window.location.origin)) {
+      newUrl = referrer;
+    }
+
+    // track this event but if it errors out, proceed
+    try {
+      trackAnalytics('growth.email_form_pressed_back', {
+        organization: null,
+      });
+    } catch {
+      // do nothing
+    }
+
+    window.location.href = newUrl;
+  };
+  return (
+    <div>
+      <HighlightCorner src={TopRight} />
+      <BackButton onClick={onBack}>
+        {<IconArrow direction="left" />} {'Go back'}
+      </BackButton>
+      <StartModal>
+        <SignUpBody>
+          <Subheader> Sandbox Demo </Subheader>
+          <h2> Interactive Sandbox </h2>
+          <p>
+            Welcome to our digital showroom where you get to kick our proverbial tires. To
+            see Sentry in action and get updates about the latest and greatest features,
+            enter your email below.
+          </p>
+          <EmailForm
+            onSubmit={email => {
+              const utmState = GetUTMData();
+              if (closeModal) closeModal();
+
+              const api = new Client();
+
+              // always save the email before the API call
+              if (onAddedEmail) onAddedEmail(email);
+
+              api
+                .requestPromise('/demo/email-capture/', {
+                  method: 'POST',
+                  data: {
+                    ...utmState.data,
+                    email,
+                  },
+                })
+                .then(() => {
+                  UpdateTouches(utmState);
+                })
+                .catch((_: Error) => {
+                  onFailure();
+                });
+            }}
+            IconArrow={IconArrow}
+          />
+        </SignUpBody>
+        <ImagePosition>
+          <PositionRight src={sandboxDemo} />
+        </ImagePosition>
+      </StartModal>
+    </div>
+  );
+}
+
+const BackButton = styled('button')`
+  border: 1px solid #e1dbd6;
+  border-radius: 4px;
+  background-color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 6px 8px;
+  display: flex;
+  gap: 5px;
+`;
+
+const HighlightCorner = styled('img')`
+  position: absolute;
+  width: 350px;
+  right: 0;
+  top: 0;
+  pointer-events: none;
+`;
+
+const ImagePosition = styled('div')`
+  margin: auto;
+  max-width: 400px;
+`;
+
+const PositionRight = styled('img')`
+  border-radius: 0.5rem;
+  pointer-events: none;
+`;
+
+const SignUpBody = styled('div')`
+  padding: 20px 0;
+  p {
+    font-size: 16px;
+    margin: 0;
+  }
+  h2 {
+    font-size: 2em;
+  }
+  max-width: 400px;
+`;
+
+const StartModal = styled('div')`
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 30px;
+`;
+
+const Subheader = styled('h4')`
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  font-weight: bold;
+  color: #6c5fc7;
+  font-size: 14px;
+`;
