@@ -673,16 +673,18 @@ class AuthLoginView(BaseView):
                         email=user.email, organization_id=organization.id
                     )
 
+                    invitation_link = getattr(membership, "invitation_link", None)
+
                     # If the user is a member, the user_id is None, and they are in a "pending invite acceptance" state with a valid invitation link,
                     # we redirect them to the invitation page to explicitly accept the invite
                     if (
                         membership
                         and membership.user_id is None
                         and membership.is_pending
-                        and membership.invitation_link
+                        and invitation_link
                     ):
-                        accept_link_position = membership.invitation_link.find("/accept")
-                        return self.redirect(membership.invitation_link[accept_link_position:])
+                        accept_link_position = invitation_link.find("/accept")
+                        return self.redirect(invitation_link[accept_link_position:])
 
                     # Refresh the organization we fetched prior to login in order to check its login state.
                     org_context = organization_service.get_organization_by_slug(
