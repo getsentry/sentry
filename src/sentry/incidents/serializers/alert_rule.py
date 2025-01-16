@@ -47,7 +47,10 @@ from sentry.snuba.entity_subscription import (
     get_entity_subscription,
 )
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
-from sentry.workflow_engine.migration_helpers.alert_rule import migrate_alert_rule
+from sentry.workflow_engine.migration_helpers.alert_rule import (
+    migrate_alert_rule,
+    migrate_resolve_threshold_data_conditions,
+)
 
 from ...snuba.metrics.naming_layer.mri import is_mri
 from . import (
@@ -516,6 +519,8 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
                 "organizations:workflow-engine-metric-alert-processing", alert_rule.organization
             ):
                 migrate_alert_rule(alert_rule, user)
+                if alert_rule.resolve_threshold:
+                    migrate_resolve_threshold_data_conditions(alert_rule)
 
             self._handle_triggers(alert_rule, triggers)
             return alert_rule

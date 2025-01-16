@@ -85,7 +85,15 @@ def assert_alert_rule_migrated(alert_rule, project_id):
 
 
 def assert_alert_rule_resolve_trigger_migrated(alert_rule):
-    detector_trigger = DataCondition.objects.get(comparison=alert_rule.resolve_threshold)
+    detector_trigger = DataCondition.objects.get(
+        comparison=alert_rule.resolve_threshold,
+        condition_result=DetectorPriorityLevel.OK,
+        type=(
+            Condition.LESS_OR_EQUAL
+            if alert_rule.threshold_type == AlertRuleThresholdType.ABOVE.value
+            else Condition.GREATER_OR_EQUAL
+        ),
+    )
     detector = AlertRuleDetector.objects.get(alert_rule=alert_rule).detector
 
     assert detector_trigger.type == Condition.LESS_OR_EQUAL
@@ -116,6 +124,7 @@ def assert_alert_rule_trigger_migrated(alert_rule_trigger):
         comparison=alert_rule_trigger.alert_threshold,
         condition_result=condition_result,
     )
+
     assert (
         detector_trigger.type == Condition.GREATER
         if alert_rule_trigger.alert_rule.threshold_type == AlertRuleThresholdType.ABOVE.value
@@ -123,7 +132,7 @@ def assert_alert_rule_trigger_migrated(alert_rule_trigger):
     )
     assert detector_trigger.condition_result == condition_result
 
-    data_condition = DataCondition.objects.get(comparison=condition_result)
+    data_condition = DataCondition.objects.get(comparison=condition_result, condition_result=True)
     assert data_condition.type == Condition.ISSUE_PRIORITY_EQUALS
     assert data_condition.condition_result is True
     assert WorkflowDataConditionGroup.objects.filter(
