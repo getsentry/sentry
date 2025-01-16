@@ -20,22 +20,6 @@ class NotificationConfigurationForm(forms.Form):
     pass
 
 
-class BaseNotificationUserOptionsForm(forms.Form):
-    def __init__(self, plugin, user, *args, **kwargs):
-        self.plugin = plugin
-        self.user = user
-        super().__init__(*args, **kwargs)
-
-    def get_title(self):
-        return self.plugin.get_conf_title()
-
-    def get_description(self):
-        return ""
-
-    def save(self):
-        raise NotImplementedError
-
-
 class NotificationPlugin(Plugin):
     slug = ""
     description = (
