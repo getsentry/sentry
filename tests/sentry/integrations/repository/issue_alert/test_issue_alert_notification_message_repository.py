@@ -264,25 +264,32 @@ class TestGetAllParentNotificationMessagesByFilters(
 
     @freeze_time("2025-01-01 00:00:00")
     def test_returns_correct_message_when_open_period_start_is_not_none(self) -> None:
-        n1 = NotificationMessage.objects.create(
+        NotificationMessage.objects.create(
             rule_fire_history=self.rule_fire_history,
             rule_action_uuid=str(uuid4()),
             message_identifier="period123",
             open_period_start=timezone.now(),
         )
 
-        NotificationMessage.objects.create(
+        n2 = NotificationMessage.objects.create(
             rule_fire_history=self.rule_fire_history,
             rule_action_uuid=str(uuid4()),
             message_identifier="period123",
-            open_period_start=timezone.now() + timedelta(days=1),
+            open_period_start=timezone.now() + timedelta(seconds=1),
+        )
+
+        n3 = NotificationMessage.objects.create(
+            rule_fire_history=self.rule_fire_history,
+            rule_action_uuid=str(uuid4()),
+            message_identifier="period123",
+            open_period_start=timezone.now() + timedelta(seconds=1),
         )
 
         result = list(
             self.repository.get_all_parent_notification_messages_by_filters(
                 project_ids=[self.project.id],
                 group_ids=[self.group.id],
-                open_period_start=timezone.now(),
+                open_period_start=timezone.now() + timedelta(seconds=1),
             )
         )
 
@@ -290,8 +297,9 @@ class TestGetAllParentNotificationMessagesByFilters(
         for parent_notification in result:
             result_ids.append(parent_notification.id)
 
-        assert len(result_ids) == 1
-        assert result_ids[0] == n1.id
+        assert len(result_ids) == 2
+        assert n3.id in result_ids
+        assert n2.id in result_ids
 
     @freeze_time("2025-01-01 00:00:00")
     def test_returns_none_when_open_period_start_does_not_match(self) -> None:
