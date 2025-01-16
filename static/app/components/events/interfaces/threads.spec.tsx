@@ -41,7 +41,10 @@ describe('Threads', function () {
     ProjectsStore.loadInitialData([project]);
     ConfigStore.set('user', UserFixture());
 
-    localStorage.setItem('issue-details-stracktrace-display', JSON.stringify([]));
+    localStorage.setItem(
+      `issue-details-stracktrace-display-${organization.slug}-${project.slug}`,
+      JSON.stringify([])
+    );
   });
 
   describe('non native platform', function () {
