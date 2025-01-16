@@ -19,6 +19,7 @@ import type {IssueAttachment} from 'sentry/types/group';
 import type {RouteContextInterface} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import toArray from 'sentry/utils/array/toArray';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
@@ -150,13 +151,8 @@ class EventsTable extends Component<Props, State> {
       updateQuery(searchConditions, action, column, value);
 
       if (hasStreamlinedUI && column.key === 'environment') {
-        const currentEnvs = Array.isArray(location.query.environment)
-          ? location.query.environment
-          : location.query.environment
-            ? [location.query.environment]
-            : [];
+        let newEnvs = toArray(location.query.environment);
 
-        let newEnvs = currentEnvs;
         if (action === Actions.ADD) {
           if (!newEnvs.includes(String(value))) {
             newEnvs.push(String(value));
