@@ -624,8 +624,6 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
         )
 
     def test_finds_stacktrace_paths_single_project(self):
-        # stacktrace_paths = identify_stacktrace_paths(self.event.data)
-
         stacktrace_paths = identify_stacktrace_paths(self.event.data)
         assert sorted(stacktrace_paths) == [
             "sentry/models/release.py",
