@@ -61,12 +61,6 @@ class PluginManager(InstanceManager):
                 continue
             yield plugin
 
-    def for_site(self, version=1):
-        for plugin in self.all(version=version):
-            if not plugin.has_site_conf():
-                continue
-            yield plugin
-
     def get(self, slug):
         for plugin in self.all(version=None):
             if plugin.slug == slug:
