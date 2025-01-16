@@ -125,7 +125,6 @@ class OrganizationMemberSerializer(Serializer):
             if inviter:
                 inviter_name = inviter.get_display_name()
 
-        # helping mypy - we know name will be a string since we fall back to email
         name = serialized_user["name"] if serialized_user else email
 
         data: OrganizationMemberResponse = {
