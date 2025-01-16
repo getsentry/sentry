@@ -18,7 +18,7 @@ from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.autofix.utils import get_autofix_repos_from_project_code_mappings, get_autofix_state
 from sentry.eventstore.models import Event, GroupEvent
-from sentry.integrations.utils.code_mapping import get_sorted_code_mapping_configs
+from sentry.issues.auto_source_code_config.code_mapping import get_sorted_code_mapping_configs
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.profiles.utils import get_from_profiling_service

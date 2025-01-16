@@ -30,7 +30,7 @@ from sentry.integrations.source_code_management.commit_context import (
     FileBlameInfo,
     SourceLineInfo,
 )
-from sentry.integrations.utils.code_mapping import Repo, RepoTree
+from sentry.issues.auto_source_code_config.code_mapping import Repo, RepoTree
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.organizations.absolute_url import generate_organization_url

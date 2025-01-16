@@ -11,7 +11,7 @@ from sentry.api.bases.organization import (
 )
 from sentry.api.serializers import serialize
 from sentry.integrations.github.integration import GitHubIntegration
-from sentry.integrations.utils.code_mapping import (
+from sentry.issues.auto_source_code_config.code_mapping import (
     CodeMapping,
     CodeMappingTreesHelper,
     FrameFilename,
@@ -20,11 +20,16 @@ from sentry.integrations.utils.code_mapping import (
 )
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.tasks.derive_code_mappings import get_installation
+from sentry.tasks.auto_source_code_config import get_installation
 
 
 @region_silo_endpoint
 class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
+    """
+    In the UI, we have a prompt to derive code mappings from the stacktrace filename.
+    This endpoint is used to get the possible code mappings for it.
+    """
+
     owner = ApiOwner.ISSUES
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
@@ -42,7 +47,8 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
         :auth: required
         """
         stacktrace_filename = request.GET.get("stacktraceFilename")
-        installation, _ = get_installation(organization)  # only returns GitHub integrations
+        # It only returns the first GitHub integration
+        installation, _ = get_installation(organization)
         if not installation:
             return self.respond(
                 {"text": "Could not find this integration installed on your organization"},

@@ -21,6 +21,7 @@ from sentry.eventstream.types import EventStreamEventType
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.source_code_management.commit_context import CommitInfo, FileBlameInfo
+from sentry.issues.auto_source_code_config.code_mapping import SUPPORTED_LANGUAGES
 from sentry.issues.grouptype import (
     FeedbackGroup,
     GroupCategory,
@@ -54,7 +55,6 @@ from sentry.rules import init_registry
 from sentry.rules.actions.base import EventAction
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
-from sentry.tasks.derive_code_mappings import SUPPORTED_LANGUAGES
 from sentry.tasks.merge import merge_groups
 from sentry.tasks.post_process import (
     HIGHER_ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT,
@@ -227,14 +227,14 @@ class DeriveCodeMappingsProcessGroupTestMixin(BasePostProgressGroupMixin):
             event=event,
         )
 
-    @patch("sentry.tasks.derive_code_mappings.derive_code_mappings")
+    @patch("sentry.tasks.auto_source_code_config.derive_code_mappings")
     def test_derive_invalid_platform(self, mock_derive_code_mappings):
         event = self._create_event({"platform": "elixir"})
         self._call_post_process_group(event)
 
         assert mock_derive_code_mappings.delay.call_count == 0
 
-    @patch("sentry.tasks.derive_code_mappings.derive_code_mappings")
+    @patch("sentry.tasks.auto_source_code_config.derive_code_mappings")
     def test_derive_supported_languages(self, mock_derive_code_mappings):
         for platform in SUPPORTED_LANGUAGES:
             event = self._create_event({"platform": platform})
@@ -242,7 +242,7 @@ class DeriveCodeMappingsProcessGroupTestMixin(BasePostProgressGroupMixin):
 
             assert mock_derive_code_mappings.delay.call_count == 1
 
-    @patch("sentry.tasks.derive_code_mappings.derive_code_mappings")
+    @patch("sentry.tasks.auto_source_code_config.derive_code_mappings")
     def test_only_maps_a_given_project_once_per_hour(self, mock_derive_code_mappings):
         dogs_project = self.create_project()
         maisey_event = self._create_event(
@@ -287,7 +287,7 @@ class DeriveCodeMappingsProcessGroupTestMixin(BasePostProgressGroupMixin):
             self._call_post_process_group(bodhi_event)
             assert mock_derive_code_mappings.delay.call_count == 2
 
-    @patch("sentry.tasks.derive_code_mappings.derive_code_mappings")
+    @patch("sentry.tasks.auto_source_code_config.derive_code_mappings")
     def test_only_maps_a_given_issue_once_per_day(self, mock_derive_code_mappings):
         dogs_project = self.create_project()
         maisey_event1 = self._create_event(
@@ -337,7 +337,7 @@ class DeriveCodeMappingsProcessGroupTestMixin(BasePostProgressGroupMixin):
             self._call_post_process_group(maisey_event4)
             assert mock_derive_code_mappings.delay.call_count == 2
 
-    @patch("sentry.tasks.derive_code_mappings.derive_code_mappings")
+    @patch("sentry.tasks.auto_source_code_config.derive_code_mappings")
     def test_skipping_an_issue_doesnt_mark_it_processed(self, mock_derive_code_mappings):
         dogs_project = self.create_project()
         maisey_event = self._create_event(
@@ -374,6 +374,28 @@ class DeriveCodeMappingsProcessGroupTestMixin(BasePostProgressGroupMixin):
         with patch("time.time", return_value=time.time() + 60 * 61):
             self._call_post_process_group(charlie_event2)
             assert mock_derive_code_mappings.delay.call_count == 2
+
+    # XXX: Delete this test once we've migrated
+    @patch("sentry.tasks.auto_source_code_config.auto_source_code_config")
+    @patch("sentry.tasks.auto_source_code_config.derive_code_mappings")
+    def test_new_queue(self, mock_derive_code_mappings, mock_auto_source_code_config):
+        event = self._create_event(data={}, project_id=self.project.id)
+
+        with self.options({"system.new-auto-source-code-config-queue": False}):
+            self._call_post_process_group(event)
+            assert mock_derive_code_mappings.delay.call_count == 1
+            assert mock_auto_source_code_config.delay.call_count == 0
+
+    # XXX: Delete this test once we've migrated
+    @patch("sentry.tasks.auto_source_code_config.auto_source_code_config")
+    @patch("sentry.tasks.auto_source_code_config.derive_code_mappings")
+    def test_old_queue(self, mock_derive_code_mappings, mock_auto_source_code_config):
+        event = self._create_event(data={}, project_id=self.project.id)
+
+        with self.options({"system.new-auto-source-code-config-queue": True}):
+            self._call_post_process_group(event)
+            assert mock_derive_code_mappings.delay.call_count == 0
+            assert mock_auto_source_code_config.delay.call_count == 1
 
 
 class RuleProcessorTestMixin(BasePostProgressGroupMixin):

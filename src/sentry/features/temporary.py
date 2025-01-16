@@ -32,6 +32,10 @@ def register_temporary_features(manager: FeatureManager):
     # Features that don't use resource scoping #
     ############################################
 
+    # FLAGPOLE NOTE:
+    # You won't be able to control system feature flags with flagpole, as flagpole only handles
+    # organization or project scoped features. You would need to use an option instead.
+
     # Enables user registration.
     manager.add("auth:register", SystemFeature, FeatureHandlerStrategy.INTERNAL, default=True)
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION is not enabled).
