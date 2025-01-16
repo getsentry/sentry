@@ -15,8 +15,10 @@ from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.paginator import DateTimePaginator, OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.organization import BaseOrganizationSerializer
-from sentry.api.serializers.types import OrganizationSerializerResponse
+from sentry.api.serializers.models.organization import (
+    BaseOrganizationSerializer,
+    OrganizationSerializerResponse,
+)
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.user_examples import UserExamples
 from sentry.apidocs.parameters import CursorQueryParam, OrganizationParams
