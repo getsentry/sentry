@@ -208,7 +208,6 @@ disable_error_code = [
     "operator",
     "override",
     "union-attr",
-    "unreachable",
 ]
 # end: sentry modules with typing issues
 
