@@ -43,7 +43,7 @@ class OrganizationOnboardingTaskEndpoint(OrganizationEndpoint):
         # Cannot skip unskippable tasks
         if (
             status == OnboardingTaskStatus.SKIPPED
-            and task_id not in onboarding_tasks.get_skippable_tasks(organization, request.user)
+            and task_id not in onboarding_tasks.get_skippable_tasks(organization)
         ):
             return Response(status=422)
 
@@ -63,7 +63,7 @@ class OrganizationOnboardingTaskEndpoint(OrganizationEndpoint):
         )
 
         if rows_affected or created:
-            onboarding_tasks.try_mark_onboarding_complete(organization.id, request.user)
+            onboarding_tasks.try_mark_onboarding_complete(organization.id)
 
         return Response(status=204)
 
