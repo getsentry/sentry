@@ -179,7 +179,7 @@ function useDemoTrace(
 
   // Casting here since the 'select' option is not available in the useApiQuery hook to transform the data
   // from EventTransaction to TraceSplitResults<TraceFullDetailed>
-  return {...demoEventQuery, data} as UseApiQueryResult<
+  return {...demoEventQuery, data} as unknown as UseApiQueryResult<
     TraceSplitResults<TraceTree.Transaction>,
     any
   >;
