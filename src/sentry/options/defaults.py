@@ -2827,7 +2827,7 @@ register(
 # Controls the rate of using the sentry api shared secret for communicating to sentry.
 register(
     "seer.api.use-nonce-signature",
-    default=1.0,
+    default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
