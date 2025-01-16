@@ -132,7 +132,7 @@ def attach_custom_severity(
         return data
 
     severity = app_config.get("priority", None)
-    if severity is not None and severity in PAGERDUTY_DEFAULT_SEVERITY:
+    if severity is not None and severity != PAGERDUTY_DEFAULT_SEVERITY:
         data["payload"]["severity"] = severity
 
     return data
