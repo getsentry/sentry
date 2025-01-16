@@ -187,9 +187,6 @@ class NotificationPlugin(Plugin):
             test_results = "No errors returned"
         return test_results
 
-    def get_notification_doc_html(self, **kwargs):
-        return ""
-
     def add_notification_referrer_param(self, url):
         if self.slug:
             parsed_url = urlparse(url)
