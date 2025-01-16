@@ -118,7 +118,7 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
         filepath: file from the stacktrace (string)
         branch: commitsha or default_branch (string)
         """
-        with self.record_event(SCMIntegrationInteractionType.CHECK_FILE).capture() as lifecycle:
+        with self.record_event(SCMIntegrationInteractionType.CHECK_FILE).capture():
             filepath = filepath.lstrip("/")
             try:
                 client = self.get_client()
@@ -132,12 +132,9 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
             except IdentityNotValid:
                 return None
             except ApiError as e:
-                if e.code not in (404, 400):
+                if e.code != 404:
                     sentry_sdk.capture_exception()
                     raise
-
-                else:
-                    lifecycle.record_halt(extra={"status_code": e.code})
 
                 return None
 
