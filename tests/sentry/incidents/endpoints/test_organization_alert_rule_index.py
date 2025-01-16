@@ -247,7 +247,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         assert_alert_rule_migrated(alert_rule, self.project.id)
         assert_alert_rule_trigger_migrated(triggers[0])
         assert_alert_rule_trigger_migrated(triggers[1])
-        # TODO add the resolve threshold
         assert_alert_rule_resolve_trigger_migrated(alert_rule)
 
     @with_feature("organizations:slack-metric-alert-description")
