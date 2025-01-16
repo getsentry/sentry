@@ -7,7 +7,6 @@ import {Alert} from 'sentry/components/alert';
 import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import type {SelectOptionWithKey} from 'sentry/components/compactSelect/types';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -21,7 +20,6 @@ import {
   SpanSearchQueryBuilder,
 } from 'sentry/components/performance/spanSearchQueryBuilder';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {IconBusiness} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -129,7 +127,7 @@ function ExploreContentImpl() {
         : spansTableResult.result.error?.message ?? '';
   const chartError = timeseriesResult.error?.message ?? '';
 
-  const {defaultPeriod, isOptionDisabled, maxPickableDays, relativeOptions} =
+  const {defaultPeriod, maxPickableDays, relativeOptions} =
     limitMaxPickableDays(organization);
 
   return (
@@ -173,7 +171,6 @@ function ExploreContentImpl() {
                 <EnvironmentPageFilter />
                 <DatePageFilter
                   defaultPeriod={defaultPeriod}
-                  isOptionDisabled={isOptionDisabled}
                   maxPickableDays={maxPickableDays}
                   relativeOptions={({arbitraryOptions}) => ({
                     ...arbitraryOptions,
@@ -272,7 +269,6 @@ type DefaultPeriod = '7d' | '14d' | '30d';
 
 function limitMaxPickableDays(organization: Organization): {
   defaultPeriod: DefaultPeriod;
-  isOptionDisabled: (option: SelectOptionWithKey<string>) => boolean;
   maxPickableDays: MaxPickableDays;
   relativeOptions: Record<string, React.ReactNode>;
 } {
@@ -299,30 +295,14 @@ function limitMaxPickableDays(organization: Organization): {
 
   const index = relativeOptions.findIndex(([period, _]) => period === defaultPeriod) + 1;
   const enabledOptions = relativeOptions.slice(0, index);
-  const disabledOptions = relativeOptions.slice(index).map(([period, value]) => {
-    return [
-      period,
-      <DisabledOption key={period}>
-        {value}
-        <IconBusiness gradient withShine />
-      </DisabledOption>,
-    ];
-  });
-
-  const disabledPeriods = new Set(disabledOptions.map(([period, _]) => period as string));
 
   return {
     defaultPeriod,
-    isOptionDisabled: ({value}: SelectOptionWithKey<string>) =>
-      disabledPeriods.has(value),
     maxPickableDays,
     relativeOptions: {
       '1h': t('Last hour'),
       '24h': t('Last 24 hours'),
-      // enabled options
       ...Object.fromEntries(enabledOptions),
-      // disabled options
-      ...Object.fromEntries(disabledOptions),
     },
   };
 }
@@ -362,10 +342,4 @@ const MainSection = styled(Layout.Main)`
 
 const StyledPageFilterBar = styled(PageFilterBar)`
   width: auto;
-`;
-
-const DisabledOption = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
 `;
