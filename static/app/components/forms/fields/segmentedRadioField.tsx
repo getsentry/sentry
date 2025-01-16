@@ -27,7 +27,7 @@ function SegmentedRadioField(props: SegmentedRadioFieldProps) {
   return (
     <FormField {...props}>
       {({id, onChange, onBlur, value, disabled, ...fieldProps}) => (
-        <ControlGroup
+        <RadioControlGroup
           id={id}
           name={props.name}
           choices={fieldProps.choices}
@@ -41,7 +41,7 @@ function SegmentedRadioField(props: SegmentedRadioFieldProps) {
   );
 }
 
-function ControlGroup<C extends string>({
+function RadioControlGroup<C extends string>({
   name: groupName,
   value,
   disabled: groupDisabled,
