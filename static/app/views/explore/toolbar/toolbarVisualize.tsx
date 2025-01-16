@@ -19,6 +19,7 @@ import {
 import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {
   DEFAULT_VISUALIZATION,
+  DEFAULT_VISUALIZATION_FIELD,
   MAX_VISUALIZES,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
@@ -111,17 +112,17 @@ export function ToolbarVisualize() {
   }, []);
 
   const addChart = useCallback(() => {
-    setVisualizes([
-      ...visualizes,
-      {yAxes: [DEFAULT_VISUALIZATION], chartType: ChartType.LINE},
-    ]);
+    setVisualizes(
+      [...visualizes, {yAxes: [DEFAULT_VISUALIZATION], chartType: ChartType.LINE}],
+      DEFAULT_VISUALIZATION_FIELD
+    );
   }, [setVisualizes, visualizes]);
 
   const addOverlay = useCallback(
     (group: number) => {
       const newVisualizes = visualizes.slice();
       newVisualizes[group]!.yAxes.push(DEFAULT_VISUALIZATION);
-      setVisualizes(newVisualizes);
+      setVisualizes(newVisualizes, DEFAULT_VISUALIZATION_FIELD);
     },
     [setVisualizes, visualizes]
   );
@@ -131,7 +132,7 @@ export function ToolbarVisualize() {
       const newVisualizes = visualizes.slice();
       newVisualizes[group]!.yAxes[index] =
         `${parsedVisualizeGroups[group]![index]!.func.name}(${value})`;
-      setVisualizes(newVisualizes);
+      setVisualizes(newVisualizes, String(value));
     },
     [parsedVisualizeGroups, setVisualizes, visualizes]
   );
