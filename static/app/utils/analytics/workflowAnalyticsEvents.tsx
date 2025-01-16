@@ -98,6 +98,7 @@ export type TeamInsightsEventParameters = {
       | 'open_in_discover'
       | 'assign'
       | GroupStatus;
+    org_streamline_only: boolean | undefined;
     action_status_details?: string;
     action_substatus?: string;
     assigned_suggestion_reason?: string;

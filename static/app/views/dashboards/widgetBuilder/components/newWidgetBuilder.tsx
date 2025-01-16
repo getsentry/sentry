@@ -1,12 +1,15 @@
-import {type CSSProperties, Fragment, useEffect, useState} from 'react';
+import {type CSSProperties, Fragment, useCallback, useEffect, useState} from 'react';
 import {closestCorners, DndContext, useDraggable, useDroppable} from '@dnd-kit/core';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
+import cloneDeep from 'lodash/cloneDeep';
+import omit from 'lodash/omit';
 
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
+import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
@@ -45,6 +48,11 @@ import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboar
 import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
+export interface ThresholdMetaState {
+  dataType?: string;
+  dataUnit?: string;
+}
+
 type WidgetBuilderV2Props = {
   dashboard: DashboardDetails;
   dashboardFilters: DashboardFilters;
@@ -71,6 +79,7 @@ function WidgetBuilderV2({
   const [queryConditionsValid, setQueryConditionsValid] = useState<boolean>(true);
   const theme = useTheme();
   const [isPreviewDraggable, setIsPreviewDraggable] = useState(false);
+  const [thresholdMetaState, setThresholdMetaState] = useState<ThresholdMetaState>({});
 
   const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.small})`);
 
@@ -102,6 +111,22 @@ function WidgetBuilderV2({
     }));
   };
 
+  const handleWidgetDataFetched = useCallback(
+    (tableData: TableDataWithTitle[]) => {
+      const tableMeta = {...tableData[0]!.meta};
+      const keys = Object.keys(tableMeta);
+      const field = keys[0]!;
+      const dataType = tableMeta[field];
+      const dataUnit = tableMeta.units?.[field];
+
+      const newState = cloneDeep(thresholdMetaState);
+      newState.dataType = dataType;
+      newState.dataUnit = dataUnit;
+      setThresholdMetaState(newState);
+    },
+    [thresholdMetaState]
+  );
+
   return (
     <Fragment>
       {isOpen && <Backdrop style={{opacity: 0.5, pointerEvents: 'auto'}} />}
@@ -129,6 +154,8 @@ function WidgetBuilderV2({
                       isWidgetInvalid={!queryConditionsValid}
                       openWidgetTemplates={openWidgetTemplates}
                       setOpenWidgetTemplates={setOpenWidgetTemplates}
+                      onDataFetched={handleWidgetDataFetched}
+                      thresholdMetaState={thresholdMetaState}
                     />
                     {(!isSmallScreen || isPreviewDraggable) && (
                       <DndContext
@@ -142,6 +169,8 @@ function WidgetBuilderV2({
                           dragPosition={translate}
                           isDraggable={isPreviewDraggable}
                           isWidgetInvalid={!queryConditionsValid}
+                          onDataFetched={handleWidgetDataFetched}
+                          openWidgetTemplates={openWidgetTemplates}
                         />
                       </DndContext>
                     )}
@@ -164,12 +193,16 @@ export function WidgetPreviewContainer({
   isWidgetInvalid,
   dragPosition,
   isDraggable,
+  onDataFetched,
+  openWidgetTemplates,
 }: {
   dashboard: DashboardDetails;
   dashboardFilters: DashboardFilters;
   isWidgetInvalid: boolean;
   dragPosition?: WidgetDragPositioning;
   isDraggable?: boolean;
+  onDataFetched?: (tableData: TableDataWithTitle[]) => void;
+  openWidgetTemplates?: boolean;
 }) {
   const {state} = useWidgetBuilderContext();
   const organization = useOrganization();
@@ -180,7 +213,6 @@ export function WidgetPreviewContainer({
       useRpc: decodeBoolean,
     },
   });
-
   const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.small})`);
   // if small screen and draggable, enable dragging
   const isDragEnabled = isSmallScreen && isDraggable;
@@ -195,7 +227,7 @@ export function WidgetPreviewContainer({
 
   const draggableStyle: CSSProperties = {
     transform: isDragEnabled
-      ? `translate3d(${translate?.x ?? 0}px, ${translate?.y ?? 0}px, 0)`
+      ? `translate3d(${isDragging ? translate?.x : 0}px, ${isDragging ? translate?.y : 0}px, 0)`
       : undefined,
     top: isDragEnabled ? top ?? 0 : undefined,
     left: isDragEnabled ? left ?? 0 : undefined,
@@ -207,9 +239,26 @@ export function WidgetPreviewContainer({
     position: isDragEnabled ? 'fixed' : undefined,
   };
 
+  // check if the state is in the url because the state variable has default values
+  const hasUrlParams =
+    Object.keys(
+      omit(location.query, [
+        'environment',
+        'project',
+        'release',
+        'start',
+        'end',
+        'statsPeriod',
+      ])
+    ).length > 0;
+
   const getPreviewHeight = () => {
     if (isDragEnabled) {
       return DRAGGABLE_PREVIEW_HEIGHT_PX;
+    }
+    // if none of the widget templates are selected
+    if (openWidgetTemplates && !hasUrlParams) {
+      return PREVIEW_HEIGHT_PX;
     }
     if (state.displayType === DisplayType.TABLE) {
       return 'auto';
@@ -260,13 +309,25 @@ export function WidgetPreviewContainer({
                       : undefined,
                   }}
                 >
-                  <WidgetPreview
-                    // While we test out RPC for spans, force a re-render if the spans toggle changes
-                    key={state.dataset === WidgetType.SPANS && useRpc ? 'spans' : 'other'}
-                    dashboardFilters={dashboardFilters}
-                    dashboard={dashboard}
-                    isWidgetInvalid={isWidgetInvalid}
-                  />
+                  {openWidgetTemplates && !hasUrlParams ? (
+                    <WidgetPreviewPlaceholder>
+                      <h6 style={{margin: 0}}>{t('Widget Title')}</h6>
+                      <TemplateWidgetPreviewPlaceholder>
+                        <p style={{margin: 0}}>{t('Select a widget to preview')}</p>
+                      </TemplateWidgetPreviewPlaceholder>
+                    </WidgetPreviewPlaceholder>
+                  ) : (
+                    <WidgetPreview
+                      // While we test out RPC for spans, force a re-render if the spans toggle changes
+                      key={
+                        state.dataset === WidgetType.SPANS && useRpc ? 'spans' : 'other'
+                      }
+                      dashboardFilters={dashboardFilters}
+                      dashboard={dashboard}
+                      isWidgetInvalid={isWidgetInvalid}
+                      onDataFetched={onDataFetched}
+                    />
+                  )}
                 </SampleWidgetCard>
               </DraggableWidgetContainer>
             </MEPSettingProvider>
@@ -389,4 +450,23 @@ const DroppableGrid = styled('div')`
   right: ${space(2)};
   bottom: ${space(2)};
   left: 0;
+`;
+
+const TemplateWidgetPreviewPlaceholder = styled('div')`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 95%;
+  color: ${p => p.theme.subText};
+  font-style: italic;
+  font-size: ${p => p.theme.fontSizeMedium};
+  font-weight: ${p => p.theme.fontWeightNormal};
+`;
+
+const WidgetPreviewPlaceholder = styled('div')`
+  width: 100%;
+  height: 100%;
+  padding: ${space(2)};
 `;

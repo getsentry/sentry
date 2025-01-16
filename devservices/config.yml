@@ -32,6 +32,13 @@ x-sentry-service-config:
         branch: master
         repo_link: https://github.com/getsentry/symbolicator.git
         mode: default
+    vroom:
+      description: Sentry's profiling service, processing and deriving data about your profiles
+      remote:
+        repo_name: vroom
+        branch: main
+        repo_link: https://github.com/getsentry/vroom.git
+        mode: default
     bigtable:
       description: Bigtable emulator
     redis-cluster:
@@ -51,6 +58,9 @@ x-sentry-service-config:
         mode: containerized
     rabbitmq:
       description: Messaging and streaming broker
+    memcached:
+      description: Memcached used for caching
+
   modes:
     default: [snuba, postgres, relay]
     migrations: [postgres, redis]
@@ -58,6 +68,22 @@ x-sentry-service-config:
     taskbroker: [snuba, postgres, relay, taskbroker]
     backend-ci: [snuba, postgres, redis, bigtable, redis-cluster, symbolicator]
     rabbitmq: [postgres, snuba, rabbitmq]
+    symbolicator: [postgres, snuba, symbolicator]
+    memcached: [postgres, snuba, memcached]
+    profiling: [postgres, snuba, vroom]
+    minimal: [postgres, snuba]
+    full:
+      [
+        postgres,
+        snuba,
+        relay,
+        redis,
+        redis-cluster,
+        symbolicator,
+        taskbroker,
+        rabbitmq,
+        vroom,
+      ]
 
 services:
   postgres:
@@ -125,6 +151,14 @@ services:
       - host.docker.internal:host-gateway
     environment:
       - IP=0.0.0.0
+  memcached:
+    image: ghcr.io/getsentry/image-mirror-library-memcached:1.5-alpine
+    ports:
+      - '127.0.0.1:11211:11211'
+    networks:
+      - devservices
+    extra_hosts:
+      - host.docker.internal:host-gateway
 
 networks:
   devservices:

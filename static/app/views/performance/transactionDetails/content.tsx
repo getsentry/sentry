@@ -229,7 +229,7 @@ function EventDetailsContent(props: Props) {
                               <ProfilesProvider
                                 orgSlug={organization.slug}
                                 projectSlug={projectId}
-                                profileId={profileId || ''}
+                                profileMeta={profileId || ''}
                               >
                                 <ProfileContext.Consumer>
                                   {profiles => (
