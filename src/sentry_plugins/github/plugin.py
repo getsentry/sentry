@@ -8,7 +8,6 @@ from rest_framework.response import Response
 from sentry import options
 from sentry.exceptions import PluginError
 from sentry.integrations.base import FeatureDescription, IntegrationFeatures
-from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
 from sentry.locks import locks
@@ -431,30 +430,6 @@ class GitHubAppsRepositoryProvider(GitHubRepositoryProvider):
 
     def get_install_url(self):
         return options.get("github.apps-install-url")
-
-    def get_available_auths(self, user, organization, integrations, social_auths, **kwargs):
-        allowed_gh_installations = set(self.get_installations(user))
-
-        linked_integrations = {i.id for i in integrations}
-
-        _integrations = list(Integration.objects.filter(external_id__in=allowed_gh_installations))
-
-        # add in integrations that might have been set up for org
-        # by users w diff permissions
-        _integrations.extend(
-            [i for i in integrations if i.external_id not in allowed_gh_installations]
-        )
-
-        return [
-            {
-                "defaultAuthId": None,
-                "user": None,
-                "externalId": i.external_id,
-                "integrationId": str(i.id),
-                "linked": i.id in linked_integrations,
-            }
-            for i in _integrations
-        ]
 
     def link_auth(self, user, organization, data):
         integration_id = data["integration_id"]
