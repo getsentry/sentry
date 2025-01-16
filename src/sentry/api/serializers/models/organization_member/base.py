@@ -45,8 +45,7 @@ class OrganizationMemberSerializer(Serializer):
         email_map: MutableMapping[str, str] = {}
         for u in user_service.serialize_many(filter={"user_ids": users_set}):
             # Filter out the emails from the user data
-            if "emails" in u:
-                del u["emails"]
+            u.pop("emails", None)
             users_by_id[u["id"]] = u
             email_map[u["id"]] = u["email"]
 
@@ -109,7 +108,6 @@ class OrganizationMemberSerializer(Serializer):
 
         # helping mypy - we know email will never be None based on the model
         assert email is not None
-        email = str(email)
 
         inviter_name = None
         if obj.inviter_id:
@@ -118,7 +116,7 @@ class OrganizationMemberSerializer(Serializer):
                 inviter_name = inviter.get_display_name()
 
         # helping mypy - we know name will be a string since we fall back to email
-        name = str(serialized_user["name"] if serialized_user else email)
+        name = serialized_user["name"] if serialized_user else email
 
         data: OrganizationMemberResponse = {
             "id": str(obj.id),
