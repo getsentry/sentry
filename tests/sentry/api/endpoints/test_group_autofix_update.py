@@ -4,7 +4,7 @@ import orjson
 from django.conf import settings
 from rest_framework import status
 
-from sentry.seer.signed_seer_api import get_seer_salted_url, sign_with_seer_secret
+from sentry.seer.signed_seer_api import get_seer_url, sign_with_seer_secret
 from sentry.testutils.cases import APITestCase
 
 
@@ -47,10 +47,10 @@ class TestGroupAutofixUpdate(APITestCase):
             }
         )
         expected_url = f"{settings.SEER_AUTOFIX_URL}/v1/automation/autofix/update"
-        expected_url, salt = get_seer_salted_url(expected_url)
+        expected_url, nonce = get_seer_url(expected_url)
         expected_headers = {
             "content-type": "application/json;charset=utf-8",
-            **sign_with_seer_secret(salt, body=expected_body),
+            **sign_with_seer_secret(body=expected_body, nonce=nonce),
         }
         mock_post.assert_called_once_with(
             expected_url,

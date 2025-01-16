@@ -29,10 +29,9 @@ def make_signed_seer_api_request(
     parsed = urlparse(url)
 
     # Generate nonce based on option
-    nonce = uuid4().hex if random() < options.get("seer.api.use-nonce-signature") else None
-    path_with_nonce = f"{parsed.path}?nonce={nonce}" if nonce else parsed.path
+    path_with_nonce, nonce = get_seer_url(parsed.path)
 
-    auth_headers = sign_with_seer_secret(body)
+    auth_headers = sign_with_seer_secret(body, nonce)
 
     timeout_options: dict[str, Any] = {}
     if timeout:
@@ -52,12 +51,20 @@ def make_signed_seer_api_request(
         )
 
 
-def sign_with_seer_secret(body: bytes) -> dict[str, str]:
+def get_seer_url(url: str) -> tuple[str, str | None]:
+    nonce = uuid4().hex if random() < options.get("seer.api.use-nonce-signature") else None
+
+    return f"{url}?nonce={nonce}" if nonce else url, nonce
+
+
+def sign_with_seer_secret(body: bytes, nonce: str | None = None) -> dict[str, str]:
     auth_headers: dict[str, str] = {}
     if random() < options.get("seer.api.use-shared-secret"):
         if settings.SEER_API_SHARED_SECRET:
             signature = hmac.new(
-                settings.SEER_API_SHARED_SECRET.encode("utf-8"), body, hashlib.sha256
+                settings.SEER_API_SHARED_SECRET.encode("utf-8"),
+                b"%s:%s" % (nonce.encode(), body) if nonce else body,
+                hashlib.sha256,
             ).hexdigest()
             auth_headers["Authorization"] = f"Rpcsignature rpc0:{signature}"
         else:

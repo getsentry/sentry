@@ -78,7 +78,7 @@ def test_uses_shared_secret_nonce(uuid_mock):
             body=REQUEST_BODY,
             headers={
                 "content-type": "application/json;charset=utf-8",
-                "Authorization": "Rpcsignature rpc0:d2e6070dfab955db6fc9f3bc0518f75f27ca93ae2e393072929e5f6cba26ff07",
+                "Authorization": "Rpcsignature rpc0:487fb810a4e87faf306dc9637cec9aaea2be37247410391b372178ffc15af6a8",
             },
         )
 

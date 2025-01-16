@@ -22,7 +22,7 @@ from sentry.issues.auto_source_code_config.code_mapping import get_sorted_code_m
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.profiles.utils import get_from_profiling_service
-from sentry.seer.signed_seer_api import get_seer_salted_url, sign_with_seer_secret
+from sentry.seer.signed_seer_api import get_seer_url, sign_with_seer_secret
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.autofix import check_autofix_status
@@ -289,16 +289,13 @@ class GroupAutofixEndpoint(GroupEndpoint):
             option=orjson.OPT_NON_STR_KEYS,
         )
 
-        url, salt = get_seer_salted_url(f"{settings.SEER_AUTOFIX_URL}{path}")
+        url, nonce = get_seer_url(f"{settings.SEER_AUTOFIX_URL}{path}")
         response = requests.post(
             url,
             data=body,
             headers={
                 "content-type": "application/json;charset=utf-8",
-                **sign_with_seer_secret(
-                    salt,
-                    body=body,
-                ),
+                **sign_with_seer_secret(body=body, nonce=nonce),
             },
         )
 
