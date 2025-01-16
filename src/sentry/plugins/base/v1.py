@@ -310,22 +310,6 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin):
         """
         return action_list
 
-    def panels(self, request, group, panel_list, **kwargs):
-        """
-        Modifies the panel list for a grouped message.
-
-        A panel is a tuple containing two elements:
-
-        ('Panel Label', '/uri/to/panel/')
-
-        This must return ``panel_list``.
-
-        >>> def panels(self, request, group, action_list, **kwargs):
-        >>>     panel_list.append((self.get_title(), self.get_url(group)))
-        >>>     return panel_list
-        """
-        return panel_list
-
     def widget(self, request, group, **kwargs):
         """
         Renders as a widget in the group details sidebar.
