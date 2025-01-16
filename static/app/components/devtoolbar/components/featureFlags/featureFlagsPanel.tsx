@@ -57,7 +57,10 @@ export default function FeatureFlagsPanel() {
               smallCss,
               panelSectionCss,
               panelInsetContentCss,
-              {background: 'var(--surface200)', padding: 'var(--space150)'},
+              css`
+                background: var(--surface200);
+                padding: var(--space150);
+              `,
             ]}
           >
             <AnalyticsProvider keyVal="custom-override" nameVal="Custom Override">
@@ -65,18 +68,24 @@ export default function FeatureFlagsPanel() {
             </AnalyticsProvider>
           </div>
         )}
-        <div css={{display: 'grid', gridTemplateRows: 'auto auto 1fr auto', flexGrow: 1}}>
+        <div
+          css={css`
+            display: grid;
+            grid-template-rows: auto auto 1fr auto;
+            flex-grow: 1;
+          `}
+        >
           <IsDirtyMessage />
           <div
             css={[
               smallCss,
               panelSectionCssNoBorder,
               panelInsetContentCss,
-              {
-                display: 'grid',
-                gridTemplateAreas: "'search segments'",
-                gap: 'var(--space100)',
-              },
+              css`
+                display: grid;
+                grid-template-areas: 'search segments';
+                gap: var(--space100);
+              `,
             ]}
           >
             <Filters
@@ -86,9 +95,17 @@ export default function FeatureFlagsPanel() {
             />
           </div>
           <div
-            css={[{contain: 'strict', flexDirection: 'column', alignItems: 'stretch'}]}
+            css={css`
+              contain: strict;
+              flex-direction: column;
+              align-items: stretch;
+            `}
           >
-            <div css={{overflow: 'auto'}}>
+            <div
+              css={css`
+                overflow: auto;
+              `}
+            >
               <AnalyticsProvider keyVal="flag-table" nameVal="Flag Table">
                 <FlagTable searchTerm={searchTerm} prefilter={prefilter} />
               </AnalyticsProvider>
@@ -105,7 +122,14 @@ function IsDirtyMessage() {
 
   return isDirty ? (
     <div
-      css={[smallCss, panelSectionCss, panelInsetContentCss, {color: 'var(--gray300)'}]}
+      css={[
+        smallCss,
+        panelSectionCss,
+        panelInsetContentCss,
+        css`
+          color: var(--gray300);
+        `,
+      ]}
     >
       <span>Reload to see changes</span>
     </div>
@@ -125,14 +149,20 @@ function Filters({
 }) {
   return (
     <Fragment>
-      <div css={{gridArea: 'segments'}}>
+      <div
+        css={css`
+          grid-area: segments;
+        `}
+      >
         <SegmentedControl<Prefilter> onChange={setPrefilter} size="xs" value={prefilter}>
           <SegmentedControl.Item key="all">All</SegmentedControl.Item>
           <SegmentedControl.Item key="overrides">Overrides</SegmentedControl.Item>
         </SegmentedControl>
       </div>
       <Input
-        css={{gridArea: 'search'}}
+        css={css`
+          grid-area: search;
+        `}
         onChange={e => setSearchTerm(e.target.value.toLowerCase())}
         placeholder="Search"
         size="xs"
@@ -161,18 +191,16 @@ function FlagTable({prefilter, searchTerm}: {prefilter: Prefilter; searchTerm: s
       <PanelTable
         disablePadding
         disableHeaders
-        css={[
-          {
-            flexGrow: 1,
-            margin: 0,
-            borderRadius: 0,
-            border: 'none',
-            padding: 0,
-            '& > :first-child': {
-              minHeight: 'unset',
-            },
-          },
-        ]}
+        css={css`
+          flex-grow: 1;
+          margin: 0;
+          border-radius: 0;
+          border: none;
+          padding: 0;
+          & > :first-child {
+            min-height: unset;
+          }
+        `}
         headers={[undefined, undefined]}
         stickyHeaders
       >
@@ -188,7 +216,11 @@ function FlagTable({prefilter, searchTerm}: {prefilter: Prefilter; searchTerm: s
             smallCss,
             panelSectionCssNoBorder,
             panelInsetContentCss,
-            {display: 'block', textAlign: 'center', color: 'var(--gray300)'},
+            css`
+              display: block;
+              text-align: center;
+              color: var(--gray300);
+            `,
           ]}
         >
           No flags to display
@@ -200,7 +232,10 @@ function FlagTable({prefilter, searchTerm}: {prefilter: Prefilter; searchTerm: s
             smallCss,
             panelSectionCssNoBorder,
             panelInsetContentCss,
-            {display: 'block', textAlign: 'center'},
+            css`
+              display: block;
+              text-align: center;
+            `,
           ]}
         >
           <button
@@ -217,11 +252,11 @@ function FlagTable({prefilter, searchTerm}: {prefilter: Prefilter; searchTerm: s
             <span
               css={[
                 resetFlexRowCss,
-                {
-                  gap: 'var(--space75)',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                },
+                css`
+                  gap: var(--space75);
+                  align-items: center;
+                  justify-content: center;
+                `,
               ]}
             >
               <IconClose isCircled size="xs" /> Remove All
