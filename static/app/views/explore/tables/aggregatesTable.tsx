@@ -3,10 +3,13 @@ import styled from '@emotion/styled';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {GridResizer} from 'sentry/components/gridEditable/styles';
+import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
+import {Tooltip} from 'sentry/components/tooltip';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {IconArrow} from 'sentry/icons/iconArrow';
+import {IconStack} from 'sentry/icons/iconStack';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import type {Confidence} from 'sentry/types/organization';
@@ -16,7 +19,9 @@ import {
   parseFunction,
   prettifyParsedFunction,
 } from 'sentry/utils/discover/fields';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 import {
   Table,
   TableBody,
@@ -41,6 +46,7 @@ import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {useAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import {TOP_EVENTS_LIMIT, useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
+import {viewSamplesTarget} from 'sentry/views/explore/utils';
 
 import {FieldRenderer} from './fieldRenderer';
 
@@ -53,8 +59,11 @@ export function AggregatesTable({
   aggregatesTableResult,
   confidences,
 }: AggregatesTableProps) {
-  const topEvents = useTopEvents();
+  const location = useLocation();
   const organization = useOrganization();
+  const {projects} = useProjects();
+
+  const topEvents = useTopEvents();
   const title = useExploreTitle();
   const dataset = useExploreDataset();
   const groupBys = useExploreGroupBys();
@@ -82,7 +91,9 @@ export function AggregatesTable({
   });
 
   const tableRef = useRef<HTMLTableElement>(null);
-  const {initialTableStyles, onResizeMouseDown} = useTableStyles(fields, tableRef);
+  const {initialTableStyles, onResizeMouseDown} = useTableStyles(fields, tableRef, {
+    prefixColumnWidth: 'min-content',
+  });
 
   const meta = result.meta ?? {};
 
@@ -94,6 +105,9 @@ export function AggregatesTable({
       <Table ref={tableRef} styles={initialTableStyles}>
         <TableHead>
           <TableRow>
+            <TableHeadCell isFirst={false}>
+              <TableHeadCellContent />
+            </TableHeadCell>
             {fields.map((field, i) => {
               // Hide column names before alignment is determined
               if (result.isPending) {
@@ -163,25 +177,35 @@ export function AggregatesTable({
               <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
             </TableStatus>
           ) : result.isFetched && result.data?.length ? (
-            result.data?.map((row, i) => (
-              <TableRow key={i}>
-                {fields.map((field, j) => {
-                  return (
-                    <TableBodyCell key={j}>
-                      {topEvents && i < topEvents && j === 0 && (
-                        <TopResultsIndicator index={i} />
-                      )}
-                      <FieldRenderer
-                        column={columns[j]!}
-                        data={row}
-                        unit={meta?.units?.[field]}
-                        meta={meta}
-                      />
-                    </TableBodyCell>
-                  );
-                })}
-              </TableRow>
-            ))
+            result.data?.map((row, i) => {
+              const target = viewSamplesTarget(location, query, groupBys, row, {
+                projects,
+              });
+              return (
+                <TableRow key={i}>
+                  <TableBodyCell>
+                    {topEvents && i < topEvents && <TopResultsIndicator index={i} />}
+                    <Tooltip title={t('View Samples')} containerDisplayMode="flex">
+                      <StyledLink to={target}>
+                        <IconStack />
+                      </StyledLink>
+                    </Tooltip>
+                  </TableBodyCell>
+                  {fields.map((field, j) => {
+                    return (
+                      <TableBodyCell key={j}>
+                        <FieldRenderer
+                          column={columns[j]!}
+                          data={row}
+                          unit={meta?.units?.[field]}
+                          meta={meta}
+                        />
+                      </TableBodyCell>
+                    );
+                  })}
+                </TableRow>
+              );
+            })
           ) : (
             <TableStatus>
               <EmptyStateWarning>
@@ -199,12 +223,15 @@ export function AggregatesTable({
 const TopResultsIndicator = styled('div')<{index: number}>`
   position: absolute;
   left: -1px;
-  margin-top: 4.5px;
   width: 9px;
-  height: 15px;
+  height: 16px;
   border-radius: 0 3px 3px 0;
 
   background-color: ${p => {
     return CHART_PALETTE[TOP_EVENTS_LIMIT - 1]![p.index];
   }};
+`;
+
+const StyledLink = styled(Link)`
+  display: flex;
 `;
