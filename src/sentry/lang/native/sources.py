@@ -732,7 +732,12 @@ def collect_apple_symbol_stats(json):
                 source_id = candidate["source"]
                 if source_id.startswith("sentry:symx"):
                     symx_has_this_symbol = True
-                elif source_id.startswith("sentry:") and source_id.endswith("os-source"):
+                # only compare symx to the system symbol source
+                elif (
+                    source_id.startswith("sentry:")
+                    and not source_id.startswith("sentry:symbol-collector")
+                    and source_id.endswith("os-source")
+                ):
                     old_found_source = source_id
 
         if symx_has_this_symbol:
