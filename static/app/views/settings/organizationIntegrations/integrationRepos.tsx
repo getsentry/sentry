@@ -33,7 +33,7 @@ function IntegrationRepos(props: Props) {
   const ENDPOINT = `/organizations/${organization.slug}/repos/`;
 
   const {
-    data: initialItemList,
+    data: fetchedItemList,
     isPending,
     isError,
     refetch,
@@ -44,7 +44,7 @@ function IntegrationRepos(props: Props) {
       staleTime: 0,
     }
   );
-  const [itemList, setItemList] = useState<Repository[]>(initialItemList ?? []);
+  const [itemListState, setItemList] = useState<Repository[]>([]);
 
   if (isPending) {
     return <LoadingIndicator />;
@@ -53,6 +53,8 @@ function IntegrationRepos(props: Props) {
   if (isError) {
     return <LoadingError onRetry={refetch} />;
   }
+
+  const itemList = itemListState.length ? itemListState : fetchedItemList;
 
   // Called by row to signal repository change.
   const onRepositoryChange = (data: Repository) => {
