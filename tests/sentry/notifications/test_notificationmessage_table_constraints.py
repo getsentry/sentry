@@ -10,9 +10,8 @@ from sentry.notifications.models.notificationmessage import NotificationMessage
 from sentry.testutils.cases import TestCase
 
 
+@pytest.mark.migrations
 class TestUpdateNotificationMessageConstraintsForActionGroupOpenPeriod(TestCase):
-    migrate_from = "0815_add_action_cols_to_threads_model"
-    migrate_to = "0816_update_notificationmessage_constraints_for_action_group_open_period"
 
     def setUp(self):
         # Metric Alert
@@ -33,7 +32,6 @@ class TestUpdateNotificationMessageConstraintsForActionGroupOpenPeriod(TestCase)
 
         self.action = self.create_action()
 
-    @pytest.mark.migrations
     def test_constraint_enforces_uniqueness_for_issue_alerts(self):
         """Test that the constraint prevents duplicate issue alerts without open_period_start but allows them with different open_period_start"""
 
@@ -54,7 +52,6 @@ class TestUpdateNotificationMessageConstraintsForActionGroupOpenPeriod(TestCase)
                 parent_notification_message=None,
             )
 
-    @pytest.mark.migrations
     def test_constraint_allows_action_group_with_open_period_start(self):
         """Test that the new constraint allows action group notifications"""
 
@@ -81,7 +78,6 @@ class TestUpdateNotificationMessageConstraintsForActionGroupOpenPeriod(TestCase)
         assert notification1.open_period_start == open_period_1
         assert notification2.open_period_start == open_period_2
 
-    @pytest.mark.migrations
     def test_constraint_enforces_uniqueness_for_action_group(self):
         """Test that the constraint prevents duplicate action/group combinations without open_period_start but allows them with different open_period_start"""
 
@@ -105,7 +101,6 @@ class TestUpdateNotificationMessageConstraintsForActionGroupOpenPeriod(TestCase)
                 parent_notification_message=None,
             )
 
-    @pytest.mark.migrations
     def test_constraint_allows_issue_alert_with_open_period_start(self):
         """Test that the new constraint allows issue alert notifications"""
 
@@ -135,7 +130,6 @@ class TestUpdateNotificationMessageConstraintsForActionGroupOpenPeriod(TestCase)
         assert notification1.open_period_start == open_period_1
         assert notification2.open_period_start == open_period_2
 
-    @pytest.mark.migrations
     def test_constraint_allows_different_action_group_combinations(self):
         """Test that different action/group combinations are allowed"""
 
