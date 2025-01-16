@@ -189,6 +189,10 @@ class RuleMigrationHelpersTest(APITestCase):
         filters = DataCondition.objects.filter(condition_group=if_dcg)
         assert filters.count() == 0
 
+    def test_delete_issue_alert(self):
+        # TODO: update after action registry is merged
+        pass
+
     def test_delete_issue_alert_no_actions(self):
         migrate_issue_alert(self.issue_alert, self.rpc_user)
 

@@ -220,7 +220,7 @@ def delete_migrated_issue_alert(rule: Rule):
 
     except WorkflowDataConditionGroup.DoesNotExist:
         logger.exception(
-            "WorkflowDataConditionGroup does not exist bruhhhh", extra={"workflow_id": workflow.id}
+            "WorkflowDataConditionGroup does not exist", extra={"workflow_id": workflow.id}
         )
 
     if not workflow.when_condition_group:
