@@ -72,10 +72,6 @@ function IntegrationRepos(props: Props) {
     RepositoryStore.resetRepositories();
   };
 
-  const handleSearchError = (errorStatus: number | null | undefined) => {
-    setIntegrationReposeErrorStatus(errorStatus);
-  };
-
   const handleAddRepository = (repo: Repository) => {
     setItemList([...itemList, repo]);
   };
@@ -98,7 +94,7 @@ function IntegrationRepos(props: Props) {
           <IntegrationReposAddRepository
             integration={integration}
             currentRepositories={itemList}
-            onSearchError={handleSearchError}
+            onSearchError={setIntegrationReposeErrorStatus}
             onAddRepository={handleAddRepository}
           />
         </PanelHeader>
