@@ -1,7 +1,7 @@
 import logging
 import re
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, overload
 
 from sentry.attachments import attachment_cache
 from sentry.stacktraces.processing import StacktraceInfo
@@ -108,7 +108,15 @@ def get_event_attachment(data, attachment_type):
     return next((a for a in attachments if a.type == attachment_type), None)
 
 
-def convert_crashreport_count(value, allow_none=False) -> int | None:
+@overload
+def convert_crashreport_count(value: bool | None) -> int: ...
+
+
+@overload
+def convert_crashreport_count(value: bool | None, *, allow_none: bool) -> int | None: ...
+
+
+def convert_crashreport_count(value: bool | None, allow_none: bool = False) -> int | None:
     """
     Shim to read both legacy and new `sentry:store_crash_reports` project and
     organization options.
