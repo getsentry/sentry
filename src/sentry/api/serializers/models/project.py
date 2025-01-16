@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Iterable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, Final, TypedDict, cast
+from typing import Any, Final, TypedDict, cast
 
 import orjson
 import sentry_sdk
@@ -15,7 +15,7 @@ from sentry import features, options, projectoptions, quotas, release_health, ro
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.api.serializers.models.team import get_org_roles
-from sentry.api.serializers.types import SerializedAvatarFields
+from sentry.api.serializers.types import OrganizationSerializerResponse, SerializedAvatarFields
 from sentry.app import env
 from sentry.auth.access import Access
 from sentry.auth.superuser import is_active_superuser
@@ -47,9 +47,6 @@ from sentry.search.events.types import SnubaParams
 from sentry.snuba import discover
 from sentry.tempest.utils import has_tempest_access
 from sentry.users.models.user import User
-
-if TYPE_CHECKING:
-    from sentry.api.serializers.models.organization import OrganizationSerializerResponse
 
 STATUS_LABELS = {
     ObjectStatus.ACTIVE: "active",
@@ -126,7 +123,7 @@ def get_access_by_project(
     prefetch_related_objects(projects, "organization")
 
     result = {}
-    has_team_roles_cache: dict[int, bool] = {}
+    has_team_roles_cache = {}
     with sentry_sdk.start_span(op="project.check-access"):
         for project in projects:
             parent_teams = [t for t in project_to_teams.get(project.id, [])]
@@ -141,20 +138,20 @@ def get_access_by_project(
                 or (org_role and roles.get(org_role).is_global)
             )
 
-            team_scopes: set[str] = set()
+            team_scopes = set()
 
             if has_access:
                 # Project can be the child of several Teams, and the User can join
                 # several Teams and receive roles at each of them,
                 for member in member_teams:
-                    team_scopes |= member.get_scopes(has_team_roles_cache)
+                    team_scopes = team_scopes.union(*[member.get_scopes(has_team_roles_cache)])
 
                 if is_superuser:
                     org_role = organization_roles.get_top_dog().id
 
                 if org_role:
                     minimum_team_role = roles.get_minimum_team_role(org_role)
-                    team_scopes |= minimum_team_role.scopes
+                    team_scopes = team_scopes.union(minimum_team_role.scopes)
 
             result[project] = {
                 "is_member": is_member,
@@ -489,7 +486,7 @@ class ProjectSerializer(Serializer):
 
     def get_options(self, projects):
         # no options specified
-        option_list: list[str] = []
+        option_list = []
 
         # must be a safe key
         if self.expand_context.get("options"):
@@ -498,7 +495,7 @@ class ProjectSerializer(Serializer):
 
         queryset = ProjectOption.objects.filter(project__in=projects, key__in=option_list)
 
-        options_by_project: dict[int, dict[str, Any]] = defaultdict(dict)
+        options_by_project = defaultdict(dict)
         for option in queryset:
             options_by_project[option.project_id][option.key] = option.value
 
@@ -648,17 +645,12 @@ class OrganizationProjectResponse(
     latestRelease: LatestReleaseDict | None
 
 
-class _DeployDict(TypedDict):
-    version: str
-    dateFinished: datetime
-
-
 class ProjectSummarySerializer(ProjectWithTeamSerializer):
     def __init__(self, access: Access | None = None, **kwargs):
         self.access = access
         super().__init__(**kwargs)
 
-    def get_deploys_by_project(self, item_list) -> dict[int, dict[str, _DeployDict]]:
+    def get_deploys_by_project(self, item_list):
         cursor = connection.cursor()
         cursor.execute(
             """
@@ -693,7 +685,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             """,
             ([p.id for p in item_list], 10),
         )
-        deploys_by_project: dict[int, dict[str, _DeployDict]] = defaultdict(dict)
+        deploys_by_project = defaultdict(dict)
 
         for project_id, env_name, release_version, date_finished in cursor.fetchall():
             deploys_by_project[project_id][env_name] = {
@@ -787,13 +779,13 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
 
         if attrs["has_access"] or user.is_staff:
             if "stats" in attrs:
-                context["stats"] = attrs["stats"]
+                context.update(stats=attrs["stats"])
             if "transactionStats" in attrs:
-                context["transactionStats"] = attrs["transactionStats"]
+                context.update(transactionStats=attrs["transactionStats"])
             if "sessionStats" in attrs:
-                context["sessionStats"] = attrs["sessionStats"]
+                context.update(sessionStats=attrs["sessionStats"])
             if "options" in attrs:
-                context["options"] = attrs["options"]
+                context.update(options=attrs["options"])
 
         return context
 
@@ -850,7 +842,7 @@ def bulk_fetch_project_latest_releases(projects: Sequence[Project]):
 
 def _get_project_to_release_version_mapping(
     item_list: Sequence[Project],
-) -> dict[int, dict[str, str]]:
+) -> dict[str, dict[str, str]]:
     """
     Return mapping of project_ID -> release version for the latest release in each project
     """
@@ -933,7 +925,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
         attrs = super().get_attrs(item_list, user)
 
         queryset = ProjectOption.objects.filter(project__in=item_list, key__in=OPTION_KEYS)
-        options_by_project: dict[int, dict[str, Any]] = defaultdict(dict)
+        options_by_project = defaultdict(dict)
         for option in queryset.iterator():
             options_by_project[option.project_id][option.key] = option.value
 
@@ -1164,10 +1156,17 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
 
 class SharedProjectSerializer(Serializer):
     def serialize(self, obj, attrs, user, **kwargs):
+        from sentry import features
+
+        feature_list = []
+        for feature in ():
+            if features.has("projects:" + feature, obj, actor=user):
+                feature_list.append(feature)
+
         return {
             "slug": obj.slug,
             "name": obj.name,
             "color": obj.color,
-            "features": [],
+            "features": feature_list,
             "organization": {"slug": obj.organization.slug, "name": obj.organization.name},
         }

@@ -157,6 +157,7 @@ module = [
     "sentry.api.serializers.models.event",
     "sentry.api.serializers.models.group",
     "sentry.api.serializers.models.group_stream",
+    "sentry.api.serializers.models.organization",
     "sentry.api.serializers.models.project",
     "sentry.api.serializers.models.role",
     "sentry.auth.helper",
