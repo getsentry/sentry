@@ -652,7 +652,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
 
         return True
 
-    def post_process(self, group, event, is_new, **kwargs):
+    def post_process(self, *, group, event, is_new, **kwargs):
         if not self.should_create(group, event, is_new):
             return
 
