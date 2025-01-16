@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import Feature from 'sentry/components/acl/feature';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
-import {useNavContext} from 'sentry/components/nav/context';
+import {useNavContextDeprecated} from 'sentry/components/nav/contextDeprecated';
 import type {NavSubmenuItem} from 'sentry/components/nav/utils';
 import {
   isNavItemActive,
@@ -15,7 +15,7 @@ import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 
 function Submenu() {
-  const nav = useNavContext();
+  const nav = useNavContextDeprecated();
   if (!nav.submenu) {
     return null;
   }
