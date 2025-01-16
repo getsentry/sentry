@@ -118,7 +118,11 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
         :param string email: user's email address
         :param string comments: comments supplied by user
         """
-        if request.auth is not None and project.id != request.auth.project_id:
+        if (
+            request.auth is not None
+            and request.auth.project_id is not None
+            and project.id != request.auth.project_id
+        ):
             return self.respond(status=401)
 
         serializer = UserReportSerializer(data=request.data)
