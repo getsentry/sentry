@@ -49,7 +49,7 @@ class AuthenticationForm(forms.Form):
         "inactive": _("This account is inactive."),
     }
 
-    def __init__(self, request: HttpRequest, *args: Any, **kwargs: Any) -> None:
+    def __init__(self, request: HttpRequest | None = None, *args: Any, **kwargs: Any) -> None:
         """
         If request is passed in, the form will validate that cookies are
         enabled. Note that the request (a HttpRequest object) must have set a
@@ -57,7 +57,7 @@ class AuthenticationForm(forms.Form):
         running this validation.
         """
         self.request = request
-        self.user_cache: User | None = None
+        self.user_cache = None
         super().__init__(*args, **kwargs)
 
         # Set the label for the "username" field.
@@ -128,10 +128,11 @@ class AuthenticationForm(forms.Form):
         return self.cleaned_data
 
     def check_for_test_cookie(self):
-        if not self.request.session.test_cookie_worked():
-            raise forms.ValidationError(self.error_messages["no_cookies"])
-        else:
-            self.request.session.delete_test_cookie()
+        if self.request:
+            if not self.request.session.test_cookie_worked():
+                raise forms.ValidationError(self.error_messages["no_cookies"])
+            else:
+                self.request.session.delete_test_cookie()
 
     def get_user_id(self):
         if self.user_cache:
@@ -169,7 +170,7 @@ class PasswordlessRegistrationForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if not newsletter.backend.is_enabled():
+        if not newsletter.is_enabled():
             del self.fields["subscribe"]
         else:
             # NOTE: the text here is duplicated within the ``NewsletterConsent`` component
@@ -205,8 +206,8 @@ class PasswordlessRegistrationForm(forms.ModelForm):
         if commit:
             user.save()
             if self.cleaned_data.get("subscribe"):
-                newsletter.backend.create_or_update_subscriptions(
-                    user, list_ids=newsletter.backend.get_default_list_ids()
+                newsletter.create_or_update_subscriptions(
+                    user, list_ids=newsletter.get_default_list_ids()
                 )
         return user
 
@@ -219,7 +220,7 @@ class RegistrationForm(PasswordlessRegistrationForm):
     def clean_password(self):
         password = self.cleaned_data["password"]
         password_validation.validate_password(
-            password, user=User(username=self.cleaned_data["username"])
+            password, user=User(username=self.cleaned_data.get("username"))
         )
         return password
 
@@ -229,8 +230,8 @@ class RegistrationForm(PasswordlessRegistrationForm):
         if commit:
             user.save()
             if self.cleaned_data.get("subscribe"):
-                newsletter.backend.create_or_update_subscriptions(
-                    user, list_ids=newsletter.backend.get_default_list_ids()
+                newsletter.create_or_update_subscriptions(
+                    user, list_ids=newsletter.get_default_list_ids()
                 )
         return user
 
