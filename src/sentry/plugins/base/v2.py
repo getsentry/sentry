@@ -11,7 +11,6 @@ from sentry.plugins import HIDDEN_PLUGINS
 from sentry.plugins.base.response import DeferredResponse
 from sentry.plugins.config import PluginConfigMixin
 from sentry.plugins.interfaces.releasehook import ReleaseHook
-from sentry.plugins.status import PluginStatusMixin
 
 if TYPE_CHECKING:
     from django.utils.functional import _StrPromise
@@ -35,7 +34,7 @@ class PluginMount(type):
         return new_cls
 
 
-class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
+class IPlugin2(local, PluginConfigMixin):
     """
     Plugin interface. Should not be inherited from directly.
 

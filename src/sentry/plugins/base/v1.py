@@ -14,7 +14,6 @@ from sentry.plugins import HIDDEN_PLUGINS
 from sentry.plugins.base.response import DeferredResponse
 from sentry.plugins.base.view import PluggableViewMixin
 from sentry.plugins.config import PluginConfigMixin
-from sentry.plugins.status import PluginStatusMixin
 from sentry.projects.services.project import RpcProject
 
 if TYPE_CHECKING:
@@ -37,7 +36,7 @@ class PluginMount(type):
         return new_cls
 
 
-class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
+class IPlugin(local, PluggableViewMixin, PluginConfigMixin):
     """
     Plugin interface. Should not be inherited from directly.
 
