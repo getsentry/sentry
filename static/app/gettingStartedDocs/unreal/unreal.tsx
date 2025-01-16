@@ -9,6 +9,7 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {getStoreCrashReportsCallout} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
   getCrashReportApiIntroduction,
   getCrashReportInstallDescription,
@@ -210,6 +211,7 @@ const onboarding: OnboardingConfig = {
         </Fragment>
       ),
     },
+    getStoreCrashReportsCallout(params),
   ],
 };
 

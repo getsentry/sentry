@@ -8,6 +8,7 @@ import type {
   Docs,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {getStoreCrashReportsCallout} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
   getCrashReportApiIntroduction,
   getCrashReportInstallDescription,
@@ -94,7 +95,7 @@ const onboarding: OnboardingConfig = {
       ),
     },
   ],
-  verify: () => [
+  verify: params => [
     {
       type: StepType.VERIFY,
       description: t(
@@ -107,6 +108,7 @@ const onboarding: OnboardingConfig = {
         },
       ],
     },
+    getStoreCrashReportsCallout(params),
     {
       title: t('Troubleshooting'),
       description: (
