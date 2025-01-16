@@ -1,14 +1,13 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import TopRight from 'static/images/spot/highlight-top-right.svg';
+import sandboxDemo from 'static/images/spot/sandbox.jpg';
 
 import {Client} from 'sentry/api';
 import {IconArrow} from 'sentry/icons';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EmailForm from 'sentry/utils/demoMode/emailForm';
 import {GetUTMData, UpdateTouches} from 'sentry/utils/demoMode/utm';
-
-import TopRight from '../assets/highlight-top-right.svg';
-import sandboxDemo from '../assets/sandbox.jpg';
 
 type Props = {
   closeModal: () => void;
