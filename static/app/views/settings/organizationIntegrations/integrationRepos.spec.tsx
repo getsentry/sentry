@@ -2,7 +2,13 @@ import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RepositoryFixture} from 'sentry-fixture/repository';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  waitForElementToBeRemoved,
+} from 'sentry-test/reactTestingLibrary';
 
 import RepositoryStore from 'sentry/stores/repositoryStore';
 import IntegrationRepos from 'sentry/views/settings/organizationIntegrations/integrationRepos';
@@ -36,6 +42,7 @@ describe('IntegrationRepos', function () {
       });
 
       render(<IntegrationRepos integration={integration} />);
+      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
       // we only attempt to fetch repositories upon typing
       await userEvent.click(screen.getByText('Add Repository'));
       await userEvent.type(screen.getByRole('textbox'), 'asdf');
@@ -55,6 +62,7 @@ describe('IntegrationRepos', function () {
       });
 
       render(<IntegrationRepos integration={integration} />);
+      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
       await userEvent.click(screen.getByText('Add Repository'));
 
       expect(
@@ -83,6 +91,7 @@ describe('IntegrationRepos', function () {
       });
 
       render(<IntegrationRepos integration={integration} />);
+      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
       await userEvent.click(screen.getByText('Add Repository'));
       await userEvent.type(screen.getByRole('textbox'), 'repo-name');
       await userEvent.click(screen.getByText('repo-name'));
@@ -126,6 +135,7 @@ describe('IntegrationRepos', function () {
       });
 
       render(<IntegrationRepos integration={integration} />);
+      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
       await userEvent.click(screen.getByText('Add Repository'));
       await userEvent.type(screen.getByRole('textbox'), 'sentry-repo');
       await userEvent.click(screen.getByText('sentry-repo'));
@@ -147,12 +157,7 @@ describe('IntegrationRepos', function () {
         body: [],
       });
 
-      render(
-        <IntegrationRepos
-          integration={integration}
-          organization={OrganizationFixture({access: []})}
-        />
-      );
+      render(<IntegrationRepos integration={integration} />);
       await waitFor(() => expect(screen.getByText('Add Repository')).toBeEnabled());
     });
   });
@@ -173,6 +178,11 @@ describe('IntegrationRepos', function () {
         ],
       });
       MockApiClient.addMockResponse({
+        url: `/organizations/${org.slug}/repos/`,
+        method: 'POST',
+        body: RepositoryFixture({integrationId: '1'}),
+      });
+      MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/integrations/${integration.id}/repos/`,
         body: {repos: [{identifier: 'example/repo-name', name: 'repo-name'}]},
       });
@@ -182,11 +192,10 @@ describe('IntegrationRepos', function () {
         body: {id: 244},
       });
       render(<IntegrationRepos integration={integration} />);
-
+      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
       await userEvent.click(screen.getByText('Add Repository'));
       await userEvent.type(screen.getByRole('textbox'), 'repo-name');
       await userEvent.click(screen.getByText('repo-name'));
-
       expect(updateRepo).toHaveBeenCalledWith(
         `/organizations/${org.slug}/repos/4/`,
         expect.objectContaining({
@@ -200,13 +209,20 @@ describe('IntegrationRepos', function () {
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/repos/`,
         method: 'GET',
-        body: [RepositoryFixture({name: 'repo-name-other', externalSlug: '9876'})],
+        body: [
+          RepositoryFixture({name: 'repo-name-other', externalSlug: '9876', id: '123'}),
+        ],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${org.slug}/repos/`,
+        method: 'POST',
+        body: RepositoryFixture({integrationId: '1'}),
       });
       const getItems = MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/integrations/${integration.id}/repos/`,
         method: 'GET',
         body: {
-          repos: [{identifier: '9876', name: 'repo-name'}],
+          repos: [{identifier: '9876', name: 'repo-name', id: '456'}],
         },
       });
       const updateRepo = MockApiClient.addMockResponse({
@@ -215,7 +231,7 @@ describe('IntegrationRepos', function () {
         body: {id: 4320},
       });
       render(<IntegrationRepos integration={integration} />);
-
+      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
       await userEvent.click(screen.getByText('Add Repository'));
       await userEvent.type(screen.getByRole('textbox'), 'repo-name');
       await userEvent.click(screen.getByText('repo-name'));
