@@ -68,7 +68,9 @@ export function SpanOperationTable({
   const moduleURL = useModuleURL(
     isMobileScreensEnabled ? ModuleName.MOBILE_SCREENS : ModuleName.APP_START
   );
-  const baseUrl = isMobileScreensEnabled ? `${moduleURL}/details` : `${moduleURL}/spans`;
+  const baseURL = isMobileScreensEnabled
+    ? `${moduleURL}/details/`
+    : `${moduleURL}/spans/`;
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -183,7 +185,7 @@ export function SpanOperationTable({
 
       return (
         <OverflowEllipsisTextContainer>
-          <Link to={`${baseUrl}?${qs.stringify(query)}`}>{label}</Link>
+          <Link to={`${baseURL}?${qs.stringify(query)}`}>{label}</Link>
         </OverflowEllipsisTextContainer>
       );
     }

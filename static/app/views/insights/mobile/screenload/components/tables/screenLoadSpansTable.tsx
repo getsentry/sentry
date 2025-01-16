@@ -66,7 +66,9 @@ export function ScreenLoadSpansTable({
   const moduleURL = useModuleURL(
     isMobileScreensEnabled ? ModuleName.MOBILE_SCREENS : ModuleName.SCREEN_LOAD
   );
-  const baseUrl = isMobileScreensEnabled ? `${moduleURL}/details` : `${moduleURL}/spans`;
+  const baseURL = isMobileScreensEnabled
+    ? `${moduleURL}/details/`
+    : `${moduleURL}/spans/`;
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -173,7 +175,7 @@ export function ScreenLoadSpansTable({
 
       return (
         <OverflowEllipsisTextContainer>
-          <Link to={`${baseUrl}?${qs.stringify(query)}`}>{label}</Link>
+          <Link to={`${baseURL}?${qs.stringify(query)}`}>{label}</Link>
         </OverflowEllipsisTextContainer>
       );
     }
