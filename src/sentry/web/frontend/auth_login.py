@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import urllib
 from typing import Any
 
 from django.conf import settings
