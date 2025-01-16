@@ -135,6 +135,7 @@ def top_events_timeseries(
     on_demand_metrics_type: MetricSpecType | None = None,
     query_source: QuerySource | None = None,
     fallback_to_transactions: bool = False,
+    transform_alias_to_input_format: bool = False,
 ) -> dict[str, SnubaTSResult] | SnubaTSResult:
     return discover.top_events_timeseries(
         timeseries_columns,
@@ -156,6 +157,7 @@ def top_events_timeseries(
         on_demand_metrics_type=on_demand_metrics_type,
         dataset=Dataset.Transactions,
         query_source=query_source,
+        transform_alias_to_input_format=transform_alias_to_input_format,
     )
 
 
