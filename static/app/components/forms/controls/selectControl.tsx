@@ -6,11 +6,6 @@ import type {
   Props as ReactSelectProps,
   StylesConfig as ReactSelectStylesConfig,
 } from 'react-select';
-import ReactSelect, {
-  components as selectComponents,
-  createFilter,
-  mergeStyles,
-} from 'react-select';
 import Async from 'react-select/async';
 import AsyncCreatable from 'react-select/async-creatable';
 import Creatable from 'react-select/creatable';
@@ -20,6 +15,12 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
 import {Chevron} from 'sentry/components/chevron';
+import {
+  createFilter,
+  mergeStyles,
+  ReactSelect,
+  selectComponents,
+} from 'sentry/components/forms/controls/reactSelectWrapper';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
