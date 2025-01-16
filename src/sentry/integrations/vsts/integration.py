@@ -7,7 +7,6 @@ from time import time
 from typing import Any
 from urllib.parse import parse_qs, quote, urlencode, urlparse
 
-import sentry_sdk
 from django import forms
 from django.http import HttpRequest
 from django.http.response import HttpResponseBase
@@ -552,8 +551,17 @@ class VstsIntegrationProvider(IntegrationProvider):
                 sample_rate=1.0,
             )
 
-        except (IntegrationModel.DoesNotExist, AssertionError, KeyError) as e:
-            sentry_sdk.capture_exception(e)
+        # Assertion error happens when org_integration does not exist
+        # KeyError happens when subscription is not found
+        except (IntegrationModel.DoesNotExist, AssertionError, KeyError):
+            if features.has(
+                "organizations:migrate-azure-devops-integration", self.pipeline.organization
+            ):
+                # If there is a new integration, we need to set the migration version to 1
+                integration["metadata"][
+                    "integration_migration_version"
+                ] = VstsIntegrationProvider.CURRENT_MIGRATION_VERSION
+
             logger.warning(
                 "vsts.build_integration.error",
                 extra={

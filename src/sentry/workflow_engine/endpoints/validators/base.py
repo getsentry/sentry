@@ -164,6 +164,7 @@ class BaseGroupTypeDetectorValidator(CamelSnakeSerializer):
                 name=validated_data["name"],
                 workflow_condition_group=condition_group,
                 type=validated_data["group_type"].slug,
+                config=validated_data.get("config", {}),
             )
             DataSourceDetector.objects.create(data_source=detector_data_source, detector=detector)
 

@@ -32,6 +32,9 @@ class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectCodeOwnersMixin):
         ):
             return
 
+        if codeowner.raw is None:
+            return
+
         # Convert raw to issue owners syntax so that the schema can be created
         raw = codeowner.raw
         associations, _ = validate_codeowners_associations(codeowner.raw, project)

@@ -709,7 +709,8 @@ def collect_apple_symbol_stats(json):
     eligible_symbols = 0
     neither_has_symbol = 0
     both_have_symbol = 0
-    old_has_symbol = 0
+    # Done to temporally collect information about the events for which we don't find symbols in symx:
+    old_has_symbol = []
     symx_has_symbol = 0
 
     for module in json.get("modules") or ():
@@ -724,7 +725,7 @@ def collect_apple_symbol_stats(json):
 
         eligible_symbols += 1
 
-        old_has_this_symbol = False
+        old_found_source = None
         symx_has_this_symbol = False
         for candidate in module.get("candidates") or ():
             if candidate["download"]["status"] == "ok":
@@ -732,15 +733,22 @@ def collect_apple_symbol_stats(json):
                 if source_id.startswith("sentry:symx"):
                     symx_has_this_symbol = True
                 elif source_id.startswith("sentry:") and source_id.endswith("os-source"):
-                    old_has_this_symbol = True
+                    old_found_source = source_id
 
         if symx_has_this_symbol:
-            if old_has_this_symbol:
+            if old_found_source:
                 both_have_symbol += 1
             else:
                 symx_has_symbol += 1
-        elif old_has_this_symbol:
-            old_has_symbol += 1
+        elif old_found_source:
+            old_has_symbol.append(
+                {
+                    "arch": module.get("arch"),
+                    "code_file": module.get("code_file"),
+                    "debug_id": module.get("debug_id"),
+                    "found_in": old_found_source,
+                }
+            )
         else:
             neither_has_symbol += 1
             # NOTE: It might be possible to apply a heuristic based on `code_file` here to figure out if this is

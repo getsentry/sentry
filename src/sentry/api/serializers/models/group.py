@@ -92,10 +92,6 @@ class GroupStatusDetailsResponseOptional(TypedDict, total=False):
     info: Any
 
 
-class GroupStatusDetailsResponse(GroupStatusDetailsResponseOptional):
-    pass
-
-
 class GroupProjectResponse(TypedDict):
     id: str
     name: str
@@ -759,7 +755,10 @@ class GroupSerializer(GroupSerializerBase):
             pass
 
     def __init__(
-        self, collapse=None, expand=None, environment_func: Callable[[], Environment] | None = None
+        self,
+        collapse=None,
+        expand=None,
+        environment_func: Callable[[], Environment | None] | None = None,
     ):
         GroupSerializerBase.__init__(self, collapse=collapse, expand=expand)
         self.environment_func = environment_func if environment_func is not None else lambda: None
@@ -1037,39 +1036,6 @@ class GroupSerializerSnuba(GroupSerializerBase):
             filter_keys=filters,
             aggregations=aggregations,
             referrer="serializers.GroupSerializerSnuba._execute_error_seen_stats_query",
-            tenant_ids=(
-                {"organization_id": item_list[0].project.organization_id} if item_list else None
-            ),
-        )
-
-    @staticmethod
-    def _execute_perf_seen_stats_query(
-        item_list, start=None, end=None, conditions=None, environment_ids=None
-    ):
-        project_ids = list({item.project_id for item in item_list})
-        group_ids = [item.id for item in item_list]
-        aggregations = [
-            ["arrayJoin", ["group_ids"], "group_id"],
-            ["count()", "", "times_seen"],
-            ["min", "timestamp", "first_seen"],
-            ["max", "timestamp", "last_seen"],
-            ["uniq", "tags[sentry:user]", "count"],
-        ]
-        filters = {"project_id": project_ids}
-        if environment_ids:
-            filters["environment"] = environment_ids
-        return aliased_query(
-            dataset=Dataset.Transactions,
-            start=start,
-            end=end,
-            groupby=["group_id"],
-            conditions=[
-                [["hasAny", ["group_ids", ["array", group_ids]]], "=", 1],
-            ]
-            + (conditions or []),
-            filter_keys=filters,
-            aggregations=aggregations,
-            referrer="serializers.GroupSerializerSnuba._execute_perf_seen_stats_query",
             tenant_ids=(
                 {"organization_id": item_list[0].project.organization_id} if item_list else None
             ),

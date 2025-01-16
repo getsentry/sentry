@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 from sentry_sdk import set_tag, set_user
 
-from sentry import features
+from sentry import eventstore
 from sentry.constants import ObjectStatus
 from sentry.db.models.fields.node import NodeData
 from sentry.integrations.github.integration import GitHubIntegration
@@ -89,7 +89,8 @@ def process_error(error: ApiError, extra: dict[str, str]) -> None:
 )
 def derive_code_mappings(
     project_id: int,
-    data: NodeData,
+    data: NodeData | None = None,  # We will deprecate this
+    event_id: str | None = None,
 ) -> None:
     """
     Derive code mappings for a project given data from a recent event.
@@ -102,15 +103,18 @@ def derive_code_mappings(
     # When you look at the performance page the user is a default column
     set_user({"username": org.slug})
     set_tag("project.slug", project.slug)
-    extra: dict[str, Any] = {
-        "organization.slug": org.slug,
-    }
+    extra: dict[str, Any] = {"organization.slug": org.slug}
 
-    if not (
-        features.has("organizations:derive-code-mappings", org)
-        and data.get("platform") in SUPPORTED_LANGUAGES
-    ):
-        logger.info("Event should not be processed.", extra=extra)
+    # XXX: In the next PR we will only use event_id
+    if event_id:
+        event = eventstore.backend.get_event_by_id(project_id, event_id)
+        if event is None:
+            logger.error("Event not found.", extra={"project_id": project_id, "event_id": event_id})
+            return
+        data = event.data
+
+    if data is None:
+        logger.error("Data is None.", extra=extra)
         return
 
     stacktrace_paths: list[str] = identify_stacktrace_paths(data)
