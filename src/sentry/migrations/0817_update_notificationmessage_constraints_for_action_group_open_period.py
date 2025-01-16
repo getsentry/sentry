@@ -23,7 +23,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("sentry", "0815_add_action_cols_to_threads_model"),
+        ("sentry", "0816_add_timestamp_to_group_tombstone"),
         ("workflow_engine", "0022_add_action_group_status_model"),
     ]
 
