@@ -10,6 +10,7 @@ from sentry.types.actor import Actor
 from sentry.users.services.user.service import user_service
 from sentry.workflow_engine.migration_helpers.rule import (
     UpdatedIssueAlertData,
+    delete_migrated_issue_alert,
     migrate_issue_alert,
     update_migrated_issue_alert,
 )
@@ -122,7 +123,7 @@ class RuleMigrationHelpersTest(APITestCase):
             "conditions": conditions_payload,
             "frequency": 60,
         }
-        update_migrated_issue_alert(self.issue_alert, payload, self.rpc_user)
+        update_migrated_issue_alert(self.issue_alert, payload)
 
         issue_alert_workflow = AlertRuleWorkflow.objects.get(rule=self.issue_alert)
         workflow = Workflow.objects.get(id=issue_alert_workflow.workflow.id)
@@ -168,7 +169,7 @@ class RuleMigrationHelpersTest(APITestCase):
             "actions": [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
             "frequency": None,
         }
-        update_migrated_issue_alert(self.issue_alert, payload, self.rpc_user)
+        update_migrated_issue_alert(self.issue_alert, payload)
 
         issue_alert_workflow = AlertRuleWorkflow.objects.get(rule=self.issue_alert)
         workflow = Workflow.objects.get(id=issue_alert_workflow.workflow.id)
@@ -187,3 +188,27 @@ class RuleMigrationHelpersTest(APITestCase):
         assert if_dcg.logic_type == DataConditionGroup.Type.ANY_SHORT_CIRCUIT
         filters = DataCondition.objects.filter(condition_group=if_dcg)
         assert filters.count() == 0
+
+    def test_delete_issue_alert_no_actions(self):
+        migrate_issue_alert(self.issue_alert, self.rpc_user)
+
+        alert_rule_workflow = AlertRuleWorkflow.objects.get(rule=self.issue_alert)
+        workflow = alert_rule_workflow.workflow
+        when_dcg = workflow.when_condition_group
+        if_dcg = WorkflowDataConditionGroup.objects.get(workflow=workflow).condition_group
+
+        assert when_dcg is not None
+        assert if_dcg is not None
+
+        conditions = DataCondition.objects.filter(condition_group=when_dcg)
+        assert conditions.count() == 2
+        filters = DataCondition.objects.filter(condition_group=if_dcg)
+        assert filters.count() == 1
+
+        delete_migrated_issue_alert(self.issue_alert)
+
+        assert not Workflow.objects.filter(id=workflow.id).exists()
+        assert not DataConditionGroup.objects.filter(id=when_dcg.id).exists()
+        assert not DataConditionGroup.objects.filter(id=if_dcg.id).exists()
+        assert not DataCondition.objects.filter(condition_group=when_dcg).exists()
+        assert not DataCondition.objects.filter(condition_group=if_dcg).exists()
