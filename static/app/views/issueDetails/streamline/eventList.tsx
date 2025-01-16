@@ -101,7 +101,7 @@ export function EventList({group}: EventListProps) {
         columnTitles={columnTitles}
         referrer={referrer}
         hidePagination
-        hasStreamlinedUI
+        applyEnvironmentFilter
         renderTableHeader={({
           pageLinks,
           pageEventsCount,

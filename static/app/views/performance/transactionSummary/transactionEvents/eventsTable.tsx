@@ -93,11 +93,11 @@ type Props = {
   routes: RouteContextInterface['routes'];
   setError: (msg: string | undefined) => void;
   transactionName: string;
+  applyEnvironmentFilter?: boolean;
   columnTitles?: string[];
   customColumns?: ('attachments' | 'minidump')[];
   domainViewFilters?: DomainViewFilters;
   excludedTags?: string[];
-  hasStreamlinedUI?: boolean;
   hidePagination?: boolean;
   isEventLoading?: boolean;
   isRegressionIssue?: boolean;
@@ -132,7 +132,7 @@ class EventsTable extends Component<Props, State> {
 
   handleCellAction = (column: TableColumn<keyof TableDataRow>) => {
     return (action: Actions, value: React.ReactText) => {
-      const {eventView, location, organization, excludedTags, hasStreamlinedUI} =
+      const {eventView, location, organization, excludedTags, applyEnvironmentFilter} =
         this.props;
 
       trackAnalytics('performance_views.transactionEvents.cellaction', {
@@ -150,7 +150,7 @@ class EventsTable extends Component<Props, State> {
 
       updateQuery(searchConditions, action, column, value);
 
-      if (hasStreamlinedUI && column.key === 'environment') {
+      if (applyEnvironmentFilter && column.key === 'environment') {
         let newEnvs = toArray(location.query.environment);
 
         if (action === Actions.ADD) {
@@ -161,6 +161,7 @@ class EventsTable extends Component<Props, State> {
           newEnvs = newEnvs.filter(env => env !== value);
         }
 
+        // Updates the environment filter, instead of relying on the search query
         browserHistory.push({
           pathname: location.pathname,
           query: {
