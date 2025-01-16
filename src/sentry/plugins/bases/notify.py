@@ -42,7 +42,6 @@ class NotificationPlugin(Plugin):
         "Notify project members when a new event is seen for the first time, or when an "
         "already resolved event has changed back to unresolved."
     )
-    # site_conf_form = NotificationConfigurationForm
     project_conf_form: type[forms.Form] = NotificationConfigurationForm
 
     def get_plugin_type(self):

@@ -67,7 +67,6 @@ class IPlugin2(local, PluginConfigMixin):
     conf_title: str | _StrPromise | None = None
 
     project_conf_form: Any = None
-    project_conf_template = "sentry/plugins/project_configuration.html"
 
     # Global enabled state
     enabled = True
@@ -174,26 +173,6 @@ class IPlugin2(local, PluginConfigMixin):
             self.conf_key = self.get_conf_title().lower().replace(" ", "_")
         return self.conf_key
 
-    def get_conf_form(self, project=None):
-        """
-        Returns the Form required to configure the plugin.
-
-        >>> plugin.get_conf_form(project)
-        """
-        if project is not None:
-            return self.project_conf_form
-        return self.site_conf_form
-
-    def get_conf_template(self, project=None):
-        """
-        Returns the template required to render the configuration page.
-
-        >>> plugin.get_conf_template(project)
-        """
-        if project is not None:
-            return self.project_conf_template
-        return self.site_conf_template
-
     def get_conf_title(self):
         """
         Returns a string representing the title to be shown on the configuration page.
@@ -202,12 +181,6 @@ class IPlugin2(local, PluginConfigMixin):
 
     def has_project_conf(self):
         return self.project_conf_form is not None
-
-    def has_plugin_conf(self):
-        """
-        Checks if the plugin should be returned in the ProjectPluginsEndpoint
-        """
-        return self.has_project_conf()
 
     def can_configure_for_project(self, project):
         """
