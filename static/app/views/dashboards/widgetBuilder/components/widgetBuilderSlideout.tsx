@@ -9,6 +9,7 @@ import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -23,11 +24,15 @@ import WidgetBuilderDatasetSelector from 'sentry/views/dashboards/widgetBuilder/
 import WidgetBuilderFilterBar from 'sentry/views/dashboards/widgetBuilder/components/filtersBar';
 import WidgetBuilderGroupBySelector from 'sentry/views/dashboards/widgetBuilder/components/groupBySelector';
 import WidgetBuilderNameAndDescription from 'sentry/views/dashboards/widgetBuilder/components/nameAndDescFields';
-import {WidgetPreviewContainer} from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilder';
+import {
+  type ThresholdMetaState,
+  WidgetPreviewContainer,
+} from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilder';
 import WidgetBuilderQueryFilterBuilder from 'sentry/views/dashboards/widgetBuilder/components/queryFilterBuilder';
 import RPCToggle from 'sentry/views/dashboards/widgetBuilder/components/rpcToggle';
 import SaveButton from 'sentry/views/dashboards/widgetBuilder/components/saveButton';
 import WidgetBuilderSortBySelector from 'sentry/views/dashboards/widgetBuilder/components/sortBySelector';
+import ThresholdsSection from 'sentry/views/dashboards/widgetBuilder/components/thresholds';
 import WidgetBuilderTypeSelector from 'sentry/views/dashboards/widgetBuilder/components/typeSelector';
 import Visualize from 'sentry/views/dashboards/widgetBuilder/components/visualize';
 import WidgetTemplatesList from 'sentry/views/dashboards/widgetBuilder/components/widgetTemplatesList';
@@ -41,7 +46,11 @@ type WidgetBuilderSlideoutProps = {
   onClose: () => void;
   onQueryConditionChange: (valid: boolean) => void;
   onSave: ({index, widget}: {index: number; widget: Widget}) => void;
+  openWidgetTemplates: boolean;
   setIsPreviewDraggable: (draggable: boolean) => void;
+  setOpenWidgetTemplates: (openWidgetTemplates: boolean) => void;
+  onDataFetched?: (tableData: TableDataWithTitle[]) => void;
+  thresholdMetaState?: ThresholdMetaState;
 };
 
 function WidgetBuilderSlideout({
@@ -53,6 +62,10 @@ function WidgetBuilderSlideout({
   dashboardFilters,
   setIsPreviewDraggable,
   isWidgetInvalid,
+  openWidgetTemplates,
+  setOpenWidgetTemplates,
+  onDataFetched,
+  thresholdMetaState,
 }: WidgetBuilderSlideoutProps) {
   const organization = useOrganization();
   const {state} = useWidgetBuilderContext();
@@ -61,11 +74,8 @@ function WidgetBuilderSlideout({
   const {widgetIndex} = useParams();
   const theme = useTheme();
 
-  // TODO: remove this once we have a proper way to handle templates
-  const showTemplates = localStorage.getItem('showTemplates') === 'true';
-
   const isEditing = widgetIndex !== undefined;
-  const title = showTemplates
+  const title = openWidgetTemplates
     ? t('Add from Widget Library')
     : isEditing
       ? t('Edit Widget')
@@ -74,7 +84,8 @@ function WidgetBuilderSlideout({
     state.displayType !== DisplayType.BIG_NUMBER &&
     state.displayType !== DisplayType.TABLE;
 
-  const previewRef = useRef<HTMLDivElement>(null);
+  const customPreviewRef = useRef<HTMLDivElement>(null);
+  const templatesPreviewRef = useRef<HTMLDivElement>(null);
 
   const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.small})`);
 
@@ -90,12 +101,17 @@ function WidgetBuilderSlideout({
       {threshold: 0}
     );
 
-    if (previewRef.current) {
-      observer.observe(previewRef.current);
+    // need two different refs to account for preview when customizing templates
+    if (customPreviewRef.current) {
+      observer.observe(customPreviewRef.current);
+    }
+
+    if (templatesPreviewRef.current) {
+      observer.observe(templatesPreviewRef.current);
     }
 
     return () => observer.disconnect();
-  }, [setIsPreviewDraggable]);
+  }, [setIsPreviewDraggable, openWidgetTemplates]);
 
   return (
     <SlideOverPanel
@@ -124,7 +140,7 @@ function WidgetBuilderSlideout({
         </CloseButton>
       </SlideoutHeaderWrapper>
       <SlideoutBodyWrapper>
-        {!showTemplates ? (
+        {!openWidgetTemplates ? (
           <Fragment>
             <Section>
               <WidgetBuilderFilterBar />
@@ -141,13 +157,15 @@ function WidgetBuilderSlideout({
             <Section>
               <WidgetBuilderTypeSelector error={error} setError={setError} />
             </Section>
-            <div ref={previewRef}>
+            <div ref={customPreviewRef}>
               {isSmallScreen && (
                 <Section>
                   <WidgetPreviewContainer
                     dashboard={dashboard}
                     dashboardFilters={dashboardFilters}
                     isWidgetInvalid={isWidgetInvalid}
+                    onDataFetched={onDataFetched}
+                    openWidgetTemplates={openWidgetTemplates}
                   />
                 </Section>
               )}
@@ -160,6 +178,14 @@ function WidgetBuilderSlideout({
                 onQueryConditionChange={onQueryConditionChange}
               />
             </Section>
+            {state.displayType === DisplayType.BIG_NUMBER && (
+              <Section>
+                <ThresholdsSection
+                  dataType={thresholdMetaState?.dataType}
+                  dataUnit={thresholdMetaState?.dataUnit}
+                />
+              </Section>
+            )}
             {isChartWidget && (
               <Section>
                 <WidgetBuilderGroupBySelector />
@@ -177,18 +203,24 @@ function WidgetBuilderSlideout({
           </Fragment>
         ) : (
           <Fragment>
-            <div ref={previewRef}>
+            <div ref={templatesPreviewRef}>
               {isSmallScreen && (
                 <Section>
                   <WidgetPreviewContainer
                     dashboard={dashboard}
                     dashboardFilters={dashboardFilters}
                     isWidgetInvalid={isWidgetInvalid}
+                    onDataFetched={onDataFetched}
+                    openWidgetTemplates={openWidgetTemplates}
                   />
                 </Section>
               )}
             </div>
-            <WidgetTemplatesList onSave={onSave} />
+            <WidgetTemplatesList
+              onSave={onSave}
+              setOpenWidgetTemplates={setOpenWidgetTemplates}
+              setIsPreviewDraggable={setIsPreviewDraggable}
+            />
           </Fragment>
         )}
       </SlideoutBodyWrapper>

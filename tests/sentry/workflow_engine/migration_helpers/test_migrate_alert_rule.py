@@ -2,7 +2,11 @@ from unittest import mock
 
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.incidents.grouptype import MetricAlertFire
-from sentry.incidents.models.alert_rule import AlertRuleThresholdType, AlertRuleTriggerAction
+from sentry.incidents.models.alert_rule import (
+    AlertRuleDetectionType,
+    AlertRuleThresholdType,
+    AlertRuleTriggerAction,
+)
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.snuba.models import QuerySubscription
@@ -119,6 +123,7 @@ class AlertRuleMigrationHelpersTest(APITestCase):
             "sensitivity": None,
             "seasonality": None,
             "comparison_delta": None,
+            "detection_type": AlertRuleDetectionType.STATIC,
         }
 
         detector_workflow = DetectorWorkflow.objects.get(detector=detector)

@@ -66,6 +66,8 @@ describe('WidgetBuilderSlideout', () => {
           onSave={jest.fn()}
           setIsPreviewDraggable={jest.fn()}
           isOpen
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
         />
       </WidgetBuilderProvider>,
       {
@@ -103,6 +105,8 @@ describe('WidgetBuilderSlideout', () => {
           onSave={jest.fn()}
           setIsPreviewDraggable={jest.fn()}
           isOpen
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
         />
       </WidgetBuilderProvider>,
       {
@@ -137,6 +141,8 @@ describe('WidgetBuilderSlideout', () => {
           onSave={jest.fn()}
           setIsPreviewDraggable={jest.fn()}
           isOpen
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
         />
       </WidgetBuilderProvider>,
       {
@@ -170,6 +176,8 @@ describe('WidgetBuilderSlideout', () => {
           onSave={jest.fn()}
           setIsPreviewDraggable={jest.fn()}
           isOpen
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
         />
       </WidgetBuilderProvider>,
       {organization}
@@ -197,6 +205,8 @@ describe('WidgetBuilderSlideout', () => {
           onSave={jest.fn()}
           setIsPreviewDraggable={jest.fn()}
           isOpen
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
         />
       </WidgetBuilderProvider>,
       {organization}
@@ -226,6 +236,8 @@ describe('WidgetBuilderSlideout', () => {
           onSave={jest.fn()}
           setIsPreviewDraggable={jest.fn()}
           isOpen
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
         />
       </WidgetBuilderProvider>,
       {
@@ -265,6 +277,8 @@ describe('WidgetBuilderSlideout', () => {
           onSave={jest.fn()}
           setIsPreviewDraggable={jest.fn()}
           isOpen
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
         />
       </WidgetBuilderProvider>,
       {
@@ -300,6 +314,8 @@ describe('WidgetBuilderSlideout', () => {
           onSave={jest.fn()}
           setIsPreviewDraggable={jest.fn()}
           isOpen
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
         />
       </WidgetBuilderProvider>,
       {
@@ -328,5 +344,37 @@ describe('WidgetBuilderSlideout', () => {
     await userEvent.click(screen.getByText('Table'));
 
     expect(await screen.findByPlaceholderText('Add Alias')).toHaveValue('');
+  });
+
+  it('only renders thresholds for big number widgets', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderSlideout
+          dashboard={DashboardFixture([])}
+          dashboardFilters={{release: undefined}}
+          isWidgetInvalid
+          onClose={jest.fn()}
+          onQueryConditionChange={jest.fn()}
+          onSave={jest.fn()}
+          setIsPreviewDraggable={jest.fn()}
+          isOpen
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.BIG_NUMBER,
+            },
+          }),
+        }),
+      }
+    );
+
+    expect(await screen.findByText('Thresholds')).toBeInTheDocument();
   });
 });

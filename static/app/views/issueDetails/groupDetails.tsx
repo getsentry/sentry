@@ -42,6 +42,7 @@ import useApi from 'sentry/utils/useApi';
 import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
@@ -223,6 +224,9 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
   const organization = useOrganization();
   const router = useRouter();
   const params = router.params;
+  const navigate = useNavigate();
+  const defaultIssueEvent = useDefaultIssueEvent();
+  const hasStreamlinedUI = useHasStreamlinedUI();
 
   const [allProjectChanged, setAllProjectChanged] = useState<boolean>(false);
 
@@ -234,6 +238,7 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
   const {
     data: event,
     isPending: loadingEvent,
+    isError: isEventError,
     refetch: refetchEvent,
   } = useGroupEvent({
     groupId,
@@ -247,6 +252,50 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
     error: groupError,
     refetch: refetchGroupCall,
   } = useGroup({groupId});
+
+  /**
+   * TODO(streamline-ui): Remove this whole hook once the legacy UI is removed. The streamlined UI exposes the
+   * filters on the page so the user is expected to clear it themselves, and the empty state is actually expected.
+   */
+  useEffect(() => {
+    if (hasStreamlinedUI) {
+      return;
+    }
+
+    const eventIdUrl = params.eventId ?? defaultIssueEvent;
+    const isLatestOrRecommendedEvent =
+      eventIdUrl === 'latest' || eventIdUrl === 'recommended';
+
+    if (
+      isLatestOrRecommendedEvent &&
+      isEventError &&
+      // Expanding this list to ensure invalid date ranges get removed as well as queries
+      (router.location.query.query ||
+        router.location.query.start ||
+        router.location.query.end ||
+        router.location.query.statsPeriod)
+    ) {
+      // If we get an error from the helpful event endpoint, it probably means
+      // the query failed validation. We should remove the query to try again if
+      // we are not using streamlined UI.
+      navigate(
+        {
+          ...router.location,
+          query: {
+            project: router.location.query.project,
+          },
+        },
+        {replace: true}
+      );
+    }
+  }, [
+    defaultIssueEvent,
+    isEventError,
+    navigate,
+    router.location,
+    params.eventId,
+    hasStreamlinedUI,
+  ]);
 
   /**
    * Allows the GroupEventHeader to display the previous event while the new event is loading.
@@ -448,9 +497,11 @@ function useTrackView({
   event,
   project,
   tab,
+  organization,
 }: {
   event: Event | null;
   group: Group | null;
+  organization: Organization;
   tab: Tab;
   project?: Project;
 }) {
@@ -476,6 +527,7 @@ function useTrackView({
     ref_fallback,
     group_event_type: groupEventType,
     prefers_streamlined_ui: user?.options?.prefersIssueDetailsStreamlinedUI ?? false,
+    org_streamline_only: organization.streamlineOnly ?? undefined,
   });
   // Set default values for properties that may be updated in subcomponents.
   // Must be separate from the above values, otherwise the actual values filled in
@@ -613,7 +665,7 @@ function GroupDetailsContent({
     openIssueActivityDrawer,
   ]);
 
-  useTrackView({group, event, project, tab: currentTab});
+  useTrackView({group, event, project, tab: currentTab, organization});
 
   const isDisplayingEventDetails = [
     Tab.DETAILS,

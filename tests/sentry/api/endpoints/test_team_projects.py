@@ -141,9 +141,9 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
             rule.data["actions"][0]["fallthroughType"] == FallthroughChoiceType.ACTIVE_MEMBERS.value
         )
 
-        # Ensure that creating the default alert rule does not trigger the
-        # alert_rule_created signal to avoid fake recording fake analytics.
-        assert signal_handler.call_count == 0
+        # Ensure that creating the default alert rule does trigger the
+        # alert_rule_created signal
+        assert signal_handler.call_count == 1
         alert_rule_created.disconnect(signal_handler)
 
     def test_without_default_rules_disable_member_project_creation(self):

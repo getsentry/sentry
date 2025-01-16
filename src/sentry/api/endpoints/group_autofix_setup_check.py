@@ -14,7 +14,7 @@ from sentry.api.bases.group import GroupEndpoint
 from sentry.autofix.utils import get_autofix_repos_from_project_code_mappings
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.utils.code_mapping import get_sorted_code_mapping_configs
+from sentry.issues.auto_source_code_config.code_mapping import get_sorted_code_mapping_configs
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
