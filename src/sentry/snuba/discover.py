@@ -440,6 +440,7 @@ def top_events_timeseries(
     dataset: Dataset = Dataset.Discover,
     query_source: QuerySource | None = None,
     fallback_to_transactions: bool = False,
+    transform_alias_to_input_format: bool = False,
 ) -> dict[str, SnubaTSResult] | SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries for a limited number of top events
@@ -462,6 +463,8 @@ def top_events_timeseries(
     top_events - A dictionary with a 'data' key containing a list of dictionaries that
                     represent the top events matching the query. Useful when you have found
                     the top events earlier and want to save a query.
+    transform_alias_to_input_format - Whether aggregate columns should be returned in the originally
+                                    requested function format.
     """
     assert dataset in [
         Dataset.Discover,
@@ -500,6 +503,7 @@ def top_events_timeseries(
         config=QueryBuilderConfig(
             functions_acl=functions_acl,
             skip_tag_resolution=True,
+            transform_alias_to_input_format=transform_alias_to_input_format,
         ),
     )
     if len(top_events["data"]) == limit and include_other:
@@ -587,6 +591,7 @@ def top_events_timeseries(
                         if zerofill_results
                         else item["data"]
                     ),
+                    "meta": result["meta"],
                     "order": item["order"],
                 },
                 snuba_params.start_date,
