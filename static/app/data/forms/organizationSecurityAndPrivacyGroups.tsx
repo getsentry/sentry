@@ -68,9 +68,9 @@ const formGroups: JsonFormObject[] = [
       {
         name: 'storeCrashReports',
         type: 'select',
-        label: t('Store Native Crash Reports'),
+        label: t('Store Minidumps As Attachments'),
         help: t(
-          'Store native crash reports such as Minidumps for improved processing and download in issue details'
+          'Store minidumps as attachments for improved processing and download in issue details.'
         ),
         visible: ({features}) => features.has('event-attachments'),
         // HACK: some organization can have limit of stored crash reports a number that's not in the options (legacy reasons),
