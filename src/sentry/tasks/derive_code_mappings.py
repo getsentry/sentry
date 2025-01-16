@@ -87,7 +87,7 @@ def process_error(error: ApiError, extra: dict[str, str]) -> None:
     default_retry_delay=60 * 10,
     max_retries=3,
 )
-def derive_code_mappings(project_id: int, event_id: str) -> None:
+def derive_code_mappings(project_id: int, event_id: str, **kwargs: Any) -> None:
     """
     Derive code mappings for a project given data from a recent event.
 
