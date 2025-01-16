@@ -288,6 +288,9 @@ class SearchResolver:
     def _resolve_having(
         self, terms: event_filter.ParsedTerms
     ) -> tuple[AggregationFilter | None, list[VirtualColumnContext | None]]:
+        if not self.config.use_aggregate_conditions:
+            return None, []
+
         parsed_terms = []
         resolved_contexts = []
         for item in terms:

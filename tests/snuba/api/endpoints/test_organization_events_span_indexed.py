@@ -974,7 +974,7 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         ]
         assert meta["dataset"] == self.dataset
 
-    def test_aggregate_filter(self):
+    def _test_aggregate_filter(self, queries):
         self.store_spans(
             [
                 self.create_span(
@@ -1005,15 +1005,7 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
             is_eap=self.is_eap,
         )
 
-        for query in [
-            "count():2",
-            "count():>1",
-            "avg(measurements.lcp):>3000",
-            "avg(measurements.lcp):>3s",
-            "count():>1 avg(measurements.lcp):>3000",
-            "count():>1 AND avg(measurements.lcp):>3000",
-            "count():>1 OR avg(measurements.lcp):>3000",
-        ]:
+        for query in queries:
             response = self.do_request(
                 {
                     "field": ["transaction", "count()"],
@@ -1030,6 +1022,19 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
             assert data[0]["transaction"] == "foo"
             assert data[0]["count()"] == 2
             assert meta["dataset"] == self.dataset
+
+    def test_aggregate_filter(self):
+        self._test_aggregate_filter(
+            [
+                "count():2",
+                "count():>1",
+                "avg(measurements.lcp):>3000",
+                "avg(measurements.lcp):>3s",
+                "count():>1 avg(measurements.lcp):>3000",
+                "count():>1 AND avg(measurements.lcp):>3000",
+                "count():>1 OR avg(measurements.lcp):>3000",
+            ]
+        )
 
 
 class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpointTest):
@@ -1606,6 +1611,20 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
                 "messaging.message.body.size": 2.0,
             },
         ]
+
+    def test_aggregate_filter(self):
+        self._test_aggregate_filter(
+            [
+                "count():2",
+                "count():>1",
+                "avg(measurements.lcp):>3000",
+                "avg(measurements.lcp):>3s",
+                "count():>1 avg(measurements.lcp):>3000",
+                "count():>1 AND avg(measurements.lcp):>3000",
+                "count():>1 OR avg(measurements.lcp):>3000",
+                "(count():>1 AND avg(http.response_content_length):>3000) OR (count():>1 AND avg(measurements.lcp):>3000)",
+            ]
+        )
 
 
 class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpointTest):
