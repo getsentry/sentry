@@ -11,7 +11,9 @@ import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 export const MAX_VISUALIZES = 4;
 
-export const DEFAULT_VISUALIZATION = `${ALLOWED_EXPLORE_VISUALIZE_AGGREGATES[0]}(${ALLOWED_EXPLORE_VISUALIZE_FIELDS[0]})`;
+export const DEFAULT_VISUALIZATION_AGGREGATE = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES[0];
+export const DEFAULT_VISUALIZATION_FIELD = ALLOWED_EXPLORE_VISUALIZE_FIELDS[0];
+export const DEFAULT_VISUALIZATION = `${DEFAULT_VISUALIZATION_AGGREGATE}(${DEFAULT_VISUALIZATION_FIELD})`;
 
 export function defaultVisualizes(): Visualize[] {
   return [
@@ -23,11 +25,14 @@ export function defaultVisualizes(): Visualize[] {
   ];
 }
 
-export type Visualize = {
+export interface BaseVisualize {
   chartType: ChartType;
-  label: string;
   yAxes: string[];
-};
+}
+
+export interface Visualize extends BaseVisualize {
+  label: string;
+}
 
 export function getVisualizesFromLocation(location: Location): Visualize[] {
   const rawVisualizes = decodeList(location.query.visualize);
@@ -72,7 +77,7 @@ function parseVisualizes(raw: string): Omit<Visualize, 'label'> | null {
 
 export function updateLocationWithVisualizes(
   location: Location,
-  visualizes: Omit<Visualize, 'label'>[] | null | undefined
+  visualizes: BaseVisualize[] | null | undefined
 ) {
   if (defined(visualizes)) {
     location.query.visualize = visualizes.map(visualize =>

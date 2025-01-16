@@ -28,11 +28,11 @@ import {
   updateLocationWithSortBys,
 } from './sortBys';
 import {defaultTitle, getTitleFromLocation, updateLocationWithTitle} from './title';
+import type {BaseVisualize, Visualize} from './visualizes';
 import {
   defaultVisualizes,
   getVisualizesFromLocation,
   updateLocationWithVisualizes,
-  type Visualize,
 } from './visualizes';
 
 interface ReadablePageParams {
@@ -54,7 +54,7 @@ interface WritablePageParams {
   query?: string | null;
   sortBys?: Sort[] | null;
   title?: string | null;
-  visualizes?: Omit<Visualize, 'label'>[] | null;
+  visualizes?: BaseVisualize[] | null;
 }
 
 export interface SuggestedQuery {
@@ -64,7 +64,7 @@ export interface SuggestedQuery {
   query: string;
   sortBys: Sort[];
   title: string;
-  visualizes: Omit<Visualize, 'label'>[];
+  visualizes: BaseVisualize[];
 }
 
 function defaultPageParams(): ReadablePageParams {
@@ -286,11 +286,16 @@ export function useSetExploreSortBys() {
 }
 
 export function useSetExploreVisualizes() {
+  const pageParams = useExplorePageParams();
   const setPageParams = useSetExplorePageParams();
   return useCallback(
-    (visualizes: Omit<Visualize, 'label'>[]) => {
-      setPageParams({visualizes});
+    (visualizes: BaseVisualize[], field?: string) => {
+      const writablePageParams: WritablePageParams = {visualizes};
+      if (defined(field) && !pageParams.fields.includes(field)) {
+        writablePageParams.fields = [...pageParams.fields, field];
+      }
+      setPageParams(writablePageParams);
     },
-    [setPageParams]
+    [pageParams, setPageParams]
   );
 }
