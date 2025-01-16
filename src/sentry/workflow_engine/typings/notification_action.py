@@ -23,7 +23,7 @@ class FieldMapping:
 
 class BaseActionTranslator(ABC):
     action_type: ClassVar[Action.Type]
-    # Updated field mappings to use FieldMapping class {target_field: FieldMapping}
+    # Represents the mapping of a target field to a source field {target_field: FieldMapping}
     field_mappings: ClassVar[dict[str, FieldMapping]] = {}
 
     def __init__(self, action: dict[str, Any]):
@@ -84,9 +84,11 @@ class BaseActionTranslator(ABC):
             mapped_data = {}
             for field in dataclasses.fields(self.blob_type):
                 mapping = self.field_mappings.get(field.name)
+                # If a mapping is specified, use the source field value or default value
                 if mapping:
                     source_field = mapping.source_field
                     value = self.action.get(source_field, mapping.default_value)
+                # Otherwise, use the field value
                 else:
                     value = self.action.get(field.name, "")
                 mapped_data[field.name] = value
