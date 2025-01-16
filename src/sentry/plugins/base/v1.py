@@ -359,17 +359,6 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin):
         >>>     return [('tag-name', 'tag-value')]
         """
 
-    def get_notification_forms(self, **kwargs):
-        """
-        Provides additional UserOption forms for the Notification Settings page.
-
-        Must return an iterable.
-
-        >>> def get_notification_forms(self, **kwargs):
-        >>>     return [MySettingsForm]
-        """
-        return []
-
     def is_testable(self, **kwargs):
         """
         Returns True if this plugin is able to be tested.
