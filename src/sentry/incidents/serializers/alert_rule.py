@@ -511,13 +511,13 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
                     extra={"details": str(e)},
                 )
                 raise BadRequest
-            self._handle_triggers(alert_rule, triggers)
 
             if features.has(
                 "organizations:workflow-engine-metric-alert-processing", alert_rule.organization
             ):
                 migrate_alert_rule(alert_rule, user)
 
+            self._handle_triggers(alert_rule, triggers)
             return alert_rule
 
     def update(self, instance, validated_data):
