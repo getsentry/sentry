@@ -84,11 +84,11 @@ function SampleInfo(props: Props) {
       <MetricReadout
         title={DataTitles.timeSpent}
         // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        value={spanMetrics?.[0]?.[`sum(${SpanMetricsField.SPAN_SELF_TIME}))`]}
+        value={spanMetrics?.[`sum(${SpanMetricsField.SPAN_SELF_TIME})`]}
         unit={DurationUnit.MILLISECOND}
         tooltip={getTimeSpentExplanation(
           // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-          spanMetrics?.[0]?.['time_spent_percentage()'],
+          spanMetrics?.['time_spent_percentage()'],
           // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           spanMetrics?.[SpanMetricsField.SPAN_OP]
         )}

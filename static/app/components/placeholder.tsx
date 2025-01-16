@@ -15,16 +15,14 @@ export interface PlaceholderProps {
   width?: string;
 }
 
-const defaultProps = {
-  shape: 'rect',
-  bottomGutter: 0 as Parameters<typeof space>[0],
-  width: '100%',
-  height: '60px',
-  testId: 'loading-placeholder',
-} satisfies Partial<PlaceholderProps>;
-
 const Placeholder = styled(
-  ({className, children, error, testId, style}: PlaceholderProps) => {
+  ({
+    className,
+    children,
+    error,
+    testId = 'loading-placeholder',
+    style,
+  }: PlaceholderProps) => {
     return (
       <div data-test-id={testId} className={className} style={style}>
         {error || children}
@@ -40,15 +38,13 @@ const Placeholder = styled(
   border-radius: ${p => p.theme.borderRadius};
   background-color: ${p => (p.error ? p.theme.red100 : p.theme.backgroundTertiary)};
   ${p => p.error && `color: ${p.theme.red200};`}
-  width: ${p => p.width};
-  height: ${p => p.height};
-  ${p => (p.shape === 'circle' ? 'border-radius: 100%;' : '')}
-  ${p =>
-    typeof p.bottomGutter === 'number' && p.bottomGutter > 0
-      ? `margin-bottom: ${space(p.bottomGutter)};`
+  width: ${p => p.width ?? '100%'};
+  height: ${p => p.height ?? '60px'};
+  ${({shape = 'rect'}) => (shape === 'circle' ? 'border-radius: 100%;' : '')}
+  ${({bottomGutter = 0}) =>
+    typeof bottomGutter === 'number' && bottomGutter > 0
+      ? `margin-bottom: ${space(bottomGutter as Parameters<typeof space>[0])};`
       : ''}
 `;
-
-Placeholder.defaultProps = defaultProps;
 
 export default Placeholder;

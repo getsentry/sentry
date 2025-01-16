@@ -10,7 +10,6 @@ import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useSynchronizeCharts} from 'sentry/views/insights/common/components/chart';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import InsightIssuesList from 'sentry/views/insights/common/components/issues';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
@@ -29,11 +28,11 @@ import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDisc
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {
   DataTitles,
+  getDurationChartTitle,
+  getThroughputChartTitle,
   getThroughputTitle,
 } from 'sentry/views/insights/common/views/spans/types';
 import {SampleList} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList';
-import {DurationChart} from 'sentry/views/insights/database/components/charts/durationChart';
-import {ThroughputChart} from 'sentry/views/insights/database/components/charts/throughputChart';
 import {isAValidSort} from 'sentry/views/insights/database/components/tables/queriesTable';
 import {QueryTransactionsTable} from 'sentry/views/insights/database/components/tables/queryTransactionsTable';
 import {DEFAULT_DURATION_AGGREGATE} from 'sentry/views/insights/database/settings';
@@ -47,6 +46,7 @@ import {
 } from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
+import {InsightsLineChartWidget} from '../../common/components/insightsLineChartWidget';
 import {useSamplesDrawer} from '../../common/utils/useSamplesDrawer';
 
 type Query = {
@@ -170,6 +170,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
       search: MutableSearch.fromQueryObject(filters),
       yAxis: ['spm()'],
       enabled: Boolean(groupId),
+      transformAliasToInputFormat: true,
     },
     'api.starfish.span-summary-page-metrics-chart'
   );
@@ -183,11 +184,10 @@ export function DatabaseSpanSummaryPage({params}: Props) {
       search: MutableSearch.fromQueryObject(filters),
       yAxis: [`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`],
       enabled: Boolean(groupId),
+      transformAliasToInputFormat: true,
     },
     'api.starfish.span-summary-page-metrics-chart'
   );
-
-  useSynchronizeCharts(2, !isThroughputDataLoading && !isDurationDataLoading);
 
   return (
     <Fragment>
@@ -273,13 +273,15 @@ export function DatabaseSpanSummaryPage({params}: Props) {
 
               <ModuleLayout.Full>
                 <ChartContainer>
-                  <ThroughputChart
-                    series={throughputData['spm()']}
+                  <InsightsLineChartWidget
+                    title={getThroughputChartTitle('db')}
+                    series={[throughputData['spm()']]}
                     isLoading={isThroughputDataLoading}
                     error={throughputError}
                   />
 
-                  <DurationChart
+                  <InsightsLineChartWidget
+                    title={getDurationChartTitle('db')}
                     series={[
                       durationData[
                         `${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`

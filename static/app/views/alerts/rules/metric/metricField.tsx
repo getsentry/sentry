@@ -2,7 +2,6 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
 import type {FormFieldProps} from 'sentry/components/forms/formField';
 import FormField from 'sentry/components/forms/formField';
 import type {Organization} from 'sentry/types/organization';
@@ -161,22 +160,5 @@ const StyledQueryField = styled(QueryField)<{gridColumns: number; columnWidth?: 
       width: ${p.gridColumns * p.columnWidth}px;
     `}
 `;
-
-const PresetButton = styled(Button)<{disabled: boolean}>`
-  ${p =>
-    p.disabled &&
-    css`
-      color: ${p.theme.textColor};
-      &:hover,
-      &:focus {
-        color: ${p.theme.textColor};
-      }
-    `}
-`;
-
-PresetButton.defaultProps = {
-  priority: 'link',
-  borderless: true,
-};
 
 export default MetricField;

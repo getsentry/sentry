@@ -103,6 +103,7 @@ export function CacheSamplePanel() {
     {
       search: MutableSearch.fromQueryObject(filters satisfies SpanMetricsQueryFilters),
       yAxis: [`${SpanFunction.CACHE_MISS_RATE}()`],
+      transformAliasToInputFormat: true,
     },
     Referrer.SAMPLES_CACHE_HIT_MISS_CHART
   );

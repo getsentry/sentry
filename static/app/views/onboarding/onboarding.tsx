@@ -413,7 +413,17 @@ function Onboarding(props: Props) {
           <Back animate={stepIndex > 0 ? 'visible' : 'hidden'} />
         </Confirm>
         <AnimatePresence mode="wait" onExitComplete={updateAnimationState}>
-          <OnboardingStep key={stepObj.id} data-test-id={`onboarding-step-${stepObj.id}`}>
+          <OnboardingStep
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            variants={{animate: {}}}
+            transition={testableTransition({
+              staggerChildren: 0.2,
+            })}
+            key={stepObj.id}
+            data-test-id={`onboarding-step-${stepObj.id}`}
+          >
             {stepObj.Component && (
               <stepObj.Component
                 active
@@ -482,33 +492,6 @@ const OnboardingStep = styled(motion.div)`
   display: flex;
   flex-direction: column;
 `;
-
-OnboardingStep.defaultProps = {
-  initial: 'initial',
-  animate: 'animate',
-  exit: 'exit',
-  variants: {animate: {}},
-  transition: testableTransition({
-    staggerChildren: 0.2,
-  }),
-};
-
-const Sidebar = styled(motion.div)`
-  width: 850px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-`;
-
-Sidebar.defaultProps = {
-  initial: 'initial',
-  animate: 'animate',
-  exit: 'exit',
-  variants: {animate: {}},
-  transition: testableTransition({
-    staggerChildren: 0.2,
-  }),
-};
 
 const AdaptivePageCorners = styled(PageCorners)`
   --corner-scale: 1;

@@ -15,7 +15,6 @@ import {
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
-import {useSynchronizeCharts} from 'sentry/views/insights/common/components/chart';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
@@ -30,11 +29,10 @@ import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParam
 import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {
   DataTitles,
+  getDurationChartTitle,
+  getThroughputChartTitle,
   getThroughputTitle,
 } from 'sentry/views/insights/common/views/spans/types';
-import {DurationChart} from 'sentry/views/insights/http/components/charts/durationChart';
-import {ResponseRateChart} from 'sentry/views/insights/http/components/charts/responseRateChart';
-import {ThroughputChart} from 'sentry/views/insights/http/components/charts/throughputChart';
 import {DomainStatusLink} from 'sentry/views/insights/http/components/domainStatusLink';
 import {HTTPSamplesPanel} from 'sentry/views/insights/http/components/httpSamplesPanel';
 import {
@@ -44,6 +42,7 @@ import {
 import {Referrer} from 'sentry/views/insights/http/referrers';
 import {
   BASE_FILTERS,
+  FIELD_ALIASES,
   MODULE_DOC_LINK,
   NULL_DOMAIN_DESCRIPTION,
 } from 'sentry/views/insights/http/settings';
@@ -57,6 +56,7 @@ import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import type {SpanMetricsQueryFilters} from 'sentry/views/insights/types';
 import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
 
+import {InsightsLineChartWidget} from '../../common/components/insightsLineChartWidget';
 import {useSamplesDrawer} from '../../common/utils/useSamplesDrawer';
 
 type Query = {
@@ -132,6 +132,7 @@ export function HTTPDomainSummaryPage() {
     {
       search: MutableSearch.fromQueryObject(filters),
       yAxis: ['spm()'],
+      transformAliasToInputFormat: true,
     },
     Referrer.DOMAIN_SUMMARY_THROUGHPUT_CHART
   );
@@ -144,6 +145,7 @@ export function HTTPDomainSummaryPage() {
     {
       search: MutableSearch.fromQueryObject(filters),
       yAxis: [`avg(${SpanMetricsField.SPAN_SELF_TIME})`],
+      transformAliasToInputFormat: true,
     },
     Referrer.DOMAIN_SUMMARY_DURATION_CHART
   );
@@ -156,6 +158,7 @@ export function HTTPDomainSummaryPage() {
     {
       search: MutableSearch.fromQueryObject(filters),
       yAxis: ['http_response_rate(3)', 'http_response_rate(4)', 'http_response_rate(5)'],
+      transformAliasToInputFormat: true,
     },
     Referrer.DOMAIN_SUMMARY_RESPONSE_CODE_CHART
   );
@@ -186,11 +189,6 @@ export function HTTPDomainSummaryPage() {
       cursor,
     },
     Referrer.DOMAIN_SUMMARY_TRANSACTIONS_LIST
-  );
-
-  useSynchronizeCharts(
-    3,
-    !isThroughputDataLoading && !isDurationDataLoading && !isResponseCodeDataLoading
   );
 
   const headerProps = {
@@ -295,15 +293,17 @@ export function HTTPDomainSummaryPage() {
               </ModuleLayout.Full>
 
               <ModuleLayout.Third>
-                <ThroughputChart
-                  series={throughputData['spm()']}
+                <InsightsLineChartWidget
+                  title={getThroughputChartTitle('http')}
+                  series={[throughputData['spm()']]}
                   isLoading={isThroughputDataLoading}
                   error={throughputError}
                 />
               </ModuleLayout.Third>
 
               <ModuleLayout.Third>
-                <DurationChart
+                <InsightsLineChartWidget
+                  title={getDurationChartTitle('http')}
                   series={[durationData[`avg(${SpanMetricsField.SPAN_SELF_TIME})`]]}
                   isLoading={isDurationDataLoading}
                   error={durationError}
@@ -311,21 +311,14 @@ export function HTTPDomainSummaryPage() {
               </ModuleLayout.Third>
 
               <ModuleLayout.Third>
-                <ResponseRateChart
+                <InsightsLineChartWidget
+                  title={DataTitles.unsuccessfulHTTPCodes}
                   series={[
-                    {
-                      ...responseCodeData[`http_response_rate(3)`],
-                      seriesName: t('3XX'),
-                    },
-                    {
-                      ...responseCodeData[`http_response_rate(4)`],
-                      seriesName: t('4XX'),
-                    },
-                    {
-                      ...responseCodeData[`http_response_rate(5)`],
-                      seriesName: t('5XX'),
-                    },
+                    responseCodeData[`http_response_rate(3)`],
+                    responseCodeData[`http_response_rate(4)`],
+                    responseCodeData[`http_response_rate(5)`],
                   ]}
+                  aliases={FIELD_ALIASES}
                   isLoading={isResponseCodeDataLoading}
                   error={responseCodeError}
                 />
