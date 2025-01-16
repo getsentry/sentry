@@ -1,14 +1,14 @@
-import {Component, Fragment} from 'react';
+import {Component, Fragment, useEffect, useState} from 'react';
 import {components} from 'react-select';
 import styled from '@emotion/styled';
 import type {Query} from 'history';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import type {StylesConfig} from 'sentry/components/forms/controls/selectControl';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
+import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -19,6 +19,7 @@ import type {Integration} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import Projects from 'sentry/utils/projects';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 import IntegrationIcon from 'sentry/views/settings/organizationIntegrations/integrationIcon';
 
@@ -61,7 +62,7 @@ type Props = SharedProps & {
   /**
    * Organization slug
    */
-  organization: string;
+  organization: string | undefined;
 
   /**
    * List of available organizations
@@ -128,7 +129,7 @@ class ContextPickerModal extends Component<Props> {
   navigateIfFinish = (
     organizations: Array<{slug: string}>,
     projects: Array<{slug: string}>,
-    latestOrg: string = this.props.organization
+    latestOrg = this.props.organization
   ) => {
     const {needProject, onFinish, nextPath, integrationConfigs} = this.props;
     const {isSuperuser} = ConfigStore.get('user') || {};
@@ -411,102 +412,88 @@ type ContainerProps = SharedProps & {
    * List of slugs we want to be able to choose from
    */
   projectSlugs?: string[];
-} & DeprecatedAsyncComponent['props'];
+};
 
-type ContainerState = {
-  organizations: Organization[];
-  integrationConfigs?: Integration[];
-  selectedOrganization?: string;
-} & DeprecatedAsyncComponent['state'];
+export default function ContextPickerModalContainer(props: ContainerProps) {
+  const {allowAllProjectsSelection, configUrl, projectSlugs} = props;
 
-class ContextPickerModalContainer extends DeprecatedAsyncComponent<
-  ContainerProps,
-  ContainerState
-> {
-  getDefaultState() {
-    const storeState = OrganizationStore.get();
-    return {
-      ...super.getDefaultState(),
-      organizations: OrganizationsStore.getAll(),
-      selectedOrganization: storeState.organization?.slug,
-    };
-  }
+  const [organizations, setOrganizations] = useState<Organization[]>(
+    OrganizationsStore.getAll()
+  );
+  useEffect(() => {
+    const unsubscribe = OrganizationsStore.listen(setOrganizations, undefined);
+    return () => unsubscribe();
+  }, []);
 
-  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
-    const {configUrl} = this.props;
-    if (configUrl) {
-      return [['integrationConfigs', configUrl]];
-    }
-    return [];
-  }
-
-  componentWillUnmount() {
-    this.unlistener?.();
-  }
-
-  unlistener = OrganizationsStore.listen(
-    (organizations: Organization[]) => this.setState({organizations}),
-    undefined
+  const selectedOrganization = OrganizationStore.get();
+  const [selectedOrgSlug, setSelectedOrgSlug] = useState(
+    selectedOrganization.organization?.slug
   );
 
-  handleSelectOrganization = (organizationSlug: string) => {
-    this.setState({selectedOrganization: organizationSlug});
-  };
+  const {data, isError, isLoading, refetch} = useApiQuery<Integration[]>(
+    [configUrl ?? ''],
+    {
+      enabled: Boolean(configUrl),
+      staleTime: Infinity,
+    }
+  );
 
-  renderModal({
-    projects,
-    initiallyLoaded,
-    integrationConfigs,
-  }: {
-    initiallyLoaded?: boolean;
-    integrationConfigs?: Integration[];
-    projects?: Project[];
-  }) {
+  if (configUrl && isLoading) {
+    return <LoadingIndicator />;
+  }
+  if (configUrl && isError) {
+    return <LoadingError onRetry={refetch} />;
+  }
+  if (data?.length) {
     return (
       <ContextPickerModal
-        {...this.props}
-        projects={projects || []}
-        loading={!initiallyLoaded}
-        organizations={this.state.organizations}
-        organization={this.state.selectedOrganization!}
-        onSelectOrganization={this.handleSelectOrganization}
-        integrationConfigs={integrationConfigs || []}
-        allowAllProjectsSelection={this.props.allowAllProjectsSelection}
+        {...props}
+        projects={[]}
+        loading={isLoading}
+        organizations={organizations}
+        organization={selectedOrgSlug!}
+        onSelectOrganization={setSelectedOrgSlug}
+        integrationConfigs={data}
+        allowAllProjectsSelection={allowAllProjectsSelection}
       />
     );
   }
-
-  render() {
-    const {projectSlugs, configUrl} = this.props;
-
-    if (configUrl && this.state.loading) {
-      return <LoadingIndicator />;
-    }
-    if (this.state.integrationConfigs?.length) {
-      return this.renderModal({
-        integrationConfigs: this.state.integrationConfigs,
-        initiallyLoaded: !this.state.loading,
-      });
-    }
-    if (this.state.selectedOrganization) {
-      return (
-        <Projects
-          orgId={this.state.selectedOrganization}
-          allProjects={!projectSlugs?.length}
-          slugs={projectSlugs}
-        >
-          {({projects, initiallyLoaded}) =>
-            this.renderModal({projects: projects as Project[], initiallyLoaded})
-          }
-        </Projects>
-      );
-    }
-
-    return this.renderModal({});
+  if (selectedOrgSlug) {
+    return (
+      <Projects
+        orgId={selectedOrgSlug}
+        allProjects={!projectSlugs?.length}
+        slugs={projectSlugs}
+      >
+        {({projects, initiallyLoaded}) => (
+          <ContextPickerModal
+            {...props}
+            projects={projects as Project[]}
+            loading={!initiallyLoaded}
+            organizations={organizations}
+            organization={selectedOrgSlug}
+            onSelectOrganization={setSelectedOrgSlug}
+            integrationConfigs={[]}
+            allowAllProjectsSelection={allowAllProjectsSelection}
+          />
+        )}
+      </Projects>
+    );
   }
-}
 
-export default ContextPickerModalContainer;
+  return (
+    <ContextPickerModal
+      {...props}
+      projects={[]}
+      loading
+      organizations={organizations}
+      organization={selectedOrgSlug!}
+      onSelectOrganization={setSelectedOrgSlug}
+      integrationConfigs={[]}
+      allowAllProjectsSelection={allowAllProjectsSelection}
+    />
+  );
+}
 
 const StyledSelectControl = styled(SelectControl)`
   margin-top: ${space(1)};
