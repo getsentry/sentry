@@ -57,6 +57,8 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 
 const STARFISH_CHART_GROUP = 'starfish_chart_group';
 
+type PairOfMetricSeries = [MetricSeries[], MetricSeries[]];
+
 export enum ChartType {
   BAR = 0,
   LINE = 1,
@@ -259,10 +261,11 @@ function Chart({
       }
       return ingestionSeries;
     });
-    [series, incompleteSeries] = seriesToShow.reduce(
-      (acc, serie, index) => {
+
+    [series, incompleteSeries] = seriesToShow.reduce<PairOfMetricSeries>(
+      (acc: PairOfMetricSeries, serie: MetricSeries[], index: number) => {
         const [trimmed, incomplete] = acc;
-        const {markLine: _, ...incompleteSerie} = serie[1]! ?? {};
+        const {markLine: _, ...incompleteSerie} = serie[1] ?? {};
 
         return [
           [...trimmed, {...serie[0]!, color: colors[index]!}],
@@ -270,9 +273,9 @@ function Chart({
             ...incomplete,
             ...(Object.keys(incompleteSerie).length > 0 ? [incompleteSerie] : []),
           ],
-        ];
+        ] as PairOfMetricSeries;
       },
-      [[], []] as [MetricSeries[], MetricSeries[]]
+      [[], []] as PairOfMetricSeries
     );
   }
 

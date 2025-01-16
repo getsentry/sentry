@@ -1602,7 +1602,7 @@ function formatProfileSeriesMeasurement({
   let offset = 0;
   for (let i = 0; i < measurement.values.length; i++) {
     const value = measurement.values[i]!;
-    const next = measurement.values[i + 1]! ?? value;
+    const next = measurement.values[i + 1] ?? value;
     const offsetNanoseconds = next.elapsed_since_start_ns - value.elapsed_since_start_ns;
     offset += offsetNanoseconds / 1e6;
 
