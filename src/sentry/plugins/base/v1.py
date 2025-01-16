@@ -320,14 +320,6 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin):
 
     # Server side signals which do not have request context
 
-    def has_perm(self, user, perm, *objects, **kwargs):
-        # DEPRECATED: No longer used.
-        pass
-
-    def missing_perm_response(self, request, perm, *args, **objects):
-        # DEPRECATED: No longer used.
-        pass
-
     def is_regression(self, group, event, **kwargs):
         """
         Called on new events when the group's status is resolved.
