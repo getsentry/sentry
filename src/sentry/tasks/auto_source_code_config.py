@@ -90,8 +90,9 @@ def derive_code_mappings(
     project_id: int,
     data: NodeData | None = None,  # We will deprecate this
     event_id: str | None = None,
+    **kwargs: Any,
 ) -> None:
-    auto_source_code_config(project_id, data)
+    auto_source_code_config(project_id, data=data, event_id=event_id, **kwargs)
 
 
 @instrumented_task(
@@ -103,6 +104,8 @@ def derive_code_mappings(
 def auto_source_code_config(
     project_id: int,
     data: NodeData,
+    event_id: str | None = None,
+    **kwargs: Any,
 ) -> None:
     """
     Process errors for customers with source code management installed and calculate code mappings
@@ -125,10 +128,6 @@ def auto_source_code_config(
             logger.error("Event not found.", extra={"project_id": project_id, "event_id": event_id})
             return
         data = event.data
-
-    if data is None:
-        logger.error("Data is None.", extra=extra)
-        return
 
     stacktrace_paths: list[str] = identify_stacktrace_paths(data)
     if not stacktrace_paths:
