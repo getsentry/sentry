@@ -1811,7 +1811,8 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                         ),
                     )
                     if condition is not None:
-
+                        # This should update the search box so we can fetch the correct
+                        # issues.
                         def recursive_check(condition: Column | Function) -> bool:
                             if isinstance(condition, Column):
                                 if (

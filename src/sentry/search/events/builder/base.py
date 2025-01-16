@@ -1547,6 +1547,7 @@ class BaseQueryBuilder:
             else:
                 return False
 
+        # This should help us find the recommended event?
         new_where = [
             (
                 Or(
