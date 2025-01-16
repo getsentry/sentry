@@ -40,7 +40,7 @@ export interface TimeSeriesWidgetVisualizationProps {
   timeseries: TimeseriesData[];
   aliases?: Aliases;
   dataCompletenessDelay?: number;
-  onTimeseriesSelectionChange?: (TimeseriesSelection) => void;
+  onTimeseriesSelectionChange?: (selection: TimeseriesSelection) => void;
   releases?: Release[];
   timeseriesSelection?: TimeseriesSelection;
 }
