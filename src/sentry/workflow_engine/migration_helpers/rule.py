@@ -128,9 +128,7 @@ class UpdatedIssueAlertData(TypedDict):
     frequency: int | None
 
 
-def update_migrated_issue_alert(
-    rule: Rule, data: UpdatedIssueAlertData, user: RpcUser | None = None
-):
+def update_migrated_issue_alert(rule: Rule, data: UpdatedIssueAlertData):
     try:
         alert_rule_workflow = AlertRuleWorkflow.objects.get(rule=rule)
     except AlertRuleWorkflow.DoesNotExist:
@@ -203,6 +201,41 @@ def update_dcg(
         translate_to_data_condition(dict(condition), dcg=dcg)
 
     return dcg
+
+
+def delete_migrated_issue_alert(rule: Rule):
+    try:
+        alert_rule_workflow = AlertRuleWorkflow.objects.get(rule=rule)
+    except AlertRuleWorkflow.DoesNotExist:
+        logger.exception("AlertRuleWorkflow does not exist", extra={"rule_id": rule.id})
+        return
+
+    workflow: Workflow = alert_rule_workflow.workflow
+
+    try:
+        # delete all associated IF DCGs and their conditions
+        workflow_dcgs = WorkflowDataConditionGroup.objects.filter(workflow=workflow)
+        for workflow_dcg in workflow_dcgs:
+            if_dcg = workflow_dcg.condition_group
+            if_dcg.conditions.all().delete()
+            if_dcg.delete()
+
+    except WorkflowDataConditionGroup.DoesNotExist:
+        logger.exception(
+            "WorkflowDataConditionGroup does not exist", extra={"workflow_id": workflow.id}
+        )
+
+    if not workflow.when_condition_group:
+        logger.error(
+            "Workflow does not have a when_condition_group", extra={"workflow_id": workflow.id}
+        )
+    else:
+        when_dcg = workflow.when_condition_group
+        when_dcg.conditions.all().delete()
+        when_dcg.delete()
+
+    workflow.delete()
+    alert_rule_workflow.delete()
 
 
 def delete_workflow_actions(if_dcg: DataConditionGroup):
