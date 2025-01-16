@@ -364,6 +364,11 @@ export function TraceEventDataSection({
 
   const SectionComponent = isNestedSection ? InlineThreadSection : InterimSection;
 
+  const optionsToShow = getDisplayOptions();
+  const displayValues = display.filter(value =>
+    optionsToShow.some(opt => opt.value === value && !opt.disabled)
+  );
+
   return (
     <SectionComponent
       type={type}
@@ -436,9 +441,9 @@ export function TraceEventDataSection({
               multiple
               triggerLabel=""
               position="bottom-end"
-              value={display}
+              value={displayValues}
               onChange={opts => handleDisplayChange(opts.map(opt => opt.value))}
-              options={[{label: t('Display'), options: getDisplayOptions()}]}
+              options={[{label: t('Display'), options: optionsToShow}]}
             />
           </ButtonBar>
         )
