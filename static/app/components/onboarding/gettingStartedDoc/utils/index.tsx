@@ -1,4 +1,5 @@
 import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
 import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -64,5 +65,33 @@ export function getUploadSourceMapsStep({
         },
       },
     ],
+  };
+}
+
+export function getStoreCrashReportsCallout({
+  organization,
+  platformKey,
+  projectId,
+  projectSlug,
+}: DocsParams) {
+  return {
+    title: t('Store Minidumps As Attachments'),
+    description: tct(
+      '[link:Store minidumps as attachments] for improved processing and download in issue details.',
+      {
+        link: (
+          <Link
+            to={`/settings/${organization.slug}/projects/${projectSlug}/security-and-privacy/`}
+            onClick={() => {
+              trackAnalytics('onboarding.store_minidumps_as_attachments_link_clicked', {
+                organization,
+                platform: platformKey,
+                project_id: projectId,
+              });
+            }}
+          />
+        ),
+      }
+    ),
   };
 }

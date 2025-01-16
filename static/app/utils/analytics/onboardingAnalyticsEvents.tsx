@@ -66,6 +66,10 @@ export type OnboardingEventParameters = {
     platform: string;
     project_id: string;
   };
+  'onboarding.store_minidumps_as_attachments_link_clicked': {
+    platform: string;
+    project_id: string;
+  };
   'onboarding.take_me_to_issues_clicked': {
     platform: string;
     products: string[];
@@ -100,4 +104,6 @@ export const onboardingEventMap: Record<keyof OnboardingEventParameters, string>
   'onboarding.take_me_to_issues_clicked': 'Onboarding: Take Me to Issues Clicked',
   'onboarding.slack_setup_clicked': 'Onboarding: Slack Setup Clicked',
   'onboarding.next_step_clicked': 'Onboarding: Next Step Clicked',
+  'onboarding.store_minidumps_as_attachments_link_clicked':
+    'Onboarding: Store Minidumps as Attachments Link Clicked',
 };

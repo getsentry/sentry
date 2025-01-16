@@ -8,6 +8,7 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {getStoreCrashReportsCallout} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {CrashReportWebApiOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {t, tct} from 'sentry/locale';
 
@@ -24,9 +25,11 @@ const onboarding: OnboardingConfig = {
       title: t('Creating and Uploading Minidumps'),
       description: (
         <Fragment>
-          {t(
-            'Depending on your operating system and programming language, there are various alternatives to create minidumps and upload them to Sentry. See the following resources for libraries that support generating minidump crash reports:'
-          )}
+          <p>
+            {t(
+              'Depending on your operating system and programming language, there are various alternatives to create minidumps and upload them to Sentry. See the following resources for libraries that support generating minidump crash reports:'
+            )}
+          </p>
           <List symbol="bullet">
             <ListItem>
               <ExternalLink href="https://docs.sentry.io/platforms/native/">
@@ -58,19 +61,21 @@ const onboarding: OnboardingConfig = {
           language: 'bash',
           code: getCurlSnippet(params),
         },
-      ],
-      additionalInfo: tct(
-        'To send additional information, add more form fields to this request. For a full description of fields accepted by Sentry, see [passingAdditionalDataLink:Passing Additional Data].',
         {
-          passingAdditionalDataLink: (
-            <ExternalLink href="https://docs.sentry.io/platforms/native/guides/minidumps/" />
+          description: tct(
+            'To send additional information, add more form fields to this request. For a full description of fields accepted by Sentry, see [passingAdditionalDataLink:Passing Additional Data].',
+            {
+              passingAdditionalDataLink: (
+                <ExternalLink href="https://docs.sentry.io/platforms/native/guides/minidumps/" />
+              ),
+            }
           ),
-        }
-      ),
+        },
+      ],
     },
   ],
   configure: () => [],
-  verify: () => [],
+  verify: params => [getStoreCrashReportsCallout(params)],
 };
 
 const docs: Docs = {
