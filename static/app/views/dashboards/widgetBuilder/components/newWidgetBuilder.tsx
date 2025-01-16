@@ -6,6 +6,8 @@ import {AnimatePresence, motion} from 'framer-motion';
 import cloneDeep from 'lodash/cloneDeep';
 
 import {t} from 'sentry/locale';
+import PreferencesStore from 'sentry/stores/preferencesStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
@@ -126,6 +128,10 @@ function WidgetBuilderV2({
     [thresholdMetaState]
   );
 
+  const preferences = useLegacyStore(PreferencesStore);
+  const hasNewNav = organization?.features.includes('navigation-sidebar-v2');
+  const sidebarCollapsed = hasNewNav ? true : !!preferences.collapsed;
+
   return (
     <Fragment>
       {isOpen && <Backdrop style={{opacity: 0.5, pointerEvents: 'auto'}} />}
@@ -137,7 +143,7 @@ function WidgetBuilderV2({
                 dataset={DiscoverDatasets.SPANS_EAP}
                 enabled={organization.features.includes('dashboards-eap')}
               >
-                <ContainerWithoutSidebar>
+                <ContainerWithoutSidebar sidebarCollapsed={sidebarCollapsed}>
                   <WidgetBuilderContainer>
                     <WidgetBuilderSlideout
                       isOpen={isOpen}
@@ -328,21 +334,11 @@ function Droppable({id}: {id: string}) {
 }
 
 const fullPageCss = css`
-  position: absolute;
+  position: fixed;
   top: 0;
   right: 0;
   bottom: 0;
   left: 0;
-`;
-
-const fillAvailableCss = css`
-  height: 100%; /* default */
-  height: -webkit-fill-available; /* Chrome */
-  height: -moz-available; /* Firefox */
-  height: fill-available; /* others */
-  width: -webkit-fill-available; /* Chrome */
-  width: -moz-available; /* Firefox */
-  width: fill-available; /* others */
 `;
 
 const Backdrop = styled('div')`
@@ -393,10 +389,19 @@ const DraggableWidgetContainer = styled(`div`)`
   }
 `;
 
-const ContainerWithoutSidebar = styled('div')`
-  position: absolute;
+const ContainerWithoutSidebar = styled('div')<{sidebarCollapsed: boolean}>`
+  z-index: ${p => p.theme.zIndex.widgetBuilderDrawer};
+  position: fixed;
   top: 0;
-  left: 0;
+  left: ${p =>
+    p.sidebarCollapsed ? p.theme.sidebar.collapsedWidth : p.theme.sidebar.expandedWidth};
+  right: 0;
+  bottom: 0;
+
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+    left: 0;
+    top: ${p => p.theme.sidebar.mobileHeight};
+  }
 `;
 
 const WidgetBuilderContainer = styled('div')`
@@ -404,8 +409,8 @@ const WidgetBuilderContainer = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  position: fixed;
-  ${fillAvailableCss};
+  position: absolute;
+  inset: 0;
 `;
 
 const DroppableGrid = styled('div')`
