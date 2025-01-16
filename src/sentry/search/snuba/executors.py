@@ -32,6 +32,7 @@ from snuba_sdk import (
     OrderBy,
     Request,
 )
+from snuba_sdk.conditions import Or
 from snuba_sdk.expressions import Expression
 from snuba_sdk.query import Query
 from snuba_sdk.relationships import Relationship
@@ -1810,6 +1811,44 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                         ),
                     )
                     if condition is not None:
+
+                        def recursive_check(condition: Column | Function) -> bool:
+                            if isinstance(condition, Column):
+                                if (
+                                    condition.entity.name == "events"
+                                    and condition.name.startswith("tags[")
+                                    and condition.name.endswith("]")
+                                ):
+                                    return True
+                            elif isinstance(condition, Function):
+                                for parameter in condition.parameters:
+                                    if isinstance(parameter, (Column, Function)):
+                                        return recursive_check(parameter)
+                            return False
+
+                        def recursive_replace(condition: Column | Function) -> bool:
+                            if isinstance(condition, Column):
+                                if condition.name.startswith("tags[") and condition.name.endswith(
+                                    "]"
+                                ):
+                                    return Column(
+                                        name=f"features[{condition.name[5:-1]}]",
+                                        entity=condition.entity,
+                                    )
+                            elif isinstance(condition, Function):
+                                for parameter in condition.parameters:
+                                    if isinstance(parameter, (Column, Function)):
+                                        return recursive_replace(parameter)
+                            return condition
+
+                        if recursive_check(condition.lhs):
+                            feature_condition = Condition(
+                                lhs=recursive_replace(condition.lhs),
+                                op=condition.op,
+                                rhs=condition.rhs,
+                            )
+                            condition = Or(conditions=[condition, feature_condition])
+
                         where_conditions.append(condition)
 
             # handle types based on issue.type and issue.category

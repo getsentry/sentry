@@ -4032,6 +4032,22 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
     def test_feedback_category_filter_use_snuba_search(self, _: MagicMock) -> None:
         self.run_feedback_category_filter_test(True)
 
+    def test_flags_and_tags_query(self, _: MagicMock) -> None:
+        self.login_as(self.user)
+        project = self.project
+        self.store_event(
+            data={
+                "timestamp": before_now(seconds=1).isoformat(),
+                "contexts": {"flags": {"values": [{"flag": "abc", "result": True}]}},
+            },
+            project_id=project.id,
+        )
+        response = self.get_success_response(query="abc:true")
+        assert len(json.loads(response.content)) == 1
+
+        response = self.get_success_response(query="abc:false")
+        assert len(json.loads(response.content)) == 0
+
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
