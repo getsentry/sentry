@@ -8,7 +8,7 @@ import EmailForm from 'sentry/utils/demoMode/emailForm';
 import {GetUTMData, UpdateTouches} from 'sentry/utils/demoMode/utm';
 
 import TopRight from '../assets/highlight-top-right.svg';
-import sandboxDemo from '../assets/sandboxHeader.jpg';
+// import sandboxDemo from '../assets/sandboxHeader.jpg';
 
 type Props = {
   closeModal: () => void;
@@ -86,9 +86,7 @@ export default function Modal({onAddedEmail, closeModal, onFailure}: Props) {
             IconArrow={IconArrow}
           />
         </SignUpBody>
-        <ImagePosition>
-          <PositionRight src={sandboxDemo} />
-        </ImagePosition>
+        <ImagePosition>{/* <PositionRight src={sandboxDemo} /> */}</ImagePosition>
       </StartModal>
     </div>
   );
@@ -118,10 +116,10 @@ const ImagePosition = styled('div')`
   max-width: 400px;
 `;
 
-const PositionRight = styled('img')`
-  border-radius: 0.5rem;
-  pointer-events: none;
-`;
+// const PositionRight = styled('img')`
+//   border-radius: 0.5rem;
+//   pointer-events: none;
+// `;
 
 const SignUpBody = styled('div')`
   padding: 20px 0;
