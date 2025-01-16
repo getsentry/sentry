@@ -251,21 +251,6 @@ class IPlugin2(local, PluginConfigMixin):
         """
         return []
 
-    def get_actions(self, request, group) -> list[tuple[str, str]]:
-        """
-        Return a list of available actions to append this aggregate.
-
-        Examples of built-in actions are "Mute Event" and "Remove Data".
-
-        An action is a tuple containing two elements:
-
-            ('Action Label', '/uri/to/action/')
-
-        >>> def get_actions(self, request, group):
-        >>>     return [('Google', 'http://google.com')]
-        """
-        return []
-
     def get_annotations(self, group) -> list[dict[str, str]]:
         """
         Return a list of annotations to append to this aggregate.
