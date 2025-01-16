@@ -1,7 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-
 type Props = {
   IconArrow: any;
   onSubmit?: (email: string) => void;
