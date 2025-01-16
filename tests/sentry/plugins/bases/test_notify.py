@@ -19,7 +19,7 @@ class DummyNotificationPlugin(CorePluginMixin, NotificationPlugin):
         return True
 
 
-class NotifyPlugin(TestCase):
+class NotifyPluginTest(TestCase):
     def test_add_notification_referrer_param(self):
         n = DummyNotificationPlugin()
         n.slug = "slack"

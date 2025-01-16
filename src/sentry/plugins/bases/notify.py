@@ -218,8 +218,3 @@ class NotificationPlugin(Plugin):
             return urlunparse(url_list)
 
         return url
-
-
-# Backwards-compatibility
-NotifyConfigurationForm = NotificationConfigurationForm
-NotifyPlugin = NotificationPlugin
