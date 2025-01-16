@@ -28,7 +28,6 @@ class JiraClient(ApiClient):
     ISSUE_URL = "/rest/api/2/issue/{}"
     SEARCH_URL = "/rest/api/2/search/"
     COMMENT_URL = "/rest/api/2/issue/{}/comment"
-    HTTP_TIMEOUT = 5
     plugin_name = "jira"
 
     cache_time = 60
