@@ -211,6 +211,7 @@ class RuleMigrationHelpersTest(APITestCase):
 
         delete_migrated_issue_alert(self.issue_alert)
 
+        assert not AlertRuleWorkflow.objects.filter(rule=self.issue_alert).exists()
         assert not Workflow.objects.filter(id=workflow.id).exists()
         assert not DataConditionGroup.objects.filter(id=when_dcg.id).exists()
         assert not DataConditionGroup.objects.filter(id=if_dcg.id).exists()

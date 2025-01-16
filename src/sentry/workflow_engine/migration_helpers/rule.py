@@ -233,6 +233,7 @@ def delete_migrated_issue_alert(rule: Rule):
         when_dcg.delete()
 
     workflow.delete()
+    alert_rule_workflow.delete()
 
 
 def delete_workflow_actions(if_dcg: DataConditionGroup):
