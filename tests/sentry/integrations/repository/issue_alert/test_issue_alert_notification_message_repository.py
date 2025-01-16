@@ -123,16 +123,23 @@ class TestGetParentNotificationMessage(BaseIssueAlertNotificationMessageReposito
             open_period_start=open_period_start,
         )
 
+        notification_with_period = NotificationMessage.objects.create(
+            rule_fire_history=self.rule_fire_history,
+            rule_action_uuid=self.action_uuid,
+            message_identifier="789xyz",
+            open_period_start=open_period_start + timedelta(seconds=1),
+        )
+
         instance = self.repository.get_parent_notification_message(
             rule_id=self.rule.id,
             group_id=self.group.id,
             rule_action_uuid=self.action_uuid,
-            open_period_start=open_period_start,
+            open_period_start=open_period_start + timedelta(seconds=1),
         )
 
         assert instance is not None
         assert instance == IssueAlertNotificationMessage.from_model(notification_with_period)
-        assert instance.open_period_start == open_period_start
+        assert instance.open_period_start == open_period_start + timedelta(seconds=1)
 
 
 class TestCreateNotificationMessage(BaseIssueAlertNotificationMessageRepositoryTest):
