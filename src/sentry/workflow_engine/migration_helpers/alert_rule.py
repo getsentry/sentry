@@ -33,6 +33,13 @@ from sentry.workflow_engine.types import DetectorPriorityLevel
 
 logger = logging.getLogger(__name__)
 
+FIELDS_TO_DETECTOR_FIELDS = {
+    "name": "name",
+    "description": "description",
+    "user_id": "owner_user_id",
+    "team_id": "owner_team_id",
+}
+
 
 def get_action_type(alert_rule_trigger_action: AlertRuleTriggerAction) -> str | None:
     if alert_rule_trigger_action.sentry_app_id:
@@ -407,17 +414,11 @@ def update_migrated_alert_rule(alert_rule: AlertRule, updated_fields: dict[str, 
     updated_detector_fields: dict[str, Any] = {}
     config = detector.config.copy()
 
-    fields_to_detector_fields = {
-        "name": "name",
-        "description": "description",
-        "user_id": "owner_user_id",
-        "team_id": "owner_team_id",
-    }
-    for field, detector_field in fields_to_detector_fields.items():
+    for field, detector_field in FIELDS_TO_DETECTOR_FIELDS.items():
         if updated_field := updated_fields.get(field):
             updated_detector_fields[detector_field] = updated_field
     # update config fields
-    config_fields = ["threshold_period", "sensitivity", "seasonality", "comparison_delta"]
+    config_fields = MetricAlertFire.detector_config_schema["properties"].keys()
     for field in config_fields:
         if field in updated_fields:
             config[field] = updated_fields[field]

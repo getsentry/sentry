@@ -435,6 +435,8 @@ class AlertRuleMigrationHelpersTest(APITestCase):
 
         alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=self.metric_alert)
         detector = alert_rule_detector.detector
+        assert detector.name == self.metric_alert.name
+        assert detector.description == self.metric_alert.description
         detector_state = DetectorState.objects.get(detector=detector)
         detector_state.update(
             active=True, state=DetectorPriorityLevel.HIGH
@@ -459,6 +461,8 @@ class AlertRuleMigrationHelpersTest(APITestCase):
         }
         alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=self.metric_alert)
         detector = alert_rule_detector.detector
+        assert detector.owner_user_id == self.metric_alert.user_id
+        assert detector.owner_team_id == self.metric_alert.team_id
 
         update_migrated_alert_rule(self.metric_alert, updated_fields)
         detector.refresh_from_db()
@@ -469,6 +473,7 @@ class AlertRuleMigrationHelpersTest(APITestCase):
     def test_update_metric_alert_config(self):
         migrate_alert_rule(self.metric_alert, self.rpc_user)
         updated_fields = {
+            "detection_type": "percent",
             "threshold_period": 1,
             "sensitivity": None,
             "seasonality": None,
@@ -476,6 +481,14 @@ class AlertRuleMigrationHelpersTest(APITestCase):
         }
         alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=self.metric_alert)
         detector = alert_rule_detector.detector
+        config = detector.config
+        assert config == {
+            "detection_type": "static",
+            "threshold_period": 1,
+            "sensitivity": None,
+            "seasonality": None,
+            "comparison_delta": None,
+        }
 
         update_migrated_alert_rule(self.metric_alert, updated_fields)
         detector.refresh_from_db()
@@ -489,9 +502,6 @@ class AlertRuleMigrationHelpersTest(APITestCase):
         migrate_alert_rule(metric_alert, self.rpc_user)
         migrate_metric_data_conditions(critical_trigger)
         migrate_resolve_threshold_data_conditions(metric_alert)
-
-        updated_fields = {"threshold_type": AlertRuleThresholdType.BELOW}
-        update_migrated_alert_rule(metric_alert, updated_fields)
         # because there are only two objects in the DB
         critical_detector_trigger = DataCondition.objects.get(
             condition_result=DetectorPriorityLevel.HIGH
@@ -499,6 +509,15 @@ class AlertRuleMigrationHelpersTest(APITestCase):
         resolve_detector_trigger = DataCondition.objects.get(
             condition_result=DetectorPriorityLevel.OK
         )
+
+        assert critical_detector_trigger.type == Condition.GREATER
+        assert resolve_detector_trigger.type == Condition.LESS_OR_EQUAL
+
+        updated_fields = {"threshold_type": AlertRuleThresholdType.BELOW}
+        update_migrated_alert_rule(metric_alert, updated_fields)
+
+        critical_detector_trigger.refresh_from_db()
+        resolve_detector_trigger.refresh_from_db()
 
         assert critical_detector_trigger.type == Condition.LESS
         assert resolve_detector_trigger.type == Condition.GREATER_OR_EQUAL
@@ -508,9 +527,13 @@ class AlertRuleMigrationHelpersTest(APITestCase):
         migrate_metric_data_conditions(self.alert_rule_trigger_critical)
         migrate_resolve_threshold_data_conditions(self.metric_alert)
 
-        updated_fields = {"resolve_threshold": 10}
-        update_migrated_alert_rule(self.metric_alert, updated_fields)
         resolve_detector_trigger = DataCondition.objects.get(
             condition_result=DetectorPriorityLevel.OK
         )
+        assert resolve_detector_trigger.comparison == 2
+
+        updated_fields = {"resolve_threshold": 10}
+        update_migrated_alert_rule(self.metric_alert, updated_fields)
+        resolve_detector_trigger.refresh_from_db()
+
         assert resolve_detector_trigger.comparison == 10
