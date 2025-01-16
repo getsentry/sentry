@@ -93,7 +93,7 @@ export function TraceEventDataSection({
   });
 
   const [display, setDisplay] = useLocalStorageState<Array<keyof typeof displayOptions>>(
-    'issue-details-stracktrace-display',
+    `issue-details-stracktrace-display-${organization.slug}-${projectSlug}`,
     []
   );
 
