@@ -329,23 +329,6 @@ class IPlugin2(local, PluginConfigMixin):
                     return [CocoaProcessor(data, stacktrace_infos)]
         """
 
-    def get_feature_hooks(self, **kwargs):
-        """
-        Return a list of callables to check for feature status.
-
-        >>> from sentry.features import FeatureHandler
-        >>>
-        >>> class NoRegistration(FeatureHandler):
-        >>>     features = set(['auth:register'])
-        >>>
-        >>>     def has(self, feature, actor):
-        >>>         return False
-
-        >>> def get_feature_hooks(self, **kwargs):
-        >>>     return [NoRegistration()]
-        """
-        return []
-
     def get_release_hook(self) -> type[ReleaseHook] | None:
         """
         Return an implementation of ``ReleaseHook``.
