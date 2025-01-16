@@ -205,6 +205,9 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
         crons_rules = Monitor.objects.filter(
             project_id__in=[p.id for p in projects], status=ObjectStatus.ACTIVE
         ).annotate(
+            # Since monitors have multiple environment's which can each have
+            # their own status, find the 'worst' status among all of the
+            # environments and use that as the status of this monitor.
             resolved_status=MonitorEnvironment.objects.filter(monitor_id=OuterRef("pk"))
             .annotate(ordering=MONITOR_ENVIRONMENT_ORDERING)
             .order_by("ordering")
