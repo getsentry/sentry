@@ -123,10 +123,6 @@ class DataCondition(DefaultFieldsModel):
         return None
 
     def evaluate_value(self, value: T) -> DataConditionResult:
-        # slow conditions not evaluated here
-        if is_slow_condition(self):
-            return False
-
         try:
             condition_type = Condition(self.type)
         except ValueError:
