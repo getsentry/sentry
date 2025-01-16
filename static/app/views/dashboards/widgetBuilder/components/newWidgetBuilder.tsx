@@ -129,6 +129,13 @@ function WidgetBuilderV2({
     [thresholdMetaState]
   );
 
+  // reset the drag position when the draggable preview is not visible
+  useEffect(() => {
+    if (!isPreviewDraggable) {
+      setTranslate(DEFAULT_WIDGET_DRAG_POSITIONING);
+    }
+  }, [isPreviewDraggable]);
+
   const preferences = useLegacyStore(PreferencesStore);
   const hasNewNav = organization?.features.includes('navigation-sidebar-v2');
   const sidebarCollapsed = hasNewNav ? true : !!preferences.collapsed;
