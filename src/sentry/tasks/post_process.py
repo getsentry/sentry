@@ -1017,7 +1017,7 @@ def process_code_mappings(job: PostProcessJob) -> None:
         else:
             return
 
-        if features.has("new-auto-source-code-config-queue"):
+        if options.get("system.new-auto-source-code-config-queue"):
             auto_source_code_config.delay(project.id, event.data)
         else:
             derive_code_mappings.delay(project.id, event.data)
