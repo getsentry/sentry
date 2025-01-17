@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconUser} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 
@@ -23,9 +23,10 @@ export function IssueAssignee({groupId}: IssueAssigneeProps) {
           actor={assignedTo}
           className="avatar"
           size={22}
-          tooltip={tct('Assigned to [name]', {
-            name: assignedTo.type === 'team' ? `#${assignedTo.name}` : assignedTo.name,
-          })}
+          tooltip={t(
+            'Assigned to %s',
+            assignedTo.type === 'team' ? `#${assignedTo.name}` : assignedTo.name
+          )}
         />
       </ActorContainer>
     );
