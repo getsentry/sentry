@@ -42,7 +42,7 @@ type State = {
   isLoading: boolean;
 } & DeprecatedAsyncComponent['state'];
 
-class AddCodeOwnerModal extends DeprecatedAsyncComponent<Props, State> {
+export default class AddCodeOwnerModal extends DeprecatedAsyncComponent<Props, State> {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
@@ -135,83 +135,6 @@ class AddCodeOwnerModal extends DeprecatedAsyncComponent<Props, State> {
     this.props.closeModal();
   }
 
-  sourceFile(codeownersFile: CodeownersFile) {
-    return (
-      <Panel>
-        <SourceFileBody>
-          <IconCheckmark size="md" isCircled color="green200" />
-          {codeownersFile.filepath}
-          <LinkButton size="sm" href={codeownersFile.html_url} external>
-            {t('Preview File')}
-          </LinkButton>
-        </SourceFileBody>
-      </Panel>
-    );
-  }
-
-  errorMessage(baseUrl: any) {
-    const {errorJSON, codeMappingId, codeMappings} = this.state;
-    const codeMapping = codeMappings.find(mapping => mapping.id === codeMappingId);
-    const {integrationId, provider} = codeMapping as RepositoryProjectPathConfig;
-    const errActors = errorJSON?.raw?.[0]!.split('\n').map((el, i) => (
-      <p key={i}>{el}</p>
-    ));
-    return (
-      <Alert type="error" showIcon>
-        {errActors}
-        {codeMapping && (
-          <p>
-            {tct(
-              'Configure [userMappingsLink:User Mappings] or [teamMappingsLink:Team Mappings] for any missing associations.',
-              {
-                userMappingsLink: (
-                  <Link
-                    to={`${baseUrl}/${provider?.key}/${integrationId}/?tab=userMappings&referrer=add-codeowners`}
-                  />
-                ),
-                teamMappingsLink: (
-                  <Link
-                    to={`${baseUrl}/${provider?.key}/${integrationId}/?tab=teamMappings&referrer=add-codeowners`}
-                  />
-                ),
-              }
-            )}
-          </p>
-        )}
-        {tct(
-          '[addAndSkip:Add and Skip Missing Associations] will add your codeowner file and skip any rules that having missing associations. You can add associations later for any skipped rules.',
-          {addAndSkip: <strong>Add and Skip Missing Associations</strong>}
-        )}
-      </Alert>
-    );
-  }
-
-  noSourceFile() {
-    const {codeMappingId, isLoading} = this.state;
-    if (isLoading) {
-      return (
-        <Container>
-          <LoadingIndicator mini />
-        </Container>
-      );
-    }
-    if (!codeMappingId) {
-      return null;
-    }
-    return (
-      <Panel>
-        <NoSourceFileBody>
-          {codeMappingId ? (
-            <Fragment>
-              <IconNot size="md" color="red200" />
-              {t('No codeowner file found.')}
-            </Fragment>
-          ) : null}
-        </NoSourceFileBody>
-      </Panel>
-    );
-  }
-
   renderBody() {
     const {Header, Body, Footer} = this.props;
     const {codeownersFile, error, errorJSON, codeMappings, integrations} = this.state;
@@ -277,8 +200,22 @@ class AddCodeOwnerModal extends DeprecatedAsyncComponent<Props, State> {
               />
 
               <FileResult>
-                {codeownersFile ? this.sourceFile(codeownersFile) : this.noSourceFile()}
-                {error && errorJSON && this.errorMessage(baseUrl)}
+                {codeownersFile ? (
+                  <SourceFile codeownersFile={codeownersFile} />
+                ) : (
+                  <NoSourceFile
+                    codeMappingId={this.state.codeMappingId}
+                    isLoading={this.state.isLoading}
+                  />
+                )}
+                {error && errorJSON ? (
+                  <ErrorMessage
+                    baseUrl={baseUrl}
+                    codeMappingId={this.state.codeMappingId}
+                    codeMappings={this.state.codeMappings}
+                    errorJSON={this.state.errorJSON}
+                  />
+                ) : null}
               </FileResult>
             </Form>
           )}
@@ -298,8 +235,94 @@ class AddCodeOwnerModal extends DeprecatedAsyncComponent<Props, State> {
   }
 }
 
-export default AddCodeOwnerModal;
-export {AddCodeOwnerModal};
+function SourceFile({codeownersFile}: {codeownersFile: CodeownersFile}) {
+  return (
+    <Panel>
+      <SourceFileBody>
+        <IconCheckmark size="md" isCircled color="green200" />
+        {codeownersFile.filepath}
+        <LinkButton size="sm" href={codeownersFile.html_url} external>
+          {t('Preview File')}
+        </LinkButton>
+      </SourceFileBody>
+    </Panel>
+  );
+}
+
+function NoSourceFile({
+  codeMappingId,
+  isLoading,
+}: {
+  codeMappingId: string | null;
+  isLoading: boolean;
+}) {
+  if (isLoading) {
+    return (
+      <Container>
+        <LoadingIndicator mini />
+      </Container>
+    );
+  }
+  if (!codeMappingId) {
+    return null;
+  }
+  return (
+    <Panel>
+      <NoSourceFileBody>
+        {codeMappingId ? (
+          <Fragment>
+            <IconNot size="md" color="red200" />
+            {t('No codeowner file found.')}
+          </Fragment>
+        ) : null}
+      </NoSourceFileBody>
+    </Panel>
+  );
+}
+
+function ErrorMessage({
+  baseUrl,
+  codeMappingId,
+  codeMappings,
+  errorJSON,
+}: {
+  baseUrl: string;
+  codeMappingId: string | null;
+  codeMappings: RepositoryProjectPathConfig[];
+  errorJSON: {raw?: string} | null;
+}) {
+  const codeMapping = codeMappings.find(mapping => mapping.id === codeMappingId);
+  const {integrationId, provider} = codeMapping as RepositoryProjectPathConfig;
+  const errActors = errorJSON?.raw?.[0]!.split('\n').map((el, i) => <p key={i}>{el}</p>);
+  return (
+    <Alert type="error" showIcon>
+      {errActors}
+      {codeMapping && (
+        <p>
+          {tct(
+            'Configure [userMappingsLink:User Mappings] or [teamMappingsLink:Team Mappings] for any missing associations.',
+            {
+              userMappingsLink: (
+                <Link
+                  to={`${baseUrl}/${provider?.key}/${integrationId}/?tab=userMappings&referrer=add-codeowners`}
+                />
+              ),
+              teamMappingsLink: (
+                <Link
+                  to={`${baseUrl}/${provider?.key}/${integrationId}/?tab=teamMappings&referrer=add-codeowners`}
+                />
+              ),
+            }
+          )}
+        </p>
+      )}
+      {tct(
+        '[addAndSkip:Add and Skip Missing Associations] will add your codeowner file and skip any rules that having missing associations. You can add associations later for any skipped rules.',
+        {addAndSkip: <strong>Add and Skip Missing Associations</strong>}
+      )}
+    </Alert>
+  );
+}
 
 const StyledSelectField = styled(SelectField)`
   border-bottom: None;
