@@ -101,7 +101,9 @@ class AvatarChooser extends Component<Props, State> {
       return resp;
     }
     const isColor = type === 'sentryAppColor';
-    return {avatar: resp?.avatars?.find(({color}) => color === isColor) ?? undefined};
+    return {
+      avatar: resp?.avatars?.find(({color}: any) => color === isColor) ?? undefined,
+    };
   }
 
   handleError(msg: string) {

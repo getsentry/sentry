@@ -16,7 +16,9 @@ describe('pickBarColor()', function () {
   });
 
   it('returns a random color when no predefined option is available', function () {
-    const colorsAsArray = Object.keys(CHART_PALETTE).map(key => CHART_PALETTE[17][key]);
+    const colorsAsArray = Object.keys(CHART_PALETTE).map(
+      key => CHART_PALETTE[17][key as keyof typeof CHART_PALETTE]
+    );
 
     let randomColor = pickBarColor('a normal string');
     expect(colorsAsArray).toContain(randomColor);

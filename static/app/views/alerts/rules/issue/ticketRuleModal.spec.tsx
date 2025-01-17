@@ -1,3 +1,4 @@
+import type {PropsWithChildren, ReactElement} from 'react';
 import styled from '@emotion/styled';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -17,9 +18,9 @@ jest.mock('sentry/actionCreators/onboardingTasks');
 describe('ProjectAlerts -> TicketRuleModal', function () {
   const closeModal = jest.fn();
   const modalElements = {
-    Header: p => p.children,
-    Body: p => p.children,
-    Footer: p => p.children,
+    Header: (p: PropsWithChildren) => p.children as ReactElement,
+    Body: (p: PropsWithChildren) => p.children,
+    Footer: (p: PropsWithChildren) => p.children,
   };
 
   afterEach(function () {
@@ -85,7 +86,7 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
     const {organization, router} = initializeOrg();
     addMockConfigsAPICall(otherField);
 
-    const body = styled(c => c.children);
+    const body = styled((c: PropsWithChildren) => c.children);
     return render(
       <TicketRuleModal
         {...modalElements}

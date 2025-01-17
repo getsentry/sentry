@@ -127,7 +127,7 @@ export function requestAnimationTimeout(
   callback: Function,
   delay: number
 ): AnimationTimeoutId {
-  let start;
+  let start: any;
   // wait for end of processing current event handler, because event handler may be long
   Promise.resolve().then(() => {
     start = Date.now();

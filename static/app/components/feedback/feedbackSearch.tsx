@@ -192,7 +192,7 @@ export default function FeedbackSearch() {
   const navigate = useNavigate();
 
   const onSearch = useCallback(
-    searchQuery => {
+    (searchQuery: any) => {
       navigate({
         pathname,
         query: {

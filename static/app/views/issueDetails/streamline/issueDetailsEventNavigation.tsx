@@ -106,7 +106,7 @@ export function IssueDetailsEventNavigation({
   const onTabChange = (tabKey: typeof selectedOption) => {
     trackAnalytics('issue_details.event_navigation_selected', {
       organization,
-      content: EventNavLabels[tabKey],
+      content: EventNavLabels[tabKey as keyof typeof EventNavLabels],
     });
   };
 
@@ -181,10 +181,13 @@ export function IssueDetailsEventNavigation({
                 to={eventPath}
                 key={label}
                 hidden={label === EventNavOptions.CUSTOM}
-                textValue={EventNavLabels[label]}
+                textValue={EventNavLabels[label as keyof typeof EventNavLabels]}
               >
-                <Tooltip title={EventNavTooltips[label]} skipWrapper>
-                  {EventNavLabels[label]}
+                <Tooltip
+                  title={EventNavTooltips[label as keyof typeof EventNavTooltips]}
+                  skipWrapper
+                >
+                  {EventNavLabels[label as keyof typeof EventNavLabels]}
                 </Tooltip>
               </TabList.Item>
             );

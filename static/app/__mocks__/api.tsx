@@ -196,8 +196,7 @@ class Client implements ApiNamespace.Client {
     const asyncDelay = Client.asyncDelay;
 
     return (...args: T) => {
-      // @ts-expect-error
-      if (RealApi.hasProjectBeenRenamed(...args)) {
+      if ((RealApi.hasProjectBeenRenamed as any)(...args)) {
         return;
       }
       respond(asyncDelay, func, ...args);

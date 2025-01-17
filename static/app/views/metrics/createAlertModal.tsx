@@ -291,7 +291,7 @@ export function CreateAlertModal({
       (chartSeries?.[0]?.data[1]?.name ?? 0) - (chartSeries?.[0]?.data[0]?.name ?? 0);
 
     const formatters = {
-      valueFormatter: value => formatMetricUsingUnit(value, unit),
+      valueFormatter: (value: any) => formatMetricUsingUnit(value, unit),
       isGroupedByDate: true,
       bucketSize,
       showTimeInTooltip: true,
@@ -306,7 +306,7 @@ export function CreateAlertModal({
       },
       yAxis: {
         axisLabel: {
-          formatter: value => formatMetricUsingUnit(value, unit),
+          formatter: (value: any) => formatMetricUsingUnit(value, unit),
         },
       },
     };
@@ -323,7 +323,7 @@ export function CreateAlertModal({
             placeholder={t('Select a project')}
             options={projectOptions}
             value={formState.project}
-            onChange={({value}) =>
+            onChange={({value}: any) =>
               setFormState(prev => ({
                 project: value,
                 environment: projects
@@ -339,7 +339,9 @@ export function CreateAlertModal({
             options={environmentOptions}
             disabled={!selectedProject}
             value={formState.environment}
-            onChange={({value}) => setFormState(prev => ({...prev, environment: value}))}
+            onChange={({value}: any) =>
+              setFormState(prev => ({...prev, environment: value}))
+            }
           />
           <div>
             {t(

@@ -311,7 +311,7 @@ function ColorPalette({name, palette}: {name: string; palette: Palette[][]}) {
                     text={color.text}
                   >
                     <strong>{color.color}</strong>
-                    {theme[color.color]}
+                    {theme[color.color as keyof typeof theme] as React.ReactNode}
                   </PalettePanelItem>
                 );
               })}

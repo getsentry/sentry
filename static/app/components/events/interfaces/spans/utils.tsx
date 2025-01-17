@@ -769,14 +769,15 @@ export function getMeasurements(
       if (positionDelta <= MERGE_LABELS_THRESHOLD_PERCENT) {
         const verticalMark = mergedMeasurements.get(otherPos)!;
 
-        const {poorThreshold} = VITAL_DETAILS[`measurements.${name}`];
+        const {poorThreshold} =
+          VITAL_DETAILS[`measurements.${name}` as keyof typeof VITAL_DETAILS];
 
         verticalMark.marks = {
           ...verticalMark.marks,
           [name]: {
             value,
             timestamp: measurement.timestamp,
-            failedThreshold: value ? value >= poorThreshold : false,
+            failedThreshold: value ? value >= poorThreshold! : false,
           },
         };
 
@@ -789,13 +790,14 @@ export function getMeasurements(
       }
     }
 
-    const {poorThreshold} = VITAL_DETAILS[`measurements.${name}`];
+    const {poorThreshold} =
+      VITAL_DETAILS[`measurements.${name}` as keyof typeof VITAL_DETAILS];
 
     const marks = {
       [name]: {
         value,
         timestamp: measurement.timestamp,
-        failedThreshold: value ? value >= poorThreshold : false,
+        failedThreshold: value ? value >= poorThreshold! : false,
       },
     };
 

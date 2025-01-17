@@ -10,7 +10,7 @@ import {
 const traceId = 'abcdef1234567890';
 const eventId = '0987654321fedcba';
 
-function renderTraceFull({isLoading, error, type}) {
+function renderTraceFull({isLoading, error, type}: any) {
   if (isLoading) {
     return 'loading';
   }
@@ -27,7 +27,7 @@ function renderTraceFull({isLoading, error, type}) {
 }
 
 describe('TraceFullQuery', function () {
-  let location;
+  let location: any;
   beforeEach(function () {
     location = {
       pathname: '/',

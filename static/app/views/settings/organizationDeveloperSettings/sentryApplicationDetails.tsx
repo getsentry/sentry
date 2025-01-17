@@ -139,6 +139,7 @@ class SentryAppFormModel extends FormModel {
   getData() {
     return this.fields.toJSON().reduce((data, [k, v]) => {
       if (!k.endsWith('--permission')) {
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         data[k] = v;
       }
       return data;
@@ -189,12 +190,12 @@ class SentryApplicationDetails extends DeprecatedAsyncComponent<Props, State> {
   }
 
   // Events may come from the API as "issue.created" when we just want "issue" here.
-  normalize(events) {
+  normalize(events: any) {
     if (events.length === 0) {
       return events;
     }
 
-    return events.map(e => e.split('.').shift());
+    return events.map((e: any) => e.split('.').shift());
   }
 
   handleSubmitSuccess = (data: SentryApp) => {
@@ -211,7 +212,7 @@ class SentryApplicationDetails extends DeprecatedAsyncComponent<Props, State> {
     router.push(normalizeUrl(url));
   };
 
-  handleSubmitError = err => {
+  handleSubmitError = (err: any) => {
     let errorMessage = t('Unknown Error');
     if (err.status >= 400 && err.status < 500) {
       errorMessage = err?.responseJSON.detail ?? errorMessage;
@@ -506,7 +507,7 @@ class SentryApplicationDetails extends DeprecatedAsyncComponent<Props, State> {
               <PanelBody>
                 {app.status !== 'internal' && (
                   <FormField name="clientId" label="Client ID">
-                    {({value, id}) => (
+                    {({value, id}: any) => (
                       <TextCopyInput id={id}>
                         {getDynamicText({value, fixed: 'CI_CLIENT_ID'})}
                       </TextCopyInput>
@@ -519,7 +520,7 @@ class SentryApplicationDetails extends DeprecatedAsyncComponent<Props, State> {
                   help={t(`Your secret is only available briefly after integration creation. Make
                     sure to save this value!`)}
                 >
-                  {({value, id}) =>
+                  {({value, id}: any) =>
                     value ? (
                       <Tooltip
                         disabled={this.showAuthInfo}

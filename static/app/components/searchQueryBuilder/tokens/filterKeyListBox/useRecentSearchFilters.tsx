@@ -9,7 +9,7 @@ import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import type {RecentSearch, TagCollection} from 'sentry/types/group';
 
 const MAX_RECENT_FILTERS = 3;
-const NO_FILTERS = [];
+const NO_FILTERS: any = [];
 
 // If the recent searches are very long, this prevents the parser from taking too long
 const MAX_QUERY_PARSE_LENGTH = 500;
@@ -72,6 +72,7 @@ function getFiltersFromRecentSearches(
         !filtersInCurrentQuery.includes(filter) && !!filterKeys[filter]
     )
     .reduce((acc, filter) => {
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       acc[filter] = (acc[filter] ?? 0) + 1;
       return acc;
     }, {});

@@ -4,7 +4,7 @@ import {doDiscoverQuery} from './genericDiscoverQuery';
 
 describe('doDiscoverQuery', function () {
   const api = new MockApiClient();
-  let eventsMock;
+  let eventsMock: any;
   beforeEach(function () {
     eventsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',

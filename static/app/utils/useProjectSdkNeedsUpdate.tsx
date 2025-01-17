@@ -42,14 +42,14 @@ function useProjectSdkNeedsUpdate({
     return {isError: true, isFetching: false, needsUpdate: undefined};
   }
 
-  const selectedProjects = data.filter(sdkUpdate =>
+  const selectedProjects = data.filter((sdkUpdate: any) =>
     projectId.includes(sdkUpdate.projectId)
   );
 
   const needsUpdate =
     selectedProjects.length > 0 &&
     selectedProjects.every(
-      sdkUpdate => semverCompare(sdkUpdate.sdkVersion || '', minVersion) === -1
+      (sdkUpdate: any) => semverCompare(sdkUpdate.sdkVersion || '', minVersion) === -1
     );
 
   return {

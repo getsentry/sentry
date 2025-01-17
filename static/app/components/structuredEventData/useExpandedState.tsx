@@ -29,7 +29,7 @@ export function ExpandedStateContextProvider({
   const expandedRef = useRef<string[]>(initialExpandedPaths());
 
   const expand = useCallback(
-    path => {
+    (path: any) => {
       expandedRef.current = uniq(expandedRef.current.concat(path));
       onToggleExpand?.(expandedRef.current, path, 'expanded');
     },
@@ -37,7 +37,7 @@ export function ExpandedStateContextProvider({
   );
 
   const collapse = useCallback(
-    path => {
+    (path: any) => {
       expandedRef.current = expandedRef.current.filter(prevPath => path !== prevPath);
       onToggleExpand?.(expandedRef.current, path, 'collapsed');
     },

@@ -20,6 +20,7 @@ import {SearchInvalidTag} from './searchInvalidTag';
 import type {SearchGroup, SearchItem, Shortcut} from './types';
 import {invalidTypes, ItemType} from './types';
 
+// @ts-ignore TS(7023): 'getDropdownItemKey' implicitly has return type 'a... Remove this comment to see the full error message
 const getDropdownItemKey = (item: SearchItem) =>
   `${item.value || item.desc || item.title}-${
     item.children && item.children.length > 0 ? getDropdownItemKey(item.children[0]!) : ''

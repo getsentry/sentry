@@ -37,7 +37,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
     );
   };
 
-  const renderSidebar = props =>
+  const renderSidebar = (props: any) =>
     render(getElement(), {organization: props.organization, router});
 
   beforeEach(function () {

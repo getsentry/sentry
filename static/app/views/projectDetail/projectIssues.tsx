@@ -75,7 +75,7 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
   });
 
   const fetchIssuesCount = useCallback(async () => {
-    const getIssueCountEndpoint = queryParameters => {
+    const getIssueCountEndpoint = (queryParameters: any) => {
       const issuesCountPath = `/organizations/${organization.slug}/issues-count/`;
 
       return `${issuesCountPath}?${qs.stringify(queryParameters)}`;
@@ -136,7 +136,7 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
     trackAnalytics('project_detail.open_discover', {organization});
   }
 
-  function handleFetchSuccess(groupListState, cursorHandler) {
+  function handleFetchSuccess(groupListState: any, cursorHandler: any) {
     setPageLinks(groupListState.pageLinks);
     setOnCursor(() => cursorHandler);
   }
@@ -164,7 +164,8 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
   const endpointPath = `/organizations/${organization.slug}/issues/`;
 
   const issueQuery = (Object.values(IssuesType) as string[]).includes(issuesType)
-    ? [`${IssuesQuery[issuesType.toUpperCase()]}`, query].join(' ').trim()
+    ? // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      [`${IssuesQuery[issuesType.toUpperCase()]}`, query].join(' ').trim()
     : [`${IssuesQuery.ALL}`, query].join(' ').trim();
 
   const queryParams = {
@@ -197,7 +198,8 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
   function renderEmptyMessage() {
     const selectedTimePeriod = location.query.start
       ? null
-      : DEFAULT_RELATIVE_PERIODS[
+      : // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        DEFAULT_RELATIVE_PERIODS[
           decodeScalar(location.query.statsPeriod, DEFAULT_STATS_PERIOD)
         ];
     const displayedPeriod = selectedTimePeriod

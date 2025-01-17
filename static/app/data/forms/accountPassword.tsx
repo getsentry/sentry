@@ -1,7 +1,7 @@
 import type {JsonFormObject} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
 
-const getUserIsNotManaged = ({user}) => !user.isManaged;
+const getUserIsNotManaged = ({user}: any) => !user.isManaged;
 
 const formGroups: JsonFormObject[] = [
   {

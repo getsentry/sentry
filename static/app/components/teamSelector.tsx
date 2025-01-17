@@ -56,7 +56,7 @@ const optionFilter = createFilter({
   stringify: option => `${option.label} ${option.value}`,
 });
 
-const filterOption = (canditate, input) =>
+const filterOption = (canditate: any, input: any) =>
   // Never filter out the create team option
   canditate.data.value === CREATE_TEAM_VALUE || optionFilter(canditate, input);
 

@@ -261,7 +261,7 @@ export const featureFlagOnboarding: OnboardingConfig = {
           ? `This provider doesn't use an integration. Simply initialize Sentry and import the API.`
           : tct('Add [name] to your integrations list.', {
               name: (
-                <code>{`${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration].integration}()`}</code>
+                <code>{`${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration as keyof typeof FLAG_OPTION_TO_IMPORT].integration}()`}</code>
               ),
             }),
       configurations: [
@@ -279,12 +279,12 @@ sentry_sdk.init(
   ]
 )`
               : `import sentry_sdk
-from sentry_sdk.${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration].module} import ${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration].integration}
+from sentry_sdk.${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration as keyof typeof FLAG_OPTION_TO_IMPORT].module} import ${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration as keyof typeof FLAG_OPTION_TO_IMPORT].integration}
 
 sentry_sdk.init(
   dsn="${dsn.public}",
   integrations=[
-    ${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration].integration}(),
+    ${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration as keyof typeof FLAG_OPTION_TO_IMPORT].integration}(),
   ]
 )`,
         },

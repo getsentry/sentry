@@ -35,6 +35,7 @@ export default function MailboxPicker({onChange, value}: Props) {
         onChange={onChange}
       >
         {filteredMailboxes.map(c => {
+          // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           const count = data?.[c.key];
           const display = count && count >= 100 ? '99+' : count;
           const title =

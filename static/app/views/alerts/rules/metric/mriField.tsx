@@ -70,7 +70,7 @@ function MriField({aggregate, project, onChange}: Props) {
   }, [metaArr, onChange, selectedMriMeta, isLoading, aggregate]);
 
   const handleMriChange = useCallback(
-    option => {
+    (option: any) => {
       const selectedMeta = meta.find(metric => metric.mri === option.value);
       if (!selectedMeta) {
         return;
@@ -151,7 +151,7 @@ function MriField({aggregate, project, onChange}: Props) {
         }
         async
         defaultOptions={getMriOptions('')}
-        loadOptions={searchText => Promise.resolve(getMriOptions(searchText))}
+        loadOptions={(searchText: any) => Promise.resolve(getMriOptions(searchText))}
         filterOption={() => true}
         value={selectedMriOption}
         onChange={handleMriChange}
@@ -162,7 +162,7 @@ function MriField({aggregate, project, onChange}: Props) {
         placeholder={t('Select an operation')}
         options={operationOptions}
         value={selectedValues?.aggregation}
-        onChange={option => {
+        onChange={(option: any) => {
           if (selectedMriOption?.value) {
             onChange(MRIToField(selectedMriOption.value, option.value), {});
           }

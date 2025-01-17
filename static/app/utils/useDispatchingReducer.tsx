@@ -47,7 +47,7 @@ export class DispatchingReducerEmitter<R extends React.Reducer<any, any>> {
       throw new Error(`Unsupported reducer middleware: ${key}`);
     }
 
-    // @ts-expect-error we cant actually validate function types here
+    // @ts-ignore TS(2345): Argument of type '((S: Readonly<ReducerState<R>>, ... Remove this comment to see the full error message
     store.add(fn);
   }
 
@@ -60,7 +60,7 @@ export class DispatchingReducerEmitter<R extends React.Reducer<any, any>> {
       throw new Error(`Unsupported reducer middleware: ${key}`);
     }
 
-    // @ts-expect-error we cant actually validate function types here
+    // @ts-ignore TS(2345): Argument of type '((S: Readonly<ReducerState<R>>, ... Remove this comment to see the full error message
     store.delete(listener);
   }
 
@@ -73,6 +73,7 @@ export class DispatchingReducerEmitter<R extends React.Reducer<any, any>> {
       throw new Error(`Unsupported reducer middleware: ${key}`);
     }
 
+    // @ts-ignore TS(2556): A spread argument must either have a tuple type or... Remove this comment to see the full error message
     store.forEach(fn => fn(...args));
   }
 }

@@ -17,7 +17,7 @@ export function transformEventsRequestToStackedArea<T extends WidgetDataConstrai
     widgetProps.location.query
   );
 
-  let data;
+  let data: any;
   if (Array.isArray(results.yAxis) && results.yAxis.length > 1) {
     data = results.results ?? [];
   } else {

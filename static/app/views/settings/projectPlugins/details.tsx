@@ -77,7 +77,7 @@ class ProjectPluginDetails extends DeprecatedAsyncComponent<Props, State> {
     ];
   }
 
-  trimSchema(value) {
+  trimSchema(value: any) {
     return value.split('//')[1];
   }
 

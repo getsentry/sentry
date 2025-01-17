@@ -25,6 +25,7 @@ import {
 } from 'sentry/utils/metrics/useMetricsTags';
 import {useVirtualMetricsContext} from 'sentry/utils/metrics/virtualMetricsContext';
 import {useQueryClient} from 'sentry/utils/queryClient';
+import type {Color} from 'sentry/utils/theme';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 
@@ -104,7 +105,7 @@ export function MetricListItemDetails({
   // Display custom tags first, then sort alphabetically
   const sortedTags = useMemo(
     () =>
-      tagsData.toSorted((a, b) => {
+      tagsData.toSorted((a: any, b: any) => {
         const aIsStandard = STANDARD_TAGS.includes(a.key);
         const bIsStandard = STANDARD_TAGS.includes(b.key);
 
@@ -213,7 +214,7 @@ export function MetricListItemDetails({
                 t('(None)')
               ) : (
                 <Fragment>
-                  {truncatedTags.map((tag, index) => {
+                  {truncatedTags.map((tag: any, index: any) => {
                     const shouldAddDelimiter = index < truncatedTags.length - 1;
                     return (
                       <Fragment key={tag.key}>
@@ -301,7 +302,7 @@ const TagWrapper = styled('span')`
   white-space: nowrap;
 `;
 
-const Disclaimer = styled('div')<{textColor?: string}>`
+const Disclaimer = styled('div')<{textColor?: Color}>`
   display: grid;
   gap: ${space(0.5)};
   grid-template-columns: max-content 1fr;

@@ -212,7 +212,7 @@ describe('ReplayReader', () => {
         method: 'getSDKOptions',
         expected: optionsFrame,
       },
-    ])('Calling $method will filter frames', ({method, expected}) => {
+    ] as const)('Calling $method will filter frames', ({method, expected}) => {
       const replay = ReplayReader.factory({
         attachments,
         errors: [],
@@ -221,7 +221,7 @@ describe('ReplayReader', () => {
       });
 
       const exec = replay?.[method];
-      expect(exec()).toStrictEqual(expected);
+      expect(exec?.()).toStrictEqual(expected);
     });
   });
 

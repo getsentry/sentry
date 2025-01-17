@@ -9,7 +9,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import MetricRulesCreate from 'sentry/views/alerts/rules/metric/create';
 
 describe('Incident Rules Create', function () {
-  let eventStatsMock;
+  let eventStatsMock: any;
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();

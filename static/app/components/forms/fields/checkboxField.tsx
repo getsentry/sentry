@@ -45,7 +45,7 @@ function CheckboxField(props: Props) {
 
   return (
     <FormField name={name} inline={false} stacked={stacked} required={required}>
-      {({onChange, value, id}) => {
+      {({onChange, value, id}: any) => {
         function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
           const newValue = e.target.checked;
           onChange?.(newValue, e);

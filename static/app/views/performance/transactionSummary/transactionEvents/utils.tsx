@@ -148,7 +148,7 @@ export function filterEventsDisplayToLocationQuery(
 }
 
 export function mapShowTransactionToPercentile(
-  showTransaction
+  showTransaction: any
 ): EventsDisplayFilterName | undefined {
   switch (showTransaction) {
     case TransactionFilterOptions.OUTLIER:

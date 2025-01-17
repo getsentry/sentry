@@ -170,7 +170,7 @@ export default class ArithmeticInput extends PureComponent<Props, State> {
         return;
       }
 
-      let newSelection;
+      let newSelection: any;
       if (!startedSelection) {
         newSelection = key === 'ArrowUp' ? flattenedOptions.length - 1 : 0;
       } else {

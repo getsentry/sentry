@@ -15,7 +15,7 @@ import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import localStorage from 'sentry/utils/localStorage';
 
-const changeQuery = (router, query) => ({
+const changeQuery = (router: any, query: any) => ({
   ...router,
   location: {
     ...router.location,
@@ -23,7 +23,7 @@ const changeQuery = (router, query) => ({
   },
 });
 
-function renderComponent(component, router, organization) {
+function renderComponent(component: any, router: any, organization: any) {
   return render(component, {router, organization});
 }
 
@@ -753,7 +753,7 @@ describe('PageFiltersContainer', function () {
         },
       });
 
-      function getComponentForNonGlobalView(props) {
+      function getComponentForNonGlobalView(props: any) {
         return (
           <PageFiltersContainer
             params={{orgId: initialData.organization.slug}}
@@ -769,7 +769,7 @@ describe('PageFiltersContainer', function () {
           initialData.organization
         );
 
-        const rerender = newProps =>
+        const rerender = (newProps: any) =>
           result.rerender(getComponentForNonGlobalView({...props, ...newProps}));
 
         return {...result, rerender};
@@ -890,7 +890,7 @@ describe('PageFiltersContainer', function () {
         },
       });
 
-      function getComponentForGlobalView(props) {
+      function getComponentForGlobalView(props: any) {
         return (
           <PageFiltersContainer
             params={{orgId: initialData.organization.slug}}
@@ -909,7 +909,7 @@ describe('PageFiltersContainer', function () {
           initialData.organization
         );
 
-        const rerender = newProps =>
+        const rerender = (newProps: any) =>
           result.rerender(getComponentForGlobalView({...props, ...newProps}));
 
         return {...result, rerender};

@@ -90,8 +90,8 @@ export default function useSuspectFlags({
       ? data.data
           .toReversed()
           .filter(
-            (rawFlag, idx, rawFlagArray) =>
-              idx === rawFlagArray.findIndex(f => f.flag === rawFlag.flag)
+            (rawFlag: any, idx: any, rawFlagArray: any) =>
+              idx === rawFlagArray.findIndex((f: any) => f.flag === rawFlag.flag)
           )
           .slice(0, 3)
       : [];

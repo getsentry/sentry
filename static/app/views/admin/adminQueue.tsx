@@ -105,7 +105,7 @@ export default function AdminQueue() {
           <label>t{'Show details for task:'}</label>
           <SelectControl
             name="task"
-            onChange={({value}) => changeTask(value)}
+            onChange={({value}: any) => changeTask(value)}
             value={activeTask}
             clearable
             options={taskList.map(value => ({value, label: value}))}

@@ -53,13 +53,13 @@ function useVirtualizedGrid({
   // Recompute the width of the dynamic column when deps change (ie: a search/filter is applied)
   useEffect(onWrapperResize, [onWrapperResize, deps]);
 
-  const onScrollbarPresenceChange = useCallback(({vertical, size}) => {
+  const onScrollbarPresenceChange = useCallback(({vertical, size}: any) => {
     setScrollBarWidth(vertical ? size : 0);
   }, []);
 
   const getColumnWidth = useCallback(
     (width: number) =>
-      ({index}) => {
+      ({index}: any) => {
         if (index !== dynamicColumnIndex) {
           return cache.columnWidth({index});
         }

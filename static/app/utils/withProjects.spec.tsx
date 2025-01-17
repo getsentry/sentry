@@ -10,13 +10,13 @@ describe('withProjects HoC', function () {
     act(() => ProjectsStore.reset());
   });
 
-  function Output({projects, loadingProjects}) {
+  function Output({projects, loadingProjects}: any) {
     if (loadingProjects) {
       return <p>Loading</p>;
     }
     return (
       <p>
-        {projects.map(project => (
+        {projects.map((project: any) => (
           <span key={project.slug}>{project.slug}</span>
         ))}
       </p>

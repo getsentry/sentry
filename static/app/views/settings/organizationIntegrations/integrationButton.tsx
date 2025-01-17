@@ -17,10 +17,10 @@ type Props = {
 };
 
 type ButtonProps = {
-  disabled?;
-  priority?;
-  size?;
-  style?;
+  disabled?: any;
+  priority?: any;
+  size?: any;
+  style?: any;
 } | null;
 
 function IntegrationButton({

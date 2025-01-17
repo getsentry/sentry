@@ -50,7 +50,7 @@ discoverCharts.push({
     }
 
     const stats = Object.keys(data.stats).map(key =>
-      Object.assign({}, {key}, data.stats[key])
+      Object.assign({}, {key}, (data.stats as any)[key])
     );
     const color = theme.charts.getColorPalette(stats.length - 2);
 
@@ -113,7 +113,7 @@ discoverCharts.push({
     }
 
     const stats = Object.keys(data.stats).map(key =>
-      Object.assign({}, {key}, data.stats[key])
+      Object.assign({}, {key}, (data.stats as any)[key])
     );
     const color = theme.charts.getColorPalette(stats.length - 2);
 
@@ -369,7 +369,7 @@ discoverCharts.push({
     }
 
     const stats = Object.keys(data.stats).map(key =>
-      Object.assign({}, {key}, data.stats[key])
+      Object.assign({}, {key}, (data.stats as any)[key])
     );
     const color = theme.charts.getColorPalette(stats.length - 2) ?? [];
     const previousPeriodColor = lightenHexToRgb(color);

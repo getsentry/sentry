@@ -159,7 +159,7 @@ export class DifferentialFlamegraph extends Flamegraph {
 export function diffFlamegraphTreeRecursive(
   beforeFlamegraph: Flamegraph,
   afterFlamegraph: Flamegraph,
-  negated
+  negated: any
 ): {
   newFrames: FlamegraphFrame[];
   removedFrames: FlamegraphFrame[];

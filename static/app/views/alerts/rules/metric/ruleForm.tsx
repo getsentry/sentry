@@ -167,7 +167,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
   pollingTimeout: number | undefined = undefined;
   uuid: string | null = null;
 
-  constructor(props, context) {
+  constructor(props: any, context: any) {
     super(props, context);
     this.handleHistoricalTimeSeriesDataFetched =
       this.handleHistoricalTimeSeriesDataFetched.bind(this);
@@ -366,7 +366,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
   isValidTrigger = (
     triggerIndex: number,
     trigger: Trigger,
-    errors,
+    errors: any,
     resolveThreshold: number | '' | null
   ): boolean => {
     const {alertThreshold} = trigger;
@@ -420,7 +420,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     return false;
   };
 
-  validateFieldInTrigger({errors, triggerIndex, field, message, isValid}) {
+  validateFieldInTrigger({errors, triggerIndex, field, message, isValid}: any) {
     // If valid, reset error for fieldName
     if (isValid()) {
       const {[field]: _validatedField, ...otherErrors} = errors.get(triggerIndex) || {};
@@ -488,10 +488,12 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
           triggerIndex,
           isValid: (): boolean => {
             if (trigger.label === AlertRuleTriggerType.CRITICAL) {
+              // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
               return !isEmpty(trigger[field]);
             }
 
             // If warning trigger has actions, it must have a value
+            // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             return trigger.actions.length === 0 || !isEmpty(trigger[field]);
           },
           field,
@@ -643,7 +645,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     return !this.state.aggregate.includes(AggregationKey.PERCENTILE);
   }
 
-  validateSubmit = model => {
+  validateSubmit = (model: any) => {
     if (!this.validateMri()) {
       addErrorMessage(t('You need to select a metric before you can save the alert'));
       return false;
@@ -685,9 +687,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
   handleSubmit = async (
     _data: Partial<MetricRule>,
-    _onSubmitSuccess,
-    _onSubmitError,
-    _e,
+    _onSubmitSuccess: any,
+    _onSubmitError: any,
+    _e: any,
     model: FormModel
   ) => {
     if (!this.validateSubmit(model)) {
@@ -774,6 +776,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
             // Remove eventTypes as it is no longer required for crash free
             eventTypes: isCrashFreeAlert(rule.dataset) ? undefined : eventTypes,
             dataset,
+            // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             queryType: DatasetMEPAlertQueryTypes[dataset],
             sensitivity: sensitivity ?? null,
             seasonality: seasonality ?? null,

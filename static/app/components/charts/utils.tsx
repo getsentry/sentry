@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 import * as Sentry from '@sentry/react';
-import type {LegendComponentOption, LineSeriesOption} from 'echarts';
+import type {LegendComponentOption} from 'echarts';
 import type {Location} from 'history';
 import orderBy from 'lodash/orderBy';
 import moment from 'moment-timezone';
@@ -226,10 +226,13 @@ export function getSeriesSelection(
   location: Location
 ): LegendComponentOption['selected'] {
   const unselectedSeries = decodeList(location?.query.unselectedSeries);
-  return unselectedSeries.reduce((selection, series) => {
-    selection[series] = false;
-    return selection;
-  }, {});
+  return unselectedSeries.reduce(
+    (selection, series) => {
+      selection[series] = false;
+      return selection;
+    },
+    {} as Record<string, boolean>
+  );
 }
 
 function isSingleSeriesStats(
@@ -344,7 +347,7 @@ export function computeEchartsAriaLabels(
     ? `MMMM D, h:mm A`
     : 'MMMM Do';
 
-  function formatDate(date) {
+  function formatDate(date: any) {
     return getFormattedDate(date, dateFormat, {
       local: !useUTC,
     });
@@ -374,19 +377,19 @@ export function computeEchartsAriaLabels(
         return '';
       }
 
-      let highestValue: NonNullable<LineSeriesOption['data']>[0] = [0, -Infinity];
-      let lowestValue: NonNullable<LineSeriesOption['data']>[0] = [0, Infinity];
+      let highestValue: [number, number] = [0, -Infinity];
+      let lowestValue: [number, number] = [0, Infinity];
 
-      s.data.forEach(datum => {
+      s.data.forEach((datum: any) => {
         if (!Array.isArray(datum)) {
           return;
         }
 
         if (datum[1] > highestValue[1]) {
-          highestValue = datum;
+          highestValue = datum as [number, number];
         }
         if (datum[1] < lowestValue[1]) {
-          lowestValue = datum;
+          lowestValue = datum as [number, number];
         }
       });
 

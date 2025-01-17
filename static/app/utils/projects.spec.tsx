@@ -327,7 +327,7 @@ describe('utils.projects', function () {
   });
 
   describe('with no pre-defined projects', function () {
-    let request;
+    let request: any;
 
     beforeEach(function () {
       request = MockApiClient.addMockResponse({
@@ -554,8 +554,8 @@ describe('utils.projects', function () {
   });
 
   describe('with all projects prop', function () {
-    let mockProjects;
-    let request;
+    let mockProjects: any;
+    let request: any;
 
     beforeEach(function () {
       mockProjects = [

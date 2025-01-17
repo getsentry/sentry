@@ -71,7 +71,7 @@ export function AppStartScreens({data, eventView, isLoading, pageLinks}: Props) 
       t('Average Warm Start difference'),
   };
 
-  function renderBodyCell(column, row): React.ReactNode {
+  function renderBodyCell(column: any, row: any): React.ReactNode {
     if (!data) {
       return null;
     }

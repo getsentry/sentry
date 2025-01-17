@@ -84,7 +84,9 @@ function InviteRequestRow({
         <TeamSelectControl
           name="teams"
           placeholder={t('None')}
-          onChange={teams => onUpdate({teams: (teams || []).map(team => team.value)})}
+          onChange={(teams: any) =>
+            onUpdate({teams: (teams || []).map((team: any) => team.value)})
+          }
           value={inviteRequest.teams}
           clearable
           multiple

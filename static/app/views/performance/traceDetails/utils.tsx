@@ -34,7 +34,7 @@ export function getTraceDetailsUrl({
   view,
 }: {
   // @TODO add a type for dateSelection
-  dateSelection;
+  dateSelection: any;
   location: Location;
   organization: Organization;
   traceSlug: string;

@@ -55,6 +55,7 @@ export function getCloudResourceContextData({
           key: ctxKey,
           subject: t('Provider'),
           value:
+            // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             provider && CLOUD_PROVIDERS[provider] ? CLOUD_PROVIDERS[provider] : provider,
         };
       case CloudResourceContextKeys.CLOUD_PLATFORM:

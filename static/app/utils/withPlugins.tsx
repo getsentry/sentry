@@ -35,7 +35,7 @@ function withPlugins<P extends WithPluginProps>(
       this.fetchPlugins();
     }
 
-    componentDidUpdate(prevProps, _prevState, prevContext) {
+    componentDidUpdate(prevProps: any, _prevState: any, prevContext: any) {
       const {organization, project} = this.props;
 
       // Only fetch plugins when a org slug or project slug has changed

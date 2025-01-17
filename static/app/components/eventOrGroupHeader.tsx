@@ -163,7 +163,7 @@ const LocationWrapper = styled('div')`
   }
 `;
 
-function Location(props) {
+function Location(props: any) {
   const {children, ...rest} = props;
   return (
     <LocationWrapper {...rest}>

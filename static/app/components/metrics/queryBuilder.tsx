@@ -122,7 +122,7 @@ export const QueryBuilder = memo(function QueryBuilder({
   );
 
   const handleOpChange = useCallback(
-    ({value}) => {
+    ({value}: any) => {
       trackAnalytics('ddm.widget.operation', {organization});
       incrementQueryMetric('ddm.widget.operation', {aggregation: value});
       onChange({

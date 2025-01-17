@@ -9,7 +9,7 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import App from 'sentry/views/app';
 
 describe('Sudo Modal', function () {
-  const setHasPasswordAuth = hasPasswordAuth =>
+  const setHasPasswordAuth = (hasPasswordAuth: boolean) =>
     ConfigStore.set('user', {...ConfigStore.get('user'), hasPasswordAuth});
 
   beforeEach(function () {

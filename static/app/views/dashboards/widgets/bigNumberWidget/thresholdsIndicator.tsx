@@ -78,20 +78,22 @@ const Circle = styled('div')<{color: string}>`
 
 type ThresholdState = 'poor' | 'meh' | 'good';
 
-const COLOR_NAME_FOR_STATE: Record<ThresholdState, string> = {
+const COLOR_NAME_FOR_STATE = {
   poor: 'red300',
   meh: 'yellow300',
   good: 'green300',
-};
+} as const satisfies Record<ThresholdState, string>;
 
 function getThresholdState(
   value: number,
   max1: number,
   max2: number,
   preferredPolarity: Polarity
-): string {
+): ThresholdState {
   const [belowMax1, belowMax2, aboveMax2] =
-    preferredPolarity === '+' ? ['poor', 'meh', 'good'] : ['good', 'meh', 'poor'];
+    preferredPolarity === '+'
+      ? (['poor', 'meh', 'good'] as const)
+      : (['good', 'meh', 'poor'] as const);
 
   if (value <= max1) {
     return belowMax1;

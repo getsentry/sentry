@@ -29,6 +29,7 @@ export function useSystemSelectorOptions() {
     const system = entry['span.system'];
     if (system) {
       const textValue =
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         system in DATABASE_SYSTEM_TO_LABEL ? DATABASE_SYSTEM_TO_LABEL[system] : system;
 
       const supportedSystemSet: Set<string> = new Set(

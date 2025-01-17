@@ -39,7 +39,7 @@ describe('getSearchTerm', () => {
     },
   ])(
     'should get the correct search term from the transaction name',
-    ({transactionName, searchTerm}) => {
+    ({transactionName, searchTerm}: any) => {
       expect(toSearchTerm(transactionName)).toStrictEqual(searchTerm);
     }
   );

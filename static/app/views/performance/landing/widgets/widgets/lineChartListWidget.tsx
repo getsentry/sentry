@@ -109,7 +109,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
     props.chartSetting
   );
 
-  let emptyComponent;
+  let emptyComponent: any;
   if (props.chartSetting === PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES) {
     emptyComponent = TimeSpentInDatabaseWidgetEmptyStateWarning;
   } else if (

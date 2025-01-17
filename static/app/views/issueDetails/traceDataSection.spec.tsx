@@ -381,7 +381,7 @@ function createEvent({
   };
 
   // Using this intermediary variable helps typescript
-  let return_event;
+  let return_event: any;
   if (event['event.type'] === 'error') {
     return_event = {
       ...event,

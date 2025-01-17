@@ -52,7 +52,7 @@ export function EquationFormatter({equation: formula, errors}: EquationFormatter
 
   const renderedTokens = (
     <Fragment>
-      {tokens.map((token, index) => {
+      {tokens.map((token: any, index: any) => {
         const error = findMatchingError(charCount);
         charCount += token.content.length;
 

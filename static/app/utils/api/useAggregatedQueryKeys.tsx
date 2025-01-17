@@ -51,7 +51,7 @@ interface Props<AggregatableQueryKey, Data> {
 }
 
 function isQueryKeyInList<AggregatableQueryKey>(queryList: AggregatableQueryKey[]) {
-  return ({queryKey}) => queryList.includes(queryKey[4] as AggregatableQueryKey);
+  return ({queryKey}: any) => queryList.includes(queryKey[4] as AggregatableQueryKey);
 }
 
 /**

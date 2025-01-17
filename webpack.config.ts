@@ -502,7 +502,7 @@ const appConfig: webpack.Configuration = {
 };
 
 if (IS_TEST) {
-  appConfig.resolve!.alias!['sentry-fixture'] = path.join(
+  (appConfig.resolve!.alias! as any)['sentry-fixture'] = path.join(
     __dirname,
     'tests',
     'js',

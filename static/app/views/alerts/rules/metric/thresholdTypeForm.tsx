@@ -86,7 +86,7 @@ function ThresholdTypeForm({
               }),
             }}
             value={comparisonDelta}
-            onChange={({value}) => onComparisonDeltaChange(value)}
+            onChange={({value}: any) => onComparisonDeltaChange(value)}
             options={COMPARISON_DELTA_OPTIONS}
             required={comparisonType === AlertRuleComparisonType.CHANGE}
           />

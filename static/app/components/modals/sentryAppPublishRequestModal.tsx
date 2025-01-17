@@ -23,6 +23,7 @@ const getPermissionSelectionsFromScopes = (scopes: Scope[]) => {
   for (const permObj of SENTRY_APP_PERMISSIONS) {
     let highestChoice: PermissionChoice | undefined;
     for (const perm in permObj.choices) {
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const choice = permObj.choices[perm];
       const scopesIntersection = intersection(choice.scopes, scopes);
       if (
@@ -139,7 +140,7 @@ export default function SentryAppPublishRequestModal(props: Props) {
     closeModal();
   };
 
-  const handleSubmitError = err => {
+  const handleSubmitError = (err: any) => {
     addErrorMessage(
       tct('Request to publish [app] fails. [detail]', {
         app: app.slug,

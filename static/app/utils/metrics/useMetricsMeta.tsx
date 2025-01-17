@@ -25,7 +25,9 @@ export function getMetricsMetaQueryKey(
 }
 
 function sortMeta(meta: MetricMeta[]): MetricMeta[] {
-  return meta.toSorted((a, b) => formatMRI(a.mri).localeCompare(formatMRI(b.mri)));
+  return meta.toSorted((a: any, b: any) =>
+    formatMRI(a.mri).localeCompare(formatMRI(b.mri))
+  );
 }
 
 export function useMetricsMeta(

@@ -44,7 +44,9 @@ export function structuralSharing<T>(oldValue: T, newValue: T): T {
   if (typeof oldValue === 'object' && typeof newValue === 'object') {
     let hasChanges = !checkSameKeys(oldValue, newValue);
     const newObj = Object.keys(newValue).reduce((acc, key) => {
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       acc[key] = structuralSharing(oldValue[key], newValue[key]);
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       if (acc[key] !== oldValue[key]) {
         hasChanges = true;
       }

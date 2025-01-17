@@ -531,7 +531,9 @@ const HighlightsOpsBreakdownWrapper = styled(FlexBox)`
   margin-top: ${space(1.5)};
 `;
 
-const HiglightsDurationComparison = styled('div')<{status: string}>`
+const HiglightsDurationComparison = styled('div')<
+  Pick<NonNullable<DurationComparison>, 'status'>
+>`
   white-space: nowrap;
   border-radius: 12px;
   color: ${p => p.theme[DURATION_COMPARISON_STATUS_COLORS[p.status].normal]};

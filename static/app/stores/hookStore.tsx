@@ -50,7 +50,7 @@ const storeConfig: HookStoreDefinition = {
     if (this.hooks[hookName] === undefined) {
       return;
     }
-    this.hooks[hookName] = this.hooks[hookName]!.filter(cb => cb !== callback);
+    this.hooks[hookName] = this.hooks[hookName]!.filter((cb: any) => cb !== callback);
     this.trigger(hookName, this.hooks[hookName]);
   },
 

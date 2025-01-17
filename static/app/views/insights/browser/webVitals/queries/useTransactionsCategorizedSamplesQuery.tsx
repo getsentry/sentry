@@ -78,6 +78,7 @@ export function useTransactionsCategorizedSamplesQuery({
     isPoorTransactionWebVitalsQueryLoading;
 
   const transactionsTableData: TransactionSampleRowWithScore[] = data.sort(
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     (a, b) => a[`${webVital}Score`] - b[`${webVital}Score`]
   );
 

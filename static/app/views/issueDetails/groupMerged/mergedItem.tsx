@@ -27,7 +27,7 @@ function MergedItem({fingerprint, totalFingerprint}: Props) {
   const [collapsed, setCollapsed] = useState(false);
   const [checked, setChecked] = useState(false);
 
-  function onGroupChange({unmergeState}) {
+  function onGroupChange({unmergeState}: any) {
     if (!unmergeState) {
       return;
     }
@@ -84,7 +84,7 @@ function MergedItem({fingerprint, totalFingerprint}: Props) {
   }
 
   useEffect(() => {
-    const teardown = GroupingStore.listen(data => onGroupChange(data), undefined);
+    const teardown = GroupingStore.listen((data: any) => onGroupChange(data), undefined);
     return () => {
       teardown();
     };

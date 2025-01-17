@@ -91,7 +91,7 @@ export function UIScreensTable({data, eventView, isLoading, pageLinks}: Props) {
     ),
   };
 
-  function renderBodyCell(column, row): React.ReactNode | null {
+  function renderBodyCell(column: any, row: any): React.ReactNode | null {
     if (!data) {
       return null;
     }

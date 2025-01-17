@@ -25,7 +25,7 @@ export function getStacktrace(event: Event): StacktraceType | null {
   const exceptionsWithStacktrace =
     event.entries
       .find(e => e.type === EntryType.EXCEPTION)
-      ?.data?.values.filter(({stacktrace}) => defined(stacktrace)) ?? [];
+      ?.data?.values.filter(({stacktrace}: any) => defined(stacktrace)) ?? [];
 
   const exceptionStacktrace: StacktraceType | undefined = isStacktraceNewestFirst()
     ? exceptionsWithStacktrace[exceptionsWithStacktrace.length - 1]?.stacktrace

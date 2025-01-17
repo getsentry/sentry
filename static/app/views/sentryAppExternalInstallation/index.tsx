@@ -334,7 +334,7 @@ function MultiOrgView({
       </p>
       <FieldGroup label={t('Organization')} inline={false} stacked required>
         <SelectControl
-          onChange={({value}) => onSelectOrg(value)}
+          onChange={({value}: any) => onSelectOrg(value)}
           value={selectedOrgSlug}
           placeholder={t('Select an organization')}
           options={getOrganizationOptions(organizations)}

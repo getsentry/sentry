@@ -23,7 +23,7 @@ describe('useOwners', () => {
 
   const queryClient = makeTestQueryClient();
 
-  function Wrapper({children}) {
+  function Wrapper({children}: {children: React.ReactNode}) {
     return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
   }
 

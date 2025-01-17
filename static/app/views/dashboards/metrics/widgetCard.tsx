@@ -241,7 +241,13 @@ export function MetricWidgetCard({
   );
 }
 
-function WidgetCardBody({children, isError, timeseriesData, renderErrorMessage, error}) {
+function WidgetCardBody({
+  children,
+  isError,
+  timeseriesData,
+  renderErrorMessage,
+  error,
+}: any) {
   if (isError && !timeseriesData) {
     const errorMessage =
       error?.responseJSON?.detail?.toString() || t('Error while fetching metrics data');

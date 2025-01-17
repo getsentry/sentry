@@ -6,7 +6,7 @@ import {useHotkeys} from 'sentry/utils/useHotkeys';
 describe('useHotkeys', function () {
   let events: Record<string, (evt: EventListenerOrEventListenerObject) => void> = {};
 
-  function makeKeyEventFixture(keyCode, options) {
+  function makeKeyEventFixture(keyCode: any, options: any) {
     return {
       keyCode: getKeyCode(keyCode),
       preventDefault: jest.fn(),

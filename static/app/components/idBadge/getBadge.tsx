@@ -48,7 +48,7 @@ export type GetBadgeProps =
   | GetMemberBadgeProps
   | GetActorBadgeProps;
 
-function getBadge(props): React.ReactElement | null {
+function getBadge(props: any): React.ReactElement | null {
   if (props.organization) {
     return <OrganizationBadge {...props} />;
   }

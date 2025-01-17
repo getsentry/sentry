@@ -58,7 +58,7 @@ const LANDING_DISPLAYS = [
   },
 ];
 
-function getCurrentTabSelection(selectedTab) {
+function getCurrentTabSelection(selectedTab: any) {
   const tab = decodeScalar(selectedTab);
   if (tab && Object.values(LandingDisplayField).includes(tab as LandingDisplayField)) {
     return tab as LandingDisplayField;

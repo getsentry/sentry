@@ -3809,6 +3809,11 @@
   dependencies:
     "@types/trusted-types" "*"
 
+"@types/eslint-config-prettier@^6.11.3":
+  version "6.11.3"
+  resolved "https://registry.yarnpkg.com/@types/eslint-config-prettier/-/eslint-config-prettier-6.11.3.tgz#319f53eeb5a8b50e702fa081a9fe39bf01df8c1d"
+  integrity sha512-3wXCiM8croUnhg9LdtZUJQwNcQYGWxxdOWDjPe1ykCqJFPVpzAKfs/2dgSoCtAvdPeaponcWPI7mPcGGp9dkKQ==
+
 "@types/estree@1.0.5":
   version "1.0.5"
   resolved "https://registry.yarnpkg.com/@types/estree/-/estree-1.0.5.tgz#a6ce3e556e00fd9895dd872dd172ad0d4bd687f4"

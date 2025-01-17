@@ -224,7 +224,8 @@ export default function MetricDetailsBody({
               triggerLabel={
                 timePeriod.custom
                   ? timePeriod.label
-                  : relativeOptions[timePeriod.period ?? '']
+                  : // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                    relativeOptions[timePeriod.period ?? '']
               }
             />
             {selectedIncident && (

@@ -20,7 +20,7 @@ export const providerDetails = {
     name: t('Slack'),
     action: IssueAlertActionType.SLACK,
     placeholder: t('channel, e.g. #critical'),
-    makeSentence: ({providerName, integrationName, target}) =>
+    makeSentence: ({providerName, integrationName, target}: any) =>
       tct(
         'Send [providerName] notification to the [integrationName] workspace to [target]',
         {
@@ -34,7 +34,7 @@ export const providerDetails = {
     name: t('Discord'),
     action: IssueAlertActionType.DISCORD,
     placeholder: t('channel ID or URL'),
-    makeSentence: ({providerName, integrationName, target}) =>
+    makeSentence: ({providerName, integrationName, target}: any) =>
       tct(
         'Send [providerName] notification to the [integrationName] server in the channel [target]',
         {
@@ -48,7 +48,7 @@ export const providerDetails = {
     name: t('MS Teams'),
     action: IssueAlertActionType.MS_TEAMS,
     placeholder: t('channel ID'),
-    makeSentence: ({providerName, integrationName, target}) =>
+    makeSentence: ({providerName, integrationName, target}: any) =>
       tct('Send [providerName] notification to the [integrationName] team to [target]', {
         providerName,
         integrationName,

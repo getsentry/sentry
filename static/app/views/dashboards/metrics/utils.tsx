@@ -332,6 +332,7 @@ export const formatAlias = (alias?: string) => {
   return alias.replace('v|', '');
 };
 
+// @ts-ignore TS(7006): Parameter 'aggregation' implicitly has an 'any' ty... Remove this comment to see the full error message
 export const getVirtualAlias = (aggregation, spanAttribute) => {
   return `v|${aggregation}(${spanAttribute})`;
 };

@@ -862,7 +862,7 @@ export const PrimaryCount = styled(Count)<{hasNewLayout?: boolean}>`
   font-variant-numeric: tabular-nums;
 `;
 
-const SecondaryCount = styled(({value, ...p}) => <Count {...p} value={value} />)<{
+const SecondaryCount = styled(({value, ...p}: any) => <Count {...p} value={value} />)<{
   hasNewLayout?: boolean;
 }>`
   font-size: ${p => (p.hasNewLayout ? p.theme.fontSizeSmall : p.theme.fontSizeLarge)};

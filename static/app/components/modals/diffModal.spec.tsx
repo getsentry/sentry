@@ -1,3 +1,4 @@
+import type {PropsWithChildren} from 'react';
 import styled from '@emotion/styled';
 import {ProjectFixture} from 'sentry-fixture/project';
 
@@ -33,7 +34,7 @@ describe('DiffModal', function () {
       body: {features: []},
     });
 
-    const styledWrapper = styled(c => c.children);
+    const styledWrapper = styled((c: PropsWithChildren) => c.children);
 
     render(
       <DiffModal

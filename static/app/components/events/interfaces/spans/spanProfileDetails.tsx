@@ -37,7 +37,7 @@ interface SpanProfileDetailsProps {
   onNoProfileFound?: () => void;
 }
 
-export function useSpanProfileDetails(event, span) {
+export function useSpanProfileDetails(event: any, span: any) {
   const profileGroup = useProfileGroup();
 
   const processedEvent = useMemo(() => {
@@ -268,7 +268,11 @@ export function SpanProfileDetails({
   );
 }
 
-function getTopNodes(profile: Profile, startTimestamp, stopTimestamp): CallTreeNode[] {
+function getTopNodes(
+  profile: Profile,
+  startTimestamp: any,
+  stopTimestamp: any
+): CallTreeNode[] {
   let duration = profile.startedAt;
 
   const callTree: CallTreeNode = new CallTreeNode(ProfilingFrame.Root, null);

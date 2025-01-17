@@ -209,7 +209,7 @@ describe('Grouping Store', function () {
       const calls = trigger.mock.calls;
       const arg: any = calls[calls.length - 1][0];
 
-      const item = arg.similarItems.find(({issue}) => issue.id === '217');
+      const item = arg.similarItems.find(({issue}: any) => issue.id === '217');
       expect(item.aggregate.exception).toBe(0.25);
       expect(item.aggregate.message).toBe(0.7);
     });

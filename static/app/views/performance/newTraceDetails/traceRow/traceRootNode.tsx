@@ -18,7 +18,7 @@ import {useHasTraceNewUi} from '../useHasTraceNewUi';
 
 const NO_ERRORS = new Set<TraceTree.TraceError>();
 const NO_PERFORMANCE_ISSUES = new Set<TraceTree.TracePerformanceIssue>();
-const NO_PROFILES = [];
+const NO_PROFILES: any = [];
 
 export function TraceRootRow(props: TraceRowProps<TraceTreeNode<TraceTree.Trace>>) {
   const hasTraceNewUi = useHasTraceNewUi();

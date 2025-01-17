@@ -62,7 +62,7 @@ export function TransactionDurationChart({
       ...(sampledSpanDataSeries ?? []),
     ];
 
-    const highlightedDataPoints = event.batch.map(batch => {
+    const highlightedDataPoints = event.batch.map((batch: any) => {
       const {seriesIndex, dataIndex} = batch;
 
       const highlightedSeries = allSeries?.[seriesIndex]!;

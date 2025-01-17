@@ -137,7 +137,7 @@ export function Chart(props: ChartProps) {
     tooltip: {
       trigger: 'axis' as const,
       // TODO (udameli) pull series name from the meta
-      valueFormatter: (value, _seriesName) =>
+      valueFormatter: (value: any, _seriesName: any) =>
         tooltipFormatter(value, aggregateOutputType(_seriesName)),
     },
     yAxis: {

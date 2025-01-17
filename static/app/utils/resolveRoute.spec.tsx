@@ -18,7 +18,7 @@ jest.mock('sentry/constants', () => {
 });
 
 describe('resolveRoute', () => {
-  let devUi, host;
+  let devUi: any, host: any;
   let configState: Config;
 
   const organization = OrganizationFixture();

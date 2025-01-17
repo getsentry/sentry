@@ -58,8 +58,7 @@ export class TraceRowWidthMeasurer<T> {
     }
 
     for (const handler of this.listeners[event]) {
-      // @ts-expect-error
-      handler(...args);
+      (handler as any)(...args);
     }
   }
 

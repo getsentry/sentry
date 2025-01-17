@@ -62,7 +62,7 @@ function updateNavStyleAttributes(view: NavView) {
   }
 }
 
-function OverlayPortal({children}) {
+function OverlayPortal({children}: any) {
   return createPortal(<Overlay>{children}</Overlay>, document.body);
 }
 

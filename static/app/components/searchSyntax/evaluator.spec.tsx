@@ -14,7 +14,7 @@ const tokensToString = (tokens: ProcessedTokenResult[]): string => {
   let str = '';
 
   for (const token of tokens) {
-    let concatstr;
+    let concatstr: any;
     switch (token.type) {
       case Token.FREE_TEXT:
         concatstr = token.text;

@@ -18,7 +18,7 @@ function useSetupWizardAnalyticsParams(organizations: Organization[]) {
   );
 }
 
-const EMPTY_ARRAY = [];
+const EMPTY_ARRAY: any = [];
 
 export function useSetupWizardViewedAnalytics(organizations: Organization[] | undefined) {
   const analyticsParams = useSetupWizardAnalyticsParams(organizations ?? EMPTY_ARRAY);

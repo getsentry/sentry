@@ -85,11 +85,13 @@ type EventCustomPerformanceMetricProps = Props & {
   name: string;
 };
 
-export function getFieldTypeFromUnit(unit) {
+export function getFieldTypeFromUnit(unit: any) {
   if (unit) {
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     if (DURATION_UNITS[unit]) {
       return 'duration';
     }
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     if (SIZE_UNITS[unit]) {
       return 'size';
     }
@@ -149,8 +151,10 @@ export function EventCustomPerformanceMetric({
   let customMetricValue = value;
   if (typeof value === 'number' && unit && customMetricValue) {
     if (Object.keys(SIZE_UNITS).includes(unit)) {
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       customMetricValue *= SIZE_UNITS[unit];
     } else if (Object.keys(DURATION_UNITS).includes(unit)) {
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       customMetricValue *= DURATION_UNITS[unit];
     }
   }
@@ -243,8 +247,10 @@ export function TraceEventCustomPerformanceMetric({
   let customMetricValue = value;
   if (typeof value === 'number' && unit && customMetricValue) {
     if (Object.keys(SIZE_UNITS).includes(unit)) {
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       customMetricValue *= SIZE_UNITS[unit];
     } else if (Object.keys(DURATION_UNITS).includes(unit)) {
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       customMetricValue *= DURATION_UNITS[unit];
     }
   }

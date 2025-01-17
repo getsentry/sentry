@@ -153,7 +153,7 @@ function calculateNextFocusForCommittedCustomValue({
 
   const parsedText = collapseTextTokens(parseSearch(value));
   const numFreeTextTokens = Math.max(
-    parsedText?.filter(token => token.type === Token.FREE_TEXT).length ?? 0
+    parsedText?.filter((token: any) => token.type === Token.FREE_TEXT).length ?? 0
   );
 
   // We always expect there to be at least one free text token, so we subtract one

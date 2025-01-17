@@ -239,8 +239,11 @@ export class StoryTreeNode {
   }
 
   // Iterator that yields all files in the tree, excluding folders
-  *[Symbol.iterator](): Generator<{node: StoryTreeNode; path: StoryTreeNode[]}> {
-    function* recurse(node: StoryTreeNode, path: StoryTreeNode[]) {
+  *[Symbol.iterator]() {
+    function* recurse(
+      node: StoryTreeNode,
+      path: StoryTreeNode[]
+    ): Generator<{node: StoryTreeNode; path: StoryTreeNode[]}> {
       yield {node, path};
 
       for (const child of Object.values(node.children)) {

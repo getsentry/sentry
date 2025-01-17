@@ -84,14 +84,14 @@ class BarChartZoom extends Component<Props> {
    * we can let the native zoom animation on the chart complete
    * before we update URL state and re-render
    */
-  handleChartFinished = (_props, chart) => {
+  handleChartFinished = (_props: any, chart: any) => {
     if (typeof this.zooming === 'function') {
       this.zooming();
       this.zooming = null;
     }
 
     // This attempts to activate the area zoom toolbox feature
-    const zoom = chart._componentsViews?.find(c => c._features?.dataZoom);
+    const zoom = chart._componentsViews?.find((c: any) => c._features?.dataZoom);
     if (zoom && !zoom._features.dataZoom._isZoomActive) {
       // Calling dispatchAction will re-trigger handleChartFinished
       chart.dispatchAction({
@@ -102,7 +102,7 @@ class BarChartZoom extends Component<Props> {
     }
   };
 
-  handleDataZoom = (evt, chart) => {
+  handleDataZoom = (evt: any, chart: any) => {
     const model = chart.getModel();
     const {startValue, endValue} = model._payload.batch[0];
 

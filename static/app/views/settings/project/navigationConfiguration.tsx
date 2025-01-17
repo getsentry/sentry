@@ -170,7 +170,7 @@ export default function getConfiguration({
         ...plugins.map(plugin => ({
           path: `${pathPrefix}/plugins/${plugin.id}/`,
           title: plugin.name,
-          show: opts => opts?.access?.has('project:write') && !plugin.isDeprecated,
+          show: (opts: any) => opts?.access?.has('project:write') && !plugin.isDeprecated,
           id: 'plugin_details',
           recordAnalytics: true,
         })),

@@ -64,7 +64,7 @@ export default class FeatureFlagOverrides {
    */
   private _getNonOverriddenFeatures(organization: Organization): FeatureFlagMap {
     if (this._originalValues.has(organization)) {
-      // @ts-expect-error: We just checked .has(), so it shouldn't be undefined
+      // @ts-ignore TS(2322): Type 'FeatureFlagMap | undefined' is not assignabl... Remove this comment to see the full error message
       return this._originalValues.get(organization);
     }
 

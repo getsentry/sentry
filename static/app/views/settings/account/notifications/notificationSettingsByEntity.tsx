@@ -167,7 +167,7 @@ function NotificationSettingsByEntity({
   };
 
   const entityOptions = entities
-    .filter(({id}) => {
+    .filter(({id}: any) => {
       const match = notificationOptions.find(
         option =>
           option.scopeType === entityType &&
@@ -176,7 +176,7 @@ function NotificationSettingsByEntity({
       );
       return !match;
     })
-    .map(obj => {
+    .map((obj: any) => {
       const entity = entityById[obj.id];
       const idBadgeProps =
         entityType === 'project'
@@ -197,7 +197,7 @@ function NotificationSettingsByEntity({
         ),
       };
     })
-    .sort((a, b) => a.label.localeCompare(b.label));
+    .sort((a: any, b: any) => a.label.localeCompare(b.label));
 
   // Group options when displaying projects
   const groupedEntityOptions =
@@ -206,13 +206,13 @@ function NotificationSettingsByEntity({
           {
             label: t('My Projects'),
             options: entityOptions.filter(
-              project => (entityById[project.value] as Project).isMember
+              (project: any) => (entityById[project.value] as Project).isMember
             ),
           },
           {
             label: t('All Projects'),
             options: entityOptions.filter(
-              project => !(entityById[project.value] as Project).isMember
+              (project: any) => !(entityById[project.value] as Project).isMember
             ),
           },
         ]

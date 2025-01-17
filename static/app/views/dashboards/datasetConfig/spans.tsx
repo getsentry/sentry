@@ -59,6 +59,7 @@ const DEFAULT_FIELD: QueryFieldValue = {
 };
 
 const EAP_AGGREGATIONS = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.reduce((acc, aggregate) => {
+  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   acc[aggregate] = {
     isSortable: true,
     outputType: null,

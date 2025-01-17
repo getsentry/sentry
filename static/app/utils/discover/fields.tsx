@@ -858,6 +858,7 @@ export function isMeasurement(field: string): boolean {
 
 export function measurementType(field: string): MeasurementType {
   if (MEASUREMENT_FIELDS.hasOwnProperty(field)) {
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return MEASUREMENT_FIELDS[field].valueType as MeasurementType;
   }
 
@@ -1024,7 +1025,9 @@ export function generateAggregateFields(
   const functions = Object.keys(AGGREGATIONS);
   const fields = Object.values(eventFields).map(field => field.field);
   functions.forEach(func => {
-    const parameters = AGGREGATIONS[func].parameters.map(param => {
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    const parameters = AGGREGATIONS[func].parameters.map((param: any) => {
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const overrides = AGGREGATIONS[func].getFieldOverrides;
       if (typeof overrides === 'undefined') {
         return param;
@@ -1035,9 +1038,9 @@ export function generateAggregateFields(
       };
     });
 
-    if (parameters.every(param => typeof param.defaultValue !== 'undefined')) {
+    if (parameters.every((param: any) => typeof param.defaultValue !== 'undefined')) {
       const newField = `${func}(${parameters
-        .map(param => param.defaultValue)
+        .map((param: any) => param.defaultValue)
         .join(',')})`;
       if (!fields.includes(newField) && !excludeFields.includes(newField)) {
         fields.push(newField);
@@ -1228,6 +1231,7 @@ export function aggregateFunctionOutputType(
   firstArg: string | undefined
 ): AggregationOutputType | null {
   const aggregate =
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     AGGREGATIONS[ALIASES[funcName] || funcName] ?? SESSIONS_OPERATIONS[funcName];
 
   // Attempt to use the function's outputType.
@@ -1244,6 +1248,7 @@ export function aggregateFunctionOutputType(
   }
 
   if (firstArg && SESSIONS_FIELDS.hasOwnProperty(firstArg)) {
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return SESSIONS_FIELDS[firstArg].type as AggregationOutputType;
   }
 
@@ -1251,7 +1256,9 @@ export function aggregateFunctionOutputType(
     return STARFISH_FIELDS[firstArg]!.outputType;
   }
 
+  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   if (STARFISH_AGGREGATION_FIELDS[funcName]) {
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return STARFISH_AGGREGATION_FIELDS[funcName].defaultOutputType;
   }
 
@@ -1278,6 +1285,7 @@ export function errorsAndTransactionsAggregateFunctionOutputType(
   funcName: string,
   firstArg: string | undefined
 ): AggregationOutputType | null {
+  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const aggregate = AGGREGATIONS[ALIASES[funcName] || funcName];
 
   // Attempt to use the function's outputType.
@@ -1316,6 +1324,7 @@ export function sessionsAggregateFunctionOutputType(
   funcName: string,
   firstArg: string | undefined
 ): AggregationOutputType | null {
+  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const aggregate = SESSIONS_OPERATIONS[funcName];
 
   // Attempt to use the function's outputType.
@@ -1332,6 +1341,7 @@ export function sessionsAggregateFunctionOutputType(
   }
 
   if (firstArg && SESSIONS_FIELDS.hasOwnProperty(firstArg)) {
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return SESSIONS_FIELDS[firstArg].type as AggregationOutputType;
   }
 
@@ -1353,6 +1363,7 @@ export function aggregateMultiPlotType(field: string): PlotType {
   if (!AGGREGATIONS.hasOwnProperty(result.name)) {
     return 'area';
   }
+  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   return AGGREGATIONS[result.name].multiPlotType;
 }
 

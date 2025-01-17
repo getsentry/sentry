@@ -85,7 +85,7 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
   );
 
   const handleCursor = useCallback(
-    (cursor, pathname, query) => {
+    (cursor: any, pathname: any, query: any) => {
       browserHistory.push({
         pathname,
         query: {...query, [cursorName]: cursor},

@@ -397,7 +397,7 @@ export function VitalBar(props: VitalBarProps) {
   vitals.forEach(vitalName => {
     const c = data?.[vitalName] ?? {};
     (Object.keys(counts) as Array<keyof typeof counts>).forEach(
-      countKey => (counts[countKey] += c[countKey])
+      countKey => (counts[countKey] += (c as any)[countKey])
     );
   });
 

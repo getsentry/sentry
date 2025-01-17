@@ -94,7 +94,7 @@ async function fetchTraceMetaInBatches(
         // Turn the transaction_child_count_map array into a map of transaction id to child count
         // for more efficient lookups.
         result.value.transaction_child_count_map.forEach(
-          ({'transaction.id': id, count}) => {
+          ({'transaction.id': id, count}: any) => {
             acc.transactiontoSpanChildrenCount[id] = count;
           }
         );

@@ -62,8 +62,10 @@ const SPAN_FILTER_KEYS = ['span_operation', SPAN_DOMAIN, 'action'];
 const buildDiscoverQueryConditions = (appliedFilters: ModuleFilters) => {
   const result = Object.keys(appliedFilters)
     .filter(key => SPAN_FILTER_KEYS.includes(key))
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     .filter(key => Boolean(appliedFilters[key]))
     .map(key => {
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const value = appliedFilters[key];
       if (key === SPAN_DOMAIN && value === EMPTY_OPTION_VALUE) {
         return [`!has:${SPAN_DOMAIN}`];

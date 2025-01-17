@@ -48,7 +48,7 @@ export type TableStat = {
 };
 
 class UsageTable extends Component<Props> {
-  getErrorMessage = errorMessage => {
+  getErrorMessage = (errorMessage: any) => {
     if (errorMessage.projectStats.responseJSON.detail === 'No projects available') {
       return (
         <EmptyMessage

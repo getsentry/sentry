@@ -32,7 +32,7 @@ const TRACE_EXPLORER_DOCS_URL = 'https://docs.sentry.io/product/explore/traces/'
 const DEFAULT_STATS_PERIOD = '24h';
 const DEFAULT_PER_PAGE = 50;
 
-export default function Wrapper(props) {
+export default function Wrapper(props: any) {
   const location = useLocation();
   const organization = useOrganization();
 

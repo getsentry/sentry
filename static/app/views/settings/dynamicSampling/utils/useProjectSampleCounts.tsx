@@ -111,7 +111,7 @@ export function useProjectSampleCounts({period}: {period: ProjectionSamplePeriod
           project: projectBySlug[key]!,
           count: value.count,
           ownCount: value.ownCount,
-          subProjects: value.subProjects.toSorted((a, b) => b.count - a.count),
+          subProjects: value.subProjects.toSorted((a: any, b: any) => b.count - a.count),
         };
       }),
     [projectBySlug, projectEntries]

@@ -7,7 +7,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
-function WrapperComponent(props) {
+function WrapperComponent(props: any) {
   return (
     <OrganizationContext.Provider value={props.organization}>
       <MEPSettingProvider>
@@ -18,14 +18,14 @@ function WrapperComponent(props) {
 }
 
 describe('TransactionsList', function () {
-  let api;
-  let location;
-  let context;
-  let organization;
-  let project;
-  let eventView;
-  let options;
-  let handleDropdownChange;
+  let api: any;
+  let location: any;
+  let context: any;
+  let organization: any;
+  let project: any;
+  let eventView: any;
+  let options: any;
+  let handleDropdownChange: any;
 
   const initialize = (config = {}) => {
     context = initializeOrg(config);
@@ -44,7 +44,7 @@ describe('TransactionsList', function () {
   });
 
   describe('Basic', function () {
-    let generateLink;
+    let generateLink: any;
 
     beforeEach(function () {
       initialize();
@@ -68,7 +68,7 @@ describe('TransactionsList', function () {
         },
       ];
       generateLink = {
-        transaction: (org, row) => ({
+        transaction: (org: any, row: any) => ({
           pathname: `/${org.slug}`,
           query: {
             ...location.query,
@@ -285,8 +285,8 @@ describe('TransactionsList', function () {
     it('allows users to change the sort in the dropdown', async function () {
       let component: RenderResult | null = null;
 
-      const handleDropdown = value => {
-        const selected = options.find(option => option.value === value);
+      const handleDropdown = (value: any) => {
+        const selected = options.find((option: any) => option.value === value);
         if (selected && component) {
           component.rerender(
             <WrapperComponent

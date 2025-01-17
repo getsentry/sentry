@@ -38,7 +38,7 @@ function SelectAsyncField({onChangeOption, ...props}: SelectAsyncFieldProps) {
         onResults,
         value,
         ...fieldProps
-      }) => {
+      }: any) => {
         const {defaultOptions} = props;
         // We don't use defaultOptions if it is undefined or a boolean
         const options = typeof defaultOptions === 'object' ? defaultOptions : [];
@@ -55,7 +55,7 @@ function SelectAsyncField({onChangeOption, ...props}: SelectAsyncFieldProps) {
         return (
           <SelectAsyncControl
             {...fieldProps}
-            onChange={(option, e) => {
+            onChange={(option: any, e: any) => {
               const resultValue = !option
                 ? option
                 : props.multiple && Array.isArray(option)
@@ -70,9 +70,11 @@ function SelectAsyncField({onChangeOption, ...props}: SelectAsyncFieldProps) {
               onChangeOption?.(option, e);
               onBlur?.(resultValue, e);
             }}
-            onResults={data => {
+            onResults={(data: any) => {
               const newResults = onResults(data);
-              const resultSelection = newResults.find(result => result.value === value);
+              const resultSelection = newResults.find(
+                (result: any) => result.value === value
+              );
 
               setResults(newResults);
               if (resultSelection) {

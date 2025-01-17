@@ -286,8 +286,10 @@ export function getExceptionEntries(event: Event) {
 function getAllFrames(event: Event, inAppOnly: boolean): Frame[] {
   const exceptions: EntryException[] | EntryThreads[] = getEntriesWithFrames(event);
   const frames: Frame[] = exceptions
+    // @ts-ignore TS(2322): Type 'Thread[] | ExceptionValue[]' is not assignab... Remove this comment to see the full error message
     .flatMap(withStacktrace => withStacktrace.data.values ?? [])
     .flatMap(
+      // @ts-ignore TS(2345): Argument of type '(withStacktrace: ExceptionValue ... Remove this comment to see the full error message
       (withStacktrace: ExceptionValue | Thread) =>
         withStacktrace?.stacktrace?.frames ?? []
     );

@@ -118,7 +118,7 @@ if err := fasthttp.ListenAndServe(":3000", sentryHandler.Handle(fastHTTPHandler)
   panic(err)
 }`;
 
-const getBeforeSendSnippet = params => `
+const getBeforeSendSnippet = (params: any) => `
 sentry.Init(sentry.ClientOptions{
   Dsn: "${params.dsn.public}",
   BeforeSend: func(event *sentry.Event, hint *sentry.EventHint) *sentry.Event {

@@ -39,7 +39,7 @@ class SelectAsyncControl extends Component<SelectAsyncControlProps> {
     defaultOptions: true,
   };
 
-  constructor(props) {
+  constructor(props: any) {
     super(props);
     this.api = new Client();
     this.state = {
@@ -81,7 +81,7 @@ class SelectAsyncControl extends Component<SelectAsyncControlProps> {
 
   handleLoadOptions = () =>
     new Promise((resolve, reject) => {
-      this.doQuery((err, result) => {
+      this.doQuery((err: any, result: any) => {
         if (err) {
           reject(err);
         } else {
@@ -101,7 +101,7 @@ class SelectAsyncControl extends Component<SelectAsyncControlProps> {
       }
     );
 
-  handleInputChange = query => {
+  handleInputChange = (query: any) => {
     this.setState({query});
   };
 
@@ -125,7 +125,7 @@ class SelectAsyncControl extends Component<SelectAsyncControlProps> {
   }
 }
 
-function RefForwarder(p, ref) {
+function RefForwarder(p: any, ref: any) {
   return <SelectAsyncControl {...p} forwardedRef={ref} />;
 }
 RefForwarder.displayName = 'SelectAsyncControl';

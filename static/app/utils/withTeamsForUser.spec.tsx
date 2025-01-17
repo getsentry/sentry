@@ -11,13 +11,13 @@ describe('withUserTeams HoC', function () {
   const api = new MockApiClient();
   const organization = OrganizationFixture();
 
-  function Output({error, teams}) {
+  function Output({error, teams}: any) {
     if (error) {
       return <p>Error: {error.responseText}</p>;
     }
     return (
       <p>
-        {teams.map(team => (
+        {teams.map((team: any) => (
           <span key={team.slug}>{team.slug}</span>
         ))}
       </p>

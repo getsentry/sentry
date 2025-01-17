@@ -69,7 +69,7 @@ class IssueActions extends DefaultIssueActions {
     // For create form, split into required and optional fields
     if (this.props.actionType === 'create') {
       if (this.state.createFieldList) {
-        const renderField = field => {
+        const renderField = (field: any) => {
           if (field.has_autocomplete) {
             field = Object.assign(
               {
@@ -93,7 +93,7 @@ class IssueActions extends DefaultIssueActions {
             </div>
           );
         };
-        const isRequired = f => (f.required !== null ? f.required : true);
+        const isRequired = (f: any) => (f.required !== null ? f.required : true);
 
         const fields = this.state.createFieldList;
         const requiredFields = fields.filter(f => isRequired(f)).map(f => renderField(f));

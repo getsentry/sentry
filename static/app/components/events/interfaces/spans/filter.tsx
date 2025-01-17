@@ -59,8 +59,8 @@ function Filter({
     [operationNameCounts]
   );
 
-  function onChange(selectedOpts) {
-    const mappedValues = selectedOpts.map(opt => opt.value);
+  function onChange(selectedOpts: any) {
+    const mappedValues = selectedOpts.map((opt: any) => opt.value);
 
     // Send a single analytics event if user clicked on the "Clear" button
     if (selectedOpts.length === 0) {

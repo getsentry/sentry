@@ -27,7 +27,7 @@ class SelectField extends Component<Props> {
       <SelectControl
         {...this.props}
         isSearchable={false}
-        options={this.props.options.map(opt => ({
+        options={this.props.options.map((opt: any) => ({
           ...opt,
           details: opt.description ? `(${opt.description})` : undefined,
         }))}

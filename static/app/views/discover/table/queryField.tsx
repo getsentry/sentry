@@ -246,7 +246,7 @@ class QueryField extends Component<Props> {
     this.triggerChange(newColumn);
   };
 
-  handleFieldParameterChange = ({value}) => {
+  handleFieldParameterChange = ({value}: any) => {
     const newColumn = cloneDeep(this.props.fieldValue);
     if (newColumn.kind === 'function') {
       newColumn.function[1] = value.meta.name;
@@ -577,6 +577,7 @@ class QueryField extends Component<Props> {
       default:
         text = kind;
     }
+    // @ts-ignore TS(2322): Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
     return <Tag type={tagType}>{text}</Tag>;
   }
 
@@ -664,7 +665,9 @@ class QueryField extends Component<Props> {
         gridColumnsQuantity = 1;
       } else {
         const operation =
+          // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           AGGREGATIONS[fieldValue.function[0]] ??
+          // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           SESSIONS_OPERATIONS[fieldValue.function[0]];
         if (operation?.parameters.length > 0) {
           if (containerColumns === 3 && operation.parameters.length === 1) {

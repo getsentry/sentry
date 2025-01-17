@@ -281,6 +281,7 @@ function ExpandableErrorList({handleExpandClick, errorList}: ExpandableErrorList
         .map(([key, value]) => ({
           key,
           value,
+          // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           subject: keyMapping[key] || startCase(key),
         }))
         .filter(d => {
@@ -449,6 +450,7 @@ export function ActionableItems({event, project, isShare}: ActionableItemsProps)
     const shouldDelete = hasErrorAlert ? isWarning : !isWarning;
 
     if (shouldDelete) {
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       delete errorMessages[errorKey];
     }
   }
@@ -464,6 +466,7 @@ export function ActionableItems({event, project, isShare}: ActionableItemsProps)
             return (
               <ExpandableErrorList
                 key={idx}
+                // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                 errorList={errorMessages[error]}
                 handleExpandClick={handleExpandClick}
               />

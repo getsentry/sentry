@@ -11,7 +11,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {getIssueFieldRenderer} from 'sentry/utils/dashboards/issueFieldRenderers';
 
 describe('getIssueFieldRenderer', function () {
-  let location, context, project, organization, data, user;
+  let location: any, context: any, project: any, organization: any, data: any, user: any;
 
   beforeEach(function () {
     context = initializeOrg({

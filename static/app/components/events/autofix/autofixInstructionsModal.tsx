@@ -34,7 +34,7 @@ export function AutofixInstructionsModal({
 
       <div>
         <FullSizeFieldGroup name="instruction" inline={false} flexibleControlStateSize>
-          {({id, name, onChange, onBlur, disabled, value}) => (
+          {({id, name, onChange, onBlur, disabled, value}: any) => (
             <FullSizeTextAreaField
               id={id}
               name={name}

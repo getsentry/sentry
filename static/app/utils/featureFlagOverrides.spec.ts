@@ -6,7 +6,7 @@ import localStorageWrapper from 'sentry/utils/localStorage';
 const LOCALSTORAGE_KEY = 'feature-flag-overrides';
 
 describe('FeatureFlagOverrides', () => {
-  let organization;
+  let organization: any;
   beforeEach(() => {
     localStorage.clear();
 

@@ -32,7 +32,7 @@ export class SentrySampledProfile extends Profile {
       }
     );
 
-    function resolveFrame(index): Frame {
+    function resolveFrame(index: any): Frame {
       const resolvedFrame = frameIndex[index];
       if (!resolvedFrame) {
         throw new Error(`Could not resolve frame ${index} in frame index`);
@@ -76,7 +76,7 @@ export class SentrySampledProfile extends Profile {
       let stack = stacks[sample!.stack_id].map(resolveFrame);
 
       if (options.frameFilter) {
-        stack = stack.filter(frame => options.frameFilter!(frame));
+        stack = stack.filter((frame: any) => options.frameFilter!(frame));
       }
 
       profile.appendSampleWithWeight(stack, sample.weight);

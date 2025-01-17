@@ -194,7 +194,7 @@ const tagColors = {
   tag: theme.blue300,
   codeowners: theme.pink300,
   release: theme.pink200,
-};
+} as const;
 
 const StyledHovercard = styled(Hovercard)`
   width: 400px;
@@ -205,7 +205,7 @@ const CommitIcon = styled(IconCommit)`
   flex-shrink: 0;
 `;
 
-const CommitMessage = styled(({message = '', date, ...props}) => (
+const CommitMessage = styled(({message = '', date, ...props}: any) => (
   <div {...props}>
     {message.split('\n')[0]}
     <CommitDate date={date} />
@@ -217,7 +217,7 @@ const CommitMessage = styled(({message = '', date, ...props}) => (
   hyphens: auto;
 `;
 
-const CommitDate = styled(({date, ...props}) => (
+const CommitDate = styled(({date, ...props}: any) => (
   <div {...props}>{moment(date).fromNow()}</div>
 ))`
   margin-top: ${space(0.5)};
@@ -236,8 +236,13 @@ const RuleReasonItem = styled('div')`
   gap: ${space(1)};
 `;
 
-const OwnershipTag = styled(({tagType, ...props}) => <div {...props}>{tagType}</div>)`
-  background: ${p => tagColors[p.tagType.indexOf('tags') === -1 ? p.tagType : 'tag']};
+const OwnershipTag = styled(({tagType, ...props}: any) => (
+  <div {...props}>{tagType}</div>
+))`
+  background: ${p =>
+    tagColors[
+      p.tagType.indexOf('tags') === -1 ? (p.tagType as keyof typeof tagColors) : 'tag'
+    ]};
   color: ${p => p.theme.white};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   padding: ${space(0.25)} ${space(0.5)};

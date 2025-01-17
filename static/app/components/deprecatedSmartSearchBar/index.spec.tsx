@@ -18,7 +18,7 @@ import {FieldKey} from 'sentry/utils/fields';
 import {ItemType} from './types';
 
 describe('SmartSearchBar', function () {
-  let defaultProps;
+  let defaultProps: any;
 
   beforeEach(function () {
     TagStore.reset();
@@ -1128,7 +1128,7 @@ describe('SmartSearchBar', function () {
       title: 'default search group',
       type: 'header',
       // childrenWrapper allows us to arrange the children with custom styles
-      childrenWrapper: props => (
+      childrenWrapper: (props: any) => (
         <div data-test-id="default-search-group-wrapper" {...props} />
       ),
       children: [

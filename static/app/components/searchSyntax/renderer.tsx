@@ -419,7 +419,7 @@ const InList = styled('span')`
   }
 `;
 
-const LogicGroup = styled(({children, ...props}) => (
+const LogicGroup = styled(({children, ...props}: any) => (
   <span {...props}>
     <span>(</span>
     {children}

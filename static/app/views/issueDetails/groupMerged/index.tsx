@@ -63,7 +63,7 @@ class GroupMergedView extends Component<Props, State> {
     this.listener?.();
   }
 
-  onGroupingChange = ({mergedItems, mergedLinks, loading, error}) => {
+  onGroupingChange = ({mergedItems, mergedLinks, loading, error}: any) => {
     if (mergedItems) {
       this.setState({
         mergedItems,

@@ -9,14 +9,14 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 jest.mock('sentry/actionCreators/indicator');
 
 describe('InvestigationRule', function () {
-  let context;
-  let organization;
-  let project;
-  let eventView;
+  let context: any;
+  let organization: any;
+  let project: any;
+  let eventView: any;
 
   const buttonText = /Get Samples/i;
   const labelText = /Collecting samples/i;
-  let getRuleMock; // the endpoint that checks if a rule exists
+  let getRuleMock: any; // the endpoint that checks if a rule exists
 
   function initialize(config = {}) {
     context = initializeOrg(config);

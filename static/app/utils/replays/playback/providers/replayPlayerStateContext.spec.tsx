@@ -46,10 +46,10 @@ const RRWEB_EVENTS = [
 ];
 
 describe('replayPlayerStateContext', () => {
-  let replayerOnMock;
-  let replayerOffMock;
-  let replayerPlayMock;
-  let replayerPauseMock;
+  let replayerOnMock: any;
+  let replayerOffMock: any;
+  let replayerPlayMock: any;
+  let replayerPauseMock: any;
 
   beforeEach(() => {
     replayerOnMock = jest.spyOn(Replayer.prototype, 'on').mockImplementation(jest.fn());

@@ -129,8 +129,10 @@ export function getEventTimestamp(event: Event): string | number | undefined {
   for (const key of timestampsFieldCandidates) {
     if (
       key in event &&
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       (typeof event[key] === 'string' || typeof event[key] === 'number')
     ) {
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       return event[key];
     }
   }

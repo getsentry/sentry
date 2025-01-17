@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
 
-function ObjectView({obj}: {obj: object}) {
+function ObjectView({obj}: {obj: Record<string, unknown> | unknown[]}) {
   if (Array.isArray(obj)) {
     return (
       <ListContainer>

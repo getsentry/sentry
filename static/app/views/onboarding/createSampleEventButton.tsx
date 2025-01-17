@@ -81,7 +81,7 @@ class CreateSampleEventButton extends Component<CreateSampleEventButtonProps, St
 
   private _isMounted = true;
 
-  recordAnalytics({eventCreated, retries, duration}) {
+  recordAnalytics({eventCreated, retries, duration}: any) {
     const {organization, project, source} = this.props;
 
     if (!project) {
@@ -104,7 +104,7 @@ class CreateSampleEventButton extends Component<CreateSampleEventButtonProps, St
   createSampleGroup = async () => {
     // TODO(dena): swap out for action creator
     const {api, organization, project, onCreateSampleGroup} = this.props;
-    let eventData;
+    let eventData: any;
 
     if (!project) {
       return;

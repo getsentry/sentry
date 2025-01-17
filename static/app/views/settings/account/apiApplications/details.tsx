@@ -113,7 +113,7 @@ function ApiApplicationsDetails() {
 
           <PanelBody>
             <FormField name="clientID" label="Client ID">
-              {({value}) => (
+              {({value}: any) => (
                 <TextCopyInput>
                   {getDynamicText({value, fixed: 'CI_CLIENT_ID'})}
                 </TextCopyInput>
@@ -126,7 +126,7 @@ function ApiApplicationsDetails() {
               help={t(`Your secret is only available briefly after application creation. Make
                   sure to save this value!`)}
             >
-              {({value}) =>
+              {({value}: any) =>
                 value ? (
                   <TextCopyInput>
                     {getDynamicText({value, fixed: 'CI_CLIENT_SECRET'})}

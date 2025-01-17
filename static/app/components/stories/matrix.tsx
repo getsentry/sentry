@@ -92,7 +92,7 @@ function replacer(this: any, _key: string, value: any) {
   return value;
 }
 
-function item(Component, props, sizingWindowProps) {
+function item(Component: any, props: any, sizingWindowProps: any) {
   const hasChildren = 'children' in props;
 
   if (hasChildren) {

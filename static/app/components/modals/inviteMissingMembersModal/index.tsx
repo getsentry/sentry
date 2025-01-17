@@ -277,7 +277,9 @@ export function InviteMissingMembersModal({
                 data-test-id="select-teams"
                 disabled={!isTeamRolesAllowed}
                 placeholder={isTeamRolesAllowed ? t('None') : t('Role cannot join teams')}
-                onChange={opts => setTeams(opts ? opts.map(v => v.value) : [], i)}
+                onChange={(opts: any) =>
+                  setTeams(opts ? opts.map((v: any) => v.value) : [], i)
+                }
                 multiple
                 clearable
                 menuPortalTarget={modalContainerRef?.current}

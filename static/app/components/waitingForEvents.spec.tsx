@@ -8,7 +8,7 @@ import WaitingForEvents from 'sentry/components/waitingForEvents';
 
 describe('WaitingForEvents', function () {
   let getIssues: jest.Func;
-  let router;
+  let router: any;
 
   beforeEach(function () {
     router = RouterFixture();

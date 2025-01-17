@@ -96,7 +96,7 @@ export function WizardProjectSelection({
           label: org.name || org.slug,
           leadingItems: <OrganizationAvatar size={16} organization={org} />,
         }))
-        .toSorted((a, b) => a.label.localeCompare(b.label)),
+        .toSorted((a: any, b: any) => a.label.localeCompare(b.label)),
     [organizations]
   );
 

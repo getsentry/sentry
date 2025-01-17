@@ -120,7 +120,7 @@ export function OrganizationFeatureFlagsIndex() {
     },
   });
 
-  const addNewProvider = hasAccess => (
+  const addNewProvider = (hasAccess: any) => (
     <Tooltip
       title={t('You must be an organization member to add a provider.')}
       disabled={hasAccess}

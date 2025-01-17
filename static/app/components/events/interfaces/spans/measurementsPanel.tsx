@@ -44,7 +44,7 @@ function MeasurementsPanel(props: Props) {
         }
 
         const vitalLabels: VitalLabel[] = Object.keys(verticalMark.marks).map(name => ({
-          vital: VITAL_DETAILS[`measurements.${name}`],
+          vital: VITAL_DETAILS[`measurements.${name}` as keyof typeof VITAL_DETAILS],
           isPoorValue: verticalMark.marks[name]!.failedThreshold,
         }));
 

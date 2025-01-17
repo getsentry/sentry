@@ -131,7 +131,7 @@ describe('makeUndoableReducer', () => {
   });
 
   it('can peek previous and next state', () => {
-    const simpleReducer = (state, action) =>
+    const simpleReducer = (state: any, action: any) =>
       action.type === 'add' ? state + 1 : state - 1;
 
     const {result} = renderHook(

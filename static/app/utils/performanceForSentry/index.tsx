@@ -271,14 +271,14 @@ const addAssetMeasurements = (transaction: TransactionEvent) => {
   let allTransfered = 0;
   let allEncoded = 0;
   let hasAssetTimings = false;
-  const getOperation = data => data.operation ?? '';
-  const getTransferSize = data =>
+  const getOperation = (data: any) => data.operation ?? '';
+  const getTransferSize = (data: any) =>
     data['http.response_transfer_size'] ?? data['Transfer Size'] ?? 0;
-  const getEncodedSize = data =>
+  const getEncodedSize = (data: any) =>
     data['http.response_content_length'] ?? data['Encoded Body Size'] ?? 0;
-  const getDecodedSize = data =>
+  const getDecodedSize = (data: any) =>
     data['http.decoded_response_content_length'] ?? data['Decoded Body Size'] ?? 0;
-  const getFields = data => ({
+  const getFields = (data: any) => ({
     operation: getOperation(data),
     transferSize: getTransferSize(data),
     encodedSize: getEncodedSize(data),
