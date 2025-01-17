@@ -29,10 +29,8 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {getSearchForIssueGroup, IssueGroup} from 'sentry/views/issueList/utils';
 
 interface SidebarItemProps {
   item: NavSidebarItem;
@@ -143,29 +141,7 @@ export function PrimaryNavigationItems() {
             label: t('Issues'),
             icon: <IconIssues />,
             analyticsKey: 'issues',
-            submenu: [
-              {
-                label: t('All'),
-                to: `/${prefix}/issues/?query=is:unresolved`,
-              },
-              {
-                label: t('Error & Outage'),
-                to: `/${prefix}/issues/${getSearchForIssueGroup(IssueGroup.ERROR_OUTAGE)}`,
-              },
-              {
-                label: t('Trend'),
-                to: `/${prefix}/issues/${getSearchForIssueGroup(IssueGroup.TREND)}`,
-              },
-              {
-                label: t('Craftsmanship'),
-                to: `/${prefix}/issues/${getSearchForIssueGroup(IssueGroup.CRAFTSMANSHIP)}`,
-              },
-              {
-                label: t('Security'),
-                to: `/${prefix}/issues/${getSearchForIssueGroup(IssueGroup.SECURITY)}`,
-              },
-              {label: t('Feedback'), to: `/${prefix}/feedback/`},
-            ],
+            to: `/${prefix}/issues/`,
           }}
         />
         <SidebarItem
@@ -181,45 +157,7 @@ export function PrimaryNavigationItems() {
             label: t('Explore'),
             icon: <IconSearch />,
             analyticsKey: 'explore',
-            submenu: [
-              {
-                label: t('Traces'),
-                to: `/${prefix}/traces/`,
-                feature: {features: 'performance-trace-explorer'},
-              },
-              {
-                label: t('Metrics'),
-                to: `/${prefix}/metrics/`,
-                feature: {features: 'custom-metrics'},
-              },
-              {
-                label: t('Profiles'),
-                to: `/${prefix}/profiling/`,
-                feature: {
-                  features: 'profiling',
-                  hookName: 'feature-disabled:profiling-sidebar-item',
-                  requireAll: false,
-                },
-              },
-              {
-                label: t('Replays'),
-                to: `/${prefix}/replays/`,
-                feature: {
-                  features: 'session-replay-ui',
-                  hookName: 'feature-disabled:replay-sidebar-item',
-                },
-              },
-              {
-                label: t('Discover'),
-                to: getDiscoverLandingUrl(organization),
-                feature: {
-                  features: 'discover-basic',
-                  hookName: 'feature-disabled:discover2-sidebar-item',
-                },
-              },
-              {label: t('Releases'), to: `/${prefix}/releases/`},
-              {label: t('Crons'), to: `/${prefix}/crons/`},
-            ],
+            to: `/${prefix}/traces/`,
           }}
         />
         <Feature features={['performance-view']}>
@@ -228,24 +166,7 @@ export function PrimaryNavigationItems() {
               label: t('Insights'),
               icon: <IconGraph />,
               analyticsKey: 'insights-domains',
-              submenu: [
-                {
-                  label: t('Frontend'),
-                  to: `/${prefix}/domain-views/frontend/`,
-                },
-                {
-                  label: t('Backend'),
-                  to: `/${prefix}/domain-views/backend/`,
-                },
-                {
-                  label: t('Mobile'),
-                  to: `/${prefix}/domain-views/mobile/`,
-                },
-                {
-                  label: t('AI'),
-                  to: `/${prefix}/domain-views/ai/`,
-                },
-              ],
+              to: `/${prefix}/insights/frontend/`,
             }}
           />
         </Feature>
@@ -322,7 +243,7 @@ export function PrimaryNavigationItems() {
             label: t('Settings'),
             icon: <IconSettings />,
             analyticsKey: 'settings',
-            to: `/settings/${organization.slug}/`,
+            to: `/${prefix}/settings/organization/`,
           }}
         />
       </SidebarFooter>
