@@ -1504,85 +1504,21 @@ class BaseQueryBuilder:
     def get_snql_query(self) -> Request:
         self.validate_having_clause()
 
-        def check_tags(expression: Column | Function) -> bool:
-            if isinstance(expression, Column):
-                if (
-                    expression.entity.name == "events"
-                    and expression.name.startswith("tags[")
-                    and expression.name.endswith("]")
-                ):
-                    return True
-            elif isinstance(expression, Function):
-                for parameter in expression.parameters:
-                    if isinstance(parameter, (Column, Function)):
-                        return check_tags(parameter)
-            return False
-
-        def check_tags_in_condition(condition: WhereType):
-            if isinstance(condition, Condition):
-                return check_tags(condition.lhs)
-            elif isinstance(condition, BooleanCondition):
-                return any(check_tags_in_condition(cond) for cond in condition.conditions)
-            else:
-                return False
-
-        def replace_tags(expression: Column | Function) -> bool:
-            if isinstance(expression, Column):
-                if expression.name.startswith("tags[") and expression.name.endswith("]"):
-                    return Column(
-                        name=f"features[{expression.name[5:-1]}]",
-                        entity=expression.entity,
-                    )
-            elif isinstance(expression, Function):
-                for parameter in expression.parameters:
-                    if isinstance(parameter, (Column, Function)):
-                        return replace_tags(parameter)
-            return expression
-
-        def replace_tags_in_condition(condition: WhereType):
-            if isinstance(condition, Condition):
-                return replace_tags(condition.lhs)
-            elif isinstance(condition, BooleanCondition):
-                return any(replace_tags_in_condition(cond) for cond in condition.conditions)
-            else:
-                return False
-
-        # This should help us find the recommended event?
-        new_where = [
-            (
-                Or(
-                    conditions=[
-                        condition,
-                        Condition(
-                            lhs=replace_tags_in_condition(condition.lhs),
-                            op=condition.op,
-                            rhs=condition.rhs,
-                        ),
-                    ]
-                )
-                if check_tags_in_condition(condition.lhs)
-                else condition
-            )
-            for condition in self.where
-        ]
-
-        query = Query(
-            match=Entity(self._get_entity_name(), sample=self.sample_rate),
-            select=self.columns,
-            array_join=self.array_join,
-            where=new_where,
-            having=self.having,
-            groupby=self.groupby,
-            orderby=self.orderby,
-            limit=self.limit,
-            offset=self.offset,
-            limitby=self.limitby,
-        )
-
         return Request(
             dataset=self.dataset.value,
             app_id="default",
-            query=query,
+            query=Query(
+                match=Entity(self._get_entity_name(), sample=self.sample_rate),
+                select=self.columns,
+                array_join=self.array_join,
+                where=self.where,
+                having=self.having,
+                groupby=self.groupby,
+                orderby=self.orderby,
+                limit=self.limit,
+                offset=self.offset,
+                limitby=self.limitby,
+            ),
             flags=Flags(turbo=self.turbo),
             tenant_ids=self.tenant_ids,
         )
