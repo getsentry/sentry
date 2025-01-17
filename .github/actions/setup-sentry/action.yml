@@ -214,13 +214,12 @@ runs:
       run: |
         sentry init
 
+        # This is necessary to bring up devservices with appropriate sentry config
+        cd "$WORKDIR"
+
         devservices up --mode ${{ inputs.mode }}
 
         # have tests listen on the docker gateway ip so loopback can occur
         echo "DJANGO_LIVE_TEST_SERVER_ADDRESS=$(docker network inspect bridge --format='{{(index .IPAM.Config 0).Gateway}}')" >> "$GITHUB_ENV"
 
         docker ps -a
-
-        # This is necessary when other repositories (e.g. relay) want to take advantage of this workflow
-        # without needing to fork it. The path needed is the one where tools are located
-        cd "$WORKDIR"

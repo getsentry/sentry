@@ -17,7 +17,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 interface HighlightsSettingsFormProps {
-  projectSlug;
+  projectSlug: any;
 }
 
 export default function HighlightsSettingsForm({

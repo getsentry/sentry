@@ -42,7 +42,7 @@ type Props = {
   transactionName: string;
   transactionThreshold: number | undefined;
   transactionThresholdMetric: TransactionThresholdMetric | undefined;
-  onApply?: (threshold, metric) => void;
+  onApply?: (threshold: any, metric: any) => void;
   project?: string;
 } & ModalRenderProps;
 

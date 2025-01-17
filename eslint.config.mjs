@@ -12,14 +12,18 @@
 import * as emotion from '@emotion/eslint-plugin';
 import eslint from '@eslint/js';
 import prettier from 'eslint-config-prettier';
+// @ts-expect-error TS(7016): Could not find a declaration file
 import importPlugin from 'eslint-plugin-import';
 import jest from 'eslint-plugin-jest';
 import jestDom from 'eslint-plugin-jest-dom';
 import react from 'eslint-plugin-react';
+// @ts-expect-error TS(7016): Could not find a declaration file
 import reactHooks from 'eslint-plugin-react-hooks';
+// @ts-expect-error TS(7016): Could not find a declaration file
 import sentry from 'eslint-plugin-sentry';
 import simpleImportSort from 'eslint-plugin-simple-import-sort';
 import testingLibrary from 'eslint-plugin-testing-library';
+// @ts-expect-error TS (7016): Could not find a declaration file
 import typescriptSortKeys from 'eslint-plugin-typescript-sort-keys';
 import globals from 'globals';
 import invariant from 'invariant';
@@ -408,7 +412,6 @@ export default typescript.config([
       // Recommended overrides
       '@typescript-eslint/ban-ts-comment': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-array-constructor': 'off', // TODO(ryan953): Fix violations and delete this line
-      '@typescript-eslint/no-duplicate-enum-values': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-empty-object-type': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-explicit-any': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-extra-non-null-assertion': 'off', // TODO(ryan953): Fix violations and delete this line
@@ -423,7 +426,6 @@ export default typescript.config([
       '@typescript-eslint/no-dynamic-delete': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-extraneous-class': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-invalid-void-type': 'off', // TODO(ryan953): Fix violations and delete this line
-      '@typescript-eslint/no-non-null-asserted-nullish-coalescing': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-non-null-assertion': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/prefer-literal-enum-member': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/unified-signatures': 'off', // TODO(ryan953): Fix violations and delete this line
@@ -434,7 +436,6 @@ export default typescript.config([
       '@typescript-eslint/consistent-generic-constructors': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/consistent-indexed-object-style': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/consistent-type-definitions': 'off', // TODO(ryan953): Fix violations and delete this line
-      '@typescript-eslint/no-confusing-non-null-assertion': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-empty-function': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-inferrable-types': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/prefer-for-of': 'off', // TODO(ryan953): Fix violations and delete this line
@@ -548,7 +549,7 @@ export default typescript.config([
       '@emotion/no-vanilla': 'error',
       '@emotion/pkg-renaming': 'off', // Not needed, we have migrated to v11 and the old package names cannot be used anymore
       '@emotion/styled-import': 'error',
-      '@emotion/syntax-preference': ['off', 'string'], // TODO(ryan953): Enable this so `css={css``}` is required
+      '@emotion/syntax-preference': ['error', 'string'],
     },
   },
   {

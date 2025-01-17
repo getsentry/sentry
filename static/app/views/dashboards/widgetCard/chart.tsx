@@ -234,7 +234,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
     }
   };
 
-  chartComponent(chartProps): React.ReactNode {
+  chartComponent(chartProps: any): React.ReactNode {
     const {widget} = this.props;
     const stacked = widget.queries[0]!?.columns.length > 0;
 
@@ -405,7 +405,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
         axisPointer: {
           type: 'cross',
         },
-        formatter: (params, asyncTicket) => {
+        formatter: (params: any, asyncTicket: any) => {
           const {chartGroup} = this.props;
           const isInGroup =
             chartGroup && chartGroup === this.chartRef?.getEchartsInstance().group;
@@ -537,7 +537,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
 
 export default withTheme(WidgetCardChart);
 
-const StyledTransparentLoadingMask = styled(props => (
+const StyledTransparentLoadingMask = styled((props: any) => (
   <TransparentLoadingMask {...props} maskBackgroundColor="transparent" />
 ))`
   display: flex;

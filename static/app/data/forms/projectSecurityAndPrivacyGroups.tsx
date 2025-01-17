@@ -21,6 +21,7 @@ const hasOrgOverride = ({
 }: {
   name: string;
   organization: Organization;
+  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
 }) => organization[name];
 
 function hasProjectWriteAndOrgOverride({
@@ -62,10 +63,10 @@ const formGroups: JsonFormObject[] = [
       {
         name: 'storeCrashReports',
         type: 'select',
-        label: t('Store Native Crash Reports'),
+        label: t('Store Minidumps As Attachments'),
         help: ({organization}) =>
           tct(
-            'Store native crash reports such as Minidumps for improved processing and download in issue details. Overrides [organizationSettingsLink: organization settings].',
+            'Store minidumps as attachments for improved processing and download in issue details. Overrides [organizationSettingsLink: organization settings].',
             {
               organizationSettingsLink: (
                 <Link to={`/settings/${organization.slug}/security-and-privacy/`} />
