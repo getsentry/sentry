@@ -417,8 +417,8 @@ type ContainerProps = SharedProps & {
 export default function ContextPickerModalContainer(props: ContainerProps) {
   const {allowAllProjectsSelection, configUrl, projectSlugs} = props;
 
-  const [organizations, setOrganizations] = useState<Organization[]>(
-    () => OrganizationsStore.getAll()
+  const [organizations, setOrganizations] = useState<Organization[]>(() =>
+    OrganizationsStore.getAll()
   );
   useEffect(() => {
     const unsubscribe = OrganizationsStore.listen(setOrganizations, undefined);
