@@ -1,4 +1,3 @@
-import {useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
@@ -38,8 +37,6 @@ export function IssueViewQueryCount({view}: IssueViewQueryCountProps) {
   const pageFilters = usePageFilters();
   const theme = useTheme();
 
-  const [count, setCount] = useState<number>(0);
-
   // TODO(msun): Once page filters are saved to views, remember to use the view's specific
   // page filters here instead of the global pageFilters, if they exist.
   const {
@@ -55,17 +52,15 @@ export function IssueViewQueryCount({view}: IssueViewQueryCountProps) {
     ...constructCountTimeFrame(pageFilters.selection.datetime),
   });
 
-  useEffect(() => {
-    // Only update the count once the query has finished fetching
-    // This preserves the previous count while the query is fetching a new one
-    if (queryCount && !isFetching) {
-      setCount(
-        queryCount?.[view.unsavedChanges ? view.unsavedChanges[0] : view.query] ?? 0
-      );
-    } else if (isError) {
-      setCount(0);
-    }
-  }, [queryCount, isFetching, isError, view.query, view.unsavedChanges]);
+  // The endpoint's response type looks like this: { <query1>: <count>, <query2>: <count> }
+  // But this component only ever sends one query, so we can just get the count of the first key.
+  // This is a bit hacky, but it avoids having to use a state to store the previous query
+  // when the query changes and the new data is still being fetched.
+  const count = isError
+    ? 0
+    : Object.keys(queryCount ?? {}).length > 0
+      ? queryCount?.[Object.keys(queryCount)[0]!]
+      : 0;
 
   return (
     <QueryCountBubble
