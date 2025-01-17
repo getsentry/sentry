@@ -29,10 +29,10 @@ class EncryptedStringFieldTest(TestCase):
         obj = EncryptedStringFieldTestModel.objects.create(encrypted_string="")
         self.assertEqual(obj.encrypted_string, "")
 
-    def test_encrypted_field_raw_value_is_encrypted(self):
+    def test_encrypted_field_raw_value_is_bytes(self):
         field = EncryptedStringField()
         raw_value = field.get_prep_value("test")
-        self.assertNotEqual(raw_value, "test")
+        self.assertTrue(type(raw_value) is bytes)
 
     def test_encrypt_and_decrypt_value(self):
         obj = EncryptedStringFieldTestModel.objects.create(encrypted_string="test")
