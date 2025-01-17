@@ -1,4 +1,6 @@
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {SentryAppFixture} from 'sentry-fixture/sentryApp';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -14,7 +16,7 @@ import {
 import OrganizationDeveloperSettings from 'sentry/views/settings/organizationDeveloperSettings/index';
 
 describe('Organization Developer Settings', function () {
-  const {organization: org, routerProps, router} = initializeOrg();
+  const {organization: org} = initializeOrg();
   const sentryApp = SentryAppFixture({
     scopes: [
       'team:read',
@@ -36,7 +38,7 @@ describe('Organization Developer Settings', function () {
         url: `/organizations/${org.slug}/sentry-apps/`,
         body: [],
       });
-      render(<OrganizationDeveloperSettings {...routerProps} organization={org} />);
+      render(<OrganizationDeveloperSettings />);
       await waitFor(() => {
         expect(
           screen.getByText('No internal integrations have been created yet.')
@@ -53,25 +55,21 @@ describe('Organization Developer Settings', function () {
       });
     });
 
-    it('internal integrations list is empty', () => {
-      render(<OrganizationDeveloperSettings {...routerProps} organization={org} />, {
-        organization: org,
-      });
+    it('internal integrations list is empty', async () => {
+      render(<OrganizationDeveloperSettings />);
       expect(
-        screen.getByText('No internal integrations have been created yet.')
+        await screen.findByText('No internal integrations have been created yet.')
       ).toBeInTheDocument();
     });
 
-    it('public integrations list contains 1 item', () => {
-      render(
-        <OrganizationDeveloperSettings
-          {...routerProps}
-          organization={org}
-          location={{...router.location, query: {type: 'public'}}}
-        />,
-        {organization: org}
-      );
-      expect(screen.getByText('Sample App')).toBeInTheDocument();
+    it('public integrations list contains 1 item', async () => {
+      const router = RouterFixture({
+        location: LocationFixture({query: {type: 'public'}}),
+      });
+      render(<OrganizationDeveloperSettings />, {
+        router,
+      });
+      expect(await screen.findByText('Sample App')).toBeInTheDocument();
       expect(screen.getByText('unpublished')).toBeInTheDocument();
     });
 
@@ -81,13 +79,12 @@ describe('Organization Developer Settings', function () {
         method: 'DELETE',
         body: [],
       });
-      render(
-        <OrganizationDeveloperSettings
-          {...routerProps}
-          organization={org}
-          location={{...router.location, query: {type: 'public'}}}
-        />
-      );
+      const router = RouterFixture({
+        location: LocationFixture({query: {type: 'public'}}),
+      });
+      render(<OrganizationDeveloperSettings />, {
+        router,
+      });
 
       const deleteButton = await screen.findByRole('button', {name: 'Delete'});
       expect(deleteButton).toHaveAttribute('aria-disabled', 'false');
@@ -111,14 +108,13 @@ describe('Organization Developer Settings', function () {
         url: `/sentry-apps/${sentryApp.slug}/publish-request/`,
         method: 'POST',
       });
+      const router = RouterFixture({
+        location: LocationFixture({query: {type: 'public'}}),
+      });
 
-      render(
-        <OrganizationDeveloperSettings
-          {...routerProps}
-          organization={org}
-          location={{...router.location, query: {type: 'public'}}}
-        />
-      );
+      render(<OrganizationDeveloperSettings />, {
+        router,
+      });
 
       const publishButton = await screen.findByRole('button', {name: 'Publish'});
 
@@ -173,37 +169,34 @@ describe('Organization Developer Settings', function () {
         body: [publishedSentryApp],
       });
     });
-    it('shows the published status', () => {
-      render(
-        <OrganizationDeveloperSettings
-          {...routerProps}
-          organization={org}
-          location={{...router.location, query: {type: 'public'}}}
-        />
-      );
-      expect(screen.getByText('published')).toBeInTheDocument();
+    it('shows the published status', async () => {
+      const router = RouterFixture({
+        location: LocationFixture({query: {type: 'public'}}),
+      });
+      render(<OrganizationDeveloperSettings />, {
+        router,
+      });
+      expect(await screen.findByText('published')).toBeInTheDocument();
     });
 
     it('trash button is disabled', async () => {
-      render(
-        <OrganizationDeveloperSettings
-          {...routerProps}
-          organization={org}
-          location={{...router.location, query: {type: 'public'}}}
-        />
-      );
+      const router = RouterFixture({
+        location: LocationFixture({query: {type: 'public'}}),
+      });
+      render(<OrganizationDeveloperSettings />, {
+        router,
+      });
       const deleteButton = await screen.findByRole('button', {name: 'Delete'});
       expect(deleteButton).toHaveAttribute('aria-disabled', 'true');
     });
 
     it('publish button is disabled', async () => {
-      render(
-        <OrganizationDeveloperSettings
-          {...routerProps}
-          organization={org}
-          location={{...router.location, query: {type: 'public'}}}
-        />
-      );
+      const router = RouterFixture({
+        location: LocationFixture({query: {type: 'public'}}),
+      });
+      render(<OrganizationDeveloperSettings />, {
+        router,
+      });
       const publishButton = await screen.findByRole('button', {name: 'Publish'});
       expect(publishButton).toHaveAttribute('aria-disabled', 'true');
     });
@@ -220,13 +213,13 @@ describe('Organization Developer Settings', function () {
     });
 
     it('allows deleting', async () => {
-      render(<OrganizationDeveloperSettings {...routerProps} organization={org} />);
+      render(<OrganizationDeveloperSettings />);
       const deleteButton = await screen.findByRole('button', {name: 'Delete'});
       expect(deleteButton).toHaveAttribute('aria-disabled', 'false');
     });
 
     it('publish button does not exist', () => {
-      render(<OrganizationDeveloperSettings {...routerProps} organization={org} />);
+      render(<OrganizationDeveloperSettings />);
       expect(screen.queryByText('Publish')).not.toBeInTheDocument();
     });
   });
@@ -240,27 +233,25 @@ describe('Organization Developer Settings', function () {
       });
     });
     it('trash button is disabled', async () => {
-      render(
-        <OrganizationDeveloperSettings
-          {...routerProps}
-          organization={newOrg}
-          location={{...router.location, query: {type: 'public'}}}
-        />,
-        {organization: newOrg}
-      );
+      const router = RouterFixture({
+        location: LocationFixture({query: {type: 'public'}}),
+      });
+      render(<OrganizationDeveloperSettings />, {
+        router,
+        organization: newOrg,
+      });
       const deleteButton = await screen.findByRole('button', {name: 'Delete'});
       expect(deleteButton).toHaveAttribute('aria-disabled', 'true');
     });
 
     it('publish button is disabled', async () => {
-      render(
-        <OrganizationDeveloperSettings
-          {...routerProps}
-          organization={newOrg}
-          location={{...router.location, query: {type: 'public'}}}
-        />,
-        {organization: newOrg}
-      );
+      const router = RouterFixture({
+        location: LocationFixture({query: {type: 'public'}}),
+      });
+      render(<OrganizationDeveloperSettings />, {
+        organization: newOrg,
+        router,
+      });
       const publishButton = await screen.findByRole('button', {name: 'Publish'});
       expect(publishButton).toHaveAttribute('aria-disabled', 'true');
     });
