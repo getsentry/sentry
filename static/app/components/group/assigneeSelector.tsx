@@ -8,8 +8,8 @@ import AssigneeSelectorDropdown, {
   type SuggestedAssignee,
 } from 'sentry/components/assigneeSelectorDropdown';
 import {Button} from 'sentry/components/button';
-import type {OnAssignCallback} from 'sentry/components/deprecatedAssigneeSelectorDropdown';
 import {t} from 'sentry/locale';
+import type {Actor} from 'sentry/types/core';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
@@ -24,6 +24,12 @@ interface AssigneeSelectorProps {
   memberList?: User[];
   owners?: Omit<SuggestedAssignee, 'assignee'>[];
 }
+
+export type OnAssignCallback = (
+  type: Actor['type'],
+  assignee: User | Actor,
+  suggestedAssignee?: SuggestedAssignee
+) => void;
 
 export function useHandleAssigneeChange({
   organization,
