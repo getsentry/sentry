@@ -516,7 +516,6 @@ module = [
     "sentry.testutils.helpers.task_runner",
     "sentry.testutils.skips",
     "sentry.toolbar.utils.*",
-    "sentry.trash.*",
     "sentry.types.*",
     "sentry.uptime.migrations.*",
     "sentry.usage_accountant.*",

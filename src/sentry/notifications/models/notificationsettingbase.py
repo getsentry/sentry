@@ -30,7 +30,3 @@ class NotificationSettingBase(DefaultFieldsModelExisting):
         except AssertionError as err:
             sentry_sdk.capture_exception(err)
         super().save(*args, **kwargs)
-
-
-# REQUIRED for migrations to run
-from sentry.trash import *  # NOQA
