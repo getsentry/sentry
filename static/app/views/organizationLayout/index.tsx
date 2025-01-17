@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import Footer from 'sentry/components/footer';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import Nav from 'sentry/components/nav';
+import {NavContextProvider} from 'sentry/components/nav/context';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import Sidebar from 'sentry/components/sidebar';
 import type {Organization} from 'sentry/types/organization';
@@ -55,16 +56,18 @@ interface LayoutProps extends Props {
 
 function AppLayout({children, organization}: LayoutProps) {
   return (
-    <AppContainer className="app">
-      <Nav />
-      {/* The `#main` selector is used to make the app content `inert` when an overlay is active */}
-      <BodyContainer id="main">
-        {organization && <OrganizationHeader organization={organization} />}
-        {organization && <DevToolInit />}
-        <Body>{children}</Body>
-        <Footer />
-      </BodyContainer>
-    </AppContainer>
+    <NavContextProvider>
+      <AppContainer className="app">
+        <Nav />
+        {/* The `#main` selector is used to make the app content `inert` when an overlay is active */}
+        <BodyContainer id="main">
+          {organization && <OrganizationHeader organization={organization} />}
+          {organization && <DevToolInit />}
+          <Body>{children}</Body>
+          <Footer />
+        </BodyContainer>
+      </AppContainer>
+    </NavContextProvider>
   );
 }
 
