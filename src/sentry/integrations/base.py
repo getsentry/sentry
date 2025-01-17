@@ -175,10 +175,6 @@ INTEGRATION_TYPE_TO_PROVIDER = {
     ],
 }
 
-INTEGRATION_PROVIDER_TO_TYPE = {
-    v: k for k, values in INTEGRATION_TYPE_TO_PROVIDER.items() for v in values
-}
-
 
 class IntegrationProvider(PipelineProvider, abc.ABC):
     """
