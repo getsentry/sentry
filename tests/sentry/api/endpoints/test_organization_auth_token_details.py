@@ -9,7 +9,7 @@ from sentry.testutils.silo import control_silo_test
 
 
 @control_silo_test
-class OrgAuthTokenDetailTest(APITestCase):
+class OrganizationAuthTokenDetailTest(APITestCase):
     endpoint = "sentry-api-0-org-auth-token-details"
 
     def test_simple(self):
@@ -125,7 +125,7 @@ class OrgAuthTokenDetailTest(APITestCase):
 
 
 @control_silo_test
-class OrgAuthTokenEditTest(APITestCase):
+class OrganizationAuthTokenEditTest(APITestCase):
     endpoint = "sentry-api-0-org-auth-token-details"
     method = "PUT"
 
@@ -283,7 +283,7 @@ class OrgAuthTokenEditTest(APITestCase):
 
 
 @control_silo_test
-class OrgAuthTokenDeleteTest(APITestCase):
+class OrganizationAuthTokenDeleteTest(APITestCase):
     endpoint = "sentry-api-0-org-auth-token-details"
     method = "DELETE"
 
@@ -374,7 +374,7 @@ class OrgAuthTokenDeleteTest(APITestCase):
 
 
 @control_silo_test
-class OrgAuthTokenDetailsPermissionTest(PermissionTestCase):
+class OrganizationAuthTokenDetailsPermissionTest(PermissionTestCase):
     putData = {"name": "token-1"}
 
     def setUp(self):
