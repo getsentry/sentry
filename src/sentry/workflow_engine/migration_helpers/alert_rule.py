@@ -17,7 +17,6 @@ from sentry.workflow_engine.models import (
     Action,
     ActionAlertRuleTriggerAction,
     AlertRuleDetector,
-    AlertRuleTriggerDataCondition,
     AlertRuleWorkflow,
     DataCondition,
     DataConditionGroup,
@@ -60,17 +59,71 @@ def get_action_type(alert_rule_trigger_action: AlertRuleTriggerAction) -> str | 
         return Action.Type.EMAIL
 
 
+def get_detector_trigger(
+    alert_rule_trigger: AlertRuleTrigger, priority: DetectorPriorityLevel
+) -> DataCondition | None:
+    """
+    Helper method to find the detector trigger corresponding to an AlertRuleTrigger.
+    Returns None if the detector trigger cannot be found.
+    """
+    alert_rule = alert_rule_trigger.alert_rule
+    try:
+        alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=alert_rule)
+    except AlertRuleDetector.DoesNotExist:
+        return None
+
+    detector = alert_rule_detector.detector
+    detector_data_condition_group = detector.workflow_condition_group
+    if detector_data_condition_group is None:
+        return None
+    try:
+        detector_trigger = DataCondition.objects.get(
+            condition_group=detector_data_condition_group,
+            condition_result=priority,
+        )
+    except DataCondition.DoesNotExist:
+        return None
+    return detector_trigger
+
+
+def get_action_filter(
+    alert_rule_trigger: AlertRuleTrigger, priority: DetectorPriorityLevel
+) -> DataCondition | None:
+    """
+    Helper method to find the action filter corresponding to an AlertRuleTrigger.
+    Returns None if the action filter cannot be found.
+    """
+    alert_rule = alert_rule_trigger.alert_rule
+    try:
+        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=alert_rule)
+    except AlertRuleWorkflow.DoesNotExist:
+        return None
+    workflow = alert_rule_workflow.workflow
+    workflow_dcgs = DataConditionGroup.objects.filter(workflowdataconditiongroup__workflow=workflow)
+    try:
+        action_filter = DataCondition.objects.get(
+            condition_group__in=workflow_dcgs,
+            comparison=priority,
+        )
+    except DataCondition.DoesNotExist:
+        return None
+    return action_filter
+
+
 def migrate_metric_action(
     alert_rule_trigger_action: AlertRuleTriggerAction,
-) -> tuple[Action, DataConditionGroupAction] | None:
-    try:
-        alert_rule_trigger_data_condition = AlertRuleTriggerDataCondition.objects.get(
-            alert_rule_trigger=alert_rule_trigger_action.alert_rule_trigger
-        )
-    except AlertRuleTriggerDataCondition.DoesNotExist:
-        logger.exception(
-            "AlertRuleTriggerDataCondition does not exist",
-            extra={"alert_rule_trigger_id": alert_rule_trigger_action.alert_rule_trigger.id},
+) -> tuple[Action, DataConditionGroupAction, ActionAlertRuleTriggerAction] | None:
+    alert_rule_trigger = alert_rule_trigger_action.alert_rule_trigger
+    priority = (
+        DetectorPriorityLevel.MEDIUM
+        if alert_rule_trigger.label == "warning"
+        else DetectorPriorityLevel.HIGH
+    )
+    action_filter = get_action_filter(alert_rule_trigger, priority)
+    if action_filter is None:
+        logger.error(
+            "Action filter does not exist",
+            extra={"alert_rule_trigger_id": alert_rule_trigger.id},
         )
         return None
 
@@ -97,15 +150,19 @@ def migrate_metric_action(
         target_type=alert_rule_trigger_action.target_type,
     )
     data_condition_group_action = DataConditionGroupAction.objects.create(
-        condition_group_id=alert_rule_trigger_data_condition.data_condition.condition_group.id,
+        condition_group_id=action_filter.condition_group.id,
         action_id=action.id,
     )
-    return action, data_condition_group_action
+    action_alert_rule_trigger_action = ActionAlertRuleTriggerAction.objects.create(
+        action_id=action.id,
+        alert_rule_trigger_action_id=alert_rule_trigger_action.id,
+    )
+    return action, data_condition_group_action, action_alert_rule_trigger_action
 
 
 def migrate_metric_data_conditions(
     alert_rule_trigger: AlertRuleTrigger,
-) -> tuple[DataCondition, DataCondition, AlertRuleTriggerDataCondition] | None:
+) -> tuple[DataCondition, DataCondition] | None:
     alert_rule = alert_rule_trigger.alert_rule
     # create a data condition for the Detector's data condition group with the
     # threshold and associated priority level
@@ -147,7 +204,7 @@ def migrate_metric_data_conditions(
         condition_group=data_condition_group,
         workflow=alert_rule_workflow.workflow,
     )
-    data_condition = DataCondition.objects.create(
+    action_filter = DataCondition.objects.create(
         comparison=(
             DetectorPriorityLevel.MEDIUM
             if alert_rule_trigger.label == "warning"
@@ -157,10 +214,7 @@ def migrate_metric_data_conditions(
         type=Condition.ISSUE_PRIORITY_EQUALS,
         condition_group=data_condition_group,
     )
-    alert_rule_trigger_data_condition = AlertRuleTriggerDataCondition.objects.create(
-        alert_rule_trigger=alert_rule_trigger, data_condition=data_condition
-    )
-    return detector_trigger, data_condition, alert_rule_trigger_data_condition
+    return detector_trigger, action_filter
 
 
 def get_resolve_threshold(detector_data_condition_group: DataConditionGroup) -> float:
@@ -245,14 +299,13 @@ def migrate_resolve_threshold_data_conditions(
         workflow=alert_rule_workflow.workflow,
     )
 
-    data_condition = DataCondition.objects.create(
+    action_filter = DataCondition.objects.create(
         comparison=DetectorPriorityLevel.OK,
         condition_result=True,
         type=Condition.ISSUE_PRIORITY_EQUALS,
         condition_group=data_condition_group,
     )
-    # XXX: can't make an AlertRuleTriggerDataCondition since this isn't really a trigger
-    return detector_trigger, data_condition
+    return detector_trigger, action_filter
 
 
 def create_metric_alert_lookup_tables(
@@ -536,62 +589,17 @@ def dual_delete_migrated_alert_rule_trigger(
     alert_rule_trigger: AlertRuleTrigger,
     user: RpcUser | None = None,
 ) -> None:
-    alert_rule = alert_rule_trigger.alert_rule
-    try:
-        alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=alert_rule)
-    except AlertRuleDetector.DoesNotExist:
-        # We run the dual delete even if the user isn't flagged into dual write.
-        # Just return early in this case.
-        return None
-
     priority = (
-        (
-            DetectorPriorityLevel.MEDIUM
-            if alert_rule_trigger.label == "warning"
-            else DetectorPriorityLevel.HIGH
-        ),
+        DetectorPriorityLevel.MEDIUM
+        if alert_rule_trigger.label == "warning"
+        else DetectorPriorityLevel.HIGH
     )
-
-    detector = alert_rule_detector.detector
-    detector_data_condition_group = detector.workflow_condition_group
-    if detector_data_condition_group is None:
-        logger.error("workflow_condition_group does not exist", extra={"detector": detector})
-        return None
-    try:
-        detector_trigger = DataCondition.objects.get(
-            condition_group=detector_data_condition_group,
-            comparison=alert_rule_trigger.alert_threshold,
-            condition_result=priority,
-        )
-    except DataCondition.DoesNotExist:
-        logger.exception(
-            "detector_trigger does not exist",
-            extra={"workflow_condition_group": detector_data_condition_group},
-        )
+    detector_trigger = get_detector_trigger(alert_rule_trigger, priority)
+    if detector_trigger is None:
         return None
 
-    action_filter = None
-    try:
-        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=alert_rule)
-    except AlertRuleWorkflow.DoesNotExist:
-        # This should not happen if the detector exists
-        logger.exception(
-            "AlertRuleWorkflow does not exist",
-            extra={"alert_rule_id": AlertRule.id},
-        )
-        return None
-    workflow = alert_rule_workflow.workflow
-    workflow_dcgs = WorkflowDataConditionGroup.objects.filter(workflow=workflow)
-    try:
-        action_filter = DataCondition.objects.get(
-            condition_group__in=workflow_dcgs,
-            comparison=priority,
-        )
-    except DataCondition.DoesNotExist:
-        logger.exception(
-            "action_filter does not exist",
-            extra={"workflow": workflow},
-        )
+    action_filter = get_action_filter(alert_rule_trigger, priority)
+    if action_filter is None:
         return None
 
     detector_trigger.delete()
