@@ -101,7 +101,7 @@ def derive_code_mappings(
     default_retry_delay=60 * 10,
     max_retries=3,
 )
-def auto_source_code_config(project_id: int, group_id: int, event_id: str) -> None:
+def auto_source_code_config(project_id: int, group_id: int, event_id: str, **kwargs: Any) -> None:
     """
     Process errors for customers with source code management installed and calculate code mappings
     among other things.
