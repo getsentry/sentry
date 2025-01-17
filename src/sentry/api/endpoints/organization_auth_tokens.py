@@ -33,7 +33,7 @@ from sentry.utils.security.orgauthtoken_token import (
 
 
 @control_silo_endpoint
-class OrgAuthTokensEndpoint(ControlSiloOrganizationEndpoint):
+class OrganizationAuthTokensEndpoint(ControlSiloOrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
         "POST": ApiPublishStatus.PRIVATE,

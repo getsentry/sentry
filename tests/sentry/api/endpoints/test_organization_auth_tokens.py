@@ -10,7 +10,7 @@ from sentry.utils.security.orgauthtoken_token import parse_token
 
 
 @control_silo_test
-class OrgAuthTokensListTest(APITestCase):
+class OrganizationAuthTokensListTest(APITestCase):
     endpoint = "sentry-api-0-org-auth-tokens"
 
     def test_simple(self):
@@ -108,7 +108,7 @@ class OrgAuthTokensListTest(APITestCase):
 
 
 @control_silo_test(regions=create_test_regions("us"))
-class OrgAuthTokenCreateTest(APITestCase):
+class OrganizationAuthTokenCreateTest(APITestCase):
     endpoint = "sentry-api-0-org-auth-tokens"
     method = "POST"
 
@@ -188,7 +188,7 @@ class OrgAuthTokenCreateTest(APITestCase):
 
 
 @control_silo_test
-class OrgAuthTokensPermissionTest(PermissionTestCase):
+class OrganizationAuthTokensPermissionTest(PermissionTestCase):
     postData = {"name": "token-1"}
 
     def setUp(self):
