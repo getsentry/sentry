@@ -1,13 +1,14 @@
+import {useCallback} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import TopRight from 'static/images/spot/highlight-top-right.svg';
-import sandboxDemo from 'static/images/spot/sandbox.jpg';
 
-import {Client} from 'sentry/api';
+import sandboxDemo from 'sentry-images/spot/sandbox.jpg';
+
 import {IconArrow} from 'sentry/icons';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EmailForm from 'sentry/utils/demoMode/emailForm';
 import {GetUTMData, UpdateTouches} from 'sentry/utils/demoMode/utm';
+import useApi from 'sentry/utils/useApi';
 
 type Props = {
   closeModal: () => void;
@@ -16,7 +17,9 @@ type Props = {
 };
 
 export default function Modal({onAddedEmail, closeModal, onFailure}: Props) {
-  const onBack = () => {
+  const api = useApi();
+
+  const handleBackClick = () => {
     // go back to the referrer or the welcome page
     let newUrl = 'https://sentry.io/welcome/';
     const {referrer} = window.document;
@@ -38,10 +41,39 @@ export default function Modal({onAddedEmail, closeModal, onFailure}: Props) {
 
     window.location.href = newUrl;
   };
+
+  const handleSubmit = useCallback(
+    async email => {
+      const utmState = GetUTMData();
+      if (closeModal) {
+        closeModal();
+      }
+
+      // always save the email before the API call
+      if (onAddedEmail) {
+        onAddedEmail(email);
+      }
+
+      try {
+        await api.requestPromise('/demo/email-capture/', {
+          method: 'POST',
+          data: {
+            ...utmState.data,
+            email,
+          },
+        });
+
+        UpdateTouches(utmState);
+      } catch (error) {
+        onFailure();
+      }
+    },
+    [api, closeModal, onFailure, onAddedEmail]
+  );
+
   return (
     <div>
-      <HighlightCorner src={TopRight} />
-      <BackButton onClick={onBack}>
+      <BackButton onClick={handleBackClick}>
         {<IconArrow direction="left" />} {'Go back'}
       </BackButton>
       <StartModal>
@@ -53,37 +85,7 @@ export default function Modal({onAddedEmail, closeModal, onFailure}: Props) {
             see Sentry in action and get updates about the latest and greatest features,
             enter your email below.
           </p>
-          <EmailForm
-            onSubmit={email => {
-              const utmState = GetUTMData();
-              if (closeModal) {
-                closeModal();
-              }
-
-              const api = new Client();
-
-              // always save the email before the API call
-              if (onAddedEmail) {
-                onAddedEmail(email);
-              }
-
-              api
-                .requestPromise('/demo/email-capture/', {
-                  method: 'POST',
-                  data: {
-                    ...utmState.data,
-                    email,
-                  },
-                })
-                .then(() => {
-                  UpdateTouches(utmState);
-                })
-                .catch((_: Error) => {
-                  onFailure();
-                });
-            }}
-            IconArrow={IconArrow}
-          />
+          <EmailForm onSubmit={handleSubmit} IconArrow={IconArrow} />
         </SignUpBody>
         <ImagePosition>
           <PositionRight src={sandboxDemo} />
@@ -102,14 +104,6 @@ const BackButton = styled('button')`
   padding: 6px 8px;
   display: flex;
   gap: 5px;
-`;
-
-const HighlightCorner = styled('img')`
-  position: absolute;
-  width: 350px;
-  right: 0;
-  top: 0;
-  pointer-events: none;
 `;
 
 const ImagePosition = styled('div')`

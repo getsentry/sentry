@@ -4,7 +4,9 @@ import {OnboardingTaskKey} from 'sentry/types/onboarding';
 
 import {demoEmailModal, demoSignupModal} from '../../actionCreators/modal';
 
-const SIGN_UP_MODAL_DELAY = 20_000;
+const SIGN_UP_MODAL_DELAY = 30_000;
+
+const DEMO_MODE_EMAIL_KEY = 'demo-mode:email';
 
 export function extraQueryParameter(): URLSearchParams {
   const extraQueryString = window.SandboxData?.extraQueryString || '';
@@ -49,7 +51,7 @@ export function openDemoEmailModal() {
   }
 
   // email already added
-  if (localStorage.getItem('sandbox_email_added') === '1') {
+  if (localStorage.getItem(DEMO_MODE_EMAIL_KEY)) {
     return;
   }
 
@@ -58,12 +60,7 @@ export function openDemoEmailModal() {
 
 function onAddedEmail(email) {
   setForceHide(false);
-  localStorage.setItem('email', email);
-  localStorage.setItem(
-    'time_entered',
-    JSON.stringify(Math.floor(new Date().getTime() / 1000))
-  );
-  localStorage.setItem('sandbox_email_added', '1');
+  localStorage.setItem(DEMO_MODE_EMAIL_KEY, email);
 }
 
 function handleFailure() {
