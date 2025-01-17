@@ -339,5 +339,5 @@ const SuggestedQueriesContainer = styled('div')`
   display: flex;
   flex-wrap: wrap;
   gap: ${space(1)};
-  margin-top: ${space(2)};
+  margin-top: ${space(1)};
 `;

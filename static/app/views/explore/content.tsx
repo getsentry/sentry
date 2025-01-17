@@ -311,7 +311,7 @@ const Body = styled(Layout.Body)`
   gap: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    grid-template-columns: 350px minmax(100px, auto);
+    grid-template-columns: 300px minmax(100px, auto);
     gap: ${space(2)};
   }
 
@@ -327,7 +327,7 @@ const TopSection = styled('div')`
   margin-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {
-    grid-template-columns: minmax(350px, auto) 1fr;
+    grid-template-columns: minmax(300px, auto) 1fr;
     margin-bottom: 0;
   }
 
