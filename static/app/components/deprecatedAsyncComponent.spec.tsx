@@ -114,7 +114,17 @@ describe('DeprecatedAsyncComponent', function () {
         .spyOn(MockApiClient.prototype, 'request')
         .mockImplementation((url, options) => {
           const timeout = url.includes('something') ? 100 : 50;
-          setTimeout(() => options?.success?.({message: 'good'}), timeout);
+          setTimeout(
+            () =>
+              options?.success?.({message: 'good'}, 'ok', {
+                status: 200,
+                statusText: 'ok',
+                getResponseHeader: () => 'ok',
+                responseJSON: () => ({message: 'good'}),
+                responseText: JSON.stringify({message: 'good'}),
+              }),
+            timeout
+          );
         });
       const mockOnAllEndpointsSuccess = jest.spyOn(
         MultiRouteComponent.prototype,
