@@ -270,7 +270,11 @@ class MonitorValidator(CamelSnakeSerializer):
         required=False,
         help_text="Disable creation of monitor incidents",
     )
-    type = serializers.ChoiceField(choices=list(zip(MONITOR_TYPES.keys(), MONITOR_TYPES.keys())))
+    type = serializers.ChoiceField(
+        choices=list(zip(MONITOR_TYPES.keys(), MONITOR_TYPES.keys())),
+        required=False,
+        default="cron_job",
+    )
     config = ConfigValidator()
     alert_rule = MonitorAlertRuleValidator(required=False)
 
