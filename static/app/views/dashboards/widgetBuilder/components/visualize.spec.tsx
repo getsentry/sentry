@@ -858,6 +858,30 @@ describe('Visualize', () => {
     expect(await screen.findByDisplayValue('400')).toBeInTheDocument();
   });
 
+  it('restricts deleting the last aggregate in release health widgets', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.RELEASE,
+              field: ['crash_free_rate(session)', 'environment'],
+            },
+          }),
+        }),
+      }
+    );
+
+    const removeButtons = await screen.findAllByRole('button', {name: 'Remove field'});
+    expect(removeButtons).toHaveLength(2);
+    expect(removeButtons[0]).toBeDisabled();
+    expect(removeButtons[1]).toBeEnabled();
+  });
+
   describe('spans', () => {
     beforeEach(() => {
       jest.mocked(useSpanTags).mockImplementation((type?: 'string' | 'number') => {
