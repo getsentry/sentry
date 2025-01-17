@@ -161,7 +161,7 @@ function DropdownMenuList({
       return null;
     }
 
-    const trigger = triggerProps => (
+    const trigger = (triggerProps: any) => (
       <DropdownMenuItem
         renderAs="div"
         node={node}

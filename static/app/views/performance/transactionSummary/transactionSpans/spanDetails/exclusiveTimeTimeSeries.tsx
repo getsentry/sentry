@@ -59,7 +59,7 @@ export default function ExclusiveTimeTimeSeries(props: Props) {
     'percentileArray(spans_exclusive_time, 0.99)',
   ];
 
-  const handleLegendSelectChanged = legendChange => {
+  const handleLegendSelectChanged = (legendChange: any) => {
     const {selected} = legendChange;
     const unselected = Object.keys(selected).filter(key => !selected[key]);
 
@@ -128,7 +128,7 @@ export default function ExclusiveTimeTimeSeries(props: Props) {
                 tooltip: {
                   trigger: 'axis' as const,
                   // p50() coerces the axis to be time based
-                  valueFormatter: (value, _seriesName) =>
+                  valueFormatter: (value: any, _seriesName: any) =>
                     tooltipFormatter(value, 'duration'),
                 },
                 xAxis: timeframe

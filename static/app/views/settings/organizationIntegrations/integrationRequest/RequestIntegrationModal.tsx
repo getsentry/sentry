@@ -102,7 +102,7 @@ export default class RequestIntegrationModal extends DeprecatedAsyncComponent<
             stacked
             name="message"
             type="string"
-            onChange={value => this.setState({message: value})}
+            onChange={(value: any) => this.setState({message: value})}
             placeholder={t('Optional message…')}
           />
           <TextBlock>

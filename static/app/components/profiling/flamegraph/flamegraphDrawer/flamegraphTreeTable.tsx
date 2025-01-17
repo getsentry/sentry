@@ -129,14 +129,14 @@ export function FlamegraphTreeTable({
   const fixedRenderRow: UseVirtualizedTreeProps<FlamegraphFrame>['renderRow'] =
     useCallback(
       (
-        r,
+        r: any,
         {
           handleRowClick,
           handleRowMouseEnter,
           handleExpandTreeNode,
           handleRowKeyDown,
           selectedNodeIndex,
-        }
+        }: any
       ) => {
         return (
           <CallTreeTableRow
@@ -179,14 +179,14 @@ export function FlamegraphTreeTable({
   const dynamicRenderRow: UseVirtualizedTreeProps<FlamegraphFrame>['renderRow'] =
     useCallback(
       (
-        r,
+        r: any,
         {
           handleRowClick,
           handleRowMouseEnter,
           handleExpandTreeNode,
           handleRowKeyDown,
           selectedNodeIndex,
-        }
+        }: any
       ) => {
         return (
           <CallTreeTableRow

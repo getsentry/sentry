@@ -8,7 +8,7 @@ import TeamStore from 'sentry/stores/teamStore';
 import TeamDetails from 'sentry/views/settings/organizationTeams/teamDetails';
 
 describe('TeamMembers', () => {
-  let joinMock;
+  let joinMock: any;
 
   const organization = OrganizationFixture();
   const team = TeamFixture({hasAccess: false});

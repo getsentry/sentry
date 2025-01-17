@@ -48,7 +48,7 @@ class AcceptProjectTransfer extends DeprecatedAsyncComponent<Props, State> {
     return t('Accept Project Transfer');
   }
 
-  handleSubmit = formData => {
+  handleSubmit = (formData: any) => {
     this.api.request('/accept-transfer/', {
       method: 'POST',
       host: this.regionHost,
@@ -80,7 +80,7 @@ class AcceptProjectTransfer extends DeprecatedAsyncComponent<Props, State> {
     });
   };
 
-  renderError(error) {
+  renderError(error: any) {
     let disableLog = false;
     // Check if there is an error message with `transferDetails` endpoint
     // If so, show as toast and ignore, otherwise log to sentry

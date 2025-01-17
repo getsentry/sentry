@@ -6,10 +6,11 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from collections.abc import Callable, Iterable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timedelta, timezone
-from typing import Any, Protocol, TypedDict
+from typing import Any, Protocol, TypedDict, TypeGuard
 
 import sentry_sdk
 from django.conf import settings
+from django.contrib.auth.models import AnonymousUser
 from django.db.models import Min, prefetch_related_objects
 
 from sentry import tagstore
@@ -17,12 +18,11 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.api.serializers.models.plugin import is_plugin_deprecated
 from sentry.app import env
-from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import LOG_LEVELS
+from sentry.integrations.mixins.issues import IssueBasicIntegration
 from sentry.integrations.services.integration import integration_service
 from sentry.issues.grouptype import GroupCategory
-from sentry.models.apitoken import is_api_token_auth
 from sentry.models.commit import Commit
 from sentry.models.environment import Environment
 from sentry.models.group import Group, GroupStatus
@@ -39,7 +39,11 @@ from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.orgauthtoken import is_org_auth_token_auth
 from sentry.models.team import Team
-from sentry.notifications.helpers import collect_groups_by_project, get_subscription_from_attributes
+from sentry.notifications.helpers import (
+    SubscriptionDetails,
+    collect_groups_by_project,
+    get_subscription_from_attributes,
+)
 from sentry.notifications.services import notifications_service
 from sentry.notifications.types import NotificationSettingEnum
 from sentry.reprocessing2 import get_progress
@@ -52,6 +56,7 @@ from sentry.tsdb.snuba import SnubaTSDB
 from sentry.types.group import SUBSTATUS_TO_STR, PriorityLevel
 from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
 from sentry.utils.cache import cache
@@ -96,22 +101,7 @@ class GroupProjectResponse(TypedDict):
     id: str
     name: str
     slug: str
-    platform: str
-
-
-class GroupMetadataResponseOptional(TypedDict, total=False):
-    type: str
-    filename: str
-    function: str
-
-
-class GroupMetadataResponse(GroupMetadataResponseOptional):
-    value: str
-
-
-class GroupSubscriptionResponseOptional(TypedDict, total=False):
-    disabled: bool
-    reason: str
+    platform: str | None
 
 
 class BaseGroupResponseOptional(TypedDict, total=False):
@@ -127,23 +117,27 @@ class BaseGroupSerializerResponse(BaseGroupResponseOptional):
     shareId: str
     shortId: str
     title: str
-    culprit: str
+    culprit: str | None
     permalink: str
     logger: str | None
     level: str
     status: str
     statusDetails: GroupStatusDetailsResponseOptional
+    substatus: str | None
     isPublic: bool
-    platform: str
-    priority: str
+    platform: str | None
+    priority: str | None
+    priorityLockedAt: datetime | None
     project: GroupProjectResponse
     type: str
-    metadata: GroupMetadataResponse
+    issueType: str
+    issueCategory: str
+    metadata: Mapping[str, Any]
     numComments: int
     assignedTo: UserSerializerResponse
     isBookmarked: bool
     isSubscribed: bool
-    subscriptionDetails: GroupSubscriptionResponseOptional | None
+    subscriptionDetails: SubscriptionDetails | None
     hasSeen: bool
     annotations: Sequence[GroupAnnotation]
 
@@ -153,6 +147,11 @@ class SeenStats(TypedDict):
     first_seen: datetime | None
     last_seen: datetime | None
     user_count: int
+
+
+def _is_seen_stats(o: object) -> TypeGuard[SeenStats]:
+    # not a perfect check, but simulates what was being validated before
+    return isinstance(o, dict) and "times_seen" in o
 
 
 class GroupSerializerBase(Serializer, ABC):
@@ -189,8 +188,8 @@ class GroupSerializerBase(Serializer, ABC):
         return result
 
     def get_attrs(
-        self, item_list: Sequence[Group], user: Any, **kwargs: Any
-    ) -> MutableMapping[Group, MutableMapping[str, Any]]:
+        self, item_list: Sequence[Group], user: User | RpcUser | AnonymousUser, **kwargs: Any
+    ) -> dict[Group, dict[str, Any]]:
         GroupMeta.objects.populate_cache(item_list)
 
         # Note that organization is necessary here for use in `_get_permalink` to avoid
@@ -313,13 +312,18 @@ class GroupSerializerBase(Serializer, ABC):
         return result
 
     def serialize(
-        self, obj: Group, attrs: Mapping[str, Any], user: Any, **kwargs: Any
+        self,
+        obj: Group,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
     ) -> BaseGroupSerializerResponse:
         status_details, status_label = self._get_status(attrs, obj)
         permalink = self._get_permalink(attrs, obj)
         is_subscribed, subscription_details = get_subscription_from_attributes(attrs)
         share_id = attrs["share_id"]
-        group_dict = {
+        priority_label = PriorityLevel(obj.priority).to_str() if obj.priority else None
+        group_dict: BaseGroupSerializerResponse = {
             "id": str(obj.id),
             "shareId": share_id,
             "shortId": obj.qualified_short_id,
@@ -350,16 +354,14 @@ class GroupSerializerBase(Serializer, ABC):
             "annotations": attrs["annotations"],
             "issueType": obj.issue_type.slug,
             "issueCategory": obj.issue_category.name.lower(),
+            "priority": priority_label,
+            "priorityLockedAt": obj.priority_locked_at,
         }
-
-        priority_label = PriorityLevel(obj.priority).to_str() if obj.priority else None
-        group_dict["priority"] = priority_label
-        group_dict["priorityLockedAt"] = obj.priority_locked_at
 
         # This attribute is currently feature gated
         if "is_unhandled" in attrs:
             group_dict["isUnhandled"] = attrs["is_unhandled"]
-        if "times_seen" in attrs:
+        if _is_seen_stats(attrs):
             group_dict.update(self._convert_seen_stats(attrs))
         return group_dict
 
@@ -472,7 +474,7 @@ class GroupSerializerBase(Serializer, ABC):
         ) or {}
         agg_stats = {**error_stats, **generic_stats}
         # combine results back
-        return {group: agg_stats.get(group, {}) for group in item_list}
+        return {group: agg_stats[group] for group in item_list if group in agg_stats}
 
     def _get_group_snuba_stats(
         self, item_list: Sequence[Group], seen_stats: Mapping[Group, SeenStats] | None
@@ -490,7 +492,7 @@ class GroupSerializerBase(Serializer, ABC):
         for item, cache_key in zip(item_list, cache_keys):
             unhandled[item.id] = cache_data.get(cache_key)
 
-        filter_keys = {}
+        filter_keys: dict[str, list[int]] = {}
         for item in item_list:
             if unhandled.get(item.id) is not None:
                 continue
@@ -533,7 +535,7 @@ class GroupSerializerBase(Serializer, ABC):
         # based on a given "seen stats".  We try to pick a day prior to the earliest last seen,
         # but it has to be at least 14 days, and not more than 90 days ago.
         # Fallback to the 30 days ago if we are not able to calculate the value.
-        last_seen = None
+        last_seen: datetime | None = None
         if seen_stats:
             for item in seen_stats.values():
                 if last_seen is None or (item["last_seen"] and last_seen > item["last_seen"]):
@@ -549,8 +551,8 @@ class GroupSerializerBase(Serializer, ABC):
 
     @staticmethod
     def _get_subscriptions(
-        groups: Iterable[Group], user: User
-    ) -> Mapping[int, tuple[bool, bool, GroupSubscription | None]]:
+        groups: Iterable[Group], user: User | RpcUser
+    ) -> dict[int, tuple[bool, bool, GroupSubscription | None]]:
         """
         Returns a mapping of group IDs to a two-tuple of (is_disabled: bool,
         subscribed: bool, subscription: Optional[GroupSubscription]) for the
@@ -581,7 +583,7 @@ class GroupSerializerBase(Serializer, ABC):
         }
         groups_by_project = collect_groups_by_project(groups)
 
-        results = {}
+        results: dict[int, tuple[bool, bool, GroupSubscription | None]] = {}
         for project_id, group_set in groups_by_project.items():
             subscription_status = enabled_settings[project_id]
             for group in group_set:
@@ -631,7 +633,7 @@ class GroupSerializerBase(Serializer, ABC):
             )
         )
         _commit_resolutions = {
-            i.group_id: d for i, d in zip(commit_results, serialize(commit_results, user))
+            i.group_id: d for i, d in zip(commit_results, serialize(commit_results, user))  # type: ignore[attr-defined]  # django-stubs
         }
 
         return _release_resolutions, _commit_resolutions
@@ -663,6 +665,7 @@ class GroupSerializerBase(Serializer, ABC):
                 continue
 
             install = integration.get_installation(organization_id=org_id)
+            assert isinstance(install, IssueBasicIntegration), install
             local_annotations_by_group_id = (
                 safe_execute(install.get_annotations_for_group_list, group_list=groups) or {}
             )
@@ -703,12 +706,13 @@ class GroupSerializerBase(Serializer, ABC):
         # because the user isn't an org member. Instead we can use the auth token and the installation
         # it's associated with to find out what organization the token has access to.
         if (
-            request
+            request is not None
             and getattr(request.user, "is_sentry_app", False)
-            and is_api_token_auth(request.auth)
+            and request.auth is not None
+            and request.auth.kind == "api_token"
+            and request.auth.token_has_org_access(organization_id)
         ):
-            if AuthenticatedToken.from_token(request.auth).token_has_org_access(organization_id):
-                return True
+            return True
 
         if (
             request
@@ -743,17 +747,33 @@ class GroupSerializerBase(Serializer, ABC):
         }
 
 
+class _GroupUserCountsFunc(Protocol):
+    def __call__(
+        self,
+        project_ids: Sequence[int],
+        group_ids: Sequence[int],
+        environment_ids: Sequence[int] | None,
+        start: datetime | None = None,
+        end: datetime | None = None,
+        tenant_ids: dict[str, str | int] | None = None,
+        referrer: str = ...,
+    ) -> Mapping[int, int]: ...
+
+
+class _EnvironmentSeenStatsFunc(Protocol):
+    def __call__(
+        self,
+        project_ids: Sequence[int],
+        group_id_list: Sequence[int],
+        environment_ids: Sequence[int],
+        key: str,
+        value: str,
+        tenant_ids: dict[str, str | int] | None = None,
+    ) -> Mapping[int, GroupTagValue]: ...
+
+
 @register(Group)
 class GroupSerializer(GroupSerializerBase):
-    class GroupUserCountsFunc(Protocol):
-        def __call__(
-            self,
-            project_ids: Sequence[int],
-            item_ids: Sequence[int],
-            environment_ids: Sequence[int] | None,
-        ) -> Mapping[int, int]:
-            pass
-
     def __init__(
         self,
         collapse=None,
@@ -782,10 +802,8 @@ class GroupSerializer(GroupSerializerBase):
     def __seen_stats_impl(
         self,
         issue_list: Sequence[Group],
-        user_counts_func: GroupUserCountsFunc,
-        environment_seen_stats_func: Callable[
-            [Sequence[int], Sequence[int], Sequence[int], str, str], Mapping[int, GroupTagValue]
-        ],
+        user_counts_func: _GroupUserCountsFunc,
+        environment_seen_stats_func: _EnvironmentSeenStatsFunc,
     ) -> Mapping[Group, SeenStats]:
         if not issue_list:
             return {}
@@ -803,7 +821,7 @@ class GroupSerializer(GroupSerializerBase):
         user_counts: Mapping[int, int] = user_counts_func(
             [project_id],
             item_ids,
-            environment_ids=environment and [environment.id],
+            environment_ids=[environment.id] if environment is not None else None,
             tenant_ids=tenant_ids,
         )
         first_seen: MutableMapping[int, datetime] = {}
@@ -841,32 +859,44 @@ class GroupSerializer(GroupSerializerBase):
         }
 
 
-class SharedGroupSerializer(GroupSerializer):
-    def serialize(
-        self, obj: Group, attrs: Mapping[str, Any], user: Any, **kwargs: Any
-    ) -> BaseGroupSerializerResponse:
-        result = super().serialize(obj, attrs, user)
+class SharedGroupSerializerResponse(TypedDict):
+    culprit: str | None
+    id: str
+    isUnhandled: bool | None
+    issueCategory: str
+    permalink: str
+    shortId: str
+    title: str
+    latestEvent: dict[str, Any]
+    project: dict[str, Any]
 
-        ALLOWED_FIELDS = [
-            "culprit",
-            "id",
-            "isUnhandled",
-            "issueCategory",
-            "permalink",
-            "shortId",
-            "title",
-        ]
-        result = {k: v for (k, v) in result.items() if k in ALLOWED_FIELDS}
+
+class SharedGroupSerializer(GroupSerializer):
+    def serialize(  # type: ignore[override]  # return value is a subset
+        self,
+        obj: Group,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> SharedGroupSerializerResponse:
+        result = super().serialize(obj, attrs, user)
 
         # avoids a circular import
         from sentry.api.serializers.models import SharedEventSerializer, SharedProjectSerializer
 
         event = obj.get_latest_event()
-        result["latestEvent"] = serialize(event, user, SharedEventSerializer())
 
-        result["project"] = serialize(obj.project, user, SharedProjectSerializer())
-
-        return result
+        return {
+            "culprit": result["culprit"],
+            "id": result["id"],
+            "isUnhandled": result.get("isUnhandled"),
+            "issueCategory": result["issueCategory"],
+            "permalink": result["permalink"],
+            "shortId": result["shortId"],
+            "title": result["title"],
+            "latestEvent": serialize(event, user, SharedEventSerializer()),
+            "project": serialize(obj.project, user, SharedProjectSerializer()),
+        }
 
 
 SKIP_SNUBA_FIELDS = frozenset(
@@ -905,7 +935,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
 
     def __init__(
         self,
-        environment_ids=None,
+        environment_ids: list[int] | None = None,
         start: datetime | None = None,
         end: datetime | None = None,
         search_filters=None,

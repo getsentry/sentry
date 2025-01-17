@@ -218,9 +218,12 @@ class RegistrationForm(PasswordlessRegistrationForm):
 
     def clean_password(self):
         password = self.cleaned_data["password"]
-        password_validation.validate_password(
-            password, user=User(username=self.cleaned_data["username"])
+        user = (
+            User(username=self.cleaned_data["username"])
+            if "username" in self.cleaned_data
+            else None
         )
+        password_validation.validate_password(password, user=user)
         return password
 
     def save(self, commit=True):

@@ -361,20 +361,23 @@ function SpanDetail(props: Props) {
     );
   }
 
-  function partitionSizes(data): {
+  function partitionSizes(data: any): {
     nonSizeKeys: {[key: string]: unknown};
     sizeKeys: {[key: string]: number};
   } {
-    const sizeKeys = SIZE_DATA_KEYS.reduce((keys, key) => {
-      if (data.hasOwnProperty(key) && defined(data[key])) {
-        try {
-          keys[key] = parseInt(data[key], 10);
-        } catch (e) {
-          keys[key] = data[key];
+    const sizeKeys = SIZE_DATA_KEYS.reduce(
+      (keys, key) => {
+        if (data.hasOwnProperty(key) && defined(data[key])) {
+          try {
+            keys[key] = parseInt(data[key], 10);
+          } catch (e) {
+            keys[key] = data[key];
+          }
         }
-      }
-      return keys;
-    }, {});
+        return keys;
+      },
+      {} as Record<string, number>
+    );
 
     const nonSizeKeys = {...data};
     SIZE_DATA_KEYS.forEach(key => delete nonSizeKeys[key]);
@@ -572,7 +575,7 @@ function SpanDetail(props: Props) {
               )}
               {unknownKeys.map(key => (
                 <Row title={key} key={key}>
-                  {maybeStringify(span[key])}
+                  {maybeStringify(span[key as never])}
                 </Row>
               ))}
             </tbody>
@@ -641,7 +644,7 @@ const StyledText = styled('p')`
   margin: ${space(2)} 0;
 `;
 
-function TextTr({children}) {
+function TextTr({children}: any) {
   return (
     <tr>
       <td className="key" />

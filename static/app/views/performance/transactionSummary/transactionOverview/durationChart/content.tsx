@@ -109,7 +109,7 @@ function Content({
     },
     tooltip: {
       trigger: 'axis' as const,
-      valueFormatter: (value, _label) => tooltipFormatter(value, 'duration'),
+      valueFormatter: (value: any, _label: any) => tooltipFormatter(value, 'duration'),
     },
     xAxis: timeFrame
       ? {

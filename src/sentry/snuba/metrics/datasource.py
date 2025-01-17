@@ -561,8 +561,8 @@ class GroupLimitFilters:
     """
 
     keys: tuple[Groupable]
-    aliased_keys: tuple[str]
-    values: list[tuple[int]]
+    aliased_keys: tuple[str, ...]
+    values: list[tuple[int, ...]]
     conditions: ConditionGroup
 
 
@@ -587,7 +587,7 @@ def _get_group_limit_filters(
             )
         )
 
-    aliased_group_keys: tuple[str] = tuple(
+    aliased_group_keys = tuple(
         metric_groupby_obj.alias
         for metric_groupby_obj in metrics_query.groupby
         if metric_groupby_obj.alias is not None

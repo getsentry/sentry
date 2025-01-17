@@ -38,6 +38,7 @@ interface EventRegressionTableProps<K extends string> {
     string,
     {
       defaultValue?: React.ReactNode;
+      // @ts-ignore TS(7051): Parameter has a name but no type. Did you mean 'ar... Remove this comment to see the full error message
       link?: (any) =>
         | {
             target: LocationDescriptor;
@@ -101,7 +102,7 @@ const RIGHT_ALIGNED_COLUMNS = new Set([
   'percentageChange',
 ]);
 
-function renderHeadCell(column): React.ReactNode {
+function renderHeadCell(column: any): React.ReactNode {
   return (
     <SortLink
       align={RIGHT_ALIGNED_COLUMNS.has(column.key) ? 'right' : 'left'}
@@ -113,12 +114,12 @@ function renderHeadCell(column): React.ReactNode {
   );
 }
 
-function bodyCellRenderer(options, builtinRenderers) {
+function bodyCellRenderer(options: any, builtinRenderers: any) {
   return function renderGridBodyCell(
-    column,
-    dataRow,
-    _rowIndex,
-    _columnIndex
+    column: any,
+    dataRow: any,
+    _rowIndex: any,
+    _columnIndex: any
   ): React.ReactNode {
     const option = options[column.key];
     const renderer = option?.renderer || builtinRenderers[column.key] || defaultRenderer;
@@ -126,17 +127,17 @@ function bodyCellRenderer(options, builtinRenderers) {
   };
 }
 
-function throughputRenderer(throughput, {dataRow, option}) {
+function throughputRenderer(throughput: any, {dataRow, option}: any) {
   const rendered = formatRate(throughput, RateUnit.PER_MINUTE);
   return <NumberContainer>{wrap(rendered, dataRow, option)}</NumberContainer>;
 }
 
-function durationRenderer(duration, {dataRow, option}) {
+function durationRenderer(duration: any, {dataRow, option}: any) {
   const rendered = <Duration seconds={duration} fixedDigits={2} abbreviation />;
   return <NumberContainer>{wrap(rendered, dataRow, option)}</NumberContainer>;
 }
 
-function changeRenderer(percentageChange) {
+function changeRenderer(percentageChange: any) {
   if (percentageChange === Infinity) {
     return <ChangeContainer change={'neutral'} />;
   }
@@ -153,11 +154,11 @@ function changeRenderer(percentageChange) {
   );
 }
 
-function defaultRenderer(value, {dataRow, option}) {
+function defaultRenderer(value: any, {dataRow, option}: any) {
   return <Container>{wrap(value, dataRow, option)}</Container>;
 }
 
-function wrap(value, dataRow, option) {
+function wrap(value: any, dataRow: any, option: any) {
   let rendered = value;
   if (defined(option)) {
     if (!defined(value) && defined(option.defaultValue)) {

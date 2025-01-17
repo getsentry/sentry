@@ -365,6 +365,7 @@ function getNpmPackage(siblingOption: string): string {
     [SiblingOption.VUE3]: '@sentry/vue',
     [SiblingOption.VUE2]: '@sentry/vue',
   };
+  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   return packages[siblingOption];
 }
 
