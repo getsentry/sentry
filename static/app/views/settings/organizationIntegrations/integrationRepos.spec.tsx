@@ -36,8 +36,9 @@ describe('IntegrationRepos', function () {
       });
 
       render(<IntegrationRepos integration={integration} />);
+
       // we only attempt to fetch repositories upon typing
-      await userEvent.click(screen.getByText('Add Repository'));
+      await userEvent.click(await screen.findByText('Add Repository'));
       await userEvent.type(screen.getByRole('textbox'), 'asdf');
 
       expect(
@@ -55,7 +56,8 @@ describe('IntegrationRepos', function () {
       });
 
       render(<IntegrationRepos integration={integration} />);
-      await userEvent.click(screen.getByText('Add Repository'));
+
+      await userEvent.click(await screen.findByText('Add Repository'));
 
       expect(
         await screen.findByText(/Please enter a repository name/)
@@ -83,7 +85,8 @@ describe('IntegrationRepos', function () {
       });
 
       render(<IntegrationRepos integration={integration} />);
-      await userEvent.click(screen.getByText('Add Repository'));
+
+      await userEvent.click(await screen.findByText('Add Repository'));
       await userEvent.type(screen.getByRole('textbox'), 'repo-name');
       await userEvent.click(screen.getByText('repo-name'));
 
@@ -126,7 +129,8 @@ describe('IntegrationRepos', function () {
       });
 
       render(<IntegrationRepos integration={integration} />);
-      await userEvent.click(screen.getByText('Add Repository'));
+
+      await userEvent.click(await screen.findByText('Add Repository'));
       await userEvent.type(screen.getByRole('textbox'), 'sentry-repo');
       await userEvent.click(screen.getByText('sentry-repo'));
 
@@ -147,12 +151,7 @@ describe('IntegrationRepos', function () {
         body: [],
       });
 
-      render(
-        <IntegrationRepos
-          integration={integration}
-          organization={OrganizationFixture({access: []})}
-        />
-      );
+      render(<IntegrationRepos integration={integration} />);
       await waitFor(() => expect(screen.getByText('Add Repository')).toBeEnabled());
     });
   });
@@ -183,10 +182,9 @@ describe('IntegrationRepos', function () {
       });
       render(<IntegrationRepos integration={integration} />);
 
-      await userEvent.click(screen.getByText('Add Repository'));
+      await userEvent.click(await screen.findByText('Add Repository'));
       await userEvent.type(screen.getByRole('textbox'), 'repo-name');
       await userEvent.click(screen.getByText('repo-name'));
-
       expect(updateRepo).toHaveBeenCalledWith(
         `/organizations/${org.slug}/repos/4/`,
         expect.objectContaining({
@@ -216,7 +214,7 @@ describe('IntegrationRepos', function () {
       });
       render(<IntegrationRepos integration={integration} />);
 
-      await userEvent.click(screen.getByText('Add Repository'));
+      await userEvent.click(await screen.findByText('Add Repository'));
       await userEvent.type(screen.getByRole('textbox'), 'repo-name');
       await userEvent.click(screen.getByText('repo-name'));
 
