@@ -9,7 +9,7 @@ from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.workflow_engine.models import DataConditionGroup
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.processors.workflow import (
-    WORKFLOW_ENGINE_PROJECT_ID_BUFFER_LIST_KEY,
+    WORKFLOW_ENGINE_BUFFER_LIST_KEY,
     evaluate_workflow_triggers,
     process_workflows,
 )
@@ -107,16 +107,12 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
         self.job = WorkflowJob({"event": self.group_event})
 
     def test_workflow_trigger(self):
-        triggered_workflows, workflows_to_enqueue = evaluate_workflow_triggers(
-            {self.workflow}, self.job
-        )
+        triggered_workflows = evaluate_workflow_triggers({self.workflow}, self.job)
         assert triggered_workflows == {self.workflow}
-        assert not workflows_to_enqueue
 
     def test_no_workflow_trigger(self):
-        triggered_workflows, workflows_to_enqueue = evaluate_workflow_triggers(set(), self.job)
+        triggered_workflows = evaluate_workflow_triggers(set(), self.job)
         assert not triggered_workflows
-        assert not workflows_to_enqueue
 
     def test_workflow_many_filters(self):
         assert self.workflow.when_condition_group
@@ -129,11 +125,8 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
             condition_result=75,
         )
 
-        triggered_workflows, workflows_to_enqueue = evaluate_workflow_triggers(
-            {self.workflow}, self.job
-        )
+        triggered_workflows = evaluate_workflow_triggers({self.workflow}, self.job)
         assert triggered_workflows == {self.workflow}
-        assert not workflows_to_enqueue
 
     def test_workflow_filtered_out(self):
         assert self.workflow.when_condition_group
@@ -145,20 +138,14 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
             comparison=self.detector.id + 1,
         )
 
-        triggered_workflows, workflows_to_enqueue = evaluate_workflow_triggers(
-            {self.workflow}, self.job
-        )
+        triggered_workflows = evaluate_workflow_triggers({self.workflow}, self.job)
         assert not triggered_workflows
-        assert not workflows_to_enqueue
 
     def test_many_workflows(self):
         workflow_two, _, _, _ = self.create_detector_and_workflow(name_prefix="two")
-        triggered_workflows, workflows_to_enqueue = evaluate_workflow_triggers(
-            {self.workflow, workflow_two}, self.job
-        )
+        triggered_workflows = evaluate_workflow_triggers({self.workflow, workflow_two}, self.job)
 
         assert triggered_workflows == {self.workflow, workflow_two}
-        assert not workflows_to_enqueue
 
     def test_skips_slow_conditions(self):
         # triggers workflow if the logic_type is ANY and a condition is met
@@ -172,11 +159,8 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
             condition_result=True,
         )
 
-        triggered_workflows, workflows_to_enqueue = evaluate_workflow_triggers(
-            {self.workflow}, self.job
-        )
+        triggered_workflows = evaluate_workflow_triggers({self.workflow}, self.job)
         assert triggered_workflows == {self.workflow}
-        assert not workflows_to_enqueue
 
 
 @freeze_time(FROZEN_TIME)
@@ -216,16 +200,13 @@ class TestEnqueueWorkflow(BaseWorkflowTest):
             condition_result=True,
         )
 
-        triggered_workflows, workflows_to_enqueue = evaluate_workflow_triggers(
-            {self.workflow}, self.job
-        )
+        triggered_workflows = evaluate_workflow_triggers({self.workflow}, self.job)
         assert not triggered_workflows
-        assert workflows_to_enqueue == {self.workflow}
 
         process_workflows(self.job)
 
         project_ids = buffer.backend.get_sorted_set(
-            WORKFLOW_ENGINE_PROJECT_ID_BUFFER_LIST_KEY, 0, self.buffer_timestamp
+            WORKFLOW_ENGINE_BUFFER_LIST_KEY, 0, self.buffer_timestamp
         )
         assert project_ids
         assert project_ids[0][0] == self.project.id
@@ -250,15 +231,12 @@ class TestEnqueueWorkflow(BaseWorkflowTest):
             condition_result=True,
         )
 
-        triggered_workflows, workflows_to_enqueue = evaluate_workflow_triggers(
-            {self.workflow}, self.job
-        )
+        triggered_workflows = evaluate_workflow_triggers({self.workflow}, self.job)
         assert not triggered_workflows
-        assert workflows_to_enqueue == {self.workflow}
 
         process_workflows(self.job)
 
         project_ids = buffer.backend.get_sorted_set(
-            WORKFLOW_ENGINE_PROJECT_ID_BUFFER_LIST_KEY, 0, self.buffer_timestamp
+            WORKFLOW_ENGINE_BUFFER_LIST_KEY, 0, self.buffer_timestamp
         )
         assert project_ids[0][0] == self.project.id

@@ -1,5 +1,4 @@
 import logging
-import random
 from collections import defaultdict
 
 import sentry_sdk
@@ -15,10 +14,12 @@ from sentry.workflow_engine.types import WorkflowJob
 
 logger = logging.getLogger(__name__)
 
-WORKFLOW_ENGINE_PROJECT_ID_BUFFER_LIST_KEY = "workflow_engine_project_id_buffer_list"
+WORKFLOW_ENGINE_BUFFER_LIST_KEY = "workflow_engine_delayed_processing_buffer"
 
 
-def get_data_condition_groups_to_fire(workflows: set[Workflow], job) -> dict[int, list[int]]:
+def get_data_condition_groups_to_fire(
+    workflows: set[Workflow], job: WorkflowJob
+) -> dict[int, list[int]]:
     workflow_action_groups: dict[int, list[int]] = defaultdict(list)
 
     workflow_ids = {workflow.id for workflow in workflows}
@@ -46,14 +47,7 @@ def enqueue_workflows(
     workflow_action_groups = get_data_condition_groups_to_fire(workflows, job)
 
     for workflow in workflows:
-        if random.random() < 0.01:
-            logger.info(
-                "process_workflows.workflow_enqueued",
-                extra={"workflow": workflow.id, "group": event.group.id, "project": project_id},
-            )
-        buffer.backend.push_to_sorted_set(
-            key=WORKFLOW_ENGINE_PROJECT_ID_BUFFER_LIST_KEY, value=project_id
-        )
+        buffer.backend.push_to_sorted_set(key=WORKFLOW_ENGINE_BUFFER_LIST_KEY, value=project_id)
 
         if_dcgs = workflow_action_groups.get(workflow.id, [])
         if not if_dcgs:
@@ -68,12 +62,9 @@ def enqueue_workflows(
             field=f"{workflow.id}:{event.group.id}:{if_dcg_fields}",
             value=value,
         )
-        metrics.incr("delayed_workflow.group_added")
 
 
-def evaluate_workflow_triggers(
-    workflows: set[Workflow], job: WorkflowJob
-) -> tuple[set[Workflow], set[Workflow]]:
+def evaluate_workflow_triggers(workflows: set[Workflow], job: WorkflowJob) -> set[Workflow]:
     triggered_workflows: set[Workflow] = set()
     workflows_to_enqueue: set[Workflow] = set()
 
@@ -85,7 +76,9 @@ def evaluate_workflow_triggers(
                 # enqueue to be evaluated later
                 workflows_to_enqueue.add(workflow)
 
-    return triggered_workflows, workflows_to_enqueue
+    enqueue_workflows(workflows_to_enqueue, job)
+
+    return triggered_workflows
 
 
 def process_workflows(job: WorkflowJob) -> set[Workflow]:
@@ -106,8 +99,7 @@ def process_workflows(job: WorkflowJob) -> set[Workflow]:
 
     # Get the workflows, evaluate the when_condition_group, finally evaluate the actions for workflows that are triggered
     workflows = set(Workflow.objects.filter(detectorworkflow__detector_id=detector.id).distinct())
-    triggered_workflows, workflows_to_enqueue = evaluate_workflow_triggers(workflows, job)
-    enqueue_workflows(workflows_to_enqueue, job)
+    triggered_workflows = evaluate_workflow_triggers(workflows, job)
 
     actions = evaluate_workflow_action_filters(triggered_workflows, job)
 

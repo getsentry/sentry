@@ -156,19 +156,6 @@ def is_slow_condition(cond: DataCondition) -> bool:
     return Condition(cond.type) in SLOW_CONDITIONS
 
 
-def split_fast_slow_conditions(
-    conditions: list[DataCondition],
-) -> tuple[list[DataCondition], list[DataCondition]]:
-    fast_conditions = []
-    slow_conditions = []
-    for condition in conditions:
-        if is_slow_condition(condition):
-            slow_conditions.append(condition)
-        else:
-            fast_conditions.append(condition)
-    return fast_conditions, slow_conditions
-
-
 @receiver(pre_save, sender=DataCondition)
 def enforce_comparison_schema(sender, instance: DataCondition, **kwargs):
 
