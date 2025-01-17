@@ -14,7 +14,7 @@ from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionType,
 )
 from sentry.models.repository import Repository
-from sentry.shared_integrations.client.base import BaseApiResponseX
+from sentry.shared_integrations.client.base import BaseApiResponseX, RateLimitInfo
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.users.models.identity import Identity
 
@@ -226,4 +226,19 @@ class RepositoryClient(ABC):
         self, repo: Repository, path: str, ref: str | None, codeowners: bool = False
     ) -> str:
         """Get the file contents. Currently used for CODEOWNERS."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_repositories(self, fetch_max_pages: bool = False) -> list[dict[str, Any]]:
+        """Get the list of repositories."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_rate_limit(self, specific_resource: str = "core") -> RateLimitInfo:
+        """Get the rate limit."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_tree(self, repo_full_name: str, tree_sha: str) -> list[dict[str, Any]]:
+        """Get the tree."""
         raise NotImplementedError

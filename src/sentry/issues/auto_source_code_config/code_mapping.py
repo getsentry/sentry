@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from typing import NamedTuple
 
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
@@ -10,18 +9,19 @@ from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.utils.event_frames import EventFrame, try_munge_frame_path
 
+from .source_code_files import get_extension
+from .types import CodeMapping, RepoTree
+
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+
+SUPPORTED_LANGUAGES = ["javascript", "python", "node", "ruby", "php", "go", "csharp"]
+
+SUPPORTED_LANGUAGES = ["javascript", "python", "node", "ruby", "php", "go", "csharp"]
 
 SUPPORTED_LANGUAGES = ["javascript", "python", "node", "ruby", "php", "go", "csharp"]
 
 SLASH = "/"
 BACKSLASH = "\\"  # This is the Python representation of a single backslash
-
-# Read this to learn about file extensions for different languages
-# https://github.com/github/linguist/blob/master/lib/linguist/languages.yml
-# We only care about the ones that would show up in stacktraces after symbolication
-EXTENSIONS = ["js", "jsx", "tsx", "ts", "mjs", "py", "rb", "rake", "php", "go", "cs"]
 
 # List of file paths prefixes that should become stack trace roots
 FILE_PATH_PREFIX_LENGTH = {
@@ -29,26 +29,6 @@ FILE_PATH_PREFIX_LENGTH = {
     "../": 3,
     "./": 2,
 }
-
-# We want tasks which hit the GH API multiple times to give up if they hit too many
-# "can't reach GitHub"-type errors.
-MAX_CONNECTION_ERRORS = 10
-
-
-class Repo(NamedTuple):
-    name: str
-    branch: str
-
-
-class RepoTree(NamedTuple):
-    repo: Repo
-    files: list[str]
-
-
-class CodeMapping(NamedTuple):
-    repo: Repo
-    stacktrace_root: str
-    source_path: str
 
 
 class UnexpectedPathException(Exception):
@@ -339,43 +319,6 @@ class CodeMappingTreesHelper:
             for code_mapping in self.code_mappings.values()
             if src_file.startswith(f"{code_mapping.source_path}/")
         )
-
-
-def get_extension(file_path: str) -> str:
-    extension = ""
-    if file_path:
-        ext_period = file_path.rfind(".")
-        if ext_period >= 1:  # e.g. f.py
-            extension = file_path.rsplit(".")[-1]
-
-    return extension
-
-
-def should_include(file_path: str) -> bool:
-    include = True
-    if file_path.endswith("spec.jsx") or file_path.startswith("tests/"):
-        include = False
-    return include
-
-
-def filter_source_code_files(files: list[str]) -> list[str]:
-    """
-    This takes the list of files of a repo and returns
-    the file paths for supported source code files
-    """
-    supported_files = []
-    # XXX: If we want to make the data structure faster to traverse, we could
-    # use a tree where each leaf represents a file while non-leaves would
-    # represent a directory in the path
-    for file_path in files:
-        try:
-            extension = get_extension(file_path)
-            if extension in EXTENSIONS and should_include(file_path):
-                supported_files.append(file_path)
-        except Exception:
-            logger.exception("We've failed to store the file path.")
-
-    return supported_files
 
 
 def convert_stacktrace_frame_path_to_source_path(

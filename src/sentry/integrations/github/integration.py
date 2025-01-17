@@ -37,6 +37,7 @@ from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewType,
 )
 from sentry.issues.auto_source_code_config.code_mapping import RepoTree
+from sentry.issues.auto_source_code_config.source_code_trees import GetOrgSourceCodeTrees
 from sentry.models.repository import Repository
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization import RpcOrganizationSummary, organization_service
@@ -280,6 +281,8 @@ class GitHubIntegration(RepositoryIntegration, GitHubIssuesSpec, CommitContextIn
         return True
 
     # for derive code mappings - TODO(cathy): define in an ABC
+    # SCM integrations should implement this
+    # XXX: Move this to an interface or parent class
     def get_trees_for_org(self, cache_seconds: int = 3600 * 24) -> dict[str, RepoTree]:
         trees: dict[str, RepoTree] = {}
         domain_name = self.model.metadata["domain_name"]
@@ -298,7 +301,7 @@ class GitHubIntegration(RepositoryIntegration, GitHubIssuesSpec, CommitContextIn
                 "No organization information was found. Continuing execution.", extra=extra
             )
         else:
-            trees = self.get_client().get_trees_for_org(gh_org=gh_org, cache_seconds=cache_seconds)
+            trees = GetOrgSourceCodeTrees(self).get_trees_for_org(gh_org, cache_seconds)
 
         return trees
 
