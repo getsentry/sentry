@@ -33,7 +33,7 @@ type Tab = 'public' | 'internal';
 function OrganizationDeveloperSettings() {
   const location = useLocation();
   const organization = useOrganization();
-  const api = useApi();
+  const api = useApi({persistInFlight: true});
 
   const value =
     ['public', 'internal'].find(tab => tab === location?.query?.type) || 'internal';
