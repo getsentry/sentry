@@ -33,7 +33,7 @@ import useProjects from 'sentry/utils/useProjects';
 import {getScheduleIntervals} from 'sentry/views/monitors/utils';
 import {crontabAsText} from 'sentry/views/monitors/utils/crontabAsText';
 
-import type {IntervalConfig, Monitor, MonitorConfig, MonitorType} from '../types';
+import type {IntervalConfig, Monitor, MonitorConfig} from '../types';
 import {ScheduleType} from '../types';
 
 import {platformsWithGuides} from './monitorQuickStartGuide';
@@ -183,28 +183,23 @@ function MonitorForm({
   const {projects} = useProjects();
   const {selection} = usePageFilters();
 
-  function formDataFromConfig(type: MonitorType, config: MonitorConfig) {
+  function formDataFromConfig(config: MonitorConfig) {
     const rv: Record<string, MonitorConfig[keyof MonitorConfig]> = {};
-    switch (type) {
-      case 'cron_job':
-        rv['config.scheduleType'] = config.schedule_type;
-        rv['config.checkinMargin'] = config.checkin_margin;
-        rv['config.maxRuntime'] = config.max_runtime;
-        rv['config.failureIssueThreshold'] = config.failure_issue_threshold;
-        rv['config.recoveryThreshold'] = config.recovery_threshold;
+    rv['config.scheduleType'] = config.schedule_type;
+    rv['config.checkinMargin'] = config.checkin_margin;
+    rv['config.maxRuntime'] = config.max_runtime;
+    rv['config.failureIssueThreshold'] = config.failure_issue_threshold;
+    rv['config.recoveryThreshold'] = config.recovery_threshold;
 
-        switch (config.schedule_type) {
-          case 'interval':
-            rv['config.schedule.frequency'] = config.schedule[0];
-            rv['config.schedule.interval'] = config.schedule[1];
-            break;
-          case 'crontab':
-          default:
-            rv['config.schedule'] = config.schedule;
-            rv['config.timezone'] = config.timezone;
-        }
+    switch (config.schedule_type) {
+      case 'interval':
+        rv['config.schedule.frequency'] = config.schedule[0];
+        rv['config.schedule.interval'] = config.schedule[1];
         break;
+      case 'crontab':
       default:
+        rv['config.schedule'] = config.schedule;
+        rv['config.timezone'] = config.timezone;
     }
     return rv;
   }
@@ -245,15 +240,13 @@ function MonitorForm({
               name: monitor.name,
               slug: monitor.slug,
               owner,
-              type: monitor.type ?? DEFAULT_MONITOR_TYPE,
               project: monitor.project.slug,
               'alertRule.targets': alertRuleTarget,
               'alertRule.environment': monitor.alertRule?.environment,
-              ...formDataFromConfig(monitor.type, monitor.config),
+              ...formDataFromConfig(monitor.config),
             }
           : {
               project: selectedProject ? selectedProject.slug : null,
-              type: DEFAULT_MONITOR_TYPE,
             }
       }
       onSubmitSuccess={onSubmitSuccess}
