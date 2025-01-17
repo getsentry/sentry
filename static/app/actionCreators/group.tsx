@@ -84,9 +84,11 @@ export function clearAssignment(
   request
     .then(data => {
       GroupStore.onAssignToSuccess(id, groupId, data);
+      return data;
     })
     .catch(data => {
       GroupStore.onAssignToError(id, groupId, data);
+      throw data;
     });
 
   return request;
@@ -135,9 +137,11 @@ export function assignToActor({id, actor, assignedBy, orgSlug}: AssignToActorPar
     })
     .then(data => {
       GroupStore.onAssignToSuccess(guid, id, data);
+      return data;
     })
     .catch(data => {
       GroupStore.onAssignToSuccess(guid, id, data);
+      throw data;
     });
 }
 
