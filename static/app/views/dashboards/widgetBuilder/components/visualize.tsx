@@ -28,6 +28,7 @@ import {
 import {FieldKind} from 'sentry/utils/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import useApi from 'sentry/utils/useApi';
 import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
 import useOrganization from 'sentry/utils/useOrganization';
 import useTags from 'sentry/utils/useTags';
@@ -161,6 +162,22 @@ function validateParameter(
   return false;
 }
 
+function canDeleteField(
+  dataset: WidgetType,
+  selectedFields: QueryFieldValue[],
+  field: QueryFieldValue
+) {
+  if (dataset === WidgetType.RELEASE) {
+    // Release Health widgets are required to have at least one aggregate
+    return (
+      selectedFields.filter(
+        selectedField => selectedField.kind === FieldValueKind.FUNCTION
+      ).length > 1 || field.kind === FieldValueKind.FIELD
+    );
+  }
+  return true;
+}
+
 interface VisualizeProps {
   error?: Record<string, any>;
   setError?: (error: Record<string, any>) => void;
@@ -168,6 +185,7 @@ interface VisualizeProps {
 
 function Visualize({error, setError}: VisualizeProps) {
   const organization = useOrganization();
+  const api = useApi();
   const {state, dispatch} = useWidgetBuilderContext();
   let tags = useTags();
   const {customMeasurements} = useCustomMeasurements();
@@ -293,6 +311,12 @@ function Visualize({error, setError}: VisualizeProps) {
       >
         <Fields>
           {fields?.map((field, index) => {
+            const canDelete = canDeleteField(
+              state.dataset ?? WidgetType.ERRORS,
+              fields,
+              field
+            );
+
             // Depending on the dataset and the display type, we use different options for
             // displaying in the column select.
             // For charts, we show aggregate parameter options for the y-axis as primary options.
@@ -319,7 +343,9 @@ function Visualize({error, setError}: VisualizeProps) {
               label: option.value.meta.name,
             }));
             aggregateOptions =
-              isChartWidget || isBigNumberWidget
+              isChartWidget ||
+              isBigNumberWidget ||
+              (state.dataset === WidgetType.RELEASE && !canDelete)
                 ? aggregateOptions
                 : [NONE_AGGREGATE, ...aggregateOptions];
 
@@ -554,13 +580,37 @@ function Visualize({error, setError}: VisualizeProps) {
                             } else {
                               // Handle selecting None so we can select just a field, e.g. for samples
                               // If none is selected, set the field to a field value
+
+                              // When selecting None, the next possible columns may be different from the
+                              // possible columns for the previous aggregate. Calculate the valid columns,
+                              // see if the current field's function argument is in the valid columns, and if so,
+                              // set the field to a field value. Otherwise, set the field to the first valid column.
+                              const validColumnFields = Object.values(
+                                datasetConfig.getTableFieldOptions?.(
+                                  organization,
+                                  tags,
+                                  customMeasurements,
+                                  api
+                                ) ?? []
+                              ).filter(
+                                option =>
+                                  option.value.kind !== FieldValueKind.FUNCTION &&
+                                  (datasetConfig.filterTableOptions?.(option) ?? true)
+                              );
+                              const functionArgInValidColumnFields =
+                                ('function' in currentField &&
+                                  validColumnFields.find(
+                                    option =>
+                                      option.value.meta.name === currentField.function[1]
+                                  )) ||
+                                undefined;
+                              const validColumn =
+                                functionArgInValidColumnFields?.value.meta.name ??
+                                validColumnFields?.[0]?.value.meta.name ??
+                                '';
                               newFields[index] = {
                                 kind: FieldValueKind.FIELD,
-                                field:
-                                  'function' in currentField
-                                    ? (currentField.function[1] as string) ??
-                                      columnOptions[0]!.value
-                                    : '',
+                                field: validColumn,
                               };
                             }
                             dispatch({
@@ -635,7 +685,7 @@ function Visualize({error, setError}: VisualizeProps) {
                     borderless
                     icon={<IconDelete />}
                     size="zero"
-                    disabled={fields.length <= 1}
+                    disabled={fields.length <= 1 || !canDelete}
                     onClick={() => {
                       dispatch({
                         type: updateAction,
