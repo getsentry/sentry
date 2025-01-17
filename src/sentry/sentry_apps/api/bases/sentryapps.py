@@ -6,18 +6,16 @@ from functools import wraps
 from typing import Any
 
 import sentry_sdk
-from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.authentication import ClientIdSecretAuthentication
 from sentry.api.base import Endpoint
-from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import SentryPermission, StaffPermissionMixin
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser, superuser_has_permission
-from sentry.coreapi import APIError, APIUnauthorized
+from sentry.coreapi import APIError
 from sentry.integrations.api.bases.integration import PARANOID_GET
 from sentry.middleware.stats import add_request_metric_tags
 from sentry.models.organization import OrganizationStatus
@@ -103,10 +101,9 @@ class SentryAppsPermission(SentryPermission):
 
         # User must be a part of the Org they're trying to create the app in.
         if context.organization.status != OrganizationStatus.ACTIVE or not context.member:
-            raise SentryAppIntegratorError(
-                APIUnauthorized(
-                    "User must be a part of the Org they're trying to create the app in"
-                )
+            raise SentryAppError(
+                message="User must be a part of the Org they're trying to create the app in",
+                status_code=401,
             )
 
         assert request.method, "method must be present in request to get permissions"
@@ -131,7 +128,12 @@ class IntegrationPlatformEndpoint(Endpoint):
 
     def _handle_sentry_app_exception(self, exception: Exception):
         if isinstance(exception, SentryAppIntegratorError) or isinstance(exception, SentryAppError):
-            response = Response({"detail": str(exception)}, status=exception.status_code)
+            response_body: dict[str, Any] = {"detail": exception.message}
+
+            if public_context := exception.public_context:
+                response_body.update({"context": public_context})
+
+            response = Response(response_body, status=exception.status_code)
             response.exception = True
             return response
 
@@ -154,7 +156,7 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
         organization_slug = request.data.get("organization")
         if not organization_slug or not isinstance(organization_slug, str):
             error_message = "Please provide a valid value for the 'organization' field."
-            raise SentryAppError(ResourceDoesNotExist(error_message))
+            raise SentryAppError(message=error_message, status_code=404)
         return organization_slug
 
     def _get_organization_for_superuser_or_staff(
@@ -166,7 +168,7 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
 
         if context is None:
             error_message = f"Organization '{organization_slug}' does not exist."
-            raise SentryAppError(ResourceDoesNotExist(error_message))
+            raise SentryAppError(message=error_message, status_code=404)
 
         return context
 
@@ -178,7 +180,7 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
         )
         if context is None or context.member is None:
             error_message = f"User does not belong to the '{organization_slug}' organization."
-            raise SentryAppIntegratorError(PermissionDenied(to_single_line_str(error_message)))
+            raise SentryAppError(message=to_single_line_str(error_message), status_code=403)
         return context
 
     def _get_org_context(self, request: Request) -> RpcUserOrganizationContext:
@@ -260,10 +262,13 @@ class SentryAppPermission(SentryPermission):
         # if app is unpublished, user must be in the Org who owns the app.
         if not sentry_app.is_published:
             if not any(sentry_app.owner_id == org.id for org in organizations):
-                raise SentryAppIntegratorError(
-                    APIUnauthorized(
-                        "User must be in the app owner's organization for unpublished apps"
-                    )
+                raise SentryAppError(
+                    message="User must be in the app owner's organization for unpublished apps",
+                    status_code=403,
+                    public_context={
+                        "integration": sentry_app.slug,
+                        "user_organizations": [org.slug for org in organizations],
+                    },
                 )
 
         # TODO(meredith): make a better way to allow for public
@@ -299,9 +304,7 @@ class SentryAppBaseEndpoint(IntegrationPlatformEndpoint):
         try:
             sentry_app = SentryApp.objects.get(slug__id_or_slug=sentry_app_id_or_slug)
         except SentryApp.DoesNotExist:
-            raise SentryAppIntegratorError(
-                ResourceDoesNotExist("Could not find the requested sentry app"), status_code=404
-            )
+            raise SentryAppError(message="Could not find the requested sentry app", status_code=404)
 
         self.check_object_permissions(request, sentry_app)
 
@@ -320,9 +323,7 @@ class RegionSentryAppBaseEndpoint(IntegrationPlatformEndpoint):
         else:
             sentry_app = app_service.get_sentry_app_by_slug(slug=sentry_app_id_or_slug)
         if sentry_app is None:
-            raise SentryAppIntegratorError(
-                ResourceDoesNotExist("Could not find the requested sentry app"), status_code=404
-            )
+            raise SentryAppError(message="Could not find the requested sentry app", status_code=404)
 
         self.check_object_permissions(request, sentry_app)
 
@@ -353,8 +354,10 @@ class SentryAppInstallationsPermission(SentryPermission):
             else ()
         )
         if not any(organization.id == org.id for org in organizations):
-            raise SentryAppIntegratorError(
-                APIUnauthorized("User must belong to the given organization"), status_code=403
+            raise SentryAppError(
+                message="User must belong to the given organization",
+                status_code=403,
+                public_context={"user_organizations": [org.slug for org in organizations]},
             )
         assert request.method, "method must be present in request to get permissions"
         return ensure_scoped_permission(request, self.scope_map.get(request.method))
@@ -379,9 +382,7 @@ class SentryAppInstallationsBaseEndpoint(IntegrationPlatformEndpoint):
             )
 
         if organization is None:
-            raise SentryAppIntegratorError(
-                ResourceDoesNotExist("Could not find requested organization"), status_code=404
-            )
+            raise SentryAppError(message="Could not find requested organization", status_code=404)
         self.check_object_permissions(request, organization)
 
         kwargs["organization"] = organization
@@ -437,9 +438,7 @@ class SentryAppInstallationPermission(SentryPermission):
             or not org_context.member
             or org_context.organization.status != OrganizationStatus.ACTIVE
         ):
-            raise SentryAppIntegratorError(
-                ResourceDoesNotExist("Given organization is not valid"), status_code=404
-            )
+            raise SentryAppError(message="Given organization is not valid", status_code=404)
 
         assert request.method, "method must be present in request to get permissions"
         return ensure_scoped_permission(request, self.scope_map.get(request.method))
@@ -452,8 +451,8 @@ class SentryAppInstallationBaseEndpoint(IntegrationPlatformEndpoint):
         installations = app_service.get_many(filter=dict(uuids=[uuid]))
         installation = installations[0] if installations else None
         if installation is None:
-            raise SentryAppIntegratorError(
-                ResourceDoesNotExist("Could not find given sentry app installation"),
+            raise SentryAppError(
+                message="Could not find given sentry app installation",
                 status_code=404,
             )
 
