@@ -86,7 +86,7 @@ def process_error(error: ApiError, extra: dict[str, Any]) -> None:
     max_retries=3,
 )
 def auto_source_code_config(
-    project_id: int, event_id: str, group_id: int | None = None, **kwargs: Any
+    project_id: int, group_id: int | None, event_id: str, **kwargs: Any
 ) -> None:
     """
     Process errors for customers with source code management installed and calculate code mappings
@@ -107,7 +107,10 @@ def auto_source_code_config(
         "event_id": event_id,
     }
 
-    event = eventstore.backend.get_event_by_id(project_id, event_id, group_id=group_id)
+    if group_id is None:
+        event = eventstore.backend.get_event_by_id(project_id, event_id)
+    else:
+        event = eventstore.backend.get_event_by_id(project_id, group_id, event_id)
     if event is None:
         logger.error("Event not found.", extra=extra)
         return
