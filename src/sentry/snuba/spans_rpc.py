@@ -12,15 +12,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import AndFilter, OrFilter, Tr
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.columns import ResolvedColumn, ResolvedFunction
-from sentry.search.eap.constants import (
-    BOOLEAN,
-    DOUBLE,
-    FLOAT,
-    INT,
-    MAX_ROLLUP_POINTS,
-    STRING,
-    VALID_GRANULARITIES,
-)
+from sentry.search.eap.constants import MAX_ROLLUP_POINTS, VALID_GRANULARITIES
 from sentry.search.eap.spans import SearchResolver
 from sentry.search.eap.types import CONFIDENCES, ConfidenceData, EAPResponse, SearchResolverConfig
 from sentry.search.events.fields import get_function_alias, is_function
@@ -137,16 +129,7 @@ def run_table_query(
 
         for index, result in enumerate(column_value.results):
             result_value: str | int | float
-            if resolved_column.proto_type == STRING:
-                result_value = result.val_str
-            elif resolved_column.proto_type == INT:
-                result_value = result.val_int
-            elif resolved_column.proto_type == FLOAT:
-                result_value = result.val_float
-            elif resolved_column.proto_type == DOUBLE:
-                result_value = result.val_double
-            elif resolved_column.proto_type == BOOLEAN:
-                result_value = result.val_bool
+            result_value = getattr(result, str(result.WhichOneof("value")))
             result_value = process_value(result_value)
             final_data[index][attribute] = resolved_column.process_column(result_value)
             if has_reliability:
