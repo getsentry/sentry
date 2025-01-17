@@ -1,5 +1,4 @@
 import re
-from collections.abc import Mapping
 from typing import TypedDict
 
 from drf_spectacular.types import OpenApiTypes
@@ -32,7 +31,7 @@ class HighlightContextField(serializers.Field):
 
 class HighlightPreset(TypedDict):
     tags: list[str]
-    context: Mapping[str, list[str]]
+    context: dict[str, list[str]]
 
 
 DEFAULT_HIGHLIGHT_TAGS = ["handled", "level"]
