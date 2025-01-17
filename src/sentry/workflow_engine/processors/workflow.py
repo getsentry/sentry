@@ -49,17 +49,17 @@ def enqueue_workflows(
     for workflow in workflows:
         buffer.backend.push_to_sorted_set(key=WORKFLOW_ENGINE_BUFFER_LIST_KEY, value=project_id)
 
-        if_dcgs = workflow_action_groups.get(workflow.id, [])
-        if not if_dcgs:
+        action_filters = workflow_action_groups.get(workflow.id, [])
+        if not action_filters:
             continue
 
-        if_dcg_fields = ":".join(map(str, if_dcgs))
+        action_filter_fields = ":".join(map(str, action_filters))
 
         value = json.dumps({"event_id": event.event_id, "occurrence_id": event.occurrence_id})
         buffer.backend.push_to_hash(
             model=Workflow,
             filters={"project": project_id},
-            field=f"{workflow.id}:{event.group.id}:{if_dcg_fields}",
+            field=f"{workflow.id}:{event.group.id}:{action_filter_fields}",
             value=value,
         )
 
@@ -76,7 +76,8 @@ def evaluate_workflow_triggers(workflows: set[Workflow], job: WorkflowJob) -> se
                 # enqueue to be evaluated later
                 workflows_to_enqueue.add(workflow)
 
-    enqueue_workflows(workflows_to_enqueue, job)
+    if workflows_to_enqueue:
+        enqueue_workflows(workflows_to_enqueue, job)
 
     return triggered_workflows
 
