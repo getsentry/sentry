@@ -117,7 +117,6 @@ const Item = styled(Link)`
 
   &[aria-selected='true'] {
     color: ${p => p.theme.gray500};
-    background: rgba(62, 52, 70, 0.09);
     font-weight: ${p => p.theme.fontWeightBold};
   }
 
