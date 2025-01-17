@@ -78,6 +78,6 @@ class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
         assert response.status_code == 400
         assert (
             response.content
-            == b'{"error":"Issue occured while trying to contact testin to link issue"}'
+            == b'{"detail":"Issue occured while trying to contact testin to link issue"}'
         )
         assert not PlatformExternalIssue.objects.all()
