@@ -91,12 +91,6 @@ class IssueTrackingPlugin(Plugin):
         """
         return "Create %s Issue" % self.get_title()
 
-    def get_unlink_issue_title(self, **kwargs):
-        """
-        Return a string for the "Unlink plugin issue" action label.
-        """
-        return "Unlink %s Issue" % self.get_title()
-
     def get_new_issue_form(self, request: Request, group, event, **kwargs):
         """
         Return a Form for the "Create new issue" page.
@@ -116,12 +110,6 @@ class IssueTrackingPlugin(Plugin):
         """
         Given an issue_id (string) return an absolute URL to the issue's details
         page.
-        """
-        raise NotImplementedError
-
-    def get_issue_title_by_id(self, request: Request, group, issue_id):
-        """
-        Given an issue_id return the issue's title.
         """
         raise NotImplementedError
 
@@ -156,10 +144,6 @@ class IssueTrackingPlugin(Plugin):
             return True
 
         return self.auth_provider in get_auth_providers()
-
-    def handle_unlink_issue(self, request: Request, group, **kwargs):
-        GroupMeta.objects.unset_value(group, "%s:tid" % self.get_conf_key())
-        return self.redirect(group.get_absolute_url())
 
     def view(self, request: Request, group, **kwargs):
         has_auth_configured = self.has_auth_configured()
@@ -243,7 +227,7 @@ class IssueTrackingPlugin(Plugin):
 
         return self.render(self.create_issue_template, context)
 
-    def actions(self, request: Request, group, action_list, **kwargs):
+    def actions(self, group, action_list, **kwargs):
         if not self.is_configured(project=group.project):
             return action_list
         prefix = self.get_conf_key()
@@ -268,9 +252,6 @@ class IssueTrackingPlugin(Plugin):
         )
 
         return tag_list
-
-    def get_issue_doc_html(self, **kwargs):
-        return ""
 
 
 IssuePlugin = IssueTrackingPlugin

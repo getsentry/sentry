@@ -20,7 +20,9 @@ export function useSampleScatterPlotSeries(
   return spans.map(span => {
     let symbol, color;
 
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     if (span[key] && defined(average)) {
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       ({symbol, color} = getSampleChartSymbol(span[key], average, theme));
     } else {
       symbol = 'circle';
@@ -31,6 +33,7 @@ export function useSampleScatterPlotSeries(
       data: [
         {
           name: span?.timestamp ?? span.span_id ?? t('Span'),
+          // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           value: span?.[key] ?? 0,
         },
       ],

@@ -26,7 +26,7 @@ describe('ContinuousProfile', () => {
     const profile = ContinuousProfile.FromProfile(
       trace.profile,
       createContinuousProfileFrameIndex(trace.profile.frames, 'node'),
-      {type: 'flamechart'}
+      {minTimestamp: 0, type: 'flamechart'}
     );
 
     expect(Math.round(profile.duration)).toBe(10);
@@ -58,7 +58,7 @@ describe('ContinuousProfile', () => {
     const profile = ContinuousProfile.FromProfile(
       trace.profile,
       createContinuousProfileFrameIndex(trace.profile.frames, 'node'),
-      {type: 'flamechart'}
+      {minTimestamp: 0, type: 'flamechart'}
     );
 
     profile.forEach(open, close);

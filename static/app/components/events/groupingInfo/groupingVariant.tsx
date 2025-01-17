@@ -306,7 +306,7 @@ const VariantTitle = styled('h5')`
   align-items: center;
 `;
 
-const ContributionIcon = styled(({isContributing, ...p}) =>
+const ContributionIcon = styled(({isContributing, ...p}: any) =>
   isContributing ? (
     <IconCheckmark size="sm" isCircled color="successText" {...p} />
   ) : (

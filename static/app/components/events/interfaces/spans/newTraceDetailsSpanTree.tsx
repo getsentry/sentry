@@ -604,7 +604,7 @@ class NewTraceDetailsSpanTree extends Component<PropType> {
           toggleSiblingSpanGroup = payload.toggleSiblingSpanGroup;
         }
 
-        let groupType;
+        let groupType: any;
         if (toggleSpanGroup) {
           groupType = GroupType.DESCENDANTS;
         } else if (toggleSiblingSpanGroup) {

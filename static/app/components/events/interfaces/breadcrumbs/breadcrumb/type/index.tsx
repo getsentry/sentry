@@ -50,7 +50,8 @@ const IconWrapper = styled('div')<Pick<Props, 'color'>>`
   height: 22px;
   border-radius: 50%;
   color: ${p => p.theme.white};
-  background: ${p => p.theme[p.color] ?? p.color};
+  background: ${p =>
+    (p.theme[p.color as keyof typeof p.theme] as string | undefined) ?? p.color};
   box-shadow: ${p => p.theme.dropShadowLight};
   position: relative;
 `;

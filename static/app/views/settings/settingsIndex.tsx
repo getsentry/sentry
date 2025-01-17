@@ -21,6 +21,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
+import type {ColorOrAlias} from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
 import {useUser} from 'sentry/utils/useUser';
 import withLatestContext from 'sentry/utils/withLatestContext';
@@ -297,7 +298,7 @@ const HomePanelBody = styled(PanelBody)`
   }
 `;
 
-const HomeIconContainer = styled('div')<{color?: string}>`
+const HomeIconContainer = styled('div')<{color?: ColorOrAlias}>`
   background: ${p => p.theme[p.color || 'gray300']};
   color: ${p => p.theme.white};
   width: ${HOME_ICON_SIZE}px;

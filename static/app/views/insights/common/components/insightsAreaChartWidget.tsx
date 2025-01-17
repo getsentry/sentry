@@ -90,7 +90,7 @@ export function InsightsAreaChartWidget(props: InsightsAreaChartWidgetProps) {
   );
 }
 
-const COMMON_COLORS = {
+const COMMON_COLORS: Record<string, string> = {
   'spm()': THROUGHPUT_COLOR,
   'avg(messaging.message.receive.latency)': CHART_PALETTE[2][1],
   'avg(span.duration)': CHART_PALETTE[2][2],

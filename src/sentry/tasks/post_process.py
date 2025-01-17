@@ -994,7 +994,8 @@ def process_code_mappings(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
-    from sentry.tasks.derive_code_mappings import SUPPORTED_LANGUAGES, derive_code_mappings
+    from sentry.issues.auto_source_code_config.code_mapping import SUPPORTED_LANGUAGES
+    from sentry.tasks.auto_source_code_config import auto_source_code_config
 
     try:
         event = job["event"]
@@ -1016,11 +1017,10 @@ def process_code_mappings(job: PostProcessJob) -> None:
         else:
             return
 
-        # XXX: We will stop calling data after we deploy this change
-        derive_code_mappings.delay(project.id, data=event.data, event_id=event.event_id)
+        auto_source_code_config.delay(project.id, event_id=event.event_id)
 
     except Exception:
-        logger.exception("derive_code_mappings: Failed to process code mappings")
+        logger.exception("Failed to process automatic source code config")
 
 
 def process_commits(job: PostProcessJob) -> None:
