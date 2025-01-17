@@ -56,12 +56,15 @@ export function IssueViewQueryCount({view}: IssueViewQueryCountProps) {
   // But this component only ever sends one query, so we can just get the count of the first key.
   // This is a bit hacky, but it avoids having to use a state to store the previous query
   // when the query changes and the new data is still being fetched.
+  const defaultQuery =
+    Object.keys(queryCount ?? {}).length > 0
+      ? Object.keys(queryCount ?? {})[0]
+      : undefined;
   const count = isError
     ? 0
-    : Object.keys(queryCount ?? {}).length > 0 &&
-        queryCount?.[Object.keys(queryCount)[0]!]
-      ? queryCount?.[Object.keys(queryCount)[0]!] ?? 0
-      : 0;
+    : queryCount?.[view.unsavedChanges ? view.unsavedChanges[0] : view.query] ??
+      queryCount?.[defaultQuery ?? ''] ??
+      0;
 
   return (
     <QueryCountBubble
