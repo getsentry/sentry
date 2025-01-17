@@ -13,7 +13,6 @@ import ConfigStore from './stores/configStore';
 import OrganizationStore from './stores/organizationStore';
 
 jest.unmock('sentry/api');
-jest.unmock('sentry/apiClient');
 
 // Mimicks native AbortError class
 class AbortError extends Error {
