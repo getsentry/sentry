@@ -623,6 +623,10 @@ VISUALSTUDIO_APP_SECRET = ""
 VISUALSTUDIO_CLIENT_SECRET = ""
 VISUALSTUDIO_SCOPES = ["vso.work_write", "vso.project", "vso.code", "vso.release"]
 
+# Encryption key used for symmetric encryption of data in the database
+# Should not be used for anything else!!!
+SENTRY_DB_ENCRYPTION_KEY = os.getenv("SENTRY_DB_ENCRYPTION_KEY")
+
 SOCIAL_AUTH_PIPELINE = (
     "social_auth.backends.pipeline.user.get_username",
     "social_auth.backends.pipeline.social.social_auth_user",

@@ -201,6 +201,8 @@ def pytest_configure(config: pytest.Config) -> None:
 
     settings.SENTRY_ISSUE_PLATFORM_FUTURES_MAX_LIMIT = 1
 
+    settings.SENTRY_DB_ENCRYPTION_KEY = "YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXoxMjM0NTY="
+
     if not hasattr(settings, "SENTRY_OPTIONS"):
         settings.SENTRY_OPTIONS = {}
 
