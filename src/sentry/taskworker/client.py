@@ -44,7 +44,10 @@ class TaskworkerClient:
         return None
 
     def update_task(
-        self, task_id: str, status: TaskActivationStatus.ValueType, fetch_next_task: FetchNextTask
+        self,
+        task_id: str,
+        status: TaskActivationStatus.ValueType,
+        fetch_next_task: FetchNextTask | None = None,
     ) -> TaskActivation | None:
         """
         Update the status for a given task activation.
