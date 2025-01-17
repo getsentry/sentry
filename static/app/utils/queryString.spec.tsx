@@ -22,7 +22,7 @@ describe('addQueryParamsToExistingUrl', function () {
   });
 
   it('returns empty string no url is passed', function () {
-    let url;
+    let url: any;
     const newParams = {
       id: 4,
     };

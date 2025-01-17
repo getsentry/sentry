@@ -256,8 +256,12 @@ export function paramsToQueryArgs(params: ParamsType): QueryArgs {
   // only include date filters if they are not null/undefined
   if (params.query) {
     ['start', 'end', 'period', 'utc'].forEach(prop => {
-      if (params[prop] !== null && params[prop] !== undefined) {
-        p[prop === 'period' ? 'statsPeriod' : prop] = params[prop];
+      if (
+        params[prop as keyof typeof params] !== null &&
+        params[prop as keyof typeof params] !== undefined
+      ) {
+        (p as any)[prop === 'period' ? 'statsPeriod' : prop] =
+          params[prop as keyof typeof params];
       }
     });
   }

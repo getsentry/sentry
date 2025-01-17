@@ -70,7 +70,7 @@ function useNetworkFilters({networkFrames}: Options): Return {
   // get into a state where it is trying to load details for a non fetch/xhr
   // request.
   const setFilterAndClearDetails = useCallback(
-    arg => {
+    (arg: any) => {
       setFilter({
         ...arg,
         n_detail_row: undefined,

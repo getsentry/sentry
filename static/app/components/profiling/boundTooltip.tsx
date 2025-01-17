@@ -110,7 +110,7 @@ function BoundTooltip({
   const sizeCache = useRef<{size: DOMRect; value: React.ReactNode} | null>(null);
   const rafIdRef = useRef<number | undefined>();
   const onRef = useCallback(
-    node => {
+    (node: any) => {
       if (node === null) {
         return;
       }

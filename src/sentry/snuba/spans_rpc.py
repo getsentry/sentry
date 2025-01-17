@@ -14,6 +14,7 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.columns import ResolvedColumn, ResolvedFunction
 from sentry.search.eap.constants import (
     BOOLEAN,
+    DOUBLE,
     FLOAT,
     INT,
     MAX_ROLLUP_POINTS,
@@ -142,6 +143,8 @@ def run_table_query(
                 result_value = result.val_int
             elif resolved_column.proto_type == FLOAT:
                 result_value = result.val_float
+            elif resolved_column.proto_type == DOUBLE:
+                result_value = result.val_double
             elif resolved_column.proto_type == BOOLEAN:
                 result_value = result.val_bool
             result_value = process_value(result_value)

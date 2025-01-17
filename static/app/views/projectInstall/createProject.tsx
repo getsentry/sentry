@@ -314,7 +314,7 @@ function CreateProject() {
     );
   }
 
-  const keyToErrorText = {
+  const keyToErrorText: Record<string, string> = {
     actions: t('Notify via integration'),
     conditions: t('Alert conditions'),
     name: t('Alert name'),
@@ -418,7 +418,7 @@ function CreateProject() {
                     clearable={false}
                     value={team}
                     placeholder={t('Select a Team')}
-                    onChange={choice => setTeam(choice.value)}
+                    onChange={(choice: any) => setTeam(choice.value)}
                     teamFilter={(tm: Team) => tm.access.includes('team:admin')}
                   />
                 </TeamSelectInput>
@@ -442,7 +442,8 @@ function CreateProject() {
             <Alert type="error">
               {Object.keys(errors).map(key => (
                 <div key={key}>
-                  <strong>{keyToErrorText[key] ?? startCase(key)}</strong>: {errors[key]}
+                  <strong>{keyToErrorText[key] ?? startCase(key)}</strong>:{' '}
+                  {(errors as any)[key]}
                 </div>
               ))}
             </Alert>

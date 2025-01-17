@@ -286,7 +286,7 @@ const ClearButton = styled(Button)`
   color: ${p => p.theme.textColor};
 `;
 
-const PlatformCard = styled(({platform, selected, onClear, ...props}) => (
+const PlatformCard = styled(({platform, selected, onClear, ...props}: any) => (
   <div {...props}>
     <StyledPlatformIcon
       platform={platform.id}
