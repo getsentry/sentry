@@ -15,7 +15,7 @@ export function TagPreviewDistribution({tag}: {tag: GroupTag}) {
   const totalVisible = tag.topValues.reduce((sum, value) => sum + value.count, 0);
   const hasOther = totalVisible < tag.totalValues;
 
-  const otherPercentage = Math.round(
+  const otherPercentage = Math.floor(
     percent(tag.totalValues - totalVisible, tag.totalValues)
   );
   const otherDisplayPercentage =
@@ -62,7 +62,7 @@ export function TagDistribution({tag}: {tag: GroupTag}) {
   const totalVisible = visibleTagValues.reduce((sum, value) => sum + value.count, 0);
   const hasOther = totalVisible < tag.totalValues;
 
-  const otherPercentage = Math.round(
+  const otherPercentage = Math.floor(
     percent(tag.totalValues - totalVisible, tag.totalValues)
   );
   const otherDisplayPercentage =
