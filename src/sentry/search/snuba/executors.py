@@ -1811,40 +1811,9 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                         ),
                     )
                     if condition is not None:
-                        # This should update the search box so we can fetch the correct
-                        # issues.
-                        def recursive_check(condition: Column | Function) -> bool:
-                            if isinstance(condition, Column):
-                                if (
-                                    condition.entity.name == "events"
-                                    and condition.name.startswith("tags[")
-                                    and condition.name.endswith("]")
-                                ):
-                                    return True
-                            elif isinstance(condition, Function):
-                                for parameter in condition.parameters:
-                                    if isinstance(parameter, (Column, Function)):
-                                        return recursive_check(parameter)
-                            return False
-
-                        def recursive_replace(condition: Column | Function) -> bool:
-                            if isinstance(condition, Column):
-                                if condition.name.startswith("tags[") and condition.name.endswith(
-                                    "]"
-                                ):
-                                    return Column(
-                                        name=f"features[{condition.name[5:-1]}]",
-                                        entity=condition.entity,
-                                    )
-                            elif isinstance(condition, Function):
-                                for parameter in condition.parameters:
-                                    if isinstance(parameter, (Column, Function)):
-                                        return recursive_replace(parameter)
-                            return condition
-
-                        if recursive_check(condition.lhs):
+                        if recursive_tag_check(condition.lhs):
                             feature_condition = Condition(
-                                lhs=recursive_replace(condition.lhs),
+                                lhs=recursive_tag_replace(condition.lhs),
                                 op=condition.op,
                                 rhs=condition.rhs,
                             )
@@ -1980,3 +1949,34 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         paginator_results.results = [groups[k] for k in paginator_results.results if k in groups]
         # TODO: Add types to paginators and remove this
         return cast(CursorResult[Group], paginator_results)
+
+
+# This should update the search box so we can fetch the correct
+# issues.
+def recursive_tag_check(condition: Column | Function) -> bool:
+    if isinstance(condition, Column):
+        if (
+            condition.entity.name == "events"
+            and condition.name.startswith("tags[")
+            and condition.name.endswith("]")
+        ):
+            return True
+    elif isinstance(condition, Function):
+        for parameter in condition.parameters:
+            if isinstance(parameter, (Column, Function)):
+                return recursive_tag_check(parameter)
+    return False
+
+
+def recursive_tag_replace(condition: Column | Function) -> bool:
+    if isinstance(condition, Column):
+        if condition.name.startswith("tags[") and condition.name.endswith("]"):
+            return Column(
+                name=f"features[{condition.name[5:-1]}]",
+                entity=condition.entity,
+            )
+    elif isinstance(condition, Function):
+        for parameter in condition.parameters:
+            if isinstance(parameter, (Column, Function)):
+                return recursive_tag_replace(parameter)
+    return condition
