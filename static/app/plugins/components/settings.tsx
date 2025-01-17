@@ -97,11 +97,13 @@ class PluginSettings<
     this.api.request(this.getPluginEndpoint(), {
       data: parsedFormData,
       method: 'PUT',
-      success: this.onSaveSuccess.bind(this, data => {
+      success: this.onSaveSuccess.bind(this, (data: any) => {
         const formData = {};
         const initialData = {};
-        data.config.forEach(field => {
+        data.config.forEach((field: any) => {
+          // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           formData[field.name] = field.value || field.defaultValue;
+          // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           initialData[field.name] = field.value;
         });
         this.setState({
@@ -116,7 +118,7 @@ class PluginSettings<
           this.trackPluginEvent('integrations.installation_complete');
         }
       }),
-      error: this.onSaveError.bind(this, error => {
+      error: this.onSaveError.bind(this, (error: any) => {
         this.setState({
           errors: error.responseJSON?.errors || {},
         });
@@ -141,7 +143,9 @@ class PluginSettings<
         const formData = {};
         const initialData = {};
         data.config.forEach((field: BackendField) => {
+          // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           formData[field.name] = field.value || field.defaultValue;
+          // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           initialData[field.name] = field.value;
           // for simplicity sake, we will consider a plugin was configured if we have any value that is stored in the DB
           wasConfiguredOnPageLoad = wasConfiguredOnPageLoad || !!field.value;

@@ -31,6 +31,7 @@ export function formatYAxisValue(value: number, type: string, unit?: string): st
       );
       return formatYAxisDuration(durationInMilliseconds);
     case 'size':
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const bytes = value * SIZE_UNITS[unit ?? 'byte'];
 
       const formatter = ABYTE_UNITS.includes(unit ?? 'byte')

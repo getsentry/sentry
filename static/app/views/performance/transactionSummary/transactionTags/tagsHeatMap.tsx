@@ -225,7 +225,7 @@ function TagsHeatMap(
       dataArray: _data,
       label: {
         show: true,
-        formatter: data => formatAbbreviatedNumber(data.value[2]),
+        formatter: (data: any) => formatAbbreviatedNumber(data.value[2]),
       },
       emphasis: {
         itemStyle: {
@@ -236,7 +236,7 @@ function TagsHeatMap(
     } as any); // TODO(k-fish): Fix heatmap data typing
   }
 
-  const onChartClick = bucket => {
+  const onChartClick = (bucket: any) => {
     const htmlEvent = bucket.event.event;
     // Make a copy of the dims because echarts can remove elements after this click happens.
     // TODO(k-fish): Look at improving this to respond properly to resize events.
