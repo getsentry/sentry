@@ -5,7 +5,7 @@ from django.db import models
 __all__ = ("EncryptedStringField",)
 
 
-def _get_encryption_key() -> bytes:
+def _get_encryption_key():
     """
     Returns a Fernet-compatible 32 byte url-safe base64-encoded key.
     The input key from settings must be a 32-byte url-safe base64-encoded string.
