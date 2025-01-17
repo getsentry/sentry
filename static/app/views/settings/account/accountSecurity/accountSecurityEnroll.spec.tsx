@@ -37,7 +37,7 @@ describe('AccountSecurityEnroll', function () {
       params: {authId: authenticator.authId},
     });
 
-    let location;
+    let location: any;
     beforeEach(function () {
       location = window.location;
       window.location = location;

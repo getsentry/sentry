@@ -103,7 +103,7 @@ type Props = {
   disabled: boolean;
   isEditing: boolean;
   onComparisonDeltaChange: (value: number) => void;
-  onFilterSearch: (query: string, isQueryValid) => void;
+  onFilterSearch: (query: string, isQueryValid: any) => void;
   onTimeWindowChange: (value: number) => void;
   organization: Organization;
   project: Project;
@@ -157,6 +157,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
     const {measurements} = this.state;
     const measurementsWithKind = Object.keys(measurements).reduce(
       (measurement_tags, key) => {
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         measurement_tags[key] = {
           ...measurements[key],
           kind: FieldKind.MEASUREMENT,
@@ -221,7 +222,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
     }
   }
 
-  getEventFieldValues = async (tag, query): Promise<string[]> => {
+  getEventFieldValues = async (tag: any, query: any): Promise<string[]> => {
     const {api, organization, project, dataset, router} = this.props;
 
     if (isAggregateField(tag.key) || isMeasurement(tag.key)) {
@@ -374,7 +375,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
         }}
         flexibleControlStateSize
       >
-        {({onChange, onBlur, model}) => {
+        {({onChange, onBlur, model}: any) => {
           const formDataset = model.getValue('dataset');
           const formEventTypes = model.getValue('eventTypes');
           const aggregate = model.getValue('aggregate');
@@ -386,7 +387,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
             <SelectControl
               value={mappedValue}
               inFieldLabel={t('Events: ')}
-              onChange={({value}) => {
+              onChange={({value}: any) => {
                 onChange(value, {});
                 onBlur(value, {});
                 // Reset the aggregate to the default (which works across
@@ -402,6 +403,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
 
                 // set the value of the dataset and event type from data source
                 const {dataset: datasetFromDataSource, eventTypes} =
+                  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                   DATA_SOURCE_TO_SET_AND_EVENT_TYPES[value] ?? {};
 
                 model.setValue('dataset', datasetFromDataSource);
@@ -441,7 +443,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
         }}
         flexibleControlStateSize
       >
-        {({onChange, onBlur, model}) => {
+        {({onChange, onBlur, model}: any) => {
           const selectedProject =
             projects.find(({id}) => id === model.getValue('projectId')) ||
             _selectedProject;
@@ -470,7 +472,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                 onBlur(value, {});
               }}
               components={{
-                SingleValue: containerProps => (
+                SingleValue: (containerProps: any) => (
                   <components.ValueContainer {...containerProps}>
                     <IdBadge
                       project={selectedProject}
@@ -531,7 +533,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
             options={this.timeWindowOptions}
             isDisabled={disabled}
             value={timeWindow}
-            onChange={({value}) => onTimeWindowChange(value)}
+            onChange={({value}: any) => onTimeWindowChange(value)}
             inline={false}
             flexibleControlStateSize
           />
@@ -643,7 +645,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                   }}
                   flexibleControlStateSize
                 >
-                  {({onChange, onBlur, initialData, value}) => {
+                  {({onChange, onBlur, initialData, value}: any) => {
                     return hasCustomMetrics(organization) &&
                       alertType === 'custom_metrics' ? (
                       <MetricSearchBar
@@ -744,7 +746,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                   }}
                   flexibleControlStateSize
                 >
-                  {args => {
+                  {(args: any) => {
                     if (
                       args.value?.includes('is:unresolved') &&
                       comparisonType === AlertRuleComparisonType.DYNAMIC

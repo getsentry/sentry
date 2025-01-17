@@ -683,7 +683,7 @@ export const featureFlagOnboarding: OnboardingConfig = {
         'Add [name] to your integrations list, and then register with your feature flag SDK.',
         {
           name: (
-            <code>{`${FLAG_OPTIONS[featureFlagOptions.integration].integration}`}</code>
+            <code>{`${FLAG_OPTIONS[featureFlagOptions.integration as keyof typeof FLAG_OPTIONS].integration}`}</code>
           ),
         }
       ),
@@ -691,18 +691,18 @@ export const featureFlagOnboarding: OnboardingConfig = {
         {
           language: 'JavaScript',
           code: `
-${FLAG_OPTIONS[featureFlagOptions.integration].importStatement}
+${FLAG_OPTIONS[featureFlagOptions.integration as keyof typeof FLAG_OPTIONS].importStatement}
 
 // Register with Sentry
 Sentry.init({
   dsn: "${dsn.public}",
   integrations: [
-    Sentry.${FLAG_OPTIONS[featureFlagOptions.integration].integration},
+    Sentry.${FLAG_OPTIONS[featureFlagOptions.integration as keyof typeof FLAG_OPTIONS].integration},
   ],
 });
 
 // Register with your feature flag SDK
-${FLAG_OPTIONS[featureFlagOptions.integration].sdkInit}
+${FLAG_OPTIONS[featureFlagOptions.integration as keyof typeof FLAG_OPTIONS].sdkInit}
 `,
         },
       ],

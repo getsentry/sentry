@@ -46,9 +46,7 @@ describe('ErrorCounts', () => {
   });
 
   it('should render 0 when there are no errors in the array', () => {
-    const errors = [];
-
-    render(<ErrorCounts replayErrors={errors} replayRecord={replayRecord} />, {
+    render(<ErrorCounts replayErrors={[]} replayRecord={replayRecord} />, {
       organization,
     });
     const countNode = screen.getByLabelText('number of errors');

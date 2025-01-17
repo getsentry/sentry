@@ -37,6 +37,7 @@ function NewSecretHandler({
               "Create a webhook integration with your [link:feature flag service]. When you do so, you'll need to enter this URL.",
               {
                 link: (
+                  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                   <ExternalLink href={PROVIDER_OPTION_TO_URLS[provider.toLowerCase()]} />
                 ),
               }

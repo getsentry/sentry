@@ -228,6 +228,7 @@ function makeCellActions({
     addMenuItem(
       Actions.EDIT_THRESHOLD,
       tct('Edit threshold ([threshold]ms)', {
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         threshold: dataRow.project_threshold_config[1],
       }),
       t('Edit threshold')

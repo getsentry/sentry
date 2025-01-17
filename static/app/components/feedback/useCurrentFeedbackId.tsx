@@ -5,7 +5,7 @@ import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 
 export default function useCurrentFeedbackId() {
   const {feedbackSlug: feedbackId} = useLocationQuery({
-    fields: {feedbackSlug: val => decodeFeedbackSlug(val).feedbackId ?? ''},
+    fields: {feedbackSlug: (val: any) => decodeFeedbackSlug(val).feedbackId ?? ''},
   });
 
   return feedbackId;
