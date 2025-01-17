@@ -227,7 +227,7 @@ class IssueTrackingPlugin(Plugin):
 
         return self.render(self.create_issue_template, context)
 
-    def actions(self, request: Request, group, action_list, **kwargs):
+    def actions(self, group, action_list, **kwargs):
         if not self.is_configured(project=group.project):
             return action_list
         prefix = self.get_conf_key()
