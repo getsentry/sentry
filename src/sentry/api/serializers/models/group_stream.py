@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import functools
 from abc import abstractmethod
-from collections.abc import Callable, Mapping, MutableMapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, Protocol
 
 from django.utils import timezone
 
@@ -47,7 +47,7 @@ def get_actions(group):
 
     project = group.project
 
-    action_list = []
+    action_list: list[tuple[str, str]] = []
     for plugin in plugins.for_project(project, version=1):
         if is_plugin_deprecated(plugin, project):
             continue
@@ -62,13 +62,13 @@ def get_actions(group):
     return action_list
 
 
-def get_available_issue_plugins(group):
+def get_available_issue_plugins(group) -> list[dict[str, Any]]:
     from sentry.plugins.base import plugins
     from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 
     project = group.project
 
-    plugin_issues = []
+    plugin_issues: list[dict[str, Any]] = []
     for plugin in plugins.for_project(project, version=1):
         if isinstance(plugin, IssueTrackingPlugin2):
             if is_plugin_deprecated(plugin, project):
@@ -220,10 +220,21 @@ class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
         return stats
 
 
+class _SeenStatsFunc(Protocol):
+    def __call__(
+        self,
+        item_list,
+        start=None,
+        end=None,
+        conditions=None,
+        environment_ids=None,
+    ) -> Mapping[str, Any]: ...
+
+
 class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
     def __init__(
         self,
-        environment_ids=None,
+        environment_ids: list[int] | None = None,
         stats_period=None,
         stats_period_start=None,
         stats_period_end=None,
@@ -520,7 +531,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
     def __seen_stats_impl(
         self,
         error_issue_list: Sequence[Group],
-        seen_stats_func: Callable[[Any, Any, Any, Any, Any], Mapping[str, Any]],
+        seen_stats_func: _SeenStatsFunc,
     ) -> Mapping[Any, SeenStats]:
         partial_execute_seen_stats_query = functools.partial(
             seen_stats_func,
@@ -570,24 +581,25 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         return time_range_result
 
     def _build_session_cache_key(self, project_id):
-        start_key = end_key = env_key = ""
+        start_key_dt = end_key_dt = None
+        env_key = ""
         if self.start:
-            start_key = self.start.replace(second=0, microsecond=0, tzinfo=None)
+            start_key_dt = self.start.replace(second=0, microsecond=0, tzinfo=None)
 
         if self.end:
-            end_key = self.end.replace(second=0, microsecond=0, tzinfo=None)
+            end_key_dt = self.end.replace(second=0, microsecond=0, tzinfo=None)
 
-        if self.end and self.start and self.end - self.start >= timedelta(minutes=60):
+        if end_key_dt and start_key_dt and self.end - self.start >= timedelta(minutes=60):
             # Cache to the hour for longer time range queries, and to the minute if the query if for a time period under 1 hour
-            end_key = end_key.replace(minute=0)
-            start_key = start_key.replace(minute=0)
+            end_key_dt = end_key_dt.replace(minute=0)
+            start_key_dt = start_key_dt.replace(minute=0)
 
         if self.environment_ids:
             self.environment_ids.sort()
             env_key = "-".join(str(eid) for eid in self.environment_ids)
 
-        start_key = start_key.strftime("%m/%d/%Y, %H:%M:%S") if start_key != "" else ""
-        end_key = end_key.strftime("%m/%d/%Y, %H:%M:%S") if end_key != "" else ""
+        start_key = start_key_dt.strftime("%m/%d/%Y, %H:%M:%S") if start_key_dt is not None else ""
+        end_key = end_key_dt.strftime("%m/%d/%Y, %H:%M:%S") if end_key_dt is not None else ""
         key_hash = hash_values([project_id, start_key, end_key, env_key])
         session_cache_key = f"w-s:{key_hash}"
         return session_cache_key
