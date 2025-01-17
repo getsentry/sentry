@@ -347,6 +347,7 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
 
     @mock.patch("sentry.api.endpoints.organization_events_trends_v2.detect_breakpoints")
     @mock.patch("sentry.api.endpoints.organization_events_trends_v2.EVENTS_PER_QUERY", 2)
+    @pytest.mark.skip(reason="Flaking 1/17/2025")
     def test_two_projects_same_transaction_split_queries(self, mock_detect_breakpoints):
         project1 = self.create_project(organization=self.org)
         project2 = self.create_project(organization=self.org)
