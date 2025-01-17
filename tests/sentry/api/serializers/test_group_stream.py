@@ -1,5 +1,8 @@
 from unittest import mock
 
+import pytest
+from rest_framework.exceptions import ValidationError
+
 from sentry import tsdb
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group_stream import (
@@ -10,6 +13,7 @@ from sentry.issues.grouptype import GroupCategory, ProfileFileIOGroupType
 from sentry.models.environment import Environment
 from sentry.testutils.cases import BaseMetricsTestCase, PerformanceIssueTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.testutils.helpers.features import Feature
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 
@@ -80,3 +84,29 @@ class StreamGroupSerializerTestCase(
         assert serialized["issueType"] == str(ProfileFileIOGroupType.slug)
         assert [stat[1] for stat in serialized["stats"]["24h"][:-1]] == [0] * 23
         assert serialized["stats"]["24h"][-1][1] == 1
+
+    def test_event_attachments_feature_flag(self):
+        group = self.group
+        request = self.make_request()
+        serializer = StreamGroupSerializerSnuba(
+            environment_ids=None, collapse=None, expand=["latestEventHasAttachments"]
+        )
+
+        # Test with feature flag disabled
+        with Feature({"organizations:event-attachments": False}):
+            with pytest.raises(ValidationError) as exc:
+                serializer.get_attrs(item_list=[group], user=request.user, request=request)
+            assert (
+                str(exc.value.detail[0])
+                == "Event attachments feature is not enabled for this organization"
+            )
+
+        # Test with feature flag enabled
+        with Feature({"organizations:event-attachments": True}):
+            attrs = serializer.get_attrs(item_list=[group], user=request.user, request=request)
+
+            # Verify the attributes were set properly
+            assert group in attrs
+            assert "latestEventHasAttachments" in attrs[group]
+            # Should be False by default when no attachments exist
+            assert attrs[group]["latestEventHasAttachments"] == False
