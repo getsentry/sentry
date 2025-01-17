@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/react';
 
-import {Client, type RequestCallbacks, type RequestOptions} from 'sentry/api';
+import {Client, type RequestCallbackOptions, type RequestOptions} from 'sentry/api';
 import GroupStore from 'sentry/stores/groupStore';
 import type {Actor} from 'sentry/types/core';
 import type {Group, Note, Tag as GroupTag, TagValue} from 'sentry/types/group';
@@ -286,7 +286,7 @@ function wrapRequest(
   api: Client,
   path: string,
   options: RequestOptions,
-  extraParams: RequestCallbacks = {}
+  extraParams: RequestCallbackOptions = {}
 ) {
   options.success = chainUtil(options.success, extraParams.success);
   options.error = chainUtil(options.error, extraParams.error);
@@ -300,7 +300,7 @@ type BulkDeleteParams = UpdateParams;
 export function bulkDelete(
   api: Client,
   params: BulkDeleteParams,
-  options: RequestCallbacks
+  options: RequestCallbackOptions
 ) {
   const {itemIds} = params;
   const path = getUpdateUrl(params);
@@ -319,9 +319,9 @@ export function bulkDelete(
       success: response => {
         GroupStore.onDeleteSuccess(id, itemIds, response);
       },
-      error: error => {
+      error: _error => {
         // which was previously not caught
-        GroupStore.onDeleteError(id, itemIds, error);
+        GroupStore.onDeleteError(id, itemIds);
       },
     },
     options
@@ -336,7 +336,7 @@ type BulkUpdateParams = UpdateParams & {
 export function bulkUpdate(
   api: Client,
   params: BulkUpdateParams,
-  options: RequestCallbacks
+  options: RequestCallbackOptions
 ) {
   const {itemIds, failSilently, data} = params;
   const path = getUpdateUrl(params);
@@ -369,7 +369,7 @@ type MergeGroupsParams = UpdateParams;
 export function mergeGroups(
   api: Client,
   params: MergeGroupsParams,
-  options: RequestCallbacks
+  options: RequestCallbackOptions
 ) {
   const {itemIds} = params;
   const path = getUpdateUrl(params);
