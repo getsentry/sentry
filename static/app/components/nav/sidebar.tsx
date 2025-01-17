@@ -7,7 +7,7 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
 import {linkStyles} from 'sentry/components/links/styles';
-import {useNavContext} from 'sentry/components/nav/context';
+import {useNavContextDeprecated} from 'sentry/components/nav/contextDeprecated';
 import Submenu from 'sentry/components/nav/submenu';
 import {
   isNavItemActive,
@@ -41,7 +41,7 @@ function Sidebar() {
 export default Sidebar;
 
 export function SidebarItems() {
-  const {config} = useNavContext();
+  const {config} = useNavContextDeprecated();
   return (
     <Fragment>
       <SidebarBody>
