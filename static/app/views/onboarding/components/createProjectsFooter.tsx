@@ -102,6 +102,7 @@ export function CreateProjectsFooter({
         const newProjects = Object.keys(onboardingContext.data.projects).reduce(
           (acc, key) => {
             if (onboardingContext.data.projects[key]!.slug !== response.slug) {
+              // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
               acc[key] = onboardingContext.data.projects[key];
             }
             return acc;
@@ -186,7 +187,7 @@ export function CreateProjectsFooter({
   return (
     <GenericFooter>
       {genSkipOnboardingLink()}
-      <SelectionWrapper>
+      <SelectionWrapper transition={testableTransition({duration: 1.8})}>
         {selectedPlatform ? (
           <Fragment>
             <div>
@@ -204,7 +205,7 @@ export function CreateProjectsFooter({
           </Fragment>
         ) : null}
       </SelectionWrapper>
-      <ButtonWrapper>
+      <ButtonWrapper transition={testableTransition({duration: 1.3})}>
         <Button
           priority="primary"
           onClick={handleProjectCreation}
@@ -229,12 +230,6 @@ const SelectionWrapper = styled(motion.div)`
   }
 `;
 
-SelectionWrapper.defaultProps = {
-  transition: testableTransition({
-    duration: 1.8,
-  }),
-};
-
 const ButtonWrapper = styled(motion.div)`
   display: flex;
   height: 100%;
@@ -242,12 +237,6 @@ const ButtonWrapper = styled(motion.div)`
   margin-right: ${space(4)};
   margin-left: ${space(4)};
 `;
-
-ButtonWrapper.defaultProps = {
-  transition: testableTransition({
-    duration: 1.3,
-  }),
-};
 
 const SelectedPlatformIcon = styled(PlatformIcon)`
   margin-right: ${space(1)};

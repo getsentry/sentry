@@ -65,7 +65,7 @@ function SensitivityFormItem({
               label: 'High (alert more often)',
             },
           ]}
-          onChange={({value}) => {
+          onChange={({value}: any) => {
             onSensitivityChange(value);
           }}
         />
@@ -104,7 +104,7 @@ function DirectionFormItem({
               label: 'Below bounds only',
             },
           ]}
-          onChange={({value}) => {
+          onChange={({value}: any) => {
             onThresholdTypeChange(value);
           }}
         />

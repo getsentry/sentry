@@ -1,12 +1,17 @@
-import {type CSSProperties, Fragment, useEffect, useState} from 'react';
+import {type CSSProperties, Fragment, useCallback, useEffect, useState} from 'react';
 import {closestCorners, DndContext, useDraggable, useDroppable} from '@dnd-kit/core';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
+import cloneDeep from 'lodash/cloneDeep';
+import omit from 'lodash/omit';
 
 import {t} from 'sentry/locale';
+import PreferencesStore from 'sentry/stores/preferencesStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
+import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
@@ -45,6 +50,11 @@ import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboar
 import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
+export interface ThresholdMetaState {
+  dataType?: string;
+  dataUnit?: string;
+}
+
 type WidgetBuilderV2Props = {
   dashboard: DashboardDetails;
   dashboardFilters: DashboardFilters;
@@ -71,6 +81,7 @@ function WidgetBuilderV2({
   const [queryConditionsValid, setQueryConditionsValid] = useState<boolean>(true);
   const theme = useTheme();
   const [isPreviewDraggable, setIsPreviewDraggable] = useState(false);
+  const [thresholdMetaState, setThresholdMetaState] = useState<ThresholdMetaState>({});
 
   const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.small})`);
 
@@ -87,11 +98,11 @@ function WidgetBuilderV2({
     }
   }, [escapeKeyPressed, isOpen, onClose]);
 
-  const handleDragEnd = ({over}) => {
+  const handleDragEnd = ({over}: any) => {
     setTranslate(snapPreviewToCorners(over));
   };
 
-  const handleDragMove = ({delta}) => {
+  const handleDragMove = ({delta}: any) => {
     setTranslate(previousTranslate => ({
       ...previousTranslate,
       initialTranslate: previousTranslate.initialTranslate,
@@ -101,6 +112,33 @@ function WidgetBuilderV2({
       },
     }));
   };
+
+  const handleWidgetDataFetched = useCallback(
+    (tableData: TableDataWithTitle[]) => {
+      const tableMeta = {...tableData[0]!.meta};
+      const keys = Object.keys(tableMeta);
+      const field = keys[0]!;
+      const dataType = tableMeta[field];
+      const dataUnit = tableMeta.units?.[field];
+
+      const newState = cloneDeep(thresholdMetaState);
+      newState.dataType = dataType;
+      newState.dataUnit = dataUnit;
+      setThresholdMetaState(newState);
+    },
+    [thresholdMetaState]
+  );
+
+  // reset the drag position when the draggable preview is not visible
+  useEffect(() => {
+    if (!isPreviewDraggable) {
+      setTranslate(DEFAULT_WIDGET_DRAG_POSITIONING);
+    }
+  }, [isPreviewDraggable]);
+
+  const preferences = useLegacyStore(PreferencesStore);
+  const hasNewNav = organization?.features.includes('navigation-sidebar-v2');
+  const sidebarCollapsed = hasNewNav ? true : !!preferences.collapsed;
 
   return (
     <Fragment>
@@ -113,36 +151,44 @@ function WidgetBuilderV2({
                 dataset={DiscoverDatasets.SPANS_EAP}
                 enabled={organization.features.includes('dashboards-eap')}
               >
-                <ContainerWithoutSidebar>
+                <ContainerWithoutSidebar sidebarCollapsed={sidebarCollapsed}>
                   <WidgetBuilderContainer>
-                    <WidgetBuilderSlideout
-                      isOpen={isOpen}
-                      onClose={() => {
-                        onClose();
-                        setTranslate(DEFAULT_WIDGET_DRAG_POSITIONING);
-                      }}
-                      onSave={onSave}
-                      onQueryConditionChange={setQueryConditionsValid}
-                      dashboard={dashboard}
-                      dashboardFilters={dashboardFilters}
-                      setIsPreviewDraggable={setIsPreviewDraggable}
-                      isWidgetInvalid={!queryConditionsValid}
-                      openWidgetTemplates={openWidgetTemplates}
-                      setOpenWidgetTemplates={setOpenWidgetTemplates}
-                    />
+                    <SlideoutContainer>
+                      <WidgetBuilderSlideout
+                        isOpen={isOpen}
+                        onClose={() => {
+                          onClose();
+                          setTranslate(DEFAULT_WIDGET_DRAG_POSITIONING);
+                        }}
+                        onSave={onSave}
+                        onQueryConditionChange={setQueryConditionsValid}
+                        dashboard={dashboard}
+                        dashboardFilters={dashboardFilters}
+                        setIsPreviewDraggable={setIsPreviewDraggable}
+                        isWidgetInvalid={!queryConditionsValid}
+                        openWidgetTemplates={openWidgetTemplates}
+                        setOpenWidgetTemplates={setOpenWidgetTemplates}
+                        onDataFetched={handleWidgetDataFetched}
+                        thresholdMetaState={thresholdMetaState}
+                      />
+                    </SlideoutContainer>
                     {(!isSmallScreen || isPreviewDraggable) && (
                       <DndContext
                         onDragEnd={handleDragEnd}
                         onDragMove={handleDragMove}
                         collisionDetection={closestCorners}
                       >
-                        <WidgetPreviewContainer
-                          dashboardFilters={dashboardFilters}
-                          dashboard={dashboard}
-                          dragPosition={translate}
-                          isDraggable={isPreviewDraggable}
-                          isWidgetInvalid={!queryConditionsValid}
-                        />
+                        <SurroundingWidgetContainer>
+                          <WidgetPreviewContainer
+                            dashboardFilters={dashboardFilters}
+                            dashboard={dashboard}
+                            dragPosition={translate}
+                            isDraggable={isPreviewDraggable}
+                            isWidgetInvalid={!queryConditionsValid}
+                            onDataFetched={handleWidgetDataFetched}
+                            openWidgetTemplates={openWidgetTemplates}
+                          />
+                        </SurroundingWidgetContainer>
                       </DndContext>
                     )}
                   </WidgetBuilderContainer>
@@ -164,12 +210,16 @@ export function WidgetPreviewContainer({
   isWidgetInvalid,
   dragPosition,
   isDraggable,
+  onDataFetched,
+  openWidgetTemplates,
 }: {
   dashboard: DashboardDetails;
   dashboardFilters: DashboardFilters;
   isWidgetInvalid: boolean;
   dragPosition?: WidgetDragPositioning;
   isDraggable?: boolean;
+  onDataFetched?: (tableData: TableDataWithTitle[]) => void;
+  openWidgetTemplates?: boolean;
 }) {
   const {state} = useWidgetBuilderContext();
   const organization = useOrganization();
@@ -180,7 +230,6 @@ export function WidgetPreviewContainer({
       useRpc: decodeBoolean,
     },
   });
-
   const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.small})`);
   // if small screen and draggable, enable dragging
   const isDragEnabled = isSmallScreen && isDraggable;
@@ -195,7 +244,7 @@ export function WidgetPreviewContainer({
 
   const draggableStyle: CSSProperties = {
     transform: isDragEnabled
-      ? `translate3d(${translate?.x ?? 0}px, ${translate?.y ?? 0}px, 0)`
+      ? `translate3d(${isDragging ? translate?.x : 0}px, ${isDragging ? translate?.y : 0}px, 0)`
       : undefined,
     top: isDragEnabled ? top ?? 0 : undefined,
     left: isDragEnabled ? left ?? 0 : undefined,
@@ -207,9 +256,26 @@ export function WidgetPreviewContainer({
     position: isDragEnabled ? 'fixed' : undefined,
   };
 
+  // check if the state is in the url because the state variable has default values
+  const hasUrlParams =
+    Object.keys(
+      omit(location.query, [
+        'environment',
+        'project',
+        'release',
+        'start',
+        'end',
+        'statsPeriod',
+      ])
+    ).length > 0;
+
   const getPreviewHeight = () => {
     if (isDragEnabled) {
       return DRAGGABLE_PREVIEW_HEIGHT_PX;
+    }
+    // if none of the widget templates are selected
+    if (openWidgetTemplates && !hasUrlParams) {
+      return PREVIEW_HEIGHT_PX;
     }
     if (state.displayType === DisplayType.TABLE) {
       return 'auto';
@@ -260,13 +326,25 @@ export function WidgetPreviewContainer({
                       : undefined,
                   }}
                 >
-                  <WidgetPreview
-                    // While we test out RPC for spans, force a re-render if the spans toggle changes
-                    key={state.dataset === WidgetType.SPANS && useRpc ? 'spans' : 'other'}
-                    dashboardFilters={dashboardFilters}
-                    dashboard={dashboard}
-                    isWidgetInvalid={isWidgetInvalid}
-                  />
+                  {openWidgetTemplates && !hasUrlParams ? (
+                    <WidgetPreviewPlaceholder>
+                      <h6 style={{margin: 0}}>{t('Widget Title')}</h6>
+                      <TemplateWidgetPreviewPlaceholder>
+                        <p style={{margin: 0}}>{t('Select a widget to preview')}</p>
+                      </TemplateWidgetPreviewPlaceholder>
+                    </WidgetPreviewPlaceholder>
+                  ) : (
+                    <WidgetPreview
+                      // While we test out RPC for spans, force a re-render if the spans toggle changes
+                      key={
+                        state.dataset === WidgetType.SPANS && useRpc ? 'spans' : 'other'
+                      }
+                      dashboardFilters={dashboardFilters}
+                      dashboard={dashboard}
+                      isWidgetInvalid={isWidgetInvalid}
+                      onDataFetched={onDataFetched}
+                    />
+                  )}
                 </SampleWidgetCard>
               </DraggableWidgetContainer>
             </MEPSettingProvider>
@@ -298,21 +376,11 @@ function Droppable({id}: {id: string}) {
 }
 
 const fullPageCss = css`
-  position: absolute;
+  position: fixed;
   top: 0;
   right: 0;
   bottom: 0;
   left: 0;
-`;
-
-const fillAvailableCss = css`
-  height: 100%; /* default */
-  height: -webkit-fill-available; /* Chrome */
-  height: -moz-available; /* Firefox */
-  height: fill-available; /* others */
-  width: -webkit-fill-available; /* Chrome */
-  width: -moz-available; /* Firefox */
-  width: fill-available; /* others */
 `;
 
 const Backdrop = styled('div')`
@@ -363,19 +431,27 @@ const DraggableWidgetContainer = styled(`div`)`
   }
 `;
 
-const ContainerWithoutSidebar = styled('div')`
-  position: absolute;
+const ContainerWithoutSidebar = styled('div')<{sidebarCollapsed: boolean}>`
+  z-index: ${p => p.theme.zIndex.widgetBuilderDrawer};
+  position: fixed;
   top: 0;
-  left: 0;
+  left: ${p =>
+    p.sidebarCollapsed ? p.theme.sidebar.collapsedWidth : p.theme.sidebar.expandedWidth};
+  right: 0;
+  bottom: 0;
+
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+    left: 0;
+    top: ${p => p.theme.sidebar.mobileHeight};
+  }
 `;
 
 const WidgetBuilderContainer = styled('div')`
   z-index: ${p => p.theme.zIndex.widgetBuilderDrawer};
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  position: fixed;
-  ${fillAvailableCss};
+  position: absolute;
+  inset: 0;
 `;
 
 const DroppableGrid = styled('div')`
@@ -389,4 +465,35 @@ const DroppableGrid = styled('div')`
   right: ${space(2)};
   bottom: ${space(2)};
   left: 0;
+`;
+
+const TemplateWidgetPreviewPlaceholder = styled('div')`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 95%;
+  color: ${p => p.theme.subText};
+  font-style: italic;
+  font-size: ${p => p.theme.fontSizeMedium};
+  font-weight: ${p => p.theme.fontWeightNormal};
+`;
+
+const WidgetPreviewPlaceholder = styled('div')`
+  width: 100%;
+  height: 100%;
+  padding: ${space(2)};
+`;
+
+const SlideoutContainer = styled('div')`
+  height: 100%;
+`;
+
+const SurroundingWidgetContainer = styled('div')`
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 `;

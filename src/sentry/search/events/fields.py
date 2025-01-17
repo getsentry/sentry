@@ -1130,6 +1130,7 @@ class NumericColumn(ColumnArg):
             "span.self_time",
             "ai.total_tokens.used",
             "ai.total_cost",
+            "cache.item_size",
             "http.decoded_response_content_length",
             "http.response_content_length",
             "http.response_transfer_size",

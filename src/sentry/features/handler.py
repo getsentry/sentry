@@ -83,7 +83,7 @@ class BatchFeatureHandler(FeatureHandler):
     def _check_for_batch(
         self,
         feature_name: str,
-        entity: Organization | User | None,
+        entity: Organization | User | RpcUser | AnonymousUser | None,
         actor: User | RpcUser | AnonymousUser | None,
     ) -> bool | None:
         raise NotImplementedError

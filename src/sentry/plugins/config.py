@@ -10,8 +10,6 @@ from sentry.utils.forms import form_to_config
 from .providers import ProviderMixin
 from .validators import DEFAULT_VALIDATORS
 
-VALIDATOR_ERRORS = (forms.ValidationError, serializers.ValidationError, PluginError)
-
 ERR_FIELD_REQUIRED = "This field is required."
 
 

@@ -105,7 +105,7 @@ export function AutoSizedText({children}: Props) {
       return;
     }
 
-    let newFontSize;
+    let newFontSize: any;
 
     if (
       childDimensions.width > parentDimensions.width ||

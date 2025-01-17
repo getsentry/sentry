@@ -8,12 +8,15 @@ from django.conf import settings
 from django.test.utils import override_settings
 from rest_framework.exceptions import ErrorDetail
 
+from sentry import audit_log
 from sentry.constants import ObjectStatus
 from sentry.models.rule import Rule, RuleSource
 from sentry.monitors.models import Monitor, MonitorStatus, MonitorType, ScheduleType
 from sentry.quotas.base import SeatAssignmentResult
 from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
+from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import MonitorTestCase
+from sentry.testutils.outbox import outbox_runner
 from sentry.utils.outcomes import Outcome
 
 
@@ -375,7 +378,8 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
             "owner": f"user:{self.user.id}",
             "config": {"schedule_type": "crontab", "schedule": "@daily"},
         }
-        response = self.get_success_response(self.organization.slug, **data)
+        with outbox_runner():
+            response = self.get_success_response(self.organization.slug, **data)
 
         monitor = Monitor.objects.get(slug=response.data["slug"])
         assert monitor.organization_id == self.organization.id
@@ -393,6 +397,11 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
             "failure_issue_threshold": None,
             "recovery_threshold": None,
         }
+        assert_org_audit_log_exists(
+            organization=self.organization,
+            event=audit_log.get_event_id("MONITOR_ADD"),
+            data={"upsert": False, **monitor.get_audit_log_data()},
+        )
 
         self.project.refresh_from_db()
         assert self.project.flags.has_cron_monitors
@@ -597,13 +606,24 @@ class BulkEditOrganizationMonitorTest(MonitorTestCase):
             "ids": [monitor_one.guid, monitor_two.guid],
             "isMuted": True,
         }
-        response = self.get_success_response(self.organization.slug, **data)
-        assert response.status_code == 200
+        with outbox_runner():
+            response = self.get_success_response(self.organization.slug, **data)
+            assert response.status_code == 200
 
         monitor_one.refresh_from_db()
         monitor_two.refresh_from_db()
         assert monitor_one.is_muted
         assert monitor_two.is_muted
+        assert_org_audit_log_exists(
+            organization=self.organization,
+            event=audit_log.get_event_id("MONITOR_EDIT"),
+            data=monitor_one.get_audit_log_data(),
+        )
+        assert_org_audit_log_exists(
+            organization=self.organization,
+            event=audit_log.get_event_id("MONITOR_EDIT"),
+            data=monitor_two.get_audit_log_data(),
+        )
 
         data = {
             "ids": [monitor_one.guid, monitor_two.guid],

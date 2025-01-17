@@ -63,8 +63,8 @@ function ApiApplications({router}: Props) {
   };
 
   const handleRemoveApplication = (app: ApiApplication) => {
-    setApiQueryData<any>(queryClient, [ENDPOINT], oldAppList =>
-      oldAppList.filter(a => a.id !== app.id)
+    setApiQueryData<any>(queryClient, [ENDPOINT], (oldAppList: any) =>
+      oldAppList.filter((a: any) => a.id !== app.id)
     );
   };
 

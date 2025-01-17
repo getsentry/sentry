@@ -15,6 +15,7 @@ import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
 import {
+  type AggregateParameter,
   type AggregationKeyWithAlias,
   type AggregationRefinement,
   classifyTagKey,
@@ -27,6 +28,7 @@ import {
 import {FieldKind} from 'sentry/utils/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import useApi from 'sentry/utils/useApi';
 import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
 import useOrganization from 'sentry/utils/useOrganization';
 import useTags from 'sentry/utils/useTags';
@@ -143,6 +145,39 @@ function getColumnOptions(
   return formatColumnOptions(dataset, fieldValues, columnFilterMethod);
 }
 
+function validateParameter(
+  columnOptions: SelectValue<string>[],
+  parameter: AggregateParameter,
+  value: string | undefined
+) {
+  if (parameter.kind === 'dropdown') {
+    return Boolean(parameter.options.find(option => option.value === value)?.value);
+  }
+  if (parameter.kind === 'column') {
+    return Boolean(columnOptions.find(option => option.value === value)?.value);
+  }
+  if (parameter.kind === 'value') {
+    return true;
+  }
+  return false;
+}
+
+function canDeleteField(
+  dataset: WidgetType,
+  selectedFields: QueryFieldValue[],
+  field: QueryFieldValue
+) {
+  if (dataset === WidgetType.RELEASE) {
+    // Release Health widgets are required to have at least one aggregate
+    return (
+      selectedFields.filter(
+        selectedField => selectedField.kind === FieldValueKind.FUNCTION
+      ).length > 1 || field.kind === FieldValueKind.FIELD
+    );
+  }
+  return true;
+}
+
 interface VisualizeProps {
   error?: Record<string, any>;
   setError?: (error: Record<string, any>) => void;
@@ -150,6 +185,7 @@ interface VisualizeProps {
 
 function Visualize({error, setError}: VisualizeProps) {
   const organization = useOrganization();
+  const api = useApi();
   const {state, dispatch} = useWidgetBuilderContext();
   let tags = useTags();
   const {customMeasurements} = useCustomMeasurements();
@@ -172,7 +208,7 @@ function Visualize({error, setError}: VisualizeProps) {
   // Span column options are explicitly defined and bypass all of the
   // fieldOptions filtering and logic used for showing options for
   // chart types.
-  let spanColumnOptions;
+  let spanColumnOptions: any;
   if (state.dataset === WidgetType.SPANS) {
     // Explicitly merge numeric and string tags to ensure filtering
     // compatibility for timeseries chart types.
@@ -216,6 +252,7 @@ function Visualize({error, setError}: VisualizeProps) {
         };
       }),
     ];
+    // @ts-ignore TS(7006): Parameter 'a' implicitly has an 'any' type.
     spanColumnOptions.sort((a, b) => {
       if (a.label < b.label) {
         return -1;
@@ -252,9 +289,11 @@ function Visualize({error, setError}: VisualizeProps) {
   // Used to extract selected aggregates and parameters from the fields
   const stringFields = fields?.map(generateFieldAsString);
 
-  const fieldErrors = error?.queries?.find(queryError => queryError?.fields)?.fields;
+  const fieldErrors = error?.queries?.find(
+    (queryError: any) => queryError?.fields
+  )?.fields;
   const aggregateErrors = error?.queries?.find(
-    aggregateError => aggregateError?.aggregates
+    (aggregateError: any) => aggregateError?.aggregates
   )?.aggregates;
 
   return (
@@ -272,6 +311,12 @@ function Visualize({error, setError}: VisualizeProps) {
       >
         <Fields>
           {fields?.map((field, index) => {
+            const canDelete = canDeleteField(
+              state.dataset ?? WidgetType.ERRORS,
+              fields,
+              field
+            );
+
             // Depending on the dataset and the display type, we use different options for
             // displaying in the column select.
             // For charts, we show aggregate parameter options for the y-axis as primary options.
@@ -298,11 +343,13 @@ function Visualize({error, setError}: VisualizeProps) {
               label: option.value.meta.name,
             }));
             aggregateOptions =
-              isChartWidget || isBigNumberWidget
+              isChartWidget ||
+              isBigNumberWidget ||
+              (state.dataset === WidgetType.RELEASE && !canDelete)
                 ? aggregateOptions
                 : [NONE_AGGREGATE, ...aggregateOptions];
 
-            let matchingAggregate;
+            let matchingAggregate: any;
             if (
               fields[index]!.kind === FieldValueKind.FUNCTION &&
               FieldValueKind.FUNCTION in fields[index]!
@@ -486,7 +533,8 @@ function Visualize({error, setError}: VisualizeProps) {
                                 // Handle setting an aggregate from a field
                                 const newFunction: AggregateFunction = [
                                   aggregateSelection.value as AggregationKeyWithAlias,
-                                  (currentField.field ||
+                                  ((newAggregate?.value.meta?.parameters.length > 0 &&
+                                    currentField.field) ||
                                     newAggregate?.value.meta?.parameters?.[0]
                                       ?.defaultValue) ??
                                     '',
@@ -495,32 +543,30 @@ function Visualize({error, setError}: VisualizeProps) {
                                   newAggregate?.value.meta?.parameters?.[2]
                                     ?.defaultValue ?? undefined,
                                 ];
+                                const newColumnOptions = getColumnOptions(
+                                  state.dataset ?? WidgetType.ERRORS,
+                                  {
+                                    kind: FieldValueKind.FUNCTION,
+                                    function: newFunction,
+                                  },
+                                  fieldOptions,
+                                  // If no column filter method is provided, show all options
+                                  columnFilterMethod ?? (() => true)
+                                );
                                 if (
                                   newAggregate?.value.meta &&
                                   'parameters' in newAggregate.value.meta
                                 ) {
                                   newAggregate?.value.meta.parameters.forEach(
                                     (parameter, parameterIndex) => {
-                                      const newParameterOptions = getColumnOptions(
-                                        state.dataset ?? WidgetType.ERRORS,
-                                        {
-                                          kind: FieldValueKind.FUNCTION,
-                                          function: newFunction,
-                                        },
-                                        fieldOptions,
-                                        // If no column filter method is provided, show all options
-                                        columnFilterMethod ?? (() => true)
-                                      );
-                                      const isValidColumn = Boolean(
-                                        newParameterOptions.find(
-                                          option =>
-                                            option.value ===
-                                            newFunction[parameterIndex + 1]
-                                        )?.value
+                                      const isValidParameter = validateParameter(
+                                        newColumnOptions,
+                                        parameter,
+                                        newFunction[parameterIndex + 1]
                                       );
                                       // Increment by 1 to skip past the aggregate name
                                       newFunction[parameterIndex + 1] =
-                                        (isValidColumn
+                                        (isValidParameter
                                           ? newFunction[parameterIndex + 1]
                                           : parameter.defaultValue) ?? '';
                                     }
@@ -534,13 +580,37 @@ function Visualize({error, setError}: VisualizeProps) {
                             } else {
                               // Handle selecting None so we can select just a field, e.g. for samples
                               // If none is selected, set the field to a field value
+
+                              // When selecting None, the next possible columns may be different from the
+                              // possible columns for the previous aggregate. Calculate the valid columns,
+                              // see if the current field's function argument is in the valid columns, and if so,
+                              // set the field to a field value. Otherwise, set the field to the first valid column.
+                              const validColumnFields = Object.values(
+                                datasetConfig.getTableFieldOptions?.(
+                                  organization,
+                                  tags,
+                                  customMeasurements,
+                                  api
+                                ) ?? []
+                              ).filter(
+                                option =>
+                                  option.value.kind !== FieldValueKind.FUNCTION &&
+                                  (datasetConfig.filterTableOptions?.(option) ?? true)
+                              );
+                              const functionArgInValidColumnFields =
+                                ('function' in currentField &&
+                                  validColumnFields.find(
+                                    option =>
+                                      option.value.meta.name === currentField.function[1]
+                                  )) ||
+                                undefined;
+                              const validColumn =
+                                functionArgInValidColumnFields?.value.meta.name ??
+                                validColumnFields?.[0]?.value.meta.name ??
+                                '';
                               newFields[index] = {
                                 kind: FieldValueKind.FIELD,
-                                field:
-                                  'function' in currentField
-                                    ? (currentField.function[1] as string) ??
-                                      columnOptions[0]!.value
-                                    : '',
+                                field: validColumn,
                               };
                             }
                             dispatch({
@@ -557,36 +627,38 @@ function Visualize({error, setError}: VisualizeProps) {
                       {field.kind === FieldValueKind.FUNCTION &&
                         parameterRefinements.length > 0 && (
                           <ParameterRefinements>
-                            {parameterRefinements.map((parameter, parameterIndex) => {
-                              // The current value is displaced by 2 because the first two parameters
-                              // are the aggregate name and the column selection
-                              const currentValue =
-                                field.function[parameterIndex + 2] || '';
-                              const key = `${field.function.join('_')}-${parameterIndex}`;
-                              return (
-                                <AggregateParameter
-                                  key={key}
-                                  parameter={parameter}
-                                  fieldValue={field}
-                                  currentValue={currentValue}
-                                  onChange={value => {
-                                    const newFields = cloneDeep(fields);
-                                    if (
-                                      newFields[index]!.kind !== FieldValueKind.FUNCTION
-                                    ) {
-                                      return;
-                                    }
-                                    newFields[index]!.function[parameterIndex + 2] =
-                                      value;
-                                    dispatch({
-                                      type: updateAction,
-                                      payload: newFields,
-                                    });
-                                    setError?.({...error, queries: []});
-                                  }}
-                                />
-                              );
-                            })}
+                            {parameterRefinements.map(
+                              (parameter: any, parameterIndex: any) => {
+                                // The current value is displaced by 2 because the first two parameters
+                                // are the aggregate name and the column selection
+                                const currentValue =
+                                  field.function[parameterIndex + 2] || '';
+                                const key = `${field.function.join('_')}-${parameterIndex}`;
+                                return (
+                                  <AggregateParameterField
+                                    key={key}
+                                    parameter={parameter}
+                                    fieldValue={field}
+                                    currentValue={currentValue}
+                                    onChange={value => {
+                                      const newFields = cloneDeep(fields);
+                                      if (
+                                        newFields[index]!.kind !== FieldValueKind.FUNCTION
+                                      ) {
+                                        return;
+                                      }
+                                      newFields[index]!.function[parameterIndex + 2] =
+                                        value;
+                                      dispatch({
+                                        type: updateAction,
+                                        payload: newFields,
+                                      });
+                                      setError?.({...error, queries: []});
+                                    }}
+                                  />
+                                );
+                              }
+                            )}
                           </ParameterRefinements>
                         )}
                     </Fragment>
@@ -613,7 +685,7 @@ function Visualize({error, setError}: VisualizeProps) {
                     borderless
                     icon={<IconDelete />}
                     size="zero"
-                    disabled={fields.length <= 1}
+                    disabled={fields.length <= 1 || !canDelete}
                     onClick={() => {
                       dispatch({
                         type: updateAction,
@@ -678,7 +750,7 @@ function Visualize({error, setError}: VisualizeProps) {
 
 export default Visualize;
 
-function AggregateParameter({
+function AggregateParameterField({
   parameter,
   fieldValue,
   onChange,
@@ -693,8 +765,8 @@ function AggregateParameter({
     const inputProps = {
       required: parameter.required,
       value:
-        parameter.value ?? ('defaultValue' in parameter && parameter?.defaultValue) ?? '',
-      onUpdate: value => {
+        currentValue ?? ('defaultValue' in parameter && parameter?.defaultValue) ?? '',
+      onUpdate: (value: any) => {
         onChange(value);
       },
       placeholder: parameter.placeholder,
@@ -743,7 +815,7 @@ function AggregateParameter({
         options={parameter.options}
         value={currentValue}
         required={parameter.required}
-        onChange={({value}) => {
+        onChange={({value}: any) => {
           onChange(value);
         }}
       />

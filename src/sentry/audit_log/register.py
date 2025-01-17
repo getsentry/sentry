@@ -282,14 +282,7 @@ default_manager.add(
         template="rotated a client secret for {status} integration {sentry_app}",
     )
 )
-default_manager.add(
-    AuditLogEvent(
-        event_id=120,
-        name="MONITOR_ADD",
-        api_name="monitor.add",
-        template="added monitor {name}",
-    )
-)
+default_manager.add(events.MonitorAddAuditLogEvent())
 default_manager.add(
     AuditLogEvent(
         event_id=121,

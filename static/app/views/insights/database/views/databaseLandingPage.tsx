@@ -10,7 +10,6 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useSynchronizeCharts} from 'sentry/views/insights/common/components/chart';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
@@ -20,8 +19,6 @@ import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDisc
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
-import {DurationChart} from 'sentry/views/insights/database/components/charts/durationChart';
-import {ThroughputChart} from 'sentry/views/insights/database/components/charts/throughputChart';
 import {DatabasePageFilters} from 'sentry/views/insights/database/components/databasePageFilters';
 import {NoDataMessage} from 'sentry/views/insights/database/components/noDataMessage';
 import {
@@ -35,6 +32,12 @@ import {
 } from 'sentry/views/insights/database/settings';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
+
+import {InsightsLineChartWidget} from '../../common/components/insightsLineChartWidget';
+import {
+  getDurationChartTitle,
+  getThroughputChartTitle,
+} from '../../common/views/spans/types';
 
 export function DatabaseLandingPage() {
   const organization = useOrganization();
@@ -124,6 +127,7 @@ export function DatabaseLandingPage() {
     {
       search: MutableSearch.fromQueryObject(chartFilters),
       yAxis: ['spm()'],
+      transformAliasToInputFormat: true,
     },
     'api.starfish.span-landing-page-metrics-chart'
   );
@@ -136,6 +140,7 @@ export function DatabaseLandingPage() {
     {
       search: MutableSearch.fromQueryObject(chartFilters),
       yAxis: [`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`],
+      transformAliasToInputFormat: true,
     },
     'api.starfish.span-landing-page-metrics-chart'
   );
@@ -149,8 +154,6 @@ export function DatabaseLandingPage() {
       ({value}) => value > 0
     ) ||
     throughputData['spm()'].data?.some(({value}) => value > 0);
-
-  useSynchronizeCharts(2, !isThroughputDataLoading && !isDurationDataLoading);
 
   return (
     <React.Fragment>
@@ -175,15 +178,17 @@ export function DatabaseLandingPage() {
               </ModuleLayout.Full>
               <ModulesOnboarding moduleName={ModuleName.DB}>
                 <ModuleLayout.Half>
-                  <ThroughputChart
-                    series={throughputData['spm()']}
+                  <InsightsLineChartWidget
+                    title={getThroughputChartTitle('db')}
+                    series={[throughputData['spm()']]}
                     isLoading={isThroughputDataLoading}
                     error={throughputError}
                   />
                 </ModuleLayout.Half>
 
                 <ModuleLayout.Half>
-                  <DurationChart
+                  <InsightsLineChartWidget
+                    title={getDurationChartTitle('db')}
                     series={[durationData[`${selectedAggregate}(span.self_time)`]]}
                     isLoading={isDurationDataLoading}
                     error={durationError}
@@ -219,7 +224,7 @@ const DEFAULT_SORT = {
   kind: 'desc' as const,
 };
 
-function AlertBanner(props) {
+function AlertBanner(props: any) {
   return (
     <ModuleLayout.Full>
       <Alert {...props} type="info" showIcon />

@@ -802,6 +802,86 @@ describe('Visualize', () => {
     expect(listbox[1]).toHaveTextContent('user');
   });
 
+  it('clears out the field when the selected aggregate has no parameters', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              field: ['transaction.duration'],
+            },
+          }),
+        }),
+      }
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
+    await userEvent.click(screen.getByRole('option', {name: 'count'}));
+
+    expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
+      'None'
+    );
+  });
+
+  it('uses the provided value for a value parameter field', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              field: ['count_if(transaction.duration,equals,300)'],
+            },
+          }),
+        }),
+      }
+    );
+
+    // Simulate clearing and typing a new value from the user
+    await userEvent.type(
+      screen.getByDisplayValue('300'),
+      '{backspace}{backspace}{backspace}400'
+    );
+
+    // Unfocus the field
+    await userEvent.tab();
+
+    expect(await screen.findByDisplayValue('400')).toBeInTheDocument();
+  });
+
+  it('restricts deleting the last aggregate in release health widgets', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.RELEASE,
+              field: ['crash_free_rate(session)', 'environment'],
+            },
+          }),
+        }),
+      }
+    );
+
+    const removeButtons = await screen.findAllByRole('button', {name: 'Remove field'});
+    expect(removeButtons).toHaveLength(2);
+    expect(removeButtons[0]).toBeDisabled();
+    expect(removeButtons[1]).toBeEnabled();
+  });
+
   describe('spans', () => {
     beforeEach(() => {
       jest.mocked(useSpanTags).mockImplementation((type?: 'string' | 'number') => {
