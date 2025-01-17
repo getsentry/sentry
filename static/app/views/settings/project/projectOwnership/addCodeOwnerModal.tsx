@@ -299,7 +299,6 @@ class AddCodeOwnerModal extends DeprecatedAsyncComponent<Props, State> {
 }
 
 export default AddCodeOwnerModal;
-export {AddCodeOwnerModal};
 
 const StyledSelectField = styled(SelectField)`
   border-bottom: None;
