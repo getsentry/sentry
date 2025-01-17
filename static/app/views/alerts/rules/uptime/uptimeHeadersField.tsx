@@ -21,14 +21,14 @@ type HeaderEntry = [id: string, name: string, value: string];
 // XXX(epurkhiser): The types of the FormField render props are absolutely
 // abysmal, so we're leaving this untyped for now.
 
-function UptimHeadersControl(props) {
+function UptimHeadersControl(props: any) {
   const {onChange, onBlur, disabled, model, name, value} = props;
 
   // Store itmes in local state so we can add empty values without persisting
   // those into the form model.
   const [items, setItems] = useState<HeaderEntry[]>(
     Object.keys(value).length > 0
-      ? value.map(v => [uniqueId(), ...v] as HeaderEntry)
+      ? value.map((v: any) => [uniqueId(), ...v] as HeaderEntry)
       : [[uniqueId(), '', '']]
   );
 

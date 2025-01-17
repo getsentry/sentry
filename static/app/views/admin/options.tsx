@@ -656,6 +656,7 @@ export function getOptionField(option: string, field: Field) {
       key={option}
       defaultValue={getOptionDefault(option)}
       required={meta.required && !meta.allowEmpty}
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       disabledReason={meta.disabledReason && disabledReasons[meta.disabledReason]}
     />
   );

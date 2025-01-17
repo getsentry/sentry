@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 from sentry_sdk import set_tag, set_user
 
+from sentry import eventstore
 from sentry.constants import ObjectStatus
 from sentry.db.models.fields.node import NodeData
 from sentry.integrations.github.integration import GitHubIntegration
@@ -16,7 +17,7 @@ from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionEvent,
     SCMIntegrationInteractionType,
 )
-from sentry.integrations.utils.code_mapping import CodeMapping, CodeMappingTreesHelper
+from sentry.issues.auto_source_code_config.code_mapping import CodeMapping, CodeMappingTreesHelper
 from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -25,8 +26,6 @@ from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.base import instrumented_task
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.safe import get_path
-
-SUPPORTED_LANGUAGES = ["javascript", "python", "node", "ruby", "php", "go", "csharp"]
 
 logger = logging.getLogger(__name__)
 
@@ -80,6 +79,7 @@ def process_error(error: ApiError, extra: dict[str, str]) -> None:
     )
 
 
+# XXX: To be deleted after queue is empty
 @instrumented_task(
     name="sentry.tasks.derive_code_mappings.derive_code_mappings",
     queue="derive_code_mappings",
@@ -88,12 +88,30 @@ def process_error(error: ApiError, extra: dict[str, str]) -> None:
 )
 def derive_code_mappings(
     project_id: int,
+    data: NodeData | None = None,  # We will deprecate this
+    event_id: str | None = None,
+    **kwargs: Any,
+) -> None:
+    auto_source_code_config(project_id, data=data, event_id=event_id, **kwargs)
+
+
+@instrumented_task(
+    name="sentry.tasks.auto_source_code_config",
+    queue="auto_source_code_config",
+    default_retry_delay=60 * 10,
+    max_retries=3,
+)
+def auto_source_code_config(
+    project_id: int,
     data: NodeData,
+    event_id: str | None = None,
+    **kwargs: Any,
 ) -> None:
     """
-    Derive code mappings for a project given data from a recent event.
+    Process errors for customers with source code management installed and calculate code mappings
+    among other things.
 
-    This task is queued at most once per hour per project, based on the ingested events.
+    This task is queued at most once per hour per project.
     """
     project = Project.objects.get(id=project_id)
     org: Organization = Organization.objects.get(id=project.organization_id)
@@ -102,6 +120,14 @@ def derive_code_mappings(
     set_user({"username": org.slug})
     set_tag("project.slug", project.slug)
     extra: dict[str, Any] = {"organization.slug": org.slug}
+
+    # XXX: In the next PR we will only use event_id
+    if event_id:
+        event = eventstore.backend.get_event_by_id(project_id, event_id)
+        if event is None:
+            logger.error("Event not found.", extra={"project_id": project_id, "event_id": event_id})
+            return
+        data = event.data
 
     stacktrace_paths: list[str] = identify_stacktrace_paths(data)
     if not stacktrace_paths:

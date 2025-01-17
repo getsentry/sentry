@@ -10,7 +10,7 @@ interface Props {
   isActive: boolean;
   lineNumber: number;
   children?: React.ReactNode;
-  coverage?: Coverage | '';
+  coverage?: Coverage;
 }
 
 const coverageText: Record<Coverage, string | undefined> = {
@@ -26,7 +26,11 @@ const coverageClass: Record<Coverage, string | undefined> = {
   [Coverage.NOT_APPLICABLE]: undefined,
 };
 
-function ContextLineNumber({lineNumber, isActive, coverage = ''}: Props) {
+function ContextLineNumber({
+  lineNumber,
+  isActive,
+  coverage = Coverage.NOT_APPLICABLE,
+}: Props) {
   return (
     <Wrapper className={classNames(coverageClass[coverage], isActive ? 'active' : '')}>
       <Tooltip skipWrapper title={coverageText[coverage]} delay={200}>

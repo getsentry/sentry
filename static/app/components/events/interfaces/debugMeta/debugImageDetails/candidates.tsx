@@ -100,7 +100,7 @@ class Candidates extends Component<Props, State> {
 
     const filteredCandidatesBySearch = candidates.filter(obj =>
       Object.keys(pick(obj, ['source_name', 'location'])).some(key => {
-        const info = obj[key];
+        const info = obj[key as keyof typeof obj];
 
         if (key === 'location' && typeof Number(info) === 'number') {
           return false;

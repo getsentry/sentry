@@ -32,7 +32,7 @@ function WidgetBuilderNameAndDescription({
         title={t('Widget Name')}
         aria-label={t('Widget Name')}
         value={state.title}
-        onChange={newTitle => {
+        onChange={(newTitle: any) => {
           // clear error once user starts typing
           setError?.({...error, title: undefined});
           dispatch({type: BuilderStateAction.SET_TITLE, payload: newTitle});

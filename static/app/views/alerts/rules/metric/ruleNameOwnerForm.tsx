@@ -38,14 +38,14 @@ export default function RuleNameOwnerForm({disabled, project}: Props) {
       disabled={disabled}
       flexibleControlStateSize
     >
-      {({model}) => {
+      {({model}: any) => {
         const owner = model.getValue('owner');
         const ownerId = owner?.split(':')[1];
         return (
           <TeamSelector
             value={ownerId}
             project={project}
-            onChange={({value}) => model.setValue('owner', value && `team:${value}`)}
+            onChange={({value}: any) => model.setValue('owner', value && `team:${value}`)}
             teamFilter={(team: Team) =>
               team.isMember || team.id === ownerId || team.access.includes('team:admin')
             }

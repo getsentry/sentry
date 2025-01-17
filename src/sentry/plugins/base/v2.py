@@ -11,7 +11,6 @@ from sentry.plugins import HIDDEN_PLUGINS
 from sentry.plugins.base.response import DeferredResponse
 from sentry.plugins.config import PluginConfigMixin
 from sentry.plugins.interfaces.releasehook import ReleaseHook
-from sentry.plugins.status import PluginStatusMixin
 
 if TYPE_CHECKING:
     from django.utils.functional import _StrPromise
@@ -35,7 +34,7 @@ class PluginMount(type):
         return new_cls
 
 
-class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
+class IPlugin2(local, PluginConfigMixin):
     """
     Plugin interface. Should not be inherited from directly.
 
@@ -68,7 +67,6 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
     conf_title: str | _StrPromise | None = None
 
     project_conf_form: Any = None
-    project_conf_template = "sentry/plugins/project_configuration.html"
 
     # Global enabled state
     enabled = True
@@ -175,43 +173,14 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
             self.conf_key = self.get_conf_title().lower().replace(" ", "_")
         return self.conf_key
 
-    def get_conf_form(self, project=None):
-        """
-        Returns the Form required to configure the plugin.
-
-        >>> plugin.get_conf_form(project)
-        """
-        if project is not None:
-            return self.project_conf_form
-        return self.site_conf_form
-
-    def get_conf_template(self, project=None):
-        """
-        Returns the template required to render the configuration page.
-
-        >>> plugin.get_conf_template(project)
-        """
-        if project is not None:
-            return self.project_conf_template
-        return self.site_conf_template
-
     def get_conf_title(self):
         """
         Returns a string representing the title to be shown on the configuration page.
         """
         return self.conf_title or self.get_title()
 
-    def get_form_initial(self, project=None):
-        return {}
-
     def has_project_conf(self):
         return self.project_conf_form is not None
-
-    def has_plugin_conf(self):
-        """
-        Checks if the plugin should be returned in the ProjectPluginsEndpoint
-        """
-        return self.has_project_conf()
 
     def can_configure_for_project(self, project):
         """
@@ -273,40 +242,12 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
         """
         return self.description
 
-    def get_resource_links(self):
-        """
-        Returns a list of tuples pointing to various resources for this plugin.
-
-        >>> def get_resource_links(self):
-        >>>     return [
-        >>>         ('Documentation', 'https://docs.sentry.io'),
-        >>>         ('Report Issue', 'https://github.com/getsentry/sentry/issues'),
-        >>>         ('View Source', 'https://github.com/getsentry/sentry'),
-        >>>     ]
-        """
-        return self.resource_links
-
     def get_rules(self, **kwargs):
         """
         Return a list of Rule classes to add to the registry.
 
         >>> def get_rules(self, **kwargs):
         >>>     return [MyCustomRule]
-        """
-        return []
-
-    def get_actions(self, request, group) -> list[tuple[str, str]]:
-        """
-        Return a list of available actions to append this aggregate.
-
-        Examples of built-in actions are "Mute Event" and "Remove Data".
-
-        An action is a tuple containing two elements:
-
-            ('Action Label', '/uri/to/action/')
-
-        >>> def get_actions(self, request, group):
-        >>>     return [('Google', 'http://google.com')]
         """
         return []
 
@@ -372,23 +313,6 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
                 if 'cocoa' in platforms:
                     return [CocoaProcessor(data, stacktrace_infos)]
         """
-
-    def get_feature_hooks(self, **kwargs):
-        """
-        Return a list of callables to check for feature status.
-
-        >>> from sentry.features import FeatureHandler
-        >>>
-        >>> class NoRegistration(FeatureHandler):
-        >>>     features = set(['auth:register'])
-        >>>
-        >>>     def has(self, feature, actor):
-        >>>         return False
-
-        >>> def get_feature_hooks(self, **kwargs):
-        >>>     return [NoRegistration()]
-        """
-        return []
 
     def get_release_hook(self) -> type[ReleaseHook] | None:
         """

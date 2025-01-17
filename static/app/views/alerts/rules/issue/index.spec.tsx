@@ -197,7 +197,7 @@ describe('IssueRuleEditor', function () {
   });
 
   describe('Edit Rule', function () {
-    let mock;
+    let mock: any;
     const endpoint = '/projects/org-slug/project-slug/rules/1/';
     beforeEach(function () {
       mock = MockApiClient.addMockResponse({
@@ -512,7 +512,7 @@ describe('IssueRuleEditor', function () {
   });
 
   describe('Duplicate Rule', function () {
-    let mock;
+    let mock: any;
     const rule = ProjectAlertRuleFixture();
     const endpoint = `/projects/org-slug/project-slug/rules/${rule.id}/`;
 

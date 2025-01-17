@@ -20,6 +20,19 @@ function PageCorners({animateVariant, ...rest}: Props) {
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
         animate={animateVariant}
+        initial={{
+          x: '40px',
+          opacity: 0,
+          originX: '100%',
+          originY: 0,
+          scale: 'var(--corner-scale)',
+        }}
+        variants={{
+          none: {x: '40px', opacity: 0},
+          'top-left': {x: '40px', opacity: 0},
+          'top-right': {x: 0, opacity: 1},
+        }}
+        transition={transition}
       >
         <path
           d="M36.5 0H874v203l-288.7-10-7-114-180.2-4.8-3.6-35.2-351.1 2.5L36.5 0z"
@@ -38,6 +51,19 @@ function PageCorners({animateVariant, ...rest}: Props) {
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
         animate={animateVariant}
+        initial={{
+          x: '-40px',
+          opacity: 0,
+          originX: 0,
+          originY: '100%',
+          scale: 'var(--corner-scale)',
+        }}
+        variants={{
+          none: {x: '-40px', opacity: 0},
+          'top-left': {x: '-40px', opacity: 0},
+          'top-right': {x: 0, opacity: 1},
+        }}
+        transition={transition}
       >
         <path d="M494 141H-1V7l140-7v19h33l5 82 308 4 9 36z" fill="currentColor" />
         <path d="M219 88h-30l-1-19 31 3v16z" fill="currentColor" />
@@ -49,6 +75,19 @@ function PageCorners({animateVariant, ...rest}: Props) {
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
         animate={animateVariant}
+        initial={{
+          x: '-40px',
+          opacity: 0,
+          originX: 0,
+          originY: 0,
+          scale: 'var(--corner-scale)',
+        }}
+        variants={{
+          none: {x: '-40px', opacity: 0},
+          'top-right': {x: '-40px', opacity: 0},
+          'top-left': {x: 0, opacity: 1},
+        }}
+        transition={transition}
       >
         <path
           fillRule="evenodd"
@@ -65,6 +104,19 @@ function PageCorners({animateVariant, ...rest}: Props) {
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
         animate={animateVariant}
+        initial={{
+          x: '40px',
+          opacity: 0,
+          originX: '100%',
+          originY: '100%',
+          scale: 'var(--corner-scale)',
+        }}
+        variants={{
+          none: {x: '40px', opacity: 0},
+          'top-right': {x: '40px', opacity: 0},
+          'top-left': {x: 0, opacity: 1},
+        }}
+        transition={transition}
       >
         <path
           fillRule="evenodd"
@@ -91,37 +143,11 @@ const TopLeft = styled(motion.svg)`
   left: 0;
 `;
 
-TopLeft.defaultProps = {
-  initial: {x: '-40px', opacity: 0, originX: 0, originY: 0, scale: 'var(--corner-scale)'},
-  variants: {
-    none: {x: '-40px', opacity: 0},
-    'top-right': {x: '-40px', opacity: 0},
-    'top-left': {x: 0, opacity: 1},
-  },
-  transition,
-};
-
 const TopRight = styled(motion.svg)`
   position: absolute;
   top: 0;
   right: 0;
 `;
-
-TopRight.defaultProps = {
-  initial: {
-    x: '40px',
-    opacity: 0,
-    originX: '100%',
-    originY: 0,
-    scale: 'var(--corner-scale)',
-  },
-  variants: {
-    none: {x: '40px', opacity: 0},
-    'top-left': {x: '40px', opacity: 0},
-    'top-right': {x: 0, opacity: 1},
-  },
-  transition,
-};
 
 const BottomLeft = styled(motion.svg)`
   position: absolute;
@@ -129,43 +155,11 @@ const BottomLeft = styled(motion.svg)`
   left: 0;
 `;
 
-BottomLeft.defaultProps = {
-  initial: {
-    x: '-40px',
-    opacity: 0,
-    originX: 0,
-    originY: '100%',
-    scale: 'var(--corner-scale)',
-  },
-  variants: {
-    none: {x: '-40px', opacity: 0},
-    'top-left': {x: '-40px', opacity: 0},
-    'top-right': {x: 0, opacity: 1},
-  },
-  transition,
-};
-
 const BottomRight = styled(motion.svg)`
   position: absolute;
   bottom: 0;
   right: 0;
 `;
-
-BottomRight.defaultProps = {
-  initial: {
-    x: '40px',
-    opacity: 0,
-    originX: '100%',
-    originY: '100%',
-    scale: 'var(--corner-scale)',
-  },
-  variants: {
-    none: {x: '40px', opacity: 0},
-    'top-right': {x: '40px', opacity: 0},
-    'top-left': {x: 0, opacity: 1},
-  },
-  transition,
-};
 
 const Container = styled('div')`
   pointer-events: none;

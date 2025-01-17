@@ -44,8 +44,13 @@ class TestNotificationActionMigrationUtils(TestCase):
         # If we have a blob type, verify the data matches the blob structure
         if translator.blob_type:
             for field in translator.blob_type.__dataclass_fields__:
-                if field not in exclude_keys:
-                    # Action should always have the field, it can be empty
+                mapping = translator.field_mappings.get(field)
+                if mapping:
+                    # For mapped fields, check against the source field with default value
+                    source_value = compare_dict.get(mapping.source_field, mapping.default_value)
+                    assert action.data.get(field) == source_value
+                else:
+                    # For unmapped fields, check directly with empty string default
                     assert action.data.get(field) == compare_dict.get(field, "")
             # Ensure no extra fields
             assert set(action.data.keys()) == {
@@ -243,6 +248,10 @@ class TestNotificationActionMigrationUtils(TestCase):
         # Only 2 actions should be created, the first one is malformed
         assert len(actions) == 2
 
+        self.assert_actions_migrated_correctly(
+            actions, action_data[1:], "workspace", "channel_id", "channel"
+        )
+
         # Assert the logger was called with the correct arguments
         mock_logger.assert_called_with(
             "Action blob is malformed: missing required fields",
@@ -254,3 +263,233 @@ class TestNotificationActionMigrationUtils(TestCase):
         )
 
         self.assert_actions_migrated_correctly(actions, action_data[1:])
+
+    def test_discord_action_migration(self):
+        action_data = [
+            {
+                "server": "1",
+                "id": "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction",
+                "channel_id": "1112223334445556677",
+                "tags": "environment",
+                "uuid": "12345678-90ab-cdef-0123-456789abcdef",
+            },
+            {
+                "server": "2",
+                "id": "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction",
+                "channel_id": "99988877766555444333",
+                "tags": "",
+                "uuid": "22345678-90ab-cdef-0123-456789abcdef",
+            },
+        ]
+
+        actions = build_notification_actions_from_rule_data_actions(action_data)
+
+        self.assert_actions_migrated_correctly(actions, action_data, "server", "channel_id", None)
+
+    @patch("sentry.workflow_engine.migration_helpers.rule_action.logger.error")
+    def test_discord_action_migration_malformed(self, mock_logger):
+        action_data = [
+            # Missing required fields
+            {
+                "server": "1",
+                "uuid": "12345678-90ab-cdef-0123-456789abcdef",
+                "id": "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction",
+            },
+            {
+                "server": "1",
+                "id": "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction",
+                "channel_id": "1112223334445556677",
+                "tags": "environment",
+                "uuid": "12345678-90ab-cdef-0123-456789abcdef",
+            },
+        ]
+
+        actions = build_notification_actions_from_rule_data_actions(action_data)
+        assert len(actions) == 1
+
+        self.assert_actions_migrated_correctly(
+            actions, action_data[1:], "server", "channel_id", None
+        )
+
+        # Assert the logger was called with the correct arguments
+        mock_logger.assert_called_with(
+            "Action blob is malformed: missing required fields",
+            extra={
+                "registry_id": "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction",
+                "action_uuid": "12345678-90ab-cdef-0123-456789abcdef",
+                "missing_fields": ["channel_id"],
+            },
+        )
+
+    def test_msteams_action_migration(self):
+        action_data = [
+            # MsTeams Action will  always include, channel and channel_id
+            # It won't store anything in the data blob
+            {
+                "team": "12345",
+                "id": "sentry.integrations.msteams.notify_action.MsTeamsNotifyServiceAction",
+                "channel": "Bufo",
+                "channel_id": "1:hksdhfdskfhsdfdhsk@thread.tacv2",
+                "uuid": "10987654-3210-9876-5432-109876543210",
+            },
+            {
+                "team": "230405",
+                "id": "sentry.integrations.msteams.notify_action.MsTeamsNotifyServiceAction",
+                "channel": "Sentry FE Non-Prod",
+                "channel_id": "19:c3c894b8d4194fb1aa7f89da84bfcd69@thread.tacv2",
+                "uuid": "4777a764-11fd-418c-b61b-533767424425",
+            },
+        ]
+
+        actions = build_notification_actions_from_rule_data_actions(action_data)
+
+        self.assert_actions_migrated_correctly(
+            actions, action_data, "team", "channel_id", "channel"
+        )
+
+    @patch("sentry.workflow_engine.migration_helpers.rule_action.logger.error")
+    def test_msteams_action_migration_malformed(self, mock_logger):
+        action_data = [
+            # Missing required fields
+            {
+                "team": "1",
+                "uuid": "12345678-90ab-cdef-0123-456789abcdef",
+                "id": "sentry.integrations.msteams.notify_action.MsTeamsNotifyServiceAction",
+            },
+            {
+                "team": "1",
+                "id": "sentry.integrations.msteams.notify_action.MsTeamsNotifyServiceAction",
+                "channel": "Bufo",
+                "channel_id": "1:hksdhfdskfhsdfdhsk@thread.tacv2",
+                "uuid": "10987654-3210-9876-5432-109876543210",
+            },
+        ]
+
+        actions = build_notification_actions_from_rule_data_actions(action_data)
+        assert len(actions) == 1
+
+        self.assert_actions_migrated_correctly(
+            actions, action_data[1:], "team", "channel_id", "channel"
+        )
+
+        # Assert the logger was called with the correct arguments
+        mock_logger.assert_called_with(
+            "Action blob is malformed: missing required fields",
+            extra={
+                "registry_id": "sentry.integrations.msteams.notify_action.MsTeamsNotifyServiceAction",
+                "action_uuid": "12345678-90ab-cdef-0123-456789abcdef",
+                "missing_fields": ["channel_id", "channel"],
+            },
+        )
+
+    def test_pagerduty_action_migration(self):
+        action_data = [
+            {
+                "account": "123456",
+                "id": "sentry.integrations.pagerduty.notify_action.PagerDutyNotifyServiceAction",
+                "service": "91919",
+                "uuid": "12345678-90ab-cdef-0123-456789abcdef",
+            },
+            {
+                "account": "999999",
+                "service": "19191",
+                "id": "sentry.integrations.pagerduty.notify_action.PagerDutyNotifyServiceAction",
+                "uuid": "9a8b7c6d-5e4f-3a2b-1c0d-9a8b7c6d5e4f",
+                "severity": "warning",
+            },
+            {
+                "account": "77777",
+                "service": "57436",
+                "severity": "info",
+                "id": "sentry.integrations.pagerduty.notify_action.PagerDutyNotifyServiceAction",
+                "uuid": "12345678-90ab-cdef-0123-456789abcdef",
+            },
+        ]
+
+        actions = build_notification_actions_from_rule_data_actions(action_data)
+        assert len(actions) == len(action_data)
+
+        # Verify that default value is used when severity is not provided
+        assert actions[0].data["priority"] == "default"
+        # Verify that severity is mapped to priority
+        assert actions[1].data["priority"] == "warning"
+        assert actions[2].data["priority"] == "info"
+
+        self.assert_actions_migrated_correctly(actions, action_data, "account", "service", None)
+
+    def test_pagerduty_action_migration_malformed(self):
+        action_data = [
+            # Missing required fields
+            {
+                "account": "123456",
+                "uuid": "12345678-90ab-cdef-0123-456789abcdef",
+                "id": "sentry.integrations.pagerduty.notify_action.PagerDutyNotifyServiceAction",
+            },
+            {
+                "account": "123456",
+                "service": "91919",
+                "id": "sentry.integrations.pagerduty.notify_action.PagerDutyNotifyServiceAction",
+                "uuid": "12345678-90ab-cdef-0123-456789abcdef",
+            },
+        ]
+
+        actions = build_notification_actions_from_rule_data_actions(action_data)
+        assert len(actions) == 1
+
+        self.assert_actions_migrated_correctly(actions, action_data[1:], "account", "service", None)
+
+    def test_opsgenie_action_migration(self):
+        action_data = [
+            {
+                "account": "11111",
+                "id": "sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction",
+                "team": "2323213-bbbbbuuufffooobottt",
+                "uuid": "87654321-0987-6543-2109-876543210987",
+            },
+            {
+                "account": "123456",
+                "team": "1234-bufo-bot",
+                "priority": "P2",
+                "id": "sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction",
+                "uuid": "12345678-90ab-cdef-0123-456789abcdef",
+            },
+            {
+                "account": "999999",
+                "team": "1234-bufo-bot-2",
+                "priority": "P3",
+                "id": "sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction",
+                "uuid": "01234567-89ab-cdef-0123-456789abcdef",
+            },
+        ]
+
+        actions = build_notification_actions_from_rule_data_actions(action_data)
+        assert len(actions) == len(action_data)
+
+        # Verify that default value is used when priority is not provided
+        assert actions[0].data["priority"] == "P3"
+        # Verify that priority is mapped to priority
+        assert actions[1].data["priority"] == "P2"
+        assert actions[2].data["priority"] == "P3"
+
+        self.assert_actions_migrated_correctly(actions, action_data, "account", "team", None)
+
+    def test_opsgenie_action_migration_malformed(self):
+        action_data = [
+            # Missing required fields
+            {
+                "account": "123456",
+                "uuid": "12345678-90ab-cdef-0123-456789abcdef",
+                "id": "sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction",
+            },
+            {
+                "account": "123456",
+                "team": "1234-bufo-bot",
+                "id": "sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction",
+                "uuid": "12345678-90ab-cdef-0123-456789abcdef",
+            },
+        ]
+
+        actions = build_notification_actions_from_rule_data_actions(action_data)
+        assert len(actions) == 1
+
+        self.assert_actions_migrated_correctly(actions, action_data[1:], "account", "team", None)

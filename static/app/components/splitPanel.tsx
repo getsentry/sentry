@@ -129,7 +129,7 @@ function SplitPanel(props: SplitPanelProps) {
   }%` as `${number}%`;
 
   const handleMouseDown = useCallback(
-    event => {
+    (event: any) => {
       onMouseDown?.(sizePct);
       onDragStart(event);
     },

@@ -36,6 +36,8 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
     created_by_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
 
+    DEFAULT_FREQUENCY = 30
+
     @property
     def config_schema(self) -> dict[str, Any]:
         return {

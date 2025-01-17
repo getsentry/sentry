@@ -125,7 +125,7 @@ function SudoModal({
     }));
   };
 
-  const handleSubmit = async data => {
+  const handleSubmit = async (data: any) => {
     const disableU2FForSUForm = ConfigStore.get('disableU2FForSUForm');
 
     const suAccessCategory = superuserAccessCategory || data.superuserAccessCategory;
@@ -177,7 +177,7 @@ function SudoModal({
     });
   };
 
-  const handleError = err => {
+  const handleError = (err: any) => {
     let newErrorType = ''; // Create a new variable to store the error type
 
     if (err.status === 403) {
