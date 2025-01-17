@@ -1017,7 +1017,7 @@ def process_code_mappings(job: PostProcessJob) -> None:
         else:
             return
 
-        auto_source_code_config.delay(project.id, event_id=event.event_id)
+        auto_source_code_config.delay(project.id, event_id=event.event_id, group_id=group_id)
 
     except Exception:
         logger.exception("Failed to process automatic source code config")

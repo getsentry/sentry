@@ -85,7 +85,9 @@ def process_error(error: ApiError, extra: dict[str, Any]) -> None:
     default_retry_delay=60 * 10,
     max_retries=3,
 )
-def auto_source_code_config(project_id: int, group_id: int, event_id: str, **kwargs: Any) -> None:
+def auto_source_code_config(
+    project_id: int, event_id: str, group_id: int | None = None, **kwargs: Any
+) -> None:
     """
     Process errors for customers with source code management installed and calculate code mappings
     among other things.
