@@ -418,7 +418,7 @@ export default function ContextPickerModalContainer(props: ContainerProps) {
   const {allowAllProjectsSelection, configUrl, projectSlugs} = props;
 
   const [organizations, setOrganizations] = useState<Organization[]>(
-    OrganizationsStore.getAll()
+    () => OrganizationsStore.getAll()
   );
   useEffect(() => {
     const unsubscribe = OrganizationsStore.listen(setOrganizations, undefined);
