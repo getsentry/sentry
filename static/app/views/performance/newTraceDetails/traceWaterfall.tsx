@@ -572,10 +572,9 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     if (node) {
       if (isAutogroupedNode(node) && type !== 'ag') {
         if (isParentAutogroupedNode(node)) {
-          node = TraceTree.FindByID(node.head, eventId! ?? path!) ?? node;
+          node = TraceTree.FindByID(node.head, eventId ?? path!) ?? node;
         } else if (isSiblingAutogroupedNode(node)) {
-          node =
-            node.children.find(n => TraceTree.FindByID(n, eventId! ?? path!)) ?? node;
+          node = node.children.find(n => TraceTree.FindByID(n, eventId ?? path!)) ?? node;
         }
       }
     }

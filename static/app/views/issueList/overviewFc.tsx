@@ -42,6 +42,7 @@ import useDisableRouteAnalytics from 'sentry/utils/routeAnalytics/useDisableRout
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useParams} from 'sentry/utils/useParams';
@@ -135,7 +136,21 @@ function useSavedSearches() {
   };
 }
 
-function IssueListOverviewFc({location, router}: Props) {
+const parsePageQueryParam = (location: Location, defaultPage: number = 0) => {
+  const page = location.query.page;
+  const pageInt = Array.isArray(page)
+    ? parseInt(page[0] ?? '', 10)
+    : parseInt(page ?? '', 10);
+
+  if (isNaN(pageInt)) {
+    return defaultPage;
+  }
+
+  return pageInt;
+};
+
+function IssueListOverviewFc({router}: Props) {
+  const location = useLocation();
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const api = useApi();
@@ -355,7 +370,6 @@ function IssueListOverviewFc({location, router}: Props) {
 
   const trackTabViewed = useCallback(
     (newGroupIds: string[], data: Group[], numHits: number | null) => {
-      const page = location.query.page;
       const endpointParams = getEndpointParams();
       const tabQueriesWithCounts = getTabsWithCounts();
       const currentTabQuery = tabQueriesWithCounts.includes(endpointParams.query as Query)
@@ -379,7 +393,7 @@ function IssueListOverviewFc({location, router}: Props) {
       trackAnalytics('issues_tab.viewed', {
         organization,
         tab: tab?.analyticsName,
-        page: page ? parseInt(page, 10) : 0,
+        page: parsePageQueryParam(location, 0),
         query,
         num_perf_issues: numPerfIssues,
         num_old_issues: numOldIssues,
@@ -735,9 +749,9 @@ function IssueListOverviewFc({location, router}: Props) {
 
   const getPageCounts = useCallback(() => {
     const links = parseLinkHeader(pageLinks);
-    const queryPageInt = parseInt(location.query.page, 10);
+    const queryPageInt = parsePageQueryParam(location, 0);
     // Cursor must be present for the page number to be used
-    const page = isNaN(queryPageInt) || !location.query.cursor ? 0 : queryPageInt;
+    const page = !location.query.cursor ? 0 : queryPageInt;
 
     let numPreviousIssues = Math.min(page * MAX_ITEMS, queryCount);
 
@@ -755,14 +769,7 @@ function IssueListOverviewFc({location, router}: Props) {
       numPreviousIssues,
       numIssuesOnPage: groupIds.length,
     };
-  }, [
-    pageLinks,
-    location.query.page,
-    location.query.cursor,
-    queryCount,
-    allResultsVisible,
-    groupIds.length,
-  ]);
+  }, [pageLinks, location, queryCount, allResultsVisible, groupIds.length]);
 
   const onRealtimeChange = useCallback(
     (realtime: boolean) => {
@@ -842,7 +849,9 @@ function IssueListOverviewFc({location, router}: Props) {
   };
 
   const onCursorChange: CursorHandler = (nextCursor, _path, _query, delta) => {
-    const queryPageInt = parseInt(location.query.page, 10);
+    const queryPageInt = Array.isArray(location.query.page)
+      ? NaN
+      : parseInt(location.query.page?.toString() ?? '', 10);
     let nextPage: number | undefined = isNaN(queryPageInt) ? delta : queryPageInt + delta;
 
     let cursor: undefined | string = nextCursor;
@@ -860,9 +869,11 @@ function IssueListOverviewFc({location, router}: Props) {
 
   const onSelectStatsPeriod = (period: string) => {
     if (period !== getGroupStatsPeriod()) {
-      const cursor = location.query.cursor;
-      const queryPageInt = parseInt(location.query.page, 10);
-      const page = isNaN(queryPageInt) || !location.query.cursor ? 0 : queryPageInt;
+      const cursor = Array.isArray(location.query.cursor)
+        ? location.query.cursor[0]
+        : location.query.cursor ?? undefined;
+      const queryPageInt = parsePageQueryParam(location, 0);
+      const page = !location.query.cursor ? 0 : queryPageInt;
       transitionTo({cursor, page, groupStatsPeriod: period});
     }
   };

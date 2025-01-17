@@ -1,4 +1,5 @@
 import {Component, Fragment, useCallback} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import iconAndroid from 'sentry-logos/logo-android.svg';
 import iconChrome from 'sentry-logos/logo-chrome.svg';
@@ -315,7 +316,10 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
                     aria-label={`${subfilter.title} ${subfilter.helpText}`}
                     isActive={this.state.subfilters.has(key)}
                     isDisabled={disabled}
-                    css={{flexShrink: 0, marginLeft: 6}}
+                    css={css`
+                      flex-shrink: 0;
+                      margin-left: 6;
+                    `}
                     toggle={this.handleToggleSubfilters.bind(this, key)}
                     size="lg"
                   />

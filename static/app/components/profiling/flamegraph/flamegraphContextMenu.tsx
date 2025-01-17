@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import {usePopper} from 'react-popper';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/container/flex';
@@ -604,7 +605,12 @@ function ProfileIdsSubMenu(props: {
       {isOpen &&
         props.subMenuPortalRef &&
         createPortal(
-          <ProfilingContextMenu style={popper.styles.popper} css={{maxHeight: 250}}>
+          <ProfilingContextMenu
+            style={popper.styles.popper}
+            css={css`
+              max-height: 250px;
+            `}
+          >
             <ProfilingContextMenuGroup>
               <ProfilingContextMenuHeading>{t('Profiles')}</ProfilingContextMenuHeading>
               {props.profileIds.map((profileId, i) => {
@@ -630,7 +636,12 @@ function ProfileIdsSubMenu(props: {
                     key={i}
                     {...props.contextMenu.getMenuItemProps({})}
                   >
-                    <Link to={to} css={{color: 'unset'}}>
+                    <Link
+                      to={to}
+                      css={css`
+                        color: unset;
+                      `}
+                    >
                       {getShortEventId(
                         typeof profileId === 'string'
                           ? profileId

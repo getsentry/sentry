@@ -1,3 +1,4 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
@@ -207,7 +208,9 @@ class PluginSettings<
     }
     return (
       <Form
-        css={{width: '100%'}}
+        css={css`
+          width: 100%;
+        `}
         onSubmit={this.onSubmit}
         submitDisabled={isSaving || !hasChanges}
       >
