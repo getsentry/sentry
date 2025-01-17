@@ -65,7 +65,7 @@ interface GroupStoreDefinition extends StrictStoreDefinition<Item[]>, InternalDe
   onAssignToSuccess: (changeId: string, itemId: string, response: any) => void;
 
   onDelete: (changeId: string, itemIds: ItemIds) => void;
-  onDeleteError: (changeId: string, itemIds: ItemIds, error: Error) => void;
+  onDeleteError: (changeId: string, itemIds: ItemIds) => void;
   onDeleteSuccess: (changeId: string, itemIds: ItemIds, response: any) => void;
 
   onDiscard: (changeId: string, itemId: string) => void;
@@ -347,7 +347,7 @@ const storeConfig: GroupStoreDefinition = {
     this.updateItems(ids);
   },
 
-  onDeleteError(_changeId, itemIds, _response) {
+  onDeleteError(_changeId, itemIds) {
     showAlert(t('Unable to delete events. Please try again.'), 'error');
 
     if (!itemIds) {

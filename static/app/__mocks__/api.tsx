@@ -81,10 +81,7 @@ class Client implements ApiNamespace.Client {
   baseUrl = '';
   // uses the default client json headers. Sadly, we cannot refernce the real client
   // because it will cause a circular dependency and explode, hence the copy/paste
-  headers = {
-    Accept: 'application/json; charset=utf-8',
-    'Content-Type': 'application/json',
-  };
+  headers = RealApi.Client.JSON_HEADERS;
 
   static mockResponses: MockResponse[] = [];
 
@@ -180,22 +177,11 @@ class Client implements ApiNamespace.Client {
    * clearMockResponses. You probably don't want to call this from a test.
    */
   clear() {
-    Object.values(this.activeRequests).forEach(r => r.cancel());
-  }
-
-  wrapCallback<T extends any[]>(
-    _id: string,
-    func: (...args: T) => void,
-    _cleanup: boolean = false
-  ) {
-    const asyncDelay = Client.asyncDelay;
-
-    return (...args: T) => {
-      if ((RealApi.hasProjectBeenRenamed as any)(...args)) {
-        return;
+    for (const request of Object.values(this.activeRequests)) {
+      if (request.cancel()) {
+        delete this.activeRequests[request.id];
       }
-      respond(asyncDelay, func, ...args);
-    };
+    }
   }
 
   requestPromise(

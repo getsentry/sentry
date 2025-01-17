@@ -323,9 +323,9 @@ export function bulkDelete(
       success: response => {
         GroupStore.onDeleteSuccess(id, itemIds, response);
       },
-      error: error => {
+      error: _error => {
         // which was previously not caught
-        GroupStore.onDeleteError(id, itemIds, error);
+        GroupStore.onDeleteError(id, itemIds);
       },
     },
     options
