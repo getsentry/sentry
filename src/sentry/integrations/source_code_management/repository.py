@@ -133,7 +133,7 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
                 return None
             except ApiError as e:
                 if e.code in (404, 400):
-                    lifecycle.record_halt(extra={"status_code": e.code})
+                    lifecycle.record_halt(e)
                     return None
                 else:
                     sentry_sdk.capture_exception()

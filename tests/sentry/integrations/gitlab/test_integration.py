@@ -365,7 +365,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
             source_url == "https://gitlab.example.com/getsentry/example-repo/blob/master/README.md"
         )
 
-        mock_record_halt.assert_called_with(extra={"status_code": 404})
+        mock_record_halt.assert_called_once()
 
     @responses.activate
     def test_get_commit_context_all_frames(self):
