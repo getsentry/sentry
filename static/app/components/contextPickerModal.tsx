@@ -1,4 +1,4 @@
-import {Component, Fragment, useState} from 'react';
+import {Component, type Dispatch, Fragment, type SetStateAction, useState} from 'react';
 import {components} from 'react-select';
 import styled from '@emotion/styled';
 import type {Query} from 'history';
@@ -423,30 +423,13 @@ export default function ContextPickerModalContainer(props: ContainerProps) {
   const {organization} = useLegacyStore(OrganizationStore);
   const [selectedOrgSlug, setSelectedOrgSlug] = useState(organization?.slug);
 
-  const {data, isError, isPending, refetch} = useApiQuery<Integration[]>(
-    [configUrl ?? ''],
-    {
-      enabled: Boolean(configUrl),
-      staleTime: Infinity,
-    }
-  );
-
-  if (isPending) {
-    return <LoadingIndicator />;
-  }
-  if (isError) {
-    return <LoadingError onRetry={refetch} />;
-  }
-  if (data.length) {
+  if (configUrl) {
     return (
-      <ContextPickerModal
+      <ConfigUrlContainer
+        configUrl={configUrl}
+        selectedOrgSlug={selectedOrgSlug}
+        setSelectedOrgSlug={setSelectedOrgSlug}
         {...sharedProps}
-        projects={[]}
-        loading={isPending}
-        organizations={organizations}
-        organization={selectedOrgSlug!}
-        onSelectOrganization={setSelectedOrgSlug}
-        integrationConfigs={data}
       />
     );
   }
@@ -481,6 +464,43 @@ export default function ContextPickerModalContainer(props: ContainerProps) {
       organization={selectedOrgSlug!}
       onSelectOrganization={setSelectedOrgSlug}
       integrationConfigs={[]}
+    />
+  );
+}
+
+function ConfigUrlContainer(
+  props: SharedProps & {
+    configUrl: string;
+    selectedOrgSlug: string | undefined;
+    setSelectedOrgSlug: Dispatch<SetStateAction<string | undefined>>;
+  }
+) {
+  const {configUrl, selectedOrgSlug, setSelectedOrgSlug, ...sharedProps} = props;
+
+  const {organizations} = useLegacyStore(OrganizationsStore);
+
+  const {data, isError, isPending, refetch} = useApiQuery<Integration[]>([configUrl], {
+    staleTime: Infinity,
+  });
+
+  if (isPending) {
+    return <LoadingIndicator />;
+  }
+  if (isError) {
+    return <LoadingError onRetry={refetch} />;
+  }
+  if (!data.length) {
+    sharedProps.onFinish(sharedProps.nextPath);
+  }
+  return (
+    <ContextPickerModal
+      {...sharedProps}
+      projects={[]}
+      loading={isPending}
+      organizations={organizations}
+      organization={selectedOrgSlug!}
+      onSelectOrganization={setSelectedOrgSlug}
+      integrationConfigs={data}
     />
   );
 }
