@@ -15,7 +15,7 @@ import {
   isSentrySampledProfile,
 } from '../guards/profile';
 
-import {ContinuousProfile} from './continuousProfile';
+import {ContinuousProfile, minTimestampInChunk} from './continuousProfile';
 import {EventedProfile} from './eventedProfile';
 import {JSSelfProfile} from './jsSelfProfile';
 import type {Profile} from './profile';
@@ -257,14 +257,10 @@ export function importSentryContinuousProfileChunk(
     Profiling.SentryContinousProfileChunk['profile']['samples']
   > = {};
 
-  let firstTimestamp: number | null = null;
+  const minTimestamp = minTimestampInChunk(input.profile, input.measurements);
 
   for (let i = 0; i < input.profile.samples.length; i++) {
     const sample = input.profile.samples[i]!;
-
-    if (!defined(firstTimestamp) || firstTimestamp > sample.timestamp) {
-      firstTimestamp = sample.timestamp;
-    }
 
     if (!samplesByThread[sample.thread_id]) {
       samplesByThread[sample.thread_id] = [];
@@ -295,6 +291,7 @@ export function importSentryContinuousProfileChunk(
         options.span,
         () =>
           ContinuousProfile.FromProfile(profile, frameIndex, {
+            minTimestamp,
             type: options.type,
             frameFilter: options.frameFilter,
           }),
@@ -315,7 +312,7 @@ export function importSentryContinuousProfileChunk(
     profiles,
     measurements: measurementsFromContinuousMeasurements(
       input.measurements ?? {},
-      firstTimestamp
+      minTimestamp
     ),
     metadata: {
       platform: input.platform,
@@ -326,18 +323,10 @@ export function importSentryContinuousProfileChunk(
 
 function measurementsFromContinuousMeasurements(
   continuousMeasurements: Profiling.ContinuousMeasurements,
-  firstTimestamp: number | null
+  minTimestamp: number | null
 ): Profiling.Measurements {
-  for (const continuousMeasurement of Object.values(continuousMeasurements)) {
-    for (const value of continuousMeasurement.values) {
-      if (!defined(firstTimestamp) || firstTimestamp > value.timestamp) {
-        firstTimestamp = value.timestamp;
-      }
-    }
-  }
-
   // couldn't find any timestamps so there must not be any measurements
-  if (!defined(firstTimestamp)) {
+  if (!defined(minTimestamp)) {
     return {};
   }
 
@@ -346,7 +335,7 @@ function measurementsFromContinuousMeasurements(
   for (const [key, continuousMeasurement] of Object.entries(continuousMeasurements)) {
     measurements[key] = measurementFromContinousMeasurement(
       continuousMeasurement,
-      firstTimestamp
+      minTimestamp
     );
   }
 
@@ -382,14 +371,25 @@ function importSingleProfile(
   {span, type, frameFilter, profileIds}: ImportOptions
 ): Profile {
   if (isSentryContinuousProfile(profile)) {
+    const minTimestamp = minTimestampInChunk(profile);
+
     // In some cases, the SDK may return spans as undefined and we dont want to throw there.
     if (!span) {
-      return ContinuousProfile.FromProfile(profile, frameIndex, {type, frameFilter});
+      return ContinuousProfile.FromProfile(profile, frameIndex, {
+        minTimestamp,
+        type,
+        frameFilter,
+      });
     }
 
     return wrapWithSpan(
       span,
-      () => ContinuousProfile.FromProfile(profile, frameIndex, {type, frameFilter}),
+      () =>
+        ContinuousProfile.FromProfile(profile, frameIndex, {
+          minTimestamp,
+          type,
+          frameFilter,
+        }),
       {
         op: 'profile.import',
         description: 'continuous-profile',
