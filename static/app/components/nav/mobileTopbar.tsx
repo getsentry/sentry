@@ -2,7 +2,7 @@ import {useCallback, useEffect, useLayoutEffect, useState} from 'react';
 import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 
-import {SidebarItems} from 'sentry/components/nav/sidebar';
+import {PrimaryNavigationItems} from 'sentry/components/nav/primary';
 import {IconClose, IconMenu, IconSentry} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import theme from 'sentry/utils/theme';
@@ -35,7 +35,7 @@ function MobileTopbar() {
       </button>
       {view !== 'closed' ? (
         <OverlayPortal>
-          <SidebarItems />
+          <PrimaryNavigationItems />
         </OverlayPortal>
       ) : null}
     </Topbar>
