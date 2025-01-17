@@ -1,7 +1,7 @@
 import logging
 
 import sentry_sdk
-from rest_framework import serializers, status
+from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -52,7 +52,7 @@ class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
                 )
 
                 if not auth_serializer.is_valid():
-                    return Response(auth_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                    return Response(auth_serializer.errors, status=400)
 
                 token = GrantExchanger(
                     install=installation,
@@ -64,7 +64,7 @@ class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
                 refresh_serializer = SentryAppRefreshAuthorizationSerializer(data=request.data)
 
                 if not refresh_serializer.is_valid():
-                    return Response(refresh_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                    return Response(refresh_serializer.errors, status=400)
 
                 token = Refresher(
                     install=installation,
@@ -73,15 +73,12 @@ class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
                     user=promote_request_api_user(request),
                 ).run()
             else:
-                raise SentryAppIntegratorError(
-                    message="Invalid grant_type", status_code=status.HTTP_403_FORBIDDEN
-                )
+                raise SentryAppIntegratorError(message="Invalid grant_type", status_code=403)
         except SentryAppIntegratorError as e:
             logger.info(
                 "sentry-app-authorizations.error-context",
-                exc_info=True,
+                exc_info=e,
                 extra={
-                    "error": e,
                     "user_id": request.user.id,
                     "sentry_app_installation_id": installation.id,
                     "organization_id": installation.organization_id,
