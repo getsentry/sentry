@@ -139,7 +139,7 @@ export default class AddCodeOwnerModal extends DeprecatedAsyncComponent<Props, S
     const {Header, Body, Footer} = this.props;
     const {codeownersFile, error, errorJSON, codeMappings, integrations} = this.state;
     const {organization} = this.props;
-    const baseUrl = `/settings/${organization.slug}/integrations`;
+    const baseUrl = `/settings/${organization.slug}/integrations/`;
 
     return (
       <Fragment>
@@ -168,7 +168,7 @@ export default class AddCodeOwnerModal extends DeprecatedAsyncComponent<Props, S
                   {integrations.map(integration => (
                     <LinkButton
                       key={integration.id}
-                      to={`${baseUrl}/${integration.provider.key}/${integration.id}/?tab=codeMappings&referrer=add-codeowners`}
+                      to={`${baseUrl}${integration.provider.key}/${integration.id}/?tab=codeMappings&referrer=add-codeowners`}
                     >
                       {getIntegrationIcon(integration.provider.key)}
                       <IntegrationName>{integration.name}</IntegrationName>
@@ -292,7 +292,6 @@ function ErrorMessage({
   errorJSON: {raw?: string} | null;
 }) {
   const codeMapping = codeMappings.find(mapping => mapping.id === codeMappingId);
-  const {integrationId, provider} = codeMapping as RepositoryProjectPathConfig;
   const errActors = errorJSON?.raw?.[0]!.split('\n').map((el, i) => <p key={i}>{el}</p>);
   return (
     <Alert type="error" showIcon>
@@ -304,12 +303,12 @@ function ErrorMessage({
             {
               userMappingsLink: (
                 <Link
-                  to={`${baseUrl}/${provider?.key}/${integrationId}/?tab=userMappings&referrer=add-codeowners`}
+                  to={`${baseUrl}${codeMapping.provider?.key ?? ''}/${codeMapping.integrationId ?? ''}/?tab=userMappings&referrer=add-codeowners`}
                 />
               ),
               teamMappingsLink: (
                 <Link
-                  to={`${baseUrl}/${provider?.key}/${integrationId}/?tab=teamMappings&referrer=add-codeowners`}
+                  to={`${baseUrl}${codeMapping.provider?.key ?? ''}/${codeMapping.integrationId ?? ''}/?tab=teamMappings&referrer=add-codeowners`}
                 />
               ),
             }
