@@ -518,9 +518,6 @@ class IntegrationInstallation(abc.ABC):
     def notify_remove_external_team(self, external_team: ExternalActor, team: Team) -> None:
         pass
 
-    def remove_notification_settings(self, actor_id: int, provider: str) -> None:
-        pass
-
 
 def is_response_success(resp: Any) -> bool:
     if resp.status_code and resp.status_code < 300:
