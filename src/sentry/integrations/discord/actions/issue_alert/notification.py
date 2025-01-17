@@ -12,6 +12,7 @@ from sentry.integrations.messaging.metrics import (
 )
 from sentry.rules.actions import IntegrationEventAction
 from sentry.rules.base import CallbackFuture
+from sentry.shared_integrations.exceptions import ApiRateLimitedError
 from sentry.types.rules import RuleFuture
 from sentry.utils import metrics
 
@@ -59,7 +60,6 @@ class DiscordNotifyServiceAction(IntegrationEventAction):
                     lifecycle.add_extras({"integration_id": integration.id, "channel": channel_id})
                     client.send_message(channel_id, message, notification_uuid=notification_uuid)
                 except Exception as e:
-                    # TODO(iamrajjoshi): Update some of these failures to halts
                     lifecycle.add_extras(
                         {
                             "project_id": event.project_id,
@@ -68,7 +68,10 @@ class DiscordNotifyServiceAction(IntegrationEventAction):
                             "channel_id": channel_id,
                         }
                     )
-                    lifecycle.record_failure(e)
+                    if isinstance(e, ApiRateLimitedError):
+                        lifecycle.record_halt(e)
+                    else:
+                        lifecycle.record_failure(e)
 
             rule = rules[0] if rules else None
             self.record_notification_sent(event, channel_id, rule, notification_uuid)
