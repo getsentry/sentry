@@ -60,7 +60,7 @@ export function IssueViewQueryCount({view}: IssueViewQueryCountProps) {
     ? 0
     : Object.keys(queryCount ?? {}).length > 0 &&
         queryCount?.[Object.keys(queryCount)[0]!]
-      ? queryCount?.[Object.keys(queryCount)[0]!]
+      ? queryCount?.[Object.keys(queryCount)[0]!] ?? 0
       : 0;
 
   return (
