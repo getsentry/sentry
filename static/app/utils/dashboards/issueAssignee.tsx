@@ -45,7 +45,7 @@ const ActorContainer = styled('div')`
   justify-content: left;
   padding-left: 18px;
   align-items: center;
-  height: 24px;
+  height: 22px;
 `;
 
 const UnassignedContainer = styled('div')`
@@ -53,5 +53,5 @@ const UnassignedContainer = styled('div')`
   justify-content: left;
   padding-left: 20px;
   align-items: center;
-  height: 24px;
+  height: 22px;
 `;
