@@ -25,7 +25,7 @@ export function useNavContextDeprecated(): DeprecatedNavContext {
   return navContext;
 }
 
-export function DeprecatedNavContextProvider({children}) {
+export function DeprecatedNavContextProvider({children}: {children: React.ReactNode}) {
   const organization = useOrganization();
   const location = useLocation();
   /** Raw nav configuration values */

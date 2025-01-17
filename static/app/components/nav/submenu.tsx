@@ -132,11 +132,11 @@ const SubmenuFooterWrapper = styled('div')`
   padding-block: ${space(1)};
 `;
 
-function SubmenuBody({children}) {
+function SubmenuBody({children}: any) {
   return <SubmenuItemList>{children}</SubmenuItemList>;
 }
 
-function SubmenuFooter({children}) {
+function SubmenuFooter({children}: any) {
   return (
     <SubmenuFooterWrapper>
       <SubmenuItemList>{children}</SubmenuItemList>

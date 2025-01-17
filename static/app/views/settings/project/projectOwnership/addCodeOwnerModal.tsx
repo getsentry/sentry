@@ -149,7 +149,7 @@ class AddCodeOwnerModal extends DeprecatedAsyncComponent<Props, State> {
     );
   }
 
-  errorMessage(baseUrl) {
+  errorMessage(baseUrl: any) {
     const {errorJSON, codeMappingId, codeMappings} = this.state;
     const codeMapping = codeMappings.find(mapping => mapping.id === codeMappingId);
     const {integrationId, provider} = codeMapping as RepositoryProjectPathConfig;
@@ -299,7 +299,6 @@ class AddCodeOwnerModal extends DeprecatedAsyncComponent<Props, State> {
 }
 
 export default AddCodeOwnerModal;
-export {AddCodeOwnerModal};
 
 const StyledSelectField = styled(SelectField)`
   border-bottom: None;

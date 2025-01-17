@@ -79,7 +79,7 @@ function OrganizationApiKeyDetails() {
             <TextField label={t('API Key')} name="key" disabled />
 
             <FormField name="scope_list" label={t('Scopes')} inline={false} required>
-              {({name, value, onChange}) => (
+              {({name, value, onChange}: any) => (
                 <MultipleCheckbox value={value} onChange={onChange} name={name}>
                   {API_ACCESS_SCOPES.map(scope => (
                     <MultipleCheckbox.Item value={scope} key={scope}>

@@ -4,7 +4,7 @@ import oxfordizeArray, {Oxfordize} from 'sentry/utils/oxfordizeArray';
 
 describe('oxfordizeArray', function () {
   it('correctly formats lists of strings', function () {
-    const zero = [];
+    const zero: string[] = [];
     const one = ['A'];
     const two = ['A', 'B'];
     const three = ['A', 'B', 'C'];

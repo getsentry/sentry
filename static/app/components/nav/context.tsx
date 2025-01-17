@@ -14,7 +14,7 @@ export function useNavContext(): NavContext {
   return useContext(NavContext);
 }
 
-export function NavContextProvider({children}) {
+export function NavContextProvider({children}: {children: React.ReactNode}) {
   const [secondaryNavEl, setSecondaryNavEl] = useState<HTMLElement | null>(null);
 
   const value = useMemo(

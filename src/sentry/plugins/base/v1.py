@@ -294,7 +294,7 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin):
         """
         return tag_list
 
-    def actions(self, request, group, action_list, **kwargs):
+    def actions(self, group, action_list, **kwargs):
         """
         Modifies the action list for a grouped message.
 
@@ -304,7 +304,7 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin):
 
         This must return ``action_list``.
 
-        >>> def actions(self, request, group, action_list, **kwargs):
+        >>> def actions(self, group, action_list, **kwargs):
         >>>     action_list.append(('Google', 'http://google.com'))
         >>>     return action_list
         """
