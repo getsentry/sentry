@@ -36,7 +36,7 @@ export function useHandleAssigneeChange({
   onSuccess?: (assignedTo: Group['assignedTo']) => void;
 }) {
   const {mutate: handleAssigneeChange, isPending: assigneeLoading} = useMutation({
-    mutationFn: async (newAssignee: AssignableEntity | null): Promise<Group> => {
+    mutationFn: (newAssignee: AssignableEntity | null): Promise<Group> => {
       if (newAssignee) {
         return assignToActor({
           id: group.id,
@@ -46,7 +46,7 @@ export function useHandleAssigneeChange({
         });
       }
 
-      return await clearAssignment(group.id, organization.slug, 'assignee_selector');
+      return clearAssignment(group.id, organization.slug, 'assignee_selector');
     },
     onSuccess: (updatedGroup, newAssignee) => {
       if (onAssign && newAssignee) {
