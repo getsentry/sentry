@@ -15,6 +15,7 @@ from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.users.services.user import RpcUser
 from sentry.workflow_engine.models import (
     Action,
+    ActionAlertRuleTriggerAction,
     AlertRuleDetector,
     AlertRuleTriggerDataCondition,
     AlertRuleWorkflow,
@@ -539,13 +540,10 @@ def dual_delete_migrated_alert_rule_trigger(
     try:
         alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=alert_rule)
     except AlertRuleDetector.DoesNotExist:
-        # NOTE: making this an info log because we run the dual delete even if the user
-        # isn't flagged into dual write
-        logger.info(
-            "AlertRuleDetector does not exist",
-            extra={"alert_rule_id": AlertRule.id},
-        )
+        # We run the dual delete even if the user isn't flagged into dual write.
+        # Just return early in this case.
         return None
+
     priority = (
         (
             DetectorPriorityLevel.MEDIUM
@@ -557,39 +555,48 @@ def dual_delete_migrated_alert_rule_trigger(
     detector = alert_rule_detector.detector
     detector_data_condition_group = detector.workflow_condition_group
     if detector_data_condition_group is None:
-        # The corresponding detector trigger must be deleted already, though we don't know about the action filter
-        # But under the dual write paradigm, it's not clear how this can happen, so log an error
         logger.error("workflow_condition_group does not exist", extra={"detector": detector})
-        detector_trigger = None
-    else:
-        detector_trigger = DataCondition.objects.filter(
+        return None
+    try:
+        detector_trigger = DataCondition.objects.get(
             condition_group=detector_data_condition_group,
             comparison=alert_rule_trigger.alert_threshold,
             condition_result=priority,
-        ).first()
-        if detector_trigger is None:
-            logger.error(
-                "detector_trigger does not exist",
-                extra={"workflow_condition_group": detector_data_condition_group},
-            )
-
-    alert_rule_trigger_data_condition = AlertRuleTriggerDataCondition.objects.filter(
-        alert_rule_trigger=alert_rule_trigger
-    ).first()
-    if alert_rule_trigger_data_condition is None:
-        logger.error(
-            "AlertRuleTriggerDataCondition does not exist",
-            extra={"alert_rule_trigger_id": alert_rule_trigger.id},
         )
-        action_filter = None
-    else:
-        action_filter = alert_rule_trigger_data_condition.data_condition
+    except DataCondition.DoesNotExist:
+        logger.exception(
+            "detector_trigger does not exist",
+            extra={"workflow_condition_group": detector_data_condition_group},
+        )
+        return None
 
-    # TODO: wrap this in a transaction
-    if detector_trigger:
-        detector_trigger.delete()
-    if action_filter:
-        action_filter.delete()
+    action_filter = None
+    try:
+        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=alert_rule)
+    except AlertRuleWorkflow.DoesNotExist:
+        # This should not happen if the detector exists
+        logger.exception(
+            "AlertRuleWorkflow does not exist",
+            extra={"alert_rule_id": AlertRule.id},
+        )
+        return None
+    workflow = alert_rule_workflow.workflow
+    workflow_dcgs = WorkflowDataConditionGroup.objects.filter(workflow=workflow)
+    try:
+        action_filter = DataCondition.objects.get(
+            condition_group__in=workflow_dcgs,
+            comparison=priority,
+        )
+    except DataCondition.DoesNotExist:
+        logger.exception(
+            "action_filter does not exist",
+            extra={"workflow": workflow},
+        )
+        return None
+
+    detector_trigger.delete()
+    action_filter.delete()
+    logger.info("Dual deleted alert_rule_trigger", extra={"alert_rule_trigger": alert_rule_trigger})
 
     return None
 
@@ -598,17 +605,15 @@ def dual_delete_migrated_alert_rule_trigger_action(
     trigger_action: AlertRuleTriggerAction,
     user: RpcUser | None = None,
 ) -> None:
-    # uncomment this once the model change lands
-    # aarta = ActionAlertRuleTriggerAction.objects.filter(
-    #     alert_rule_trigger_action=trigger_action
-    # ).first()
-    # if aarta is None:
-    #     logger.error(
-    #         "ActionAlertRuleTriggerAction does not exist",
-    #         extra={"alert_rule_trigger_action_id": trigger_action.id},
-    #     )
-    #     return None
-    # action = aarta.action
-    # action.delete()
-    # return None
-    pass
+    aarta = ActionAlertRuleTriggerAction.objects.filter(
+        alert_rule_trigger_action=trigger_action
+    ).first()
+    if aarta is None:
+        logger.error(
+            "ActionAlertRuleTriggerAction does not exist",
+            extra={"alert_rule_trigger_action_id": trigger_action.id},
+        )
+        return None
+    action = aarta.action
+    action.delete()
+    return None
