@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from copy import deepcopy
-from typing import Any
 from unittest.mock import patch
 
 import responses
@@ -617,31 +615,25 @@ class TestCSharpDeriveCodeMappings(BaseDeriveCodeMappings):
 class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
     def setUp(self):
         super().setUp()
-        self.test_data: dict[str, Any] = {
-            "platform": "python",
-            "stacktrace": {
-                "frames": [
-                    {"in_app": True, "filename": "sentry/tasks.py"},
-                    {"in_app": True, "filename": "sentry/models/release.py"},
-                ]
-            },
-        }
+        self.event = self.create_event(
+            [
+                {"in_app": True, "filename": "sentry/tasks.py"},
+                {"in_app": True, "filename": "sentry/models/release.py"},
+            ],
+            "python",
+        )
 
     def test_finds_stacktrace_paths_single_project(self):
-        event = self.store_event(data=self.test_data, project_id=self.project.id)
-
-        stacktrace_paths = identify_stacktrace_paths(event.data)
+        stacktrace_paths = identify_stacktrace_paths(self.event.data)
         assert sorted(stacktrace_paths) == [
             "sentry/models/release.py",
             "sentry/tasks.py",
         ]
 
     def test_handle_duplicate_filenames_in_stacktrace(self):
-        data = deepcopy(self.test_data)
-        data["stacktrace"]["frames"].append(self.test_data["stacktrace"]["frames"][0])
-        event = self.store_event(data=data, project_id=self.project.id)
+        self.event.data["stacktrace"]["frames"].append(self.event.data["stacktrace"]["frames"][0])
 
-        stacktrace_paths = identify_stacktrace_paths(event.data)
+        stacktrace_paths = identify_stacktrace_paths(self.event.data)
         assert sorted(stacktrace_paths) == [
             "sentry/models/release.py",
             "sentry/tasks.py",
@@ -661,8 +653,6 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
     def test_derive_code_mappings_single_project(
         self, mock_generate_code_mappings, mock_get_trees_for_org
     ):
-        event = self.store_event(data=self.test_data, project_id=self.project.id)
-
         assert not RepositoryProjectPathConfig.objects.filter(project_id=self.project.id).exists()
 
         with (
@@ -672,7 +662,7 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
             ) as mock_identify_stacktraces,
             self.tasks(),
         ):
-            derive_code_mappings(self.project.id, event.data)
+            derive_code_mappings(self.project.id, self.event.event_id)
 
         assert mock_identify_stacktraces.call_count == 1
         assert mock_get_trees_for_org.call_count == 1
@@ -682,7 +672,7 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
 
     def test_skips_not_supported_platforms(self):
         event = self.create_event([{}], platform="elixir")
-        assert derive_code_mappings(self.project.id, event.data) is None
+        assert derive_code_mappings(self.project.id, event.event_id) is None
         assert len(RepositoryProjectPathConfig.objects.filter(project_id=self.project.id)) == 0
 
     @patch("sentry.integrations.github.integration.GitHubIntegration.get_trees_for_org")
@@ -709,7 +699,6 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
             organization_id=self.organization.id,
             integration_id=self.integration.id,
         )
-        event = self.store_event(data=self.test_data, project_id=self.project.id)
         RepositoryProjectPathConfig.objects.create(
             project=self.project,
             stack_root="sentry/models",
@@ -729,7 +718,7 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
             ) as mock_identify_stacktraces,
             self.tasks(),
         ):
-            derive_code_mappings(self.project.id, event.data)
+            derive_code_mappings(self.project.id, self.event.event_id)
 
         assert mock_identify_stacktraces.call_count == 1
         assert mock_get_trees_for_org.call_count == 1
@@ -747,7 +736,7 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
             mock_get_trees_for_org.return_value = {
                 repo_name: RepoTree(Repo(repo_name, "master"), ["src/sentry/models/release.py"])
             }
-            derive_code_mappings(self.project.id, self.test_data)
+            derive_code_mappings(self.project.id, self.event.event_id)
             code_mapping = RepositoryProjectPathConfig.objects.get()
             # sentry/models/release.py -> models/release.py -> src/sentry/models/release.py
             assert code_mapping.stack_root == "sentry/"
@@ -762,7 +751,7 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
             mock_get_trees_for_org.return_value = {
                 repo_name: RepoTree(Repo(repo_name, "master"), ["sentry/models/release.py"])
             }
-            derive_code_mappings(self.project.id, self.test_data)
+            derive_code_mappings(self.project.id, self.event.event_id)
             code_mapping = RepositoryProjectPathConfig.objects.get()
 
             assert code_mapping.stack_root == ""
