@@ -110,7 +110,7 @@ def auto_source_code_config(
     if group_id is None:
         event = eventstore.backend.get_event_by_id(project_id, event_id)
     else:
-        event = eventstore.backend.get_event_by_id(project_id, group_id, event_id)
+        event = eventstore.backend.get_event_by_id(project_id, event_id, group_id)
     if event is None:
         logger.error("Event not found.", extra=extra)
         return
