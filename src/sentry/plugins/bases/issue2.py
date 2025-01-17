@@ -12,6 +12,7 @@ from rest_framework.response import Response
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
+from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.plugin import PluginSerializer
 
 # api compat
@@ -397,7 +398,7 @@ class IssueTrackingPlugin2(Plugin):
             return Response({"message": "Successfully unlinked issue."})
         return Response({"message": "No issues to unlink."}, status=400)
 
-    def plugin_issues(self, request: Request, group, plugin_issues, **kwargs) -> None:
+    def plugin_issues(self, group, plugin_issues, **kwargs) -> None:
         if not self.is_configured(project=group.project):
             return
 
@@ -414,7 +415,7 @@ class IssueTrackingPlugin2(Plugin):
                 "label": self.get_issue_label(group, issue["id"]),
             }
 
-        item.update(PluginSerializer(group.project).serialize(self, None, request.user))
+        item.update(serialize(self, serializer=PluginSerializer(group.project)))
         plugin_issues.append(item)
 
     def get_config(self, project, user=None, initial=None, add_additional_fields: bool = False):

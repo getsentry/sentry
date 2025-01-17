@@ -8,7 +8,6 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from django.utils import timezone
-from rest_framework.request import Request
 
 from sentry import features, release_health, tsdb
 from sentry.api.serializers import serialize
@@ -43,7 +42,7 @@ from sentry.utils.safe import safe_execute
 from sentry.utils.snuba import resolve_column, resolve_conditions
 
 
-def get_actions(request: Request, group):
+def get_actions(group):
     from sentry.plugins.base import plugins
 
     project = group.project
@@ -53,23 +52,17 @@ def get_actions(request: Request, group):
         if is_plugin_deprecated(plugin, project):
             continue
 
-        results = safe_execute(plugin.actions, request, group, action_list)
+        results = safe_execute(plugin.actions, group, action_list)
 
         if not results:
             continue
 
         action_list = results
 
-    for plugin in plugins.for_project(project, version=2):
-        if is_plugin_deprecated(plugin, project):
-            continue
-        for action in safe_execute(plugin.get_actions, request, group) or ():
-            action_list.append(action)
-
     return action_list
 
 
-def get_available_issue_plugins(request: Request, group):
+def get_available_issue_plugins(group):
     from sentry.plugins.base import plugins
     from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 
@@ -80,7 +73,7 @@ def get_available_issue_plugins(request: Request, group):
         if isinstance(plugin, IssueTrackingPlugin2):
             if is_plugin_deprecated(plugin, project):
                 continue
-            safe_execute(plugin.plugin_issues, request, group, plugin_issues)
+            safe_execute(plugin.plugin_issues, group, plugin_issues)
     return plugin_issues
 
 
@@ -266,7 +259,6 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         self,
         item_list: Sequence[Group],
         user: Any,
-        request: Request,
         **kwargs: Any,
     ) -> MutableMapping[Group, MutableMapping[str, Any]]:
         if not self._collapse("base"):
@@ -364,12 +356,12 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
 
         if self._expand("pluginActions"):
             for item in item_list:
-                action_list = get_actions(request, item)
+                action_list = get_actions(item)
                 attrs[item].update({"pluginActions": action_list})
 
         if self._expand("pluginIssues"):
             for item in item_list:
-                plugin_issue_list = get_available_issue_plugins(request, item)
+                plugin_issue_list = get_available_issue_plugins(item)
                 attrs[item].update({"pluginIssues": plugin_issue_list})
 
         if self._expand("integrationIssues"):
@@ -380,7 +372,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                     ),
                 )
                 integration_issues = serialize(
-                    list(external_issues), request, serializer=ExternalIssueSerializer()
+                    list(external_issues), serializer=ExternalIssueSerializer()
                 )
                 attrs[item].update({"integrationIssues": integration_issues})
 
@@ -388,7 +380,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             for item in item_list:
                 external_issues = PlatformExternalIssue.objects.filter(group_id=item.id)
                 sentry_app_issues = serialize(
-                    list(external_issues), request, serializer=PlatformExternalIssueSerializer()
+                    list(external_issues), serializer=PlatformExternalIssueSerializer()
                 )
                 attrs[item].update({"sentryAppIssues": sentry_app_issues})
 
@@ -396,7 +388,6 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             if not features.has(
                 "organizations:event-attachments",
                 item.project.organization,
-                actor=request.user,
             ):
                 return self.respond(status=404)
 
