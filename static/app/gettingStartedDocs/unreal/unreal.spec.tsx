@@ -1,10 +1,21 @@
+import {ProjectFixture} from 'sentry-fixture/project';
+
 import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboardingLayout';
 import {screen} from 'sentry-test/reactTestingLibrary';
 
 import docs from './unreal';
 
+function renderMockRequests() {
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/projects/',
+    body: [ProjectFixture()],
+  });
+}
+
 describe('getting started with unreal', function () {
   it('renders docs correctly', function () {
+    renderMockRequests();
+
     renderWithOnboardingLayout(docs);
 
     // Renders main headings
