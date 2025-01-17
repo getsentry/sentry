@@ -54,7 +54,7 @@ function ScreensOverviewTable({data, eventView, isLoading, pageLinks}: Props) {
     [`avg(measurements.time_to_full_display)`]: t('Average Time to Full Display'),
   };
 
-  function renderBodyCell(column, row): React.ReactNode | null {
+  function renderBodyCell(column: any, row: any): React.ReactNode | null {
     if (!data) {
       return null;
     }

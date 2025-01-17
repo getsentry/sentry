@@ -137,7 +137,6 @@ export enum IssueTitle {
   PROFILE_JSON_DECODE_MAIN_THREAD = 'JSON Decoding on Main Thread',
   PROFILE_REGEX_MAIN_THREAD = 'Regex on Main Thread',
   PROFILE_FRAME_DROP = 'Frame Drop',
-  PROFILE_FRAME_DROP_EXPERIMENTAL = 'Frame Drop',
   PROFILE_FUNCTION_REGRESSION = 'Function Regression',
   PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL = 'Function Duration Regression (Experimental)',
 
@@ -168,7 +167,7 @@ const ISSUE_TYPE_TO_ISSUE_TITLE = {
   profile_json_decode_main_thread: IssueTitle.PROFILE_JSON_DECODE_MAIN_THREAD,
   profile_regex_main_thread: IssueTitle.PROFILE_REGEX_MAIN_THREAD,
   profile_frame_drop: IssueTitle.PROFILE_FRAME_DROP,
-  profile_frame_drop_experimental: IssueTitle.PROFILE_FRAME_DROP_EXPERIMENTAL,
+  profile_frame_drop_experimental: IssueTitle.PROFILE_FRAME_DROP,
   profile_function_regression: IssueTitle.PROFILE_FUNCTION_REGRESSION,
   profile_function_regression_exp: IssueTitle.PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL,
 
@@ -178,6 +177,7 @@ const ISSUE_TYPE_TO_ISSUE_TITLE = {
 
 export function getIssueTitleFromType(issueType: string): IssueTitle | undefined {
   if (issueType in ISSUE_TYPE_TO_ISSUE_TITLE) {
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return ISSUE_TYPE_TO_ISSUE_TITLE[issueType];
   }
   return undefined;
@@ -215,6 +215,7 @@ export function getIssueTypeFromOccurrenceType(
   if (!typeId) {
     return null;
   }
+  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   return OCCURRENCE_TYPE_TO_ISSUE_TYPE[typeId] ?? null;
 }
 

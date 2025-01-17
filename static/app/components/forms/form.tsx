@@ -180,7 +180,7 @@ function Form({
   );
 
   const handleSubmitSuccess = useCallback(
-    data => {
+    (data: any) => {
       formModel.submitSuccess(data);
       onSubmitSuccess?.(data, formModel);
     },
@@ -188,7 +188,7 @@ function Form({
   );
 
   const handleSubmitError = useCallback(
-    error => {
+    (error: any) => {
       formModel.submitError(error);
       onSubmitError?.(error, formModel);
     },
@@ -196,7 +196,7 @@ function Form({
   );
 
   const handleSubmit = useCallback(
-    e => {
+    (e: any) => {
       if (!skipPreventDefault) {
         e.preventDefault();
       }

@@ -38,7 +38,10 @@ function VitalCard({
           <MeterHeader>{title}</MeterHeader>
           <MeterValueText>{formattedValue ?? '-'}</MeterValueText>
         </MeterBarBody>
-        <MeterBarFooter label={statusLabel} status={status} />
+        <MeterBarFooter
+          label={statusLabel}
+          status={status as keyof typeof PERFORMANCE_SCORE_COLORS}
+        />
       </MeterBarContainer>
     </Fragment>
   );
@@ -82,7 +85,7 @@ function MeterBarFooter({
   status,
 }: {
   label: string | undefined;
-  status: string | undefined;
+  status: keyof typeof PERFORMANCE_SCORE_COLORS | undefined;
 }) {
   return (
     <MeterBarFooterContainer status={status || 'none'}>
@@ -91,7 +94,9 @@ function MeterBarFooter({
   );
 }
 
-const MeterBarFooterContainer = styled('div')<{status: string}>`
+const MeterBarFooterContainer = styled('div')<{
+  status: keyof typeof PERFORMANCE_SCORE_COLORS;
+}>`
   color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].normal]};
   border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
   background-color: ${p =>

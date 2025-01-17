@@ -37,7 +37,7 @@ export function DurationChartWithSamples({
     // TODO: Gross hack. Even though `scatterPlot` is a separate prop, it's just an array of `Series` that gets appended to the main series. To find the point that was hovered, we re-construct the correct series order. It would have been cleaner to just pass the scatter plot as its own, single series
     const allSeries = [...series, ...(scatterPlot ?? [])];
 
-    const highlightedDataPoints = event.batch.map(batch => {
+    const highlightedDataPoints = event.batch.map((batch: any) => {
       let {seriesIndex} = batch;
       const {dataIndex} = batch;
       // TODO: More hacks. The Chart component partitions the data series into a complete and incomplete series. Wrap the series index to work around overflowing index.

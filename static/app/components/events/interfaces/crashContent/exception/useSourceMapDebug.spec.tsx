@@ -8,7 +8,7 @@ import {getUniqueFilesFromException} from './useSourceMapDebug';
 function modifyEventFrames(event: Event, modify: any): Event {
   const modifiedEvent = cloneDeep(event);
   modifiedEvent.entries[0]!.data.values[0].stacktrace.frames =
-    event.entries[0]!.data.values[0].stacktrace.frames.map(frame => ({
+    event.entries[0]!.data.values[0].stacktrace.frames.map((frame: any) => ({
       ...frame,
       ...modify,
     }));

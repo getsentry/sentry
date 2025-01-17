@@ -101,12 +101,15 @@ function ProfilingOnboarding(props: CommonSidebarProps) {
 
     // if it's a list of projects, pick the first one that's supported
     const supportedProjectsById = supportedProjects.reduce((mapping, project) => {
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       mapping[project.id] = project;
       return mapping;
     }, {});
 
     for (const projectId of pageFilters.selection.projects) {
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       if (supportedProjectsById[String(projectId)]) {
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         setCurrentProject(supportedProjectsById[String(projectId)]);
         return;
       }

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Sequence
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 from sentry.constants import TAG_LABELS
@@ -114,6 +116,7 @@ class TagStorage(Service):
         environment_id,
         status=TagKeyStatus.ACTIVE,
         include_values_seen=False,
+        denylist=None,
         tenant_ids=None,
     ):
         """
@@ -231,14 +234,14 @@ class TagStorage(Service):
 
     def get_groups_user_counts(
         self,
-        project_ids,
-        group_ids,
-        environment_ids,
-        start=None,
-        end=None,
-        tenant_ids=None,
-        referrer=None,
-    ):
+        project_ids: Sequence[int],
+        group_ids: Sequence[int],
+        environment_ids: Sequence[int] | None,
+        start: datetime | None = None,
+        end: datetime | None = None,
+        tenant_ids: dict[str, str | int] | None = None,
+        referrer: str = "tagstore.get_groups_user_counts",
+    ) -> dict[int, int]:
         """
         >>> get_groups_user_counts([1, 2], [2, 3], [4, 5])
         `start` and `end` are only used by the snuba backend
@@ -246,8 +249,15 @@ class TagStorage(Service):
         raise NotImplementedError
 
     def get_generic_groups_user_counts(
-        self, project_ids, group_ids, environment_ids, start=None, end=None, tenant_ids=None
-    ):
+        self,
+        project_ids: Sequence[int],
+        group_ids: Sequence[int],
+        environment_ids: Sequence[int] | None,
+        start: datetime | None = None,
+        end: datetime | None = None,
+        tenant_ids: dict[str, str | int] | None = None,
+        referrer: str = "tagstore.get_generic_groups_user_counts",
+    ) -> dict[int, int]:
         raise NotImplementedError
 
     def get_group_tag_value_count(self, group, environment_id, key, tenant_ids=None):

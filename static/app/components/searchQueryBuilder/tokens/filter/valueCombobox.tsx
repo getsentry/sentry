@@ -350,7 +350,7 @@ function useFilterSuggestions({
         textValue: suggestion.value,
         hideCheck: true,
         selectionMode: canSelectMultipleValues ? 'multiple' : 'single',
-        trailingItems: ({isFocused, disabled}) => {
+        trailingItems: ({isFocused, disabled}: any) => {
           if (!canSelectMultipleValues) {
             return null;
           }
