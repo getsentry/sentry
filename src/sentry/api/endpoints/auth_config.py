@@ -87,7 +87,7 @@ class AuthConfigEndpoint(Endpoint, OrganizationMixin):
         context = {
             "serverHostname": get_server_hostname(),
             "canRegister": can_register,
-            "hasNewsletter": newsletter.is_enabled(),
+            "hasNewsletter": newsletter.backend.is_enabled(),
         }
 
         if "session_expired" in request.COOKIES:
