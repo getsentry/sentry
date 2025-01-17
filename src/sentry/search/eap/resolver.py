@@ -305,6 +305,61 @@ class SearchResolver:
             return parsed_terms[0], resolved_contexts
         return None, []
 
+    def _handle_virtual_column_terms(
+        self,
+        term: event_search.SearchFilter,
+        resolved_column: ResolvedColumn,
+        context: VirtualColumnContext | None,
+    ) -> tuple[ResolvedColumn, float | datetime | Sequence[float] | Sequence[str]]:
+        raw_value = term.value.raw_value
+        if context is None or isinstance(raw_value, datetime):
+            return resolved_column, raw_value
+        raw_value = cast(str | int | list[str], raw_value)
+
+        # Convert the term to the expected values
+        final_raw_value: str | int | list[str] | list[int] = []
+        reversed_context = {v: k for k, v in context.value_map.items()}
+        if term.value.is_wildcard():
+            # Avoiding this for now, but we could theoretically do a wildcard search on the resolved contexts
+            raise InvalidSearchQuery(f"Cannot use wildcards with {term.key}")
+        elif isinstance(raw_value, list):
+            new_value = []
+            for raw_iterable in raw_value:
+                if term.key.name not in constants.PROJECT_FIELDS and raw_iterable == "Unknown":
+                    # Avoiding this for now, while this could work with the Unknown:"" mapping
+                    # But that won't work once we use the VirtualColumnContext.default_value
+                    raise InvalidSearchQuery(
+                        "Using Unknown in an IN filter is not currently supported"
+                    )
+                elif raw_iterable not in reversed_context:
+                    raise InvalidSearchQuery(
+                        constants.REVERSE_CONTEXT_ERROR.format(
+                            raw_value, term.key.name, ", ".join(reversed_context.keys())
+                        )
+                    )
+                else:
+                    new_value.append(reversed_context[raw_iterable])
+            final_raw_value = new_value
+        elif raw_value in reversed_context:
+            final_raw_value = reversed_context[raw_value]
+        else:
+            raise InvalidSearchQuery(
+                constants.REVERSE_CONTEXT_ERROR.format(
+                    raw_value, term.key.name, ", ".join(reversed_context.keys())
+                )
+            )
+
+        # Convert the resolved_column to the underlying column
+        if term.key.name in constants.PROJECT_FIELDS:
+            resolved_column, _ = self.resolve_attribute("project.id")
+            if isinstance(final_raw_value, list):
+                final_raw_value = [int(val) for val in raw_value]
+            else:
+                final_raw_value = int(cast(str, raw_value))
+        elif term.key.name == "device.class":
+            resolved_column, _ = self.resolve_attribute("sentry.device.class")
+        return resolved_column, final_raw_value
+
     def resolve_term(
         self, term: event_search.SearchFilter
     ) -> tuple[TraceItemFilter, VirtualColumnContext | None]:
@@ -314,6 +369,11 @@ class SearchResolver:
             raise ValueError(f"{term.key.name} is not valid search term")
 
         raw_value = term.value.raw_value
+
+        resolved_column, raw_value = self._handle_virtual_column_terms(
+            term, resolved_column, context
+        )
+
         if term.value.is_wildcard():
             if term.operator == "=":
                 operator = ComparisonFilter.OP_LIKE
@@ -431,7 +491,7 @@ class SearchResolver:
                     bool_value = lowered_value in constants.TRUTHY_VALUES
                     return AttributeValue(val_bool=bool_value)
             raise InvalidSearchQuery(
-                f"{value} is not a valid filter value for {column.public_alias}"
+                f"{value} is not a valid filter value for {column.public_alias}, expecting {constants.TYPE_TO_STRING_MAP[column_type]}, but got a {type(value)}"
             )
         else:
             raise NotImplementedError("Aggregate Queries not implemented yet")
