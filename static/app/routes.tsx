@@ -1935,7 +1935,7 @@ function buildRoutes() {
   // Once org issues is complete, these routes can be nested under
   // /organizations/:orgId/issues
   const issueTabs = ({forCustomerDomain}: {forCustomerDomain: boolean}) => {
-    const hoc = forCustomerDomain ? withDomainRequired : x => x;
+    const hoc = forCustomerDomain ? withDomainRequired : (x: any) => x;
     return (
       <Fragment>
         <IndexRoute

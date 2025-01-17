@@ -133,6 +133,7 @@ const useDiscoverSeries = <T extends string[]>(
   const parsedData: Record<string, DiscoverSeries> = {};
 
   yAxis.forEach(seriesName => {
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     const dataSeries = result.data?.[seriesName] ?? result?.data ?? {};
     const convertedSeries: DiscoverSeries = {
       seriesName,

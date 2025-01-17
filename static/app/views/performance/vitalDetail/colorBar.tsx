@@ -23,7 +23,9 @@ function ColorBar(props: Props) {
       {...props}
     >
       {props.colorStops.map(colorStop => {
-        const barStatus = <BarStatus color={colorStop.color} key={colorStop.color} />;
+        const barStatus = (
+          <BarStatus color={colorStop.color as Color} key={colorStop.color} />
+        );
 
         return colorStop.renderBarStatus?.(barStatus, colorStop.color) ?? barStatus;
       })}
@@ -49,7 +51,7 @@ const VitalBar = styled('div')<VitalBarProps>`
 `;
 
 type ColorProps = {
-  color: Color | string;
+  color: Color;
 };
 
 const BarStatus = styled('div')<ColorProps>`

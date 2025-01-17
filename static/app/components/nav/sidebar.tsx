@@ -250,11 +250,11 @@ const SidebarHeader = styled('header')`
   margin-bottom: ${space(1.5)};
 `;
 
-function SidebarBody({children}) {
+function SidebarBody({children}: any) {
   return <SidebarItemList>{children}</SidebarItemList>;
 }
 
-function SidebarFooter({children}) {
+function SidebarFooter({children}: any) {
   return (
     <SidebarFooterWrapper>
       <SidebarItemList>{children}</SidebarItemList>

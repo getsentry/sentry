@@ -183,7 +183,7 @@ export class DeprecatedAssigneeSelectorDropdown extends Component<
   }
 
   unlisteners = [
-    GroupStore.listen(itemIds => this.onGroupChange(itemIds), undefined),
+    GroupStore.listen((itemIds: any) => this.onGroupChange(itemIds), undefined),
     MemberListStore.listen(({members}: typeof MemberListStore.state) => {
       this.handleMemberListUpdate(members);
     }, undefined),

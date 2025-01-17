@@ -1465,7 +1465,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
         // API response is not sorted
         const spans = data.entries.find(s => s.type === 'spans') ?? {data: []};
-        spans.data.sort((a, b) => a.start_timestamp - b.start_timestamp);
+        spans.data.sort((a: any, b: any) => a.start_timestamp - b.start_timestamp);
 
         const [root, spanTreeSpaceBounds] = TraceTree.FromSpans(node, spans.data, data);
 

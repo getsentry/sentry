@@ -32,7 +32,7 @@ export const RECENT_SEARCH_CATEGORY = {
 const RECENT_FILTER_KEY_PREFIX = '__recent_filter_key__';
 const RECENT_QUERY_KEY_PREFIX = '__recent_search__';
 
-function trimQuotes(value) {
+function trimQuotes(value: any) {
   return value.replace(/^"+|"+$/g, '');
 }
 

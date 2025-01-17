@@ -98,7 +98,7 @@ export function InsightsLineChartWidget(props: InsightsLineChartWidgetProps) {
   );
 }
 
-const COMMON_COLORS = {
+const COMMON_COLORS: Record<string, string> = {
   'spm()': THROUGHPUT_COLOR,
   'count()': COUNT_COLOR,
   'avg(span.self_time)': AVG_COLOR,

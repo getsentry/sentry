@@ -45,7 +45,7 @@ export function useAddToDashboard() {
     (visualizeIndex: number) => {
       const yAxes = visualizes[visualizeIndex]!.yAxes.slice(0, MAX_NUM_Y_AXES);
 
-      let fields;
+      let fields: any;
       if (mode === Mode.SAMPLES) {
         if (hasWidgetBuilderRedesign) {
           // TODO: Handle the fields for the widget builder if we've selected the samples mode

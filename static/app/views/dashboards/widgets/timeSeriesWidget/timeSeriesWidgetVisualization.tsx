@@ -40,7 +40,7 @@ export interface TimeSeriesWidgetVisualizationProps {
   timeseries: TimeseriesData[];
   aliases?: Aliases;
   dataCompletenessDelay?: number;
-  onTimeseriesSelectionChange?: (TimeseriesSelection) => void;
+  onTimeseriesSelectionChange?: (selection: TimeseriesSelection) => void;
   releases?: Release[];
   timeseriesSelection?: TimeseriesSelection;
 }
@@ -73,6 +73,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     releaseSeries = ReleaseSeries(theme, props.releases, onClick, utc ?? false);
   }
 
+  // @ts-ignore TS(7051): Parameter has a name but no type. Did you mean 'ar... Remove this comment to see the full error message
   const formatSeriesName: (string) => string = name => {
     return props.aliases?.[name] ?? name;
   };
@@ -152,14 +153,17 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
       deDupedParams = params.filter(param => {
         // Filter null values from tooltip
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         if (param.value[1] === null) {
           return false;
         }
 
+        // @ts-ignore TS(2345): Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
         if (uniqueSeries.has(param.seriesName)) {
           return false;
         }
 
+        // @ts-ignore TS(2345): Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
         uniqueSeries.add(param.seriesName);
         return true;
       });

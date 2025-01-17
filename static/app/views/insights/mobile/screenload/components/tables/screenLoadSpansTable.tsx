@@ -158,7 +158,7 @@ export function ScreenLoadSpansTable({
     ),
   };
 
-  function renderBodyCell(column, row): React.ReactNode {
+  function renderBodyCell(column: any, row: any): React.ReactNode {
     if (!data?.meta || !data?.meta.fields) {
       return row[column.key];
     }

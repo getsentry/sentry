@@ -12,14 +12,18 @@
 import * as emotion from '@emotion/eslint-plugin';
 import eslint from '@eslint/js';
 import prettier from 'eslint-config-prettier';
+// @ts-expect-error TS(7016): Could not find a declaration file
 import importPlugin from 'eslint-plugin-import';
 import jest from 'eslint-plugin-jest';
 import jestDom from 'eslint-plugin-jest-dom';
 import react from 'eslint-plugin-react';
+// @ts-expect-error TS(7016): Could not find a declaration file
 import reactHooks from 'eslint-plugin-react-hooks';
+// @ts-expect-error TS(7016): Could not find a declaration file
 import sentry from 'eslint-plugin-sentry';
 import simpleImportSort from 'eslint-plugin-simple-import-sort';
 import testingLibrary from 'eslint-plugin-testing-library';
+// @ts-expect-error TS (7016): Could not find a declaration file
 import typescriptSortKeys from 'eslint-plugin-typescript-sort-keys';
 import globals from 'globals';
 import invariant from 'invariant';

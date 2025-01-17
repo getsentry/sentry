@@ -10,7 +10,7 @@ import AcceptOrganizationInvite from 'sentry/views/acceptOrganizationInvite';
 
 jest.mock('sentry/actionCreators/account');
 
-const addMock = body =>
+const addMock = (body: any) =>
   MockApiClient.addMockResponse({
     url: '/accept-invite/org-slug/1/abc/',
     method: 'GET',

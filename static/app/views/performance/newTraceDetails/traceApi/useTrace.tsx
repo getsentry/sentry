@@ -89,11 +89,11 @@ export function getTraceQueryParams(
   };
   for (const key in queryParams) {
     if (
-      queryParams[key] === '' ||
-      queryParams[key] === null ||
-      queryParams[key] === undefined
+      queryParams[key as keyof typeof queryParams] === '' ||
+      queryParams[key as keyof typeof queryParams] === null ||
+      queryParams[key as keyof typeof queryParams] === undefined
     ) {
-      delete queryParams[key];
+      delete queryParams[key as keyof typeof queryParams];
     }
   }
 

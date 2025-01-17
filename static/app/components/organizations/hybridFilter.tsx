@@ -53,7 +53,7 @@ export interface HybridFilterProps<Value extends SelectKey>
   /**
    * Message to show in the menu footer
    */
-  menuFooterMessage?: ((hasStagedChanges) => React.ReactNode) | React.ReactNode;
+  menuFooterMessage?: ((hasStagedChanges: any) => React.ReactNode) | React.ReactNode;
   multiple?: boolean;
   onReplace?: (selected: Value) => void;
   /**
@@ -160,7 +160,7 @@ export function HybridFilter<Value extends SelectKey>({
   const [modifierKeyPressed, setModifierKeyPressed] = useState(false);
   const onKeyUp = useCallback(() => setModifierKeyPressed(false), []);
   const onKeyDown = useCallback(
-    e => {
+    (e: any) => {
       e.key === 'Escape' && commitStagedChanges();
       setModifierKeyPressed(isModifierKeyPressed(e));
     },
@@ -231,7 +231,7 @@ export function HybridFilter<Value extends SelectKey>({
         : menuFooterMessage;
 
     return menuFooter || footerMessage || hasStagedChanges || showModifierTip
-      ? ({closeOverlay}) => (
+      ? ({closeOverlay}: any) => (
           <Fragment>
             {footerMessage && <FooterMessage>{footerMessage}</FooterMessage>}
             <FooterWrap>
@@ -345,7 +345,7 @@ export function HybridFilter<Value extends SelectKey>({
   );
 
   const menuHeaderTrailingItems = useCallback(
-    ({closeOverlay}) => {
+    ({closeOverlay}: any) => {
       // Don't show reset button if current value is already equal to the default one.
       if (!xor(stagedValue, defaultValue).length) {
         return null;

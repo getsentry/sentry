@@ -213,9 +213,11 @@ function getInsightsModuleBreadcrumbs(
 
   if (
     typeof location.query.source === 'string' &&
-    TRACE_SOURCE_TO_MODULE[location.query.source]
+    TRACE_SOURCE_TO_MODULE[location.query.source as keyof typeof TRACE_SOURCE_TO_MODULE]
   ) {
-    moduleName = TRACE_SOURCE_TO_MODULE[location.query.source] as RoutableModuleNames;
+    moduleName = TRACE_SOURCE_TO_MODULE[
+      location.query.source as keyof typeof TRACE_SOURCE_TO_MODULE
+    ] as RoutableModuleNames;
     crumbs.push({
       label: MODULE_TITLES[moduleName],
       to: getBreadCrumbTarget(
@@ -341,7 +343,7 @@ export function getTraceViewBreadcrumbs(
 ): Crumb[] {
   if (
     typeof location.query.source === 'string' &&
-    TRACE_SOURCE_TO_MODULE[location.query.source]
+    TRACE_SOURCE_TO_MODULE[location.query.source as keyof typeof TRACE_SOURCE_TO_MODULE]
   ) {
     return getInsightsModuleBreadcrumbs(location, organization, moduleUrlBuilder, view);
   }

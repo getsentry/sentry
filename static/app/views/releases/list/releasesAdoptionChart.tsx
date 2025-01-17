@@ -221,16 +221,21 @@ class ReleasesAdoptionChart extends Component<Props> {
                             const series = Array.isArray(seriesParams)
                               ? seriesParams
                               : [seriesParams];
+                            // @ts-ignore TS(2532): Object is possibly 'undefined'.
                             const timestamp = series[0].data[0];
                             const [first, second, third, ...rest] = series
+                              // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                               .filter(s => s.data[1] > 0)
+                              // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                               .sort((a, b) => b.data[1] - a.data[1]);
 
+                            // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                             const restSum = rest.reduce((acc, s) => acc + s.data[1], 0);
 
                             const seriesToRender = compact([first, second, third]);
 
                             if (rest.length) {
+                              // @ts-ignore TS(2345): Argument of type '{ seriesName: string; data: any[... Remove this comment to see the full error message
                               seriesToRender.push({
                                 seriesName: tn('%s Other', '%s Others', rest.length),
                                 data: [timestamp, restSum],
@@ -249,7 +254,7 @@ class ReleasesAdoptionChart extends Component<Props> {
                             };
                             const intervalStart = moment(timestamp).format('MMM D LT');
                             const intervalEnd = (
-                              series[0].dataIndex === numDataPoints - 1
+                              series[0]?.dataIndex === numDataPoints - 1
                                 ? moment(response?.end)
                                 : moment(timestamp).add(
                                     parseInt(periodObj.period!, 10),
@@ -267,6 +272,7 @@ class ReleasesAdoptionChart extends Component<Props> {
                                     }<strong>${
                                       s.seriesName &&
                                       truncationFormatter(s.seriesName, 32)
+                                      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                                     }</strong></span>${s.data[1].toFixed(2)}%</div>`
                                 )
                                 .join(''),

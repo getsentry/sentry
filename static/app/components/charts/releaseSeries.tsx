@@ -48,7 +48,7 @@ function getOrganizationReleases(
 ) {
   const query: Record<string, string> = {};
   Object.keys(conditions).forEach(key => {
-    let value = conditions[key];
+    let value = (conditions as any)[key];
     if (value && (key === 'start' || key === 'end')) {
       value = getUtcDateString(value);
     }
@@ -119,7 +119,7 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
     }
   }
 
-  componentDidUpdate(prevProps) {
+  componentDidUpdate(prevProps: any) {
     const {enabled = true} = this.props;
 
     if (
@@ -193,7 +193,7 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
     }
   }
 
-  setReleasesWithSeries(releases) {
+  setReleasesWithSeries(releases: any) {
     const {emphasizeReleases = []} = this.props;
     const releaseSeries: Series[] = [];
 
@@ -222,7 +222,7 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
     });
   }
 
-  getReleaseSeries = (releases, lineStyle = {}) => {
+  getReleaseSeries = (releases: any, lineStyle = {}) => {
     const {
       organization,
       router,
@@ -258,10 +258,11 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
       label: {
         show: false,
       },
-      data: releases.map(release => ({
+      data: releases.map((release: any) => ({
         xAxis: +new Date(release.date),
         name: formatVersion(release.version, true),
         value: formatVersion(release.version, true),
+
         onClick: () => {
           router.push(
             normalizeUrl({
@@ -272,6 +273,7 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
             })
           );
         },
+
         label: {
           formatter: () => formatVersion(release.version, true),
         },

@@ -137,7 +137,7 @@ export const platformsWithGuides = Array.from(
   }, new Set())
 );
 
-const guideToSelectOption = ({key, label}) => ({label, value: key});
+const guideToSelectOption = ({key, label}: any) => ({label, value: key});
 
 export default function MonitorQuickStartGuide({monitor}: Props) {
   const org = useOrganization();

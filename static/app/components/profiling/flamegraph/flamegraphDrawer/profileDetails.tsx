@@ -353,6 +353,7 @@ function ProfileEnvironmentDetails({profileGroup}: {profileGroup: ProfileGroup})
   return (
     <DetailsContainer>
       {Object.entries(ENVIRONMENT_DETAILS_KEY).map(([label, key]) => {
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         const value = profileGroup.metadata[key];
         return (
           <DetailsRow key={key}>
@@ -381,6 +382,7 @@ function ProfileEventDetails({
   return (
     <DetailsContainer>
       {Object.entries(PROFILE_DETAILS_KEY).map(([label, key]) => {
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         const value = profileGroup.metadata[key];
 
         if (key === 'organizationID') {

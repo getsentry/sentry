@@ -241,7 +241,7 @@ export function useVirtualizedTree<T extends TreeLike>(
     }
 
     let raf: number;
-    function handleScroll(evt) {
+    function handleScroll(evt: any) {
       if (!props.scrollContainer) {
         return;
       }

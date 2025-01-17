@@ -99,7 +99,8 @@ function VersionHoverCard({
     const recentDeploysByEnvironment = deploys
       .toSorted(
         // Sorted by most recent deploy first
-        (a, b) => new Date(b.dateFinished).getTime() - new Date(a.dateFinished).getTime()
+        (a: any, b: any) =>
+          new Date(b.dateFinished).getTime() - new Date(a.dateFinished).getTime()
       )
       .slice(0, 3);
 
@@ -131,7 +132,7 @@ function VersionHoverCard({
           {deploys.length > 0 && (
             <Flex column gap={space(0.5)}>
               <h6>{t('Deploys')}</h6>
-              {recentDeploysByEnvironment.map(deploy => {
+              {recentDeploysByEnvironment.map((deploy: any) => {
                 return (
                   <Flex
                     key={deploy.id}

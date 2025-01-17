@@ -61,6 +61,7 @@ const getFunctionTags = (fields: Readonly<Field[]> | undefined) => {
     ) {
       const parsedFunction = parseFunction(item.field);
       if (parsedFunction) {
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         acc[parsedFunction.name] = {
           key: parsedFunction.name,
           name: parsedFunction.name,
@@ -82,6 +83,7 @@ const getMeasurementTags = (
     | undefined
 ) => {
   const measurementsWithKind = Object.keys(measurements).reduce((tags, key) => {
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     tags[key] = {
       ...measurements[key],
       kind: FieldKind.MEASUREMENT,
@@ -94,6 +96,7 @@ const getMeasurementTags = (
   }
 
   return Object.keys(customMeasurements).reduce((tags, key) => {
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     tags[key] = {
       ...customMeasurements[key],
       kind: FieldKind.MEASUREMENT,
@@ -163,7 +166,7 @@ function ResultsSearchQueryBuilder(props: Props) {
   // Returns array of tag values that substring match `query`; invokes `callback`
   // with data when ready
   const getEventFieldValues = useCallback(
-    async (tag, query): Promise<string[]> => {
+    async (tag: any, query: any): Promise<string[]> => {
       const projectIdStrings = (projectIds as Readonly<number>[])?.map(String);
 
       if (isAggregateField(tag.key) || isMeasurement(tag.key)) {
@@ -198,6 +201,7 @@ function ResultsSearchQueryBuilder(props: Props) {
               includeTransactions,
               // allows searching for tags on sessions as well
               includeSessions: includeSessionTagsValues,
+              // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
               dataset: dataset ? DiscoverDatasetsToDatasetMap[dataset] : undefined,
             });
 

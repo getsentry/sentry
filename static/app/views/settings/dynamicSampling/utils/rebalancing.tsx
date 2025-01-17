@@ -34,7 +34,7 @@ export function balanceSampleRate<T extends BalancingItem>({
   usedBudget: number;
 } {
   // Sort the items ascending by count, so the available budget is distributed to the items with the lowest count first
-  const sortedItems = items.toSorted((a, b) => a.count - b.count);
+  const sortedItems = items.toSorted((a: any, b: any) => a.count - b.count);
   const total = items.reduce((acc, item) => acc + item.count, 0);
 
   let numItems = items.length;

@@ -136,9 +136,11 @@ export function hasThresholdMaxValue(thresholdsConfig: ThresholdsConfig): boolea
 export function normalizeUnit(value: number, unit: string, dataType: string): number {
   const multiplier =
     dataType === 'rate'
-      ? RATE_UNIT_MULTIPLIERS[unit]
+      ? // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        RATE_UNIT_MULTIPLIERS[unit]
       : dataType === 'duration'
-        ? DURATION_UNITS[unit]
+        ? // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+          DURATION_UNITS[unit]
         : 1;
   return value * multiplier;
 }
@@ -269,7 +271,8 @@ export function getWidgetDiscoverUrl(
     organization.slug,
     false,
     hasDatasetSelector(organization) && widget.widgetType
-      ? WIDGET_TYPE_TO_SAVED_QUERY_DATASET[widget.widgetType]
+      ? // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        WIDGET_TYPE_TO_SAVED_QUERY_DATASET[widget.widgetType]
       : undefined
   );
 

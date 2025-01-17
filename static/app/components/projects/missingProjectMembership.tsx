@@ -160,7 +160,7 @@ class MissingProjectMembership extends Component<Props, State> {
                   name="select"
                   placeholder={t('Select a Team')}
                   options={teamAccess}
-                  onChange={teamObj => {
+                  onChange={(teamObj: any) => {
                     const team = teamObj ? teamObj.value : null;
                     this.setState({team});
                   }}

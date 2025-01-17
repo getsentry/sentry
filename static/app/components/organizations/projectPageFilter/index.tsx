@@ -226,7 +226,7 @@ export function ProjectPageFilter({
   );
 
   const onToggle = useCallback(
-    newValue => {
+    (newValue: any) => {
       trackAnalytics('projectselector.toggle', {
         action: newValue.length > value.length ? 'added' : 'removed',
         path: getRouteStringFromRoutes(routes),
@@ -264,7 +264,7 @@ export function ProjectPageFilter({
         leadingItems: (
           <ProjectBadge project={project} avatarSize={16} hideName disableLink />
         ),
-        trailingItems: ({isFocused}) => (
+        trailingItems: ({isFocused}: any) => (
           <Fragment>
             <TrailingButton
               borderless
@@ -361,7 +361,7 @@ export function ProjectPageFilter({
 
   const menuFooterMessage = useMemo(() => {
     if (selectionLimitExceeded) {
-      return hasStagedChanges =>
+      return (hasStagedChanges: any) =>
         hasStagedChanges
           ? tct(
               'Only up to [limit] projects can be selected at a time. You can still press “Clear” to see all projects.',

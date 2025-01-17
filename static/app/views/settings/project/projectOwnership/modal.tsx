@@ -119,9 +119,9 @@ class ProjectOwnershipModal extends DeprecatedAsyncComponent<Props, State> {
         `/issues/${issueId}/tags/url/`,
         {},
         {
-          allowError: error =>
-            // Allow for 404s
-            error.status === 404,
+          allowError: (
+            error: any // Allow for 404s
+          ) => error.status === 404,
         },
       ],
     ];

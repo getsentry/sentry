@@ -43,7 +43,9 @@ const nodeColors = (theme: Theme) => ({
   },
 });
 
-export const EventNode = styled(Tag)`
+export type NodeType = keyof ReturnType<typeof nodeColors>;
+
+export const EventNode = styled(Tag)<{type: NodeType}>`
   height: 20px;
   span {
     display: flex;

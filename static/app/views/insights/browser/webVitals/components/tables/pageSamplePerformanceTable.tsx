@@ -302,10 +302,10 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
     ) {
       return (
         <AlignRight>
-          {row[key] === undefined ? (
+          {(row as any)[key] === undefined ? (
             <NoValue>{' \u2014 '}</NoValue>
           ) : (
-            getFormattedDuration((row[key] as number) / 1000)
+            getFormattedDuration(((row as any)[key] as number) / 1000)
           )}
         </AlignRight>
       );
@@ -313,10 +313,10 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
     if (['measurements.cls', 'opportunity'].includes(key)) {
       return (
         <AlignRight>
-          {row[key] === undefined ? (
+          {(row as any)[key] === undefined ? (
             <NoValue>{' \u2014 '}</NoValue>
           ) : (
-            Math.round((row[key] as number) * 100) / 100
+            Math.round(((row as any)[key] as number) * 100) / 100
           )}
         </AlignRight>
       );
@@ -348,7 +348,9 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
 
     if (key === 'replayId') {
       const replayTarget =
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         (row['transaction.duration'] !== undefined ||
+          // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           row[SpanIndexedField.SPAN_SELF_TIME] !== undefined) &&
         replayLinkGenerator(
           organization,
@@ -357,8 +359,10 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
             id: '', // id doesn't get used in replayLinkGenerator. This is just to satisfy the type.
             'transaction.duration':
               datatype === Datatype.INTERACTIONS
-                ? row[SpanIndexedField.SPAN_SELF_TIME]
-                : row['transaction.duration'],
+                ? // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                  row[SpanIndexedField.SPAN_SELF_TIME]
+                : // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                  row['transaction.duration'],
             timestamp: row.timestamp,
           },
           undefined
@@ -403,11 +407,12 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
     if (key === SpanIndexedField.SPAN_DESCRIPTION) {
       return (
         <NoOverflow>
-          <Tooltip title={row[key]}>{row[key]}</Tooltip>
+          <Tooltip title={(row as any)[key]}>{(row as any)[key]}</Tooltip>
         </NoOverflow>
       );
     }
 
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return <NoOverflow>{row[key]}</NoOverflow>;
   }
 

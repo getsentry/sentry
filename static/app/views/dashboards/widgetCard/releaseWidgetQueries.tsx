@@ -350,6 +350,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
       data.groups.sort(function (group1, group2) {
         const release1 = group1.by.release;
         const release2 = group2.by.release;
+        // @ts-ignore TS(2345): Argument of type 'string | number | undefined' is ... Remove this comment to see the full error message
         return releasesArray.indexOf(release1) - releasesArray.indexOf(release2);
       });
       data.groups = data.groups.slice(0, this.limit);

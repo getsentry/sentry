@@ -63,7 +63,7 @@ const storeConfig: ProjectsStoreDefinition = {
 
   loadInitialData(items: Project[]) {
     this.state = {
-      projects: items.toSorted((a, b) => a.slug.localeCompare(b.slug)),
+      projects: items.toSorted((a: any, b: any) => a.slug.localeCompare(b.slug)),
       loading: false,
     };
 
@@ -80,7 +80,7 @@ const storeConfig: ProjectsStoreDefinition = {
     const newProject = {...prevProject, slug: newSlug};
     const newProjects = this.state.projects
       .map(project => (project.slug === prevSlug ? newProject : project))
-      .toSorted((a, b) => a.slug.localeCompare(b.slug));
+      .toSorted((a: any, b: any) => a.slug.localeCompare(b.slug));
     this.state = {...this.state, projects: newProjects};
 
     this.trigger(new Set([prevProject.id]));

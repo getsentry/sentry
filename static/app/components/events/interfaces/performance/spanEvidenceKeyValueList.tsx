@@ -336,7 +336,7 @@ export function SpanEvidenceKeyValueList({
     );
   }
 
-  const Component = PREVIEW_COMPONENTS[issueType] ?? DefaultSpanEvidence;
+  const Component = (PREVIEW_COMPONENTS as any)[issueType] ?? DefaultSpanEvidence;
 
   return (
     <ClippedBox clipHeight={300}>

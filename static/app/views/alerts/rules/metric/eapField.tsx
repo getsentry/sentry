@@ -53,7 +53,7 @@ function EAPField({aggregate, onChange}: Props) {
   }, [onChange, aggregate, aggregation, field, numberTags, fieldsArray]);
 
   const handleFieldChange = useCallback(
-    option => {
+    (option: any) => {
       const selectedMeta = numberTags[option.value];
       if (!selectedMeta) {
         return;
@@ -64,7 +64,7 @@ function EAPField({aggregate, onChange}: Props) {
   );
 
   const handleOperationChange = useCallback(
-    option => {
+    (option: any) => {
       if (field) {
         onChange(`${option.value}(${field})`, {});
       } else {
@@ -119,7 +119,7 @@ function EAPField({aggregate, onChange}: Props) {
         }
         async
         defaultOptions={getFieldOptions('')}
-        loadOptions={searchText => Promise.resolve(getFieldOptions(searchText))}
+        loadOptions={(searchText: any) => Promise.resolve(getFieldOptions(searchText))}
         value={selectedOption}
         onChange={handleFieldChange}
       />

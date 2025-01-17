@@ -25,7 +25,7 @@ export function useNavContext(): NavContext {
   return navContext;
 }
 
-export function NavContextProvider({children}) {
+export function NavContextProvider({children}: any) {
   const organization = useOrganization();
   const location = useLocation();
   /** Raw nav configuration values */

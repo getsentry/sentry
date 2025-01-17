@@ -83,7 +83,11 @@ jest.mock('react-virtualized', function reactVirtualizedMockFactory() {
   const ActualReactVirtualized = jest.requireActual('react-virtualized');
   return {
     ...ActualReactVirtualized,
-    AutoSizer: ({children}) => children({width: 100, height: 100}),
+    AutoSizer: ({
+      children,
+    }: {
+      children: (props: {height: number; width: number}) => React.ReactNode;
+    }) => children({width: 100, height: 100}),
   };
 });
 
