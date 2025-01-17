@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import {cancelDeleteRepository, hideRepository} from 'sentry/actionCreators/integrations';
-import type {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
@@ -13,9 +12,9 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Repository} from 'sentry/types/integrations';
 import {RepositoryStatus} from 'sentry/types/integrations';
+import useApi from 'sentry/utils/useApi';
 
 type Props = {
-  api: Client;
   orgSlug: string;
   repository: Repository;
   onRepositoryChange?: (data: Repository) => void;
@@ -38,13 +37,13 @@ function getStatusLabel(repo: Repository) {
 }
 
 function RepositoryRow({
-  api,
   repository,
   onRepositoryChange,
   orgSlug,
   showProvider = false,
 }: Props) {
   const isActive = repository.status === RepositoryStatus.ACTIVE;
+  const api = useApi();
 
   const cancelDelete = () =>
     cancelDeleteRepository(api, orgSlug, repository.id).then(
