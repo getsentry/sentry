@@ -2,6 +2,7 @@ import dataclasses
 from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any
 
+from django.contrib.auth.models import AnonymousUser
 from django.db.models import QuerySet
 
 from sentry.api.serializers import Serializer, register
@@ -46,7 +47,7 @@ class RelocationSerializer(Serializer):
         self,
         obj: Relocation,
         attrs: Any,
-        user: User,
+        user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> Mapping[str, Any]:
         scheduled_at_pause_step = (
@@ -109,7 +110,7 @@ class RelocationSerializer(Serializer):
         }
 
     def get_attrs(
-        self, item_list: Sequence[Relocation], user: User, **kwargs: Any
+        self, item_list: Sequence[Relocation], user: User | RpcUser | AnonymousUser, **kwargs: Any
     ) -> MutableMapping[Relocation, RelocationMetadata]:
         metadata_map = {}
         for relocation in item_list:

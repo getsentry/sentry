@@ -88,7 +88,7 @@ class OrgDashboards extends DeprecatedAsyncComponent<Props, State> {
     return Array.isArray(dashboards) ? dashboards : [];
   }
 
-  onRequestSuccess({stateKey, data}) {
+  onRequestSuccess({stateKey, data}: any) {
     const {params, organization, location} = this.props;
 
     if (params.dashboardId || stateKey === 'selectedDashboard') {

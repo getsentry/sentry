@@ -369,7 +369,7 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
       return {tableStats: [], hasStoredOutcome: false};
     }
 
-    const stats: Record<number, object> = {};
+    const stats: Record<string | number, any> = {};
 
     try {
       const baseStat: Partial<TableStat> = {

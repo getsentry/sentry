@@ -1728,7 +1728,7 @@ describe('WidgetBuilder', function () {
   });
 
   describe('discover dataset split', function () {
-    let widget, dashboard;
+    let widget: any, dashboard: any;
     describe('events', function () {
       beforeEach(function () {
         widget = {

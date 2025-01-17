@@ -1,4 +1,5 @@
 import {Fragment, useState} from 'react';
+import {css} from '@emotion/react';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/alert';
@@ -100,7 +101,9 @@ function RecoveryOptionsModal({
             onClick={closeModal}
             to={`/settings/account/security/mfa/${sms.id}/enroll/`}
             name="addPhone"
-            css={{marginLeft: space(1)}}
+            css={css`
+              margin-left: ${space(1)};
+            `}
             autoFocus
           >
             {t('Add a Phone Number')}

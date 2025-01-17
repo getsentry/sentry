@@ -70,7 +70,7 @@ export function SlowestProfileFunctions(props: SlowestProfileFunctionsProps) {
   );
 
   const handleFunctionsCursor = useCallback(
-    (cursor, pathname, query) =>
+    (cursor: any, pathname: any, query: any) =>
       navigate({
         pathname,
         query: {...query, [SLOWEST_FUNCTIONS_CURSOR]: cursor},
@@ -98,7 +98,7 @@ export function SlowestProfileFunctions(props: SlowestProfileFunctionsProps) {
     cursor: functionsCursor,
   });
 
-  const onChangeFunctionType = useCallback(v => setFunctionType(v.value), []);
+  const onChangeFunctionType = useCallback((v: any) => setFunctionType(v.value), []);
   const functions = functionsQuery.data?.data ?? [];
 
   const onSlowestFunctionClick = useCallback(() => {
@@ -178,6 +178,7 @@ function SlowestFunctionEntry(props: SlowestFunctionEntryProps) {
   }, [props.func, props.project]);
 
   let rendered = <TextTruncateOverflow>{frame.name}</TextTruncateOverflow>;
+  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const example = props.func['all_examples()']?.[0];
   if (defined(example)) {
     const target = generateProfileRouteFromProfileReference({

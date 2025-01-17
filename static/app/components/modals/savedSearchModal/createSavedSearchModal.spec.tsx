@@ -14,7 +14,7 @@ import {SavedSearchVisibility} from 'sentry/types/group';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 describe('CreateSavedSearchModal', function () {
-  let createMock;
+  let createMock: any;
   const organization = OrganizationFixture({
     access: ['org:write'],
   });
