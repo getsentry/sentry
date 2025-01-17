@@ -990,40 +990,15 @@ def process_rules(job: PostProcessJob) -> None:
     return
 
 
-def process_code_mappings(job: PostProcessJob) -> None:
+def process_auto_source_code_config(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
-    from sentry.issues.auto_source_code_config.code_mapping import SUPPORTED_LANGUAGES
-    from sentry.tasks.auto_source_code_config import auto_source_code_config, derive_code_mappings
+    from sentry.issues.auto_source_code_config.post_process import (
+        post_process_auto_source_code_config,
+    )
 
-    try:
-        event = job["event"]
-        project = event.project
-        group_id = event.group_id
-
-        # Supported platforms
-        if event.data.get("platform") not in SUPPORTED_LANGUAGES:
-            return
-
-        # To limit the overall number of tasks, only process one issue per project per hour. In
-        # order to give the most issues a chance to to be processed, don't reprocess any given
-        # issue for at least 24 hours.
-        project_cache_key = f"code-mappings:project:{project.id}"
-        issue_cache_key = f"code-mappings:group:{group_id}"
-        if cache.get(project_cache_key) is None and cache.get(issue_cache_key) is None:
-            cache.set(project_cache_key, True, 3600)  # 1 hour
-            cache.set(issue_cache_key, True, 86400)  # 24 hours
-        else:
-            return
-
-        if options.get("system.new-auto-source-code-config-queue"):
-            auto_source_code_config.delay(project.id, event_id=event.event_id)
-        else:
-            derive_code_mappings.delay(project.id, event_id=event.event_id)
-
-    except Exception:
-        logger.exception("derive_code_mappings: Failed to process code mappings")
+    post_process_auto_source_code_config(job["event"])
 
 
 def process_commits(job: PostProcessJob) -> None:
@@ -1508,7 +1483,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         process_service_hooks,
         process_resource_change_bounds,
         process_plugins,
-        process_code_mappings,
+        process_auto_source_code_config,
         process_similarity,
         update_existing_attachments,
         fire_error_processed,
