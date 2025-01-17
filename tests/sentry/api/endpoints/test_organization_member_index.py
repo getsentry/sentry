@@ -573,7 +573,7 @@ class OrganizationMemberPermissionRoleTest(OrganizationMemberListTestBase, Hybri
 
         def get_data(email: str, other_team_invite: bool = False, use_team_roles: bool = True):
             team_slug = other_team.slug if other_team_invite else self.team.slug
-            data = {
+            data: dict[str, str | list] = {
                 "email": f"{email}@localhost",
                 "role": "member",
             }

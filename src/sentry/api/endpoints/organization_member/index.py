@@ -376,10 +376,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         members_can_only_invite_to_members_teams = (
             not organization.flags.allow_joinleave and not organization.flags.disable_member_invite
         )
-        has_teams = bool(
-            ("teamRoles" in result and result["teamRoles"])
-            or ("teams" in result and result["teams"])
-        )
+        has_teams = bool(result.get("teamRoles") or result.get("teams"))
 
         if is_member and members_can_only_invite_to_members_teams and has_teams:
             requester_teams = set(
@@ -389,10 +386,11 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                     user_is_active=True,
                 ).values_list("teams__slug", flat=True)
             )
-            team_slugs = teams = (
-                [team.slug for team, _ in result.get("teamRoles")]
-                if "teamRoles" in result and result["teamRoles"]
-                else [team.slug for team in result.get("teams")]
+            team_slugs = list(
+                set(
+                    [team.slug for team, _ in result.get("teamRoles", [])]
+                    + [team.slug for team in result.get("teams", [])]
+                )
             )
             # ensure that the requester is a member of all teams they are trying to assign
             if not requester_teams.issuperset(team_slugs):
