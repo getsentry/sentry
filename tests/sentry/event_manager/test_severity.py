@@ -67,7 +67,7 @@ class TestGetEventSeverity(TestCase):
 
         mock_urlopen.assert_called_with(
             "POST",
-            "/v0/issues/severity-score?",
+            "/v0/issues/severity-score",
             body=orjson.dumps(payload),
             headers={"content-type": "application/json;charset=utf-8"},
             timeout=0.2,
@@ -83,7 +83,7 @@ class TestGetEventSeverity(TestCase):
             _get_severity_score(event)
             mock_urlopen.assert_called_with(
                 "POST",
-                "/v0/issues/severity-score?",
+                "/v0/issues/severity-score",
                 body=orjson.dumps(payload),
                 headers={
                     "content-type": "application/json;charset=utf-8",
@@ -119,7 +119,7 @@ class TestGetEventSeverity(TestCase):
 
             mock_urlopen.assert_called_with(
                 "POST",
-                "/v0/issues/severity-score?",
+                "/v0/issues/severity-score",
                 body=orjson.dumps(payload),
                 headers={"content-type": "application/json;charset=utf-8"},
                 timeout=0.2,
