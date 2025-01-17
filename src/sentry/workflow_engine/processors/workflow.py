@@ -100,7 +100,6 @@ def process_workflows(job: WorkflowJob) -> set[Workflow]:
     # Get the workflows, evaluate the when_condition_group, finally evaluate the actions for workflows that are triggered
     workflows = set(Workflow.objects.filter(detectorworkflow__detector_id=detector.id).distinct())
     triggered_workflows = evaluate_workflow_triggers(workflows, job)
-
     actions = evaluate_workflow_action_filters(triggered_workflows, job)
 
     with sentry_sdk.start_span(op="workflow_engine.process_workflows.trigger_actions"):
