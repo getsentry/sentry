@@ -58,7 +58,8 @@ export function IssueViewQueryCount({view}: IssueViewQueryCountProps) {
   // when the query changes and the new data is still being fetched.
   const count = isError
     ? 0
-    : Object.keys(queryCount ?? {}).length > 0
+    : Object.keys(queryCount ?? {}).length > 0 &&
+        queryCount?.[Object.keys(queryCount)[0]!]
       ? queryCount?.[Object.keys(queryCount)[0]!]
       : 0;
 
