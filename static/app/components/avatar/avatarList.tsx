@@ -16,6 +16,7 @@ type UserAvatarProps = React.ComponentProps<typeof UserAvatar>;
 type Props = {
   avatarSize?: number;
   className?: string;
+  collapsedAvatarTooltip?: React.ReactNode;
   maxVisibleAvatars?: number;
   renderTooltip?: UserAvatarProps['renderTooltip'];
   renderUsersFirst?: boolean;
@@ -55,6 +56,7 @@ function AvatarList({
   teams = [],
   renderUsersFirst = false,
   renderTooltip,
+  collapsedAvatarTooltip,
 }: Props) {
   const numTeams = teams.length;
   const numVisibleTeams = maxVisibleAvatars - numTeams > 0 ? numTeams : maxVisibleAvatars;
@@ -83,7 +85,10 @@ function AvatarList({
   return (
     <AvatarListWrapper className={className}>
       {!!numCollapsedAvatars && (
-        <Tooltip title={`${numCollapsedAvatars} other ${typeAvatars}`} skipWrapper>
+        <Tooltip
+          title={collapsedAvatarTooltip ?? `${numCollapsedAvatars} other ${typeAvatars}`}
+          skipWrapper={!collapsedAvatarTooltip}
+        >
           <CollapsedAvatars size={avatarSize} data-test-id="avatarList-collapsedavatars">
             {numCollapsedAvatars < 99 && <Plus>+</Plus>}
             {numCollapsedAvatars}
