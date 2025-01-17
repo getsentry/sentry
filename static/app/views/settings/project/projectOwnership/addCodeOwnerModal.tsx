@@ -94,7 +94,7 @@ export default class AddCodeOwnerModal extends DeprecatedAsyncComponent<Props, S
   };
 
   addFile = async () => {
-    const {organization, project} = this.props;
+    const {organization, project, onSave, closeModal} = this.props;
     const {codeownersFile, codeMappingId, codeMappings} = this.state;
 
     if (codeownersFile) {
@@ -119,7 +119,8 @@ export default class AddCodeOwnerModal extends DeprecatedAsyncComponent<Props, S
           mapping => mapping.id === codeMappingId?.toString()
         );
 
-        this.handleAddedFile({...data, codeMapping});
+        onSave?.({...data, codeMapping});
+        closeModal();
       } catch (err) {
         if (err.responseJSON.raw) {
           this.setState({error: true, errorJSON: err.responseJSON, isLoading: false});
@@ -130,15 +131,17 @@ export default class AddCodeOwnerModal extends DeprecatedAsyncComponent<Props, S
     }
   };
 
-  handleAddedFile(data: CodeOwner) {
-    this.props.onSave?.(data);
-    this.props.closeModal();
-  }
-
   renderBody() {
-    const {Header, Body, Footer} = this.props;
-    const {codeownersFile, error, errorJSON, codeMappings, integrations} = this.state;
-    const {organization} = this.props;
+    const {organization, Header, Body, Footer} = this.props;
+    const {
+      codeownersFile,
+      error,
+      errorJSON,
+      isLoading,
+      codeMappings,
+      integrations,
+      codeMappingId,
+    } = this.state;
     const baseUrl = `/settings/${organization.slug}/integrations/`;
 
     return (
@@ -203,17 +206,14 @@ export default class AddCodeOwnerModal extends DeprecatedAsyncComponent<Props, S
                 {codeownersFile ? (
                   <SourceFile codeownersFile={codeownersFile} />
                 ) : (
-                  <NoSourceFile
-                    codeMappingId={this.state.codeMappingId}
-                    isLoading={this.state.isLoading}
-                  />
+                  <NoSourceFile codeMappingId={codeMappingId} isLoading={isLoading} />
                 )}
                 {error && errorJSON ? (
                   <ErrorMessage
                     baseUrl={baseUrl}
-                    codeMappingId={this.state.codeMappingId}
-                    codeMappings={this.state.codeMappings}
-                    errorJSON={this.state.errorJSON}
+                    codeMappingId={codeMappingId}
+                    codeMappings={codeMappings}
+                    errorJSON={errorJSON}
                   />
                 ) : null}
               </FileResult>
