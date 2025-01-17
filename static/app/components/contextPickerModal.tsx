@@ -1,4 +1,4 @@
-import {Component, Fragment, useEffect, useState} from 'react';
+import {Component, Fragment, useState} from 'react';
 import {components} from 'react-select';
 import styled from '@emotion/styled';
 import type {Query} from 'history';
@@ -14,6 +14,7 @@ import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {Integration} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
@@ -417,18 +418,10 @@ type ContainerProps = SharedProps & {
 export default function ContextPickerModalContainer(props: ContainerProps) {
   const {allowAllProjectsSelection, configUrl, projectSlugs} = props;
 
-  const [organizations, setOrganizations] = useState<Organization[]>(() =>
-    OrganizationsStore.getAll()
-  );
-  useEffect(() => {
-    const unsubscribe = OrganizationsStore.listen(setOrganizations, undefined);
-    return () => unsubscribe();
-  }, []);
+  const {organizations} = useLegacyStore(OrganizationsStore);
 
-  const selectedOrganization = OrganizationStore.get();
-  const [selectedOrgSlug, setSelectedOrgSlug] = useState(
-    selectedOrganization.organization?.slug
-  );
+  const {organization} = useLegacyStore(OrganizationStore);
+  const [selectedOrgSlug, setSelectedOrgSlug] = useState(organization?.slug);
 
   const {data, isError, isLoading, refetch} = useApiQuery<Integration[]>(
     [configUrl ?? ''],
