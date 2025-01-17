@@ -6783,3 +6783,23 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
             "count_scores(measurements.score.lcp)": 1,
             "count_scores(measurements.score.total)": 3,
         }
+
+    def test_query_tags_and_flags(self):
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "environment": "staging",
+                "timestamp": self.ten_mins_ago_iso,
+                "contexts": {"flags": {"values": [{"flag": "abc", "result": "123"}]}},
+            },
+            project_id=self.project.id,
+        )
+
+        query = {
+            "field": ["event_id"],
+            "query": "abc:123",
+            "dataset": "errors",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert False, response.content
