@@ -1018,9 +1018,9 @@ def process_code_mappings(job: PostProcessJob) -> None:
             return
 
         if options.get("system.new-auto-source-code-config-queue"):
-            auto_source_code_config.delay(project.id, event.data)
+            auto_source_code_config.delay(project.id, event_id=event.event_id)
         else:
-            derive_code_mappings.delay(project.id, event.data)
+            derive_code_mappings.delay(project.id, event_id=event.event_id)
 
     except Exception:
         logger.exception("derive_code_mappings: Failed to process code mappings")
