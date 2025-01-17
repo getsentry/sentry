@@ -13,7 +13,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
 from sentry.models.group import Group
-from sentry.seer.signed_seer_api import get_seer_url, sign_with_seer_secret
+from sentry.seer.signed_seer_api import sign_with_seer_secret
 
 logger = logging.getLogger(__name__)
 
@@ -55,13 +55,12 @@ class GroupAutofixUpdateEndpoint(GroupEndpoint):
             }
         )
 
-        url, nonce = get_seer_url(f"{settings.SEER_AUTOFIX_URL}{path}")
         response = requests.post(
-            url,
+            f"{settings.SEER_AUTOFIX_URL}{path}",
             data=body,
             headers={
                 "content-type": "application/json;charset=utf-8",
-                **sign_with_seer_secret(body=body, nonce=nonce),
+                **sign_with_seer_secret(body),
             },
         )
 

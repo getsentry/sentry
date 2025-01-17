@@ -22,7 +22,7 @@ from sentry.constants import ObjectStatus
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.models.group import Group
 from sentry.models.project import Project
-from sentry.seer.signed_seer_api import get_seer_url, sign_with_seer_secret
+from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
@@ -129,16 +129,12 @@ class GroupAiSummaryEndpoint(GroupEndpoint):
             option=orjson.OPT_NON_STR_KEYS,
         )
 
-        url, nonce = get_seer_url(f"{settings.SEER_AUTOFIX_URL}{path}")
         response = requests.post(
-            url,
+            f"{settings.SEER_AUTOFIX_URL}{path}",
             data=body,
             headers={
                 "content-type": "application/json;charset=utf-8",
-                **sign_with_seer_secret(
-                    body=body,
-                    nonce=nonce,
-                ),
+                **sign_with_seer_secret(body),
             },
         )
 

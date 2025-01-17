@@ -59,31 +59,6 @@ def test_uses_given_timeout():
 
 
 @pytest.mark.django_db
-@patch("sentry.seer.signed_seer_api.uuid4")
-def test_uses_shared_secret_nonce(uuid_mock):
-    new_mock = MagicMock()
-    new_mock.hex = "1234"
-    uuid_mock.return_value = new_mock
-
-    with override_options(
-        {
-            "seer.api.use-shared-secret": 1.0,
-            "seer.api.use-nonce-signature": 1.0,
-        }
-    ):
-        mock_url_open = run_test_case()
-        mock_url_open.assert_called_once_with(
-            "POST",
-            PATH + "?nonce=1234",
-            body=REQUEST_BODY,
-            headers={
-                "content-type": "application/json;charset=utf-8",
-                "Authorization": "Rpcsignature rpc0:487fb810a4e87faf306dc9637cec9aaea2be37247410391b372178ffc15af6a8",
-            },
-        )
-
-
-@pytest.mark.django_db
 def test_uses_shared_secret():
     with override_options({"seer.api.use-shared-secret": 1.0}):
         mock_url_open = run_test_case()
