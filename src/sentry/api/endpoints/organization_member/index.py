@@ -376,9 +376,12 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         members_can_only_invite_to_members_teams = (
             not organization.flags.allow_joinleave and not organization.flags.disable_member_invite
         )
-        has_team_roles = "teamRoles" in result and bool(result["teamRoles"])
+        has_teams = bool(
+            ("teamRoles" in result and result["teamRoles"])
+            or ("teams" in result and result["teams"])
+        )
 
-        if is_member and members_can_only_invite_to_members_teams and has_team_roles:
+        if is_member and members_can_only_invite_to_members_teams and has_teams:
             requester_teams = set(
                 OrganizationMember.objects.filter(
                     organization=organization,
@@ -386,7 +389,11 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                     user_is_active=True,
                 ).values_list("teams__slug", flat=True)
             )
-            team_slugs = [team.slug for team, _ in result.get("teamRoles")]
+            team_slugs = teams = (
+                [team.slug for team, _ in result.get("teamRoles")]
+                if "teamRoles" in result and result["teamRoles"]
+                else [team.slug for team in result.get("teams")]
+            )
             # ensure that the requester is a member of all teams they are trying to assign
             if not requester_teams.issuperset(team_slugs):
                 return Response(
@@ -394,10 +401,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                     status=400,
                 )
 
-        if (
-            ("teamRoles" in result and result["teamRoles"])
-            or ("teams" in result and result["teams"])
-        ) and not organization_roles.get(assigned_org_role).is_team_roles_allowed:
+        if has_teams and not organization_roles.get(assigned_org_role).is_team_roles_allowed:
             return Response(
                 {
                     "email": f"The user with a '{assigned_org_role}' role cannot have team-level permissions."
