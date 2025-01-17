@@ -39,7 +39,7 @@ class DeriveCodeMappingsErrorReason(StrEnum):
     EMPTY_TREES = "The trees are empty."
 
 
-def process_error(error: ApiError, extra: dict[str, str | int]) -> None:
+def process_error(error: ApiError, extra: dict[str, Any]) -> None:
     """Log known issues and report unknown ones"""
     if error.json:
         json_data: Any = error.json
@@ -114,14 +114,14 @@ def auto_source_code_config(project_id: int, group_id: int, event_id: str, **kwa
     # When you look at the performance page the user is a default column
     set_user({"username": org.slug})
     set_tag("project.slug", project.slug)
-    extra: dict[str, str | int] = {
+    extra = {
         "organization.slug": org.slug,
         "project_id": project_id,
         "group_id": group_id,
         "event_id": event_id,
     }
 
-    event = eventstore.backend.get_event_by_id(project_id, event_id)
+    event = eventstore.backend.get_event_by_id(project_id, event_id, group_id=group_id)
     if event is None:
         logger.error("Event not found.", extra=extra)
         return

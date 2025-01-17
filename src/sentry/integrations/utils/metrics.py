@@ -173,7 +173,9 @@ class EventLifecycle:
         self._terminate(EventLifecycleOutcome.SUCCESS)
 
     def record_failure(
-        self, failure_reason: BaseException | str | None = None, extra: dict[str, Any] | None = None
+        self,
+        failure_reason: BaseException | str | None = None,
+        extra: Mapping[str, Any] | None = None,
     ) -> None:
         """Record that the event halted in failure. Additional data may be passed
         to be logged.
@@ -193,7 +195,7 @@ class EventLifecycle:
         self._terminate(EventLifecycleOutcome.FAILURE, failure_reason)
 
     def record_halt(
-        self, halt_reason: BaseException | str | None = None, extra: dict[str, Any] | None = None
+        self, halt_reason: BaseException | str | None = None, extra: Mapping[str, Any] | None = None
     ) -> None:
         """Record that the event halted in an ambiguous state.
 
