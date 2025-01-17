@@ -416,14 +416,14 @@ type ContainerProps = SharedProps & {
 };
 
 export default function ContextPickerModalContainer(props: ContainerProps) {
-  const {allowAllProjectsSelection, configUrl, projectSlugs} = props;
+  const {configUrl, projectSlugs, ...sharedProps} = props;
 
   const {organizations} = useLegacyStore(OrganizationsStore);
 
   const {organization} = useLegacyStore(OrganizationStore);
   const [selectedOrgSlug, setSelectedOrgSlug] = useState(organization?.slug);
 
-  const {data, isError, isLoading, refetch} = useApiQuery<Integration[]>(
+  const {data, isError, isPending, refetch} = useApiQuery<Integration[]>(
     [configUrl ?? ''],
     {
       enabled: Boolean(configUrl),
@@ -431,23 +431,22 @@ export default function ContextPickerModalContainer(props: ContainerProps) {
     }
   );
 
-  if (configUrl && isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
-  if (configUrl && isError) {
+  if (isError) {
     return <LoadingError onRetry={refetch} />;
   }
-  if (data?.length) {
+  if (data.length) {
     return (
       <ContextPickerModal
-        {...props}
+        {...sharedProps}
         projects={[]}
-        loading={isLoading}
+        loading={isPending}
         organizations={organizations}
         organization={selectedOrgSlug!}
         onSelectOrganization={setSelectedOrgSlug}
         integrationConfigs={data}
-        allowAllProjectsSelection={allowAllProjectsSelection}
       />
     );
   }
@@ -460,14 +459,13 @@ export default function ContextPickerModalContainer(props: ContainerProps) {
       >
         {({projects, initiallyLoaded}) => (
           <ContextPickerModal
-            {...props}
+            {...sharedProps}
             projects={projects as Project[]}
             loading={!initiallyLoaded}
             organizations={organizations}
             organization={selectedOrgSlug}
             onSelectOrganization={setSelectedOrgSlug}
             integrationConfigs={[]}
-            allowAllProjectsSelection={allowAllProjectsSelection}
           />
         )}
       </Projects>
@@ -476,14 +474,13 @@ export default function ContextPickerModalContainer(props: ContainerProps) {
 
   return (
     <ContextPickerModal
-      {...props}
+      {...sharedProps}
       projects={[]}
       loading
       organizations={organizations}
       organization={selectedOrgSlug!}
       onSelectOrganization={setSelectedOrgSlug}
       integrationConfigs={[]}
-      allowAllProjectsSelection={allowAllProjectsSelection}
     />
   );
 }
