@@ -1,7 +1,8 @@
 from datetime import datetime
 
-from sentry.models.activity import Activity, ActivityType
+from sentry.models.activity import Activity
 from sentry.models.group import Group
+from sentry.types.activity import ActivityType
 
 
 def open_period_start_for_group(group: Group) -> datetime | None:
