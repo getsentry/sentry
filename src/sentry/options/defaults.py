@@ -57,6 +57,7 @@ register(
     default=2**31,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register("system.new-auto-source-code-config-queue", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # URL configuration
 # Absolute URL to the sentry root directory. Should not include a trailing slash.
@@ -265,6 +266,19 @@ register(
     "auth.allow-registration",
     default=False,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_REQUIRED,
+)
+
+# User Settings
+register(
+    "user-settings.signed-url-confirmation-emails-salt",
+    type=String,
+    default="signed-url-confirmation-emails-salt",
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "user-settings.signed-url-confirmation-emails",
+    default=False,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Staff
@@ -816,6 +830,23 @@ register(
 )
 
 
+#  Percentage of orgs that will be put into a bucket using the split rate below.
+register(
+    "issues.details.streamline-experiment-rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# 50% of orgs will only see the Streamline UI, 50% will only see the Legacy UI.
+register(
+    "issues.details.streamline-experiment-split-rate",
+    type=Float,
+    default=0.5,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+
 # Killswitch for issue priority
 register(
     "issues.priority.enabled",
@@ -1141,6 +1172,16 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# The ratio of events for which we emit verbose apple symbol stats.
+#
+# This is to allow collecting more information on why symx is not performing as it should.
+register("symbolicate.symx-logging-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# The list of specific os_name+os_version for which we log extra infromation.
+#
+# This is done since SYMX is not performing bad across the board but rather only in specific case (what we are interested in).
+register("symbolicate.symx-os-description-list", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Drop delete_old_primary_hash messages for a particular project.
 register("reprocessing2.drop-delete-old-primary-hash", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)

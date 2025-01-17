@@ -272,6 +272,11 @@ SPAN_COLUMN_DEFINITIONS = {
             search_type="string",
         ),
         ResolvedColumn(
+            public_alias="is_transaction",
+            internal_name="sentry.is_segment",
+            search_type="boolean",
+        ),
+        ResolvedColumn(
             public_alias="transaction.span_id",
             internal_name="sentry.segment_id",
             search_type="string",
@@ -349,19 +354,23 @@ SPAN_COLUMN_DEFINITIONS = {
         ),
         # These fields are extracted from span measurements but were accessed
         # 2 ways, with + without the measurements. prefix. So expose both for compatibility.
-        simple_measurements_field("cache.item_size", secondary_alias=True),
+        simple_measurements_field("cache.item_size", search_type="byte", secondary_alias=True),
         ResolvedColumn(
             public_alias="cache.item_size",
             internal_name="cache.item_size",
             search_type="byte",
         ),
-        simple_measurements_field("messaging.message.body.size", secondary_alias=True),
+        simple_measurements_field(
+            "messaging.message.body.size", search_type="byte", secondary_alias=True
+        ),
         ResolvedColumn(
             public_alias="messaging.message.body.size",
             internal_name="messaging.message.body.size",
             search_type="byte",
         ),
-        simple_measurements_field("messaging.message.receive.latency", secondary_alias=True),
+        simple_measurements_field(
+            "messaging.message.receive.latency", search_type="millisecond", secondary_alias=True
+        ),
         ResolvedColumn(
             public_alias="messaging.message.receive.latency",
             internal_name="messaging.message.receive.latency",

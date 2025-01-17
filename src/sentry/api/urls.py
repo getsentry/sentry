@@ -7,14 +7,15 @@ from sentry.api.endpoints.group_ai_summary import GroupAiSummaryEndpoint
 from sentry.api.endpoints.group_autofix_setup_check import GroupAutofixSetupCheck
 from sentry.api.endpoints.group_integration_details import GroupIntegrationDetailsEndpoint
 from sentry.api.endpoints.group_integrations import GroupIntegrationsEndpoint
-from sentry.api.endpoints.org_auth_token_details import OrgAuthTokenDetailsEndpoint
-from sentry.api.endpoints.org_auth_tokens import OrgAuthTokensEndpoint
+from sentry.api.endpoints.organization_auth_token_details import (
+    OrganizationAuthTokenDetailsEndpoint,
+)
+from sentry.api.endpoints.organization_auth_tokens import OrganizationAuthTokensEndpoint
 from sentry.api.endpoints.organization_events_anomalies import OrganizationEventsAnomaliesEndpoint
 from sentry.api.endpoints.organization_events_root_cause_analysis import (
     OrganizationEventsRootCauseAnalysisEndpoint,
 )
 from sentry.api.endpoints.organization_fork import OrganizationForkEndpoint
-from sentry.api.endpoints.organization_minimal_projects import OrganizationMinimalProjectsEndpoint
 from sentry.api.endpoints.organization_missing_org_members import OrganizationMissingMembersEndpoint
 from sentry.api.endpoints.organization_plugins_configs import OrganizationPluginsConfigsEndpoint
 from sentry.api.endpoints.organization_plugins_index import OrganizationPluginsEndpoint
@@ -178,9 +179,11 @@ from sentry.issues.endpoints import (
     GroupSimilarIssuesEndpoint,
     GroupTombstoneDetailsEndpoint,
     GroupTombstoneEndpoint,
+    OrganizationDeriveCodeMappingsEndpoint,
     OrganizationGroupIndexEndpoint,
     OrganizationGroupIndexStatsEndpoint,
     OrganizationGroupSearchViewsEndpoint,
+    OrganizationIssuesCountEndpoint,
     OrganizationReleasePreviousCommitsEndpoint,
     OrganizationSearchesEndpoint,
     ProjectEventDetailsEndpoint,
@@ -448,7 +451,6 @@ from .endpoints.organization_dashboard_widget_details import (
     OrganizationDashboardWidgetDetailsEndpoint,
 )
 from .endpoints.organization_dashboards import OrganizationDashboardsEndpoint
-from .endpoints.organization_derive_code_mappings import OrganizationDeriveCodeMappingsEndpoint
 from .endpoints.organization_details import OrganizationDetailsEndpoint
 from .endpoints.organization_environments import OrganizationEnvironmentsEndpoint
 from .endpoints.organization_event_details import OrganizationEventDetailsEndpoint
@@ -487,7 +489,6 @@ from .endpoints.organization_events_trends import (
 from .endpoints.organization_events_trends_v2 import OrganizationEventsNewTrendsStatsEndpoint
 from .endpoints.organization_events_vitals import OrganizationEventsVitalsEndpoint
 from .endpoints.organization_index import OrganizationIndexEndpoint
-from .endpoints.organization_issues_count import OrganizationIssuesCountEndpoint
 from .endpoints.organization_issues_resolved_in_release import (
     OrganizationIssuesResolvedInReleaseEndpoint,
 )
@@ -552,7 +553,6 @@ from .endpoints.organization_sdk_updates import (
 )
 from .endpoints.organization_search_details import OrganizationSearchDetailsEndpoint
 from .endpoints.organization_sessions import OrganizationSessionsEndpoint
-from .endpoints.organization_slugs import SlugsUpdateEndpoint
 from .endpoints.organization_spans_fields import (
     OrganizationSpansFieldsEndpoint,
     OrganizationSpansFieldValuesEndpoint,
@@ -1288,7 +1288,7 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-dashboard-favorite",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/shortids/(?P<short_id>[^\/]+)/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/shortids/(?P<issue_id>[^\/]+)/$",
         ShortIdLookupEndpoint.as_view(),
         name="sentry-api-0-short-id-lookup",
     ),
@@ -1301,11 +1301,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/data-scrubbing-selector-suggestions/$",
         DataScrubbingSelectorSuggestionsEndpoint.as_view(),
         name="sentry-api-0-data-scrubbing-selector-suggestions",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/slugs/$",
-        SlugsUpdateEndpoint.as_view(),
-        name="sentry-api-0-short-ids-update",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/access-requests/$",
@@ -1763,11 +1758,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-projects",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/minimal-projects/$",
-        OrganizationMinimalProjectsEndpoint.as_view(),
-        name="sentry-api-0-organization-minimal-projects",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/experimental/projects/$",
         OrganizationProjectsExperimentEndpoint.as_view(),
         name="sentry-api-0-organization-projects-experiment",
@@ -1915,12 +1905,12 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/org-auth-tokens/$",
-        OrgAuthTokensEndpoint.as_view(),
+        OrganizationAuthTokensEndpoint.as_view(),
         name="sentry-api-0-org-auth-tokens",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/org-auth-tokens/(?P<token_id>[^\/]+)/$",
-        OrgAuthTokenDetailsEndpoint.as_view(),
+        OrganizationAuthTokenDetailsEndpoint.as_view(),
         name="sentry-api-0-org-auth-token-details",
     ),
     re_path(

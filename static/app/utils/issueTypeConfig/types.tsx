@@ -37,6 +37,7 @@ export type IssueTypeConfig = {
    * Custom copy for actions and other UI elements
    */
   customCopy: {
+    allEvents: string;
     resolution: string;
   };
   /**
@@ -63,6 +64,10 @@ export type IssueTypeConfig = {
    * Is the Issue Summary available for this issue
    */
   issueSummary: DisabledWithReasonConfig;
+  /**
+   * Is the Log Level icon shown for this issue
+   */
+  logLevel: DisabledWithReasonConfig;
   /**
    * Is the Merged Issues tab shown for this issue
    */

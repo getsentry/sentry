@@ -370,8 +370,8 @@ export function Trace({
 
   const render = useMemo(() => {
     return trace.type !== 'trace' || isLoading
-      ? r => renderLoadingRow(r)
-      : r => renderVirtualizedRow(r);
+      ? (r: any) => renderLoadingRow(r)
+      : (r: any) => renderVirtualizedRow(r);
   }, [isLoading, renderLoadingRow, renderVirtualizedRow, trace.type]);
 
   const traceNode = trace.root.children[0];
@@ -406,6 +406,7 @@ export function Trace({
         className="TraceIndicatorsContainer"
         ref={manager.registerIndicatorContainerRef}
       >
+        <div className="TraceIndicatorContainerMiddleLine" />
         {trace.indicators.length > 0
           ? trace.indicators.map((indicator, i) => {
               const status =
@@ -552,7 +553,7 @@ function RenderTraceRow(props: {
   );
 
   const registerSpanArrowRef = useCallback(
-    ref => {
+    (ref: any) => {
       props.manager.registerArrowRef(ref, node.space!, virtualized_index);
     },
     [props.manager, node, virtualized_index]
@@ -769,14 +770,12 @@ const TraceStylingWrapper = styled('div')`
   width: 100%;
   height: 100%;
   grid-area: trace;
-  padding-top: 26px;
+  padding-top: 38px;
 
   &.WithIndicators {
-    padding-top: 44px;
-
     &:before {
       background-color: ${p => p.theme.background};
-      height: 44px;
+      height: 38px;
 
       .TraceScrollbarContainer {
         height: 44px;
@@ -785,7 +784,7 @@ const TraceStylingWrapper = styled('div')`
 
     .TraceIndicator.Timeline {
       .TraceIndicatorLabelContainer {
-        top: 26px;
+        top: 22px;
       }
       .TraceIndicatorLine {
         top: 30px;
@@ -803,9 +802,10 @@ const TraceStylingWrapper = styled('div')`
     left: 0;
     top: 0;
     width: 100%;
-    height: 26px;
-    background-color: ${p => p.theme.backgroundSecondary};
+    height: 38px;
+    background-color: ${p => p.theme.background};
     border-bottom: 1px solid ${p => p.theme.border};
+    z-index: 10;
   }
 
   &.Loading {
@@ -833,7 +833,7 @@ const TraceStylingWrapper = styled('div')`
   .TraceScrollbarContainer {
     left: 0;
     top: 0;
-    height: 26px;
+    height: 38px;
     position: absolute;
     overflow-x: auto;
     overscroll-behavior: none;
@@ -887,6 +887,14 @@ const TraceStylingWrapper = styled('div')`
     pointer-events: none;
   }
 
+  .TraceIndicatorContainerMiddleLine {
+    position: absolute;
+    top: 18px;
+    background-color: ${p => p.theme.border};
+    width: 100%;
+    height: 1px;
+  }
+
   .TraceIndicatorLabelContainer {
     min-width: 34px;
     text-align: center;
@@ -895,7 +903,7 @@ const TraceStylingWrapper = styled('div')`
     font-weight: ${p => p.theme.fontWeightBold};
     color: ${p => p.theme.textColor};
     background-color: ${p => p.theme.background};
-    border-radius: ${p => p.theme.borderRadius};
+    border-radius: 100px;
     border: 1px solid ${p => p.theme.border};
     display: inline-block;
     line-height: 1;
@@ -929,6 +937,7 @@ const TraceStylingWrapper = styled('div')`
 
   .TraceIndicatorLabel {
     padding: 2px;
+    border-radius: 100px;
   }
 
   .TraceIndicator {
@@ -1020,7 +1029,7 @@ const TraceStylingWrapper = styled('div')`
       .TraceIndicatorLabelContainer {
         font-weight: ${p => p.theme.fontWeightNormal};
         min-width: 0;
-        top: 8px;
+        top: 22px;
         width: auto;
         border: none;
         background-color: transparent;

@@ -25,7 +25,6 @@ type Props = {
   event: Event;
   platform: PlatformKey;
   className?: string;
-  expandFirstFrame?: boolean;
   groupingCurrentLevel?: Group['metadata']['current_level'];
   hiddenFrameCount?: number;
   hideIcon?: boolean;
@@ -50,7 +49,6 @@ export function NativeContent({
   hideIcon,
   groupingCurrentLevel,
   includeSystemFrames = true,
-  expandFirstFrame = true,
   maxDepth,
   meta,
 }: Props) {
@@ -77,6 +75,7 @@ export function NativeContent({
       const nextFrame = (data.frames ?? [])[frameIdx + 1]!;
       const repeatedFrame = isRepeatedFrame(frame, nextFrame);
       if (frameIsVisible(frame, nextFrame) && !repeatedFrame && !frame.inApp) {
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         indexMap[frameIdx] = false;
       }
     });
@@ -90,6 +89,7 @@ export function NativeContent({
       const nextFrame = (data.frames ?? [])[frameIdx + 1]!;
       const repeatedFrame = isRepeatedFrame(frame, nextFrame);
       if (frameIsVisible(frame, nextFrame) && !repeatedFrame && !frame.inApp) {
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         countMap[frameIdx] = count;
         count = 0;
       } else {
@@ -198,7 +198,6 @@ export function NativeContent({
           frame,
           prevFrame,
           nextFrame,
-          isExpanded: expandFirstFrame && lastFrameIndex === frameIndex,
           emptySourceNotation: inlined
             ? false
             : lastFrameIndex === frameIndex && frameIndex === 0,

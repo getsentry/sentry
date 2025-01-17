@@ -15,6 +15,7 @@ const metricIssueConfig: IssueCategoryConfigMapping = {
     },
     customCopy: {
       resolution: t('Back to baseline'),
+      allEvents: t('All Open Periods'),
     },
     attachments: {enabled: false},
     eventAndUserCounts: {enabled: false},
@@ -27,6 +28,7 @@ const metricIssueConfig: IssueCategoryConfigMapping = {
     userFeedback: {enabled: false},
     usesIssuePlatform: true,
     stats: {enabled: false},
+    tags: {enabled: false},
     tagsTab: {enabled: false},
     issueSummary: {enabled: false},
   },

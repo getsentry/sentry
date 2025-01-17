@@ -12,7 +12,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import AndFilter, OrFilter, Tr
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.columns import ResolvedColumn, ResolvedFunction
-from sentry.search.eap.constants import FLOAT, INT, MAX_ROLLUP_POINTS, STRING, VALID_GRANULARITIES
+from sentry.search.eap.constants import MAX_ROLLUP_POINTS, VALID_GRANULARITIES
 from sentry.search.eap.spans import SearchResolver
 from sentry.search.eap.types import CONFIDENCES, ConfidenceData, EAPResponse, SearchResolverConfig
 from sentry.search.events.fields import get_function_alias, is_function
@@ -48,7 +48,7 @@ def run_table_query(
         SearchResolver(params=params, config=config) if search_resolver is None else search_resolver
     )
     meta = resolver.resolve_meta(referrer=referrer)
-    query, query_contexts = resolver.resolve_query(query_string)
+    where, having, query_contexts = resolver.resolve_query(query_string)
     columns, column_contexts = resolver.resolve_columns(selected_columns)
     contexts = resolver.clean_contexts(query_contexts + column_contexts)
     # We allow orderby function_aliases if they're a selected_column
@@ -81,7 +81,8 @@ def run_table_query(
     """Run the query"""
     rpc_request = TraceItemTableRequest(
         meta=meta,
-        filter=query,
+        filter=where,
+        aggregation_filter=having,
         columns=labeled_columns,
         group_by=(
             [
@@ -129,12 +130,7 @@ def run_table_query(
 
         for index, result in enumerate(column_value.results):
             result_value: str | int | float
-            if resolved_column.proto_type == STRING:
-                result_value = result.val_str
-            elif resolved_column.proto_type == INT:
-                result_value = result.val_int
-            elif resolved_column.proto_type == FLOAT:
-                result_value = result.val_float
+            result_value = getattr(result, str(result.WhichOneof("value")))
             result_value = process_value(result_value)
             final_data[index][attribute] = resolved_column.process_column(result_value)
             if has_reliability:
@@ -157,7 +153,7 @@ def get_timeseries_query(
 ) -> TimeSeriesRequest:
     resolver = SearchResolver(params=params, config=config)
     meta = resolver.resolve_meta(referrer=referrer)
-    query, query_contexts = resolver.resolve_query(query_string)
+    query, _, query_contexts = resolver.resolve_query(query_string)
     (aggregations, _) = resolver.resolve_aggregates(y_axes)
     (groupbys, _) = resolver.resolve_columns(groupby)
     if extra_conditions is not None:

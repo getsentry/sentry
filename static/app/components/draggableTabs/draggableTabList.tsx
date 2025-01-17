@@ -165,6 +165,7 @@ function Tabs({
   // which we do not want (we hide tabs once they overflow
   const dragConstraints = isDragging ? tabListRef : undefined;
 
+  // @ts-ignore TS(7006): Parameter 'tabKey' implicitly has an 'any' type.
   const isTabDividerVisible = tabKey => {
     // If the tab divider is succeeding or preceding the selected tab key
     if (
@@ -289,6 +290,7 @@ function BaseDraggableTabList({
   const ariaProps = {
     selectedKey: value,
     defaultSelectedKey: defaultValue,
+    // @ts-ignore TS(7006): Parameter 'key' implicitly has an 'any' type.
     onSelectionChange: key => {
       onChange?.(key);
 
@@ -439,7 +441,7 @@ export function DraggableTabList({items, onAddView, ...props}: DraggableTabListP
       disabledKeys={disabledKeys}
       {...props}
     >
-      {item => <Item {...item} />}
+      {item => <Item {...item} key={item.key} />}
     </BaseDraggableTabList>
   );
 }

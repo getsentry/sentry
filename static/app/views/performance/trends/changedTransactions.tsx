@@ -224,6 +224,7 @@ function ChangedTransactions(props: Props) {
   modifyTrendView(trendView, location, trendChangeType, projects, canUseMetricsTrends);
 
   const onCursor = makeTrendsCursorHandler(trendChangeType);
+  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const cursor = decodeScalar(location.query[trendCursorNames[trendChangeType]]);
   const paginationAnalyticsEvent = (direction: string) => {
     trackAnalytics('performance_views.trends.widget_pagination', {
@@ -376,6 +377,7 @@ function TrendsListItem(props: TrendsListItemProps) {
     handleSelectTransaction,
     trendView,
   } = props;
+  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const color = trendToColor[trendChangeType].default;
 
   const selectedTransaction = getSelectedTransaction(
@@ -633,15 +635,6 @@ const StyledHeaderTitleLegend = styled(HeaderTitleLegend)`
   border-radius: ${p => p.theme.borderRadius};
   margin: ${space(2)} ${space(3)};
 `;
-
-const MenuAction = styled('div')<{['data-test-id']?: string}>`
-  white-space: nowrap;
-  color: ${p => p.theme.textColor};
-`;
-
-MenuAction.defaultProps = {
-  'data-test-id': 'menu-action',
-};
 
 const StyledEmptyStateWarning = styled(EmptyStateWarning)`
   min-height: 300px;

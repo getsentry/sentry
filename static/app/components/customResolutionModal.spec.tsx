@@ -11,7 +11,7 @@ import {makeCloseButton} from 'sentry/components/globalModal/components';
 import ConfigStore from 'sentry/stores/configStore';
 
 describe('CustomResolutionModal', () => {
-  let releasesMock;
+  let releasesMock: any;
   const organization = OrganizationFixture();
   beforeEach(() => {
     ConfigStore.init();
@@ -25,7 +25,7 @@ describe('CustomResolutionModal', () => {
     MockApiClient.clearMockResponses();
   });
 
-  const wrapper = styled(p => p.children);
+  const wrapper = styled((p: any) => p.children);
 
   it('can select a version', async () => {
     const onSelected = jest.fn();

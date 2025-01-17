@@ -1,28 +1,24 @@
 import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
-import omit from 'lodash/omit';
-import * as qs from 'query-string';
 
-import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
+import {DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
-import Link from 'sentry/components/links/link';
 import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {DATA_TYPE} from 'sentry/views/insights/browser/resources/settings';
-import DetailPanel from 'sentry/views/insights/common/components/detailPanel';
+import decodeSubregions from 'sentry/views/insights/browser/resources/utils/queryParameterDecoders/subregions';
 import {DEFAULT_COLUMN_ORDER} from 'sentry/views/insights/common/components/samplesTable/spanSamplesTable';
 import DurationChart from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart';
 import SampleInfo from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/sampleInfo';
@@ -32,47 +28,43 @@ import {
   ModuleName,
   SpanIndexedField,
   SpanMetricsField,
-  type SubregionCode,
 } from 'sentry/views/insights/types';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
+
+import {SampleDrawerBody} from '../../../components/sampleDrawerBody';
+import {SampleDrawerHeaderTransaction} from '../../../components/sampleDrawerHeaderTransaction';
 
 const {HTTP_RESPONSE_CONTENT_LENGTH, SPAN_DESCRIPTION} = SpanMetricsField;
 
 type Props = {
   groupId: string;
   moduleName: ModuleName;
-  transactionName: string;
-  onClose?: () => void;
   referrer?: string;
-  subregions?: SubregionCode[];
-  transactionMethod?: string;
   transactionRoute?: string;
 };
 
-export function SampleList({
-  groupId,
-  moduleName,
-  transactionName,
-  transactionMethod,
-  subregions,
-  onClose,
-  transactionRoute,
-  referrer,
-}: Props) {
+export function SampleList({groupId, moduleName, transactionRoute, referrer}: Props) {
   const organization = useOrganization();
   const {view} = useDomainViewFilters();
+
+  const {
+    transaction: transactionName,
+    transactionMethod,
+    [SpanMetricsField.USER_GEO_SUBREGION]: subregions,
+  } = useLocationQuery({
+    fields: {
+      transaction: decodeScalar,
+      transactionMethod: decodeScalar,
+      [SpanMetricsField.USER_GEO_SUBREGION]: decodeSubregions,
+    },
+  });
+
   const router = useRouter();
   const [highlightedSpanId, setHighlightedSpanId] = useState<string | undefined>(
     undefined
   );
 
   transactionRoute ??= `/${getTransactionSummaryBaseUrl(organization.slug, view, true)}`;
-
-  // A a transaction name is required to show the panel, but a transaction
-  // method is not
-  const detailKey = transactionName
-    ? [groupId, transactionName, transactionMethod].filter(Boolean).join(':')
-    : undefined;
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const debounceSetHighlightedSpanId = useCallback(
@@ -103,27 +95,6 @@ export function SampleList({
     });
   };
 
-  const onOpenDetailPanel = useCallback(() => {
-    if (location.query.transaction) {
-      trackAnalytics('performance_views.sample_spans.opened', {
-        organization,
-        source: moduleName,
-      });
-    }
-  }, [organization, location.query.transaction, moduleName]);
-
-  const label =
-    transactionMethod && !transactionName.startsWith(transactionMethod)
-      ? `${transactionMethod} ${transactionName}`
-      : transactionName;
-
-  const link = normalizeUrl(
-    `/organizations/${organization.slug}${transactionRoute}?${qs.stringify({
-      project: location.query.project,
-      transaction: transactionName,
-    })}`
-  );
-
   // set additional query filters from the span search bar and the `query` param
   const spanSearch = new MutableSearch(spanSearchQuery ?? '');
   if (location.query.query) {
@@ -132,13 +103,6 @@ export function SampleList({
       : [location.query.query]
     ).forEach(filter => {
       spanSearch.addStringFilter(filter);
-    });
-  }
-
-  function defaultOnClose() {
-    router.replace({
-      pathname: router.location.pathname,
-      query: omit(router.location.query, 'transaction', 'transactionMethod', 'query'),
     });
   }
 
@@ -170,27 +134,15 @@ export function SampleList({
 
   return (
     <PageAlertProvider>
-      <DetailPanel
-        detailKey={detailKey}
-        onClose={() => {
-          onClose ? onClose() : defaultOnClose();
-        }}
-        onOpen={onOpenDetailPanel}
-      >
-        <HeaderContainer>
-          {project && (
-            <SpanSummaryProjectAvatar
-              project={project}
-              direction="left"
-              size={40}
-              hasTooltip
-              tooltip={project.slug}
-            />
-          )}
-          <Title>
-            <Link to={link}>{label}</Link>
-          </Title>
-        </HeaderContainer>
+      <DrawerHeader>
+        <SampleDrawerHeaderTransaction
+          project={project}
+          transaction={transactionName}
+          transactionMethod={transactionMethod}
+        />
+      </DrawerHeader>
+
+      <SampleDrawerBody>
         <PageAlert />
 
         <SampleInfo
@@ -249,36 +201,10 @@ export function SampleList({
           additionalFields={additionalFields}
           referrer={referrer}
         />
-      </DetailPanel>
+      </SampleDrawerBody>
     </PageAlertProvider>
   );
 }
-
-const SpanSummaryProjectAvatar = styled(ProjectAvatar)`
-  padding-right: ${space(1)};
-`;
-
-const HeaderContainer = styled('div')`
-  width: 100%;
-  padding-bottom: ${space(2)};
-  padding-top: ${space(1)};
-
-  display: grid;
-  grid-template-rows: auto auto auto;
-  align-items: center;
-
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-rows: auto;
-    grid-template-columns: auto 1fr;
-  }
-`;
-
-const Title = styled('h4')`
-  text-overflow: ellipsis;
-  overflow: hidden;
-  white-space: nowrap;
-  margin: 0;
-`;
 
 const StyledSearchBar = styled('div')`
   margin: ${space(2)} 0;

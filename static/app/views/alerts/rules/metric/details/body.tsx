@@ -224,7 +224,8 @@ export default function MetricDetailsBody({
               triggerLabel={
                 timePeriod.custom
                   ? timePeriod.label
-                  : relativeOptions[timePeriod.period ?? '']
+                  : // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                    relativeOptions[timePeriod.period ?? '']
               }
             />
             {selectedIncident && (
@@ -257,14 +258,12 @@ export default function MetricDetailsBody({
 
           <ErrorMigrationWarning project={project} rule={rule} />
 
-          {/* TODO: add activation start/stop into chart */}
           <MetricChart
             api={api}
             rule={rule}
             incidents={incidents}
             anomalies={anomalies}
             timePeriod={timePeriod}
-            selectedIncident={selectedIncident}
             formattedAggregate={formattedAggregate}
             organization={organization}
             project={project}
@@ -275,7 +274,7 @@ export default function MetricDetailsBody({
           />
           <DetailWrapper>
             <ActivityWrapper>
-              <MetricHistory incidents={incidents} activations={rule.activations} />
+              <MetricHistory incidents={incidents} />
               {[Dataset.METRICS, Dataset.SESSIONS, Dataset.ERRORS].includes(dataset) && (
                 <RelatedIssues
                   organization={organization}
@@ -292,7 +291,7 @@ export default function MetricDetailsBody({
                   }
                 />
               )}
-              {dataset === Dataset.TRANSACTIONS && (
+              {[Dataset.TRANSACTIONS, Dataset.GENERIC_METRICS].includes(dataset) && (
                 <RelatedTransactions
                   organization={organization}
                   location={location}

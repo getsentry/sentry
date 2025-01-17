@@ -26,10 +26,7 @@ from sentry.db.models import (
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
-from sentry.incidents.models.alert_rule_activations import AlertRuleActivations
 from sentry.incidents.models.incident import Incident, IncidentStatus, IncidentTrigger
-from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
-from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
@@ -40,7 +37,6 @@ from sentry.notifications.models.notificationaction import (
 )
 from sentry.seer.anomaly_detection.delete_rule import delete_rule_in_seer
 from sentry.snuba.models import QuerySubscription
-from sentry.snuba.subscriptions import bulk_create_snuba_subscriptions
 from sentry.types.actor import Actor
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
@@ -181,6 +177,15 @@ class AlertRuleMonitorTypeInt(IntEnum):
     ACTIVATED = 1
 
 
+class ComparisonDeltaChoices(models.IntegerChoices):
+    FIVE_MINUTES = (300, "5 minutes ago")
+    FIFTEEN_MINUTES = (900, "15 minutes ago")
+    ONE_HOUR = (3600, "1 hour ago")
+    ONE_DAY = (86400, "1 day ago")
+    ONE_WEEK = (604800, "1 week ago")
+    ONE_MONTH = (2592000, "1 month ago")
+
+
 @region_silo_model
 class AlertRule(Model):
     __relocation_scope__ = RelocationScope.Organization
@@ -206,7 +211,7 @@ class AlertRule(Model):
     threshold_period = models.IntegerField()
     # This represents a time delta, in seconds. If not null, this is used to determine which time
     # window to query to compare the result from the current time_window to.
-    comparison_delta = models.IntegerField(null=True)
+    comparison_delta = models.IntegerField(choices=ComparisonDeltaChoices.choices, null=True)
     date_modified = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
     monitor_type = models.IntegerField(default=AlertRuleMonitorTypeInt.CONTINUOUS)
@@ -253,56 +258,6 @@ class AlertRule(Model):
 
     def get_audit_log_data(self) -> dict[str, Any]:
         return {"label": self.name}
-
-    def subscribe_projects(
-        self,
-        projects: Iterable[Project],
-        monitor_type: AlertRuleMonitorTypeInt = AlertRuleMonitorTypeInt.CONTINUOUS,
-        query_extra: str | None = None,
-        activation_condition: AlertRuleActivationConditionType | None = None,
-        activator: str | None = None,
-    ) -> list[QuerySubscription]:
-        """
-        Subscribes a list of projects to the alert rule instance
-        :return: The list of created subscriptions
-        """
-
-        logger.info(
-            "Subscribing projects to alert rule",
-            extra={
-                "alert_rule.monitor_type": self.monitor_type,
-                "conditional_monitor_type": monitor_type,
-                "query_extra": query_extra,
-            },
-        )
-        # NOTE: AlertRuleMonitorTypeInt.ACTIVATED will be conditionally subscribed given activation triggers
-        # On activated subscription, additional query parameters will be added to the constructed query in Snuba
-        created_subscriptions = []
-        if self.monitor_type == monitor_type:
-            # NOTE: QuerySubscriptions hold reference to Projects which should match the AlertRule's project reference
-            created_subscriptions = bulk_create_snuba_subscriptions(
-                projects,
-                INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
-                self.snuba_query,
-                query_extra=query_extra,
-            )
-            if self.monitor_type == AlertRuleMonitorTypeInt.ACTIVATED:
-                # NOTE: Activated Alert Rules are conditionally subscribed
-                # Meaning at time of subscription, the rule must have been activated
-                if not activator or activation_condition is None:
-                    raise Exception(
-                        "Alert activations require an activation condition and activator reference"
-                    )
-
-                for subscription in created_subscriptions:
-                    AlertRuleActivations.objects.create(
-                        alert_rule=self,
-                        query_subscription=subscription,
-                        condition_type=activation_condition.value,
-                        activator=activator,
-                    )
-
-        return created_subscriptions
 
 
 class AlertRuleTriggerManager(BaseManager["AlertRuleTrigger"]):

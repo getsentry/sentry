@@ -29,13 +29,13 @@ interface FieldFromConfigProps {
   field: Field;
   access?: Set<Scope>;
 
-  disabled?: boolean | ((props) => boolean);
+  disabled?: boolean | ((props: any) => boolean);
   flexibleControlStateSize?: boolean;
-  getData?: (data) => any;
+  getData?: (data: any) => any;
   highlighted?: boolean;
   inline?: boolean;
   noOptionsMessage?: () => string;
-  onBlur?: (value, event) => void;
+  onBlur?: (value: any, event: any) => void;
   stacked?: boolean;
 }
 

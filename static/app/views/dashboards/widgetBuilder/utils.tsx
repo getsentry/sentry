@@ -131,7 +131,7 @@ export const generateOrderOptions = ({
     .filter(field => !DISABLED_SORT.includes(field))
     .filter(field => (isRelease ? !TAG_SORT_DENY_LIST.includes(field) : true))
     .forEach(field => {
-      let alias;
+      let alias: any;
       const label = stripEquationPrefix(field);
       // Equations are referenced via a standard alias following this pattern
       if (isEquation(field)) {
@@ -447,9 +447,11 @@ export function getFieldOptionFormat(
           kind: FieldValueKind.FUNCTION,
           meta: {
             name: functionName,
-            parameters: AGGREGATIONS[field.function[0]].parameters.map(param => ({
+            // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+            parameters: AGGREGATIONS[field.function[0]].parameters.map((param: any) => ({
               ...param,
-              columnTypes: props => {
+
+              columnTypes: (props: any) => {
                 // HACK: Forcibly allow the parameter if it's already set, this allows
                 // us to render the option even if it's not compatible with the dataset.
                 if (props.name === field.function[1]) {

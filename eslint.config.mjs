@@ -12,14 +12,18 @@
 import * as emotion from '@emotion/eslint-plugin';
 import eslint from '@eslint/js';
 import prettier from 'eslint-config-prettier';
+// @ts-expect-error TS(7016): Could not find a declaration file
 import importPlugin from 'eslint-plugin-import';
 import jest from 'eslint-plugin-jest';
 import jestDom from 'eslint-plugin-jest-dom';
 import react from 'eslint-plugin-react';
+// @ts-expect-error TS(7016): Could not find a declaration file
 import reactHooks from 'eslint-plugin-react-hooks';
+// @ts-expect-error TS(7016): Could not find a declaration file
 import sentry from 'eslint-plugin-sentry';
 import simpleImportSort from 'eslint-plugin-simple-import-sort';
 import testingLibrary from 'eslint-plugin-testing-library';
+// @ts-expect-error TS (7016): Could not find a declaration file
 import typescriptSortKeys from 'eslint-plugin-typescript-sort-keys';
 import globals from 'globals';
 import invariant from 'invariant';
@@ -28,6 +32,8 @@ import {builtinModules} from 'node:module';
 import typescript from 'typescript-eslint';
 
 invariant(react.configs.flat, 'For typescript');
+invariant(react.configs.flat.recommended, 'For typescript');
+invariant(react.configs.flat['jsx-runtime'], 'For typescript');
 
 const restrictedImportPatterns = [
   {
@@ -262,7 +268,7 @@ export default typescript.config([
       'no-sequences': 'error',
       'no-throw-literal': 'error',
       'object-shorthand': ['error', 'properties'],
-      'require-await': 'error', // TODO: see also @typescript-eslint/require-await
+      'require-await': 'error', // Enabled in favor of @typescript-eslint/require-await, which requires type info
       'spaced-comment': [
         'error',
         'always',
@@ -280,23 +286,13 @@ export default typescript.config([
       // https://github.com/eslint/eslint/blob/main/packages/js/src/configs/eslint-recommended.js
       ...eslint.configs.recommended.rules,
       'no-cond-assign': ['error', 'always'],
-      'no-async-promise-executor': 'off', // TODO(ryan953): Fix violations and delete this line
       'no-case-declarations': 'off', // TODO(ryan953): Fix violations and delete this line
-      'no-constant-binary-expression': 'off', // TODO(ryan953): Fix violations and delete this line
       'no-dupe-class-members': 'off', // TODO(ryan953): Fix violations and delete this line
-      'no-dupe-else-if': 'off', // TODO(ryan953): Fix violations and delete this line
-      'no-empty-pattern': 'off', // TODO(ryan953): Fix violations and delete this line
       'no-import-assign': 'off', // TODO(ryan953): Fix violations and delete this line
-      'no-loss-of-precision': 'off', // TODO(ryan953): Fix violations and delete this line
       'no-prototype-builtins': 'off', // TODO(ryan953): Fix violations and delete this line
-      'no-redeclare': 'off', // TODO(ryan953): Fix violations and delete this line
-      'no-self-assign': 'off', // TODO(ryan953): Fix violations and delete this line
-      'no-undef': 'off', // TODO(ryan953): Fix violations and delete this line
       'no-unsafe-optional-chaining': 'off', // TODO(ryan953): Fix violations and delete this line
-      'no-unused-vars': 'off', // TODO(ryan953): Fix violations and delete this line
       'no-useless-catch': 'off', // TODO(ryan953): Fix violations and delete this line
       'no-useless-escape': 'off', // TODO(ryan953): Fix violations and delete this line
-      'valid-typeof': 'off', // TODO(ryan953): Fix violations and delete this line
     },
   },
   {
@@ -326,8 +322,7 @@ export default typescript.config([
     name: 'plugin/react',
     // https://github.com/jsx-eslint/eslint-plugin-react/tree/master/docs/rules
     plugins: {
-      ...(react.configs.flat.recommended?.plugins ?? {}),
-      // @ts-ignore noUncheckedIndexedAccess
+      ...react.configs.flat.recommended.plugins,
       ...react.configs.flat['jsx-runtime'].plugins,
     },
     rules: {
@@ -343,8 +338,7 @@ export default typescript.config([
       'react/sort-comp': 'error',
 
       // https://github.com/jsx-eslint/eslint-plugin-react/blob/master/index.js
-      ...(react.configs.flat.recommended?.rules ?? {}),
-      // @ts-ignore noUncheckedIndexedAccess
+      ...react.configs.flat.recommended.rules,
       ...react.configs.flat['jsx-runtime'].rules,
       'react/display-name': 'off', // TODO(ryan953): Fix violations and delete this line
       'react/no-unescaped-entities': 'off', // TODO(ryan953): Fix violations and delete this line
@@ -368,7 +362,7 @@ export default typescript.config([
     name: 'plugin/typescript-eslint/custom',
     rules: {
       'no-shadow': 'off', // Disabled in favor of @typescript-eslint/no-shadow
-      'no-use-before-define': 'off',
+      'no-use-before-define': 'off', // See also @typescript-eslint/no-use-before-define
 
       '@typescript-eslint/naming-convention': [
         'error',
@@ -397,7 +391,7 @@ export default typescript.config([
         },
       ],
       '@typescript-eslint/no-shadow': 'error',
-      '@typescript-eslint/no-use-before-define': 'off', // TODO(ryan953): Configure this and enable it
+      '@typescript-eslint/no-use-before-define': 'off', // Enabling this will cause a lot of thrash to the git history
     },
   },
   // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/base.ts
@@ -418,7 +412,6 @@ export default typescript.config([
       // Recommended overrides
       '@typescript-eslint/ban-ts-comment': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-array-constructor': 'off', // TODO(ryan953): Fix violations and delete this line
-      '@typescript-eslint/no-duplicate-enum-values': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-empty-object-type': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-explicit-any': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-extra-non-null-assertion': 'off', // TODO(ryan953): Fix violations and delete this line
@@ -433,7 +426,6 @@ export default typescript.config([
       '@typescript-eslint/no-dynamic-delete': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-extraneous-class': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-invalid-void-type': 'off', // TODO(ryan953): Fix violations and delete this line
-      '@typescript-eslint/no-non-null-asserted-nullish-coalescing': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-non-null-assertion': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/prefer-literal-enum-member': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/unified-signatures': 'off', // TODO(ryan953): Fix violations and delete this line
@@ -444,7 +436,6 @@ export default typescript.config([
       '@typescript-eslint/consistent-generic-constructors': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/consistent-indexed-object-style': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/consistent-type-definitions': 'off', // TODO(ryan953): Fix violations and delete this line
-      '@typescript-eslint/no-confusing-non-null-assertion': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-empty-function': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-inferrable-types': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/prefer-for-of': 'off', // TODO(ryan953): Fix violations and delete this line
@@ -558,7 +549,7 @@ export default typescript.config([
       '@emotion/no-vanilla': 'error',
       '@emotion/pkg-renaming': 'off', // Not needed, we have migrated to v11 and the old package names cannot be used anymore
       '@emotion/styled-import': 'error',
-      '@emotion/syntax-preference': ['off', 'string'], // TODO(ryan953): Enable this so `css={css``}` is required
+      '@emotion/syntax-preference': ['error', 'string'],
     },
   },
   {
@@ -612,6 +603,46 @@ export default typescript.config([
     ...prettier,
   },
   {
+    name: 'files/*.config.*',
+    files: ['*.config.*'],
+    languageOptions: {
+      globals: {
+        ...globals.commonjs,
+        ...globals.node,
+      },
+    },
+  },
+  {
+    name: 'files/scripts',
+    files: ['scripts/**/*.{js,ts}', 'tests/js/test-balancer/index.js'],
+    languageOptions: {
+      sourceType: 'commonjs',
+      globals: {
+        ...globals.commonjs,
+        ...globals.node,
+      },
+    },
+    rules: {
+      'no-console': 'off',
+    },
+  },
+  {
+    name: 'files/jest related',
+    files: [
+      'tests/js/jest-pegjs-transform.js',
+      'tests/js/sentry-test/echartsMock.js',
+      'tests/js/sentry-test/importStyleMock.js',
+      'tests/js/sentry-test/svgMock.js',
+    ],
+    languageOptions: {
+      sourceType: 'commonjs',
+      globals: {
+        ...globals.commonjs,
+      },
+    },
+    rules: {},
+  },
+  {
     name: 'files/devtoolbar',
     files: ['static/app/components/devtoolbar/**/*.{ts,tsx}'],
     rules: {
@@ -634,6 +665,7 @@ export default typescript.config([
     name: 'files/sentry-test',
     files: ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'],
     rules: {
+      'no-loss-of-precision': 'off', // Sometimes we have wild numbers hard-coded in tests
       'no-restricted-imports': [
         'error',
         {
@@ -647,6 +679,13 @@ export default typescript.config([
           ],
         },
       ],
+    },
+  },
+  {
+    name: 'files/sentry-stories',
+    files: ['**/*.stories.tsx'],
+    rules: {
+      'no-loss-of-precision': 'off', // Sometimes we have wild numbers hard-coded in stories
     },
   },
   {

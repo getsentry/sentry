@@ -1,103 +1,15 @@
 import moment from 'moment-timezone';
 
-import {defined} from 'sentry/utils';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 
 import type {Frame} from './../frame';
 import {Profile} from './profile';
 import type {createSentrySampleProfileFrameIndex} from './utils';
+import {sortProfileSamples} from './utils';
 
 type WeightedSample = Profiling.SentrySampledProfile['profile']['samples'][0] & {
   weight: number;
 };
-
-function sortSentrySampledProfileSamples(
-  samples: Readonly<WeightedSample[]>,
-  stacks: Profiling.SentrySampledProfile['profile']['stacks'],
-  frames: Profiling.SentrySampledProfile['profile']['frames'],
-  frameFilter?: (i: number) => boolean
-) {
-  const frameIds = [...Array(frames.length).keys()].sort((a, b) => {
-    const frameA = frames[a]!;
-    const frameB = frames[b]!;
-
-    if (defined(frameA.function) && defined(frameB.function)) {
-      // sort alphabetically first
-      const ret = frameA.function.localeCompare(frameB.function);
-      if (ret !== 0) {
-        return ret;
-      }
-
-      // break ties using the line number
-      if (defined(frameA.lineno) && defined(frameB.lineno)) {
-        return frameA.lineno - frameB.lineno;
-      }
-
-      if (defined(frameA.lineno)) {
-        return -1;
-      }
-
-      if (defined(frameB.lineno)) {
-        return 1;
-      }
-    } else if (defined(frameA.function)) {
-      // if only frameA is defined, it goes first
-      return -1;
-    } else if (defined(frameB.function)) {
-      // if only frameB is defined, it goes first
-      return 1;
-    }
-
-    // if neither functions are defined, they're treated as equal
-    return 0;
-  });
-
-  const framesMapping = frameIds.reduce((acc, frameId, idx) => {
-    acc[frameId] = idx;
-    return acc;
-  }, {});
-
-  return [...samples].sort((a, b) => {
-    // same stack id, these are the same
-    if (a.stack_id === b.stack_id) {
-      return 0;
-    }
-
-    const stackA = frameFilter
-      ? stacks[a.stack_id].filter(frameFilter)
-      : stacks[a.stack_id];
-    const stackB = frameFilter
-      ? stacks[b.stack_id].filter(frameFilter)
-      : stacks[b.stack_id];
-
-    const minDepth = Math.min(stackA.length, stackB.length);
-
-    for (let i = 0; i < minDepth; i++) {
-      // we iterate from the end of each stack because that's where the main function is
-      const frameIdA = stackA[stackA.length - i - 1];
-      const frameIdB = stackB[stackB.length - i - 1];
-
-      // same frame id, so check the next frame in the stack
-      if (frameIdA === frameIdB) {
-        continue;
-      }
-
-      const frameIdxA = framesMapping[frameIdA];
-      const frameIdxB = framesMapping[frameIdB];
-
-      // same frame idx, so check the next frame in the stack
-      if (frameIdxA === frameIdxB) {
-        continue;
-      }
-
-      return frameIdxA - frameIdxB;
-    }
-
-    // if all frames up to the depth of the shorter stack matches,
-    // then the deeper stack goes first
-    return stackB.length - stackA.length;
-  });
-}
 
 export class SentrySampledProfile extends Profile {
   static FromProfile(
@@ -120,7 +32,7 @@ export class SentrySampledProfile extends Profile {
       }
     );
 
-    function resolveFrame(index): Frame {
+    function resolveFrame(index: any): Frame {
       const resolvedFrame = frameIndex[index];
       if (!resolvedFrame) {
         throw new Error(`Could not resolve frame ${index} in frame index`);
@@ -131,7 +43,7 @@ export class SentrySampledProfile extends Profile {
     const {frames, stacks} = sampledProfile.profile;
     const samples =
       options.type === 'flamegraph'
-        ? sortSentrySampledProfileSamples(
+        ? sortProfileSamples<WeightedSample>(
             weightedSamples,
             stacks,
             frames,
@@ -164,7 +76,7 @@ export class SentrySampledProfile extends Profile {
       let stack = stacks[sample!.stack_id].map(resolveFrame);
 
       if (options.frameFilter) {
-        stack = stack.filter(frame => options.frameFilter!(frame));
+        stack = stack.filter((frame: any) => options.frameFilter!(frame));
       }
 
       profile.appendSampleWithWeight(stack, sample.weight);

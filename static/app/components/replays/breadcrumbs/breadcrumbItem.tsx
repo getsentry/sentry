@@ -225,10 +225,12 @@ function WebVitalData({
       layoutShifts.push({[`score ${attr.value}`]: elements});
     }
     if (layoutShifts.length) {
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       webVitalData['Layout shifts'] = layoutShifts;
     }
   } else if (selectors) {
     selectors.forEach((key, value) => {
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       webVitalData[key] = (
         <span
           key={key}
@@ -269,16 +271,20 @@ function CrumbHydrationButton({
   frame: HydrationErrorFrame;
   replay: ReplayReader;
 }) {
-  const {leftOffsetMs, rightOffsetMs} = getReplayDiffOffsetsFromFrame(replay, frame);
+  const {frameOrEvent, leftOffsetMs, rightOffsetMs} = getReplayDiffOffsetsFromFrame(
+    replay,
+    frame
+  );
 
   return (
     <div>
       <OpenReplayComparisonButton
+        frameOrEvent={frameOrEvent}
+        initialLeftOffsetMs={leftOffsetMs}
+        initialRightOffsetMs={rightOffsetMs}
         replay={replay}
-        leftOffsetMs={leftOffsetMs}
-        rightOffsetMs={rightOffsetMs}
-        surface="replay-breadcrumbs"
         size="xs"
+        surface="replay-breadcrumbs"
       >
         {t('Open Hydration Diff')}
       </OpenReplayComparisonButton>

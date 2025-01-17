@@ -40,6 +40,7 @@ export type BaseEventAnalyticsParams = {
   resolved_with: string[];
   error_has_replay?: boolean;
   error_has_user_feedback?: boolean;
+  event_age?: number;
   event_errors?: string;
   event_mechanism?: string;
   event_platform?: string;
@@ -97,6 +98,7 @@ export type TeamInsightsEventParameters = {
       | 'open_in_discover'
       | 'assign'
       | GroupStatus;
+    org_streamline_only: boolean | undefined;
     action_status_details?: string;
     action_substatus?: string;
     assigned_suggestion_reason?: string;

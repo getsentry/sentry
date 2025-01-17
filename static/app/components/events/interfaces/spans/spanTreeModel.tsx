@@ -302,8 +302,7 @@ class SpanTreeModel {
     };
 
     if (wrappedSpan.type === 'root_span') {
-      // @ts-expect-error
-      delete wrappedSpan.toggleNestedSpanGroup;
+      delete (wrappedSpan as any).toggleNestedSpanGroup;
     }
 
     const treeDepthEntry = isOrphanSpan(this.span)

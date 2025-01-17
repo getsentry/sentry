@@ -562,7 +562,7 @@ describe('useWidgetBuilderState', () => {
         wrapper: WidgetBuilderProvider,
       });
 
-      expect(result.current.state.selectedAggregate).toBe(0);
+      expect(result.current.state.selectedAggregate).toBeUndefined();
 
       act(() => {
         result.current.dispatch({
@@ -572,6 +572,36 @@ describe('useWidgetBuilderState', () => {
       });
 
       expect(result.current.state.selectedAggregate).toBeUndefined();
+    });
+
+    it('resets thresholds when the display type is switched', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            dataset: WidgetType.ERRORS,
+            displayType: DisplayType.BIG_NUMBER,
+            thresholds: '{"max_values":{"max1":200,"max2":300},"unit":"milliseconds"}',
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.thresholds).toEqual({
+        max_values: {max1: 200, max2: 300},
+        unit: 'milliseconds',
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.TABLE,
+        });
+      });
+
+      expect(result.current.state.thresholds).toBeUndefined();
     });
   });
 
@@ -791,7 +821,13 @@ describe('useWidgetBuilderState', () => {
 
     it('resets selectedAggregate when the dataset is switched', () => {
       mockedUsedLocation.mockReturnValue(
-        LocationFixture({query: {selectedAggregate: '0'}})
+        LocationFixture({
+          query: {
+            selectedAggregate: '0',
+            displayType: DisplayType.BIG_NUMBER,
+            field: ['count_unique(1)', 'count_unique(2)'],
+          },
+        })
       );
 
       const {result} = renderHook(() => useWidgetBuilderState(), {
@@ -808,6 +844,63 @@ describe('useWidgetBuilderState', () => {
       });
 
       expect(result.current.state.selectedAggregate).toBeUndefined();
+    });
+
+    it('resets the sort when the dataset is switched for big number widgets', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            dataset: WidgetType.ERRORS,
+            displayType: DisplayType.BIG_NUMBER,
+            sort: ['-testField'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.sort).toEqual([{field: 'testField', kind: 'desc'}]);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DATASET,
+          payload: WidgetType.TRANSACTIONS,
+        });
+      });
+
+      expect(result.current.state.sort).toEqual([]);
+    });
+
+    it('resets thresholds when the dataset is switched', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            dataset: WidgetType.ERRORS,
+            displayType: DisplayType.BIG_NUMBER,
+            thresholds: '{"max_values":{"max1":200,"max2":300},"unit":"milliseconds"}',
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.thresholds).toEqual({
+        max_values: {max1: 200, max2: 300},
+        unit: 'milliseconds',
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DATASET,
+          payload: WidgetType.TRANSACTIONS,
+        });
+      });
+
+      expect(result.current.state.thresholds).toBeUndefined();
     });
   });
 
@@ -1139,7 +1232,13 @@ describe('useWidgetBuilderState', () => {
   describe('selectedAggregate', () => {
     it('can decode and update selectedAggregate', () => {
       mockedUsedLocation.mockReturnValue(
-        LocationFixture({query: {selectedAggregate: '0'}})
+        LocationFixture({
+          query: {
+            selectedAggregate: '0',
+            displayType: DisplayType.BIG_NUMBER,
+            field: ['count()', 'count_unique(user)'],
+          },
+        })
       );
 
       const {result} = renderHook(() => useWidgetBuilderState(), {
@@ -1158,9 +1257,15 @@ describe('useWidgetBuilderState', () => {
       expect(result.current.state.selectedAggregate).toBe(1);
     });
 
-    it('can set selectedAggregate to undefined', () => {
+    it('can set selectedAggregate to undefined in the URL', () => {
       mockedUsedLocation.mockReturnValue(
-        LocationFixture({query: {selectedAggregate: '0'}})
+        LocationFixture({
+          query: {
+            selectedAggregate: '0',
+            displayType: DisplayType.BIG_NUMBER,
+            field: ['count()', 'count_unique(user)'],
+          },
+        })
       );
 
       const {result} = renderHook(() => useWidgetBuilderState(), {
@@ -1176,10 +1281,12 @@ describe('useWidgetBuilderState', () => {
         });
       });
 
-      expect(result.current.state.selectedAggregate).toBeUndefined();
+      // If selectedAggregate is undefined in the URL, then the widget builder state
+      // will set the selectedAggregate to the last aggregate
+      expect(result.current.state.selectedAggregate).toBe(1);
       expect(mockNavigate).toHaveBeenCalledWith(
         expect.objectContaining({
-          query: {selectedAggregate: undefined},
+          query: expect.objectContaining({selectedAggregate: undefined}),
         })
       );
     });

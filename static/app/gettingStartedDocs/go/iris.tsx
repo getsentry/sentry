@@ -102,7 +102,7 @@ app.Get("/foo", func(ctx iris.Context) {
 
 app.Run(iris.Addr(":3000"))`;
 
-const getBeforeSendSnippet = params => `
+const getBeforeSendSnippet = (params: any) => `
 sentry.Init(sentry.ClientOptions{
   Dsn: "${params.dsn.public}",
   BeforeSend: func(event *sentry.Event, hint *sentry.EventHint) *sentry.Event {

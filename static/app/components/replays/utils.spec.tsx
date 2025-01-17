@@ -77,7 +77,6 @@ describe('getFramesByColumn', () => {
 
   const {
     errorFrames: [CRUMB_1, CRUMB_2, CRUMB_3, CRUMB_4, CRUMB_5],
-    feedbackFrames: [],
   } = hydrateErrors(
     ReplayRecordFixture({
       started_at: new Date('2022-04-14T14:19:47.326000Z'),
@@ -104,8 +103,7 @@ describe('getFramesByColumn', () => {
   it('should return an empty list when no crumbs exist', () => {
     const columnCount = 3;
     const columns = getFramesByColumn(durationMs, [], columnCount);
-    const expectedEntries = [];
-    expect(columns).toEqual(new Map(expectedEntries));
+    expect(columns).toEqual(new Map([]));
   });
 
   it('should put a crumbs in the first and last buckets', () => {

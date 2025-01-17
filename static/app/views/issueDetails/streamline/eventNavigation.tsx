@@ -27,7 +27,7 @@ import {IssueDetailsEventNavigation} from 'sentry/views/issueDetails/streamline/
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
-const TabName = {
+const TabName: Partial<Record<Tab, string>> = {
   [Tab.DETAILS]: t('Events'),
   [Tab.EVENTS]: t('Events'),
   [Tab.REPLAYS]: t('Replays'),
@@ -84,6 +84,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
           onAction={key => {
             trackAnalytics('issue_details.issue_content_selected', {
               organization,
+              // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
               content: TabName[key],
             });
           }}
@@ -190,7 +191,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
               analyticsEventKey="issue_details.all_events_clicked"
               analyticsEventName="Issue Details: All Events Clicked"
             >
-              {t('All Events')}
+              {issueTypeConfig.customCopy.allEvents || t('All Events')}
             </LinkButton>
           </Fragment>
         )}

@@ -4,17 +4,18 @@ import styled from '@emotion/styled';
 import sentryPattern from 'sentry-images/pattern/sentry-pattern.png';
 
 import {Alert} from 'sentry/components/alert';
-import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
-import ApiForm from 'sentry/components/forms/apiForm';
+import Form from 'sentry/components/forms/form';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
+import {useApiQuery} from 'sentry/utils/queryClient';
 
 import type {Field} from '../options';
 import {getForm, getOptionDefault, getOptionField} from '../options';
 
-export type InstallWizardProps = DeprecatedAsyncComponent['props'] & {
+export type InstallWizardProps = {
   onConfigured: () => void;
 };
 
@@ -26,21 +27,30 @@ export type InstallWizardOptions = Record<
   }
 >;
 
-type State = DeprecatedAsyncComponent['state'] & {
-  data: null | InstallWizardOptions;
-};
+export default function InstallWizard({onConfigured}: InstallWizardProps) {
+  const {
+    data: options,
+    isPending,
+    isError,
+  } = useApiQuery<InstallWizardOptions>(['/internal/options/?query=is:required'], {
+    staleTime: 0,
+  });
 
-export default class InstallWizard extends DeprecatedAsyncComponent<
-  InstallWizardProps,
-  State
-> {
-  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
-    return [['data', '/internal/options/?query=is:required']];
+  if (isPending) {
+    return <LoadingIndicator />;
   }
 
-  renderFormFields() {
-    const options = this.state.data!;
+  if (isError) {
+    return (
+      <Alert type="error" showIcon>
+        {t(
+          'We were unable to load the required configuration from the Sentry server. Please take a look at the service logs.'
+        )}
+      </Alert>
+    );
+  }
 
+  const renderFormFields = () => {
     let missingOptions = new Set(
       Object.keys(options).filter(option => !options[option]!.field.isSet)
     );
@@ -65,10 +75,9 @@ export default class InstallWizard extends DeprecatedAsyncComponent<
     }
 
     return getForm(fields);
-  }
+  };
 
-  getInitialData() {
-    const options = this.state.data!;
+  const getInitialData = () => {
     const data = {};
     Object.keys(options).forEach(optionName => {
       const option = options[optionName]!;
@@ -89,59 +98,38 @@ export default class InstallWizard extends DeprecatedAsyncComponent<
         !option.field.isSet &&
         displayValue !== undefined
       ) {
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         data[optionName] = displayValue;
       }
     });
     return data;
-  }
+  };
 
-  render() {
-    const version = ConfigStore.get('version');
-    return (
-      <SentryDocumentTitle noSuffix title={t('Setup Sentry')}>
-        <Wrapper>
-          <Pattern />
-          <SetupWizard>
-            <Heading>
-              <span>{t('Welcome to Sentry')}</span>
-              <Version>{version.current}</Version>
-            </Heading>
-            {this.state.loading
-              ? this.renderLoading()
-              : this.state.error
-                ? this.renderError()
-                : this.renderBody()}
-          </SetupWizard>
-        </Wrapper>
-      </SentryDocumentTitle>
-    );
-  }
+  const version = ConfigStore.get('version');
+  return (
+    <SentryDocumentTitle noSuffix title={t('Setup Sentry')}>
+      <Wrapper>
+        <Pattern />
+        <SetupWizard>
+          <Heading>
+            <span>{t('Welcome to Sentry')}</span>
+            <Version>{version.current}</Version>
+          </Heading>
+          <Form
+            apiMethod="PUT"
+            apiEndpoint={'/internal/options/?query=is:required'}
+            submitLabel={t('Continue')}
+            initialData={getInitialData()}
+            onSubmitSuccess={onConfigured}
+          >
+            <p>{t('Complete setup by filling out the required configuration.')}</p>
 
-  renderError() {
-    return (
-      <Alert type="error" showIcon>
-        {t(
-          'We were unable to load the required configuration from the Sentry server. Please take a look at the service logs.'
-        )}
-      </Alert>
-    );
-  }
-
-  renderBody() {
-    return (
-      <ApiForm
-        apiMethod="PUT"
-        apiEndpoint={this.getEndpoints()[0]![1]!}
-        submitLabel={t('Continue')}
-        initialData={this.getInitialData()}
-        onSubmitSuccess={this.props.onConfigured}
-      >
-        <p>{t('Complete setup by filling out the required configuration.')}</p>
-
-        {this.renderFormFields()}
-      </ApiForm>
-    );
-  }
+            {renderFormFields()}
+          </Form>
+        </SetupWizard>
+      </Wrapper>
+    </SentryDocumentTitle>
+  );
 }
 
 const Wrapper = styled('div')`
