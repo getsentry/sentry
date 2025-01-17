@@ -79,34 +79,13 @@ def process_error(error: ApiError, extra: dict[str, str]) -> None:
     )
 
 
-# XXX: To be deleted after queue is empty
-@instrumented_task(
-    name="sentry.tasks.derive_code_mappings.derive_code_mappings",
-    queue="derive_code_mappings",
-    default_retry_delay=60 * 10,
-    max_retries=3,
-)
-def derive_code_mappings(
-    project_id: int,
-    data: NodeData | None = None,  # We will deprecate this
-    event_id: str | None = None,
-    **kwargs: Any,
-) -> None:
-    auto_source_code_config(project_id, data=data, event_id=event_id, **kwargs)
-
-
 @instrumented_task(
     name="sentry.tasks.auto_source_code_config",
     queue="auto_source_code_config",
     default_retry_delay=60 * 10,
     max_retries=3,
 )
-def auto_source_code_config(
-    project_id: int,
-    data: NodeData,
-    event_id: str | None = None,
-    **kwargs: Any,
-) -> None:
+def auto_source_code_config(project_id: int, event_id: str, **kwargs: Any) -> None:
     """
     Process errors for customers with source code management installed and calculate code mappings
     among other things.
@@ -119,17 +98,14 @@ def auto_source_code_config(
     # When you look at the performance page the user is a default column
     set_user({"username": org.slug})
     set_tag("project.slug", project.slug)
-    extra: dict[str, Any] = {"organization.slug": org.slug}
+    extra: dict[str, Any] = {"organization.slug": org.slug, "event_id": event_id}
 
-    # XXX: In the next PR we will only use event_id
-    if event_id:
-        event = eventstore.backend.get_event_by_id(project_id, event_id)
-        if event is None:
-            logger.error("Event not found.", extra={"project_id": project_id, "event_id": event_id})
-            return
-        data = event.data
+    event = eventstore.backend.get_event_by_id(project_id, event_id)
+    if event is None:
+        logger.error("Event not found.", extra={"project_id": project_id, "event_id": event_id})
+        return
 
-    stacktrace_paths: list[str] = identify_stacktrace_paths(data)
+    stacktrace_paths: list[str] = identify_stacktrace_paths(event.data)
     if not stacktrace_paths:
         logger.info("No stacktrace paths found.", extra=extra)
         return

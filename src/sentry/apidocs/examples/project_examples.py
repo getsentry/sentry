@@ -371,6 +371,12 @@ DETAILED_PROJECT = {
     ],
     "eventProcessing": {"symbolicationDegraded": False},
     "symbolSources": "[]",
+    "tempestFetchScreenshots": False,
+    "relayCustomMetricCardinalityLimit": 5,
+    "isDynamicallySampled": True,
+    "highlightTags": [],
+    "highlightContext": {},
+    "highlightPreset": {"tags": [], "context": {}},
 }
 
 SYMBOL_SOURCES = [

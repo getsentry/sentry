@@ -77,7 +77,7 @@ export function ProjectsTable({
       ]}
     >
       {mainItems
-        .toSorted((a, b) => {
+        .toSorted((a: any, b: any) => {
           if (a.count === b.count) {
             return a.project.slug.localeCompare(b.project.slug);
           }
@@ -86,7 +86,7 @@ export function ProjectsTable({
           }
           return b.count - a.count;
         })
-        .map(item => (
+        .map((item: any) => (
           <TableRow
             key={item.project.id}
             canEdit={canEdit}
@@ -110,8 +110,8 @@ export function ProjectsTable({
       {hasActiveItems &&
         isExpanded &&
         inactiveItems
-          .toSorted((a, b) => a.project.slug.localeCompare(b.project.slug))
-          .map(item => (
+          .toSorted((a: any, b: any) => a.project.slug.localeCompare(b.project.slug))
+          .map((item: any) => (
             <TableRow
               key={item.project.id}
               canEdit={canEdit}

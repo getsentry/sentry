@@ -127,7 +127,7 @@ class Dashboard extends Component<Props, State> {
     };
   }
 
-  static getDerivedStateFromProps(props, state) {
+  static getDerivedStateFromProps(props: any, state: any) {
     if (state.isMobile) {
       // Don't need to recalculate any layout state from props in the mobile view
       // because we want to force different positions (i.e. new widgets added
@@ -466,10 +466,10 @@ class Dashboard extends Component<Props, State> {
     );
   }
 
-  handleLayoutChange = (_, allLayouts: Layouts) => {
+  handleLayoutChange = (_: any, allLayouts: Layouts) => {
     const {isMobile} = this.state;
     const {dashboard, onUpdate} = this.props;
-    const isNotAddButton = ({i}) => i !== ADD_WIDGET_BUTTON_DRAG_ID;
+    const isNotAddButton = ({i}: any) => i !== ADD_WIDGET_BUTTON_DRAG_ID;
     const newLayouts = {
       [DESKTOP]: allLayouts[DESKTOP]!.filter(isNotAddButton),
       [MOBILE]: allLayouts[MOBILE]!.filter(isNotAddButton),

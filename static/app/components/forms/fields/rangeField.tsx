@@ -52,7 +52,7 @@ function RangeField({
         onBlur,
         value,
         ...fieldProps
-      }) => (
+      }: any) => (
         <Slider
           {...fieldProps}
           aria-label={label}
