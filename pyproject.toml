@@ -180,7 +180,6 @@ module = [
     "sentry.integrations.bitbucket_server.client",
     "sentry.integrations.bitbucket_server.integration",
     "sentry.integrations.example.integration",
-    "sentry.integrations.example.repository",
     "sentry.integrations.github.client",
     "sentry.integrations.github.integration",
     "sentry.integrations.github.issues",
