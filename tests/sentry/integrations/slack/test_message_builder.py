@@ -39,6 +39,7 @@ from sentry.issues.grouptype import (
     PerformanceP95EndpointRegressionGroupType,
     ProfileFileIOGroupType,
 )
+from sentry.issues.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
@@ -48,7 +49,6 @@ from sentry.models.repository import Repository
 from sentry.models.rule import Rule as IssueAlertRule
 from sentry.models.team import Team
 from sentry.notifications.utils.actions import MessageAction
-from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.seer.anomaly_detection.types import StoreDataResponse
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase

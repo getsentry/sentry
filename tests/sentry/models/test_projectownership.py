@@ -1,10 +1,10 @@
 from unittest.mock import patch
 
+from sentry.issues.ownership.grammar import Matcher, Owner, Rule, dump_schema, resolve_actors
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupowner import GroupOwner, GroupOwnerType, OwnerRuleType
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.repository import Repository
-from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema, resolve_actors
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import assume_test_silo_mode_of

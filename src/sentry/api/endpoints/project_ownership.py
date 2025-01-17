@@ -15,9 +15,9 @@ from sentry.api.serializers.models.projectownership import ProjectOwnershipSeria
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST
 from sentry.apidocs.examples import ownership_examples
 from sentry.apidocs.parameters import GlobalParams
+from sentry.issues.ownership.grammar import CODEOWNERS, create_schema_from_issue_owners
 from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
-from sentry.ownership.grammar import CODEOWNERS, create_schema_from_issue_owners
 from sentry.signals import ownership_rule_created
 from sentry.utils.audit import create_audit_entry
 

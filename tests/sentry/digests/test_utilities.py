@@ -10,10 +10,10 @@ from sentry.digests.utils import (
     sort_records,
 )
 from sentry.eventstore.models import Event
+from sentry.issues.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
-from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.types.actor import ActorType

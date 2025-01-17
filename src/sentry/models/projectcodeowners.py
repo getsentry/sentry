@@ -11,8 +11,11 @@ from rest_framework.exceptions import ValidationError
 from sentry import analytics
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, JSONField, Model, region_silo_model, sane_repr
+from sentry.issues.ownership.grammar import (
+    convert_codeowners_syntax,
+    create_schema_from_issue_owners,
+)
 from sentry.models.organization import Organization
-from sentry.ownership.grammar import convert_codeowners_syntax, create_schema_from_issue_owners
 from sentry.utils.cache import cache
 
 logger = logging.getLogger(__name__)
