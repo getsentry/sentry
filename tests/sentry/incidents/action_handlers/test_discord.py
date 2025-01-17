@@ -101,6 +101,6 @@ class DiscordActionHandlerTest(FireTest):
         handler = MessagingActionHandler(self.action, incident, self.project, self.spec)
         metric_value = 1000
         with self.tasks():
-            handler.fire(metric_value, IncidentStatus.OPEN.value)
+            handler.fire(metric_value, IncidentStatus.OPEN)
 
         assert_slo_metric(mock_record_event, EventLifecycleOutcome.FAILURE)

@@ -81,6 +81,7 @@ class DiscordIssueAlertTest(RuleTestCase):
     )
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def assert_lifecycle_metrics_failure(self, mock_record_event, mock_send_message):
+        self.rule.after(self.event)
         assert_slo_metric(mock_record_event, EventLifecycleOutcome.FAILURE)
 
     @mock.patch(
@@ -89,6 +90,7 @@ class DiscordIssueAlertTest(RuleTestCase):
     )
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def assert_lifecycle_metrics_halt_for_rate_limit(self, mock_record_event, mock_send_message):
+        self.rule.after(self.event)
         assert_slo_metric(mock_record_event, EventLifecycleOutcome.HALTED)
 
     @responses.activate
