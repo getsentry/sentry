@@ -2,13 +2,7 @@ import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RepositoryFixture} from 'sentry-fixture/repository';
 
-import {
-  render,
-  screen,
-  userEvent,
-  waitFor,
-  waitForElementToBeRemoved,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import RepositoryStore from 'sentry/stores/repositoryStore';
 import IntegrationRepos from 'sentry/views/settings/organizationIntegrations/integrationRepos';
@@ -42,9 +36,9 @@ describe('IntegrationRepos', function () {
       });
 
       render(<IntegrationRepos integration={integration} />);
-      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+
       // we only attempt to fetch repositories upon typing
-      await userEvent.click(screen.getByText('Add Repository'));
+      await userEvent.click(await screen.findByText('Add Repository'));
       await userEvent.type(screen.getByRole('textbox'), 'asdf');
 
       expect(
@@ -62,8 +56,8 @@ describe('IntegrationRepos', function () {
       });
 
       render(<IntegrationRepos integration={integration} />);
-      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
-      await userEvent.click(screen.getByText('Add Repository'));
+
+      await userEvent.click(await screen.findByText('Add Repository'));
 
       expect(
         await screen.findByText(/Please enter a repository name/)
@@ -91,8 +85,8 @@ describe('IntegrationRepos', function () {
       });
 
       render(<IntegrationRepos integration={integration} />);
-      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
-      await userEvent.click(screen.getByText('Add Repository'));
+
+      await userEvent.click(await screen.findByText('Add Repository'));
       await userEvent.type(screen.getByRole('textbox'), 'repo-name');
       await userEvent.click(screen.getByText('repo-name'));
 
@@ -135,8 +129,8 @@ describe('IntegrationRepos', function () {
       });
 
       render(<IntegrationRepos integration={integration} />);
-      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
-      await userEvent.click(screen.getByText('Add Repository'));
+
+      await userEvent.click(await screen.findByText('Add Repository'));
       await userEvent.type(screen.getByRole('textbox'), 'sentry-repo');
       await userEvent.click(screen.getByText('sentry-repo'));
 
@@ -187,8 +181,8 @@ describe('IntegrationRepos', function () {
         body: {id: 244},
       });
       render(<IntegrationRepos integration={integration} />);
-      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
-      await userEvent.click(screen.getByText('Add Repository'));
+
+      await userEvent.click(await screen.findByText('Add Repository'));
       await userEvent.type(screen.getByRole('textbox'), 'repo-name');
       await userEvent.click(screen.getByText('repo-name'));
       expect(updateRepo).toHaveBeenCalledWith(
@@ -219,8 +213,8 @@ describe('IntegrationRepos', function () {
         body: {id: 4320},
       });
       render(<IntegrationRepos integration={integration} />);
-      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
-      await userEvent.click(screen.getByText('Add Repository'));
+
+      await userEvent.click(await screen.findByText('Add Repository'));
       await userEvent.type(screen.getByRole('textbox'), 'repo-name');
       await userEvent.click(screen.getByText('repo-name'));
 
