@@ -38,15 +38,14 @@ class ExternalIssueCreator:
                 return self.external_issue[0]
         except Exception as e:
             logger.info(
-                "create-failed",
+                "platform-external-issue.create-failed",
+                exc_info=e,
                 extra={
-                    "error": str(e),
-                    "installtion_id": self.install.uuid,
+                    "installation_id": self.install.uuid,
                     "group_id": self.group.id,
                     "sentry_app_slug": self.install.sentry_app.slug,
                 },
             )
             raise SentryAppSentryError(
                 message="Failed to create external issue obj",
-                webhook_context={"error": str(e)},
             ) from e
