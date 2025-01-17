@@ -70,6 +70,7 @@ def send_incident_alert_notification(
                     "channel_id": channel,
                 }
             )
+            # TODO(ecosystem): We should batch this on a per-organization basis
             if isinstance(error, ApiRateLimitedError):
                 lifecycle.record_halt(error)
             else:

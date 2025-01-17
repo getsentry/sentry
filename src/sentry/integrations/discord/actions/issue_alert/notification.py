@@ -68,6 +68,7 @@ class DiscordNotifyServiceAction(IntegrationEventAction):
                             "channel_id": channel_id,
                         }
                     )
+                    # TODO(ecosystem): We should batch this on a per-organization basis
                     if isinstance(e, ApiRateLimitedError):
                         lifecycle.record_halt(e)
                     else:
