@@ -8,7 +8,7 @@ import docs from './unity';
 
 function renderMockRequests() {
   MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/projects/',
+    url: '/projects/org-slug/project-slug/',
     body: [ProjectFixture()],
   });
 }
