@@ -2,10 +2,11 @@ import logging
 import math
 import uuid
 from abc import ABC, abstractmethod
-from collections.abc import Callable
+from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from itertools import islice
-from typing import NotRequired, TypedDict
+
+from celery import Task
 
 from sentry import buffer, options
 from sentry.buffer.redis import BufferHookEvent, redis_buffer_registry
@@ -17,12 +18,13 @@ from sentry.utils.registry import NoRegistrationExistsError, Registry
 logger = logging.getLogger("sentry.delayed_processing")
 
 
-class FilterKeys(TypedDict):
+@dataclass
+class FilterKeys:
     project_id: int
-    batch_key: NotRequired[str]
 
 
-class BufferHashKeys(TypedDict):
+@dataclass
+class BufferHashKeys:
     model: type[models.Model]
     filters: FilterKeys
 
@@ -38,7 +40,7 @@ class DelayedProcessingBase(ABC):
 
     @property
     @abstractmethod
-    def processing_task(self) -> Callable[[int], None]:
+    def processing_task(self) -> Task:
         raise NotImplementedError
 
 
@@ -91,10 +93,9 @@ def process_project_alerts_in_batches(project_id: int, processing_type: str) -> 
 
     hash_args = processing_info.hash_args
     task = processing_info.processing_task
+    filters: dict[str, models.Model | str | int] = asdict(hash_args.filters)
 
-    event_count = buffer.backend.get_hash_length(
-        model=hash_args["model"], field=hash_args["filters"]
-    )
+    event_count = buffer.backend.get_hash_length(model=hash_args.model, field=filters)
     metrics.incr(
         f"{processing_type}.num_groups", tags={"num_groups": bucket_num_groups(event_count)}
     )
@@ -108,7 +109,7 @@ def process_project_alerts_in_batches(project_id: int, processing_type: str) -> 
     )
 
     # if the dictionary is large, get the items and chunk them.
-    alertgroup_to_event_data = fetch_alertgroup_to_event_data(project_id, hash_args["model"])
+    alertgroup_to_event_data = fetch_alertgroup_to_event_data(project_id, hash_args.model)
 
     with metrics.timer(f"{processing_type}.process_batch.duration"):
         items = iter(alertgroup_to_event_data.items())
@@ -117,20 +118,18 @@ def process_project_alerts_in_batches(project_id: int, processing_type: str) -> 
             batch_key = str(uuid.uuid4())
 
             buffer.backend.push_to_hash_bulk(
-                model=hash_args["model"],
-                filters={**hash_args["filters"], "batch_key": batch_key},
+                model=hash_args.model,
+                filters={**filters, "batch_key": batch_key},
                 data=batch,
             )
 
             # remove the batched items from the project alertgroup_to_event_data
-            buffer.backend.delete_hash(**hash_args, fields=list(batch.keys()))
+            buffer.backend.delete_hash(**asdict(hash_args), fields=list(batch.keys()))
 
             task.delay(project_id, batch_key)
 
 
-def process_project_ids(
-    fetch_time: datetime, buffer_list_key: str, processing_type: str
-) -> list[int]:
+def process_project_ids(fetch_time: datetime, buffer_list_key: str, processing_type: str) -> None:
     project_ids = buffer.backend.get_sorted_set(buffer_list_key, min=0, max=fetch_time.timestamp())
     log_str = ", ".join(f"{project_id}: {timestamp}" for project_id, timestamp in project_ids)
     log_name = f"{processing_type}.project_id_list"

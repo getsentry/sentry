@@ -18,7 +18,7 @@ from sentry.buffer.redis import (
 )
 from sentry.models.group import Group
 from sentry.models.project import Project
-from sentry.rules.processing.delayed_processing import process_delayed_alert_conditions
+from sentry.rules.processing.buffer_processing import process_delayed_alert_conditions
 from sentry.rules.processing.processor import PROJECT_ID_BUFFER_LIST_KEY
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all

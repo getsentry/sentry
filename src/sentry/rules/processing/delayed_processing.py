@@ -2,10 +2,11 @@ import logging
 import random
 import uuid
 from collections import defaultdict
-from collections.abc import Callable, Sequence
+from collections.abc import Sequence
 from datetime import datetime, timedelta, timezone
 from typing import Any, DefaultDict, NamedTuple
 
+from celery import Task
 from django.db.models import OuterRef, Subquery
 
 from sentry import buffer, nodestore
@@ -29,6 +30,7 @@ from sentry.rules.conditions.event_frequency import (
 from sentry.rules.processing.buffer_processing import (
     BufferHashKeys,
     DelayedProcessingBase,
+    FilterKeys,
     delayed_processing_registry,
 )
 from sentry.rules.processing.processor import (
@@ -534,8 +536,8 @@ def apply_delayed(project_id: int, batch_key: str | None = None, *args: Any, **k
 class DelayedRule(DelayedProcessingBase):
     @property
     def hash_args(self) -> BufferHashKeys:
-        return BufferHashKeys({"model": Project, "filters": {"project_id": self.project_id}})
+        return BufferHashKeys(model=Project, filters=FilterKeys(project_id=self.project_id))
 
     @property
-    def processing_task(self) -> Callable[[int], None]:
+    def processing_task(self) -> Task:
         return apply_delayed
