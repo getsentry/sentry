@@ -65,6 +65,8 @@ function EditAccessSelector({
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
   const [stagedOptions, setStagedOptions] = useState<string[]>([]);
   const [isMenuOpen, setMenuOpen] = useState<boolean>(false);
+  const [isCollapsedAvatarTooltipOpen, setIsCollapsedAvatarTooltipOpen] =
+    useState<boolean>(false);
   const {teams: selectedTeam} = useTeamsById({
     ids:
       selectedOptions[1] && selectedOptions[1] !== '_allUsers'
@@ -215,6 +217,20 @@ function EditAccessSelector({
         avatarSize={listOnly ? 30 : 25}
         tooltipOptions={{disabled: !userCanEditDashboardPermissions}}
         collapsedAvatarTooltip={renderCollapsedAvatarTooltip()}
+        collapsedAvatarActions={{
+          onMouseEnter: () => {
+            setIsCollapsedAvatarTooltipOpen(true);
+          },
+          onMouseLeave: () => {
+            setIsCollapsedAvatarTooltipOpen(false);
+          },
+        }}
+        collapsedAvatarTooltipStyle={{
+          maxHeight: '200px',
+          overflowY: 'scroll',
+          pointerEvents: 'auto',
+          zIndex: 1000,
+        }}
       />
     );
 
@@ -346,7 +362,9 @@ function EditAccessSelector({
   return (
     <Tooltip
       title={t('Only the creator of the dashboard can edit permissions')}
-      disabled={userCanEditDashboardPermissions || isMenuOpen}
+      disabled={
+        userCanEditDashboardPermissions || isMenuOpen || isCollapsedAvatarTooltipOpen
+      }
     >
       {dropdownMenu}
     </Tooltip>

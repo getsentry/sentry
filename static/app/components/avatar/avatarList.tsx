@@ -16,7 +16,12 @@ type UserAvatarProps = React.ComponentProps<typeof UserAvatar>;
 type Props = {
   avatarSize?: number;
   className?: string;
+  collapsedAvatarActions?: {
+    onMouseEnter: () => void;
+    onMouseLeave: () => void;
+  };
   collapsedAvatarTooltip?: React.ReactNode;
+  collapsedAvatarTooltipStyle?: React.CSSProperties;
   maxVisibleAvatars?: number;
   renderTooltip?: UserAvatarProps['renderTooltip'];
   renderUsersFirst?: boolean;
@@ -27,19 +32,40 @@ type Props = {
 };
 
 const CollapsedAvatars = forwardRef(function CollapsedAvatars(
-  {size, children}: {children: React.ReactNode; size: number},
+  {
+    size,
+    children,
+    collapsedAvatarActions,
+  }: {
+    children: React.ReactNode;
+    size: number;
+    collapsedAvatarActions?: {
+      onMouseEnter: () => void;
+      onMouseLeave: () => void;
+    };
+  },
   ref: React.ForwardedRef<HTMLDivElement>
 ) {
   const hasStreamlinedUI = useHasStreamlinedUI();
 
   if (hasStreamlinedUI) {
-    return <CollapsedAvatarPill ref={ref}>{children}</CollapsedAvatarPill>;
+    return (
+      <CollapsedAvatarPill
+        ref={ref}
+        onMouseEnter={() => collapsedAvatarActions?.onMouseEnter?.()}
+        onMouseLeave={() => collapsedAvatarActions?.onMouseLeave?.()}
+      >
+        {children}
+      </CollapsedAvatarPill>
+    );
   }
   return (
     <CollapsedAvatarsCicle
       ref={ref}
       size={size}
       data-test-id="avatarList-collapsedavatars"
+      onMouseEnter={() => collapsedAvatarActions?.onMouseEnter?.()}
+      onMouseLeave={() => collapsedAvatarActions?.onMouseLeave?.()}
     >
       {children}
     </CollapsedAvatarsCicle>
@@ -57,6 +83,8 @@ function AvatarList({
   renderUsersFirst = false,
   renderTooltip,
   collapsedAvatarTooltip,
+  collapsedAvatarActions,
+  collapsedAvatarTooltipStyle,
 }: Props) {
   const numTeams = teams.length;
   const numVisibleTeams = maxVisibleAvatars - numTeams > 0 ? numTeams : maxVisibleAvatars;
@@ -88,8 +116,14 @@ function AvatarList({
         <Tooltip
           title={collapsedAvatarTooltip ?? `${numCollapsedAvatars} other ${typeAvatars}`}
           skipWrapper={!collapsedAvatarTooltip}
+          isHoverable={!!collapsedAvatarTooltip}
+          overlayStyle={collapsedAvatarTooltipStyle}
         >
-          <CollapsedAvatars size={avatarSize} data-test-id="avatarList-collapsedavatars">
+          <CollapsedAvatars
+            size={avatarSize}
+            data-test-id="avatarList-collapsedavatars"
+            collapsedAvatarActions={collapsedAvatarActions}
+          >
             {numCollapsedAvatars < 99 && <Plus>+</Plus>}
             {numCollapsedAvatars}
           </CollapsedAvatars>
