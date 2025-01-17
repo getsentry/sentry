@@ -243,7 +243,7 @@ export function PrimaryNavigationItems() {
             label: t('Settings'),
             icon: <IconSettings />,
             analyticsKey: 'settings',
-            to: `/${prefix}/settings/organization/`,
+            to: `${prefix}/settings/${organization.slug}/`,
           }}
         />
       </SidebarFooter>
