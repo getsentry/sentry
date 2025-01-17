@@ -5,7 +5,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import EventView from 'sentry/utils/discover/eventView';
 import HistogramQuery from 'sentry/utils/performance/histogram/histogramQuery';
 
-function renderHistogram({isLoading, error, histograms}) {
+function renderHistogram({isLoading, error, histograms}: any) {
   if (isLoading) {
     return 'loading';
   }
@@ -18,7 +18,7 @@ function renderHistogram({isLoading, error, histograms}) {
         <Fragment key={name}>
           <p>{name}</p>
           <ul>
-            {histograms[name].map(bar => (
+            {histograms[name].map((bar: any) => (
               <li key={bar.bin}>{`${bar.bin} - ${bar.count}`}</li>
             ))}
           </ul>
@@ -29,7 +29,7 @@ function renderHistogram({isLoading, error, histograms}) {
 }
 
 describe('HistogramQuery', function () {
-  let eventView, location;
+  let eventView: any, location: any;
   beforeEach(function () {
     location = {
       pathname: '/',

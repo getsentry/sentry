@@ -734,7 +734,7 @@ describe('Dashboards > WidgetQueries', function () {
 
   describe('multi-series grouped data', () => {
     const [START, END] = [1647399900, 1647399901];
-    let mockCountData, mockCountUniqueData, mockRawResultData;
+    let mockCountData: any, mockCountUniqueData: any, mockRawResultData: any;
 
     beforeEach(() => {
       mockCountData = {

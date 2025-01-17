@@ -41,7 +41,7 @@ export default function BreadcrumbRow({
   const {onMouseEnter, onMouseLeave} = useCrumbHandlers();
 
   const handleObjectInspectorExpanded = useCallback(
-    (path, expandedState) => onInspectorExpanded?.(index, path, expandedState),
+    (path: any, expandedState: any) => onInspectorExpanded?.(index, path, expandedState),
     [index, onInspectorExpanded]
   );
 

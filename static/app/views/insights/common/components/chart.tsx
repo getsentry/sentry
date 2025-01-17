@@ -57,6 +57,8 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 
 const STARFISH_CHART_GROUP = 'starfish_chart_group';
 
+type PairOfMetricSeries = [MetricSeries[], MetricSeries[]];
+
 export enum ChartType {
   BAR = 0,
   LINE = 1,
@@ -259,10 +261,11 @@ function Chart({
       }
       return ingestionSeries;
     });
-    [series, incompleteSeries] = seriesToShow.reduce(
-      (acc, serie, index) => {
+
+    [series, incompleteSeries] = seriesToShow.reduce<PairOfMetricSeries>(
+      (acc: PairOfMetricSeries, serie: MetricSeries[], index: number) => {
         const [trimmed, incomplete] = acc;
-        const {markLine: _, ...incompleteSerie} = serie[1]! ?? {};
+        const {markLine: _, ...incompleteSerie} = serie[1] ?? {};
 
         return [
           [...trimmed, {...serie[0]!, color: colors[index]!}],
@@ -270,9 +273,9 @@ function Chart({
             ...incomplete,
             ...(Object.keys(incompleteSerie).length > 0 ? [incompleteSerie] : []),
           ],
-        ];
+        ] as PairOfMetricSeries;
       },
-      [[], []] as [MetricSeries[], MetricSeries[]]
+      [[], []] as PairOfMetricSeries
     );
   }
 
@@ -321,13 +324,16 @@ function Chart({
       const uniqueSeries = new Set<string>();
       deDupedParams = params.filter(param => {
         // Filter null values from tooltip
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         if (param.value[1] === null) {
           return false;
         }
 
+        // @ts-ignore TS(2345): Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
         if (uniqueSeries.has(param.seriesName)) {
           return false;
         }
+        // @ts-ignore TS(2345): Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
         uniqueSeries.add(param.seriesName);
         return true;
       });
@@ -640,7 +646,7 @@ export function useSynchronizeCharts(
   ]);
 }
 
-const StyledTransparentLoadingMask = styled(props => (
+const StyledTransparentLoadingMask = styled((props: any) => (
   <TransparentLoadingMask {...props} maskBackgroundColor="transparent" />
 ))`
   display: flex;
