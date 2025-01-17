@@ -45,6 +45,7 @@ class BitbucketIssuesSpec(SourceCodeIssueIntegration):
         params = kwargs.pop("params", {})
         default_repo, repo_choices = self.get_repository_choices(group, params, **kwargs)
 
+        assert group is not None
         org = group.organization
         autocomplete_url = reverse(
             "sentry-extensions-bitbucket-search", args=[org.slug, self.model.id]
