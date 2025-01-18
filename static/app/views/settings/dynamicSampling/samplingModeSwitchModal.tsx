@@ -1,4 +1,5 @@
 import {useId} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {
@@ -150,7 +151,9 @@ function TargetRateInput({disabled}: {disabled?: boolean}) {
   return (
     <FieldGroup
       label={t('Global Target Sample Rate')}
-      css={{paddingBottom: space(0.5)}}
+      css={css`
+        padding-bottom: ${space(0.5)};
+      `}
       inline={false}
       showHelpInTooltip
       flexibleControlStateSize

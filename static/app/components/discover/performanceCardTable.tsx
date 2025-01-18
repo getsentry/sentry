@@ -33,7 +33,7 @@ type PerformanceCardTableProps = {
   isLoading: boolean;
   location: Location;
   organization: Organization;
-  performanceType: string;
+  performanceType: ProjectPerformanceType;
   project: ReleaseProject;
   releaseEventView: EventView;
   thisReleaseTableData: TableData | null;
@@ -202,6 +202,7 @@ function PerformanceCardTable({
         <StyledPanelItem>
           <TitleSpace />
           {webVitals.map((vital, index) => (
+            // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             <MultipleEmptySubText key={vital[index]}>
               <StyledNotAvailable tooltip={t('No results found')} />
             </MultipleEmptySubText>
@@ -210,6 +211,7 @@ function PerformanceCardTable({
         <StyledPanelItem>
           <TitleSpace />
           {spans.map((span, index) => (
+            // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             <MultipleEmptySubText key={span[index]}>
               <StyledNotAvailable tooltip={t('No results found')} />
             </MultipleEmptySubText>
@@ -391,6 +393,7 @@ function PerformanceCardTable({
         <StyledPanelItem>
           <TitleSpace />
           {spans.map((span, index) => (
+            // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             <MultipleEmptySubText key={span[index]}>
               <StyledNotAvailable tooltip={t('No results found')} />
             </MultipleEmptySubText>
@@ -639,7 +642,9 @@ function PerformanceCardTable({
 
   const loader = <StyledLoadingIndicator />;
 
-  const platformPerformanceRender = {
+  const platformPerformanceRender: Partial<
+    Record<ProjectPerformanceType, {section: React.ReactNode; title: string}>
+  > = {
     [ProjectPerformanceType.FRONTEND]: {
       title: t('Frontend Performance'),
       section: renderFrontendPerformance(),
@@ -663,7 +668,7 @@ function PerformanceCardTable({
   return (
     <Fragment>
       <HeadCellContainer>
-        {platformPerformanceRender[performanceType].title}
+        {platformPerformanceRender[performanceType]?.title}
       </HeadCellContainer>
       {isUnknownPlatform && (
         <StyledAlert type="warning" showIcon system>
@@ -699,7 +704,7 @@ function PerformanceCardTable({
         loader={loader}
         disableTopBorder={isUnknownPlatform}
       >
-        {platformPerformanceRender[performanceType].section}
+        {platformPerformanceRender[performanceType]?.section}
       </StyledPanelTable>
     </Fragment>
   );
@@ -709,7 +714,7 @@ interface Props {
   allReleasesEventView: EventView;
   location: Location;
   organization: Organization;
-  performanceType: string;
+  performanceType: ProjectPerformanceType;
   project: ReleaseProject;
   releaseEventView: EventView;
 }
@@ -755,7 +760,7 @@ function PerformanceCardTableWrapper({
 
 export default PerformanceCardTableWrapper;
 
-const emptyFieldCss = p => css`
+const emptyFieldCss = (p: any) => css`
   color: ${p.theme.chartOther};
   text-align: right;
 `;
@@ -837,12 +842,12 @@ const SubText = styled('div')`
   text-align: right;
 `;
 
-const TrendText = styled('div')<{color: string}>`
+const TrendText = styled('div')<{color: 'success' | 'error'}>`
   color: ${p => p.theme[p.color]};
   text-align: right;
 `;
 
-const StyledIconArrow = styled(IconArrow)<{color: string}>`
+const StyledIconArrow = styled(IconArrow)<{color: 'success' | 'error'}>`
   color: ${p => p.theme[p.color]};
   margin-left: ${space(0.5)};
 `;

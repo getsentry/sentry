@@ -17,8 +17,8 @@ function GroupingComponentChildren({component, showNonContributing}: Props) {
   return (
     <Fragment>
       {component.values
-        .filter(value => groupingComponentFilter(value, showNonContributing))
-        .map(value => (
+        .filter((value: any) => groupingComponentFilter(value, showNonContributing))
+        .map((value: any) => (
           <GroupingComponentListItem key={typeof value === 'object' ? value.id : value}>
             {typeof value === 'object' ? (
               <GroupingComponent

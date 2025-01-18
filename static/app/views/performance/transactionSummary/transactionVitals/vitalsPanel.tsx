@@ -79,7 +79,7 @@ class VitalsPanel extends Component<Props> {
     );
   }
 
-  renderVitalGroup(group: VitalGroup, summaryResults) {
+  renderVitalGroup(group: VitalGroup, summaryResults: any) {
     const {location, organization, eventView, dataFilter} = this.props;
     const {vitals, colors, min, max, precision} = group;
 

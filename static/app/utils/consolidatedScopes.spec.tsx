@@ -1,7 +1,7 @@
 import {toPermissions, toResourcePermissions} from 'sentry/utils/consolidatedScopes';
 
 describe('ConsolidatedScopes', () => {
-  let scopes;
+  let scopes: any;
 
   beforeEach(() => {
     scopes = ['event:read', 'event:admin', 'project:releases', 'org:read'];

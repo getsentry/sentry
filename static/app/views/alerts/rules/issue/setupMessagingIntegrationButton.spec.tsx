@@ -115,7 +115,7 @@ describe('SetupAlertIntegrationButton', function () {
             ungatedFeatures: p.features,
             gatedFeatureGroups: [],
           }),
-        FeatureList: p => (p.provider = providers[0]),
+        FeatureList: p => (p.provider = (providers as any)[0]),
       };
     });
 

@@ -2,13 +2,12 @@ from __future__ import annotations
 
 import functools
 from abc import abstractmethod
-from collections.abc import Callable, Mapping, MutableMapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, Protocol
 
 from django.utils import timezone
-from rest_framework.request import Request
 
 from sentry import features, release_health, tsdb
 from sentry.api.serializers import serialize
@@ -43,44 +42,38 @@ from sentry.utils.safe import safe_execute
 from sentry.utils.snuba import resolve_column, resolve_conditions
 
 
-def get_actions(request: Request, group):
+def get_actions(group):
     from sentry.plugins.base import plugins
 
     project = group.project
 
-    action_list = []
+    action_list: list[tuple[str, str]] = []
     for plugin in plugins.for_project(project, version=1):
         if is_plugin_deprecated(plugin, project):
             continue
 
-        results = safe_execute(plugin.actions, request, group, action_list)
+        results = safe_execute(plugin.actions, group, action_list)
 
         if not results:
             continue
 
         action_list = results
 
-    for plugin in plugins.for_project(project, version=2):
-        if is_plugin_deprecated(plugin, project):
-            continue
-        for action in safe_execute(plugin.get_actions, request, group) or ():
-            action_list.append(action)
-
     return action_list
 
 
-def get_available_issue_plugins(request: Request, group):
+def get_available_issue_plugins(group) -> list[dict[str, Any]]:
     from sentry.plugins.base import plugins
     from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 
     project = group.project
 
-    plugin_issues = []
+    plugin_issues: list[dict[str, Any]] = []
     for plugin in plugins.for_project(project, version=1):
         if isinstance(plugin, IssueTrackingPlugin2):
             if is_plugin_deprecated(plugin, project):
                 continue
-            safe_execute(plugin.plugin_issues, request, group, plugin_issues)
+            safe_execute(plugin.plugin_issues, group, plugin_issues)
     return plugin_issues
 
 
@@ -108,7 +101,6 @@ class GroupStatsMixin:
 
     CUSTOM_SEGMENTS = 29  # for 30 segments use 1/29th intervals
     CUSTOM_SEGMENTS_12H = 35  # for 12h 36 segments, otherwise 15-16-17 bars is too few
-    CUSTOM_ROLLUP_6H = timedelta(hours=6).total_seconds()  # rollups should be increments of 6hs
 
     @abstractmethod
     def query_tsdb(
@@ -228,10 +220,21 @@ class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
         return stats
 
 
+class _SeenStatsFunc(Protocol):
+    def __call__(
+        self,
+        item_list,
+        start=None,
+        end=None,
+        conditions=None,
+        environment_ids=None,
+    ) -> Mapping[str, Any]: ...
+
+
 class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
     def __init__(
         self,
-        environment_ids=None,
+        environment_ids: list[int] | None = None,
         stats_period=None,
         stats_period_start=None,
         stats_period_end=None,
@@ -267,7 +270,6 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         self,
         item_list: Sequence[Group],
         user: Any,
-        request: Request,
         **kwargs: Any,
     ) -> MutableMapping[Group, MutableMapping[str, Any]]:
         if not self._collapse("base"):
@@ -365,12 +367,12 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
 
         if self._expand("pluginActions"):
             for item in item_list:
-                action_list = get_actions(request, item)
+                action_list = get_actions(item)
                 attrs[item].update({"pluginActions": action_list})
 
         if self._expand("pluginIssues"):
             for item in item_list:
-                plugin_issue_list = get_available_issue_plugins(request, item)
+                plugin_issue_list = get_available_issue_plugins(item)
                 attrs[item].update({"pluginIssues": plugin_issue_list})
 
         if self._expand("integrationIssues"):
@@ -381,7 +383,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                     ),
                 )
                 integration_issues = serialize(
-                    list(external_issues), request, serializer=ExternalIssueSerializer()
+                    list(external_issues), serializer=ExternalIssueSerializer()
                 )
                 attrs[item].update({"integrationIssues": integration_issues})
 
@@ -389,7 +391,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             for item in item_list:
                 external_issues = PlatformExternalIssue.objects.filter(group_id=item.id)
                 sentry_app_issues = serialize(
-                    list(external_issues), request, serializer=PlatformExternalIssueSerializer()
+                    list(external_issues), serializer=PlatformExternalIssueSerializer()
                 )
                 attrs[item].update({"sentryAppIssues": sentry_app_issues})
 
@@ -397,7 +399,6 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             if not features.has(
                 "organizations:event-attachments",
                 item.project.organization,
-                actor=request.user,
             ):
                 return self.respond(status=404)
 
@@ -530,7 +531,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
     def __seen_stats_impl(
         self,
         error_issue_list: Sequence[Group],
-        seen_stats_func: Callable[[Any, Any, Any, Any, Any], Mapping[str, Any]],
+        seen_stats_func: _SeenStatsFunc,
     ) -> Mapping[Any, SeenStats]:
         partial_execute_seen_stats_query = functools.partial(
             seen_stats_func,
@@ -580,24 +581,25 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         return time_range_result
 
     def _build_session_cache_key(self, project_id):
-        start_key = end_key = env_key = ""
+        start_key_dt = end_key_dt = None
+        env_key = ""
         if self.start:
-            start_key = self.start.replace(second=0, microsecond=0, tzinfo=None)
+            start_key_dt = self.start.replace(second=0, microsecond=0, tzinfo=None)
 
         if self.end:
-            end_key = self.end.replace(second=0, microsecond=0, tzinfo=None)
+            end_key_dt = self.end.replace(second=0, microsecond=0, tzinfo=None)
 
-        if self.end and self.start and self.end - self.start >= timedelta(minutes=60):
+        if end_key_dt and start_key_dt and self.end - self.start >= timedelta(minutes=60):
             # Cache to the hour for longer time range queries, and to the minute if the query if for a time period under 1 hour
-            end_key = end_key.replace(minute=0)
-            start_key = start_key.replace(minute=0)
+            end_key_dt = end_key_dt.replace(minute=0)
+            start_key_dt = start_key_dt.replace(minute=0)
 
         if self.environment_ids:
             self.environment_ids.sort()
             env_key = "-".join(str(eid) for eid in self.environment_ids)
 
-        start_key = start_key.strftime("%m/%d/%Y, %H:%M:%S") if start_key != "" else ""
-        end_key = end_key.strftime("%m/%d/%Y, %H:%M:%S") if end_key != "" else ""
+        start_key = start_key_dt.strftime("%m/%d/%Y, %H:%M:%S") if start_key_dt is not None else ""
+        end_key = end_key_dt.strftime("%m/%d/%Y, %H:%M:%S") if end_key_dt is not None else ""
         key_hash = hash_values([project_id, start_key, end_key, env_key])
         session_cache_key = f"w-s:{key_hash}"
         return session_cache_key

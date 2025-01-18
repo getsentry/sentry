@@ -11,6 +11,7 @@ from sentry.incidents.endpoints.validators import (
     MetricAlertComparisonConditionValidator,
     MetricAlertsDetectorValidator,
 )
+from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.issues import grouptype
 from sentry.issues.grouptype import GroupCategory, GroupType
@@ -193,6 +194,10 @@ class DetectorValidatorTest(TestCase):
                     "result": DetectorPriorityLevel.HIGH,
                 }
             ],
+            "config": {
+                "threshold_period": 1,
+                "detection_type": AlertRuleDetectionType.STATIC.value,
+            },
         }
 
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.create_audit_entry")

@@ -52,6 +52,7 @@ export const EventTagsDataSection = forwardRef<HTMLElement, Props>(
 
     const availableFilters = useMemo(() => {
       return Object.keys(TagFilterData).filter(filter => {
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         return event.tags.some(tag => TagFilterData[filter].has(tag.key));
       });
     }, [event.tags]);

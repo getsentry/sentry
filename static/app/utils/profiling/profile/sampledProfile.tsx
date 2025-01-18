@@ -14,16 +14,18 @@ function sortStacks(
   const max = Math.max(a.stack.length, b.stack.length);
 
   for (let i = 0; i < max; i++) {
-    if (a.stack[i] === undefined) {
+    const aStackI = a.stack[i];
+    const bStackI = b.stack[i];
+    if (aStackI === undefined) {
       return -1;
     }
-    if (b.stack[i] === undefined) {
+    if (bStackI === undefined) {
       return 1;
     }
-    if (a.stack[i]! === b.stack[i]!) {
+    if (aStackI === bStackI) {
       continue;
     }
-    return a.stack[i]! - b.stack[i]!;
+    return aStackI! - bStackI!;
   }
   return 0;
 }
