@@ -25,6 +25,7 @@ import simpleImportSort from 'eslint-plugin-simple-import-sort';
 import testingLibrary from 'eslint-plugin-testing-library';
 // @ts-expect-error TS (7016): Could not find a declaration file
 import typescriptSortKeys from 'eslint-plugin-typescript-sort-keys';
+import unicorn from 'eslint-plugin-unicorn';
 import globals from 'globals';
 import invariant from 'invariant';
 // biome-ignore lint/correctness/noNodejsModules: Need to get the list of things!
@@ -495,13 +496,13 @@ export default typescript.config([
         {
           groups: [
             // Side effect imports.
-            ['^\\u0000'],
+            [String.raw`^\u0000`],
 
             // Node.js builtins.
             [`^(${builtinModules.join('|')})(/|$)`],
 
             // Packages. `react` related packages come first.
-            ['^react', '^@?\\w'],
+            ['^react', String.raw`^@?\w`],
 
             // Test should be separate from the app
             ['^(sentry-test|getsentry-test)(/.*|$)'],
@@ -517,13 +518,13 @@ export default typescript.config([
             ['^(admin|getsentry)(/.*|$)'],
 
             // Style imports.
-            ['^.+\\.less$'],
+            [String.raw`^.+\.less$`],
 
             // Parent imports. Put `..` last.
-            ['^\\.\\.(?!/?$)', '^\\.\\./?$'],
+            [String.raw`^\.\.(?!/?$)`, String.raw`^\.\./?$`],
 
             // Other relative imports. Put same-folder imports and `.` last.
-            ['^\\./(?=.*/)(?!/?$)', '^\\.(?!/?$)', '^\\./?$'],
+            [String.raw`^\./(?=.*/)(?!/?$)`, String.raw`^\.(?!/?$)`, String.raw`^\./?$`],
           ],
         },
       ],
@@ -550,6 +551,17 @@ export default typescript.config([
       '@emotion/pkg-renaming': 'off', // Not needed, we have migrated to v11 and the old package names cannot be used anymore
       '@emotion/styled-import': 'error',
       '@emotion/syntax-preference': ['error', 'string'],
+    },
+  },
+  {
+    name: 'plugin/unicorn',
+    plugins: {unicorn},
+    rules: {
+      // The recommended rules are very opinionated. We don't need to enable them.
+
+      'unicorn/no-instanceof-array': 'error',
+      'unicorn/prefer-array-flat-map': 'error',
+      'unicorn/prefer-node-protocol': 'error',
     },
   },
   {
