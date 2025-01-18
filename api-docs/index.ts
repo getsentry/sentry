@@ -1,5 +1,4 @@
 import yaml from 'js-yaml';
-// @ts-expect-error TS(7016): Could not find a declaration file
 import JsonRefs from 'json-refs';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -13,14 +12,16 @@ function dictToString(dict) {
 }
 
 function bundle(originalFile) {
-  const root = yaml.load(fs.readFileSync(originalFile, 'utf8'));
+  // @ts-expect-error: Types do not match the version of js-yaml installed
+  const root = yaml.safeLoad(fs.readFileSync(originalFile, 'utf8'));
   const options = {
     filter: ['relative', 'remote', 'local'],
     resolveCirculars: true,
     location: originalFile,
     loaderOptions: {
       processContent: function (res, callback) {
-        callback(undefined, yaml.load(res.text));
+        // @ts-expect-error: Types do not match the version of js-yaml installed
+        callback(undefined, yaml.safeLoad(res.text));
       },
     },
   };
@@ -30,13 +31,10 @@ function bundle(originalFile) {
       const resErrors = {};
       for (const [k, v] of Object.entries(results.refs)) {
         if (
-          // @ts-expect-error: V is undefined
           'missing' in v &&
           v.missing === true &&
-          // @ts-expect-error: V is undefined
           (v.type === 'relative' || v.type === 'remote')
         ) {
-          // @ts-expect-error: V is undefined
           resErrors[k] = v.error;
         }
       }

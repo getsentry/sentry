@@ -1,5 +1,4 @@
 import yaml from 'js-yaml';
-// @ts-expect-error TS(7016): Could not find a declaration file
 import jsonDiff from 'json-diff';
 import fs from 'node:fs';
 import https from 'node:https';
@@ -24,7 +23,8 @@ async function main() {
   );
 
   const readFile = fs.readFileSync('tests/apidocs/openapi-derefed.json', 'utf8');
-  const target = yaml.load(readFile);
+  // @ts-expect-error: Types do not match the version of js-yaml installed
+  const target = yaml.safeLoad(readFile);
 
   // eslint-disable-next-line no-console
   console.log(jsonDiff.diffString(openApiData, target));

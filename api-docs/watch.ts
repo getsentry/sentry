@@ -1,7 +1,6 @@
 import {spawn} from 'node:child_process';
 import {join} from 'node:path';
 import {stderr, stdout} from 'node:process';
-// @ts-expect-error TS(7016): Could not find a declaration file
 import sane from 'sane';
 
 const watcherPy = sane(join(__dirname, '../src/sentry'));
