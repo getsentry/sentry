@@ -1,19 +1,11 @@
-import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {useNavContext} from 'sentry/components/nav/context';
 
 export function SecondarySidebar() {
-  const ref = useRef<HTMLDivElement>(null);
   const {setSecondaryNavEl} = useNavContext();
 
-  useEffect(() => {
-    if (ref.current) {
-      setSecondaryNavEl(ref.current);
-    }
-  }, [ref, setSecondaryNavEl]);
-
-  return <SecondarySidebarWrapper ref={ref} />;
+  return <SecondarySidebarWrapper ref={setSecondaryNavEl} />;
 }
 
 const SecondarySidebarWrapper = styled('div')`
