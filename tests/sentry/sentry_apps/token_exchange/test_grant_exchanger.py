@@ -69,7 +69,10 @@ class TestGrantExchanger(TestCase):
         with pytest.raises(SentryAppIntegratorError) as e:
             self.grant_exchanger.run()
         assert e.value.message == "Could not find grant for given code"
-        assert e.value.webhook_context == {"code": self.grant_exchanger.code[:4]}
+        assert e.value.webhook_context == {
+            "code": self.grant_exchanger.code,
+            "installation_uuid": self.install.uuid,
+        }
         assert e.value.public_context == {}
 
     @patch("sentry.sentry_apps.token_exchange.grant_exchanger.GrantExchanger._validate")

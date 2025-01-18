@@ -87,7 +87,7 @@ class TestRefresher(TestCase):
 
         assert e.value.message == "Given refresh token does not exist"
         assert e.value.webhook_context == {
-            "token": self.token.refresh_token[:4],
+            "token": self.token.refresh_token,
             "installation_uuid": self.install.uuid,
         }
         assert e.value.public_context == {}
@@ -99,7 +99,7 @@ class TestRefresher(TestCase):
 
         assert e.value.message == "Could not find matching Application for given client_id"
         assert e.value.webhook_context == {
-            "client_id": self.client_id[:4],
+            "client_id": self.client_id,
             "installation_uuid": self.install.uuid,
         }
         assert e.value.public_context == {}
