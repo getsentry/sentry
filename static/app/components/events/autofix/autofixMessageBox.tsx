@@ -481,7 +481,7 @@ function AutofixMessageBox({
     }
 
     if (text.trim() !== '' || allowEmptyMessage) {
-      if (onSend != null) {
+      if (onSend !== null) {
         onSend(text);
       } else {
         send({
