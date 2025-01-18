@@ -41,7 +41,7 @@ class GrantExchanger:
                 # Once it's exchanged it's no longer valid and should not be
                 # exchangeable, so we delete it.
                 self._delete_grant()
-            except (SentryAppIntegratorError, SentryAppSentryError):
+            except SentryAppIntegratorError:
                 logger.info(
                     "grant-exchanger.context",
                     extra={
@@ -65,10 +65,10 @@ class GrantExchanger:
         Validator(install=self.install, client_id=self.client_id, user=self.user).run()
 
         if not self._grant_belongs_to_install() or not self._sentry_app_user_owns_grant():
-            raise SentryAppIntegratorError(message="Forbidden grant")
+            raise SentryAppIntegratorError(message="Forbidden grant", status_code=401)
 
         if not self._grant_is_active():
-            raise SentryAppIntegratorError("Grant has already expired", status_code=403)
+            raise SentryAppIntegratorError("Grant has already expired", status_code=401)
 
     def _grant_belongs_to_install(self) -> bool:
         return self.grant.sentry_app_installation.id == self.install.id
@@ -110,8 +110,8 @@ class GrantExchanger:
         except ApiGrant.DoesNotExist:
             raise SentryAppIntegratorError(
                 "Could not find grant for given code",
-                webhook_context={"code": self.code[:4]},
-                status_code=404,
+                webhook_context={"code": self.code, "installation_uuid": self.install.uuid},
+                status_code=401,
             )
 
     @property
@@ -121,6 +121,7 @@ class GrantExchanger:
         except ApiApplication.DoesNotExist:
             raise SentryAppSentryError(
                 "Could not find application from grant",
+                status_code=401,
                 webhook_context={"code": self.code[:4], "grant_id": self.grant.id},
             )
 
@@ -131,5 +132,6 @@ class GrantExchanger:
         except SentryApp.DoesNotExist:
             raise SentryAppSentryError(
                 "Could not find integration from application",
+                status_code=401,
                 webhook_context={"application_id": self.application.id},
             )

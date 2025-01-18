@@ -59,12 +59,20 @@ class Refresher:
 
         if self.token.application != self.application:
             assert self.token.application is not None, "Application must exist on ApiToken"
+            webhook_context = {
+                "client_id_installation_uuid": self.install.uuid,
+                "client_id": self.client_id,
+            }
+            try:
+                token_installation = ApiToken.objects.get(
+                    refresh_token=self.refresh_token
+                ).sentry_app_installation
+                webhook_context.update({"token_installation": token_installation.uuid})
+            except SentryAppInstallation.DoesNotExist:
+                pass
+
             raise SentryAppIntegratorError(
-                message="Token does not belong to the application",
-                webhook_context={
-                    "client_id_from_token": self.token.application.client_id[:4],
-                    "given_client_id": self.client_id[:4],
-                },
+                message="Token does not belong to the application", webhook_context=webhook_context
             )
 
     def _create_new_token(self) -> ApiToken:
@@ -87,8 +95,9 @@ class Refresher:
         except ApiToken.DoesNotExist:
             raise SentryAppIntegratorError(
                 message="Given refresh token does not exist",
+                status_code=401,
                 webhook_context={
-                    "token": self.refresh_token[:4],
+                    "token": self.refresh_token,
                     "installation_uuid": self.install.uuid,
                 },
             )
@@ -100,8 +109,9 @@ class Refresher:
         except ApiApplication.DoesNotExist:
             raise SentryAppIntegratorError(
                 message="Could not find matching Application for given client_id",
+                status_code=401,
                 webhook_context={
-                    "client_id": self.client_id[:4],
+                    "client_id": self.client_id,
                     "installation_uuid": self.install.uuid,
                 },
             )
@@ -113,6 +123,7 @@ class Refresher:
         except SentryApp.DoesNotExist:
             raise SentryAppSentryError(
                 message="Sentry App does not exist on attached Application",
+                status_code=401,
                 webhook_context={
                     "application_id": self.application.id,
                     "installation_uuid": self.install.uuid,

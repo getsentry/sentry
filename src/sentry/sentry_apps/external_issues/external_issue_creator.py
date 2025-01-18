@@ -46,7 +46,4 @@ class ExternalIssueCreator:
                     "sentry_app_slug": self.install.sentry_app.slug,
                 },
             )
-            raise SentryAppSentryError(
-                message="Failed to create external issue obj",
-                webhook_context={"error": str(e)},
-            ) from e
+            raise SentryAppSentryError(message="Failed to create external issue obj") from e
