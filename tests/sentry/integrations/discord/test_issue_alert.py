@@ -4,7 +4,6 @@ from uuid import uuid4
 import orjson
 import responses
 from django.core.exceptions import ValidationError
-from requests.exceptions import HTTPError
 
 from sentry.integrations.discord.actions.issue_alert.form import DiscordNotifyServiceForm
 from sentry.integrations.discord.actions.issue_alert.notification import DiscordNotifyServiceAction
@@ -20,7 +19,7 @@ from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import EventLifecycleOutcome, ExternalProviders
 from sentry.models.group import GroupStatus
 from sentry.models.release import Release
-from sentry.shared_integrations.exceptions import ApiTimeoutError
+from sentry.shared_integrations.exceptions import ApiRateLimitedError, ApiTimeoutError
 from sentry.testutils.asserts import assert_slo_metric
 from sentry.testutils.cases import RuleTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -86,7 +85,7 @@ class DiscordIssueAlertTest(RuleTestCase):
 
     @mock.patch(
         "sentry.integrations.discord.client.DiscordClient.send_message",
-        side_effect=HTTPError(429),
+        side_effect=ApiRateLimitedError(text="Rate limited"),
     )
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def assert_lifecycle_metrics_halt_for_rate_limit(self, mock_record_event, mock_send_message):

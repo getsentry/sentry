@@ -9,6 +9,7 @@ from sentry.integrations.discord.client import CHANNEL_URL, DISCORD_BASE_URL, ME
 from sentry.integrations.discord.spec import DiscordMessagingSpec
 from sentry.integrations.messaging.spec import MessagingActionHandler
 from sentry.integrations.types import EventLifecycleOutcome
+from sentry.shared_integrations.exceptions import ApiRateLimitedError
 from sentry.testutils.asserts import assert_slo_metric
 from sentry.testutils.helpers.datetime import freeze_time
 
@@ -104,3 +105,18 @@ class DiscordActionHandlerTest(FireTest):
             handler.fire(metric_value, IncidentStatus.OPEN)
 
         assert_slo_metric(mock_record_event, EventLifecycleOutcome.FAILURE)
+
+    @patch(
+        "sentry.integrations.discord.client.DiscordClient.send_message",
+        side_effect=ApiRateLimitedError(text="Rate limited"),
+    )
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_metric_alert_halt_for_rate_limited(self, mock_record_event, mock_send_message):
+        alert_rule = self.create_alert_rule()
+        incident = self.create_incident(alert_rule=alert_rule, status=IncidentStatus.CLOSED.value)
+        handler = MessagingActionHandler(self.action, incident, self.project, self.spec)
+        metric_value = 1000
+        with self.tasks():
+            handler.fire(metric_value, IncidentStatus.OPEN)
+
+        assert_slo_metric(mock_record_event, EventLifecycleOutcome.HALTED)

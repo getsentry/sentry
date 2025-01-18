@@ -63,6 +63,10 @@ def send_incident_alert_notification(
     ).capture() as lifecycle:
         try:
             client.send_message(channel, message)
+        except ApiRateLimitedError as error:
+            # TODO(ecosystem): We should batch this on a per-organization basis
+            lifecycle.record_halt(error)
+            return False
         except Exception as error:
             lifecycle.add_extras(
                 {
@@ -70,10 +74,7 @@ def send_incident_alert_notification(
                     "channel_id": channel,
                 }
             )
-            # TODO(ecosystem): We should batch this on a per-organization basis
-            if isinstance(error, ApiRateLimitedError):
-                lifecycle.record_halt(error)
-            else:
-                lifecycle.record_failure(error)
+
+            lifecycle.record_failure(error)
             return False
         return True

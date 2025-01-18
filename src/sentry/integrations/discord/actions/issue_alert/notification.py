@@ -59,6 +59,9 @@ class DiscordNotifyServiceAction(IntegrationEventAction):
                 try:
                     lifecycle.add_extras({"integration_id": integration.id, "channel": channel_id})
                     client.send_message(channel_id, message, notification_uuid=notification_uuid)
+                except ApiRateLimitedError as e:
+                    # TODO(ecosystem): We should batch this on a per-organization basis
+                    lifecycle.record_halt(e)
                 except Exception as e:
                     lifecycle.add_extras(
                         {
@@ -68,11 +71,8 @@ class DiscordNotifyServiceAction(IntegrationEventAction):
                             "channel_id": channel_id,
                         }
                     )
-                    # TODO(ecosystem): We should batch this on a per-organization basis
-                    if isinstance(e, ApiRateLimitedError):
-                        lifecycle.record_halt(e)
-                    else:
-                        lifecycle.record_failure(e)
+
+                    lifecycle.record_failure(e)
 
             rule = rules[0] if rules else None
             self.record_notification_sent(event, channel_id, rule, notification_uuid)
