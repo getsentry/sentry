@@ -1,7 +1,5 @@
-/* eslint-env node */
-/* eslint import/no-unresolved:0 */
-
 import yaml from 'js-yaml';
+// @ts-expect-error TS(7016): Could not find a declaration file
 import jsonDiff from 'json-diff';
 import fs from 'node:fs';
 import https from 'node:https';
@@ -26,7 +24,7 @@ async function main() {
   );
 
   const readFile = fs.readFileSync('tests/apidocs/openapi-derefed.json', 'utf8');
-  const target = yaml.safeLoad(readFile);
+  const target = yaml.load(readFile);
 
   // eslint-disable-next-line no-console
   console.log(jsonDiff.diffString(openApiData, target));

@@ -306,6 +306,7 @@ export default typescript.config([
       'import/no-anonymous-default-export': 'error',
       'import/no-duplicates': 'error',
       'import/no-named-default': 'error',
+      'import/no-nodejs-modules': 'error',
       'import/no-webpack-loader-syntax': 'error',
 
       // https://github.com/import-js/eslint-plugin-import/blob/main/config/recommended.js
@@ -604,12 +605,16 @@ export default typescript.config([
   },
   {
     name: 'files/*.config.*',
-    files: ['*.config.*'],
+    files: ['**/*.config.*'],
     languageOptions: {
       globals: {
         ...globals.commonjs,
         ...globals.node,
       },
+    },
+
+    rules: {
+      'import/no-nodejs-modules': 'off',
     },
   },
   {
@@ -624,6 +629,8 @@ export default typescript.config([
     },
     rules: {
       'no-console': 'off',
+
+      'import/no-nodejs-modules': 'off',
     },
   },
   {
@@ -632,7 +639,9 @@ export default typescript.config([
       'tests/js/jest-pegjs-transform.js',
       'tests/js/sentry-test/echartsMock.js',
       'tests/js/sentry-test/importStyleMock.js',
+      'tests/js/sentry-test/loadFixtures.ts',
       'tests/js/sentry-test/svgMock.js',
+      'tests/js/setup.ts',
     ],
     languageOptions: {
       sourceType: 'commonjs',
@@ -640,7 +649,9 @@ export default typescript.config([
         ...globals.commonjs,
       },
     },
-    rules: {},
+    rules: {
+      'import/no-nodejs-modules': 'off',
+    },
   },
   {
     name: 'files/devtoolbar',
