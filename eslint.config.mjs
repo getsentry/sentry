@@ -236,6 +236,7 @@ export default typescript.config([
       'consistent-return': 'error',
       'default-case': 'error',
       'dot-notation': 'error',
+      eqeqeq: 'error',
       'guard-for-in': 'off', // TODO(ryan953): Fix violations and enable this rule
       'multiline-comment-style': ['error', 'separate-lines'],
       'no-alert': 'error',
@@ -268,6 +269,7 @@ export default typescript.config([
       'no-sequences': 'error',
       'no-throw-literal': 'error',
       'object-shorthand': ['error', 'properties'],
+      radix: 'error',
       'require-await': 'error', // Enabled in favor of @typescript-eslint/require-await, which requires type info
       'spaced-comment': [
         'error',
@@ -277,10 +279,9 @@ export default typescript.config([
           block: {exceptions: ['*'], balanced: true},
         },
       ],
+      strict: 'error',
       'vars-on-top': 'off',
       'wrap-iife': ['error', 'any'],
-      radix: 'error',
-      strict: 'error',
       yoda: 'error',
 
       // https://github.com/eslint/eslint/blob/main/packages/js/src/configs/eslint-recommended.js
@@ -369,6 +370,7 @@ export default typescript.config([
         {selector: 'typeLike', format: ['PascalCase'], leadingUnderscore: 'allow'},
         {selector: 'enumMember', format: ['UPPER_CASE']},
       ],
+
       '@typescript-eslint/no-restricted-types': [
         'error',
         {
@@ -392,6 +394,7 @@ export default typescript.config([
       ],
       '@typescript-eslint/no-shadow': 'error',
       '@typescript-eslint/no-use-before-define': 'off', // Enabling this will cause a lot of thrash to the git history
+      '@typescript-eslint/no-useless-empty-export': 'error',
     },
   },
   // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/base.ts
@@ -406,8 +409,8 @@ export default typescript.config([
     // https://typescript-eslint.io/rules/
     plugins: {'@typescript-eslint': typescript.plugin},
     rules: {
-      'no-var': 'off', // TODO(ryan953): Fix violations and delete this line
       'prefer-spread': 'off', // TODO(ryan953): Fix violations and delete this line
+      '@typescript-eslint/prefer-enum-initializers': 'error',
 
       // Recommended overrides
       '@typescript-eslint/ban-ts-comment': 'off', // TODO(ryan953): Fix violations and delete this line
@@ -427,7 +430,7 @@ export default typescript.config([
       '@typescript-eslint/no-extraneous-class': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-invalid-void-type': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-non-null-assertion': 'off', // TODO(ryan953): Fix violations and delete this line
-      '@typescript-eslint/prefer-literal-enum-member': 'off', // TODO(ryan953): Fix violations and delete this line
+      '@typescript-eslint/prefer-literal-enum-member': 'error', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/unified-signatures': 'off', // TODO(ryan953): Fix violations and delete this line
 
       // Stylistic overrides
@@ -439,7 +442,6 @@ export default typescript.config([
       '@typescript-eslint/no-empty-function': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-inferrable-types': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/prefer-for-of': 'off', // TODO(ryan953): Fix violations and delete this line
-      '@typescript-eslint/prefer-function-type': 'off', // TODO(ryan953): Fix violations and delete this line
 
       // Customization
       '@typescript-eslint/no-unused-vars': [
@@ -558,26 +560,18 @@ export default typescript.config([
     // https://github.com/jest-community/eslint-plugin-jest/tree/main/docs/rules
     plugins: jest.configs['flat/recommended'].plugins,
     rules: {
+      'jest/max-nested-describe': 'error',
+      'jest/no-duplicate-hooks': 'error',
+      'jest/no-large-snapshots': ['error', {maxSize: 2000}], // We don't recommend snapshots, but if there are any keep it small
+
       // https://github.com/jest-community/eslint-plugin-jest/blob/main/src/index.ts
       ...jest.configs['flat/recommended'].rules,
       ...jest.configs['flat/style'].rules,
 
-      // `recommended` set this to warn, we've upgraded to error
-      'jest/no-disabled-tests': 'error',
-
-      // `recommended` set this to warn, we've downgraded to off
-      // Disabled as we have many tests which render as simple validations
-      'jest/expect-expect': 'off',
-
-      // Disabled as we have some comment out tests that cannot be
-      // uncommented due to typescript errors.
+      'jest/expect-expect': 'off', // Disabled as we have many tests which render as simple validations
       'jest/no-commented-out-tests': 'off', // TODO(ryan953): Fix violations then delete this line
-
-      // Disabled as we do sometimes have conditional expects
       'jest/no-conditional-expect': 'off', // TODO(ryan953): Fix violations then delete this line
-
-      // We don't recommend snapshots, but if there are any keep it small
-      'jest/no-large-snapshots': ['error', {maxSize: 2000}],
+      'jest/no-disabled-tests': 'error', // `recommended` set this to warn, we've upgraded to error
     },
   },
   {
