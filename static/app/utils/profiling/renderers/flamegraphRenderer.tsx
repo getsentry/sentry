@@ -17,14 +17,12 @@ export const DEFAULT_FLAMEGRAPH_RENDERER_OPTIONS: FlamegraphRendererOptions = {
   draw_border: false,
 };
 
-export interface FlamegraphRendererConstructor {
-  new (
-    canvas: HTMLCanvasElement,
-    flamegraph: Flamegraph,
-    theme: FlamegraphTheme,
-    options?: FlamegraphRendererOptions
-  ): FlamegraphRenderer;
-}
+export type FlamegraphRendererConstructor = new (
+  canvas: HTMLCanvasElement,
+  flamegraph: Flamegraph,
+  theme: FlamegraphTheme,
+  options?: FlamegraphRendererOptions
+) => FlamegraphRenderer;
 
 export abstract class FlamegraphRenderer {
   ctx: CanvasRenderingContext2D | WebGLRenderingContext | null = null;
