@@ -553,24 +553,20 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         assert sum_meta["fields"] == {
             "time": "date",
             "sum_measurements_datacenter_memory": "size",
-            "p50_measurements_datacenter_memory": "size",
         }
         assert sum_meta["units"] == {
             "time": None,
             "sum_measurements_datacenter_memory": "pebibyte",
-            "p50_measurements_datacenter_memory": "pebibyte",
         }
 
         p50_meta = p50_data["meta"]
         assert p50_meta["isMetricsData"] == p50_data["isMetricsData"]
         assert p50_meta["fields"] == {
             "time": "date",
-            "sum_measurements_datacenter_memory": "size",
             "p50_measurements_datacenter_memory": "size",
         }
         assert p50_meta["units"] == {
             "time": None,
-            "sum_measurements_datacenter_memory": "pebibyte",
             "p50_measurements_datacenter_memory": "pebibyte",
         }
 
@@ -699,14 +695,10 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         assert meta["fields"] == {
             "time": "date",
             "p95_measurements_custom": "size",
-            "p99_measurements_custom": "size",
-            "p99_measurements_another_custom": "size",
         }
         assert meta["units"] == {
             "time": None,
             "p95_measurements_custom": "kibibyte",
-            "p99_measurements_custom": "kibibyte",
-            "p99_measurements_another_custom": "pebibyte",
         }
         assert meta == response.data["p99(measurements.custom)"]["meta"]
         assert meta == response.data["p99(measurements.another.custom)"]["meta"]
