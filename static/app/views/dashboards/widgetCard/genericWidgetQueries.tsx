@@ -34,6 +34,7 @@ function getReferrer(displayType: DisplayType) {
 }
 
 export type OnDataFetchedProps = {
+  confidence?: Confidence;
   pageLinks?: string;
   tableResults?: TableDataWithTitle[];
   timeseriesResults?: Series[];

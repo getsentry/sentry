@@ -29,7 +29,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
-import type {Organization} from 'sentry/types/organization';
+import type {Confidence, Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -110,6 +110,7 @@ export interface WidgetViewerModalOptions {
   organization: Organization;
   widget: Widget;
   widgetLegendState: WidgetLegendSelectionState;
+  confidence?: Confidence;
   dashboardCreator?: User;
   dashboardFilters?: DashboardFilters;
   dashboardPermissions?: DashboardPermissions;
@@ -195,6 +196,7 @@ function WidgetViewerModal(props: Props) {
     widgetLegendState,
     dashboardPermissions,
     dashboardCreator,
+    confidence,
   } = props;
   const location = useLocation();
   const {projects} = useProjects();
@@ -852,6 +854,8 @@ function WidgetViewerModal(props: Props) {
                 expandNumbers
                 noPadding
                 widgetLegendState={widgetLegendState}
+                showConfidenceWarning={widget.widgetType === WidgetType.SPANS}
+                confidence={confidence}
               />
             ) : (
               <MemoizedWidgetCardChartContainer
@@ -870,6 +874,7 @@ function WidgetViewerModal(props: Props) {
                 expandNumbers
                 noPadding
                 widgetLegendState={widgetLegendState}
+                showConfidenceWarning={widget.widgetType === WidgetType.SPANS}
               />
             )}
           </Container>
