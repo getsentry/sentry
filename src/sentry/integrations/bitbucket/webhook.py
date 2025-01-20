@@ -96,8 +96,10 @@ class PushEventWebhook(BitbucketWebhook):
     def event_type(self) -> IntegrationWebhookEventType:
         return IntegrationWebhookEventType.PUSH
 
-    def __call__(self, request: HttpRequest, event: Mapping[str, Any], **kwargs) -> None:
+    def __call__(self, event: Mapping[str, Any], **kwargs) -> None:
         authors = {}
+        if not (request := kwargs.get("request")):
+            raise ValueError("Missing request")
 
         if not (organization := kwargs.get("organization")):
             raise ValueError("Missing organization")
@@ -245,7 +247,7 @@ class BitbucketWebhookEndpoint(Endpoint):
             provider_key=event_handler.provider,
         ).capture():
             try:
-                event_handler(request, event, organization=organization)
+                event_handler(event, request=request, organization=organization)
             except WebhookSignatureException as e:
                 return HttpResponse(str(e), status=400)
 
