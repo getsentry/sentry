@@ -142,6 +142,7 @@ class RpcOrganizationMember(RpcOrganizationMemberSummary):
     token_expired: bool = False
     legacy_token: str = ""
     email: str = ""
+    invitation_link: str | None = None
 
     def get_audit_log_metadata(self, user_email: str | None = None) -> Mapping[str, Any]:
         from sentry.models.organizationmember import invite_status_names
