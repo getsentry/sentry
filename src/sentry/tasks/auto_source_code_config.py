@@ -17,6 +17,7 @@ from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionEvent,
     SCMIntegrationInteractionType,
 )
+from sentry.integrations.source_code_management.repo_trees import RepoTree
 from sentry.issues.auto_source_code_config.code_mapping import CodeMappingTreesHelper
 from sentry.issues.auto_source_code_config.types import CodeMapping
 from sentry.locks import locks
@@ -140,7 +141,7 @@ def auto_source_code_config(
         logger.info("No installation or organization integration found.", extra=extra)
         return
 
-    trees = {}
+    trees: dict[str, RepoTree] = {}
     # Acquire the lock for a maximum of 10 minutes
     lock = locks.get(key=f"get_trees_for_org:{org.slug}", duration=60 * 10, name="process_pending")
 

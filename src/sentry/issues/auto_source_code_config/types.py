@@ -1,14 +1,6 @@
 from typing import NamedTuple
 
-
-class RepoAndBranch(NamedTuple):
-    name: str
-    branch: str
-
-
-class RepoTree(NamedTuple):
-    repo: RepoAndBranch
-    files: list[str]
+from sentry.integrations.source_code_management.repo_trees import RepoAndBranch
 
 
 class CodeMapping(NamedTuple):
