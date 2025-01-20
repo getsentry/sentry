@@ -5,18 +5,14 @@ import logging
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.integration.model import RpcOrganizationIntegration
+from sentry.integrations.source_code_management.repo_trees import RepoTree, get_extension
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.utils.event_frames import EventFrame, try_munge_frame_path
 
-from .source_code_files import get_extension
-from .types import CodeMapping, RepoTree
+from .types import CodeMapping
 
 logger = logging.getLogger(__name__)
-
-SUPPORTED_LANGUAGES = ["javascript", "python", "node", "ruby", "php", "go", "csharp"]
-
-SUPPORTED_LANGUAGES = ["javascript", "python", "node", "ruby", "php", "go", "csharp"]
 
 SUPPORTED_LANGUAGES = ["javascript", "python", "node", "ruby", "php", "go", "csharp"]
 

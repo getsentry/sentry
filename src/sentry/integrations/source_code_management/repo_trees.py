@@ -12,6 +12,14 @@ from sentry.utils.cache import cache
 logger = logging.getLogger(__name__)
 
 
+# Read this to learn about file extensions for different languages
+# https://github.com/github/linguist/blob/master/lib/linguist/languages.yml
+# We only care about the ones that would show up in stacktraces after symbolication
+SUPPORTED_EXTENSIONS = ["js", "jsx", "tsx", "ts", "mjs", "py", "rb", "rake", "php", "go", "cs"]
+EXCLUDED_EXTENSIONS = ["spec.jsx"]
+EXCLUDED_PATHS = ["tests/"]
+
+
 class RepoAndBranch(NamedTuple):
     name: str
     branch: str
@@ -150,7 +158,7 @@ class RepoTreesIntegration(ABC):
         key = f"github:repo:{repo_and_branch.name}:source-code"
         repo_files: list[str] = cache.get(key, [])
         if not repo_files and not use_cache:
-            tree = self.client.get_tree(repo_and_branch.name, repo_and_branch.branch)
+            tree = self.get_client().get_tree(repo_and_branch.name, repo_and_branch.branch)
             if tree:
                 # Keep files; discard directories
                 repo_files = [x["path"] for x in tree if x["type"] == "blob"]
@@ -221,12 +229,6 @@ def _process_api_error(error: ApiError) -> bool:
     return True
 
 
-# Read this to learn about file extensions for different languages
-# https://github.com/github/linguist/blob/master/lib/linguist/languages.yml
-# We only care about the ones that would show up in stacktraces after symbolication
-EXTENSIONS = ["js", "jsx", "tsx", "ts", "mjs", "py", "rb", "rake", "php", "go", "cs"]
-
-
 def filter_source_code_files(files: list[str]) -> list[str]:
     """
     This takes the list of files of a repo and returns
@@ -239,7 +241,7 @@ def filter_source_code_files(files: list[str]) -> list[str]:
     for file_path in files:
         try:
             extension = get_extension(file_path)
-            if extension in EXTENSIONS and should_include(file_path):
+            if extension in SUPPORTED_EXTENSIONS and should_include(file_path):
                 supported_files.append(file_path)
         except Exception:
             logger.exception("We've failed to store the file path.")
@@ -259,6 +261,8 @@ def get_extension(file_path: str) -> str:
 
 def should_include(file_path: str) -> bool:
     include = True
-    if file_path.endswith("spec.jsx") or file_path.startswith("tests/"):
+    if any(file_path.endswith(ext) for ext in EXCLUDED_EXTENSIONS):
+        include = False
+    if any(file_path.startswith(path) for path in EXCLUDED_PATHS):
         include = False
     return include
