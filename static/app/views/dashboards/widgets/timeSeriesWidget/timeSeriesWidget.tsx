@@ -7,18 +7,28 @@ import {
   WidgetFrame,
   type WidgetFrameProps,
 } from 'sentry/views/dashboards/widgets/common/widgetFrame';
-import {
-  TimeSeriesWidgetVisualization,
-  type TimeSeriesWidgetVisualizationProps,
-} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
+import type {TimeSeriesWidgetVisualizationProps} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 
+import {AreaChartWidgetVisualization} from '../areaChartWidget/areaChartWidgetVisualization';
+import {BarChartWidgetVisualization} from '../barChartWidget/barChartWidgetVisualization';
 import {MISSING_DATA_MESSAGE, X_GUTTER, Y_GUTTER} from '../common/settings';
 import type {StateProps} from '../common/types';
+import {LineChartWidgetVisualization} from '../lineChartWidget/lineChartWidgetVisualization';
+
+type VisualizationType = 'area' | 'line' | 'bar';
 
 export interface TimeSeriesWidgetProps
   extends StateProps,
     Omit<WidgetFrameProps, 'children'>,
-    Partial<TimeSeriesWidgetVisualizationProps> {}
+    Partial<TimeSeriesWidgetVisualizationProps> {
+  visualizationType: VisualizationType;
+}
+
+const VisualizationComponents: Record<VisualizationType, React.ComponentType<any>> = {
+  area: AreaChartWidgetVisualization,
+  line: LineChartWidgetVisualization,
+  bar: BarChartWidgetVisualization,
+};
 
 export function TimeSeriesWidget(props: TimeSeriesWidgetProps) {
   const {timeseries} = props;
@@ -42,6 +52,8 @@ export function TimeSeriesWidget(props: TimeSeriesWidgetProps) {
 
   const error = props.error ?? parsingError;
 
+  const Visualization = VisualizationComponents[props.visualizationType];
+
   return (
     <WidgetFrame
       title={props.title}
@@ -55,14 +67,13 @@ export function TimeSeriesWidget(props: TimeSeriesWidgetProps) {
       error={error}
       onRetry={props.onRetry}
     >
-      {defined(timeseries) && defined(props.SeriesConstructor) && (
+      {defined(timeseries) && (
         <TimeSeriesWrapper>
-          <TimeSeriesWidgetVisualization
+          <Visualization
             timeseries={timeseries}
             releases={props.releases}
             aliases={props.aliases}
             dataCompletenessDelay={props.dataCompletenessDelay}
-            SeriesConstructor={props.SeriesConstructor}
             timeseriesSelection={props.timeseriesSelection}
             onTimeseriesSelectionChange={props.onTimeseriesSelectionChange}
           />
