@@ -17,10 +17,7 @@ interface UseExploreSpansTableOptions {
   query: string;
 }
 
-export interface SpansTableResult {
-  eventView: EventView;
-  result: ReturnType<typeof useSpansQuery<any[]>>;
-}
+export type SpansTableResult = ReturnType<typeof useSpansQuery<any[]>>;
 
 export function useExploreSpansTable({
   enabled,
@@ -77,7 +74,5 @@ export function useExploreSpansTable({
     allowAggregateConditions: false,
   });
 
-  return useMemo(() => {
-    return {eventView, result};
-  }, [eventView, result]);
+  return result;
 }

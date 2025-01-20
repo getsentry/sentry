@@ -128,7 +128,7 @@ function ExploreContentImpl() {
       ? aggregatesTableResult.result.error?.message ?? ''
       : queryType === 'traces'
         ? tracesTableResult.result.error?.message ?? ''
-        : spansTableResult.result.error?.message ?? '';
+        : spansTableResult.error?.message ?? '';
   const chartError = timeseriesResult.error?.message ?? '';
 
   const {defaultPeriod, maxPickableDays, relativeOptions} =

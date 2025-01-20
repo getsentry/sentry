@@ -22,6 +22,7 @@ import {
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {
   Table,
   TableBody,
@@ -69,13 +70,19 @@ export function AggregatesTable({
   const groupBys = useExploreGroupBys();
   const visualizes = useExploreVisualizes();
 
-  const {result, eventView, fields} = aggregatesTableResult;
+  const {result, fields} = aggregatesTableResult;
 
   const sorts = useExploreSortBys();
   const setSorts = useSetExploreSortBys();
   const query = useExploreQuery();
 
-  const columns = useMemo(() => eventView.getColumns(), [eventView]);
+  const columns = useMemo(() => {
+    return decodeColumnOrder(
+      fields.map(f => {
+        return {field: f};
+      })
+    );
+  }, [fields]);
 
   useAnalytics({
     dataset,

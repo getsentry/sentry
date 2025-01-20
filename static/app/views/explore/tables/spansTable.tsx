@@ -11,6 +11,7 @@ import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {fieldAlignment, prettifyTagKey} from 'sentry/utils/discover/fields';
 import useOrganization from 'sentry/utils/useOrganization';
+import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {
   Table,
   TableBody,
@@ -57,15 +58,19 @@ export function SpansTable({confidences, spansTableResult}: SpansTableProps) {
     [fields]
   );
 
-  const {result, eventView} = spansTableResult;
-
-  const columnsFromEventView = useMemo(() => eventView.getColumns(), [eventView]);
+  const columnsFromVisibleFields = useMemo(() => {
+    return decodeColumnOrder(
+      visibleFields.map(f => {
+        return {field: f};
+      })
+    );
+  }, [visibleFields]);
 
   useAnalytics({
     dataset,
-    resultLength: result.data?.length,
+    resultLength: spansTableResult.data?.length,
     resultMode: 'span samples',
-    resultStatus: result.status,
+    resultStatus: spansTableResult.status,
     visualizes,
     organization,
     columns: fields,
@@ -77,7 +82,7 @@ export function SpansTable({confidences, spansTableResult}: SpansTableProps) {
   const tableRef = useRef<HTMLTableElement>(null);
   const {initialTableStyles, onResizeMouseDown} = useTableStyles(visibleFields, tableRef);
 
-  const meta = result.meta ?? {};
+  const meta = spansTableResult.meta ?? {};
 
   const numberTags = useSpanTags('number');
   const stringTags = useSpanTags('string');
@@ -89,7 +94,7 @@ export function SpansTable({confidences, spansTableResult}: SpansTableProps) {
           <TableRow>
             {visibleFields.map((field, i) => {
               // Hide column names before alignment is determined
-              if (result.isPending) {
+              if (spansTableResult.isPending) {
                 return <TableHeadCell key={i} isFirst={i === 0} />;
               }
 
@@ -124,8 +129,10 @@ export function SpansTable({confidences, spansTableResult}: SpansTableProps) {
                   {i !== visibleFields.length - 1 && (
                     <GridResizer
                       dataRows={
-                        !result.isError && !result.isPending && result.data
-                          ? result.data.length
+                        !spansTableResult.isError &&
+                        !spansTableResult.isPending &&
+                        spansTableResult.data
+                          ? spansTableResult.data.length
                           : 0
                       }
                       onMouseDown={e => onResizeMouseDown(e, i)}
@@ -137,22 +144,22 @@ export function SpansTable({confidences, spansTableResult}: SpansTableProps) {
           </TableRow>
         </TableHead>
         <TableBody>
-          {result.isPending ? (
+          {spansTableResult.isPending ? (
             <TableStatus>
               <LoadingIndicator />
             </TableStatus>
-          ) : result.isError ? (
+          ) : spansTableResult.isError ? (
             <TableStatus>
               <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
             </TableStatus>
-          ) : result.isFetched && result.data?.length ? (
-            result.data?.map((row, i) => (
+          ) : spansTableResult.isFetched && spansTableResult.data?.length ? (
+            spansTableResult.data?.map((row, i) => (
               <TableRow key={i}>
                 {visibleFields.map((field, j) => {
                   return (
                     <TableBodyCell key={j}>
                       <FieldRenderer
-                        column={columnsFromEventView[j]!}
+                        column={columnsFromVisibleFields[j]!}
                         data={row}
                         unit={meta?.units?.[field]}
                         meta={meta}
@@ -171,7 +178,7 @@ export function SpansTable({confidences, spansTableResult}: SpansTableProps) {
           )}
         </TableBody>
       </Table>
-      <Pagination pageLinks={result.pageLinks} />
+      <Pagination pageLinks={spansTableResult.pageLinks} />
     </Fragment>
   );
 }

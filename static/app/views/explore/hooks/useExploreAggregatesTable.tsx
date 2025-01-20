@@ -20,7 +20,6 @@ interface UseExploreAggregatesTableOptions {
 }
 
 export interface AggregatesTableResult {
-  eventView: EventView;
   fields: string[];
   result: ReturnType<typeof useSpansQuery<any[]>>;
 }
@@ -94,6 +93,6 @@ export function useExploreAggregatesTable({
   });
 
   return useMemo(() => {
-    return {eventView, fields, result};
-  }, [eventView, fields, result]);
+    return {fields, result};
+  }, [fields, result]);
 }
