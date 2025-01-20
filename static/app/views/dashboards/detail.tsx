@@ -292,8 +292,14 @@ class DashboardDetail extends Component<Props, State> {
       location,
       router,
     } = this.props;
-    const {seriesData, tableData, pageLinks, totalIssuesCount, seriesResultsType} =
-      this.state;
+    const {
+      seriesData,
+      tableData,
+      pageLinks,
+      totalIssuesCount,
+      seriesResultsType,
+      confidence,
+    } = this.state;
     if (isWidgetViewerPath(location.pathname)) {
       const widget =
         defined(widgetId) &&
@@ -358,6 +364,7 @@ class DashboardDetail extends Component<Props, State> {
               return;
             }
           },
+          confidence,
         });
         trackAnalytics('dashboards_views.widget_viewer.open', {
           organization,

@@ -57,16 +57,19 @@ function SpansWidgetQueries({
   const [confidence, setConfidence] = useState<Confidence | null>(null);
 
   const afterFetchSeriesData = (result: SeriesResult) => {
+    let seriesConfidence;
     if (isMultiSeriesStats(result)) {
       const dedupedYAxes = dedupeArray(widget.queries[0]?.aggregates ?? []);
       const seriesMap = transformToSeriesMap(result, dedupedYAxes);
       const series = dedupedYAxes.flatMap(yAxis => seriesMap[yAxis]).filter(defined);
-      const seriesConfidence = combineConfidenceForSeries(series);
-      setConfidence(seriesConfidence);
+      seriesConfidence = combineConfidenceForSeries(series);
     } else {
-      const seriesConfidence = determineSeriesConfidence(result);
-      setConfidence(seriesConfidence);
+      seriesConfidence = determineSeriesConfidence(result);
     }
+    setConfidence(seriesConfidence);
+    onDataFetched?.({
+      confidence: seriesConfidence,
+    });
   };
 
   return getDynamicText({
