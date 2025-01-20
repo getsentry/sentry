@@ -353,7 +353,7 @@ const IssuesPointerDisabled = styled('div')`
 
 const ROW_HEIGHT = 24;
 const MIN_ROW_COUNT = 1;
-const HEADER_HEIGHT = 28;
+const HEADER_HEIGHT = 38;
 const MAX_HEIGHT = 12 * ROW_HEIGHT + HEADER_HEIGHT;
 const MAX_ROW_COUNT = Math.floor(MAX_HEIGHT / ROW_HEIGHT);
 
