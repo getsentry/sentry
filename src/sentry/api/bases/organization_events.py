@@ -601,9 +601,12 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             dataset=dataset,
         )["meta"]
         for index, query_column in enumerate(query_columns):
+            axis_column = resolve_axis_column(
+                query_column, equations, transform_alias_to_input_format
+            )
             result[columns[index]] = serializer.serialize(
                 event_result,
-                resolve_axis_column(query_column, equations, transform_alias_to_input_format),
+                axis_column,
                 order=index,
                 allow_partial_buckets=allow_partial_buckets,
                 zerofill_results=zerofill_results,
@@ -617,9 +620,9 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 **meta,
                 "fields": {
                     "time": meta["fields"]["time"],
-                    query_column: meta["fields"][query_column],
+                    axis_column: meta["fields"][axis_column],
                 },
-                "units": {"time": meta["units"]["time"], query_column: meta["units"][query_column]},
+                "units": {"time": meta["units"]["time"], axis_column: meta["units"][axis_column]},
             }
         # Set order if multi-axis + top events
         if "order" in event_result.data:
