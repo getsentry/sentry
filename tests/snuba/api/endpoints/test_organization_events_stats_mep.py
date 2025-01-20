@@ -691,17 +691,32 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         )
 
         assert response.status_code == 200
-        meta = response.data["p95(measurements.custom)"]["meta"]
-        assert meta["fields"] == {
+        assert response.data["p95(measurements.custom)"]["meta"]["fields"] == {
             "time": "date",
             "p95_measurements_custom": "size",
         }
-        assert meta["units"] == {
+        assert response.data["p95(measurements.custom)"]["meta"]["units"] == {
             "time": None,
             "p95_measurements_custom": "kibibyte",
         }
-        assert meta == response.data["p99(measurements.custom)"]["meta"]
-        assert meta == response.data["p99(measurements.another.custom)"]["meta"]
+
+        assert response.data["p99(measurements.custom)"]["meta"]["fields"] == {
+            "time": "date",
+            "p99_measurements_custom": "size",
+        }
+        assert response.data["p99(measurements.custom)"]["meta"]["units"] == {
+            "time": None,
+            "p99_measurements_custom": "kibibyte",
+        }
+
+        assert response.data["p99(measurements.another.custom)"]["meta"]["fields"] == {
+            "time": "date",
+            "p99_measurements_another_custom": "size",
+        }
+        assert response.data["p95(measurements.another.custom)"]["meta"]["units"] == {
+            "time": None,
+            "p99_measurements_another_custom": "kibibyte",
+        }
 
     def test_no_top_events_with_project_field(self):
         project = self.create_project()

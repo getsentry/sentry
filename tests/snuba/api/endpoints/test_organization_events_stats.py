@@ -3029,19 +3029,28 @@ class OrganizationEventsStatsProfileFunctionDatasetEndpointTest(
             ],
         ]
 
-        for y_axis in y_axes:
-            assert response.data[y_axis]["meta"]["fields"] == {
-                "time": "date",
-                "cpm": "number",
-                "p95_function_duration": "duration",
-                "all_examples": "string",
-            }
-            assert response.data[y_axis]["meta"]["units"] == {
-                "time": None,
-                "cpm": None,
-                "p95_function_duration": "nanosecond",
-                "all_examples": None,
-            }
+        assert response.data["cpm()"]["meta"]["fields"] == {
+            "cpm": "number",
+            "time": "date",
+        }
+
+        assert response.data["cpm()"]["meta"]["units"] == {"cpm": None, "time": None}
+
+        assert response.data["p95(function.duration)"]["meta"]["fields"] == {
+            "p95_function_duration": "duration",
+            "time": "date",
+        }
+
+        assert response.data["p95(function.duration)"]["meta"]["units"] == {
+            "p95_function_duration": "nanosecond",
+        }
+
+        assert response.data["all_examples()"]["meta"]["fields"] == {
+            "all_examples": "string",
+            "time": "date",
+        }
+
+        assert response.data["all_examples()"]["meta"]["units"] == {"all_examples": None}
 
 
 class OrganizationEventsStatsTopNEventsProfileFunctionDatasetEndpointTest(
@@ -3130,6 +3139,33 @@ class OrganizationEventsStatsTopNEventsProfileFunctionDatasetEndpointTest(
                     "function": None,
                     "p95_function_duration": "nanosecond",
                     "all_examples": None,
+                }
+
+                assert response.data[func]["p95(function.duration)"]["meta"]["fields"] == {
+                    "time": "date",
+                    "p95_function_duration": "size",
+                }
+                assert response.data[func]["p95(function.duration)"]["meta"]["units"] == {
+                    "time": None,
+                    "p95_function_duration": "kibibyte",
+                }
+
+                assert response.data[func]["all_examples()"]["meta"]["fields"] == {
+                    "time": "date",
+                    "all_examples": "size",
+                }
+                assert response.data[func]["all_examples()"]["meta"]["units"] == {
+                    "time": None,
+                    "all_examples": "kibibyte",
+                }
+
+                assert response.data[func]["cpm()"]["meta"]["fields"] == {
+                    "time": "date",
+                    "cpm": "size",
+                }
+                assert response.data[func]["cpm()"]["meta"]["units"] == {
+                    "time": None,
+                    "cpm": "kibibyte",
                 }
 
 
