@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {useCallback, useState} from 'react';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -22,13 +22,16 @@ function SaveButton({isEditing, onSave, setError}: SaveButtonProps) {
   const {widgetIndex} = useParams();
   const api = useApi();
   const organization = useOrganization();
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleSave = useCallback(async () => {
     const widget = convertBuilderStateToWidget(state);
+    setIsSaving(true);
     try {
       await validateWidget(api, organization.slug, widget);
       onSave({index: Number(widgetIndex), widget});
     } catch (error) {
+      setIsSaving(false);
       const errorDetails = error.responseJSON || error;
       setError(errorDetails);
       addErrorMessage(t('Unable to save widget'));
@@ -36,7 +39,7 @@ function SaveButton({isEditing, onSave, setError}: SaveButtonProps) {
   }, [api, onSave, organization.slug, state, widgetIndex, setError]);
 
   return (
-    <Button priority="primary" onClick={handleSave}>
+    <Button priority="primary" onClick={handleSave} busy={isSaving}>
       {isEditing ? t('Update Widget') : t('Add Widget')}
     </Button>
   );
