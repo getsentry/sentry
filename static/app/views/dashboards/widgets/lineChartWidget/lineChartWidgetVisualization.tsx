@@ -3,13 +3,9 @@ import {
   type TimeSeriesWidgetVisualizationProps,
 } from '../timeSeriesWidget/timeSeriesWidgetVisualization';
 
-import {LineChartWidgetSeries} from './lineChartWidgetSeries';
-
 export interface LineChartWidgetVisualizationProps
-  extends Omit<TimeSeriesWidgetVisualizationProps, 'SeriesConstructor'> {}
+  extends Omit<TimeSeriesWidgetVisualizationProps, 'visualizationType'> {}
 
 export function LineChartWidgetVisualization(props: LineChartWidgetVisualizationProps) {
-  return (
-    <TimeSeriesWidgetVisualization {...props} SeriesConstructor={LineChartWidgetSeries} />
-  );
+  return <TimeSeriesWidgetVisualization {...props} visualizationType="line" />;
 }

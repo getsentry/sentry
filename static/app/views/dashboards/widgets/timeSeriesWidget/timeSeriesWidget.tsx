@@ -7,28 +7,20 @@ import {
   WidgetFrame,
   type WidgetFrameProps,
 } from 'sentry/views/dashboards/widgets/common/widgetFrame';
-import type {TimeSeriesWidgetVisualizationProps} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
+import {
+  TimeSeriesWidgetVisualization,
+  type TimeSeriesWidgetVisualizationProps,
+} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 
-import {AreaChartWidgetVisualization} from '../areaChartWidget/areaChartWidgetVisualization';
-import {BarChartWidgetVisualization} from '../barChartWidget/barChartWidgetVisualization';
 import {MISSING_DATA_MESSAGE, X_GUTTER, Y_GUTTER} from '../common/settings';
 import type {StateProps} from '../common/types';
-import {LineChartWidgetVisualization} from '../lineChartWidget/lineChartWidgetVisualization';
-
-type VisualizationType = 'area' | 'line' | 'bar';
 
 export interface TimeSeriesWidgetProps
   extends StateProps,
     Omit<WidgetFrameProps, 'children'>,
     Partial<TimeSeriesWidgetVisualizationProps> {
-  visualizationType: VisualizationType;
+  visualizationType: TimeSeriesWidgetVisualizationProps['visualizationType'];
 }
-
-const VisualizationComponents: Record<VisualizationType, React.ComponentType<any>> = {
-  area: AreaChartWidgetVisualization,
-  line: LineChartWidgetVisualization,
-  bar: BarChartWidgetVisualization,
-};
 
 export function TimeSeriesWidget(props: TimeSeriesWidgetProps) {
   const {timeseries} = props;
@@ -52,8 +44,6 @@ export function TimeSeriesWidget(props: TimeSeriesWidgetProps) {
 
   const error = props.error ?? parsingError;
 
-  const Visualization = VisualizationComponents[props.visualizationType];
-
   return (
     <WidgetFrame
       title={props.title}
@@ -69,7 +59,8 @@ export function TimeSeriesWidget(props: TimeSeriesWidgetProps) {
     >
       {defined(timeseries) && (
         <TimeSeriesWrapper>
-          <Visualization
+          <TimeSeriesWidgetVisualization
+            visualizationType={props.visualizationType}
             timeseries={timeseries}
             releases={props.releases}
             aliases={props.aliases}

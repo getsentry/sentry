@@ -3,13 +3,9 @@ import {
   type TimeSeriesWidgetVisualizationProps,
 } from '../timeSeriesWidget/timeSeriesWidgetVisualization';
 
-import {AreaChartWidgetSeries} from './areaChartWidgetSeries';
-
 export interface AreaChartWidgetVisualizationProps
-  extends Omit<TimeSeriesWidgetVisualizationProps, 'SeriesConstructor'> {}
+  extends Omit<TimeSeriesWidgetVisualizationProps, 'visualizationType'> {}
 
 export function AreaChartWidgetVisualization(props: AreaChartWidgetVisualizationProps) {
-  return (
-    <TimeSeriesWidgetVisualization {...props} SeriesConstructor={AreaChartWidgetSeries} />
-  );
+  return <TimeSeriesWidgetVisualization {...props} visualizationType="area" />;
 }
