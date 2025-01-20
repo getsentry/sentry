@@ -39,7 +39,7 @@ import {DEFAULT_RESULTS_LIMIT} from '../widgetBuilder/utils';
 import type WidgetLegendSelectionState from '../widgetLegendSelectionState';
 import {BigNumberWidget} from '../widgets/bigNumberWidget/bigNumberWidget';
 import type {Meta} from '../widgets/common/types';
-import {WidgetFrame} from '../widgets/common/widgetFrame';
+import {WidgetFrame} from '../widgets/widgetFrame/widgetFrame';
 import {WidgetViewerContext} from '../widgetViewer/widgetViewerContext';
 
 import {useDashboardsMEPContext} from './dashboardsMEPContext';

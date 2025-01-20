@@ -6,7 +6,7 @@ import JSXNode from 'sentry/components/stories/jsxNode';
 import SideBySide from 'sentry/components/stories/sideBySide';
 import {t, tct} from 'sentry/locale';
 import storyBook from 'sentry/stories/storyBook';
-import {WidgetFrame} from 'sentry/views/dashboards/widgets/common/widgetFrame';
+import {WidgetFrame} from 'sentry/views/dashboards/widgets/widgetFrame/widgetFrame';
 
 export default storyBook(WidgetFrame, story => {
   story('Getting Started', () => {

@@ -10,17 +10,17 @@ import {IconEllipsis, IconExpand, IconInfo, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-import {ErrorPanel} from './errorPanel';
+import {ErrorPanel} from '../common/errorPanel';
 import {
   MIN_HEIGHT,
   MIN_WIDTH,
   WIDGET_RENDER_ERROR_MESSAGE,
   X_GUTTER,
   Y_GUTTER,
-} from './settings';
-import {TooltipIconTrigger} from './tooltipIconTrigger';
-import type {StateProps} from './types';
-import {WarningsList} from './warningsList';
+} from '../common/settings';
+import {TooltipIconTrigger} from '../common/tooltipIconTrigger';
+import type {StateProps} from '../common/types';
+import {WarningsList} from '../common/warningsList';
 
 export interface WidgetFrameProps extends StateProps {
   actions?: MenuItemProps[];
