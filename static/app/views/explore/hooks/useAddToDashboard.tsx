@@ -62,7 +62,7 @@ export function useAddToDashboard() {
       const search = new MutableSearch(query);
 
       const discoverQuery: NewQuery = {
-        name: t('Custom Explore Widget'),
+        name: t('Custom Widget'),
         fields,
         orderby: sortBys.map(formatSort),
         query: search.formatString(),
