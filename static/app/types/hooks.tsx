@@ -259,7 +259,6 @@ export type FeatureDisabledHooks = {
   'feature-disabled:codecov-integration-setting': FeatureDisabledHook;
   'feature-disabled:create-metrics-alert-tooltip': FeatureDisabledHook;
   'feature-disabled:custom-inbound-filters': FeatureDisabledHook;
-  'feature-disabled:dashboards-eap': FeatureDisabledHook;
   'feature-disabled:dashboards-edit': FeatureDisabledHook;
   'feature-disabled:dashboards-page': FeatureDisabledHook;
   'feature-disabled:dashboards-sidebar-item': FeatureDisabledHook;
