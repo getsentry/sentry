@@ -66,52 +66,40 @@ function ChartContextMenu({
     });
   }
 
+  if (organization.features.includes('dashboards-eap')) {
+    const disableAddToDashboard = !organization.features.includes('dashboards-edit');
+    items.push({
+      key: 'add-to-dashboard',
+      textValue: t('Add to Dashboard'),
+      label: (
+        <Feature
+          hookName="feature-disabled:dashboards-edit"
+          features={['organizations:dashboards-edit']}
+          renderDisabled={() => <DisabledText>{t('Add to Dashboard')}</DisabledText>}
+        >
+          {t('Add to Dashboard')}
+        </Feature>
+      ),
+      disabled: disableAddToDashboard,
+      onAction: !disableAddToDashboard ? () => addToDashboard(visualizeIndex) : undefined,
+    });
+  }
+
   if (items.length === 0) {
     return null;
   }
 
   return (
-    <Feature features={['organizations:dashboards-edit', 'organizations:dashboards-eap']}>
-      {({hasFeature: hasDashboardsEap}) => {
-        items.push({
-          key: 'add-to-dashboard',
-          label: t('Add to Dashboard'),
-          textValue: t('Add to Dashboard'),
-          ...(hasDashboardsEap
-            ? {onAction: () => addToDashboard(visualizeIndex)}
-            : {
-                label: (
-                  <Feature
-                    hookName="feature-disabled:dashboards-edit"
-                    features={[
-                      'organizations:dashboards-edit',
-                      'organizations:dashboards-eap',
-                    ]}
-                    renderDisabled={() => (
-                      <DisabledText>{t('Add to Dashboard')}</DisabledText>
-                    )}
-                  >
-                    <DisabledText>{t('Add to Dashboard')}</DisabledText>
-                  </Feature>
-                ),
-                disabled: true,
-              }),
-        });
-
-        return (
-          <DropdownMenu
-            triggerProps={{
-              size: 'sm',
-              borderless: true,
-              showChevron: false,
-              icon: <IconEllipsis />,
-            }}
-            position="bottom-end"
-            items={items}
-          />
-        );
+    <DropdownMenu
+      triggerProps={{
+        size: 'sm',
+        borderless: true,
+        showChevron: false,
+        icon: <IconEllipsis />,
       }}
-    </Feature>
+      position="bottom-end"
+      items={items}
+    />
   );
 }
 
