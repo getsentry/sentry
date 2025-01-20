@@ -30,7 +30,7 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.repository import RpcRepository, repository_service
 from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
-from sentry.integrations.source_code_management.get_trees import GetRepoTreesIntegration
+from sentry.integrations.source_code_management.repo_trees import RepoTreesIntegration
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.integrations.tasks.migrate_repo import migrate_repo
 from sentry.integrations.utils.metrics import (
@@ -38,7 +38,6 @@ from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewType,
 )
 from sentry.issues.auto_source_code_config.code_mapping import RepoTree
-from sentry.issues.auto_source_code_config.source_code_trees import GetOrgSourceCodeTrees
 from sentry.models.repository import Repository
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization import RpcOrganizationSummary, organization_service
@@ -170,7 +169,7 @@ def get_document_origin(org) -> str:
 
 
 class GitHubIntegration(
-    RepositoryIntegration, GitHubIssuesSpec, CommitContextIntegration, GetRepoTreesIntegration
+    RepositoryIntegration, GitHubIssuesSpec, CommitContextIntegration, RepoTreesIntegration
 ):
     codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
 
@@ -283,10 +282,8 @@ class GitHubIntegration(
             return False
         return True
 
-    # for derive code mappings - TODO(cathy): define in an ABC
-    # SCM integrations should implement this
-    # XXX: Move this to an interface or parent class
-    def get_trees_for_org(self, cache_seconds: int = 3600 * 24) -> dict[str, RepoTree]:
+    # XXX: To be removed after we switch over to the new repo trees integration code
+    def get_trees_for_org_old(self, cache_seconds: int = 3600 * 24) -> dict[str, RepoTree]:
         trees: dict[str, RepoTree] = {}
         domain_name = self.model.metadata["domain_name"]
         extra = {"metadata": self.model.metadata}
@@ -304,7 +301,13 @@ class GitHubIntegration(
                 "No organization information was found. Continuing execution.", extra=extra
             )
         else:
-            trees = GetOrgSourceCodeTrees(self).get_trees_for_org(gh_org, cache_seconds)
+            if options.get("github-app.get-trees-refactored-code"):
+                trees = self.get_trees_for_org()
+            else:
+                # XXX: This is the old code that we're going to remove
+                trees = self.get_client().get_trees_for_org(
+                    gh_org=gh_org, cache_seconds=cache_seconds
+                )
 
         return trees
 

@@ -22,14 +22,12 @@ class RepoTree(NamedTuple):
     files: list[str]
 
 
-class GetRepoTreesIntegration(ABC):
+class RepoTreesIntegration(ABC):
     """
     Base class for integrations that can get trees for an organization's repositories.
     It is used for finding files in repositories and deriving code mappings.
     """
 
-    REPO_NAME_KEY = "full_name"
-    REPO_DEFAULT_BRANCH_KEY = "default_branch"
     CACHE_SECONDS = 3600 * 24
     # Tasks which hit the API multiple connection errors should give up.
     MAX_CONNECTION_ERRORS = 10
@@ -38,7 +36,7 @@ class GetRepoTreesIntegration(ABC):
     MINIMUM_REQUESTS_REMAINING = 200
 
     @abstractmethod
-    def get_client(self) -> GetRepoTreesClient:
+    def get_client(self) -> RepoTreesClient:
         raise NotImplementedError
 
     @property
@@ -74,9 +72,7 @@ class GetRepoTreesIntegration(ABC):
         if not repositories:
             # Remove unnecessary fields from GitHub's API response
             repositories = [
-                RepoAndBranch(
-                    name=repo[self.REPO_NAME_KEY], branch=repo[self.REPO_DEFAULT_BRANCH_KEY]
-                )
+                RepoAndBranch(name=repo["full_name"], branch=repo["default_branch"])
                 for repo in self.get_client().get_repositories(fetch_max_pages=True)
             ]
 
@@ -171,7 +167,7 @@ class GetRepoTreesIntegration(ABC):
         return RepoTree(repo_and_branch, repo_files)
 
 
-class GetRepoTreesClient(ABC):
+class RepoTreesClient(ABC):
     @abstractmethod
     def get_repositories(self, fetch_max_pages: bool = False) -> list[dict[str, Any]]:
         """Get the list of repositories."""
