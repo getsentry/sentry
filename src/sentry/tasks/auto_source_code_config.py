@@ -10,7 +10,6 @@ from sentry_sdk import set_tag, set_user
 from sentry import eventstore, options
 from sentry.constants import ObjectStatus
 from sentry.db.models.fields.node import NodeData
-from sentry.integrations.github.integration import GitHubIntegration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.integration import RpcOrganizationIntegration, integration_service
 from sentry.integrations.source_code_management.metrics import (
@@ -18,8 +17,7 @@ from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionType,
 )
 from sentry.integrations.source_code_management.repo_trees import RepoTree
-from sentry.issues.auto_source_code_config.code_mapping import CodeMappingTreesHelper
-from sentry.issues.auto_source_code_config.types import CodeMapping
+from sentry.issues.auto_source_code_config.code_mapping import CodeMapping, CodeMappingTreesHelper
 from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -150,10 +148,6 @@ def auto_source_code_config(
     ).capture() as lifecycle:
         try:
             with lock.acquire():
-                # This method is specific to the GithubIntegration
-                if not isinstance(installation, GitHubIntegration):
-                    return
-
                 if options.get("github-app.get-trees-refactored-code"):
                     trees = installation.get_trees_for_org()
                 else:

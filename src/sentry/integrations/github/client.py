@@ -24,14 +24,14 @@ from sentry.integrations.source_code_management.commit_context import (
     FileBlameInfo,
     SourceLineInfo,
 )
-from sentry.integrations.source_code_management.repository import RepositoryClient
-from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
-from sentry.issues.auto_source_code_config.code_mapping import (
+from sentry.integrations.source_code_management.repo_trees import (
     MAX_CONNECTION_ERRORS,
-    Repo,
+    RepoAndBranch,
     RepoTree,
     filter_source_code_files,
 )
+from sentry.integrations.source_code_management.repository import RepositoryClient
+from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.models.repository import Repository
 from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
@@ -499,7 +499,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient)
         repo_files = self.get_cached_repo_files(
             full_name, branch, only_use_cache=only_use_cache, cache_seconds=cache_seconds
         )
-        return RepoTree(Repo(full_name, branch), repo_files)
+        return RepoTree(RepoAndBranch(full_name, branch), repo_files)
 
     def get_repositories(self, fetch_max_pages: bool = False) -> Sequence[Any]:
         """

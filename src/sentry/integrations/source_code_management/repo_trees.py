@@ -5,8 +5,7 @@ from abc import ABC, abstractmethod
 from typing import NamedTuple
 
 from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.integrations.source_code_management.repository import RepositoryClient
-from sentry.organizations.services.organization import organization_service
+from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.cache import cache
 
@@ -31,22 +30,21 @@ class RepoTree(NamedTuple):
     files: list[str]
 
 
-class RepoTreesIntegration(ABC):
+# Tasks which hit the API multiple connection errors should give up.
+MAX_CONNECTION_ERRORS = 10
+
+# When the number of remaining API requests is less than this value, it will
+# fall back to the cache.
+MINIMUM_REQUESTS_REMAINING = 200
+
+
+class RepoTreesIntegration(RepositoryIntegration):
     """
     Base class for integrations that can get trees for an organization's repositories.
     It is used for finding files in repositories and deriving code mappings.
     """
 
     CACHE_SECONDS = 3600 * 24
-    # Tasks which hit the API multiple connection errors should give up.
-    MAX_CONNECTION_ERRORS = 10
-    # When the number of remaining API requests is less than this value, it will
-    # fall back to the cache.
-    MINIMUM_REQUESTS_REMAINING = 200
-
-    @abstractmethod
-    def get_client(self) -> RepositoryClient:
-        raise NotImplementedError
 
     @property
     def org_integration(self) -> OrganizationIntegration | None:
@@ -57,20 +55,14 @@ class RepoTreesIntegration(ABC):
         raise NotImplementedError
 
     def get_trees_for_org(self) -> dict[str, RepoTree]:
-        trees: dict[str, RepoTree] = {}
+        trees = {}
         if not self.org_integration:
             raise IntegrationError("Organization Integration does not exist")
-        org_exists = organization_service.check_organization_by_id(
-            id=self.org_integration.organization_id, only_visible=False
-        )
-        if not org_exists:
-            logger.error("No organization information was found. Continuing execution.")
+        repositories = self._get_all_repositories()
+        if not repositories:
+            logger.warning("Fetching repositories returned an empty list.")
         else:
-            repositories = self._get_all_repositories()
-            if not repositories:
-                logger.warning("Fetching repositories returned an empty list.")
-            else:
-                trees = self._populate_trees(repositories)
+            trees = self._populate_trees(repositories)
 
         return trees
 
@@ -79,10 +71,16 @@ class RepoTreesIntegration(ABC):
         repositories: list[RepoAndBranch] = cache.get(cache_key, [])
 
         if not repositories:
+            try:
+                client = self.get_client()
+            except IntegrationError:
+                logger.warning("Failed to get client. Returning empty list.")
+                return []
+
             # Remove unnecessary fields from GitHub's API response
             repositories = [
                 RepoAndBranch(name=repo["full_name"], branch=repo["default_branch"])
-                for repo in self.get_client().get_repositories(fetch_max_pages=True)
+                for repo in client.get_repositories(fetch_max_pages=True)
             ]
 
         if repositories:
