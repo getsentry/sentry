@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 import type {LegendComponentOption} from 'echarts';
 import type {Location} from 'history';
+import orderBy from 'lodash/orderBy';
 import moment from 'moment-timezone';
 
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
@@ -16,7 +17,6 @@ import {defined, escape} from 'sentry/utils';
 import {getFormattedDate} from 'sentry/utils/dates';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
-import {Ladder} from 'sentry/utils/number/ladder';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
 import {decodeList} from 'sentry/utils/queryString';
 
@@ -67,10 +67,18 @@ export function useShortInterval(datetimeObj: DateTimeObject): boolean {
 export type GranularityStep = [timeDiff: number, interval: string];
 
 export class GranularityLadder {
-  ladder: Ladder<string>;
+  steps: GranularityStep[];
 
-  constructor(steps: [GranularityStep, ...GranularityStep[]]) {
-    this.ladder = new Ladder<string>(steps);
+  constructor(steps: GranularityStep[]) {
+    if (
+      !steps.some(step => {
+        return step[0] === 0;
+      })
+    ) {
+      throw new Error('At least one step in the ladder must start at 0');
+    }
+
+    this.steps = orderBy(steps, step => step[0], 'desc');
   }
 
   getInterval(minutes: number): string {
@@ -83,10 +91,14 @@ export class GranularityLadder {
         );
       });
 
-      return this.ladder.min;
+      return (this.steps.at(-1) as GranularityStep)[1];
     }
 
-    return this.ladder.rung(minutes);
+    const step = this.steps.find(([threshold]) => {
+      return minutes >= threshold;
+    }) as GranularityStep;
+
+    return step[1];
   }
 }
 
