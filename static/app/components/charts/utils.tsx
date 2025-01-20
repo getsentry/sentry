@@ -41,16 +41,34 @@ export type DateTimeObject = Partial<PageFilters['datetime']>;
 
 export function truncationFormatter(
   value: string,
-  truncate: number | boolean | undefined
+  truncate: number | boolean | undefined,
+  escaped: boolean = true
 ): string {
-  if (!truncate) {
-    return escape(value);
+  // Whitespace characters such as newlines and tabs can
+  // mess up the formatting in legends where it's part of
+  // the formatting as it's handled by ECharts.
+  //
+  // In places like tooltips, it's already ignored and
+  // rendered as a single space.
+  //
+  // So remove whitespace characters such as newlines,
+  // tabs in favor of a space.
+  value = value.replace(/\s+/g, ' ');
+
+  if (truncate) {
+    const truncationLength =
+      truncate && typeof truncate === 'number' ? truncate : DEFAULT_TRUNCATE_LENGTH;
+    value =
+      value.length > truncationLength
+        ? value.substring(0, truncationLength) + '…'
+        : value;
   }
-  const truncationLength =
-    truncate && typeof truncate === 'number' ? truncate : DEFAULT_TRUNCATE_LENGTH;
-  const truncated =
-    value.length > truncationLength ? value.substring(0, truncationLength) + '…' : value;
-  return escape(truncated);
+
+  if (escaped) {
+    value = escape(value);
+  }
+
+  return value;
 }
 
 /**
