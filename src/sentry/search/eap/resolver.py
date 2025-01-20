@@ -353,9 +353,9 @@ class SearchResolver:
         if term.key.name in constants.PROJECT_FIELDS:
             resolved_column, _ = self.resolve_attribute("project.id")
             if isinstance(final_raw_value, list):
-                final_raw_value = [int(val) for val in raw_value]
+                final_raw_value = [int(val) for val in final_raw_value]
             else:
-                final_raw_value = int(cast(str, raw_value))
+                final_raw_value = int(final_raw_value)
         elif term.key.name == "device.class":
             resolved_column, _ = self.resolve_attribute("sentry.device.class")
         return resolved_column, final_raw_value
