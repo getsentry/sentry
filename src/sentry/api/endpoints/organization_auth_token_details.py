@@ -17,7 +17,7 @@ from sentry.organizations.services.organization.model import (
 
 
 @control_silo_endpoint
-class OrgAuthTokenDetailsEndpoint(ControlSiloOrganizationEndpoint):
+class OrganizationAuthTokenDetailsEndpoint(ControlSiloOrganizationEndpoint):
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,
         "GET": ApiPublishStatus.PRIVATE,

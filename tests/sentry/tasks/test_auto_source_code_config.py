@@ -226,7 +226,7 @@ class TestJavascriptDeriveCodeMappings(BaseDeriveCodeMappings):
         assert stacktrace_paths == []
 
     @responses.activate
-    def test_auto_source_code_config_starts_with_period_slash(self):
+    def test_derive_code_mappings_starts_with_period_slash(self):
         repo_name = "foo/bar"
         with patch(
             "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org"
@@ -245,7 +245,7 @@ class TestJavascriptDeriveCodeMappings(BaseDeriveCodeMappings):
             assert code_mapping.repository.name == repo_name
 
     @responses.activate
-    def test_auto_source_code_config_starts_with_period_slash_no_containing_directory(self):
+    def test_derive_code_mappings_starts_with_period_slash_no_containing_directory(self):
         repo_name = "foo/bar"
         with patch(
             "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org"
@@ -264,7 +264,7 @@ class TestJavascriptDeriveCodeMappings(BaseDeriveCodeMappings):
             assert code_mapping.repository.name == repo_name
 
     @responses.activate
-    def test_auto_source_code_config_one_to_one_match(self):
+    def test_derive_code_mappings_one_to_one_match(self):
         repo_name = "foo/bar"
         with patch(
             "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org"
@@ -280,7 +280,7 @@ class TestJavascriptDeriveCodeMappings(BaseDeriveCodeMappings):
             assert code_mapping.repository.name == repo_name
 
     @responses.activate
-    def test_auto_source_code_config_same_trailing_substring(self):
+    def test_derive_code_mappings_same_trailing_substring(self):
         repo_name = "foo/bar"
         with patch(
             "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org"
@@ -314,7 +314,7 @@ class TestRubyDeriveCodeMappings(BaseDeriveCodeMappings):
         assert set(stacktrace_paths) == {"some/path/test.rb", "lib/tasks/crontask.rake"}
 
     @responses.activate
-    def test_auto_source_code_config_rb(self):
+    def test_derive_code_mappings_rb(self):
         repo_name = "foo/bar"
         with patch(
             "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org"
@@ -329,7 +329,7 @@ class TestRubyDeriveCodeMappings(BaseDeriveCodeMappings):
             assert code_mapping.repository.name == repo_name
 
     @responses.activate
-    def test_auto_source_code_config_rake(self):
+    def test_derive_code_mappings_rake(self):
         repo_name = "foo/bar"
         with patch(
             "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org"
@@ -374,7 +374,7 @@ class TestNodeDeriveCodeMappings(BaseDeriveCodeMappings):
         }
 
     @responses.activate
-    def test_auto_source_code_config_starts_with_app(self):
+    def test_derive_code_mappings_starts_with_app(self):
         repo_name = "foo/bar"
         with patch(
             "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org"
@@ -388,7 +388,7 @@ class TestNodeDeriveCodeMappings(BaseDeriveCodeMappings):
             assert code_mapping.source_root == ""
             assert code_mapping.repository.name == repo_name
 
-    def test_auto_source_code_config_starts_with_app_complex(self):
+    def test_derive_code_mappings_starts_with_app_complex(self):
         repo_name = "foo/bar"
         with patch(
             "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org"
@@ -403,7 +403,7 @@ class TestNodeDeriveCodeMappings(BaseDeriveCodeMappings):
             assert code_mapping.repository.name == repo_name
 
     @responses.activate
-    def test_auto_source_code_config_starts_with_multiple_dot_dot_slash(self):
+    def test_derive_code_mappings_starts_with_multiple_dot_dot_slash(self):
         repo_name = "foo/bar"
         with patch(
             "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org"
@@ -418,7 +418,7 @@ class TestNodeDeriveCodeMappings(BaseDeriveCodeMappings):
             assert code_mapping.repository.name == repo_name
 
     @responses.activate
-    def test_auto_source_code_config_starts_with_app_dot_dot_slash(self):
+    def test_derive_code_mappings_starts_with_app_dot_dot_slash(self):
         repo_name = "foo/bar"
         with patch(
             "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org"
@@ -459,7 +459,7 @@ class TestGoDeriveCodeMappings(BaseDeriveCodeMappings):
         )
 
     @responses.activate
-    def test_auto_source_code_config_go_abs_filename(self):
+    def test_derive_code_mappings_go_abs_filename(self):
         repo_name = "go_repo"
         with patch(
             "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org"
@@ -474,7 +474,7 @@ class TestGoDeriveCodeMappings(BaseDeriveCodeMappings):
             assert code_mapping.repository.name == repo_name
 
     @responses.activate
-    def test_auto_source_code_config_go_long_abs_filename(self):
+    def test_derive_code_mappings_go_long_abs_filename(self):
         repo_name = "go_repo"
         with patch(
             "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org"
@@ -489,7 +489,7 @@ class TestGoDeriveCodeMappings(BaseDeriveCodeMappings):
             assert code_mapping.repository.name == repo_name
 
     @responses.activate
-    def test_auto_source_code_config_similar_but_incorrect_file(self):
+    def test_derive_code_mappings_similar_but_incorrect_file(self):
         repo_name = "go_repo"
         with patch(
             "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org"
@@ -518,7 +518,7 @@ class TestPhpDeriveCodeMappings(BaseDeriveCodeMappings):
         )
 
     @responses.activate
-    def test_auto_source_code_config_basic_php(self):
+    def test_derive_code_mappings_basic_php(self):
         repo_name = "php/place"
         with patch(
             "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org"
@@ -533,7 +533,7 @@ class TestPhpDeriveCodeMappings(BaseDeriveCodeMappings):
             assert code_mapping.repository.name == repo_name
 
     @responses.activate
-    def test_auto_source_code_config_different_roots_php(self):
+    def test_derive_code_mappings_different_roots_php(self):
         repo_name = "php/place"
         with patch(
             "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org"
@@ -573,7 +573,7 @@ class TestCSharpDeriveCodeMappings(BaseDeriveCodeMappings):
         )
 
     @responses.activate
-    def test_auto_source_code_config_csharp_trivial(self):
+    def test_derive_code_mappings_csharp_trivial(self):
         repo_name = "csharp/repo"
         with patch(
             "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org"
@@ -588,7 +588,7 @@ class TestCSharpDeriveCodeMappings(BaseDeriveCodeMappings):
             assert code_mapping.repository.name == repo_name
 
     @responses.activate
-    def test_auto_source_code_config_different_roots_csharp(self):
+    def test_derive_code_mappings_different_roots_csharp(self):
         repo_name = "csharp/repo"
         with patch(
             "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org"
@@ -603,7 +603,7 @@ class TestCSharpDeriveCodeMappings(BaseDeriveCodeMappings):
             assert code_mapping.repository.name == repo_name
 
     @responses.activate
-    def test_auto_source_code_config_non_in_app_frame(self):
+    def test_derive_code_mappings_non_in_app_frame(self):
         repo_name = "csharp/repo"
         with patch(
             "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org"
@@ -653,7 +653,7 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
             )
         ],
     )
-    def test_auto_source_code_config_single_project(
+    def test_derive_code_mappings_single_project(
         self, mock_generate_code_mappings, mock_get_trees_for_org
     ):
         assert not RepositoryProjectPathConfig.objects.filter(project_id=self.project.id).exists()
@@ -690,7 +690,7 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
         ],
     )
     @patch("sentry.tasks.auto_source_code_config.logger")
-    def test_auto_source_code_config_duplicates(
+    def test_derive_code_mappings_duplicates(
         self, mock_logger, mock_generate_code_mappings, mock_get_trees_for_org
     ):
         with assume_test_silo_mode_of(OrganizationIntegration):
@@ -731,7 +731,7 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
         assert mock_logger.info.call_count == 1
 
     @responses.activate
-    def test_auto_source_code_config_stack_and_source_root_do_not_match(self):
+    def test_derive_code_mappings_stack_and_source_root_do_not_match(self):
         repo_name = "foo/bar"
         with patch(
             "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org"
@@ -746,7 +746,7 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
             assert code_mapping.source_root == "src/sentry/"
 
     @responses.activate
-    def test_auto_source_code_config_no_normalization(self):
+    def test_derive_code_mappings_no_normalization(self):
         repo_name = "foo/bar"
         with patch(
             "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org"
