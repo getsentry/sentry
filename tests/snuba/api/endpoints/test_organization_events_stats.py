@@ -3043,6 +3043,7 @@ class OrganizationEventsStatsProfileFunctionDatasetEndpointTest(
 
         assert response.data["p95(function.duration)"]["meta"]["units"] == {
             "p95_function_duration": "nanosecond",
+            "time": None,
         }
 
         assert response.data["all_examples()"]["meta"]["fields"] == {
@@ -3050,7 +3051,10 @@ class OrganizationEventsStatsProfileFunctionDatasetEndpointTest(
             "time": "date",
         }
 
-        assert response.data["all_examples()"]["meta"]["units"] == {"all_examples": None}
+        assert response.data["all_examples()"]["meta"]["units"] == {
+            "all_examples": None,
+            "time": None,
+        }
 
 
 class OrganizationEventsStatsTopNEventsProfileFunctionDatasetEndpointTest(
@@ -3132,15 +3136,6 @@ class OrganizationEventsStatsTopNEventsProfileFunctionDatasetEndpointTest(
 
         for func in ["foo", "bar"]:
             for y_axis in y_axes:
-                assert response.data[func][y_axis]["meta"]["units"] == {
-                    "time": None,
-                    "count": None,
-                    "cpm": None,
-                    "function": None,
-                    "p95_function_duration": "nanosecond",
-                    "all_examples": None,
-                }
-
                 assert response.data[func]["p95(function.duration)"]["meta"]["fields"] == {
                     "time": "date",
                     "p95_function_duration": "size",

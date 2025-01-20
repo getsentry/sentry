@@ -713,7 +713,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
             "time": "date",
             "p99_measurements_another_custom": "size",
         }
-        assert response.data["p95(measurements.another.custom)"]["meta"]["units"] == {
+        assert response.data["p99(measurements.another.custom)"]["meta"]["units"] == {
             "time": None,
             "p99_measurements_another_custom": "kibibyte",
         }
