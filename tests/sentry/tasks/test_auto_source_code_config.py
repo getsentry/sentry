@@ -9,7 +9,8 @@ import responses
 from sentry.eventstore.models import Event
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
-from sentry.issues.auto_source_code_config.types import CodeMapping, RepoAndBranch, RepoTree
+from sentry.integrations.source_code_management.repo_trees import RepoAndBranch, RepoTree
+from sentry.issues.auto_source_code_config.code_mapping import CodeMapping
 from sentry.models.organization import OrganizationStatus
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
