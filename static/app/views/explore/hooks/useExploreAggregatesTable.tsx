@@ -62,6 +62,9 @@ export function useExploreAggregatesTable({
   }, [groupBys, visualizes]);
 
   const eventView = useMemo(() => {
+    // When id is included, we need the trace slug to render the link to the trace view.
+    const queryFields = fields.includes('id') ? [...fields, 'trace'] : fields;
+
     const search = new MutableSearch(query);
 
     // Filtering out all spans with op like 'ui.interaction*' which aren't
@@ -72,7 +75,7 @@ export function useExploreAggregatesTable({
     const discoverQuery: NewQuery = {
       id: undefined,
       name: 'Explore - Span Aggregates',
-      fields,
+      fields: queryFields,
       orderby: sorts.map(formatSort),
       query: search.formatString(),
       version: 2,
