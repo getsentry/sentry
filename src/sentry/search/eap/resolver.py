@@ -312,7 +312,7 @@ class SearchResolver:
         context: VirtualColumnContext | None,
     ) -> tuple[ResolvedColumn, float | datetime | Sequence[float] | Sequence[str]]:
         raw_value = term.value.raw_value
-        if context is None or isinstance(raw_value, datetime):
+        if context is None:
             return resolved_column, raw_value
         raw_value = cast(str | int | list[str], raw_value)
 
@@ -325,7 +325,7 @@ class SearchResolver:
         elif isinstance(raw_value, list):
             new_value = []
             for raw_iterable in raw_value:
-                if term.key.name not in constants.PROJECT_FIELDS and raw_iterable == "Unknown":
+                if term.key.name == "device.class" and raw_iterable == "Unknown":
                     # Avoiding this for now, while this could work with the Unknown:"" mapping
                     # But that won't work once we use the VirtualColumnContext.default_value
                     raise InvalidSearchQuery(
