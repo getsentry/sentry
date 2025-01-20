@@ -79,17 +79,6 @@ def process_error(error: ApiError, extra: dict[str, Any]) -> None:
     )
 
 
-# XXX: To be deleted after queue is empty
-@instrumented_task(
-    name="sentry.tasks.derive_code_mappings.derive_code_mappings",
-    queue="derive_code_mappings",
-    default_retry_delay=60 * 10,
-    max_retries=3,
-)
-def derive_code_mappings(project_id: int, event_id: str, **kwargs: Any) -> None:
-    auto_source_code_config(project_id, event_id=event_id, **kwargs)
-
-
 @instrumented_task(
     name="sentry.tasks.auto_source_code_config",
     queue="auto_source_code_config",
