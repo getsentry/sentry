@@ -74,7 +74,7 @@ function ChartContextMenu({
       label: (
         <Feature
           hookName="feature-disabled:dashboards-edit"
-          features={['organizations:dashboards-edit']}
+          features="organizations:dashboards-edit"
           renderDisabled={() => <DisabledText>{t('Add to Dashboard')}</DisabledText>}
         >
           {t('Add to Dashboard')}
