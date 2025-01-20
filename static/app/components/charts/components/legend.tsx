@@ -15,7 +15,15 @@ export default function Legend(
   props: ChartProps['legend'] & {theme: Theme}
 ): LegendComponentOption {
   const {truncate, theme, ...rest} = props ?? {};
-  const formatter = (value: string) => truncationFormatter(value, truncate ?? 0);
+  const formatter = (value: string) =>
+    truncationFormatter(
+      value,
+      truncate ?? 0,
+      // Escaping the legend string will cause some special
+      // characters to render as their HTML equivalents.
+      // So disable it here.
+      false
+    );
 
   return merge(
     {
