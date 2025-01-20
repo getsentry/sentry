@@ -94,12 +94,16 @@ function ExploreContentImpl() {
         ? 'traces'
         : 'samples';
 
+  const limit = 25;
+
   const aggregatesTableResult = useExploreAggregatesTable({
     query,
+    limit,
     enabled: queryType === 'aggregate',
   });
   const spansTableResult = useExploreSpansTable({
     query,
+    limit,
     enabled: queryType === 'samples',
   });
   const tracesTableResult = useExploreTracesTable({
