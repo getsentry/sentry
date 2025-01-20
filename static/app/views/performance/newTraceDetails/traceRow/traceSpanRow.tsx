@@ -12,7 +12,7 @@ import {
   type TraceRowProps,
 } from '../traceRow/traceRow';
 
-const NO_PROFILES = [];
+const NO_PROFILES: any = [];
 
 export function TraceSpanRow(props: TraceRowProps<TraceTreeNode<TraceTree.Span>>) {
   return (

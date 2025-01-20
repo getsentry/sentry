@@ -2,12 +2,19 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
 from re import Match
-from typing import cast
+from typing import Literal, cast
 
 import sentry_sdk
 from parsimonious.exceptions import ParseError
-from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta
+from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
+    AggregationAndFilter,
+    AggregationComparisonFilter,
+    AggregationFilter,
+    AggregationOrFilter,
+)
+from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta, TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
+    AttributeAggregation,
     AttributeKey,
     AttributeValue,
     FloatArray,
@@ -68,19 +75,20 @@ class SearchResolver:
             project_ids=self.params.project_ids,
             start_timestamp=self.params.rpc_start_date,
             end_timestamp=self.params.rpc_end_date,
+            trace_item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
         )
 
     @sentry_sdk.trace
     def resolve_query(
         self, querystring: str | None
-    ) -> tuple[TraceItemFilter | None, list[VirtualColumnContext | None]]:
+    ) -> tuple[TraceItemFilter | None, AggregationFilter | None, list[VirtualColumnContext | None]]:
         """Given a query string in the public search syntax eg. `span.description:foo` construct the TraceItemFilter"""
         environment_query = self.__resolve_environment_query()
-        query, contexts = self.__resolve_query(querystring)
+        where, having, contexts = self.__resolve_query(querystring)
         span = sentry_sdk.get_current_span()
         if span:
             span.set_tag("SearchResolver.query_string", querystring)
-            span.set_tag("SearchResolver.resolved_query", query)
+            span.set_tag("SearchResolver.resolved_query", where)
             span.set_tag("SearchResolver.environment_query", environment_query)
 
         # The RPC request meta does not contain the environment.
@@ -91,20 +99,21 @@ class SearchResolver:
         # But if both are defined, we AND them together.
 
         if not environment_query:
-            return query, contexts
+            return where, having, contexts
 
-        if not query:
-            return environment_query, []
+        if not where:
+            return environment_query, having, []
 
         return (
             TraceItemFilter(
                 and_filter=AndFilter(
                     filters=[
                         environment_query,
-                        query,
+                        where,
                     ]
                 )
             ),
+            having,
             contexts,
         )
 
@@ -133,9 +142,9 @@ class SearchResolver:
 
     def __resolve_query(
         self, querystring: str | None
-    ) -> tuple[TraceItemFilter | None, list[VirtualColumnContext | None]]:
+    ) -> tuple[TraceItemFilter | None, AggregationFilter | None, list[VirtualColumnContext | None]]:
         if querystring is None:
-            return None, []
+            return None, None, []
         try:
             parsed_terms = event_search.parse_search_query(
                 querystring,
@@ -160,14 +169,16 @@ class SearchResolver:
 
     def _resolve_boolean_conditions(
         self, terms: event_filter.ParsedTerms
-    ) -> tuple[TraceItemFilter | None, list[VirtualColumnContext | None]]:
+    ) -> tuple[TraceItemFilter | None, AggregationFilter | None, list[VirtualColumnContext | None]]:
         if len(terms) == 0:
-            return None, []
+            return None, None, []
         elif len(terms) == 1:
             if isinstance(terms[0], event_search.ParenExpression):
                 return self._resolve_boolean_conditions(terms[0].children)
             elif isinstance(terms[0], event_search.SearchFilter):
                 return self._resolve_terms([cast(event_search.SearchFilter, terms[0])])
+            elif isinstance(terms[0], event_search.AggregateFilter):
+                return self._resolve_terms([cast(event_search.AggregateFilter, terms[0])])
             else:
                 raise NotImplementedError("Haven't handled all the search expressions yet")
 
@@ -207,38 +218,55 @@ class SearchResolver:
         # the two sides. If there is no OR, split the first element out to AND
         index = None
         lhs, rhs = None, None
-        operator: type[OrFilter] | type[AndFilter] | None = None
         try:
             index = terms.index(event_search.SearchBoolean.BOOLEAN_OR)
             lhs, rhs = terms[:index], terms[index + 1 :]
-            operator = OrFilter
+            operator: Literal["and" | "or"] = "or"
         except Exception:
             lhs, rhs = terms[:1], terms[1:]
-            operator = AndFilter
+            operator = "and"
 
-        resolved_lhs, contexts_lhs = self._resolve_boolean_conditions(lhs)
-        resolved_rhs, contexts_rhs = self._resolve_boolean_conditions(rhs)
+        where_lhs, having_lhs, contexts_lhs = self._resolve_boolean_conditions(lhs)
+        where_rhs, having_rhs, contexts_rhs = self._resolve_boolean_conditions(rhs)
         contexts = contexts_lhs + contexts_rhs
 
-        if resolved_lhs is not None and resolved_rhs is not None:
-            if operator == AndFilter:
-                return (
-                    TraceItemFilter(and_filter=AndFilter(filters=[resolved_lhs, resolved_rhs])),
-                    contexts,
+        where = None
+        having = None
+
+        if where_lhs is not None and where_rhs is not None:
+            if operator == "and":
+                where = TraceItemFilter(and_filter=AndFilter(filters=[where_lhs, where_rhs]))
+            else:
+                where = TraceItemFilter(or_filter=OrFilter(filters=[where_lhs, where_rhs]))
+        elif where_lhs is None and where_rhs is not None:
+            where = where_rhs
+        elif where_lhs is not None and where_rhs is None:
+            where = where_lhs
+
+        if having_lhs is not None and having_rhs is not None:
+            if operator == "and":
+                having = AggregationFilter(
+                    and_filter=AggregationAndFilter(filters=[having_lhs, having_rhs])
                 )
             else:
-                return (
-                    TraceItemFilter(or_filter=OrFilter(filters=[resolved_lhs, resolved_rhs])),
-                    contexts,
+                having = AggregationFilter(
+                    or_filter=AggregationOrFilter(filters=[having_lhs, having_rhs])
                 )
-        elif resolved_lhs is None and resolved_rhs is not None:
-            return resolved_rhs, contexts
-        elif resolved_lhs is not None and resolved_rhs is None:
-            return resolved_lhs, contexts
-        else:
-            return None, contexts
+        elif having_lhs is None and having_rhs is not None:
+            having = having_rhs
+        elif having_lhs is not None and having_rhs is None:
+            having = having_lhs
+
+        return where, having, contexts
 
     def _resolve_terms(
+        self, terms: event_filter.ParsedTerms
+    ) -> tuple[TraceItemFilter | None, AggregationFilter | None, list[VirtualColumnContext | None]]:
+        where, where_contexts = self._resolve_where(terms)
+        having, having_contexts = self._resolve_having(terms)
+        return where, having, where_contexts + having_contexts
+
+    def _resolve_where(
         self, terms: event_filter.ParsedTerms
     ) -> tuple[TraceItemFilter | None, list[VirtualColumnContext | None]]:
         parsed_terms = []
@@ -250,21 +278,46 @@ class SearchResolver:
                 )
                 parsed_terms.append(resolved_term)
                 resolved_contexts.append(resolved_context)
-            else:
-                if self.config.use_aggregate_conditions:
-                    raise NotImplementedError("Can't filter on aggregates yet")
 
         if len(parsed_terms) > 1:
             return TraceItemFilter(and_filter=AndFilter(filters=parsed_terms)), resolved_contexts
         elif len(parsed_terms) == 1:
             return parsed_terms[0], resolved_contexts
-        else:
+        return None, []
+
+    def _resolve_having(
+        self, terms: event_filter.ParsedTerms
+    ) -> tuple[AggregationFilter | None, list[VirtualColumnContext | None]]:
+        if not self.config.use_aggregate_conditions:
             return None, []
+
+        parsed_terms = []
+        resolved_contexts = []
+        for item in terms:
+            if isinstance(item, event_search.AggregateFilter):
+                resolved_term, resolved_context = self.resolve_aggregate_term(
+                    cast(event_search.AggregateFilter, item)
+                )
+                parsed_terms.append(resolved_term)
+                resolved_contexts.append(resolved_context)
+
+        if len(parsed_terms) > 1:
+            return (
+                AggregationFilter(and_filter=AggregationAndFilter(filters=parsed_terms)),
+                resolved_contexts,
+            )
+        elif len(parsed_terms) == 1:
+            return parsed_terms[0], resolved_contexts
+        return None, []
 
     def resolve_term(
         self, term: event_search.SearchFilter
     ) -> tuple[TraceItemFilter, VirtualColumnContext | None]:
         resolved_column, context = self.resolve_column(term.key.name)
+
+        if not isinstance(resolved_column.proto_definition, AttributeKey):
+            raise ValueError(f"{term.key.name} is not valid search term")
+
         raw_value = term.value.raw_value
         if term.value.is_wildcard():
             if term.operator == "=":
@@ -286,19 +339,44 @@ class SearchResolver:
             operator = constants.OPERATOR_MAP[term.operator]
         else:
             raise InvalidSearchQuery(f"Unknown operator: {term.operator}")
-        if isinstance(resolved_column.proto_definition, AttributeKey):
-            return (
-                TraceItemFilter(
-                    comparison_filter=ComparisonFilter(
-                        key=resolved_column.proto_definition,
-                        op=operator,
-                        value=self._resolve_search_value(resolved_column, term.operator, raw_value),
-                    )
-                ),
-                context,
-            )
+
+        return (
+            TraceItemFilter(
+                comparison_filter=ComparisonFilter(
+                    key=resolved_column.proto_definition,
+                    op=operator,
+                    value=self._resolve_search_value(resolved_column, term.operator, raw_value),
+                )
+            ),
+            context,
+        )
+
+    def resolve_aggregate_term(
+        self, term: event_search.AggregateFilter
+    ) -> tuple[AggregationFilter, VirtualColumnContext | None]:
+        resolved_column, context = self.resolve_column(term.key.name)
+
+        if not isinstance(resolved_column.proto_definition, AttributeAggregation):
+            raise ValueError(f"{term.key.name} is not valid search term")
+
+        # TODO: Handle different units properly
+        value = term.value.value
+
+        if term.operator in constants.OPERATOR_MAP:
+            operator = constants.AGGREGATION_OPERATOR_MAP[term.operator]
         else:
-            raise NotImplementedError("Can't filter on aggregates yet")
+            raise InvalidSearchQuery(f"Unknown operator: {term.operator}")
+
+        return (
+            AggregationFilter(
+                comparison_filter=AggregationComparisonFilter(
+                    aggregation=resolved_column.proto_definition,
+                    op=operator,
+                    val=value,
+                ),
+            ),
+            context,
+        )
 
     def _resolve_search_value(
         self,
@@ -344,6 +422,19 @@ class SearchResolver:
                         )
                 elif isinstance(value, float):
                     return AttributeValue(val_float=value)
+            elif column_type == constants.BOOLEAN:
+                if operator in constants.IN_OPERATORS:
+                    raise InvalidSearchQuery(
+                        f"{column.public_alias} cannot be used with an IN filter"
+                    )
+                elif isinstance(value, str):
+                    lowered_value = value.lower()
+                    if lowered_value not in constants.BOOLEAN_VALUES:
+                        raise InvalidSearchQuery(
+                            f"{value} is not a valid boolean value, expecting true or false"
+                        )
+                    bool_value = lowered_value in constants.TRUTHY_VALUES
+                    return AttributeValue(val_bool=bool_value)
             raise InvalidSearchQuery(
                 f"{value} is not a valid filter value for {column.public_alias}"
             )

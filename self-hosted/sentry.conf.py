@@ -186,7 +186,7 @@ SENTRY_QUOTAS = "sentry.quotas.redis.RedisQuota"
 # The TSDB is used for building charts as well as making things like per-rate
 # alerts possible.
 
-SENTRY_TSDB = "sentry.tsdb.redis.RedisSnubaTSDB"
+SENTRY_TSDB = "sentry.tsdb.redissnuba.RedisSnubaTSDB"
 
 ###########
 # Digests #

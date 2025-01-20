@@ -69,7 +69,6 @@ jest
   .spyOn(performanceForSentry, 'VisuallyCompleteWithData')
   .mockImplementation(props => props.children as ReactElement);
 jest.mock('scroll-to-element', () => jest.fn());
-jest.mock('sentry/utils/search/searchBoxTextArea');
 
 DANGEROUS_SET_TEST_HISTORY({
   goBack: jest.fn(),
@@ -84,7 +83,11 @@ jest.mock('react-virtualized', function reactVirtualizedMockFactory() {
   const ActualReactVirtualized = jest.requireActual('react-virtualized');
   return {
     ...ActualReactVirtualized,
-    AutoSizer: ({children}) => children({width: 100, height: 100}),
+    AutoSizer: ({
+      children,
+    }: {
+      children: (props: {height: number; width: number}) => React.ReactNode;
+    }) => children({width: 100, height: 100}),
   };
 });
 
@@ -156,10 +159,12 @@ declare global {
   /**
    * Generates a promise that resolves on the next macro-task
    */
+  // eslint-disable-next-line no-var
   var tick: () => Promise<void>;
   /**
    * Used to mock API requests
    */
+  // eslint-disable-next-line no-var
   var MockApiClient: typeof Client;
 }
 

@@ -1,5 +1,6 @@
 from typing import Literal
 
+from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import AggregationComparisonFilter
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter
 
@@ -17,6 +18,15 @@ OPERATOR_MAP = {
 }
 IN_OPERATORS = ["IN", "NOT IN"]
 
+AGGREGATION_OPERATOR_MAP = {
+    "=": AggregationComparisonFilter.OP_EQUALS,
+    "!=": AggregationComparisonFilter.OP_NOT_EQUALS,
+    ">": AggregationComparisonFilter.OP_GREATER_THAN,
+    "<": AggregationComparisonFilter.OP_LESS_THAN,
+    ">=": AggregationComparisonFilter.OP_GREATER_THAN_OR_EQUALS,
+    "<=": AggregationComparisonFilter.OP_LESS_THAN_OR_EQUALS,
+}
+
 SearchType = (
     SizeUnit
     | DurationUnit
@@ -26,12 +36,14 @@ SearchType = (
         "number",
         "percentage",
         "string",
+        "boolean",
     ]
 )
 
 STRING = AttributeKey.TYPE_STRING
 BOOLEAN = AttributeKey.TYPE_BOOLEAN
 FLOAT = AttributeKey.TYPE_FLOAT
+DOUBLE = AttributeKey.TYPE_DOUBLE
 INT = AttributeKey.TYPE_INT
 
 # TODO: we need a datetime type
@@ -64,6 +76,7 @@ TYPE_MAP: dict[SearchType, AttributeKey.Type.ValueType] = {
     "number": FLOAT,
     "percentage": FLOAT,
     "string": STRING,
+    "boolean": BOOLEAN,
 }
 
 # https://github.com/getsentry/snuba/blob/master/snuba/web/rpc/v1/endpoint_time_series.py
@@ -86,3 +99,6 @@ VALID_GRANULARITIES = frozenset(
         24 * 3600,  # hours
     }
 )
+TRUTHY_VALUES = {"1", "true"}
+FALSEY_VALUES = {"0", "false"}
+BOOLEAN_VALUES = TRUTHY_VALUES.union(FALSEY_VALUES)

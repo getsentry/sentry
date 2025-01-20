@@ -18,9 +18,11 @@ import {
 } from 'sentry/utils/queryString';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import type {ThresholdsConfig} from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
 import {MAX_NUM_Y_AXES} from 'sentry/views/dashboards/widgetBuilder/buildSteps/yAxisStep/yAxisSelector';
 import {useQueryParamState} from 'sentry/views/dashboards/widgetBuilder/hooks/useQueryParamState';
 import {DEFAULT_RESULTS_LIMIT} from 'sentry/views/dashboards/widgetBuilder/utils';
+import type {Thresholds} from 'sentry/views/dashboards/widgets/common/types';
 
 export type WidgetBuilderStateQueryParams = {
   dataset?: WidgetType;
@@ -32,6 +34,7 @@ export type WidgetBuilderStateQueryParams = {
   query?: string[];
   selectedAggregate?: number;
   sort?: string[];
+  thresholds?: string;
   title?: string;
   yAxis?: string[];
 };
@@ -48,6 +51,8 @@ export const BuilderStateAction = {
   SET_LIMIT: 'SET_LIMIT',
   SET_LEGEND_ALIAS: 'SET_LEGEND_ALIAS',
   SET_SELECTED_AGGREGATE: 'SET_SELECTED_AGGREGATE',
+  SET_STATE: 'SET_STATE',
+  SET_THRESHOLDS: 'SET_THRESHOLDS',
 } as const;
 
 type WidgetAction =
@@ -61,7 +66,12 @@ type WidgetAction =
   | {payload: Sort[]; type: typeof BuilderStateAction.SET_SORT}
   | {payload: number; type: typeof BuilderStateAction.SET_LIMIT}
   | {payload: string[]; type: typeof BuilderStateAction.SET_LEGEND_ALIAS}
-  | {payload: number | undefined; type: typeof BuilderStateAction.SET_SELECTED_AGGREGATE};
+  | {payload: number | undefined; type: typeof BuilderStateAction.SET_SELECTED_AGGREGATE}
+  | {payload: WidgetBuilderStateQueryParams; type: typeof BuilderStateAction.SET_STATE}
+  | {
+      payload: ThresholdsConfig | undefined;
+      type: typeof BuilderStateAction.SET_THRESHOLDS;
+    };
 
 export interface WidgetBuilderState {
   dataset?: WidgetType;
@@ -73,6 +83,7 @@ export interface WidgetBuilderState {
   query?: string[];
   selectedAggregate?: number;
   sort?: Sort[];
+  thresholds?: Thresholds;
   title?: string;
   yAxis?: Column[];
 }
@@ -129,6 +140,12 @@ function useWidgetBuilderState(): {
     decoder: decodeScalar,
     deserializer: deserializeSelectedAggregate,
   });
+  const [thresholds, setThresholds] = useQueryParamState<ThresholdsConfig>({
+    fieldName: 'thresholds',
+    decoder: decodeScalar,
+    deserializer: deserializeThresholds,
+    serializer: serializeThresholds,
+  });
 
   const state = useMemo(
     () => ({
@@ -142,6 +159,7 @@ function useWidgetBuilderState(): {
       sort,
       limit,
       legendAlias,
+      thresholds,
 
       // The selected aggregate is the last aggregate for big number widgets
       // if it hasn't been explicitly set
@@ -162,6 +180,7 @@ function useWidgetBuilderState(): {
       limit,
       legendAlias,
       selectedAggregate,
+      thresholds,
     ]
   );
 
@@ -227,6 +246,7 @@ function useWidgetBuilderState(): {
               ...(yAxisWithoutAlias?.slice(0, MAX_NUM_Y_AXES) ?? []),
             ]);
           }
+          setThresholds(undefined);
           setSelectedAggregate(undefined);
           break;
         case BuilderStateAction.SET_DATASET:
@@ -251,6 +271,11 @@ function useWidgetBuilderState(): {
             setFields(
               config.defaultWidgetQuery.fields?.map(field => explodeField({field}))
             );
+            setSort(
+              nextDisplayType === DisplayType.BIG_NUMBER
+                ? []
+                : decodeSorts(config.defaultWidgetQuery.orderby)
+            );
           } else {
             setFields([]);
             setYAxis(
@@ -258,9 +283,11 @@ function useWidgetBuilderState(): {
                 explodeField({field: aggregate})
               )
             );
+            setSort(decodeSorts(config.defaultWidgetQuery.orderby));
           }
+
+          setThresholds(undefined);
           setQuery([config.defaultWidgetQuery.conditions]);
-          setSort(decodeSorts(config.defaultWidgetQuery.orderby));
           setSelectedAggregate(undefined);
           break;
         case BuilderStateAction.SET_FIELDS:
@@ -310,9 +337,30 @@ function useWidgetBuilderState(): {
               }
             }
           }
+
+          if (
+            displayType !== DisplayType.TABLE &&
+            displayType !== DisplayType.BIG_NUMBER &&
+            action.payload.length > 0
+          ) {
+            // Adding a grouping, so default the sort to the first aggregate if possible
+            setSort([
+              {
+                kind: 'desc',
+                field: generateFieldAsString(
+                  (yAxis?.[0] as QueryFieldValue) ??
+                    (action.payload[0] as QueryFieldValue)
+                ),
+              },
+            ]);
+          }
           break;
         case BuilderStateAction.SET_Y_AXIS:
           setYAxis(action.payload);
+          if (action.payload.length > 0 && fields?.length === 0) {
+            // Clear the sort if there is no grouping
+            setSort([]);
+          }
           break;
         case BuilderStateAction.SET_QUERY:
           setQuery(action.payload);
@@ -328,6 +376,26 @@ function useWidgetBuilderState(): {
           break;
         case BuilderStateAction.SET_SELECTED_AGGREGATE:
           setSelectedAggregate(action.payload);
+          break;
+        case BuilderStateAction.SET_STATE:
+          setDataset(action.payload.dataset);
+          setDescription(action.payload.description);
+          setDisplayType(action.payload.displayType);
+          if (action.payload.field) {
+            setFields(deserializeFields(action.payload.field));
+          }
+          setLegendAlias(action.payload.legendAlias);
+          setLimit(action.payload.limit);
+          setQuery(action.payload.query);
+          setSelectedAggregate(action.payload.selectedAggregate);
+          setSort(decodeSorts(action.payload.sort));
+          setTitle(action.payload.title);
+          if (action.payload.yAxis) {
+            setYAxis(deserializeFields(action.payload.yAxis));
+          }
+          break;
+        case BuilderStateAction.SET_THRESHOLDS:
+          setThresholds(action.payload);
           break;
         default:
           break;
@@ -345,6 +413,7 @@ function useWidgetBuilderState(): {
       setLimit,
       setLegendAlias,
       setSelectedAggregate,
+      setThresholds,
       fields,
       yAxis,
       displayType,
@@ -441,6 +510,18 @@ function deserializeQuery(queries: string[]): string[] {
     return [''];
   }
   return queries;
+}
+
+function deserializeThresholds(value: string): ThresholdsConfig | undefined {
+  if (value === '') {
+    return undefined;
+  }
+
+  return JSON.parse(value);
+}
+
+export function serializeThresholds(thresholds: ThresholdsConfig): string {
+  return JSON.stringify(thresholds);
 }
 
 export default useWidgetBuilderState;

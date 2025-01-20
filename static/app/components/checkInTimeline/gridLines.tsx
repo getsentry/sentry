@@ -12,27 +12,6 @@ import {useTimelineCursor} from './timelineCursor';
 import {useTimelineZoom} from './timelineZoom';
 import type {TimeWindowConfig} from './types';
 
-interface Props {
-  timeWindowConfig: TimeWindowConfig;
-  /**
-   * Render additional UI coomponents inside of the grid lines overlay
-   */
-  additionalUi?: React.ReactNode;
-  /**
-   * Enable zoom selection
-   */
-  allowZoom?: boolean;
-  className?: string;
-  /**
-   * Enable the timeline cursor
-   */
-  showCursor?: boolean;
-  /**
-   * Enabling causes the cursor tooltip to stick to the top of the viewport.
-   */
-  stickyCursor?: boolean;
-}
-
 interface TimeMarker {
   date: Date;
   /**
@@ -103,7 +82,12 @@ function getTimeMarkersFromConfig(config: TimeWindowConfig) {
   return markers;
 }
 
-export function GridLineLabels({timeWindowConfig, className}: Props) {
+interface GridLineLabelsProps {
+  timeWindowConfig: TimeWindowConfig;
+  className?: string;
+}
+
+export function GridLineLabels({timeWindowConfig, className}: GridLineLabelsProps) {
   const markers = getTimeMarkersFromConfig(timeWindowConfig);
 
   return (
@@ -117,6 +101,27 @@ export function GridLineLabels({timeWindowConfig, className}: Props) {
   );
 }
 
+interface GridLineOverlayProps {
+  timeWindowConfig: TimeWindowConfig;
+  /**
+   * Render additional UI components inside of the grid lines overlay
+   */
+  additionalUi?: React.ReactNode;
+  /**
+   * Enable zoom selection
+   */
+  allowZoom?: boolean;
+  className?: string;
+  /**
+   * Enable the timeline cursor
+   */
+  showCursor?: boolean;
+  /**
+   * Enabling causes the cursor tooltip to stick to the top of the viewport.
+   */
+  stickyCursor?: boolean;
+}
+
 export function GridLineOverlay({
   timeWindowConfig,
   showCursor,
@@ -124,7 +129,7 @@ export function GridLineOverlay({
   stickyCursor,
   allowZoom,
   className,
-}: Props) {
+}: GridLineOverlayProps) {
   const router = useRouter();
   const {start, timelineWidth, dateLabelFormat} = timeWindowConfig;
 
@@ -144,8 +149,8 @@ export function GridLineOverlay({
     (startX: number, endX: number) =>
       updateDateTime(
         {
-          start: dateFromPosition(startX).toDate(),
-          end: dateFromPosition(endX).toDate(),
+          start: dateFromPosition(startX).startOf('minute').toDate(),
+          end: dateFromPosition(endX).add(1, 'minute').startOf('minute').toDate(),
         },
         router
       ),
@@ -159,7 +164,7 @@ export function GridLineOverlay({
   } = useTimelineZoom<HTMLDivElement>({enabled: !!allowZoom, onSelect: handleZoom});
 
   const {cursorContainerRef, timelineCursor} = useTimelineCursor<HTMLDivElement>({
-    enabled: showCursor && !selectionIsActive,
+    enabled: !!showCursor && !selectionIsActive,
     sticky: stickyCursor,
     labelText: makeCursorLabel,
   });

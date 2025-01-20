@@ -3,12 +3,19 @@ import type ReplayReader from 'sentry/utils/replays/replayReader';
 import type {HydrationErrorFrame} from 'sentry/utils/replays/types';
 import {isHydrationErrorFrame, isRRWebChangeFrame} from 'sentry/utils/replays/types';
 
+type ReplayDiffOffsets = {
+  frameOrEvent: HydrationErrorFrame | Event;
+  leftOffsetMs: number;
+  rightOffsetMs: number;
+};
+
 export function getReplayDiffOffsetsFromFrame(
   replay: ReplayReader | null,
   hydrationError: HydrationErrorFrame
-) {
+): ReplayDiffOffsets {
   if (!replay) {
     return {
+      frameOrEvent: hydrationError,
       leftOffsetMs: 0,
       rightOffsetMs: 0,
     };
@@ -29,12 +36,16 @@ export function getReplayDiffOffsetsFromFrame(
   const rightOffsetMs = Math.max(1, (rightFrame?.timestamp ?? 0) - startTimestampMs);
 
   return {
+    frameOrEvent: hydrationError,
     leftOffsetMs,
     rightOffsetMs,
   };
 }
 
-export function getReplayDiffOffsetsFromEvent(replay: ReplayReader, event: Event) {
+export function getReplayDiffOffsetsFromEvent(
+  replay: ReplayReader,
+  event: Event
+): ReplayDiffOffsets {
   const startTimestampMS =
     'startTimestamp' in event ? event.startTimestamp * 1000 : undefined;
   const timeOfEvent = event.dateCreated ?? startTimestampMS ?? event.dateReceived;
@@ -44,7 +55,7 @@ export function getReplayDiffOffsetsFromEvent(replay: ReplayReader, event: Event
   const hydrationFrame = replay
     .getBreadcrumbFrames()
     .findLast(
-      breadcrumb =>
+      (breadcrumb: any) =>
         isHydrationErrorFrame(breadcrumb) &&
         breadcrumb.timestampMs >= eventTimestampMs &&
         breadcrumb.timestampMs < eventTimestampMs + 1000
@@ -69,5 +80,9 @@ export function getReplayDiffOffsetsFromEvent(replay: ReplayReader, event: Event
       ?.timestamp ?? eventTimestampMs) - replayStartTimestamp
   );
 
-  return {leftOffsetMs, rightOffsetMs};
+  return {
+    frameOrEvent: event,
+    leftOffsetMs,
+    rightOffsetMs,
+  };
 }

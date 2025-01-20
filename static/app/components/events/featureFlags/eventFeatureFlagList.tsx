@@ -11,7 +11,6 @@ import {
 import FeatureFlagInlineCTA from 'sentry/components/events/featureFlags/featureFlagInlineCTA';
 import FeatureFlagSort from 'sentry/components/events/featureFlags/featureFlagSort';
 import {useFeatureFlagOnboarding} from 'sentry/components/events/featureFlags/useFeatureFlagOnboarding';
-import useIssueEvents from 'sentry/components/events/featureFlags/useIssueEvents';
 import {
   FlagControlOptions,
   OrderBy,
@@ -79,12 +78,6 @@ export function EventFeatureFlagList({
     },
   });
 
-  const {
-    data: relatedEvents,
-    isPending: isRelatedEventsPending,
-    isError: isRelatedEventsError,
-  } = useIssueEvents({issueId: group.id});
-
   const {activateSidebarSkipConfigure} = useFeatureFlagOnboarding();
 
   const {
@@ -105,10 +98,6 @@ export function EventFeatureFlagList({
   }, [isSuspectError, isSuspectPending, suspectFlags]);
 
   const hasFlagContext = Boolean(event.contexts?.flags?.values);
-  const anyEventHasContext =
-    isRelatedEventsPending || isRelatedEventsError
-      ? false
-      : relatedEvents.filter(e => Boolean(e.contexts?.flags?.values)).length > 0;
 
   const eventFlags: Required<FeatureFlag>[] = useMemo(() => {
     // At runtime there's no type guarantees on the event flags. So we have to
@@ -126,15 +115,15 @@ export function EventFeatureFlagList({
   const hasFlags = hasFlagContext && eventFlags.length > 0;
 
   const showCTA =
+    !project.hasFlags &&
     !hasFlagContext &&
-    !anyEventHasContext &&
     featureFlagOnboardingPlatforms.includes(project.platform ?? 'other') &&
     organization.features.includes('feature-flag-cta');
 
   const hydratedFlags = useMemo(() => {
     // Transform the flags array into something readable by the key-value component.
     // Reverse the flags to show newest at the top by default.
-    return eventFlags.toReversed().map(f => {
+    return eventFlags.toReversed().map((f: any) => {
       return {
         item: {
           key: f.flag,
@@ -193,9 +182,11 @@ export function EventFeatureFlagList({
       trackAnalytics('flags.table_rendered', {
         organization,
         numFlags: hydratedFlags.length,
+        projectSlug: project.slug,
+        orgSlug: organization.slug,
       });
     }
-  }, [hasFlags, hydratedFlags.length, organization]);
+  }, [hasFlags, hydratedFlags.length, organization, project.slug]);
 
   if (group.issueCategory !== IssueCategory.ERROR) {
     return null;
@@ -205,8 +196,8 @@ export function EventFeatureFlagList({
     return <FeatureFlagInlineCTA projectId={event.projectID} />;
   }
 
-  // if contexts.flags is not set, hide the section
-  if (!hasFlagContext) {
+  // if contexts.flags is not set and project has not set up flags, hide the section
+  if (!hasFlagContext && !project.hasFlags) {
     return null;
   }
 

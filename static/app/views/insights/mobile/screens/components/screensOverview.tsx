@@ -102,8 +102,8 @@ export function ScreensOverview() {
   const spanMetricsFields = [
     SpanMetricsField.PROJECT_ID,
     SpanMetricsField.TRANSACTION,
-    `avg(mobile.slow_frames)`,
-    `avg(mobile.frozen_frames)`,
+    `division(mobile.slow_frames,mobile.total_frames)`,
+    `division(mobile.frozen_frames,mobile.total_frames)`,
     `avg(mobile.frames_delay)`,
   ];
 
@@ -115,6 +115,7 @@ export function ScreensOverview() {
 
   const secondaryDataset = isSpanPrimary ? transactionMetricsDataset : spanMetricsDataset;
   const secondaryFields = isSpanPrimary ? transactionMetricsFields : spanMetricsFields;
+  const hasVisibleScreens = visibleScreens.length > 0;
 
   const {
     data: primaryData,
@@ -139,7 +140,7 @@ export function ScreensOverview() {
     selection,
     location,
     undefined,
-    visibleScreens.length > 0,
+    hasVisibleScreens,
     visibleScreens
   );
 
@@ -192,8 +193,7 @@ export function ScreensOverview() {
     return primaryData;
   }, [primaryData, secondaryData]);
 
-  const loading = primaryLoading || secondaryLoading;
-
+  const loading = primaryLoading || (hasVisibleScreens && secondaryLoading);
   return (
     <Container>
       <SearchBar

@@ -386,7 +386,7 @@ class ApiSource extends Component<Props, State> {
     this.handleSearchRequest(searchRequests, directRequests);
   }, 150);
 
-  handleRequestError = (err: ResponseMeta, {url, orgId}) => {
+  handleRequestError = (err: ResponseMeta, {url, orgId}: any) => {
     if (err && err.status !== 401 && err.status !== 403) {
       Sentry.withScope(scope => {
         scope.setExtra(

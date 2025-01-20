@@ -6,6 +6,8 @@ import logging
 from collections.abc import Mapping
 from typing import Any
 
+from django.http.request import HttpRequest
+from django.http.response import HttpResponseBase
 from django.utils.crypto import constant_time_compare
 from django.views.decorators.csrf import csrf_exempt
 from requests.exceptions import RequestException
@@ -139,7 +141,7 @@ class VercelWebhookEndpoint(Endpoint):
     provider = "vercel"
 
     @csrf_exempt
-    def dispatch(self, request: Request, *args, **kwargs) -> Response:
+    def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponseBase:
         return super().dispatch(request, *args, **kwargs)
 
     def parse_external_id(self, request: Request) -> str:

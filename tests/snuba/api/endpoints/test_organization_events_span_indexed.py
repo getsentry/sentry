@@ -629,48 +629,7 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         assert response.data["meta"]["units"] == {"count()": None}
         assert response.data["data"] == [{"count()": 0}]
 
-    def test_simple_measurements(self):
-        keys = [
-            ("app_start_cold", "duration", "millisecond"),
-            ("app_start_warm", "duration", "millisecond"),
-            ("frames_frozen", "number", None),  # should be integer but keeping it consistent
-            ("frames_frozen_rate", "percentage", None),
-            ("frames_slow", "number", None),  # should be integer but keeping it consistent
-            ("frames_slow_rate", "percentage", None),
-            ("frames_total", "number", None),  # should be integer but keeping it consistent
-            ("time_to_initial_display", "duration", "millisecond"),
-            ("time_to_full_display", "duration", "millisecond"),
-            ("stall_count", "number", None),  # should be integer but keeping it consistent
-            ("stall_percentage", "percentage", None),
-            ("stall_stall_longest_time", "number", None),
-            ("stall_stall_total_time", "number", None),
-            ("cls", "number", None),
-            ("fcp", "duration", "millisecond"),
-            ("fid", "duration", "millisecond"),
-            ("fp", "duration", "millisecond"),
-            ("inp", "duration", "millisecond"),
-            ("lcp", "duration", "millisecond"),
-            ("ttfb", "duration", "millisecond"),
-            ("ttfb.requesttime", "duration", "millisecond"),
-            ("score.cls", "number", None),
-            ("score.fcp", "number", None),
-            ("score.fid", "number", None),
-            ("score.inp", "number", None),
-            ("score.lcp", "number", None),
-            ("score.ttfb", "number", None),
-            ("score.total", "number", None),
-            ("score.weight.cls", "number", None),
-            ("score.weight.fcp", "number", None),
-            ("score.weight.fid", "number", None),
-            ("score.weight.inp", "number", None),
-            ("score.weight.lcp", "number", None),
-            ("score.weight.ttfb", "number", None),
-            ("cache.item_size", "number", None),
-            ("messaging.message.body.size", "number", None),
-            ("messaging.message.receive.latency", "number", None),
-            ("messaging.message.retry.count", "number", None),
-        ]
-
+    def _test_simple_measurements(self, keys):
         self.store_spans(
             [
                 self.create_span(
@@ -721,6 +680,51 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
                     "project.name": self.project.slug,
                 }
             ]
+
+    def test_simple_measurements(self):
+        keys = [
+            ("app_start_cold", "duration", "millisecond"),
+            ("app_start_warm", "duration", "millisecond"),
+            ("frames_frozen", "number", None),  # should be integer but keeping it consistent
+            ("frames_frozen_rate", "percentage", None),
+            ("frames_slow", "number", None),  # should be integer but keeping it consistent
+            ("frames_slow_rate", "percentage", None),
+            ("frames_total", "number", None),  # should be integer but keeping it consistent
+            ("time_to_initial_display", "duration", "millisecond"),
+            ("time_to_full_display", "duration", "millisecond"),
+            ("stall_count", "number", None),  # should be integer but keeping it consistent
+            ("stall_percentage", "percentage", None),
+            ("stall_stall_longest_time", "number", None),
+            ("stall_stall_total_time", "number", None),
+            ("cls", "number", None),
+            ("fcp", "duration", "millisecond"),
+            ("fid", "duration", "millisecond"),
+            ("fp", "duration", "millisecond"),
+            ("inp", "duration", "millisecond"),
+            ("lcp", "duration", "millisecond"),
+            ("ttfb", "duration", "millisecond"),
+            ("ttfb.requesttime", "duration", "millisecond"),
+            ("score.cls", "number", None),
+            ("score.fcp", "number", None),
+            ("score.fid", "number", None),
+            ("score.inp", "number", None),
+            ("score.lcp", "number", None),
+            ("score.ttfb", "number", None),
+            ("score.total", "number", None),
+            ("score.weight.cls", "number", None),
+            ("score.weight.fcp", "number", None),
+            ("score.weight.fid", "number", None),
+            ("score.weight.inp", "number", None),
+            ("score.weight.lcp", "number", None),
+            ("score.weight.ttfb", "number", None),
+            ("messaging.message.receive.latency", "duration", "millisecond"),
+            ("messaging.message.retry.count", "number", None),
+            # size fields aren't property support pre-RPC
+            ("cache.item_size", "number", None),
+            ("messaging.message.body.size", "number", None),
+        ]
+
+        self._test_simple_measurements(keys)
 
     def test_environment(self):
         self.create_environment(self.project, name="prod")
@@ -969,6 +973,68 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
             },
         ]
         assert meta["dataset"] == self.dataset
+
+    def _test_aggregate_filter(self, queries):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"sentry_tags": {"transaction": "foo"}},
+                    measurements={
+                        "lcp": {"value": 5000},
+                        "http.response_content_length": {"value": 5000},
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"sentry_tags": {"transaction": "foo"}},
+                    measurements={
+                        "lcp": {"value": 5000},
+                        "http.response_content_length": {"value": 5000},
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"sentry_tags": {"transaction": "bar"}},
+                    measurements={
+                        "lcp": {"value": 1000},
+                        "http.response_content_length": {"value": 1000},
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        for query in queries:
+            response = self.do_request(
+                {
+                    "field": ["transaction", "count()"],
+                    "query": query,
+                    "orderby": "transaction",
+                    "project": self.project.id,
+                    "dataset": self.dataset,
+                }
+            )
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            meta = response.data["meta"]
+            assert len(data) == 1
+            assert data[0]["transaction"] == "foo"
+            assert data[0]["count()"] == 2
+            assert meta["dataset"] == self.dataset
+
+    def test_aggregate_filter(self):
+        self._test_aggregate_filter(
+            [
+                "count():2",
+                "count():>1",
+                "avg(measurements.lcp):>3000",
+                "avg(measurements.lcp):>3s",
+                "count():>1 avg(measurements.lcp):>3000",
+                "count():>1 AND avg(measurements.lcp):>3000",
+                "count():>1 OR avg(measurements.lcp):>3000",
+            ]
+        )
 
 
 class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpointTest):
@@ -1505,6 +1571,61 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
             },
         ]
 
+    def test_byte_fields(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "description": "foo",
+                        "data": {
+                            "cache.item_size": 1,
+                            "messaging.message.body.size": 2,
+                        },
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "cache.item_size",
+                    "measurements.cache.item_size",
+                    "messaging.message.body.size",
+                    "measurements.messaging.message.body.size",
+                ],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.data["data"] == [
+            {
+                "id": mock.ANY,
+                "project.name": self.project.slug,
+                "cache.item_size": 1.0,
+                "measurements.cache.item_size": 1.0,
+                "measurements.messaging.message.body.size": 2.0,
+                "messaging.message.body.size": 2.0,
+            },
+        ]
+
+    def test_aggregate_filter(self):
+        self._test_aggregate_filter(
+            [
+                "count():2",
+                "count():>1",
+                "avg(measurements.lcp):>3000",
+                "avg(measurements.lcp):>3s",
+                "count():>1 avg(measurements.lcp):>3000",
+                "count():>1 AND avg(measurements.lcp):>3000",
+                "count():>1 OR avg(measurements.lcp):>3000",
+                "(count():>1 AND avg(http.response_content_length):>3000) OR (count():>1 AND avg(measurements.lcp):>3000)",
+            ]
+        )
+
 
 class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpointTest):
     """These tests aren't fully passing yet, currently inheriting xfail from the eap tests"""
@@ -1837,3 +1958,198 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
     @pytest.mark.xfail(reason="wip: rate not implemented yet")
     def test_spm(self):
         super().test_spm()
+
+    def test_is_transaction(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "description": "foo",
+                        "sentry_tags": {"status": "success"},
+                        "is_segment": True,
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "description": "bar",
+                        "sentry_tags": {"status": "success"},
+                        "is_segment": False,
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["span.status", "description", "count()", "is_transaction"],
+                "query": "is_transaction:true",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data == [
+            {
+                "is_transaction": True,
+                "span.status": "success",
+                "description": "foo",
+                "count()": 1,
+            },
+        ]
+        assert meta["dataset"] == self.dataset
+
+    def test_is_not_transaction(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "description": "foo",
+                        "sentry_tags": {"status": "success"},
+                        "is_segment": True,
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "description": "bar",
+                        "sentry_tags": {"status": "success"},
+                        "is_segment": False,
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["span.status", "description", "count()", "is_transaction"],
+                "query": "is_transaction:0",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data == [
+            {
+                "is_transaction": False,
+                "span.status": "success",
+                "description": "bar",
+                "count()": 1,
+            },
+        ]
+        assert meta["dataset"] == self.dataset
+
+    def test_byte_fields(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "description": "foo",
+                        "data": {
+                            "cache.item_size": 1,
+                            "messaging.message.body.size": 2,
+                        },
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "cache.item_size",
+                    "measurements.cache.item_size",
+                    "messaging.message.body.size",
+                    "measurements.messaging.message.body.size",
+                ],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.data["data"] == [
+            {
+                "id": mock.ANY,
+                "project.name": self.project.slug,
+                "cache.item_size": 1.0,
+                "measurements.cache.item_size": 1.0,
+                "measurements.messaging.message.body.size": 2.0,
+                "messaging.message.body.size": 2.0,
+            },
+        ]
+
+        assert response.data["meta"]["fields"] == {
+            "id": "string",
+            "project.name": "string",
+            "cache.item_size": "size",
+            "measurements.cache.item_size": "size",
+            "measurements.messaging.message.body.size": "size",
+            "messaging.message.body.size": "size",
+        }
+
+        assert response.data["meta"]["units"] == {
+            "id": None,
+            "project.name": None,
+            "cache.item_size": "byte",
+            "measurements.cache.item_size": "byte",
+            "measurements.messaging.message.body.size": "byte",
+            "messaging.message.body.size": "byte",
+        }
+
+    def test_simple_measurements(self):
+        keys = [
+            ("app_start_cold", "duration", "millisecond"),
+            ("app_start_warm", "duration", "millisecond"),
+            ("frames_frozen", "number", None),  # should be integer but keeping it consistent
+            ("frames_frozen_rate", "percentage", None),
+            ("frames_slow", "number", None),  # should be integer but keeping it consistent
+            ("frames_slow_rate", "percentage", None),
+            ("frames_total", "number", None),  # should be integer but keeping it consistent
+            ("time_to_initial_display", "duration", "millisecond"),
+            ("time_to_full_display", "duration", "millisecond"),
+            ("stall_count", "number", None),  # should be integer but keeping it consistent
+            ("stall_percentage", "percentage", None),
+            ("stall_stall_longest_time", "number", None),
+            ("stall_stall_total_time", "number", None),
+            ("cls", "number", None),
+            ("fcp", "duration", "millisecond"),
+            ("fid", "duration", "millisecond"),
+            ("fp", "duration", "millisecond"),
+            ("inp", "duration", "millisecond"),
+            ("lcp", "duration", "millisecond"),
+            ("ttfb", "duration", "millisecond"),
+            ("ttfb.requesttime", "duration", "millisecond"),
+            ("score.cls", "number", None),
+            ("score.fcp", "number", None),
+            ("score.fid", "number", None),
+            ("score.inp", "number", None),
+            ("score.lcp", "number", None),
+            ("score.ttfb", "number", None),
+            ("score.total", "number", None),
+            ("score.weight.cls", "number", None),
+            ("score.weight.fcp", "number", None),
+            ("score.weight.fid", "number", None),
+            ("score.weight.inp", "number", None),
+            ("score.weight.lcp", "number", None),
+            ("score.weight.ttfb", "number", None),
+            ("cache.item_size", "size", "byte"),
+            ("messaging.message.body.size", "size", "byte"),
+            ("messaging.message.receive.latency", "duration", "millisecond"),
+            ("messaging.message.retry.count", "number", None),
+        ]
+
+        self._test_simple_measurements(keys)

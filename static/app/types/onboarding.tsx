@@ -19,20 +19,12 @@ export enum OnboardingTaskKey {
   FIRST_EVENT = 'send_first_event',
   INVITE_MEMBER = 'invite_member',
   SECOND_PLATFORM = 'setup_second_platform',
-  USER_CONTEXT = 'setup_user_context',
   RELEASE_TRACKING = 'setup_release_tracking',
   SOURCEMAPS = 'setup_sourcemaps',
-  USER_REPORTS = 'setup_user_reports',
   ALERT_RULE = 'setup_alert_rules',
   FIRST_TRANSACTION = 'setup_transactions',
-  METRIC_ALERT = 'setup_metric_alert_rules',
-  USER_SELECTED_PROJECTS = 'setup_userselected_projects',
   REAL_TIME_NOTIFICATIONS = 'setup_real_time_notifications',
   LINK_SENTRY_TO_SOURCE_CODE = 'link_sentry_to_source_code',
-  /// Customized card that shows the selected integrations during onboarding
-  INTEGRATIONS = 'integrations',
-  /// Regular card that tells the user to setup integrations if no integrations were selected during onboarding
-  FIRST_INTEGRATION = 'setup_integrations',
   SESSION_REPLAY = 'setup_session_replay',
   /// Demo New Walkthrough Tasks
   SIDEBAR_GUIDE = 'sidebar_guide',

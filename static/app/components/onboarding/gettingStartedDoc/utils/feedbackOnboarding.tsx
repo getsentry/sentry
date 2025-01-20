@@ -118,7 +118,7 @@ export const getCrashReportModalConfigDescription = ({link}: {link: string}) =>
     {code: <code />, link: <ExternalLink href={link} />}
   );
 
-const getCrashReportModalSnippetJavaScript = params => [
+const getCrashReportModalSnippetJavaScript = (params: any) => [
   {
     code: [
       {
@@ -142,7 +142,7 @@ const getCrashReportModalSnippetJavaScript = params => [
   },
 ];
 
-export const getCrashReportJavaScriptInstallStep = params => [
+export const getCrashReportJavaScriptInstallStep = (params: any) => [
   {
     type: StepType.INSTALL,
     description: getCrashReportModalInstallDescriptionJavaScript(),
@@ -181,7 +181,7 @@ export function getCrashReportSDKInstallFirstStep(params: DocsParams) {
   };
 }
 
-const getGenericScript = params => [
+const getGenericScript = (params: any) => [
   {
     label: 'HTML',
     value: 'html',
@@ -195,7 +195,7 @@ const getGenericScript = params => [
   },
 ];
 
-export const getCrashReportGenericInstallStep = params => [
+export const getCrashReportGenericInstallStep = (params: any) => [
   {
     type: StepType.INSTALL,
     configurations: [
@@ -216,7 +216,7 @@ export const getCrashReportGenericInstallStep = params => [
   },
 ];
 
-export const getCrashReportBackendInstallStep = params => [
+export const getCrashReportBackendInstallStep = (params: any) => [
   {
     type: StepType.INSTALL,
     configurations: [
@@ -268,7 +268,7 @@ export function getCrashReportSDKInstallFirstStepRails(params: DocsParams) {
   };
 }
 
-export const getCrashReportPHPInstallStep = params => [
+export const getCrashReportPHPInstallStep = (params: any) => [
   {
     type: StepType.INSTALL,
     configurations: [

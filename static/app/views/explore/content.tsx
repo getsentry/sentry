@@ -1,7 +1,6 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import type {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
@@ -23,6 +22,7 @@ import {
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -57,11 +57,7 @@ import {ExploreTables} from 'sentry/views/explore/tables';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
 import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
 
-interface ExploreContentProps {
-  location: Location;
-}
-
-function ExploreContentImpl({}: ExploreContentProps) {
+function ExploreContentImpl() {
   const location = useLocation();
   const navigate = useNavigate();
   const organization = useOrganization();
@@ -90,8 +86,6 @@ function ExploreContentImpl({}: ExploreContentProps) {
       },
     });
   }, [location, navigate]);
-
-  const maxPickableDays = 7;
 
   const queryType: 'aggregate' | 'samples' | 'traces' =
     mode === Mode.AGGREGATE
@@ -133,6 +127,9 @@ function ExploreContentImpl({}: ExploreContentProps) {
         : spansTableResult.result.error?.message ?? '';
   const chartError = timeseriesResult.error?.message ?? '';
 
+  const {defaultPeriod, maxPickableDays, relativeOptions} =
+    limitMaxPickableDays(organization);
+
   return (
     <SentryDocumentTitle title={t('Traces')} orgSlug={organization.slug}>
       <PageFiltersContainer maxPickableDays={maxPickableDays}>
@@ -173,13 +170,11 @@ function ExploreContentImpl({}: ExploreContentProps) {
                 <ProjectPageFilter />
                 <EnvironmentPageFilter />
                 <DatePageFilter
-                  defaultPeriod="7d"
+                  defaultPeriod={defaultPeriod}
                   maxPickableDays={maxPickableDays}
                   relativeOptions={({arbitraryOptions}) => ({
                     ...arbitraryOptions,
-                    '1h': t('Last 1 hour'),
-                    '24h': t('Last 24 hours'),
-                    '7d': t('Last 7 days'),
+                    ...relativeOptions,
                   })}
                 />
               </StyledPageFilterBar>
@@ -247,7 +242,7 @@ function ExploreContentImpl({}: ExploreContentProps) {
   );
 }
 
-function ExploreTagsProvider({children}) {
+function ExploreTagsProvider({children}: any) {
   const dataset = useExploreDataset();
 
   return (
@@ -257,23 +252,66 @@ function ExploreTagsProvider({children}) {
   );
 }
 
-export function ExploreContent(props: ExploreContentProps) {
+export function ExploreContent() {
   Sentry.setTag('explore.visited', 'yes');
 
   return (
     <PageParamsProvider>
       <ExploreTagsProvider>
-        <ExploreContentImpl {...props} />
+        <ExploreContentImpl />
       </ExploreTagsProvider>
     </PageParamsProvider>
   );
+}
+
+type MaxPickableDays = 7 | 14 | 30;
+type DefaultPeriod = '7d' | '14d' | '30d';
+
+function limitMaxPickableDays(organization: Organization): {
+  defaultPeriod: DefaultPeriod;
+  maxPickableDays: MaxPickableDays;
+  relativeOptions: Record<string, React.ReactNode>;
+} {
+  const defaultPeriods: Record<MaxPickableDays, DefaultPeriod> = {
+    7: '7d',
+    14: '14d',
+    30: '30d',
+  };
+
+  const relativeOptions: [DefaultPeriod, React.ReactNode][] = [
+    ['7d', t('Last 7 days')],
+    ['14d', t('Last 14 days')],
+    ['30d', t('Last 30 days')],
+  ];
+
+  const maxPickableDays: MaxPickableDays = organization.features.includes(
+    'visibility-explore-range-high'
+  )
+    ? 30
+    : organization.features.includes('visibility-explore-range-medium')
+      ? 14
+      : 7;
+  const defaultPeriod: DefaultPeriod = defaultPeriods[maxPickableDays];
+
+  const index = relativeOptions.findIndex(([period, _]) => period === defaultPeriod) + 1;
+  const enabledOptions = relativeOptions.slice(0, index);
+
+  return {
+    defaultPeriod,
+    maxPickableDays,
+    relativeOptions: {
+      '1h': t('Last hour'),
+      '24h': t('Last 24 hours'),
+      ...Object.fromEntries(enabledOptions),
+    },
+  };
 }
 
 const Body = styled(Layout.Body)`
   gap: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    grid-template-columns: 350px minmax(100px, auto);
+    grid-template-columns: 300px minmax(100px, auto);
     gap: ${space(2)};
   }
 
@@ -289,7 +327,7 @@ const TopSection = styled('div')`
   margin-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {
-    grid-template-columns: minmax(350px, auto) 1fr;
+    grid-template-columns: minmax(300px, auto) 1fr;
     margin-bottom: 0;
   }
 

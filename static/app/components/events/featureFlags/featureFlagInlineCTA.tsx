@@ -18,7 +18,7 @@ export default function FeatureFlagInlineCTA({projectId}: {projectId: string}) {
   const organization = useOrganization();
   const {activateSidebar} = useFeatureFlagOnboarding();
 
-  function handleSetupButtonClick(e) {
+  function handleSetupButtonClick(e: any) {
     trackAnalytics('flags.setup_modal_opened', {organization});
     trackAnalytics('flags.cta_setup_button_clicked', {organization});
     activateSidebar(e);

@@ -2,6 +2,7 @@ from collections.abc import Callable
 from typing import Any
 
 from sentry.rules.conditions.event_attribute import EventAttributeCondition
+from sentry.rules.conditions.event_frequency import ComparisonType, EventFrequencyCondition
 from sentry.rules.conditions.every_event import EveryEventCondition
 from sentry.rules.conditions.existing_high_priority_issue import ExistingHighPriorityIssueCondition
 from sentry.rules.conditions.first_seen_event import FirstSeenEventCondition
@@ -15,6 +16,7 @@ from sentry.rules.filters.assigned_to import AssignedToFilter
 from sentry.rules.filters.event_attribute import EventAttributeFilter
 from sentry.rules.filters.issue_category import IssueCategoryFilter
 from sentry.rules.filters.issue_occurrences import IssueOccurrencesFilter
+from sentry.rules.filters.latest_adopted_release_filter import LatestAdoptedReleaseFilter
 from sentry.rules.filters.latest_release import LatestReleaseFilter
 from sentry.rules.filters.level import LevelFilter
 from sentry.rules.filters.tagged_event import TaggedEventFilter
@@ -46,7 +48,7 @@ def create_reappeared_event_data_condition(
 
 
 @data_condition_translator_registry.register(RegressionEventCondition.id)
-def create_regressed_event_data_condition(
+def create_regression_event_data_condition(
     data: dict[str, Any], dcg: DataConditionGroup
 ) -> DataCondition:
     return DataCondition.objects.create(
@@ -164,10 +166,9 @@ def create_tagged_event_data_condition(
 def create_age_comparison_data_condition(
     data: dict[str, Any], dcg: DataConditionGroup
 ) -> DataCondition:
-    # TODO: Add comparison validation (error if not enough information)
     comparison = {
         "comparison_type": data["comparison_type"],
-        "value": data["value"],
+        "value": int(data["value"]),
         "time": data["time"],
     }
 
@@ -238,6 +239,48 @@ def create_latest_release_data_condition(
     return DataCondition.objects.create(
         type=Condition.LATEST_RELEASE,
         comparison=True,
+        condition_result=True,
+        condition_group=dcg,
+    )
+
+
+@data_condition_translator_registry.register(LatestAdoptedReleaseFilter.id)
+def create_latest_adopted_release_data_condition(
+    data: dict[str, Any], dcg: DataConditionGroup
+) -> DataCondition:
+    # TODO: Add comparison validation (error if not enough information)
+    comparison = {
+        "release_age_type": data["oldest_or_newest"],
+        "age_comparison": data["older_or_newer"],
+        "environment": data["environment"],
+    }
+    return DataCondition.objects.create(
+        type=Condition.LATEST_ADOPTED_RELEASE,
+        comparison=comparison,
+        condition_result=True,
+        condition_group=dcg,
+    )
+
+
+@data_condition_translator_registry.register(EventFrequencyCondition.id)
+def create_event_frequency_data_condition(
+    data: dict[str, Any], dcg: DataConditionGroup
+) -> DataCondition:
+    comparison_type = data["comparisonType"]  # this is camelCase, age comparison is snake_case
+    comparison = {
+        "interval": data["interval"],
+        "value": data["value"],
+    }
+
+    if comparison_type == ComparisonType.COUNT:
+        type = Condition.EVENT_FREQUENCY_COUNT
+    else:
+        type = Condition.EVENT_FREQUENCY_PERCENT
+        comparison["comparison_interval"] = data["comparisonInterval"]
+
+    return DataCondition.objects.create(
+        type=type,
+        comparison=comparison,
         condition_result=True,
         condition_group=dcg,
     )

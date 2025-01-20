@@ -1,6 +1,5 @@
 import TimeSince from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
-import {MonitorType} from 'sentry/types/alerts';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {hasActiveIncident} from 'sentry/views/alerts/list/rules/utils';
 import {
@@ -34,30 +33,14 @@ function LastIssueTrigger({rule}: {rule: IssueAlert}) {
   }
 
   return (
-    <div>
-      {t('Triggered ')}
-      <TimeSince date={rule.lastTriggered} />
-    </div>
+    <div>{tct('Triggered [at]', {at: <TimeSince date={rule.lastTriggered} />})}</div>
   );
 }
 
 /**
- * Displays the last activation for activated alert rules or the last incident for continuous alerts
+ * Displays the last incident for continuous alerts
  */
 function LastMetricAlertIncident({rule}: {rule: MetricAlert}) {
-  if (rule.monitorType === MonitorType.ACTIVATED) {
-    if (!rule.activations?.length) {
-      return t('Alert has not been activated yet');
-    }
-
-    return (
-      <div>
-        {t('Last activated ')}
-        <TimeSince date={rule.activations[0]!.dateCreated} />
-      </div>
-    );
-  }
-
   if (!rule.latestIncident) {
     return t('Alert not triggered yet');
   }
@@ -66,16 +49,16 @@ function LastMetricAlertIncident({rule}: {rule: MetricAlert}) {
   if (activeIncident) {
     return (
       <div>
-        {t('Triggered ')}
-        <TimeSince date={rule.latestIncident.dateCreated} />
+        {tct('Triggered [at]', {
+          at: <TimeSince date={rule.latestIncident.dateCreated} />,
+        })}
       </div>
     );
   }
 
   return (
     <div>
-      {t('Resolved ')}
-      <TimeSince date={rule.latestIncident.dateClosed!} />
+      {tct('Resolved [at]', {at: <TimeSince date={rule.latestIncident.dateClosed!} />})}
     </div>
   );
 }

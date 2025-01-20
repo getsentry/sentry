@@ -1,14 +1,25 @@
+import {defined} from 'sentry/utils';
 import type {createContinuousProfileFrameIndex} from 'sentry/utils/profiling/profile/utils';
 
 import {CallTreeNode} from '../callTreeNode';
 import type {Frame} from '../frame';
 
 import {Profile} from './profile';
+import {sortProfileSamples} from './utils';
+
+type WeightedSample = Profiling.ContinuousProfile['samples'][number] & {
+  weight: number;
+};
 
 export class ContinuousProfile extends Profile {
   static FromProfile(
     chunk: Profiling.ContinuousProfile,
-    frameIndex: ReturnType<typeof createContinuousProfileFrameIndex>
+    frameIndex: ReturnType<typeof createContinuousProfileFrameIndex>,
+    options: {
+      minTimestamp: number;
+      type: 'flamechart' | 'flamegraph';
+      frameFilter?: (frame: Frame) => boolean;
+    }
   ): ContinuousProfile {
     const firstSample = chunk.samples[0]!;
     const lastSample = chunk.samples[chunk.samples.length - 1]!;
@@ -16,17 +27,18 @@ export class ContinuousProfile extends Profile {
     const {threadId, threadName} = getThreadData(chunk);
 
     const profile = new ContinuousProfile({
-      // Duration is in seconds, convert to nanoseconds
+      timestamp: options.minTimestamp,
+      // Duration is in seconds, convert to milliseconds
       duration: (lastSample.timestamp - firstSample.timestamp) * 1e3,
-      endedAt: lastSample.timestamp * 1e3,
-      startedAt: firstSample.timestamp * 1e3,
+      endedAt: (lastSample.timestamp - options.minTimestamp) * 1e3,
+      startedAt: (firstSample.timestamp - options.minTimestamp) * 1e3,
       threadId,
       name: threadName,
-      type: 'flamechart',
+      type: options.type,
       unit: 'milliseconds',
     });
 
-    function resolveFrame(index) {
+    function resolveFrame(index: any) {
       const resolvedFrame = frameIndex[index];
       if (!resolvedFrame) {
         throw new Error(`Could not resolve frame ${index} in frame index`);
@@ -34,29 +46,44 @@ export class ContinuousProfile extends Profile {
       return resolvedFrame;
     }
 
+    const weightedSamples: WeightedSample[] = chunk.samples.map((sample, i) => {
+      // falling back to the current sample timestamp has the effect
+      // of giving the last sample a weight of 0
+      const nextSample = chunk.samples[i + 1] ?? sample;
+      return {
+        ...sample,
+        // Chunk timestamps are in seconds, convert them to ms
+        weight: (nextSample.timestamp - sample.timestamp) * 1e3,
+      };
+    });
+
+    const samples =
+      options.type === 'flamegraph'
+        ? sortProfileSamples<WeightedSample>(
+            weightedSamples,
+            chunk.stacks,
+            chunk.frames,
+            options.frameFilter ? i => options.frameFilter!(resolveFrame(i)) : undefined
+          )
+        : weightedSamples;
+
     let frame: Frame | null = null;
     const resolvedStack: Frame[] = new Array(256); // stack size limit
 
-    for (let i = 0; i < chunk.samples.length; i++) {
-      const sample = chunk.samples[i]!;
-      const nextSampleTimestamp = chunk.samples[i + 1]?.timestamp ?? sample.timestamp;
+    for (let i = 0; i < samples.length; i++) {
+      const sample = samples[i]!;
 
       const stack = chunk.stacks[sample.stack_id];
       let size = 0;
 
       for (let j = stack.length - 1; j >= 0; j--) {
         frame = resolveFrame(stack[j]);
-        if (frame) {
+        if (frame && (!options.frameFilter || options.frameFilter(frame))) {
           resolvedStack[size++] = frame;
         }
       }
 
-      profile.appendSample(
-        resolvedStack,
-        // Chunk timestamps are in seconds, convert them to ms
-        (nextSampleTimestamp - sample.timestamp) * 1e3,
-        size
-      );
+      profile.appendSample(resolvedStack, sample.weight, size);
     }
 
     return profile.build();
@@ -170,4 +197,28 @@ function getThreadData(profile: Profiling.ContinuousProfile): {
     threadId,
     threadName: thread_metadata?.[threadId]?.name ?? `Thread ${threadId}`,
   };
+}
+
+export function minTimestampInChunk(
+  chunk: Readonly<Profiling.ContinuousProfile>,
+  measurements?: Readonly<Profiling.ContinuousMeasurements>
+): number {
+  let timestamp: number | null = null;
+
+  for (let i = 0; i < chunk.samples.length; i++) {
+    const sample = chunk.samples[i]!;
+    if (!defined(timestamp) || timestamp > sample.timestamp) {
+      timestamp = sample.timestamp;
+    }
+  }
+
+  for (const measurement of Object.values(measurements ?? {})) {
+    for (const value of measurement.values) {
+      if (!defined(timestamp) || timestamp > value.timestamp) {
+        timestamp = value.timestamp;
+      }
+    }
+  }
+
+  return timestamp || 0;
 }
