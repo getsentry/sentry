@@ -1,6 +1,6 @@
 import orderBy from 'lodash/orderBy';
 
-type Range<T> = {
+export type Range<T> = {
   max: number;
   min: number;
   value: T;
@@ -25,8 +25,7 @@ type Range<T> = {
 export class RangeMap<T> {
   ranges: Range<T>[];
 
-  // At least one range is required by the type
-  constructor(ranges: [Range<T>, ...Range<T>[]]) {
+  constructor(ranges: Range<T>[]) {
     // Filter out sparse array slots just in case
     const filteredRanges = ranges.filter(Boolean);
 
@@ -42,7 +41,7 @@ export class RangeMap<T> {
 
       if (previousRange.max > range.min) {
         throw new Error(
-          `Range with value ${range.value} overlaps with range with value ${previousRange.value}`
+          `${rangeToString(range)} overlaps with ${rangeToString(previousRange)}`
         );
       }
     }
@@ -63,4 +62,8 @@ export class RangeMap<T> {
   get max() {
     return this.ranges.at(-1)!.value;
   }
+}
+
+function rangeToString(range: Range<any>): string {
+  return `Range min:${range.min}, max:${range.max}, value:${range.value}`;
 }
