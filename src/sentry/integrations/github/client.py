@@ -28,6 +28,7 @@ from sentry.integrations.source_code_management.repo_trees import (
     MAX_CONNECTION_ERRORS,
     RepoAndBranch,
     RepoTree,
+    RepoTreesClient,
     filter_source_code_files,
 )
 from sentry.integrations.source_code_management.repository import RepositoryClient
@@ -189,7 +190,7 @@ class GithubProxyClient(IntegrationProxyClient):
         return super().is_error_fatal(error)
 
 
-class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient):
+class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient, RepoTreesClient):
     allow_redirects = True
 
     base_url = "https://api.github.com"
@@ -285,6 +286,10 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient)
         # There's more but this is good enough
         assert specific_resource in ("core", "search", "graphql")
         return GithubRateLimitInfo(self.get("/rate_limit")["resources"][specific_resource])
+
+    def get_remaining_api_requests(self) -> int:
+        """This gives information of the current rate limit"""
+        return self.get_rate_limit().remaining
 
     # https://docs.github.com/en/rest/git/trees#get-a-tree
     def get_tree(self, repo_full_name: str, tree_sha: str) -> Any:

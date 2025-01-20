@@ -2,13 +2,12 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
-from typing import NamedTuple
+from collections.abc import Sequence
+from typing import Any, NamedTuple
 
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.cache import cache
-
-from .repository import RepositoryClient
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +47,7 @@ class RepoTreesIntegration(ABC):
     CACHE_SECONDS = 3600 * 24
 
     @abstractmethod
-    def get_client(self) -> RepositoryClient:
+    def get_client(self) -> RepoTreesClient:
         """Returns the client for the integration. The client must be a subclass of RepositoryClient."""
         raise NotImplementedError
 
@@ -77,6 +76,7 @@ class RepoTreesIntegration(ABC):
         repositories: list[RepoAndBranch] = cache.get(cache_key, [])
 
         if not repositories:
+            # XXX: Switch to the integration get_repositories to be more generic
             # Remove unnecessary fields from GitHub's API response
             repositories = [
                 RepoAndBranch(name=repo["full_name"], branch=repo["default_branch"])
@@ -99,8 +99,7 @@ class RepoTreesIntegration(ABC):
 
         remaining_requests = MINIMUM_REQUESTS_REMAINING
         try:
-            rate_limit = self.get_client().get_rate_limit()
-            remaining_requests = rate_limit.remaining
+            remaining_requests = self.get_client().get_remaining_api_requests()
         except ApiError:
             use_cache = True
             # Report so we can investigate
@@ -177,6 +176,20 @@ class RepoTreesIntegration(ABC):
 class RepoTreesClient(ABC):
     @abstractmethod
     def get_trees_for_org(self) -> dict[str, RepoTree]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_remaining_api_requests(self) -> int:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_tree(self, repo: str, branch: str) -> RepoTree:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_repositories(
+        self, query: str | None = None, fetch_max_pages: bool = False
+    ) -> Sequence[Any]:
         raise NotImplementedError
 
 

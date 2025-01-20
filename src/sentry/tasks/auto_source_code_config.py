@@ -16,7 +16,6 @@ from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionEvent,
     SCMIntegrationInteractionType,
 )
-from sentry.integrations.source_code_management.repo_trees import RepoTree
 from sentry.issues.auto_source_code_config.code_mapping import CodeMapping, CodeMappingTreesHelper
 from sentry.locks import locks
 from sentry.models.organization import Organization
@@ -135,11 +134,21 @@ def auto_source_code_config(
         return
 
     installation, organization_integration = get_installation(org)
+
     if not installation or not organization_integration:
         logger.info("No installation or organization integration found.", extra=extra)
         return
 
-    trees: dict[str, RepoTree] = {}
+    if not hasattr(installation, "get_trees_for_org") and not hasattr(
+        installation, "get_trees_for_org_old"
+    ):
+        logger.error(
+            "Installation does not have required method get_trees_for_org",
+            extra={"installation_type": type(installation).__name__, **extra},
+        )
+        return
+
+    trees = {}
     # Acquire the lock for a maximum of 10 minutes
     lock = locks.get(key=f"get_trees_for_org:{org.slug}", duration=60 * 10, name="process_pending")
 
