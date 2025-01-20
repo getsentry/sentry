@@ -3138,29 +3138,29 @@ class OrganizationEventsStatsTopNEventsProfileFunctionDatasetEndpointTest(
             for y_axis in y_axes:
                 assert response.data[func]["p95(function.duration)"]["meta"]["fields"] == {
                     "time": "date",
-                    "p95_function_duration": "size",
+                    "p95_function_duration": "duration",
                 }
                 assert response.data[func]["p95(function.duration)"]["meta"]["units"] == {
                     "time": None,
-                    "p95_function_duration": "kibibyte",
+                    "p95_function_duration": "nanosecond",
                 }
 
                 assert response.data[func]["all_examples()"]["meta"]["fields"] == {
                     "time": "date",
-                    "all_examples": "size",
+                    "all_examples": "string",
                 }
                 assert response.data[func]["all_examples()"]["meta"]["units"] == {
                     "time": None,
-                    "all_examples": "kibibyte",
+                    "all_examples": None,
                 }
 
                 assert response.data[func]["cpm()"]["meta"]["fields"] == {
                     "time": "date",
-                    "cpm": "size",
+                    "cpm": "number",
                 }
                 assert response.data[func]["cpm()"]["meta"]["units"] == {
                     "time": None,
-                    "cpm": "kibibyte",
+                    "cpm": None,
                 }
 
 

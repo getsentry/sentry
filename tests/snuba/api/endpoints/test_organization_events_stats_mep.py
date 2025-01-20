@@ -715,7 +715,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         }
         assert response.data["p99(measurements.another.custom)"]["meta"]["units"] == {
             "time": None,
-            "p99_measurements_another_custom": "kibibyte",
+            "p99_measurements_another_custom": "pebibyte",
         }
 
     def test_no_top_events_with_project_field(self):
