@@ -79,6 +79,19 @@ def process_error(error: ApiError, extra: dict[str, Any]) -> None:
     )
 
 
+# XXX: Temporarily
+@instrumented_task(
+    name="sentry.tasks.derive_code_mappings.derive_code_mappings",
+    queue="derive_code_mappings",
+    default_retry_delay=60 * 10,
+    max_retries=3,
+)
+def derive_code_mappings(
+    project_id: int, event_id: str, group_id: int | None = None, **kwargs: Any
+) -> None:
+    auto_source_code_config(project_id, event_id=event_id, group_id=group_id, **kwargs)
+
+
 @instrumented_task(
     name="sentry.tasks.auto_source_code_config",
     queue="auto_source_code_config",
