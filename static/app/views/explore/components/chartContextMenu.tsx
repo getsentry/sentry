@@ -1,3 +1,6 @@
+import styled from '@emotion/styled';
+
+import Feature from 'sentry/components/acl/feature';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -64,10 +67,21 @@ function ChartContextMenu({
   }
 
   if (organization.features.includes('dashboards-eap')) {
+    const disableAddToDashboard = !organization.features.includes('dashboards-edit');
     items.push({
       key: 'add-to-dashboard',
-      label: t('Add to Dashboard'),
-      onAction: () => addToDashboard(visualizeIndex),
+      textValue: t('Add to Dashboard'),
+      label: (
+        <Feature
+          hookName="feature-disabled:dashboards-edit"
+          features="organizations:dashboards-edit"
+          renderDisabled={() => <DisabledText>{t('Add to Dashboard')}</DisabledText>}
+        >
+          {t('Add to Dashboard')}
+        </Feature>
+      ),
+      disabled: disableAddToDashboard,
+      onAction: !disableAddToDashboard ? () => addToDashboard(visualizeIndex) : undefined,
     });
   }
 
@@ -90,3 +104,7 @@ function ChartContextMenu({
 }
 
 export default ChartContextMenu;
+
+const DisabledText = styled('span')`
+  color: ${p => p.theme.disabled};
+`;
