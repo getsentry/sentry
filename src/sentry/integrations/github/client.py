@@ -23,10 +23,11 @@ from sentry.integrations.source_code_management.commit_context import (
     FileBlameInfo,
     SourceLineInfo,
 )
+from sentry.integrations.source_code_management.get_trees import RepoTreesClient
 from sentry.integrations.source_code_management.repository import RepositoryClient
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.models.repository import Repository
-from sentry.shared_integrations.client.base import BaseApiResponseX, RateLimitInfo
+from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
 from sentry.shared_integrations.response.mapping import MappingApiResponse
@@ -39,6 +40,20 @@ logger = logging.getLogger("sentry.integrations.github")
 # as the lower ceiling before hitting Github anymore, thus, leaving at least these
 # many requests left for other features that need to reach Github
 MINIMUM_REQUESTS = 200
+
+
+class GithubRateLimitInfo:
+    def __init__(self, info: dict[str, int]) -> None:
+        self.limit = info["limit"]
+        self.remaining = info["remaining"]
+        self.reset = info["reset"]
+        self.used = info["used"]
+
+    def next_window(self) -> str:
+        return datetime.fromtimestamp(self.reset).strftime("%H:%M:%S")
+
+    def __repr__(self) -> str:
+        return f"GithubRateLimitInfo(limit={self.limit},rem={self.remaining},reset={self.reset})"
 
 
 class GithubProxyClient(IntegrationProxyClient):
@@ -167,7 +182,7 @@ class GithubProxyClient(IntegrationProxyClient):
         return super().is_error_fatal(error)
 
 
-class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient):
+class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient, RepoTreesClient):
     allow_redirects = True
 
     base_url = "https://api.github.com"
@@ -258,11 +273,11 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient)
         return self.get(f"/repos/{repo}")
 
     # https://docs.github.com/en/rest/rate-limit?apiVersion=2022-11-28
-    def get_rate_limit(self, specific_resource: str = "core") -> RateLimitInfo:
+    def get_rate_limit(self, specific_resource: str = "core") -> GithubRateLimitInfo:
         """This gives information of the current rate limit"""
         # There's more but this is good enough
         assert specific_resource in ("core", "search", "graphql")
-        return RateLimitInfo(self.get("/rate_limit")["resources"][specific_resource])
+        return GithubRateLimitInfo(self.get("/rate_limit")["resources"][specific_resource])
 
     # https://docs.github.com/en/rest/git/trees#get-a-tree
     def get_tree(self, repo_full_name: str, tree_sha: str) -> list[dict[str, Any]]:
