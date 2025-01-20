@@ -614,16 +614,23 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             if is_equation(query_column):
                 equations += 1
             # `meta` contains meta for all columns. Only include field and unit
-            # information for the current column and time. Time just for safety
-            # no known UI uses it.
+            # information for the current column
             result[columns[index]]["meta"] = {
                 **meta,
                 "fields": {
-                    "time": meta["fields"]["time"],
                     axis_column: meta["fields"][axis_column],
                 },
                 "units": {"time": meta["units"]["time"], axis_column: meta["units"][axis_column]},
             }
+
+            # Time may be absent depending on dataset. If present, add it even though the
+            # frontend doesn't seem to use it
+            if meta["fields"].get("time", None):
+                result[columns[index]]["meta"]["fields"]["time"] = meta["fields"]["time"]
+
+            if meta["units"].get("time", None):
+                result[columns[index]]["meta"]["units"]["time"] = meta["units"]["time"]
+
         # Set order if multi-axis + top events
         if "order" in event_result.data:
             result["order"] = event_result.data["order"]
