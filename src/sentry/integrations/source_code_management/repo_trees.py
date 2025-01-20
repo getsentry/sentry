@@ -5,9 +5,10 @@ from abc import ABC, abstractmethod
 from typing import NamedTuple
 
 from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.cache import cache
+
+from .repository import RepositoryClient
 
 logger = logging.getLogger(__name__)
 
@@ -38,13 +39,18 @@ MAX_CONNECTION_ERRORS = 10
 MINIMUM_REQUESTS_REMAINING = 200
 
 
-class RepoTreesIntegration(RepositoryIntegration):
+class RepoTreesIntegration(ABC):
     """
     Base class for integrations that can get trees for an organization's repositories.
     It is used for finding files in repositories and deriving code mappings.
     """
 
     CACHE_SECONDS = 3600 * 24
+
+    @abstractmethod
+    def get_client(self) -> RepositoryClient:
+        """Returns the client for the integration. The client must be a subclass of RepositoryClient."""
+        raise NotImplementedError
 
     @property
     def org_integration(self) -> OrganizationIntegration | None:
@@ -97,7 +103,7 @@ class RepoTreesIntegration(RepositoryIntegration):
         use_cache = False
         connection_error_count = 0
 
-        remaining_requests = self.MINIMUM_REQUESTS_REMAINING
+        remaining_requests = MINIMUM_REQUESTS_REMAINING
         try:
             rate_limit = self.get_client().get_rate_limit()
             remaining_requests = rate_limit.remaining
@@ -132,7 +138,7 @@ class RepoTreesIntegration(RepositoryIntegration):
                 )
 
             # This is a rudimentary circuit breaker
-            if connection_error_count >= self.MAX_CONNECTION_ERRORS:
+            if connection_error_count >= MAX_CONNECTION_ERRORS:
                 logger.warning(
                     "Falling back to the cache because we've hit too many errors connecting to GitHub.",
                     extra=extra,
