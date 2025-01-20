@@ -234,6 +234,6 @@ class RepositoryClient(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_rate_limit(self) -> int:
+    def get_rate_limit(self, specific_resource: str = "core") -> GithubRateLimitInfo:
         """Get the rate limit for the client."""
         raise NotImplementedError

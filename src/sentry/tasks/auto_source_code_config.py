@@ -217,7 +217,7 @@ def get_installation(
     if len(integrations) == 0:
         return None, None
 
-    # XXX: We only operate on the first github integration for an organization.
+    # XXX: We only operate on the first integration for an organization.
     integration = integrations[0]
     organization_integration = integration_service.get_organization_integration(
         integration_id=integration.id, organization_id=organization.id
