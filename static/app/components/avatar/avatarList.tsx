@@ -16,13 +16,11 @@ type UserAvatarProps = React.ComponentProps<typeof UserAvatar>;
 type Props = {
   avatarSize?: number;
   className?: string;
-  collapsedAvatarActions?: {
-    onMouseEnter: () => void;
-    onMouseLeave: () => void;
-  };
-  collapsedAvatarTooltip?: React.ReactNode;
-  collapsedAvatarTooltipStyle?: React.CSSProperties;
   maxVisibleAvatars?: number;
+  renderCollapsedAvatars?: (
+    avatarSize: number,
+    numCollapsedAvatars: number
+  ) => React.ReactNode;
   renderTooltip?: UserAvatarProps['renderTooltip'];
   renderUsersFirst?: boolean;
   teams?: Team[];
@@ -31,7 +29,7 @@ type Props = {
   users?: Array<Actor | AvatarUser>;
 };
 
-const CollapsedAvatars = forwardRef(function CollapsedAvatars(
+export const CollapsedAvatars = forwardRef(function CollapsedAvatars(
   {
     size,
     children,
@@ -82,9 +80,7 @@ function AvatarList({
   teams = [],
   renderUsersFirst = false,
   renderTooltip,
-  collapsedAvatarTooltip,
-  collapsedAvatarActions,
-  collapsedAvatarTooltipStyle,
+  renderCollapsedAvatars,
 }: Props) {
   const numTeams = teams.length;
   const numVisibleTeams = maxVisibleAvatars - numTeams > 0 ? numTeams : maxVisibleAvatars;
@@ -112,23 +108,20 @@ function AvatarList({
 
   return (
     <AvatarListWrapper className={className}>
-      {!!numCollapsedAvatars && (
-        <Tooltip
-          title={collapsedAvatarTooltip ?? `${numCollapsedAvatars} other ${typeAvatars}`}
-          skipWrapper={!collapsedAvatarTooltip}
-          isHoverable={!!collapsedAvatarTooltip}
-          overlayStyle={collapsedAvatarTooltipStyle}
-        >
-          <CollapsedAvatars
-            size={avatarSize}
-            data-test-id="avatarList-collapsedavatars"
-            collapsedAvatarActions={collapsedAvatarActions}
-          >
-            {numCollapsedAvatars < 99 && <Plus>+</Plus>}
-            {numCollapsedAvatars}
-          </CollapsedAvatars>
-        </Tooltip>
-      )}
+      {!!numCollapsedAvatars &&
+        (renderCollapsedAvatars ? (
+          renderCollapsedAvatars(avatarSize, numCollapsedAvatars)
+        ) : (
+          <Tooltip title={`${numCollapsedAvatars} other ${typeAvatars}`} skipWrapper>
+            <CollapsedAvatars
+              size={avatarSize}
+              data-test-id="avatarList-collapsedavatars"
+            >
+              {numCollapsedAvatars < 99 && <Plus>+</Plus>}
+              {numCollapsedAvatars}
+            </CollapsedAvatars>
+          </Tooltip>
+        ))}
 
       {renderUsersFirst
         ? visibleTeamAvatars.map(team => (

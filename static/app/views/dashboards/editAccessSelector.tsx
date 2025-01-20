@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
@@ -6,7 +6,7 @@ import sortBy from 'lodash/sortBy';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import Avatar from 'sentry/components/avatar';
-import AvatarList from 'sentry/components/avatar/avatarList';
+import AvatarList, {CollapsedAvatars} from 'sentry/components/avatar/avatarList';
 import TeamAvatar from 'sentry/components/avatar/teamAvatar';
 import Badge from 'sentry/components/badge/badge';
 import FeatureBadge from 'sentry/components/badge/featureBadge';
@@ -140,7 +140,7 @@ function EditAccessSelector({
     const permissions = getDashboardPermissions();
     if (permissions.teamsWithEditAccess.length > 1) {
       return (
-        <Fragment>
+        <CollapsedAvatarTooltip>
           {allSelectedTeams.map((team, index) => (
             <CollapsedAvatarTooltipListItem
               key={team.id}
@@ -152,10 +152,39 @@ function EditAccessSelector({
               <div>#{team.name}</div>
             </CollapsedAvatarTooltipListItem>
           ))}
-        </Fragment>
+        </CollapsedAvatarTooltip>
       );
     }
-    return <div />;
+    return null;
+  };
+
+  const renderCollapsedAvatars = (avatarSize: number, numCollapsedAvatars: number) => {
+    return (
+      <Tooltip
+        title={renderCollapsedAvatarTooltip()}
+        isHoverable
+        overlayStyle={{
+          pointerEvents: 'auto',
+          zIndex: 1000,
+        }}
+      >
+        <CollapsedAvatars
+          size={avatarSize}
+          data-test-id="avatarList-collapsedavatars"
+          collapsedAvatarActions={{
+            onMouseEnter: () => {
+              setIsCollapsedAvatarTooltipOpen(true);
+            },
+            onMouseLeave: () => {
+              setIsCollapsedAvatarTooltipOpen(false);
+            },
+          }}
+        >
+          {numCollapsedAvatars < 99 && <Plus>+</Plus>}
+          {numCollapsedAvatars}
+        </CollapsedAvatars>
+      </Tooltip>
+    );
   };
 
   const makeCreatorOption = useCallback(
@@ -216,21 +245,7 @@ function EditAccessSelector({
         maxVisibleAvatars={1}
         avatarSize={listOnly ? 30 : 25}
         tooltipOptions={{disabled: !userCanEditDashboardPermissions}}
-        collapsedAvatarTooltip={renderCollapsedAvatarTooltip()}
-        collapsedAvatarActions={{
-          onMouseEnter: () => {
-            setIsCollapsedAvatarTooltipOpen(true);
-          },
-          onMouseLeave: () => {
-            setIsCollapsedAvatarTooltipOpen(false);
-          },
-        }}
-        collapsedAvatarTooltipStyle={{
-          maxHeight: '200px',
-          overflowY: 'scroll',
-          pointerEvents: 'auto',
-          zIndex: 1000,
-        }}
+        renderCollapsedAvatars={renderCollapsedAvatars}
       />
     );
 
@@ -426,8 +441,19 @@ const FilterButtons = styled(ButtonBar)`
   justify-content: flex-end;
 `;
 
+const CollapsedAvatarTooltip = styled('div')`
+  max-height: 200px;
+  overflow-y: scroll;
+`;
+
 const CollapsedAvatarTooltipListItem = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
+`;
+
+const Plus = styled('span')`
+  font-size: 10px;
+  margin-left: 1px;
+  margin-right: -1px;
 `;
