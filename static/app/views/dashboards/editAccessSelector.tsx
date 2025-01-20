@@ -5,7 +5,8 @@ import isEqual from 'lodash/isEqual';
 import sortBy from 'lodash/sortBy';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import AvatarList from 'sentry/components/avatar/avatarList';
+import Avatar from 'sentry/components/avatar';
+import AvatarList, {CollapsedAvatars} from 'sentry/components/avatar/avatarList';
 import TeamAvatar from 'sentry/components/avatar/teamAvatar';
 import Badge from 'sentry/components/badge/badge';
 import FeatureBadge from 'sentry/components/badge/featureBadge';
@@ -64,11 +65,16 @@ function EditAccessSelector({
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
   const [stagedOptions, setStagedOptions] = useState<string[]>([]);
   const [isMenuOpen, setMenuOpen] = useState<boolean>(false);
+  const [isCollapsedAvatarTooltipOpen, setIsCollapsedAvatarTooltipOpen] =
+    useState<boolean>(false);
   const {teams: selectedTeam} = useTeamsById({
     ids:
       selectedOptions[1] && selectedOptions[1] !== '_allUsers'
         ? [selectedOptions[1]]
         : [],
+  });
+  const {teams: allSelectedTeams} = useTeamsById({
+    ids: selectedOptions.filter(option => option !== '_allUsers'),
   });
 
   // Gets selected options for the dropdown from dashboard object
@@ -131,6 +137,52 @@ function EditAccessSelector({
     };
   }
 
+  // Creates tooltip for the + bubble in avatar list
+  const renderCollapsedAvatarTooltip = () => {
+    const permissions = getDashboardPermissions();
+    if (permissions.teamsWithEditAccess.length > 1) {
+      return (
+        <CollapsedAvatarTooltip>
+          {allSelectedTeams.map((team, index) => (
+            <CollapsedAvatarTooltipListItem
+              key={team.id}
+              style={{
+                marginBottom: index === allSelectedTeams.length - 1 ? 0 : space(1),
+              }}
+            >
+              <Avatar team={team} size={18} />
+              <div>#{team.name}</div>
+            </CollapsedAvatarTooltipListItem>
+          ))}
+        </CollapsedAvatarTooltip>
+      );
+    }
+    return null;
+  };
+
+  const renderCollapsedAvatars = (avatarSize: number, numCollapsedAvatars: number) => {
+    return (
+      <Tooltip
+        title={renderCollapsedAvatarTooltip()}
+        isHoverable
+        overlayStyle={{
+          pointerEvents: 'auto',
+          zIndex: 1000,
+        }}
+      >
+        <div
+          onMouseEnter={() => setIsCollapsedAvatarTooltipOpen(true)}
+          onMouseLeave={() => setIsCollapsedAvatarTooltipOpen(false)}
+        >
+          <CollapsedAvatars size={avatarSize}>
+            {numCollapsedAvatars < 99 && <Plus>+</Plus>}
+            {numCollapsedAvatars}
+          </CollapsedAvatars>
+        </div>
+      </Tooltip>
+    );
+  };
+
   const makeCreatorOption = useCallback(
     () => ({
       value: '_creator',
@@ -189,6 +241,7 @@ function EditAccessSelector({
         maxVisibleAvatars={1}
         avatarSize={listOnly ? 30 : 25}
         tooltipOptions={{disabled: !userCanEditDashboardPermissions}}
+        renderCollapsedAvatars={renderCollapsedAvatars}
       />
     );
 
@@ -320,7 +373,9 @@ function EditAccessSelector({
   return (
     <Tooltip
       title={t('Only the creator of the dashboard can edit permissions')}
-      disabled={userCanEditDashboardPermissions || isMenuOpen}
+      disabled={
+        userCanEditDashboardPermissions || isMenuOpen || isCollapsedAvatarTooltipOpen
+      }
     >
       {dropdownMenu}
     </Tooltip>
@@ -380,4 +435,21 @@ const FilterButtons = styled(ButtonBar)`
   margin-top: ${space(0.5)};
   margin-bottom: ${space(0.5)};
   justify-content: flex-end;
+`;
+
+const CollapsedAvatarTooltip = styled('div')`
+  max-height: 200px;
+  overflow-y: auto;
+`;
+
+const CollapsedAvatarTooltipListItem = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+`;
+
+const Plus = styled('span')`
+  font-size: 10px;
+  margin-left: 1px;
+  margin-right: -1px;
 `;
