@@ -253,7 +253,7 @@ class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest)
             ],
             "Environment": {
                 "Variables": {
-                    "NODE_OPTIONS": "-r @sentry/serverless/dist/awslambda-auto",
+                    "NODE_OPTIONS": "-r @sentry/aws-serverless/awslambda-auto",
                     "SENTRY_DSN": self.sentry_dsn,
                     "SENTRY_TRACES_SAMPLE_RATE": "1.0",
                 }
@@ -286,7 +286,7 @@ class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest)
             ],
             Environment={
                 "Variables": {
-                    "NODE_OPTIONS": "-r @sentry/serverless/dist/awslambda-auto",
+                    "NODE_OPTIONS": "-r @sentry/aws-serverless/awslambda-auto",
                     "SENTRY_DSN": self.sentry_dsn,
                     "SENTRY_TRACES_SAMPLE_RATE": "1.0",
                 }
