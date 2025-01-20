@@ -1,6 +1,10 @@
 import orderBy from 'lodash/orderBy';
 
-type Rung<T> = [threshold: number, value: T];
+type Rung<T> = {
+  max: number;
+  min: number;
+  value: T;
+};
 
 /**
  * Class that represents a value ladder. Given a ladder of increasing thresholds,
@@ -25,39 +29,40 @@ export class Ladder<T> {
 
   // At least one rung is required by the type
   constructor(rungs: [Rung<T>, ...Rung<T>[]]) {
-    if (!rungs.some(rung => rung[0] === 0)) {
-      throw new Error('At least one rung in the ladder must start at 0');
+    // Filter out sparse array slots just in case
+    const filteredRungs = rungs.filter(Boolean);
+
+    if (filteredRungs.length === 0) {
+      throw new Error('No rungs provided');
     }
 
-    const sortedRungs = orderBy(rungs, rung => rung[0], 'desc');
+    const sortedRungs = orderBy(filteredRungs, rung => rung.min, 'asc');
 
-    const rungThresholds = sortedRungs.map(rung => rung[0]);
-    const uniqueThresholds = new Set(rungThresholds);
+    for (let i = 1; i < sortedRungs.length; i += 1) {
+      const previousRung = sortedRungs[i - 1]!;
+      const rung = sortedRungs[i]!;
 
-    if (uniqueThresholds.size !== rungThresholds.length) {
-      throw new Error('Rung thresholds are not unique');
+      if (previousRung.max > rung.min) {
+        throw new Error(
+          `Rung of value ${rung.value} overlaps with rung of value ${previousRung.value}`
+        );
+      }
     }
 
     this.rungs = sortedRungs;
   }
 
   rung(value: number) {
-    if (value < 0) {
-      throw new Error('Cannot check ladder for values below 0');
-    }
-
-    const rung = this.rungs.find(([threshold]) => {
-      return value >= threshold;
-    }) as Rung<T>;
-
-    return rung[1];
+    return this.rungs.find(r => {
+      return value >= r.min && value < r.max;
+    })?.value;
   }
 
   get min() {
-    return (this.rungs.at(-1) as Rung<T>)[1];
+    return this.rungs.at(0)!.value;
   }
 
   get max() {
-    return (this.rungs.at(0) as Rung<T>)[1];
+    return this.rungs.at(-1)!.value;
   }
 }

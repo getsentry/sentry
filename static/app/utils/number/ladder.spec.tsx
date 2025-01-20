@@ -1,71 +1,62 @@
 import {Ladder} from './ladder';
 
 describe('Ladder', () => {
-  test('it picks the correct rung', () => {
+  test('matches an integer range', () => {
     const ladder = new Ladder([
-      [0, 'first'],
-      [10, 'second'],
-      [20, 'third'],
+      {min: 0, max: 10, value: 'first'},
+      {min: 10, max: 20, value: 'second'},
+      {min: 20, max: 50, value: 'third'},
     ]);
 
+    expect(ladder.rung(-10)).toBeUndefined();
     expect(ladder.rung(5)).toBe('first');
     expect(ladder.rung(15)).toBe('second');
+    expect(ladder.rung(25)).toBe('third');
+    expect(ladder.rung(58)).toBeUndefined();
   });
 
-  test('ladder must start at 0', () => {
+  test('must provide at least one range', () => {
+    // @ts-ignore
+    expect(() => new Ladder([])).toThrow();
+  });
+
+  test('cannot have overlapping ranges', () => {
     expect(
       () =>
         new Ladder([
-          [10, 'first'],
-          [20, 'second'],
+          {min: 0, max: 10, value: 'first'},
+          {min: 10, max: 20, value: 'second'},
+          {min: 15, max: 25, value: 'third'},
         ])
     ).toThrow();
   });
 
-  test('ladders cannot have duplicate items', () => {
-    expect(
-      () =>
-        new Ladder([
-          [10, 'hello'],
-          [20, 'goodbye'],
-          [10, 'hi'],
-        ])
-    ).toThrow();
-  });
-
-  test('exact boundary match looks upward', () => {
+  test('may have range gaps', () => {
     const ladder = new Ladder([
-      [0, 'first'],
-      [10, 'second'],
+      {min: 0, max: 10, value: 'first'},
+      {min: 10, max: 20, value: 'second'},
+      {min: 50, max: 100, value: 'third'},
+    ]);
+
+    expect(ladder.rung(25)).toBeUndefined();
+  });
+
+  test('range minimum is inclusive', () => {
+    const ladder = new Ladder([
+      {min: 0, max: 10, value: 'first'},
+      {min: 10, max: 20, value: 'second'},
+      {min: 20, max: 50, value: 'third'},
     ]);
 
     expect(ladder.rung(0)).toBe('first');
     expect(ladder.rung(10)).toBe('second');
   });
 
-  test('top of ladder is the maximum', () => {
-    const ladder = new Ladder([
-      [0, 'first'],
-      [10, 'second'],
-    ]);
-
-    expect(ladder.rung(15)).toBe('second');
-  });
-
-  test('cannot check for values below 0', () => {
-    const ladder = new Ladder([
-      [0, 'first'],
-      [10, 'second'],
-    ]);
-
-    expect(() => ladder.rung(-1)).toThrow();
-  });
-
   test('provides the min and max value', () => {
     const ladder = new Ladder([
-      [10, 'third'],
-      [5, 'second'],
-      [0, 'first'],
+      {min: 0, max: 10, value: 'first'},
+      {min: 10, max: 20, value: 'second'},
+      {min: 20, max: 50, value: 'third'},
     ]);
 
     expect(ladder.min).toBe('first');
@@ -76,8 +67,8 @@ describe('Ladder', () => {
     type Salutation = 'Hello' | 'Hi';
 
     const ladder = new Ladder([
-      [0, 'Hello' as Salutation],
-      [10, 'Hi' as Salutation],
+      {min: 0, max: 10, value: 'Hello' as Salutation},
+      {min: 10, max: 20, value: 'Hi' as Salutation},
     ]);
 
     const salutation = ladder.rung(0);
