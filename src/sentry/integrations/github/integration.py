@@ -301,13 +301,7 @@ class GitHubIntegration(
                 "No organization information was found. Continuing execution.", extra=extra
             )
         else:
-            if options.get("github-app.get-trees-refactored-code"):
-                trees = self.get_trees_for_org()
-            else:
-                # XXX: This is the old code that we're going to remove
-                trees = self.get_client().get_trees_for_org(
-                    gh_org=gh_org, cache_seconds=cache_seconds
-                )
+            trees = self.get_client().get_trees_for_org(gh_org=gh_org, cache_seconds=cache_seconds)
 
         return trees
 

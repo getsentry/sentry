@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 from sentry_sdk import set_tag, set_user
 
-from sentry import eventstore
+from sentry import eventstore, options
 from sentry.constants import ObjectStatus
 from sentry.db.models.fields.node import NodeData
 from sentry.integrations.github.integration import GitHubIntegration
@@ -152,7 +152,12 @@ def auto_source_code_config(
                 # This method is specific to the GithubIntegration
                 if not isinstance(installation, GitHubIntegration):
                     return
-                trees = installation.get_trees_for_org()
+
+                if options.get("github-app.get-trees-refactored-code"):
+                    trees = installation.get_trees_for_org()
+                else:
+                    # XXX: This is the old code that we're going to remove
+                    trees = installation.get_trees_for_org_old()
         except ApiError as error:
             process_error(error, extra)
             lifecycle.record_halt(error, extra)
