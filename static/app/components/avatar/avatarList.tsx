@@ -33,37 +33,22 @@ export const CollapsedAvatars = forwardRef(function CollapsedAvatars(
   {
     size,
     children,
-    collapsedAvatarActions,
   }: {
     children: React.ReactNode;
     size: number;
-    collapsedAvatarActions?: {
-      onMouseEnter: () => void;
-      onMouseLeave: () => void;
-    };
   },
   ref: React.ForwardedRef<HTMLDivElement>
 ) {
   const hasStreamlinedUI = useHasStreamlinedUI();
 
   if (hasStreamlinedUI) {
-    return (
-      <CollapsedAvatarPill
-        ref={ref}
-        onMouseEnter={() => collapsedAvatarActions?.onMouseEnter?.()}
-        onMouseLeave={() => collapsedAvatarActions?.onMouseLeave?.()}
-      >
-        {children}
-      </CollapsedAvatarPill>
-    );
+    return <CollapsedAvatarPill ref={ref}>{children}</CollapsedAvatarPill>;
   }
   return (
     <CollapsedAvatarsCicle
       ref={ref}
       size={size}
       data-test-id="avatarList-collapsedavatars"
-      onMouseEnter={() => collapsedAvatarActions?.onMouseEnter?.()}
-      onMouseLeave={() => collapsedAvatarActions?.onMouseLeave?.()}
     >
       {children}
     </CollapsedAvatarsCicle>

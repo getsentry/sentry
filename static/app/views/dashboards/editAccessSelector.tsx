@@ -168,21 +168,15 @@ function EditAccessSelector({
           zIndex: 1000,
         }}
       >
-        <CollapsedAvatars
-          size={avatarSize}
-          data-test-id="avatarList-collapsedavatars"
-          collapsedAvatarActions={{
-            onMouseEnter: () => {
-              setIsCollapsedAvatarTooltipOpen(true);
-            },
-            onMouseLeave: () => {
-              setIsCollapsedAvatarTooltipOpen(false);
-            },
-          }}
+        <div
+          onMouseEnter={() => setIsCollapsedAvatarTooltipOpen(true)}
+          onMouseLeave={() => setIsCollapsedAvatarTooltipOpen(false)}
         >
-          {numCollapsedAvatars < 99 && <Plus>+</Plus>}
-          {numCollapsedAvatars}
-        </CollapsedAvatars>
+          <CollapsedAvatars size={avatarSize}>
+            {numCollapsedAvatars < 99 && <Plus>+</Plus>}
+            {numCollapsedAvatars}
+          </CollapsedAvatars>
+        </div>
       </Tooltip>
     );
   };
@@ -443,7 +437,7 @@ const FilterButtons = styled(ButtonBar)`
 
 const CollapsedAvatarTooltip = styled('div')`
   max-height: 200px;
-  overflow-y: scroll;
+  overflow-y: auto;
 `;
 
 const CollapsedAvatarTooltipListItem = styled('div')`
