@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, NamedTuple
+from typing import NamedTuple
 
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.source_code_management.repository import RepositoryClient
 from sentry.organizations.services.organization import organization_service
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.cache import cache
@@ -44,7 +45,7 @@ class RepoTreesIntegration(ABC):
     MINIMUM_REQUESTS_REMAINING = 200
 
     @abstractmethod
-    def get_client(self) -> RepoTreesClient:
+    def get_client(self) -> RepositoryClient:
         raise NotImplementedError
 
     @property
@@ -177,18 +178,7 @@ class RepoTreesIntegration(ABC):
 
 class RepoTreesClient(ABC):
     @abstractmethod
-    def get_repositories(self, fetch_max_pages: bool = False) -> list[dict[str, Any]]:
-        """Get the list of repositories."""
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_rate_limit(self, specific_resource: str = "core") -> Any:
-        """Get the rate limit."""
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_tree(self, repo_full_name: str, tree_sha: str) -> list[dict[str, Any]]:
-        """Get the tree."""
+    def get_trees_for_org(self) -> dict[str, RepoTree]:
         raise NotImplementedError
 
 
