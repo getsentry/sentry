@@ -368,6 +368,13 @@ def record_alert_rule_edited(
 
 @plugin_enabled.connect(weak=False)
 def record_plugin_enabled(plugin, project, user, **kwargs):
+    analytics.record(
+        "plugin.enabled",
+        user_id=user.id if user else None,
+        organization_id=project.organization_id,
+        project_id=project.id,
+        plugin=plugin.slug,
+    )
     if isinstance(plugin, (IssueTrackingPlugin, IssueTrackingPlugin2)):
         FeatureAdoption.objects.record(
             organization_id=project.organization_id,
