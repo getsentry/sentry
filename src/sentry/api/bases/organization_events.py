@@ -496,6 +496,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                             allow_partial_buckets,
                             zerofill_results=zerofill_results,
                             dataset=dataset,
+                            transform_alias_to_input_format=transform_alias_to_input_format,
                         )
                         if request.query_params.get("useOnDemandMetrics") == "true":
                             results[key]["isMetricsExtractedData"] = self._query_if_extracted_data(
@@ -613,23 +614,21 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             )
             if is_equation(query_column):
                 equations += 1
+
             # `meta` contains meta for all columns. Only include field and unit
-            # information for the current column
+            # information for the current column. For empty result sets, the meta
+            # will be empty, and `"time"` is missing for some datasets
             result[columns[index]]["meta"] = {
                 **meta,
                 "fields": {
-                    axis_column: meta["fields"][axis_column],
+                    "time": meta["fields"].get("time", None),
+                    axis_column: meta["fields"].get(axis_column, None),
                 },
-                "units": {"time": meta["units"]["time"], axis_column: meta["units"][axis_column]},
+                "units": {
+                    "time": meta["units"].get("time", None),
+                    axis_column: meta["units"].get(axis_column, None),
+                },
             }
-
-            # Time may be absent depending on dataset. If present, add it even though the
-            # frontend doesn't seem to use it
-            if meta["fields"].get("time", None):
-                result[columns[index]]["meta"]["fields"]["time"] = meta["fields"]["time"]
-
-            if meta["units"].get("time", None):
-                result[columns[index]]["meta"]["units"]["time"] = meta["units"]["time"]
 
         # Set order if multi-axis + top events
         if "order" in event_result.data:
