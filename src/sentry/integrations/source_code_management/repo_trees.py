@@ -77,16 +77,10 @@ class RepoTreesIntegration(ABC):
         repositories: list[RepoAndBranch] = cache.get(cache_key, [])
 
         if not repositories:
-            try:
-                client = self.get_client()
-            except IntegrationError:
-                logger.warning("Failed to get client. Returning empty list.")
-                return []
-
             # Remove unnecessary fields from GitHub's API response
             repositories = [
                 RepoAndBranch(name=repo["full_name"], branch=repo["default_branch"])
-                for repo in client.get_repositories(fetch_max_pages=True)
+                for repo in self.get_client().get_repositories(fetch_max_pages=True)
             ]
 
         if repositories:
@@ -117,7 +111,7 @@ class RepoTreesIntegration(ABC):
             extra = {"repo_full_name": repo_full_name}
             # Only use the cache if we drop below the lower ceiling
             # We will fetch after the limit is reset (every hour)
-            if not use_cache and remaining_requests <= self.MINIMUM_REQUESTS_REMAINING:
+            if not use_cache and remaining_requests <= MINIMUM_REQUESTS_REMAINING:
                 use_cache = True
             else:
                 remaining_requests -= 1

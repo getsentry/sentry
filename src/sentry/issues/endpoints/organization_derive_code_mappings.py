@@ -11,12 +11,13 @@ from sentry.api.bases.organization import (
 )
 from sentry.api.serializers import serialize
 from sentry.integrations.github.integration import GitHubIntegration
+from sentry.integrations.source_code_management.repo_trees import RepoAndBranch
 from sentry.issues.auto_source_code_config.code_mapping import (
+    CodeMapping,
     CodeMappingTreesHelper,
     FrameFilename,
     create_code_mapping,
 )
-from sentry.issues.auto_source_code_config.types import CodeMapping, RepoAndBranch
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.tasks.auto_source_code_config import get_installation

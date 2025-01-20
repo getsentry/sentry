@@ -227,3 +227,13 @@ class RepositoryClient(ABC):
     ) -> str:
         """Get the file contents. Currently used for CODEOWNERS."""
         raise NotImplementedError
+
+    @abstractmethod
+    def get_repositories(self, fetch_max_pages: bool = False) -> Sequence[Any]:
+        """Get a list of available repositories for an installation."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_rate_limit(self) -> int:
+        """Get the rate limit for the client."""
+        raise NotImplementedError
