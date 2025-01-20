@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Alert} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {StoreCrashReportsConfig} from 'sentry/components/onboarding/gettingStartedDoc/storeCrashReportsConfig';
 import type {
   Docs,
   DocsParams,
@@ -208,6 +209,15 @@ const onboarding: OnboardingConfig = {
             )}
           </p>
         </Fragment>
+      ),
+    },
+    {
+      title: t('Further Settings'),
+      description: (
+        <StoreCrashReportsConfig
+          organization={params.organization}
+          projectSlug={params.projectSlug}
+        />
       ),
     },
   ],
