@@ -113,7 +113,7 @@ function AutofixCodeMappingStep() {
     <Fragment>
       <p>
         {t(
-          'Set up code mappings for the Github repositories you want to run Autofix on for this project.'
+          'Set up code mappings for the GitHub repositories you want to run Autofix on for this project.'
         )}
       </p>
       <GuidedSteps.ButtonWrapper>
