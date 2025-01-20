@@ -548,6 +548,56 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             }
             assert meta["units"] == {"time": None, axis: "1/second"}
 
+    def test_multi_series_meta(self):
+        project = self.create_project()
+        # Each of these denotes how many events to create in each hour
+        event_counts = [6, 0, 6, 3, 0, 3]
+        for hour, count in enumerate(event_counts):
+            for minute in range(count):
+                self.store_event(
+                    data={
+                        "event_id": str(uuid.uuid1()),
+                        "message": "very bad",
+                        "timestamp": (
+                            self.day_ago + timedelta(hours=hour, minutes=minute)
+                        ).isoformat(),
+                        "fingerprint": ["group1"],
+                        "tags": {"sentry:user": self.user.email},
+                    },
+                    project_id=project.id,
+                )
+
+        response = self.do_request(
+            data={
+                "transformAliasToInputFormat": 1,
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=6),
+                "interval": "1h",
+                "yAxis": ["epm()", "count()"],
+                "project": project.id,
+            },
+        )
+
+        assert response.data["epm()"]["meta"]["fields"] == {
+            "time": "date",
+            "epm()": "rate",
+        }
+
+        assert response.data["epm()"]["meta"]["units"] == {
+            "time": None,
+            "epm()": "1/minute",
+        }
+
+        assert response.data["count()"]["meta"]["fields"] == {
+            "time": "date",
+            "count()": "integer",
+        }
+
+        assert response.data["count()"]["meta"]["units"] == {
+            "time": None,
+            "count()": None,
+        }
+
     def test_throughput_epm_hour_rollup(self):
         project = self.create_project()
         # Each of these denotes how many events to create in each hour
