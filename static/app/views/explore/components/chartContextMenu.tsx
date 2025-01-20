@@ -1,3 +1,6 @@
+import styled from '@emotion/styled';
+
+import Feature from 'sentry/components/acl/feature';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -63,30 +66,57 @@ function ChartContextMenu({
     });
   }
 
-  if (organization.features.includes('dashboards-eap')) {
-    items.push({
-      key: 'add-to-dashboard',
-      label: t('Add to Dashboard'),
-      onAction: () => addToDashboard(visualizeIndex),
-    });
-  }
-
   if (items.length === 0) {
     return null;
   }
 
   return (
-    <DropdownMenu
-      triggerProps={{
-        size: 'sm',
-        borderless: true,
-        showChevron: false,
-        icon: <IconEllipsis />,
+    <Feature features={['organizations:dashboards-edit', 'organizations:dashboards-eap']}>
+      {({hasFeature: hasDashboardsEap}) => {
+        items.push({
+          key: 'add-to-dashboard',
+          label: t('Add to Dashboard'),
+          textValue: t('Add to Dashboard'),
+          ...(hasDashboardsEap
+            ? {onAction: () => addToDashboard(visualizeIndex)}
+            : {
+                label: (
+                  <Feature
+                    hookName="feature-disabled:dashboards-edit"
+                    features={[
+                      'organizations:dashboards-edit',
+                      'organizations:dashboards-eap',
+                    ]}
+                    renderDisabled={() => (
+                      <DisabledText>{t('Add to Dashboard')}</DisabledText>
+                    )}
+                  >
+                    <DisabledText>{t('Add to Dashboard')}</DisabledText>
+                  </Feature>
+                ),
+                disabled: true,
+              }),
+        });
+
+        return (
+          <DropdownMenu
+            triggerProps={{
+              size: 'sm',
+              borderless: true,
+              showChevron: false,
+              icon: <IconEllipsis />,
+            }}
+            position="bottom-end"
+            items={items}
+          />
+        );
       }}
-      position="bottom-end"
-      items={items}
-    />
+    </Feature>
   );
 }
 
 export default ChartContextMenu;
+
+const DisabledText = styled('span')`
+  color: ${p => p.theme.disabled};
+`;
