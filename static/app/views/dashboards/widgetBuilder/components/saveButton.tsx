@@ -1,7 +1,7 @@
 import {useCallback, useState} from 'react';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
 import {t} from 'sentry/locale';
 import useApi from 'sentry/utils/useApi';
@@ -29,6 +29,7 @@ function SaveButton({isEditing, onSave, setError}: SaveButtonProps) {
     setIsSaving(true);
     try {
       await validateWidget(api, organization.slug, widget);
+      addLoadingMessage(t('Saving widget'));
       onSave({index: Number(widgetIndex), widget});
     } catch (error) {
       setIsSaving(false);
