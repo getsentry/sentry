@@ -108,7 +108,7 @@ function mergePendingChanges(
       ? item
       : {
           ...item,
-          ...pendingById[item.id].reduce((a, change) => ({...a, ...change.data}), {}),
+          ...pendingById[item.id]!.reduce((a, change) => ({...a, ...change.data}), {}),
         }
   );
 }
@@ -154,11 +154,14 @@ const storeConfig: GroupStoreDefinition = {
 
     // Merge these items into the store and return a mapping of any that aren't already in the store
     this.items.forEach((item, itemIndex) => {
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       if (itemsById[item.id]) {
         this.items[itemIndex] = {
           ...item,
+          // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           ...itemsById[item.id],
         };
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         delete itemsById[item.id];
       }
     });
@@ -187,6 +190,7 @@ const storeConfig: GroupStoreDefinition = {
     items = toArray(items);
     const itemMap = items.reduce((acc, item) => ({...acc, [item.id]: item}), {});
 
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     this.items = [...items, ...this.items.filter(item => !itemMap[item.id])];
 
     this.updateItems(items.map(item => item.id));
@@ -230,7 +234,7 @@ const storeConfig: GroupStoreDefinition = {
     }
 
     for (let i = 0; i < group.activity.length; i++) {
-      if (group.activity[i].id === id) {
+      if (group.activity[i]!.id === id) {
         return i;
       }
     }
@@ -270,7 +274,7 @@ const storeConfig: GroupStoreDefinition = {
     // Here, we want to merge the new `data` being passed in
     // into the existing `data` object. This effectively
     // allows passing in an object of only changes.
-    group.activity[index].data = Object.assign(group.activity[index].data, data);
+    group.activity[index]!.data = Object.assign(group.activity[index]!.data, data);
     this.updateItems([group.id]);
   },
 
@@ -287,7 +291,7 @@ const storeConfig: GroupStoreDefinition = {
 
     const activity = group.activity.splice(index, 1);
 
-    if (activity[0].type === 'note') {
+    if (activity[0]!.type === 'note') {
       group.numComments--;
     }
 
@@ -332,7 +336,7 @@ const storeConfig: GroupStoreDefinition = {
       return;
     }
 
-    this.items[idx] = {...this.items[idx], assignedTo: response.assignedTo};
+    this.items[idx] = {...this.items[idx]!, assignedTo: response.assignedTo};
     this.clearStatus(itemId, 'assignTo');
     this.updateItems([itemId]);
   },

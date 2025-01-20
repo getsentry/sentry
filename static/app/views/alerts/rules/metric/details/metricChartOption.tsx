@@ -111,7 +111,7 @@ function createIncidentSeries(
       data: [
         {
           xAxis: incidentTimestamp,
-          // @ts-expect-error onClick not in echart types
+          // @ts-ignore TS(2322): Type '{ xAxis: number; onClick: () => void | undef... Remove this comment to see the full error message
           onClick: () => handleIncidentClick?.(incident),
         },
       ],
@@ -187,10 +187,10 @@ export function getMetricAlertChartOption({
   }));
   const areaSeries: AreaChartSeries[] = [];
   // Ensure series data appears below incident/mark lines
-  series[0].z = 1;
-  series[0].color = CHART_PALETTE[0][0];
+  series[0]!.z = 1;
+  series[0]!.color = CHART_PALETTE[0][0];
 
-  const dataArr = timeseriesData[0].data;
+  const dataArr = timeseriesData[0]!.data;
 
   let maxSeriesValue = Number.NEGATIVE_INFINITY;
   let minSeriesValue = Number.POSITIVE_INFINITY;
@@ -218,9 +218,9 @@ export function getMetricAlertChartOption({
         ) / ALERT_CHART_MIN_MAX_BUFFER
       )
     : 0;
-  const startDate = new Date(dataArr[0]?.name);
+  const startDate = new Date(dataArr[0]!?.name);
   const endDate =
-    dataArr.length > 1 ? new Date(dataArr[dataArr.length - 1]?.name) : new Date();
+    dataArr.length > 1 ? new Date(dataArr[dataArr.length - 1]!?.name) : new Date();
   const firstPoint = startDate.getTime();
   const lastPoint = endDate.getTime();
   const totalDuration = lastPoint - firstPoint;
@@ -234,8 +234,8 @@ export function getMetricAlertChartOption({
 
   if (showWaitingForData) {
     const {startIndex, endIndex} = getWaitingForDataRange(dataArr);
-    const startTime = new Date(dataArr[startIndex]?.name).getTime();
-    const endTime = new Date(dataArr[endIndex]?.name).getTime();
+    const startTime = new Date(dataArr[startIndex]!?.name).getTime();
+    const endTime = new Date(dataArr[endIndex]!?.name).getTime();
 
     waitingForDataDuration = Math.abs(endTime - startTime);
 
@@ -283,15 +283,15 @@ export function getMetricAlertChartOption({
             incidentColor,
             incidentStartDate,
             incidentStartValue,
-            seriesName ?? series[0].seriesName,
+            seriesName ?? series[0]!.seriesName,
             rule.aggregate,
             handleIncidentClick
           )
         );
         const areaStart = Math.max(new Date(incident.dateStarted).getTime(), firstPoint);
         const areaEnd = Math.min(
-          statusChanges.length && statusChanges[0].dateCreated
-            ? new Date(statusChanges[0].dateCreated).getTime() - timeWindowMs
+          statusChanges.length && statusChanges[0]!.dateCreated
+            ? new Date(statusChanges[0]!.dateCreated).getTime() - timeWindowMs
             : new Date(incidentEnd).getTime(),
           lastPoint
         );
@@ -316,7 +316,7 @@ export function getMetricAlertChartOption({
           const statusAreaEnd = Math.min(
             idx === statusChanges.length - 1
               ? new Date(incidentEnd).getTime()
-              : new Date(statusChanges[idx + 1].dateCreated).getTime() - timeWindowMs,
+              : new Date(statusChanges[idx + 1]!.dateCreated).getTime() - timeWindowMs,
             lastPoint
           );
           const statusAreaColor =
@@ -390,7 +390,7 @@ export function getMetricAlertChartOption({
   const yAxis: YAXisComponentOption = {
     axisLabel: {
       formatter: (value: number) =>
-        alertAxisFormatter(value, timeseriesData[0].seriesName, rule.aggregate),
+        alertAxisFormatter(value, timeseriesData[0]!.seriesName, rule.aggregate),
     },
     max: isCrashFreeAlert(rule.dataset)
       ? 100
@@ -419,7 +419,7 @@ export function getMetricAlertChartOption({
   };
 }
 
-function getWaitingForDataRange(dataArr) {
+function getWaitingForDataRange(dataArr: any) {
   if (dataArr[0].value > 0) {
     return {startIndex: 0, endIndex: 0};
   }
@@ -452,6 +452,7 @@ export function transformSessionResponseToSeries(
       data: getCrashFreeRateSeries(
         response?.groups,
         response?.intervals,
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         SESSION_AGGREGATE_TO_FIELD[aggregate]
       ),
     },

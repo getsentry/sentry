@@ -47,7 +47,7 @@ export function getGroupReleaseChartMarkers(
 ): BarChartSeries['markPoint'] {
   const markers: Marker[] = [];
   // Get the timestamp of the first point.
-  const firstGraphTime = stats[0][0] * 1000;
+  const firstGraphTime = stats[0]![0] * 1000;
 
   const firstSeenX = new Date(firstSeen ?? 0).getTime();
   const lastSeenX = new Date(lastSeen ?? 0).getTime();
@@ -67,9 +67,9 @@ export function getGroupReleaseChartMarkers(
     let bucketStart: number | undefined;
     if (firstBucket > 0) {
       // The size of the data interval in ms
-      const halfBucketSize = ((stats[1][0] - stats[0][0]) * 1000) / 2;
+      const halfBucketSize = ((stats[1]![0] - stats[0]![0]) * 1000) / 2;
       // Display the marker in front of the first bucket
-      bucketStart = stats[firstBucket - 1][0] * 1000 - halfBucketSize;
+      bucketStart = stats[firstBucket - 1]![0] * 1000 - halfBucketSize;
     }
 
     markers.push({
@@ -92,7 +92,7 @@ export function getGroupReleaseChartMarkers(
   const markerTooltip = {
     show: true,
     trigger: 'item',
-    formatter: ({data}) => {
+    formatter: ({data}: any) => {
       const time = getFormattedDate(data.displayValue, 'MMM D, YYYY LT', {
         local: true,
       });
@@ -156,26 +156,26 @@ function GroupReleaseChart(props: Props) {
 
   series.push({
     seriesName: t('Events in %s', environmentLabel),
-    data: environmentStats[statsPeriod].map(point => ({
-      name: point[0] * 1000,
-      value: point[1],
+    data: environmentStats[statsPeriod]!.map(point => ({
+      name: point![0] * 1000,
+      value: point![1],
     })),
   });
 
   if (release && releaseStats) {
     series.push({
       seriesName: t('Events in release %s', formatVersion(release.version)),
-      data: releaseStats[statsPeriod].map(point => ({
-        name: point[0] * 1000,
-        value: point[1],
+      data: releaseStats[statsPeriod]!.map(point => ({
+        name: point![0] * 1000,
+        value: point![1],
       })),
     });
   }
 
   const totalSeries =
     environment && environmentStats ? environmentStats[statsPeriod] : stats;
-  const totalEvents = totalSeries.reduce((acc, current) => acc + current[1], 0);
-  series[0].markPoint = getGroupReleaseChartMarkers(theme, stats, firstSeen, lastSeen);
+  const totalEvents = totalSeries!.reduce((acc, current) => acc + current[1], 0);
+  series[0]!.markPoint = getGroupReleaseChartMarkers(theme, stats, firstSeen, lastSeen);
 
   return (
     <SidebarSection.Wrap>

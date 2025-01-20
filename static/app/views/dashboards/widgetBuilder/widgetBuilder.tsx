@@ -236,6 +236,7 @@ function WidgetBuilder({
   const isSubmittingRef = useRef(false);
 
   const [datasetConfig, setDataSetConfig] = useState<ReturnType<typeof getDatasetConfig>>(
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     getDatasetConfig(DATA_SET_TO_WIDGET_TYPE[dataSet])
   );
 
@@ -269,7 +270,7 @@ function WidgetBuilder({
           orderby:
             defaultWidgetQuery.orderby ||
             (datasetConfig.getTableSortOptions
-              ? datasetConfig.getTableSortOptions(organization, defaultWidgetQuery)[0]
+              ? datasetConfig.getTableSortOptions(organization, defaultWidgetQuery)[0]!
                   .value
               : ''),
         },
@@ -279,10 +280,10 @@ function WidgetBuilder({
         ![DisplayType.TABLE, DisplayType.TOP_N].includes(defaultState.displayType) &&
         !(
           getIsTimeseriesChart(defaultState.displayType) &&
-          defaultState.queries[0].columns.length
+          defaultState.queries[0]!.columns.length
         )
       ) {
-        defaultState.queries[0].orderby = '';
+        defaultState.queries[0]!.orderby = '';
       }
     } else {
       defaultState.queries = [{...datasetConfig.defaultWidgetQuery}];
@@ -327,9 +328,9 @@ function WidgetBuilder({
     }
 
     if (isEditing && isValidWidgetIndex) {
-      const widgetFromDashboard = dashboard.widgets[widgetIndexNum];
+      const widgetFromDashboard = dashboard.widgets[widgetIndexNum]!;
 
-      let queries;
+      let queries: any;
       let newDisplayType = widgetFromDashboard.displayType;
       let newLimit = widgetFromDashboard.limit;
       if (widgetFromDashboard.displayType === DisplayType.TOP_N) {
@@ -506,14 +507,14 @@ function WidgetBuilder({
 
       if (
         getIsTimeseriesChart(newDisplayType) &&
-        normalized[0].columns.filter(column => !!column).length
+        normalized[0]!.columns.filter(column => !!column).length
       ) {
         // If a limit already exists (i.e. going between timeseries) then keep it,
         // otherwise calculate a limit
         newState.limit =
           prevState.limit ??
           Math.min(
-            getResultsLimit(normalized.length, normalized[0].columns.length),
+            getResultsLimit(normalized.length, normalized[0]!.columns.length),
             DEFAULT_RESULTS_LIMIT
           );
       } else {
@@ -588,6 +589,7 @@ function WidgetBuilder({
         set(newState, 'displayType', DisplayType.TABLE);
       }
 
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const config = getDatasetConfig(DATA_SET_TO_WIDGET_TYPE[newDataSet]);
       setDataSetConfig(config);
 
@@ -618,10 +620,10 @@ function WidgetBuilder({
       const newState = cloneDeep(prevState);
       const config = getDatasetConfig(DATA_SET_TO_WIDGET_TYPE[prevState.dataSet]);
       const query = cloneDeep(config.defaultWidgetQuery);
-      query.fields = prevState.queries[0].fields;
-      query.aggregates = prevState.queries[0].aggregates;
-      query.columns = prevState.queries[0].columns;
-      query.orderby = prevState.queries[0].orderby;
+      query.fields = prevState.queries[0]!.fields;
+      query.aggregates = prevState.queries[0]!.aggregates;
+      query.columns = prevState.queries[0]!.columns;
+      query.orderby = prevState.queries[0]!.orderby;
       newState.queries.push(query);
       return newState;
     });
@@ -649,7 +651,7 @@ function WidgetBuilder({
       const fieldStrings = newFields.map(generateFieldAsString);
       const splitFields = getColumnsAndAggregatesAsStrings(newFields);
       const newState = cloneDeep(state);
-      let newQuery = cloneDeep(newState.queries[0]);
+      let newQuery = cloneDeep(newState.queries[0]!);
 
       newQuery.fields = fieldStrings;
       newQuery.aggregates = splitFields.aggregates;
@@ -720,13 +722,13 @@ function WidgetBuilder({
     });
 
     if (defined(newSelectedAggregate)) {
-      newQueries[0].selectedAggregate = newSelectedAggregate;
+      newQueries[0]!.selectedAggregate = newSelectedAggregate;
     }
 
     set(newState, 'queries', newQueries);
     set(newState, 'userHasModified', true);
 
-    const groupByFields = newState.queries[0].columns.filter(
+    const groupByFields = newState.queries[0]!.columns.filter(
       field => !(field === 'equation|')
     );
     if (groupByFields.length === 0) {
@@ -737,7 +739,7 @@ function WidgetBuilder({
         'limit',
         Math.min(
           newState.limit ?? DEFAULT_RESULTS_LIMIT,
-          getResultsLimit(newQueries.length, newQueries[0].aggregates.length)
+          getResultsLimit(newQueries.length, newQueries[0]!.aggregates.length)
         )
       );
     }
@@ -770,7 +772,7 @@ function WidgetBuilder({
         if (!orderOptions.length) {
           newQuery.orderby = '';
         } else {
-          orderOption = orderOptions[0].value;
+          orderOption = orderOptions[0]!.value;
           newQuery.orderby = `-${orderOption}`;
         }
       }
@@ -780,7 +782,7 @@ function WidgetBuilder({
     set(newState, 'userHasModified', true);
     set(newState, 'queries', newQueries);
 
-    const groupByFields = newState.queries[0].columns.filter(
+    const groupByFields = newState.queries[0]!.columns.filter(
       field => !(field === 'equation|')
     );
 
@@ -792,7 +794,7 @@ function WidgetBuilder({
         'limit',
         Math.min(
           newState.limit ?? DEFAULT_RESULTS_LIMIT,
-          getResultsLimit(newQueries.length, newQueries[0].aggregates.length)
+          getResultsLimit(newQueries.length, newQueries[0]!.aggregates.length)
         )
       );
     }
@@ -950,10 +952,10 @@ function WidgetBuilder({
       queryNames: [],
       queryConditions: [],
       queryFields: [
-        ...widgetData.queries[0].columns,
-        ...widgetData.queries[0].aggregates,
+        ...widgetData.queries[0]!.columns,
+        ...widgetData.queries[0]!.aggregates,
       ],
-      queryOrderby: widgetData.queries[0].orderby,
+      queryOrderby: widgetData.queries[0]!.orderby,
     };
 
     widgetData.queries.forEach(query => {
@@ -1040,9 +1042,9 @@ function WidgetBuilder({
   }
 
   function handleWidgetDataFetched(tableData: TableDataWithTitle[]) {
-    const tableMeta = {...tableData[0].meta};
+    const tableMeta = {...tableData[0]!.meta};
     const keys = Object.keys(tableMeta);
-    const field = keys[0];
+    const field = keys[0]!;
     const dataType = tableMeta[field];
     const dataUnit = tableMeta.units?.[field];
 
@@ -1099,7 +1101,7 @@ function WidgetBuilder({
 
   // Tabular visualizations will always have only one query and that query cannot be deleted,
   // so we will always have the first query available to get data from.
-  const {columns, aggregates, fields, fieldAliases = []} = state.queries[0];
+  const {columns, aggregates, fields, fieldAliases = []} = state.queries[0]!;
 
   const explodedColumns = useMemo(() => {
     return columns.map((field, index) =>
@@ -1137,10 +1139,10 @@ function WidgetBuilder({
   }
 
   const widgetDiscoverSplitSource = isValidWidgetIndex
-    ? dashboard.widgets[widgetIndexNum].datasetSource
+    ? dashboard.widgets[widgetIndexNum]!.datasetSource
     : undefined;
   const originalWidgetType = isValidWidgetIndex
-    ? dashboard.widgets[widgetIndexNum].widgetType
+    ? dashboard.widgets[widgetIndexNum]!.widgetType
     : undefined;
 
   return (
@@ -1188,7 +1190,7 @@ function WidgetBuilder({
                                       placeholder={t('Enter title')}
                                       error={state.errors?.title}
                                       data-test-id="widget-builder-title-input"
-                                      onChange={newTitle => {
+                                      onChange={(newTitle: any) => {
                                         handleDisplayTypeOrAnnotationChange(
                                           'title',
                                           newTitle
@@ -1204,7 +1206,7 @@ function WidgetBuilder({
                                       aria-label={t('Widget Description')}
                                       placeholder={t('Enter description (Optional)')}
                                       error={state.errors?.description}
-                                      onChange={newDescription => {
+                                      onChange={(newDescription: any) => {
                                         handleDisplayTypeOrAnnotationChange(
                                           'description',
                                           newDescription
@@ -1276,7 +1278,7 @@ function WidgetBuilder({
                                       }}
                                       aggregates={explodedAggregates}
                                       selectedAggregate={
-                                        state.queries[0].selectedAggregate
+                                        state.queries[0]!.selectedAggregate
                                       }
                                       tags={tags}
                                     />

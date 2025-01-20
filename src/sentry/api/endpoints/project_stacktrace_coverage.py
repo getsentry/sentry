@@ -9,9 +9,9 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
-from sentry.integrations.utils.code_mapping import get_sorted_code_mapping_configs
 from sentry.integrations.utils.codecov import codecov_enabled, fetch_codecov_data
 from sentry.integrations.utils.stacktrace_link import get_stacktrace_config
+from sentry.issues.auto_source_code_config.code_mapping import get_sorted_code_mapping_configs
 from sentry.issues.endpoints.project_stacktrace_link import generate_context
 from sentry.models.project import Project
 from sentry.utils import metrics

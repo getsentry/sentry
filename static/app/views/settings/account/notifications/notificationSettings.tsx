@@ -49,7 +49,7 @@ function NotificationSettings({organizations}: NotificationSettingsProps) {
 
   const renderOneSetting = (type: string) => {
     // TODO(isabella): Once GA, remove this
-    const field = NOTIFICATION_SETTING_FIELDS[type];
+    const field = NOTIFICATION_SETTING_FIELDS[type]!;
     if (type === 'quota' && checkFeatureFlag('spend-visibility-notifications')) {
       field.label = t('Spend');
       field.help = t('Notifications that help avoid surprise invoices.');
@@ -67,6 +67,7 @@ function NotificationSettings({organizations}: NotificationSettingsProps) {
             borderless
             aria-label={t('Notification Settings')}
             data-test-id="fine-tuning"
+            // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             to={`/settings/account/notifications/${NOTIFICATION_SETTINGS_PATHNAMES[type]}/`}
           />
         </IconWrapper>

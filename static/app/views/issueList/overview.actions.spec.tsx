@@ -104,6 +104,7 @@ describe('IssueListOverview (actions)', function () {
     organization,
     tags: [
       tags.reduce((acc, tag) => {
+        // @ts-ignore TS(7053): Element implicitly has an any type because
         acc[tag.key] = tag;
 
         return acc;
@@ -153,7 +154,7 @@ describe('IssueListOverview (actions)', function () {
       const groups = await screen.findAllByTestId('group');
 
       await userEvent.click(
-        within(groups[0]).getByRole('checkbox', {name: /select issue/i})
+        within(groups[0]!).getByRole('checkbox', {name: /select issue/i})
       );
 
       expect(screen.getByText('Group 1')).toBeInTheDocument();
@@ -197,7 +198,7 @@ describe('IssueListOverview (actions)', function () {
       const groups = await screen.findAllByTestId('group');
 
       await userEvent.click(
-        within(groups[0]).getByRole('checkbox', {name: /select issue/i})
+        within(groups[0]!).getByRole('checkbox', {name: /select issue/i})
       );
 
       expect(screen.getByText('Group 1')).toBeInTheDocument();
@@ -292,7 +293,7 @@ describe('IssueListOverview (actions)', function () {
       const groups = await screen.findAllByTestId('group');
 
       await userEvent.click(
-        within(groups[0]).getByRole('checkbox', {name: /select issue/i})
+        within(groups[0]!).getByRole('checkbox', {name: /select issue/i})
       );
 
       expect(screen.getByText('Group 1')).toBeInTheDocument();
@@ -354,7 +355,7 @@ describe('IssueListOverview (actions)', function () {
       const groups = await screen.findAllByTestId('group');
 
       await userEvent.click(
-        within(groups[0]).getByRole('checkbox', {name: /select issue/i})
+        within(groups[0]!).getByRole('checkbox', {name: /select issue/i})
       );
 
       expect(screen.getByText('Medium priority issue')).toBeInTheDocument();
@@ -443,7 +444,7 @@ describe('IssueListOverview (actions)', function () {
       const groups = await screen.findAllByTestId('group');
 
       await userEvent.click(
-        within(groups[0]).getByRole('checkbox', {name: /select issue/i})
+        within(groups[0]!).getByRole('checkbox', {name: /select issue/i})
       );
 
       expect(screen.getByText('Medium priority issue')).toBeInTheDocument();

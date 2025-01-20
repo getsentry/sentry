@@ -19,10 +19,13 @@ const RENDERABLE_MEASUREMENTS = [
   MobileVital.TIME_TO_INITIAL_DISPLAY,
 ]
   .map(n => n.replace('measurements.', ''))
-  .reduce((acc, curr) => {
-    acc[curr] = true;
-    return acc;
-  }, {});
+  .reduce(
+    (acc, curr) => {
+      acc[curr] = true;
+      return acc;
+    },
+    {} as Record<string, boolean>
+  );
 
 const WEB_VITALS = [
   WebVital.TTFB,
@@ -75,8 +78,8 @@ export const TRACE_MEASUREMENT_LOOKUP: Record<string, Vital> = {};
 
 for (const key in {...MOBILE_VITAL_DETAILS, ...WEB_VITAL_DETAILS}) {
   TRACE_MEASUREMENT_LOOKUP[key.replace('measurements.', '')] = {
-    ...MOBILE_VITAL_DETAILS[key],
-    ...WEB_VITAL_DETAILS[key],
+    ...MOBILE_VITAL_DETAILS[key as keyof typeof MOBILE_VITAL_DETAILS],
+    ...WEB_VITAL_DETAILS[key as keyof typeof WEB_VITAL_DETAILS],
   };
 }
 
@@ -126,8 +129,8 @@ export function collectTraceMeasurements(
     MOBILE_VITALS_LOOKUP.has(measurement) && vital_types.add('mobile');
 
     const score = Math.round(
-      (measurements[`score.${measurement}`]?.value /
-        measurements[`score.weight.${measurement}`]?.value) *
+      (measurements[`score.${measurement}`]!?.value /
+        measurements[`score.weight.${measurement}`]!?.value) *
         100
     );
 

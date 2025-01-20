@@ -128,11 +128,14 @@ function useBreadcrumbFilters({frames}: Options): Return {
     // flips OPORCATERGORY_TO_TYPE and prevents overwriting nav entry, nav entry becomes nav: ['navigation','navigation.push']
     const TYPE_TO_OPORCATEGORY = Object.entries(OPORCATEGORY_TO_TYPE).reduce(
       (dict, [key, value]) =>
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         dict[value]
-          ? {...dict, [value]: [dict[value], key].flat()}
+          ? // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+            {...dict, [value]: [dict[value], key].flat()}
           : {...dict, [value]: key},
       {}
     );
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     const OpOrCategory = type.flatMap(theType => TYPE_TO_OPORCATEGORY[theType]);
     return filterItems({
       items: frames,
@@ -153,8 +156,8 @@ function useBreadcrumbFilters({frames}: Options): Return {
       )
         .sort()
         .map(value => ({
-          value,
-          label: typeToLabel(value),
+          value: value!,
+          label: typeToLabel(value!),
         })),
     [frames, type]
   );

@@ -59,7 +59,7 @@ jobs:
           node-version-file: '.volta.json'
 
       - name: node_modules cache
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
+        uses: actions/cache@v4.2.0
         id: nodemodulescache
         with:
           path: node_modules
@@ -71,12 +71,12 @@ jobs:
 
       - uses: getsentry/action-setup-venv@a133e6fd5fa6abd3f590a1c106abda344f5df69f # v2.1.0
         with:
-          python-version: 3.12.6
+          python-version: 3.13.1
           cache-dependency-path: |
             requirements-dev.txt
             requirements-dev-frozen.txt
           install-cmd: pip install -r requirements-dev.txt -c requirements-dev-frozen.txt
-      - uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
+      - uses: actions/cache@v4.2.0
         with:
           path: ~/.cache/pre-commit
           key: cache-epoch-1|${{ env.pythonLocation }}|${{ hashFiles('.pre-commit-config.yaml') }}

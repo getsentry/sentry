@@ -88,6 +88,7 @@ function addToTagTree(
  * @param props The props for rendering the root of the TagTree
  * @returns A list of TagTreeRow components to be rendered in this tree
  */
+// @ts-ignore TS(7023): 'getTagTreeRows' implicitly has return type 'any' ... Remove this comment to see the full error message
 function getTagTreeRows({
   tagKey,
   content,
@@ -96,11 +97,13 @@ function getTagTreeRows({
   ...props
 }: EventTagsTreeRowProps & {uniqueKey: string}) {
   const subtreeTags = Object.keys(content.subtree);
+  // @ts-ignore TS(7022): 'subtreeRows' implicitly has type 'any' because it... Remove this comment to see the full error message
   const subtreeRows = subtreeTags.reduce((rows, tag, i) => {
+    // @ts-ignore TS(7022): 'branchRows' implicitly has type 'any' because it ... Remove this comment to see the full error message
     const branchRows = getTagTreeRows({
       ...props,
       tagKey: tag,
-      content: content.subtree[tag],
+      content: content.subtree[tag]!,
       spacerCount: spacerCount + 1,
       isLast: i === subtreeTags.length - 1,
       // Encoding the trunk index with the branch index ensures uniqueness for the key

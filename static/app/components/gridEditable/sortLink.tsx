@@ -3,7 +3,7 @@ import type {LocationDescriptorObject} from 'history';
 
 import Link from 'sentry/components/links/link';
 import {IconArrow} from 'sentry/icons';
-import {browserHistory} from 'sentry/utils/browserHistory';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 export type Alignments = 'left' | 'right' | undefined;
 export type Directions = 'desc' | 'asc' | undefined;
@@ -28,6 +28,7 @@ function SortLink({
   replace,
 }: Props) {
   const target = generateSortLink();
+  const navigate = useNavigate();
 
   if (!target || !canSort) {
     return <StyledNonLink align={align}>{title}</StyledNonLink>;
@@ -40,7 +41,7 @@ function SortLink({
   const handleOnClick: React.MouseEventHandler<HTMLAnchorElement> = e => {
     if (replace) {
       e.preventDefault();
-      browserHistory.replace(target);
+      navigate(target, {replace: true});
     }
     onClick?.(e);
   };
@@ -56,9 +57,9 @@ type LinkProps = React.ComponentPropsWithoutRef<typeof Link>;
 type StyledLinkProps = LinkProps & {align: Alignments};
 
 const StyledLink = styled((props: StyledLinkProps) => {
-  // @ts-expect-error It doesn't look like the `css` property is a part of the props,
   // but prior to this style of destructure-omitting it, it was being omitted
   // with lodash.omit. I mean keeping it omitted here just in case.
+  // @ts-ignore TS(2339): Property 'css' does not exist on type 'StyledLinkP... Remove this comment to see the full error message
   const {align: _align, css: _css, ...forwardProps} = props;
   return <Link {...forwardProps} />;
 })`

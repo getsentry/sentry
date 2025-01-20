@@ -27,7 +27,8 @@ function getSlugPlaceholder(rawSlugType: string, slugValue: string): string {
   // Pull off the trailing slash, if there is one
   const slugType = rawSlugType.replace(/\/$/, '');
   return slugType in TYPE_TO_PLACEHOLDER
-    ? TYPE_TO_PLACEHOLDER[slugType] + '/'
+    ? // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      TYPE_TO_PLACEHOLDER[slugType] + '/'
     : slugValue;
 }
 
@@ -35,7 +36,7 @@ export function sanitizePath(path: string) {
   return (
     path
       // Remove any querystring
-      .split('?')[0]
+      .split('?')[0]!
       .replace(
         /(?<start>.*?\/)(?<type>organizations|issues|groups|customers|subscriptions|projects|teams|users)\/(?<second>[^/]+)\/(?<third>[^/]+\/)?(?<fourth>[^/]+\/)?(?<fifth>[^/]+\/)?(?<sixth>[^/]+\/)?(?<seventh>[^/]+\/)?(?<end>.*)/,
         function (...args) {

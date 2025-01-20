@@ -81,7 +81,7 @@ export default function SelectorTable({
   clickCountSortable,
 }: Props) {
   const {currentSort, makeSortLinkGenerator} = useQueryBasedSorting({
-    defaultSort: {field: clickCountColumns[0].key, kind: 'desc'},
+    defaultSort: {field: clickCountColumns[0]!.key, kind: 'desc'},
     location,
   });
 
@@ -105,7 +105,7 @@ export default function SelectorTable({
   const queryPrefix = currentSort.field.includes('count_dead_clicks') ? 'dead' : 'rage';
 
   const renderBodyCell = useCallback(
-    (column, dataRow) => {
+    (column: any, dataRow: any) => {
       const value = dataRow[column.key];
       switch (column.key) {
         case 'dom_element':
@@ -209,7 +209,7 @@ function renderClickCount<T>(column: GridColumnOrder<string>, dataRow: T) {
   return (
     <ClickCount>
       <IconCursorArrow size="xs" color={color} />
-      {dataRow[column.key]}
+      {dataRow[column.key as keyof T] as React.ReactNode}
     </ClickCount>
   );
 }

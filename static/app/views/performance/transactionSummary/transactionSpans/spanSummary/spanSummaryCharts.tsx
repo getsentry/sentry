@@ -33,7 +33,7 @@ import {SpanSummaryReferrer} from 'sentry/views/performance/transactionSummary/t
 function SpanSummaryCharts() {
   const organization = useOrganization();
   const {spanSlug} = useParams();
-  const [spanOp, groupId] = spanSlug.split(':');
+  const [spanOp, groupId] = spanSlug!.split(':');
 
   const location = useLocation();
   const {transaction} = location.query;

@@ -29,7 +29,6 @@ import type {
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {uniq} from 'sentry/utils/array/uniq';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
 import {
@@ -318,8 +317,8 @@ export class IntegrationListDirectory extends DeprecatedAsyncComponent<
   getFilterParameters = (): {searchInput: string; selectedCategory: string} => {
     const {category, search} = qs.parse(this.props.location.search);
 
-    const selectedCategory = Array.isArray(category) ? category[0] : category || '';
-    const searchInput = Array.isArray(search) ? search[0] : search || '';
+    const selectedCategory = Array.isArray(category) ? category[0]! : category || '';
+    const searchInput = Array.isArray(search) ? search[0]! : search || '';
 
     return {searchInput, selectedCategory};
   };
@@ -336,7 +335,7 @@ export class IntegrationListDirectory extends DeprecatedAsyncComponent<
       category: selectedCategory ? selectedCategory : undefined,
     });
 
-    browserHistory.replace({
+    this.props.router.replace({
       pathname: this.props.location.pathname,
       search: searchString ? `?${searchString}` : undefined,
     });

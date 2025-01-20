@@ -17,14 +17,12 @@ export const DEFAULT_FLAMEGRAPH_RENDERER_OPTIONS: FlamegraphRendererOptions = {
   draw_border: false,
 };
 
-export interface FlamegraphRendererConstructor {
-  new (
-    canvas: HTMLCanvasElement,
-    flamegraph: Flamegraph,
-    theme: FlamegraphTheme,
-    options?: FlamegraphRendererOptions
-  ): FlamegraphRenderer;
-}
+export type FlamegraphRendererConstructor = new (
+  canvas: HTMLCanvasElement,
+  flamegraph: Flamegraph,
+  theme: FlamegraphTheme,
+  options?: FlamegraphRendererOptions
+) => FlamegraphRenderer;
 
 export abstract class FlamegraphRenderer {
   ctx: CanvasRenderingContext2D | WebGLRenderingContext | null = null;
@@ -118,12 +116,13 @@ export abstract class FlamegraphRenderer {
 
       // Descend into the rest of the children
       for (let i = 0; i < frame.children.length; i++) {
-        queue.push(frame.children[i]);
+        queue.push(frame.children[i]!);
       }
     }
     return hoveredNode;
   }
 
+  // @ts-ignore TS(7010): 'setSearchResults', which lacks return-type annota... Remove this comment to see the full error message
   abstract setSearchResults(
     _query: string,
     _searchResults: FlamegraphSearch['results']['frames']

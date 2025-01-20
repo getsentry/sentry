@@ -122,12 +122,12 @@ export const useResourcesQuery = ({
   });
 
   const data = result?.data?.data.map(row => ({
-    [SPAN_OP]: row[SPAN_OP].toString() as `resource.${string}`,
-    [SPAN_DESCRIPTION]: row[SPAN_DESCRIPTION].toString(),
+    [SPAN_OP]: row[SPAN_OP]!.toString() as `resource.${string}`,
+    [SPAN_DESCRIPTION]: row[SPAN_DESCRIPTION]!.toString(),
     ['avg(span.self_time)']: row[`avg(${SPAN_SELF_TIME})`] as number,
     'count()': row['count()'] as number,
     'spm()': row['spm()'] as number,
-    [SPAN_GROUP]: row[SPAN_GROUP].toString(),
+    [SPAN_GROUP]: row[SPAN_GROUP]!.toString(),
     [PROJECT_ID]: row[PROJECT_ID] as number,
     [`avg(http.response_content_length)`]: row[
       `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`
@@ -169,9 +169,11 @@ export const getResourceTypeFilter = (
   let resourceFilter: string[] = [`${SPAN_OP}:resource.*`];
 
   if (selectedSpanOp) {
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     resourceFilter = [SPAN_OP_FILTER[selectedSpanOp].join(' OR ')];
   } else if (defaultResourceTypes) {
     resourceFilter = [
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       defaultResourceTypes.map(type => SPAN_OP_FILTER[type].join(' OR ')).join(' OR '),
     ];
   }

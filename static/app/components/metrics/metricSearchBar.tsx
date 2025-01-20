@@ -1,12 +1,12 @@
 import {useCallback, useMemo} from 'react';
 import {css, type SerializedStyles} from '@emotion/react';
 
+import type {SmartSearchBarProps} from 'sentry/components/deprecatedSmartSearchBar';
 import {QueryFieldGroup} from 'sentry/components/metrics/queryFieldGroup';
 import {
   SearchQueryBuilder,
   type SearchQueryBuilderProps,
 } from 'sentry/components/searchQueryBuilder';
-import type {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
 import {t} from 'sentry/locale';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import type {MRI} from 'sentry/types/metrics';
@@ -29,7 +29,7 @@ export interface MetricSearchBarProps
   query?: string;
 }
 
-const EMPTY_ARRAY = [];
+const EMPTY_ARRAY: any = [];
 const EMPTY_SET = new Set<never>();
 
 export function MetricSearchBar({
@@ -61,6 +61,7 @@ export function MetricSearchBar({
   );
 
   const supportedTags: TagCollection = useMemo(
+    // @ts-ignore TS(7006): Parameter 'acc' implicitly has an 'any' type.
     () => tags.reduce((acc, tag) => ({...acc, [tag.key]: tag}), {}),
     [tags]
   );
@@ -106,7 +107,7 @@ export function MetricSearchBar({
 
       const tagsValues = await fetchTagValues(tag.key, search);
 
-      return tagsValues.filter(tv => tv.value !== '').map(tv => tv.value);
+      return tagsValues.filter((tv: any) => tv.value !== '').map((tv: any) => tv.value);
     },
     [fetchTagValues, selectedProjects]
   );

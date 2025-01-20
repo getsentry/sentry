@@ -37,8 +37,8 @@ export function initializeFlamegraphRenderer(
   for (const renderer of renderers) {
     let r: FlamegraphRenderer | UIFramesRenderer | null = null;
     try {
-      // @ts-expect-error ts complains that constructor args are not of tuple
       // type, even though they are.
+      // @ts-ignore TS(2556): A spread argument must either have a tuple type or... Remove this comment to see the full error message
       r = new renderer(...constructorArgs);
       // eslint-disable-next-line no-empty
     } catch (e) {}
@@ -170,24 +170,24 @@ const canvasToDisplaySizeMap = new Map<HTMLCanvasElement, [number, number]>();
 
 function onResize(entries: ResizeObserverEntry[]) {
   for (const entry of entries) {
-    let width;
-    let height;
+    let width: any;
+    let height: any;
     let dpr = window.devicePixelRatio;
     if (entry.devicePixelContentBoxSize) {
       // NOTE: Only this path gives the correct answer
       // The other paths are imperfect fallbacks
       // for browsers that don't provide anyway to do this
-      width = entry.devicePixelContentBoxSize[0].inlineSize;
-      height = entry.devicePixelContentBoxSize[0].blockSize;
+      width = entry.devicePixelContentBoxSize[0]!.inlineSize;
+      height = entry.devicePixelContentBoxSize[0]!.blockSize;
       dpr = 1; // it's already in width and height
     } else if (entry.contentBoxSize) {
       if (entry.contentBoxSize[0]) {
         width = entry.contentBoxSize[0].inlineSize;
         height = entry.contentBoxSize[0].blockSize;
       } else {
-        // @ts-expect-error
+        // @ts-ignore TS(2339): Property 'inlineSize' does not exist on type 'read... Remove this comment to see the full error message
         width = entry.contentBoxSize.inlineSize;
-        // @ts-expect-error
+        // @ts-ignore TS(2339): Property 'blockSize' does not exist on type 'reado... Remove this comment to see the full error message
         height = entry.contentBoxSize.blockSize;
       }
     } else {
@@ -362,16 +362,19 @@ export function upperBound<T extends {end: number; start: number} | {x: number}>
 
   if (high === 1) {
     return getValue
-      ? getValue(values[0]) < target
+      ? // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        getValue(values[0]) < target
         ? 1
         : 0
-      : values[0].start < target
+      : // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        values[0].start < target
         ? 1
         : 0;
   }
 
   while (low !== high) {
     const mid = low + Math.floor((high - low) / 2);
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     const value = getValue ? getValue(values[mid]) : values[mid].start;
 
     if (value < target) {
@@ -414,17 +417,17 @@ export function lowerBound<T extends {end: number; start: number}>(
 
   if (high === 1) {
     return getValue
-      ? getValue(values[0]) < target
+      ? getValue(values[0]!) < target
         ? 1
         : 0
-      : values[0].end < target
+      : values[0]!.end < target
         ? 1
         : 0;
   }
 
   while (low !== high) {
     const mid = low + Math.floor((high - low) / 2);
-    const value = getValue ? getValue(values[mid]) : values[mid].end;
+    const value = getValue ? getValue(values[mid]!) : values[mid]!.end;
 
     if (value < target) {
       low = mid + 1;
@@ -628,7 +631,7 @@ export function computeMinZoomConfigViewForFrames(view: Rect, frames: Rect[]): R
   }
 
   if (frames.length === 1) {
-    return new Rect(frames[0].x, frames[0].y, frames[0].width, view.height);
+    return new Rect(frames[0]!.x, frames[0]!.y, frames[0]!.width, view.height);
   }
 
   const frame = frames.reduce(
@@ -703,12 +706,12 @@ export function getTranslationMatrixFromPhysicalSpace(
   const [m00, m01, m02, m10, m11, m12] = physicalToConfig;
 
   const configDelta = vec2.transformMat3(vec2.create(), physicalDelta, [
-    m00,
-    m01,
-    m02,
-    m10,
-    m11,
-    m12,
+    m00!,
+    m01!,
+    m02!,
+    m10!,
+    m11!,
+    m12!,
     0,
     0,
     0,
@@ -741,12 +744,12 @@ export function getConfigViewTranslationBetweenVectors(
   const [m00, m01, m02, m10, m11, m12] = physicalToConfig;
 
   const configDelta = vec2.transformMat3(vec2.create(), physicalDelta, [
-    m00,
-    m01,
-    m02,
-    m10,
-    m11,
-    m12,
+    m00!,
+    m01!,
+    m02!,
+    m10!,
+    m11!,
+    m12!,
     0,
     0,
     0,
@@ -778,12 +781,12 @@ export function getConfigSpaceTranslationBetweenVectors(
   );
   const [m00, m01, m02, m10, m11, m12] = physicalToConfig;
   const configDelta = vec2.transformMat3(vec2.create(), physicalDelta, [
-    m00,
-    m01,
-    m02,
-    m10,
-    m11,
-    m12,
+    m00!,
+    m01!,
+    m02!,
+    m10!,
+    m11!,
+    m12!,
     0,
     0,
     0,
@@ -837,7 +840,7 @@ export function useResizeCanvasObserver(
     const observer = watchForResize(canvases as HTMLCanvasElement[], entries => {
       // We cannot use the resize observer's reported rect because it does not report x
       // coordinate that is required to do edge detection.
-      const rect = entries[0].target.getBoundingClientRect();
+      const rect = entries[0]!.target.getBoundingClientRect();
       setCanvasBounds(new Rect(rect.x, rect.y, rect.width, rect.height));
 
       canvas.initPhysicalSpace();

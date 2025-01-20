@@ -55,9 +55,11 @@ function queriesToMap(collectedQueries: Record<symbol, BatchQueryDefinition>) {
   const mergeMap: MergeMap = {};
 
   keys.forEach(key => {
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     const query = collectedQueries[key];
     mergeMap[mergeKey(query)] = mergeMap[mergeKey(query)] || [];
-    mergeMap[mergeKey(query)].push(query);
+    mergeMap[mergeKey(query)]!.push(query);
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     delete collectedQueries[key];
   });
 
@@ -81,12 +83,12 @@ function _handleUnmergeableQueries(mergeMap: MergeMap) {
   let queriesSent = 0;
   Object.keys(mergeMap).forEach(k => {
     // Using async forEach to ensure calls start in parallel.
-    const mergeList = mergeMap[k];
+    const mergeList = mergeMap[k]!;
 
     if (mergeList.length === 1) {
       const [queryDefinition] = mergeList;
       queriesSent++;
-      _handleUnmergeableQuery(queryDefinition);
+      _handleUnmergeableQuery(queryDefinition!);
     }
   });
 
@@ -96,16 +98,16 @@ function _handleUnmergeableQueries(mergeMap: MergeMap) {
 function _handleMergeableQueries(mergeMap: MergeMap) {
   let queriesSent = 0;
   Object.keys(mergeMap).forEach(async k => {
-    const mergeList = mergeMap[k];
+    const mergeList = mergeMap[k]!;
 
     if (mergeList.length <= 1) {
       return;
     }
 
     const [exampleDefinition] = mergeList;
-    const batchProperty = exampleDefinition.batchProperty;
-    const query = {...exampleDefinition.requestQueryObject.query};
-    const requestQueryObject = {...exampleDefinition.requestQueryObject, query};
+    const batchProperty = exampleDefinition!.batchProperty;
+    const query = {...exampleDefinition!.requestQueryObject.query};
+    const requestQueryObject = {...exampleDefinition!.requestQueryObject, query};
 
     const batchValues: string[] = [];
 
@@ -129,8 +131,8 @@ function _handleMergeableQueries(mergeMap: MergeMap) {
 
     queriesSent++;
     const requestPromise = requestFunction(
-      exampleDefinition.api,
-      exampleDefinition.path,
+      exampleDefinition!.api,
+      exampleDefinition!.path,
       requestQueryObject
     );
 

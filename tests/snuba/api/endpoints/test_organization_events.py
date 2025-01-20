@@ -198,6 +198,26 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             == "Parse error at 'hi \n ther' (column 4). This is commonly caused by unmatched parentheses. Enclose any text in double quotes."
         )
 
+    def test_invalid_field(self):
+        self.features["organizations:performance-discover-dataset-selector"] = True
+        self.create_project()
+        query: dict[str, Any] = {"field": ["foo[…]bar"], "dataset": "transactions"}
+        model = DiscoverSavedQuery.objects.create(
+            organization=self.organization,
+            created_by_id=self.user.id,
+            name="query name",
+            query=query,
+            version=2,
+            date_created=before_now(minutes=10),
+            date_updated=before_now(minutes=10),
+            dataset=DiscoverSavedQueryTypes.TRANSACTION_LIKE,
+        )
+        query["discoverSavedQueryId"] = model.id
+
+        response = self.do_request(query)
+        assert response.status_code == 400, response.content
+        assert response.data["detail"] == "Invalid characters in field foo[…]bar"
+
     def test_invalid_trace_span(self):
         self.create_project()
 
@@ -6627,35 +6647,6 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
             "performance_score(measurements.score.lcp)": 0.7923076923076923,
         }
 
-    def test_weighted_performance_score(self):
-        self.transaction_data["measurements"] = {
-            "score.lcp": {"value": 0.03},
-            "score.weight.lcp": {"value": 0.3},
-            "score.total": {"value": 0.03},
-        }
-        self.store_event(self.transaction_data, self.project.id)
-        self.transaction_data["measurements"] = {
-            "score.lcp": {"value": 1.0},
-            "score.weight.lcp": {"value": 1.0},
-            "score.total": {"value": 1.0},
-        }
-        self.store_event(self.transaction_data, self.project.id)
-        self.transaction_data["measurements"] = {
-            "score.total": {"value": 0.0},
-        }
-        self.store_event(self.transaction_data, self.project.id)
-        query = {
-            "field": [
-                "weighted_performance_score(measurements.score.lcp)",
-            ]
-        }
-        response = self.do_request(query)
-        assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 1
-        assert response.data["data"][0] == {
-            "weighted_performance_score(measurements.score.lcp)": 0.3433333333333333,
-        }
-
     def test_invalid_performance_score_column(self):
         self.transaction_data["measurements"] = {
             "score.total": {"value": 0.0},
@@ -6664,19 +6655,6 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
         query = {
             "field": [
                 "performance_score(measurements.score.fp)",
-            ]
-        }
-        response = self.do_request(query)
-        assert response.status_code == 400, response.content
-
-    def test_invalid_weighted_performance_score_column(self):
-        self.transaction_data["measurements"] = {
-            "score.total": {"value": 0.0},
-        }
-        self.store_event(self.transaction_data, self.project.id)
-        query = {
-            "field": [
-                "weighted_performance_score(measurements.score.fp)",
             ]
         }
         response = self.do_request(query)

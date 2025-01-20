@@ -1,4 +1,4 @@
-export default function transactionToSearchTerm(transaction) {
+export default function transactionToSearchTerm(transaction: any) {
   // finds dynamic parts of transaction name to change into search term
   let modifiedTransaction = transaction;
 

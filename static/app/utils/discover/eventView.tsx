@@ -195,7 +195,7 @@ function stringifyQueryParams(
       if (query[field].length === 1) {
         query[field] = query[field][0];
       }
-      if (query[field].length === 0) {
+      if (query[field]!.length === 0) {
         query[field] = undefined;
       }
     } else {
@@ -567,7 +567,9 @@ class EventView {
     };
     const keys = Object.keys(defaults).filter(key => !omitList.includes(key));
     for (const key of keys) {
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const currentValue = this[key] ?? defaults[key];
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const otherValue = other[key] ?? defaults[key];
 
       if (!isEqual(currentValue, otherValue)) {
@@ -580,7 +582,9 @@ class EventView {
     const dateTimeKeys = ['start', 'end'];
 
     for (const key of dateTimeKeys) {
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const currentValue = this[key];
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const otherValue = other[key];
 
       if (currentValue && otherValue) {
@@ -689,6 +693,7 @@ class EventView {
     };
 
     for (const field of EXTERNAL_QUERY_STRING_KEYS) {
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       output[field] = undefined;
     }
 
@@ -713,7 +718,9 @@ class EventView {
     };
 
     for (const field of EXTERNAL_QUERY_STRING_KEYS) {
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       if (this[field]?.length) {
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         output[field] = this[field];
       }
     }
@@ -907,7 +914,7 @@ class EventView {
     updatedColumn: Column,
     tableMeta: MetaType | undefined
   ): EventView {
-    const columnToBeUpdated = this.fields[columnIndex];
+    const columnToBeUpdated = this.fields[columnIndex]!;
     const fieldAsString = generateFieldAsString(updatedColumn);
 
     const updateField = columnToBeUpdated.field !== fieldAsString;
@@ -937,7 +944,7 @@ class EventView {
     );
 
     if (needleSortIndex >= 0) {
-      const needleSort = this.sorts[needleSortIndex];
+      const needleSort = this.sorts[needleSortIndex]!;
 
       const numOfColumns = this.fields.reduce((sum, currentField) => {
         if (isSortEqualToField(needleSort, currentField, tableMeta)) {
@@ -984,7 +991,7 @@ class EventView {
           );
           if (sortableFieldIndex >= 0) {
             const fieldToBeSorted = newEventView.fields[sortableFieldIndex];
-            const sort = fieldToSort(fieldToBeSorted, tableMeta)!;
+            const sort = fieldToSort(fieldToBeSorted!, tableMeta)!;
             newEventView.sorts = [sort];
           }
         }
@@ -1015,21 +1022,21 @@ class EventView {
     // To ensure a well formed table results.
     const hasAutoIndex = fields.find(field => field.width === COL_WIDTH_UNDEFINED);
     if (!hasAutoIndex) {
-      newEventView.fields[0].width = COL_WIDTH_UNDEFINED;
+      newEventView.fields[0]!.width = COL_WIDTH_UNDEFINED;
     }
 
     // if the deleted column is one of the sorted columns, we need to remove
     // it from the list of sorts
     const columnToBeDeleted = this.fields[columnIndex];
     const needleSortIndex = this.sorts.findIndex(sort =>
-      isSortEqualToField(sort, columnToBeDeleted, tableMeta)
+      isSortEqualToField(sort, columnToBeDeleted!, tableMeta)
     );
 
     if (needleSortIndex >= 0) {
       const needleSort = this.sorts[needleSortIndex];
 
       const numOfColumns = this.fields.reduce((sum, field) => {
-        if (isSortEqualToField(needleSort, field, tableMeta)) {
+        if (isSortEqualToField(needleSort!, field, tableMeta)) {
           return sum + 1;
         }
 
@@ -1050,7 +1057,7 @@ class EventView {
           );
 
           if (sortableFieldIndex >= 0) {
-            const fieldToBeSorted = newEventView.fields[sortableFieldIndex];
+            const fieldToBeSorted = newEventView.fields[sortableFieldIndex]!;
             const sort = fieldToSort(fieldToBeSorted, tableMeta)!;
             newEventView.sorts = [sort];
           }
@@ -1126,6 +1133,7 @@ class EventView {
       'interval',
     ];
     for (const key of remove) {
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       delete payload[key];
     }
 
@@ -1177,7 +1185,7 @@ class EventView {
         ? undefined
         : this.sorts.length > 1
           ? encodeSorts(this.sorts)
-          : encodeSort(this.sorts[0]);
+          : encodeSort(this.sorts[0]!);
     const fields = this.getFields();
     const team = this.team.map(proj => String(proj));
     const project = this.project.map(proj => String(proj));
@@ -1242,7 +1250,9 @@ class EventView {
   getResultsViewShortUrlTarget(slug: string): {pathname: string; query: Query} {
     const output: any = {id: this.id};
     for (const field of [...Object.values(URL_PARAM), 'cursor']) {
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       if (this[field]?.length) {
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         output[field] = this[field];
       }
     }
@@ -1276,7 +1286,9 @@ class EventView {
     };
 
     for (const field of EXTERNAL_QUERY_STRING_KEYS) {
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       if (this[field]?.length) {
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         output[field] = this[field];
       }
     }
@@ -1317,7 +1329,7 @@ class EventView {
     if (needleIndex >= 0) {
       const newEventView = this.clone();
 
-      const currentSort = this.sorts[needleIndex];
+      const currentSort = this.sorts[needleIndex]!;
 
       const sorts = [...newEventView.sorts];
       sorts[needleIndex] = kind
@@ -1369,7 +1381,7 @@ class EventView {
     const yAxisOptions = this.getYAxisOptions();
 
     const yAxis = this.yAxis;
-    const defaultOption = yAxisOptions[0].value;
+    const defaultOption = yAxisOptions[0]!.value;
 
     if (!yAxis) {
       return defaultOption;
@@ -1381,7 +1393,7 @@ class EventView {
     );
 
     if (result >= 0) {
-      return typeof yAxis === 'string' ? yAxis : yAxis[0];
+      return typeof yAxis === 'string' ? yAxis : yAxis[0]!;
     }
 
     return defaultOption;
@@ -1426,7 +1438,7 @@ class EventView {
     let display = (Object.values(DisplayModes) as string[]).includes(mode)
       ? mode
       : DisplayModes.DEFAULT;
-    const cond = option => option.value === display;
+    const cond = (option: any) => option.value === display;
 
     // Just in case we define a fallback chain that results in an infinite loop.
     // The number 5 isn't anything special, its just larger than the longest fallback
@@ -1436,6 +1448,7 @@ class EventView {
       if (selectedOption && !selectedOption.disabled) {
         return display;
       }
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       display = DISPLAY_MODE_FALLBACK_OPTIONS[display];
     }
 
@@ -1520,7 +1533,9 @@ export const isAPIPayloadSimilar = (
   }
 
   for (const key of currentKeys) {
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     const currentValue = current[key];
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     const otherValue = other[key];
     if (key === 'field') {
       if (!isFieldsSimilar(currentValue, otherValue)) {

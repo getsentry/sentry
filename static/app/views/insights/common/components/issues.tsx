@@ -37,8 +37,8 @@ function Issue({data}: {data: Group}) {
       </IssueSummaryWrapper>
       <ChartWrapper>
         <GroupChart
-          stats={data.filtered ? data.filtered.stats?.['24h'] : data.stats?.['24h']}
-          secondaryStats={data.filtered ? data.stats?.['24h'] : []}
+          stats={data.filtered ? data.filtered.stats?.['24h']! : data.stats?.['24h']!}
+          secondaryStats={data.filtered ? data.stats?.['24h']! : []}
           showSecondaryPoints
           showMarkLine
         />

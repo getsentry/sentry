@@ -176,7 +176,7 @@ export function getTableSortOptions(
   [...aggregates, ...columns]
     .filter(field => !!field)
     .forEach(field => {
-      let alias;
+      let alias: any;
       const label = stripEquationPrefix(field);
       // Equations are referenced via a standard alias following this pattern
       if (isEquation(field)) {
@@ -225,7 +225,7 @@ export function getTimeseriesSortOptions(
   [...widgetQuery.aggregates, ...widgetQuery.columns]
     .filter(field => !!field)
     .forEach(field => {
-      let alias;
+      let alias: any;
       const label = stripEquationPrefix(field);
       // Equations are referenced via a standard alias following this pattern
       if (isEquation(field)) {
@@ -362,7 +362,7 @@ export function transformEventsResponseToSeries(
     } else {
       seriesWithOrdering = Object.keys(data).map((seriesName: string) => {
         const prefixedName = queryAlias ? `${queryAlias} : ${seriesName}` : seriesName;
-        const seriesData: EventsStats = data[seriesName];
+        const seriesData: EventsStats = data[seriesName]!;
         return [
           seriesData.order || 0,
           transformSeries(seriesData, prefixedName, seriesName),
@@ -376,7 +376,7 @@ export function transformEventsResponseToSeries(
         .map(item => item[1]),
     ];
   } else {
-    const field = widgetQuery.aggregates[0];
+    const field = widgetQuery.aggregates[0]!;
     const prefixedName = queryAlias ? `${queryAlias} : ${field}` : field;
     const transformed = transformSeries(data, prefixedName, field);
     output.push(transformed);
@@ -390,21 +390,23 @@ function getSeriesResultType(
   data: EventsStats | MultiSeriesEventsStats,
   widgetQuery: WidgetQuery
 ): Record<string, AggregationOutputType> {
-  const field = widgetQuery.aggregates[0];
+  const field = widgetQuery.aggregates[0]!;
   const resultTypes = {};
   // Need to use getAggregateAlias since events-stats still uses aggregate alias format
   if (isMultiSeriesStats(data)) {
     Object.keys(data).forEach(
-      key => (resultTypes[key] = data[key].meta?.fields[getAggregateAlias(key)])
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      key => (resultTypes[key] = data[key]!.meta?.fields[getAggregateAlias(key)])
     );
   } else {
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     resultTypes[field] = data.meta?.fields[getAggregateAlias(field)];
   }
   return resultTypes;
 }
 
 export function renderEventIdAsLinkable(
-  data,
+  data: any,
   {eventView, organization}: RenderFunctionBaggage
 ) {
   const id: string | unknown = data?.id;
@@ -430,7 +432,7 @@ export function renderEventIdAsLinkable(
 }
 
 export function renderTraceAsLinkable(
-  data,
+  data: any,
   {eventView, organization, location}: RenderFunctionBaggage
 ) {
   const id: string | unknown = data?.trace;
@@ -466,7 +468,7 @@ export function getCustomEventsFieldRenderer(field: string, meta: MetaType) {
 
   // When title or transaction are << unparameterized >>, link out to discover showing unparameterized transactions
   if (['title', 'transaction'].includes(field)) {
-    return function (data, baggage) {
+    return function (data: any, baggage: any) {
       if (data[field] === UNPARAMETERIZED_TRANSACTION) {
         return (
           <Container>
@@ -544,7 +546,7 @@ function getEventsSeriesRequest(
   referrer?: string,
   mepSetting?: MEPState | null
 ) {
-  const widgetQuery = widget.queries[queryIndex];
+  const widgetQuery = widget.queries[queryIndex]!;
   const {displayType, limit} = widget;
   const {environments, projects} = pageFilters;
   const {start, end, period: statsPeriod} = pageFilters.datetime;
@@ -555,7 +557,7 @@ function getEventsSeriesRequest(
   );
   const isMEPEnabled = defined(mepSetting) && mepSetting !== MEPState.TRANSACTIONS_ONLY;
 
-  let requestData;
+  let requestData: any;
   if (displayType === DisplayType.TOP_N) {
     requestData = {
       organization,
@@ -652,9 +654,9 @@ function getEventsSeriesRequest(
 }
 
 export async function doOnDemandMetricsRequest(
-  api,
-  requestData,
-  widgetType
+  api: any,
+  requestData: any,
+  widgetType: any
 ): Promise<
   [EventsStats | MultiSeriesEventsStats, string | undefined, ResponseMeta | undefined]
 > {
@@ -675,17 +677,21 @@ export async function doOnDemandMetricsRequest(
       generatePathname: isEditing ? fetchEstimatedStats : undefined,
     });
 
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     response[0] = {...response[0]};
 
     if (
       hasDatasetSelector(requestData.organization) &&
       widgetType === WidgetType.DISCOVER
     ) {
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const meta = response[0].meta ?? {};
       meta.discoverSplitDecision = 'transaction-like';
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       response[0] = {...response[0], ...{meta}};
     }
 
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return [response[0], response[1], response[2]];
   } catch (err) {
     Sentry.captureMessage('Failed to fetch metrics estimation stats', {extra: err});

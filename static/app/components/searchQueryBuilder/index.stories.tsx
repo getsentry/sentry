@@ -1,5 +1,6 @@
 import {Fragment, useState} from 'react';
 
+import {ItemType} from 'sentry/components/deprecatedSmartSearchBar/types';
 import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {FormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
@@ -8,7 +9,6 @@ import type {
   FilterKeySection,
 } from 'sentry/components/searchQueryBuilder/types';
 import {InvalidReason} from 'sentry/components/searchSyntax/parser';
-import {ItemType} from 'sentry/components/smartSearchBar/types';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import JSXProperty from 'sentry/components/stories/jsxProperty';
 import storyBook from 'sentry/stories/storyBook';
@@ -627,6 +627,7 @@ export default storyBook(SearchQueryBuilder, story => {
 
     const [enabledConfigs, setEnabledConfigs] = useState<string[]>([...configs]);
     const queryBuilderOptions = enabledConfigs.reduce((acc, config) => {
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       acc[config] = true;
       return acc;
     }, {});

@@ -1,4 +1,5 @@
 import logging
+from collections import defaultdict
 from datetime import timedelta
 from typing import Any
 
@@ -11,7 +12,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import AndFilter, OrFilter, Tr
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.columns import ResolvedColumn, ResolvedFunction
-from sentry.search.eap.constants import FLOAT, INT, MAX_ROLLUP_POINTS, STRING, VALID_GRANULARITIES
+from sentry.search.eap.constants import MAX_ROLLUP_POINTS, VALID_GRANULARITIES
 from sentry.search.eap.spans import SearchResolver
 from sentry.search.eap.types import CONFIDENCES, ConfidenceData, EAPResponse, SearchResolverConfig
 from sentry.search.events.fields import get_function_alias, is_function
@@ -47,7 +48,7 @@ def run_table_query(
         SearchResolver(params=params, config=config) if search_resolver is None else search_resolver
     )
     meta = resolver.resolve_meta(referrer=referrer)
-    query, query_contexts = resolver.resolve_query(query_string)
+    where, having, query_contexts = resolver.resolve_query(query_string)
     columns, column_contexts = resolver.resolve_columns(selected_columns)
     contexts = resolver.clean_contexts(query_contexts + column_contexts)
     # We allow orderby function_aliases if they're a selected_column
@@ -80,7 +81,8 @@ def run_table_query(
     """Run the query"""
     rpc_request = TraceItemTableRequest(
         meta=meta,
-        filter=query,
+        filter=where,
+        aggregation_filter=having,
         columns=labeled_columns,
         group_by=(
             [
@@ -95,7 +97,7 @@ def run_table_query(
         limit=limit,
         virtual_column_contexts=[context for context in contexts if context is not None],
     )
-    rpc_response = snuba_rpc.table_rpc(rpc_request)
+    rpc_response = snuba_rpc.table_rpc([rpc_request])[0]
 
     """Process the results"""
     final_data: SnubaData = []
@@ -128,12 +130,7 @@ def run_table_query(
 
         for index, result in enumerate(column_value.results):
             result_value: str | int | float
-            if resolved_column.proto_type == STRING:
-                result_value = result.val_str
-            elif resolved_column.proto_type == INT:
-                result_value = result.val_int
-            elif resolved_column.proto_type == FLOAT:
-                result_value = result.val_float
+            result_value = getattr(result, str(result.WhichOneof("value")))
             result_value = process_value(result_value)
             final_data[index][attribute] = resolved_column.process_column(result_value)
             if has_reliability:
@@ -156,7 +153,7 @@ def get_timeseries_query(
 ) -> TimeSeriesRequest:
     resolver = SearchResolver(params=params, config=config)
     meta = resolver.resolve_meta(referrer=referrer)
-    query, query_contexts = resolver.resolve_query(query_string)
+    query, _, query_contexts = resolver.resolve_query(query_string)
     (aggregations, _) = resolver.resolve_aggregates(y_axes)
     (groupbys, _) = resolver.resolve_columns(groupby)
     if extra_conditions is not None:
@@ -217,13 +214,13 @@ def run_timeseries_query(
     )
 
     """Run the query"""
-    rpc_response = snuba_rpc.timeseries_rpc(rpc_request)
+    rpc_response = snuba_rpc.timeseries_rpc([rpc_request])[0]
 
     """Process the results"""
     result: SnubaData = []
     confidences: SnubaData = []
     for timeseries in rpc_response.result_timeseries:
-        processed, confidence = _process_timeseries(timeseries, params, granularity_secs)
+        processed, confidence = _process_all_timeseries([timeseries], params, granularity_secs)
         if len(result) == 0:
             result = processed
             confidences = confidence
@@ -255,11 +252,11 @@ def run_timeseries_query(
         comp_rpc_request = get_timeseries_query(
             comp_query_params, query_string, y_axes, [], referrer, config, granularity_secs
         )
-        comp_rpc_response = snuba_rpc.timeseries_rpc(comp_rpc_request)
+        comp_rpc_response = snuba_rpc.timeseries_rpc([comp_rpc_request])[0]
 
         if comp_rpc_response.result_timeseries:
             timeseries = comp_rpc_response.result_timeseries[0]
-            processed, _ = _process_timeseries(timeseries, params, granularity_secs)
+            processed, _ = _process_all_timeseries([timeseries], params, granularity_secs)
             label = get_function_alias(timeseries.label)
             for existing, new in zip(result, processed):
                 existing["comparisonCount"] = new[label]
@@ -376,11 +373,10 @@ def run_top_events_timeseries_query(
     )
 
     """Run the query"""
-    rpc_response = snuba_rpc.timeseries_rpc(rpc_request)
-    other_response = snuba_rpc.timeseries_rpc(other_request)
+    rpc_response, other_response = snuba_rpc.timeseries_rpc([rpc_request, other_request])
 
     """Process the results"""
-    map_result_key_to_timeseries = {}
+    map_result_key_to_timeseries = defaultdict(list)
     for timeseries in rpc_response.result_timeseries:
         groupby_attributes = timeseries.group_by_attributes
         remapped_groupby = {}
@@ -395,12 +391,12 @@ def run_top_events_timeseries_query(
                 resolved_groupby, _ = search_resolver.resolve_attribute(col)
                 remapped_groupby[col] = groupby_attributes[resolved_groupby.internal_name]
         result_key = create_result_key(remapped_groupby, groupby_columns, {})
-        map_result_key_to_timeseries[result_key] = timeseries
+        map_result_key_to_timeseries[result_key].append(timeseries)
     final_result = {}
     # Top Events actually has the order, so we need to iterate through it, regenerate the result keys
     for index, row in enumerate(top_events["data"]):
         result_key = create_result_key(row, groupby_columns, {})
-        result_data, result_confidence = _process_timeseries(
+        result_data, result_confidence = _process_all_timeseries(
             map_result_key_to_timeseries[result_key],
             params,
             granularity_secs,
@@ -416,8 +412,8 @@ def run_top_events_timeseries_query(
             granularity_secs,
         )
     if other_response.result_timeseries:
-        result_data, result_confidence = _process_timeseries(
-            other_response.result_timeseries[0],
+        result_data, result_confidence = _process_all_timeseries(
+            [timeseries for timeseries in other_response.result_timeseries],
             params,
             granularity_secs,
         )
@@ -434,19 +430,29 @@ def run_top_events_timeseries_query(
     return final_result
 
 
-def _process_timeseries(
-    timeseries: TimeSeries, params: SnubaParams, granularity_secs: int, order: int | None = None
+def _process_all_timeseries(
+    all_timeseries: list[TimeSeries],
+    params: SnubaParams,
+    granularity_secs: int,
+    order: int | None = None,
 ) -> tuple[SnubaData, SnubaData]:
     result: SnubaData = []
     confidence: SnubaData = []
-    # Timeseries serialization expects the function alias (eg. `count` not `count()`)
-    label = get_function_alias(timeseries.label)
-    if len(result) < len(timeseries.buckets):
-        for bucket in timeseries.buckets:
-            result.append({"time": bucket.seconds})
-            confidence.append({"time": bucket.seconds})
-    for index, data_point in enumerate(timeseries.data_points):
-        result[index][label] = process_value(data_point.data)
-        confidence[index][label] = CONFIDENCES.get(data_point.reliability, None)
+
+    for timeseries in all_timeseries:
+        # Timeseries serialization expects the function alias (eg. `count` not `count()`)
+        label = get_function_alias(timeseries.label)
+        if result:
+            for index, bucket in enumerate(timeseries.buckets):
+                assert result[index]["time"] == bucket.seconds
+                assert confidence[index]["time"] == bucket.seconds
+        else:
+            for bucket in timeseries.buckets:
+                result.append({"time": bucket.seconds})
+                confidence.append({"time": bucket.seconds})
+
+        for index, data_point in enumerate(timeseries.data_points):
+            result[index][label] = process_value(data_point.data)
+            confidence[index][label] = CONFIDENCES.get(data_point.reliability, None)
 
     return result, confidence

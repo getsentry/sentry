@@ -84,7 +84,7 @@ class UIFramesRendererWebGL extends UIFramesRenderer {
     this.bounds = new Float32Array(VERTICES_PER_FRAME * BOUNDS * FRAME_COUNT);
 
     for (let index = 0; index < FRAME_COUNT; index++) {
-      const frame = this.uiFrames.frames[index];
+      const frame = this.uiFrames.frames[index]!;
 
       const x1 = frame.start;
       const x2 = frame.end;
@@ -188,6 +188,7 @@ class UIFramesRendererWebGL extends UIFramesRenderer {
 
     // initialize uniforms
     for (const uniform in this.uniforms) {
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       this.uniforms[uniform] = getUniform(this.ctx, this.program, uniform);
     }
 

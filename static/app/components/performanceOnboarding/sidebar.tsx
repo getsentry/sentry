@@ -10,8 +10,8 @@ import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
-import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {shouldShowPerformanceTasks} from 'sentry/components/onboardingWizard/filterSupportedTasks';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import type {CommonSidebarProps} from 'sentry/components/sidebar/types';
@@ -79,13 +79,14 @@ function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
     // Establish current project
     if (priorityProjectIds) {
       const projectMap: Record<string, Project> = projects.reduce((acc, project) => {
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         acc[project.id] = project;
         return acc;
       }, {});
 
       const priorityProjects: Project[] = [];
       priorityProjectIds.forEach(projectId => {
-        priorityProjects.push(projectMap[String(projectId)]);
+        priorityProjects.push(projectMap[String(projectId)]!);
       });
 
       // Among the project selection, find a project that has performance onboarding docs support, and has not sent

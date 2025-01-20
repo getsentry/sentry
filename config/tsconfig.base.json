@@ -35,11 +35,12 @@
     // Type checking specific options
     "alwaysStrict": false,
     "noFallthroughCasesInSwitch": true,
-    "noImplicitAny": false,
+    "noImplicitAny": true,
     "noImplicitReturns": true,
     "noImplicitThis": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
+    "noUncheckedIndexedAccess": true,
     "strict": true,
     "strictBindCallApply": false,
     "useUnknownInCatchVariables": false,

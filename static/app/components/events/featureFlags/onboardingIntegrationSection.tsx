@@ -9,7 +9,10 @@ import {
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
-import {PROVIDER_OPTION_TO_URLS} from 'sentry/components/events/featureFlags/utils';
+import {
+  PROVIDER_OPTION_TO_URLS,
+  ProviderOptions,
+} from 'sentry/components/events/featureFlags/utils';
 import Input from 'sentry/components/input';
 import ExternalLink from 'sentry/components/links/externalLink';
 import TextCopyInput from 'sentry/components/textCopyInput';
@@ -98,7 +101,10 @@ export default function OnboardingIntegrationSection({
           <div>
             {tct(
               "Create a webhook integration with your [link:feature flag service]. When you do so, you'll need to enter a URL, which you can find below.",
-              {link: <ExternalLink href={PROVIDER_OPTION_TO_URLS[provider]} />}
+              {
+                // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                link: <ExternalLink href={PROVIDER_OPTION_TO_URLS[provider]} />,
+              }
             )}
           </div>
           <InputTitle>{t('Webhook URL')}</InputTitle>
@@ -112,9 +118,13 @@ export default function OnboardingIntegrationSection({
         </SubSection>
         <SubSection>
           <div>
-            {t(
-              "During the process of creating a webhook integration, you'll be given the option to sign the webhook. This is an auto-generated secret code that Sentry requires to verify requests from your feature flag service. Paste the secret below."
-            )}
+            {provider === ProviderOptions.UNLEASH
+              ? t(
+                  `During the process of creating a webhook integration, you'll be given the option to add an authorization header. This is a string (or "secret") that you choose so that Sentry can verify requests from your feature flag service. Paste your authorization string below.`
+                )
+              : t(
+                  "During the process of creating a webhook integration, you'll be given the option to sign the webhook. This is an auto-generated secret code that Sentry requires to verify requests from your feature flag service. Paste the secret below."
+                )}
           </div>
           <InputTitle>{t('Secret')}</InputTitle>
           <InputArea>

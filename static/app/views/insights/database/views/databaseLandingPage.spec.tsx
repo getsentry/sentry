@@ -155,6 +155,7 @@ describe('DatabaseLandingPage', function () {
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: 'spm()',
+          transformAliasToInputFormat: '1',
         },
       })
     );
@@ -180,6 +181,7 @@ describe('DatabaseLandingPage', function () {
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: 'avg(span.self_time)',
+          transformAliasToInputFormat: '1',
         },
       })
     );
@@ -215,7 +217,6 @@ describe('DatabaseLandingPage', function () {
   });
 
   it('renders a list of queries', async function () {
-    // eslint-disable-next-line no-console
     jest.spyOn(console, 'error').mockImplementation(jest.fn()); // This silences pointless unique key errors that React throws because of the tokenized query descriptions
 
     render(<DatabaseLandingPage />, {organization});
@@ -271,6 +272,7 @@ describe('DatabaseLandingPage', function () {
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: 'spm()',
+          transformAliasToInputFormat: '1',
         },
       })
     );
@@ -297,6 +299,7 @@ describe('DatabaseLandingPage', function () {
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: 'avg(span.self_time)',
+          transformAliasToInputFormat: '1',
         },
       })
     );

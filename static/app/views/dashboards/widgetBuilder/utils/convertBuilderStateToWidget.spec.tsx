@@ -9,20 +9,10 @@ describe('convertBuilderStateToWidget', function () {
       title: 'Test Widget',
       description: 'Test Description',
       dataset: WidgetType.ERRORS,
-      displayType: DisplayType.TABLE,
+      displayType: DisplayType.LINE,
       limit: 5,
-      fields: [
-        {kind: 'field', field: 'geo.country'},
-        {
-          function: ['count', '', undefined, undefined],
-          kind: 'function',
-        },
-        {
-          function: ['count_unique', 'user', undefined, undefined],
-          kind: 'function',
-        },
-      ],
-      yAxis: [{kind: 'field', field: 'count()'}],
+      fields: [{kind: 'field', field: 'geo.country'}],
+      yAxis: [{kind: 'function', function: ['count', '', undefined, undefined]}],
     };
 
     const widget = convertBuilderStateToWidget(mockState);
@@ -31,20 +21,22 @@ describe('convertBuilderStateToWidget', function () {
       title: 'Test Widget',
       description: 'Test Description',
       widgetType: WidgetType.ERRORS,
-      displayType: DisplayType.TABLE,
+      displayType: DisplayType.LINE,
       interval: '1h',
       limit: 5,
       queries: [
         {
-          fields: ['geo.country', 'count()', 'count_unique(user)'],
-          fieldAliases: ['', '', ''],
+          fields: ['geo.country', 'count()'],
+          fieldAliases: [''],
           aggregates: ['count()'],
           columns: ['geo.country'],
           conditions: '',
           name: '',
           orderby: 'geo.country',
+          selectedAggregate: undefined,
         },
       ],
+      thresholds: undefined,
     });
   });
 
@@ -56,8 +48,8 @@ describe('convertBuilderStateToWidget', function () {
 
     const widget = convertBuilderStateToWidget(mockState);
 
-    expect(widget.queries[0].orderby).toEqual('-geo.country');
-    expect(widget.queries[1].orderby).toEqual('-geo.country');
+    expect(widget.queries[0]!.orderby).toBe('-geo.country');
+    expect(widget.queries[1]!.orderby).toBe('-geo.country');
   });
 
   it('does not convert aggregates to aliased format', function () {
@@ -68,8 +60,8 @@ describe('convertBuilderStateToWidget', function () {
 
     const widget = convertBuilderStateToWidget(mockState);
 
-    expect(widget.queries[0].orderby).toEqual('-count()');
-    expect(widget.queries[1].orderby).toEqual('-count()');
+    expect(widget.queries[0]!.orderby).toBe('-count()');
+    expect(widget.queries[1]!.orderby).toBe('-count()');
   });
 
   it('adds aliases to the widget queries', function () {
@@ -83,6 +75,94 @@ describe('convertBuilderStateToWidget', function () {
 
     const widget = convertBuilderStateToWidget(mockState);
 
-    expect(widget.queries[0].fieldAliases).toEqual(['test', '', 'another one']);
+    expect(widget.queries[0]!.fieldAliases).toEqual(['test', '', 'another one']);
+  });
+
+  it('adds legend aliases to the widget queries', function () {
+    const mockState: WidgetBuilderState = {
+      legendAlias: ['test', 'test2'],
+      query: ['transaction.duration:>100', 'transaction.duration:>50'],
+    };
+
+    const widget = convertBuilderStateToWidget(mockState);
+
+    expect(widget.queries[0]!.name).toBe('test');
+    expect(widget.queries[0]!.conditions).toBe('transaction.duration:>100');
+    expect(widget.queries[1]!.name).toBe('test2');
+    expect(widget.queries[1]!.conditions).toBe('transaction.duration:>50');
+  });
+
+  it('propagates the selected aggregate to the widget query', () => {
+    const mockState: WidgetBuilderState = {
+      selectedAggregate: 0,
+      query: ['transaction.duration:>100'],
+    };
+
+    const widget = convertBuilderStateToWidget(mockState);
+
+    expect(widget.queries[0]!.selectedAggregate).toBe(0);
+  });
+
+  it('sets selectedAggregate to undefined if not provided', () => {
+    const mockState: WidgetBuilderState = {
+      query: ['transaction.duration:>100'],
+    };
+
+    const widget = convertBuilderStateToWidget(mockState);
+
+    expect(widget.queries[0]!.selectedAggregate).toBeUndefined();
+  });
+
+  it('applies the thresholds to the widget', () => {
+    const mockState: WidgetBuilderState = {
+      query: ['transaction.duration:>100'],
+      thresholds: {
+        max_values: {
+          max1: 200,
+          max2: 300,
+        },
+        unit: 'milliseconds',
+      },
+    };
+
+    const widget = convertBuilderStateToWidget(mockState);
+
+    expect(widget.thresholds).toEqual(mockState.thresholds);
+  });
+
+  it('uses the fields from widget state when displaying as a table', function () {
+    const mockState: WidgetBuilderState = {
+      fields: [
+        {field: 'geo.country', kind: FieldValueKind.FIELD},
+        {
+          function: ['count', '', undefined, undefined],
+          kind: FieldValueKind.FUNCTION,
+        },
+      ],
+      displayType: DisplayType.TABLE,
+      dataset: WidgetType.TRANSACTIONS,
+    };
+
+    const widget = convertBuilderStateToWidget(mockState);
+
+    expect(widget.queries[0]!.fields).toEqual(['geo.country', 'count()']);
+  });
+
+  it('combines columns and aggregates into fields when producing the widget when not displayed as a table', function () {
+    const mockState: WidgetBuilderState = {
+      fields: [{field: 'geo.country', kind: FieldValueKind.FIELD}],
+      yAxis: [
+        {
+          function: ['count', '', undefined, undefined],
+          kind: FieldValueKind.FUNCTION,
+        },
+      ],
+      displayType: DisplayType.LINE,
+      dataset: WidgetType.TRANSACTIONS,
+    };
+
+    const widget = convertBuilderStateToWidget(mockState);
+
+    expect(widget.queries[0]!.fields).toEqual(['geo.country', 'count()']);
   });
 });

@@ -82,8 +82,8 @@ function applyImageFilters(
       if (term.indexOf('0x') === 0) {
         const needle = parseAddress(term);
         if (needle > 0 && image.image_addr !== '0x0') {
-          const [startAddress, endAddress] = getImageRange(image as any); // TODO(PRISCILA): remove any
-          return needle >= startAddress && needle < endAddress;
+          const [startAddress, endAddress] = getImageRange(image);
+          return needle >= startAddress! && needle < endAddress!;
         }
       }
 
@@ -184,7 +184,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
     ];
 
     const defaultFilterSelections = (
-      'options' in filterOptions[0] ? filterOptions[0].options : []
+      'options' in filterOptions[0]! ? filterOptions[0].options : []
     ).filter(opt => opt.value !== ImageStatus.UNUSED);
 
     setFilterState({
@@ -320,7 +320,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
       >
         <DebugImage
           style={style}
-          image={images[index]}
+          image={images[index]!}
           onOpenImageDetailsModal={handleOpenImageDetailsModal}
         />
       </CellMeasurer>
@@ -338,7 +338,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
             overscanRowCount={5}
             rowCount={images.length}
             rowHeight={cache.rowHeight}
-            rowRenderer={listRowProps => renderRow({...listRowProps, images})}
+            rowRenderer={(listRowProps: any) => renderRow({...listRowProps, images})}
             width={width}
             isScrolling={false}
           />

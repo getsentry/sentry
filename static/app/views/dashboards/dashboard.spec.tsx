@@ -11,7 +11,7 @@ import MemberListStore from 'sentry/stores/memberListStore';
 import {DatasetSource} from 'sentry/utils/discover/types';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import Dashboard from 'sentry/views/dashboards/dashboard';
-import type {Widget} from 'sentry/views/dashboards/types';
+import type {DashboardDetails, Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 
 import {OrganizationContext} from '../organizationContext';
@@ -295,8 +295,8 @@ describe('Dashboards > Dashboard', () => {
     await userEvent.click(await screen.findByText(/Switch to Transactions/));
     await waitFor(() => {
       expect(mockOnUpdate).toHaveBeenCalled();
-      expect(mockHandleUpdateWidgetList).toHaveBeenCalled();
     });
+    expect(mockHandleUpdateWidgetList).toHaveBeenCalled();
   });
 
   it('handles duplicate widget in view mode', async () => {
@@ -370,7 +370,7 @@ describe('Dashboards > Dashboard', () => {
       MemberListStore.init();
     });
 
-    const mount = (dashboard, mockedOrg = initialData.organization) => {
+    const mount = (dashboard: DashboardDetails, mockedOrg = initialData.organization) => {
       render(
         <OrganizationContext.Provider value={initialData.organization}>
           <MEPSettingProvider forceTransactions={false}>
@@ -424,7 +424,7 @@ describe('Dashboards > Dashboard', () => {
       router = initialData.router,
       location = initialData.router.location,
       isPreview = false,
-    }) => {
+    }: any) => {
       const getDashboardComponent = () => (
         <OrganizationContext.Provider value={initialData.organization}>
           <MEPSettingProvider forceTransactions={false}>

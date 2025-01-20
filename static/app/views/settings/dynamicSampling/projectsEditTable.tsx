@@ -33,7 +33,7 @@ interface Props {
 }
 
 const {useFormField} = projectSamplingForm;
-const EMPTY_ARRAY = [];
+const EMPTY_ARRAY: any = [];
 
 export function ProjectsEditTable({
   isLoading: isLoadingProp,
@@ -104,6 +104,7 @@ export function ProjectsEditTable({
       });
 
       const newProjectValues = scaledItems.reduce((acc, item) => {
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         acc[item.id] = formatPercent(item.sampleRate);
         return acc;
       }, {});
@@ -136,8 +137,8 @@ export function ProjectsEditTable({
           ownCount: item?.ownCount || 0,
           subProjects: item?.subProjects ?? EMPTY_ARRAY,
           project,
-          initialSampleRate: initialValue[project.id],
-          sampleRate: value[project.id],
+          initialSampleRate: initialValue[project.id]!,
+          sampleRate: value[project.id]!,
           error: error?.[project.id],
         };
       }),

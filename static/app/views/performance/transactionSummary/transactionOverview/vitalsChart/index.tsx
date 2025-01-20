@@ -9,12 +9,12 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import type {OrganizationSummary} from 'sentry/types/organization';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {getAggregateArg, getMeasurementSlug} from 'sentry/utils/discover/fields';
 import {WebVital} from 'sentry/utils/fields';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 import type {ViewProps} from '../../../types';
 
@@ -39,6 +39,7 @@ function VitalsChart({
   end: propsEnd,
   queryExtras,
 }: Props) {
+  const navigate = useNavigate();
   const location = useLocation();
   const api = useApi();
   const theme = useTheme();
@@ -58,7 +59,7 @@ function VitalsChart({
         unselectedSeries: unselected,
       },
     };
-    browserHistory.push(to);
+    navigate(to);
   };
 
   const vitals = [WebVital.FCP, WebVital.LCP, WebVital.FID, WebVital.CLS];

@@ -16,8 +16,9 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
   const defaultQuery = datasetConfig.defaultWidgetQuery;
 
   const queries = defined(state.query) && state.query.length > 0 ? state.query : [''];
+  const legendAlias =
+    defined(state.legendAlias) && state.legendAlias.length > 0 ? state.legendAlias : [];
 
-  const fields = state.fields?.map(generateFieldAsString);
   const fieldAliases = state.fields?.map(field => field.alias ?? '');
   const aggregates =
     (state.yAxis?.length ?? 0) > 0
@@ -33,14 +34,19 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
     ?.filter(field => field.kind === FieldValueKind.FIELD)
     .map(generateFieldAsString);
 
+  const fields =
+    state.displayType === DisplayType.TABLE
+      ? state.fields?.map(generateFieldAsString)
+      : [...(columns ?? []), ...(aggregates ?? [])];
+
   // If there's no sort, use the first field as the default sort
   const defaultSort = fields?.[0] ?? defaultQuery.orderby;
   const sort =
     defined(state.sort) && state.sort.length > 0
-      ? _formatSort(state.sort[0])
+      ? _formatSort(state.sort[0]!)
       : defaultSort;
 
-  const widgetQueries: WidgetQuery[] = queries.map(query => {
+  const widgetQueries: WidgetQuery[] = queries.map((query, index) => {
     return {
       ...defaultQuery,
       fields,
@@ -49,6 +55,8 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
       conditions: query,
       orderby: sort,
       fieldAliases: fieldAliases ?? [],
+      name: legendAlias[index] ?? '',
+      selectedAggregate: state.selectedAggregate,
     };
   });
 
@@ -60,6 +68,7 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
     queries: widgetQueries,
     widgetType: state.dataset,
     limit: state.limit,
+    thresholds: state.thresholds,
   };
 }
 

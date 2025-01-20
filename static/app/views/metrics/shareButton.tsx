@@ -6,7 +6,7 @@ import TextCopyInput from 'sentry/components/textCopyInput';
 import {IconUpload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-function ShareModal({Header, Body}) {
+function ShareModal({Header, Body}: any) {
   const url = new URL(window.location.href);
 
   return (

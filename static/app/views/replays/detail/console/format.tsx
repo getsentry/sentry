@@ -40,8 +40,8 @@ interface FormatProps {
  * %c is ignored for now
  */
 export default function Format({onExpand, expandPaths, args}: FormatProps) {
-  const onToggleExpand = (expandedPaths, path) => {
-    onExpand(path, Object.fromEntries(expandedPaths.map(item => [item, true])));
+  const onToggleExpand = (expandedPaths: any, path: any) => {
+    onExpand(path, Object.fromEntries(expandedPaths.map((item: any) => [item, true])));
   };
   const f = args[0];
 
@@ -120,7 +120,7 @@ export default function Format({onExpand, expandPaths, args}: FormatProps) {
         ['text-transform', 'textTransform'],
         ['writing-mode', 'writingMode'],
       ]
-        .map(([attr, reactAttr]) => [reactAttr, tempEl.style.getPropertyValue(attr)])
+        .map(([attr, reactAttr]) => [reactAttr, tempEl.style.getPropertyValue(attr!)])
         .filter(([, val]) => !!val)
     );
 

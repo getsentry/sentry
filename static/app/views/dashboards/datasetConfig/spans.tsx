@@ -30,6 +30,7 @@ import {
 } from 'sentry/views/dashboards/datasetConfig/base';
 import {
   getTableSortOptions,
+  getTimeseriesSortOptions,
   transformEventsResponseToSeries,
   transformEventsResponseToTable,
 } from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
@@ -58,6 +59,7 @@ const DEFAULT_FIELD: QueryFieldValue = {
 };
 
 const EAP_AGGREGATIONS = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.reduce((acc, aggregate) => {
+  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   acc[aggregate] = {
     isSortable: true,
     outputType: null,
@@ -73,9 +75,6 @@ const EAP_AGGREGATIONS = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.reduce((acc, aggre
   return acc;
 }, {});
 
-// getTimeseriesSortOptions is undefined because we want to restrict the
-// sort options to the same behaviour as tables. i.e. we are only able
-// to sort by fields that have already been selected
 export const SpansConfig: DatasetConfig<
   EventsStats | MultiSeriesEventsStats,
   TableData | EventsTableData
@@ -86,8 +85,11 @@ export const SpansConfig: DatasetConfig<
   SearchBar: SpansSearchBar,
   filterYAxisAggregateParams: () => filterAggregateParams,
   filterYAxisOptions,
+  filterSeriesSortOptions,
   getTableFieldOptions: getPrimaryFieldOptions,
   getTableSortOptions,
+  getTimeseriesSortOptions: (organization, widgetQuery, tags) =>
+    getTimeseriesSortOptions(organization, widgetQuery, tags, getPrimaryFieldOptions),
   getGroupByFieldOptions,
   handleOrderByReset,
   supportedDisplayTypes: [
@@ -280,4 +282,15 @@ function getSeriesRequest(
   requestData.useRpc = useRpc;
 
   return doEventsRequest<true>(api, requestData);
+}
+
+// Filters the primary options in the sort by selector
+export function filterSeriesSortOptions(columns: Set<string>) {
+  return (option: FieldValueOption) => {
+    if (option.value.kind === FieldValueKind.FUNCTION) {
+      return true;
+    }
+
+    return columns.has(option.value.meta.name);
+  };
 }

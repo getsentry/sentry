@@ -1,8 +1,11 @@
 import {
   EventType,
   type eventWithTime as TEventWithTime,
+  IncrementalSource,
   MouseInteractions,
 } from '@sentry-internal/rrweb';
+
+import type {Event} from 'sentry/types/event';
 
 export type {serializedNodeWithId} from '@sentry-internal/rrweb-snapshot';
 export type {fullSnapshotEvent, incrementalSnapshotEvent} from '@sentry-internal/rrweb';
@@ -143,6 +146,13 @@ export function isRecordingFrame(
   return 'type' in attachment && 'timestamp' in attachment;
 }
 
+export function isRRWebChangeFrame(frame: RecordingFrame) {
+  return (
+    frame.type === EventType.FullSnapshot ||
+    (frame.type === EventType.IncrementalSnapshot &&
+      frame.data.source === IncrementalSource.Mutation)
+  );
+}
 export function isTouchStartFrame(frame: RecordingFrame) {
   return (
     frame.type === EventType.IncrementalSnapshot &&
@@ -195,6 +205,10 @@ export function isBreadcrumbFrame(
 
 export function isFeedbackFrame(frame: ReplayFrame | undefined): frame is FeedbackFrame {
   return Boolean(frame && 'category' in frame && frame.category === 'feedback');
+}
+
+export function isHydrateCrumb(item: BreadcrumbFrame | Event): item is BreadcrumbFrame {
+  return 'category' in item && item.category === 'replay.hydrate-error';
 }
 
 export function isSpanFrame(frame: ReplayFrame | undefined): frame is SpanFrame {

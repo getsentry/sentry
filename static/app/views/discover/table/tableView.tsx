@@ -49,6 +49,7 @@ import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useProjects from 'sentry/utils/useProjects';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {appendQueryDatasetParam, hasDatasetSelector} from 'sentry/views/dashboards/utils';
@@ -109,6 +110,7 @@ export type TableViewProps = {
 function TableView(props: TableViewProps) {
   const {projects} = useProjects();
   const routes = useRoutes();
+  const navigate = useNavigate();
   const replayLinkGenerator = generateReplayLink(routes);
 
   /**
@@ -124,6 +126,7 @@ function TableView(props: TableViewProps) {
     const nextEventView = eventView.withResizedColumn(columnIndex, newWidth);
 
     pushEventViewToLocation({
+      navigate,
       location,
       nextEventView,
       extraQuery: {
@@ -206,7 +209,7 @@ function TableView(props: TableViewProps) {
         value = fieldRenderer(dataRow, {organization, location});
       }
 
-      let target;
+      let target: any;
 
       if (dataRow['event.type'] !== 'transaction' && !isTransactionsDataset) {
         const project = dataRow.project || dataRow['project.name'];
@@ -290,7 +293,7 @@ function TableView(props: TableViewProps) {
     const currentSort = eventView.sortForField(field, tableMeta);
     const canSort = isFieldSortable(field, tableMeta);
     let titleText = isEquationAlias(column.name)
-      ? eventView.getEquations()[getEquationAliasIndex(column.name)]
+      ? eventView.getEquations()[getEquationAliasIndex(column.name)]!
       : column.name;
 
     if (column.name.toLowerCase() === 'replayid') {
@@ -352,7 +355,7 @@ function TableView(props: TableViewProps) {
       queryDataset === SavedQueryDatasets.TRANSACTIONS;
 
     if (columnKey === 'id') {
-      let target;
+      let target: any;
 
       if (dataRow['event.type'] !== 'transaction' && !isTransactionsDataset) {
         const project = dataRow.project || dataRow['project.name'];
@@ -375,8 +378,8 @@ function TableView(props: TableViewProps) {
         target = generateLinkToEventInTraceView({
           traceSlug: dataRow.trace?.toString(),
           eventId: dataRow.id,
-          projectSlug: (dataRow.project || dataRow['project.name']).toString(),
-          timestamp: dataRow.timestamp,
+          projectSlug: (dataRow.project || dataRow['project.name']!).toString(),
+          timestamp: dataRow.timestamp!,
           organization,
           isHomepage,
           location,
@@ -624,8 +627,10 @@ function TableView(props: TableViewProps) {
           const unit = tableData?.meta?.units?.[column.name];
           if (typeof cellValue === 'number' && unit) {
             if (Object.keys(SIZE_UNITS).includes(unit)) {
+              // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
               cellValue *= SIZE_UNITS[unit];
             } else if (Object.keys(DURATION_UNITS).includes(unit)) {
+              // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
               cellValue *= DURATION_UNITS[unit];
             }
           }

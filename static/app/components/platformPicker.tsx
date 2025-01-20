@@ -72,8 +72,8 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
   };
 
   state: State = {
-    category: this.props.defaultCategory ?? categoryList[0].id,
-    filter: this.props.noAutoFilter ? '' : (this.props.platform || '').split('-')[0],
+    category: this.props.defaultCategory ?? categoryList[0]!.id,
+    filter: this.props.noAutoFilter ? '' : (this.props.platform || '').split('-')[0]!,
   };
 
   get platformList() {
@@ -286,13 +286,7 @@ const ClearButton = styled(Button)`
   color: ${p => p.theme.textColor};
 `;
 
-ClearButton.defaultProps = {
-  icon: <IconClose isCircled />,
-  borderless: true,
-  size: 'xs',
-};
-
-const PlatformCard = styled(({platform, selected, onClear, ...props}) => (
+const PlatformCard = styled(({platform, selected, onClear, ...props}: any) => (
   <div {...props}>
     <StyledPlatformIcon
       platform={platform.id}
@@ -302,7 +296,15 @@ const PlatformCard = styled(({platform, selected, onClear, ...props}) => (
       format="lg"
     />
     <h3>{platform.name}</h3>
-    {selected && <ClearButton onClick={onClear} aria-label={t('Clear')} />}
+    {selected && (
+      <ClearButton
+        icon={<IconClose isCircled />}
+        borderless
+        size="xs"
+        onClick={onClear}
+        aria-label={t('Clear')}
+      />
+    )}
   </div>
 ))`
   position: relative;

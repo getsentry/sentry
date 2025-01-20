@@ -34,7 +34,7 @@ export function getTraceDetailsUrl({
   view,
 }: {
   // @TODO add a type for dateSelection
-  dateSelection;
+  dateSelection: any;
   location: Location;
   organization: Organization;
   traceSlug: string;
@@ -200,7 +200,7 @@ export function getTraceInfo(
 }
 
 export function shortenErrorTitle(title: string): string {
-  return title.split(':')[0];
+  return title.split(':')[0]!;
 }
 
 export function isRootTransaction(trace: TraceFullDetailed): boolean {

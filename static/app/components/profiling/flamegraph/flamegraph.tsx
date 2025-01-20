@@ -12,7 +12,6 @@ import {mat3, vec2} from 'gl-matrix';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {FlamegraphContextMenu} from 'sentry/components/profiling/flamegraph/flamegraphContextMenu';
-import {ProfileDragDropImport} from 'sentry/components/profiling/flamegraph/flamegraphOverlays/profileDragDropImport';
 import {FlamegraphOptionsMenu} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphOptionsMenu';
 import {FlamegraphSearch} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphSearch';
 import type {FlamegraphThreadSelectorProps} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphThreadSelector';
@@ -68,7 +67,6 @@ import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 import {
   useProfiles,
   useProfileTransaction,
-  useSetProfiles,
 } from 'sentry/views/profiling/profilesProvider';
 
 import {FlamegraphDrawer} from './flamegraphDrawer/flamegraphDrawer';
@@ -132,7 +130,7 @@ function convertProfileMeasurementsToUIFrames(
   };
 
   for (let i = 0; i < measurement.values.length; i++) {
-    const value = measurement.values[i];
+    const value = measurement.values[i]!;
 
     measurements.values.push({
       elapsed: value.elapsed_since_start_ns,
@@ -173,7 +171,7 @@ function findLongestMatchingFrame(
     }
 
     for (let i = 0; i < frame.children.length; i++) {
-      frames.push(frame.children[i]);
+      frames.push(frame.children[i]!);
     }
   }
 
@@ -219,7 +217,6 @@ function Flamegraph(): ReactElement {
   const dispatch = useDispatchFlamegraphState();
 
   const profiles = useProfiles();
-  const setProfiles = useSetProfiles();
   const profileGroup = useProfileGroup();
 
   const flamegraphTheme = useFlamegraphTheme();
@@ -449,7 +446,7 @@ function Flamegraph(): ReactElement {
         const values: ProfileSeriesMeasurement['values'] = [];
 
         for (let i = 0; i < measurements.values.length; i++) {
-          const value = measurements.values[i];
+          const value = measurements.values[i]!;
           values.push({
             value: value.value,
             elapsed: value.elapsed_since_start_ns,
@@ -478,7 +475,7 @@ function Flamegraph(): ReactElement {
       const values: ProfileSeriesMeasurement['values'] = [];
 
       for (let i = 0; i < memory_footprint.values.length; i++) {
-        const value = memory_footprint.values[i];
+        const value = memory_footprint.values[i]!;
         values.push({
           value: value.value,
           elapsed: value.elapsed_since_start_ns,
@@ -497,7 +494,7 @@ function Flamegraph(): ReactElement {
       const values: ProfileSeriesMeasurement['values'] = [];
 
       for (let i = 0; i < native_memory_footprint.values.length; i++) {
-        const value = native_memory_footprint.values[i];
+        const value = native_memory_footprint.values[i]!;
         values.push({
           value: value.value,
           elapsed: value.elapsed_since_start_ns,
@@ -1314,13 +1311,6 @@ function Flamegraph(): ReactElement {
     [dispatch]
   );
 
-  const onImport = useCallback(
-    (p: Profiling.ProfileInput) => {
-      setProfiles({type: 'resolved', data: p});
-    },
-    [setProfiles]
-  );
-
   useEffect(() => {
     if (defined(flamegraphProfiles.threadId)) {
       return;
@@ -1539,7 +1529,7 @@ function Flamegraph(): ReactElement {
           />
         }
         flamegraph={
-          <ProfileDragDropImport onImport={onImport}>
+          <Fragment>
             <FlamegraphWarnings
               flamegraph={flamegraph}
               requestState={profiles}
@@ -1560,7 +1550,7 @@ function Flamegraph(): ReactElement {
               setFlamegraphOverlayCanvasRef={setFlamegraphOverlayCanvasRef}
               contextMenu={FlamegraphContextMenu}
             />
-          </ProfileDragDropImport>
+          </Fragment>
         }
         flamegraphDrawer={
           <FlamegraphDrawer

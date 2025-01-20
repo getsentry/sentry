@@ -12,7 +12,6 @@ import {
   EventDrawerContainer,
   EventDrawerHeader,
   EventNavigator,
-  Header,
   NavigationCrumbs,
   SearchInput,
   ShortId,
@@ -34,10 +33,12 @@ import {TagDistribution} from 'sentry/views/issueDetails/groupTags/tagDistributi
 import {useGroupTags} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
+import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
 export function GroupTagsDrawer({group}: {group: Group}) {
   const location = useLocation();
   const organization = useOrganization();
+  const environments = useEnvironmentsFromUrl();
   const {tagKey} = useParams<{tagKey: string}>();
   const drawerRef = useRef<HTMLDivElement>(null);
   const {projects} = useProjects();
@@ -63,12 +64,13 @@ export function GroupTagsDrawer({group}: {group: Group}) {
     refetch,
   } = useGroupTags({
     groupId: group.id,
-    environment: location.query.environment as string[] | string | undefined,
+    environment: environments,
   });
 
   const tagValues = useMemo(
     () =>
       data.reduce((valueMap, tag) => {
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         valueMap[tag.key] = tag.topValues.map(tv => tv.value).join(' ');
         return valueMap;
       }, {}),
@@ -81,6 +83,7 @@ export function GroupTagsDrawer({group}: {group: Group}) {
       tag =>
         tag.key.includes(search) ||
         tag.name.includes(search) ||
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         tagValues[tag.key].includes(search)
     );
     return searchedTags;
@@ -115,7 +118,13 @@ export function GroupTagsDrawer({group}: {group: Group}) {
         {
           key: 'export-page',
           label: t('Export Page to CSV'),
-          to: `${organization.slug}/${project.slug}/issues/${group.id}/tags/${tagKey}/export/`,
+          // TODO(issues): Dropdown menu doesn't support hrefs yet
+          onAction: () => {
+            window.open(
+              `/${organization.slug}/${project.slug}/issues/${group.id}/tags/${tagKey}/export/`,
+              '_blank'
+            );
+          },
         },
         {
           key: 'export-all',
@@ -210,4 +219,11 @@ const Container = styled('div')`
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: ${space(2)};
   margin-bottom: ${space(2)};
+`;
+
+const Header = styled('h3')`
+  ${p => p.theme.overflowEllipsis};
+  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-weight: ${p => p.theme.fontWeightBold};
+  margin: 0;
 `;

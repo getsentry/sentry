@@ -157,8 +157,8 @@ function OnboardingContent({
     return window.location.hash;
   }, []);
   const skipConfig = ORIGINAL_HASH === FLAG_HASH_SKIP_CONFIG;
-  const openFeatureProviders = [ProviderOptions.LAUNCHDARKLY];
-  const sdkProviders = [ProviderOptions.LAUNCHDARKLY];
+  const openFeatureProviders = Object.values(ProviderOptions);
+  const sdkProviders = Object.values(ProviderOptions);
 
   // First dropdown: OpenFeature providers
   const openFeatureProviderOptions = openFeatureProviders.map(provider => {
@@ -173,7 +173,7 @@ function OnboardingContent({
     value: string;
     label?: ReactNode;
     textValue?: string;
-  }>(openFeatureProviderOptions[0]);
+  }>(openFeatureProviderOptions[0]!);
 
   // Second dropdown: other SDK providers
   const sdkProviderOptions = sdkProviders.map(provider => {
@@ -188,7 +188,7 @@ function OnboardingContent({
     value: string;
     label?: ReactNode;
     textValue?: string;
-  }>(sdkProviderOptions[0]);
+  }>(sdkProviderOptions[0]!);
 
   const defaultTab: string = 'openFeature';
   const {getParamValue: setupMode, setParamValue: setSetupMode} = useUrlParams(

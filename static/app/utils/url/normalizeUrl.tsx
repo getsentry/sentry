@@ -80,6 +80,7 @@ export default function normalizeUrl(
   }
 
   for (const patternData of NORMALIZE_PATTERNS) {
+    // @ts-ignore TS(7022): 'replacement' implicitly has type 'any' because it... Remove this comment to see the full error message
     const replacement = resolved.pathname.replace(patternData[0], patternData[1]);
     if (replacement !== resolved.pathname) {
       return {...resolved, pathname: replacement};

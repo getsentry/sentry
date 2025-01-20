@@ -17,7 +17,8 @@ jest.mock('sentry/utils/usePageFilters');
 describe('HTTPSummaryPage', function () {
   const organization = OrganizationFixture({features: ['insights-initial-modules']});
 
-  let domainChartsRequestMock, domainTransactionsListRequestMock;
+  let domainChartsRequestMock: jest.Mock;
+  let domainTransactionsListRequestMock: jest.Mock;
 
   jest.mocked(usePageFilters).mockReturnValue({
     isReady: true,
@@ -100,6 +101,7 @@ describe('HTTPSummaryPage', function () {
             statsPeriod: '10d',
             topEvents: undefined,
             yAxis: 'spm()',
+            transformAliasToInputFormat: '1',
           },
         })
       );
@@ -126,6 +128,7 @@ describe('HTTPSummaryPage', function () {
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: 'avg(span.self_time)',
+          transformAliasToInputFormat: '1',
         },
       })
     );
@@ -155,6 +158,7 @@ describe('HTTPSummaryPage', function () {
             'http_response_rate(4)',
             'http_response_rate(5)',
           ],
+          transformAliasToInputFormat: '1',
         },
       })
     );

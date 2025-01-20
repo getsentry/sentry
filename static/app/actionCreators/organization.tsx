@@ -21,6 +21,7 @@ import {
 } from 'sentry/utils/featureFlags';
 import {getPreloadedDataPromise} from 'sentry/utils/getPreloadedData';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import type RequestError from 'sentry/utils/requestError/requestError';
 
 async function fetchOrg(
   api: Client,
@@ -130,12 +131,12 @@ async function fetchProjectsAndTeams(
  *               current organization in the store)
  * @param usePreload Should the preloaded data be used if available?
  */
-export function fetchOrganizationDetails(
+export async function fetchOrganizationDetails(
   api: Client,
   slug: string,
   silent: boolean,
   usePreload?: boolean
-) {
+): Promise<void> {
   if (!silent) {
     OrganizationStore.reset();
     ProjectsStore.reset();
@@ -143,7 +144,7 @@ export function fetchOrganizationDetails(
     PageFiltersStore.onReset();
   }
 
-  const getErrorMessage = err => {
+  const getErrorMessage = (err: RequestError) => {
     if (typeof err.responseJSON?.detail === 'string') {
       return err.responseJSON?.detail;
     }
@@ -153,53 +154,48 @@ export function fetchOrganizationDetails(
     return null;
   };
 
-  const loadOrganization = () => {
-    return new Promise(async (resolve, reject) => {
-      let org: Organization | undefined = undefined;
-      try {
-        org = await fetchOrg(api, slug, usePreload);
-      } catch (err) {
-        if (!err) {
-          reject(err);
-          return;
+  const loadOrganization = async () => {
+    let org: Organization | undefined = undefined;
+    try {
+      org = await fetchOrg(api, slug, usePreload);
+    } catch (err) {
+      if (!err) {
+        throw err;
+      }
+
+      OrganizationStore.onFetchOrgError(err);
+
+      if (err.status === 403 || err.status === 401) {
+        const errMessage = getErrorMessage(err);
+
+        if (errMessage) {
+          addErrorMessage(errMessage);
+          throw errMessage;
         }
 
-        OrganizationStore.onFetchOrgError(err);
-
-        if (err.status === 403 || err.status === 401) {
-          const errMessage = getErrorMessage(err);
-
-          if (errMessage) {
-            addErrorMessage(errMessage);
-            reject(errMessage);
-          }
-
-          return;
-        }
-        Sentry.captureException(err);
+        return undefined;
       }
-      resolve(org);
-    });
+      Sentry.captureException(err);
+    }
+    return org;
   };
 
-  const loadTeamsAndProjects = () => {
-    return new Promise(async resolve => {
-      const [[projects], [teams, , resp]] = await fetchProjectsAndTeams(slug, usePreload);
+  const loadTeamsAndProjects = async () => {
+    const [[projects], [teams, , resp]] = await fetchProjectsAndTeams(slug, usePreload);
 
-      ProjectsStore.loadInitialData(projects ?? []);
+    ProjectsStore.loadInitialData(projects ?? []);
 
-      const teamPageLinks = resp?.getResponseHeader('Link');
-      if (teamPageLinks) {
-        const paginationObject = parseLinkHeader(teamPageLinks);
-        const hasMore = paginationObject?.next?.results ?? false;
-        const cursor = paginationObject.next?.cursor;
-        TeamStore.loadInitialData(teams, hasMore, cursor);
-      } else {
-        TeamStore.loadInitialData(teams);
-      }
-      resolve([projects, teams]);
-    });
+    const teamPageLinks = resp?.getResponseHeader('Link');
+    if (teamPageLinks) {
+      const paginationObject = parseLinkHeader(teamPageLinks);
+      const hasMore = paginationObject?.next?.results ?? false;
+      const cursor = paginationObject.next?.cursor;
+      TeamStore.loadInitialData(teams, hasMore, cursor);
+    } else {
+      TeamStore.loadInitialData(teams);
+    }
+    return [projects, teams];
   };
 
-  return Promise.all([loadOrganization(), loadTeamsAndProjects()]);
+  await Promise.all([loadOrganization(), loadTeamsAndProjects()]);
 }

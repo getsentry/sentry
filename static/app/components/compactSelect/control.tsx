@@ -524,9 +524,9 @@ export function Control({
         >
           <StyledOverlay
             width={menuWidth ?? menuFullWidth}
-            minWidth={overlayProps.style.minWidth}
+            minWidth={overlayProps.style!.minWidth}
             maxWidth={maxMenuWidth}
-            maxHeight={overlayProps.style.maxHeight}
+            maxHeight={overlayProps.style!.maxHeight}
             maxHeightProp={maxMenuHeight}
             data-menu-has-header={!!menuTitle || clearable}
             data-menu-has-search={searchable}
@@ -686,7 +686,7 @@ const SearchInput = styled('input')<{visualSize: FormSize}>`
   }
 `;
 
-const withUnits = value => (typeof value === 'string' ? value : `${value}px`);
+const withUnits = (value: any) => (typeof value === 'string' ? value : `${value}px`);
 
 const StyledOverlay = styled(Overlay, {
   shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop),

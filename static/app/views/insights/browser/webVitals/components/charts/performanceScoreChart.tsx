@@ -28,7 +28,7 @@ type Props = {
   webVital?: WebVitals | null;
 };
 
-export const ORDER = ['lcp', 'fcp', 'inp', 'cls', 'ttfb'];
+export const ORDER: WebVitals[] = ['lcp', 'fcp', 'inp', 'cls', 'ttfb'];
 
 export function PerformanceScoreChart({
   projectScore,
@@ -47,7 +47,7 @@ export function PerformanceScoreChart({
       : projectScore.totalScore
     : undefined;
 
-  let ringSegmentColors = theme.charts.getColorPalette(3);
+  let ringSegmentColors = theme.charts.getColorPalette(3)?.slice() as string[];
   let ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
 
   if (webVital) {
@@ -61,6 +61,7 @@ export function PerformanceScoreChart({
   }
 
   const period = pageFilters.selection.datetime.period;
+  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const performanceScoreSubtext = (period && DEFAULT_RELATIVE_PERIODS[period]) ?? '';
 
   return (

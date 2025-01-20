@@ -21,7 +21,7 @@ export function getWidgetExploreUrl(
   selection: PageFilters,
   organization: Organization
 ) {
-  const eventView = eventViewFromWidget(widget.title, widget.queries[0], selection);
+  const eventView = eventViewFromWidget(widget.title, widget.queries[0]!, selection);
   const {query: locationQueryParams} = eventView.getResultsViewUrlTarget(
     organization.slug,
     false,
@@ -32,7 +32,7 @@ export function getWidgetExploreUrl(
   const yAxisOptions = eventView.getYAxisOptions().map(({value}) => value);
   locationQueryParams.yAxes = [
     ...new Set(
-      widget.queries[0].aggregates.filter(aggregate => yAxisOptions.includes(aggregate))
+      widget.queries[0]!.aggregates.filter(aggregate => yAxisOptions.includes(aggregate))
     ),
   ].slice(0, 3);
 
@@ -66,7 +66,7 @@ export function getWidgetExploreUrl(
       ? locationQueryParams.field
       : [locationQueryParams.field];
 
-  const query = widget.queries[0];
+  const query = widget.queries[0]!;
   const queryFields = defined(query.fields)
     ? query.fields
     : [...query.columns, ...query.aggregates];

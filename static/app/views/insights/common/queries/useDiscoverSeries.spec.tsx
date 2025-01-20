@@ -82,7 +82,7 @@ describe('useSpanMetricsSeries', () => {
       }
     );
 
-    expect(result.current.isFetching).toEqual(false);
+    expect(result.current.isFetching).toBe(false);
     expect(eventsRequest).not.toHaveBeenCalled();
   });
 
@@ -121,7 +121,7 @@ describe('useSpanMetricsSeries', () => {
       }
     );
 
-    expect(result.current.isPending).toEqual(true);
+    expect(result.current.isPending).toBe(true);
 
     expect(eventsRequest).toHaveBeenCalledWith(
       '/organizations/org-slug/events-stats/',
@@ -138,7 +138,7 @@ describe('useSpanMetricsSeries', () => {
       })
     );
 
-    await waitFor(() => expect(result.current.isPending).toEqual(false));
+    await waitFor(() => expect(result.current.isPending).toBe(false));
   });
 
   it('adjusts interval based on the yAxis', async () => {
@@ -217,7 +217,7 @@ describe('useSpanMetricsSeries', () => {
       }
     );
 
-    await waitFor(() => expect(result.current.isPending).toEqual(false));
+    await waitFor(() => expect(result.current.isPending).toBe(false));
 
     expect(result.current.data).toEqual({
       'spm()': {
@@ -287,7 +287,7 @@ describe('useSpanMetricsSeries', () => {
       }
     );
 
-    await waitFor(() => expect(result.current.isPending).toEqual(false));
+    await waitFor(() => expect(result.current.isPending).toBe(false));
 
     expect(result.current.data).toEqual({
       'http_response_rate(3)': {
@@ -343,7 +343,7 @@ describe('useSpanMetricsSeries', () => {
       }
     );
 
-    await waitFor(() => expect(result.current.isPending).toEqual(false));
+    await waitFor(() => expect(result.current.isPending).toBe(false));
 
     expect(result.current.data).toEqual({
       'http_response_rate(3)': {

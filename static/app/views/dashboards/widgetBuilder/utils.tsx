@@ -131,7 +131,7 @@ export const generateOrderOptions = ({
     .filter(field => !DISABLED_SORT.includes(field))
     .filter(field => (isRelease ? !TAG_SORT_DENY_LIST.includes(field) : true))
     .forEach(field => {
-      let alias;
+      let alias: any;
       const label = stripEquationPrefix(field);
       // Equations are referenced via a standard alias following this pattern
       if (isEquation(field)) {
@@ -190,8 +190,8 @@ export function normalizeQueries({
 
     const queryOrderBy =
       widgetType === WidgetType.RELEASE
-        ? stripDerivedMetricsPrefix(queries[0].orderby)
-        : queries[0].orderby;
+        ? stripDerivedMetricsPrefix(queries[0]!.orderby)
+        : queries[0]!.orderby;
     const rawOrderBy = trimStart(queryOrderBy, '-');
 
     const resetOrderBy =
@@ -211,8 +211,8 @@ export function normalizeQueries({
         ? queryOrderBy ?? IssueSortOptions.DATE
         : generateOrderOptions({
             widgetType: widgetType ?? WidgetType.DISCOVER,
-            columns: queries[0].columns,
-            aggregates: queries[0].aggregates,
+            columns: queries[0]!.columns,
+            aggregates: queries[0]!.aggregates,
           })[0]?.value);
 
     if (!orderBy) {
@@ -263,7 +263,7 @@ export function normalizeQueries({
   if (isTimeseriesChart) {
     // For timeseries widget, all queries must share identical set of fields.
 
-    const referenceAggregates = [...queries[0].aggregates];
+    const referenceAggregates = [...queries[0]!.aggregates];
 
     queryLoop: for (const query of queries) {
       if (referenceAggregates.length >= 3) {
@@ -447,9 +447,11 @@ export function getFieldOptionFormat(
           kind: FieldValueKind.FUNCTION,
           meta: {
             name: functionName,
-            parameters: AGGREGATIONS[field.function[0]].parameters.map(param => ({
+            // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+            parameters: AGGREGATIONS[field.function[0]].parameters.map((param: any) => ({
               ...param,
-              columnTypes: props => {
+
+              columnTypes: (props: any) => {
                 // HACK: Forcibly allow the parameter if it's already set, this allows
                 // us to render the option even if it's not compatible with the dataset.
                 if (props.name === field.function[1]) {

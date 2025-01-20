@@ -119,9 +119,7 @@ function DashboardTable({
     {key: ResponseKeys.NAME, name: t('Name'), width: COL_WIDTH_UNDEFINED},
     {key: ResponseKeys.WIDGETS, name: t('Widgets'), width: COL_WIDTH_UNDEFINED},
     {key: ResponseKeys.OWNER, name: t('Owner'), width: COL_WIDTH_UNDEFINED},
-    ...(organization.features.includes('dashboards-edit-access')
-      ? [{key: ResponseKeys.ACCESS, name: t('Access'), width: COL_WIDTH_UNDEFINED}]
-      : []),
+    {key: ResponseKeys.ACCESS, name: t('Access'), width: COL_WIDTH_UNDEFINED},
     {key: ResponseKeys.CREATED, name: t('Created'), width: COL_WIDTH_UNDEFINED},
   ];
 
@@ -171,6 +169,7 @@ function DashboardTable({
     if (column.key in SortKeys) {
       const urlSort = decodeScalar(location.query.sort, 'mydashboards');
       const isCurrentSort =
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         urlSort === SortKeys[column.key].asc || urlSort === SortKeys[column.key].desc;
       const sortDirection =
         !isCurrentSort || column.key === 'createdBy'
@@ -188,9 +187,12 @@ function DashboardTable({
           generateSortLink={() => {
             const newSort = isCurrentSort
               ? sortDirection === 'asc'
-                ? SortKeys[column.key].desc
-                : SortKeys[column.key].asc
-              : SortKeys[column.key].asc;
+                ? // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                  SortKeys[column.key].desc
+                : // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                  SortKeys[column.key].asc
+              : // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                SortKeys[column.key].asc;
             return {
               ...location,
               query: {...location.query, sort: newSort},
@@ -246,10 +248,7 @@ function DashboardTable({
       );
     }
 
-    if (
-      column.key === ResponseKeys.ACCESS &&
-      organization.features.includes('dashboards-edit-access')
-    ) {
+    if (column.key === ResponseKeys.ACCESS) {
       /* Handles POST request for Edit Access Selector Changes */
       const onChangeEditAccess = (newDashboardPermissions: DashboardPermissions) => {
         const dashboardCopy = cloneDeep(dataRow);
@@ -320,6 +319,7 @@ function DashboardTable({
       );
     }
 
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return <span>{dataRow[column.key]}</span>;
   };
 

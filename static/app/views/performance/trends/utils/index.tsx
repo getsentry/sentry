@@ -158,7 +158,7 @@ export function getCurrentTrendFunction(
   const trendFunctionField =
     _trendFunctionField ?? decodeScalar(location?.query?.trendFunction);
   const trendFunction = TRENDS_FUNCTIONS.find(({field}) => field === trendFunctionField);
-  return trendFunction || TRENDS_FUNCTIONS[1];
+  return trendFunction || TRENDS_FUNCTIONS[1]!;
 }
 
 function getDefaultTrendParameter(
@@ -166,7 +166,7 @@ function getDefaultTrendParameter(
   projectIds: Readonly<number[]>
 ): TrendParameter {
   const performanceType = platformToPerformanceType(projects, projectIds);
-  const trendParameter = performanceTypeToTrendParameterLabel(performanceType);
+  const trendParameter = performanceTypeToTrendParameterLabel(performanceType!);
 
   return trendParameter;
 }
@@ -355,19 +355,21 @@ export function normalizeTrends(
 }
 
 export function getSelectedQueryKey(trendChangeType: TrendChangeType) {
+  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   return trendSelectedQueryKeys[trendChangeType];
 }
 
 export function getUnselectedSeries(trendChangeType: TrendChangeType) {
+  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   return trendUnselectedSeries[trendChangeType];
 }
 
-export function movingAverage(data, index, size) {
+export function movingAverage(data: any, index: any, size: any) {
   return (
     data
       .slice(index - size, index)
-      .map(a => a.value)
-      .reduce((a, b) => a + b, 0) / size
+      .map((a: any) => a.value)
+      .reduce((a: any, b: any) => a + b, 0) / size
   );
 }
 

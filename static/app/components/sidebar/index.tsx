@@ -11,15 +11,13 @@ import FeedbackOnboardingSidebar from 'sentry/components/feedback/feedbackOnboar
 import Hook from 'sentry/components/hook';
 import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {getMergedTasks} from 'sentry/components/onboardingWizard/taskConfig';
-import {hasQuickStartUpdatesFeature} from 'sentry/components/onboardingWizard/utils';
 import PerformanceOnboardingSidebar from 'sentry/components/performanceOnboarding/sidebar';
 import ReplaysOnboardingSidebar from 'sentry/components/replaysOnboarding/sidebar';
 import {
   ExpandedContext,
   ExpandedContextProvider,
 } from 'sentry/components/sidebar/expandedContextProvider';
-import {NewOnboardingStatus} from 'sentry/components/sidebar/newOnboardingStatus';
-import {DismissableRollbackBanner} from 'sentry/components/sidebar/rollback/dismissableBanner';
+import {OnboardingStatus} from 'sentry/components/sidebar/onboardingStatus';
 import {isDone} from 'sentry/components/sidebar/utils';
 import {
   IconDashboard,
@@ -83,7 +81,6 @@ import {ProfilingOnboardingSidebar} from '../profiling/profilingOnboardingSideba
 
 import {Broadcasts} from './broadcasts';
 import SidebarHelp from './help';
-import OnboardingStatus from './onboardingStatus';
 import ServiceIncidents from './serviceIncidents';
 import {SidebarAccordion} from './sidebarAccordion';
 import SidebarDropdown from './sidebarDropdown';
@@ -278,7 +275,6 @@ function Sidebar() {
         to={`/organizations/${organization.slug}/traces/`}
         id="performance-trace-explorer"
         icon={<SubitemDot collapsed />}
-        isBeta
       />
     </Feature>
   );
@@ -529,14 +525,6 @@ function Sidebar() {
               <Hook name="component:superuser-warning" organization={organization} />
             )}
           </DropdownSidebarSection>
-
-          {organization ? (
-            <DismissableRollbackBanner
-              organization={organization}
-              collapsed={collapsed || horizontal}
-            />
-          ) : null}
-
           <PrimaryItems>
             {hasOrganization && (
               <Fragment>
@@ -624,27 +612,17 @@ function Sidebar() {
               {...sidebarItemProps}
             />
             <SidebarSection hasNewNav={hasNewNav} noMargin noPadding>
-              {hasQuickStartUpdatesFeature(organization) ? (
-                <NewOnboardingStatus
-                  currentPanel={activePanel}
-                  onShowPanel={() => togglePanel(SidebarPanelKey.ONBOARDING_WIZARD)}
-                  hidePanel={hidePanel}
-                  {...sidebarItemProps}
-                />
-              ) : (
-                <OnboardingStatus
-                  org={organization}
-                  currentPanel={activePanel}
-                  onShowPanel={() => togglePanel(SidebarPanelKey.ONBOARDING_WIZARD)}
-                  hidePanel={hidePanel}
-                  {...sidebarItemProps}
-                />
-              )}
+              <OnboardingStatus
+                currentPanel={activePanel}
+                onShowPanel={() => togglePanel(SidebarPanelKey.ONBOARDING_WIZARD)}
+                hidePanel={hidePanel}
+                {...sidebarItemProps}
+              />
             </SidebarSection>
 
             <SidebarSection hasNewNav={hasNewNav} centeredItems={horizontal}>
               {HookStore.get('sidebar:bottom-items').length > 0 &&
-                HookStore.get('sidebar:bottom-items')[0]({
+                HookStore.get('sidebar:bottom-items')[0]!({
                   orientation,
                   collapsed,
                   hasPanel,

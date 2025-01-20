@@ -76,7 +76,7 @@ export default class SelectField<OptionType extends SelectValue<any>> extends Co
     escapeMarkup: true,
     multiple: false,
     small: false,
-    formatMessageValue: (value, props) =>
+    formatMessageValue: (value: any, props: any) =>
       (getChoices(props).find(choice => choice[0] === value) || [null, value])[1],
   };
 
@@ -119,8 +119,9 @@ export default class SelectField<OptionType extends SelectValue<any>> extends Co
           name,
           placeholder,
           ...props
-        }) => {
-          const showTempNoneOption = !multiple && !props.value;
+        }: any) => {
+          const showTempNoneOption =
+            !multiple && (props.value === undefined || props.value === null);
 
           return (
             <Tooltip title={disabledReason} disabled={!disabled}>
@@ -143,7 +144,7 @@ export default class SelectField<OptionType extends SelectValue<any>> extends Co
                 clearable={allowClear}
                 multiple={multiple}
                 controlShouldRenderValue={!showTempNoneOption}
-                isOptionDisabled={option => {
+                isOptionDisabled={(option: any) => {
                   // We need to notify react-select about the disabled options here as well; otherwise, they will remain clickable.
                   return option.label === NONE_SELECTED_LABEL;
                 }}
@@ -173,13 +174,13 @@ export default class SelectField<OptionType extends SelectValue<any>> extends Co
                   ...components,
                 }}
                 styles={{
-                  control: provided => ({
+                  control: (provided: any) => ({
                     ...provided,
                     height: 'auto',
                   }),
                   ...props.styles,
                 }}
-                onChange={val => {
+                onChange={(val: any) => {
                   try {
                     if (!confirm) {
                       this.handleChange(onBlur, onChange, val);

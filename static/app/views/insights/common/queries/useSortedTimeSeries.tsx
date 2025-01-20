@@ -135,7 +135,7 @@ function isMultiSeriesEventsStats(
   return Object.values(obj).every(series => isEventsStats(series));
 }
 
-function transformToSeriesMap(
+export function transformToSeriesMap(
   result: MultiSeriesEventsStats | GroupedMultiSeriesEventsStats | undefined,
   yAxis: string[]
 ): SeriesMap {
@@ -156,7 +156,7 @@ function transformToSeriesMap(
   const hasMultipleYAxes = yAxis.length > 1;
   if (isMultiSeriesEventsStats(result)) {
     const processedResults: [number, Series][] = Object.keys(result).map(seriesName =>
-      processSingleEventStats(seriesName, result[seriesName])
+      processSingleEventStats(seriesName, result[seriesName]!)
     );
 
     if (!hasMultipleYAxes) {
@@ -170,6 +170,7 @@ function transformToSeriesMap(
     return processedResults
       .sort(([a], [b]) => a - b)
       .reduce((acc, [, series]) => {
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         acc[series.seriesName] = [series];
         return acc;
       }, {});
@@ -180,7 +181,7 @@ function transformToSeriesMap(
   // to enable sorting.
   const processedResults: [string, number, MultiSeriesEventsStats][] = [];
   Object.keys(result).forEach(seriesName => {
-    const {order: groupOrder, ...groupData} = result[seriesName];
+    const {order: groupOrder, ...groupData} = result[seriesName]!;
     processedResults.push([seriesName, groupOrder || 0, groupData]);
   });
 
@@ -190,7 +191,7 @@ function transformToSeriesMap(
       Object.keys(groupData).forEach(aggFunctionAlias => {
         const [, series] = processSingleEventStats(
           seriesName,
-          groupData[aggFunctionAlias]
+          groupData[aggFunctionAlias]!
         );
 
         if (!acc[aggFunctionAlias]) {
@@ -211,6 +212,7 @@ function processSingleEventStats(
   if (seriesName) {
     const unit = seriesData.meta?.units?.[getAggregateAlias(seriesName)];
     // Scale series values to milliseconds or bytes depending on units from meta
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     scale = (unit && (DURATION_UNITS[unit] ?? SIZE_UNITS[unit])) ?? 1;
   }
 

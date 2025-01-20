@@ -309,7 +309,7 @@ class NewTraceDetailsSpanTree extends Component<PropType> {
     const showHiddenSpansMessage = !isCurrentSpanHidden && numOfSpansOutOfViewAbove > 0;
 
     if (showHiddenSpansMessage) {
-      firstHiddenSpanId = getSpanID(outOfViewSpansAbove[0].span);
+      firstHiddenSpanId = getSpanID(outOfViewSpansAbove[0]!.span);
       messages.push(
         <span key={`spans-out-of-view-${firstHiddenSpanId}`}>
           <strong>{numOfSpansOutOfViewAbove}</strong> {t('spans out of view')}
@@ -322,7 +322,7 @@ class NewTraceDetailsSpanTree extends Component<PropType> {
       !isCurrentSpanFilteredOut && numOfFilteredSpansAbove > 0;
 
     if (showFilteredSpansMessage) {
-      firstHiddenSpanId = getSpanID(filteredSpansAbove[0].span);
+      firstHiddenSpanId = getSpanID(filteredSpansAbove[0]!.span);
       if (!isCurrentSpanHidden) {
         if (numOfFilteredSpansAbove === 1) {
           messages.push(
@@ -499,7 +499,7 @@ class NewTraceDetailsSpanTree extends Component<PropType> {
           // and it's a last child.
           const generationOffset =
             parentContinuingDepths.length === 1 &&
-            parentContinuingDepths[0].depth === 0 &&
+            parentContinuingDepths[0]!.depth === 0 &&
             parentGeneration > 2
               ? 2
               : 1;
@@ -604,7 +604,7 @@ class NewTraceDetailsSpanTree extends Component<PropType> {
           toggleSiblingSpanGroup = payload.toggleSiblingSpanGroup;
         }
 
-        let groupType;
+        let groupType: any;
         if (toggleSpanGroup) {
           groupType = GroupType.DESCENDANTS;
         } else if (toggleSiblingSpanGroup) {
@@ -864,7 +864,7 @@ function SpanRow(props: SpanRowProps) {
   } = props;
 
   const rowRef = useRef<HTMLDivElement>(null);
-  const spanNode = spanTree[index];
+  const spanNode = spanTree[index]!;
 
   useEffect(() => {
     // Gap spans do not have IDs, so we can't really store them. This should not be a big deal, since

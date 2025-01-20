@@ -41,7 +41,7 @@ function isGroupedOptions<OptionType extends OptionTypeBase>(
   if (!maybe || maybe.length === 0) {
     return false;
   }
-  return (maybe as GroupedOptionsType<OptionType>)[0].options !== undefined;
+  return (maybe as GroupedOptionsType<OptionType>)[0]!.options !== undefined;
 }
 
 function ClearIndicator(
@@ -412,7 +412,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
     if (isGroupedOptions<OptionType>(choicesOrOptions)) {
       flatOptions = choicesOrOptions.flatMap(option => option.options);
     } else {
-      flatOptions = choicesOrOptions.flatMap(option => option);
+      flatOptions = choicesOrOptions.flatMap((option: any) => option);
     }
     mappedValue =
       props.multiple && Array.isArray(value)
@@ -471,7 +471,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
       value={mappedValue}
       isMulti={props.multiple || props.multi}
       isDisabled={props.isDisabled || props.disabled}
-      isOptionDisabled={opt => !!opt.disabled}
+      isOptionDisabled={(opt: any) => !!opt.disabled}
       showDividers={props.showDividers}
       options={options || (choicesOrOptions as OptionsType<OptionType>)}
       openMenuOnFocus={props.openMenuOnFocus}

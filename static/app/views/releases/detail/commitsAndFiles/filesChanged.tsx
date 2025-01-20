@@ -89,7 +89,7 @@ function FilesChangedList({organization, releaseRepos, projectSlug}: FilesChange
           ) : fileList.length ? (
             <Fragment>
               {reposToRender.map(repoName => {
-                const repoData = filesByRepository[repoName];
+                const repoData = filesByRepository[repoName]!;
                 const files = Object.keys(repoData);
                 const fileCount = files.length;
                 return (
@@ -100,6 +100,7 @@ function FilesChangedList({organization, releaseRepos, projectSlug}: FilesChange
                     </PanelHeader>
                     <PanelBody>
                       {files.map(filename => {
+                        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                         const {authors} = repoData[filename];
                         return (
                           <FileChange

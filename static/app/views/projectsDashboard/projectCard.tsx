@@ -264,7 +264,7 @@ class ProjectCardContainer extends Component<ContainerProps, ContainerState> {
   }
 
   listeners = [
-    ProjectsStatsStore.listen(itemsBySlug => {
+    ProjectsStatsStore.listen((itemsBySlug: any) => {
       this.onProjectStatsStoreUpdate(itemsBySlug);
     }, undefined),
   ];
@@ -281,7 +281,7 @@ class ProjectCardContainer extends Component<ContainerProps, ContainerState> {
     }
 
     this.setState({
-      projectDetails: itemsBySlug[project.slug],
+      projectDetails: itemsBySlug[project.slug]!,
     });
   }
 

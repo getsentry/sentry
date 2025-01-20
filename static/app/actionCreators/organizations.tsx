@@ -1,3 +1,5 @@
+import type {NavigateFunction} from 'react-router-dom';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {resetPageFilters} from 'sentry/actionCreators/pageFilters';
 import type {Client} from 'sentry/api';
@@ -18,7 +20,10 @@ type RedirectRemainingOrganizationParams = {
    * The organization slug
    */
   orgId: string;
-
+  /**
+   * navigate function from useNavigate
+   */
+  navigate?: NavigateFunction;
   /**
    * Should remove org?
    */
@@ -32,6 +37,7 @@ type RedirectRemainingOrganizationParams = {
  * Can optionally remove organization from organizations store.
  */
 export function redirectToRemainingOrganization({
+  navigate,
   orgId,
   removeOrg,
 }: RedirectRemainingOrganizationParams) {
@@ -40,12 +46,17 @@ export function redirectToRemainingOrganization({
     org => org.status.id === 'active' && org.slug !== orgId
   );
   if (!allOrgs.length) {
-    browserHistory.push('/organizations/new/');
+    if (navigate) {
+      navigate('/organizations/new/');
+    } else {
+      browserHistory.push('/organizations/new/');
+    }
+
     return;
   }
 
   // Let's be smart and select the best org to redirect to
-  const firstRemainingOrg = allOrgs[0];
+  const firstRemainingOrg = allOrgs[0]!;
 
   const route = `/organizations/${firstRemainingOrg.slug}/issues/`;
   if (USING_CUSTOMER_DOMAIN) {
@@ -54,7 +65,11 @@ export function redirectToRemainingOrganization({
     return;
   }
 
-  browserHistory.push(route);
+  if (navigate) {
+    navigate(route);
+  } else {
+    browserHistory.push(route);
+  }
 
   // Remove org from SidebarDropdown
   if (removeOrg) {

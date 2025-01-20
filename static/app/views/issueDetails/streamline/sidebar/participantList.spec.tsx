@@ -36,7 +36,7 @@ describe('ParticipantList', () => {
     expect(screen.getByText('Teams (2)')).toBeInTheDocument();
     expect(screen.getByText('Individuals (2)')).toBeInTheDocument();
 
-    await userEvent.click(screen.getAllByText('JD')[0], {skipHover: true});
+    await userEvent.click(screen.getAllByText('JD')[0]!, {skipHover: true});
     expect(screen.queryByText('Bob Alice')).not.toBeInTheDocument();
   });
 

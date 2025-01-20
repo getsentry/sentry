@@ -988,7 +988,7 @@ function ReleaseSourceMapMatchingChecklistItem({
           <p>
             {tct(
               'The source file for this stack frame is missing a source map reference. A source map reference is usually represented by a [sourceMappingUrl] comment at the bottom of your source file.',
-              {sourceMappingUrl: <MonoBlock>//# sourceMappingURL=...</MonoBlock>}
+              {sourceMappingUrl: <MonoBlock>{'//# sourceMappingURL=...'}</MonoBlock>}
             )}
           </p>
           <p>
@@ -1116,7 +1116,7 @@ function ScrapingSourceFileAvailableChecklistItem({
   }
 
   const failureReasonTexts =
-    SOURCE_FILE_SCRAPING_REASON_MAP[
+    (SOURCE_FILE_SCRAPING_REASON_MAP as any)[
       sourceResolutionResults.sourceFileScrapingStatus.reason
     ] ?? SOURCE_FILE_SCRAPING_REASON_MAP.other;
 
@@ -1186,6 +1186,7 @@ function ScrapingSourceMapAvailableChecklistItem({
   }
 
   const failureReasonTexts =
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     SOURCE_MAP_SCRAPING_REASON_MAP[
       sourceResolutionResults.sourceMapScrapingStatus.reason
     ] ?? SOURCE_MAP_SCRAPING_REASON_MAP.other;

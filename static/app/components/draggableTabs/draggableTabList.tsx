@@ -33,7 +33,7 @@ import {useDimensions} from 'sentry/utils/useDimensions';
 import {useDimensionsMultiple} from 'sentry/utils/useDimensionsMultiple';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {IssueViewsContext} from 'sentry/views/issueList/groupSearchViewTabs/issueViews';
+import {IssueViewsContext} from 'sentry/views/issueList/issueViews/issueViews';
 
 import type {DraggableTabListItemProps} from './item';
 import {Item} from './item';
@@ -62,9 +62,9 @@ function useOverflowingTabs({state}: {state: TabListState<DraggableTabListItemPr
     const overflowing: Node<DraggableTabListItemProps>[] = [];
 
     for (let i = 0; i < tabsDimensions.length; i++) {
-      totalWidth += tabsDimensions[i].width + 1; // 1 extra pixel for the divider
+      totalWidth += tabsDimensions[i]!.width + 1; // 1 extra pixel for the divider
       if (totalWidth > availableWidth + 1) {
-        overflowing.push(persistentTabs[i]);
+        overflowing.push(persistentTabs[i]!);
       }
     }
 
@@ -165,6 +165,7 @@ function Tabs({
   // which we do not want (we hide tabs once they overflow
   const dragConstraints = isDragging ? tabListRef : undefined;
 
+  // @ts-ignore TS(7006): Parameter 'tabKey' implicitly has an 'any' type.
   const isTabDividerVisible = tabKey => {
     // If the tab divider is succeeding or preceding the selected tab key
     if (
@@ -289,6 +290,7 @@ function BaseDraggableTabList({
   const ariaProps = {
     selectedKey: value,
     defaultSelectedKey: defaultValue,
+    // @ts-ignore TS(7006): Parameter 'key' implicitly has an 'any' type.
     onSelectionChange: key => {
       onChange?.(key);
 
@@ -439,7 +441,7 @@ export function DraggableTabList({items, onAddView, ...props}: DraggableTabListP
       disabledKeys={disabledKeys}
       {...props}
     >
-      {item => <Item {...item} />}
+      {item => <Item {...item} key={item.key} />}
     </BaseDraggableTabList>
   );
 }

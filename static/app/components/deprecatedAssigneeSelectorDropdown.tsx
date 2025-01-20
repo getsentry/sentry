@@ -183,7 +183,7 @@ export class DeprecatedAssigneeSelectorDropdown extends Component<
   }
 
   unlisteners = [
-    GroupStore.listen(itemIds => this.onGroupChange(itemIds), undefined),
+    GroupStore.listen((itemIds: any) => this.onGroupChange(itemIds), undefined),
     MemberListStore.listen(({members}: typeof MemberListStore.state) => {
       this.handleMemberListUpdate(members);
     }, undefined),
@@ -370,7 +370,7 @@ export class DeprecatedAssigneeSelectorDropdown extends Component<
     )[] = [];
 
     for (let i = 0; i < suggestedAssignees.length; i++) {
-      const assignee = suggestedAssignees[i];
+      const assignee = suggestedAssignees[i]!;
       if (assignee.type !== 'user' && assignee.type !== 'team') {
         continue;
       }
@@ -514,7 +514,7 @@ export class DeprecatedAssigneeSelectorDropdown extends Component<
           const member = memberList.find(user => user.id === id);
           if (member) {
             return {
-              id,
+              id: id!,
               type: 'user',
               name: member.name,
               suggestedReason: owner.type,
@@ -528,7 +528,7 @@ export class DeprecatedAssigneeSelectorDropdown extends Component<
           );
           if (matchingTeam) {
             return {
-              id,
+              id: id!,
               type: 'team',
               name: matchingTeam.team.name,
               suggestedReason: owner.type,
@@ -606,7 +606,7 @@ export function putSessionUserFirst(members: User[] | undefined): User[] {
     return members;
   }
 
-  const arrangedMembers = [members[sessionUserIndex]].concat(
+  const arrangedMembers = [members[sessionUserIndex]!].concat(
     members.slice(0, sessionUserIndex),
     members.slice(sessionUserIndex + 1)
   );

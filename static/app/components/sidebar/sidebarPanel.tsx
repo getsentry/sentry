@@ -111,7 +111,7 @@ function SidebarPanel({
       {title ? (
         <SidebarPanelHeader>
           <Title>{title}</Title>
-          <PanelClose onClick={hidePanel} aria-label={t('Close Panel')} />
+          <PanelClose size="lg" onClick={hidePanel} aria-label={t('Close Panel')} />
         </SidebarPanelHeader>
       ) : null}
       <SidebarPanelBody hasHeader={!!title}>{children}</SidebarPanelBody>
@@ -152,10 +152,6 @@ const PanelClose = styled(IconClose)`
     color: ${p => p.theme.textColor};
   }
 `;
-
-PanelClose.defaultProps = {
-  size: 'lg',
-};
 
 const Title = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};

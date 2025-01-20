@@ -45,47 +45,44 @@ export default function EventErrorCard({
 function EventErrorDescription({error}: {error: ErrorMessage}) {
   const {title, data: errorData} = error;
 
-  const cleanedData = useMemo(
-    () => {
-      const data = errorData || {};
-      if (data.message === 'None') {
-        // Python ensures a message string, but "None" doesn't make sense here
-        delete data.message;
-      }
+  const cleanedData = useMemo(() => {
+    const data = errorData || {};
+    if (data.message === 'None') {
+      // Python ensures a message string, but "None" doesn't make sense here
+      delete data.message;
+    }
 
-      if (typeof data.image_path === 'string') {
-        // Separate the image name for readability
-        const separator = /^([a-z]:\\|\\\\)/i.test(data.image_path) ? '\\' : '/';
-        const path = data.image_path.split(separator);
-        data.image_name = path.splice(-1, 1)[0];
-        data.image_path = path.length ? path.join(separator) + separator : '';
-      }
+    if (typeof data.image_path === 'string') {
+      // Separate the image name for readability
+      const separator = /^([a-z]:\\|\\\\)/i.test(data.image_path) ? '\\' : '/';
+      const path = data.image_path.split(separator);
+      data.image_name = path.splice(-1, 1)[0];
+      data.image_path = path.length ? path.join(separator) + separator : '';
+    }
 
-      if (typeof data.server_time === 'string' && typeof data.sdk_time === 'string') {
-        data.message = t(
-          'Adjusted timestamps by %s',
-          moment
-            .duration(moment.utc(data.server_time).diff(moment.utc(data.sdk_time)))
-            .humanize()
-        );
-      }
+    if (typeof data.server_time === 'string' && typeof data.sdk_time === 'string') {
+      data.message = t(
+        'Adjusted timestamps by %s',
+        moment
+          .duration(moment.utc(data.server_time).diff(moment.utc(data.sdk_time)))
+          .humanize()
+      );
+    }
 
-      return Object.entries(data)
-        .map(([key, value]) => ({
-          key,
-          value,
-          subject: keyMapping[key] || startCase(key),
-        }))
-        .filter(d => {
-          if (!d.value) {
-            return true;
-          }
-          return !!d.value;
-        });
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [errorData]
-  );
+    return Object.entries(data)
+      .map(([key, value]) => ({
+        key,
+        value,
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        subject: keyMapping[key] || startCase(key),
+      }))
+      .filter(d => {
+        if (!d.value) {
+          return true;
+        }
+        return !!d.value;
+      });
+  }, [errorData]);
 
   return <EventErrorCard title={title} data={cleanedData} />;
 }

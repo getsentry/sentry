@@ -11,6 +11,7 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import ModalStore from 'sentry/stores/modalStore';
 import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
@@ -20,9 +21,10 @@ import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 
 jest.mock('sentry/utils/useCustomMeasurements');
 jest.mock('sentry/views/explore/contexts/spanTagsContext');
+jest.mock('sentry/actionCreators/indicator');
 
 describe('WidgetBuilderSlideout', () => {
-  let organization;
+  let organization!: ReturnType<typeof OrganizationFixture>;
   beforeEach(() => {
     organization = OrganizationFixture();
 
@@ -34,6 +36,15 @@ describe('WidgetBuilderSlideout', () => {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/widgets/',
+      method: 'POST',
+      body: {
+        title: 'Title is required during creation',
+      },
+      statusCode: 400,
     });
   });
 
@@ -55,6 +66,8 @@ describe('WidgetBuilderSlideout', () => {
           onSave={jest.fn()}
           setIsPreviewDraggable={jest.fn()}
           isOpen
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
         />
       </WidgetBuilderProvider>,
       {
@@ -92,6 +105,8 @@ describe('WidgetBuilderSlideout', () => {
           onSave={jest.fn()}
           setIsPreviewDraggable={jest.fn()}
           isOpen
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
         />
       </WidgetBuilderProvider>,
       {
@@ -126,6 +141,8 @@ describe('WidgetBuilderSlideout', () => {
           onSave={jest.fn()}
           setIsPreviewDraggable={jest.fn()}
           isOpen
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
         />
       </WidgetBuilderProvider>,
       {
@@ -159,6 +176,8 @@ describe('WidgetBuilderSlideout', () => {
           onSave={jest.fn()}
           setIsPreviewDraggable={jest.fn()}
           isOpen
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
         />
       </WidgetBuilderProvider>,
       {organization}
@@ -186,6 +205,8 @@ describe('WidgetBuilderSlideout', () => {
           onSave={jest.fn()}
           setIsPreviewDraggable={jest.fn()}
           isOpen
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
         />
       </WidgetBuilderProvider>,
       {organization}
@@ -197,9 +218,163 @@ describe('WidgetBuilderSlideout', () => {
 
     await waitFor(() => {
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-      expect(
-        screen.queryByText('You have unsaved changes. Are you sure you want to leave?')
-      ).not.toBeInTheDocument();
     });
+    expect(
+      screen.queryByText('You have unsaved changes. Are you sure you want to leave?')
+    ).not.toBeInTheDocument();
+  });
+
+  it('should not save and close the widget builder if the widget is invalid', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderSlideout
+          dashboard={DashboardFixture([])}
+          dashboardFilters={{release: undefined}}
+          isWidgetInvalid
+          onClose={jest.fn()}
+          onQueryConditionChange={jest.fn()}
+          onSave={jest.fn()}
+          setIsPreviewDraggable={jest.fn()}
+          isOpen
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              field: [],
+              yAxis: ['count()'],
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.LINE,
+              title: undefined,
+            },
+          }),
+        }),
+      }
+    );
+
+    await userEvent.click(await screen.findByText('Add Widget'));
+
+    await waitFor(() => {
+      expect(addErrorMessage).toHaveBeenCalledWith('Unable to save widget');
+    });
+
+    expect(screen.getByText('Create Custom Widget')).toBeInTheDocument();
+  });
+
+  it('clears the alias when dataset changes', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderSlideout
+          dashboard={DashboardFixture([])}
+          dashboardFilters={{release: undefined}}
+          isWidgetInvalid
+          onClose={jest.fn()}
+          onQueryConditionChange={jest.fn()}
+          onSave={jest.fn()}
+          setIsPreviewDraggable={jest.fn()}
+          isOpen
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              field: ['count()'],
+              yAxis: [],
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.TABLE,
+            },
+          }),
+        }),
+      }
+    );
+
+    await userEvent.type(await screen.findByPlaceholderText('Add Alias'), 'test alias');
+    await userEvent.click(screen.getByText('Errors'));
+
+    expect(await screen.findByPlaceholderText('Add Alias')).toHaveValue('');
+  });
+
+  it('clears the alias when display type changes', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderSlideout
+          dashboard={DashboardFixture([])}
+          dashboardFilters={{release: undefined}}
+          isWidgetInvalid
+          onClose={jest.fn()}
+          onQueryConditionChange={jest.fn()}
+          onSave={jest.fn()}
+          setIsPreviewDraggable={jest.fn()}
+          isOpen
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              field: ['count()'],
+              yAxis: [],
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.TABLE,
+            },
+          }),
+        }),
+      }
+    );
+
+    await userEvent.type(
+      await screen.findByPlaceholderText('Add Alias'),
+      'test alias again'
+    );
+
+    await userEvent.click(screen.getByText('Table'));
+    await userEvent.click(screen.getByText('Area'));
+    await userEvent.click(screen.getByText('Area'));
+    await userEvent.click(screen.getByText('Table'));
+
+    expect(await screen.findByPlaceholderText('Add Alias')).toHaveValue('');
+  });
+
+  it('only renders thresholds for big number widgets', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderSlideout
+          dashboard={DashboardFixture([])}
+          dashboardFilters={{release: undefined}}
+          isWidgetInvalid
+          onClose={jest.fn()}
+          onQueryConditionChange={jest.fn()}
+          onSave={jest.fn()}
+          setIsPreviewDraggable={jest.fn()}
+          isOpen
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.BIG_NUMBER,
+            },
+          }),
+        }),
+      }
+    );
+
+    expect(await screen.findByText('Thresholds')).toBeInTheDocument();
   });
 });

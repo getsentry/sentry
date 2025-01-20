@@ -3,6 +3,7 @@ import {useMemo} from 'react';
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
+import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeList, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -21,7 +22,7 @@ import {SpanMetricsField} from 'sentry/views/insights/types';
 const DEFAULT_SORT = {
   kind: 'desc',
   field: 'measurements.time_to_initial_display',
-};
+} as Sort;
 
 type Props = {
   cursorName: string;

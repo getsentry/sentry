@@ -82,16 +82,16 @@ function NetworkList() {
     handleHeight: RESIZEABLE_HANDLE_HEIGHT,
     urlParamName: 'n_detail_row',
     onShowDetails: useCallback(
-      ({dataIndex, rowIndex}) => {
+      ({dataIndex, rowIndex}: any) => {
         setScrollToRow(rowIndex);
 
         const item = items[dataIndex];
         trackAnalytics('replay.details-network-panel-opened', {
           is_sdk_setup: isNetworkDetailsSetup,
           organization,
-          resource_method: getFrameMethod(item),
-          resource_status: String(getFrameStatus(item)),
-          resource_type: item.op,
+          resource_method: getFrameMethod(item!),
+          resource_status: String(getFrameStatus(item!)),
+          resource_type: item!.op,
         });
       },
       [organization, items, isNetworkDetailsSetup]
@@ -117,7 +117,7 @@ function NetworkList() {
   });
 
   const cellRenderer = ({columnIndex, rowIndex, key, style, parent}: GridCellProps) => {
-    const network = items[rowIndex - 1];
+    const network = items[rowIndex - 1]!;
 
     return (
       <CellMeasurer
@@ -221,6 +221,7 @@ function NetworkList() {
           <NetworkDetails
             {...resizableDrawerProps}
             isSetup={isNetworkDetailsSetup}
+            // @ts-ignore TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
             item={selectedIndex ? items[selectedIndex] : null}
             onClose={onCloseDetailsSplit}
             projectId={projectId}

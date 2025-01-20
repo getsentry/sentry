@@ -52,7 +52,7 @@ export function MetricTable({
   onOrderChange,
 }: MetricTableProps) {
   const handleCellClick = useCallback(
-    column => {
+    (column: any) => {
       if (!onOrderChange) {
         return;
       }
@@ -66,7 +66,7 @@ export function MetricTable({
   function renderRow(row: Row, index: number) {
     return data.headers.map((column, columnIndex) => {
       const key = `${index}-${columnIndex}:${column.name}`;
-      const value = row[column.name].formattedValue ?? row[column.name].value;
+      const value = row[column.name]!.formattedValue ?? row[column.name]!.value;
       if (!value) {
         return (
           <TableCell type={column.type} key={key} noValue>
@@ -118,6 +118,7 @@ const equalGroupBys = (a: Record<string, unknown>, b: Record<string, unknown>) =
 
 const getEmptyGroup = (tags: string[]) =>
   tags.reduce((acc, tag) => {
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     acc[tag] = '';
     return acc;
   }, {});
@@ -157,13 +158,13 @@ export function getTableData(
   expressions: MetricsQueryApiQueryParams[]
 ): TableData {
   const queries = expressions.filter(isNotQueryOnly) as MetricsQueryApiRequestQuery[];
-  // @ts-expect-error TODO(metrics): use DashboardMetricsExpression type
+  // @ts-ignore TS(2339): Property 'isHidden' does not exist on type 'Metric... Remove this comment to see the full error message
   const shownExpressions = expressions.filter(e => !e.isHidden);
   const tags = [...new Set(queries.flatMap(query => query.groupBy ?? []))];
 
   const normalizedResults = shownExpressions.map((expression, index) => {
-    const expressionResults = data.data[index];
-    const meta = data.meta[index];
+    const expressionResults = data.data[index]!;
+    const meta = data.meta[index]!;
     const lastMetaEntry = data.meta[index]?.[meta.length - 1];
     const metaUnit =
       (lastMetaEntry && 'unit' in lastMetaEntry && lastMetaEntry.unit) || 'none';
@@ -182,12 +183,14 @@ export function getTableData(
 
   const rows: Row[] = groupByCombos.map(combo => {
     const row = Object.entries(combo).reduce((acc, [key, value]) => {
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       acc[key] = {value};
       return acc;
     }, {});
 
     normalizedResults.forEach(({name, results}) => {
       const entry = results.find(e => equalGroupBys(e.by, combo));
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       row[name] = {value: entry?.totals, formattedValue: entry?.formattedValue};
     });
 
@@ -203,7 +206,7 @@ export function getTableData(
     })),
     ...shownExpressions.map(query => ({
       name: query.name,
-      // @ts-expect-error TODO(metrics): use DashboardMetricsExpression type
+      // @ts-ignore TS(2339): Property 'id' does not exist on type 'MetricsQuery... Remove this comment to see the full error message
       id: query.id,
       label:
         // TODO(metrics): consider consolidating with getMetricQueryName (different types)

@@ -51,10 +51,10 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
     case Token.VALUE_NUMBER_LIST:
       const items = token.value.items;
 
-      if (items.length === 1 && items[0].value) {
+      if (items.length === 1 && items[0]!.value) {
         return (
           <FilterValueSingleTruncatedValue>
-            {formatFilterValue(items[0].value)}
+            {formatFilterValue(items[0]!.value)}
           </FilterValueSingleTruncatedValue>
         );
       }
@@ -66,6 +66,7 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
           {items.slice(0, maxItems).map((item, index) => (
             <Fragment key={index}>
               <FilterMultiValueTruncated>
+                {/* @ts-ignore TS(2345): Argument of type '{ type: Token.VALUE_NUMBER; valu... Remove this comment to see the full error message */}
                 {formatFilterValue(item.value)}
               </FilterMultiValueTruncated>
               {index !== items.length - 1 && index < maxItems - 1 ? (

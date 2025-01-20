@@ -6,6 +6,7 @@ import debounce from 'lodash/debounce';
 import {Button, LinkButton} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import SmartSearchBar from 'sentry/components/deprecatedSmartSearchBar';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
@@ -17,7 +18,6 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import type {SelectionRange} from 'sentry/components/metrics/chart/types';
 import PerformanceDuration from 'sentry/components/performanceDuration';
-import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -89,7 +89,7 @@ export function SearchableMetricSamplesTable({
   ...props
 }: MetricsSamplesTableProps) {
   const [secondaryQuery, setSecondaryQuery] = useState('');
-  const handleSearch = useCallback(value => {
+  const handleSearch = useCallback((value: any) => {
     setSecondaryQuery(value);
   }, []);
 
@@ -114,6 +114,7 @@ export function SearchableMetricSamplesTable({
 }
 
 interface MetricsSamplesSearchBarProps {
+  // @ts-ignore TS(7051): Parameter has a name but no type. Did you mean 'ar... Remove this comment to see the full error message
   handleSearch: (string) => void;
   query: string;
   mri?: MRI;
@@ -412,7 +413,7 @@ const SORTABLE_COLUMNS: Set<ResultField> = new Set([
 
 function renderHeadCell(
   currentSort: {direction: 'asc' | 'desc'; key: string} | undefined,
-  generateSortLink: (key) => () => LocationDescriptorObject | undefined
+  generateSortLink: (key: any) => () => LocationDescriptorObject | undefined
 ) {
   return function (col: GridColumnOrder<ResultField>) {
     return (
@@ -811,7 +812,8 @@ const LegendDot = styled('div')<{color: string}>`
   width: ${space(1)};
   height: ${space(1)};
   border-radius: 100%;
-  background-color: ${p => p.theme[p.color] ?? p.color};
+  background-color: ${p =>
+    (p.theme[p.color as keyof typeof p.theme] as string | undefined) ?? p.color};
 `;
 
 const EmptyValueContainer = styled('span')`

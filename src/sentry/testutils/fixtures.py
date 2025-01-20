@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping
+from collections.abc import Mapping
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -9,10 +9,10 @@ from django.utils import timezone
 from django.utils.functional import cached_property
 
 from sentry.eventstore.models import Event
-from sentry.incidents.models.alert_rule import AlertRule, AlertRuleMonitorTypeInt
+from sentry.grouping.grouptype import ErrorGroupType
+from sentry.incidents.models.alert_rule import AlertRule
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.issues.grouptype import ErrorGroupType
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.grouprelease import GroupRelease
@@ -23,10 +23,15 @@ from sentry.models.project import Project
 from sentry.models.projecttemplate import ProjectTemplate
 from sentry.models.rule import Rule
 from sentry.models.team import Team
-from sentry.monitors.models import Monitor, MonitorType, ScheduleType
+from sentry.monitors.models import (
+    Monitor,
+    MonitorEnvironment,
+    MonitorIncident,
+    MonitorType,
+    ScheduleType,
+)
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.silo.base import SiloMode
-from sentry.snuba.models import QuerySubscription
 from sentry.tempest.models import TempestCredentials
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now
@@ -62,7 +67,12 @@ class Fixtures:
 
     @cached_property
     def user(self) -> User:
-        return self.create_user("admin@localhost", is_superuser=True, is_staff=True)
+        return self.create_user(
+            "admin@localhost",
+            is_superuser=True,
+            is_staff=True,
+            is_sentry_app=False,
+        )
 
     @cached_property
     def organization(self):
@@ -389,36 +399,6 @@ class Fixtures:
             projects = [self.project]
         return Factories.create_alert_rule(organization, projects, *args, **kwargs)
 
-    def create_alert_rule_activation(
-        self,
-        alert_rule: AlertRule | None = None,
-        query_subscriptions: Iterable[QuerySubscription] | None = None,
-        project=None,
-        monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
-        activator=None,
-        activation_condition=None,
-        *args,
-        **kwargs,
-    ):
-        if not alert_rule:
-            alert_rule = self.create_alert_rule(monitor_type=monitor_type)
-        if not query_subscriptions:
-            projects = [project] if project else [self.project]
-            # subscribing an activated alert rule will create an activation
-            query_subscriptions = alert_rule.subscribe_projects(
-                projects=projects,
-                monitor_type=monitor_type,
-                activation_condition=activation_condition,
-                activator=activator,
-            )
-
-        created_activations = []
-        for sub in query_subscriptions:
-            created_activations.append(
-                Factories.create_alert_rule_activation(alert_rule, sub, *args, **kwargs)
-            )
-        return created_activations
-
     def create_alert_rule_trigger(self, alert_rule=None, *args, **kwargs):
         if not alert_rule:
             alert_rule = self.create_alert_rule()
@@ -460,9 +440,14 @@ class Fixtures:
         if "owner_user_id" not in kwargs:
             kwargs["owner_user_id"] = self.user.id
 
+        if "project" not in kwargs:
+            project_id = self.project.id
+        else:
+            project_id = kwargs.pop("project").id
+
         return Monitor.objects.create(
             organization_id=self.organization.id,
-            project_id=self.project.id,
+            project_id=project_id,
             type=MonitorType.CRON_JOB,
             config={
                 "schedule": "* * * * *",
@@ -472,6 +457,12 @@ class Fixtures:
             },
             **kwargs,
         )
+
+    def create_monitor_environment(self, **kwargs):
+        return MonitorEnvironment.objects.create(**kwargs)
+
+    def create_monitor_incident(self, **kwargs):
+        return MonitorIncident.objects.create(**kwargs)
 
     def create_external_user(self, user=None, organization=None, integration=None, **kwargs):
         if not user:

@@ -34,3 +34,7 @@ export type Release = {
   timestamp: string;
   version: string;
 };
+
+export type Aliases = Record<string, string>;
+
+export type TimeseriesSelection = {[key: string]: boolean};

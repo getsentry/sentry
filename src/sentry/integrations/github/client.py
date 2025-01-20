@@ -26,7 +26,7 @@ from sentry.integrations.source_code_management.commit_context import (
 )
 from sentry.integrations.source_code_management.repository import RepositoryClient
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
-from sentry.integrations.utils.code_mapping import (
+from sentry.issues.auto_source_code_config.code_mapping import (
     MAX_CONNECTION_ERRORS,
     Repo,
     RepoTree,
@@ -586,10 +586,6 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient)
                 logger.info("Page %s: %s", page_number, next_link)
                 page_number += 1
             return output
-
-    def get_issues(self, repo: str) -> Sequence[Any]:
-        issues: Sequence[Any] = self.get(f"/repos/{repo}/issues")
-        return issues
 
     def search_issues(self, query: str) -> Mapping[str, Sequence[Mapping[str, Any]]]:
         """

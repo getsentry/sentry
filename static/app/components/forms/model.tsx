@@ -248,7 +248,7 @@ class FormModel {
   /**
    * Set field properties
    */
-  setFieldDescriptor(id: string, props) {
+  setFieldDescriptor(id: string, props: any) {
     // TODO(TS): add type to props
     this.fieldDescriptor.set(id, props);
 
@@ -484,7 +484,7 @@ class FormModel {
     }
 
     this.snapshots.shift();
-    this.fields.replace(this.snapshots[0]);
+    this.fields.replace(this.snapshots[0]!);
 
     return true;
   }
@@ -604,7 +604,7 @@ class FormModel {
     const getData = this.getDescriptor(id, 'getData');
 
     // Check if field needs to handle transforming request object
-    const getDataFn = typeof getData === 'function' ? getData : a => a;
+    const getDataFn = typeof getData === 'function' ? getData : (a: any) => a;
 
     const request = this.doApiRequest({
       data: getDataFn(
@@ -831,7 +831,7 @@ export class MockModel {
 
   initialData: Record<string, FieldValue>;
 
-  constructor(props) {
+  constructor(props: any) {
     this.props = props;
 
     this.initialData = {

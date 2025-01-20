@@ -53,7 +53,7 @@ function ApiTokenDetailsForm({token}: {token: InternalAppApiToken}) {
     handleGoBack();
   };
 
-  const onError = error => {
+  const onError = (error: any) => {
     const message = t('Failed to update the user auth token.');
     handleXhrErrorResponse(message, error);
     addErrorMessage(message);

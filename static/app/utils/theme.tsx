@@ -173,12 +173,14 @@ const lightShadows = {
   dropShadowLight: '0 0 1px rgba(43, 34, 51, 0.04)',
   dropShadowMedium: '0 1px 2px rgba(43, 34, 51, 0.04)',
   dropShadowHeavy: '0 4px 24px rgba(43, 34, 51, 0.12)',
+  dropShadowHeavyTop: '0 -4px 24px rgba(43, 34, 51, 0.12)',
 };
 
 const darkShadows = {
   dropShadowLight: '0 0 1px rgba(10, 8, 12, 0.2)',
   dropShadowMedium: '0 1px 2px rgba(10, 8, 12, 0.2)',
   dropShadowHeavy: '0 4px 24px rgba(10, 8, 12, 0.36)',
+  dropShadowHeavyTop: '0 -4px 24px rgba(10, 8, 12, 0.36)',
 };
 
 /**
@@ -636,34 +638,36 @@ const generateButtonTheme = (colors: BaseColors, alias: Aliases) => ({
 const generateUtils = (colors: BaseColors, aliases: Aliases) => ({
   tooltipUnderline: (underlineColor: ColorOrAlias = 'gray300') => ({
     textDecoration: `underline dotted ${
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       colors[underlineColor] ?? aliases[underlineColor]
     }`,
     textDecorationThickness: '0.75px',
     textUnderlineOffset: '1.25px',
   }),
-  overflowEllipsis: css({
-    display: 'block',
-    width: '100%',
-    whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-  }),
+  overflowEllipsis: css`
+    display: block;
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  `,
   // https://css-tricks.com/inclusively-hidden/
-  visuallyHidden: css({
-    clip: 'rect(0 0 0 0)',
-    clipPath: 'inset(50%)',
-    height: '1px',
-    overflow: 'hidden',
-    position: 'absolute',
-    whiteSpace: 'nowrap',
-    width: '1px',
-  }),
+  visuallyHidden: css`
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    height: 1px;
+    overflow: hidden;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
+  `,
 });
 
 const generatePrismVariables = (
   prismColors: typeof prismLight,
   blockBackground: string
 ) =>
+  // eslint-disable-next-line @emotion/syntax-preference
   css({
     // block background differs based on light/dark mode
     '--prism-block-background': blockBackground,
@@ -929,7 +933,7 @@ const commonTheme = {
 
     // We have an array that maps `number + 1` --> list of `number` colors
     getColorPalette: (length: number) =>
-      CHART_PALETTE[Math.min(CHART_PALETTE.length - 1, length + 1)] as string[],
+      CHART_PALETTE[Math.min(CHART_PALETTE.length - 1, length + 1)],
 
     previousPeriod: lightColors.gray200,
     symbolSize: 6,

@@ -84,6 +84,7 @@ function renderBodyCell({
       />
     );
   }
+  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   return row[column.key];
 }
 
@@ -121,13 +122,13 @@ function EventSpanOpBreakdown({event}: {event: Event}) {
 
   const spanOpDiffs: SpanOpDiff[] = SPAN_OPS.map(op => {
     const preBreakpointValue =
-      (preBreakpointData?.data[0][`p95(spans.${op})`] as string) || undefined;
+      (preBreakpointData?.data[0]![`p95(spans.${op})`] as string) || undefined;
     const preBreakpointValueAsNumber = preBreakpointValue
       ? parseInt(preBreakpointValue, 10)
       : 0;
 
     const postBreakpointValue =
-      (postBreakpointData?.data[0][`p95(spans.${op})`] as string) || undefined;
+      (postBreakpointData?.data[0]![`p95(spans.${op})`] as string) || undefined;
     const postBreakpointValueAsNumber = postBreakpointValue
       ? parseInt(postBreakpointValue, 10)
       : 0;

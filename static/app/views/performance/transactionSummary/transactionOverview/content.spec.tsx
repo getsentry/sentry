@@ -23,7 +23,7 @@ jest.mocked(useLocation).mockReturnValue({
   state: undefined,
 });
 
-function initialize(query, additionalFeatures: string[] = []) {
+function initialize(query: Record<string, string>, additionalFeatures: string[] = []) {
   const features = ['transaction-event', 'performance-view', ...additionalFeatures];
   const organization = OrganizationFixture({
     features,

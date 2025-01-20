@@ -93,6 +93,35 @@ client.addHooks(new Sentry.OpenFeatureIntegrationHook());
 // Evaluating flags will record the result on the Sentry client.
 const result = client.getBooleanValue('my-flag', false);`,
   },
+  [IntegrationOptions.UNLEASH]: {
+    importStatement: `import { UnleashClient } from 'unleash-proxy-client';`,
+    integration: 'unleashIntegration(UnleashClient)',
+    sdkInit: `const unleash = new UnleashClient({
+  url: "https://<your-unleash-instance>/api/frontend",
+  clientKey: "<your-client-side-token>",
+  appName: "my-webapp",
+});
+
+unleash.start();
+
+// Evaluate a flag with a default value. You may have to wait for your client to synchronize first.
+unleash.isEnabled("test-flag");
+
+Sentry.captureException(new Error("Something went wrong!"));`,
+  },
+  [IntegrationOptions.GENERIC]: {
+    importStatement: ``,
+    integration: 'featureFlagsIntegration()',
+    sdkInit: `const flagsIntegration = Sentry.getClient()?.getIntegrationByName<Sentry.FeatureFlagsIntegration>('FeatureFlags');
+
+if (flagsIntegration) {
+  flagsIntegration.addFeatureFlag('test-flag', false);
+} else {
+  // Something went wrong, check your DSN and/or integrations
+}
+
+Sentry.captureException(new Error('Something went wrong!'));`,
+  },
 };
 
 const isAutoInstall = (params: Params) =>
@@ -654,7 +683,7 @@ export const featureFlagOnboarding: OnboardingConfig = {
         'Add [name] to your integrations list, and then register with your feature flag SDK.',
         {
           name: (
-            <code>{`${FLAG_OPTIONS[featureFlagOptions.integration].integration}`}</code>
+            <code>{`${FLAG_OPTIONS[featureFlagOptions.integration as keyof typeof FLAG_OPTIONS].integration}`}</code>
           ),
         }
       ),
@@ -662,18 +691,18 @@ export const featureFlagOnboarding: OnboardingConfig = {
         {
           language: 'JavaScript',
           code: `
-${FLAG_OPTIONS[featureFlagOptions.integration].importStatement}
+${FLAG_OPTIONS[featureFlagOptions.integration as keyof typeof FLAG_OPTIONS].importStatement}
 
 // Register with Sentry
 Sentry.init({
   dsn: "${dsn.public}",
   integrations: [
-    Sentry.${FLAG_OPTIONS[featureFlagOptions.integration].integration},
+    Sentry.${FLAG_OPTIONS[featureFlagOptions.integration as keyof typeof FLAG_OPTIONS].integration},
   ],
 });
 
 // Register with your feature flag SDK
-${FLAG_OPTIONS[featureFlagOptions.integration].sdkInit}
+${FLAG_OPTIONS[featureFlagOptions.integration as keyof typeof FLAG_OPTIONS].sdkInit}
 `,
         },
       ],

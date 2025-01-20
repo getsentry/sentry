@@ -67,6 +67,7 @@ export function MetricScratchpad() {
         return;
       }
 
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const isTransaction = sample.id === sample['segment.id'];
       const dataRow: {
         id: string;
@@ -166,9 +167,9 @@ export function MetricScratchpad() {
           index={0}
           getChartPalette={getChartPalette}
           onSelect={setSelectedWidgetIndex}
-          displayType={firstWidget.displayType}
-          focusedSeries={firstWidget.focusedSeries}
-          tableSort={firstWidget.sort}
+          displayType={firstWidget!.displayType}
+          focusedSeries={firstWidget!.focusedSeries}
+          tableSort={firstWidget!.sort}
           queries={filteredWidgets
             .filter(w => !(w.type === MetricExpressionType.EQUATION && w.isHidden))
             .map(w => widgetToQuery({widget: w, metricsNewInputs}))}
@@ -182,7 +183,7 @@ export function MetricScratchpad() {
           chartHeight={200}
           highlightedSampleId={highlightedSampleId}
           metricsSamples={metricsSamples}
-          overlays={firstWidget.overlays}
+          overlays={firstWidget!.overlays}
         />
       )}
     </Wrapper>
@@ -204,7 +205,7 @@ function MultiChartWidgetQueries({
     return [
       widgetToQuery({widget, metricsNewInputs}),
       ...(isMetricsEquationWidget(widget)
-        ? formulaDependencies[widget.id]?.dependencies?.map(dependency =>
+        ? formulaDependencies[widget.id]!?.dependencies?.map(dependency =>
             widgetToQuery({widget: dependency, isQueryOnly: true, metricsNewInputs})
           )
         : []),

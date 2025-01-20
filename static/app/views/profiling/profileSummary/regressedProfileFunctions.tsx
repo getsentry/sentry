@@ -15,7 +15,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import type {FunctionTrend, TrendType} from 'sentry/utils/profiling/hooks/types';
 import {useCurrentProjectFromRouteParam} from 'sentry/utils/profiling/hooks/useCurrentProjectFromRouteParam';
@@ -28,6 +27,7 @@ import {relativeChange} from 'sentry/utils/profiling/units/units';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {ProfilingSparklineChart} from './profilingSparklineChart';
@@ -43,6 +43,7 @@ function trendToPoints(trend: FunctionTrend): {timestamp: number; value: number}
   return trend.stats.data.map(p => {
     return {
       timestamp: p[0],
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       value: p[1][0].count,
     };
   });
@@ -57,10 +58,9 @@ function findBreakPointIndex(
   let mid = 0;
   let bestMatch: number = examples.length;
 
-  // eslint-disable-next-line
   while (low <= high) {
     mid = Math.floor((low + high) / 2);
-    const value = examples[mid][0];
+    const value = examples[mid]![0];
 
     if (breakpoint === value) {
       return mid;
@@ -94,21 +94,21 @@ function findWorstProfileIDBeforeAndAfter(trend: FunctionTrend): {
     if (!defined(trend.examples[i])) {
       continue;
     }
-    if (trend.examples[i][0] < trend.breakpoint - STABILITY_WINDOW) {
+    if (trend.examples[i]![0] < trend.breakpoint - STABILITY_WINDOW) {
       break;
     }
 
-    beforeProfile = trend.examples[i][1];
+    beforeProfile = trend.examples[i]![1];
   }
 
   for (let i = breakPointIndex; i < trend.examples.length; i++) {
     if (!defined(trend.examples[i])) {
       continue;
     }
-    if (trend.examples[i][0] > trend.breakpoint + STABILITY_WINDOW) {
+    if (trend.examples[i]![0] > trend.breakpoint + STABILITY_WINDOW) {
       break;
     }
-    afterProfile = trend.examples[i][1];
+    afterProfile = trend.examples[i]![1];
   }
 
   return {
@@ -124,6 +124,7 @@ interface MostRegressedProfileFunctionsProps {
 export function MostRegressedProfileFunctions(props: MostRegressedProfileFunctionsProps) {
   const organization = useOrganization();
   const project = useCurrentProjectFromRouteParam();
+  const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
 
@@ -132,12 +133,15 @@ export function MostRegressedProfileFunctions(props: MostRegressedProfileFunctio
     [location.query]
   );
 
-  const handleRegressedFunctionsCursor = useCallback((cursor, pathname, query) => {
-    browserHistory.push({
-      pathname,
-      query: {...query, [REGRESSED_FUNCTIONS_CURSOR]: cursor},
-    });
-  }, []);
+  const handleRegressedFunctionsCursor = useCallback(
+    (cursor: any, pathname: any, query: any) => {
+      navigate({
+        pathname,
+        query: {...query, [REGRESSED_FUNCTIONS_CURSOR]: cursor},
+      });
+    },
+    [navigate]
+  );
 
   const functionQuery = useMemo(() => {
     const conditions = new MutableSearch('');
@@ -157,10 +161,11 @@ export function MostRegressedProfileFunctions(props: MostRegressedProfileFunctio
 
   const trends = trendsQuery?.data ?? [];
 
-  const onChangeTrendType = useCallback(v => setTrendType(v.value), []);
+  const onChangeTrendType = useCallback((v: any) => setTrendType(v.value), []);
 
-  const hasDifferentialFlamegraphPageFeature =
-    false && organization.features.includes('profiling-differential-flamegraph-page');
+  const hasDifferentialFlamegraphPageFeature = organization.features.includes(
+    'profiling-differential-flamegraph-page'
+  );
 
   return (
     <RegressedFunctionsContainer>
@@ -240,8 +245,8 @@ export function MostRegressedProfileFunctions(props: MostRegressedProfileFunctio
                   aggregate_range_1={fn.aggregate_range_1}
                   aggregate_range_2={fn.aggregate_range_2}
                   breakpoint={fn.breakpoint}
-                  start={fn.stats.data[0][0]}
-                  end={fn.stats.data[fn.stats.data.length - 1][0]}
+                  start={fn.stats.data[0]![0]}
+                  end={fn.stats.data[fn.stats.data.length - 1]![0]}
                 />
               </RegressedFunctionSparklineContainer>
             </RegressedFunctionRow>
@@ -326,6 +331,7 @@ function RegressedFunctionBeforeAfterFlamechart(
   }, [props.organization]);
 
   let rendered = <TextTruncateOverflow>{props.fn.function}</TextTruncateOverflow>;
+  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const example = props.fn['all_examples()']?.[0];
   if (defined(example)) {
     rendered = (

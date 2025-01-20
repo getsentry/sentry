@@ -1,6 +1,5 @@
 import type React from 'react';
 import {useState} from 'react';
-import type {Location} from 'history';
 
 import FeatureBadge from 'sentry/components/badge/featureBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -8,10 +7,10 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {TabList, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {ScreenSummaryContentPage as AppStartPage} from 'sentry/views/insights/mobile/appStarts/views/screenSummaryPage';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
@@ -36,7 +35,8 @@ type Tab = {
 };
 
 export function ScreenDetailsPage() {
-  const location: Location = useLocation<Query>();
+  const navigate = useNavigate();
+  const location = useLocation<Query>();
   const organization = useOrganization();
   const {isProjectCrossPlatform} = useCrossPlatformProject();
 
@@ -72,7 +72,7 @@ export function ScreenDetailsPage() {
   const getTabKeyFromQuery = () => {
     const queryTab = decodeScalar(location?.query?.tab);
     const selectedTab = tabs.find((tab: Tab) => tab.key === queryTab);
-    return selectedTab?.key ?? tabs[0].key;
+    return selectedTab?.key ?? tabs[0]!.key;
   };
 
   const [selectedTabKey, setSelectedTabKey] = useState(getTabKeyFromQuery());
@@ -82,7 +82,7 @@ export function ScreenDetailsPage() {
 
     const newQuery = {...location.query, tab: tabKey};
 
-    browserHistory.push({
+    navigate({
       pathname: location.pathname,
       query: newQuery,
     });

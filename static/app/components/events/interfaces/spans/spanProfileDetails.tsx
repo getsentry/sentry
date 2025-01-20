@@ -37,7 +37,7 @@ interface SpanProfileDetailsProps {
   onNoProfileFound?: () => void;
 }
 
-export function useSpanProfileDetails(event, span) {
+export function useSpanProfileDetails(event: any, span: any) {
   const profileGroup = useProfileGroup();
 
   const processedEvent = useMemo(() => {
@@ -107,7 +107,7 @@ export function useSpanProfileDetails(event, span) {
     // find the number of nodes with the minimum number of samples
     let hasMinCount = 0;
     for (let i = 0; i < nodes.length; i++) {
-      if (nodes[i].count >= TOP_NODE_MIN_COUNT) {
+      if (nodes[i]!.count >= TOP_NODE_MIN_COUNT) {
         hasMinCount += 1;
       } else {
         break;
@@ -125,7 +125,7 @@ export function useSpanProfileDetails(event, span) {
     }
 
     return {
-      frames: extractFrames(nodes[index], event.platform || 'other'),
+      frames: extractFrames(nodes[index]!, event.platform || 'other'),
       hasPrevious: index > 0,
       hasNext: index + 1 < maxNodes,
     };
@@ -195,7 +195,7 @@ export function SpanProfileDetails({
     return null;
   }
 
-  const percentage = formatPercentage(nodes[index].count / totalWeight);
+  const percentage = formatPercentage(nodes[index]!.count / totalWeight);
 
   return (
     <SpanContainer>
@@ -217,7 +217,7 @@ export function SpanProfileDetails({
           size="xs"
           title={t(
             '%s out of %s (%s) of the call stacks collected during this span',
-            nodes[index].count,
+            nodes[index]!.count,
             totalWeight,
             percentage
           )}
@@ -268,17 +268,21 @@ export function SpanProfileDetails({
   );
 }
 
-function getTopNodes(profile: Profile, startTimestamp, stopTimestamp): CallTreeNode[] {
+function getTopNodes(
+  profile: Profile,
+  startTimestamp: any,
+  stopTimestamp: any
+): CallTreeNode[] {
   let duration = profile.startedAt;
 
   const callTree: CallTreeNode = new CallTreeNode(ProfilingFrame.Root, null);
 
   for (let i = 0; i < profile.samples.length; i++) {
-    const sample = profile.samples[i];
+    const sample = profile.samples[i]!;
     // TODO: should this take self times into consideration?
     const inRange = startTimestamp <= duration && duration < stopTimestamp;
 
-    duration += profile.weights[i];
+    duration += profile.weights[i]!;
 
     if (sample.isRoot || !inRange) {
       continue;

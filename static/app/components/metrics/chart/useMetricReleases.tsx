@@ -31,7 +31,7 @@ interface ReleaseQuery {
   statsPeriod?: string | null;
 }
 
-function getQuery(conditions) {
+function getQuery(conditions: any) {
   const query = {};
   Object.keys(conditions).forEach(key => {
     let value = conditions[key];
@@ -39,6 +39,7 @@ function getQuery(conditions) {
       value = getUtcDateString(value);
     }
     if (value) {
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       query[key] = value;
     }
   });
@@ -86,7 +87,7 @@ export function useReleases() {
         if (pageLinks) {
           const paginationObject = parseLinkHeader(pageLinks);
           hasMore = paginationObject?.next?.results ?? false;
-          queryObj.cursor = paginationObject.next.cursor;
+          queryObj.cursor = paginationObject.next!.cursor;
         } else {
           hasMore = false;
         }

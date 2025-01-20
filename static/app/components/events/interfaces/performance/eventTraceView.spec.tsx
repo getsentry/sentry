@@ -47,6 +47,11 @@ describe('EventTraceView', () => {
 
   it('renders a trace', async () => {
     MockApiClient.addMockResponse({
+      url: '/subscriptions/org-slug/',
+      method: 'GET',
+      body: {},
+    });
+    MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/${organization.slug}/events-trace-meta/${traceId}/`,
       body: {
@@ -151,7 +156,7 @@ describe('EventTraceView', () => {
     render(
       <EventTraceView group={perfGroup} event={perfEvent} organization={organization} />
     );
-    expect(await screen.findByText('Trace')).toBeInTheDocument();
+    expect(await screen.findByText('Trace Preview')).toBeInTheDocument();
     expect(
       await screen.findByRole('link', {name: 'View Full Trace'})
     ).toBeInTheDocument();
@@ -161,6 +166,11 @@ describe('EventTraceView', () => {
   });
 
   it('does not render the trace preview if it has no transactions', async () => {
+    MockApiClient.addMockResponse({
+      url: '/subscriptions/org-slug/',
+      method: 'GET',
+      body: {},
+    });
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/${organization.slug}/events-trace-meta/${traceId}/`,
@@ -182,6 +192,6 @@ describe('EventTraceView', () => {
 
     render(<EventTraceView group={group} event={event} organization={organization} />);
 
-    expect(await screen.findByText('Trace')).toBeInTheDocument();
+    expect(await screen.findByText('Trace Preview')).toBeInTheDocument();
   });
 });

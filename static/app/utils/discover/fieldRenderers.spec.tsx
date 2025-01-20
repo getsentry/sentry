@@ -11,7 +11,7 @@ import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {SPAN_OP_RELATIVE_BREAKDOWN_FIELD} from 'sentry/utils/discover/fields';
 
 describe('getFieldRenderer', function () {
-  let location, context, project, organization, data, user;
+  let location: any, context: any, project: any, organization: any, data: any, user: any;
 
   beforeEach(function () {
     context = initializeOrg();
@@ -150,9 +150,7 @@ describe('getFieldRenderer', function () {
       const renderer = getFieldRenderer('createdAt', {createdAt: 'date'});
       render(renderer(data, {location, organization}) as React.ReactElement<any, any>);
 
-      await waitFor(() =>
-        expect(screen.getByText('Oct 3, 2019 9:13:14 AM PDT')).toBeInTheDocument()
-      );
+      await screen.findByText('Oct 3, 2019 9:13:14 AM PDT');
     });
 
     it('can render date fields using utc when query string has utc set to true', async function () {
@@ -164,9 +162,7 @@ describe('getFieldRenderer', function () {
         }) as React.ReactElement<any, any>
       );
 
-      await waitFor(() =>
-        expect(screen.getByText('Oct 3, 2019 4:13:14 PM UTC')).toBeInTheDocument()
-      );
+      await screen.findByText('Oct 3, 2019 4:13:14 PM UTC');
     });
   });
 
@@ -199,7 +195,7 @@ describe('getFieldRenderer', function () {
   it('can render error.handled values', function () {
     const renderer = getFieldRenderer('error.handled', {'error.handled': 'boolean'});
 
-    function validate(value, expectText) {
+    function validate(value: any, expectText: any) {
       const {unmount} = render(
         renderer(
           {'error.handled': value},

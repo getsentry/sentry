@@ -2,10 +2,12 @@ import type React from 'react';
 import {createContext, useCallback, useContext, useMemo} from 'react';
 import type {Location} from 'history';
 
+import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
-import type {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import {
   defaultDataset,
@@ -26,15 +28,15 @@ import {
   updateLocationWithSortBys,
 } from './sortBys';
 import {defaultTitle, getTitleFromLocation, updateLocationWithTitle} from './title';
+import type {BaseVisualize, Visualize} from './visualizes';
 import {
   defaultVisualizes,
   getVisualizesFromLocation,
   updateLocationWithVisualizes,
-  type Visualize,
 } from './visualizes';
 
 interface ReadablePageParams {
-  dataset: DiscoverDatasets;
+  dataset: DiscoverDatasets | undefined;
   fields: string[];
   groupBys: string[];
   mode: Mode;
@@ -52,7 +54,7 @@ interface WritablePageParams {
   query?: string | null;
   sortBys?: Sort[] | null;
   title?: string | null;
-  visualizes?: Omit<Visualize, 'label'>[] | null;
+  visualizes?: BaseVisualize[] | null;
 }
 
 export interface SuggestedQuery {
@@ -62,7 +64,7 @@ export interface SuggestedQuery {
   query: string;
   sortBys: Sort[];
   title: string;
-  visualizes: Omit<Visualize, 'label'>[];
+  visualizes: BaseVisualize[];
 }
 
 function defaultPageParams(): ReadablePageParams {
@@ -128,8 +130,16 @@ export function useExplorePageParams(): ReadablePageParams {
 }
 
 export function useExploreDataset(): DiscoverDatasets {
+  const organization = useOrganization();
   const pageParams = useExplorePageParams();
-  return pageParams.dataset;
+
+  if (defined(pageParams.dataset)) {
+    return pageParams.dataset;
+  }
+
+  return organization.features.includes('visibility-explore-rpc')
+    ? DiscoverDatasets.SPANS_EAP_RPC
+    : DiscoverDatasets.SPANS_EAP;
 }
 
 export function useExploreFields(): string[] {
@@ -276,11 +286,16 @@ export function useSetExploreSortBys() {
 }
 
 export function useSetExploreVisualizes() {
+  const pageParams = useExplorePageParams();
   const setPageParams = useSetExplorePageParams();
   return useCallback(
-    (visualizes: Omit<Visualize, 'label'>[]) => {
-      setPageParams({visualizes});
+    (visualizes: BaseVisualize[], field?: string) => {
+      const writablePageParams: WritablePageParams = {visualizes};
+      if (defined(field) && !pageParams.fields.includes(field)) {
+        writablePageParams.fields = [...pageParams.fields, field];
+      }
+      setPageParams(writablePageParams);
     },
-    [setPageParams]
+    [pageParams, setPageParams]
   );
 }

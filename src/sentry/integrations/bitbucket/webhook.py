@@ -2,7 +2,7 @@ import hashlib
 import hmac
 import ipaddress
 import logging
-from abc import ABC, abstractmethod
+from abc import ABC
 from collections.abc import Mapping
 from datetime import timezone
 from typing import Any
@@ -19,6 +19,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.bitbucket.constants import BITBUCKET_IP_RANGES, BITBUCKET_IPS
+from sentry.integrations.source_code_management.webhook import SCMWebhook
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent, IntegrationWebhookEventType
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
@@ -55,17 +56,12 @@ class WebhookSignatureException(Exception):
         super().__init__(message)
 
 
-class Webhook(ABC):
+class BitbucketWebhook(SCMWebhook, ABC):
     @property
-    @abstractmethod
-    def event_type(self) -> IntegrationWebhookEventType:
-        raise NotImplementedError
+    def provider(self) -> str:
+        return "bitbucket"
 
-    @abstractmethod
-    def __call__(self, request: HttpRequest, organization: Organization, event: Mapping[str, Any]):
-        raise NotImplementedError
-
-    def update_repo_data(self, repo, event):
+    def update_repo_data(self, repo: Repository, event: Mapping[str, Any]) -> None:
         """
         Given a webhook payload, update stored repo data if needed.
 
@@ -93,15 +89,18 @@ class Webhook(ABC):
             )
 
 
-class PushEventWebhook(Webhook):
+class PushEventWebhook(BitbucketWebhook):
     # https://confluence.atlassian.com/bitbucket/event-payloads-740262817.html#EventPayloads-Push
 
     @property
     def event_type(self) -> IntegrationWebhookEventType:
         return IntegrationWebhookEventType.PUSH
 
-    def __call__(self, request: HttpRequest, organization: Organization, event: Mapping[str, Any]):
+    def __call__(self, request: HttpRequest, event: Mapping[str, Any], **kwargs) -> None:
         authors = {}
+
+        if not (organization := kwargs.get("organization")):
+            raise ValueError("Missing organization")
 
         try:
             repo = Repository.objects.get(
@@ -169,9 +168,9 @@ class BitbucketWebhookEndpoint(Endpoint):
         "POST": ApiPublishStatus.PRIVATE,
     }
     permission_classes = ()
-    _handlers: dict[str, type[Webhook]] = {"repo:push": PushEventWebhook}
+    _handlers: dict[str, type[BitbucketWebhook]] = {"repo:push": PushEventWebhook}
 
-    def get_handler(self, event_type) -> type[Webhook] | None:
+    def get_handler(self, event_type) -> type[BitbucketWebhook] | None:
         return self._handlers.get(event_type)
 
     @method_decorator(csrf_exempt)
@@ -243,10 +242,10 @@ class BitbucketWebhookEndpoint(Endpoint):
         with IntegrationWebhookEvent(
             interaction_type=event_handler.event_type,
             domain=IntegrationDomain.SOURCE_CODE_MANAGEMENT,
-            provider_key="bitbucket",
+            provider_key=event_handler.provider,
         ).capture():
             try:
-                event_handler(request, organization, event)
+                event_handler(request, event, organization=organization)
             except WebhookSignatureException as e:
                 return HttpResponse(str(e), status=400)
 

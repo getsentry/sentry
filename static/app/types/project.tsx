@@ -27,6 +27,7 @@ export type Project = {
   hasAccess: boolean;
   hasCustomMetrics: boolean;
   hasFeedbacks: boolean;
+  hasFlags: boolean;
   hasInsightsAppStart: boolean;
   hasInsightsAssets: boolean;
   hasInsightsCaches: boolean;
@@ -87,6 +88,7 @@ export type Project = {
   stats?: TimeseriesValue[];
   subjectPrefix?: string;
   symbolSources?: string;
+  tempestFetchScreenshots?: boolean;
   transactionStats?: TimeseriesValue[];
 } & AvatarProject;
 

@@ -21,7 +21,6 @@ const mockUseLocation = jest.mocked(useLocation);
 
 const {
   errorFrames: [ERROR_1_JS_RANGEERROR, ERROR_2_NEXTJS_TYPEERROR, ERROR_3_JS_UNDEFINED],
-  feedbackFrames: [],
 } = hydrateErrors(
   ReplayRecordFixture({started_at: new Date('2023-06-09T12:00:00+00:00')}),
   [
@@ -60,9 +59,9 @@ describe('useErrorFilters', () => {
     const mockNavigate = jest.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
     const errorFrames = [
-      ERROR_1_JS_RANGEERROR,
-      ERROR_2_NEXTJS_TYPEERROR,
-      ERROR_3_JS_UNDEFINED,
+      ERROR_1_JS_RANGEERROR!,
+      ERROR_2_NEXTJS_TYPEERROR!,
+      ERROR_3_JS_UNDEFINED!,
     ];
 
     const PROJECT_OPTION = {
@@ -114,9 +113,9 @@ describe('useErrorFilters', () => {
 
   it('should not filter anything when no values are set', async () => {
     const errorFrames = [
-      ERROR_1_JS_RANGEERROR,
-      ERROR_2_NEXTJS_TYPEERROR,
-      ERROR_3_JS_UNDEFINED,
+      ERROR_1_JS_RANGEERROR!,
+      ERROR_2_NEXTJS_TYPEERROR!,
+      ERROR_3_JS_UNDEFINED!,
     ];
 
     mockUseLocation.mockReturnValue({
@@ -132,9 +131,9 @@ describe('useErrorFilters', () => {
 
   it('should filter by project', () => {
     const errorFrames = [
-      ERROR_1_JS_RANGEERROR,
-      ERROR_2_NEXTJS_TYPEERROR,
-      ERROR_3_JS_UNDEFINED,
+      ERROR_1_JS_RANGEERROR!,
+      ERROR_2_NEXTJS_TYPEERROR!,
+      ERROR_3_JS_UNDEFINED!,
     ];
 
     mockUseLocation.mockReturnValue({
@@ -148,16 +147,16 @@ describe('useErrorFilters', () => {
       initialProps: {errorFrames},
     });
     expect(result.current.items).toStrictEqual([
-      ERROR_1_JS_RANGEERROR,
-      ERROR_3_JS_UNDEFINED,
+      ERROR_1_JS_RANGEERROR!,
+      ERROR_3_JS_UNDEFINED!,
     ]);
   });
 
   it('should filter by searchTerm', () => {
     const errorFrames = [
-      ERROR_1_JS_RANGEERROR,
-      ERROR_2_NEXTJS_TYPEERROR,
-      ERROR_3_JS_UNDEFINED,
+      ERROR_1_JS_RANGEERROR!,
+      ERROR_2_NEXTJS_TYPEERROR!,
+      ERROR_3_JS_UNDEFINED!,
     ];
 
     mockUseLocation.mockReturnValue({
@@ -175,17 +174,15 @@ describe('useErrorFilters', () => {
 
   describe('getProjectOptions', () => {
     it('should default to having nothing in the list of method types', () => {
-      const errorFrames = [];
-
       const {result} = renderHook(useErrorFilters, {
-        initialProps: {errorFrames},
+        initialProps: {errorFrames: []},
       });
 
       expect(result.current.getProjectOptions()).toStrictEqual([]);
     });
 
     it('should return a sorted list of project slugs', () => {
-      const errorFrames = [ERROR_2_NEXTJS_TYPEERROR, ERROR_3_JS_UNDEFINED];
+      const errorFrames = [ERROR_2_NEXTJS_TYPEERROR!, ERROR_3_JS_UNDEFINED!];
 
       const {result} = renderHook(useErrorFilters, {
         initialProps: {errorFrames},
@@ -198,7 +195,7 @@ describe('useErrorFilters', () => {
     });
 
     it('should deduplicate BreadcrumbType', () => {
-      const errorFrames = [ERROR_1_JS_RANGEERROR, ERROR_3_JS_UNDEFINED];
+      const errorFrames = [ERROR_1_JS_RANGEERROR!, ERROR_3_JS_UNDEFINED!];
 
       const {result} = renderHook(useErrorFilters, {
         initialProps: {errorFrames},

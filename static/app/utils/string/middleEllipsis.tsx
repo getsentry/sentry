@@ -72,10 +72,10 @@ export function middleEllipsis(
   // from the middle.
   const debt = getLength(words) - maxLength;
   const toTrimFromLeftWord = Math.ceil(debt / 2);
-  const leftWordLength = Math.max(words[0].length - toTrimFromLeftWord, 3);
-  const leftWord = words[0].slice(0, leftWordLength);
+  const leftWordLength = Math.max(words[0]!.length - toTrimFromLeftWord, 3);
+  const leftWord = words[0]!.slice(0, leftWordLength);
   const rightWordLength = maxLength - leftWord.length;
-  const rightWord = words[1].slice(-rightWordLength);
+  const rightWord = words[1]!.slice(-rightWordLength);
 
   return `${leftWord}\u2026${rightWord}`;
 }

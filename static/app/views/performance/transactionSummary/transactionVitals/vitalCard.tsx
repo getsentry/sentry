@@ -360,13 +360,13 @@ class VitalCard extends Component<Props, State> {
     // We can assume that all buckets are of equal width, use the first two
     // buckets to get the width. The value of each histogram function indicates
     // the beginning of the bucket.
-    return chartData.length >= 2 ? chartData[1].bin - chartData[0].bin : 0;
+    return chartData.length >= 2 ? chartData[1]!.bin - chartData[0]!.bin : 0;
   }
 
   getSeries() {
     const {theme, chartData, precision, vitalDetails, vital} = this.props;
 
-    const additionalFieldsFn = bucket => {
+    const additionalFieldsFn = (bucket: any) => {
       return {
         itemStyle: {color: theme[this.getVitalsColor(vital, bucket)]},
       };
@@ -385,7 +385,9 @@ class VitalCard extends Component<Props, State> {
   }
 
   getVitalsColor(vital: WebVital, value: number) {
+    // @ts-ignore TS(2551): Property 'measurements.ttfb' does not exist on typ... Remove this comment to see the full error message
     const poorThreshold = webVitalPoor[vital];
+    // @ts-ignore TS(2551): Property 'measurements.ttfb' does not exist on typ... Remove this comment to see the full error message
     const mehThreshold = webVitalMeh[vital];
 
     if (value >= poorThreshold) {

@@ -10,7 +10,7 @@ import ButtonBar from 'sentry/components/buttonBar';
 import NotFound from 'sentry/components/errors/notFound';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {SdkDocumentation} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
-import type {ProductSolution} from 'sentry/components/onboarding/productSelection';
+import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {platformProductAvailability} from 'sentry/components/onboarding/productSelection';
 import {setPageFiltersStorage} from 'sentry/components/organizations/pageFilters/persistence';
 import {performance as performancePlatforms} from 'sentry/data/platformCategories';
@@ -85,6 +85,7 @@ export function ProjectInstallPlatform({
     }
 
     const platformKey = Object.keys(platforms).find(
+      // @ts-ignore TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
       key => platforms[key].id === project.platform
     );
 
@@ -99,7 +100,9 @@ export function ProjectInstallPlatform({
       teamSlug: project.team?.slug,
       alertRules: projectAlertRules,
       platform: {
+        // @ts-ignore TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
         ...omit(platforms[platformKey], 'id'),
+        // @ts-ignore TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
         key: platforms[platformKey].id,
       } as OnboardingSelectedSDK,
     });

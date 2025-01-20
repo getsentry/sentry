@@ -59,7 +59,7 @@ interface ReplayPlayerContextProps extends HighlightCallbacks {
   /**
    * Is the data inside the `replay` complete, or are we waiting for more.
    */
-  isFetching;
+  isFetching: any;
 
   /**
    * Set to true when the replay finish event is fired
@@ -341,7 +341,6 @@ export function Provider({
         }
       }
 
-      // eslint-disable-next-line no-new
       const inst = new Replayer(events, {
         root,
         blockClass: 'sentry-block',
@@ -358,12 +357,12 @@ export function Provider({
         speed: initialPrefsRef.current.playbackSpeed,
       });
 
-      // @ts-expect-error: rrweb types event handlers with `unknown` parameters
+      // @ts-ignore TS(2345): Argument of type '(dimension: Dimensions) => void'... Remove this comment to see the full error message
       inst.on(ReplayerEvents.Resize, (dimension: Dimensions) => {
         setDimensions(dimension);
       });
       inst.on(ReplayerEvents.Finish, setReplayFinished);
-      // @ts-expect-error: rrweb types event handlers with `unknown` parameters
+      // @ts-ignore TS(2345): Argument of type '(e: {    speed: number;}) => voi... Remove this comment to see the full error message
       inst.on(ReplayerEvents.SkipStart, (e: {speed: number}) => {
         setFFSpeed(e.speed);
       });
@@ -374,7 +373,7 @@ export function Provider({
       // `.current` is marked as readonly, but it's safe to set the value from
       // inside a `useEffect` hook.
       // See: https://reactjs.org/docs/hooks-faq.html#is-there-something-like-instance-variables
-      // @ts-expect-error
+      // @ts-ignore TS(2540): Cannot assign to 'current' because it is a read-on... Remove this comment to see the full error message
       replayerRef.current = inst;
 
       applyInitialOffset();
@@ -438,7 +437,7 @@ export function Provider({
       // `.current` is marked as readonly, but it's safe to set the value from
       // inside a `useEffect` hook.
       // See: https://reactjs.org/docs/hooks-faq.html#is-there-something-like-instance-variables
-      // @ts-expect-error
+      // @ts-ignore TS(2540): Cannot assign to 'current' because it is a read-on... Remove this comment to see the full error message
       replayerRef.current = inst;
       applyInitialOffset();
       return inst;
@@ -544,7 +543,7 @@ export function Provider({
     return () => {
       if (rootEl && replayerRef.current) {
         replayerRef.current.destroy();
-        // @ts-expect-error Cleaning up
+        // @ts-ignore TS(2540): Cannot assign to 'current' because it is a read-on... Remove this comment to see the full error message
         replayerRef.current = null;
       }
     };

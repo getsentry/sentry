@@ -13,7 +13,6 @@ import Pagination from 'sentry/components/pagination';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import EventView, {isFieldSortable} from 'sentry/utils/discover/eventView';
@@ -24,6 +23,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
@@ -44,7 +44,8 @@ import {
 import {useTableQuery} from 'sentry/views/insights/mobile/screenload/components/tables/screensTable';
 import {MobileCursors} from 'sentry/views/insights/mobile/screenload/constants';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/mobile/screenload/settings';
-import {SpanMetricsField} from 'sentry/views/insights/types';
+import {isModuleEnabled} from 'sentry/views/insights/pages/utils';
+import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 
 const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_GROUP, SPAN_OP, PROJECT_ID} =
   SpanMetricsField;
@@ -60,10 +61,18 @@ export function ScreenLoadSpansTable({
   primaryRelease,
   secondaryRelease,
 }: Props) {
-  const moduleURL = useModuleURL('screen_load');
+  const organization = useOrganization();
+  const isMobileScreensEnabled = isModuleEnabled(ModuleName.MOBILE_SCREENS, organization);
+  const moduleURL = useModuleURL(
+    isMobileScreensEnabled ? ModuleName.MOBILE_SCREENS : ModuleName.SCREEN_LOAD
+  );
+  const baseURL = isMobileScreensEnabled
+    ? `${moduleURL}/details/`
+    : `${moduleURL}/spans/`;
+
+  const navigate = useNavigate();
   const location = useLocation();
   const {selection} = usePageFilters();
-  const organization = useOrganization();
   const cursor = decodeScalar(location.query?.[MobileCursors.SPANS_TABLE]);
   const {isProjectCrossPlatform, selectedPlatform} = useCrossPlatformProject();
 
@@ -149,7 +158,7 @@ export function ScreenLoadSpansTable({
     ),
   };
 
-  function renderBodyCell(column, row): React.ReactNode {
+  function renderBodyCell(column: any, row: any): React.ReactNode {
     if (!data?.meta || !data?.meta.fields) {
       return row[column.key];
     }
@@ -157,7 +166,6 @@ export function ScreenLoadSpansTable({
     if (column.key === SPAN_DESCRIPTION) {
       const label = row[SpanMetricsField.SPAN_DESCRIPTION];
 
-      const pathname = `${moduleURL}/spans/`;
       const query = {
         ...location.query,
         transaction,
@@ -167,7 +175,7 @@ export function ScreenLoadSpansTable({
 
       return (
         <OverflowEllipsisTextContainer>
-          <Link to={`${pathname}?${qs.stringify(query)}`}>{label}</Link>
+          <Link to={`${baseURL}?${qs.stringify(query)}`}>{label}</Link>
         </OverflowEllipsisTextContainer>
       );
     }
@@ -348,7 +356,7 @@ export function ScreenLoadSpansTable({
   const columnSortBy = eventView.getSorts();
 
   const handleCursor: CursorHandler = (newCursor, pathname, query) => {
-    browserHistory.push({
+    navigate({
       pathname,
       query: {...query, [MobileCursors.SPANS_TABLE]: newCursor},
     });

@@ -136,9 +136,11 @@ export function hasThresholdMaxValue(thresholdsConfig: ThresholdsConfig): boolea
 export function normalizeUnit(value: number, unit: string, dataType: string): number {
   const multiplier =
     dataType === 'rate'
-      ? RATE_UNIT_MULTIPLIERS[unit]
+      ? // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        RATE_UNIT_MULTIPLIERS[unit]
       : dataType === 'duration'
-        ? DURATION_UNITS[unit]
+        ? // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+          DURATION_UNITS[unit]
         : 1;
   return value * multiplier;
 }
@@ -163,7 +165,7 @@ export function constructWidgetFromQuery(query?: Query): Widget | undefined {
       const {columns, aggregates} = getColumnsAndAggregates(queryFields);
       queryConditions.forEach((condition, index) => {
         queries.push({
-          name: queryNames[index],
+          name: queryNames[index]!,
           conditions: condition,
           fields: queryFields,
           columns,
@@ -264,12 +266,13 @@ export function getWidgetDiscoverUrl(
   index: number = 0,
   isMetricsData: boolean = false
 ) {
-  const eventView = eventViewFromWidget(widget.title, widget.queries[index], selection);
+  const eventView = eventViewFromWidget(widget.title, widget.queries[index]!, selection);
   const discoverLocation = eventView.getResultsViewUrlTarget(
     organization.slug,
     false,
     hasDatasetSelector(organization) && widget.widgetType
-      ? WIDGET_TYPE_TO_SAVED_QUERY_DATASET[widget.widgetType]
+      ? // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        WIDGET_TYPE_TO_SAVED_QUERY_DATASET[widget.widgetType]
       : undefined
   );
 
@@ -277,7 +280,7 @@ export function getWidgetDiscoverUrl(
   const yAxisOptions = eventView.getYAxisOptions().map(({value}) => value);
   discoverLocation.query.yAxis = [
     ...new Set(
-      widget.queries[0].aggregates.filter(aggregate => yAxisOptions.includes(aggregate))
+      widget.queries[0]!.aggregates.filter(aggregate => yAxisOptions.includes(aggregate))
     ),
   ].slice(0, 3);
 
@@ -289,9 +292,9 @@ export function getWidgetDiscoverUrl(
     case DisplayType.TOP_N:
       discoverLocation.query.display = DisplayModes.TOP5;
       // Last field is used as the yAxis
-      const aggregates = widget.queries[0].aggregates;
+      const aggregates = widget.queries[0]!.aggregates;
       discoverLocation.query.yAxis = aggregates[aggregates.length - 1];
-      if (aggregates.slice(0, -1).includes(aggregates[aggregates.length - 1])) {
+      if (aggregates.slice(0, -1).includes(aggregates[aggregates.length - 1]!)) {
         discoverLocation.query.field = aggregates.slice(0, -1);
       }
       break;
@@ -305,7 +308,7 @@ export function getWidgetDiscoverUrl(
       ? discoverLocation.query.field
       : [discoverLocation.query.field];
 
-  const query = widget.queries[0];
+  const query = widget.queries[0]!;
   const queryFields = defined(query.fields)
     ? query.fields
     : [...query.columns, ...query.aggregates];
@@ -386,7 +389,7 @@ export function getWidgetMetricsUrl(
     project,
     environment: selection.environments,
     widgets: _widget.queries.map(query => {
-      const parsed = parseField(query.aggregates[0]);
+      const parsed = parseField(query.aggregates[0]!);
 
       return {
         mri: parsed?.mri,

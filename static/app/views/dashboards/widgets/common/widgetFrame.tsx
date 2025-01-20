@@ -4,13 +4,20 @@ import Badge, {type BadgeProps} from 'sentry/components/badge/badge';
 import {Button, LinkButton} from 'sentry/components/button';
 import {HeaderTitle} from 'sentry/components/charts/styles';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis, IconExpand, IconInfo, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 import {ErrorPanel} from './errorPanel';
-import {MIN_HEIGHT, MIN_WIDTH, X_GUTTER, Y_GUTTER} from './settings';
+import {
+  MIN_HEIGHT,
+  MIN_WIDTH,
+  WIDGET_RENDER_ERROR_MESSAGE,
+  X_GUTTER,
+  Y_GUTTER,
+} from './settings';
 import {TooltipIconTrigger} from './tooltipIconTrigger';
 import type {StateProps} from './types';
 import {WarningsList} from './warningsList';
@@ -23,7 +30,7 @@ export interface WidgetFrameProps extends StateProps {
   borderless?: boolean;
   children?: React.ReactNode;
   description?: React.ReactElement | string;
-  onFullScreenViewClick?: () => void;
+  onFullScreenViewClick?: () => void | Promise<void>;
   title?: string;
   warnings?: string[];
 }
@@ -42,8 +49,13 @@ export function WidgetFrame(props: WidgetFrameProps) {
               onAction: props.onRetry,
             },
           ]
-        : []
+        : props.actions
       : props.actions) ?? [];
+
+  const shouldShowFullScreenViewButton =
+    Boolean(props.onFullScreenViewClick) && !props.error;
+
+  const shouldShowActions = actions && actions.length > 0;
 
   return (
     <Frame aria-label="Widget panel" borderless={props.borderless}>
@@ -65,9 +77,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
             (currentBadgeProps, i) => <RigidBadge key={i} {...currentBadgeProps} />
           )}
 
-        {(props.description ||
-          props.onFullScreenViewClick ||
-          (actions && actions.length > 0)) && (
+        {(props.description || shouldShowFullScreenViewButton || shouldShowActions) && (
           <TitleHoverItems>
             {props.description && (
               // Ideally we'd use `QuestionTooltip` but we need to firstly paint the icon dark, give it 100% opacity, and remove hover behaviour.
@@ -96,48 +106,50 @@ export function WidgetFrame(props: WidgetFrameProps) {
               </Tooltip>
             )}
 
-            <TitleActionsWrapper
-              disabled={Boolean(props.actionsDisabled)}
-              disabledMessage={props.actionsMessage ?? ''}
-            >
-              {actions.length === 1 ? (
-                actions[0].to ? (
-                  <LinkButton
-                    size="xs"
-                    disabled={props.actionsDisabled}
-                    onClick={actions[0].onAction}
-                    to={actions[0].to}
-                  >
-                    {actions[0].label}
-                  </LinkButton>
-                ) : (
-                  <Button
-                    size="xs"
-                    disabled={props.actionsDisabled}
-                    onClick={actions[0].onAction}
-                  >
-                    {actions[0].label}
-                  </Button>
-                )
-              ) : null}
+            {shouldShowActions && (
+              <TitleActionsWrapper
+                disabled={Boolean(props.actionsDisabled)}
+                disabledMessage={props.actionsMessage ?? ''}
+              >
+                {actions.length === 1 ? (
+                  actions[0]!.to ? (
+                    <LinkButton
+                      size="xs"
+                      disabled={props.actionsDisabled}
+                      onClick={actions[0]!.onAction}
+                      to={actions[0]!.to}
+                    >
+                      {actions[0]!.label}
+                    </LinkButton>
+                  ) : (
+                    <Button
+                      size="xs"
+                      disabled={props.actionsDisabled}
+                      onClick={actions[0]!.onAction}
+                    >
+                      {actions[0]!.label}
+                    </Button>
+                  )
+                ) : null}
 
-              {actions.length > 1 ? (
-                <DropdownMenu
-                  items={actions}
-                  isDisabled={props.actionsDisabled}
-                  triggerProps={{
-                    'aria-label': t('Widget actions'),
-                    size: 'xs',
-                    borderless: true,
-                    showChevron: false,
-                    icon: <IconEllipsis direction="down" size="sm" />,
-                  }}
-                  position="bottom-end"
-                />
-              ) : null}
-            </TitleActionsWrapper>
+                {actions.length > 1 ? (
+                  <DropdownMenu
+                    items={actions}
+                    isDisabled={props.actionsDisabled}
+                    triggerProps={{
+                      'aria-label': t('Widget actions'),
+                      size: 'xs',
+                      borderless: true,
+                      showChevron: false,
+                      icon: <IconEllipsis direction="down" size="sm" />,
+                    }}
+                    position="bottom-end"
+                  />
+                ) : null}
+              </TitleActionsWrapper>
+            )}
 
-            {props.onFullScreenViewClick && (
+            {shouldShowFullScreenViewButton && (
               <Button
                 aria-label={t('Open Full-Screen View')}
                 borderless
@@ -153,7 +165,15 @@ export function WidgetFrame(props: WidgetFrameProps) {
       </Header>
 
       <VisualizationWrapper>
-        {props.error ? <ErrorPanel error={error} /> : props.children}
+        {props.error ? (
+          <ErrorPanel error={error} />
+        ) : (
+          <ErrorBoundary
+            customComponent={<ErrorPanel error={WIDGET_RENDER_ERROR_MESSAGE} />}
+          >
+            {props.children}
+          </ErrorBoundary>
+        )}
       </VisualizationWrapper>
     </Frame>
   );

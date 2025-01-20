@@ -99,7 +99,7 @@ export function getMetricQueries(
   const indizesWithoutId: number[] = [];
 
   const queries = widget.queries.map((query, index): DashboardMetricsQuery | null => {
-    if (query.aggregates[0].startsWith('equation|')) {
+    if (query.aggregates[0]!.startsWith('equation|')) {
       return null;
     }
 
@@ -110,7 +110,7 @@ export function getMetricQueries(
       usedIds.add(id);
     }
 
-    const parsed = parseField(query.aggregates[0]);
+    const parsed = parseField(query.aggregates[0]!);
     if (!parsed) {
       return null;
     }
@@ -153,7 +153,7 @@ export function getMetricEquations(widget: Widget): DashboardMetricsEquation[] {
 
   const equations = widget.queries.map(
     (query, index): DashboardMetricsEquation | null => {
-      if (!query.aggregates[0].startsWith('equation|')) {
+      if (!query.aggregates[0]!.startsWith('equation|')) {
         return null;
       }
 
@@ -167,7 +167,7 @@ export function getMetricEquations(widget: Widget): DashboardMetricsEquation[] {
       return {
         id,
         type: MetricExpressionType.EQUATION,
-        formula: query.aggregates[0].slice(9),
+        formula: query.aggregates[0]!.slice(9),
         isHidden: !!query.isHidden,
         alias: query.fieldAliases?.[0],
       } satisfies DashboardMetricsEquation;
@@ -332,6 +332,7 @@ export const formatAlias = (alias?: string) => {
   return alias.replace('v|', '');
 };
 
+// @ts-ignore TS(7006): Parameter 'aggregation' implicitly has an 'any' ty... Remove this comment to see the full error message
 export const getVirtualAlias = (aggregation, spanAttribute) => {
   return `v|${aggregation}(${spanAttribute})`;
 };

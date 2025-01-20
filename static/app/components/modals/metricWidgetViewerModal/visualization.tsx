@@ -97,7 +97,7 @@ function useFocusedSeries({
   const setSeriesVisibility = useCallback(
     (series: FocusedMetricsSeries) => {
       onChange?.();
-      if (focusedSeries?.length === 1 && focusedSeries[0].id === series.id) {
+      if (focusedSeries?.length === 1 && focusedSeries[0]!.id === series.id) {
         setFocusedSeries([]);
         return;
       }
@@ -235,6 +235,7 @@ export function MetricVisualization({
           triggerProps={{prefix: t('Visualization')}}
           value={displayType}
           options={Object.keys(displayTypes).map(value => ({
+            // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             label: displayTypes[value],
             value,
           }))}

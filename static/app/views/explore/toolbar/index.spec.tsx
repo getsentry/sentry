@@ -50,7 +50,7 @@ describe('ExploreToolbar', function () {
   });
 
   it('allows changing datasets', async function () {
-    let dataset;
+    let dataset: any;
     function Component() {
       dataset = useExploreDataset();
       return <ExploreToolbar extras={['dataset toggle']} />;
@@ -90,7 +90,7 @@ describe('ExploreToolbar', function () {
   });
 
   it('allows changing mode', async function () {
-    let mode;
+    let mode: any;
     function Component() {
       mode = useExploreMode();
       return <ExploreToolbar extras={['dataset toggle']} />;
@@ -178,7 +178,7 @@ describe('ExploreToolbar', function () {
   });
 
   it('allows changing visualizes', async function () {
-    let visualizes;
+    let visualizes: any;
     function Component() {
       visualizes = useExploreVisualizes();
       return <ExploreToolbar />;
@@ -254,7 +254,7 @@ describe('ExploreToolbar', function () {
     ]);
 
     // delete first overlay
-    await userEvent.click(within(section).getAllByLabelText('Remove Overlay')[0]);
+    await userEvent.click(within(section).getAllByLabelText('Remove Overlay')[0]!);
     expect(visualizes).toEqual([
       {
         chartType: ChartType.LINE,
@@ -269,7 +269,7 @@ describe('ExploreToolbar', function () {
     ]);
 
     // delete second chart
-    await userEvent.click(within(section).getAllByLabelText('Remove Overlay')[1]);
+    await userEvent.click(within(section).getAllByLabelText('Remove Overlay')[1]!);
     expect(visualizes).toEqual([
       {
         chartType: ChartType.LINE,
@@ -283,7 +283,7 @@ describe('ExploreToolbar', function () {
   });
 
   it('allows changing group bys', async function () {
-    let groupBys;
+    let groupBys: any;
 
     function Component() {
       groupBys = useExploreGroupBys();
@@ -333,7 +333,7 @@ describe('ExploreToolbar', function () {
     );
     expect(groupBys).toEqual(['span.op', 'span.description']);
 
-    await userEvent.click(within(section).getAllByLabelText('Remove Column')[0]);
+    await userEvent.click(within(section).getAllByLabelText('Remove Column')[0]!);
     expect(groupBys).toEqual(['span.description']);
 
     // only 1 left but it's not empty
@@ -347,7 +347,7 @@ describe('ExploreToolbar', function () {
   });
 
   it('allows changing sort by', async function () {
-    let sortBys;
+    let sortBys: any;
     function Component() {
       sortBys = useExploreSortBys();
       return <ExploreToolbar />;
@@ -381,7 +381,7 @@ describe('ExploreToolbar', function () {
     const fieldOptions = await within(section).findAllByRole('option');
     expect(fieldOptions).toHaveLength(fields.length);
     fieldOptions.forEach((option, i) => {
-      expect(option).toHaveTextContent(fields[i]);
+      expect(option).toHaveTextContent(fields[i]!);
     });
 
     // try changing the field
@@ -405,7 +405,7 @@ describe('ExploreToolbar', function () {
   });
 
   it('takes you to suggested query', async function () {
-    let pageParams;
+    let pageParams: any;
     function Component() {
       pageParams = useExplorePageParams();
       return <ExploreToolbar />;

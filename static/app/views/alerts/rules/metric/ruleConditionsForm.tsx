@@ -36,7 +36,6 @@ import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {InvalidReason} from 'sentry/components/searchSyntax/parser';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {ActivationConditionType, MonitorType} from 'sentry/types/alerts';
 import type {SelectValue} from 'sentry/types/core';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
@@ -104,13 +103,7 @@ type Props = {
   disabled: boolean;
   isEditing: boolean;
   onComparisonDeltaChange: (value: number) => void;
-  onFilterSearch: (query: string, isQueryValid) => void;
-  onMonitorTypeSelect: (activatedAlertFields: {
-    activationCondition?: ActivationConditionType | undefined;
-    monitorType?: MonitorType;
-    monitorWindowSuffix?: string | undefined;
-    monitorWindowValue?: number | undefined;
-  }) => void;
+  onFilterSearch: (query: string, isQueryValid: any) => void;
   onTimeWindowChange: (value: number) => void;
   organization: Organization;
   project: Project;
@@ -120,7 +113,6 @@ type Props = {
   thresholdChart: React.ReactNode;
   timeWindow: number;
   // optional props
-  activationCondition?: ActivationConditionType;
   allowChangeEventTypes?: boolean;
   comparisonDelta?: number;
   disableProjectSelector?: boolean;
@@ -130,7 +122,6 @@ type Props = {
   isLowConfidenceChartData?: boolean;
   isTransactionMigration?: boolean;
   loadingProjects?: boolean;
-  monitorType?: number;
 };
 
 type State = {
@@ -166,6 +157,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
     const {measurements} = this.state;
     const measurementsWithKind = Object.keys(measurements).reduce(
       (measurement_tags, key) => {
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         measurement_tags[key] = {
           ...measurements[key],
           kind: FieldKind.MEASUREMENT,
@@ -191,7 +183,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
 
     const tagsWithKind = Object.keys(tags).reduce<Record<string, Tag>>((acc, key) => {
       acc[key] = {
-        ...tags[key],
+        ...tags[key]!,
         kind: FieldKind.TAG,
       };
       return acc;
@@ -230,7 +222,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
     }
   }
 
-  getEventFieldValues = async (tag, query): Promise<string[]> => {
+  getEventFieldValues = async (tag: any, query: any): Promise<string[]> => {
     const {api, organization, project, dataset, router} = this.props;
 
     if (isAggregateField(tag.key) || isMeasurement(tag.key)) {
@@ -281,7 +273,6 @@ class RuleConditionsForm extends PureComponent<Props, State> {
 
     if (this.props.comparisonType === AlertRuleComparisonType.DYNAMIC) {
       options = pick(TIME_WINDOW_MAP, [
-        TimeWindow.FIVE_MINUTES,
         TimeWindow.FIFTEEN_MINUTES,
         TimeWindow.THIRTY_MINUTES,
         TimeWindow.ONE_HOUR,
@@ -384,7 +375,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
         }}
         flexibleControlStateSize
       >
-        {({onChange, onBlur, model}) => {
+        {({onChange, onBlur, model}: any) => {
           const formDataset = model.getValue('dataset');
           const formEventTypes = model.getValue('eventTypes');
           const aggregate = model.getValue('aggregate');
@@ -396,7 +387,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
             <SelectControl
               value={mappedValue}
               inFieldLabel={t('Events: ')}
-              onChange={({value}) => {
+              onChange={({value}: any) => {
                 onChange(value, {});
                 onBlur(value, {});
                 // Reset the aggregate to the default (which works across
@@ -412,6 +403,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
 
                 // set the value of the dataset and event type from data source
                 const {dataset: datasetFromDataSource, eventTypes} =
+                  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                   DATA_SOURCE_TO_SET_AND_EVENT_TYPES[value] ?? {};
 
                 model.setValue('dataset', datasetFromDataSource);
@@ -451,7 +443,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
         }}
         flexibleControlStateSize
       >
-        {({onChange, onBlur, model}) => {
+        {({onChange, onBlur, model}: any) => {
           const selectedProject =
             projects.find(({id}) => id === model.getValue('projectId')) ||
             _selectedProject;
@@ -474,13 +466,13 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                     undefined &&
                   nextSelectedProject.teams.length
                 ) {
-                  model.setValue('owner', `team:${nextSelectedProject.teams[0].id}`);
+                  model.setValue('owner', `team:${nextSelectedProject.teams[0]!.id}`);
                 }
                 onChange(value, {});
                 onBlur(value, {});
               }}
               components={{
-                SingleValue: containerProps => (
+                SingleValue: (containerProps: any) => (
                   <components.ValueContainer {...containerProps}>
                     <IdBadge
                       project={selectedProject}
@@ -501,13 +493,12 @@ class RuleConditionsForm extends PureComponent<Props, State> {
   renderInterval() {
     const {
       organization,
+      timeWindow,
       disabled,
       alertType,
-      timeWindow,
-      onTimeWindowChange,
       project,
-      monitorType,
       isForLlmMetric,
+      onTimeWindowChange,
     } = this.props;
 
     return (
@@ -536,118 +527,16 @@ class RuleConditionsForm extends PureComponent<Props, State> {
               required
             />
           )}
-
-          {monitorType !== MonitorType.ACTIVATED && (
-            <SelectControl
-              name="timeWindow"
-              styles={this.selectControlStyles}
-              options={this.timeWindowOptions}
-              required={monitorType === MonitorType.CONTINUOUS}
-              isDisabled={disabled}
-              value={timeWindow}
-              onChange={({value}) => onTimeWindowChange(value)}
-              inline={false}
-              flexibleControlStateSize
-            />
-          )}
-        </FormRow>
-      </Fragment>
-    );
-  }
-
-  renderMonitorTypeSelect() {
-    // TODO: disable select on edit
-    const {
-      activationCondition,
-      isEditing,
-      monitorType,
-      onMonitorTypeSelect,
-      onTimeWindowChange,
-      timeWindow,
-    } = this.props;
-
-    return (
-      <Fragment>
-        <StyledListItem>
-          <StyledListTitle>
-            <div>{t('Select Monitor Type')}</div>
-          </StyledListTitle>
-        </StyledListItem>
-        <FormRow>
-          <MonitorSelect>
-            <MonitorCard
-              disabled={isEditing}
-              position="left"
-              isSelected={monitorType === MonitorType.CONTINUOUS}
-              onClick={() =>
-                isEditing
-                  ? null
-                  : onMonitorTypeSelect({
-                      monitorType: MonitorType.CONTINUOUS,
-                    })
-              }
-            >
-              <strong>{t('Continuous')}</strong>
-              <div>{t('Continuously monitor trends for the metrics outlined below')}</div>
-            </MonitorCard>
-            <MonitorCard
-              disabled={isEditing}
-              position="right"
-              isSelected={monitorType === MonitorType.ACTIVATED}
-              onClick={() =>
-                isEditing
-                  ? null
-                  : onMonitorTypeSelect({
-                      monitorType: MonitorType.ACTIVATED,
-                    })
-              }
-            >
-              <strong>Conditional</strong>
-              {monitorType === MonitorType.ACTIVATED ? (
-                <ActivatedAlertFields>
-                  {`${t('Monitor')} `}
-                  <SelectControl
-                    name="activationCondition"
-                    styles={this.selectControlStyles}
-                    disabled={isEditing}
-                    options={[
-                      {
-                        value: ActivationConditionType.RELEASE_CREATION,
-                        label: t('New Release'),
-                      },
-                      {
-                        value: ActivationConditionType.DEPLOY_CREATION,
-                        label: t('New Deploy'),
-                      },
-                    ]}
-                    required
-                    value={activationCondition}
-                    onChange={({value}) =>
-                      onMonitorTypeSelect({activationCondition: value})
-                    }
-                    inline={false}
-                    flexibleControlStateSize
-                    size="xs"
-                  />
-                  {` ${t('for')} `}
-                  <SelectControl
-                    name="timeWindow"
-                    styles={this.selectControlStyles}
-                    options={this.timeWindowOptions}
-                    value={timeWindow}
-                    onChange={({value}) => onTimeWindowChange(value)}
-                    inline={false}
-                    flexibleControlStateSize
-                    size="xs"
-                  />
-                </ActivatedAlertFields>
-              ) : (
-                <div>
-                  {t('Temporarily monitor specified query given activation condition')}
-                </div>
-              )}
-            </MonitorCard>
-          </MonitorSelect>
+          <SelectControl
+            name="timeWindow"
+            styles={this.selectControlStyles}
+            options={this.timeWindowOptions}
+            isDisabled={disabled}
+            value={timeWindow}
+            onChange={({value}: any) => onTimeWindowChange(value)}
+            inline={false}
+            flexibleControlStateSize
+          />
         </FormRow>
       </Fragment>
     );
@@ -671,8 +560,6 @@ class RuleConditionsForm extends PureComponent<Props, State> {
     } = this.props;
 
     const {environments, filterKeys} = this.state;
-    const hasActivatedAlerts = organization.features.includes('activated-alert-rules');
-
     const environmentOptions: SelectValue<string | null>[] = [
       {
         value: null,
@@ -718,7 +605,6 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                   )}
                 </Alert>
               )}
-              {hasActivatedAlerts && this.renderMonitorTypeSelect()}
               {!isErrorMigration && this.renderInterval()}
               <StyledListItem>{t('Filter events')}</StyledListItem>
               <FormRow noMargin columns={1 + (allowChangeEventTypes ? 1 : 0) + 1}>
@@ -759,7 +645,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                   }}
                   flexibleControlStateSize
                 >
-                  {({onChange, onBlur, initialData, value}) => {
+                  {({onChange, onBlur, initialData, value}: any) => {
                     return hasCustomMetrics(organization) &&
                       alertType === 'custom_metrics' ? (
                       <MetricSearchBar
@@ -860,7 +746,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                   }}
                   flexibleControlStateSize
                 >
-                  {args => {
+                  {(args: any) => {
                     if (
                       args.value?.includes('is:unresolved') &&
                       comparisonType === AlertRuleComparisonType.DYNAMIC
@@ -941,60 +827,6 @@ const FormRow = styled('div')<{columns?: number; noMargin?: boolean}>`
       display: grid;
       grid-template-columns: repeat(${p.columns}, auto);
     `}
-`;
-
-const MonitorSelect = styled('div')`
-  border-radius: ${p => p.theme.borderRadius};
-  border: 1px solid ${p => p.theme.border};
-  width: 100%;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  height: 5rem;
-`;
-
-type MonitorCardProps = {
-  isSelected: boolean;
-  /**
-   * Adds hover and focus states to the card
-   */
-  position: 'left' | 'right';
-  disabled?: boolean;
-};
-
-const MonitorCard = styled('div')<MonitorCardProps>`
-  padding: ${space(1)} ${space(2)};
-  display: flex;
-  flex-grow: 1;
-  flex-direction: column;
-  cursor: ${p => (p.disabled || p.isSelected ? 'default' : 'pointer')};
-  justify-content: center;
-  background-color: ${p =>
-    p.disabled && !p.isSelected ? p.theme.backgroundSecondary : p.theme.background};
-
-  &:focus,
-  &:hover {
-    ${p =>
-      p.disabled || p.isSelected
-        ? ''
-        : `
-        outline: 1px solid ${p.theme.purple200};
-        background-color: ${p.theme.backgroundSecondary};
-        `}
-  }
-
-  border-top-left-radius: ${p => (p.position === 'left' ? p.theme.borderRadius : 0)};
-  border-bottom-left-radius: ${p => (p.position === 'left' ? p.theme.borderRadius : 0)};
-  border-top-right-radius: ${p => (p.position !== 'left' ? p.theme.borderRadius : 0)};
-  border-bottom-right-radius: ${p => (p.position !== 'left' ? p.theme.borderRadius : 0)};
-  margin: ${p =>
-    p.isSelected ? (p.position === 'left' ? '1px 2px 1px 0' : '1px 0 1px 2px') : 0};
-  outline: ${p => (p.isSelected ? `2px solid ${p.theme.purple400}` : 'none')};
-`;
-
-const ActivatedAlertFields = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
 `;
 
 export default withApi(withProjects(withTags(RuleConditionsForm)));

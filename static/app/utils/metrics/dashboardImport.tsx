@@ -205,7 +205,7 @@ export class WidgetParser {
 
     return convertToDashboardWidget(
       [...nonEmptyQueries, ...metricsEquations],
-      parsedRequests[0].displayType,
+      parsedRequests[0]!.displayType,
       title
     );
   }
@@ -311,7 +311,9 @@ export class WidgetParser {
       const metricName = metric.slice(0, lastIndex);
       const aggregationSuffix = metric.slice(lastIndex + 1);
 
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       if (METRIC_SUFFIX_TO_AGGREGATION[aggregationSuffix]) {
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         aggregation = METRIC_SUFFIX_TO_AGGREGATION[aggregationSuffix];
         metric = metricName;
       }
@@ -364,7 +366,7 @@ export class WidgetParser {
   }
 
   // Helper functions
-  private parseFilters(filtersString) {
+  private parseFilters(filtersString: any) {
     const filters: any[] = [];
     const pairs = filtersString.split(',');
 
@@ -390,15 +392,15 @@ export class WidgetParser {
     return filters;
   }
 
-  private parseGroupByValues(groupByString) {
-    return groupByString.split(',').map(value => value.trim());
+  private parseGroupByValues(groupByString: any) {
+    return groupByString.split(',').map((value: any) => value.trim());
   }
 
   // Mapping functions
-  private async mapToMetricsQuery(widget): Promise<MetricsQuery | null> {
+  private async mapToMetricsQuery(widget: any): Promise<MetricsQuery | null> {
     const {metric, aggregation, filters} = widget;
 
-    // @ts-expect-error name is actually defined on MetricMeta
+    // @ts-ignore TS(2339): Property 'name' does not exist on type 'MetricMeta... Remove this comment to see the full error message
     const metricMeta = this.availableMetrics.find(m => m.name === metric);
 
     if (!metricMeta) {
@@ -437,7 +439,7 @@ export class WidgetParser {
       }
     );
 
-    return (tagsRes ?? []).map(tag => tag.key);
+    return (tagsRes ?? []).map((tag: any) => tag.key);
   }
 
   private constructMetricQueryFilter(

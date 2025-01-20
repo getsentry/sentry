@@ -1,9 +1,11 @@
+import formatDuration from 'sentry/utils/duration/formatDuration';
 import {useQuery, type UseQueryResult} from 'sentry/utils/queryClient';
 import replayerStepper from 'sentry/utils/replays/replayerStepper';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import {
   EventType,
   IncrementalSource,
+  isRRWebChangeFrame,
   type RecordingFrame,
   type ReplayFrame,
 } from 'sentry/utils/replays/types';
@@ -15,6 +17,7 @@ type DiffMutation = Record<
     attributes: Record<string, unknown>;
     offset: number;
     removes: Record<string, unknown>;
+    timestamp: number;
   }
 >;
 
@@ -46,11 +49,7 @@ async function extractDiffMutations({
       // within the range, so we visit.
       if (isWithinRange) {
         hasStartedVisiting = true;
-        return (
-          frame.type === EventType.IncrementalSnapshot &&
-          'source' in frame.data &&
-          frame.data.source === IncrementalSource.Mutation
-        );
+        return isRRWebChangeFrame(frame);
       }
       // if we started, but didn't record that visiting is finished, then this
       // is the first frame outside of the range. we'll visit it, so we can
@@ -64,8 +63,23 @@ async function extractDiffMutations({
     },
     onVisitFrame: (frame, collection, replayer) => {
       const mirror = replayer.getMirror();
-
-      if (
+      if (lastFrame && lastFrame.type === EventType.FullSnapshot) {
+        const node = mirror.getNode(lastFrame.data.node.id) as Document | null;
+        const item = collection.get(lastFrame);
+        if (node && item) {
+          const formattedTimestamp = formatDuration({
+            duration: [Math.abs(lastFrame.timestamp - startTimestampMs), 'ms'],
+            precision: 'ms',
+            style: 'hh:mm:ss.sss',
+          });
+          // @ts-ignore TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
+          item[formattedTimestamp].adds = {
+            document: {
+              html: node?.documentElement?.outerHTML,
+            },
+          };
+        }
+      } else if (
         lastFrame &&
         lastFrame.type === EventType.IncrementalSnapshot &&
         'source' in lastFrame.data &&
@@ -83,8 +97,9 @@ async function extractDiffMutations({
             continue;
           }
 
+          // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           adds[selector] = {
-            html: node.outerHTML,
+            document: node.outerHTML,
           };
         }
 
@@ -94,6 +109,7 @@ async function extractDiffMutations({
           if (!node || !node.outerHTML) {
             continue;
           }
+          // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           attributes[getSelectorForElem(node)] = {
             tag: node.outerHTML.replace(node.innerHTML, '...'),
             changed: attr.attributes,
@@ -102,19 +118,41 @@ async function extractDiffMutations({
 
         const item = collection.get(lastFrame);
         if (item) {
-          item[lastFrame.timestamp].adds = adds;
-          item[lastFrame.timestamp].attributes = attributes;
+          const formattedTimestamp = formatDuration({
+            duration: [Math.abs(lastFrame.timestamp - startTimestampMs), 'ms'],
+            precision: 'ms',
+            style: 'hh:mm:ss.sss',
+          });
+          // @ts-ignore TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
+          item[formattedTimestamp].adds = adds;
+          // @ts-ignore TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
+          item[formattedTimestamp].attributes = attributes;
         }
       }
 
-      if (
+      const offset = Math.abs(frame.timestamp - startTimestampMs);
+      const formattedTimestamp = formatDuration({
+        duration: [offset, 'ms'],
+        precision: 'ms',
+        style: 'hh:mm:ss.sss',
+      });
+
+      lastFrame = frame;
+      if (frame.type === EventType.FullSnapshot) {
+        collection.set(frame, {
+          [formattedTimestamp]: {
+            adds: {},
+            attributes: {},
+            removes: {document: '*'},
+            offset,
+            timestamp: frame.timestamp,
+          },
+        });
+      } else if (
         frame.type === EventType.IncrementalSnapshot &&
         'source' in frame.data &&
         frame.data.source === IncrementalSource.Mutation
       ) {
-        // fill the cache
-        lastFrame = frame;
-
         const removes = {};
         for (const removal of frame.data.removes) {
           const node = mirror.getNode(removal.id) as HTMLElement | null;
@@ -129,22 +167,33 @@ async function extractDiffMutations({
             continue;
           }
 
+          // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           removes[selector] = {
             html: node.outerHTML,
           };
         }
 
         collection.set(frame, {
-          [frame.timestamp]: {
+          [formattedTimestamp]: {
             adds: {},
             attributes: {},
             removes,
-            offset: frame.timestamp - startTimestampMs,
+            offset,
+            timestamp: frame.timestamp,
           },
         });
       }
     },
   });
+
+  if (lastFrame) {
+    // An extra frame is added because we increment past the target when we run
+    // these two statements: `hasFinishedVisiting = true; return true;`, the
+    // intention is that we'll step one more time and fill in `lastFrame`.
+    // But for the extra frame, we don't fill it in later, we'll just pop it off.
+    results.delete(lastFrame);
+  }
+
   return results;
 }
 

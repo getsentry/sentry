@@ -65,13 +65,13 @@ function ProjectHpkpReports() {
   return (
     <div>
       <SentryDocumentTitle
-        title={routeTitleGen(t('HTTP Public Key Pinning (HPKP)'), projectId, false)}
+        title={routeTitleGen(t('HTTP Public Key Pinning (HPKP)'), projectId!, false)}
       />
       <SettingsPageHeader title={t('HTTP Public Key Pinning')} />
 
       <PreviewFeature />
 
-      <ReportUri keyList={keyList} orgId={organization.slug} projectId={projectId} />
+      <ReportUri keyList={keyList} orgId={organization.slug} projectId={projectId!} />
 
       <Panel>
         <PanelHeader>{t('About')}</PanelHeader>

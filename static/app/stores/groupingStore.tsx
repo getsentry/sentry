@@ -22,6 +22,7 @@ const MIN_SCORE = 0.6;
 // @param score: {[key: string]: number}
 const checkBelowThreshold = (scores = {}) => {
   const scoreKeys = Object.keys(scores);
+  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   return !scoreKeys.map(key => scores[key]).find(score => score >= MIN_SCORE);
 };
 
@@ -312,7 +313,7 @@ const storeConfig: GroupingStoreDefinition = {
             newItems.push(newItem);
           }
 
-          const newItem = newItemsMap[item.id];
+          const newItem = newItemsMap[item.id]!;
           const {childId, childLabel, eventCount, lastSeen, latestEvent} = item;
 
           if (eventCount) {
@@ -350,11 +351,14 @@ const storeConfig: GroupingStoreDefinition = {
           .map(scoreKey => [scoreKey, scoreMap[scoreKey]])
           .reduce((acc, [scoreKey, score]) => {
             // v1 layout: '<interface>:...'
-            const [interfaceName] = String(scoreKey).split(':');
+            const [interfaceName] = String(scoreKey).split(':') as [string];
 
+            // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             if (!acc[interfaceName]) {
+              // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
               acc[interfaceName] = [];
             }
+            // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             acc[interfaceName].push([scoreKey, score]);
 
             return acc;
@@ -362,13 +366,17 @@ const storeConfig: GroupingStoreDefinition = {
 
         // Aggregate score by interface
         const aggregate = Object.keys(scoresByInterface)
+          // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           .map(interfaceName => [interfaceName, scoresByInterface[interfaceName]])
           .reduce((acc, [interfaceName, allScores]) => {
             // `null` scores means feature was not present in both issues, do not
             // include in aggregate
+            // @ts-ignore TS(7031): Binding element 'score' implicitly has an 'any' ty... Remove this comment to see the full error message
             const scores = allScores.filter(([, score]) => score !== null);
 
-            const avg = scores.reduce((sum, [, score]) => sum + score, 0) / scores.length;
+            const avg =
+              scores.reduce((sum: any, [, score]: any) => sum + score, 0) / scores.length;
+            // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             acc[interfaceName] = hasSimilarityEmbeddingsFeature ? scores[0][1] : avg;
             return acc;
           }, {});
@@ -458,7 +466,7 @@ const storeConfig: GroupingStoreDefinition = {
     this.state = {...this.state, unmergeList: newUnmergeList};
 
     // Update "checked" state for row
-    this.setStateForId('unmergeState', fingerprint, {checked});
+    this.setStateForId('unmergeState', fingerprint!, {checked});
 
     // Unmerge should be disabled if 0 or all items are selected, or if there's
     // only one item to select

@@ -12,13 +12,13 @@ import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {FIELD_FORMATTERS, getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
@@ -103,8 +103,9 @@ const DEFAULT_SORT = {
 };
 
 export function TransactionsTable() {
-  const organization = useOrganization();
+  const navigate = useNavigate();
   const location = useLocation();
+  const organization = useOrganization();
 
   const locationQuery = useLocationQuery({
     fields: {
@@ -124,7 +125,7 @@ export function TransactionsTable() {
   });
 
   const handleCursor: CursorHandler = (newCursor, pathname, query) => {
-    browserHistory.push({
+    navigate({
       pathname,
       query: {...query, [QueryParameterNames.TRANSACTIONS_CURSOR]: newCursor},
     });
@@ -169,11 +170,13 @@ function renderBodyCell(
   location: Location,
   organization: Organization
 ) {
+  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const op = row['span.op'];
   const isProducer = op === 'queue.publish';
   const isConsumer = op === 'queue.process';
   const key = column.key;
   if (
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     row[key] === undefined ||
     (isConsumer && ['count_op(queue.publish)'].includes(key)) ||
     (isProducer &&
@@ -199,12 +202,14 @@ function renderBodyCell(
     const formatter = FIELD_FORMATTERS.percentage.renderFunc;
     return (
       <AlignRight>
+        {/* @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message */}
         {formatter(key, {'trace_status_rate(ok)': 1 - (row[key] ?? 0)})}
       </AlignRight>
     );
   }
 
   if (!meta?.fields) {
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return row[column.key];
   }
 
@@ -214,12 +219,14 @@ function renderBodyCell(
   }
 
   if (key === 'span.op') {
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     switch (row[key]) {
       case 'queue.publish':
         return t('Producer');
       case 'queue.process':
         return t('Consumer');
       default:
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         return row[key];
     }
   }

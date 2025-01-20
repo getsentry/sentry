@@ -76,7 +76,7 @@ function TransactionsTable(props: Props) {
     const tableTitles = getTitles();
 
     const headers = tableTitles.map((title, index) => {
-      const column = columnOrder[index];
+      const column = columnOrder[index]!;
       const align: Alignments = fieldAlignment(column.name, column.type, tableMeta);
 
       if (column.key === 'span_ops_breakdown.relative') {
@@ -163,7 +163,7 @@ function TransactionsTable(props: Props) {
       } else if (target && !isEmptyObject(target)) {
         if (fields[index] === 'replayId') {
           rendered = (
-            <ViewReplayLink replayId={row.replayId} to={target}>
+            <ViewReplayLink replayId={row.replayId!} to={target}>
               {rendered}
             </ViewReplayLink>
           );
@@ -217,6 +217,7 @@ function TransactionsTable(props: Props) {
       if (!tableData.meta) {
         return;
       }
+      // @ts-ignore TS(2345): Argument of type 'TableDataRow | TrendsTransaction... Remove this comment to see the full error message
       cells = cells.concat(renderRow(row, i, columnOrder, tableData.meta));
     });
     return cells;
@@ -250,7 +251,7 @@ function TransactionsTable(props: Props) {
 
 function getProfileAnalyticsHandler(organization: Organization, referrer?: string) {
   return () => {
-    let source;
+    let source: any;
     if (referrer === 'performance.transactions_summary') {
       source = 'performance.transactions_summary.overview';
     } else {

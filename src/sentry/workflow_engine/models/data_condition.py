@@ -3,6 +3,9 @@ import operator
 from typing import Any, TypeVar, cast
 
 from django.db import models
+from django.db.models.signals import pre_save
+from django.dispatch import receiver
+from jsonschema import ValidationError, validate
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, region_silo_model, sane_repr
@@ -20,13 +23,41 @@ class Condition(models.TextChoices):
     LESS_OR_EQUAL = "lte"
     LESS = "lt"
     NOT_EQUAL = "ne"
+    AGE_COMPARISON = "age_comparison"
+    ASSIGNED_TO = "assigned_to"
+    EVENT_ATTRIBUTE = "event_attribute"
     EVENT_CREATED_BY_DETECTOR = "event_created_by_detector"
     EVENT_SEEN_COUNT = "event_seen_count"
+    EVERY_EVENT = "every_event"
+    EXISTING_HIGH_PRIORITY_ISSUE = "existing_high_priority_issue"
+    FIRST_SEEN_EVENT = "first_seen_event"
+    ISSUE_CATEGORY = "issue_category"
+    ISSUE_OCCURRENCES = "issue_occurrences"
+    LATEST_ADOPTED_RELEASE = "latest_adopted_release"
+    LATEST_RELEASE = "latest_release"
+    LEVEL = "level"
+    NEW_HIGH_PRIORITY_ISSUE = "new_high_priority_issue"
     REGRESSION_EVENT = "regression_event"
     REAPPEARED_EVENT = "reappeared_event"
+    TAGGED_EVENT = "tagged_event"
+    ISSUE_PRIORITY_EQUALS = "issue_priority_equals"
+
+    # Event frequency conditions
+    EVENT_FREQUENCY_COUNT = "event_frequency_count"
+    EVENT_FREQUENCY_PERCENT = "event_frequency_percent"
+    EVENT_UNIQUE_USER_FREQUENCY_COUNT = "event_unique_user_frequency_count"
+    EVENT_UNIQUE_USER_FREQUENCY_PERCENT = "event_unique_user_frequency_percent"
+    PERCENT_SESSIONS_COUNT = "percent_sessions_count"
+    PERCENT_SESSIONS_PERCENT = "percent_sessions_percent"
+    EVENT_UNIQUE_USER_FREQUENCY_WITH_CONDITIONS_COUNT = (
+        "event_unique_user_frequency_with_conditions_count"
+    )
+    EVENT_UNIQUE_USER_FREQUENCY_WITH_CONDITIONS_PERCENT = (
+        "event_unique_user_frequency_with_conditions_percent"
+    )
 
 
-condition_ops = {
+CONDITION_OPS = {
     Condition.EQUAL: operator.eq,
     Condition.GREATER_OR_EQUAL: operator.ge,
     Condition.GREATER: operator.gt,
@@ -89,9 +120,9 @@ class DataCondition(DefaultFieldsModel):
             )
             return None
 
-        if condition_type in condition_ops:
+        if condition_type in CONDITION_OPS:
             # If the condition is a base type, handle it directly
-            op = condition_ops[Condition(self.type)]
+            op = CONDITION_OPS[Condition(self.type)]
             result = op(cast(Any, value), self.comparison)
             return self.get_condition_result() if result else None
 
@@ -107,3 +138,44 @@ class DataCondition(DefaultFieldsModel):
 
         result = handler.evaluate_value(value, self.comparison)
         return self.get_condition_result() if result else None
+
+
+SLOW_CONDITIONS = [
+    Condition.EVENT_FREQUENCY_COUNT,
+    Condition.EVENT_FREQUENCY_PERCENT,
+    Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT,
+    Condition.EVENT_UNIQUE_USER_FREQUENCY_PERCENT,
+    Condition.PERCENT_SESSIONS_COUNT,
+    Condition.PERCENT_SESSIONS_PERCENT,
+    Condition.EVENT_UNIQUE_USER_FREQUENCY_WITH_CONDITIONS_COUNT,
+    Condition.EVENT_UNIQUE_USER_FREQUENCY_WITH_CONDITIONS_PERCENT,
+]
+
+
+def is_slow_condition(cond: DataCondition) -> bool:
+    return Condition(cond.type) in SLOW_CONDITIONS
+
+
+@receiver(pre_save, sender=DataCondition)
+def enforce_comparison_schema(sender, instance: DataCondition, **kwargs):
+
+    condition_type = Condition(instance.type)
+    if condition_type in CONDITION_OPS:
+        # don't enforce schema for default ops, this can be any type
+        return
+
+    try:
+        handler = condition_handler_registry.get(condition_type)
+    except NoRegistrationExistsError:
+        logger.exception(
+            "No registration exists for condition",
+            extra={"type": instance.type, "id": instance.id},
+        )
+        return None
+
+    schema = handler.comparison_json_schema
+
+    try:
+        validate(instance.comparison, schema)
+    except ValidationError as e:
+        raise ValidationError(f"Invalid config: {e.message}")

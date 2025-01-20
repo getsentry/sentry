@@ -8,6 +8,7 @@ import {
 } from 'react';
 import type {AnimationProps} from 'framer-motion';
 import {AnimatePresence} from 'framer-motion';
+import type {Location} from 'history';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import DrawerComponents from 'sentry/components/globalDrawer/components';
@@ -50,7 +51,7 @@ export interface DrawerOptions {
   /**
    * If true (default), closes the drawer when the location changes
    */
-  shouldCloseOnLocationChange?: (newPathname: Location['pathname']) => boolean;
+  shouldCloseOnLocationChange?: (newPathname: Location) => boolean;
   //
   // Custom framer motion transition for the drawer
   //
@@ -86,7 +87,7 @@ const DrawerContext = createContext<DrawerContextType>({
   closeDrawer: () => {},
 });
 
-export function GlobalDrawer({children}) {
+export function GlobalDrawer({children}: any) {
   const location = useLocation();
   const [currentDrawerConfig, overwriteDrawerConfig] = useState<
     DrawerConfig | undefined
@@ -111,10 +112,8 @@ export function GlobalDrawer({children}) {
   useLayoutEffect(
     () => {
       // Defaults to closing the drawer when the location changes
-      if (
-        currentDrawerConfig?.options.shouldCloseOnLocationChange?.(location.pathname) ??
-        true
-      ) {
+      if (currentDrawerConfig?.options.shouldCloseOnLocationChange?.(location) ?? true) {
+        // Call `closeDrawer` without invoking `onClose` callback, since those callbacks often update the URL
         closeDrawer();
       }
     },
@@ -122,6 +121,8 @@ export function GlobalDrawer({children}) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       location?.pathname,
+      location?.search,
+      location?.hash,
       closeDrawer,
       currentDrawerConfig?.options.shouldCloseOnLocationChange,
     ]

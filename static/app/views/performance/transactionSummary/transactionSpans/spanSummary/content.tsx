@@ -71,7 +71,6 @@ export default function SpanSummary(props: Props) {
       organization,
       location,
       transaction: {name: transactionName, project: project?.id ?? ''},
-      tab: Tab.SPANS,
       spanSlug,
       view,
     }),
@@ -140,7 +139,7 @@ function SpanSummaryContent(props: ContentProps) {
   const {transactionName, project} = props;
 
   const {spanSlug: spanParam} = useParams();
-  const [spanOp, groupId] = spanParam.split(':');
+  const [spanOp, groupId] = spanParam!.split(':');
 
   const filters: SpanMetricsQueryFilters = {
     'span.group': groupId,

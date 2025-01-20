@@ -19,6 +19,7 @@ import type {IssueAttachment} from 'sentry/types/group';
 import type {RouteContextInterface} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import toArray from 'sentry/utils/array/toArray';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
@@ -92,6 +93,7 @@ type Props = {
   routes: RouteContextInterface['routes'];
   setError: (msg: string | undefined) => void;
   transactionName: string;
+  applyEnvironmentFilter?: boolean;
   columnTitles?: string[];
   customColumns?: ('attachments' | 'minidump')[];
   domainViewFilters?: DomainViewFilters;
@@ -130,7 +132,8 @@ class EventsTable extends Component<Props, State> {
 
   handleCellAction = (column: TableColumn<keyof TableDataRow>) => {
     return (action: Actions, value: React.ReactText) => {
-      const {eventView, location, organization, excludedTags} = this.props;
+      const {eventView, location, organization, excludedTags, applyEnvironmentFilter} =
+        this.props;
 
       trackAnalytics('performance_views.transactionEvents.cellaction', {
         organization,
@@ -146,6 +149,29 @@ class EventsTable extends Component<Props, State> {
       }
 
       updateQuery(searchConditions, action, column, value);
+
+      if (applyEnvironmentFilter && column.key === 'environment') {
+        let newEnvs = toArray(location.query.environment);
+
+        if (action === Actions.ADD) {
+          if (!newEnvs.includes(String(value))) {
+            newEnvs.push(String(value));
+          }
+        } else {
+          newEnvs = newEnvs.filter(env => env !== value);
+        }
+
+        // Updates the environment filter, instead of relying on the search query
+        browserHistory.push({
+          pathname: location.pathname,
+          query: {
+            ...location.query,
+            cursor: undefined,
+            environment: newEnvs,
+          },
+        });
+        return;
+      }
 
       browserHistory.push({
         pathname: location.pathname,
@@ -200,10 +226,10 @@ class EventsTable extends Component<Props, State> {
       } else {
         if (field === 'id') {
           target = generateLinkToEventInTraceView({
-            traceSlug: dataRow.trace?.toString(),
-            projectSlug: dataRow['project.name']?.toString(),
+            traceSlug: dataRow.trace?.toString()!,
+            projectSlug: dataRow['project.name']?.toString()!,
             eventId: dataRow.id,
-            timestamp: dataRow.timestamp,
+            timestamp: dataRow.timestamp!,
             location: locationWithTab,
             organization,
             transactionName,
@@ -244,7 +270,7 @@ class EventsTable extends Component<Props, State> {
           allowActions={allowActions}
         >
           {target ? (
-            <ViewReplayLink replayId={dataRow.replayId} to={target}>
+            <ViewReplayLink replayId={dataRow.replayId!} to={target}>
               {rendered}
             </ViewReplayLink>
           ) : (
@@ -523,7 +549,7 @@ class EventsTable extends Component<Props, State> {
                   tableData ??= {data: []};
                   const pageEventsCount = tableData?.data?.length ?? 0;
                   const parsedPageLinks = parseLinkHeader(pageLinks);
-                  const cursor = parsedPageLinks?.next?.cursor;
+                  const cursor = parsedPageLinks?.next!?.cursor;
                   const shouldFetchAttachments: boolean =
                     organization.features.includes('event-attachments') &&
                     !!this.props.issueId &&

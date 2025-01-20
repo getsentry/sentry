@@ -72,6 +72,7 @@ export function applyBreadcrumbSearch<T extends BreadcrumbListType>(
     Object.keys(
       pick(breadcrumb, ['type', 'category', 'message', 'level', 'timestamp', 'data'])
     ).some(key => {
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const info = breadcrumb[key];
 
       if (!defined(info) || !String(info).trim()) {
@@ -148,24 +149,24 @@ function BreadcrumbsContainer({data, event, organization, hideTitle = false}: Pr
     for (const index in crumbs) {
       const breadcrumb = crumbs[index];
       const foundFilterType = filterTypes.findIndex(
-        f => f.value === `type-${breadcrumb.type}`
+        f => f.value === `type-${breadcrumb!.type}`
       );
 
       if (foundFilterType === -1) {
         filterTypes.push({
-          value: `type-${breadcrumb.type}`,
-          leadingItems: <Type type={breadcrumb.type} color={breadcrumb.color} />,
-          label: breadcrumb.description,
-          levels: breadcrumb?.level ? [breadcrumb.level] : [],
+          value: `type-${breadcrumb!.type}`,
+          leadingItems: <Type type={breadcrumb!.type} color={breadcrumb!.color} />,
+          label: breadcrumb!.description,
+          levels: breadcrumb!.level ? [breadcrumb!.level] : [],
         });
         continue;
       }
 
       if (
         breadcrumb?.level &&
-        !filterTypes[foundFilterType].levels?.includes(breadcrumb.level)
+        !filterTypes[foundFilterType]!.levels?.includes(breadcrumb.level)
       ) {
-        filterTypes[foundFilterType].levels?.push(breadcrumb.level);
+        filterTypes[foundFilterType]!.levels?.push(breadcrumb!.level);
       }
     }
 
@@ -176,8 +177,9 @@ function BreadcrumbsContainer({data, event, organization, hideTitle = false}: Pr
     const filterLevels: SelectOption<string>[] = [];
 
     for (const indexType in types) {
-      for (const indexLevel in types[indexType].levels) {
-        const level = types[indexType].levels?.[indexLevel];
+      for (const indexLevel in types[indexType]!.levels) {
+        // @ts-ignore TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
+        const level = types[indexType]!.levels?.[indexLevel];
 
         if (filterLevels.some(f => f.value === `level-${level}`)) {
           continue;

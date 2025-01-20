@@ -116,7 +116,11 @@ export default function NewProviderForm({
         value={selectedProvider}
         placeholder={t('Select a provider')}
         name="provider"
-        options={[{value: 'LaunchDarkly', label: 'LaunchDarkly'}]}
+        options={[
+          {value: 'LaunchDarkly', label: 'LaunchDarkly'},
+          {value: 'Generic', label: 'Generic'},
+          {value: 'Unleash', label: 'Unleash'},
+        ]}
         help={t(
           'If you have already linked this provider, pasting a new secret will override the existing secret.'
         )}
@@ -126,6 +130,7 @@ export default function NewProviderForm({
         help={tct(
           "Create a webhook integration with your [link:feature flag service]. When you do so, you'll need to enter this URL.",
           {
+            // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             link: <ExternalLink href={PROVIDER_OPTION_TO_URLS[selectedProvider]} />,
           }
         )}
@@ -134,7 +139,7 @@ export default function NewProviderForm({
       >
         <TextCopyInput
           aria-label={t('Webhook URL')}
-        >{`https://sentry.io/api/0/organizations/sentry/flags/hooks/provider/${selectedProvider.toLowerCase()}/`}</TextCopyInput>
+        >{`https://sentry.io/api/0/organizations/${organization.slug}/flags/hooks/provider/${selectedProvider.toLowerCase()}/`}</TextCopyInput>
       </StyledFieldGroup>
       <TextField
         name="secret"
