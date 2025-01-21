@@ -370,6 +370,10 @@ function FormField(props: FormFieldProps) {
                       error,
                       initialData: model.initialData,
                       'aria-describedby': `${id}_help`,
+                      placeholder:
+                        typeof fieldProps.placeholder === 'function'
+                          ? fieldProps.placeholder({...props, model})
+                          : fieldProps.placeholder,
                     })}
                   </Fragment>
                 );
