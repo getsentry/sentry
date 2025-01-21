@@ -69,6 +69,7 @@ export default storyBook(WidgetLayout, story => {
             Visualization={
               <LineChartWidgetVisualization timeseries={[sampleDurationTimeSeries]} />
             }
+            Caption={<Warning>This data is incomplete</Warning>}
           />
         </SmallSizingWindow>
       </Fragment>
@@ -79,4 +80,9 @@ export default storyBook(WidgetLayout, story => {
 const SmallSizingWindow = styled(SizingWindow)`
   width: 400px;
   height: 300px;
+`;
+
+const Warning = styled('p')`
+  margin: 0;
+  font-size: ${p => p.theme.fontSizeSmall};
 `;

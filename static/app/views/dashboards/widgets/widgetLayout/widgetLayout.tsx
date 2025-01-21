@@ -7,6 +7,7 @@ import {MIN_HEIGHT, MIN_WIDTH, X_GUTTER, Y_GUTTER} from '../common/settings';
 
 export interface WidgetLayoutProps {
   Actions?: React.ReactNode;
+  Caption?: React.ReactNode;
   Title?: React.ReactNode;
   Visualization?: React.ReactNode;
   ariaLabel?: string;
@@ -23,6 +24,8 @@ export function WidgetLayout(props: WidgetLayoutProps) {
       {props.Visualization && (
         <VisualizationWrapper>{props.Visualization}</VisualizationWrapper>
       )}
+
+      {props.Caption && <CaptionWrapper>{props.Caption}</CaptionWrapper>}
     </Frame>
   );
 }
@@ -86,4 +89,9 @@ const VisualizationWrapper = styled('div')`
   min-height: 0;
   position: relative;
   padding: 0 ${X_GUTTER} ${Y_GUTTER} ${X_GUTTER};
+`;
+
+const CaptionWrapper = styled('div')`
+  padding: ${space(0.5)} ${X_GUTTER} ${Y_GUTTER} ${X_GUTTER};
+  margin: 0;
 `;
