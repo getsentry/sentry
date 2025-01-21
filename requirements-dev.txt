@@ -58,7 +58,7 @@ types-pyyaml
 # make sure to match close-enough to redis==
 types-redis<4
 types-requests>=2.32.0.20241016
-types-requests-oauthlib
+types-requests-oauthlib>=2.0.0.20250119
 types-setuptools>=68
 types-simplejson>=3.17.7.2
 types-unidiff
