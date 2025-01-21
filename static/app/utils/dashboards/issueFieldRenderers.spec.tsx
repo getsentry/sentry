@@ -102,8 +102,8 @@ describe('getIssueFieldRenderer', function () {
           organization,
         }) as React.ReactElement
       );
-      expect(screen.getByText('TU')).toBeInTheDocument();
-      expect(await screen.findByLabelText('Assigned to Test User')).toBeInTheDocument();
+      await userEvent.hover(screen.getByText('TU'));
+      expect(await screen.findByText('Assigned to Test User')).toBeInTheDocument();
     });
 
     it('can render counts', async function () {
