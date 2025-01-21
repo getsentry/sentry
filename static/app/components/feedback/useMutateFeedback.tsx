@@ -79,19 +79,8 @@ export default function useMutateFeedback({
     [mutation, feedbackIds]
   );
 
-  const assign = useCallback(
-    (
-      assignedTo: Actor | undefined,
-      options?: MutateOptions<TData, TError, TVariables, TContext>
-    ) => {
-      mutation.mutate([feedbackIds, {assignedTo}], options);
-    },
-    [mutation, feedbackIds]
-  );
-
   return {
     markAsRead,
     resolve,
-    assign,
   };
 }

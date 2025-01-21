@@ -1,14 +1,13 @@
 import {useEffect} from 'react';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
-import useMutateFeedback from 'sentry/components/feedback/useMutateFeedback';
+import useFeedbackCache from 'sentry/components/feedback/useFeedbackCache';
 import type {EventOwners} from 'sentry/components/group/assignedTo';
 import {getOwnerList} from 'sentry/components/group/assignedTo';
 import {
   AssigneeSelector,
   useHandleAssigneeChange,
 } from 'sentry/components/group/assigneeSelector';
-import type {Actor} from 'sentry/types/core';
 import type {Group} from 'sentry/types/group';
 import type {FeedbackEvent} from 'sentry/utils/feedback/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -38,15 +37,13 @@ export default function FeedbackAssignedTo({feedbackIssue, feedbackEvent}: Props
       enabled: Boolean(feedbackEvent),
     }
   );
+  const {updateCached} = useFeedbackCache();
   const {handleAssigneeChange, assigneeLoading} = useHandleAssigneeChange({
     organization,
     group: feedbackIssue,
-  });
-
-  const {assign} = useMutateFeedback({
-    feedbackIds: [feedbackIssue.id],
-    organization,
-    projectIds: [feedbackIssue.project.id],
+    onSuccess: assignedTo => {
+      updateCached([feedbackIssue.id], {assignedTo});
+    },
   });
 
   const owners = getOwnerList([], eventOwners, feedbackIssue.assignedTo);
@@ -57,7 +54,6 @@ export default function FeedbackAssignedTo({feedbackIssue, feedbackEvent}: Props
       owners={owners}
       assigneeLoading={assigneeLoading}
       handleAssigneeChange={e => {
-        assign(e?.assignee as Actor);
         handleAssigneeChange(e);
       }}
     />
