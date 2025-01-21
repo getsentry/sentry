@@ -82,9 +82,10 @@ const formGroups: JsonFormObject[] = [
             }
           ),
         visible: ({features}) => features.has('event-attachments'),
-        placeholder: ({organization, value}) => {
+        placeholder: ({organization, name, model}) => {
+          const value = model.getValue(name);
           // empty value means that this project should inherit organization settings
-          if (value === '') {
+          if (value === null) {
             return tct('Inherit organization settings ([organizationValue])', {
               organizationValue: formatStoreCrashReports(organization.storeCrashReports),
             });

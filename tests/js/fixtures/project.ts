@@ -59,6 +59,7 @@ export function ProjectFixture(params: Partial<Project> = {}): Project {
     sensitiveFields: [],
     subjectTemplate: '',
     verifySSL: false,
+    storeCrashReports: null,
     ...params,
   };
 }
