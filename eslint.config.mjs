@@ -306,7 +306,7 @@ export default typescript.config([
     ...importPlugin.flatConfigs.recommended,
     name: 'plugin/import',
     rules: {
-      'import/consistent-type-specifier-style': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'import/consistent-type-specifier-style': ['off', 'prefer-top-level'], // TODO(ryan953): Fix violations and enable this rule
       'import/newline-after-import': 'error', // https://prettier.io/docs/en/rationale.html#empty-lines
       'import/no-absolute-path': 'error',
       'import/no-amd': 'error',
@@ -315,7 +315,7 @@ export default typescript.config([
       'import/no-named-default': 'error',
       'import/no-nodejs-modules': 'error',
       'import/no-webpack-loader-syntax': 'error',
-      'import/prefer-default-export': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'import/prefer-default-export': ['off', {target: 'single'}], // TODO(ryan953): Fix violations and enable this rule
 
       // https://github.com/import-js/eslint-plugin-import/blob/main/config/recommended.js
       ...importPlugin.flatConfigs.recommended.rules,
@@ -333,7 +333,7 @@ export default typescript.config([
     plugins: {'filename-export': filenameExport},
     rules: {
       'filename-export/match-named-export': 'off', // This is a hard one to enable, we have loads of files like: utils.tsx, styles.tsx, data.tsx...
-      'filename-export/match-default-export': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'filename-export/match-default-export': ['off', {casing: 'loose'}], // TODO(ryan953): Fix violations and enable this rule
     },
   },
   {
