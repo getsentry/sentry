@@ -49,7 +49,32 @@ export default storyBook(WidgetLayout, story => {
         </p>
 
         <CodeSnippet language="jsx">
-          {`
+          {`import {LineChartWidgetVisualization} from '../lineChartWidget/lineChartWidgetVisualization';
+import sampleDurationTimeSeries from '../lineChartWidget/sampleDurationTimeSeries.json';
+
+import {WidgetButton} from './widgetButton';
+import {WidgetDescription} from './widgetDescription';
+import {WidgetLayout} from './widgetLayout';
+import {WidgetTitle} from './widgetTitle';
+
+<WidgetLayout
+  Title={<WidgetTitle title="epm()" />}
+  Actions={
+    <Fragment>
+      <WidgetButton>Say More</WidgetButton>
+      <WidgetButton>Say Less</WidgetButton>
+      <WidgetDescription
+        title="epm()"
+        description="Events received, tracked per minute"
+      />
+    </Fragment>
+  }
+  Visualization={
+    <LineChartWidgetVisualization timeseries={[sampleDurationTimeSeries]} />
+  }
+  Caption={<p>This data is incomplete!</p>}
+/>
+
         `}
         </CodeSnippet>
 
@@ -69,7 +94,7 @@ export default storyBook(WidgetLayout, story => {
             Visualization={
               <LineChartWidgetVisualization timeseries={[sampleDurationTimeSeries]} />
             }
-            Caption={<Warning>This data is incomplete</Warning>}
+            Caption={<p>This data is incomplete!</p>}
           />
         </SmallSizingWindow>
       </Fragment>
@@ -80,9 +105,4 @@ export default storyBook(WidgetLayout, story => {
 const SmallSizingWindow = styled(SizingWindow)`
   width: 400px;
   height: 300px;
-`;
-
-const Warning = styled('p')`
-  margin: 0;
-  font-size: ${p => p.theme.fontSizeSmall};
 `;
