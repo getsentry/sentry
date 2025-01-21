@@ -4,13 +4,13 @@ import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingM
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {defined} from 'sentry/utils';
 import {
+  WidgetFrame,
+  type WidgetFrameProps,
+} from 'sentry/views/dashboards/widgets/common/widgetFrame';
+import {
   TimeSeriesWidgetVisualization,
   type TimeSeriesWidgetVisualizationProps,
 } from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
-import {
-  WidgetFrame,
-  type WidgetFrameProps,
-} from 'sentry/views/dashboards/widgets/widgetFrame/widgetFrame';
 
 import {MISSING_DATA_MESSAGE} from '../common/settings';
 import type {StateProps} from '../common/types';

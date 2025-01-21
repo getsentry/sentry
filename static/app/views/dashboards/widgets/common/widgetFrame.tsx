@@ -8,17 +8,20 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis, IconExpand, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-import {ErrorPanel} from '../common/errorPanel';
-import {WIDGET_RENDER_ERROR_MESSAGE} from '../common/settings';
-import {TooltipIconTrigger} from '../common/tooltipIconTrigger';
-import type {StateProps} from '../common/types';
-import {WarningsList} from '../common/warningsList';
+import {WidgetBadge} from '../widgetLayout/widgetBadge';
+import {WidgetButton} from '../widgetLayout/widgetButton';
+import {
+  WidgetDescription,
+  type WidgetDescriptionProps,
+} from '../widgetLayout/widgetDescription';
+import {WidgetLayout} from '../widgetLayout/widgetLayout';
+import {WidgetTitle} from '../widgetLayout/widgetTitle';
 
-import {WidgetBadge} from './widgetBadge';
-import {WidgetButton} from './widgetButton';
-import {WidgetDescription, type WidgetDescriptionProps} from './widgetDescription';
-import {WidgetLayout} from './widgetLayout';
-import {WidgetTitle} from './widgetTitle';
+import {ErrorPanel} from './errorPanel';
+import {WIDGET_RENDER_ERROR_MESSAGE} from './settings';
+import {TooltipIconTrigger} from './tooltipIconTrigger';
+import type {StateProps} from './types';
+import {WarningsList} from './warningsList';
 
 export interface WidgetFrameProps extends StateProps, WidgetDescriptionProps {
   actions?: MenuItemProps[];

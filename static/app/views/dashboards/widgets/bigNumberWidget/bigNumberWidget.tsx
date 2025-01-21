@@ -8,7 +8,7 @@ import {
 import {
   WidgetFrame,
   type WidgetFrameProps,
-} from 'sentry/views/dashboards/widgets/widgetFrame/widgetFrame';
+} from 'sentry/views/dashboards/widgets/common/widgetFrame';
 
 import {
   DEFAULT_FIELD,
