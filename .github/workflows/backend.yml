@@ -15,6 +15,9 @@ concurrency:
 # hack for https://github.com/actions/cache/issues/810#issuecomment-1222550359
 env:
   SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
+  # Disables sentry reporting for devservices
+  DISABLE_SENTRY: 1
+  SNUBA_NO_WORKERS: 1
 
 jobs:
   files-changed:
@@ -55,7 +58,8 @@ jobs:
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
-          snuba: true
+          use-new-devservices: true
+          mode: default
 
       - name: Run API docs tests
         # install ts-node for ts build scripts to execute properly without potentially installing
@@ -63,6 +67,10 @@ jobs:
         # see: https://github.com/getsentry/sentry/pull/32328/files
         run: |
           yarn add ts-node && make test-api-docs
+
+      - name: Inspect failure
+        if: failure()
+        run: devservices logs
 
   backend-test:
     if: needs.files-changed.outputs.backend == 'true'
@@ -94,19 +102,16 @@ jobs:
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
-          redis_cluster: true
-          kafka: true
-          snuba: true
-          symbolicator: true
-          # Right now, we run so few bigtable related tests that the
-          # overhead of running bigtable in all backend tests
-          # is way smaller than the time it would take to run in its own job.
-          bigtable: true
-          pg-version: ${{ matrix.pg-version }}
+          use-new-devservices: true
+          mode: backend-ci
 
       - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         run: |
           make test-python-ci
+
+      - name: Inspect failure
+        if: failure()
+        run: devservices logs
 
       - name: Collect test data
         uses: ./.github/actions/collect-test-data
@@ -145,12 +150,16 @@ jobs:
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
-          snuba: true
-          pg-version: ${{ matrix.pg-version }}
+          use-new-devservices: true
+          mode: default
 
       - name: run tests
         run: |
           PYTEST_ADDOPTS="$PYTEST_ADDOPTS -m migrations --migrations --reruns 0" make test-python-ci
+
+      - name: Inspect failure
+        if: failure()
+        run: devservices logs
 
       # Upload coverage data even if running the tests step fails since
       # it reduces large coverage fluctuations
@@ -177,11 +186,16 @@ jobs:
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
-          pg-version: ${{ matrix.pg-version }}
+          use-new-devservices: true
+          mode: migrations
 
       - name: Run test
         run: |
           make test-cli
+
+      - name: Inspect failure
+        if: failure()
+        run: devservices logs
 
       # Upload coverage data even if running the tests step fails since
       # it reduces large coverage fluctuations
@@ -242,7 +256,8 @@ jobs:
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
-          pg-version: ${{ matrix.pg-version }}
+          use-new-devservices: true
+          mode: migrations
 
       - name: Migration & lockfile checks
         env:
@@ -250,6 +265,10 @@ jobs:
           PGPASSWORD: postgres
         run: |
           ./.github/workflows/scripts/migration-check.sh
+
+      - name: Inspect failure
+        if: failure()
+        run: devservices logs
 
   monolith-dbs:
     if: needs.files-changed.outputs.backend == 'true'
@@ -266,10 +285,17 @@ jobs:
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
+        with:
+          use-new-devservices: true
+          mode: migrations
 
       - name: Run test
         run: |
           make test-monolith-dbs
+
+      - name: Inspect failure
+        if: failure()
+        run: devservices logs
 
       - name: Collect test data
         uses: ./.github/actions/collect-test-data
