@@ -67,10 +67,6 @@ class MessagingIntegrationCommand:
     def name(self) -> str:
         return self.interaction_type.value
 
-    @staticmethod
-    def _to_tokens(text: str) -> tuple[str, ...]:
-        return tuple(token.casefold() for token in text.strip().split())
-
     def get_all_command_slugs(self) -> Iterable[CommandSlug]:
         yield self.command_slug
         yield from self.aliases
