@@ -152,10 +152,21 @@ def get_trees_for_org(
         try:
             with lock.acquire():
                 if options.get("github-app.get-trees-refactored-code"):
-                    trees = installation.get_trees_for_org()
+                    if hasattr(installation, "get_trees_for_org"):
+                        trees = installation.get_trees_for_org()
+                    else:
+                        logger.error(
+                            "Installation missing get_trees_for_org method",
+                            extra={"installation_type": type(installation).__name__, **extra},
+                        )
                 else:
-                    # XXX: This is the old code that we're going to remove
-                    trees = installation.get_trees_for_org_old()
+                    if hasattr(installation, "get_trees_for_org_old"):
+                        trees = installation.get_trees_for_org_old()
+                    else:
+                        logger.error(
+                            "Installation missing get_trees_for_org_old method",
+                            extra={"installation_type": type(installation).__name__, **extra},
+                        )
         except ApiError as error:
             process_error(error, extra)
             lifecycle.record_halt(error, extra)
