@@ -89,6 +89,53 @@ class RepoTreesIntegration(ABC):
 
         return repositories
 
+    def _populate_trees_process_error(self, error: ApiError, extra: dict[str, str]) -> bool:
+        """
+        Log different messages based on the error received. Returns a boolean indicating whether
+        the error should count towards the connection errors tally.
+        """
+        msg = "Continuing execution."
+        should_count_error = False
+        error_message = error.text
+        if error.json:
+            json_data: Any = error.json
+            error_message = json_data.get("message")
+
+        # TODO: Add condition for  getsentry/DataForThePeople
+        # e.g. getsentry/nextjs-sentry-example
+        if error_message == "Git Repository is empty.":
+            logger.warning("The repository is empty. %s", msg, extra=extra)
+        elif error_message == "Not Found":
+            logger.warning("The app does not have access to the repo. %s", msg, extra=extra)
+        elif error_message == "Repository access blocked":
+            logger.warning("Github has blocked the repository. %s", msg, extra=extra)
+        elif error_message == "Server Error":
+            logger.warning("Github failed to respond. %s.", msg, extra=extra)
+            should_count_error = True
+        elif error_message == "Bad credentials":
+            logger.warning("No permission granted for this repo. %s.", msg, extra=extra)
+        elif error_message == "Connection reset by peer":
+            logger.warning("Connection reset by GitHub. %s.", msg, extra=extra)
+            should_count_error = True
+        elif error_message == "Connection broken: invalid chunk length":
+            logger.warning("Connection broken by chunk with invalid length. %s.", msg, extra=extra)
+            should_count_error = True
+        elif error_message and error_message.startswith("Unable to reach host:"):
+            logger.warning("Unable to reach host at the moment. %s.", msg, extra=extra)
+            should_count_error = True
+        elif error_message and error_message.startswith(
+            "Due to U.S. trade controls law restrictions, this GitHub"
+        ):
+            logger.warning("Github has blocked this org. We will not continue.", extra=extra)
+            # Raising the error will about the task and be handled at the task level
+            raise error
+        else:
+            # We do not raise the exception so we can keep iterating through the repos.
+            # Nevertheless, investigate the error to determine if we should abort the processing
+            logger.warning("Continuing execution. Investigate: %s", error_message, extra=extra)
+
+        return should_count_error
+
     def _populate_trees(self, repositories: Sequence[RepoAndBranch]) -> dict[str, RepoTree]:
         """
         For every repository, fetch the tree associated and cache it.
@@ -120,10 +167,10 @@ class RepoTreesIntegration(ABC):
                 # The Github API rate limit is reset every hour
                 # Spread the expiration of the cache of each repo across the day
                 trees[repo_full_name] = self._populate_tree(
-                    repo_and_branch, use_cache, (3600 * 24) + (3600 * (index % 24))
+                    repo_and_branch, use_cache, 3600 * (index % 24)
                 )
             except ApiError as error:
-                if _process_api_error(error):
+                if self._populate_trees_process_error(error, extra):
                     connection_error_count += 1
             except Exception:
                 # Report for investigation but do not stop processing
@@ -141,10 +188,14 @@ class RepoTreesIntegration(ABC):
 
         return trees
 
-    def _populate_tree(self, repo_and_branch: RepoAndBranch, only_use_cache: bool) -> RepoTree:
+    def _populate_tree(
+        self, repo_and_branch: RepoAndBranch, only_use_cache: bool, shifted_seconds: int
+    ) -> RepoTree:
         full_name = repo_and_branch.name
         branch = repo_and_branch.branch
-        repo_files = self.get_cached_repo_files(full_name, branch, only_use_cache=only_use_cache)
+        repo_files = self.get_cached_repo_files(
+            full_name, branch, shifted_seconds, only_use_cache=only_use_cache
+        )
         return RepoTree(repo_and_branch, repo_files)
 
     # https://docs.github.com/en/rest/git/trees#get-a-tree
@@ -175,6 +226,7 @@ class RepoTreesIntegration(ABC):
         self,
         repo_full_name: str,
         tree_sha: str,
+        shifted_seconds: int,
         only_source_code_files: bool = True,
         only_use_cache: bool = False,
     ) -> list[str]:
@@ -202,7 +254,7 @@ class RepoTreesIntegration(ABC):
                 # the cost of not having cached the files cached for those
                 # repositories is a single GH API network request, thus,
                 # being acceptable to sometimes not having everything cached
-                cache.set(key, repo_files, self.CACHE_SECONDS)
+                cache.set(key, repo_files, self.CACHE_SECONDS + shifted_seconds)
 
         return repo_files
 
@@ -226,43 +278,6 @@ class RepoTreesClient(ABC):
         self, query: str | None = None, fetch_max_pages: bool = False
     ) -> Sequence[Any]:
         raise NotImplementedError
-
-
-def _process_api_error(error: ApiError) -> bool:
-    """
-    Determine if the error should be logged and if it should count towards the connection errors tally.
-    Raise an error if you want to stop the task.
-    """
-    error_message = error.json.get("message") if error.json else error.text
-    if not error_message:
-        return False
-
-    logger.warning(error_message)
-    if error_message in (
-        "Git Repository is empty.",
-        "Not Found",
-        "Repository access blocked",
-        "Bad credentials",
-    ):
-        return False
-    elif error_message in (
-        "Server Error",
-        "Bad credentials",
-        "Connection reset by peer",
-        "Connection broken: invalid chunk length",
-        "Unable to reach host:",
-    ):
-        return True
-    elif error_message.startswith("Due to U.S. trade controls"):
-        # TODO: We should NOT call the task for this org for a number of days or months
-        # Raising the error will cause the task to be handled at the task level
-        raise error
-    else:
-        # We do not raise the exception so we can keep iterating through the repos.
-        # Nevertheless, investigate the error to determine if we should abort the processing
-        logger.warning("Continuing execution. Investigate: %s", error_message)
-
-    return True
 
 
 def filter_source_code_files(files: list[str]) -> list[str]:

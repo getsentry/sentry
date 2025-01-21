@@ -8,7 +8,7 @@ from typing import Any, cast
 import orjson
 import sentry_sdk
 from requests import PreparedRequest
-from sentry_sdk import capture_exception, capture_message
+from sentry_sdk import capture_exception
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.blame import (
@@ -438,8 +438,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
         else:
             # We do not raise the exception so we can keep iterating through the repos.
             # Nevertheless, investigate the error to determine if we should abort the processing
-            sentry_sdk.set_context("extra", extra)
-            capture_message(f"Continuing execution. Investigate: {error_message}")
+            logger.warning("Continuing execution. Investigate: %s", error_message, extra=extra)
 
         return should_count_error
 
