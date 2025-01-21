@@ -51,14 +51,6 @@ class SlackChannelIdData:
     timed_out: bool
 
 
-# Different list types in slack that we'll use to resolve a channel name. Format is
-# (<list_name>, <result_name>, <prefix>).
-LIST_TYPES: list[tuple[str, str, str]] = [
-    ("conversations", "channels", CHANNEL_PREFIX),
-    ("users", "members", MEMBER_PREFIX),
-]
-
-
 def strip_channel_name(name: str) -> str:
     return name.lstrip(strip_channel_chars)
 
