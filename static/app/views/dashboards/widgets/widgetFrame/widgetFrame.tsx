@@ -7,7 +7,7 @@ import {HeaderTitle} from 'sentry/components/charts/styles';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconEllipsis, IconExpand, IconInfo, IconWarning} from 'sentry/icons';
+import {IconEllipsis, IconInfo, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
@@ -17,6 +17,7 @@ import {TooltipIconTrigger} from '../common/tooltipIconTrigger';
 import type {StateProps} from '../common/types';
 import {WarningsList} from '../common/warningsList';
 
+import {FullScreenViewButton} from './fullScreenViewButton';
 import {WidgetLayout} from './widgetLayout';
 
 export interface WidgetFrameProps extends StateProps {
@@ -148,11 +149,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
           )}
 
           {shouldShowFullScreenViewButton && (
-            <Button
-              aria-label={t('Open Full-Screen View')}
-              borderless
-              size="xs"
-              icon={<IconExpand />}
+            <FullScreenViewButton
               onClick={() => {
                 props.onFullScreenViewClick?.();
               }}
