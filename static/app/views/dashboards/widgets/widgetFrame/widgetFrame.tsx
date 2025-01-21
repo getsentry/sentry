@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 
-import Badge, {type BadgeProps} from 'sentry/components/badge/badge';
+import type {BadgeProps} from 'sentry/components/badge/badge';
 import {Button, LinkButton} from 'sentry/components/button';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -18,6 +17,7 @@ import {WarningsList} from '../common/warningsList';
 import {DescriptionTooltip, type DescriptionTooltipProps} from './descriptionTooltip';
 import {FullScreenViewButton} from './fullScreenViewButton';
 import {TitleTooltip} from './titleTooltip';
+import {WidgetBadge} from './widgetBadge';
 import {WidgetLayout} from './widgetLayout';
 
 export interface WidgetFrameProps extends StateProps, DescriptionTooltipProps {
@@ -71,7 +71,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
 
           {props.badgeProps &&
             (Array.isArray(props.badgeProps) ? props.badgeProps : [props.badgeProps]).map(
-              (currentBadgeProps, i) => <RigidBadge key={i} {...currentBadgeProps} />
+              (currentBadgeProps, i) => <WidgetBadge key={i} {...currentBadgeProps} />
             )}
         </Fragment>
       }
@@ -166,7 +166,3 @@ function TitleActionsWrapper({disabled, disabledMessage, children}: TitleActions
     </Tooltip>
   );
 }
-
-const RigidBadge = styled(Badge)`
-  flex-shrink: 0;
-`;
