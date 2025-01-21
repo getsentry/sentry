@@ -30,7 +30,7 @@ function LastUptimeIncident({rule}: {rule: UptimeAlert}) {
 function LastCronMonitorIncident({rule}: {rule: CronRule}) {
   // TODO(evanpurkhiser): Would probably be better if we had a way to get the
   // most recent incident.
-  return tct('Expected every [interval]', {
+  return tct('Expected [interval]', {
     interval: scheduleAsText(rule.config),
   });
 }
