@@ -16,7 +16,7 @@ export function clearAssignment(
   groupId: string,
   orgSlug: string,
   assignedBy: AssignedBy
-) {
+): Promise<Group> {
   const api = new Client();
 
   const endpoint = `/organizations/${orgSlug}/issues/${groupId}/`;
@@ -39,9 +39,11 @@ export function clearAssignment(
   request
     .then(data => {
       GroupStore.onAssignToSuccess(id, groupId, data);
+      return data;
     })
     .catch(data => {
       GroupStore.onAssignToError(id, groupId, data);
+      throw data;
     });
 
   return request;
@@ -57,7 +59,12 @@ type AssignToActorParams = {
   orgSlug: string;
 };
 
-export function assignToActor({id, actor, assignedBy, orgSlug}: AssignToActorParams) {
+export function assignToActor({
+  id,
+  actor,
+  assignedBy,
+  orgSlug,
+}: AssignToActorParams): Promise<Group> {
   const api = new Client();
 
   const endpoint = `/organizations/${orgSlug}/issues/${id}/`;
@@ -90,9 +97,11 @@ export function assignToActor({id, actor, assignedBy, orgSlug}: AssignToActorPar
     })
     .then(data => {
       GroupStore.onAssignToSuccess(guid, id, data);
+      return data;
     })
     .catch(data => {
       GroupStore.onAssignToSuccess(guid, id, data);
+      throw data;
     });
 }
 
