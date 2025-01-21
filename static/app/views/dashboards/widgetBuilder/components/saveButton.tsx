@@ -1,7 +1,11 @@
 import {useCallback, useState} from 'react';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
-import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  clearIndicators,
+} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
 import {t} from 'sentry/locale';
 import useApi from 'sentry/utils/useApi';
@@ -33,6 +37,7 @@ function SaveButton({isEditing, onSave, setError}: SaveButtonProps) {
       onSave({index: Number(widgetIndex), widget});
     } catch (error) {
       setIsSaving(false);
+      clearIndicators();
       const errorDetails = error.responseJSON || error;
       setError(errorDetails);
       addErrorMessage(t('Unable to save widget'));
