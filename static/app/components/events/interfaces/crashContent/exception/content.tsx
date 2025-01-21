@@ -227,10 +227,6 @@ export function Content({
     );
   });
 
-  if (newestFirst) {
-    children.reverse();
-  }
-
   return <div>{children}</div>;
 }
 
