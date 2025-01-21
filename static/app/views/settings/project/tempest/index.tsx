@@ -6,6 +6,8 @@ import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
+import List from 'sentry/components/list';
+import ListItem from 'sentry/components/list/listItem';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -82,13 +84,13 @@ export default function TempestSettings({organization, project}: Props) {
       {credentialErrors && credentialErrors?.length > 0 && (
         <Alert type="error" showIcon>
           {t('There was a problem with following credentials:')}
-          <ul>
+          <List symbol="bullet">
             {credentialErrors.map(credential => (
-              <li key={credential.id}>
+              <ListItem key={credential.id}>
                 {credential.clientId} - {credential.message}
-              </li>
+              </ListItem>
             ))}
-          </ul>
+          </List>
         </Alert>
       )}
 
