@@ -3,8 +3,8 @@ from rest_framework.response import Response
 
 from sentry import options
 from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
-from sentry.api.permissions import SentryPermission
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.utils.marketo_client import MarketoClient
 
@@ -17,10 +17,12 @@ class EmailCaptureSerialier(CamelSnakeSerializer):
 
 @region_silo_endpoint
 class EmailCaptureEndpoint(Endpoint):
-    # Disable authentication and permission requirements.
-    permission_classes = (SentryPermission,)
-
+    publish_status = {
+        "POST": ApiPublishStatus.PRIVATE,
+    }
     owner = ApiOwner.TELEMETRY_EXPERIENCE
+    # Disable authentication and permission requirements.
+    permission_classes = ()
 
     def post(self, request):
         if not options.get("demo-mode.enabled"):
