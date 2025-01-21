@@ -27,7 +27,7 @@ describe('WidgetBuilderGroupBySelector', function () {
     render(
       <WidgetBuilderProvider>
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
-          <WidgetBuilderGroupBySelector />
+          <WidgetBuilderGroupBySelector validatedWidgetResponse={{} as any} />
         </SpanTagsProvider>
       </WidgetBuilderProvider>
     );
@@ -41,7 +41,7 @@ describe('WidgetBuilderGroupBySelector', function () {
     render(
       <WidgetBuilderProvider>
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
-          <WidgetBuilderGroupBySelector />
+          <WidgetBuilderGroupBySelector validatedWidgetResponse={{} as any} />
         </SpanTagsProvider>
       </WidgetBuilderProvider>
     );

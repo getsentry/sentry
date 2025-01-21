@@ -33,7 +33,10 @@ describe('QueryFilterBuilder', () => {
   it('renders a dataset-specific query filter bar', async () => {
     render(
       <WidgetBuilderProvider>
-        <WidgetBuilderQueryFilterBuilder onQueryConditionChange={() => {}} />
+        <WidgetBuilderQueryFilterBuilder
+          onQueryConditionChange={() => {}}
+          validatedWidgetResponse={{} as any}
+        />
       </WidgetBuilderProvider>,
       {
         organization,
@@ -54,7 +57,10 @@ describe('QueryFilterBuilder', () => {
 
     render(
       <WidgetBuilderProvider>
-        <WidgetBuilderQueryFilterBuilder onQueryConditionChange={() => {}} />
+        <WidgetBuilderQueryFilterBuilder
+          onQueryConditionChange={() => {}}
+          validatedWidgetResponse={{} as any}
+        />
       </WidgetBuilderProvider>,
       {
         organization,
@@ -77,7 +83,10 @@ describe('QueryFilterBuilder', () => {
   it('renders a legend alias input for charts', async () => {
     render(
       <WidgetBuilderProvider>
-        <WidgetBuilderQueryFilterBuilder onQueryConditionChange={() => {}} />
+        <WidgetBuilderQueryFilterBuilder
+          onQueryConditionChange={() => {}}
+          validatedWidgetResponse={{} as any}
+        />
       </WidgetBuilderProvider>,
       {
         organization,
@@ -99,7 +108,10 @@ describe('QueryFilterBuilder', () => {
   it('limits number of filter queries to 3', async () => {
     render(
       <WidgetBuilderProvider>
-        <WidgetBuilderQueryFilterBuilder onQueryConditionChange={() => {}} />
+        <WidgetBuilderQueryFilterBuilder
+          onQueryConditionChange={() => {}}
+          validatedWidgetResponse={{} as any}
+        />
       </WidgetBuilderProvider>,
       {
         organization,
