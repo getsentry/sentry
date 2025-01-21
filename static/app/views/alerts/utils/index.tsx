@@ -220,7 +220,7 @@ export function getTeamParams(team?: string | string[]): string[] {
 }
 
 /**
- * Normalize a alert type string
+ * Normalize an alert type string
  */
 export function getQueryAlertType(alertType?: string | string[]): CombinedAlertType[] {
   if (alertType === undefined) {
