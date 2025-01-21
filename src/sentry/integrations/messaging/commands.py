@@ -76,28 +76,26 @@ class MessagingIntegrationCommand:
         yield from self.aliases
 
 
-MESSAGING_INTEGRATION_COMMANDS = (
-    HELP := MessagingIntegrationCommand(
-        MessagingInteractionType.HELP,
-        "help",
-        aliases=("", "support", "docs"),
-    ),
-    LINK_IDENTITY := MessagingIntegrationCommand(
-        MessagingInteractionType.LINK_IDENTITY,
-        "link",
-    ),
-    UNLINK_IDENTITY := MessagingIntegrationCommand(
-        MessagingInteractionType.UNLINK_IDENTITY,
-        "unlink",
-    ),
-    LINK_TEAM := MessagingIntegrationCommand(
-        MessagingInteractionType.LINK_TEAM,
-        "link team",
-    ),
-    UNLINK_TEAM := MessagingIntegrationCommand(
-        MessagingInteractionType.UNLINK_TEAM,
-        "unlink team",
-    ),
+HELP = MessagingIntegrationCommand(
+    MessagingInteractionType.HELP,
+    "help",
+    aliases=("", "support", "docs"),
+)
+LINK_IDENTITY = MessagingIntegrationCommand(
+    MessagingInteractionType.LINK_IDENTITY,
+    "link",
+)
+UNLINK_IDENTITY = MessagingIntegrationCommand(
+    MessagingInteractionType.UNLINK_IDENTITY,
+    "unlink",
+)
+LINK_TEAM = MessagingIntegrationCommand(
+    MessagingInteractionType.LINK_TEAM,
+    "link team",
+)
+UNLINK_TEAM = MessagingIntegrationCommand(
+    MessagingInteractionType.UNLINK_TEAM,
+    "unlink team",
 )
 
 R = TypeVar("R")  # response
