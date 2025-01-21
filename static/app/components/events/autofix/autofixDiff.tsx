@@ -4,12 +4,14 @@ import {type Change, diffWords} from 'diff';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
+import AutofixHighlightPopup from 'sentry/components/events/autofix/autofixHighlightPopup';
 import {
   type DiffLine,
   DiffLineType,
   type FilePatch,
 } from 'sentry/components/events/autofix/types';
 import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
+import {useTextSelection} from 'sentry/components/events/autofix/useTextSelection';
 import TextArea from 'sentry/components/forms/controls/textarea';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {IconChevron, IconClose, IconDelete, IconEdit} from 'sentry/icons';
@@ -23,6 +25,8 @@ type AutofixDiffProps = {
   editable: boolean;
   groupId: string;
   runId: string;
+  previousDefaultStepIndex?: number;
+  previousInsightCount?: number;
   repoId?: string;
 };
 
@@ -539,24 +543,53 @@ function FileDiff({
   );
 }
 
-export function AutofixDiff({diff, groupId, runId, repoId, editable}: AutofixDiffProps) {
+export function AutofixDiff({
+  diff,
+  groupId,
+  runId,
+  repoId,
+  editable,
+  previousDefaultStepIndex,
+  previousInsightCount,
+}: AutofixDiffProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const selection = useTextSelection(containerRef);
+
   if (!diff || !diff.length) {
     return null;
   }
 
   return (
-    <DiffsColumn>
-      {diff.map(file => (
-        <FileDiff
-          key={file.path}
-          file={file}
+    <div>
+      {selection && (
+        <AutofixHighlightPopup
+          selectedText={selection.selectedText}
+          referenceElement={selection.referenceElement}
           groupId={groupId}
           runId={runId}
-          repoId={repoId}
-          editable={editable}
+          stepIndex={previousDefaultStepIndex ?? 0}
+          retainInsightCardIndex={
+            previousInsightCount !== undefined && previousInsightCount >= 0
+              ? previousInsightCount - 1
+              : -1
+          }
         />
-      ))}
-    </DiffsColumn>
+      )}
+      <div ref={containerRef}>
+        <DiffsColumn>
+          {diff.map(file => (
+            <FileDiff
+              key={file.path}
+              file={file}
+              groupId={groupId}
+              runId={runId}
+              repoId={repoId}
+              editable={editable}
+            />
+          ))}
+        </DiffsColumn>
+      </div>
+    </div>
   );
 }
 

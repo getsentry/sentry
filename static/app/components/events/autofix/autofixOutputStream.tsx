@@ -8,7 +8,6 @@ import {Button} from 'sentry/components/button';
 import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
 import Input from 'sentry/components/input';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {singleLineRenderer} from 'sentry/utils/marked';
@@ -159,7 +158,7 @@ export function AutofixOutputStream({
             },
           })}
         >
-          <StyledArrow direction="down" size="sm" />
+          <VerticalLine />
           <Container layout $required={responseRequired}>
             {activeLog && (
               <ActiveLogWrapper>
@@ -185,7 +184,7 @@ export function AutofixOutputStream({
                 required={responseRequired}
               />
               <StyledButton type="submit" borderless>
-                Send
+                {'>'}
               </StyledButton>
             </InputWrapper>
           </Container>
@@ -198,8 +197,9 @@ export function AutofixOutputStream({
 const Wrapper = styled(motion.div)`
   display: flex;
   flex-direction: column;
-  align-items: center;
-  margin: ${space(1)} ${space(4)};
+  align-items: flex-start;
+  margin-bottom: ${space(1)};
+  margin-right: ${space(2)};
   gap: ${space(1)};
   overflow: hidden;
 `;
@@ -208,9 +208,9 @@ const ScaleContainer = styled(motion.div)`
   width: 100%;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: ${space(1)};
-  transform-origin: top center;
+  align-items: flex-start;
+  transform-origin: top left;
+  padding-left: ${space(2)};
 `;
 
 const Container = styled(motion.div)<{$required: boolean}>`
@@ -262,9 +262,13 @@ const ActiveLog = styled('div')`
   flex-grow: 1;
 `;
 
-const StyledArrow = styled(IconArrow)`
-  color: ${p => p.theme.subText};
+const VerticalLine = styled('div')`
+  width: 0;
+  height: ${space(4)};
+  border-left: 2px dashed ${p => p.theme.pink400};
   opacity: 0.5;
+  margin-left: 17px;
+  margin-bottom: -1px;
 `;
 
 const InputWrapper = styled('form')`
@@ -290,5 +294,5 @@ const StyledButton = styled(Button)`
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
-  margin: 0;
+  margin: 0 0 0 ${space(0.5)};
 `;
