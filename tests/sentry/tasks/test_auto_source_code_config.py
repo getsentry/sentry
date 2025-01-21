@@ -19,11 +19,17 @@ from sentry.tasks.auto_source_code_config import (
 )
 from sentry.testutils.asserts import assert_failure_metric, assert_halt_metric
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.locking import UnableToAcquireLock
 
 pytestmark = [requires_snuba]
+
+OLD_CODE_PATH = (
+    "sentry.integrations.source_code_management.repo_trees.RepoTreesIntegration.get_trees_for_org"
+)
+NEW_CODE_PATH = "sentry.integrations.github.GitHubIntegration.get_trees_for_org"
 
 
 class BaseDeriveCodeMappings(TestCase):
@@ -54,19 +60,23 @@ class TestTaskBehavior(BaseDeriveCodeMappings):
         super().setUp()
         self.event = self.create_event([{"filename": "foo.py", "in_app": True}])
 
-    def test_does_not_raise_installation_removed(self, mock_record):
+    def test_does_not_raise_installation_removed(self, mock_record, refactored_code_enabled):
         error = ApiError(
             '{"message":"Not Found","documentation_url":"https://docs.github.com/rest/reference/apps#create-an-installation-access-token-for-an-app"}'
         )
-        with patch(
-            "sentry.integrations.source_code_management.repo_trees.RepoTreesIntegration.get_trees_for_org",
-            side_effect=error,
-        ):
-            assert (
-                auto_source_code_config(self.project.id, self.event.event_id, self.event.group_id)
-                is None
-            )
-            assert_halt_metric(mock_record, error)
+        for refactored_code_enabled in [True, False]:
+            with (
+                override_options({"github-app.get-trees-refactored-code": refactored_code_enabled}),
+                patch(OLD_CODE_PATH, side_effect=error),
+                patch(NEW_CODE_PATH, side_effect=error),
+            ):
+                assert (
+                    auto_source_code_config(
+                        self.project.id, self.event.event_id, self.event.group_id
+                    )
+                    is None
+                )
+                assert_halt_metric(mock_record, error)
 
     @patch("sentry.tasks.auto_source_code_config.logger")
     def test_raises_other_api_errors(self, mock_logger, mock_record):

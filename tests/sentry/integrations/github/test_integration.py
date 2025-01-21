@@ -30,7 +30,7 @@ from sentry.integrations.source_code_management.commit_context import (
     FileBlameInfo,
     SourceLineInfo,
 )
-from sentry.issues.auto_source_code_config.code_mapping import Repo, RepoTree
+from sentry.integrations.source_code_management.repo_trees import RepoAndBranch, RepoTree
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.organizations.absolute_url import generate_organization_url
@@ -826,7 +826,9 @@ class GitHubIntegrationTest(IntegrationTestCase):
             ("foo", "master", ["src/sentry/api/endpoints/auth_login.py"]),
         ]
         for repo, branch, files in list:
-            result[f"{self.gh_org}/{repo}"] = RepoTree(Repo(f"{self.gh_org}/{repo}", branch), files)
+            result[f"{self.gh_org}/{repo}"] = RepoTree(
+                RepoAndBranch(f"{self.gh_org}/{repo}", branch), files
+            )
         return result
 
     def _expected_cached_repos(self):
