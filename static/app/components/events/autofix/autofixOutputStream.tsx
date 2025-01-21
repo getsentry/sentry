@@ -42,15 +42,17 @@ export function AutofixOutputStream({
   responseRequired = false,
   isProcessing = false,
 }: Props) {
+  const api = useApi({persistInFlight: true});
+  const queryClient = useQueryClient();
+
   const [displayedText, setDisplayedText] = useState('');
   const [displayedActiveLog, setDisplayedActiveLog] = useState('');
+  const [message, setMessage] = useState('');
+
   const previousText = useRef('');
   const previousActiveLog = useRef('');
   const currentIndexRef = useRef(0);
   const activeLogIndexRef = useRef(0);
-  const [message, setMessage] = useState('');
-  const api = useApi({persistInFlight: true});
-  const queryClient = useQueryClient();
 
   const {mutate: send} = useMutation({
     mutationFn: (params: {message: string}) => {
