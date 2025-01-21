@@ -1,7 +1,10 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   PageParamsProvider,
@@ -20,7 +23,15 @@ import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {SpanTagsProvider} from '../contexts/spanTagsContext';
 
 describe('ExploreToolbar', function () {
-  const organization = OrganizationFixture();
+  const organization = OrganizationFixture({features: ['alerts-eap', 'dashboards-eap']});
+
+  const project = ProjectFixture({
+    id: '1',
+    slug: 'proj-slug',
+    organization,
+  });
+
+  ProjectsStore.loadInitialData([project]);
 
   beforeEach(function () {
     // without this the `CompactSelect` component errors with a bunch of async updates
@@ -450,5 +461,42 @@ describe('ExploreToolbar', function () {
         ],
       })
     );
+  });
+  it('opens the right alert', async function () {
+    const router = RouterFixture({
+      location: {
+        pathname: '/traces/',
+        query: {
+          project: '1',
+          statsPeriod: '1h',
+          visualize: '%7B"chartType"%3A1%2C"yAxes"%3A%5B"avg%28span.duration%29"%5D%7D',
+        },
+      },
+    });
+
+    function Component() {
+      return <ExploreToolbar />;
+    }
+    render(
+      <PageParamsProvider>
+        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+          <Component />
+        </SpanTagsProvider>
+      </PageParamsProvider>,
+      {router, organization}
+    );
+
+    const section = screen.getByTestId('section-save-as');
+
+    await userEvent.click(within(section).getByText(/Save as/));
+    await userEvent.click(within(section).getByText('Create an alert for'));
+    // await within(section).findByText(/span.duration/);
+    // await userEvent.click(within(section).getByText('avg(span.duration)'));
+    // await screen.findByText(/span.duration/);
+    // await userEvent.click(screen.getByText('avg(span.duration)'));
+    // expect(router.push).toHaveBeenCalledWith({
+    //   pathname: '/alerts/',
+    //   state: undefined,
+    // });
   });
 });
