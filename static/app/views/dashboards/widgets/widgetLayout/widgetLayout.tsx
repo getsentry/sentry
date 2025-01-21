@@ -11,11 +11,12 @@ export interface WidgetLayoutProps {
   Title?: React.ReactNode;
   Visualization?: React.ReactNode;
   ariaLabel?: string;
+  height?: number;
 }
 
 export function WidgetLayout(props: WidgetLayoutProps) {
   return (
-    <Frame aria-label={props.ariaLabel}>
+    <Frame aria-label={props.ariaLabel} height={props.height}>
       <Header>
         {props.Title && <Fragment>{props.Title}</Fragment>}
         {props.Actions && <TitleHoverItems>{props.Actions}</TitleHoverItems>}
@@ -42,12 +43,12 @@ const TitleHoverItems = styled('div')`
   transition: opacity 0.1s;
 `;
 
-const Frame = styled('div')`
+const Frame = styled('div')<{height?: number}>`
   position: relative;
   display: flex;
   flex-direction: column;
 
-  height: 100%;
+  height: ${p => (p.height ? `${p.height}px` : '100%')};
   min-height: ${MIN_HEIGHT}px;
   width: 100%;
   min-width: ${MIN_WIDTH}px;
