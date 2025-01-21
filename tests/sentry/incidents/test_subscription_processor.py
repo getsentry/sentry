@@ -464,7 +464,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         processor = self.send_update(rule, 5, timedelta(minutes=-3))
 
         assert mock_seer_request.call_args.args[0] == "POST"
-        assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL + "?"
+        assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL
         deserialized_body = json.loads(mock_seer_request.call_args.kwargs["body"])
         assert deserialized_body["organization_id"] == self.sub.project.organization.id
         assert deserialized_body["project_id"] == self.sub.project_id
@@ -505,7 +505,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         processor = self.send_update(rule, 10, timedelta(minutes=-2))
 
         assert mock_seer_request.call_args.args[0] == "POST"
-        assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL + "?"
+        assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL
         deserialized_body = json.loads(mock_seer_request.call_args.kwargs["body"])
         assert deserialized_body["organization_id"] == self.sub.project.organization.id
         assert deserialized_body["project_id"] == self.sub.project_id
@@ -543,7 +543,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         processor = self.send_update(rule, 1, timedelta(minutes=-1))
 
         assert mock_seer_request.call_args.args[0] == "POST"
-        assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL + "?"
+        assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL
         deserialized_body = json.loads(mock_seer_request.call_args.kwargs["body"])
         assert deserialized_body["organization_id"] == self.sub.project.organization.id
         assert deserialized_body["project_id"] == self.sub.project_id
@@ -592,7 +592,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         processor = self.send_update(throughput_rule, 10, timedelta(minutes=-2))
 
         assert mock_seer_request.call_args.args[0] == "POST"
-        assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL + "?"
+        assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL
         deserialized_body = json.loads(mock_seer_request.call_args.kwargs["body"])
         assert deserialized_body["organization_id"] == self.sub.project.organization.id
         assert deserialized_body["project_id"] == self.sub.project_id
@@ -633,7 +633,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         processor = self.send_update(throughput_rule, 1, timedelta(minutes=-1))
 
         assert mock_seer_request.call_args.args[0] == "POST"
-        assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL + "?"
+        assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL
         deserialized_body = json.loads(mock_seer_request.call_args.kwargs["body"])
         assert deserialized_body["organization_id"] == self.sub.project.organization.id
         assert deserialized_body["project_id"] == self.sub.project_id
