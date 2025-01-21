@@ -11,10 +11,17 @@ import {
   createOnDemandFilterWarning,
   shouldDisplayOnDemandWidgetWarning,
 } from 'sentry/utils/onDemandMetrics';
+import type {UseApiQueryResult} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
-import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {
+  DisplayType,
+  type ValidateWidgetResponse,
+  WidgetType,
+} from 'sentry/views/dashboards/types';
+import {WidgetOnDemandQueryWarning} from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
@@ -23,15 +30,16 @@ import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder
 
 interface WidgetBuilderQueryFilterBuilderProps {
   onQueryConditionChange: (valid: boolean) => void;
+  validatedWidgetResponse: UseApiQueryResult<ValidateWidgetResponse, RequestError>;
 }
 
 function WidgetBuilderQueryFilterBuilder({
   onQueryConditionChange,
+  validatedWidgetResponse,
 }: WidgetBuilderQueryFilterBuilderProps) {
   const {state, dispatch} = useWidgetBuilderContext();
   const {selection} = usePageFilters();
   const organization = useOrganization();
-
   const [queryConditionValidity, setQueryConditionValidity] = useState<boolean[]>(() => {
     // Make a validity entry for each query condition initially
     return state.query?.map(() => true) ?? [];
@@ -166,6 +174,17 @@ function WidgetBuilderQueryFilterBuilder({
                     : [e.target.value],
                 });
               }}
+            />
+          )}
+          {shouldDisplayOnDemandWidgetWarning(
+            widget.queries[index]!,
+            widgetType,
+            organization
+          ) && (
+            <WidgetOnDemandQueryWarning
+              query={widget.queries[index]!}
+              validatedWidgetResponse={validatedWidgetResponse}
+              queryIndex={index}
             />
           )}
           {state.query && state.query?.length > 1 && (
