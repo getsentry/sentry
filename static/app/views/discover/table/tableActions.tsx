@@ -137,7 +137,7 @@ function FeatureWrapper(props: FeatureWrapperProps) {
   const noEditMessage = t('Requires discover query feature.');
   const editFeatures = ['organizations:discover-query'];
 
-  const renderDisabled = p => (
+  const renderDisabled = (p: any) => (
     <Hovercard
       body={
         <FeatureDisabled

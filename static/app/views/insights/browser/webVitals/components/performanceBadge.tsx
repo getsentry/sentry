@@ -20,7 +20,7 @@ export function PerformanceBadge({score}: Props) {
   );
 }
 
-export const Badge = styled('div')<{status: string}>`
+export const Badge = styled('div')<{status: keyof typeof PERFORMANCE_SCORE_COLORS}>`
   white-space: nowrap;
   border-radius: 12px;
   color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].normal]};

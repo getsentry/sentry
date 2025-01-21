@@ -160,7 +160,9 @@ export const SummaryTable = memo(function SummaryTable({
           ? a.seriesName.localeCompare(b.seriesName)
           : b.seriesName.localeCompare(a.seriesName);
       }
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const aValue = a[name] ?? 0;
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const bValue = b[name] ?? 0;
 
       return order === 'asc' ? aValue - bValue : bValue - aValue;
@@ -251,8 +253,11 @@ export const SummaryTable = memo(function SummaryTable({
                 </TextOverflowCell>
                 {totalColumns.map(aggregate => (
                   <NumberCell key={aggregate}>
-                    {row[aggregate]
-                      ? formatMetricUsingUnit(row[aggregate], row.unit)
+                    {row[aggregate as keyof typeof row]
+                      ? formatMetricUsingUnit(
+                          row[aggregate as keyof typeof row] as number | null,
+                          row.unit
+                        )
                       : '\u2014'}
                   </NumberCell>
                 ))}

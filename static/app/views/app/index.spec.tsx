@@ -9,7 +9,7 @@ import HookStore from 'sentry/stores/hookStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import App from 'sentry/views/app';
 
-function HookWrapper(props) {
+function HookWrapper(props: any) {
   return (
     <div data-test-id="hook-wrapper">
       {props.children}

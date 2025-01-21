@@ -10,7 +10,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 describe('SearchBar', () => {
-  let eventsMock;
+  let eventsMock: any;
   const organization = OrganizationFixture();
 
   const testProps: SearchBarProps = {

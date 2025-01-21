@@ -1,3 +1,4 @@
+import type {ReactElement} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RRWebInitFrameEventsFixture} from 'sentry-fixture/replay/rrweb';
@@ -53,7 +54,7 @@ mockUseLoadReplayReader.mockImplementation(() => {
   };
 });
 
-const render: typeof baseRender = children => {
+const render = (children: ReactElement) => {
   const {router} = initializeOrg({
     router: {
       routes: [

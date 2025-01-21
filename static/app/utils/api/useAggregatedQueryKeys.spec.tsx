@@ -15,8 +15,8 @@ function makeWrapper(queryClient: QueryClient) {
 }
 
 describe('useAggregatedQueryKeys', () => {
-  let responseReducer;
-  let initialProps;
+  let responseReducer: any;
+  let initialProps: any;
 
   beforeEach(() => {
     responseReducer = jest.fn((prevState: any, response: ApiResult) => {

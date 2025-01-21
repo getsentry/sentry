@@ -45,7 +45,7 @@ export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualization
   // TODO: meta as MetaType is a white lie. `MetaType` doesn't know that types can be null, but they can!
   const fieldRenderer = meta
     ? getFieldRenderer(field, meta as MetaType, false)
-    : renderableValue => renderableValue.toString();
+    : (renderableValue: any) => renderableValue.toString();
 
   const unit = meta?.units?.[field];
   const type = meta?.fields?.[field];
@@ -133,7 +133,7 @@ export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualization
   );
 }
 
-function Wrapper({children}) {
+function Wrapper({children}: any) {
   return (
     <AutoResizeParent>
       <AutoSizedText>{children}</AutoSizedText>

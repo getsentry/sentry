@@ -63,11 +63,11 @@ const PanelsContainer = styled('div')`
   flex-grow: 1;
 `;
 
-function Chart({children}) {
+function Chart({children}: any) {
   return <ChartContainer>{children}</ChartContainer>;
 }
 
-function Panels({children}) {
+function Panels({children}: any) {
   return <PanelsContainer>{children}</PanelsContainer>;
 }
 

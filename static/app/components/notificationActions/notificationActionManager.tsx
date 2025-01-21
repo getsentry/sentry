@@ -113,6 +113,7 @@ function NotificationActionManager({
     };
     notificationActions.forEach((action, index) => {
       if (action.serviceType) {
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         notificationActionsMap[action.serviceType].push({action, index});
       }
     });
@@ -158,14 +159,16 @@ function NotificationActionManager({
 
     // Renders the notif actions grouped together by kind
     return Object.keys(actionsMap).map(serviceType => {
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const services = actionsMap[serviceType];
-      return services.map(({action, index}) => (
+      return services.map(({action, index}: any) => (
         <NotificationActionItem
           key={index}
           index={index}
           defaultEdit={!action.id}
           action={action}
           recipientRoles={recipientRoles}
+          // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           availableActions={availableServices[serviceType]}
           opsgenieIntegrations={opsgenieIntegrations}
           pagerdutyIntegrations={pagerdutyIntegrations}

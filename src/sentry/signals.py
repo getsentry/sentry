@@ -121,7 +121,6 @@ first_custom_metric_received = BetterSignal()  # ["project"]
 first_insight_span_received = BetterSignal()  # ["project", "module"]
 member_invited = BetterSignal()  # ["member", "user"]
 member_joined = BetterSignal()  # ["organization_member_id", "organization_id", "user_id"]
-issue_tracker_used = BetterSignal()  # ["plugin", "project", "user"]
 plugin_enabled = BetterSignal()  # ["plugin", "project", "user"]
 
 email_verified = BetterSignal()  # ["email"]
