@@ -8,7 +8,7 @@ import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {BigNumberWidget} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidget';
-import {WidgetFrame} from 'sentry/views/dashboards/widgets/widgetFrame/widgetFrame';
+import {WidgetFrame} from 'sentry/views/dashboards/widgets/common/widgetFrame';
 import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
 
 import MissingPerformanceButtons from '../missingFeatureButtons/missingPerformanceButtons';
