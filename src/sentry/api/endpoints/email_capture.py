@@ -1,5 +1,7 @@
 from rest_framework import serializers
+from rest_framework.response import Response
 
+from sentry import options
 from sentry.api.base import Endpoint
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.utils.marketo_client import MarketoClient
@@ -16,10 +18,13 @@ class EmailCaptureEndpoint(Endpoint):
     permission_classes = []
 
     def post(self, request):
+        if not options.get("demo-mode.enabled"):
+            return Response(status=404)
+
         serializer = EmailCaptureSerialier(data=request.data)
 
         if not serializer.is_valid():
-            return self.respond(serializer.errors, status=400)
+            return Response(serializer.errors, status=400)
 
         email = serializer.validated_data["email"]
 
@@ -29,4 +34,4 @@ class EmailCaptureEndpoint(Endpoint):
         form = request.data
         form["email"] = email
         client.submit_form(form)
-        return self.respond(status=200)
+        return Response(status=200)

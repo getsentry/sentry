@@ -3028,7 +3028,7 @@ INTERNAL_URLS = [
     re_path(
         r"^demo/email-capture$",
         EmailCaptureEndpoint.as_view(),
-        name="sentry-demo-email-capture",
+        name="sentry-demo-mode-email-capture",
     ),
 ]
 

@@ -1,4 +1,4 @@
-from dango.conf import settings
+from django.conf import settings
 
 from sentry import http
 
