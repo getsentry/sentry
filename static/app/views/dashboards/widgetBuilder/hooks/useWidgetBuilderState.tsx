@@ -259,6 +259,8 @@ function useWidgetBuilderState(): {
             nextDisplayType = DisplayType.TABLE;
           }
 
+          // should we be setting default display type for other datasets here (Line)?
+
           const config = getDatasetConfig(action.payload);
           setFields(
             config.defaultWidgetQuery.fields?.map(field => explodeField({field}))
