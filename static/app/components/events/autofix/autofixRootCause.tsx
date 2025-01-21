@@ -570,13 +570,13 @@ export function SuggestedFixSnippet({
 }) {
   function getSourceLink() {
     if (!repos) {
-      return undefined;
+      return null;
     }
     const repo = repos.find(
       r => r.name === snippet.repo_name && r.provider === 'integrations:github'
     );
     if (!repo) {
-      return undefined;
+      return null;
     }
     return `${repo.url}/blob/${repo.default_branch}/${snippet.file_path}${
       snippet.start_line && snippet.end_line
