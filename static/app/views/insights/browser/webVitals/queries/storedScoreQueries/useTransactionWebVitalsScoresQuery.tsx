@@ -117,7 +117,7 @@ export const useTransactionWebVitalsScoresQuery = ({
 
   const tableData: RowWithScoreAndOpportunity[] =
     !isPending && data?.data.length
-      ? data.data.map(row => {
+      ? data.data.map<RowWithScoreAndOpportunity>(row => {
           // Map back performance score key so we don't have to handle both keys in the UI
           if (row['performance_score(measurements.score.total)'] !== undefined) {
             row['avg(measurements.score.total)'] =
@@ -126,8 +126,8 @@ export const useTransactionWebVitalsScoresQuery = ({
           const {totalScore, clsScore, fcpScore, lcpScore, ttfbScore, inpScore} =
             getWebVitalScoresFromTableDataRow(row);
           return {
-            transaction: row.transaction?.toString(),
-            project: row.project?.toString(),
+            transaction: row.transaction?.toString()!,
+            project: row.project?.toString()!,
             'project.id': parseInt(row['project.id']!.toString(), 10),
             'p75(measurements.lcp)': row['p75(measurements.lcp)'] as number,
             'p75(measurements.fcp)': row['p75(measurements.fcp)'] as number,

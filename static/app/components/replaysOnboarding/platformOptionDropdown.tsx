@@ -81,7 +81,7 @@ export function PlatformOptionDropdown({
       <OptionControl
         key="platformOption"
         option={platforms}
-        value={urlOptionValues.siblingOption ?? platforms.items[0]?.label}
+        value={urlOptionValues.siblingOption ?? platforms.items[0]?.label!}
         onChange={v => handleChange('siblingOption', v.value)}
         disabled={disabled}
       />

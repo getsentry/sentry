@@ -448,7 +448,7 @@ class TriggersChart extends PureComponent<Props, State> {
 
     const showExtrapolatedChartData =
       shouldShowOnDemandMetricAlertUI(organization) &&
-      seriesAdditionalInfo?.[timeseriesData[0]?.seriesName]?.isExtrapolatedData;
+      seriesAdditionalInfo?.[timeseriesData[0]?.seriesName!]?.isExtrapolatedData;
 
     const totalCountLabel = isSessionAggregate(aggregate)
       ? // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message

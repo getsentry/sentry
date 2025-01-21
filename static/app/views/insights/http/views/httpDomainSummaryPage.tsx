@@ -283,7 +283,7 @@ export function HTTPDomainSummaryPage() {
                       value={domainMetrics?.[0]?.['sum(span.self_time)']}
                       unit={DurationUnit.MILLISECOND}
                       tooltip={getTimeSpentExplanation(
-                        domainMetrics?.[0]?.['time_spent_percentage()'],
+                        domainMetrics?.[0]?.['time_spent_percentage()']!,
                         'http'
                       )}
                       isLoading={areDomainMetricsLoading}

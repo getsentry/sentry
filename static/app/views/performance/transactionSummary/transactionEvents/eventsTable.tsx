@@ -563,7 +563,7 @@ class EventsTable extends Component<Props, State> {
                           totalEventsCount: totalEventsCount.toLocaleString(),
                         })
                       : undefined;
-                  if (shouldFetchAttachments) {
+                  if (cursor && shouldFetchAttachments) {
                     fetchAttachments(tableData, cursor);
                   }
                   joinCustomData(tableData);

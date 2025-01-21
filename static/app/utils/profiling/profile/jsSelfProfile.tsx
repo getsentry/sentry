@@ -42,7 +42,7 @@ export class JSSelfProfile extends Profile {
     }
 
     const startedAt = profile.samples[0]!.timestamp;
-    const endedAt = profile.samples[profile.samples.length - 1]?.timestamp;
+    const endedAt = profile.samples[profile.samples.length - 1]?.timestamp!;
 
     const jsSelfProfile = new JSSelfProfile({
       duration: endedAt - startedAt,

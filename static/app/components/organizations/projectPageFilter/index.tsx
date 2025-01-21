@@ -171,7 +171,7 @@ export function ProjectPageFilter({
       if (!val.length) {
         return allowMultiple
           ? memberProjects.map(p => parseInt(p.id, 10))
-          : [parseInt(memberProjects[0]?.id, 10)];
+          : [parseInt(memberProjects[0]?.id!, 10)];
       }
 
       return allowMultiple ? val : [val[0]!];

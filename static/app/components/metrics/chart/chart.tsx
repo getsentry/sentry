@@ -79,14 +79,14 @@ function getLegendProps(showLegend?: boolean): Pick<BaseChartProps, 'legend' | '
 // But for now we keep it here to not invluence the bundle size of the main chunks.
 echarts.use(CanvasRenderer);
 
-function isNonZeroValue(value: number | null) {
-  return value !== null && value !== 0;
+function isNonZeroValue(value: number | undefined) {
+  return value !== undefined && value !== 0;
 }
 
 function addSeriesPadding(data: Series['data']) {
   const hasNonZeroSibling = (index: number) => {
     return (
-      isNonZeroValue(data[index - 1]?.value) || isNonZeroValue(data[index + 1]?.value)
+      isNonZeroValue(data[index - 1]?.value!) || isNonZeroValue(data[index + 1]?.value)
     );
   };
   const paddingIndices = new Set<number>();
@@ -142,11 +142,11 @@ export const MetricChart = memo(
         }
       });
 
-      const bucketSize = series[0]?.data[1]?.name - series[0]?.data[0]?.name;
+      const bucketSize = series[0]?.data[1]?.name! - series[0]?.data[0]?.name!;
       const isSubMinuteBucket = bucketSize < 60_000;
-      const lastBucketTimestamp = series[0]?.data?.[series[0]?.data?.length - 1]?.name;
+      const lastBucketTimestamp = series[0]?.data[series[0]?.data.length - 1]?.name;
       const ingestionBuckets = useMemo(
-        () => getIngestionDelayBucketCount(bucketSize, lastBucketTimestamp),
+        () => getIngestionDelayBucketCount(bucketSize, lastBucketTimestamp!),
         [bucketSize, lastBucketTimestamp]
       );
 

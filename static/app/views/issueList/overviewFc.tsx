@@ -198,7 +198,7 @@ function IssueListOverviewFc({router}: Props) {
 
   useEffect(() => {
     pollerRef.current = new CursorPoller({
-      linkPreviousHref: parseLinkHeader(pageLinks)?.previous?.href,
+      linkPreviousHref: parseLinkHeader(pageLinks)?.previous?.href!,
       success: onRealtimePoll,
     });
   }, [onRealtimePoll, pageLinks]);

@@ -127,7 +127,7 @@ function WidgetBuilderSortBySelector() {
                 state.sort?.[0]?.kind === 'asc'
                   ? SortDirection.LOW_TO_HIGH
                   : SortDirection.HIGH_TO_LOW,
-              sortBy: state.sort?.length ? state.sort?.[0]?.field : '',
+              sortBy: state.sort?.length ? state.sort.at(0)!.field : '',
             }}
             onChange={({sortDirection, sortBy}) => {
               const newSortDirection =

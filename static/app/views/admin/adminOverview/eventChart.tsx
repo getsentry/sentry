@@ -96,10 +96,10 @@ class EventChart extends Component<Props, State> {
       const ts = point![0]!;
       if (sReceived[ts] === undefined) {
         sReceived[ts] = dReceived;
-        sRejected[ts] = dRejected;
+        sRejected[ts] = dRejected!;
       } else {
         sReceived[ts] += dReceived;
-        sRejected[ts]! += dRejected;
+        sRejected[ts]! += dRejected!;
       }
       if (dReceived > 0) {
         aReceived[0]! += dReceived;
