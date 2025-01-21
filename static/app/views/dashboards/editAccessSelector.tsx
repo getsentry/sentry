@@ -5,7 +5,8 @@ import isEqual from 'lodash/isEqual';
 import sortBy from 'lodash/sortBy';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import AvatarList from 'sentry/components/avatar/avatarList';
+import Avatar from 'sentry/components/avatar';
+import AvatarList, {CollapsedAvatars} from 'sentry/components/avatar/avatarList';
 import TeamAvatar from 'sentry/components/avatar/teamAvatar';
 import Badge from 'sentry/components/badge/badge';
 import FeatureBadge from 'sentry/components/badge/featureBadge';
@@ -22,6 +23,7 @@ import {space} from 'sentry/styles/space';
 import type {Team} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useTeams} from 'sentry/utils/useTeams';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
@@ -63,11 +65,16 @@ function EditAccessSelector({
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
   const [stagedOptions, setStagedOptions] = useState<string[]>([]);
   const [isMenuOpen, setMenuOpen] = useState<boolean>(false);
+  const [isCollapsedAvatarTooltipOpen, setIsCollapsedAvatarTooltipOpen] =
+    useState<boolean>(false);
   const {teams: selectedTeam} = useTeamsById({
     ids:
       selectedOptions[1] && selectedOptions[1] !== '_allUsers'
         ? [selectedOptions[1]]
         : [],
+  });
+  const {teams: allSelectedTeams} = useTeamsById({
+    ids: selectedOptions.filter(option => option !== '_allUsers'),
   });
 
   // Gets selected options for the dropdown from dashboard object
@@ -86,7 +93,7 @@ function EditAccessSelector({
   }, [dashboard, teamsToRender, isMenuOpen]); // isMenuOpen dependency ensures perms are 'refreshed'
 
   // Handles state change when dropdown options are selected
-  const onSelectOptions = newSelectedOptions => {
+  const onSelectOptions = (newSelectedOptions: any) => {
     let newSelectedValues = newSelectedOptions.map(
       (option: {value: string}) => option.value
     );
@@ -109,7 +116,9 @@ function EditAccessSelector({
         ? // selecting all teams deselects 'all users'
           (newSelectedValues = ['_creator', '_allUsers', ...teamIds])
         : // deselecting any team deselects 'all users'
-          (newSelectedValues = newSelectedValues.filter(value => value !== '_allUsers'));
+          (newSelectedValues = newSelectedValues.filter(
+            (value: any) => value !== '_allUsers'
+          ));
     }
 
     setSelectedOptions(newSelectedValues);
@@ -127,6 +136,52 @@ function EditAccessSelector({
             .sort((a, b) => a - b),
     };
   }
+
+  // Creates tooltip for the + bubble in avatar list
+  const renderCollapsedAvatarTooltip = () => {
+    const permissions = getDashboardPermissions();
+    if (permissions.teamsWithEditAccess.length > 1) {
+      return (
+        <CollapsedAvatarTooltip>
+          {allSelectedTeams.map((team, index) => (
+            <CollapsedAvatarTooltipListItem
+              key={team.id}
+              style={{
+                marginBottom: index === allSelectedTeams.length - 1 ? 0 : space(1),
+              }}
+            >
+              <Avatar team={team} size={18} />
+              <div>#{team.name}</div>
+            </CollapsedAvatarTooltipListItem>
+          ))}
+        </CollapsedAvatarTooltip>
+      );
+    }
+    return null;
+  };
+
+  const renderCollapsedAvatars = (avatarSize: number, numCollapsedAvatars: number) => {
+    return (
+      <Tooltip
+        title={renderCollapsedAvatarTooltip()}
+        isHoverable
+        overlayStyle={{
+          pointerEvents: 'auto',
+          zIndex: 1000,
+        }}
+      >
+        <div
+          onMouseEnter={() => setIsCollapsedAvatarTooltipOpen(true)}
+          onMouseLeave={() => setIsCollapsedAvatarTooltipOpen(false)}
+        >
+          <CollapsedAvatars size={avatarSize}>
+            {numCollapsedAvatars < 99 && <Plus>+</Plus>}
+            {numCollapsedAvatars}
+          </CollapsedAvatars>
+        </div>
+      </Tooltip>
+    );
+  };
 
   const makeCreatorOption = useCallback(
     () => ({
@@ -166,6 +221,7 @@ function EditAccessSelector({
     ) : selectedOptions.length === 2 ? (
       // Case where we display 1 Creator Avatar + 1 Team Avatar
       <StyledAvatarList
+        listonly={listOnly}
         key="avatar-list-2-badges"
         typeAvatars="users"
         users={[dashboardCreator]}
@@ -179,11 +235,13 @@ function EditAccessSelector({
       // Case where we display 1 Creator Avatar + a Badge with no. of teams selected
       <StyledAvatarList
         key="avatar-list-many-teams"
+        listonly={listOnly}
         typeAvatars="users"
         users={Array(selectedOptions.length).fill(dashboardCreator)}
         maxVisibleAvatars={1}
         avatarSize={listOnly ? 30 : 25}
         tooltipOptions={{disabled: !userCanEditDashboardPermissions}}
+        renderCollapsedAvatars={renderCollapsedAvatars}
       />
     );
 
@@ -242,6 +300,16 @@ function EditAccessSelector({
             !isDefaultState &&
             !isEqual(newDashboardPermissions, dashboard.permissions)
           ) {
+            trackAnalytics('dashboards2.edit_access.save', {
+              organization,
+              editable_by: newDashboardPermissions.isEditableByEveryone
+                ? 'all'
+                : newDashboardPermissions.teamsWithEditAccess.length > 0
+                  ? 'team_selection'
+                  : 'owner_only',
+              team_count: newDashboardPermissions.teamsWithEditAccess.length || undefined,
+            });
+
             onChangeEditAccess?.(newDashboardPermissions);
           }
           setMenuOpen(!isMenuOpen);
@@ -282,14 +350,18 @@ function EditAccessSelector({
                 type="new"
                 tooltipProps={{position: 'left', delay: 1000, isHoverable: true}}
               />,
-              t('Edit Access:'),
+              <LabelContainer key="selector-label">{t('Edit Access:')}</LabelContainer>,
               triggerAvatars,
             ]
       }
-      triggerProps={{borderless: listOnly}}
+      triggerProps={{borderless: listOnly, style: listOnly ? {padding: 2} : {}}}
       searchPlaceholder={t('Search Teams')}
       isOpen={isMenuOpen}
-      onOpenChange={() => {
+      onOpenChange={newOpenState => {
+        if (newOpenState === true) {
+          trackAnalytics('dashboards2.edit_access.start', {organization});
+        }
+
         setStagedOptions(selectedOptions);
         setMenuOpen(!isMenuOpen);
       }}
@@ -301,7 +373,9 @@ function EditAccessSelector({
   return (
     <Tooltip
       title={t('Only the creator of the dashboard can edit permissions')}
-      disabled={userCanEditDashboardPermissions || isMenuOpen}
+      disabled={
+        userCanEditDashboardPermissions || isMenuOpen || isCollapsedAvatarTooltipOpen
+      }
     >
       {dropdownMenu}
     </Tooltip>
@@ -328,10 +402,14 @@ const StyledDisplayName = styled('div')`
   font-weight: normal;
 `;
 
-const StyledAvatarList = styled(AvatarList)`
-  margin-left: 10px;
-  margin-right: -3px;
+const StyledAvatarList = styled(AvatarList)<{listonly: boolean}>`
+  margin-left: ${space(0.75)};
+  margin-right: ${p => (p.listonly ? 0 : -3)}px;
   font-weight: normal;
+`;
+
+const LabelContainer = styled('div')`
+  margin-right: ${space(1)};
 `;
 
 const StyledFeatureBadge = styled(FeatureBadge)`
@@ -348,6 +426,7 @@ const StyledBadge = styled(Badge)<{size: number}>`
   display: flex;
   justify-content: center;
   align-items: center;
+  margin-left: 0px;
 `;
 
 const FilterButtons = styled(ButtonBar)`
@@ -356,4 +435,21 @@ const FilterButtons = styled(ButtonBar)`
   margin-top: ${space(0.5)};
   margin-bottom: ${space(0.5)};
   justify-content: flex-end;
+`;
+
+const CollapsedAvatarTooltip = styled('div')`
+  max-height: 200px;
+  overflow-y: auto;
+`;
+
+const CollapsedAvatarTooltipListItem = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+`;
+
+const Plus = styled('span')`
+  font-size: 10px;
+  margin-left: 1px;
+  margin-right: -1px;
 `;

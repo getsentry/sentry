@@ -1,7 +1,6 @@
-import React, {Fragment} from 'react';
+import React from 'react';
 
 import * as Layout from 'sentry/components/layouts/thirds';
-import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -11,7 +10,6 @@ import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useSynchronizeCharts} from 'sentry/views/insights/common/components/chart';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
@@ -20,22 +18,14 @@ import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/modu
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {useModuleTitle} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
-import {DurationChart} from 'sentry/views/insights/http/components/charts/durationChart';
-import {ResponseRateChart} from 'sentry/views/insights/http/components/charts/responseRateChart';
-import {ThroughputChart} from 'sentry/views/insights/http/components/charts/throughputChart';
 import {
   DomainsTable,
   isAValidSort,
 } from 'sentry/views/insights/http/components/tables/domainsTable';
 import {Referrer} from 'sentry/views/insights/http/referrers';
-import {
-  BASE_FILTERS,
-  MODULE_DESCRIPTION,
-  MODULE_DOC_LINK,
-} from 'sentry/views/insights/http/settings';
+import {BASE_FILTERS, FIELD_ALIASES} from 'sentry/views/insights/http/settings';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
@@ -45,12 +35,18 @@ import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settin
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 
+import {InsightsLineChartWidget} from '../../common/components/insightsLineChartWidget';
+import {
+  DataTitles,
+  getDurationChartTitle,
+  getThroughputChartTitle,
+} from '../../common/views/spans/types';
+
 export function HTTPLandingPage() {
   const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
   const {view} = useDomainViewFilters();
-  const moduleTitle = useModuleTitle(ModuleName.HTTP);
 
   const sortField = decodeScalar(location.query?.[QueryParameterNames.DOMAINS_SORT]);
 
@@ -108,6 +104,7 @@ export function HTTPLandingPage() {
     {
       search: MutableSearch.fromQueryObject(chartFilters),
       yAxis: ['spm()'],
+      transformAliasToInputFormat: true,
     },
     Referrer.LANDING_THROUGHPUT_CHART
   );
@@ -119,7 +116,8 @@ export function HTTPLandingPage() {
   } = useSpanMetricsSeries(
     {
       search: MutableSearch.fromQueryObject(chartFilters),
-      yAxis: [`avg(span.self_time)`],
+      yAxis: ['avg(span.self_time)'],
+      transformAliasToInputFormat: true,
     },
     Referrer.LANDING_DURATION_CHART
   );
@@ -132,6 +130,7 @@ export function HTTPLandingPage() {
     {
       search: MutableSearch.fromQueryObject(chartFilters),
       yAxis: ['http_response_rate(3)', 'http_response_rate(4)', 'http_response_rate(5)'],
+      transformAliasToInputFormat: true,
     },
     Referrer.LANDING_RESPONSE_CODE_CHART
   );
@@ -158,20 +157,7 @@ export function HTTPLandingPage() {
     Referrer.LANDING_DOMAINS_LIST
   );
 
-  useSynchronizeCharts(
-    3,
-    !isThroughputDataLoading && !isDurationDataLoading && !isResponseCodeDataLoading
-  );
-
-  const headerTitle = (
-    <Fragment>
-      {moduleTitle}
-      <PageHeadingQuestionTooltip docsUrl={MODULE_DOC_LINK} title={MODULE_DESCRIPTION} />
-    </Fragment>
-  );
-
   const headerProps = {
-    headerTitle,
     module: ModuleName.HTTP,
   };
 
@@ -196,37 +182,32 @@ export function HTTPLandingPage() {
 
               <ModulesOnboarding moduleName={ModuleName.HTTP}>
                 <ModuleLayout.Third>
-                  <ThroughputChart
-                    series={throughputData['spm()']}
+                  <InsightsLineChartWidget
+                    title={getThroughputChartTitle('http')}
+                    series={[throughputData['spm()']]}
                     isLoading={isThroughputDataLoading}
                     error={throughputError}
                   />
                 </ModuleLayout.Third>
 
                 <ModuleLayout.Third>
-                  <DurationChart
-                    series={[durationData[`avg(span.self_time)`]]}
+                  <InsightsLineChartWidget
+                    title={getDurationChartTitle('http')}
+                    series={[durationData['avg(span.self_time)']]}
                     isLoading={isDurationDataLoading}
                     error={durationError}
                   />
                 </ModuleLayout.Third>
 
                 <ModuleLayout.Third>
-                  <ResponseRateChart
+                  <InsightsLineChartWidget
+                    title={DataTitles.unsuccessfulHTTPCodes}
                     series={[
-                      {
-                        ...responseCodeData[`http_response_rate(3)`],
-                        seriesName: t('3XX'),
-                      },
-                      {
-                        ...responseCodeData[`http_response_rate(4)`],
-                        seriesName: t('4XX'),
-                      },
-                      {
-                        ...responseCodeData[`http_response_rate(5)`],
-                        seriesName: t('5XX'),
-                      },
+                      responseCodeData[`http_response_rate(3)`],
+                      responseCodeData[`http_response_rate(4)`],
+                      responseCodeData[`http_response_rate(5)`],
                     ]}
+                    aliases={FIELD_ALIASES}
                     isLoading={isResponseCodeDataLoading}
                     error={responseCodeError}
                   />

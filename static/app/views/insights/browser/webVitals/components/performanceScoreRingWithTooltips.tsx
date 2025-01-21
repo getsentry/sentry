@@ -34,8 +34,8 @@ type WebVitalsLabelCoordinates = {
 type Props = {
   height: number;
   projectScore: ProjectScore;
-  ringBackgroundColors: string[];
-  ringSegmentColors: string[];
+  ringBackgroundColors: ReadonlyArray<string>;
+  ringSegmentColors: ReadonlyArray<string>;
   text: React.ReactNode;
   width: number;
   barWidth?: number;
@@ -164,7 +164,7 @@ function PerformanceScoreRingWithTooltips({
   }
 
   const weights = organization.features.includes(
-    'organizations:performance-vitals-handle-missing-webvitals'
+    'performance-vitals-handle-missing-webvitals'
   )
     ? getWeights(ORDER.filter(webVital => projectScore[`${webVital}Score`]))
     : PERFORMANCE_SCORE_WEIGHTS;
@@ -222,6 +222,7 @@ function PerformanceScoreRingWithTooltips({
           <Fragment>
             {Object.keys(weights).map((key, index) => {
               const webVital = key as WebVitals;
+              // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
               if (weights[key] > 0 && coordinates[webVital] !== undefined) {
                 return (
                   <WebVitalLabel
@@ -322,6 +323,7 @@ function calculateLabelCoordinates(
 
   const results: {[key in WebVitals]?: {x: number; y: number}} = {};
   Object.keys(weights).forEach((key, index) => {
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     results[key] = {
       // Padding hack for now since ttfb label is longer than the others
       x: coordinates[index]!.x + (key === 'ttfb' ? -12 : 0),

@@ -28,6 +28,8 @@
 /src/sentry/snuba/metrics/query.py                       @getsentry/owners-snuba @getsentry/telemetry-experience
 /src/sentry/snuba/metrics_layer/                         @getsentry/owners-snuba
 /src/sentry/search/events/datasets/metrics_layer.py      @getsentry/owners-snuba
+/tests/snuba/test_snql_snuba.py                          @getsentry/owners-snuba
+/tests/snuba/test_snuba.py                               @getsentry/owners-snuba
 
 ## Event Ingestion
 /src/sentry/attachments/                                 @getsentry/ingest
@@ -66,6 +68,7 @@
 
 ## Dev
 /devenv/                                                 @getsentry/owners-sentry-dev @getsentry/dev-infra
+/devservices/                                            @getsentry/owners-sentry-dev @getsentry/dev-infra
 /.github/                                                @getsentry/owners-sentry-dev
 /config/hooks/                                           @getsentry/owners-sentry-dev
 /scripts/                                                @getsentry/owners-sentry-dev
@@ -349,9 +352,9 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 
 
 ## DevToolbar
-/src/sentry/templates/sentry/toolbar/        @getsentry/replay
-/src/sentry/toolbar/                         @getsentry/replay
-/tests/sentry/toolbar/                       @getsentry/replay
+/src/sentry/templates/sentry/toolbar/        @getsentry/replay-frontend @getsentry/replay-backend
+/src/sentry/toolbar/                         @getsentry/replay-frontend @getsentry/replay-backend
+/tests/sentry/toolbar/                       @getsentry/replay-frontend @getsentry/replay-backend
 /static/app/components/devtoolbar/           @getsentry/replay-frontend
 /src/sentry/middleware/devtoolbar.py         @getsentry/replay-backend
 /tests/sentry/middleware/test_devtoolbar.py  @getsentry/replay-backend
@@ -516,7 +519,6 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 
 ## Issues
 **/issues/**                                                @getsentry/issues
-*code_mappings*.py                                          @getsentry/issues
 /src/sentry/api/helpers/actionable_items_helper.py          @getsentry/issues
 /src/sentry/api/helpers/events.py                           @getsentry/issues
 /src/sentry/api/helpers/group_index/                        @getsentry/issues
@@ -536,6 +538,7 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /src/sentry/tasks/auto_ongoing_issues.py                    @getsentry/issues
 /src/sentry/tasks/auto_remove_inbox.py                      @getsentry/issues
 /src/sentry/tasks/auto_resolve_issues.py                    @getsentry/issues
+/src/sentry/tasks/auto_source_code_config.py                @getsentry/issues
 /src/sentry/tasks/check_new_issue_threshold_met.py          @getsentry/issues
 /src/sentry/tasks/clear_expired_resolutions.py              @getsentry/issues
 /src/sentry/tasks/clear_expired_rulesnoozes.py              @getsentry/issues
@@ -544,7 +547,6 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /src/sentry/tasks/commit_context.py                         @getsentry/issues
 /src/sentry/tasks/commits.py                                @getsentry/issues
 /src/sentry/tasks/delete_seer_grouping_records.py           @getsentry/issues
-/src/sentry/tasks/derive_code_mappings.py                   @getsentry/issues
 /src/sentry/tasks/embeddings_grouping/                      @getsentry/issues
 /src/sentry/tasks/groupowner.py                             @getsentry/issues
 /src/sentry/tasks/merge.py                                  @getsentry/issues
@@ -571,6 +573,7 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /tests/sentry/tasks/test_auto_ongoing_issues.py             @getsentry/issues
 /tests/sentry/tasks/test_auto_remove_inbox.py               @getsentry/issues
 /tests/sentry/tasks/test_auto_resolve_issues.py             @getsentry/issues
+/tests/sentry/tasks/test_auto_source_code_config.py         @getsentry/issues
 /tests/sentry/tasks/test_backfill_seer_grouping_records.py  @getsentry/issues
 /tests/sentry/tasks/test_check_new_issue_threshold_met.py   @getsentry/issues
 /tests/sentry/tasks/test_clear_expired_resolutions.py       @getsentry/issues
@@ -580,7 +583,6 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /tests/sentry/tasks/test_commit_context.py                  @getsentry/issues
 /tests/sentry/tasks/test_commits.py                         @getsentry/issues
 /tests/sentry/tasks/test_delete_seer_grouping_records.py    @getsentry/issues
-/tests/sentry/tasks/test_derive_code_mappings.py            @getsentry/issues
 /tests/sentry/tasks/test_groupowner.py                      @getsentry/issues
 /tests/sentry/tasks/test_merge.py                           @getsentry/issues
 /tests/sentry/tasks/test_post_process.py                    @getsentry/issues
@@ -639,3 +641,12 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 # Tempest
 /src/sentry/tempest/                                       @getsentry/gdx
 /tests/sentry/tempest/                                     @getsentry/gdx
+
+# Workflow engine
+/src/sentry/workflow_engine/                               @getsentry/alerts-create-issues
+/tests/sentry/workflow_engine/                             @getsentry/alerts-create-issues
+
+/static/app/components/workflowEngine/                     @getsentry/alerts-create-issues
+/static/app/views/automations/                             @getsentry/alerts-create-issues
+/static/app/views/detectors/                               @getsentry/alerts-create-issues
+# End of Workflow Engine (ACI)

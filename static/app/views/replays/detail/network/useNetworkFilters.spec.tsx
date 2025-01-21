@@ -386,7 +386,7 @@ describe('useNetworkFilters', () => {
 
 describe('getMethodTypes', () => {
   it('should default to having GET in the list of method types', () => {
-    const networkFrames = [];
+    const networkFrames: any[] = [];
 
     const {result} = renderHook(useNetworkFilters, {
       initialProps: {networkFrames},
@@ -425,7 +425,7 @@ describe('getMethodTypes', () => {
 
 describe('getResourceTypes', () => {
   it('should default to having fetch in the list of span types', () => {
-    const networkFrames = [];
+    const networkFrames: any[] = [];
 
     const {result} = renderHook(useNetworkFilters, {
       initialProps: {networkFrames},

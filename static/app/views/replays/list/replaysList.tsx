@@ -29,7 +29,7 @@ function ReplaysList() {
       environment: decodeList,
       project: decodeList,
       query: decodeScalar,
-      sort: value => decodeScalar(value, '-started_at'),
+      sort: (value: any) => decodeScalar(value, '-started_at'),
       start: decodeScalar,
       statsPeriod: decodeScalar,
       utc: decodeScalar,
@@ -52,7 +52,7 @@ function ReplaysList() {
     selection: {projects},
   } = usePageFilters();
 
-  const {allMobileProj} = useAllMobileProj();
+  const {allMobileProj} = useAllMobileProj({});
 
   const {needsUpdate: allSelectedProjectsNeedUpdates} = useProjectSdkNeedsUpdate({
     minVersion: MIN_REPLAY_CLICK_SDK,

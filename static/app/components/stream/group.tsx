@@ -142,7 +142,7 @@ function GroupTimestamp({date, label}: {date: string | null | undefined; label: 
       tooltipPrefix={label}
       date={date}
       suffix="ago"
-      unitStyle="extraShort"
+      unitStyle="short"
     />
   );
 }
@@ -184,7 +184,7 @@ function BaseGroupRow({
   const {period, start, end} = selection.datetime || {};
 
   const summary =
-    customStatsPeriod?.label.toLowerCase() ??
+    customStatsPeriod?.label?.toLowerCase() ??
     (!!start && !!end
       ? 'time range'
       : getRelativeSummary(period || DEFAULT_STATS_PERIOD).toLowerCase());
@@ -410,6 +410,7 @@ function BaseGroupRow({
     [IssueCategory.CRON]: t('Cron Events'),
     [IssueCategory.REPLAY]: t('Replay Events'),
     [IssueCategory.UPTIME]: t('Uptime Events'),
+    [IssueCategory.METRIC_ALERT]: t('Metric Alert Events'),
   };
 
   const groupCount = !defined(primaryCount) ? (
@@ -861,7 +862,7 @@ export const PrimaryCount = styled(Count)<{hasNewLayout?: boolean}>`
   font-variant-numeric: tabular-nums;
 `;
 
-const SecondaryCount = styled(({value, ...p}) => <Count {...p} value={value} />)<{
+const SecondaryCount = styled(({value, ...p}: any) => <Count {...p} value={value} />)<{
   hasNewLayout?: boolean;
 }>`
   font-size: ${p => (p.hasNewLayout ? p.theme.fontSizeSmall : p.theme.fontSizeLarge)};

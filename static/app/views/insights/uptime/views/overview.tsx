@@ -4,7 +4,7 @@ import * as qs from 'query-string';
 
 import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
+import EmptyMessage from 'sentry/components/emptyMessage';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -12,8 +12,8 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
-import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import Pagination from 'sentry/components/pagination';
+import Panel from 'sentry/components/panels/panel';
 import SearchBar from 'sentry/components/searchBar';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -29,11 +29,6 @@ import type {UptimeAlert} from 'sentry/views/alerts/types';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {ModuleName} from 'sentry/views/insights/types';
-import {
-  MODULE_DESCRIPTION,
-  MODULE_DOC_LINK,
-  MODULE_TITLE,
-} from 'sentry/views/insights/uptime/settings';
 import {OwnerFilter} from 'sentry/views/monitors/components/ownerFilter';
 
 import {OverviewTimeline} from '../components/overviewTimeline';
@@ -86,19 +81,9 @@ export default function UptimeOverview() {
   return (
     <ModulePageProviders moduleName="uptime" pageTitle={t('Overview')}>
       <BackendHeader
-        headerTitle={
-          <Fragment>
-            {MODULE_TITLE}
-            <PageHeadingQuestionTooltip
-              docsUrl={MODULE_DOC_LINK}
-              title={MODULE_DESCRIPTION}
-            />
-          </Fragment>
-        }
         module={ModuleName.UPTIME}
         headerActions={
           <ButtonBar gap={1}>
-            <FeedbackWidgetButton />
             <LinkButton
               size="sm"
               priority="primary"
@@ -144,7 +129,21 @@ export default function UptimeOverview() {
               {uptimeListPageLinks && <Pagination pageLinks={uptimeListPageLinks} />}
             </Fragment>
           ) : (
-            'LAnding thing here'
+            <Panel>
+              <EmptyMessage
+                title={t('The selected projects have no uptime monitors')}
+                action={
+                  <LinkButton
+                    size="sm"
+                    priority="primary"
+                    to={`/organizations/${organization.slug}/alerts/new/uptime/`}
+                    icon={<IconAdd isCircled />}
+                  >
+                    {t('Add Uptime Monitor')}
+                  </LinkButton>
+                }
+              />
+            </Panel>
           )}
         </Layout.Main>
       </Layout.Body>

@@ -7,6 +7,7 @@ from django.db import router, transaction
 from sentry.models.group import Group
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation
+from sentry.sentry_apps.utils.errors import SentryAppSentryError
 
 logger = logging.getLogger("sentry.sentry_apps.external_issues")
 
@@ -45,4 +46,7 @@ class ExternalIssueCreator:
                     "sentry_app_slug": self.install.sentry_app.slug,
                 },
             )
-            raise
+            raise SentryAppSentryError(
+                message="Failed to create external issue obj",
+                webhook_context={"error": str(e)},
+            ) from e

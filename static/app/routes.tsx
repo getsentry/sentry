@@ -7,11 +7,14 @@ import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
 import type {HookName} from 'sentry/types/hooks';
 import errorHandler from 'sentry/utils/errorHandler';
+import {ProvideAriaRouter} from 'sentry/utils/provideAriaRouter';
 import retryableImport from 'sentry/utils/retryableImport';
 import withDomainRedirect from 'sentry/utils/withDomainRedirect';
 import withDomainRequired from 'sentry/utils/withDomainRequired';
 import App from 'sentry/views/app';
 import AuthLayout from 'sentry/views/auth/layout';
+import {automationRoutes} from 'sentry/views/automations/routes';
+import {detectorRoutes} from 'sentry/views/detectors/routes';
 import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
 import {SUMMARY_PAGE_BASE_URL} from 'sentry/views/insights/mobile/screenRendering/settings';
 import {AI_LANDING_SUB_PATH} from 'sentry/views/insights/pages/ai/settings';
@@ -25,7 +28,7 @@ import {ModuleName} from 'sentry/views/insights/types';
 import {GroupEventDetailsLoading} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsLoading';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import IssueListContainer from 'sentry/views/issueList';
-import IssueListOverview from 'sentry/views/issueList/overview';
+import {OverviewWrapper} from 'sentry/views/issueList/overviewWrapper';
 import OrganizationContainer from 'sentry/views/organizationContainer';
 import OrganizationLayout from 'sentry/views/organizationLayout';
 import OrganizationRoot from 'sentry/views/organizationRoot';
@@ -736,7 +739,7 @@ function buildRoutes() {
         name={t('Auth Providers')}
         component={make(() => import('sentry/views/settings/organizationAuth'))}
       />
-      <Redirect from="members/requests" to="members/" />
+      <Redirect from="members/requests" to="../members/" />
       <Route path="members/" name={t('Members')}>
         <IndexRoute
           component={make(
@@ -1255,6 +1258,15 @@ function buildRoutes() {
               component={make(() => import('sentry/views/alerts/rules/uptime/details'))}
             />
           </Route>
+          <Route
+            path="crons/"
+            component={make(() => import('sentry/views/alerts/rules/crons'))}
+          >
+            <Route
+              path=":projectId/:monitorSlug/details/"
+              component={make(() => import('sentry/views/alerts/rules/crons/details'))}
+            />
+          </Route>
         </Route>
         <Route path="metric-rules/">
           <IndexRedirect
@@ -1286,6 +1298,17 @@ function buildRoutes() {
           >
             <Route
               path=":ruleId/"
+              component={make(() => import('sentry/views/alerts/edit'))}
+            />
+          </Route>
+        </Route>
+        <Route path="crons-rules/">
+          <Route
+            path=":projectId/"
+            component={make(() => import('sentry/views/alerts/builder/projectProvider'))}
+          >
+            <Route
+              path=":monitorSlug/"
               component={make(() => import('sentry/views/alerts/edit'))}
             />
           </Route>
@@ -1462,10 +1485,6 @@ function buildRoutes() {
     </Fragment>
   );
 
-  // TODO(mark) Long term this /queries route should go away and /discover
-  // should be the canonical route for discover2. We have a redirect right now
-  // as /discover was for discover 1 and most of the application is linking to
-  // /discover/queries and not /discover
   const discoverRoutes = (
     <Route
       path="/discover/"
@@ -1757,6 +1776,11 @@ function buildRoutes() {
           )}
         />
       </Route>
+      <Route path={`${MODULE_BASE_URLS[ModuleName.CRONS]}/`}>
+        <IndexRoute
+          component={make(() => import('sentry/views/insights/crons/views/overview'))}
+        />
+      </Route>
     </Fragment>
   );
 
@@ -1903,15 +1927,15 @@ function buildRoutes() {
 
   const issueListRoutes = (
     <Route path="/issues" component={errorHandler(IssueListContainer)} withOrgPath>
-      <IndexRoute component={errorHandler(IssueListOverview)} />
-      <Route path="searches/:searchId/" component={errorHandler(IssueListOverview)} />
+      <IndexRoute component={errorHandler(OverviewWrapper)} />
+      <Route path="searches/:searchId/" component={errorHandler(OverviewWrapper)} />
     </Route>
   );
 
   // Once org issues is complete, these routes can be nested under
   // /organizations/:orgId/issues
   const issueTabs = ({forCustomerDomain}: {forCustomerDomain: boolean}) => {
-    const hoc = forCustomerDomain ? withDomainRequired : x => x;
+    const hoc = forCustomerDomain ? withDomainRequired : (x: any) => x;
     return (
       <Fragment>
         <IndexRoute
@@ -2160,7 +2184,9 @@ function buildRoutes() {
       </Route>
       <Route
         path="profile/:projectId/:eventId/"
-        component={make(() => import('sentry/views/profiling/profilesProvider'))}
+        component={make(
+          () => import('sentry/views/profiling/transactionProfileProvider')
+        )}
       >
         <Route
           path="flamegraph/"
@@ -2274,6 +2300,8 @@ function buildRoutes() {
 
   const organizationRoutes = (
     <Route component={errorHandler(OrganizationLayout)}>
+      {automationRoutes}
+      {detectorRoutes}
       {settingsRoutes}
       {projectsRoutes}
       {dashboardRoutes}
@@ -2425,15 +2453,17 @@ function buildRoutes() {
   );
 
   const appRoutes = (
-    <Route>
-      {experimentalSpaRoutes}
-      <Route path="/" component={errorHandler(App)}>
-        {rootRoutes}
-        {organizationRoutes}
-        {legacyRedirectRoutes}
-        <Route path="*" component={errorHandler(RouteNotFound)} />
+    <ProvideAriaRouter>
+      <Route>
+        {experimentalSpaRoutes}
+        <Route path="/" component={errorHandler(App)}>
+          {rootRoutes}
+          {organizationRoutes}
+          {legacyRedirectRoutes}
+          <Route path="*" component={errorHandler(RouteNotFound)} />
+        </Route>
       </Route>
-    </Route>
+    </ProvideAriaRouter>
   );
 
   return appRoutes;

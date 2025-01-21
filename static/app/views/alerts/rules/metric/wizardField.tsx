@@ -125,7 +125,12 @@ export default function WizardField({
                 label: (
                   <span>
                     {AlertWizardAlertNames.eap_metrics}
-                    <FeatureBadge type="experimental" />
+                    <FeatureBadge
+                      type="beta"
+                      title={t(
+                        'This feature is available for early adopters and the UX may change'
+                      )}
+                    />
                   </span>
                 ),
                 value: 'eap_metrics' as const,
@@ -152,7 +157,7 @@ export default function WizardField({
 
   return (
     <FormField {...fieldProps}>
-      {({onChange, model, disabled}) => {
+      {({onChange, model, disabled}: any) => {
         const aggregate = model.getValue('aggregate');
         const dataset: Dataset = model.getValue('dataset');
         const selectedTemplate: AlertType = alertType || 'custom_metrics';
@@ -189,6 +194,7 @@ export default function WizardField({
               options={menuOptions}
               disabled={disabled}
               onChange={(option: MenuOption) => {
+                // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                 const template = AlertWizardRuleTemplates[option.value];
 
                 model.setValue('aggregate', template.aggregate);
@@ -237,7 +243,7 @@ export default function WizardField({
 
 // swaps out custom percentile values for known percentiles, used while we fade out custom percentiles in metric alerts
 // TODO(telemetry-experience): remove once we migrate all custom percentile alerts
-const getFieldValue = (aggregate: string | undefined, model) => {
+const getFieldValue = (aggregate: string | undefined, model: any) => {
   const fieldValue = explodeFieldString(aggregate ?? '');
 
   if (fieldValue?.kind !== FieldValueKind.FUNCTION) {

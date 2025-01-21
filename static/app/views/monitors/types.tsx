@@ -2,11 +2,6 @@ import type {Actor, ObjectStatus} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import type {ColorOrAlias} from 'sentry/utils/theme';
 
-export enum MonitorType {
-  UNKNOWN = 'unknown',
-  CRON_JOB = 'cron_job',
-}
-
 /**
  * Some old monitor configurations do NOT have a schedule_type
  *
@@ -127,7 +122,6 @@ export interface Monitor {
   project: Project;
   slug: string;
   status: ObjectStatus;
-  type: MonitorType;
   alertRule?: {
     targets: Array<{
       targetIdentifier: number;
@@ -147,13 +141,6 @@ export interface MonitorStat {
 }
 
 export interface CheckIn {
-  /**
-   * Attachment ID for attachments sent via the legacy attachment HTTP
-   * endpoint. This will likely be removed in the future.
-   *
-   * @deprecated
-   */
-  attachmentId: number | null;
   /**
    * Date the opening check-in was sent
    */
@@ -188,6 +175,19 @@ export interface CheckIn {
    */
   groups?: {id: number; shortId: string}[];
 }
+
+type StatsBucket = {
+  [CheckInStatus.IN_PROGRESS]: number;
+  [CheckInStatus.OK]: number;
+  [CheckInStatus.MISSED]: number;
+  [CheckInStatus.TIMEOUT]: number;
+  [CheckInStatus.ERROR]: number;
+  [CheckInStatus.UNKNOWN]: number;
+};
+
+type MonitorBucketEnvMapping = Record<string, StatsBucket>;
+
+export type MonitorBucket = [timestamp: number, envData: MonitorBucketEnvMapping];
 
 /**
  * Object used to store config for the display next to an environment in the

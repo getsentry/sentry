@@ -31,7 +31,7 @@ jobs:
 
       - uses: getsentry/action-setup-venv@a133e6fd5fa6abd3f590a1c106abda344f5df69f # v2.1.0
         with:
-          python-version: 3.12.6
+          python-version: 3.13.1
           cache-dependency-path: requirements-dev-frozen.txt
           install-cmd: echo
 
@@ -42,13 +42,13 @@ jobs:
           echo "WEBPACK_CACHE_PATH=.webpack_cache" >> "$GITHUB_ENV"
 
       - name: webpack cache
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
+        uses: actions/cache@v4.2.0
         with:
           path: ${{ steps.config.outputs.webpack-path }}
           key: ${{ runner.os }}-self-hosted-webpack-cache-${{ hashFiles('webpack.config.ts') }}
 
       - name: node_modules cache
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
+        uses: actions/cache@v4.2.0
         id: nodemodulescache
         with:
           path: node_modules

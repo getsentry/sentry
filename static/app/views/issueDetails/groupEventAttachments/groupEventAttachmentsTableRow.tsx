@@ -12,7 +12,7 @@ import {getShortEventId} from 'sentry/utils/events';
 import useOrganization from 'sentry/utils/useOrganization';
 import {InlineEventAttachment} from 'sentry/views/issueDetails/groupEventAttachments/inlineEventAttachment';
 
-const friendlyAttachmentType = {
+const friendlyAttachmentType: Record<string, string> = {
   'event.minidump': t('Minidump'),
   'event.applecrashreport': t('Apple Crash Report'),
   'event.attachment': t('Other'),

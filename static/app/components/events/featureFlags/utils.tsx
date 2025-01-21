@@ -115,14 +115,22 @@ export const sortedFlags = ({
 
 export enum ProviderOptions {
   LAUNCHDARKLY = 'LaunchDarkly',
+  GENERIC = 'Generic',
+  UNLEASH = 'Unleash',
 }
 
 export enum IntegrationOptions {
   LAUNCHDARKLY = 'LaunchDarkly',
   OPENFEATURE = 'OpenFeature',
+  GENERIC = 'Generic',
+  UNLEASH = 'Unleash',
 }
 
-export const PROVIDER_OPTION_TO_URLS: Record<ProviderOptions, string> = {
+export const PROVIDER_OPTION_TO_URLS: Record<ProviderOptions, string | undefined> = {
   [ProviderOptions.LAUNCHDARKLY]:
     'https://app.launchdarkly.com/settings/integrations/webhooks/new?q=Webhooks',
+  [ProviderOptions.UNLEASH]:
+    'https://docs.sentry.io/organization/integrations/feature-flag/unleash/#set-up-change-tracking',
+  [ProviderOptions.GENERIC]:
+    'https://docs.sentry.io/organization/integrations/feature-flag/generic/#set-up-change-tracking',
 };

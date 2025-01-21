@@ -20,14 +20,14 @@ interface Props {
   totalFingerprint: number;
 }
 
-export function MergedItem({fingerprint, totalFingerprint}: Props) {
+function MergedItem({fingerprint, totalFingerprint}: Props) {
   const organization = useOrganization();
   const location = useLocation();
   const [busy, setBusy] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [checked, setChecked] = useState(false);
 
-  function onGroupChange({unmergeState}) {
+  function onGroupChange({unmergeState}: any) {
     if (!unmergeState) {
       return;
     }
@@ -84,7 +84,7 @@ export function MergedItem({fingerprint, totalFingerprint}: Props) {
   }
 
   useEffect(() => {
-    const teardown = GroupingStore.listen(data => onGroupChange(data), undefined);
+    const teardown = GroupingStore.listen((data: any) => onGroupChange(data), undefined);
     return () => {
       teardown();
     };

@@ -168,6 +168,9 @@ export default function SpanMetricsTable(props: Props) {
                 location,
                 sort,
               }),
+            // This is now caught by noUncheckedIndexedAccess, ignoring for now as
+            // it seems related to some nasty grid editable generic.
+            // @ts-ignore TS(2769): No overload matches this call.
             renderBodyCell: renderBodyCell(
               location,
               organization,

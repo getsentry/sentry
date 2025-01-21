@@ -14,6 +14,7 @@ import {
 } from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresTimeseriesQuery';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import {applyStaticWeightsToTimeseries} from 'sentry/views/insights/browser/webVitals/utils/applyStaticWeightsToTimeseries';
+import {getWeights} from 'sentry/views/insights/browser/webVitals/utils/getWeights';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {PERFORMANCE_SCORE_WEIGHTS} from 'sentry/views/insights/browser/webVitals/utils/scoreThresholds';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
@@ -52,14 +53,18 @@ export function PerformanceScoreBreakdownChart({
 }: Props) {
   const organization = useOrganization();
   const theme = useTheme();
-  const segmentColors = [...theme.charts.getColorPalette(3).slice(0, 5)];
+  const segmentColors = [...(theme.charts.getColorPalette(3) ?? []).slice(0, 5)];
 
   const pageFilters = usePageFilters();
+  const handleMissingWebVitals = organization.features.includes(
+    'performance-vitals-handle-missing-webvitals'
+  );
 
   const {data: timeseriesData, isLoading: isTimeseriesLoading} =
     useProjectWebVitalsScoresTimeseriesQuery({transaction, browserTypes, subregions});
 
   const period = pageFilters.selection.datetime.period;
+  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const performanceScoreSubtext = (period && DEFAULT_RELATIVE_PERIODS[period]) ?? '';
   const chartSeriesOrder = ORDER;
 
@@ -87,10 +92,13 @@ export function PerformanceScoreBreakdownChart({
     chartSeriesOrder
   );
 
-  const weightsSeries = weightedTimeseries[0]!.data.map(({name}) => {
-    const value = PERFORMANCE_SCORE_WEIGHTS;
-    return {name, value};
-  });
+  const weights = handleMissingWebVitals
+    ? getWeights(
+        ORDER.filter(webVital =>
+          timeseriesData[webVital].some(series => series.value > 0)
+        )
+      )
+    : PERFORMANCE_SCORE_WEIGHTS;
 
   return (
     <StyledChartPanel title={t('Score Breakdown')}>
@@ -112,18 +120,15 @@ export function PerformanceScoreBreakdownChart({
         dataMax={100}
         chartColors={segmentColors}
         tooltipFormatterOptions={{
-          nameFormatter: (name, seriesParams: any) => {
-            const timestamp = seriesParams?.data[0];
-            const weights = weightsSeries.find(
-              series => series.name === timestamp
-            )?.value;
+          nameFormatter: name => {
             // nameFormatter expects a string an will wrap the output in an html string.
             // Kind of a hack, but we can inject some html to escape styling for the subLabel.
             const subLabel =
               weights !== undefined
-                ? ` </strong>(${
-                    weights[name.toLocaleLowerCase()]
-                  }% of Perf Score)<strong>`
+                ? // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                  ` </strong>(${weights[name.toLocaleLowerCase()].toFixed(
+                    0
+                  )}% of Perf Score)<strong>`
                 : '';
             return `${name} Score${subLabel}`;
           },

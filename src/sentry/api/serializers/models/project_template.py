@@ -4,12 +4,14 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Any, TypedDict
 
+from django.contrib.auth.models import AnonymousUser
 from rest_framework import serializers
 
 from sentry.api.serializers import Serializer, register
 from sentry.models.options.project_template_option import TProjectOptions
 from sentry.models.projecttemplate import ProjectTemplate
 from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
 
 
 class ProjectTemplateAttributes(StrEnum):
@@ -32,7 +34,12 @@ class ProjectTemplateSerializer(Serializer):
     def _expand(self, key: ProjectTemplateAttributes) -> bool:
         return self.expand is not None and key in self.expand
 
-    def get_attrs(self, item_list: Sequence[ProjectTemplate], user: User, **kwargs: Any):
+    def get_attrs(
+        self,
+        item_list: Sequence[ProjectTemplate],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ):
         attrs = super().get_attrs(item_list, user, **kwargs)
         all_attrs: dict[ProjectTemplate, dict[ProjectTemplateAttributes, Any]] = defaultdict(dict)
 
@@ -52,7 +59,11 @@ class ProjectTemplateSerializer(Serializer):
         return all_attrs
 
     def serialize(
-        self, obj: ProjectTemplate, attrs: Mapping[str, Any], user: User, **kwargs: Any
+        self,
+        obj: ProjectTemplate,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
     ) -> SerializedProjectTemplate:
         response: SerializedProjectTemplate = {
             "id": obj.id,

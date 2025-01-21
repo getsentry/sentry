@@ -34,28 +34,6 @@ export default function useSuspectFlags({
     [auditLogFlagNames, evaluatedFlagNames]
   );
 
-  // no flags in common between event evaluations and audit log
-  // only track this analytic if there is at least 1 flag recorded
-  // in either the audit log or the event context
-  useEffect(() => {
-    if (
-      !intersectionFlags.length &&
-      (hydratedFlagData.length || evaluatedFlagNames?.length)
-    ) {
-      trackAnalytics('flags.event_and_suspect_flags_found', {
-        numTotalFlags: hydratedFlagData.length,
-        numEventFlags: 0,
-        numSuspectFlags: 0,
-        organization,
-      });
-    }
-  }, [
-    hydratedFlagData.length,
-    intersectionFlags.length,
-    organization,
-    evaluatedFlagNames?.length,
-  ]);
-
   // get all the audit log flag changes which happened prior to the first seen date
   const start = moment(firstSeen).subtract(1, 'year').format('YYYY-MM-DD HH:mm:ss');
   const apiQueryResponse = useApiQuery<RawFlagData>(
@@ -79,6 +57,32 @@ export default function useSuspectFlags({
 
   const {data, isError, isPending} = apiQueryResponse;
 
+  // no flags in common between event evaluations and audit log
+  // only track this analytic if there is at least 1 flag recorded
+  // in either the audit log or the event context
+  useEffect(() => {
+    if (
+      !intersectionFlags.length &&
+      (hydratedFlagData.length || evaluatedFlagNames?.length) &&
+      !isPending &&
+      !isError
+    ) {
+      trackAnalytics('flags.event_and_suspect_flags_found', {
+        numTotalFlags: hydratedFlagData.length,
+        numEventFlags: 0,
+        numSuspectFlags: 0,
+        organization,
+      });
+    }
+  }, [
+    hydratedFlagData.length,
+    intersectionFlags.length,
+    organization,
+    evaluatedFlagNames?.length,
+    isPending,
+    isError,
+  ]);
+
   // remove duplicate flags - keeps the one closest to the firstSeen date
   // cap the number of suspect flags to the 3 closest to the firstSeen date
   const suspectFlags = useMemo(() => {
@@ -86,8 +90,8 @@ export default function useSuspectFlags({
       ? data.data
           .toReversed()
           .filter(
-            (rawFlag, idx, rawFlagArray) =>
-              idx === rawFlagArray.findIndex(f => f.flag === rawFlag.flag)
+            (rawFlag: any, idx: any, rawFlagArray: any) =>
+              idx === rawFlagArray.findIndex((f: any) => f.flag === rawFlag.flag)
           )
           .slice(0, 3)
       : [];
@@ -105,11 +109,11 @@ export default function useSuspectFlags({
       });
     }
   }, [
-    hydratedFlagData,
+    hydratedFlagData.length,
     isError,
     isPending,
-    suspectFlags,
-    intersectionFlags,
+    suspectFlags.length,
+    intersectionFlags.length,
     organization,
   ]);
 

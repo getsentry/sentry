@@ -71,7 +71,7 @@ class MemberTeamFields extends Component<Props> {
     const memberSelected = ruleData.targetType === memberValue;
 
     const selectControlStyles = {
-      control: provided => ({
+      control: (provided: any) => ({
         ...provided,
         minHeight: '28px',
         height: '28px',

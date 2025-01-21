@@ -26,7 +26,7 @@ import {
   getExceptionGroupHeight,
   getExceptionGroupWidth,
 } from 'sentry/utils/eventExceptionGroup';
-import {getDaysSinceDatePrecise} from 'sentry/utils/getDaysSinceDate';
+import getDaysSinceDate, {getDaysSinceDatePrecise} from 'sentry/utils/getDaysSinceDate';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 
@@ -286,8 +286,10 @@ export function getExceptionEntries(event: Event) {
 function getAllFrames(event: Event, inAppOnly: boolean): Frame[] {
   const exceptions: EntryException[] | EntryThreads[] = getEntriesWithFrames(event);
   const frames: Frame[] = exceptions
+    // @ts-ignore TS(2322): Type 'Thread[] | ExceptionValue[]' is not assignab... Remove this comment to see the full error message
     .flatMap(withStacktrace => withStacktrace.data.values ?? [])
     .flatMap(
+      // @ts-ignore TS(2345): Argument of type '(withStacktrace: ExceptionValue ... Remove this comment to see the full error message
       (withStacktrace: ExceptionValue | Thread) =>
         withStacktrace?.stacktrace?.frames ?? []
     );
@@ -421,6 +423,7 @@ export function getAnalyticsDataForEvent(event?: Event | null): BaseEventAnalyti
     num_stack_frames: event ? getNumberOfStackFrames(event) : 0,
     num_in_app_stack_frames: event ? getNumberOfInAppStackFrames(event) : 0,
     num_threads_with_names: event ? getNumberOfThreadsWithNames(event) : 0,
+    event_age: event ? getDaysSinceDate(event.dateCreated ?? event.dateReceived) : -1,
     event_platform: event?.platform,
     event_runtime: event?.tags?.find(tag => tag.key === 'runtime.name')?.value,
     event_type: event?.type,

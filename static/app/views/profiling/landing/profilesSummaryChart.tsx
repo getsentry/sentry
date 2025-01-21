@@ -54,19 +54,21 @@ export function ProfilesSummaryChart({
 
     // the timestamps in the response is in seconds but echarts expects
     // a timestamp in milliseconds, so multiply by 1e3 to do the conversion
-    const timestamps = profileStats.data.timestamps.map(ts => ts * 1e3);
+    const timestamps = profileStats.data.timestamps.map((ts: any) => ts * 1e3);
 
     const allSeries = profileStats.data.data
-      .filter(rawData => seriesOrder.includes(rawData.axis))
-      .map(rawData => {
+      .filter((rawData: any) => seriesOrder.includes(rawData.axis))
+      .map((rawData: any) => {
         if (timestamps.length !== rawData.values.length) {
           throw new Error('Invalid stats response');
         }
 
         if (rawData.axis === 'count()') {
           return {
+            // @ts-ignore TS(7006): Parameter 'value' implicitly has an 'any' type.
             data: rawData.values.map((value, i) => ({
               name: timestamps[i]!,
+
               // the response value contains nulls when no data is
               // available, use 0 to represent it
               value: value ?? 0,
@@ -78,8 +80,10 @@ export function ProfilesSummaryChart({
         }
 
         return {
+          // @ts-ignore TS(7006): Parameter 'value' implicitly has an 'any' type.
           data: rawData.values.map((value, i) => ({
             name: timestamps[i]!,
+
             // the response value contains nulls when no data
             // is available, use 0 to represent it
             value: value ?? 0,
@@ -90,7 +94,7 @@ export function ProfilesSummaryChart({
         };
       });
 
-    allSeries.sort((a, b) => {
+    allSeries.sort((a: any, b: any) => {
       const idxA = seriesOrder.indexOf(a.seriesName as any);
       const idxB = seriesOrder.indexOf(b.seriesName as any);
 

@@ -428,7 +428,7 @@ describe('Visualize', () => {
     await userEvent.click(screen.getByRole('option', {name: 'count_miserable'}));
 
     expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
-      'transaction.duration'
+      'user'
     );
     expect(screen.getByRole('button', {name: 'Aggregate Selection'})).toHaveTextContent(
       'count_miserable'
@@ -437,7 +437,7 @@ describe('Visualize', () => {
     expect(mockNavigate).toHaveBeenCalledWith(
       expect.objectContaining({
         query: expect.objectContaining({
-          field: ['count_miserable(transaction.duration,300)'],
+          field: ['count_miserable(user,300)'],
         }),
       })
     );
@@ -465,9 +465,8 @@ describe('Visualize', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
     await userEvent.click(screen.getByRole('option', {name: 'count_miserable'}));
 
-    // TODO: This is supposed to only allow the user field
     expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
-      'transaction.duration'
+      'user'
     );
   });
 
@@ -553,6 +552,334 @@ describe('Visualize', () => {
       await screen.findByRole('button', {name: 'Aggregate Selection'})
     ).toHaveTextContent('p90');
     expect(screen.queryByLabelText('Legend Alias')).not.toBeInTheDocument();
+  });
+
+  it('does not show the legend alias input for big number widgets', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.BIG_NUMBER,
+              field: ['count()'],
+            },
+          }),
+        }),
+      }
+    );
+
+    expect(
+      await screen.findByRole('button', {name: 'Aggregate Selection'})
+    ).toHaveTextContent('count');
+    expect(screen.queryByLabelText('Legend Alias')).not.toBeInTheDocument();
+  });
+
+  it('does not allow for selecting individual fields in big number widgets', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.BIG_NUMBER,
+              field: ['count()'],
+            },
+          }),
+        }),
+      }
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
+
+    // Being unable to choose "None" in the aggregate selection means that the
+    // individual field is not allowed, i.e. only aggregates appear.
+    expect(screen.queryByRole('option', {name: 'None'})).not.toBeInTheDocument();
+  });
+
+  it('updates only the selected field', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.TABLE,
+              field: ['count_unique(user)'],
+            },
+          }),
+        }),
+      }
+    );
+
+    expect(await screen.findByLabelText('Aggregate Selection')).toHaveTextContent(
+      'count_unique'
+    );
+    expect(screen.getByLabelText('Column Selection')).toHaveTextContent('user');
+
+    // Add 3 fields
+    await userEvent.click(screen.getByRole('button', {name: 'Add Field'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Add Field'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Add Field'}));
+
+    // count() is the default aggregate when adding a field
+    expect(screen.getAllByText('count')).toHaveLength(3);
+
+    // Change the last field
+    await userEvent.click(screen.getAllByText('count')[2]!);
+    await userEvent.click(screen.getByRole('option', {name: 'epm'}));
+
+    // The other fields should not be affected
+    expect(screen.getByText('count_unique')).toBeInTheDocument();
+    expect(screen.getAllByText('count')).toHaveLength(2);
+    expect(screen.getAllByText('epm')).toHaveLength(1);
+  });
+
+  it('shows appropriate error messages for non-chart widget queries', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize
+          error={{
+            queries: [
+              {
+                fields: ['this field has an error'],
+                aggregates: ['this aggregate has an error'],
+              },
+            ],
+          }}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.BIG_NUMBER,
+            },
+          }),
+        }),
+      }
+    );
+
+    expect(await screen.findByText('this field has an error')).toBeInTheDocument();
+    expect(screen.queryByText('this aggregate has an error')).not.toBeInTheDocument();
+  });
+
+  it('shows appropriate error messages for chart type widget queries', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize
+          error={{
+            queries: [
+              {
+                fields: ['this field has an error'],
+                aggregates: ['this aggregate has an error'],
+              },
+            ],
+          }}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.LINE,
+            },
+          }),
+        }),
+      }
+    );
+
+    expect(await screen.findByText('this aggregate has an error')).toBeInTheDocument();
+    expect(screen.queryByText('this field has an error')).not.toBeInTheDocument();
+  });
+
+  it('shows radio buttons for big number widgets when there are multiple aggregates', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.BIG_NUMBER,
+              field: ['count_unique(user)'],
+            },
+          }),
+        }),
+      }
+    );
+
+    expect(await screen.findByLabelText('Aggregate Selection')).toHaveTextContent(
+      'count_unique'
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Add Field'}));
+
+    // There are two radio buttons, one for each aggregate, and the last one is selected
+    expect(screen.getAllByLabelText('aggregate-selector')).toHaveLength(2);
+    expect(screen.getByRole('radio', {name: 'field1'})).toBeChecked();
+  });
+
+  it('shifts the selected aggregate up when it is the last one and removed', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.BIG_NUMBER,
+              field: ['count_unique(1)', 'count_unique(2)', 'count_unique(3)'],
+              selectedAggregate: '2',
+            },
+          }),
+        }),
+      }
+    );
+
+    expect(await screen.findByRole('radio', {name: 'field2'})).toBeChecked();
+    await userEvent.click(screen.getAllByRole('button', {name: 'Remove field'})[2]!);
+
+    // The second field is now selected, but the URL param for selectedAggregate
+    // is cleared, so the last field is selected
+    expect(await screen.findByRole('radio', {name: 'field1'})).toBeChecked();
+    expect(mockNavigate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({
+          selectedAggregate: undefined,
+        }),
+      })
+    );
+  });
+
+  it('only shows the relevant options for the release dataset', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.RELEASE,
+              field: ['crash_free_rate(session)'],
+            },
+          }),
+        }),
+      }
+    );
+
+    expect(
+      await screen.findByRole('button', {name: 'Column Selection'})
+    ).toHaveTextContent('session');
+    await userEvent.click(screen.getByRole('button', {name: 'Column Selection'}));
+    const listbox = await screen.findAllByRole('option');
+    expect(listbox).toHaveLength(2);
+    expect(listbox[0]).toHaveTextContent('session');
+    expect(listbox[1]).toHaveTextContent('user');
+  });
+
+  it('clears out the field when the selected aggregate has no parameters', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              field: ['transaction.duration'],
+            },
+          }),
+        }),
+      }
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
+    await userEvent.click(screen.getByRole('option', {name: 'count'}));
+
+    expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
+      'None'
+    );
+  });
+
+  it('uses the provided value for a value parameter field', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              field: ['count_if(transaction.duration,equals,300)'],
+            },
+          }),
+        }),
+      }
+    );
+
+    // Simulate clearing and typing a new value from the user
+    await userEvent.type(
+      screen.getByDisplayValue('300'),
+      '{backspace}{backspace}{backspace}400'
+    );
+
+    // Unfocus the field
+    await userEvent.tab();
+
+    expect(await screen.findByDisplayValue('400')).toBeInTheDocument();
+  });
+
+  it('restricts deleting the last aggregate in release health widgets', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.RELEASE,
+              field: ['crash_free_rate(session)', 'environment'],
+            },
+          }),
+        }),
+      }
+    );
+
+    const removeButtons = await screen.findAllByRole('button', {name: 'Remove field'});
+    expect(removeButtons).toHaveLength(2);
+    expect(removeButtons[0]).toBeDisabled();
+    expect(removeButtons[1]).toBeEnabled();
   });
 
   describe('spans', () => {

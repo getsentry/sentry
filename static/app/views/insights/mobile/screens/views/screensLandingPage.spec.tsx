@@ -129,21 +129,21 @@ describe('Screens Landing Page', function () {
         body: {
           data: [
             {
-              'avg(mobile.slow_frames)': 5,
-              'avg(mobile.frozen_frames)': 6,
+              'division(mobile.slow_frames,mobile.total_frames)': 0.05,
+              'division(mobile.frozen_frames,mobile.total_frames)': 0.06,
               'avg(mobile.frames_delay)': 7,
             },
           ],
           meta: {
             fields: {
-              'avg(mobile.slow_frames)': 'number',
+              'division(mobile.slow_frames,mobile.total_frames)': 'number',
+              'division(mobile.frozen_frames,mobile.total_frames)': 'number',
               'avg(mobile.frames_delay)': 'number',
-              'avg(mobile.frozen_frames)': 'number',
             },
             units: {
-              'avg(mobile.slow_frames)': null,
+              'division(mobile.slow_frames,mobile.total_frames)': null,
+              'division(mobile.frozen_frames,mobile.total_frames)': null,
               'avg(mobile.frames_delay)': null,
-              'avg(mobile.frozen_frames)': null,
             },
             isMetricsData: false,
             isMetricsExtractedData: false,
@@ -163,13 +163,13 @@ describe('Screens Landing Page', function () {
       expect(spanMetricsMock).toHaveBeenCalled();
 
       const cards = [
-        {header: 'Cold App Start', value: '1'},
-        {header: 'Warm App Start', value: '2'},
-        {header: 'TTID', value: '3'},
-        {header: 'TTFD', value: '4'},
-        {header: 'Slow Frames', value: '5'},
-        {header: 'Frozen Frames', value: '6'},
-        {header: 'Frame Delay', value: '7'},
+        {header: 'Avg. Cold App Start', value: '1'},
+        {header: 'Avg. Warm App Start', value: '2'},
+        {header: 'Avg. TTID', value: '3'},
+        {header: 'Avg. TTFD', value: '4'},
+        {header: 'Slow Frame Rate', value: '5%'},
+        {header: 'Frozen Frame Rate', value: '6%'},
+        {header: 'Avg. Frame Delay', value: '7'},
       ];
 
       const topSection = screen.getByTestId('mobile-screens-top-metrics');
@@ -203,7 +203,7 @@ describe('Screens Landing Page', function () {
     });
 
     it('shows content if permission is there', async function () {
-      organization.features = [MODULE_FEATURE];
+      organization.features = [MODULE_FEATURE, 'insights-entry-points'];
       render(<ScreensLandingPage />, {organization});
       expect(await screen.findAllByText('Mobile Screens')).toHaveLength(2);
     });

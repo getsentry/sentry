@@ -8,7 +8,7 @@ import {Button} from 'sentry/components/button';
 import {Chevron} from 'sentry/components/chevron';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {analyzeFrameForRootCause} from 'sentry/components/events/interfaces/analyzeFrames';
-import LeadHint from 'sentry/components/events/interfaces/frame/line/leadHint';
+import LeadHint from 'sentry/components/events/interfaces/frame/leadHint';
 import {StacktraceLink} from 'sentry/components/events/interfaces/frame/stacktraceLink';
 import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import {SourceMapsDebuggerModal} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
@@ -143,7 +143,7 @@ export class DeprecatedLine extends Component<Props, State> {
     this.setState({isHovering: false});
   };
 
-  toggleContext = evt => {
+  toggleContext = (evt: any) => {
     evt?.preventDefault();
 
     this.setState({
@@ -195,7 +195,7 @@ export class DeprecatedLine extends Component<Props, State> {
     }
   }
 
-  scrollToImage = event => {
+  scrollToImage = (event: any) => {
     event.stopPropagation(); // to prevent collapsing if collapsible
 
     const {instructionAddr, addrMode} = this.props.data;
@@ -210,14 +210,14 @@ export class DeprecatedLine extends Component<Props, State> {
       ?.scrollIntoView({block: 'start', behavior: 'smooth'});
   };
 
-  scrollToSuspectRootCause = event => {
+  scrollToSuspectRootCause = (event: any) => {
     event.stopPropagation(); // to prevent collapsing if collapsible
     document
       .getElementById(SectionKey.SUSPECT_ROOT_CAUSE)
       ?.scrollIntoView({block: 'start', behavior: 'smooth'});
   };
 
-  preventCollapse = evt => {
+  preventCollapse = (evt: any) => {
     evt.stopPropagation();
   };
 

@@ -23,14 +23,12 @@ from sentry.incidents.logic import INVALID_TIME_WINDOW
 from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleDetectionType,
-    AlertRuleMonitorTypeInt,
     AlertRuleSeasonality,
     AlertRuleSensitivity,
     AlertRuleThresholdType,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
 )
-from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.integrations.slack.tasks.find_channel_id_for_alert_rule import (
     find_channel_id_for_alert_rule,
 )
@@ -52,6 +50,9 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
+from tests.sentry.workflow_engine.migration_helpers.test_migrate_alert_rule import (
+    assert_alert_rule_migrated,
+)
 
 pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
@@ -99,7 +100,6 @@ class AlertRuleBase(APITestCase):
             "projects": [self.project.slug],
             "owner": self.user.id,
             "name": "JustAValidTestRule",
-            "activations": [],
         }
 
     @cached_property
@@ -132,7 +132,6 @@ class AlertRuleBase(APITestCase):
             "projects": [self.project.slug],
             "owner": self.user.id,
             "name": "JustAValidTestRule",
-            "activations": [],
         }
 
 
@@ -178,43 +177,16 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase):
         resp = self.get_response(self.organization.slug)
         assert resp.status_code == 404
 
-    def test_filter_by_monitor_type(self):
-        self.create_team(organization=self.organization, members=[self.user])
-        alert_rule1 = self.create_alert_rule(monitor_type=AlertRuleMonitorTypeInt.ACTIVATED)
-        alert_rule2 = self.create_alert_rule(monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS)
-        self.login_as(self.user)
-
-        params = {"monitor_type": 1}
-        with self.feature("organizations:incidents"):
-            resp = self.get_response(self.organization.slug, **params)
-
-        assert serialize([alert_rule2]) not in resp.data
-        assert resp.data == serialize([alert_rule1])
-
     def test_response_headers(self):
         self.create_team(organization=self.organization, members=[self.user])
-        self.create_alert_rule(monitor_type=AlertRuleMonitorTypeInt.ACTIVATED)
-        self.create_alert_rule(monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS)
+        self.create_alert_rule()
         self.login_as(self.user)
 
         with self.feature("organizations:incidents"):
             resp = self.get_response(self.organization.slug)
 
-        assert resp[ALERT_RULES_COUNT_HEADER] == "2"
+        assert resp[ALERT_RULES_COUNT_HEADER] == "1"
         assert resp[MAX_QUERY_SUBSCRIPTIONS_HEADER] == "1000"
-
-    def test_simple_with_activation(self):
-        self.create_team(organization=self.organization, members=[self.user])
-        alert_rule = self.create_alert_rule()
-        self.create_alert_rule_activation(
-            alert_rule=alert_rule, monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS
-        )
-
-        self.login_as(self.user)
-        with self.feature("organizations:incidents"):
-            resp = self.get_success_response(self.organization.slug)
-
-        assert resp.data == serialize([alert_rule])
 
 
 @freeze_time()
@@ -253,6 +225,22 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             resp.renderer_context["request"].META["REMOTE_ADDR"]
             == list(audit_log_entry)[0].ip_address
         )
+
+    @with_feature("organizations:workflow-engine-metric-alert-processing")
+    def test_create_alert_rule_aci(self):
+        with (
+            outbox_runner(),
+            self.feature(["organizations:incidents", "organizations:performance-view"]),
+        ):
+            resp = self.get_success_response(
+                self.organization.slug,
+                status_code=201,
+                **self.alert_rule_dict,
+            )
+        assert "id" in resp.data
+        alert_rule = AlertRule.objects.get(id=resp.data["id"])
+        assert resp.data == serialize(alert_rule, self.user)
+        assert_alert_rule_migrated(alert_rule, self.project.id)
 
     @with_feature("organizations:slack-metric-alert-description")
     @with_feature("organizations:incidents")
@@ -424,37 +412,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             )
         assert not AlertRule.objects.filter(detection_type=AlertRuleDetectionType.DYNAMIC).exists()
         assert resp.data[0] == INVALID_TIME_WINDOW
-
-    def test_monitor_type_with_condition(self):
-        data = {
-            **self.alert_rule_dict,
-            "monitorType": AlertRuleMonitorTypeInt.ACTIVATED,
-            "activationCondition": AlertRuleActivationConditionType.RELEASE_CREATION.value,
-        }
-        with (
-            outbox_runner(),
-            self.feature(["organizations:incidents"]),
-        ):
-            err_resp = self.get_error_response(
-                self.organization.slug,
-                method=responses.POST,
-                status_code=status.HTTP_400_BAD_REQUEST,
-                **data,
-            ).json()
-        assert err_resp == {"monitorType": ["Invalid monitor type"]}
-
-        with (
-            outbox_runner(),
-            self.feature(["organizations:incidents", "organizations:activated-alert-rules"]),
-        ):
-            resp = self.get_success_response(
-                self.organization.slug,
-                status_code=201,
-                **data,
-            )
-        assert "id" in resp.data
-        alert_rule = AlertRule.objects.get(id=resp.data["id"])
-        assert resp.data == serialize(alert_rule, self.user)
 
     def test_multiple_projects(self):
         new_project = self.create_project()

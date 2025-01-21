@@ -225,7 +225,9 @@ describe('Performance > Web Vitals', function () {
       organization,
     });
 
-    expect(screen.getByRole('navigation')).toHaveTextContent('PerformanceWeb Vitals');
+    expect(screen.getByRole('navigation')).toHaveTextContent(
+      'PerformanceTransaction Summary'
+    );
   });
 
   describe('renders all vitals cards correctly', function () {
@@ -318,10 +320,13 @@ describe('Performance > Web Vitals', function () {
 
       expect(mockNavigate).toHaveBeenCalledWith({
         query: expect.not.objectContaining(
-          ZOOM_KEYS.reduce((obj, key) => {
-            obj[key] = expect.anything();
-            return obj;
-          }, {})
+          ZOOM_KEYS.reduce(
+            (obj, key) => {
+              obj[key] = expect.anything();
+              return obj;
+            },
+            {} as Record<string, unknown>
+          )
         ),
       });
     });

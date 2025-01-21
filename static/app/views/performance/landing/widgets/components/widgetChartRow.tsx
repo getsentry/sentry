@@ -40,7 +40,7 @@ function ChartRow(props: ChartRowProps) {
   const {chartCount, chartHeight, allowedCharts} = props;
   const theme = useTheme();
   const performanceType = usePerformanceDisplayType();
-  const palette = theme.charts.getColorPalette(chartCount)!;
+  const palette = theme.charts.getColorPalette(chartCount) ?? [];
 
   const [chartSettings, setChartSettings] = useState(
     getInitialChartSettings(chartCount, chartHeight, performanceType, allowedCharts)
@@ -68,23 +68,17 @@ function ChartRow(props: ChartRowProps) {
   );
 }
 
-export function TripleChartRow(props: ChartRowProps) {
-  return <ChartRow {...props} />;
+type DefaultProps = 'chartCount' | 'chartHeight';
+type ChartRowPropsWithDefaults = Omit<ChartRowProps, DefaultProps> &
+  Pick<Partial<ChartRowProps>, DefaultProps>;
+
+export function TripleChartRow(props: ChartRowPropsWithDefaults) {
+  return <ChartRow chartCount={3} chartHeight={100} {...props} />;
 }
 
-TripleChartRow.defaultProps = {
-  chartCount: 3,
-  chartHeight: 100,
-};
-
-export function DoubleChartRow(props: ChartRowProps) {
-  return <ChartRow {...props} />;
+export function DoubleChartRow(props: ChartRowPropsWithDefaults) {
+  return <ChartRow chartCount={2} chartHeight={150} {...props} />;
 }
-
-DoubleChartRow.defaultProps = {
-  chartCount: 2,
-  chartHeight: 150,
-};
 
 const StyledRow = styled(PerformanceLayoutBodyRow)`
   margin-bottom: ${space(2)};

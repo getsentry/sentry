@@ -127,6 +127,7 @@ export function getSubscriptionReason(group: Group) {
     }
 
     if (reason && SUBSCRIPTION_REASONS.hasOwnProperty(reason)) {
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       return SUBSCRIPTION_REASONS[reason];
     }
   }
@@ -271,6 +272,11 @@ export function useHasStreamlinedUI() {
   // Allow query param to override all other settings to set the UI.
   if (defined(location.query.streamline)) {
     return location.query.streamline === '1';
+  }
+
+  // If the organzation option is set, it determines which interface is used.
+  if (defined(organization.streamlineOnly)) {
+    return organization.streamlineOnly;
   }
 
   // If the enforce flag is set for the organization, ignore user preferences and enable the UI

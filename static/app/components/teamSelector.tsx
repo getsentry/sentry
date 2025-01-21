@@ -56,7 +56,7 @@ const optionFilter = createFilter({
   stringify: option => `${option.label} ${option.value}`,
 });
 
-const filterOption = (canditate, input) =>
+const filterOption = (canditate: any, input: any) =>
   // Never filter out the create team option
   canditate.data.value === CREATE_TEAM_VALUE || optionFilter(canditate, input);
 
@@ -112,6 +112,10 @@ type Props = {
    * Controls whether the dropdown allows to create a new team
    */
   allowCreate?: boolean;
+  /**
+   * Flag that indicates whether to filter teams to only show teams that the user is a member of
+   */
+  filterByUserMembership?: boolean;
   includeUnassigned?: boolean;
   /**
    * Can be used to restrict teams to a certain project and allow for new teams to be add to that project
@@ -146,6 +150,7 @@ function TeamSelector(props: Props) {
   const {
     allowCreate,
     includeUnassigned,
+    filterByUserMembership = false,
     styles: stylesProp,
     onChange,
     useTeamDefaultIfOnlyOne = false,
@@ -154,7 +159,12 @@ function TeamSelector(props: Props) {
   const {teamFilter, organization, project, multiple, value, useId} = props;
 
   const api = useApi();
-  const {teams, fetching, onSearch} = useTeams();
+  const {teams: initialTeams, fetching, onSearch} = useTeams();
+
+  let teams = initialTeams;
+  if (filterByUserMembership) {
+    teams = initialTeams.filter(team => team.isMember);
+  }
 
   // TODO(ts) This type could be improved when react-select types are better.
   const selectRef = useRef<any>(null);
@@ -304,6 +314,7 @@ function TeamSelector(props: Props) {
 
   function getOptions() {
     const filteredTeams = teamFilter ? teams.filter(teamFilter) : teams;
+
     const createOption = {
       value: CREATE_TEAM_VALUE,
       label: t('Create team'),

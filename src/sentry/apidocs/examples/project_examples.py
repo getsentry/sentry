@@ -89,6 +89,7 @@ BASE_PROJECT = {
     "hasNewFeedbacks": False,
     "hasProfiles": False,
     "hasReplays": False,
+    "hasFlags": False,
     "hasSessions": False,
     "hasInsightsHttp": True,
     "hasInsightsDb": False,
@@ -180,6 +181,9 @@ DETAILED_PROJECT = {
         "name": "Sentry",
         "dateCreated": "2014-12-15T04:06:24.263571Z",
         "isEarlyAdopter": True,
+        "allowMemberInvite": True,
+        "allowMemberProjectCreation": True,
+        "allowSuperuserAccess": False,
         "require2FA": False,
         "avatar": {"avatarType": "upload", "avatarUuid": "24f6f762f7a7473888b259c566da5adb"},
         "features": [
@@ -367,6 +371,12 @@ DETAILED_PROJECT = {
     ],
     "eventProcessing": {"symbolicationDegraded": False},
     "symbolSources": "[]",
+    "tempestFetchScreenshots": False,
+    "relayCustomMetricCardinalityLimit": 5,
+    "isDynamicallySampled": True,
+    "highlightTags": [],
+    "highlightContext": {},
+    "highlightPreset": {"tags": [], "context": {}},
 }
 
 SYMBOL_SOURCES = [

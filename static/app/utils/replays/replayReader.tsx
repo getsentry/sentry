@@ -93,7 +93,7 @@ type RequiredNotNull<T> = {
   [P in keyof T]: NonNullable<T[P]>;
 };
 
-const sortFrames = (a, b) => a.timestampMs - b.timestampMs;
+const sortFrames = (a: any, b: any) => a.timestampMs - b.timestampMs;
 
 function removeDuplicateClicks(frames: BreadcrumbFrame[]) {
   const slowClickFrames = frames.filter(
@@ -432,22 +432,26 @@ export default class ReplayReader {
     return this.processingErrors().length;
   };
 
-  getExtractDomNodes = memoize(async () => {
-    if (this._fetching) {
-      return null;
+  getExtractDomNodes = memoize(
+    async ({withoutStyles}: {withoutStyles?: boolean} = {}) => {
+      if (this._fetching) {
+        return null;
+      }
+      const {onVisitFrame, shouldVisitFrame} = extractDomNodes;
+
+      const results = await replayerStepper({
+        frames: this.getDOMFrames(),
+        rrwebEvents: withoutStyles
+          ? this.getRRWebFramesWithoutStyles()
+          : this.getRRWebFrames(),
+        startTimestampMs: this.getReplay().started_at.getTime() ?? 0,
+        onVisitFrame,
+        shouldVisitFrame,
+      });
+
+      return results;
     }
-    const {onVisitFrame, shouldVisitFrame} = extractDomNodes;
-
-    const results = await replayerStepper({
-      frames: this.getDOMFrames(),
-      rrwebEvents: this.getRRWebFrames(),
-      startTimestampMs: this.getReplay().started_at.getTime() ?? 0,
-      onVisitFrame,
-      shouldVisitFrame,
-    });
-
-    return results;
-  });
+  );
 
   getClipWindow = () => this._clipWindow;
 
@@ -532,6 +536,35 @@ export default class ReplayReader {
       }
     });
     return eventsWithSnapshots;
+  });
+
+  /**
+   * Filter out style mutations as they can cause perf problems especially when
+   * used in replayStepper
+   */
+  getRRWebFramesWithoutStyles = memoize(() => {
+    return this.getRRWebFrames().map(e => {
+      if (
+        e.type === EventType.IncrementalSnapshot &&
+        'source' in e.data &&
+        e.data.source === IncrementalSource.Mutation
+      ) {
+        return {
+          ...e,
+          data: {
+            ...e.data,
+            adds: e.data.adds.filter(
+              add =>
+                !(
+                  (add.node.type === 3 && add.node.isStyle) ||
+                  (add.node.type === 2 && add.node.tagName === 'style')
+                )
+            ),
+          },
+        };
+      }
+      return e;
+    });
   });
 
   getRRwebTouchEvents = memoize(() =>
@@ -705,9 +738,9 @@ export default class ReplayReader {
     return this.getNetworkFrames().some(
       frame =>
         // We'd need to `filter()` before calling `some()` in order for TS to be happy
-        // @ts-expect-error
+        // @ts-ignore TS(2339): Property 'request' does not exist on type 'WebVita... Remove this comment to see the full error message
         Object.keys(frame?.data?.request?.headers ?? {}).length ||
-        // @ts-expect-error
+        // @ts-ignore TS(2339): Property 'response' does not exist on type 'WebVit... Remove this comment to see the full error message
         Object.keys(frame?.data?.response?.headers ?? {}).length
     );
   });
@@ -735,6 +768,7 @@ function findCanvasInMutation(event: incrementalSnapshotEvent) {
   );
 }
 
+// @ts-ignore TS(7023): 'findCanvasInChildNodes' implicitly has return typ... Remove this comment to see the full error message
 function findCanvasInChildNodes(nodes: serializedNodeWithId[]) {
   return nodes.find(
     node =>

@@ -47,9 +47,9 @@ import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withSavedSearches from 'sentry/utils/withSavedSearches';
-import CustomViewsIssueListHeader from 'sentry/views/issueList/customViewsHeader';
 import IssueListTable from 'sentry/views/issueList/issueListTable';
 import {IssuesDataConsentBanner} from 'sentry/views/issueList/issuesDataConsentBanner';
+import IssueViewsIssueListHeader from 'sentry/views/issueList/issueViewsHeader';
 import SavedIssueSearches from 'sentry/views/issueList/savedIssueSearches';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {NewTabContextProvider} from 'sentry/views/issueList/utils/newTabContext';
@@ -508,6 +508,7 @@ class IssueListOverview extends Component<Props, State> {
 
     // Update the count based on the exact number of issues, these shown as is
     if (currentTabQuery) {
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       queryCounts[currentTabQuery] = {
         count: currentQueryCount,
         hasMore: false,
@@ -519,6 +520,7 @@ class IssueListOverview extends Component<Props, State> {
     // If all tabs' counts are fetched, skip and only set
     if (
       fetchAllCounts ||
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       !tabQueriesWithCounts.every(tabQuery => queryCounts[tabQuery] !== undefined)
     ) {
       const requestParams: CountsEndpointParams = {
@@ -1191,8 +1193,7 @@ class IssueListOverview extends Component<Props, State> {
         <Layout.Page>
           {organization.features.includes('issue-stream-custom-views') ? (
             <ErrorBoundary message={'Failed to load custom tabs'} mini>
-              <CustomViewsIssueListHeader
-                organization={organization}
+              <IssueViewsIssueListHeader
                 router={router}
                 selectedProjectIds={selection.projects}
                 realtimeActive={realtimeActive}

@@ -16,7 +16,7 @@ export function AnnotatedTextValue({value, meta}: Props) {
   if (meta?.chunks?.length && meta.chunks.length > 1) {
     return (
       <ChunksSpan>
-        {meta.chunks.map((chunk, index) => {
+        {meta.chunks.map((chunk: any, index: any) => {
           if (chunk.type === 'redaction') {
             return (
               <Tooltip

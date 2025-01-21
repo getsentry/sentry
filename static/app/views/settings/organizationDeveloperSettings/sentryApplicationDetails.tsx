@@ -16,6 +16,7 @@ import type {Model} from 'sentry/components/avatarChooser';
 import AvatarChooser from 'sentry/components/avatarChooser';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import Form from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
@@ -44,7 +45,6 @@ import type {InternalAppApiToken, NewInternalAppApiToken} from 'sentry/types/use
 import getDynamicText from 'sentry/utils/getDynamicText';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withOrganization from 'sentry/utils/withOrganization';
-import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import ApiTokenRow from 'sentry/views/settings/account/apiTokenRow';
 import NewTokenHandler from 'sentry/views/settings/components/newTokenHandler';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -139,6 +139,7 @@ class SentryAppFormModel extends FormModel {
   getData() {
     return this.fields.toJSON().reduce((data, [k, v]) => {
       if (!k.endsWith('--permission')) {
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         data[k] = v;
       }
       return data;
@@ -150,13 +151,13 @@ type Props = RouteComponentProps<{appSlug?: string}, {}> & {
   organization: Organization;
 };
 
-type State = DeprecatedAsyncView['state'] & {
+type State = DeprecatedAsyncComponent['state'] & {
   app: SentryApp | null;
   newTokens: NewInternalAppApiToken[];
   tokens: InternalAppApiToken[];
 };
 
-class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
+class SentryApplicationDetails extends DeprecatedAsyncComponent<Props, State> {
   form = new SentryAppFormModel({mapFormErrors});
 
   getDefaultState(): State {
@@ -168,7 +169,7 @@ class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
     };
   }
 
-  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {appSlug} = this.props.params;
     if (appSlug) {
       const endpoints = [['app', `/sentry-apps/${appSlug}/`]];
@@ -189,12 +190,12 @@ class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
   }
 
   // Events may come from the API as "issue.created" when we just want "issue" here.
-  normalize(events) {
+  normalize(events: any) {
     if (events.length === 0) {
       return events;
     }
 
-    return events.map(e => e.split('.').shift());
+    return events.map((e: any) => e.split('.').shift());
   }
 
   handleSubmitSuccess = (data: SentryApp) => {
@@ -211,7 +212,7 @@ class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
     router.push(normalizeUrl(url));
   };
 
-  handleSubmitError = err => {
+  handleSubmitError = (err: any) => {
     let errorMessage = t('Unknown Error');
     if (err.status >= 400 && err.status < 500) {
       errorMessage = err?.responseJSON.detail ?? errorMessage;
@@ -506,7 +507,7 @@ class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
               <PanelBody>
                 {app.status !== 'internal' && (
                   <FormField name="clientId" label="Client ID">
-                    {({value, id}) => (
+                    {({value, id}: any) => (
                       <TextCopyInput id={id}>
                         {getDynamicText({value, fixed: 'CI_CLIENT_ID'})}
                       </TextCopyInput>
@@ -519,7 +520,7 @@ class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
                   help={t(`Your secret is only available briefly after integration creation. Make
                     sure to save this value!`)}
                 >
-                  {({value, id}) =>
+                  {({value, id}: any) =>
                     value ? (
                       <Tooltip
                         disabled={this.showAuthInfo}

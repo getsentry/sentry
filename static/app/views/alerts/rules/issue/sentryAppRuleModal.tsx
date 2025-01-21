@@ -37,7 +37,7 @@ function SentryAppRuleModal({
           config={resetValues?.formFields || config}
           element="alert-rule-action"
           action="create"
-          onSubmitSuccess={(...params) => {
+          onSubmitSuccess={(...params: any[]) => {
             onSubmitSuccess(...params);
             closeModal();
           }}

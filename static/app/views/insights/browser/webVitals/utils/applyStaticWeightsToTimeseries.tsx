@@ -10,20 +10,23 @@ export function applyStaticWeightsToTimeseries(
   timeseriesData: WebVitalsScoreBreakdown
 ) {
   const weights = organization.features.includes(
-    'organizations:performance-vitals-handle-missing-webvitals'
+    'performance-vitals-handle-missing-webvitals'
   )
     ? getWeights(
         Object.keys(timeseriesData)
           .filter(key => key !== 'total')
           .filter(key =>
-            timeseriesData[key].some(series => series.value > 0)
+            // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+            timeseriesData[key].some((series: any) => series.value > 0)
           ) as WebVitals[]
       )
     : PERFORMANCE_SCORE_WEIGHTS;
   return {
     ...Object.keys(weights).reduce((acc, webVital) => {
-      acc[webVital] = timeseriesData[webVital].map(({name, value}) => ({
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      acc[webVital] = timeseriesData[webVital].map(({name, value}: any) => ({
         name,
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         value: value * weights[webVital] * 0.01,
       }));
       return acc;

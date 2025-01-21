@@ -114,6 +114,7 @@ export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function Fo
         sectionKey,
         organization,
         open: !isCollapsed,
+        org_streamline_only: organization.streamlineOnly ?? undefined,
       });
       setIsCollapsed(!isCollapsed);
     },
@@ -176,7 +177,7 @@ export const SectionDivider = styled('hr')`
   }
 `;
 
-export const Section = styled('section')<{scrollMargin: number}>`
+const Section = styled('section')<{scrollMargin: number}>`
   scroll-margin-top: calc(${space(1)} + ${p => p.scrollMargin ?? 0}px);
 `;
 

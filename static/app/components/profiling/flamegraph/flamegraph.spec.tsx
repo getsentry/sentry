@@ -6,7 +6,7 @@ import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {useParams} from 'sentry/utils/useParams';
 import ProfileFlamegraph from 'sentry/views/profiling/profileFlamechart';
-import ProfilesAndTransactionProvider from 'sentry/views/profiling/profilesProvider';
+import ProfilesAndTransactionProvider from 'sentry/views/profiling/transactionProfileProvider';
 
 jest.mock('sentry/utils/useParams', () => ({
   useParams: jest.fn(),
@@ -164,7 +164,7 @@ describe('Flamegraph', function () {
     });
 
     // 1 for main view and 1 for minimap
-    expect(frames.length).toBe(2);
+    expect(frames).toHaveLength(2);
   });
 
   it('reads preferences from qs', async function () {

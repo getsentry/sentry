@@ -57,7 +57,6 @@ function GroupEventDetails() {
   } = useGroupEvent({
     groupId: params.groupId,
     eventId: params.eventId,
-    environments,
   });
 
   const {
@@ -153,7 +152,8 @@ function GroupEventDetails() {
           <ResolutionBox
             statusDetails={group.statusDetails}
             activities={group.activity}
-            projectId={project.id}
+            project={project}
+            organization={organization}
           />
         </GroupStatusBannerWrapper>
       );

@@ -10,7 +10,6 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {MobileBetaBanner} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
   getReplayMobileConfigureDescription,
   getReplayVerifyStep,
@@ -102,9 +101,8 @@ SentryAndroid.init(context) { options ->
   options.dsn = "${params.dsn.public}"
   options.isDebug = true
 
-  // Currently under experimental options:
-  options.experimental.sessionReplay.onErrorSampleRate = 1.0
-  options.experimental.sessionReplay.sessionSampleRate = 1.0
+  options.sessionReplay.onErrorSampleRate = 1.0
+  options.sessionReplay.sessionSampleRate = 0.1
 }`;
 
 const getReplaySetupSnippetXml = () => `
@@ -112,8 +110,8 @@ const getReplaySetupSnippetXml = () => `
 <meta-data android:name="io.sentry.session-replay.session-sample-rate" android:value="1.0" />`;
 
 const getReplayConfigurationSnippet = () => `
-options.experimental.sessionReplay.redactAllText = true
-options.experimental.sessionReplay.redactAllImages = true`;
+options.sessionReplay.redactAllText = true
+options.sessionReplay.redactAllImages = true`;
 
 const onboarding: OnboardingConfig<PlatformOptions> = {
   install: params =>
@@ -304,14 +302,11 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
 };
 
 const replayOnboarding: OnboardingConfig<PlatformOptions> = {
-  introduction: () => (
-    <MobileBetaBanner link="https://docs.sentry.io/platforms/android/session-replay/" />
-  ),
   install: (params: Params) => [
     {
       type: StepType.INSTALL,
       description: tct(
-        "Make sure your Sentry Android SDK version is at least 7.12.0. The easiest way to update through the Sentry Android Gradle plugin to your app module's [code:build.gradle] file.",
+        "Make sure your Sentry Android SDK version is at least 7.20.0. The easiest way to update through the Sentry Android Gradle plugin to your app module's [code:build.gradle] file.",
         {code: <code />}
       ),
       configurations: [
@@ -432,10 +427,8 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
     },
   ],
   verify: getReplayVerifyStep({
-    replayOnErrorSampleRateName:
-      'options\u200b.experimental\u200b.sessionReplay\u200b.onErrorSampleRate',
-    replaySessionSampleRateName:
-      'options\u200b.experimental\u200b.sessionReplay\u200b.sessionSampleRate',
+    replayOnErrorSampleRateName: 'options\u200b.sessionReplay\u200b.onErrorSampleRate',
+    replaySessionSampleRateName: 'options\u200b.sessionReplay\u200b.sessionSampleRate',
   }),
   nextSteps: () => [],
 };

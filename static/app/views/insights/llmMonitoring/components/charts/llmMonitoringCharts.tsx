@@ -2,8 +2,7 @@ import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
-import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
+import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import {
   useSpanIndexedSeries,
   useSpanMetricsSeries,
@@ -24,28 +23,19 @@ export function EAPTotalTokensUsedChart({groupId}: TotalTokensUsedChartProps) {
     {
       yAxis: [aggregate],
       search: new MutableSearch(query),
+      transformAliasToInputFormat: true,
     },
     'api.ai-pipelines.view',
     DiscoverDatasets.SPANS_EAP
   );
 
   return (
-    <ChartPanel title={t('Total tokens used')}>
-      <Chart
-        height={200}
-        grid={{
-          left: '4px',
-          right: '0',
-          top: '8px',
-          bottom: '0',
-        }}
-        data={[data[aggregate]]}
-        loading={isPending}
-        error={error}
-        type={ChartType.LINE}
-        chartColors={[CHART_PALETTE[2]![0]!]}
-      />
-    </ChartPanel>
+    <InsightsLineChartWidget
+      title={t('Total tokens used')}
+      series={[{...data[aggregate], color: CHART_PALETTE[2][0]}]}
+      isLoading={isPending}
+      error={error}
+    />
   );
 }
 
@@ -60,27 +50,18 @@ export function TotalTokensUsedChart({groupId}: TotalTokensUsedChartProps) {
     {
       yAxis: [aggregate],
       search: new MutableSearch(query),
+      transformAliasToInputFormat: true,
     },
     'api.ai-pipelines.view'
   );
 
   return (
-    <ChartPanel title={t('Total tokens used')}>
-      <Chart
-        height={200}
-        grid={{
-          left: '4px',
-          right: '0',
-          top: '8px',
-          bottom: '0',
-        }}
-        data={[data[aggregate]]}
-        loading={isPending}
-        error={error}
-        type={ChartType.LINE}
-        chartColors={[CHART_PALETTE[2]![0]!]}
-      />
-    </ChartPanel>
+    <InsightsLineChartWidget
+      title={t('Total tokens used')}
+      series={[{...data[aggregate], color: CHART_PALETTE[2][0]}]}
+      isLoading={isPending}
+      error={error}
+    />
   );
 }
 
@@ -99,28 +80,19 @@ export function EAPNumberOfPipelinesChart({groupId}: NumberOfPipelinesChartProps
     {
       yAxis: [aggregate],
       search: new MutableSearch(query),
+      transformAliasToInputFormat: true,
     },
     'api.ai-pipelines-eap.view',
     DiscoverDatasets.SPANS_EAP
   );
 
   return (
-    <ChartPanel title={t('Number of AI pipelines')}>
-      <Chart
-        height={200}
-        grid={{
-          left: '4px',
-          right: '0',
-          top: '8px',
-          bottom: '0',
-        }}
-        data={[data[aggregate]]}
-        loading={isPending}
-        error={error}
-        type={ChartType.LINE}
-        chartColors={[CHART_PALETTE[2]![1]!]}
-      />
-    </ChartPanel>
+    <InsightsLineChartWidget
+      title={t('Number of AI pipelines')}
+      series={[{...data[aggregate], color: CHART_PALETTE[2][1]}]}
+      isLoading={isPending}
+      error={error}
+    />
   );
 }
 export function NumberOfPipelinesChart({groupId}: NumberOfPipelinesChartProps) {
@@ -134,27 +106,18 @@ export function NumberOfPipelinesChart({groupId}: NumberOfPipelinesChartProps) {
     {
       yAxis: [aggregate],
       search: new MutableSearch(query),
+      transformAliasToInputFormat: true,
     },
     'api.ai-pipelines.view'
   );
 
   return (
-    <ChartPanel title={t('Number of AI pipelines')}>
-      <Chart
-        height={200}
-        grid={{
-          left: '4px',
-          right: '0',
-          top: '8px',
-          bottom: '0',
-        }}
-        data={[data[aggregate]]}
-        loading={isPending}
-        error={error}
-        type={ChartType.LINE}
-        chartColors={[CHART_PALETTE[2]![1]!]}
-      />
-    </ChartPanel>
+    <InsightsLineChartWidget
+      title={t('Number of AI pipelines')}
+      series={[{...data[aggregate], color: CHART_PALETTE[2][1]}]}
+      isLoading={isPending}
+      error={error}
+    />
   );
 }
 
@@ -172,28 +135,19 @@ export function EAPPipelineDurationChart({groupId}: PipelineDurationChartProps) 
     {
       yAxis: [aggregate],
       search: new MutableSearch(query),
+      transformAliasToInputFormat: true,
     },
     'api.ai-pipelines-eap.view',
     DiscoverDatasets.SPANS_EAP
   );
 
   return (
-    <ChartPanel title={t('Pipeline Duration')}>
-      <Chart
-        height={200}
-        grid={{
-          left: '4px',
-          right: '0',
-          top: '8px',
-          bottom: '0',
-        }}
-        data={[data[aggregate]]}
-        loading={isPending}
-        error={error}
-        type={ChartType.LINE}
-        chartColors={[CHART_PALETTE[2]![2]!]}
-      />
-    </ChartPanel>
+    <InsightsLineChartWidget
+      title={t('Pipeline Duration')}
+      series={[{...data[aggregate], color: CHART_PALETTE[2][2]}]}
+      isLoading={isPending}
+      error={error}
+    />
   );
 }
 
@@ -207,26 +161,17 @@ export function PipelineDurationChart({groupId}: PipelineDurationChartProps) {
     {
       yAxis: [aggregate],
       search: new MutableSearch(query),
+      transformAliasToInputFormat: true,
     },
     'api.ai-pipelines.view'
   );
 
   return (
-    <ChartPanel title={t('Pipeline Duration')}>
-      <Chart
-        height={200}
-        grid={{
-          left: '4px',
-          right: '0',
-          top: '8px',
-          bottom: '0',
-        }}
-        data={[data[aggregate]]}
-        loading={isPending}
-        error={error}
-        type={ChartType.LINE}
-        chartColors={[CHART_PALETTE[2]![2]!]}
-      />
-    </ChartPanel>
+    <InsightsLineChartWidget
+      title={t('Pipeline Duration')}
+      series={[{...data[aggregate], color: CHART_PALETTE[2][2]}]}
+      isLoading={isPending}
+      error={error}
+    />
   );
 }

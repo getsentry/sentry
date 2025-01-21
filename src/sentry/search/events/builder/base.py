@@ -1182,9 +1182,9 @@ class BaseQueryBuilder:
 
     def resolve_measurement_value(self, unit: str, value: float) -> float:
         if unit in constants.SIZE_UNITS:
-            return constants.SIZE_UNITS[unit] * value
+            return constants.SIZE_UNITS[cast(constants.SizeUnit, unit)] * value
         elif unit in constants.DURATION_UNITS:
-            return constants.DURATION_UNITS[unit] * value
+            return constants.DURATION_UNITS[cast(constants.DurationUnit, unit)] * value
         return value
 
     def convert_aggregate_filter_to_condition(
@@ -1349,40 +1349,26 @@ class BaseQueryBuilder:
             is_null_condition = Condition(Function("isNull", [lhs]), Op.EQ, 1)
 
         if search_filter.value.is_wildcard():
-            kind = (
-                search_filter.value.classify_wildcard()
-                if self.config.optimize_wildcard_searches
-                else "other"
-            )
+            if self.config.optimize_wildcard_searches:
+                kind, value_o = search_filter.value.classify_and_format_wildcard()
+            else:
+                kind, value_o = "other", search_filter.value.value
+
             if kind == "prefix":
                 condition = Condition(
-                    Function(
-                        "startsWith",
-                        [
-                            Function("lower", [lhs]),
-                            search_filter.value.format_wildcard(kind).lower(),
-                        ],
-                    ),
+                    Function("startsWith", [Function("lower", [lhs]), value_o]),
                     Op.EQ if search_filter.operator in constants.EQUALITY_OPERATORS else Op.NEQ,
                     1,
                 )
             elif kind == "suffix":
                 condition = Condition(
-                    Function(
-                        "endsWith",
-                        [
-                            Function("lower", [lhs]),
-                            search_filter.value.format_wildcard(kind).lower(),
-                        ],
-                    ),
+                    Function("endsWith", [Function("lower", [lhs]), value_o]),
                     Op.EQ if search_filter.operator in constants.EQUALITY_OPERATORS else Op.NEQ,
                     1,
                 )
             elif kind == "infix":
                 condition = Condition(
-                    Function(
-                        "positionCaseInsensitive", [lhs, search_filter.value.format_wildcard(kind)]
-                    ),
+                    Function("positionCaseInsensitive", [lhs, value_o]),
                     Op.NEQ if search_filter.operator in constants.EQUALITY_OPERATORS else Op.EQ,
                     0,
                 )

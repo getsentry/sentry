@@ -64,7 +64,7 @@ const getMembersQueryKey = ({
   query: Record<string, string>;
 }): ApiQueryKey => [`/organizations/${orgSlug}/members/`, {query}];
 
-const getInviteRequestsQueryKey = ({organization}): ApiQueryKey => [
+const getInviteRequestsQueryKey = ({organization}: any): ApiQueryKey => [
   `/organizations/${organization.slug}/invite-requests/`,
 ];
 
@@ -145,13 +145,14 @@ function OrganizationMembersList() {
     }
 
     redirectToRemainingOrganization({
+      navigate,
       orgId: organization.slug,
       removeOrg: true,
     });
     addSuccessMessage(tct('You left [orgName]', {orgName: organization.slug}));
   };
 
-  const handleSendInvite = async ({id, expired}) => {
+  const handleSendInvite = async ({id, expired}: any) => {
     setInvited(state => ({...state, [id]: 'loading'}));
 
     try {
@@ -201,7 +202,7 @@ function OrganizationMembersList() {
     successMessage,
     errorMessage,
     eventKey,
-  }) => {
+  }: any) => {
     try {
       await api.requestPromise(
         `/organizations/${organization.slug}/invite-requests/${inviteRequest.id}/`,

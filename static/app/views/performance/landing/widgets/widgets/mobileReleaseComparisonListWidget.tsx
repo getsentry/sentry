@@ -285,7 +285,7 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
             } as SeriesDataUnit;
           }) ?? [];
 
-        const color = isPrimary ? CHART_PALETTE[3]![0]! : CHART_PALETTE[3]![1]!;
+        const color = isPrimary ? CHART_PALETTE[3][0] : CHART_PALETTE[3][1];
         transformedReleaseSeries[release] = {
           seriesName: formatVersion(label, true),
           color,
@@ -311,7 +311,7 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
           valueFormatter: value =>
             tooltipFormatterUsingAggregateOutputType(value, 'duration'),
         }}
-        // @ts-expect-error error does not exist on chart?
+        // @ts-ignore TS(2339): Property 'error' does not exist on type 'WidgetDat... Remove this comment to see the full error message
         error={provided.widgetData.chart.error}
         disableXAxis
         showLegend={false}

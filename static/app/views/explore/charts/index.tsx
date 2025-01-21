@@ -1,17 +1,13 @@
-import type {Dispatch, SetStateAction} from 'react';
-import {Fragment, useCallback, useEffect, useMemo} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
-import isEqual from 'lodash/isEqual';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
-import Count from 'sentry/components/count';
 import {Tooltip} from 'sentry/components/tooltip';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {IconClock, IconGraph} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Confidence, NewQuery} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import EventView from 'sentry/utils/discover/eventView';
 import {
@@ -23,34 +19,29 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import usePrevious from 'sentry/utils/usePrevious';
-import {formatVersion} from 'sentry/utils/versions/formatVersion';
+import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
 import ChartContextMenu from 'sentry/views/explore/components/chartContextMenu';
 import {
   useExploreDataset,
-  useExploreGroupBys,
-  useExploreMode,
-  useExploreSortBys,
   useExploreVisualizes,
   useSetExploreVisualizes,
 } from 'sentry/views/explore/contexts/pageParamsContext';
-import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
+import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
 import Chart, {
   ChartType,
   useSynchronizeCharts,
 } from 'sentry/views/insights/common/components/chart';
 import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
-import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 import {CHART_HEIGHT} from 'sentry/views/insights/database/settings';
 
-import {TOP_EVENTS_LIMIT, useTopEvents} from '../hooks/useTopEvents';
-
 interface ExploreChartsProps {
+  canUsePreviousResults: boolean;
+  confidences: Confidence[];
   query: string;
-  setConfidence: Dispatch<SetStateAction<Confidence>>;
-  setError: Dispatch<SetStateAction<string>>;
+  timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
 }
 
 const exploreChartTypeOptions = [
@@ -70,149 +61,35 @@ const exploreChartTypeOptions = [
 
 export const EXPLORE_CHART_GROUP = 'explore-charts_group';
 
-export function ExploreCharts({query, setConfidence, setError}: ExploreChartsProps) {
+export function ExploreCharts({
+  canUsePreviousResults,
+  confidences,
+  query,
+  timeseriesResult,
+}: ExploreChartsProps) {
   const dataset = useExploreDataset();
   const visualizes = useExploreVisualizes();
   const setVisualizes = useSetExploreVisualizes();
   const [interval, setInterval, intervalOptions] = useChartInterval();
-  const groupBys = useExploreGroupBys();
-  const mode = useExploreMode();
-  const topEvents = useTopEvents();
 
   const extrapolationMetaResults = useExtrapolationMeta({
     dataset,
     query,
   });
 
-  const fields: string[] = useMemo(() => {
-    if (mode === Mode.SAMPLES) {
-      return [];
-    }
-
-    return [...groupBys, ...visualizes.flatMap(visualize => visualize.yAxes)].filter(
-      Boolean
-    );
-  }, [mode, groupBys, visualizes]);
-
-  const sortBys = useExploreSortBys();
-
-  const orderby: string | string[] | undefined = useMemo(() => {
-    if (!sortBys.length) {
-      return undefined;
-    }
-
-    return sortBys.map(formatSort);
-  }, [sortBys]);
-
-  const yAxes = useMemo(() => {
-    const deduped = dedupeArray(visualizes.flatMap(visualize => visualize.yAxes));
-    deduped.sort();
-    return deduped;
-  }, [visualizes]);
-
-  const options = useMemo(() => {
-    const search = new MutableSearch(query);
-
-    // Filtering out all spans with op like 'ui.interaction*' which aren't
-    // embedded under transactions. The trace view does not support rendering
-    // such spans yet.
-    search.addFilterValues('!transaction.span_id', ['00']);
-
-    return {
-      search,
-      yAxis: yAxes,
-      interval,
-      fields,
-      orderby,
-      topEvents,
-    };
-  }, [query, yAxes, interval, fields, orderby, topEvents]);
-
-  const previousQuery = usePrevious(query);
-  const previousOptions = usePrevious(options);
-  const canUsePreviousResults = useMemo(() => {
-    if (!isEqual(query, previousQuery)) {
-      return false;
-    }
-
-    if (!isEqual(options.interval, previousOptions.interval)) {
-      return false;
-    }
-
-    if (!isEqual(options.fields, previousOptions.fields)) {
-      return false;
-    }
-
-    if (!isEqual(options.orderby, previousOptions.orderby)) {
-      return false;
-    }
-
-    if (!isEqual(options.topEvents, previousOptions.topEvents)) {
-      return false;
-    }
-
-    return true;
-  }, [query, previousQuery, options, previousOptions]);
-
-  const timeSeriesResult = useSortedTimeSeries(options, 'api.explorer.stats', dataset);
-  const previousTimeSeriesResult = usePrevious(timeSeriesResult);
-
-  const resultConfidence = useMemo(() => {
-    if (dataset !== DiscoverDatasets.SPANS_EAP_RPC) {
-      return null;
-    }
-
-    const {lowConfidence, highConfidence, nullConfidence} = Object.values(
-      timeSeriesResult.data
-    ).reduce(
-      (acc, series) => {
-        for (const s of series) {
-          if (s.confidence === 'low') {
-            acc.lowConfidence += 1;
-          } else if (s.confidence === 'high') {
-            acc.highConfidence += 1;
-          } else {
-            acc.nullConfidence += 1;
-          }
-        }
-        return acc;
-      },
-      {lowConfidence: 0, highConfidence: 0, nullConfidence: 0}
-    );
-
-    if (lowConfidence <= 0 && highConfidence <= 0 && nullConfidence >= 0) {
-      return null;
-    }
-
-    if (lowConfidence / (lowConfidence + highConfidence) > 0.5) {
-      return 'low';
-    }
-
-    return 'high';
-  }, [dataset, timeSeriesResult.data]);
-
-  useEffect(() => {
-    // only update the confidence once the result has loaded
-    if (!timeSeriesResult.isPending) {
-      setConfidence(resultConfidence);
-    }
-  }, [setConfidence, resultConfidence, timeSeriesResult.isPending]);
-
-  useEffect(() => {
-    setError(timeSeriesResult.error?.message ?? '');
-  }, [setError, timeSeriesResult.error?.message]);
+  const previousTimeseriesResult = usePrevious(timeseriesResult);
 
   const getSeries = useCallback(
     (dedupedYAxes: string[], formattedYAxes: (string | undefined)[]) => {
       const shouldUsePreviousResults =
-        timeSeriesResult.isPending &&
+        timeseriesResult.isPending &&
         canUsePreviousResults &&
-        dedupedYAxes.every(yAxis => previousTimeSeriesResult.data.hasOwnProperty(yAxis));
+        dedupedYAxes.every(yAxis => previousTimeseriesResult.data.hasOwnProperty(yAxis));
 
       const data = dedupedYAxes.flatMap((yAxis, i) => {
         const series = shouldUsePreviousResults
-          ? previousTimeSeriesResult.data[yAxis]
-          : timeSeriesResult.data[yAxis];
+          ? previousTimeseriesResult.data[yAxis]
+          : timeseriesResult.data[yAxis];
 
         return (series ?? []).map(s => {
           // We replace the series name with the formatted series name here
@@ -233,15 +110,52 @@ export function ExploreCharts({query, setConfidence, setError}: ExploreChartsPro
       return {
         data,
         error: shouldUsePreviousResults
-          ? previousTimeSeriesResult.error
-          : timeSeriesResult.error,
+          ? previousTimeseriesResult.error
+          : timeseriesResult.error,
         loading: shouldUsePreviousResults
-          ? previousTimeSeriesResult.isPending
-          : timeSeriesResult.isPending,
+          ? previousTimeseriesResult.isPending
+          : timeseriesResult.isPending,
       };
     },
-    [canUsePreviousResults, timeSeriesResult, previousTimeSeriesResult]
+    [canUsePreviousResults, timeseriesResult, previousTimeseriesResult]
   );
+
+  const chartInfos = useMemo(() => {
+    return visualizes.map((visualize, index) => {
+      const dedupedYAxes = dedupeArray(visualize.yAxes);
+
+      const formattedYAxes = dedupedYAxes.map(yaxis => {
+        const func = parseFunction(yaxis);
+        return func ? prettifyParsedFunction(func) : undefined;
+      });
+
+      const chartIcon =
+        visualize.chartType === ChartType.LINE
+          ? 'line'
+          : visualize.chartType === ChartType.AREA
+            ? 'area'
+            : 'bar';
+
+      const {data, error, loading} = getSeries(dedupedYAxes, formattedYAxes);
+
+      const outputTypes = new Set(
+        formattedYAxes.filter(Boolean).map(aggregateOutputType)
+      );
+
+      return {
+        chartIcon: <IconGraph type={chartIcon} />,
+        chartType: visualize.chartType,
+        label: visualize.label,
+        yAxes: visualize.yAxes,
+        formattedYAxes,
+        data,
+        error,
+        loading,
+        outputTypes,
+        confidence: confidences[index],
+      };
+    });
+  }, [confidences, getSeries, visualizes]);
 
   const handleChartTypeChange = useCallback(
     (chartType: ChartType, index: number) => {
@@ -254,7 +168,7 @@ export function ExploreCharts({query, setConfidence, setError}: ExploreChartsPro
 
   useSynchronizeCharts(
     visualizes.length,
-    !timeSeriesResult.isPending,
+    !timeseriesResult.isPending,
     EXPLORE_CHART_GROUP
   );
 
@@ -262,45 +176,26 @@ export function ExploreCharts({query, setConfidence, setError}: ExploreChartsPro
 
   return (
     <Fragment>
-      {visualizes.map((visualize, index) => {
-        const dedupedYAxes = dedupeArray(visualize.yAxes);
-
-        const formattedYAxes = dedupedYAxes.map(yaxis => {
-          const func = parseFunction(yaxis);
-          return func ? prettifyParsedFunction(func) : undefined;
-        });
-
-        const {chartType, label, yAxes: visualizeYAxes} = visualize;
-        const chartIcon =
-          chartType === ChartType.LINE
-            ? 'line'
-            : chartType === ChartType.AREA
-              ? 'area'
-              : 'bar';
-
-        const {data, error, loading} = getSeries(dedupedYAxes, formattedYAxes);
-
-        const outputTypes = new Set(
-          formattedYAxes.filter(Boolean).map(aggregateOutputType)
-        );
-
+      {chartInfos.map((chartInfo, index) => {
         return (
           <ChartContainer key={index}>
             <ChartPanel>
               <ChartHeader>
-                {shouldRenderLabel && <ChartLabel>{label}</ChartLabel>}
-                <ChartTitle>{formattedYAxes.filter(Boolean).join(', ')}</ChartTitle>
+                {shouldRenderLabel && <ChartLabel>{chartInfo.label}</ChartLabel>}
+                <ChartTitle>
+                  {chartInfo.formattedYAxes.filter(Boolean).join(', ')}
+                </ChartTitle>
                 <Tooltip
                   title={t('Type of chart displayed in this visualization (ex. line)')}
                 >
                   <CompactSelect
                     triggerProps={{
-                      icon: <IconGraph type={chartIcon} />,
+                      icon: chartInfo.chartIcon,
                       borderless: true,
                       showChevron: false,
                       size: 'sm',
                     }}
-                    value={chartType}
+                    value={chartInfo.chartType}
                     menuTitle="Type"
                     options={exploreChartTypeOptions}
                     onChange={option => handleChartTypeChange(option.value, index)}
@@ -323,7 +218,7 @@ export function ExploreCharts({query, setConfidence, setError}: ExploreChartsPro
                   />
                 </Tooltip>
                 <ChartContextMenu
-                  visualizeYAxes={visualizeYAxes}
+                  visualizeYAxes={chartInfo.yAxes}
                   query={query}
                   interval={interval}
                   visualizeIndex={index}
@@ -337,60 +232,30 @@ export function ExploreCharts({query, setConfidence, setError}: ExploreChartsPro
                   top: '32px', // make room to fit the legend above the chart
                   bottom: '0',
                 }}
-                legendFormatter={value => formatVersion(value)}
                 legendOptions={{
                   itemGap: 24,
                   top: '4px',
                 }}
-                data={data}
-                error={error}
-                loading={loading}
+                data={chartInfo.data}
+                error={chartInfo.error}
+                loading={chartInfo.loading}
                 chartGroup={EXPLORE_CHART_GROUP}
                 // TODO Abdullah: Make chart colors dynamic, with changing topN events count and overlay count.
                 chartColors={CHART_PALETTE[TOP_EVENTS_LIMIT - 1]}
-                type={chartType}
+                type={chartInfo.chartType}
                 aggregateOutputFormat={
-                  outputTypes.size === 1 ? outputTypes.keys().next().value : undefined
+                  chartInfo.outputTypes.size === 1
+                    ? chartInfo.outputTypes.keys().next().value
+                    : undefined
                 }
                 showLegend
               />
               {dataset === DiscoverDatasets.SPANS_EAP_RPC && (
                 <ChartFooter>
-                  {!defined(extrapolationMetaResults.data?.[0]?.['count_sample()'])
-                    ? t('* Extrapolated from \u2026')
-                    : resultConfidence === 'low'
-                      ? tct(
-                          '* Extrapolated from [sampleCount] samples ([insufficientSamples])',
-                          {
-                            sampleCount: (
-                              <Count
-                                value={
-                                  extrapolationMetaResults.data?.[0]?.['count_sample()']
-                                }
-                              />
-                            ),
-                            insufficientSamples: (
-                              <Tooltip
-                                title={t(
-                                  'Shortening the date range, increasing the time interval or removing extra filters may improve accuracy.'
-                                )}
-                              >
-                                <InsufficientSamples>
-                                  {t('insufficient for accuracy')}
-                                </InsufficientSamples>
-                              </Tooltip>
-                            ),
-                          }
-                        )
-                      : tct('* Extrapolated from [sampleCount] samples', {
-                          sampleCount: (
-                            <Count
-                              value={
-                                extrapolationMetaResults.data?.[0]?.['count_sample()']
-                              }
-                            />
-                          ),
-                        })}
+                  <ConfidenceFooter
+                    sampleCount={extrapolationMetaResults.data?.[0]?.['count_sample()']}
+                    confidence={chartInfo.confidence}
+                  />
                 </ChartFooter>
               )}
             </ChartPanel>
@@ -401,7 +266,7 @@ export function ExploreCharts({query, setConfidence, setError}: ExploreChartsPro
   );
 }
 
-function useExtrapolationMeta({
+export function useExtrapolationMeta({
   dataset,
   query,
 }: {
@@ -469,13 +334,7 @@ const ChartLabel = styled('div')`
 `;
 
 const ChartFooter = styled('div')`
-  color: ${p => p.theme.gray300};
-  font-size: ${p => p.theme.fontSizeSmall};
   display: inline-block;
   margin-top: ${space(1.5)};
   margin-bottom: 0;
-`;
-
-const InsufficientSamples = styled('span')`
-  text-decoration: underline dotted ${p => p.theme.gray300};
 `;
