@@ -5,10 +5,12 @@ import {hasActiveIncident} from 'sentry/views/alerts/list/rules/utils';
 import {
   type CombinedAlerts,
   CombinedAlertType,
+  type CronRule,
   type IssueAlert,
   type MetricAlert,
   type UptimeAlert,
 } from 'sentry/views/alerts/types';
+import {scheduleAsText} from 'sentry/views/monitors/utils/scheduleAsText';
 
 interface Props {
   rule: CombinedAlerts;
@@ -18,9 +20,18 @@ interface Props {
  * Displays the time since the last uptime incident given an uptime alert rule
  */
 function LastUptimeIncident({rule}: {rule: UptimeAlert}) {
-  // TODO(davidenwang): Once we have a lastTriggered field returned from backend, display that info here
+  // TODO(davidenwang): Once we have a lastTriggered field returned from
+  // backend, display that info here
   return tct('Actively monitoring every [interval]', {
     interval: getDuration(rule.intervalSeconds),
+  });
+}
+
+function LastCronMonitorIncident({rule}: {rule: CronRule}) {
+  // TODO(evanpurkhiser): Would probably be better if we had a way to get the
+  // most recent incident.
+  return tct('Expected every [interval]', {
+    interval: scheduleAsText(rule.config),
   });
 }
 
@@ -68,6 +79,8 @@ export default function AlertLastIncidentActivationInfo({rule}: Props) {
   switch (rule.type) {
     case CombinedAlertType.UPTIME:
       return <LastUptimeIncident rule={rule} />;
+    case CombinedAlertType.CRONS:
+      return <LastCronMonitorIncident rule={rule} />;
     case CombinedAlertType.ISSUE:
       return <LastIssueTrigger rule={rule} />;
     case CombinedAlertType.METRIC:
