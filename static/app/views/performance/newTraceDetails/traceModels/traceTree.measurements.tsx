@@ -129,8 +129,8 @@ export function collectTraceMeasurements(
     MOBILE_VITALS_LOOKUP.has(measurement) && vital_types.add('mobile');
 
     const score = Math.round(
-      (measurements[`score.${measurement}`]!?.value /
-        measurements[`score.weight.${measurement}`]!?.value) *
+      (measurements[`score.${measurement}`]?.value /
+        measurements[`score.weight.${measurement}`]?.value) *
         100
     );
 

@@ -227,10 +227,10 @@ function Chart({
   let incompleteSeries: Series[] = [];
 
   const bucketSize =
-    new Date(series[0]!?.data[1]!?.name).getTime() -
-    new Date(series[0]!?.data[0]!?.name).getTime();
+    new Date(series[0]?.data[1]?.name).getTime() -
+    new Date(series[0]?.data[0]?.name).getTime();
   const lastBucketTimestamp = new Date(
-    series[0]!?.data?.[series[0]!?.data?.length - 1]!?.name
+    series[0]?.data?.[series[0]?.data?.length - 1]?.name
   ).getTime();
   const ingestionBuckets = useMemo(() => {
     if (isNaN(bucketSize) || isNaN(lastBucketTimestamp)) {

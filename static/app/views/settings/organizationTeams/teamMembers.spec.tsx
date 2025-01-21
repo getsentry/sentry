@@ -72,7 +72,7 @@ describe('TeamMembers', function () {
     render(<TeamMembers team={team} />, {router, organization: org});
 
     await userEvent.click(
-      (await screen.findAllByRole('button', {name: 'Add Member'}))[0]!!
+      (await screen.findAllByRole('button', {name: 'Add Member'}))[0]!
     );
     await userEvent.click(screen.getAllByTestId('letter_avatar-avatar')[0]!);
 
@@ -84,7 +84,7 @@ describe('TeamMembers', function () {
     render(<TeamMembers team={team} />, {router, organization: org});
 
     await userEvent.click(
-      (await screen.findAllByRole('button', {name: 'Add Member'}))[0]!!
+      (await screen.findAllByRole('button', {name: 'Add Member'}))[0]!
     );
 
     await userEvent.click(screen.getAllByTestId('letter_avatar-avatar')[0]!);
@@ -97,7 +97,7 @@ describe('TeamMembers', function () {
     render(<TeamMembers team={team} />, {router, organization: org});
 
     await userEvent.click(
-      (await screen.findAllByRole('button', {name: 'Add Member'}))[0]!!
+      (await screen.findAllByRole('button', {name: 'Add Member'}))[0]!
     );
     await userEvent.click(screen.getAllByTestId('letter_avatar-avatar')[0]!);
 
@@ -109,7 +109,7 @@ describe('TeamMembers', function () {
     render(<TeamMembers team={team} />, {router, organization: org});
 
     await userEvent.click(
-      (await screen.findAllByRole('button', {name: 'Add Member'}))[0]!!
+      (await screen.findAllByRole('button', {name: 'Add Member'}))[0]!
     );
     await userEvent.click(screen.getAllByTestId('letter_avatar-avatar')[0]!);
 
@@ -121,7 +121,7 @@ describe('TeamMembers', function () {
     render(<TeamMembers team={team} />, {router, organization: org});
 
     await userEvent.click(
-      (await screen.findAllByRole('button', {name: 'Add Member'}))[0]!!
+      (await screen.findAllByRole('button', {name: 'Add Member'}))[0]!
     );
     await userEvent.click(screen.getAllByTestId('letter_avatar-avatar')[0]!);
 

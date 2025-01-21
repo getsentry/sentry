@@ -86,7 +86,7 @@ function isNonZeroValue(value: number | null) {
 function addSeriesPadding(data: Series['data']) {
   const hasNonZeroSibling = (index: number) => {
     return (
-      isNonZeroValue(data[index - 1]!?.value) || isNonZeroValue(data[index + 1]!?.value)
+      isNonZeroValue(data[index - 1]?.value) || isNonZeroValue(data[index + 1]?.value)
     );
   };
   const paddingIndices = new Set<number>();
@@ -142,9 +142,9 @@ export const MetricChart = memo(
         }
       });
 
-      const bucketSize = series[0]!?.data[1]!?.name - series[0]!?.data[0]!?.name;
+      const bucketSize = series[0]?.data[1]?.name - series[0]?.data[0]?.name;
       const isSubMinuteBucket = bucketSize < 60_000;
-      const lastBucketTimestamp = series[0]!?.data?.[series[0]!?.data?.length - 1]!?.name;
+      const lastBucketTimestamp = series[0]?.data?.[series[0]?.data?.length - 1]?.name;
       const ingestionBuckets = useMemo(
         () => getIngestionDelayBucketCount(bucketSize, lastBucketTimestamp),
         [bucketSize, lastBucketTimestamp]

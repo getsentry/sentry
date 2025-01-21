@@ -348,7 +348,7 @@ export function HTTPSamplesPanel() {
                 value={domainTransactionMetrics?.[0]?.['sum(span.self_time)']}
                 unit={DurationUnit.MILLISECOND}
                 tooltip={getTimeSpentExplanation(
-                  domainTransactionMetrics?.[0]!?.['time_spent_percentage()'],
+                  domainTransactionMetrics?.[0]?.['time_spent_percentage()'],
                   'http.client'
                 )}
                 isLoading={areDomainTransactionMetricsFetching}

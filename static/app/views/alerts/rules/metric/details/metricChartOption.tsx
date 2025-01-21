@@ -218,9 +218,9 @@ export function getMetricAlertChartOption({
         ) / ALERT_CHART_MIN_MAX_BUFFER
       )
     : 0;
-  const startDate = new Date(dataArr[0]!?.name);
+  const startDate = new Date(dataArr[0]?.name);
   const endDate =
-    dataArr.length > 1 ? new Date(dataArr[dataArr.length - 1]!?.name) : new Date();
+    dataArr.length > 1 ? new Date(dataArr[dataArr.length - 1]?.name) : new Date();
   const firstPoint = startDate.getTime();
   const lastPoint = endDate.getTime();
   const totalDuration = lastPoint - firstPoint;
@@ -234,8 +234,8 @@ export function getMetricAlertChartOption({
 
   if (showWaitingForData) {
     const {startIndex, endIndex} = getWaitingForDataRange(dataArr);
-    const startTime = new Date(dataArr[startIndex]!?.name).getTime();
-    const endTime = new Date(dataArr[endIndex]!?.name).getTime();
+    const startTime = new Date(dataArr[startIndex]?.name).getTime();
+    const endTime = new Date(dataArr[endIndex]?.name).getTime();
 
     waitingForDataDuration = Math.abs(endTime - startTime);
 
