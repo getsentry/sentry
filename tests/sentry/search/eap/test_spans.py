@@ -23,7 +23,8 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 )
 
 from sentry.exceptions import InvalidSearchQuery
-from sentry.search.eap.spans import SearchResolver
+from sentry.search.eap.resolver import SearchResolver
+from sentry.search.eap.span_columns import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.testutils.cases import TestCase
@@ -31,7 +32,9 @@ from sentry.testutils.cases import TestCase
 
 class SearchResolverQueryTest(TestCase):
     def setUp(self):
-        self.resolver = SearchResolver(params=SnubaParams(), config=SearchResolverConfig())
+        self.resolver = SearchResolver(
+            params=SnubaParams(), config=SearchResolverConfig(), definitions=SPAN_DEFINITIONS
+        )
 
     def test_simple_query(self):
         where, having, _ = self.resolver.resolve_query("span.description:foo")
@@ -528,7 +531,9 @@ class SearchResolverColumnTest(TestCase):
         super().setUp()
         self.project = self.create_project(name="test")
         self.resolver = SearchResolver(
-            params=SnubaParams(projects=[self.project]), config=SearchResolverConfig()
+            params=SnubaParams(projects=[self.project]),
+            config=SearchResolverConfig(),
+            definitions=SPAN_DEFINITIONS,
         )
 
     def test_simple_op_field(self):

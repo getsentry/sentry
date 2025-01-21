@@ -12,7 +12,7 @@ from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     AggregationFilter,
     AggregationOrFilter,
 )
-from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta, TraceItemType
+from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     AttributeAggregation,
     AttributeKey,
@@ -32,13 +32,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 from sentry.api import event_search
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap import constants
-from sentry.search.eap.columns import (
-    SPAN_COLUMN_DEFINITIONS,
-    SPAN_FUNCTION_DEFINITIONS,
-    VIRTUAL_CONTEXTS,
-    ResolvedColumn,
-    ResolvedFunction,
-)
+from sentry.search.eap.columns import ColumnDefinitions, ResolvedColumn, ResolvedFunction
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events import constants as qb_constants
 from sentry.search.events import fields
@@ -55,6 +49,7 @@ class SearchResolver:
 
     params: SnubaParams
     config: SearchResolverConfig
+    definitions: ColumnDefinitions
     _resolved_attribute_cache: dict[str, tuple[ResolvedColumn, VirtualColumnContext | None]] = (
         field(default_factory=dict)
     )
@@ -75,7 +70,7 @@ class SearchResolver:
             project_ids=self.params.project_ids,
             start_timestamp=self.params.rpc_start_date,
             end_timestamp=self.params.rpc_end_date,
-            trace_item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
+            trace_item_type=self.definitions.trace_item_type,
         )
 
     @sentry_sdk.trace
@@ -525,14 +520,14 @@ class SearchResolver:
         # If a virtual context is defined the column definition is always the same
         if column in self._resolved_attribute_cache:
             return self._resolved_attribute_cache[column]
-        if column in VIRTUAL_CONTEXTS:
-            column_context = VIRTUAL_CONTEXTS[column](self.params)
+        if column in self.definitions.contexts:
+            column_context = self.definitions.contexts[column](self.params)
             column_definition = ResolvedColumn(
                 public_alias=column, internal_name=column, search_type="string"
             )
-        elif column in SPAN_COLUMN_DEFINITIONS:
+        elif column in self.definitions.columns:
             column_context = None
-            column_definition = SPAN_COLUMN_DEFINITIONS[column]
+            column_definition = self.definitions.columns[column]
         else:
             if len(column) > qb_constants.MAX_TAG_KEY_LENGTH:
                 raise InvalidSearchQuery(
@@ -599,9 +594,9 @@ class SearchResolver:
         alias = match.group("alias") or column
 
         # Get the function definition
-        if function not in SPAN_FUNCTION_DEFINITIONS:
+        if function not in self.definitions.functions:
             raise InvalidSearchQuery(f"Unknown function {function}")
-        function_definition = SPAN_FUNCTION_DEFINITIONS[function]
+        function_definition = self.definitions.functions[function]
 
         parsed_columns = []
 
