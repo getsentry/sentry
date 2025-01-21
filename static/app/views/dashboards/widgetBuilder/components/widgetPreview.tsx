@@ -1,4 +1,5 @@
 import PanelAlert from 'sentry/components/panels/panelAlert';
+import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -7,6 +8,7 @@ import {
   type DashboardDetails,
   type DashboardFilters,
   DisplayType,
+  WidgetType,
 } from 'sentry/views/dashboards/types';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
@@ -18,12 +20,14 @@ interface WidgetPreviewProps {
   dashboard: DashboardDetails;
   dashboardFilters: DashboardFilters;
   isWidgetInvalid?: boolean;
+  onDataFetched?: (tableData: TableDataWithTitle[]) => void;
 }
 
 function WidgetPreview({
   dashboard,
   dashboardFilters,
   isWidgetInvalid,
+  onDataFetched,
 }: WidgetPreviewProps) {
   const organization = useOrganization();
   const location = useLocation();
@@ -73,14 +77,13 @@ function WidgetPreview({
           : undefined
       }
       widgetLegendState={widgetLegendState}
-      // TODO: This will be filled in once we start supporting thresholds
-      onDataFetched={() => {}}
-      // onDataFetched={onDataFetched}
-
+      onDataFetched={onDataFetched}
       // TODO: This requires the current widget ID and a helper to update the
       // dashboard state to be added
       onWidgetSplitDecision={() => {}}
       // onWidgetSplitDecision={onWidgetSplitDecision}
+
+      showConfidenceWarning={widget.widgetType === WidgetType.SPANS}
     />
   );
 }

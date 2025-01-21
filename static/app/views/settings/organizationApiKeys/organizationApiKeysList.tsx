@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import AlertLink from 'sentry/components/alertLink';
@@ -106,7 +107,13 @@ function OrganizationApiKeysList({
                   message={t('Are you sure you want to remove this API key?')}
                   title={t('Remove API Key?')}
                 >
-                  <IconDelete size="xs" css={{position: 'relative', top: '2px'}} />
+                  <IconDelete
+                    size="xs"
+                    css={css`
+                      position: relative;
+                      top: 2px;
+                    `}
+                  />
                 </LinkWithConfirmation>
               </Cell>
             </Fragment>

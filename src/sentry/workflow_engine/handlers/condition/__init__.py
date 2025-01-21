@@ -1,5 +1,7 @@
 __all__ = [
     "EventCreatedByDetectorConditionHandler",
+    "EventFrequencyCountHandler",
+    "EventFrequencyPercentHandler",
     "EventSeenCountConditionHandler",
     "EveryEventConditionHandler",
     "ReappearedEventConditionHandler",
@@ -16,18 +18,21 @@ __all__ = [
     "IssueOccurrencesConditionHandler",
     "LatestReleaseConditionHandler",
     "LatestAdoptedReleaseConditionHandler",
+    "IssuePriorityCondition",
 ]
 
 from .age_comparison_handler import AgeComparisonConditionHandler
 from .assigned_to_handler import AssignedToConditionHandler
 from .event_attribute_handler import EventAttributeConditionHandler
 from .event_created_by_detector_handler import EventCreatedByDetectorConditionHandler
+from .event_frequency_handlers import EventFrequencyCountHandler, EventFrequencyPercentHandler
 from .event_seen_count_handler import EventSeenCountConditionHandler
 from .every_event_handler import EveryEventConditionHandler
 from .existing_high_priority_issue_handler import ExistingHighPriorityIssueConditionHandler
 from .first_seen_event_handler import FirstSeenEventConditionHandler
 from .issue_category_handler import IssueCategoryConditionHandler
 from .issue_occurrences_handler import IssueOccurrencesConditionHandler
+from .issue_priority_equals import IssuePriorityCondition
 from .latest_adopted_release_handler import LatestAdoptedReleaseConditionHandler
 from .latest_release_handler import LatestReleaseConditionHandler
 from .level_handler import LevelConditionHandler

@@ -59,6 +59,7 @@ export type Project = {
   scrapeJavaScript: boolean;
   scrubIPAddresses: boolean;
   sensitiveFields: string[];
+  storeCrashReports: number | null;
   subjectTemplate: string;
   team: Team;
   teams: Team[];
@@ -88,6 +89,7 @@ export type Project = {
   stats?: TimeseriesValue[];
   subjectPrefix?: string;
   symbolSources?: string;
+  tempestFetchScreenshots?: boolean;
   transactionStats?: TimeseriesValue[];
 } & AvatarProject;
 

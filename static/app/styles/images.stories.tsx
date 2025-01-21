@@ -7,8 +7,10 @@ import {Tooltip} from 'sentry/components/tooltip';
 import storyBook from 'sentry/stories/storyBook';
 import {space} from 'sentry/styles/space';
 
-const toCamelCase = function camalize(str) {
-  return str.toLowerCase().replace(/[^a-zA-Z0-9]+(.)/g, (_m, chr) => chr.toUpperCase());
+const toCamelCase = function camalize(str: any) {
+  return str
+    .toLowerCase()
+    .replace(/[^a-zA-Z0-9]+(.)/g, (_m: any, chr: any) => chr.toUpperCase());
 };
 const nameOfFile = (file: string) => {
   return file.split('/').at(-1)?.split('.').at(0);
@@ -17,7 +19,8 @@ const nameOfFile = (file: string) => {
 function imagesContext() {
   const context = require.context('sentry-images', true, /\.(svg|gif|png)$/, 'lazy');
   return {
-    files: () => context.keys().map(file => file.replace(/^\.\//, 'sentry-images/')),
+    files: () =>
+      context.keys().map((file: any) => file.replace(/^\.\//, 'sentry-images/')),
     importImage: (filename: string) =>
       context(filename.replace(/^sentry-images\//, './')),
   };
@@ -47,7 +50,7 @@ export default storyBook('sentry-image/*', story => {
   const patternImages: string[] = [];
   const otherImages: string[] = [];
 
-  allFiles.forEach(file => {
+  allFiles.forEach((file: any) => {
     if (file.startsWith('sentry-images/spot/')) {
       spotImages.push(file);
     } else if (file.startsWith('sentry-images/pattern/')) {

@@ -91,7 +91,7 @@ function ProjectQuickLinks({organization, project, location}: Props) {
   );
 }
 
-const QuickLink = styled(p =>
+const QuickLink = styled((p: any) =>
   p.disabled ? (
     <span className={p.className}>{p.children}</span>
   ) : (

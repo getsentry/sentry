@@ -11,29 +11,17 @@ from sentry.snuba.models import QuerySubscriptionDataSourceHandler, SnubaQuery
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode
-from sentry.workflow_engine.models import (
-    Action,
-    DataCondition,
-    DataConditionGroup,
-    DataSource,
-    Detector,
-    Workflow,
-)
+from sentry.workflow_engine.models import Action, DataConditionGroup
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.models.data_condition_group_action import DataConditionGroupAction
-from sentry.workflow_engine.models.workflow_data_condition_group import WorkflowDataConditionGroup
 from sentry.workflow_engine.registry import data_source_type_registry
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
 class TestDetectorSerializer(TestCase):
     def test_serialize_simple(self):
-        detector = Detector.objects.create(
-            organization_id=self.organization.id,
-            name="Test Detector",
-            type=MetricAlertFire.slug,
+        detector = self.create_detector(
+            organization_id=self.organization.id, name="Test Detector", type=MetricAlertFire.slug
         )
-
         result = serialize(detector)
 
         assert result == {
@@ -49,22 +37,19 @@ class TestDetectorSerializer(TestCase):
         }
 
     def test_serialize_full(self):
-        condition_group = DataConditionGroup.objects.create(
+        condition_group = self.create_data_condition_group(
             organization_id=self.organization.id,
             logic_type=DataConditionGroup.Type.ANY,
         )
-        condition = DataCondition.objects.create(
+        condition = self.create_data_condition(
             condition_group=condition_group,
             type=Condition.GREATER,
             comparison=100,
             condition_result=DetectorPriorityLevel.HIGH,
         )
-
-        action = Action.objects.create(type=Action.Type.EMAIL, data={"foo": "bar"})
-
-        DataConditionGroupAction.objects.create(condition_group=condition_group, action=action)
-
-        detector = Detector.objects.create(
+        action = self.create_action(type=Action.Type.EMAIL, data={"foo": "bar"})
+        self.create_data_condition_group_action(condition_group=condition_group, action=action)
+        detector = self.create_detector(
             organization_id=self.organization.id,
             name="Test Detector",
             type=MetricAlertFire.slug,
@@ -83,15 +68,15 @@ class TestDetectorSerializer(TestCase):
             self.project, INCIDENTS_SNUBA_SUBSCRIPTION_TYPE, snuba_query
         )
         type_name = data_source_type_registry.get_key(QuerySubscriptionDataSourceHandler)
-        data_source = DataSource.objects.create(
-            organization_id=self.organization.id,
+        data_source = self.create_data_source(
+            organization=self.organization,
             type=type_name,
             query_id=subscription.id,
         )
         data_source.detectors.set([detector])
 
         result = serialize(detector)
-
+        # print("result: ", result)
         assert result == {
             "id": str(detector.id),
             "organizationId": str(self.organization.id),
@@ -127,7 +112,7 @@ class TestDetectorSerializer(TestCase):
                 "conditions": [
                     {
                         "id": str(condition.id),
-                        "condition": Condition.GREATER,
+                        "condition": Condition.GREATER.value,
                         "comparison": 100,
                         "result": DetectorPriorityLevel.HIGH,
                     }
@@ -145,7 +130,7 @@ class TestDetectorSerializer(TestCase):
 
     def test_serialize_bulk(self):
         detectors = [
-            Detector.objects.create(
+            self.create_detector(
                 organization_id=self.organization.id,
                 name=f"Test Detector {i}",
                 type=MetricAlertFire.slug,
@@ -174,8 +159,8 @@ class TestDataSourceSerializer(TestCase):
         subscription = create_snuba_subscription(
             self.project, INCIDENTS_SNUBA_SUBSCRIPTION_TYPE, snuba_query
         )
-        data_source = DataSource.objects.create(
-            organization_id=self.organization.id,
+        data_source = self.create_data_source(
+            organization=self.organization,
             type=type_name,
             query_id=subscription.id,
         )
@@ -205,7 +190,7 @@ class TestDataSourceSerializer(TestCase):
 
 class TestDataConditionGroupSerializer(TestCase):
     def test_serialize_simple(self):
-        condition_group = DataConditionGroup.objects.create(
+        condition_group = self.create_data_condition_group(
             organization_id=self.organization.id,
             logic_type=DataConditionGroup.Type.ANY,
         )
@@ -221,20 +206,20 @@ class TestDataConditionGroupSerializer(TestCase):
         }
 
     def test_serialize_full(self):
-        condition_group = DataConditionGroup.objects.create(
+        condition_group = self.create_data_condition_group(
             organization_id=self.organization.id,
             logic_type=DataConditionGroup.Type.ANY,
         )
-        condition = DataCondition.objects.create(
+        condition = self.create_data_condition(
             condition_group=condition_group,
             type=Condition.GREATER,
             comparison=100,
             condition_result=DetectorPriorityLevel.HIGH,
         )
 
-        action = Action.objects.create(type=Action.Type.EMAIL, data={"foo": "bar"})
+        action = self.create_action(type=Action.Type.EMAIL, data={"foo": "bar"})
 
-        DataConditionGroupAction.objects.create(condition_group=condition_group, action=action)
+        self.create_data_condition_group_action(condition_group=condition_group, action=action)
 
         result = serialize(condition_group)
 
@@ -262,7 +247,7 @@ class TestDataConditionGroupSerializer(TestCase):
 
 class TestActionSerializer(TestCase):
     def test_serialize_simple(self):
-        action = Action.objects.create(
+        action = self.create_action(
             type=Action.Type.EMAIL,
             data={"foo": "bar"},
         )
@@ -279,7 +264,7 @@ class TestActionSerializer(TestCase):
             integration = Integration.objects.create(
                 provider="slack", name="example-integration", external_id="123-id", metadata={}
             )
-        action = Action.objects.create(
+        action = self.create_action(
             type=Action.Type.SLACK,
             data={"foo": "bar"},
             integration_id=integration.id,
@@ -294,7 +279,7 @@ class TestActionSerializer(TestCase):
 
 class TestWorkflowSerializer(TestCase):
     def test_serialize_simple(self):
-        workflow = Workflow.objects.create(
+        workflow = self.create_workflow(
             name="hojicha",
             organization_id=self.organization.id,
             config={},
@@ -313,17 +298,17 @@ class TestWorkflowSerializer(TestCase):
         }
 
     def test_serialize_full(self):
-        when_condition_group = DataConditionGroup.objects.create(
+        when_condition_group = self.create_data_condition_group(
             organization_id=self.organization.id,
             logic_type=DataConditionGroup.Type.ANY,
         )
-        trigger_condition = DataCondition.objects.create(
+        trigger_condition = self.create_data_condition(
             condition_group=when_condition_group,
             type=Condition.FIRST_SEEN_EVENT,
             comparison=True,
             condition_result=True,
         )
-        workflow = Workflow.objects.create(
+        workflow = self.create_workflow(
             name="hojicha",
             organization_id=self.organization.id,
             config={},
@@ -331,20 +316,20 @@ class TestWorkflowSerializer(TestCase):
             environment=self.environment,
         )
 
-        condition_group = DataConditionGroup.objects.create(
+        condition_group = self.create_data_condition_group(
             organization_id=self.organization.id,
             logic_type=DataConditionGroup.Type.ALL,
         )
-        action = Action.objects.create(type=Action.Type.EMAIL, data={"foo": "bar"})
-        DataConditionGroupAction.objects.create(condition_group=condition_group, action=action)
-        condition = DataCondition.objects.create(
+        action = self.create_action(type=Action.Type.EMAIL, data={"foo": "bar"})
+        self.create_data_condition_group_action(condition_group=condition_group, action=action)
+        condition = self.create_data_condition(
             condition_group=condition_group,
             type=Condition.GREATER,
             comparison=100,
             condition_result=DetectorPriorityLevel.HIGH,
         )
 
-        WorkflowDataConditionGroup.objects.create(
+        self.create_workflow_data_condition_group(
             condition_group=condition_group,
             workflow=workflow,
         )

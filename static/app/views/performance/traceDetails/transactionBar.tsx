@@ -663,7 +663,7 @@ function TransactionBar(props: Props) {
   );
 }
 
-function getOffset(generation) {
+function getOffset(generation: any) {
   return generation * (TOGGLE_BORDER_BOX / 2) + MARGIN_LEFT;
 }
 

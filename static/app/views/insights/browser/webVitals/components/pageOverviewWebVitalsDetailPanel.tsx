@@ -191,16 +191,19 @@ export function PageOverviewWebVitalsDetailPanel({
     const {key} = col;
     const projectSlug = getProjectSlug(row);
     if (key === 'score') {
-      if (row[`measurements.${webVital}`] !== undefined) {
+      if (row[`measurements.${webVital}` as keyof typeof row] !== undefined) {
         return (
           <AlignCenter>
-            <PerformanceBadge score={row[`${webVital}Score`]} />
+            <PerformanceBadge
+              score={row[`${webVital}Score` as keyof typeof row] as number}
+            />
           </AlignCenter>
         );
       }
       return null;
     }
     if (col.key === 'webVital') {
+      // @ts-ignore TS(2551): Property 'measurements.null' does not exist on typ... Remove this comment to see the full error message
       const value = row[`measurements.${webVital}`];
       if (value === undefined) {
         return (
@@ -273,22 +276,26 @@ export function PageOverviewWebVitalsDetailPanel({
         </AlignCenter>
       );
     }
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return <AlignRight>{row[key]}</AlignRight>;
   };
 
   const renderInpBodyCell = (col: Column, row: InteractionSpanSampleRowWithScore) => {
     const {key} = col;
     if (key === 'score') {
-      if (row[`measurements.${webVital}`] !== undefined) {
+      if (row[`measurements.${webVital}` as keyof typeof row] !== undefined) {
         return (
           <AlignCenter>
-            <PerformanceBadge score={row[`${webVital}Score`]} />
+            <PerformanceBadge
+              score={row[`${webVital}Score` as keyof typeof row] as number}
+            />
           </AlignCenter>
         );
       }
       return null;
     }
     if (col.key === 'webVital') {
+      // @ts-ignore TS(2551): Property 'measurements.cls' does not exist on type... Remove this comment to see the full error message
       const value = row[`measurements.${webVital}`];
       if (value === undefined) {
         return (
@@ -309,7 +316,8 @@ export function PageOverviewWebVitalsDetailPanel({
           id: '', // id doesn't actually matter here. Just to satisfy type.
           'transaction.duration': isInp
             ? row[SpanIndexedField.SPAN_SELF_TIME]
-            : row['transaction.duration'],
+            : // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+              row['transaction.duration'],
           timestamp: row.timestamp,
         },
         undefined
@@ -356,9 +364,11 @@ export function PageOverviewWebVitalsDetailPanel({
         </NoOverflow>
       );
     }
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return <AlignRight>{row[key]}</AlignRight>;
   };
 
+  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const webVitalScore = projectScore[`${webVital}Score`];
   const webVitalValue = projectData?.data[0]?.[`p75(measurements.${webVital})`] as
     | number

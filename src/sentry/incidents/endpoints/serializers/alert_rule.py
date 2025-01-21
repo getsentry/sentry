@@ -6,6 +6,7 @@ from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
 from typing import Any, TypedDict
 
+from django.contrib.auth.models import AnonymousUser
 from django.db.models import Max, Q, prefetch_related_objects
 from drf_spectacular.utils import extend_schema_serializer
 
@@ -22,6 +23,7 @@ from sentry.incidents.models.alert_rule import (
 from sentry.incidents.models.incident import Incident
 from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
+from sentry.monitors.models import Monitor
 from sentry.sentry_apps.models.sentry_app_installation import prepare_ui_component
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.services.app.model import RpcSentryAppComponentContext
@@ -101,7 +103,7 @@ class AlertRuleSerializer(Serializer):
         self.prepare_component_fields = prepare_component_fields
 
     def get_attrs(
-        self, item_list: Sequence[Any], user: User | RpcUser, **kwargs: Any
+        self, item_list: Sequence[Any], user: User | RpcUser | AnonymousUser, **kwargs: Any
     ) -> defaultdict[AlertRule, Any]:
         alert_rules = {item.id: item for item in item_list}
         prefetch_related_objects(item_list, "snuba_query__environment")
@@ -239,7 +241,11 @@ class AlertRuleSerializer(Serializer):
         return result
 
     def serialize(
-        self, obj: AlertRule, attrs: Mapping[Any, Any], user: User | RpcUser, **kwargs: Any
+        self,
+        obj: AlertRule,
+        attrs: Mapping[Any, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
     ) -> AlertRuleSerializerResponse:
         from sentry.incidents.endpoints.utils import translate_threshold
         from sentry.incidents.logic import translate_aggregate_field
@@ -306,7 +312,7 @@ class AlertRuleSerializer(Serializer):
 
 class DetailedAlertRuleSerializer(AlertRuleSerializer):
     def get_attrs(
-        self, item_list: Sequence[Any], user: User | RpcUser, **kwargs: Any
+        self, item_list: Sequence[Any], user: User | RpcUser | AnonymousUser, **kwargs: Any
     ) -> defaultdict[AlertRule, Any]:
         result = super().get_attrs(item_list, user, **kwargs)
         query_to_alert_rule = {ar.snuba_query_id: ar for ar in item_list}
@@ -322,7 +328,11 @@ class DetailedAlertRuleSerializer(AlertRuleSerializer):
         return result
 
     def serialize(
-        self, obj: AlertRule, attrs: Mapping[Any, Any], user: User | RpcUser, **kwargs
+        self,
+        obj: AlertRule,
+        attrs: Mapping[Any, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs,
     ) -> AlertRuleSerializerResponse:
         data = super().serialize(obj, attrs, user)
         data["eventTypes"] = sorted(attrs.get("event_types", []))
@@ -335,7 +345,7 @@ class CombinedRuleSerializer(Serializer):
         self.expand = expand or []
 
     def get_attrs(
-        self, item_list: Sequence[Any], user: User | RpcUser, **kwargs: Any
+        self, item_list: Sequence[Any], user: User | RpcUser | AnonymousUser, **kwargs: Any
     ) -> MutableMapping[Any, Any]:
         results = super().get_attrs(item_list, user)
 
@@ -367,6 +377,14 @@ class CombinedRuleSerializer(Serializer):
             item["id"]: item for item in serialized_uptime_monitors
         }
 
+        serialized_cron_monitors = serialize(
+            [x for x in item_list if isinstance(x, Monitor)],
+            user=user,
+        )
+        serialized_cron_monitor_map_by_guid = {
+            item["id"]: item for item in serialized_cron_monitors
+        }
+
         for item in item_list:
             item_id = str(item.id)
             if isinstance(item, AlertRule) and item_id in serialized_alert_rule_map_by_id:
@@ -396,6 +414,13 @@ class CombinedRuleSerializer(Serializer):
             ):
                 # This is an uptime monitor
                 results[item] = serialized_uptime_monitor_map_by_id[item_id]
+            elif (
+                # XXX(epurkhiser): Monitors use their GUID as their IDs
+                isinstance(item, Monitor)
+                and str(item.guid) in serialized_cron_monitor_map_by_guid
+            ):
+                # This is a cron monitor
+                results[item] = serialized_cron_monitor_map_by_guid[str(item.guid)]
             else:
                 logger.error(
                     "Alert Rule found but dropped during serialization",
@@ -403,6 +428,8 @@ class CombinedRuleSerializer(Serializer):
                         "id": item_id,
                         "issue_rule": isinstance(item, Rule),
                         "metric_rule": isinstance(item, AlertRule),
+                        "uptime_rule": isinstance(item, ProjectUptimeSubscription),
+                        "crons_rule": isinstance(item, Monitor),
                     },
                 )
 
@@ -410,9 +437,9 @@ class CombinedRuleSerializer(Serializer):
 
     def serialize(
         self,
-        obj: Rule | AlertRule | ProjectUptimeSubscription,
+        obj: Rule | AlertRule | ProjectUptimeSubscription | Monitor,
         attrs: Mapping[Any, Any],
-        user: User | RpcUser,
+        user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> MutableMapping[Any, Any]:
         updated_attrs = {**attrs}
@@ -422,6 +449,8 @@ class CombinedRuleSerializer(Serializer):
             updated_attrs["type"] = "rule"
         elif isinstance(obj, ProjectUptimeSubscription):
             updated_attrs["type"] = "uptime"
+        elif isinstance(obj, Monitor):
+            updated_attrs["type"] = "monitor"
         else:
             raise AssertionError(f"Invalid rule to serialize: {type(obj)}")
         return updated_attrs

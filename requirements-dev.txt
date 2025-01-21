@@ -17,6 +17,7 @@ pytest-fail-slow>=0.3.0
 pytest-json-report>=1.5.0
 pytest-rerunfailures>=15
 pytest-sentry>=0.3.0
+pytest-workaround-12888
 pytest-xdist>=3
 responses>=0.23.1
 selenium>=4.16.0
@@ -37,7 +38,7 @@ pip-tools>=7.1.0
 packaging>=21.3
 
 # for type checking
-sentry-forked-django-stubs>=5.1.1.post1
+sentry-forked-django-stubs>=5.1.2.post1
 sentry-forked-djangorestframework-stubs>=3.15.2.post1
 lxml-stubs
 msgpack-types>=0.2.0
@@ -57,5 +58,7 @@ types-pyyaml
 # make sure to match close-enough to redis==
 types-redis<4
 types-requests>=2.32.0.20241016
+types-requests-oauthlib>=2.0.0.20250119
 types-setuptools>=68
 types-simplejson>=3.17.7.2
+types-unidiff
