@@ -1,10 +1,6 @@
-import {Release} from '@sentry/release-parser';
+import {parseVersion} from 'sentry/utils/versions/parseVersion';
 
 export const isSemverRelease = (rawVersion: string): boolean => {
-  try {
-    const parsedVersion = new Release(rawVersion);
-    return !!parsedVersion.versionParsed;
-  } catch {
-    return false;
-  }
+  const parsedVersion = parseVersion(rawVersion);
+  return !!parsedVersion?.versionParsed;
 };
