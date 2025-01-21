@@ -400,6 +400,12 @@ class _ClientConfig:
         if not self.user_details:
             return False
 
+        # If the user is viewing the accept invitation user interface,
+        # we should avoid preloading the data as they might not yet have access to it,
+        # which could cause an error notification (403) to pop up in the user interface.
+        if self.request.path.startswith("accept/"):
+            return False
+
         return True
 
     @property

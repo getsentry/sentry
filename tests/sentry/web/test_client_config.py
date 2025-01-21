@@ -360,3 +360,23 @@ def test_project_key_default():
 
     with override_settings(SENTRY_PROJECT=project.id):
         assert get_client_config()["dsn"] == project_key.dsn_public
+
+
+@no_silo_test
+@django_db_all
+def test_client_config_no_preload_data_if_accept_invitation_view():
+    request, user = make_user_request_from_org()
+    request.user = user
+
+    member = Factories.create_member(
+        user=None,
+        email=user.email,
+        organization=Factories.create_organization(name="test-org"),
+        role="owner",
+    )
+
+    request.path = member.get_invite_link().split("/", 3)[-1]
+
+    client_config = get_client_config(request)
+
+    assert client_config["shouldPreloadData"] is False
