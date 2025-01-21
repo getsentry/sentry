@@ -45,9 +45,15 @@ export type DashboardsEventParameters = {
   'dashboards_manage.change_sort': {
     sort: string;
   };
+  'dashboards_manage.change_view_type': {
+    view_type: DashboardsLayout;
+  };
+  // TODO(nikki): may not need this one
+  'dashboards_manage.count_favourites': {count: number; user_id: string};
   'dashboards_manage.create.start': {};
   'dashboards_manage.delete': {dashboard_id: number; view_type: DashboardsLayout};
   'dashboards_manage.duplicate': {dashboard_id: number; view_type: DashboardsLayout};
+  'dashboards_manage.favourite': {dashboard_id: string; favourited: boolean};
   'dashboards_manage.paginate': {};
   'dashboards_manage.search': {};
   'dashboards_manage.templates.add': {
@@ -144,9 +150,12 @@ export const dashboardsEventMap: Record<DashboardsEventKey, string | null> = {
   'dashboards_views.widget_library.opened': 'Dashboards2: Add Widget Library opened',
   'dashboards_manage.search': 'Dashboards Manager: Search',
   'dashboards_manage.change_sort': 'Dashboards Manager: Sort By Changed',
+  'dashboards_manage.change_view_type': 'Dashboards Manager: View Type Toggled',
+  'dashboards_manage.count_favourites': 'Dashboards Manager: Count Favourites',
   'dashboards_manage.create.start': 'Dashboards Manager: Dashboard Create Started',
   'dashboards_manage.delete': 'Dashboards Manager: Dashboard Deleted',
   'dashboards_manage.duplicate': 'Dashboards Manager: Dashboard Duplicated',
+  'dashboards_manage.favourite': 'Dashboards Manager: Dashboard Favourited',
   'dashboards_manage.paginate': 'Dashboards Manager: Paginate',
   'dashboards_manage.templates.toggle': 'Dashboards Manager: Template Toggle Changed',
   'dashboards_manage.templates.add': 'Dashboards Manager: Template Added',

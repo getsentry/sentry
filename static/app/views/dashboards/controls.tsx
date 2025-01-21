@@ -220,6 +220,11 @@ function Controls({
                         dashboard.id,
                         !isFavorited
                       );
+                      trackAnalytics('dashboards_manage.favourite', {
+                        organization,
+                        dashboard_id: dashboard.id,
+                        favourited: !isFavorited,
+                      });
                     } catch (error) {
                       // If the api call fails, revert the state
                       setIsFavorited(isFavorited);
