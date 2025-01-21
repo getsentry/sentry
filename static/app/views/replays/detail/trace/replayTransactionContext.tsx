@@ -112,13 +112,13 @@ function ReplayTransactionContext({children, replayRecord}: Options) {
   }, [replayRecord]);
 
   const fetchSingleTraceData = useCallback(
-    async dataRow => {
+    async (dataRow: any) => {
       try {
         const {trace: traceId, timestamp} = dataRow;
         const start = getUtcDateString(replayRecord?.started_at.getTime());
         const end = getUtcDateString(replayRecord?.finished_at.getTime());
         const eventView = makeEventView({start, end});
-        let payload;
+        let payload: any;
 
         if (organization.features.includes('replay-trace-view-v1')) {
           payload = {
@@ -163,7 +163,7 @@ function ReplayTransactionContext({children, replayRecord}: Options) {
   );
 
   const fetchTracesInBatches = useCallback(
-    async data => {
+    async (data: any) => {
       const clonedData = [...data];
 
       while (clonedData.length > 0) {

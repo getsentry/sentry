@@ -1,6 +1,3 @@
-/* eslint-env node */
-/* eslint import/no-unresolved:0 */
-
 import yaml from 'js-yaml';
 import jsonDiff from 'json-diff';
 import fs from 'node:fs';
@@ -26,6 +23,7 @@ async function main() {
   );
 
   const readFile = fs.readFileSync('tests/apidocs/openapi-derefed.json', 'utf8');
+  // @ts-expect-error: Types do not match the version of js-yaml installed
   const target = yaml.safeLoad(readFile);
 
   // eslint-disable-next-line no-console

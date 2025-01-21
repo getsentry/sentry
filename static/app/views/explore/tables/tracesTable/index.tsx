@@ -163,7 +163,7 @@ function TraceRow({
   trace,
   query,
 }: {
-  defaultExpanded;
+  defaultExpanded: any;
   query: string;
   trace: TraceResult;
 }) {

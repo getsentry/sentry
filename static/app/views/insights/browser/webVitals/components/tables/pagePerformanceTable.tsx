@@ -240,6 +240,7 @@ export function PagePerformanceTable() {
       const func = 'count_scores';
       const args = [measurement?.replace('measurements.', 'measurements.score.')];
       const countWebVitalKey = `${func}(${args.join(', ')})`;
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const countWebVital = row[countWebVitalKey];
       if (measurement === undefined || countWebVital === 0) {
         return (
@@ -252,6 +253,7 @@ export function PagePerformanceTable() {
     }
     if (key === 'p75(measurements.cls)') {
       const countWebVitalKey = 'count_scores(measurements.score.cls)';
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const countWebVital = row[countWebVitalKey];
       if (countWebVital === 0) {
         return (

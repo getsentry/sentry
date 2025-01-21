@@ -15,8 +15,6 @@ import type {
   Thresholds,
 } from 'sentry/views/dashboards/widgets/common/types';
 
-import {X_GUTTER, Y_GUTTER} from '../common/settings';
-
 import {ThresholdsIndicator} from './thresholdsIndicator';
 
 export interface BigNumberWidgetVisualizationProps {
@@ -45,7 +43,7 @@ export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualization
   // TODO: meta as MetaType is a white lie. `MetaType` doesn't know that types can be null, but they can!
   const fieldRenderer = meta
     ? getFieldRenderer(field, meta as MetaType, false)
-    : renderableValue => renderableValue.toString();
+    : (renderableValue: any) => renderableValue.toString();
 
   const unit = meta?.units?.[field];
   const type = meta?.fields?.[field];
@@ -133,7 +131,7 @@ export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualization
   );
 }
 
-function Wrapper({children}) {
+function Wrapper({children}: any) {
   return (
     <AutoResizeParent>
       <AutoSizedText>{children}</AutoSizedText>
@@ -143,7 +141,7 @@ function Wrapper({children}) {
 
 const AutoResizeParent = styled('div')`
   position: absolute;
-  inset: ${Y_GUTTER} ${X_GUTTER} ${Y_GUTTER} ${X_GUTTER};
+  inset: 0;
 
   color: ${p => p.theme.headingColor};
 

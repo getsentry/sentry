@@ -176,7 +176,11 @@ def _unfurl_discover(
         )
         params.setlist("name", params.getlist("name") or to_list(saved_query.get("name")))
 
-        saved_query_dataset = dataset_map.get(saved_query.get("queryDataset"))
+        query_dataset = saved_query.get("queryDataset")
+        if query_dataset is not None:
+            saved_query_dataset = dataset_map.get(query_dataset)
+        else:
+            saved_query_dataset = None
         params.setlist(
             "dataset",
             params.getlist("dataset")

@@ -995,7 +995,7 @@ def process_code_mappings(job: PostProcessJob) -> None:
         return
 
     from sentry.issues.auto_source_code_config.code_mapping import SUPPORTED_LANGUAGES
-    from sentry.tasks.auto_source_code_config import auto_source_code_config, derive_code_mappings
+    from sentry.tasks.auto_source_code_config import auto_source_code_config
 
     try:
         event = job["event"]
@@ -1017,13 +1017,10 @@ def process_code_mappings(job: PostProcessJob) -> None:
         else:
             return
 
-        if options.get("system.new-auto-source-code-config-queue"):
-            auto_source_code_config.delay(project.id, event.data)
-        else:
-            derive_code_mappings.delay(project.id, event.data)
+        auto_source_code_config.delay(project.id, event_id=event.event_id, group_id=group_id)
 
     except Exception:
-        logger.exception("derive_code_mappings: Failed to process code mappings")
+        logger.exception("Failed to process automatic source code config")
 
 
 def process_commits(job: PostProcessJob) -> None:

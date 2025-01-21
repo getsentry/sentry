@@ -337,9 +337,30 @@ function useWidgetBuilderState(): {
               }
             }
           }
+
+          if (
+            displayType !== DisplayType.TABLE &&
+            displayType !== DisplayType.BIG_NUMBER &&
+            action.payload.length > 0
+          ) {
+            // Adding a grouping, so default the sort to the first aggregate if possible
+            setSort([
+              {
+                kind: 'desc',
+                field: generateFieldAsString(
+                  (yAxis?.[0] as QueryFieldValue) ??
+                    (action.payload[0] as QueryFieldValue)
+                ),
+              },
+            ]);
+          }
           break;
         case BuilderStateAction.SET_Y_AXIS:
           setYAxis(action.payload);
+          if (action.payload.length > 0 && fields?.length === 0) {
+            // Clear the sort if there is no grouping
+            setSort([]);
+          }
           break;
         case BuilderStateAction.SET_QUERY:
           setQuery(action.payload);

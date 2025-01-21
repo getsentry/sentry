@@ -193,7 +193,7 @@ def save_issue_from_occurrence(
             granted_quota = issue_rate_limiter.check_and_use_quotas(
                 [
                     RequestedQuota(
-                        f"issue-platform-issues:{project.id}:{occurrence.type.slug}",
+                        f"issue-platform-issues:{project.id}:{occurrence.type.slug}",  # noqa E231 missing whitespace after ':'
                         1,
                         [occurrence.type.creation_quota],
                     )

@@ -15,6 +15,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Event} from 'sentry/types/event';
 import {EntryType, EventOrGroupType} from 'sentry/types/event';
+import localStorage from 'sentry/utils/localStorage';
 
 describe('Threads', function () {
   const organization = OrganizationFixture();
@@ -39,6 +40,11 @@ describe('Threads', function () {
     });
     ProjectsStore.loadInitialData([project]);
     ConfigStore.set('user', UserFixture());
+
+    localStorage.setItem(
+      `issue-details-stracktrace-display-${organization.slug}-${project.slug}`,
+      JSON.stringify([])
+    );
   });
 
   describe('non native platform', function () {

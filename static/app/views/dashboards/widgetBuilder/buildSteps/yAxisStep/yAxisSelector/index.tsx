@@ -104,7 +104,7 @@ export function YAxisSelector({
     onChange(aggregates, newSelectedAggregate);
   }
 
-  const fieldError = errors?.find(error => error?.aggregates)?.aggregates;
+  const fieldError = errors?.find((error: any) => error?.aggregates)?.aggregates;
   const canDelete = aggregates.length > 1;
 
   const hideAddYAxisButtons =

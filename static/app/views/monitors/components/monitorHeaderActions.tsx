@@ -57,8 +57,7 @@ function MonitorHeaderActions({monitor, orgSlug, onUpdate, linkToAlerts}: Props)
 
   return (
     <ButtonBar gap={1}>
-      {/* When displayed on the alerts page the feedback button is already added for us */}
-      {!linkToAlerts && <FeedbackWidgetButton />}
+      <FeedbackWidgetButton />
       <Button
         size="sm"
         icon={monitor.isMuted ? <IconSubscribed /> : <IconUnsubscribed />}

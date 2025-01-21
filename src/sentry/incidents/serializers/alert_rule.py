@@ -47,6 +47,10 @@ from sentry.snuba.entity_subscription import (
     get_entity_subscription,
 )
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
+from sentry.workflow_engine.migration_helpers.alert_rule import (
+    migrate_alert_rule,
+    migrate_resolve_threshold_data_conditions,
+)
 
 from ...snuba.metrics.naming_layer.mri import is_mri
 from . import (
@@ -489,9 +493,10 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
             )
         with transaction.atomic(router.db_for_write(AlertRule)):
             triggers = validated_data.pop("triggers")
+            user = self.context.get("user", None)
             try:
                 alert_rule = create_alert_rule(
-                    user=self.context.get("user", None),
+                    user=user,
                     organization=self.context["organization"],
                     ip_address=self.context.get("ip_address"),
                     **validated_data,
@@ -509,6 +514,14 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
                     extra={"details": str(e)},
                 )
                 raise BadRequest
+
+            if features.has(
+                "organizations:workflow-engine-metric-alert-processing", alert_rule.organization
+            ):
+                migrate_alert_rule(alert_rule, user)
+                if alert_rule.resolve_threshold:
+                    migrate_resolve_threshold_data_conditions(alert_rule)
+
             self._handle_triggers(alert_rule, triggers)
             return alert_rule
 

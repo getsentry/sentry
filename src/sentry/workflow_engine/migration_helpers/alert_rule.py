@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.incidents.grouptype import MetricAlertFire
@@ -31,6 +32,13 @@ from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 logger = logging.getLogger(__name__)
+
+FIELDS_TO_DETECTOR_FIELDS = {
+    "name": "name",
+    "description": "description",
+    "user_id": "owner_user_id",
+    "team_id": "owner_team_id",
+}
 
 
 def get_action_type(alert_rule_trigger_action: AlertRuleTriggerAction) -> str | None:
@@ -114,14 +122,15 @@ def migrate_metric_data_conditions(
         if alert_rule.threshold_type == AlertRuleThresholdType.ABOVE.value
         else Condition.LESS
     )
+    condition_result = (
+        DetectorPriorityLevel.MEDIUM
+        if alert_rule_trigger.label == "warning"
+        else DetectorPriorityLevel.HIGH
+    )
 
     detector_trigger = DataCondition.objects.create(
         comparison=alert_rule_trigger.alert_threshold,
-        condition_result=(
-            DetectorPriorityLevel.MEDIUM
-            if alert_rule_trigger.label == "warning"
-            else DetectorPriorityLevel.HIGH
-        ),
+        condition_result=condition_result,
         type=threshold_type,
         condition_group=detector_data_condition_group,
     )
@@ -139,11 +148,7 @@ def migrate_metric_data_conditions(
         workflow=alert_rule_workflow.workflow,
     )
     data_condition = DataCondition.objects.create(
-        comparison=(
-            DetectorPriorityLevel.MEDIUM
-            if alert_rule_trigger.label == "warning"
-            else DetectorPriorityLevel.HIGH
-        ),
+        comparison=condition_result,
         condition_result=True,
         type=Condition.ISSUE_PRIORITY_EQUALS,
         condition_group=data_condition_group,
@@ -375,6 +380,86 @@ def migrate_alert_rule(
     )
 
 
+def update_migrated_alert_rule(alert_rule: AlertRule, updated_fields: dict[str, Any]) -> (
+    tuple[
+        DetectorState,
+        Detector,
+    ]
+    | None
+):
+    try:
+        alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=alert_rule)
+    except AlertRuleDetector.DoesNotExist:
+        logger.exception(
+            "AlertRuleDetector does not exist",
+            extra={"alert_rule_id": alert_rule.id},
+        )
+        return None
+
+    detector: Detector = alert_rule_detector.detector
+
+    try:
+        detector_state = DetectorState.objects.get(detector=detector)
+    except DetectorState.DoesNotExist:
+        logger.exception(
+            "DetectorState does not exist",
+            extra={"alert_rule_id": alert_rule.id, "detector_id": detector.id},
+        )
+        return None
+
+    updated_detector_fields: dict[str, Any] = {}
+    config = detector.config.copy()
+
+    for field, detector_field in FIELDS_TO_DETECTOR_FIELDS.items():
+        if updated_field := updated_fields.get(field):
+            updated_detector_fields[detector_field] = updated_field
+    # update config fields
+    config_fields = MetricAlertFire.detector_config_schema["properties"].keys()
+    for field in config_fields:
+        if field in updated_fields:
+            config[field] = updated_fields[field]
+    updated_detector_fields["config"] = config
+
+    # if the user updated resolve_threshold or threshold_type, then we also need to update the detector triggers
+    if "threshold_type" in updated_fields or "resolve_threshold" in updated_fields:
+        data_condition_group = detector.workflow_condition_group
+        if data_condition_group is None:
+            # this shouldn't be possible due to the way we dual write
+            logger.error(
+                "AlertRuleDetector has no associated DataConditionGroup",
+                extra={"alert_rule_id": alert_rule.id},
+            )
+            return None
+        data_conditions = DataCondition.objects.filter(condition_group=data_condition_group)
+        if "threshold_type" in updated_fields:
+            threshold_type = (
+                Condition.GREATER
+                if updated_fields["threshold_type"] == AlertRuleThresholdType.ABOVE.value
+                else Condition.LESS
+            )
+            resolve_threshold_type = (
+                Condition.LESS_OR_EQUAL
+                if updated_fields["threshold_type"] == AlertRuleThresholdType.ABOVE.value
+                else Condition.GREATER_OR_EQUAL
+            )
+            for dc in data_conditions:
+                if dc.condition_result == DetectorPriorityLevel.OK:
+                    dc.update(type=resolve_threshold_type)
+                else:
+                    dc.update(type=threshold_type)
+
+        if "resolve_threshold" in updated_fields:
+            resolve_condition = data_conditions.filter(condition_result=DetectorPriorityLevel.OK)
+            resolve_condition.update(comparison=updated_fields["resolve_threshold"])
+
+    detector.update(**updated_detector_fields)
+
+    # reset detector status, as the rule was updated
+    detector_state.update(active=False, state=DetectorPriorityLevel.OK)
+
+    return detector_state, detector
+
+
 def get_data_source(alert_rule: AlertRule) -> DataSource | None:
     snuba_query = alert_rule.snuba_query
     organization = alert_rule.organization
@@ -408,13 +493,13 @@ def dual_delete_migrated_alert_rule(
         # isn't flagged into dual write
         logger.info(
             "AlertRuleDetector does not exist",
-            extra={"alert_rule_id": AlertRule.id},
+            extra={"alert_rule_id": alert_rule.id},
         )
         return
     except AlertRuleWorkflow.DoesNotExist:
         logger.info(
             "AlertRuleWorkflow does not exist",
-            extra={"alert_rule_id": AlertRule.id},
+            extra={"alert_rule_id": alert_rule.id},
         )
         return
 
@@ -426,7 +511,7 @@ def dual_delete_migrated_alert_rule(
     if data_source is None:
         logger.info(
             "DataSource does not exist",
-            extra={"alert_rule_id": AlertRule.id},
+            extra={"alert_rule_id": alert_rule.id},
         )
     # NOTE: for migrated alert rules, each workflow is associated with a single detector
     # make sure there are no other detectors associated with the workflow, then delete it if so

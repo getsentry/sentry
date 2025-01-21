@@ -13,6 +13,7 @@ import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/tooltip';
 import ConfigStore from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey, Project} from 'sentry/types/project';
@@ -136,6 +137,7 @@ export function Trace({
   const organization = useOrganization();
   const traceState = useTraceState();
   const traceDispatch = useTraceStateDispatch();
+  const {theme: colorMode} = useLegacyStore(ConfigStore);
 
   const rerenderRef = useRef<TraceProps['rerender']>(rerender);
   rerenderRef.current = rerender;
@@ -370,8 +372,8 @@ export function Trace({
 
   const render = useMemo(() => {
     return trace.type !== 'trace' || isLoading
-      ? r => renderLoadingRow(r)
-      : r => renderVirtualizedRow(r);
+      ? (r: any) => renderLoadingRow(r)
+      : (r: any) => renderVirtualizedRow(r);
   }, [isLoading, renderLoadingRow, renderVirtualizedRow, trace.type]);
 
   const traceNode = trace.root.children[0];
@@ -425,7 +427,7 @@ export function Trace({
                   <div
                     key={i}
                     ref={r => manager.registerIndicatorLabelRef(r, i, indicator)}
-                    className={`TraceIndicatorLabelContainer ${status}`}
+                    className={`TraceIndicatorLabelContainer ${status} ${colorMode}`}
                   >
                     <Tooltip
                       title={
@@ -553,7 +555,7 @@ function RenderTraceRow(props: {
   );
 
   const registerSpanArrowRef = useCallback(
-    ref => {
+    (ref: any) => {
       props.manager.registerArrowRef(ref, node.space!, virtualized_index);
     },
     [props.manager, node, virtualized_index]
@@ -922,16 +924,40 @@ const TraceStylingWrapper = styled('div')`
     &.Poor {
       color: ${p => p.theme.red300};
       border: 1px solid ${p => p.theme.red300};
+
+      &.light {
+        background-color: rgb(251 232 233);
+      }
+
+      &.dark {
+        background-color: rgb(63 17 20);
+      }
     }
 
     &.Meh {
       color: ${p => p.theme.yellow400};
       border: 1px solid ${p => p.theme.yellow300};
+
+      &.light {
+        background-color: rgb(249 244 224);
+      }
+
+      &.dark {
+        background-color: rgb(45 41 17);
+      }
     }
 
     &.Good {
       color: ${p => p.theme.green300};
       border: 1px solid ${p => p.theme.green300};
+
+      &.light {
+        background-color: rgb(232 241 239);
+      }
+
+      &.dark {
+        background-color: rgb(9 37 30);
+      }
     }
   }
 

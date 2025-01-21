@@ -45,9 +45,12 @@ export type RadioOption<C extends string = string> = [
 
 export interface RadioGroupProps<C extends string = string>
   extends BaseRadioGroupProps<C>,
-    Omit<ContainerProps, 'onChange'> {}
+    Omit<ContainerProps, 'onChange'> {
+  name?: string;
+}
 
 function RadioGroup<C extends string>({
+  name: groupName,
   value,
   disabled: groupDisabled,
   disabledChoices = [],
@@ -84,6 +87,7 @@ function RadioGroup<C extends string>({
           >
             <RadioLineItem index={index} aria-checked={value === id} disabled={disabled}>
               <Radio
+                name={groupName}
                 aria-label={name?.toString()}
                 disabled={disabled}
                 checked={value === id}

@@ -45,7 +45,7 @@ export function useAddToDashboard() {
     (visualizeIndex: number) => {
       const yAxes = visualizes[visualizeIndex]!.yAxes.slice(0, MAX_NUM_Y_AXES);
 
-      let fields;
+      let fields: any;
       if (mode === Mode.SAMPLES) {
         if (hasWidgetBuilderRedesign) {
           // TODO: Handle the fields for the widget builder if we've selected the samples mode
@@ -62,7 +62,7 @@ export function useAddToDashboard() {
       const search = new MutableSearch(query);
 
       const discoverQuery: NewQuery = {
-        name: t('Custom Explore Widget'),
+        name: t('Custom Widget'),
         fields,
         orderby: sortBys.map(formatSort),
         query: search.formatString(),
