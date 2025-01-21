@@ -4,6 +4,8 @@ import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/button';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {t} from 'sentry/locale';
+import {dedupeArray} from 'sentry/utils/dedupeArray';
+import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
@@ -70,11 +72,20 @@ export function ToolbarSaveAs() {
 
   if (organization.features.includes('dashboards-eap')) {
     const disableAddToDashboard = !organization.features.includes('dashboards-edit');
-    const chartOptions = visualizes.map((chart, index) => ({
-      key: chart.label,
-      label: t('Chart %s', chart.label),
-      onAction: !disableAddToDashboard ? () => addToDashboard(index) : undefined,
-    }));
+
+    const chartOptions = visualizes.map((chart, index) => {
+      const dedupedYAxes = dedupeArray(chart.yAxes);
+      const formattedYAxes = dedupedYAxes.map(yaxis => {
+        const func = parseFunction(yaxis);
+        return func ? prettifyParsedFunction(func) : undefined;
+      });
+
+      return {
+        key: chart.label,
+        label: t('%s - %s', chart.label, formattedYAxes.filter(Boolean).join(', ')),
+        onAction: !disableAddToDashboard ? () => addToDashboard(index) : undefined,
+      };
+    });
     items.push({
       key: 'add-to-dashboard',
       textValue: t('Add to Dashboard'),
