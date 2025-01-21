@@ -20,24 +20,31 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 import {useWidgetSyncContext} from '../../contexts/widgetSyncContext';
+import {AreaChartWidgetSeries} from '../areaChartWidget/areaChartWidgetSeries';
+import {BarChartWidgetSeries} from '../barChartWidget/barChartWidgetSeries';
 import type {
   Aliases,
   Release,
   TimeseriesData,
   TimeseriesSelection,
 } from '../common/types';
+import {LineChartWidgetSeries} from '../lineChartWidget/lineChartWidgetSeries';
 
 import {formatTooltipValue} from './formatTooltipValue';
 import {formatYAxisValue} from './formatYAxisValue';
 import {ReleaseSeries} from './releaseSeries';
 import {splitSeriesIntoCompleteAndIncomplete} from './splitSeriesIntoCompleteAndIncomplete';
 
+type VisualizationType = 'area' | 'line' | 'bar';
+
+type SeriesConstructor = (
+  timeserie: TimeseriesData,
+  complete?: boolean
+) => LineSeriesOption | BarSeriesOption;
+
 export interface TimeSeriesWidgetVisualizationProps {
-  SeriesConstructor: (
-    timeserie: TimeseriesData,
-    complete?: boolean
-  ) => LineSeriesOption | BarSeriesOption;
   timeseries: TimeseriesData[];
+  visualizationType: VisualizationType;
   aliases?: Aliases;
   dataCompletenessDelay?: number;
   onTimeseriesSelectionChange?: (selection: TimeseriesSelection) => void;
@@ -198,6 +205,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   const showLegend = visibleSeriesCount > 1;
 
+  const SeriesConstructor = SeriesConstructors[props.visualizationType];
+
   return (
     <BaseChart
       ref={e => {
@@ -210,10 +219,10 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       autoHeightResize
       series={[
         ...completeSeries.map(timeserie => {
-          return props.SeriesConstructor(timeserie, true);
+          return SeriesConstructor(timeserie, true);
         }),
         ...incompleteSeries.map(timeserie => {
-          return props.SeriesConstructor(timeserie, false);
+          return SeriesConstructor(timeserie, false);
         }),
         releaseSeries &&
           LineSeries({
@@ -290,3 +299,9 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 }
 
 const FALLBACK_TYPE = 'number';
+
+const SeriesConstructors: Record<VisualizationType, SeriesConstructor> = {
+  area: AreaChartWidgetSeries,
+  line: LineChartWidgetSeries,
+  bar: BarChartWidgetSeries,
+};
