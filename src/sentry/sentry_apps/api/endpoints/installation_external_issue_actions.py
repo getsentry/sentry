@@ -58,7 +58,7 @@ class SentryAppInstallationExternalIssueActionsEndpoint(SentryAppInstallationBas
         except Group.DoesNotExist:
             raise SentryAppError(
                 message="Could not find the corresponding issue for the given groupId",
-                status_code=400,
+                status_code=404,
             )
 
         action = data.pop("action")

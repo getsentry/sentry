@@ -75,7 +75,7 @@ class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
         )
 
         response = self.client.post(self.url, data=data, format="json")
-        assert response.status_code == 400
+        assert response.status_code == 503
         assert (
             response.content
             == b'{"detail":"Issue occured while trying to contact testin to link issue"}'

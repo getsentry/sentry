@@ -77,14 +77,17 @@ class IssueLinkRequester:
                 message=f"Unable to parse response from {self.sentry_app.slug}",
                 webhook_context={
                     "error_type": "issue-link-requester.invalid-json",
+                    "uri": self.uri,
                     "response": body,
+                    "installation_uuid": self.install.uuid,
                 },
+                status_code=503,
             )
         except Exception as e:
             error_type = "issue-link-requester.error"
             extras = {
                 "sentry_app": self.sentry_app.slug,
-                "install": self.install.uuid,
+                "installation_uuid": self.install.uuid,
                 "project": self.group.project.slug,
                 "group": self.group.id,
                 "uri": self.uri,
@@ -94,6 +97,7 @@ class IssueLinkRequester:
             raise SentryAppIntegratorError(
                 message=f"Issue occured while trying to contact {self.sentry_app.slug} to link issue",
                 webhook_context={"error_type": error_type, **extras},
+                status_code=503,
             )
 
         if not self._validate_response(response):
@@ -102,8 +106,10 @@ class IssueLinkRequester:
                 webhook_context={
                     "error_type": "issue-link-requester.invalid-response",
                     "response": response,
+                    "installation_uuid": self.install.uuid,
                     "uri": self.uri,
                 },
+                status_code=503,
             )
 
         return response

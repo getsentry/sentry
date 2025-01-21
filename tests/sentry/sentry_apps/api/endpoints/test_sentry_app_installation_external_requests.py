@@ -90,4 +90,4 @@ class SentryAppInstallationExternalRequestsEndpointTest(APITestCase):
         )
         url = self.url + f"?uri={self.project.id}"
         response = self.client.get(url, format="json")
-        assert response.status_code == 400
+        assert response.status_code == 503
