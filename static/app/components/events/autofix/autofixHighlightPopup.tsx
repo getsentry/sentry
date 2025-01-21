@@ -158,7 +158,7 @@ const Container = styled(motion.div)`
   background: ${p => p.theme.background};
   border: 1px dashed ${p => p.theme.border};
   overflow: hidden;
-  box-shadow: ${p => p.theme.dropShadowMedium};
+  box-shadow: ${p => p.theme.dropShadowHeavy};
 
   &:before {
     content: '';
@@ -225,14 +225,13 @@ const Arrow = styled('div')`
   position: absolute;
   width: 12px;
   height: 12px;
-  background: ${p => p.theme.active}10;
+  background: ${p => p.theme.active}01;
   border: 1px dashed ${p => p.theme.border};
   border-right: none;
   border-bottom: none;
   top: 20px;
   right: -6px;
   transform: rotate(135deg);
-  box-shadow: ${p => p.theme.dropShadowLight};
 `;
 
 function getScrollParents(element: HTMLElement): Element[] {

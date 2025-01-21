@@ -147,12 +147,12 @@ export function AutofixOutputStream({
         })}
       >
         <ScaleContainer
-          initial={{scale: 0.8}}
-          animate={{scale: 1}}
-          exit={{scale: 0.8}}
+          initial={{scaleY: 0.8}}
+          animate={{scaleY: 1}}
+          exit={{scaleY: 0.8}}
           transition={testableTransition({
             duration: 0.2,
-            scale: {
+            scaleY: {
               type: 'spring',
               bounce: 0.2,
             },

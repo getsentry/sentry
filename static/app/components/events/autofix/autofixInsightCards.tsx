@@ -9,7 +9,7 @@ import {replaceHeadersWithBold} from 'sentry/components/events/autofix/autofixRo
 import type {AutofixInsight} from 'sentry/components/events/autofix/types';
 import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
 import Input from 'sentry/components/input';
-import {IconChevron, IconClose, IconEdit, IconRefresh} from 'sentry/icons';
+import {IconAdd, IconChevron, IconClose, IconEdit, IconRefresh} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import marked, {singleLineRenderer} from 'sentry/utils/marked';
@@ -88,9 +88,9 @@ interface AutofixInsightCardProps {
   hasCardBelow: boolean;
   index: number;
   insight: AutofixInsight;
+  insightCount: number;
   runId: string;
   stepIndex: number;
-  isLastInsightInStep?: boolean;
   shouldHighlightRethink?: boolean;
 }
 
@@ -103,8 +103,9 @@ function AutofixInsightCard({
   groupId,
   runId,
   shouldHighlightRethink,
-  isLastInsightInStep,
+  insightCount,
 }: AutofixInsightCardProps) {
+  const isLastInsightInStep = index === insightCount - 1;
   const headerRef = useRef<HTMLDivElement>(null);
   const justificationRef = useRef<HTMLDivElement>(null);
   const headerSelection = useTextSelection(headerRef);
@@ -170,7 +171,15 @@ function AutofixInsightCard({
       </AnimatePresence>
       <AnimatePresence initial>
         <AnimationWrapper key="content" {...animationProps}>
-          {hasCardAbove && <ChainLink isHighlighted={shouldHighlightRethink} />}
+          {hasCardAbove && (
+            <ChainLink
+              isHighlighted={shouldHighlightRethink}
+              stepIndex={stepIndex}
+              groupId={groupId}
+              runId={runId}
+              insightCount={insightCount}
+            />
+          )}
           <InsightContainer>
             {isEditing ? (
               <EditContainer>
@@ -238,7 +247,7 @@ function AutofixInsightCard({
                       <StyledIconEdit size="sm" isHighlighted={shouldHighlightRethink} />
                     }
                     aria-label={t('Edit insight')}
-                    title={t('Rethink from here')}
+                    title={t('Replace insight and rethink')}
                   />
                 </RightSection>
               </InsightCardRow>
@@ -273,6 +282,10 @@ function AutofixInsightCard({
             <ChainLink
               isHighlighted={shouldHighlightRethink}
               isLastCard={isLastInsightInStep}
+              stepIndex={stepIndex}
+              groupId={groupId}
+              runId={runId}
+              insightCount={insightCount}
             />
           )}
         </AnimationWrapper>
@@ -342,8 +355,8 @@ function CollapsibleChainLink({
               transition={{duration: 0.4}}
             >
               {isEmpty
-                ? t('Not quite right? Comment on something.')
-                : t('Not quite right? Comment on or edit something.')}
+                ? t('Not satisfied? Leave a comment.')
+                : t('Not satisfied? Leave a comment or edit something.')}
             </RethinkMessage>
           )}
         </AnimatePresence>
@@ -405,7 +418,7 @@ function AutofixInsightCards({
                       stepIndex={stepIndex}
                       groupId={groupId}
                       runId={runId}
-                      isLastInsightInStep={index === insights.length - 1}
+                      insightCount={validInsightCount}
                       shouldHighlightRethink={shouldHighlightRethink}
                     />
                   )
@@ -418,7 +431,15 @@ function AutofixInsightCards({
         <NoInsightsYet />
       ) : hasStepBelow ? (
         <EmptyResultsContainer>
-          <ChainLink isHighlighted={shouldHighlightRethink} isLastCard isEmpty />
+          <ChainLink
+            isHighlighted={shouldHighlightRethink}
+            isLastCard
+            isEmpty
+            stepIndex={stepIndex}
+            groupId={groupId}
+            runId={runId}
+            insightCount={validInsightCount}
+          />
         </EmptyResultsContainer>
       ) : null}
     </InsightsContainer>
@@ -458,33 +479,93 @@ export function useUpdateInsightCard({groupId, runId}: {groupId: string; runId: 
   });
 }
 
+interface ChainLinkProps {
+  groupId: string;
+  insightCount: number;
+  runId: string;
+  stepIndex: number;
+  isEmpty?: boolean;
+  isHighlighted?: boolean;
+  isLastCard?: boolean;
+}
+
 function ChainLink({
   isHighlighted,
   isLastCard,
   isEmpty,
-}: {
-  isEmpty?: boolean;
-  isHighlighted?: boolean;
-  isLastCard?: boolean;
-}) {
+  stepIndex,
+  groupId,
+  runId,
+  insightCount,
+}: ChainLinkProps) {
+  const [isAdding, setIsAdding] = useState(false);
+  const [newInsightText, setNewInsightText] = useState('');
+  const {mutate: updateInsight} = useUpdateInsightCard({groupId, runId});
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsAdding(false);
+    updateInsight({
+      message: newInsightText,
+      step_index: stepIndex,
+      retain_insight_card_index: insightCount - 1,
+    });
+    setNewInsightText('');
+  };
+
+  const handleCancel = () => {
+    setIsAdding(false);
+    setNewInsightText('');
+  };
+
   return (
     <VerticalLineContainer isEmpty={isEmpty}>
       <VerticalLine />
       <RethinkButtonContainer className="rethink-button-container">
-        <AnimatePresence>
-          {isLastCard && isHighlighted && (
-            <RethinkMessage
-              initial={{opacity: 0, x: 20}}
-              animate={{opacity: 1, x: 0}}
-              exit={{opacity: 0, x: 20}}
-              transition={{duration: 0.4}}
-            >
-              {isEmpty
-                ? t('Not satisfied? Leave a comment.')
-                : t('Not satisfied? Leave a comment or edit something.')}
-            </RethinkMessage>
-          )}
-        </AnimatePresence>
+        {isLastCard &&
+          (isAdding ? (
+            <EditContainer>
+              <form onSubmit={handleSubmit}>
+                <EditFormRow>
+                  <EditInput
+                    type="text"
+                    value={newInsightText}
+                    onChange={e => setNewInsightText(e.target.value)}
+                    placeholder={t('Share your own insight here...')}
+                    autoFocus
+                  />
+                  <ButtonBar merged>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={handleCancel}
+                      title={t('Cancel')}
+                    >
+                      <IconClose size="sm" />
+                    </Button>
+                    <Button
+                      type="submit"
+                      priority="primary"
+                      size="sm"
+                      title={t('Add insight and rethink')}
+                    >
+                      <IconRefresh size="sm" />
+                    </Button>
+                  </ButtonBar>
+                </EditFormRow>
+              </form>
+            </EditContainer>
+          ) : (
+            <AddButton
+              size="zero"
+              borderless
+              onClick={() => setIsAdding(true)}
+              icon={<IconAdd size="sm" />}
+              title={t('Add insight and rethink')}
+              aria-label={t('Add insight and rethink')}
+              isHighlighted={isHighlighted}
+            />
+          ))}
       </RethinkButtonContainer>
     </VerticalLineContainer>
   );
@@ -538,13 +619,14 @@ const VerticalLineContainer = styled('div')<{isEmpty?: boolean}>`
   position: relative;
   z-index: 0;
   min-height: ${p => (p.isEmpty ? space(4) : space(2))};
+  width: 100%;
 
   .rethink-button-container {
-    grid-column: 3 / 4;
-    justify-self: end;
+    grid-column: 1 / -1;
+    justify-self: stretch;
     align-self: center;
     position: relative;
-    margin-right: ${space(1)};
+    padding-right: ${space(1)};
   }
 `;
 
@@ -561,13 +643,16 @@ const VerticalLine = styled('div')`
 
 const RethinkButtonContainer = styled('div')`
   position: relative;
+  display: flex;
+  justify-content: flex-end;
+  width: calc(100% + ${space(1)});
 `;
 
 const RethinkMessage = styled(motion.div)`
   color: ${p => p.theme.pink400};
   font-size: ${p => p.theme.fontSizeSmall};
   position: absolute;
-  right: calc(100% + ${space(1)});
+  right: 100%;
   top: -${space(1)};
   white-space: nowrap;
 `;
@@ -665,12 +750,14 @@ const RightSection = styled('div')`
 
 const EditContainer = styled('div')`
   padding: ${space(1)};
+  width: 100%;
 `;
 
 const EditFormRow = styled('div')`
   display: flex;
   gap: ${space(1)};
   align-items: center;
+  width: 100%;
 `;
 
 const EditInput = styled(Input)`
@@ -703,6 +790,14 @@ const CollapseButtonWrapper = styled('div')`
 const CollapsedCount = styled('span')`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
+`;
+
+const AddButton = styled(Button)<{isHighlighted?: boolean}>`
+  color: ${p => (p.isHighlighted ? p.theme.pink400 : `${p.theme.pink400}90`)};
+  &:hover {
+    color: ${p => p.theme.pink400};
+  }
+  margin-right: ${space(1)};
 `;
 
 export default AutofixInsightCards;
