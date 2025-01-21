@@ -119,10 +119,14 @@ class GroupAutofixEndpoint(GroupEndpoint):
         if response.status == 200:
             profile = orjson.loads(response.data)
             execution_tree = self._convert_profile_to_execution_tree(profile)
-            output = None if not execution_tree else {
-                "profile_matches_issue": profile_matches_event, 
-                "execution_tree": execution_tree,
-            }
+            output = (
+                None
+                if not execution_tree
+                else {
+                    "profile_matches_issue": profile_matches_event,
+                    "execution_tree": execution_tree,
+                }
+            )
             return output
         else:
             return None
@@ -135,11 +139,11 @@ class GroupAutofixEndpoint(GroupEndpoint):
         profile = profile_data.get("profile")
         if not profile:
             return []
-            
+
         frames = profile.get("frames")
         stacks = profile.get("stacks")
         samples = profile.get("samples")
-        
+
         if not all([frames, stacks, samples]):
             return []
 
@@ -225,7 +229,7 @@ class GroupAutofixEndpoint(GroupEndpoint):
         for sample in samples:
             stack_id = sample["stack_id"]
             thread_id = sample["thread_id"]
-            
+
             if not main_thread_id or str(thread_id) != str(main_thread_id):
                 continue
 
