@@ -27,8 +27,8 @@ from sentry.api.serializers import serialize
 from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
 from sentry.search.eap import constants
-from sentry.search.eap.columns import translate_internal_to_public_alias
-from sentry.search.eap.spans import SearchResolver
+from sentry.search.eap.resolver import SearchResolver
+from sentry.search.eap.span_columns import SPAN_DEFINITIONS, translate_internal_to_public_alias
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.builder.spans_indexed import SpansIndexedQueryBuilder
@@ -110,7 +110,9 @@ class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
                 hour=0, minute=0, second=0, microsecond=0
             ) + timedelta(days=1)
 
-            resolver = SearchResolver(params=snuba_params, config=SearchResolverConfig())
+            resolver = SearchResolver(
+                params=snuba_params, config=SearchResolverConfig(), definitions=SPAN_DEFINITIONS
+            )
             meta = resolver.resolve_meta(referrer=Referrer.API_SPANS_TAG_KEYS_RPC.value)
 
             rpc_request = TraceItemAttributeNamesRequest(
@@ -406,7 +408,9 @@ class EAPSpanFieldValuesAutocompletionExecutor(BaseSpanFieldValuesAutocompletion
         max_span_tag_values: int,
     ):
         super().__init__(organization, snuba_params, key, query, max_span_tag_values)
-        self.resolver = SearchResolver(params=snuba_params, config=SearchResolverConfig())
+        self.resolver = SearchResolver(
+            params=snuba_params, config=SearchResolverConfig(), definitions=SPAN_DEFINITIONS
+        )
         self.search_type, self.attribute_key = self.resolve_attribute_key(key, snuba_params)
 
     def resolve_attribute_key(

@@ -13,7 +13,8 @@ from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.columns import ResolvedColumn, ResolvedFunction
 from sentry.search.eap.constants import MAX_ROLLUP_POINTS, VALID_GRANULARITIES
-from sentry.search.eap.spans import SearchResolver
+from sentry.search.eap.resolver import SearchResolver
+from sentry.search.eap.span_columns import SPAN_DEFINITIONS
 from sentry.search.eap.types import CONFIDENCES, ConfidenceData, EAPResponse, SearchResolverConfig
 from sentry.search.events.fields import get_function_alias, is_function
 from sentry.search.events.types import EventsMeta, SnubaData, SnubaParams
@@ -31,6 +32,14 @@ def categorize_column(column: ResolvedColumn | ResolvedFunction) -> Column:
         return Column(key=column.proto_definition, label=column.public_alias)
 
 
+def get_resolver(params: SnubaParams, config: SearchResolverConfig) -> SearchResolver:
+    return SearchResolver(
+        params=params,
+        config=config,
+        definitions=SPAN_DEFINITIONS,
+    )
+
+
 @sentry_sdk.trace
 def run_table_query(
     params: SnubaParams,
@@ -45,7 +54,7 @@ def run_table_query(
 ) -> EAPResponse:
     """Make the query"""
     resolver = (
-        SearchResolver(params=params, config=config) if search_resolver is None else search_resolver
+        get_resolver(params=params, config=config) if search_resolver is None else search_resolver
     )
     meta = resolver.resolve_meta(referrer=referrer)
     where, having, query_contexts = resolver.resolve_query(query_string)
@@ -151,7 +160,7 @@ def get_timeseries_query(
     granularity_secs: int,
     extra_conditions: TraceItemFilter | None = None,
 ) -> TimeSeriesRequest:
-    resolver = SearchResolver(params=params, config=config)
+    resolver = get_resolver(params=params, config=config)
     meta = resolver.resolve_meta(referrer=referrer)
     query, _, query_contexts = resolver.resolve_query(query_string)
     (aggregations, _) = resolver.resolve_aggregates(y_axes)
@@ -328,7 +337,7 @@ def run_top_events_timeseries_query(
     change this"""
     """Make a table query first to get what we need to filter by"""
     validate_granularity(params, granularity_secs)
-    search_resolver = SearchResolver(params, config)
+    search_resolver = get_resolver(params, config)
     top_events = run_table_query(
         params,
         query_string,
