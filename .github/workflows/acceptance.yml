@@ -20,7 +20,7 @@ env:
   SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
   NODE_OPTIONS: '--max-old-space-size=4096'
   # Disables sentry reporting for devservices
-  DISABLE_SENTRY: 1
+  DEVSERVICES_DISABLE_SENTRY: 1
   CHARTCUTERIE_CONFIG_PATH: ${{ github.workspace }}/config/chartcuterie
   SNUBA_NO_WORKERS: 1
 
