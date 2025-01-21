@@ -759,10 +759,6 @@ register(
 # Killswitch to stop storing any reprocessing payloads.
 register("store.reprocessing-force-disable", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
-register(
-    "store.race-free-group-creation-force-disable", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-
 # Enable calling the severity modeling API on group creation
 register(
     "processing.calculate-severity-on-group-creation",
