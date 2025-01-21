@@ -4356,7 +4356,7 @@
     semver "^7.6.0"
     ts-api-utils "^1.3.0"
 
-"@typescript-eslint/utils@5.62.0", "@typescript-eslint/utils@^5.25.0":
+"@typescript-eslint/utils@5.62.0", "@typescript-eslint/utils@^5.25.0", "@typescript-eslint/utils@^5.52.0":
   version "5.62.0"
   resolved "https://registry.yarnpkg.com/@typescript-eslint/utils/-/utils-5.62.0.tgz#141e809c71636e4a75daa39faed2fb5f4b10df86"
   integrity sha512-n8oxjeb5aIbPFEtmQxQYOLI0i9n5ySBEY/ZEHHZqKQSFnxio1rv6dthascc9dLuwrL0RC5mPCxB7vnAVGAYWAQ==
@@ -6649,6 +6649,13 @@ eslint-module-utils@^2.12.0:
   dependencies:
     debug "^3.2.7"
 
+eslint-plugin-filename-export@^1.0.4:
+  version "1.0.4"
+  resolved "https://registry.yarnpkg.com/eslint-plugin-filename-export/-/eslint-plugin-filename-export-1.0.4.tgz#3aee93343d5c0a586aeeb24b59bd54b4f268f466"
+  integrity sha512-he3fg8NQYQ8agvsyoCd2HZSfMR6MmmJ5MRKUv9ZLsdtaMRhX//3KoO29Zh46nbd6N5csHr1nSLcCnV1v06gRUw==
+  dependencies:
+    "@typescript-eslint/utils" "^5.52.0"
+
 eslint-plugin-import@^2.31.0:
   version "2.31.0"
   resolved "https://registry.yarnpkg.com/eslint-plugin-import/-/eslint-plugin-import-2.31.0.tgz#310ce7e720ca1d9c0bb3f69adfd1c6bdd7d9e0e7"
@@ -6688,6 +6695,11 @@ eslint-plugin-jest@^28.10.0:
   integrity sha512-hyMWUxkBH99HpXT3p8hc7REbEZK3D+nk8vHXGgpB+XXsi0gO4PxMSP+pjfUzb67GnV9yawV9a53eUmcde1CCZA==
   dependencies:
     "@typescript-eslint/utils" "^6.0.0 || ^7.0.0 || ^8.0.0"
+
+eslint-plugin-no-relative-import-paths@^1.6.1:
+  version "1.6.1"
+  resolved "https://registry.yarnpkg.com/eslint-plugin-no-relative-import-paths/-/eslint-plugin-no-relative-import-paths-1.6.1.tgz#7d1e8f34694016d6d390c28063bedfa7203e7771"
+  integrity sha512-YZNeOnsOrJcwhFw0X29MXjIzu2P/f5X2BZDPWw1R3VUYBRFxNIh77lyoL/XrMU9ewZNQPcEvAgL/cBOT1P330A==
 
 eslint-plugin-react-hooks@5.0.0:
   version "5.0.0"
