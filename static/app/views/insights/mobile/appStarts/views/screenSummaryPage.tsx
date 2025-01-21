@@ -21,6 +21,7 @@ import {
   SECONDARY_RELEASE_ALIAS,
 } from 'sentry/views/insights/common/components/releaseSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
+import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
 import {SamplesTables} from 'sentry/views/insights/mobile/appStarts/components/samples';
 import {
@@ -85,12 +86,12 @@ export function ScreenSummaryContentPage() {
   const location = useLocation<Query>();
 
   const {
-    primaryRelease,
-    secondaryRelease,
     transaction: transactionName,
     spanGroup,
     [SpanMetricsField.APP_START_TYPE]: appStartType,
   } = location.query;
+
+  const {primaryRelease, secondaryRelease} = useReleaseSelection();
 
   useEffect(() => {
     // Default the start type to cold start if not present
