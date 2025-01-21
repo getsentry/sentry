@@ -4,7 +4,11 @@ import {getDefaultWidget} from 'sentry/views/dashboards/widgetBuilder/utils/getD
 
 describe('convertWidgetToBuilderStateParams', () => {
   it('should not pass along yAxis when converting a table to builder params', () => {
-    const widget = {...getDefaultWidget(WidgetType.ERRORS), aggregates: ['count()']};
+    const widget = {
+      ...getDefaultWidget(WidgetType.ERRORS),
+      displayType: DisplayType.TABLE,
+      aggregates: ['count()'],
+    };
     const params = convertWidgetToBuilderStateParams(widget);
     expect(params.yAxis).toEqual([]);
   });
@@ -12,6 +16,7 @@ describe('convertWidgetToBuilderStateParams', () => {
   it('stringifies the fields when converting a table to builder params', () => {
     const widget = {
       ...getDefaultWidget(WidgetType.ERRORS),
+      displayType: DisplayType.TABLE,
       queries: [
         {
           aggregates: [],
