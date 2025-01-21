@@ -329,9 +329,8 @@ export default typescript.config([
   },
   {
     name: 'plugin/filename-export',
-    plugins: {
-      'filename-export': filenameExport,
-    },
+    // https://github.com/ekwoka/eslint-plugin-filename-export?tab=readme-ov-file#rules
+    plugins: {'filename-export': filenameExport},
     rules: {
       'filename-export/match-named-export': 'off', // This is a hard one to enable, we have loads of files like: utils.tsx, styles.tsx, data.tsx...
       'filename-export/match-default-export': 'off', // TODO(ryan953): Fix violations and enable this rule
@@ -339,9 +338,8 @@ export default typescript.config([
   },
   {
     name: 'plugin/no-relative-import-paths',
-    plugins: {
-      'no-relative-import-paths': noRelativeImportPaths,
-    },
+    // https://github.com/MelvinVermeer/eslint-plugin-no-relative-import-paths?tab=readme-ov-file#rule-options
+    plugins: {'no-relative-import-paths': noRelativeImportPaths},
     rules: {
       'no-relative-import-paths/no-relative-import-paths': [
         'off',
@@ -585,6 +583,7 @@ export default typescript.config([
   },
   {
     name: 'plugin/unicorn',
+    // https://github.com/sindresorhus/eslint-plugin-unicorn?tab=readme-ov-file#rules
     plugins: {unicorn},
     rules: {
       // The recommended rules are very opinionated. We don't need to enable them.
