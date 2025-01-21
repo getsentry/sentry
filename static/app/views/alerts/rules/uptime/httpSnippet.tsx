@@ -36,7 +36,7 @@ export function HTTPSnippet({body, headers, method, url, traceSampling}: Props) 
     ...headers,
     [
       'User-Agent',
-      'SentryUptimeBot/1.0 (+http://docs.sentry.io/product/alerts/uptime-monitoring/',
+      'SentryUptimeBot/1.0 (+http://docs.sentry.io/product/alerts/uptime-monitoring/)',
     ],
     ['Sentry-Trace', exampleTrace],
   ];

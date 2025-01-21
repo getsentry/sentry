@@ -80,7 +80,7 @@ export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
         <ProfilesProvider
           orgSlug={organization.slug}
           projectSlug={projectSlug}
-          profileId={profileId || ''}
+          profileMeta={profileId || ''}
         >
           <ProfileContext.Consumer>
             {profiles => (

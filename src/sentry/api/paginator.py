@@ -2,7 +2,7 @@ import bisect
 import functools
 import logging
 import math
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from datetime import datetime, timezone
 from typing import Any
 from urllib.parse import quote
@@ -410,11 +410,17 @@ def reverse_bisect_left(a, x, lo=0, hi=None):
     return lo
 
 
-class SequencePaginator:
-    def __init__(self, data, reverse=False, max_limit=MAX_LIMIT, on_results=None):
-        self.scores, self.values = (
-            map(list, zip(*sorted(data, reverse=reverse))) if data else ([], [])
-        )
+class SequencePaginator[T]:
+    def __init__(
+        self,
+        data: Iterable[tuple[int, T]],
+        reverse: bool = False,
+        max_limit: int = MAX_LIMIT,
+        on_results=None,
+    ):
+        data = sorted(data, reverse=reverse)
+        self.scores = [score for score, _ in data]
+        self.values = [value for _, value in data]
         self.reverse = reverse
         self.search = functools.partial(
             reverse_bisect_left if reverse else bisect.bisect_left, self.scores

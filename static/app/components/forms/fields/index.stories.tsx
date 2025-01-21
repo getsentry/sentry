@@ -14,6 +14,7 @@ import NumberField from './numberField';
 import RadioField from './radioField';
 import RangeField from './rangeField';
 import SecretField from './secretField';
+import SegmentedRadioField from './segmentedRadioField';
 import SelectField from './selectField';
 import SentryMemberTeamSelectorField from './sentryMemberTeamSelectorField';
 import SentryProjectSelectorField from './sentryProjectSelectorField';
@@ -78,6 +79,16 @@ export default storyBook(Form, story => {
           ]}
           help="This is a radio set field"
           name="myRadios"
+        />
+        <SegmentedRadioField
+          label="My Segmented Radio"
+          choices={[
+            ['thing_1', 'Thing 1', 'Thing 1 description'],
+            ['thing_2', 'Thing 2', 'Thing 2 description'],
+            ['thing_3', 'Thing 3', 'Thing 3 description'],
+          ]}
+          help="This is a segmented radio set field"
+          name="mySegmentedRadios"
         />
         <RangeField
           label="My Range Slider"

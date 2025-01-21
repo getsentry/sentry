@@ -15,40 +15,54 @@ interface UseSamplesDrawerProps {
   Component: React.ReactNode;
   moduleName: ModuleName;
   requiredParams: [string, ...string[]];
+  onClose?: () => void;
 }
 
 export function useSamplesDrawer({
   Component,
   moduleName,
   requiredParams,
+  onClose = undefined,
 }: UseSamplesDrawerProps): void {
   const organization = useOrganization();
   const {openDrawer, closeDrawer, isDrawerOpen} = useDrawer();
   const navigate = useNavigate();
   const location = useLocation();
 
-  const onClose = useCallback(() => {
-    navigate({
-      query: {
-        ...location.query,
-        transaction: undefined,
-        transactionMethod: undefined,
-        spanGroup: undefined,
-        spanOp: undefined,
-        query: undefined,
-        responseCodeClass: undefined,
-        panel: undefined,
-        statusClass: undefined,
-        spanSearchQuery: undefined,
-        traceStatus: undefined,
-        retryCount: undefined,
-      },
-    });
-  }, [navigate, location.query]);
+  const onCloseAction = useCallback(() => {
+    if (onClose) {
+      onClose();
+    } else {
+      navigate({
+        query: {
+          ...location.query,
+          transaction: undefined,
+          transactionMethod: undefined,
+          spanGroup: undefined,
+          spanOp: undefined,
+          query: undefined,
+          responseCodeClass: undefined,
+          panel: undefined,
+          statusClass: undefined,
+          spanSearchQuery: undefined,
+          traceStatus: undefined,
+          retryCount: undefined,
+        },
+      });
+    }
+  }, [navigate, onClose, location.query]);
 
   const shouldCloseOnLocationChange = useCallback(
     (newLocation: Location) => {
-      return !requiredParams.some(paramName => Boolean(newLocation.query[paramName]));
+      if (!requiredParams.every(paramName => Boolean(newLocation.query[paramName]))) {
+        return true;
+      }
+
+      if (newLocation.pathname.includes('/trace/')) {
+        return true;
+      }
+
+      return false;
     },
     [requiredParams]
   );
@@ -65,7 +79,7 @@ export function useSamplesDrawer({
 
     openDrawer(() => <FullHeightWrapper>{Component}</FullHeightWrapper>, {
       ariaLabel: t('Samples'),
-      onClose,
+      onClose: onCloseAction,
       transitionProps: {stiffness: 1000},
       shouldCloseOnLocationChange,
       shouldCloseOnInteractOutside: () => false,
@@ -73,7 +87,7 @@ export function useSamplesDrawer({
   }, [
     openDrawer,
     isDrawerOpen,
-    onClose,
+    onCloseAction,
     shouldCloseOnLocationChange,
     Component,
     organization,

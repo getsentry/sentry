@@ -63,7 +63,7 @@ function SearchBar(props: SearchBarProps) {
 
   const projectIdStrings = (eventView.project as Readonly<number>[])?.map(String);
 
-  const handleSearchChange = query => {
+  const handleSearchChange = (query: any) => {
     setSearchString(query);
 
     if (query.length === 0) {

@@ -6,7 +6,7 @@ import TraceMetaQuery from 'sentry/utils/performance/quickTrace/traceMetaQuery';
 
 const traceId = 'abcdef1234567890';
 
-function renderMeta({isLoading, error, meta}) {
+function renderMeta({isLoading, error, meta}: any) {
   if (isLoading) {
     return 'loading';
   }
@@ -29,7 +29,7 @@ function renderMeta({isLoading, error, meta}) {
 }
 
 describe('TraceMetaQuery', function () {
-  let location;
+  let location: any;
   beforeEach(function () {
     location = {
       pathname: '/',

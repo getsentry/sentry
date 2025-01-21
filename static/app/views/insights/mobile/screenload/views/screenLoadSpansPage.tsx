@@ -91,19 +91,16 @@ export function ScreenLoadSpansContent() {
 
   useSamplesDrawer({
     Component: (
-      <SpanSamplesPanel
-        groupId={spanGroup}
-        moduleName={ModuleName.SCREEN_LOAD}
-        onClose={() => {
-          router.replace({
-            pathname: router.location.pathname,
-            query: omit(router.location.query, 'spanGroup', 'transactionMethod'),
-          });
-        }}
-      />
+      <SpanSamplesPanel groupId={spanGroup} moduleName={ModuleName.SCREEN_LOAD} />
     ),
     moduleName: ModuleName.SCREEN_LOAD,
     requiredParams: ['transaction', 'spanGroup'],
+    onClose: () => {
+      router.replace({
+        pathname: router.location.pathname,
+        query: omit(router.location.query, 'spanGroup', 'transactionMethod'),
+      });
+    },
   });
 
   return (

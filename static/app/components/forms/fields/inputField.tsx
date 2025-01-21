@@ -22,11 +22,11 @@ export interface InputFieldProps
   // TODO(ts) Add base types for this. Each input field
   // has different props, but we could use have a base type that contains
   // the common properties.
-  field?: (props) => React.ReactNode;
+  field?: (props: any) => React.ReactNode;
   value?: any;
 }
 
-export type OnEvent = (value, event?: React.FormEvent<HTMLInputElement>) => void;
+export type OnEvent = (value: any, event?: React.FormEvent<HTMLInputElement>) => void;
 
 function defaultField({
   onChange,

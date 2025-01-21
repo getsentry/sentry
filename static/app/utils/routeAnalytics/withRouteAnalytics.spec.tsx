@@ -6,7 +6,7 @@ import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider'
 
 import withRouteAnalytics from './withRouteAnalytics';
 
-function TestComponent({setRouteAnalyticsParams}) {
+function TestComponent({setRouteAnalyticsParams}: any) {
   useEffect(() => {
     setRouteAnalyticsParams({foo: 'bar'});
   }, [setRouteAnalyticsParams]);

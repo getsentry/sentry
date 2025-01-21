@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Alert} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {StoreCrashReportsConfig} from 'sentry/components/onboarding/gettingStartedDoc/storeCrashReportsConfig';
 import type {
   Docs,
   OnboardingConfig,
@@ -94,7 +95,7 @@ const onboarding: OnboardingConfig = {
       ),
     },
   ],
-  verify: () => [
+  verify: params => [
     {
       type: StepType.VERIFY,
       description: t(
@@ -128,6 +129,15 @@ const onboarding: OnboardingConfig = {
             }
           )}
         </Fragment>
+      ),
+    },
+    {
+      title: t('Further Settings'),
+      description: (
+        <StoreCrashReportsConfig
+          organization={params.organization}
+          projectSlug={params.projectSlug}
+        />
       ),
     },
   ],

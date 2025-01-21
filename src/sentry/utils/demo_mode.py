@@ -2,6 +2,18 @@ from sentry import options
 from sentry.models.organization import Organization
 from sentry.users.models.user import User
 
+READONLY_SCOPES = frozenset(
+    [
+        "project:read",
+        "org:read",
+        "event:read",
+        "member:read",
+        "team:read",
+        "project:releases",
+        "alerts:read",
+    ]
+)
+
 
 def is_readonly_user(user: User | None) -> bool:
     if not options.get("demo-mode.enabled"):
@@ -31,3 +43,7 @@ def get_readonly_user():
 
     email = options.get("demo-mode.users")[0]
     return User.objects.get(email=email)
+
+
+def get_readonly_scopes() -> frozenset[str]:
+    return READONLY_SCOPES
