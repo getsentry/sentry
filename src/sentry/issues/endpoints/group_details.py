@@ -246,7 +246,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 data.update({"inbox": inbox_reason})
 
             if "owners" in expand:
-                owner_details = get_owner_details([group], request.user)
+                owner_details = get_owner_details([group])
                 owners = owner_details.get(group.id)
                 data.update({"owners": owners})
 
