@@ -2,20 +2,20 @@ import {getPreloadedDataPromise} from './getPreloadedData';
 
 describe('getPreloadedDataPromise', () => {
   beforeEach(() => {
-    (window as any).__sentry_preload = {
+    window.__sentry_preload = {
       orgSlug: 'slug',
     };
   });
   it('should register fallback promise', async () => {
     const fallback = jest.fn(() => Promise.resolve('fallback'));
-    const result = await getPreloadedDataPromise('name', 'slug', fallback);
+    const result = await getPreloadedDataPromise('organization', 'slug', fallback as any);
     expect(result).toBe('fallback');
-    expect((window as any).__sentry_preload.name_fallback).toBeInstanceOf(Promise);
+    expect(window.__sentry_preload.organization_fallback).toBeInstanceOf(Promise);
   });
   it('should only call fallback on failure', async () => {
-    (window as any).__sentry_preload.name = Promise.resolve('success');
+    window.__sentry_preload.organization = Promise.resolve('success') as any;
     const fallback = jest.fn();
-    const result = await getPreloadedDataPromise('name', 'slug', fallback, true);
+    const result = await getPreloadedDataPromise('organization', 'slug', fallback, true);
     expect(result).toBe('success');
     expect(fallback).not.toHaveBeenCalled();
   });

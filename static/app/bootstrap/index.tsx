@@ -1,3 +1,4 @@
+import type {ResponseMeta} from 'sentry/api';
 import type {Config} from 'sentry/types/system';
 import {extractSlug} from 'sentry/utils/extractSlug';
 
@@ -40,27 +41,37 @@ async function bootWithHydration() {
   return data;
 }
 
-function promiseRequest(url: string): Promise<any> {
-  return new Promise(function (resolve, reject) {
-    const xhr = new XMLHttpRequest();
-    xhr.open('GET', url);
-    xhr.setRequestHeader('sentry-trace', window.__initialData.initialTrace.sentry_trace);
-    xhr.setRequestHeader('baggage', window.__initialData.initialTrace.baggage);
-    xhr.withCredentials = true;
-    xhr.onload = function () {
-      try {
-        this.status >= 200 && this.status < 300
-          ? resolve([JSON.parse(xhr.response), this.statusText, xhr])
-          : reject([this.status, this.statusText]);
-      } catch (e) {
-        reject();
-      }
-    };
-    xhr.onerror = function () {
-      reject([this.status, this.statusText]);
-    };
-    xhr.send();
-  });
+async function promiseRequest(url: string) {
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json; charset=utf-8',
+        'Content-Type': 'application/json',
+        'sentry-trace': window.__initialData.initialTrace.sentry_trace,
+        baggage: window.__initialData.initialTrace.baggage,
+      },
+      credentials: 'include',
+      priority: 'high',
+    });
+    if (response.status >= 200 && response.status < 300) {
+      const text = await response.text();
+      const json = JSON.parse(text);
+      const responseMeta: ResponseMeta = {
+        status: response.status,
+        statusText: response.statusText,
+        responseJSON: json,
+        responseText: text,
+        getResponseHeader: (header: string) => response.headers.get(header),
+      };
+      return [json, response.statusText, responseMeta];
+    }
+    // eslint-disable-next-line no-throw-literal
+    throw [response.status, response.statusText];
+  } catch (error) {
+    // eslint-disable-next-line no-throw-literal
+    throw [error.status, error.statusText];
+  }
 }
 
 function preloadOrganizationData(config: Config) {
