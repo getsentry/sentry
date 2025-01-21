@@ -2,20 +2,18 @@ from unittest import mock
 
 from django.test import override_settings
 from django.urls import reverse
-from sentrydemo.marketo_client import MarketoClient
-from sentrydemo.models import DemoUser
-from sentrydemo.settings import MIDDLEWARE  # noqa
 
 from sentry.testutils import APITestCase
+from sentry.utils.marketo_client import MarketoClient
 
 
-@override_settings(DEMO_MODE=True, ROOT_URLCONF="sentrydemo.urls")
+@override_settings(DEMO_MODE=True)
 class EmailCaptureTests(APITestCase):
     def setUp(self):
         super().setUp()
         self.organization = self.create_organization()
         # demo user
-        self.demo_user = DemoUser.create_user()
+        self.demo_user = self.create_user()
         self.demo_om = self.create_member(
             organization=self.organization, user=self.demo_user, role="member"
         )
