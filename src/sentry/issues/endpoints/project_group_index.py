@@ -97,8 +97,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
             # disable stats
             stats_period = None
 
-        serializer = functools.partial(
-            StreamGroupSerializer,
+        serializer = StreamGroupSerializer(
             environment_func=self._get_environment_func(request, project.organization_id),
             stats_period=stats_period,
         )
@@ -117,11 +116,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
             ).values_list("group_id", flat=True)
             groups = list(Group.objects.filter(id__in=groups_from_hashes))
 
-            serialized_groups = serialize(
-                groups,
-                request.user,
-                serializer(),
-            )
+            serialized_groups = serialize(groups, request.user, serializer)
             return Response(serialized_groups)
 
         if query:
@@ -153,11 +148,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                 except Environment.DoesNotExist:
                     pass
 
-                serialized_groups = serialize(
-                    [matching_group],
-                    request.user,
-                    serializer(),
-                )
+                serialized_groups = serialize([matching_group], request.user, serializer)
                 matching_event_id = getattr(matching_event, "event_id", None)
                 if matching_event_id:
                     serialized_groups[0]["matchingEventId"] = getattr(
@@ -178,7 +169,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         results = list(cursor_result)
 
-        context = serialize(results, request.user, serializer())
+        context = serialize(results, request.user, serializer)
 
         # HACK: remove auto resolved entries
         # TODO: We should try to integrate this into the search backend, since
