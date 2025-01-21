@@ -57,8 +57,8 @@ export function ProjectFixture(params: Partial<Project> = {}): Project {
     scrapeJavaScript: true,
     scrubIPAddresses: false,
     sensitiveFields: [],
-    subjectTemplate: '',
     verifySSL: false,
+    storeCrashReports: null,
     ...params,
   };
 }
