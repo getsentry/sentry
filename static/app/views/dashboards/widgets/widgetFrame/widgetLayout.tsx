@@ -27,6 +27,8 @@ export function WidgetLayout(props: WidgetLayoutProps) {
   );
 }
 
+const HEADER_HEIGHT = '26px';
+
 const TitleHoverItems = styled('div')`
   display: flex;
   align-items: center;
@@ -37,7 +39,7 @@ const TitleHoverItems = styled('div')`
   transition: opacity 0.1s;
 `;
 
-const Frame = styled('div')<{borderless?: boolean}>`
+const Frame = styled('div')`
   position: relative;
   display: flex;
   flex-direction: column;
@@ -48,7 +50,7 @@ const Frame = styled('div')<{borderless?: boolean}>`
   min-width: ${MIN_WIDTH}px;
 
   border-radius: ${p => p.theme.panelBorderRadius};
-  ${p => !p.borderless && `border: 1px solid ${p.theme.border};`}
+  border: 1px solid ${p.theme.border};
 
   background: ${p => p.theme.background};
 
@@ -67,8 +69,6 @@ const Frame = styled('div')<{borderless?: boolean}>`
     }
   }
 `;
-
-const HEADER_HEIGHT = '26px';
 
 const Header = styled('div')`
   display: flex;
