@@ -97,6 +97,7 @@ export default class SentryAppDetailsModal extends DeprecatedAsyncComponent<
   renderPermissions() {
     const permissions = this.permissions;
     if (
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       Object.keys(permissions).filter(scope => permissions[scope].length > 0).length === 0
     ) {
       return null;
@@ -276,7 +277,7 @@ const Title = styled('p')`
   font-weight: ${p => p.theme.fontWeightBold};
 `;
 
-const Indicator = styled(p => <CircleIndicator size={7} {...p} />)`
+const Indicator = styled((p: any) => <CircleIndicator size={7} {...p} />)`
   margin-top: 7px;
   color: ${p => p.theme.success};
 `;

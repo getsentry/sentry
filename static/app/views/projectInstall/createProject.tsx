@@ -121,6 +121,7 @@ function CreateProject() {
             name: projectName,
             platform: selectedPlatform.key,
             default_rules: defaultRules ?? true,
+            origin: 'ui',
           },
         });
 
@@ -167,17 +168,14 @@ function CreateProject() {
         ProjectsStore.onCreateSuccess(projectData, organization.slug);
 
         if (team) {
-          addSuccessMessage(
-            tct('Created project [project]', {
-              project: `${projectData.slug}`,
-            })
-          );
+          addSuccessMessage(t('Created project %s', `${projectData.slug}`));
         } else {
           addSuccessMessage(
-            tct('Created [project] under new team [team]', {
-              project: `${projectData.slug}`,
-              team: `#${projectData.team_slug}`,
-            })
+            t(
+              'Created %s under new team %s',
+              `${projectData.slug}`,
+              `#${projectData.team_slug}`
+            )
           );
         }
 
@@ -189,11 +187,7 @@ function CreateProject() {
       } catch (err) {
         setInFlight(false);
         setErrors(err.responseJSON);
-        addErrorMessage(
-          tct('Failed to create project [project]', {
-            project: `${projectName}`,
-          })
-        );
+        addErrorMessage(t('Failed to create project %s', `${projectName}`));
 
         // Only log this if the error is something other than:
         // * The user not having access to create a project, or,
@@ -320,7 +314,7 @@ function CreateProject() {
     );
   }
 
-  const keyToErrorText = {
+  const keyToErrorText: Record<string, string> = {
     actions: t('Notify via integration'),
     conditions: t('Alert conditions'),
     name: t('Alert name'),
@@ -424,7 +418,7 @@ function CreateProject() {
                     clearable={false}
                     value={team}
                     placeholder={t('Select a Team')}
-                    onChange={choice => setTeam(choice.value)}
+                    onChange={(choice: any) => setTeam(choice.value)}
                     teamFilter={(tm: Team) => tm.access.includes('team:admin')}
                   />
                 </TeamSelectInput>
@@ -448,7 +442,8 @@ function CreateProject() {
             <Alert type="error">
               {Object.keys(errors).map(key => (
                 <div key={key}>
-                  <strong>{keyToErrorText[key] ?? startCase(key)}</strong>: {errors[key]}
+                  <strong>{keyToErrorText[key] ?? startCase(key)}</strong>:{' '}
+                  {(errors as any)[key]}
                 </div>
               ))}
             </Alert>

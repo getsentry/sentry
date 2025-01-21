@@ -32,7 +32,7 @@ const TRACE_EXPLORER_DOCS_URL = 'https://docs.sentry.io/product/explore/traces/'
 const DEFAULT_STATS_PERIOD = '24h';
 const DEFAULT_PER_PAGE = 50;
 
-export default function Wrapper(props) {
+export default function Wrapper(props: any) {
   const location = useLocation();
   const organization = useOrganization();
 
@@ -79,19 +79,17 @@ function Content() {
   const handleClearSearch = useCallback(
     (searchIndex: number) => {
       const newQueries = [...queries];
-      if (typeof newQueries[searchIndex] !== undefined) {
-        delete newQueries[searchIndex];
-        browserHistory.push({
-          ...location,
-          query: {
-            ...location.query,
-            cursor: undefined,
-            query: newQueries,
-          },
-        });
-        return true;
-      }
-      return false;
+      // TODO: do we need to return false when `newQueries[searchIndex] === undefined`?
+      delete newQueries[searchIndex];
+      browserHistory.push({
+        ...location,
+        query: {
+          ...location.query,
+          cursor: undefined,
+          query: newQueries,
+        },
+      });
+      return true;
     },
     [location, queries]
   );

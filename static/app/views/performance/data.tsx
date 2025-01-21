@@ -1,9 +1,10 @@
 import type {Location} from 'history';
 
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {wrapQueryInWildcards} from 'sentry/components/performance/searchBar';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {NewQuery, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -35,6 +36,15 @@ export const COLUMN_TITLES = [
   'users',
   'user misery',
 ];
+
+export const USER_MISERY_TOOLTIP = tct(
+  'A configurable score telling you how frequently users are frustrated by your application performance. [link:Learn more.]',
+  {
+    link: (
+      <ExternalLink href="https://docs.sentry.io/product/performance/metrics/#user-misery" />
+    ),
+  }
+);
 
 const TOKEN_KEYS_SUPPORTED_IN_LIMITED_SEARCH = ['transaction'];
 
@@ -414,7 +424,7 @@ export function getTermHelp(
   return PERFORMANCE_TERMS[term](organization);
 }
 
-export function prepareQueryForLandingPage(searchQuery, withStaticFilters) {
+export function prepareQueryForLandingPage(searchQuery: any, withStaticFilters: any) {
   const conditions = new MutableSearch(searchQuery);
 
   // If there is a bare text search, we want to treat it as a search
@@ -489,6 +499,7 @@ export function generateGenericPerformanceEventView(
     // be present in location and will not be determined based on the project type
     const trendParameter = getCurrentTrendParameter(location, [], []);
     if (
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       WEB_VITAL_DETAILS[trendParameter.column] &&
       !organization.features.includes('performance-new-trends')
     ) {

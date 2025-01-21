@@ -5,11 +5,11 @@ import omit from 'lodash/omit';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {EMPTY_OPTION_VALUE} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 import {buildEventViewQuery} from 'sentry/views/insights/common/utils/buildEventViewQuery';
@@ -30,6 +30,7 @@ type Props = {
 export function ActionSelector({value = '', moduleName, spanCategory, filters}: Props) {
   // TODO: This only returns the top 25 actions. It should either load them all, or paginate, or allow searching
   //
+  const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
   const eventView = getEventView(location, moduleName, spanCategory);
@@ -88,7 +89,7 @@ export function ActionSelector({value = '', moduleName, spanCategory, filters}: 
           source: moduleName,
           value: newValue.value,
         });
-        browserHistory.push({
+        navigate({
           ...location,
           query: {
             ...location.query,

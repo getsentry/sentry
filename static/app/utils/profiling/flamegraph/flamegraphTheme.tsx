@@ -103,7 +103,7 @@ export interface FlamegraphTheme {
     CPU_CHART_HEIGHT: number;
     FLAMEGRAPH_DEPTH_OFFSET: number;
     GRID_LINE_WIDTH: number;
-    HIGHLIGHTED_FRAME_BORDER_WIDTH;
+    HIGHLIGHTED_FRAME_BORDER_WIDTH: any;
     HOVERED_FRAME_BORDER_WIDTH: number;
     INTERNAL_SAMPLE_TICK_LINE_WIDTH: number;
     LABEL_FONT_PADDING: number;
@@ -203,10 +203,10 @@ export const LightFlamegraphTheme: FlamegraphTheme = {
       'by frequency': makeColorMapByFrequency,
       'by system vs application frame': makeColorMapBySystemVsApplicationFrame,
     },
-    CPU_CHART_COLORS: CHART_PALETTE[12]!.map(c => hexToColorChannels(c, 0.8)),
+    CPU_CHART_COLORS: CHART_PALETTE[12].map(c => hexToColorChannels(c, 0.8)),
     MEMORY_CHART_COLORS: [
-      hexToColorChannels(CHART_PALETTE[4]![2]!, 0.8),
-      hexToColorChannels(CHART_PALETTE[4]![3]!, 0.8),
+      hexToColorChannels(CHART_PALETTE[4][2], 0.8),
+      hexToColorChannels(CHART_PALETTE[4][3], 0.8),
     ],
     CHART_CURSOR_INDICATOR: 'rgba(31,35,58,.75)',
     CHART_LABEL_COLOR: 'rgba(31,35,58,.75)',
@@ -257,10 +257,10 @@ export const DarkFlamegraphTheme: FlamegraphTheme = {
       'by frequency': makeColorMapByFrequency,
       'by system vs application frame': makeColorMapBySystemVsApplicationFrame,
     },
-    CPU_CHART_COLORS: CHART_PALETTE[12]!.map(c => hexToColorChannels(c, 0.8)),
+    CPU_CHART_COLORS: CHART_PALETTE[12].map(c => hexToColorChannels(c, 0.8)),
     MEMORY_CHART_COLORS: [
-      hexToColorChannels(CHART_PALETTE[4]![2]!, 0.5),
-      hexToColorChannels(CHART_PALETTE[4]![3]!, 0.5),
+      hexToColorChannels(CHART_PALETTE[4][2], 0.5),
+      hexToColorChannels(CHART_PALETTE[4][3], 0.5),
     ],
     CHART_CURSOR_INDICATOR: 'rgba(255, 255, 255, 0.5)',
     CHART_LABEL_COLOR: 'rgba(255, 255, 255, 0.5)',

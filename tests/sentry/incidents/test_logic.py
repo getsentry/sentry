@@ -11,7 +11,6 @@ import pytest
 import responses
 from django.core import mail
 from django.forms import ValidationError
-from django.test import override_settings
 from django.utils import timezone
 from slack_sdk.web.slack_response import SlackResponse
 from urllib3.exceptions import MaxRetryError, TimeoutError
@@ -59,7 +58,6 @@ from sentry.incidents.logic import (
 from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleDetectionType,
-    AlertRuleMonitorTypeInt,
     AlertRuleSeasonality,
     AlertRuleSensitivity,
     AlertRuleStatus,
@@ -78,7 +76,6 @@ from sentry.incidents.models.incident import (
     IncidentType,
     TriggerStatus,
 )
-from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.integrations.discord.utils.channel import ChannelType
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pagerduty.utils import add_service
@@ -375,68 +372,6 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         }
 
     def test_create_alert_rule(self):
-        class _Kwargs(TypedDict, total=False):
-            monitor_type: AlertRuleMonitorTypeInt
-            activation_condition: AlertRuleActivationConditionType
-
-        # pytest parametrize does not work in TestCase subclasses, so hack around this
-        # TODO: backfill projects so all monitor_types include 'projects' fk
-        for monitor_type in [
-            None,
-            AlertRuleMonitorTypeInt.CONTINUOUS,
-            AlertRuleMonitorTypeInt.ACTIVATED,
-        ]:
-            name = "hello"
-            query = "level:error"
-            aggregate = "count(*)"
-            time_window = 10
-            threshold_type = AlertRuleThresholdType.ABOVE
-            resolve_threshold = 10
-            threshold_period = 1
-            event_types = [SnubaQueryEventType.EventType.ERROR]
-            kwargs: _Kwargs = (
-                {
-                    "monitor_type": monitor_type,
-                    "activation_condition": AlertRuleActivationConditionType.RELEASE_CREATION,
-                }
-                if monitor_type
-                else {}
-            )
-            alert_rule = create_alert_rule(
-                self.organization,
-                [self.project],
-                name,
-                query,
-                aggregate,
-                time_window,
-                threshold_type,
-                threshold_period,
-                resolve_threshold=resolve_threshold,
-                event_types=event_types,
-                **kwargs,
-            )
-            assert alert_rule.name == name
-            assert alert_rule.user_id is None
-            assert alert_rule.team_id is None
-            assert alert_rule.status == AlertRuleStatus.PENDING.value
-            assert alert_rule.snuba_query is not None
-            if alert_rule.snuba_query.subscriptions.exists():
-                assert alert_rule.snuba_query.subscriptions.get().project == self.project
-                assert alert_rule.snuba_query.subscriptions.all().count() == 1
-            assert alert_rule.snuba_query.type == SnubaQuery.Type.ERROR.value
-            assert alert_rule.snuba_query.dataset == Dataset.Events.value
-            assert alert_rule.snuba_query.query == query
-            assert alert_rule.snuba_query.aggregate == aggregate
-            assert alert_rule.snuba_query.time_window == time_window * 60
-            assert alert_rule.snuba_query.resolution == DEFAULT_ALERT_RULE_RESOLUTION * 60
-            assert set(alert_rule.snuba_query.event_types) == set(event_types)
-            assert alert_rule.threshold_type == threshold_type.value
-            assert alert_rule.resolve_threshold == resolve_threshold
-            assert alert_rule.threshold_period == threshold_period
-            # We now create an AlertRuleProject for all rule monitor types
-            assert alert_rule.projects.all().count() == 1
-
-    def test_create_activated_alert_rule_errors_without_condition(self):
         name = "hello"
         query = "level:error"
         aggregate = "count(*)"
@@ -445,21 +380,37 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         resolve_threshold = 10
         threshold_period = 1
         event_types = [SnubaQueryEventType.EventType.ERROR]
-
-        with pytest.raises(ValidationError):
-            create_alert_rule(
-                self.organization,
-                [self.project],
-                name,
-                query,
-                aggregate,
-                time_window,
-                threshold_type,
-                threshold_period,
-                resolve_threshold=resolve_threshold,
-                event_types=event_types,
-                monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
-            )
+        alert_rule = create_alert_rule(
+            self.organization,
+            [self.project],
+            name,
+            query,
+            aggregate,
+            time_window,
+            threshold_type,
+            threshold_period,
+            resolve_threshold=resolve_threshold,
+            event_types=event_types,
+        )
+        assert alert_rule.name == name
+        assert alert_rule.user_id is None
+        assert alert_rule.team_id is None
+        assert alert_rule.status == AlertRuleStatus.PENDING.value
+        assert alert_rule.snuba_query is not None
+        if alert_rule.snuba_query.subscriptions.exists():
+            assert alert_rule.snuba_query.subscriptions.get().project == self.project
+            assert alert_rule.snuba_query.subscriptions.all().count() == 1
+        assert alert_rule.snuba_query.type == SnubaQuery.Type.ERROR.value
+        assert alert_rule.snuba_query.dataset == Dataset.Events.value
+        assert alert_rule.snuba_query.query == query
+        assert alert_rule.snuba_query.aggregate == aggregate
+        assert alert_rule.snuba_query.time_window == time_window * 60
+        assert alert_rule.snuba_query.resolution == DEFAULT_ALERT_RULE_RESOLUTION * 60
+        assert set(alert_rule.snuba_query.event_types) == set(event_types)
+        assert alert_rule.threshold_type == threshold_type.value
+        assert alert_rule.resolve_threshold == resolve_threshold
+        assert alert_rule.threshold_period == threshold_period
+        assert alert_rule.projects.all().count() == 1
 
     def test_ignore(self):
         name = "hello"
@@ -538,39 +489,6 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.threshold_type == threshold_type.value
         assert alert_rule.resolve_threshold == resolve_threshold
         assert alert_rule.threshold_period == threshold_period
-
-    # This test will fail unless real migrations are run. Refer to migration 0061.
-    @pytest.mark.migrations  # requires custom migration 0061
-    @override_settings(SILO_MODE=SiloMode.MONOLITH)
-    def test_two_archived_with_same_name(self):
-        name = "allowed"
-        alert_rule_1 = create_alert_rule(
-            self.organization,
-            [self.project],
-            name,
-            "level:error",
-            "count()",
-            1,
-            AlertRuleThresholdType.ABOVE,
-            1,
-        )
-        alert_rule_1.update(status=AlertRuleStatus.SNAPSHOT.value)
-
-        alert_rule_2 = create_alert_rule(
-            self.organization,
-            [self.project],
-            name,
-            "level:error",
-            "count()",
-            1,
-            AlertRuleThresholdType.ABOVE,
-            1,
-        )
-        alert_rule_2.update(status=AlertRuleStatus.SNAPSHOT.value)
-
-        assert alert_rule_1.name == alert_rule_2.name
-        assert alert_rule_1.status == AlertRuleStatus.SNAPSHOT.value
-        assert alert_rule_2.status == AlertRuleStatus.SNAPSHOT.value
 
     def test_alert_rule_owner(self):
         alert_rule_1 = create_alert_rule(
@@ -2372,12 +2290,6 @@ class BaseAlertRuleTriggerActionTest(TestCase):
         )
 
     def patch_msg_delete_scheduled_response(self, channel_id):
-        if channel_id == "channel_not_found":
-            bodydict = {"ok": False, "error": "channel_not_found"}
-        else:
-            bodydict = {
-                "ok": True,
-            }
         return patch(
             "slack_sdk.web.client.WebClient.chat_deleteScheduledMessage",
             return_value=SlackResponse(
@@ -2385,7 +2297,7 @@ class BaseAlertRuleTriggerActionTest(TestCase):
                 http_verb="POST",
                 api_url="https://slack.com/api/chat.deleteScheduleMessage",
                 req_args={},
-                data=bodydict,
+                data={"ok": True},
                 headers={},
                 status_code=200,
             ),

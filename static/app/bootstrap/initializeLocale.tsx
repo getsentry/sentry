@@ -72,7 +72,6 @@ export async function initializeLocale(config: Config) {
     // No need to import english
     if (languageCode !== 'en') {
       await import(`moment/locale/${languageCode}`);
-      // eslint-disable-next-line import/namespace
       moment.locale(languageCode);
     }
   } catch (err) {

@@ -9,7 +9,7 @@ import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 function createWrapper() {
-  return function Wrapper({children}) {
+  return function Wrapper({children}: any) {
     return (
       <QueryClientProvider client={makeTestQueryClient()}>
         <OrganizationContext.Provider value={OrganizationFixture()}>

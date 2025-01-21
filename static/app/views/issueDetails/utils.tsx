@@ -127,6 +127,7 @@ export function getSubscriptionReason(group: Group) {
     }
 
     if (reason && SUBSCRIPTION_REASONS.hasOwnProperty(reason)) {
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       return SUBSCRIPTION_REASONS[reason];
     }
   }
@@ -193,9 +194,15 @@ export function useEnvironmentsFromUrl(): string[] {
 export function getGroupEventDetailsQueryData({
   environments,
   query,
+  start,
+  end,
+  statsPeriod,
 }: {
   query: string | undefined;
+  end?: string;
   environments?: string[];
+  start?: string;
+  statsPeriod?: string;
 }): Record<string, string | string[]> {
   const params: Record<string, string | string[]> = {
     collapse: ['fullRelease'],
@@ -209,6 +216,18 @@ export function getGroupEventDetailsQueryData({
     params.environment = environments;
   }
 
+  if (start) {
+    params.start = start;
+  }
+
+  if (end) {
+    params.end = end;
+  }
+
+  if (statsPeriod) {
+    params.statsPeriod = statsPeriod;
+  }
+
   return params;
 }
 
@@ -217,20 +236,29 @@ export function getGroupEventQueryKey({
   groupId,
   eventId,
   environments,
-  recommendedEventQuery,
+  query,
+  start,
+  end,
+  statsPeriod,
 }: {
   environments: string[];
   eventId: string;
   groupId: string;
   orgSlug: string;
-  recommendedEventQuery?: string;
+  end?: string;
+  query?: string;
+  start?: string;
+  statsPeriod?: string;
 }): ApiQueryKey {
   return [
     `/organizations/${orgSlug}/issues/${groupId}/events/${eventId}/`,
     {
       query: getGroupEventDetailsQueryData({
         environments,
-        query: recommendedEventQuery,
+        query,
+        start,
+        end,
+        statsPeriod,
       }),
     },
   ];
@@ -244,6 +272,11 @@ export function useHasStreamlinedUI() {
   // Allow query param to override all other settings to set the UI.
   if (defined(location.query.streamline)) {
     return location.query.streamline === '1';
+  }
+
+  // If the organzation option is set, it determines which interface is used.
+  if (defined(organization.streamlineOnly)) {
+    return organization.streamlineOnly;
   }
 
   // If the enforce flag is set for the organization, ignore user preferences and enable the UI

@@ -120,7 +120,7 @@ export function OrganizationFeatureFlagsIndex() {
     },
   });
 
-  const addNewProvider = hasAccess => (
+  const addNewProvider = (hasAccess: any) => (
     <Tooltip
       title={t('You must be an organization member to add a provider.')}
       disabled={hasAccess}
@@ -145,7 +145,7 @@ export function OrganizationFeatureFlagsIndex() {
 
   return (
     <Fragment>
-      <SentryDocumentTitle title={t('Feature Flags')} />
+      <SentryDocumentTitle title={t('Feature Flags')} orgSlug={organization.slug} />
       <SettingsPageHeader title={t('Feature Flags')} action={addNewProvider(hasAccess)} />
 
       <TextBlock>

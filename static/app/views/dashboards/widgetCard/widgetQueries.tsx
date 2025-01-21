@@ -39,6 +39,7 @@ export function transformSeries(
 ): Series {
   const unit = stats.meta?.units?.[getAggregateAlias(field)];
   // Scale series values to milliseconds or bytes depending on units from meta
+  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const scale = (unit && (DURATION_UNITS[unit] ?? SIZE_UNITS[unit])) ?? 1;
   return {
     seriesName,
@@ -79,15 +80,18 @@ export function flattenMultiSeriesDataWithGrouping(
   groupNames.forEach(groupName => {
     // Each group contains an order key which we should ignore
     const aggregateNames = Object.keys(
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       omit(result[groupName], ['order', 'isMetricsExtractedData'])
     );
 
     aggregateNames.forEach(aggregate => {
       const seriesName = `${groupName} : ${aggregate}`;
       const prefixedName = queryAlias ? `${queryAlias} > ${seriesName}` : seriesName;
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const seriesData: EventsStats = result[groupName][aggregate];
 
       seriesWithOrdering.push([
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         result[groupName].order || 0,
         transformSeries(seriesData, prefixedName, seriesName),
       ]);
@@ -169,6 +173,7 @@ function WidgetQueries({
       );
     } else {
       Object.keys(rawResults).forEach(key => {
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         const rawResult: EventsStats = rawResults[key];
         if (rawResult.isMetricsData !== undefined) {
           isSeriesMetricsDataResults.push(rawResult.isMetricsData);

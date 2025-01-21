@@ -146,8 +146,11 @@ export function getKnownData<Data, DataType>({
 }): KeyValueListData {
   const filteredTypes = knownDataTypes.filter(knownDataType => {
     if (
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       typeof data[knownDataType] !== 'number' &&
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       typeof data[knownDataType] !== 'boolean' &&
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       !data[knownDataType]
     ) {
       return !!meta?.[knownDataType];
@@ -433,7 +436,13 @@ export function getFormattedContextData({
     case 'state':
       return getStateContextData({data: contextValue, meta});
     case 'profile':
-      return getProfileContextData({data: contextValue, meta, organization, project});
+      return getProfileContextData({
+        data: contextValue,
+        event,
+        meta,
+        organization,
+        project,
+      });
     case 'replay':
       return getReplayContextData({data: contextValue, meta});
     case 'cloud_resource':

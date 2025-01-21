@@ -17,7 +17,9 @@ from sentry.search.events.builder.errors import (
 )
 from sentry.search.events.types import EventsResponse, QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.discover import OTHER_KEY, create_result_key, transform_tips, zerofill
+from sentry.snuba.discover import OTHER_KEY, TOP_KEYS_DEFAULT_LIMIT, FacetResult, create_result_key
+from sentry.snuba.discover import get_facets as get_discover_facets
+from sentry.snuba.discover import transform_tips, zerofill
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.query_sources import QuerySource
 from sentry.utils.snuba import SnubaTSResult, bulk_snuba_queries
@@ -213,6 +215,7 @@ def top_events_timeseries(
     dataset: Dataset = Dataset.Discover,
     query_source: QuerySource | None = None,
     fallback_to_transactions: bool = False,
+    transform_alias_to_input_format: bool = False,
 ) -> dict[str, SnubaTSResult] | SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries for a limited number of top events
@@ -235,6 +238,9 @@ def top_events_timeseries(
     top_events - A dictionary with a 'data' key containing a list of dictionaries that
                     represent the top events matching the query. Useful when you have found
                     the top events earlier and want to save a query.
+    transform_alias_to_input_format - Whether aggregate columns should be returned in the originally
+                                    requested function format.
+
     """
     if top_events is None:
         with sentry_sdk.start_span(op="discover.errors", name="top_events.fetch_events"):
@@ -267,6 +273,7 @@ def top_events_timeseries(
         config=QueryBuilderConfig(
             functions_acl=functions_acl,
             skip_tag_resolution=True,
+            transform_alias_to_input_format=transform_alias_to_input_format,
         ),
     )
     if len(top_events["data"]) == limit and include_other:
@@ -354,6 +361,7 @@ def top_events_timeseries(
                         if zerofill_results
                         else item["data"]
                     ),
+                    "meta": result["meta"],
                     "order": item["order"],
                 },
                 snuba_params.start_date,
@@ -362,3 +370,14 @@ def top_events_timeseries(
             )
 
     return top_events_results
+
+
+def get_facets(
+    query: str | None,
+    snuba_params: SnubaParams,
+    referrer: str,
+    per_page: int | None = TOP_KEYS_DEFAULT_LIMIT,
+    cursor: int | None = 0,
+    dataset: Dataset | None = Dataset.Events,
+) -> list[FacetResult]:
+    return get_discover_facets(query, snuba_params, referrer, per_page, cursor, Dataset.Events)

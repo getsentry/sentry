@@ -7,7 +7,6 @@ import type {Client} from 'sentry/api';
 import type {BadgeProps} from 'sentry/components/badge/badge';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {isWidgetViewerPath} from 'sentry/components/modals/widgetViewerModal/utils';
-import Panel from 'sentry/components/panels/panel';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
@@ -15,7 +14,7 @@ import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
+import type {Confidence, Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {getFormattedDate} from 'sentry/utils/dates';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
@@ -32,6 +31,7 @@ import withSentryRouter from 'sentry/utils/withSentryRouter';
 import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/dashboard';
 import {useDiscoverSplitAlert} from 'sentry/views/dashboards/discoverSplitAlert';
 import {MetricWidgetCard} from 'sentry/views/dashboards/metrics/widgetCard';
+import WidgetCardChartContainer from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 
 import type {DashboardFilters, Widget} from '../types';
 import {DisplayType, OnDemandExtractionState, WidgetType} from '../types';
@@ -43,7 +43,6 @@ import {WidgetFrame} from '../widgets/common/widgetFrame';
 import {WidgetViewerContext} from '../widgetViewer/widgetViewerContext';
 
 import {useDashboardsMEPContext} from './dashboardsMEPContext';
-import WidgetCardChartContainer from './widgetCardChartContainer';
 import {getMenuOptions, useIndexedEventsWarning} from './widgetCardContextMenu';
 import {WidgetCardDataLoader} from './widgetCardDataLoader';
 
@@ -87,6 +86,7 @@ type Props = WithRouterProps & {
   onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
   shouldResize?: boolean;
+  showConfidenceWarning?: boolean;
   showContextMenu?: boolean;
   showStoredAlert?: boolean;
   tableItemLimit?: number;
@@ -94,6 +94,7 @@ type Props = WithRouterProps & {
 };
 
 type Data = {
+  confidence?: Confidence;
   pageLinks?: string;
   tableResults?: TableDataWithTitle[];
   timeseriesResults?: Series[];
@@ -110,7 +111,7 @@ function WidgetCard(props: Props) {
       props.onDataFetched(newData.tableResults);
     }
 
-    setData(newData);
+    setData(prevData => ({...prevData, ...newData}));
   };
 
   const {
@@ -132,6 +133,7 @@ function WidgetCard(props: Props) {
     legendOptions,
     widgetLegendState,
     disableFullscreen,
+    showConfidenceWarning,
   } = props;
 
   if (widget.displayType === DisplayType.TOP_N) {
@@ -185,6 +187,7 @@ function WidgetCard(props: Props) {
         tableData: data?.tableResults,
         seriesResultsType: data?.timeseriesResultsTypes,
         totalIssuesCount: data?.totalIssuesCount,
+        confidence: data?.confidence,
       });
 
       props.router.push({
@@ -338,6 +341,7 @@ function WidgetCard(props: Props) {
               onLegendSelectChanged={onLegendSelectChanged}
               legendOptions={legendOptions}
               widgetLegendState={widgetLegendState}
+              showConfidenceWarning={showConfidenceWarning}
             />
           </WidgetFrame>
         )}
@@ -393,40 +397,6 @@ const ErrorCard = styled(Placeholder)`
   color: ${p => p.theme.alert.error.textLight};
   border-radius: ${p => p.theme.borderRadius};
   margin-bottom: ${space(2)};
-`;
-
-export const WidgetCardContextMenuContainer = styled('div')`
-  opacity: 1;
-  transition: opacity 0.1s;
-`;
-
-export const WidgetCardPanel = styled(Panel, {
-  shouldForwardProp: prop => prop !== 'isDragging',
-})<{
-  isDragging: boolean;
-}>`
-  margin: 0;
-  visibility: ${p => (p.isDragging ? 'hidden' : 'visible')};
-  /* If a panel overflows due to a long title stretch its grid sibling */
-  height: 100%;
-  min-height: 96px;
-  display: flex;
-  flex-direction: column;
-
-  &:not(:hover):not(:focus-within) {
-    ${WidgetCardContextMenuContainer} {
-      opacity: 0;
-      ${p => p.theme.visuallyHidden}
-    }
-  }
-
-  :hover {
-    background-color: ${p => p.theme.surface200};
-    transition:
-      background-color 100ms linear,
-      box-shadow 100ms linear;
-    box-shadow: ${p => p.theme.dropShadowLight};
-  }
 `;
 
 export const WidgetTitleRow = styled('span')`

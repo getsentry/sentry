@@ -101,6 +101,7 @@ export function EventList({group}: EventListProps) {
         columnTitles={columnTitles}
         referrer={referrer}
         hidePagination
+        applyEnvironmentFilter
         renderTableHeader={({
           pageLinks,
           pageEventsCount,

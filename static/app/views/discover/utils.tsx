@@ -15,6 +15,7 @@ import type {
   OrganizationSummary,
 } from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {defined} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {EventData} from 'sentry/utils/discover/eventView';
@@ -35,6 +36,7 @@ import {
   getColumnsAndAggregates,
   getEquation,
   isAggregateEquation,
+  isAggregateFieldOrEquation,
   isEquation,
   isMeasurement,
   isSpanOperationBreakdownField,
@@ -42,16 +44,18 @@ import {
   PROFILING_FIELDS,
   TRACING_FIELDS,
 } from 'sentry/utils/discover/fields';
-import {type DisplayModes, SavedQueryDatasets, TOP_N} from 'sentry/utils/discover/types';
+import {DisplayModes, SavedQueryDatasets, TOP_N} from 'sentry/utils/discover/types';
 import {getTitle} from 'sentry/utils/events';
 import {DISCOVER_FIELDS, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import localStorage from 'sentry/utils/localStorage';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
+import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 
 import {
   DashboardWidgetSource,
   DisplayType,
+  type Widget,
   type WidgetQuery,
   WidgetType,
 } from '../dashboards/types';
@@ -80,8 +84,6 @@ const TEMPLATE_TABLE_COLUMN: TableColumn<string> = {
   width: COL_WIDTH_UNDEFINED,
 };
 
-// TODO(mark) these types are coupled to the gridEditable component types and
-// I'd prefer the types to be more general purpose but that will require a second pass.
 export function decodeColumnOrder(fields: Readonly<Field[]>): TableColumn<string>[] {
   return fields.map((f: Field) => {
     const column: TableColumn<string> = {...TEMPLATE_TABLE_COLUMN};
@@ -105,6 +107,7 @@ export function decodeColumnOrder(fields: Readonly<Field[]>): TableColumn<string
       if (outputType !== null) {
         column.type = outputType;
       }
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const aggregate = AGGREGATIONS[col.function[0]];
       column.isSortable = aggregate?.isSortable;
     } else if (col.kind === 'field') {
@@ -193,15 +196,15 @@ function disableMacros(value: string | null | boolean | number) {
   return value;
 }
 
-export function downloadAsCsv(tableData, columnOrder, filename) {
+export function downloadAsCsv(tableData: any, columnOrder: any, filename: any) {
   const {data} = tableData;
-  const headings = columnOrder.map(column => column.name);
-  const keys = columnOrder.map(column => column.key);
+  const headings = columnOrder.map((column: any) => column.name);
+  const keys = columnOrder.map((column: any) => column.key);
 
   const csvContent = Papa.unparse({
     fields: headings,
-    data: data.map(row =>
-      keys.map(key => {
+    data: data.map((row: any) =>
+      keys.map((key: any) => {
         return disableMacros(row[key]);
       })
     ),
@@ -235,12 +238,14 @@ function drilldownAggregate(
   func: Extract<Column, {kind: 'function'}>
 ): Extract<Column, {kind: 'field'}> | null {
   const key = func.function[0];
+  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const aggregation = AGGREGATIONS[key];
   let column = func.function[1];
 
   if (ALIASED_AGGREGATES_COLUMN.hasOwnProperty(key)) {
     // Some aggregates are just shortcuts to other aggregates with
     // predefined arguments so we can directly map them to the result.
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     column = ALIASED_AGGREGATES_COLUMN[key];
   } else if (aggregation?.parameters?.[0]) {
     const parameter = aggregation.parameters[0];
@@ -344,6 +349,7 @@ function generateAdditionalConditions(
     // more challenging to get at as their location in the structure does not
     // match their name.
     if (dataRow.hasOwnProperty(dataKey)) {
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       let value = dataRow[dataKey];
 
       if (Array.isArray(value)) {
@@ -717,35 +723,46 @@ export function handleAddQueryToDashboard({
     location,
     widgetType,
   });
+
   openAddToDashboardModal({
     organization,
     selection: {
-      projects: eventView.project,
-      environments: eventView.environment,
+      projects: eventView.project.slice(),
+      environments: eventView.environment.slice(),
       datetime: {
-        start: eventView.start,
-        end: eventView.end,
-        period: eventView.statsPeriod,
+        start: eventView.start!,
+        end: eventView.end!,
+        period: eventView.statsPeriod!,
+        // Previously undetected because the type used to rely on an implicit any value.
+        // @ts-ignore TS(2322): Type 'string | boolean | undefined' is not assigna... Remove this comment to see the full error message
         utc: eventView.utc,
       },
     },
     widget: {
-      title: query?.name ?? eventView.name,
+      title: (query?.name ?? eventView.name)!,
       displayType: displayType === DisplayType.TOP_N ? DisplayType.AREA : displayType,
       queries: [
         {
           ...defaultWidgetQuery,
           aggregates: [...(typeof yAxis === 'string' ? [yAxis] : yAxis ?? ['count()'])],
+          ...(organization.features.includes('dashboards-widget-builder-redesign')
+            ? {
+                // The widget query params filters out aggregate fields
+                // so we can use the fields as columns. This is so yAxes
+                // can be grouped by the fields.
+                fields: widgetAsQueryParams?.field ?? [],
+                columns: widgetAsQueryParams?.field ?? [],
+              }
+            : {}),
         },
       ],
-      interval: eventView.interval,
-      limit:
-        displayType === DisplayType.TOP_N
-          ? Number(eventView.topEvents) || TOP_N
-          : undefined,
+      interval: eventView.interval!,
+      limit: widgetAsQueryParams?.limit,
       widgetType,
     },
     router,
+    // Previously undetected because the type relied on implicit any.
+    // @ts-ignore TS(2322): Type '{ dataset?: WidgetType | undefined; descript... Remove this comment to see the full error message
     widgetAsQueryParams,
     location,
   });
@@ -815,6 +832,48 @@ export function constructAddQueryToDashboardLink({
   const defaultTitle =
     query?.name ?? (eventView.name !== 'All Events' ? eventView.name : undefined);
 
+  const limit =
+    displayType === DisplayType.TOP_N || eventView.display === DisplayModes.DAILYTOP5
+      ? Number(eventView.topEvents) || TOP_N
+      : undefined;
+
+  if (organization.features.includes('dashboards-widget-builder-redesign')) {
+    const widget: Widget = {
+      title: defaultTitle!,
+      displayType: displayType === DisplayType.TOP_N ? DisplayType.AREA : displayType,
+      widgetType,
+      limit,
+      interval: eventView.interval ?? '',
+      queries: [
+        {
+          ...defaultWidgetQuery,
+          aggregates: [...(typeof yAxis === 'string' ? [yAxis] : yAxis ?? ['count()'])],
+          fields: eventView.getFields(),
+          columns:
+            widgetType === WidgetType.SPANS ||
+            displayType === DisplayType.TOP_N ||
+            eventView.display === DisplayModes.DAILYTOP5
+              ? eventView
+                  .getFields()
+                  .filter(
+                    column => defined(column) && !isAggregateFieldOrEquation(column)
+                  )
+              : [],
+        },
+      ],
+    };
+    return {
+      pathname: `/organizations/${organization.slug}/dashboards/new/widget-builder/widget/new/`,
+      query: {
+        ...location?.query,
+        start: eventView.start,
+        end: eventView.end,
+        statsPeriod: eventView.statsPeriod,
+        ...convertWidgetToBuilderStateParams(widget),
+      },
+    };
+  }
+
   return {
     pathname: `/organizations/${organization.slug}/dashboards/new/widget/new/`,
     query: {
@@ -829,10 +888,7 @@ export function constructAddQueryToDashboardLink({
       displayType: displayType === DisplayType.TOP_N ? DisplayType.AREA : displayType,
       dataset: widgetType,
       field: eventView.getFields(),
-      limit:
-        displayType === DisplayType.TOP_N
-          ? Number(eventView.topEvents) || TOP_N
-          : undefined,
+      limit,
     },
   };
 }

@@ -636,7 +636,6 @@ describe('Dashboards > Detail', function () {
 
     it('hides add widget option', async function () {
       // @ts-expect-error this is assigning to readonly property...
-      // eslint-disable-next-line import/namespace
       types.MAX_WIDGETS = 1;
 
       render(
@@ -1050,7 +1049,7 @@ describe('Dashboards > Detail', function () {
       await userEvent.click(screen.getByText('Last 7 days'));
       await screen.findByText('7D');
 
-      expect(screen.queryByText('Cancel')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('filter-bar-cancel')).not.toBeInTheDocument();
       expect(screen.queryByText('Save')).not.toBeInTheDocument();
     });
 
@@ -1337,7 +1336,7 @@ describe('Dashboards > Detail', function () {
       await userEvent.click(screen.getByText('sentry-android-shop@1.2.0'));
       await userEvent.keyboard('{Escape}');
 
-      await userEvent.click(screen.getByText('Cancel'));
+      await userEvent.click(screen.getByTestId('filter-bar-cancel'));
 
       screen.getByText('All Releases');
       expect(testData.router.replace).toHaveBeenCalledWith(
@@ -1395,7 +1394,7 @@ describe('Dashboards > Detail', function () {
       );
 
       expect(await screen.findByText('Save')).toBeInTheDocument();
-      expect(screen.getByText('Cancel')).toBeInTheDocument();
+      expect(screen.getByTestId('filter-bar-cancel')).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Edit Dashboard'})).toBeDisabled();
     });
 
@@ -1464,7 +1463,7 @@ describe('Dashboards > Detail', function () {
 
       // Save and Cancel should not appear because alpha, beta is the same as beta, alpha
       expect(screen.queryByText('Save')).not.toBeInTheDocument();
-      expect(screen.queryByText('Cancel')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('filter-bar-cancel')).not.toBeInTheDocument();
     });
 
     it('uses releases from the URL query params', async function () {
@@ -1501,7 +1500,7 @@ describe('Dashboards > Detail', function () {
 
       await screen.findByText(/not-selected-1/);
       screen.getByText('Save');
-      screen.getByText('Cancel');
+      screen.getByTestId('filter-bar-cancel');
     });
 
     it('resets release in URL params', async function () {
@@ -1547,7 +1546,7 @@ describe('Dashboards > Detail', function () {
       );
 
       await screen.findByText(/not-selected-1/);
-      await userEvent.click(screen.getByText('Cancel'));
+      await userEvent.click(screen.getByTestId('filter-bar-cancel'));
 
       // release isn't used in the redirect
       expect(testData.router.replace).toHaveBeenCalledWith(
@@ -1682,10 +1681,7 @@ describe('Dashboards > Detail', function () {
         />,
         {
           router: initialData.router,
-          organization: {
-            ...initialData.organization,
-            features: ['dashboards-edit-access'],
-          },
+          organization: initialData.organization,
         }
       );
 
@@ -1704,10 +1700,7 @@ describe('Dashboards > Detail', function () {
       render(
         <ViewEditDashboard
           {...RouteComponentPropsFixture()}
-          organization={{
-            ...initialData.organization,
-            features: ['dashboards-edit-access', ...initialData.organization.features],
-          }}
+          organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}
           router={initialData.router}
           location={initialData.router.location}
@@ -1716,9 +1709,7 @@ describe('Dashboards > Detail', function () {
         </ViewEditDashboard>,
         {
           router: initialData.router,
-          organization: {
-            features: ['dashboards-edit-access', ...initialData.organization.features],
-          },
+          organization: initialData.organization,
         }
       );
       await userEvent.click(await screen.findByText('Edit Access:'));
@@ -1772,10 +1763,7 @@ describe('Dashboards > Detail', function () {
       render(
         <ViewEditDashboard
           {...RouteComponentPropsFixture()}
-          organization={{
-            ...initialData.organization,
-            features: ['dashboards-edit-access', ...initialData.organization.features],
-          }}
+          organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}
           router={initialData.router}
           location={initialData.router.location}
@@ -1784,9 +1772,7 @@ describe('Dashboards > Detail', function () {
         </ViewEditDashboard>,
         {
           router: initialData.router,
-          organization: {
-            features: ['dashboards-edit-access', ...initialData.organization.features],
-          },
+          organization: initialData.organization,
         }
       );
       await userEvent.click(await screen.findByText('Edit Access:'));
@@ -1861,10 +1847,7 @@ describe('Dashboards > Detail', function () {
       render(
         <ViewEditDashboard
           {...RouteComponentPropsFixture()}
-          organization={{
-            ...initialData.organization,
-            features: ['dashboards-edit-access', ...initialData.organization.features],
-          }}
+          organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}
           router={initialData.router}
           location={initialData.router.location}
@@ -1873,9 +1856,7 @@ describe('Dashboards > Detail', function () {
         </ViewEditDashboard>,
         {
           router: initialData.router,
-          organization: {
-            features: ['dashboards-edit-access', ...initialData.organization.features],
-          },
+          organization: initialData.organization,
         }
       );
       await userEvent.click(await screen.findByText('Edit Access:'));
@@ -1932,7 +1913,7 @@ describe('Dashboards > Detail', function () {
           {...RouteComponentPropsFixture()}
           organization={{
             ...initialData.organization,
-            features: ['dashboards-edit-access', ...initialData.organization.features],
+            features: initialData.organization.features,
             access: ['org:read'],
           }}
           params={{orgId: 'org-slug', dashboardId: '1'}}
@@ -1944,7 +1925,7 @@ describe('Dashboards > Detail', function () {
         {
           router: initialData.router,
           organization: {
-            features: ['dashboards-edit-access', ...initialData.organization.features],
+            features: initialData.organization.features,
             access: ['org:read'],
           },
         }
@@ -1996,7 +1977,7 @@ describe('Dashboards > Detail', function () {
           {...RouteComponentPropsFixture()}
           organization={{
             ...initialData.organization,
-            features: ['dashboards-edit-access', ...initialData.organization.features],
+            features: initialData.organization.features,
             access: ['org:read'],
           }}
           params={{orgId: 'org-slug', dashboardId: '1'}}
@@ -2008,7 +1989,7 @@ describe('Dashboards > Detail', function () {
         {
           router: initialData.router,
           organization: {
-            features: ['dashboards-edit-access', ...initialData.organization.features],
+            features: initialData.organization.features,
             access: ['org:read'],
           },
         }
@@ -2170,7 +2151,30 @@ describe('Dashboards > Detail', function () {
           {organization: initialData.organization}
         );
         await userEvent.click(await screen.findByRole('button', {name: 'Add Widget'}));
+        await userEvent.click(
+          await screen.findByRole('menuitemradio', {name: 'Create Custom Widget'})
+        );
         expect(await screen.findByText('Create Custom Widget')).toBeInTheDocument();
+      });
+
+      it('opens the widget builder library slideout when clicking add widget from widget library', async function () {
+        render(
+          <DashboardDetail
+            {...RouteComponentPropsFixture()}
+            initialState={DashboardState.VIEW}
+            dashboard={DashboardFixture([])}
+            dashboards={[]}
+            onDashboardUpdate={jest.fn()}
+            newWidget={undefined}
+            onSetNewWidget={() => {}}
+          />,
+          {organization: initialData.organization}
+        );
+        await userEvent.click(await screen.findByRole('button', {name: 'Add Widget'}));
+        await userEvent.click(
+          await screen.findByRole('menuitemradio', {name: 'From Widget Library'})
+        );
+        expect(await screen.findByText('Add from Widget Library')).toBeInTheDocument();
       });
 
       it('opens the widget builder slideout when clicking add widget in edit mode', async function () {
@@ -2186,8 +2190,31 @@ describe('Dashboards > Detail', function () {
           />,
           {organization: initialData.organization}
         );
-        await userEvent.click(await screen.findByTestId('widget-add'));
+        await userEvent.click(await screen.findByLabelText('Add Widget'));
+        await userEvent.click(
+          await screen.findByRole('menuitemradio', {name: 'Create Custom Widget'})
+        );
         expect(await screen.findByText('Create Custom Widget')).toBeInTheDocument();
+      });
+
+      it('opens the widget builder library slideout when clicking add widget from widget library in edit mode', async function () {
+        render(
+          <DashboardDetail
+            {...RouteComponentPropsFixture()}
+            initialState={DashboardState.EDIT}
+            dashboard={DashboardFixture([])}
+            dashboards={[]}
+            onDashboardUpdate={jest.fn()}
+            newWidget={undefined}
+            onSetNewWidget={() => {}}
+          />,
+          {organization: initialData.organization}
+        );
+        await userEvent.click(await screen.findByLabelText('Add Widget'));
+        await userEvent.click(
+          await screen.findByRole('menuitemradio', {name: 'From Widget Library'})
+        );
+        expect(await screen.findByText('Add from Widget Library')).toBeInTheDocument();
       });
 
       it('allows for editing a widget in edit mode', async function () {
@@ -2261,7 +2288,10 @@ describe('Dashboards > Detail', function () {
           }
         );
 
-        await userEvent.click(await screen.findByTestId('widget-add'));
+        await userEvent.click(await screen.findByLabelText('Add Widget'));
+        await userEvent.click(
+          await screen.findByRole('menuitemradio', {name: 'Create Custom Widget'})
+        );
 
         expect(await screen.findByText('Create Custom Widget')).toBeInTheDocument();
 
@@ -2357,6 +2387,9 @@ describe('Dashboards > Detail', function () {
         );
 
         await userEvent.click(await screen.findByRole('button', {name: 'Add Widget'}));
+        await userEvent.click(
+          await screen.findByRole('menuitemradio', {name: 'Create Custom Widget'})
+        );
 
         expect(await screen.findByText('Create Custom Widget')).toBeInTheDocument();
 

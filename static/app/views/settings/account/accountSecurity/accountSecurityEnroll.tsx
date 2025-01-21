@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {QRCodeCanvas} from 'qrcode.react';
 
@@ -16,6 +17,7 @@ import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import CircleIndicator from 'sentry/components/circleIndicator';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import type {FormProps} from 'sentry/components/forms/form';
 import Form from 'sentry/components/forms/form';
@@ -23,6 +25,7 @@ import JsonForm from 'sentry/components/forms/jsonForm';
 import FormModel from 'sentry/components/forms/model';
 import type {FieldObject} from 'sentry/components/forms/types';
 import PanelItem from 'sentry/components/panels/panelItem';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import U2fSign from 'sentry/components/u2f/u2fsign';
 import {t} from 'sentry/locale';
@@ -34,7 +37,6 @@ import {generateOrgSlugUrl} from 'sentry/utils';
 import getPendingInvite from 'sentry/utils/getPendingInvite';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
-import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import RemoveConfirm from 'sentry/views/settings/account/accountSecurity/components/removeConfirm';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
@@ -142,9 +144,10 @@ const getFields = ({
   return null;
 };
 
-type Props = DeprecatedAsyncView['props'] & WithRouterProps<{authId: string}, {}> & {};
+type Props = DeprecatedAsyncComponent['props'] &
+  WithRouterProps<{authId: string}, {}> & {};
 
-type State = DeprecatedAsyncView['state'] & {
+type State = DeprecatedAsyncComponent['state'] & {
   authenticator: Authenticator | null;
   hasSentCode: boolean;
   sendingCode: boolean;
@@ -155,12 +158,8 @@ type PendingInvite = ReturnType<typeof getPendingInvite>;
 /**
  * Renders necessary forms in order to enroll user in 2fa
  */
-class AccountSecurityEnroll extends DeprecatedAsyncView<Props, State> {
+class AccountSecurityEnroll extends DeprecatedAsyncComponent<Props, State> {
   formModel = new FormModel();
-
-  getTitle() {
-    return t('Security');
-  }
 
   getDefaultState() {
     return {...super.getDefaultState(), hasSentCode: false};
@@ -174,7 +173,7 @@ class AccountSecurityEnroll extends DeprecatedAsyncView<Props, State> {
     return `${this.authenticatorEndpoint}enroll/`;
   }
 
-  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const errorHandler = (err: any) => {
       const alreadyEnrolled =
         err &&
@@ -419,6 +418,7 @@ class AccountSecurityEnroll extends DeprecatedAsyncView<Props, State> {
             typeof field !== 'function' ? field.defaultValue : '',
           ])
           .reduce((acc, [name, value]) => {
+            // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             acc[name] = value;
             return acc;
           }, {})
@@ -427,7 +427,7 @@ class AccountSecurityEnroll extends DeprecatedAsyncView<Props, State> {
     const isActive = authenticator.isEnrolled || authenticator.status === 'rotation';
 
     return (
-      <Fragment>
+      <SentryDocumentTitle title={t('Security')}>
         <SettingsPageHeader
           title={
             <Fragment>
@@ -440,7 +440,9 @@ class AccountSecurityEnroll extends DeprecatedAsyncView<Props, State> {
                     : t('Authentication Method Inactive')
                 }
                 enabled={isActive}
-                css={{marginLeft: 6}}
+                css={css`
+                  margin-left: 6px;
+                `}
               />
             </Fragment>
           }
@@ -474,7 +476,7 @@ class AccountSecurityEnroll extends DeprecatedAsyncView<Props, State> {
             <JsonForm forms={[{title: 'Configuration', fields: fields ?? []}]} />
           </Form>
         )}
-      </Fragment>
+      </SentryDocumentTitle>
     );
   }
 }

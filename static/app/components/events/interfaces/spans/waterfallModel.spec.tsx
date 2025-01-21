@@ -626,16 +626,16 @@ describe('WaterfallModel', () => {
 
   it('querySpanSearch', async () => {
     const waterfallModel = new WaterfallModel(event);
-    expect(waterfallModel.fuse).toBe(undefined);
+    expect(waterfallModel.fuse).toBeUndefined();
 
     // Fuzzy search needs to be loaded asynchronously
     await tick();
 
     // expect fuse index to be created
-    expect(waterfallModel.fuse).not.toBe(undefined);
+    expect(waterfallModel.fuse).toBeDefined();
 
-    expect(waterfallModel.filterSpans).toBe(undefined);
-    expect(waterfallModel.searchQuery).toBe(undefined);
+    expect(waterfallModel.filterSpans).toBeUndefined();
+    expect(waterfallModel.searchQuery).toBeUndefined();
 
     waterfallModel.querySpanSearch('GET /api/0/organizations/?member=1');
 
@@ -814,7 +814,7 @@ describe('WaterfallModel', () => {
       ...event,
       entries: [
         {
-          data: [event.entries[0]!.data[0]],
+          data: [(event.entries[0] as any).data[0]],
           type: EntryType.SPANS,
         },
       ],
@@ -848,10 +848,10 @@ describe('WaterfallModel', () => {
       entries: [
         {
           data: [
-            event.entries[0]!.data[0],
+            (event.entries[0] as any).data[0],
             {
-              ...event.entries[0]!.data[0],
-              parent_span_id: event.entries[0]!.data[0].span_id,
+              ...(event.entries[0] as any).data[0],
+              parent_span_id: (event.entries[0] as any).data[0].span_id,
               span_id: 'foo',
             },
           ],
@@ -885,7 +885,7 @@ describe('WaterfallModel', () => {
         ...fullWaterfall[1]!,
         span: {
           ...fullWaterfall[1]!!.span,
-          parent_span_id: event.entries[0]!.data[0]!.span_id,
+          parent_span_id: (event.entries[0] as any).data[0]!.span_id,
           span_id: 'foo',
         },
         treeDepth: 2,
@@ -902,14 +902,14 @@ describe('WaterfallModel', () => {
       entries: [
         {
           data: [
-            event.entries[0]!.data[0],
+            (event.entries[0] as any).data[0],
             {
-              ...event.entries[0]!.data[0],
-              parent_span_id: event.entries[0]!.data[0]!.span_id,
+              ...(event.entries[0] as any).data[0],
+              parent_span_id: (event.entries[0] as any).data[0]!.span_id,
               span_id: 'foo',
             },
             {
-              ...event.entries[0]!.data[0],
+              ...(event.entries[0] as any).data[0],
               parent_span_id: 'foo',
               span_id: 'bar',
             },
@@ -955,7 +955,7 @@ describe('WaterfallModel', () => {
             ...fullWaterfall[1]!,
             span: {
               ...fullWaterfall[1]!.span,
-              parent_span_id: event.entries[0]!.data[0].span_id,
+              parent_span_id: (event.entries[0] as any).data[0].span_id,
               span_id: 'foo',
             },
             isLastSibling: true,
@@ -1012,7 +1012,7 @@ describe('WaterfallModel', () => {
         ...fullWaterfall[1]!,
         span: {
           ...fullWaterfall[1]!.span,
-          parent_span_id: event.entries[0]!.data[0].span_id,
+          parent_span_id: (event.entries[0] as any).data[0].span_id,
           span_id: 'foo',
         },
         isLastSibling: true,

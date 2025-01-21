@@ -63,7 +63,7 @@ function SetupMessagingIntegrationButton({
     messagingIntegrationsQuery.isError ||
     integrationProvidersQuery.some(({isPending}) => isPending) ||
     integrationProvidersQuery.some(({isError}) => isError) ||
-    integrationProvidersQuery[0]!.data == null
+    integrationProvidersQuery[0]!.data === undefined
   ) {
     return null;
   }

@@ -29,6 +29,10 @@ type SourceMapWizardParam = {
 
 interface GroupEventParams extends CommonGroupAnalyticsData, BaseEventAnalyticsParams {}
 
+interface StreamlineGroupEventParams extends GroupEventParams {
+  streamline: boolean;
+}
+
 interface EventDropdownParams {
   event_id: string;
   from_event_type: string;
@@ -92,10 +96,20 @@ export type IssueEventParameters = {
   'issue.search_sidebar_clicked': {};
   'issue.share_from_icon': {};
   'issue.shared_publicly': {};
-  'issue_details.comment_created': {streamline: boolean};
-  'issue_details.comment_deleted': {streamline: boolean};
-  'issue_details.comment_updated': {streamline: boolean};
-  'issue_details.copy_event_link_clicked': GroupEventParams;
+  'issue_details.comment_created': {
+    org_streamline_only: boolean | undefined;
+    streamline: boolean;
+  };
+  'issue_details.comment_deleted': {
+    org_streamline_only: boolean | undefined;
+    streamline: boolean;
+  };
+  'issue_details.comment_updated': {
+    org_streamline_only: boolean | undefined;
+    streamline: boolean;
+  };
+  'issue_details.copy_event_id_clicked': StreamlineGroupEventParams;
+  'issue_details.copy_event_link_clicked': StreamlineGroupEventParams;
   'issue_details.escalating_feedback_received': {
     group_id: string;
     is_high_priority: boolean;
@@ -125,6 +139,7 @@ export type IssueEventParameters = {
   };
   'issue_details.section_fold': {
     open: boolean;
+    org_streamline_only: boolean | undefined;
     sectionKey: string;
   };
   'issue_details.set_priority': SetPriorityParams;
@@ -153,6 +168,7 @@ export type IssueEventParameters = {
   'issue_details.streamline_ui_toggle': {
     isEnabled: boolean;
   };
+  'issue_details.view_full_trace_waterfall_clicked': {};
   'issue_details.view_hierarchy.hover_rendering_system': {
     platform?: string;
     user_org_role?: string;
@@ -448,6 +464,8 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
     'Issue Group Details: Tags distribution value bar clicked',
   'integrations.integration_reinstall_clicked': 'Integration Reinstall Button Clicked',
   'one_other_related_trace_issue.clicked': 'One Other Related Trace Issue Clicked',
+  'issue_details.view_full_trace_waterfall_clicked':
+    ' Issue Details: View Full Trace Waterfall Clicked',
 
   // Performance Issue specific events here
   'issue_details.performance.autogrouped_siblings_toggle':
@@ -458,6 +476,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'source_map_debug.expand_clicked': 'Source Map Debug: Expand Clicked',
   'actionable_items.expand_clicked': 'Actionable Item: Expand Clicked',
   'issue_details.copy_event_link_clicked': 'Issue Details: Copy Event Link Clicked',
+  'issue_details.copy_event_id_clicked': 'Issue Details: Copy Event ID Clicked',
   'issue_details.event_details_clicked': 'Issue Details: Full Event Details Clicked',
   'issue_details.event_dropdown_option_selected':
     'Issue Details: Event Dropdown Option Selected',

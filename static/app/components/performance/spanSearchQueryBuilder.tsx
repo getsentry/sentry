@@ -1,6 +1,7 @@
 import {useCallback, useMemo} from 'react';
 
 import {fetchSpanFieldValues} from 'sentry/actionCreators/tags';
+import {getHasTag} from 'sentry/components/events/searchBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {CallbackSearchState} from 'sentry/components/searchQueryBuilder/types';
@@ -42,6 +43,7 @@ const getFunctionTags = (supportedAggregates?: AggregationKey[]) => {
   }
 
   return supportedAggregates.reduce((acc, item) => {
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     acc[item] = {
       key: item,
       name: item,
@@ -179,8 +181,10 @@ export function EAPSpanSearchQueryBuilder({
     return getFunctionTags(supportedAggregates);
   }, [supportedAggregates]);
 
-  const tags = useMemo(() => {
-    return {...functionTags, ...numberTags, ...stringTags};
+  const filterTags: TagCollection = useMemo(() => {
+    const tags: TagCollection = {...functionTags, ...numberTags, ...stringTags};
+    tags.has = getHasTag({...stringTags}); // TODO: add number tags
+    return tags;
   }, [numberTags, stringTags, functionTags]);
 
   const filterKeySections = useMemo(() => {
@@ -231,9 +235,9 @@ export function EAPSpanSearchQueryBuilder({
   return (
     <SearchQueryBuilder
       placeholder={placeholderText}
-      filterKeys={tags}
+      filterKeys={filterTags}
       initialQuery={initialQuery}
-      fieldDefinitionGetter={getSpanFieldDefinitionFunction(tags)}
+      fieldDefinitionGetter={getSpanFieldDefinitionFunction(filterTags)}
       onSearch={onSearch}
       onBlur={onBlur}
       getFilterTokenWarning={getFilterTokenWarning}

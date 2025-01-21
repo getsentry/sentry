@@ -2,16 +2,14 @@ import {Component} from 'react';
 import type {
   DataZoomComponentOption,
   ECharts,
-  InsideDataZoomComponentOption,
   ToolboxComponentOption,
   XAXisComponentOption,
 } from 'echarts';
-import moment from 'moment-timezone';
+import moment, {type MomentInput} from 'moment-timezone';
 import * as qs from 'query-string';
 
 import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import DataZoomInside from 'sentry/components/charts/components/dataZoomInside';
-import DataZoomSlider from 'sentry/components/charts/components/dataZoomSlider';
 import ToolBox from 'sentry/components/charts/components/toolBox';
 import type {DateString} from 'sentry/types/core';
 import type {
@@ -25,7 +23,7 @@ import {getUtcDateString, getUtcToLocalDateObject} from 'sentry/utils/dates';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 
-const getDate = date =>
+const getDate = (date: MomentInput) =>
   date ? moment.utc(date).format(moment.HTML5_FMT.DATETIME_LOCAL_SECONDS) : null;
 
 type Period = {
@@ -54,7 +52,6 @@ export interface ZoomRenderProps extends Pick<Props, ZoomPropKeys> {
 
 type Props = {
   children: (props: ZoomRenderProps) => React.ReactNode;
-  chartZoomOptions?: DataZoomComponentOption;
   disabled?: boolean;
   end?: DateString;
   onChartReady?: EChartChartReadyHandler;
@@ -65,7 +62,6 @@ type Props = {
   period?: string | null;
   router?: InjectedRouter;
   saveOnZoom?: boolean;
-  showSlider?: boolean;
   start?: DateString;
   usePageDate?: boolean;
   utc?: boolean | null;
@@ -119,7 +115,7 @@ class ChartZoom extends Component<Props> {
    * Save current period state from period in props to be used
    * in handling chart's zoom history state
    */
-  saveCurrentPeriod = props => {
+  saveCurrentPeriod = (props: any) => {
     this.currentPeriod = {
       period: props.period,
       start: getDate(props.start),
@@ -136,7 +132,7 @@ class ChartZoom extends Component<Props> {
    *
    * Saves a callback function to be called after chart animation is completed
    */
-  setPeriod = ({period, start, end}, saveHistory = false) => {
+  setPeriod = ({period, start, end}: any, saveHistory = false) => {
     const {router, onZoom, usePageDate, saveOnZoom} = this.props;
     const startFormatted = getDate(start);
     const endFormatted = getDate(end);
@@ -204,7 +200,7 @@ class ChartZoom extends Component<Props> {
     this.$chart.addEventListener('mousedown', this.handleMouseDown);
   };
 
-  handleKeyDown = evt => {
+  handleKeyDown = (evt: any) => {
     if (!this.chart) {
       return;
     }
@@ -229,7 +225,7 @@ class ChartZoom extends Component<Props> {
    *
    * Updates URL state to reflect initial params
    */
-  handleZoomRestore = (evt, chart) => {
+  handleZoomRestore = (evt: any, chart: any) => {
     if (this.isCancellingZoom) {
       // If this restore is caused by a zoom cancel, do not run handlers!
       // The regular handler restores to the earliest point in the zoom history
@@ -267,7 +263,7 @@ class ChartZoom extends Component<Props> {
     document.body.removeEventListener('keydown', this.handleKeyDown, true);
   };
 
-  handleDataZoom = (evt, chart) => {
+  handleDataZoom = (evt: any, chart: any) => {
     const model = chart.getModel();
     const {startValue, endValue} = model._payload.batch[0];
 
@@ -299,14 +295,14 @@ class ChartZoom extends Component<Props> {
    * we can let the native zoom animation on the chart complete
    * before we update URL state and re-render
    */
-  handleChartFinished = (_props, chart) => {
+  handleChartFinished = (_props: any, chart: any) => {
     if (typeof this.zooming === 'function') {
       this.zooming();
       this.zooming = null;
     }
 
     // This attempts to activate the area zoom toolbox feature
-    const zoom = chart._componentsViews?.find(c => c._features?.dataZoom);
+    const zoom = chart._componentsViews?.find((c: any) => c._features?.dataZoom);
     if (zoom && !zoom._features.dataZoom._isZoomActive) {
       // Calling dispatchAction will re-trigger handleChartFinished
       chart.dispatchAction({
@@ -336,8 +332,6 @@ class ChartZoom extends Component<Props> {
       onChartReady: _onChartReady,
       onDataZoom: _onDataZoom,
       onFinished: _onFinished,
-      showSlider,
-      chartZoomOptions,
       ...props
     } = this.props;
 
@@ -360,18 +354,9 @@ class ChartZoom extends Component<Props> {
       utc,
       start,
       end,
-      dataZoom: showSlider
-        ? [
-            ...DataZoomSlider({xAxisIndex, ...chartZoomOptions}),
-            ...DataZoomInside({
-              xAxisIndex,
-              ...(chartZoomOptions as InsideDataZoomComponentOption),
-            }),
-          ]
-        : DataZoomInside({
-            xAxisIndex,
-            ...(chartZoomOptions as InsideDataZoomComponentOption),
-          }),
+      dataZoom: DataZoomInside({
+        xAxisIndex,
+      }),
       showTimeInTooltip: true,
       toolBox: ToolBox(
         {},

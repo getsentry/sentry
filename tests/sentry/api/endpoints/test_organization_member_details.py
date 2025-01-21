@@ -142,6 +142,22 @@ class GetOrganizationMemberTest(OrganizationMemberTestBase):
         role_ids = [role["id"] for role in response.data["teamRoleList"]]
         assert role_ids == ["contributor", "admin"]
 
+    def test_does_not_include_secondary_emails(self):
+        # Create a user with multiple email addresses
+        user = self.create_user("primary@example.com", username="multi_email_user")
+        self.create_useremail(user, "secondary1@example.com")
+        self.create_useremail(user, "secondary2@example.com")
+
+        # Add user to organization
+        member = self.create_member(organization=self.organization, user=user, role="member")
+
+        response = self.get_success_response(self.organization.slug, member.id)
+
+        # Check that only primary email is present and no other email addresses are exposed
+        assert response.data["email"] == "primary@example.com"
+        assert "emails" not in response.data["user"]
+        assert "emails" not in response.data.get("serializedUser", {})
+
 
 class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMixin):
     method = "put"
@@ -228,7 +244,6 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         response = self.get_error_response(
             self.organization.slug,
             self.curr_invite.id,
-            reinvite=1,
             teams=[foo.slug],
             status_code=403,
         )
@@ -240,14 +255,10 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         response = self.get_error_response(
             self.organization.slug,
             self.curr_invite.id,
-            reinvite=1,
             teams=[foo.slug],
             status_code=403,
         )
-        assert (
-            response.data.get("detail")
-            == "You cannot modify member details when resending an invitation. Separate requests are required."
-        )
+        assert response.data.get("detail") == "You do not have permission to perform this action."
         assert not mock_send_invite_email.mock_calls
 
     @patch("sentry.models.OrganizationMember.send_invite_email")

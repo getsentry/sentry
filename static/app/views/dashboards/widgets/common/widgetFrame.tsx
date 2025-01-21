@@ -30,7 +30,7 @@ export interface WidgetFrameProps extends StateProps {
   borderless?: boolean;
   children?: React.ReactNode;
   description?: React.ReactElement | string;
-  onFullScreenViewClick?: () => void;
+  onFullScreenViewClick?: () => void | Promise<void>;
   title?: string;
   warnings?: string[];
 }
@@ -283,4 +283,5 @@ const VisualizationWrapper = styled('div')`
   flex-grow: 1;
   min-height: 0;
   position: relative;
+  padding: 0 ${X_GUTTER} ${Y_GUTTER} ${X_GUTTER};
 `;

@@ -386,61 +386,6 @@ describe('AlertRulesList', () => {
     expect(screen.getAllByTestId('alert-badge')[0]).toBeInTheDocument();
   });
 
-  it('displays activated metric alert status', async () => {
-    rulesMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/combined-rules/',
-      headers: {Link: pageLinks},
-      body: [
-        {
-          ...MetricRuleFixture({
-            id: '1',
-            projects: ['earth'],
-            name: 'Active Activated Alert',
-            monitorType: 1,
-            activationCondition: 0,
-            activations: [
-              {
-                alertRuleId: '1',
-                dateCreated: '2021-08-01T00:00:00Z',
-                finishedAt: '',
-                id: '1',
-                isComplete: false,
-                querySubscriptionId: '1',
-                activator: '123',
-                conditionType: '0',
-              },
-            ],
-            latestIncident: IncidentFixture({
-              status: IncidentStatus.CRITICAL,
-            }),
-          }),
-          type: CombinedAlertType.METRIC,
-        },
-        {
-          ...MetricRuleFixture({
-            id: '2',
-            projects: ['earth'],
-            name: 'Ready Activated Alert',
-            monitorType: 1,
-            activationCondition: 0,
-          }),
-          type: CombinedAlertType.METRIC,
-        },
-      ],
-    });
-    const {router, organization} = initializeOrg({organization: defaultOrg});
-    render(<AlertRulesList />, {router, organization});
-
-    expect(await screen.findByText('Active Activated Alert')).toBeInTheDocument();
-    expect(await screen.findByText('Ready Activated Alert')).toBeInTheDocument();
-
-    expect(screen.getByText('Last activated')).toBeInTheDocument();
-    expect(screen.getByText('Alert has not been activated yet')).toBeInTheDocument();
-    expect(screen.getByText('Above 70')).toBeInTheDocument(); // the fixture trigger threshold
-    expect(screen.getByText('Below 70')).toBeInTheDocument(); // Alert has never fired, so no resolved threshold
-    expect(screen.getAllByTestId('alert-badge')[0]).toBeInTheDocument();
-  });
-
   it('displays issue alert disabled', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/combined-rules/',
@@ -564,53 +509,6 @@ describe('AlertRulesList', () => {
     );
   });
 
-  it('renders ACTIVATED Metric Alerts', async () => {
-    rulesMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/combined-rules/',
-      headers: {Link: pageLinks},
-      body: [
-        {
-          ...ProjectAlertRuleFixture({
-            id: '123',
-            name: 'First Issue Alert',
-            projects: ['earth'],
-            createdBy: {name: 'Samwise', id: 1, email: ''},
-          }),
-          type: CombinedAlertType.ISSUE,
-        },
-        {
-          ...MetricRuleFixture({
-            id: '345',
-            projects: ['earth'],
-            name: 'activated Test Metric Alert',
-            monitorType: 1,
-            latestIncident: IncidentFixture({
-              status: IncidentStatus.CRITICAL,
-            }),
-          }),
-          type: CombinedAlertType.METRIC,
-        },
-        {
-          ...MetricRuleFixture({
-            id: '678',
-            name: 'Test Metric Alert 2',
-            monitorType: 0,
-            projects: ['earth'],
-            latestIncident: null,
-          }),
-          type: CombinedAlertType.METRIC,
-        },
-      ],
-    });
-
-    const {router, organization} = initializeOrg({organization: defaultOrg});
-    render(<AlertRulesList />, {router, organization});
-
-    expect(await screen.findByText('Test Metric Alert 2')).toBeInTheDocument();
-    expect(await screen.findByText('First Issue Alert')).toBeInTheDocument();
-    expect(await screen.findByText('activated Test Metric Alert')).toBeInTheDocument();
-  });
-
   it('renders uptime alert rules', async () => {
     rulesMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/combined-rules/',
@@ -628,7 +526,6 @@ describe('AlertRulesList', () => {
 
     expect(await screen.findByText('Uptime Rule')).toBeInTheDocument();
     expect(await screen.findByText('Auto Detected')).toBeInTheDocument();
-    expect(await screen.findByText('Up')).toBeInTheDocument();
   });
 
   it('deletes an uptime rule', async () => {

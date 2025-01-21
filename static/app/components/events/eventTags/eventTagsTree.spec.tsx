@@ -255,7 +255,7 @@ describe('EventTagsTree', function () {
     expect(dropdown).toBeInTheDocument();
 
     const errorRows = screen.queryAllByTestId('tag-tree-row-errors');
-    expect(errorRows.length).toBe(2);
+    expect(errorRows).toHaveLength(2);
   });
 
   it('avoids rendering nullish tags', async function () {

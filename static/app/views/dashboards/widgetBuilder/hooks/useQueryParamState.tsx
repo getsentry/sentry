@@ -10,7 +10,7 @@ import {useUrlBatchContext} from '../contexts/urlParamBatchContext';
 interface UseQueryParamStateWithScalarDecoder<T> {
   fieldName: string;
   decoder?: typeof decodeScalar;
-  deserializer?: (value: ReturnType<typeof decodeScalar>) => T;
+  deserializer?: (value: ReturnType<typeof decodeScalar>) => T | undefined;
   serializer?: (value: T) => string;
 }
 

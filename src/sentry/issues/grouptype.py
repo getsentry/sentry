@@ -22,7 +22,7 @@ from sentry.utils import metrics
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
     from sentry.models.project import Project
-    from sentry.workflow_engine.endpoints.validators import BaseGroupTypeDetectorValidator
+    from sentry.workflow_engine.endpoints.validators.base import BaseGroupTypeDetectorValidator
     from sentry.workflow_engine.handlers.detector import DetectorHandler
 
 logger = logging.getLogger(__name__)
@@ -251,16 +251,6 @@ def get_group_type_by_slug(slug: str) -> type[GroupType] | None:
 def get_group_type_by_type_id(id: int) -> type[GroupType]:
     # TODO: Replace uses of this with the registry
     return registry.get_by_type_id(id)
-
-
-@dataclass(frozen=True)
-class ErrorGroupType(GroupType):
-    type_id = 1
-    slug = "error"
-    description = "Error"
-    category = GroupCategory.ERROR.value
-    default_priority = PriorityLevel.MEDIUM
-    released = True
 
 
 # used as an additional superclass for Performance GroupType defaults

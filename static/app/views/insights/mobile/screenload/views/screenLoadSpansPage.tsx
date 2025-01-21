@@ -20,6 +20,8 @@ import {
   SECONDARY_RELEASE_ALIAS,
 } from 'sentry/views/insights/common/components/releaseSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
+import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
+import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {SpanSamplesPanel} from 'sentry/views/insights/mobile/common/components/spanSamplesPanel';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
@@ -78,16 +80,25 @@ function ScreenLoadSpans() {
 }
 
 export function ScreenLoadSpansContent() {
-  const location = useLocation<Query>();
   const router = useRouter();
+  const location = useLocation<Query>();
 
-  const {
-    spanGroup,
-    primaryRelease,
-    secondaryRelease,
-    transaction: transactionName,
-    spanDescription,
-  } = location.query;
+  const {spanGroup, transaction: transactionName} = location.query;
+  const {primaryRelease, secondaryRelease} = useReleaseSelection();
+
+  useSamplesDrawer({
+    Component: (
+      <SpanSamplesPanel groupId={spanGroup} moduleName={ModuleName.SCREEN_LOAD} />
+    ),
+    moduleName: ModuleName.SCREEN_LOAD,
+    requiredParams: ['transaction', 'spanGroup'],
+    onClose: () => {
+      router.replace({
+        pathname: router.location.pathname,
+        query: omit(router.location.query, 'spanGroup', 'transactionMethod'),
+      });
+    },
+  });
 
   return (
     <Fragment>
@@ -158,21 +169,25 @@ export function ScreenLoadSpansContent() {
         />
         <SampleContainer>
           <SampleContainerItem>
-            <ScreenLoadEventSamples
-              release={primaryRelease}
-              sortKey={MobileSortKeys.RELEASE_1_EVENT_SAMPLE_TABLE}
-              cursorName={MobileCursors.RELEASE_1_EVENT_SAMPLE_TABLE}
-              transaction={transactionName}
-              showDeviceClassSelector
-            />
+            {primaryRelease && (
+              <ScreenLoadEventSamples
+                release={primaryRelease}
+                sortKey={MobileSortKeys.RELEASE_1_EVENT_SAMPLE_TABLE}
+                cursorName={MobileCursors.RELEASE_1_EVENT_SAMPLE_TABLE}
+                transaction={transactionName}
+                showDeviceClassSelector
+              />
+            )}
           </SampleContainerItem>
           <SampleContainerItem>
-            <ScreenLoadEventSamples
-              release={secondaryRelease}
-              sortKey={MobileSortKeys.RELEASE_2_EVENT_SAMPLE_TABLE}
-              cursorName={MobileCursors.RELEASE_2_EVENT_SAMPLE_TABLE}
-              transaction={transactionName}
-            />
+            {secondaryRelease && (
+              <ScreenLoadEventSamples
+                release={secondaryRelease}
+                sortKey={MobileSortKeys.RELEASE_2_EVENT_SAMPLE_TABLE}
+                cursorName={MobileCursors.RELEASE_2_EVENT_SAMPLE_TABLE}
+                transaction={transactionName}
+              />
+            )}
           </SampleContainerItem>
         </SampleContainer>
         <ScreenLoadSpansTable
@@ -180,20 +195,6 @@ export function ScreenLoadSpansContent() {
           primaryRelease={primaryRelease}
           secondaryRelease={secondaryRelease}
         />
-        {spanGroup && (
-          <SpanSamplesPanel
-            groupId={spanGroup}
-            moduleName={ModuleName.SCREEN_LOAD}
-            transactionName={transactionName}
-            spanDescription={spanDescription}
-            onClose={() => {
-              router.replace({
-                pathname: router.location.pathname,
-                query: omit(router.location.query, 'spanGroup', 'transactionMethod'),
-              });
-            }}
-          />
-        )}
       </ErrorBoundary>
     </Fragment>
   );

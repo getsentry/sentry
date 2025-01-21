@@ -1,4 +1,5 @@
 import {useEffect, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
@@ -15,6 +16,7 @@ import PanelAlert from 'sentry/components/panels/panelAlert';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
@@ -135,6 +137,7 @@ function AccountClose() {
 
   return (
     <div>
+      <SentryDocumentTitle title={t('Close Account')} />
       <SettingsPageHeader title={t('Close Account')} />
 
       <TextBlock>
@@ -166,16 +169,11 @@ function AccountClose() {
 
           {organizations?.map(({organization, singleOwner}) => (
             <PanelItem key={organization.slug}>
-              <label
-                css={{
-                  display: 'flex',
-                  alignItems: 'center',
-                }}
-              >
+              <PanelLabel>
                 <Checkbox
-                  css={{
-                    marginRight: 6,
-                  }}
+                  css={css`
+                    margin-right: 6px;
+                  `}
                   name="organizations"
                   checked={orgsToRemove.has(organization.slug)}
                   disabled={singleOwner}
@@ -185,7 +183,7 @@ function AccountClose() {
                   role="checkbox"
                 />
                 {organization.slug}
-              </label>
+              </PanelLabel>
             </PanelItem>
           ))}
         </PanelBody>
@@ -197,5 +195,10 @@ function AccountClose() {
     </div>
   );
 }
+
+const PanelLabel = styled('label')`
+  display: flex;
+  align-items: center;
+`;
 
 export default AccountClose;

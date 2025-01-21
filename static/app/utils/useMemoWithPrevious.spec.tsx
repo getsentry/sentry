@@ -10,15 +10,15 @@ describe('useMemoWithPrevious', () => {
 
     const {result} = renderHook(() => useMemoWithPrevious(factory, [dep]));
     expect(factory).toHaveBeenCalledWith(null);
-    expect(result.current).toEqual('foo');
+    expect(result.current).toBe('foo');
   });
 
   it('calls factory with previous value', () => {
     const factory = jest.fn().mockReturnValueOnce('foo').mockReturnValueOnce('bar');
 
     // New reference will trigger a rerender
-    const firstDependency = [];
-    const secondDependency = [];
+    const firstDependency: unknown[] = [];
+    const secondDependency: unknown[] = [];
 
     const {rerender, result} = renderHook(
       // eslint-disable-next-line react-hooks/exhaustive-deps

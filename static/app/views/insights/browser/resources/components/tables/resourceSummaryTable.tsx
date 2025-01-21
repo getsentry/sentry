@@ -8,9 +8,9 @@ import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 import {useResourcePagesQuery} from 'sentry/views/insights/browser/resources/queries/useResourcePageQuery';
 import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/insights/browser/resources/settings';
@@ -52,6 +52,7 @@ type Row = {
 type Column = GridColumnHeader<keyof Row>;
 
 function ResourceSummaryTable() {
+  const navigate = useNavigate();
   const location = useLocation();
   const {groupId} = useParams();
   const sort = useResourceSummarySort();
@@ -159,7 +160,7 @@ function ResourceSummaryTable() {
   };
 
   const handleCursor: CursorHandler = (newCursor, pathname, query) => {
-    browserHistory.push({
+    navigate({
       pathname,
       query: {...query, [QueryParameterNames.PAGES_CURSOR]: newCursor},
     });

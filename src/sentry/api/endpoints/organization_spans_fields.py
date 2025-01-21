@@ -26,8 +26,9 @@ from sentry.api.paginator import ChainPaginator
 from sentry.api.serializers import serialize
 from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
-from sentry.search.eap.columns import translate_internal_to_public_alias
-from sentry.search.eap.spans import SearchResolver
+from sentry.search.eap import constants
+from sentry.search.eap.resolver import SearchResolver
+from sentry.search.eap.span_columns import SPAN_DEFINITIONS, translate_internal_to_public_alias
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.builder.spans_indexed import SpansIndexedQueryBuilder
@@ -109,7 +110,9 @@ class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
                 hour=0, minute=0, second=0, microsecond=0
             ) + timedelta(days=1)
 
-            resolver = SearchResolver(params=snuba_params, config=SearchResolverConfig())
+            resolver = SearchResolver(
+                params=snuba_params, config=SearchResolverConfig(), definitions=SPAN_DEFINITIONS
+            )
             meta = resolver.resolve_meta(referrer=Referrer.API_SPANS_TAG_KEYS_RPC.value)
 
             rpc_request = TraceItemAttributeNamesRequest(
@@ -232,7 +235,8 @@ class OrganizationSpansFieldValuesEndpoint(OrganizationSpansFieldsEndpointBase):
                 max_span_tag_values=max_span_tag_values,
             )
 
-        tag_values = executor.execute()
+        with handle_query_errors():
+            tag_values = executor.execute()
 
         tag_values.sort(key=lambda tag: tag.value)
 
@@ -404,14 +408,16 @@ class EAPSpanFieldValuesAutocompletionExecutor(BaseSpanFieldValuesAutocompletion
         max_span_tag_values: int,
     ):
         super().__init__(organization, snuba_params, key, query, max_span_tag_values)
-        self.resolver = SearchResolver(params=snuba_params, config=SearchResolverConfig())
-        self.attribute_key = self.resolve_attribute_key(key, snuba_params)
+        self.resolver = SearchResolver(
+            params=snuba_params, config=SearchResolverConfig(), definitions=SPAN_DEFINITIONS
+        )
+        self.search_type, self.attribute_key = self.resolve_attribute_key(key, snuba_params)
 
-    def resolve_attribute_key(self, key: str, snuba_params: SnubaParams) -> AttributeKey | None:
+    def resolve_attribute_key(
+        self, key: str, snuba_params: SnubaParams
+    ) -> tuple[constants.SearchType, AttributeKey]:
         resolved, _ = self.resolver.resolve_attribute(key)
-        if resolved.search_type != "string":
-            return None
-        return resolved.proto_definition
+        return resolved.search_type, resolved.proto_definition
 
     def execute(self) -> list[TagValue]:
         if self.key in self.PROJECT_ID_KEYS:
@@ -420,12 +426,33 @@ class EAPSpanFieldValuesAutocompletionExecutor(BaseSpanFieldValuesAutocompletion
         if self.key in self.PROJECT_SLUG_KEYS:
             return self.project_slug_autocomplete_function()
 
-        return self.default_autocomplete_function()
+        if self.search_type == "boolean":
+            return self.boolean_autocomplete_function()
 
-    def default_autocomplete_function(self) -> list[TagValue]:
-        if self.attribute_key is None:
-            return []
+        if self.search_type == "string":
+            return self.string_autocomplete_function()
 
+        return []
+
+    def boolean_autocomplete_function(self) -> list[TagValue]:
+        return [
+            TagValue(
+                key=self.key,
+                value="false",
+                times_seen=None,
+                first_seen=None,
+                last_seen=None,
+            ),
+            TagValue(
+                key=self.key,
+                value="true",
+                times_seen=None,
+                first_seen=None,
+                last_seen=None,
+            ),
+        ]
+
+    def string_autocomplete_function(self) -> list[TagValue]:
         start_timestamp = Timestamp()
         start_timestamp.FromDatetime(
             self.snuba_params.start_date.replace(hour=0, minute=0, second=0, microsecond=0)

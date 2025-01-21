@@ -2,7 +2,7 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import type {Organization} from 'sentry/types/organization';
 import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
@@ -33,7 +33,10 @@ describe('QueryFilterBuilder', () => {
   it('renders a dataset-specific query filter bar', async () => {
     render(
       <WidgetBuilderProvider>
-        <WidgetBuilderQueryFilterBuilder onQueryConditionChange={() => {}} />
+        <WidgetBuilderQueryFilterBuilder
+          onQueryConditionChange={() => {}}
+          validatedWidgetResponse={{} as any}
+        />
       </WidgetBuilderProvider>,
       {
         organization,
@@ -54,7 +57,10 @@ describe('QueryFilterBuilder', () => {
 
     render(
       <WidgetBuilderProvider>
-        <WidgetBuilderQueryFilterBuilder onQueryConditionChange={() => {}} />
+        <WidgetBuilderQueryFilterBuilder
+          onQueryConditionChange={() => {}}
+          validatedWidgetResponse={{} as any}
+        />
       </WidgetBuilderProvider>,
       {
         organization,
@@ -77,7 +83,10 @@ describe('QueryFilterBuilder', () => {
   it('renders a legend alias input for charts', async () => {
     render(
       <WidgetBuilderProvider>
-        <WidgetBuilderQueryFilterBuilder onQueryConditionChange={() => {}} />
+        <WidgetBuilderQueryFilterBuilder
+          onQueryConditionChange={() => {}}
+          validatedWidgetResponse={{} as any}
+        />
       </WidgetBuilderProvider>,
       {
         organization,
@@ -94,5 +103,38 @@ describe('QueryFilterBuilder', () => {
     );
 
     expect(await screen.findByPlaceholderText('Legend Alias')).toBeInTheDocument();
+  });
+
+  it('limits number of filter queries to 3', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderQueryFilterBuilder
+          onQueryConditionChange={() => {}}
+          validatedWidgetResponse={{} as any}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              query: [],
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.LINE,
+            },
+          }),
+        }),
+      }
+    );
+
+    expect(
+      screen.getByPlaceholderText('Search for events, users, tags, and more')
+    ).toBeInTheDocument();
+    expect(await screen.findByText('Add Filter')).toBeInTheDocument();
+
+    await userEvent.click(await screen.findByText('Add Filter'));
+    await userEvent.click(await screen.findByText('Add Filter'));
+
+    expect(screen.queryByText('Add Filter')).not.toBeInTheDocument();
   });
 });

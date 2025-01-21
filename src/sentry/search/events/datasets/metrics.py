@@ -5,7 +5,8 @@ from collections.abc import Callable, Mapping, MutableMapping
 from django.utils.functional import cached_property
 from snuba_sdk import Column, Condition, Function, Op, OrderBy
 
-from sentry.api.event_search import SearchFilter
+from sentry import features
+from sentry.api.event_search import ParenExpression, SearchFilter, parse_search_query
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.search.events import constants, fields
 from sentry.search.events.builder import metrics
@@ -1531,6 +1532,12 @@ class MetricsDatasetConfig(DatasetConfig):
         args: Mapping[str, str | Column | SelectType | int | float],
         alias: str | None,
     ) -> SelectType:
+        """Returns the normalized score (0.0-1.0) for a given web vital.
+        This function exists because we don't store a metric for the normalized score.
+        The normalized score is calculated by dividing the sum of measurements.score.* by the sum of measurements.score.weight.*
+
+        To calculate the total performance score, see _resolve_total_performance_score_function.
+        """
         column = args["column"]
         metric_id = args["metric_id"]
 
@@ -1747,29 +1754,36 @@ class MetricsDatasetConfig(DatasetConfig):
             )
             for vital in vitals
         }
+        # TODO: Divide by the total weights to factor out any missing web vitals
         return Function(
-            "plus",
+            "divide",
             [
-                adjusted_opportunity_scores["lcp"],
                 Function(
                     "plus",
                     [
-                        adjusted_opportunity_scores["fcp"],
+                        adjusted_opportunity_scores["lcp"],
                         Function(
                             "plus",
                             [
-                                adjusted_opportunity_scores["cls"],
+                                adjusted_opportunity_scores["fcp"],
                                 Function(
                                     "plus",
                                     [
-                                        adjusted_opportunity_scores["ttfb"],
-                                        adjusted_opportunity_scores["inp"],
+                                        adjusted_opportunity_scores["cls"],
+                                        Function(
+                                            "plus",
+                                            [
+                                                adjusted_opportunity_scores["ttfb"],
+                                                adjusted_opportunity_scores["inp"],
+                                            ],
+                                        ),
                                     ],
                                 ),
                             ],
                         ),
                     ],
                 ),
+                self._resolve_total_weights_function(),
             ],
             alias,
         )
@@ -1782,11 +1796,28 @@ class MetricsDatasetConfig(DatasetConfig):
         if column in self.total_score_weights and self.total_score_weights[column] is not None:
             return Function("toFloat64", [self.total_score_weights[column]], alias)
 
+        # Pull out browser.name filters from the query
+        parsed_terms = parse_search_query(self.builder.query)
+        query = " ".join(
+            term.to_query_string()
+            for term in parsed_terms
+            if (isinstance(term, SearchFilter) and term.key.name == "browser.name")
+            or (
+                isinstance(term, ParenExpression)
+                and all(  # type: ignore[unreachable]
+                    (isinstance(child_term, SearchFilter) and child_term.key.name == "browser.name")
+                    or child_term == "OR"
+                    for child_term in term.children
+                )
+            )
+        )
+
         total_query = metrics.MetricsQueryBuilder(
             dataset=self.builder.dataset,
             params={},
             snuba_params=self.builder.params,
             selected_columns=[f"sum({column})"],
+            query=query,
         )
 
         total_query.columns += self.builder.resolve_groupby()
@@ -1830,11 +1861,83 @@ class MetricsDatasetConfig(DatasetConfig):
             alias,
         )
 
+    def _resolve_total_weights_function(self) -> SelectType:
+        vitals = ["lcp", "fcp", "cls", "ttfb", "inp"]
+        weights = {
+            vital: Function(
+                "if",
+                [
+                    Function(
+                        "isZeroOrNull",
+                        [
+                            Function(
+                                "sumIf",
+                                [
+                                    Column("value"),
+                                    Function(
+                                        "equals",
+                                        [
+                                            Column("metric_id"),
+                                            self.resolve_metric(
+                                                f"measurements.score.weight.{vital}"
+                                            ),
+                                        ],
+                                    ),
+                                ],
+                            ),
+                        ],
+                    ),
+                    0,
+                    constants.WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS[vital],
+                ],
+            )
+            for vital in vitals
+        }
+
+        if features.has(
+            "organizations:performance-vitals-handle-missing-webvitals",
+            self.builder.params.organization,
+        ):
+            return Function(
+                "plus",
+                [
+                    Function(
+                        "plus",
+                        [
+                            Function(
+                                "plus",
+                                [
+                                    Function(
+                                        "plus",
+                                        [
+                                            weights["lcp"],
+                                            weights["fcp"],
+                                        ],
+                                    ),
+                                    weights["cls"],
+                                ],
+                            ),
+                            weights["ttfb"],
+                        ],
+                    ),
+                    weights["inp"],
+                ],
+            )
+        return 1
+
     def _resolve_total_performance_score_function(
         self,
         _: Mapping[str, str | Column | SelectType | int | float],
         alias: str | None,
     ) -> SelectType:
+        """Returns the total performance score based on a page/site's web vitals.
+        This function is calculated by:
+        the summation of (normalized_vital_score * weight) for each vital, divided by the sum of all weights
+        - normalized_vital_score is the 0.0-1.0 score for each individual vital
+        - weight is the 0.0-1.0 weight for each individual vital (this is a constant value stored in constants.WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS)
+        - if all webvitals have data, then the sum of all weights is 1
+        - normalized_vital_score is obtained through _resolve_web_vital_score_function (see docstring on that function for more details)
+        """
         vitals = ["lcp", "fcp", "cls", "ttfb", "inp"]
         scores = {
             vital: Function(
@@ -1853,10 +1956,11 @@ class MetricsDatasetConfig(DatasetConfig):
             for vital in vitals
         }
 
-        # TODO: Is there a way to sum more than 2 values at once?
+        # TODO: Divide by the total weights to factor out any missing web vitals
         return Function(
-            "plus",
+            "divide",
             [
+                # TODO: Is there a way to sum more than 2 values at once?
                 Function(
                     "plus",
                     [
@@ -1866,17 +1970,23 @@ class MetricsDatasetConfig(DatasetConfig):
                                 Function(
                                     "plus",
                                     [
-                                        scores["lcp"],
-                                        scores["fcp"],
+                                        Function(
+                                            "plus",
+                                            [
+                                                scores["lcp"],
+                                                scores["fcp"],
+                                            ],
+                                        ),
+                                        scores["cls"],
                                     ],
                                 ),
-                                scores["cls"],
+                                scores["ttfb"],
                             ],
                         ),
-                        scores["ttfb"],
+                        scores["inp"],
                     ],
                 ),
-                scores["inp"],
+                self._resolve_total_weights_function(),
             ],
             alias,
         )

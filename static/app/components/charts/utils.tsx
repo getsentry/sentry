@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 import * as Sentry from '@sentry/react';
-import type {LegendComponentOption, LineSeriesOption} from 'echarts';
+import type {LegendComponentOption} from 'echarts';
 import type {Location} from 'history';
 import orderBy from 'lodash/orderBy';
 import moment from 'moment-timezone';
@@ -41,16 +41,34 @@ export type DateTimeObject = Partial<PageFilters['datetime']>;
 
 export function truncationFormatter(
   value: string,
-  truncate: number | boolean | undefined
+  truncate: number | boolean | undefined,
+  escaped: boolean = true
 ): string {
-  if (!truncate) {
-    return escape(value);
+  // Whitespace characters such as newlines and tabs can
+  // mess up the formatting in legends where it's part of
+  // the formatting as it's handled by ECharts.
+  //
+  // In places like tooltips, it's already ignored and
+  // rendered as a single space.
+  //
+  // So remove whitespace characters such as newlines,
+  // tabs in favor of a space.
+  value = value.replace(/\s+/g, ' ');
+
+  if (truncate) {
+    const truncationLength =
+      truncate && typeof truncate === 'number' ? truncate : DEFAULT_TRUNCATE_LENGTH;
+    value =
+      value.length > truncationLength
+        ? value.substring(0, truncationLength) + '…'
+        : value;
   }
-  const truncationLength =
-    truncate && typeof truncate === 'number' ? truncate : DEFAULT_TRUNCATE_LENGTH;
-  const truncated =
-    value.length > truncationLength ? value.substring(0, truncationLength) + '…' : value;
-  return escape(truncated);
+
+  if (escaped) {
+    value = escape(value);
+  }
+
+  return value;
 }
 
 /**
@@ -226,10 +244,13 @@ export function getSeriesSelection(
   location: Location
 ): LegendComponentOption['selected'] {
   const unselectedSeries = decodeList(location?.query.unselectedSeries);
-  return unselectedSeries.reduce((selection, series) => {
-    selection[series] = false;
-    return selection;
-  }, {});
+  return unselectedSeries.reduce(
+    (selection, series) => {
+      selection[series] = false;
+      return selection;
+    },
+    {} as Record<string, boolean>
+  );
 }
 
 function isSingleSeriesStats(
@@ -344,7 +365,7 @@ export function computeEchartsAriaLabels(
     ? `MMMM D, h:mm A`
     : 'MMMM Do';
 
-  function formatDate(date) {
+  function formatDate(date: any) {
     return getFormattedDate(date, dateFormat, {
       local: !useUTC,
     });
@@ -374,19 +395,19 @@ export function computeEchartsAriaLabels(
         return '';
       }
 
-      let highestValue: NonNullable<LineSeriesOption['data']>[0] = [0, -Infinity];
-      let lowestValue: NonNullable<LineSeriesOption['data']>[0] = [0, Infinity];
+      let highestValue: [number, number] = [0, -Infinity];
+      let lowestValue: [number, number] = [0, Infinity];
 
-      s.data.forEach(datum => {
+      s.data.forEach((datum: any) => {
         if (!Array.isArray(datum)) {
           return;
         }
 
         if (datum[1] > highestValue[1]) {
-          highestValue = datum;
+          highestValue = datum as [number, number];
         }
         if (datum[1] < lowestValue[1]) {
-          lowestValue = datum;
+          lowestValue = datum as [number, number];
         }
       });
 

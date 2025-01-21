@@ -212,7 +212,7 @@ describe('Dashboards > WidgetQueries', function () {
     // Child should be rendered and 2 requests should be sent.
     expect(await screen.findByTestId('child')).toBeInTheDocument();
     await waitFor(() => {
-      expect(error).toEqual('Bad request data');
+      expect(error).toBe('Bad request data');
     });
     expect(okMock).toHaveBeenCalledTimes(1);
     expect(failMock).toHaveBeenCalledTimes(1);
@@ -522,7 +522,7 @@ describe('Dashboards > WidgetQueries', function () {
     expect(firstQuery).toHaveBeenCalledTimes(1);
     expect(secondQuery).toHaveBeenCalledTimes(1);
 
-    await waitFor(() => expect(childProps?.loading).toEqual(false));
+    await waitFor(() => expect(childProps?.loading).toBe(false));
   });
 
   it('sets bar charts to 1d interval', async function () {
@@ -690,7 +690,7 @@ describe('Dashboards > WidgetQueries', function () {
     );
 
     expect(eventsStatsMock).toHaveBeenCalledTimes(1);
-    await waitFor(() => expect(childProps.loading).toEqual(false));
+    await waitFor(() => expect(childProps.loading).toBe(false));
 
     // Simulate a re-render with a new query alias
     rerender(
@@ -727,14 +727,14 @@ describe('Dashboards > WidgetQueries', function () {
 
     // Did not re-query
     expect(eventsStatsMock).toHaveBeenCalledTimes(1);
-    expect(childProps.timeseriesResults![0]!.seriesName).toEqual(
+    expect(childProps.timeseriesResults![0]!.seriesName).toBe(
       'this query alias changed : count()'
     );
   });
 
   describe('multi-series grouped data', () => {
     const [START, END] = [1647399900, 1647399901];
-    let mockCountData, mockCountUniqueData, mockRawResultData;
+    let mockCountData: any, mockCountUniqueData: any, mockRawResultData: any;
 
     beforeEach(() => {
       mockCountData = {

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from copy import deepcopy
 from functools import cached_property
-from typing import Any
 from unittest import mock
 from unittest.mock import patch
 
@@ -30,7 +29,6 @@ from sentry.incidents.logic import INVALID_TIME_WINDOW
 from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleDetectionType,
-    AlertRuleMonitorTypeInt,
     AlertRuleSeasonality,
     AlertRuleSensitivity,
     AlertRuleStatus,
@@ -40,7 +38,6 @@ from sentry.incidents.models.alert_rule import (
 )
 from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.incidents.serializers import AlertRuleSerializer
-from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.integrations.slack.tasks.find_channel_id_for_alert_rule import (
     find_channel_id_for_alert_rule,
 )
@@ -56,7 +53,6 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
-from sentry.utils import json
 from tests.sentry.incidents.endpoints.test_organization_alert_rule_index import AlertRuleBase
 
 pytestmark = [requires_snuba]
@@ -657,40 +653,6 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
             == list(audit_log_entry)[0].ip_address
         )
 
-    def test_monitor_type_with_condition(self):
-        self.create_member(
-            user=self.user, organization=self.organization, role="owner", teams=[self.team]
-        )
-
-        self.login_as(self.user)
-        alert_rule = self.alert_rule
-        serialized_alert_rule = self.get_serialized_alert_rule()
-        serialized_alert_rule["monitorType"] = AlertRuleMonitorTypeInt.ACTIVATED
-        serialized_alert_rule["activationCondition"] = (
-            AlertRuleActivationConditionType.RELEASE_CREATION.value
-        )
-        with (
-            outbox_runner(),
-            self.feature(["organizations:incidents", "organizations:activated-alert-rules"]),
-        ):
-            resp = self.get_success_response(
-                self.organization.slug, alert_rule.id, **serialized_alert_rule
-            )
-        alert_rule = AlertRule.objects.get(id=resp.data["id"])
-        alert_rule.monitorType = AlertRuleMonitorTypeInt.ACTIVATED
-        alert_rule.activationCondition = AlertRuleActivationConditionType.RELEASE_CREATION.value
-        alert_rule.date_modified = resp.data["dateModified"]
-        assert resp.data == serialize(alert_rule)
-
-        # TODO: determine how to convert activated alert into continuous alert and vice versa (see logic.py)
-        # requires creating/disabling activations accordingly
-        # assert resp.data["monitorType"] == AlertRuleMonitorTypeInt.ACTIVATED
-        # assert (
-        #     resp.data["activationCondition"]
-        #     == AlertRuleActivationConditionType.RELEASE_CREATION.value
-        # )
-        assert resp.data["dateModified"] > serialized_alert_rule["dateModified"]
-
     def test_not_updated_fields(self):
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
@@ -1132,20 +1094,6 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
 class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):
     method = "put"
 
-    def mock_conversations_list(self, channels):
-        return patch(
-            "slack_sdk.web.client.WebClient.conversations_list",
-            return_value=SlackResponse(
-                client=None,
-                http_verb="POST",
-                api_url="https://slack.com/api/conversations.list",
-                req_args={},
-                data={"ok": True, "channels": channels},
-                headers={},
-                status_code=200,
-            ),
-        )
-
     def mock_conversations_info(self, channel):
         return patch(
             "slack_sdk.web.client.WebClient.conversations_info",
@@ -1158,15 +1106,6 @@ class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):
                 headers={},
                 status_code=200,
             ),
-        )
-
-    def _mock_slack_response(self, url: str, body: dict[str, Any], status: int = 200) -> None:
-        responses.add(
-            method=responses.GET,
-            url=url,
-            status=status,
-            content_type="application/json",
-            body=json.dumps(body),
         )
 
     def _organization_alert_rule_api_call(

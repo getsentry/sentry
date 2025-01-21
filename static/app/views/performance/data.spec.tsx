@@ -22,10 +22,10 @@ describe('generatePerformanceEventView()', function () {
     );
 
     expect(result.id).toBeUndefined();
-    expect(result.name).toEqual('Performance');
+    expect(result.name).toBe('Performance');
     expect(result.fields.length).toBeGreaterThanOrEqual(7);
-    expect(result.query).toEqual('');
-    expect(result.getQueryWithAdditionalConditions()).toEqual('event.type:transaction');
+    expect(result.query).toBe('');
+    expect(result.getQueryWithAdditionalConditions()).toBe('event.type:transaction');
     expect(result.sorts).toEqual([{kind: 'desc', field: 'tpm'}]);
     expect(result.statsPeriod).toEqual(DEFAULT_STATS_PERIOD);
   });
@@ -51,7 +51,7 @@ describe('generatePerformanceEventView()', function () {
     );
     expect(result.start).toBeUndefined();
     expect(result.end).toBeUndefined();
-    expect(result.statsPeriod).toEqual('90d');
+    expect(result.statsPeriod).toBe('90d');
   });
 
   it('does not apply range when start and end are present', function () {
@@ -63,8 +63,8 @@ describe('generatePerformanceEventView()', function () {
       {},
       organization
     );
-    expect(result.start).toEqual('2020-04-25T12:00:00.000');
-    expect(result.end).toEqual('2020-05-25T12:00:00.000');
+    expect(result.start).toBe('2020-04-25T12:00:00.000');
+    expect(result.end).toBe('2020-05-25T12:00:00.000');
     expect(result.statsPeriod).toBeUndefined();
   });
 
@@ -139,6 +139,6 @@ describe('generatePerformanceEventView()', function () {
       {withStaticFilters: true},
       organization
     );
-    expect(result.query).toEqual('transaction:*auth*');
+    expect(result.query).toBe('transaction:*auth*');
   });
 });
