@@ -38,8 +38,8 @@ export function ToolbarSaveAs() {
     (pageFilters.selection.projects.length === 1 || projects.length === 1) && project;
 
   const alertsUrls = singleProject
-    ? visualizeYAxes.map(yAxis => ({
-        key: yAxis,
+    ? visualizeYAxes.map((yAxis, index) => ({
+        key: `${yAxis}-${index}`,
         label: yAxis,
         to: getAlertsUrl({
           project,
@@ -70,9 +70,15 @@ export function ToolbarSaveAs() {
 
   if (organization.features.includes('dashboards-eap')) {
     const disableAddToDashboard = !organization.features.includes('dashboards-edit');
+    const chartOptions = visualizes.map((chart, index) => ({
+      key: chart.label,
+      label: t('Chart %s', chart.label),
+      onAction: !disableAddToDashboard ? () => addToDashboard(index) : undefined,
+    }));
     items.push({
       key: 'add-to-dashboard',
       textValue: t('Add to Dashboard'),
+      isSubmenu: chartOptions.length > 1 ? true : false,
       label: (
         <Feature
           hookName="feature-disabled:dashboards-edit"
@@ -83,7 +89,11 @@ export function ToolbarSaveAs() {
         </Feature>
       ),
       disabled: disableAddToDashboard,
-      onAction: !disableAddToDashboard ? () => addToDashboard(0) : undefined, // This is hardcoding
+      children: chartOptions.length > 1 ? chartOptions : undefined,
+      onAction:
+        !disableAddToDashboard && chartOptions.length
+          ? () => addToDashboard(0)
+          : undefined, // This is hardcoding
     });
   }
 
