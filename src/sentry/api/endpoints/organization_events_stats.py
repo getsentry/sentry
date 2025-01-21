@@ -278,6 +278,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
 
         force_metrics_layer = request.GET.get("forceMetricsLayer") == "true"
         use_rpc = request.GET.get("useRpc", "0") == "1"
+        sentry_sdk.set_tag("performance.use_rpc", use_rpc)
 
         def _get_event_stats(
             scoped_dataset: Any,
