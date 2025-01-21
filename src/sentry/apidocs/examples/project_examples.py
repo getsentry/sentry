@@ -54,7 +54,6 @@ BASE_PROJECT = {
         "data-forwarding",
         "discard-groups",
         "minidump",
-        "race-free-group-creation",
         "rate-limits",
         "servicehooks",
         "similarity-indexing",
