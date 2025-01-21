@@ -1,6 +1,7 @@
 from django import forms
 from rest_framework import serializers
 
+from sentry import features
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.incidents.logic import (
@@ -12,6 +13,7 @@ from sentry.incidents.logic import (
     update_alert_rule_trigger,
 )
 from sentry.incidents.models.alert_rule import AlertRuleTrigger, AlertRuleTriggerAction
+from sentry.workflow_engine.migration_helpers.alert_rule import migrate_metric_data_conditions
 
 from .alert_rule_trigger_action import AlertRuleTriggerActionSerializer
 
@@ -45,12 +47,18 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
             )
             self._handle_actions(alert_rule_trigger, actions)
 
-            return alert_rule_trigger
         except forms.ValidationError as e:
             # if we fail in create_alert_rule_trigger, then only one message is ever returned
             raise serializers.ValidationError(e.error_list[0].message)
         except AlertRuleTriggerLabelAlreadyUsedError:
             raise serializers.ValidationError("This label is already in use for this alert rule")
+
+        if features.has(
+            "organizations:workflow-engine-metric-alert-processing",
+            alert_rule_trigger.alert_rule.organization,
+        ):
+            migrate_metric_data_conditions(alert_rule_trigger)
+        return alert_rule_trigger
 
     def update(self, instance, validated_data):
         actions = validated_data.pop("actions")
