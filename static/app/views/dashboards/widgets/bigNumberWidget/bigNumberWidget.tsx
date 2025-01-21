@@ -14,8 +14,6 @@ import {
   DEFAULT_FIELD,
   MISSING_DATA_MESSAGE,
   NON_FINITE_NUMBER_MESSAGE,
-  X_GUTTER,
-  Y_GUTTER,
 } from '../common/settings';
 import type {StateProps} from '../common/types';
 
@@ -92,6 +90,5 @@ const BigNumberResizeWrapper = styled('div')`
 
 const LoadingPlaceholder = styled('span')`
   color: ${p => p.theme[DEEMPHASIS_COLOR_NAME]};
-  padding: ${X_GUTTER} ${Y_GUTTER};
   font-size: ${p => p.theme.fontSizeLarge};
 `;
