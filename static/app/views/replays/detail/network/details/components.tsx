@@ -9,7 +9,8 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 export const Indent = styled('div')`
-  padding-left: ${space(4)};
+  padding-left: ${space(1)};
+  padding-right: ${space(1)};
 `;
 
 export const InspectorMargin = styled('div')`
