@@ -70,7 +70,7 @@ sentry-kafka-schemas>=0.1.128
 sentry-ophio==1.0.0
 sentry-protos>=0.1.51
 sentry-redis-tools>=0.1.7
-sentry-relay>=0.9.4
+sentry-relay>=0.9.5
 sentry-sdk[http2]>=2.19.2
 slack-sdk>=3.27.2
 snuba-sdk>=3.0.43
