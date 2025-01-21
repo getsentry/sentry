@@ -17,6 +17,9 @@ export function getActor(rule: CombinedAlerts): Actor | null {
   if (rule.type === CombinedAlertType.UPTIME) {
     return rule.owner;
   }
+  if (rule.type === CombinedAlertType.CRONS) {
+    return rule.owner;
+  }
 
   const ownerId = rule.owner?.split(':')[1];
   return ownerId ? {type: 'team' as Actor['type'], id: ownerId, name: ''} : null;

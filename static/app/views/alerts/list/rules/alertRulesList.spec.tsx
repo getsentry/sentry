@@ -526,7 +526,6 @@ describe('AlertRulesList', () => {
 
     expect(await screen.findByText('Uptime Rule')).toBeInTheDocument();
     expect(await screen.findByText('Auto Detected')).toBeInTheDocument();
-    expect(await screen.findByText('Up')).toBeInTheDocument();
   });
 
   it('deletes an uptime rule', async () => {

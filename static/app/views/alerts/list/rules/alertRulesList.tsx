@@ -140,10 +140,11 @@ function AlertRulesList() {
   };
 
   const handleDeleteRule = async (projectId: string, rule: CombinedAlerts) => {
-    const deleteEndpoints = {
+    const deleteEndpoints: Record<CombinedAlertType, string> = {
       [CombinedAlertType.ISSUE]: `/projects/${organization.slug}/${projectId}/rules/${rule.id}/`,
       [CombinedAlertType.METRIC]: `/organizations/${organization.slug}/alert-rules/${rule.id}/`,
       [CombinedAlertType.UPTIME]: `/projects/${organization.slug}/${projectId}/uptime/${rule.id}/`,
+      [CombinedAlertType.CRONS]: `/projects/${organization.slug}/${projectId}/monitors/${rule.id}/`,
     };
 
     try {
@@ -165,7 +166,11 @@ function AlertRulesList() {
   const ruleList = ruleListResponse.filter(defined);
   const projectsFromResults = uniq(
     ruleList.flatMap(rule =>
-      rule.type === CombinedAlertType.UPTIME ? [rule.projectSlug] : rule.projects
+      rule.type === CombinedAlertType.UPTIME
+        ? [rule.projectSlug]
+        : rule.type === CombinedAlertType.CRONS
+          ? [rule.project.slug]
+          : rule.projects
     )
   );
   const ruleListPageLinks = getResponseHeader?.('Link');
