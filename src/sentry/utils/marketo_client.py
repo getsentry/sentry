@@ -4,7 +4,7 @@ from sentry import http
 
 
 def marketo_option(field):
-    return settings.DEMO_OTHER_OPTIONS[field]
+    return settings.MARKETO[field]
 
 
 class MarketoError(Exception):
@@ -23,7 +23,7 @@ class MarketoClient:
     SUBMIT_FORM_URL = "/rest/v1/leads/submitForm.json"
 
     def make_request(self, url, *args, **kwargs):
-        base_url = marketo_option("MARKETO_BASE_URL")
+        base_url = marketo_option("base-url")
         full_url = base_url + url
         method = kwargs.pop("method", "GET")
         session = http.build_session()
@@ -45,15 +45,15 @@ class MarketoClient:
         return data
 
     def retrieve_token(self):
-        client_id = marketo_option("MARKETO_CLIENT_ID")
-        clint_secret = marketo_option("MARKETO_CLIENT_SECRET")
+        client_id = marketo_option("client-id")
+        clint_secret = marketo_option("client-secret")
 
         url = f"{self.OAUTH_URL}?grant_type=client_credentials&client_id={client_id}&client_secret={clint_secret}"
         return self.make_request(url)
 
     def submit_form(self, fields):
         body = {
-            "formId": marketo_option("MARKETO_FORM_ID"),
+            "formId": marketo_option("form-id"),
             "input": [
                 {
                     "leadFormFields": fields,
