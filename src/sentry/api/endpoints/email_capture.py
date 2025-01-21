@@ -2,6 +2,7 @@ from rest_framework import serializers
 from rest_framework.response import Response
 
 from sentry import options
+from sentry.api.api_owners import ApiOwner
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.permissions import SentryPermission
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
@@ -18,6 +19,8 @@ class EmailCaptureSerialier(CamelSnakeSerializer):
 class EmailCaptureEndpoint(Endpoint):
     # Disable authentication and permission requirements.
     permission_classes = (SentryPermission,)
+
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
 
     def post(self, request):
         if not options.get("demo-mode.enabled"):
