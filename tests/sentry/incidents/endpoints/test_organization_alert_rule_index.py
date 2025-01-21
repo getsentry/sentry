@@ -50,9 +50,11 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
+from sentry.workflow_engine.models import Action
 from tests.sentry.workflow_engine.migration_helpers.test_migrate_alert_rule import (
     assert_alert_rule_migrated,
     assert_alert_rule_resolve_trigger_migrated,
+    assert_alert_rule_trigger_action_migrated,
     assert_alert_rule_trigger_migrated,
 )
 
@@ -248,6 +250,8 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         assert_alert_rule_trigger_migrated(triggers[0])
         assert_alert_rule_trigger_migrated(triggers[1])
         assert_alert_rule_resolve_trigger_migrated(alert_rule)
+        assert_alert_rule_trigger_action_migrated(triggers[0], Action.Type.EMAIL)
+        assert_alert_rule_trigger_action_migrated(triggers[1], Action.Type.EMAIL)
 
     @with_feature("organizations:slack-metric-alert-description")
     @with_feature("organizations:incidents")
