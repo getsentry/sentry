@@ -1341,7 +1341,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
                 content_type="application/json",
             )
             assert response.status_code == 200, response.content
-            assert set([r["id"] for r in response.data]) == {
+            assert {r["id"] for r in response.data} == {
                 str(metric_rule.id),
                 str(issue_rule.id),
                 str(uptime_rule.id),
@@ -1370,4 +1370,4 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
                     content_type="application/json",
                 )
                 assert response.status_code == 200, response.content
-                assert set([r["id"] for r in response.data]) == expected_ids
+                assert {r["id"] for r in response.data} == expected_ids
