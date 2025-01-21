@@ -78,7 +78,7 @@ export default function AddCodeOwnerModal({
   const {
     data: codeownersFile,
     isPending: isCodeownersFilePending,
-    isError: _isCodeownersFileError,
+    isError: isCodeownersFileError,
   } = useApiQuery<CodeownersFile>(
     [`/organizations/${organization.slug}/code-mappings/${codeMappingId}/codeowners/`],
     {staleTime: Infinity, enabled: Boolean(codeMappingId)}
@@ -130,7 +130,7 @@ export default function AddCodeOwnerModal({
   if (isCodeMappingsPending || isIntegrationsPending) {
     return <LoadingIndicator />;
   }
-  if (isCodeMappingsError || isIntegrationsError) {
+  if (isCodeMappingsError || isIntegrationsError || isCodeownersFileError) {
     return <LoadingError />;
   }
 
