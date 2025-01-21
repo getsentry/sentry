@@ -1051,6 +1051,11 @@ class ProjectUpdateTest(APITestCase):
         assert self.project.get_option("sentry:store_crash_reports") is None
         assert b"storeCrashReports" in resp.content
 
+    def test_store_crash_reports_inherit_organization_settings(self):
+        resp = self.get_success_response(self.org_slug, self.proj_slug, storeCrashReports=None)
+        assert self.project.get_option("sentry:store_crash_reports") is None
+        assert resp.data["storeCrashReports"] is None
+
     def test_react_hydration_errors(self):
         options = {"filters:react-hydration-errors": False}
         resp = self.get_success_response(self.org_slug, self.proj_slug, options=options)
