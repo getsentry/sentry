@@ -19,7 +19,6 @@ from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.users.models.identity import Identity
 
 REPOSITORY_INTEGRATION_CHECK_FILE_METRIC = "repository_integration.check_file.{result}"
-REPOSITORY_INTEGRATION_GET_FILE_METRIC = "repository_integration.get_file.{result}"
 
 
 class BaseRepositoryIntegration(ABC):
