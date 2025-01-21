@@ -29,7 +29,6 @@ from sentry.utils import metrics
 
 _logger = logging.getLogger(__name__)
 
-SLACK_GET_CHANNEL_ID_PAGE_SIZE = 200
 SLACK_DEFAULT_TIMEOUT = 10
 MEMBER_PREFIX = "@"
 CHANNEL_PREFIX = "#"
