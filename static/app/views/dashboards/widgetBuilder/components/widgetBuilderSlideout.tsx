@@ -13,6 +13,7 @@ import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {useValidateWidgetQuery} from 'sentry/views/dashboards/hooks/useValidateWidget';
 import {
   type DashboardDetails,
   type DashboardFilters,
@@ -37,6 +38,7 @@ import WidgetBuilderTypeSelector from 'sentry/views/dashboards/widgetBuilder/com
 import Visualize from 'sentry/views/dashboards/widgetBuilder/components/visualize';
 import WidgetTemplatesList from 'sentry/views/dashboards/widgetBuilder/components/widgetTemplatesList';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 
 type WidgetBuilderSlideoutProps = {
   dashboard: DashboardDetails;
@@ -73,6 +75,10 @@ function WidgetBuilderSlideout({
   const [error, setError] = useState<Record<string, any>>({});
   const {widgetIndex} = useParams();
   const theme = useTheme();
+
+  const validatedWidgetResponse = useValidateWidgetQuery(
+    convertBuilderStateToWidget(state)
+  );
 
   const isEditing = widgetIndex !== undefined;
   const title = openWidgetTemplates
@@ -176,6 +182,7 @@ function WidgetBuilderSlideout({
             <Section>
               <WidgetBuilderQueryFilterBuilder
                 onQueryConditionChange={onQueryConditionChange}
+                validatedWidgetResponse={validatedWidgetResponse}
               />
             </Section>
             {state.displayType === DisplayType.BIG_NUMBER && (
@@ -188,7 +195,9 @@ function WidgetBuilderSlideout({
             )}
             {isChartWidget && (
               <Section>
-                <WidgetBuilderGroupBySelector />
+                <WidgetBuilderGroupBySelector
+                  validatedWidgetResponse={validatedWidgetResponse}
+                />
               </Section>
             )}
             {showSortByStep && (
