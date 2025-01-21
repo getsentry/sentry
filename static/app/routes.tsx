@@ -1497,6 +1497,10 @@ function buildRoutes() {
         component={make(() => import('sentry/views/discover/homepage'))}
       />
       <Route
+        path="trace/:traceSlug/"
+        component={make(() => import('sentry/views/performance/traceDetails'))}
+      />
+      <Route
         path="queries/"
         component={make(() => import('sentry/views/discover/landing'))}
       />
@@ -1902,6 +1906,10 @@ function buildRoutes() {
       withOrgPath
     >
       <IndexRoute component={make(() => import('sentry/views/traces/content'))} />
+      <Route
+        path="trace/:traceSlug/"
+        component={make(() => import('sentry/views/performance/traceDetails'))}
+      />
     </Route>
   );
 
@@ -1922,6 +1930,10 @@ function buildRoutes() {
       <IndexRoute
         component={make(() => import('sentry/views/feedback/feedbackListPage'))}
       />
+      <Route
+        path="trace/:traceSlug/"
+        component={make(() => import('sentry/views/performance/traceDetails'))}
+      />
     </Route>
   );
 
@@ -1929,6 +1941,10 @@ function buildRoutes() {
     <Route path="/issues" component={errorHandler(IssueListContainer)} withOrgPath>
       <IndexRoute component={errorHandler(OverviewWrapper)} />
       <Route path="searches/:searchId/" component={errorHandler(OverviewWrapper)} />
+      <Route
+        path="trace/:traceSlug/"
+        component={make(() => import('sentry/views/performance/traceDetails'))}
+      />
     </Route>
   );
 
@@ -2172,6 +2188,10 @@ function buildRoutes() {
         component={make(() => import('sentry/views/profiling/differentialFlamegraph'))}
       />
       <Route
+        path="trace/:traceSlug/"
+        component={make(() => import('sentry/views/performance/traceDetails'))}
+      />
+      <Route
         path="profile/:projectId/"
         component={make(() => import('sentry/views/profiling/continuousProfileProvider'))}
       >
@@ -2204,6 +2224,10 @@ function buildRoutes() {
         withOrgPath
       >
         <IndexRoute component={make(() => import('sentry/views/metrics/metrics'))} />
+        <Route
+          path="trace/:traceSlug/"
+          component={make(() => import('sentry/views/performance/traceDetails'))}
+        />
       </Route>
       {/* TODO(ddm): fade this out */}
       <Redirect from="/ddm/" to="/metrics/" />

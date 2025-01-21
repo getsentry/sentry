@@ -40,13 +40,12 @@ export const enum TraceViewSources {
   MOBILE_SCREENS_MODULE = 'mobile_screens_module',
   SCREEN_RENDERING_MODULE = 'screen_rendering_module',
   PERFORMANCE_TRANSACTION_SUMMARY = 'performance_transaction_summary',
-  PERFORMANCE_TRANSACTION_SUMMARY_PROFILES = 'performance_transaction_summary_profiles',
   ISSUE_DETAILS = 'issue_details',
   FEEDBACK_DETAILS = 'feedback_details',
 }
 
 // Ideally every new entry to ModuleName, would require a new source to be added here so we don't miss any.
-const TRACE_SOURCE_TO_MODULE: Partial<Record<TraceViewSources, ModuleName>> = {
+const TRACE_SOURCE_TO_INSIGHTS_MODULE: Partial<Record<TraceViewSources, ModuleName>> = {
   app_starts_module: ModuleName.APP_START,
   assets_module: ModuleName.RESOURCE,
   caches_module: ModuleName.CACHE,
@@ -59,6 +58,18 @@ const TRACE_SOURCE_TO_MODULE: Partial<Record<TraceViewSources, ModuleName>> = {
   screen_load_module: ModuleName.SCREEN_LOAD,
   screen_rendering_module: ModuleName.SCREEN_RENDERING,
   mobile_screens_module: ModuleName.MOBILE_SCREENS,
+};
+
+export const TRACE_SOURCE_TO_NON_INSIGHT_ROUTES: Partial<
+  Record<TraceViewSources, string>
+> = {
+  traces: 'traces',
+  metrics: 'metrics',
+  discover: 'discover',
+  profiling_flamegraph: 'profiling',
+  performance_transaction_summary: 'performance',
+  issue_details: 'issues',
+  feedback_details: 'feedback',
 };
 
 function getBreadCrumbTarget(
@@ -213,10 +224,12 @@ function getInsightsModuleBreadcrumbs(
 
   if (
     typeof location.query.source === 'string' &&
-    TRACE_SOURCE_TO_MODULE[location.query.source as keyof typeof TRACE_SOURCE_TO_MODULE]
+    TRACE_SOURCE_TO_INSIGHTS_MODULE[
+      location.query.source as keyof typeof TRACE_SOURCE_TO_INSIGHTS_MODULE
+    ]
   ) {
-    moduleName = TRACE_SOURCE_TO_MODULE[
-      location.query.source as keyof typeof TRACE_SOURCE_TO_MODULE
+    moduleName = TRACE_SOURCE_TO_INSIGHTS_MODULE[
+      location.query.source as keyof typeof TRACE_SOURCE_TO_INSIGHTS_MODULE
     ] as RoutableModuleNames;
     crumbs.push({
       label: MODULE_TITLES[moduleName],
@@ -343,7 +356,9 @@ export function getTraceViewBreadcrumbs(
 ): Crumb[] {
   if (
     typeof location.query.source === 'string' &&
-    TRACE_SOURCE_TO_MODULE[location.query.source as keyof typeof TRACE_SOURCE_TO_MODULE]
+    TRACE_SOURCE_TO_INSIGHTS_MODULE[
+      location.query.source as keyof typeof TRACE_SOURCE_TO_INSIGHTS_MODULE
+    ]
   ) {
     return getInsightsModuleBreadcrumbs(location, organization, moduleUrlBuilder, view);
   }
@@ -374,6 +389,16 @@ export function getTraceViewBreadcrumbs(
         {
           label: t('Metrics'),
           to: getBreadCrumbTarget(`metrics`, location.query, organization),
+        },
+        {
+          label: t('Trace View'),
+        },
+      ];
+    case TraceViewSources.FEEDBACK_DETAILS:
+      return [
+        {
+          label: t('User Feedback'),
+          to: getBreadCrumbTarget(`feedback`, location.query, organization),
         },
         {
           label: t('Trace View'),
