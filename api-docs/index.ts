@@ -1,13 +1,10 @@
-/* global process */
-/* eslint-env node */
-/* eslint import/no-unresolved:0 */
 import yaml from 'js-yaml';
 import JsonRefs from 'json-refs';
 import fs from 'node:fs';
 import path from 'node:path';
 
 function dictToString(dict) {
-  const res = [];
+  const res: string[] = [];
   for (const [k, v] of Object.entries(dict)) {
     res.push(`${k}: ${v}`);
   }
@@ -15,6 +12,7 @@ function dictToString(dict) {
 }
 
 function bundle(originalFile) {
+  // @ts-expect-error: Types do not match the version of js-yaml installed
   const root = yaml.safeLoad(fs.readFileSync(originalFile, 'utf8'));
   const options = {
     filter: ['relative', 'remote', 'local'],
@@ -22,6 +20,7 @@ function bundle(originalFile) {
     location: originalFile,
     loaderOptions: {
       processContent: function (res, callback) {
+        // @ts-expect-error: Types do not match the version of js-yaml installed
         callback(undefined, yaml.safeLoad(res.text));
       },
     },

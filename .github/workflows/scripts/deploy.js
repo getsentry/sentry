@@ -1,5 +1,3 @@
-/* eslint-env node */
-
 /**
  * GHA Workflow helpers for deploys
  *

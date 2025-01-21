@@ -1,5 +1,3 @@
-/* eslint-env node */
-
 import type {TransformOptions} from '@babel/core';
 
 const config: TransformOptions = {

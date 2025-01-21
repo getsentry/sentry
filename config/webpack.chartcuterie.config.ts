@@ -1,5 +1,3 @@
-/* eslint-env node */
-
 import childProcess from 'node:child_process';
 import path from 'node:path';
 import webpack from 'webpack';
