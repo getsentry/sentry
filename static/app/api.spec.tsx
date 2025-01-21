@@ -231,8 +231,7 @@ describe('Client', () => {
         client.clear();
         expect(cancelSpy).toHaveBeenCalled();
 
-        // I believe this is a memory leak in the old client, where the request was never
-        // actually cancelled or marked as not alive, leaving it forever stored in our client request map.
+        // Assert that the request is no longer in the activeRequests map as we would have otherwise be leaking memory
         expect(Object.keys(client.activeRequests)).toHaveLength(0);
       });
 
@@ -250,7 +249,7 @@ describe('Client', () => {
     });
 
     describe('error handling', function () {
-      it('handles 200 OK response with response.text() failure', async function () {
+      it('reports 200 OK response with response.text() failure to Sentry', async function () {
         const client = new Client();
         const scopeMock = makeScopeMock();
 
@@ -261,9 +260,7 @@ describe('Client', () => {
         const failingResponseText = new Response(null, {status: 200});
         failingResponseText.text = jest
           .fn()
-          .mockRejectedValueOnce(
-            new Error('You are not allowed to read response.text()')
-          );
+          .mockResolvedValue(`<html><body>Hello</body></html>`);
 
         jest.spyOn(global, 'fetch').mockResolvedValueOnce(failingResponseText);
 
@@ -276,8 +273,8 @@ describe('Client', () => {
         // which is a value we use down the line to determine if the response was a 200 OK that we failed to parse.
         expect(scopeMock.setExtras).toHaveBeenCalledWith(
           expect.objectContaining({
-            twoHundredErrorReason: 'Failed attempting to read response.text()',
-            errorReason: 'Error: You are not allowed to read response.text()',
+            twoHundredErrorReason: 'Failed attempting to parse JSON from responseText',
+            errorReason: 'JSON parse error. Possibly returned HTML',
           })
         );
       });
@@ -285,7 +282,7 @@ describe('Client', () => {
       // This is a bug with the old client, where we rely on status to be 200 and presence of response.text() before logging the error
       // However, if the request fails before we can read response.text(), we will not have a 200 status and response.text()
       // will not be present, hence no error will be logged. The new client handles this case correctly, skip previous client logs
-      it('handles AbortError', async function () {
+      it('does not report AbortError to Sentry', async function () {
         const client = new Client();
         const scopeMock = makeScopeMock();
 
@@ -319,18 +316,13 @@ describe('Client', () => {
         }
 
         await waitFor(() => expect(onError).toHaveBeenCalled());
-
-        expect(scopeMock.setExtras).toHaveBeenCalledWith(
-          expect.objectContaining({
-            errorReason: 'Request was aborted',
-          })
-        );
+        expect(scopeMock.setExtras).not.toHaveBeenCalled();
       });
 
       // This is a bug with the old client, where we rely on status to be 200 and presence of response.text() before logging the error
       // However, if the request fails before we can read response.text(), we will not have a 200 status and response.text()
       // will not be present, hence no error will be logged. The new client handles this case correctly, skip previous client logs.
-      it('handles generic error', async function () {
+      it('does not report generic error to Sentry that does not have response.text()', async function () {
         const client = new Client();
         const scopeMock = makeScopeMock();
 
@@ -363,12 +355,7 @@ describe('Client', () => {
         }
 
         await waitFor(() => expect(onError).toHaveBeenCalled());
-
-        expect(scopeMock.setExtras).toHaveBeenCalledWith(
-          expect.objectContaining({
-            errorReason: 'NetworkError',
-          })
-        );
+        expect(scopeMock.setExtras).not.toHaveBeenCalled();
       });
 
       it('invalid JSON parsing error', async function () {

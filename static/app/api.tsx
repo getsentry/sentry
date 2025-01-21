@@ -540,7 +540,7 @@ export class Client {
         return response;
       })
       .then(
-        body => {
+        (body): void => {
           // The user is going to be redirected to a new project, terminate the promise chain here
           // and do not call any option callbacks. This suspends the promise and ensures a callback
           // side effects are not triggered before the user is redirected.
@@ -574,9 +574,8 @@ export class Client {
           // There's no reason we should be here with a 200 response, but we get
           // tons of events from this codepath with a 200 status nonetheless.
           // Until we know why, let's do what is essentially some very fancy print debugging.
-          if (body.status === 200) {
+          if (body.status === 200 && body.responseText) {
             const parameterizedPath = sanitizePath(path);
-            const message = '200 treated as error';
 
             Sentry.withScope(scope => {
               scope.setTags({
@@ -591,10 +590,10 @@ export class Client {
                 errorReason: body.errorReason,
               });
               // Make sure all of these errors group, so we don't produce a bunch of noise
-              scope.setFingerprint([message]);
+              scope.setFingerprint(['200 treated as error']);
               Sentry.captureException(
                 new Error(
-                  `${message}: ${options.method || (options.data ? 'POST' : 'GET')} ${parameterizedPath}`
+                  `${'200 treated as error'}: ${options.method || (options.data ? 'POST' : 'GET')} ${parameterizedPath}`
                 )
               );
             });
