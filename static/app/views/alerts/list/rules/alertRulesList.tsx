@@ -191,7 +191,7 @@ function AlertRulesList() {
       <SentryDocumentTitle title={t('Alerts')} orgSlug={organization.slug} />
 
       <PageFiltersContainer>
-        <AlertHeader router={router} activeTab="rules" />
+        <AlertHeader activeTab="rules" />
         <Layout.Body>
           <Layout.Main fullWidth>
             <MetricsRemovedAlertsWidgetsAlert organization={organization} />
