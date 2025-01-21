@@ -220,7 +220,7 @@
     "terser": "5.31.6",
     "tsconfig-paths": "^4.2.0",
     "typescript-eslint": "^8.18.2",
-    "webpack-dev-server": "5.1.0"
+    "webpack-dev-server": "5.2.0"
   },
   "resolutions": {
     "react-mentions/@babel/runtime": "*"
