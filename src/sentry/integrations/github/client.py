@@ -291,6 +291,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
         """This gives information of the current rate limit"""
         return self.get_rate_limit().remaining
 
+    # XXX: Drop this method
     # https://docs.github.com/en/rest/git/trees#get-a-tree
     def get_tree(self, repo_full_name: str, tree_sha: str) -> dict[str, Any]:
         tree: Any = {}
@@ -307,13 +308,14 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
         if contents.get("truncated"):
             # e.g. getsentry/DataForThePeople
             logger.warning(
-                "The tree for %s has been truncated. Use different a approach for retrieving contents of tree.",
+                "The tree for %s has been truncated. Use different a approach for retrieving remaining contents of tree.",
                 repo_full_name,
             )
         tree = contents["tree"]
 
         return tree
 
+    # XXX: Drop this method
     def get_cached_repo_files(
         self,
         repo_full_name: str,
@@ -351,6 +353,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
 
         return repo_files
 
+    # XXX: Drop this method
     def get_trees_for_org(self, gh_org: str, cache_seconds: int = 3600 * 24) -> dict[str, RepoTree]:
         """
         This fetches tree representations of all repos for an org and saves its
@@ -372,6 +375,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
 
         return trees
 
+    # XXX: Drop this method
     def _populate_repositories(self, gh_org: str, cache_seconds: int) -> list[dict[str, str]]:
         cache_key = f"githubtrees:repositories:{gh_org}"
         repositories: list[dict[str, str]] = cache.get(cache_key, [])
@@ -390,6 +394,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
 
         return repositories
 
+    # XXX: Drop this method
     def _populate_trees_process_error(self, error: ApiError, extra: dict[str, str]) -> bool:
         """
         Log different messages based on the error received. Returns a boolean indicating whether
@@ -438,6 +443,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
 
         return should_count_error
 
+    # XXX: Drop this method
     def _populate_trees(self, repositories: list[dict[str, str]]) -> dict[str, RepoTree]:
         """
         For every repository, fetch the tree associated and cache it.
@@ -496,6 +502,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
 
         return trees
 
+    # XXX: Drop this method
     def _populate_tree(
         self, repo_info: dict[str, str], only_use_cache: bool, cache_seconds: int
     ) -> RepoTree:
@@ -506,6 +513,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
         )
         return RepoTree(RepoAndBranch(full_name, branch), repo_files)
 
+    # XXX: Merge with get_repositories in integration.py
     def get_repositories(self, fetch_max_pages: bool = False) -> Sequence[Any]:
         """
         args:

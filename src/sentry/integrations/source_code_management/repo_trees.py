@@ -6,6 +6,7 @@ from collections.abc import Sequence
 from typing import Any, NamedTuple
 
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.cache import cache
 
@@ -63,7 +64,7 @@ class RepoTreesIntegration(ABC):
         trees = {}
         if not self.org_integration:
             raise IntegrationError("Organization Integration does not exist")
-        repositories = self._get_all_repositories()
+        repositories = self._populate_repositories()
         if not repositories:
             logger.warning("Fetching repositories returned an empty list.")
         else:
@@ -71,7 +72,7 @@ class RepoTreesIntegration(ABC):
 
         return trees
 
-    def _get_all_repositories(self) -> list[RepoAndBranch]:
+    def _populate_repositories(self) -> list[RepoAndBranch]:
         cache_key = f"githubtrees:repositories:{self.org_slug}"
         repositories: list[RepoAndBranch] = cache.get(cache_key, [])
 
@@ -88,7 +89,7 @@ class RepoTreesIntegration(ABC):
 
         return repositories
 
-    def _populate_trees(self, repositories: list[RepoAndBranch]) -> dict[str, RepoTree]:
+    def _populate_trees(self, repositories: Sequence[RepoAndBranch]) -> dict[str, RepoTree]:
         """
         For every repository, fetch the tree associated and cache it.
         This function takes API rate limits into consideration to prevent exhaustion.
@@ -141,26 +142,65 @@ class RepoTreesIntegration(ABC):
         return trees
 
     def _populate_tree(
-        self,
-        repo_and_branch: RepoAndBranch,
-        use_cache: bool,
-        cache_seconds: int,
+        self, repo_and_branch: RepoAndBranch, only_use_cache: bool, cache_seconds: int
     ) -> RepoTree:
-        """It return a repo tree with all files or just source code files.
+        full_name = repo_and_branch.name
+        branch = repo_and_branch.branch
+        repo_files = self.get_cached_repo_files(
+            full_name, branch, only_use_cache=only_use_cache, cache_seconds=cache_seconds
+        )
+        return RepoTree(repo_and_branch, repo_files)
 
-        repo_and_branch: e.g. RepoAndBranch(name="getsentry/sentry", branch="main")
-        use_cache: Do not hit the network but use the value from the cache
+    # https://docs.github.com/en/rest/git/trees#get-a-tree
+    def get_tree(self, repo_full_name: str, tree_sha: str) -> list[dict[str, Any]]:
+        tree: list[dict[str, Any]] = []
+        # We do not cache this call since it is a rather large object
+        contents = self.get_client().get(
+            f"/repos/{repo_full_name}/git/trees/{tree_sha}",
+            # It will fetch all objects or subtrees referenced by the tree specified in :tree_sha
+            params={"recursive": 1},
+        )
+        assert isinstance(contents, dict)
+        # If truncated is true in the response then the number of items in the tree array exceeded our maximum limit.
+        # If you need to fetch more items, use the non-recursive method of fetching trees, and fetch one sub-tree at a time.
+        # Note: The limit for the tree array is 100,000 entries with a maximum size of 7 MB when using the recursive parameter.
+        # XXX: We will need to improve this by iterating through trees without using the recursive parameter
+        if contents.get("truncated"):
+            # e.g. getsentry/DataForThePeople
+            logger.warning(
+                "The tree for %s has been truncated. Use different a approach for retrieving remaining contents of tree.",
+                repo_full_name,
+            )
+        tree = contents["tree"]
+
+        return tree
+
+    def get_cached_repo_files(
+        self,
+        repo_full_name: str,
+        tree_sha: str,
+        only_source_code_files: bool = True,
+        only_use_cache: bool = False,
+        cache_seconds: int = 3600 * 24,
+    ) -> list[str]:
+        """It return all files for a repo or just source code files.
+
+        repo_full_name: e.g. getsentry/sentry
+        tree_sha: A branch or a commit sha
+        only_source_code_files: Include all files or just the source code files
+        only_use_cache: Do not hit the network but use the value from the cache
             if any. This is useful if the remaining API requests are low
-        only_source_code_files: Include all files in a repo or just source code files
+        cache_seconds: How long to cache a value for
         """
-        key = f"github:repo:{repo_and_branch.name}:source-code"
+        key = f"github:repo:{repo_full_name}:{'source-code' if only_source_code_files else 'all'}"
         repo_files: list[str] = cache.get(key, [])
-        if not repo_files and not use_cache:
-            tree = self.get_client().get_tree(repo_and_branch.name, repo_and_branch.branch)
+        if not repo_files and not only_use_cache:
+            tree = self.get_tree(repo_full_name, tree_sha)
             if tree:
                 # Keep files; discard directories
                 repo_files = [x["path"] for x in tree if x["type"] == "blob"]
-                repo_files = filter_source_code_files(files=repo_files)
+                if only_source_code_files:
+                    repo_files = filter_source_code_files(files=repo_files)
                 # The backend's caching will skip silently if the object size greater than 5MB
                 # The trees API does not return structures larger than 7MB
                 # As an example, all file paths in Sentry is about 1.3MB
@@ -170,20 +210,21 @@ class RepoTreesIntegration(ABC):
                 # being acceptable to sometimes not having everything cached
                 cache.set(key, repo_files, cache_seconds)
 
-        return RepoTree(repo_and_branch, repo_files)
+        return repo_files
 
 
+# These are methods that the client for the integration must implement
 class RepoTreesClient(ABC):
+    @abstractmethod
+    def get(self, *args: Any, **kwargs: Any) -> BaseApiResponseX:
+        raise NotImplementedError
+
     @abstractmethod
     def get_trees_for_org(self) -> dict[str, RepoTree]:
         raise NotImplementedError
 
     @abstractmethod
     def get_remaining_api_requests(self) -> int:
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_tree(self, repo_full_name: str, tree_sha: str) -> dict[str, Any]:
         raise NotImplementedError
 
     @abstractmethod

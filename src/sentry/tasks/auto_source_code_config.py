@@ -124,15 +124,6 @@ def auto_source_code_config(
         logger.error("No installation or organization integration found.", extra=extra)
         return
 
-    if not hasattr(installation, "get_trees_for_org") and not hasattr(
-        installation, "get_trees_for_org_old"
-    ):
-        logger.error(
-            "Installation does not have required method get_trees_for_org",
-            extra={"installation_type": type(installation).__name__, **extra},
-        )
-        return
-
     trees = get_trees_for_org(installation, org, extra)
     trees_helper = CodeMappingTreesHelper(trees)
     code_mappings = trees_helper.generate_code_mappings(stacktrace_paths)
@@ -140,9 +131,18 @@ def auto_source_code_config(
 
 
 def get_trees_for_org(
-    installation: IntegrationInstallation, org: Organization, extra: Mapping[str, Any]
+    installation: IntegrationInstallation, org: Organization, extra: dict[str, Any]
 ) -> dict[str, Any]:
-    trees = {}
+    trees: dict[str, Any] = {}
+    if not hasattr(installation, "get_trees_for_org") and not hasattr(
+        installation, "get_trees_for_org_old"
+    ):
+        logger.error(
+            "Installation does not have required method get_trees_for_org",
+            extra={"installation_type": type(installation).__name__, **extra},
+        )
+        return trees
+
     # Acquire the lock for a maximum of 10 minutes
     lock = locks.get(key=f"get_trees_for_org:{org.slug}", duration=60 * 10, name="process_pending")
 
