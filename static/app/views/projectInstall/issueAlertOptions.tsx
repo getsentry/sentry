@@ -100,7 +100,7 @@ function getConditionFrom(
 }
 
 function unpackConditions(conditions: any[]) {
-  const equalityReducer = (acc, curr) => {
+  const equalityReducer = (acc: any, curr: any) => {
     if (!acc || !curr || !isEqual(acc, curr)) {
       return null;
     }
@@ -132,7 +132,7 @@ class IssueAlertOptions extends DeprecatedAsyncComponent<Props, State> {
       {value: MetricValues.USERS, label: t('users affected by')},
     ].filter(({value}) => {
       return this.state.conditions?.some?.(
-        object => object?.id === METRIC_CONDITION_MAP[value]
+        (object: any) => object?.id === METRIC_CONDITION_MAP[value]
       );
     });
   }
@@ -168,7 +168,9 @@ class IssueAlertOptions extends DeprecatedAsyncComponent<Props, State> {
         <InlineSelectControl
           value={this.state.metric}
           options={this.getAvailableMetricOptions()}
-          onChange={metric => this.setStateAndUpdateParents({metric: metric.value})}
+          onChange={(metric: any) =>
+            this.setStateAndUpdateParents({metric: metric.value})
+          }
         />
         {t('a unique error in')}
         <InlineSelectControl
@@ -177,7 +179,9 @@ class IssueAlertOptions extends DeprecatedAsyncComponent<Props, State> {
             value,
             label,
           }))}
-          onChange={interval => this.setStateAndUpdateParents({interval: interval.value})}
+          onChange={(interval: any) =>
+            this.setStateAndUpdateParents({interval: interval.value})
+          }
         />
       </CustomizeAlert>,
     ];
@@ -261,7 +265,7 @@ class IssueAlertOptions extends DeprecatedAsyncComponent<Props, State> {
   }
 
   onLoadAllEndpointsSuccess(): void {
-    const conditions = this.state.conditions?.filter?.(object =>
+    const conditions = this.state.conditions?.filter?.((object: any) =>
       Object.values(METRIC_CONDITION_MAP).includes(object?.id)
     );
 
@@ -289,7 +293,9 @@ class IssueAlertOptions extends DeprecatedAsyncComponent<Props, State> {
 
     const newInterval =
       this.props.interval &&
-      intervalChoices.some(intervalChoice => intervalChoice[0] === this.props.interval)
+      intervalChoices.some(
+        (intervalChoice: any) => intervalChoice[0] === this.props.interval
+      )
         ? this.props.interval
         : interval;
 

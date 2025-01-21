@@ -29,7 +29,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
-import type {Organization} from 'sentry/types/organization';
+import type {Confidence, Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -110,6 +110,7 @@ export interface WidgetViewerModalOptions {
   organization: Organization;
   widget: Widget;
   widgetLegendState: WidgetLegendSelectionState;
+  confidence?: Confidence;
   dashboardCreator?: User;
   dashboardFilters?: DashboardFilters;
   dashboardPermissions?: DashboardPermissions;
@@ -133,7 +134,7 @@ const HALF_CONTAINER_HEIGHT = 300;
 const BIG_NUMBER_HEIGHT = 160;
 const EMPTY_QUERY_NAME = '(Empty Query Condition)';
 
-const shouldWidgetCardChartMemo = (prevProps, props) => {
+const shouldWidgetCardChartMemo = (prevProps: any, props: any) => {
   const selectionMatches = props.selection === prevProps.selection;
   const sortMatches =
     props.location.query[WidgetViewerQueryField.SORT] ===
@@ -195,6 +196,7 @@ function WidgetViewerModal(props: Props) {
     widgetLegendState,
     dashboardPermissions,
     dashboardCreator,
+    confidence,
   } = props;
   const location = useLocation();
   const {projects} = useProjects();
@@ -683,7 +685,7 @@ function WidgetViewerModal(props: Props) {
     );
   };
 
-  const onZoom = (_evt, chart) => {
+  const onZoom = (_evt: any, chart: any) => {
     const model = chart.getModel();
     const {startValue, endValue} = model._payload.batch[0];
     const newStart = getUtcDateString(moment.utc(startValue));
@@ -852,6 +854,8 @@ function WidgetViewerModal(props: Props) {
                 expandNumbers
                 noPadding
                 widgetLegendState={widgetLegendState}
+                showConfidenceWarning={widget.widgetType === WidgetType.SPANS}
+                confidence={confidence}
               />
             ) : (
               <MemoizedWidgetCardChartContainer
@@ -870,6 +874,7 @@ function WidgetViewerModal(props: Props) {
                 expandNumbers
                 noPadding
                 widgetLegendState={widgetLegendState}
+                showConfidenceWarning={widget.widgetType === WidgetType.SPANS}
               />
             )}
           </Container>
@@ -908,7 +913,7 @@ function WidgetViewerModal(props: Props) {
               }}
               components={{
                 // Replaces the displayed selected value
-                SingleValue: containerProps => {
+                SingleValue: (containerProps: any) => {
                   return (
                     <components.SingleValue
                       {...containerProps}
@@ -930,7 +935,7 @@ function WidgetViewerModal(props: Props) {
                   );
                 },
                 // Replaces the dropdown options
-                Option: containerProps => {
+                Option: (containerProps: any) => {
                   const highlightedQuery = containerProps.data.getHighlightedQuery({
                     display: 'flex',
                   });
@@ -955,7 +960,9 @@ function WidgetViewerModal(props: Props) {
                   );
                 },
                 // Hide the dropdown indicator if there is only one option
-                ...(widget.queries.length < 2 ? {IndicatorsContainer: _ => null} : {}),
+                ...(widget.queries.length < 2
+                  ? {IndicatorsContainer: (_: any) => null}
+                  : {}),
               }}
               isSearchable={false}
               isDisabled={widget.queries.length < 2}

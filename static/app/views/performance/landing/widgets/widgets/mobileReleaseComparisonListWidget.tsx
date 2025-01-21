@@ -311,7 +311,7 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
           valueFormatter: value =>
             tooltipFormatterUsingAggregateOutputType(value, 'duration'),
         }}
-        // @ts-expect-error error does not exist on chart?
+        // @ts-ignore TS(2339): Property 'error' does not exist on type 'WidgetDat... Remove this comment to see the full error message
         error={provided.widgetData.chart.error}
         disableXAxis
         showLegend={false}

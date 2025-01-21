@@ -8,7 +8,7 @@ import DetailLayout from './detail';
 import EditLayout from './edit';
 import ListLayout from './list';
 
-function Fixture({children}) {
+function Fixture({children}: any) {
   return (
     <SentryDocumentTitle title="title-test-value" noSuffix>
       <BreadcrumbsProvider crumb={{label: 'breadcrumb-test-value', to: '#breadcrumb'}}>

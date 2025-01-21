@@ -183,7 +183,7 @@ export default function ProjectCreationModal({
                 clearable={false}
                 value={team}
                 placeholder={t('Select a Team')}
-                onChange={choice => setTeam(choice.value)}
+                onChange={(choice: any) => setTeam(choice.value)}
                 teamFilter={(tm: Team) => tm.access.includes('team:admin')}
               />
             </div>

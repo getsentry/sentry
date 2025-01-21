@@ -143,11 +143,7 @@ function Chart({
   onLegendSelectChanged,
   onDataZoom,
   legendOptions,
-  /**
-   * Setting a default formatter for some reason causes `>` to
-   * render correctly instead of rendering as `&gt;` in the legend.
-   */
-  legendFormatter = name => name,
+  legendFormatter,
 }: Props) {
   const theme = useTheme();
   const pageFilters = usePageFilters();
@@ -324,13 +320,16 @@ function Chart({
       const uniqueSeries = new Set<string>();
       deDupedParams = params.filter(param => {
         // Filter null values from tooltip
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         if (param.value[1] === null) {
           return false;
         }
 
+        // @ts-ignore TS(2345): Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
         if (uniqueSeries.has(param.seriesName)) {
           return false;
         }
+        // @ts-ignore TS(2345): Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
         uniqueSeries.add(param.seriesName);
         return true;
       });
@@ -352,7 +351,13 @@ function Chart({
   };
 
   const legend = isLegendVisible
-    ? {top: 0, right: 10, formatter: legendFormatter, ...legendOptions}
+    ? {
+        top: 0,
+        right: 10,
+        truncate: true,
+        formatter: legendFormatter,
+        ...legendOptions,
+      }
     : undefined;
 
   const areaChartProps = {
@@ -643,7 +648,7 @@ export function useSynchronizeCharts(
   ]);
 }
 
-const StyledTransparentLoadingMask = styled(props => (
+const StyledTransparentLoadingMask = styled((props: any) => (
   <TransparentLoadingMask {...props} maskBackgroundColor="transparent" />
 ))`
   display: flex;

@@ -521,7 +521,7 @@ const TruncatedLabel = styled(TextOverflow)<{hasNewNav?: boolean}>`
     `}
 `;
 
-const getCollapsedBadgeStyle = ({collapsed, theme}) => {
+const getCollapsedBadgeStyle = ({collapsed, theme}: any) => {
   if (!collapsed) {
     return '';
   }
@@ -540,6 +540,7 @@ const getCollapsedBadgeStyle = ({collapsed, theme}) => {
   `;
 };
 
+// @ts-ignore TS(7031): Binding element '_' implicitly has an 'any' type.
 const SidebarItemBadge = styled(({collapsed: _, ...props}) => <span {...props} />)`
   display: block;
   text-align: center;

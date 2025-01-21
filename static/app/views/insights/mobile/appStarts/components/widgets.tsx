@@ -5,7 +5,7 @@ import {space} from 'sentry/styles/space';
 import DeviceClassBreakdownBarChart from 'sentry/views/insights/mobile/appStarts/components/charts/deviceClassBreakdownBarChart';
 import StartDurationWidget from 'sentry/views/insights/mobile/appStarts/components/startDurationWidget';
 
-function SummaryWidgets({additionalFilters}) {
+function SummaryWidgets({additionalFilters}: any) {
   return (
     <WidgetLayout>
       <div style={{gridArea: '1 / 1'}}>

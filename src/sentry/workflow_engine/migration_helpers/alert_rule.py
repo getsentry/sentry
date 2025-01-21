@@ -180,14 +180,15 @@ def migrate_metric_data_conditions(
         if alert_rule.threshold_type == AlertRuleThresholdType.ABOVE.value
         else Condition.LESS
     )
+    condition_result = (
+        DetectorPriorityLevel.MEDIUM
+        if alert_rule_trigger.label == "warning"
+        else DetectorPriorityLevel.HIGH
+    )
 
     detector_trigger = DataCondition.objects.create(
         comparison=alert_rule_trigger.alert_threshold,
-        condition_result=(
-            DetectorPriorityLevel.MEDIUM
-            if alert_rule_trigger.label == "warning"
-            else DetectorPriorityLevel.HIGH
-        ),
+        condition_result=condition_result,
         type=threshold_type,
         condition_group=detector_data_condition_group,
     )
@@ -204,6 +205,7 @@ def migrate_metric_data_conditions(
         condition_group=data_condition_group,
         workflow=alert_rule_workflow.workflow,
     )
+
     action_filter = DataCondition.objects.create(
         comparison=(
             DetectorPriorityLevel.MEDIUM

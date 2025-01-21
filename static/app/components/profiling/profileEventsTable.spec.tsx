@@ -8,7 +8,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {FieldValueType} from 'sentry/utils/fields';
 import type {EventsResults} from 'sentry/utils/profiling/hooks/types';
 
-function customEncodeURIComponent(str) {
+function customEncodeURIComponent(str: string) {
   return encodeURIComponent(str).replace(/[!'()*]/g, function (c) {
     return '%' + c.charCodeAt(0).toString(16);
   });

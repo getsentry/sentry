@@ -4,10 +4,10 @@ from django import forms
 from django.conf import settings
 from rest_framework.request import Request
 
+from sentry import analytics
 from sentry.models.activity import Activity
 from sentry.models.groupmeta import GroupMeta
 from sentry.plugins.base.v1 import Plugin
-from sentry.signals import issue_tracker_used
 from sentry.types.activity import ActivityType
 from sentry.users.services.usersocialauth.model import RpcUserSocialAuth
 from sentry.users.services.usersocialauth.service import usersocialauth_service
@@ -207,12 +207,15 @@ class IssueTrackingPlugin(Plugin):
                             data=issue_information,
                         )
 
-                        issue_tracker_used.send_robust(
-                            plugin=self,
-                            project=group.project,
-                            user=request.user,
-                            sender=IssueTrackingPlugin,
+                        analytics.record(
+                            "issue_tracker.used",
+                            user_id=request.user.id,
+                            default_user_id=project.organization.get_default_owner().id,
+                            organization_id=project.organization_id,
+                            project_id=project.id,
+                            issue_tracker=self.slug,
                         )
+
                         return self.redirect(group.get_absolute_url())
 
         context = {
@@ -227,7 +230,7 @@ class IssueTrackingPlugin(Plugin):
 
         return self.render(self.create_issue_template, context)
 
-    def actions(self, request: Request, group, action_list, **kwargs):
+    def actions(self, group, action_list, **kwargs):
         if not self.is_configured(project=group.project):
             return action_list
         prefix = self.get_conf_key()

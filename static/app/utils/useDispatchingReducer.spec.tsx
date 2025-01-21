@@ -167,7 +167,7 @@ describe('useDispatchingReducer', () => {
     const initialState = {};
     const {result} = renderHook(() => useDispatchingReducer(reducer, initialState));
 
-    result.current[2].on('before action', (_state, action) => {
+    result.current[2].on('before action', (_state: any, action: any) => {
       if (action === 'a') {
         result.current[1]('b');
       }
