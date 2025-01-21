@@ -1309,3 +1309,65 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             # without performance-view, we should only see events rules
             res = self.get_success_response(self.organization.slug)
             self.assert_alert_rule_serialized(events_rule, res.data[0], skip_dates=True)
+
+    def test_alert_type_filter(self):
+        # Setup one of each type of alert rule
+        metric_rule = self.create_alert_rule()
+        issue_rule = self.create_issue_alert_rule(
+            data={
+                "project": self.project,
+                "name": "Issue Rule Test",
+                "conditions": [],
+                "actions": [],
+                "actionMatch": "all",
+                "date_added": before_now(minutes=4),
+            }
+        )
+        uptime_rule = self.create_project_uptime_subscription(project=self.project)
+        cron_rule = self.create_monitor(project=self.project)
+
+        features = [
+            "organizations:incidents",
+            "organizations:performance-view",
+            "organizations:insights-crons",
+        ]
+
+        # Everything comes back without the query parameter
+        with self.feature(features):
+            request_data = {"per_page": "10", "project": [self.project.id]}
+            response = self.client.get(
+                path=self.combined_rules_url,
+                data=request_data,
+                content_type="application/json",
+            )
+            assert response.status_code == 200, response.content
+            assert set([r["id"] for r in response.data]) == {
+                str(metric_rule.id),
+                str(issue_rule.id),
+                str(uptime_rule.id),
+                str(cron_rule.guid),
+            }
+
+        test_cases: list[tuple[list[str], set[str]]] = [
+            (["rule"], {str(issue_rule.id)}),
+            (["alert_rule"], {str(metric_rule.id)}),
+            (["monitor"], {str(cron_rule.guid)}),
+            (["uptime"], {str(uptime_rule.id)}),
+            (["rule", "alert_rule"], {str(issue_rule.id), str(metric_rule.id)}),
+            (["uptime", "monitor"], {str(uptime_rule.id), str(cron_rule.guid)}),
+        ]
+
+        for alert_type, expected_ids in test_cases:
+            with self.feature(features):
+                request_data = {
+                    "per_page": "10",
+                    "project": [self.project.id],
+                    "alertType": alert_type,
+                }
+                response = self.client.get(
+                    path=self.combined_rules_url,
+                    data=request_data,
+                    content_type="application/json",
+                )
+                assert response.status_code == 200, response.content
+                assert set([r["id"] for r in response.data]) == expected_ids
