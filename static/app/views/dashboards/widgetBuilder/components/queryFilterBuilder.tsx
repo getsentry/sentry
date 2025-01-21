@@ -160,17 +160,6 @@ function WidgetBuilderQueryFilterBuilder({
             widgetQuery={widget.queries[index]!}
             dataset={getDiscoverDatasetFromWidgetType(widgetType)}
           />
-          {shouldDisplayOnDemandWidgetWarning(
-            widget.queries[index]!,
-            widgetType,
-            organization
-          ) && (
-            <WidgetOnDemandQueryWarning
-              query={widget.queries[index]!}
-              validatedWidgetResponse={validatedWidgetResponse}
-              queryIndex={index}
-            />
-          )}
           {canHaveAlias && (
             <LegendAliasInput
               type="text"
@@ -185,6 +174,17 @@ function WidgetBuilderQueryFilterBuilder({
                     : [e.target.value],
                 });
               }}
+            />
+          )}
+          {shouldDisplayOnDemandWidgetWarning(
+            widget.queries[index]!,
+            widgetType,
+            organization
+          ) && (
+            <WidgetOnDemandQueryWarning
+              query={widget.queries[index]!}
+              validatedWidgetResponse={validatedWidgetResponse}
+              queryIndex={index}
             />
           )}
           {state.query && state.query?.length > 1 && (
