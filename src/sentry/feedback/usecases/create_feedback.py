@@ -217,6 +217,7 @@ def should_filter_feedback(event, project_id, source: FeedbackCreationSource):
                     "has_feedback": feedback != {},
                     "event_type": event.get("type"),
                     "feedback_message": feedback_msg,
+                    "platform": project.platform,
                     "referrer": source.value,
                 },
             )
@@ -247,6 +248,7 @@ def should_filter_feedback(event, project_id, source: FeedbackCreationSource):
             extra={
                 "project_id": project_id,
                 "organization_id": project.organization_id,
+                "platform": project.platform,
                 "referrer": source.value,
             },
         )
