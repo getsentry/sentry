@@ -12,16 +12,9 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import AndFilter, OrFilter, Tr
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.columns import ResolvedColumn, ResolvedFunction
-from sentry.search.eap.constants import (
-    BOOLEAN,
-    DOUBLE,
-    FLOAT,
-    INT,
-    MAX_ROLLUP_POINTS,
-    STRING,
-    VALID_GRANULARITIES,
-)
-from sentry.search.eap.spans import SearchResolver
+from sentry.search.eap.constants import MAX_ROLLUP_POINTS, VALID_GRANULARITIES
+from sentry.search.eap.resolver import SearchResolver
+from sentry.search.eap.span_columns import SPAN_DEFINITIONS
 from sentry.search.eap.types import CONFIDENCES, ConfidenceData, EAPResponse, SearchResolverConfig
 from sentry.search.events.fields import get_function_alias, is_function
 from sentry.search.events.types import EventsMeta, SnubaData, SnubaParams
@@ -39,6 +32,14 @@ def categorize_column(column: ResolvedColumn | ResolvedFunction) -> Column:
         return Column(key=column.proto_definition, label=column.public_alias)
 
 
+def get_resolver(params: SnubaParams, config: SearchResolverConfig) -> SearchResolver:
+    return SearchResolver(
+        params=params,
+        config=config,
+        definitions=SPAN_DEFINITIONS,
+    )
+
+
 @sentry_sdk.trace
 def run_table_query(
     params: SnubaParams,
@@ -53,10 +54,10 @@ def run_table_query(
 ) -> EAPResponse:
     """Make the query"""
     resolver = (
-        SearchResolver(params=params, config=config) if search_resolver is None else search_resolver
+        get_resolver(params=params, config=config) if search_resolver is None else search_resolver
     )
     meta = resolver.resolve_meta(referrer=referrer)
-    query, query_contexts = resolver.resolve_query(query_string)
+    where, having, query_contexts = resolver.resolve_query(query_string)
     columns, column_contexts = resolver.resolve_columns(selected_columns)
     contexts = resolver.clean_contexts(query_contexts + column_contexts)
     # We allow orderby function_aliases if they're a selected_column
@@ -89,7 +90,8 @@ def run_table_query(
     """Run the query"""
     rpc_request = TraceItemTableRequest(
         meta=meta,
-        filter=query,
+        filter=where,
+        aggregation_filter=having,
         columns=labeled_columns,
         group_by=(
             [
@@ -137,16 +139,7 @@ def run_table_query(
 
         for index, result in enumerate(column_value.results):
             result_value: str | int | float
-            if resolved_column.proto_type == STRING:
-                result_value = result.val_str
-            elif resolved_column.proto_type == INT:
-                result_value = result.val_int
-            elif resolved_column.proto_type == FLOAT:
-                result_value = result.val_float
-            elif resolved_column.proto_type == DOUBLE:
-                result_value = result.val_double
-            elif resolved_column.proto_type == BOOLEAN:
-                result_value = result.val_bool
+            result_value = getattr(result, str(result.WhichOneof("value")))
             result_value = process_value(result_value)
             final_data[index][attribute] = resolved_column.process_column(result_value)
             if has_reliability:
@@ -167,9 +160,9 @@ def get_timeseries_query(
     granularity_secs: int,
     extra_conditions: TraceItemFilter | None = None,
 ) -> TimeSeriesRequest:
-    resolver = SearchResolver(params=params, config=config)
+    resolver = get_resolver(params=params, config=config)
     meta = resolver.resolve_meta(referrer=referrer)
-    query, query_contexts = resolver.resolve_query(query_string)
+    query, _, query_contexts = resolver.resolve_query(query_string)
     (aggregations, _) = resolver.resolve_aggregates(y_axes)
     (groupbys, _) = resolver.resolve_columns(groupby)
     if extra_conditions is not None:
@@ -344,7 +337,7 @@ def run_top_events_timeseries_query(
     change this"""
     """Make a table query first to get what we need to filter by"""
     validate_granularity(params, granularity_secs)
-    search_resolver = SearchResolver(params, config)
+    search_resolver = get_resolver(params, config)
     top_events = run_table_query(
         params,
         query_string,

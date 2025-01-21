@@ -1,9 +1,10 @@
 from typing import Literal
 
+from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import AggregationComparisonFilter
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter
 
-from sentry.search.events.constants import DurationUnit, SizeUnit
+from sentry.search.events.constants import DURATION_UNITS, SIZE_UNITS, DurationUnit, SizeUnit
 
 OPERATOR_MAP = {
     "=": ComparisonFilter.OP_EQUALS,
@@ -17,6 +18,15 @@ OPERATOR_MAP = {
 }
 IN_OPERATORS = ["IN", "NOT IN"]
 
+AGGREGATION_OPERATOR_MAP = {
+    "=": AggregationComparisonFilter.OP_EQUALS,
+    "!=": AggregationComparisonFilter.OP_NOT_EQUALS,
+    ">": AggregationComparisonFilter.OP_GREATER_THAN,
+    "<": AggregationComparisonFilter.OP_LESS_THAN,
+    ">=": AggregationComparisonFilter.OP_GREATER_THAN_OR_EQUALS,
+    "<=": AggregationComparisonFilter.OP_LESS_THAN_OR_EQUALS,
+}
+
 SearchType = (
     SizeUnit
     | DurationUnit
@@ -29,6 +39,10 @@ SearchType = (
         "boolean",
     ]
 )
+
+SIZE_TYPE: set[SearchType] = set(SIZE_UNITS.keys())
+
+DURATION_TYPE: set[SearchType] = set(DURATION_UNITS.keys())
 
 STRING = AttributeKey.TYPE_STRING
 BOOLEAN = AttributeKey.TYPE_BOOLEAN

@@ -1,3 +1,4 @@
+import {defined} from 'sentry/utils';
 import type {createContinuousProfileFrameIndex} from 'sentry/utils/profiling/profile/utils';
 
 import {CallTreeNode} from '../callTreeNode';
@@ -15,6 +16,7 @@ export class ContinuousProfile extends Profile {
     chunk: Profiling.ContinuousProfile,
     frameIndex: ReturnType<typeof createContinuousProfileFrameIndex>,
     options: {
+      minTimestamp: number;
       type: 'flamechart' | 'flamegraph';
       frameFilter?: (frame: Frame) => boolean;
     }
@@ -25,10 +27,11 @@ export class ContinuousProfile extends Profile {
     const {threadId, threadName} = getThreadData(chunk);
 
     const profile = new ContinuousProfile({
-      // Duration is in seconds, convert to nanoseconds
+      timestamp: options.minTimestamp,
+      // Duration is in seconds, convert to milliseconds
       duration: (lastSample.timestamp - firstSample.timestamp) * 1e3,
-      endedAt: lastSample.timestamp * 1e3,
-      startedAt: firstSample.timestamp * 1e3,
+      endedAt: (lastSample.timestamp - options.minTimestamp) * 1e3,
+      startedAt: (firstSample.timestamp - options.minTimestamp) * 1e3,
       threadId,
       name: threadName,
       type: options.type,
@@ -194,4 +197,28 @@ function getThreadData(profile: Profiling.ContinuousProfile): {
     threadId,
     threadName: thread_metadata?.[threadId]?.name ?? `Thread ${threadId}`,
   };
+}
+
+export function minTimestampInChunk(
+  chunk: Readonly<Profiling.ContinuousProfile>,
+  measurements?: Readonly<Profiling.ContinuousMeasurements>
+): number {
+  let timestamp: number | null = null;
+
+  for (let i = 0; i < chunk.samples.length; i++) {
+    const sample = chunk.samples[i]!;
+    if (!defined(timestamp) || timestamp > sample.timestamp) {
+      timestamp = sample.timestamp;
+    }
+  }
+
+  for (const measurement of Object.values(measurements ?? {})) {
+    for (const value of measurement.values) {
+      if (!defined(timestamp) || timestamp > value.timestamp) {
+        timestamp = value.timestamp;
+      }
+    }
+  }
+
+  return timestamp || 0;
 }

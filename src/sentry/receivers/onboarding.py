@@ -18,8 +18,6 @@ from sentry.models.organizationonboardingtask import (
 )
 from sentry.models.project import Project
 from sentry.onboarding_tasks import try_mark_onboarding_complete
-from sentry.plugins.bases.issue import IssueTrackingPlugin
-from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 from sentry.signals import (
     alert_rule_created,
     cron_monitor_created,
@@ -37,10 +35,8 @@ from sentry.signals import (
     first_replay_received,
     first_transaction_received,
     integration_added,
-    issue_tracker_used,
     member_invited,
     member_joined,
-    plugin_enabled,
     project_created,
     transaction_processed,
 )
@@ -563,34 +559,6 @@ def record_sourcemaps_received_for_project(project, event, **kwargs):
             )
 
 
-@plugin_enabled.connect(weak=False)
-def record_plugin_enabled(plugin, project, user, **kwargs):
-    if isinstance(plugin, IssueTrackingPlugin) or isinstance(plugin, IssueTrackingPlugin2):
-        task = OnboardingTask.ISSUE_TRACKER
-        status = OnboardingTaskStatus.PENDING
-    else:
-        return
-
-    success = OrganizationOnboardingTask.objects.record(
-        organization_id=project.organization_id,
-        task=task,
-        status=status,
-        user_id=user.id if user else None,
-        project_id=project.id,
-        data={"plugin": plugin.slug},
-    )
-    if success:
-        try_mark_onboarding_complete(project.organization_id)
-
-    analytics.record(
-        "plugin.enabled",
-        user_id=user.id if user else None,
-        organization_id=project.organization_id,
-        project_id=project.id,
-        plugin=plugin.slug,
-    )
-
-
 @alert_rule_created.connect(weak=False)
 def record_alert_rule_created(user, project: Project, rule_type: str, **kwargs):
     # The quick start now only has a task for issue alert rules.
@@ -610,47 +578,6 @@ def record_alert_rule_created(user, project: Project, rule_type: str, **kwargs):
 
     if rows_affected or created:
         try_mark_onboarding_complete(project.organization_id)
-
-
-@issue_tracker_used.connect(weak=False)
-def record_issue_tracker_used(plugin, project, user, **kwargs):
-    rows_affected, created = OrganizationOnboardingTask.objects.create_or_update(
-        organization_id=project.organization_id,
-        task=OnboardingTask.ISSUE_TRACKER,
-        status=OnboardingTaskStatus.PENDING,
-        values={
-            "status": OnboardingTaskStatus.COMPLETE,
-            "user_id": user.id,
-            "project_id": project.id,
-            "date_completed": django_timezone.now(),
-            "data": {"plugin": plugin.slug},
-        },
-    )
-
-    if rows_affected or created:
-        try_mark_onboarding_complete(project.organization_id)
-
-    if user and user.is_authenticated:
-        user_id = default_user_id = user.id
-    else:
-        user_id = None
-        try:
-            default_user_id = project.organization.get_default_owner().id
-        except IndexError:
-            logger.warning(
-                "Cannot record issue tracker used for organization (%s) due to missing owners",
-                project.organization_id,
-            )
-            return
-
-    analytics.record(
-        "issue_tracker.used",
-        user_id=user_id,
-        default_user_id=default_user_id,
-        organization_id=project.organization_id,
-        project_id=project.id,
-        issue_tracker=plugin.slug,
-    )
 
 
 @integration_added.connect(weak=False)

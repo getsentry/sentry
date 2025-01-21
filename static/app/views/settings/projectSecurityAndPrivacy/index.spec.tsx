@@ -1,3 +1,4 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -7,13 +8,21 @@ import ProjectSecurityAndPrivacy from 'sentry/views/settings/projectSecurityAndP
 
 describe('projectSecurityAndPrivacy', function () {
   it('renders form fields', function () {
-    const {organization} = initializeOrg();
+    const organization = OrganizationFixture({features: ['event-attachments']});
     const project = ProjectFixture({
       sensitiveFields: ['creditcard', 'ssn'],
       safeFields: ['business-email', 'company'],
     });
 
     render(<ProjectSecurityAndPrivacy project={project} organization={organization} />);
+
+    // Store Minidumps As Attachments
+    expect(
+      screen.getByRole('textbox', {
+        name: 'Store Minidumps As Attachments',
+      })
+    ).not.toHaveValue();
+    expect(screen.getByText(/Inherit organization settings/)).toBeInTheDocument();
 
     expect(
       screen.getByRole('checkbox', {
