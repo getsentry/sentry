@@ -213,7 +213,7 @@
     "jest-fail-on-console": "3.3.0",
     "jest-junit": "16.0.0",
     "postcss-styled-syntax": "0.7.0",
-    "react-refresh": "0.14.0",
+    "react-refresh": "0.16.0",
     "stylelint": "16.10.0",
     "stylelint-config-recommended": "^14.0.1",
     "terser": "5.31.6",
