@@ -43,7 +43,7 @@ export default function Modal({onAddedEmail, closeModal, onFailure}: Props) {
   };
 
   const handleSubmit = useCallback(
-    async email => {
+    async (email: string) => {
       const utmState = GetUTMData();
       if (closeModal) {
         closeModal();

@@ -58,7 +58,7 @@ export function openDemoEmailModal() {
   demoEmailModal({onAddedEmail, onFailure: handleFailure});
 }
 
-function onAddedEmail(email) {
+function onAddedEmail(email: string) {
   setForceHide(false);
   localStorage.setItem(DEMO_MODE_EMAIL_KEY, email);
 }
