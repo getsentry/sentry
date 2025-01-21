@@ -106,10 +106,10 @@ function DashboardGrid({
     try {
       await updateDashboardFavorite(api, organization.slug, dashboard.id, isFavorited);
       onDashboardsChange();
-      trackAnalytics('dashboards_manage.favourite', {
+      trackAnalytics('dashboards_manage.toggle_favorite', {
         organization,
         dashboard_id: dashboard.id,
-        favourited: isFavorited,
+        favorited: isFavorited,
       });
     } catch (error) {
       throw error;
