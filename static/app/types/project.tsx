@@ -60,6 +60,7 @@ export type Project = {
   scrubIPAddresses: boolean;
   sensitiveFields: string[];
   storeCrashReports: number | null;
+  subjectTemplate: string;
   team: Team;
   teams: Team[];
   verifySSL: boolean;
