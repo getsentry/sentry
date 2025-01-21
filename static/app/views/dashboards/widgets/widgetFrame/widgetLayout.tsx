@@ -50,7 +50,7 @@ const Frame = styled('div')`
   min-width: ${MIN_WIDTH}px;
 
   border-radius: ${p => p.theme.panelBorderRadius};
-  border: 1px solid ${p.theme.border};
+  border: 1px solid ${p => p.theme.border};
 
   background: ${p => p.theme.background};
 

@@ -1,17 +1,17 @@
-import {Button} from 'sentry/components/button';
 import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-export interface FullScreenViewButtonProps {
+import {WidgetButton} from './widgetButton';
+
+export interface WidgetFullScreenButtonProps {
   onClick?: () => void | Promise<void>;
 }
 
-export function FullScreenViewButton(props: FullScreenViewButtonProps) {
+export function WidgetFullScreenButton(props: WidgetFullScreenButtonProps) {
   return (
-    <Button
+    <WidgetButton
       aria-label={t('Open Full-Screen View')}
       borderless
-      size="xs"
       icon={<IconExpand />}
       onClick={() => {
         props.onClick?.();

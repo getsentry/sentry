@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
 import type {BadgeProps} from 'sentry/components/badge/badge';
-import {Button, LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -14,13 +14,14 @@ import {TooltipIconTrigger} from '../common/tooltipIconTrigger';
 import type {StateProps} from '../common/types';
 import {WarningsList} from '../common/warningsList';
 
-import {DescriptionTooltip, type DescriptionTooltipProps} from './descriptionTooltip';
-import {FullScreenViewButton} from './fullScreenViewButton';
-import {TitleTooltip} from './titleTooltip';
 import {WidgetBadge} from './widgetBadge';
+import {WidgetButton} from './widgetButton';
+import {WidgetDescription, type WidgetDescriptionProps} from './widgetDescription';
+import {WidgetFullScreenButton} from './widgetFullScreenButton';
 import {WidgetLayout} from './widgetLayout';
+import {WidgetTitle} from './widgetTitle';
 
-export interface WidgetFrameProps extends StateProps, DescriptionTooltipProps {
+export interface WidgetFrameProps extends StateProps, WidgetDescriptionProps {
   actions?: MenuItemProps[];
   actionsDisabled?: boolean;
   actionsMessage?: string;
@@ -67,7 +68,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
             </Tooltip>
           )}
 
-          <TitleTooltip title={props.title} />
+          <WidgetTitle title={props.title} />
 
           {props.badgeProps &&
             (Array.isArray(props.badgeProps) ? props.badgeProps : [props.badgeProps]).map(
@@ -79,7 +80,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
         <Fragment>
           {props.description && (
             // Ideally we'd use `QuestionTooltip` but we need to firstly paint the icon dark, give it 100% opacity, and remove hover behaviour.
-            <DescriptionTooltip title={props.title} description={props.description} />
+            <WidgetDescription title={props.title} description={props.description} />
           )}
 
           {shouldShowActions && (
@@ -98,13 +99,12 @@ export function WidgetFrame(props: WidgetFrameProps) {
                     {actions[0]!.label}
                   </LinkButton>
                 ) : (
-                  <Button
-                    size="xs"
+                  <WidgetButton
                     disabled={props.actionsDisabled}
                     onClick={actions[0]!.onAction}
                   >
                     {actions[0]!.label}
-                  </Button>
+                  </WidgetButton>
                 )
               ) : null}
 
@@ -126,7 +126,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
           )}
 
           {shouldShowFullScreenViewButton && (
-            <FullScreenViewButton
+            <WidgetFullScreenButton
               onClick={() => {
                 props.onFullScreenViewClick?.();
               }}
