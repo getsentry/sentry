@@ -18,8 +18,6 @@ from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.users.models.identity import Identity
 
-REPOSITORY_INTEGRATION_CHECK_FILE_METRIC = "repository_integration.check_file.{result}"
-
 
 class BaseRepositoryIntegration(ABC):
     @abstractmethod
