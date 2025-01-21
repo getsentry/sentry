@@ -1,5 +1,6 @@
 import {trimPackage} from 'sentry/components/events/interfaces/frame/utils';
 import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import type {ProfilingFormatterUnit} from 'sentry/utils/profiling/units/units';
 
 import {Profile} from './profile/profile';
 import {SampledProfile} from './profile/sampledProfile';
@@ -55,6 +56,7 @@ export class Flamegraph {
     children: [],
   };
 
+  unit: ProfilingFormatterUnit;
   formatter: (value: number) => string;
   timelineFormatter: (value: number) => string;
 
@@ -128,6 +130,7 @@ export class Flamegraph {
         throw new TypeError(`Unknown flamechart sort type: ${this.sort}`);
     }
 
+    this.unit = profile.unit;
     this.formatter = makeFormatter(profile.unit);
     this.timelineFormatter = makeTimelineFormatter(profile.unit);
 

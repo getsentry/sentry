@@ -24,7 +24,10 @@ import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {getProfilingDocsForPlatform} from 'sentry/utils/profiling/platforms';
-import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
+import {
+  generateContinuousProfileFlamechartRouteWithQuery,
+  generateProfileFlamechartRouteWithQuery,
+} from 'sentry/utils/profiling/routes';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -33,6 +36,7 @@ import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSectio
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 import {useProfiles} from 'sentry/views/profiling/profilesProvider';
 
+import {isMissingInstrumentationNode} from '../../../traceGuards';
 import type {MissingInstrumentationNode} from '../../../traceModels/missingInstrumentationNode';
 import {TraceTree} from '../../../traceModels/traceTree';
 import type {TraceTreeNode} from '../../../traceModels/traceTreeNode';
@@ -56,13 +60,26 @@ export function ProfilePreview({event, node}: SpanProfileProps) {
   const organization = useOrganization();
   const [canvasView, setCanvasView] = useState<CanvasView<FlamegraphModel> | null>(null);
 
+  const spanThreadId = useMemo(() => {
+    const value = isMissingInstrumentationNode(node)
+      ? node.previous.value ?? node.next.value ?? null
+      : node.value ?? null;
+    return value.data?.['thread.id'];
+  }, [node]);
+
   const profile = useMemo(() => {
-    const threadId = profileGroup.profiles[profileGroup.activeProfileIndex]?.threadId;
-    if (!defined(threadId)) {
-      return null;
+    if (defined(spanThreadId)) {
+      return profileGroup.profiles.find(p => String(p.threadId) === spanThreadId) ?? null;
     }
-    return profileGroup.profiles.find(p => p.threadId === threadId) ?? null;
-  }, [profileGroup.profiles, profileGroup.activeProfileIndex]);
+
+    const activeThreadId =
+      profileGroup.profiles[profileGroup.activeProfileIndex]?.threadId;
+    if (defined(activeThreadId)) {
+      return profileGroup.profiles.find(p => p.threadId === activeThreadId) ?? null;
+    }
+
+    return null;
+  }, [profileGroup.profiles, profileGroup.activeProfileIndex, spanThreadId]);
 
   const transactionHasProfile = useMemo(() => {
     return (TraceTree.ParentTransaction(node)?.profiles?.length ?? 0) > 0;
@@ -75,6 +92,48 @@ export function ProfilePreview({event, node}: SpanProfileProps) {
 
     return new FlamegraphModel(profile, {});
   }, [transactionHasProfile, profile]);
+
+  const target = useMemo(() => {
+    if (defined(event?.projectSlug)) {
+      const profileContext = event.contexts.profile ?? {};
+      if (defined(profileContext.profile_id)) {
+        // we want to try to go straight to the same config view as the preview
+        const query = canvasView?.configView
+          ? {
+              // TODO: this assumes that profile start timestamp == transaction timestamp
+              fov: Rect.encode(canvasView.configView),
+              // the flamechart persists some preferences to local storage,
+              // force these settings so the view is the same as the preview
+              view: 'top down',
+              type: 'flamechart',
+            }
+          : undefined;
+        return generateProfileFlamechartRouteWithQuery({
+          orgSlug: organization.slug,
+          projectSlug: event.projectSlug,
+          profileId: profileContext.profile_id,
+          query,
+        });
+      }
+
+      if (defined(event) && defined(profileContext.profiler_id)) {
+        const query = {
+          eventId: event.id,
+          tid: spanThreadId,
+        };
+        return generateContinuousProfileFlamechartRouteWithQuery({
+          orgSlug: organization.slug,
+          projectSlug: event.projectSlug,
+          profilerId: profileContext.profiler_id,
+          start: new Date(event.startTimestamp * 1000).toISOString(),
+          end: new Date(event.endTimestamp * 1000).toISOString(),
+          query,
+        });
+      }
+    }
+
+    return undefined;
+  }, [canvasView, event, organization, spanThreadId]);
 
   if (!hasNewTraceUi) {
     return (
@@ -99,26 +158,6 @@ export function ProfilePreview({event, node}: SpanProfileProps) {
     ? node.value.timestamp - startTimestamp
     : flamegraph.configSpace.width;
 
-  const profileId = event.contexts.profile?.profile_id || '';
-  // we want to try to go straight to the same config view as the preview
-  const query = canvasView?.configView
-    ? {
-        // TODO: this assumes that profile start timestamp == transaction timestamp
-        fov: Rect.encode(canvasView.configView),
-        // the flamechart persists some preferences to local storage,
-        // force these settings so the view is the same as the preview
-        view: 'top down',
-        type: 'flamechart',
-      }
-    : undefined;
-
-  const target = generateProfileFlamechartRouteWithQuery({
-    orgSlug: organization.slug,
-    projectSlug: event?.projectSlug ?? '',
-    profileId,
-    query,
-  });
-
   function handleGoToProfile() {
     trackAnalytics('profiling_views.go_to_flamegraph', {
       organization,
@@ -130,7 +169,7 @@ export function ProfilePreview({event, node}: SpanProfileProps) {
     <TextBlock>{t('Or, see if profiling can provide more context on this:')}</TextBlock>
   );
 
-  if (transactionHasProfile) {
+  if (defined(target) && transactionHasProfile) {
     return (
       <FlamegraphThemeProvider>
         {message}
@@ -206,13 +245,26 @@ function LegacyProfilePreview({event, node}: SpanProfileProps) {
   const organization = useOrganization();
   const [canvasView, setCanvasView] = useState<CanvasView<FlamegraphModel> | null>(null);
 
+  const spanThreadId = useMemo(() => {
+    const value = isMissingInstrumentationNode(node)
+      ? node.previous.value ?? node.next.value ?? null
+      : node.value ?? null;
+    return value.data?.['thread.id'];
+  }, [node]);
+
   const profile = useMemo(() => {
-    const threadId = profileGroup.profiles[profileGroup.activeProfileIndex]?.threadId;
-    if (!defined(threadId)) {
-      return null;
+    if (defined(spanThreadId)) {
+      return profileGroup.profiles.find(p => String(p.threadId) === spanThreadId) ?? null;
     }
-    return profileGroup.profiles.find(p => p.threadId === threadId) ?? null;
-  }, [profileGroup.profiles, profileGroup.activeProfileIndex]);
+
+    const activeThreadId =
+      profileGroup.profiles[profileGroup.activeProfileIndex]?.threadId;
+    if (defined(activeThreadId)) {
+      return profileGroup.profiles.find(p => p.threadId === activeThreadId) ?? null;
+    }
+
+    return null;
+  }, [profileGroup.profiles, profileGroup.activeProfileIndex, spanThreadId]);
 
   const transactionHasProfile = useMemo(() => {
     return (TraceTree.ParentTransaction(node)?.profiles?.length ?? 0) > 0;
@@ -252,6 +304,7 @@ function LegacyProfilePreview({event, node}: SpanProfileProps) {
             event={event}
             canvasView={canvasView}
             organization={organization}
+            spanThreadId={spanThreadId}
           />
           <ProfilePreviewLegend />
           <FlamegraphContainer>
@@ -293,29 +346,56 @@ interface ProfilePreviewProps {
   canvasView: CanvasView<FlamegraphModel> | null;
   event: Readonly<EventTransaction>;
   organization: Organization;
+  spanThreadId: string | undefined;
 }
 
-function ProfilePreviewHeader({canvasView, event, organization}: ProfilePreviewProps) {
-  const profileId = event.contexts.profile?.profile_id || '';
-
-  // we want to try to go straight to the same config view as the preview
-  const query = canvasView?.configView
-    ? {
-        // TODO: this assumes that profile start timestamp == transaction timestamp
-        fov: Rect.encode(canvasView.configView),
-        // the flamechart persists some preferences to local storage,
-        // force these settings so the view is the same as the preview
-        view: 'top down',
-        type: 'flamechart',
+function ProfilePreviewHeader({
+  canvasView,
+  event,
+  organization,
+  spanThreadId,
+}: ProfilePreviewProps) {
+  const target = useMemo(() => {
+    if (defined(event?.projectSlug)) {
+      const profileContext = event.contexts.profile ?? {};
+      if (defined(profileContext.profile_id)) {
+        // we want to try to go straight to the same config view as the preview
+        const query = canvasView?.configView
+          ? {
+              // TODO: this assumes that profile start timestamp == transaction timestamp
+              fov: Rect.encode(canvasView.configView),
+              // the flamechart persists some preferences to local storage,
+              // force these settings so the view is the same as the preview
+              view: 'top down',
+              type: 'flamechart',
+            }
+          : undefined;
+        return generateProfileFlamechartRouteWithQuery({
+          orgSlug: organization.slug,
+          projectSlug: event.projectSlug,
+          profileId: profileContext.profile_id,
+          query,
+        });
       }
-    : undefined;
 
-  const target = generateProfileFlamechartRouteWithQuery({
-    orgSlug: organization.slug,
-    projectSlug: event?.projectSlug ?? '',
-    profileId,
-    query,
-  });
+      if (defined(event) && defined(profileContext.profiler_id)) {
+        const query = {
+          eventId: event.id,
+          tid: spanThreadId,
+        };
+        return generateContinuousProfileFlamechartRouteWithQuery({
+          orgSlug: organization.slug,
+          projectSlug: event.projectSlug,
+          profilerId: profileContext.profiler_id,
+          start: new Date(event.startTimestamp * 1000).toISOString(),
+          end: new Date(event.endTimestamp * 1000).toISOString(),
+          query,
+        });
+      }
+    }
+
+    return undefined;
+  }, [canvasView, event, organization, spanThreadId]);
 
   function handleGoToProfile() {
     trackAnalytics('profiling_views.go_to_flamegraph', {
@@ -337,9 +417,11 @@ function ProfilePreviewHeader({canvasView, event, organization}: ProfilePreviewP
           )}
         />
       </HeaderContainer>
-      <LinkButton size="xs" onClick={handleGoToProfile} to={target}>
-        {t('View Profile')}
-      </LinkButton>
+      {defined(target) && (
+        <LinkButton size="xs" onClick={handleGoToProfile} to={target}>
+          {t('View Profile')}
+        </LinkButton>
+      )}
     </HeaderContainer>
   );
 }

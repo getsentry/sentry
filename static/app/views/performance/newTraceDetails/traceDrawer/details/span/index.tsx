@@ -28,6 +28,7 @@ import type {TraceTreeNode} from '../../../traceModels/traceTreeNode';
 import {useHasTraceNewUi} from '../../../useHasTraceNewUi';
 import {TraceDrawerComponents} from '.././styles';
 import {IssueList} from '../issues/issues';
+import {getProfileMeta} from '../utils';
 
 import Alerts from './sections/alerts';
 import {SpanDescription} from './sections/description';
@@ -242,7 +243,7 @@ export function SpanNodeDetails({
   }, [node.errors, node.performance_issues]);
 
   const project = projects.find(proj => proj.slug === node.event?.projectSlug);
-  const profileMeta = getProfileMeta(node) || '';
+  const profileMeta = getProfileMeta(node.event) || '';
   const profileId =
     typeof profileMeta === 'string' ? profileMeta : profileMeta.profiler_id;
 
@@ -301,22 +302,4 @@ export function SpanNodeDetails({
       </TraceDrawerComponents.BodyContainer>
     </TraceDrawerComponents.DetailContainer>
   );
-}
-
-function getProfileMeta(node: TraceTreeNode<TraceTree.Span>) {
-  const profileId = node.event?.contexts?.profile?.profile_id;
-  if (profileId) {
-    return profileId;
-  }
-  const profilerId = node.event?.contexts?.profile?.profiler_id;
-  if (profilerId) {
-    const start = new Date(node.value.start_timestamp * 1000);
-    const end = new Date(node.value.timestamp * 1000);
-    return {
-      profiler_id: profilerId,
-      start: start.toISOString(),
-      end: end.toISOString(),
-    };
-  }
-  return null;
 }

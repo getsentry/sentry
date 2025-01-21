@@ -68,8 +68,8 @@ export function FlamegraphPreview({
     const {configView, mode} = computePreviewConfigView(
       flamegraph,
       canvasView.configView,
-      formatTo(relativeStartTimestamp, 'second', 'nanosecond'),
-      formatTo(relativeStopTimestamp, 'second', 'nanosecond')
+      formatTo(relativeStartTimestamp, 'second', flamegraph.unit),
+      formatTo(relativeStopTimestamp, 'second', flamegraph.unit)
     );
 
     canvasView.setConfigView(configView);
