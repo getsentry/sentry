@@ -1,6 +1,7 @@
 import datetime
 from datetime import timezone
 from functools import cached_property
+from unittest import mock
 
 import pytest
 import responses
@@ -81,7 +82,8 @@ class BitbucketRepositoryProviderTest(TestCase):
         ]
 
     @responses.activate
-    def test_build_repository_config(self):
+    @mock.patch("sentry.integrations.bitbucket.repository.generate_token", return_value="0" * 64)
+    def test_build_repository_config(self, mock_generate_token):
         full_repo_name = "laurynsentry/helloworld"
         webhook_id = "web-hook-id"
         responses.add(
@@ -92,7 +94,7 @@ class BitbucketRepositoryProviderTest(TestCase):
         responses.add(
             responses.POST,
             "https://api.bitbucket.org/2.0/repositories/%s/hooks" % full_repo_name,
-            json={"uuid": webhook_id},
+            json={"uuid": webhook_id, "secret_set": True},
             status=201,
         )
 
@@ -119,13 +121,18 @@ class BitbucketRepositoryProviderTest(TestCase):
             "name": full_repo_name,
         }
         data = self.provider.build_repository_config(organization, data)
+        assert mock_generate_token.called
 
         assert data == {
             "name": full_repo_name,
             "external_id": REPO["uuid"],
             "url": "https://bitbucket.org/laurynsentry/helloworld",
             "integration_id": integration.id,
-            "config": {"name": full_repo_name, "webhook_id": webhook_id},
+            "config": {
+                "name": full_repo_name,
+                "webhook_id": webhook_id,
+                "webhook_secret": "0" * 64,
+            },
         }
 
     def test_repository_external_slug(self):

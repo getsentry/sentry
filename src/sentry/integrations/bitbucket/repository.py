@@ -1,6 +1,4 @@
-from sentry.locks import locks
 from sentry.models.apitoken import generate_token
-from sentry.models.options.organization_option import OrganizationOption
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.shared_integrations.exceptions import ApiError
@@ -24,27 +22,10 @@ class BitbucketRepositoryProvider(IntegrationRepositoryProvider):
             config["name"] = repo["full_name"]
         return config
 
-    def get_webhook_secret(self, organization):
-        # TODO(LB): Revisit whether Integrations V3 should be using OrganizationOption for storage
-        lock = locks.get(
-            f"bitbucket:webhook-secret:{organization.id}",
-            duration=60,
-            name="bitbucket_webhook_secret",
-        )
-        with lock.acquire():
-            secret = OrganizationOption.objects.get_value(
-                organization=organization, key="bitbucket:webhook_secret"
-            )
-            if secret is None:
-                secret = generate_token()
-                OrganizationOption.objects.set_value(
-                    organization=organization, key="bitbucket:webhook_secret", value=secret
-                )
-        return secret
-
     def build_repository_config(self, organization: RpcOrganization, data):
         installation = self.get_installation(data.get("installation"), organization.id)
         client = installation.get_client()
+        secret = generate_token()
         try:
             resp = client.create_hook(
                 data["identifier"],
@@ -54,17 +35,21 @@ class BitbucketRepositoryProvider(IntegrationRepositoryProvider):
                         f"/extensions/bitbucket/organizations/{organization.id}/webhook/"
                     ),
                     "active": True,
+                    "secret": secret,
                     "events": ["repo:push", "pullrequest:fulfilled"],
                 },
             )
         except Exception as e:
             installation.raise_error(e)
         else:
+            config = {"name": data["name"], "webhook_id": resp["uuid"]}
+            if resp.get("secret_set"):
+                config["webhook_secret"] = secret
             return {
                 "name": data["identifier"],
                 "external_id": data["external_id"],
                 "url": "https://bitbucket.org/{}".format(data["name"]),
-                "config": {"name": data["name"], "webhook_id": resp["uuid"]},
+                "config": config,
                 "integration_id": data["installation"],
             }
 
