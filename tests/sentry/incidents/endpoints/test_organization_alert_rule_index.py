@@ -245,13 +245,16 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         assert "id" in resp.data
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
         triggers = AlertRuleTrigger.objects.filter(alert_rule_id=alert_rule.id)
+        actions = AlertRuleTriggerAction.objects.filter(
+            alert_rule_trigger__in=[trigger.id for trigger in triggers]
+        )
         assert resp.data == serialize(alert_rule, self.user)
         assert_alert_rule_migrated(alert_rule, self.project.id)
         assert_alert_rule_trigger_migrated(triggers[0])
         assert_alert_rule_trigger_migrated(triggers[1])
         assert_alert_rule_resolve_trigger_migrated(alert_rule)
-        assert_alert_rule_trigger_action_migrated(triggers[0], Action.Type.EMAIL)
-        assert_alert_rule_trigger_action_migrated(triggers[1], Action.Type.EMAIL)
+        assert_alert_rule_trigger_action_migrated(actions[0], Action.Type.EMAIL)
+        assert_alert_rule_trigger_action_migrated(actions[1], Action.Type.EMAIL)
 
     @with_feature("organizations:slack-metric-alert-description")
     @with_feature("organizations:incidents")

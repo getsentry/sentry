@@ -159,7 +159,6 @@ def assert_alert_rule_trigger_action_migrated(alert_rule_trigger, action_type):
     assert Action.objects.filter(
         id__in=[item.action.id for item in data_condition_group_actions], type=action_type
     ).exists()
-
     assert ActionAlertRuleTriggerAction.objects.filter(
         id__in=[item.action.id for item in data_condition_group_actions]
     )
@@ -367,13 +366,13 @@ class AlertRuleMigrationHelpersTest(APITestCase):
         migrate_metric_action(self.alert_rule_trigger_action_sentry_app)
 
         assert_alert_rule_trigger_action_migrated(
-            self.alert_rule_trigger_warning, Action.Type.EMAIL
+            self.alert_rule_trigger_action_email, Action.Type.EMAIL
         )
         assert_alert_rule_trigger_action_migrated(
-            self.alert_rule_trigger_critical, Action.Type.OPSGENIE
+            self.alert_rule_trigger_action_integration, Action.Type.OPSGENIE
         )
         assert_alert_rule_trigger_action_migrated(
-            self.alert_rule_trigger_critical, Action.Type.SENTRY_APP
+            self.alert_rule_trigger_action_sentry_app, Action.Type.SENTRY_APP
         )
 
     @mock.patch("sentry.workflow_engine.migration_helpers.alert_rule.logger")

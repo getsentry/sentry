@@ -150,6 +150,9 @@ def migrate_metric_action(
         target_identifier=alert_rule_trigger_action.target_identifier,
         target_type=alert_rule_trigger_action.target_type,
     )
+    ActionAlertRuleTriggerAction.objects.create(
+        action=action, alert_rule_trigger_action=alert_rule_trigger_action
+    )
     data_condition_group_action = DataConditionGroupAction.objects.create(
         condition_group_id=action_filter.condition_group.id,
         action_id=action.id,
