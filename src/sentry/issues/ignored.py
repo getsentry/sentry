@@ -6,7 +6,6 @@ from collections.abc import Sequence
 from datetime import datetime, timedelta
 from typing import Any, TypedDict
 
-from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
 
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
@@ -47,7 +46,7 @@ class IgnoredStatusDetails(TypedDict, total=False):
 
 def handle_archived_until_escalating(
     group_list: Sequence[Group],
-    acting_user: User | None,
+    acting_user: RpcUser | User | None,
     projects: Sequence[Project],
     sender: Any,
 ) -> dict[str, bool]:
@@ -89,8 +88,7 @@ def handle_archived_until_escalating(
 def handle_ignored(
     group_list: Sequence[Group],
     status_details: dict[str, Any],
-    acting_user: User | RpcUser,
-    user: User | RpcUser | AnonymousUser,
+    acting_user: RpcUser | User | None,
 ) -> IgnoredStatusDetails:
     """
     Handle issues that are ignored and create a snooze for them.
@@ -133,7 +131,7 @@ def handle_ignored(
                     "user_count": ignore_user_count,
                     "user_window": ignore_user_window,
                     "state": state,
-                    "actor_id": user.id if user.is_authenticated else None,
+                    "actor_id": acting_user.id if acting_user else None,
                 },
             )
 
@@ -141,9 +139,11 @@ def handle_ignored(
                 substatus=GroupSubStatus.UNTIL_CONDITION_MET, status=GroupStatus.IGNORED
             )
             with in_test_hide_transaction_boundary():
-                serialized_user = user_service.serialize_many(
-                    filter=dict(user_ids=[user.id]), as_user=serialize_generic_user(user)
-                )
+                if acting_user:
+                    serialized_user = user_service.serialize_many(
+                        filter=dict(user_ids=[acting_user.id]),
+                        as_user=serialize_generic_user(acting_user),
+                    )
             new_status_details = IgnoredStatusDetails(
                 ignoreCount=ignore_count,
                 ignoreUntil=ignore_until,

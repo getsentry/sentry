@@ -12,11 +12,11 @@ export type Extraction = {
 };
 
 const extractDomNodes = {
-  shouldVisitFrame: frame => {
+  shouldVisitFrame: (frame: any) => {
     const nodeIds = getNodeIds(frame);
-    return nodeIds.filter(nodeId => nodeId !== -1).length > 0;
+    return nodeIds.filter((nodeId: any) => nodeId !== -1).length > 0;
   },
-  onVisitFrame: (frame, collection, replayer) => {
+  onVisitFrame: (frame: any, collection: any, replayer: any) => {
     const mirror = replayer.getMirror();
     const nodeIds = getNodeIds(frame);
     const {html, selectors} = extractHtmlAndSelector((nodeIds ?? []) as number[], mirror);

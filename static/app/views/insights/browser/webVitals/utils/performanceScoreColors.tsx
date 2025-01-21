@@ -19,4 +19,4 @@ export const PERFORMANCE_SCORE_COLORS = {
     normal: 'gray300',
     border: 'gray200',
   },
-};
+} as const;

@@ -52,8 +52,9 @@ export default function FeedbackList() {
     loadMoreRows,
     hits,
   } = useFetchInfiniteListData<FeedbackIssueListItem>({
-    queryKey: listQueryKey,
+    queryKey: listQueryKey ?? [''],
     uniqueField: 'id',
+    enabled: Boolean(listQueryKey),
   });
 
   const checkboxState = useListItemCheckboxState({
@@ -126,7 +127,7 @@ export default function FeedbackList() {
                   onRowsRendered={onRowsRendered}
                   overscanRowCount={5}
                   ref={e => {
-                    // @ts-expect-error: Cannot assign to current because it is a read-only property.
+                    // @ts-ignore TS(2540): Cannot assign to 'current' because it is a read-on... Remove this comment to see the full error message
                     listRef.current = e;
                     registerChild(e);
                   }}

@@ -110,8 +110,10 @@ export const highlight = (color: string) => keyframes`
   }
 `;
 
-// TODO(ts): priority should be pulled from `keyof typeof theme.alert`
-export const alertHighlight = (priority: string, theme: Theme) => keyframes`
+export const alertHighlight = (
+  priority: keyof typeof theme.alert,
+  theme: Theme
+) => keyframes`
   0%,
   100% {
     background: rgba(255, 255, 255, 0);

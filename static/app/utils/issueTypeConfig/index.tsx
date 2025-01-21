@@ -44,6 +44,7 @@ const BASE_CONFIG: IssueTypeConfig = {
   autofix: false,
   eventAndUserCounts: {enabled: true},
   events: {enabled: true},
+  logLevel: {enabled: false},
   mergedIssues: {enabled: false},
   filterAndSearchHeader: {enabled: true},
   performanceDurationRegression: {enabled: false},

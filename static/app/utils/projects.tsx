@@ -370,7 +370,7 @@ class BaseProjects extends Component<Props, State> {
       });
 
       this.setState((state: State) => {
-        let fetchedProjects;
+        let fetchedProjects: any;
         if (append) {
           // Remove duplicates
           fetchedProjects = uniqBy(

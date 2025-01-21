@@ -7,6 +7,7 @@ from uuid import uuid4
 
 from sentry import features
 from sentry.incidents.endpoints.validators import MetricAlertsDetectorValidator
+from sentry.incidents.models.alert_rule import AlertRuleDetectionType, ComparisonDeltaChoices
 from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -16,6 +17,9 @@ from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.handlers.detector import StatefulDetectorHandler
 from sentry.workflow_engine.models.data_source import DataPacket
 from sentry.workflow_engine.types import DetectorGroupKey
+
+COMPARISON_DELTA_CHOICES: list[None | int] = [choice.value for choice in ComparisonDeltaChoices]
+COMPARISON_DELTA_CHOICES.append(None)
 
 
 class MetricAlertDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate]):
@@ -79,7 +83,25 @@ class MetricAlertFire(GroupType):
     enable_escalation_detection = False
     detector_handler = MetricAlertDetectorHandler
     detector_validator = MetricAlertsDetectorValidator
-    detector_config_schema = {}  # TODO(colleen): update this
+    detector_config_schema = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "description": "A representation of a metric alert firing",
+        "type": "object",
+        "required": ["threshold_period", "detection_type"],
+        "properties": {
+            "threshold_period": {"type": "integer", "minimum": 1, "maximum": 20},
+            "comparison_delta": {
+                "type": ["integer", "null"],
+                "enum": COMPARISON_DELTA_CHOICES,
+            },
+            "detection_type": {
+                "type": "string",
+                "enum": [detection_type.value for detection_type in AlertRuleDetectionType],
+            },
+            "sensitivity": {"type": ["string", "null"]},
+            "seasonality": {"type": ["string", "null"]},
+        },
+    }
 
     @classmethod
     def allow_post_process_group(cls, organization: Organization) -> bool:

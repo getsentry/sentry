@@ -220,7 +220,9 @@ class SentryPermission(ScopedPermission):
         if (
             request.user
             and request.user.is_superuser
-            and features.has("organizations:enterprise-data-secrecy", org_context.organization)
+            and features.has(
+                "organizations:enterprise-data-secrecy-legacy", org_context.organization
+            )
         ):
             raise DataSecrecyError()
 

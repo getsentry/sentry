@@ -1,3 +1,5 @@
+from unittest.mock import call, patch
+
 from django.urls import reverse
 
 from sentry.flags.models import (
@@ -11,6 +13,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.utils import json
 
 
+@patch("sentry.utils.metrics.incr")
 class OrganizationFlagsHooksEndpointTestCase(APITestCase):
     endpoint = "sentry-api-0-organization-flag-hooks"
 
@@ -22,7 +25,7 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
     def features(self):
         return {"organizations:feature-flag-audit-log": True}
 
-    def test_generic_post_create(self):
+    def test_generic_post_create(self, mock_incr):
         request_data = {
             "data": [
                 {
@@ -47,9 +50,12 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
                 headers={"X-Sentry-Signature": signature},
             )
             assert response.status_code == 200, response.content
+            mock_incr.assert_any_call(
+                "feature_flags.audit_log_event_posted", tags={"provider": "generic"}
+            )
             assert FlagAuditLogModel.objects.count() == 1
 
-    def test_unleash_post_create(self):
+    def test_unleash_post_create(self, mock_incr):
         request_data = {
             "id": 28,
             "tags": [{"type": "simple", "value": "testvalue"}],
@@ -75,9 +81,12 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
                 headers={"Authorization": signature},
             )
             assert response.status_code == 200, response.content
+            mock_incr.assert_any_call(
+                "feature_flags.audit_log_event_posted", tags={"provider": "unleash"}
+            )
             assert FlagAuditLogModel.objects.count() == 1
 
-    def test_launchdarkly_post_create(self):
+    def test_launchdarkly_post_create(self, mock_incr):
         request_data = LD_REQUEST
         signature = hmac_sha256_hex_digest(key="456", message=json.dumps(request_data).encode())
 
@@ -95,6 +104,9 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
             )
 
         assert response.status_code == 200
+        mock_incr.assert_any_call(
+            "feature_flags.audit_log_event_posted", tags={"provider": "launchdarkly"}
+        )
         assert FlagAuditLogModel.objects.count() == 1
         flag = FlagAuditLogModel.objects.first()
         assert flag is not None
@@ -106,13 +118,14 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
         assert flag.tags is not None
         assert flag.tags["description"] == "flag was created"
 
-    def test_launchdarkly_post_create_invalid_signature(self):
+    def test_launchdarkly_post_create_invalid_signature(self, mock_incr):
         with self.feature(self.features):
             sig = hmac_sha256_hex_digest(key="123", message=b"456")
             response = self.client.post(self.url, LD_REQUEST, headers={"X-LD-Signature": sig})
             assert response.status_code == 401
+            assert call("feature_flags.audit_log_event_posted") not in mock_incr.call_args_list
 
-    def test_post_launchdarkly_deserialization_failed(self):
+    def test_post_launchdarkly_deserialization_failed(self, mock_incr):
         signature = hmac_sha256_hex_digest(key="123", message=json.dumps({}).encode())
         FlagWebHookSigningSecretModel.objects.create(
             organization=self.organization, provider="launchdarkly", secret="123"
@@ -122,22 +135,26 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
             response = self.client.post(self.url, {}, headers={"X-LD-Signature": signature})
             assert response.status_code == 200
             assert FlagAuditLogModel.objects.count() == 0
+            assert call("feature_flags.audit_log_event_posted") not in mock_incr.call_args_list
 
-    def test_post_invalid_provider(self):
+    def test_post_invalid_provider(self, mock_incr):
         url = reverse(self.endpoint, args=(self.organization.slug, "test"))
         with self.feature(self.features):
             response = self.client.post(url, {})
             assert response.status_code == 404
+            assert call("feature_flags.audit_log_event_posted") not in mock_incr.call_args_list
 
-    def test_post_disabled(self):
+    def test_post_disabled(self, mock_incr):
         response = self.client.post(self.url, data={})
         assert response.status_code == 404
         assert response.content == b'"Not enabled."'
+        assert call("feature_flags.audit_log_event_posted") not in mock_incr.call_args_list
 
-    def test_post_missing_signature(self):
+    def test_post_missing_signature(self, mock_incr):
         with self.feature(self.features):
             response = self.client.post(self.url, {})
             assert response.status_code == 401, response.content
+            assert call("feature_flags.audit_log_event_posted") not in mock_incr.call_args_list
 
 
 LD_REQUEST = {

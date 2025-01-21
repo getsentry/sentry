@@ -2,7 +2,7 @@
 
 import marked, {limitedMarked} from 'sentry/utils/marked';
 
-function expectMarkdown(test) {
+function expectMarkdown(test: any) {
   expect(marked(test[0])).toEqual('<p>' + test[1] + '</p>\n');
 }
 

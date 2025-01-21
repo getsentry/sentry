@@ -55,7 +55,7 @@ export function getReplayDiffOffsetsFromEvent(
   const hydrationFrame = replay
     .getBreadcrumbFrames()
     .findLast(
-      breadcrumb =>
+      (breadcrumb: any) =>
         isHydrationErrorFrame(breadcrumb) &&
         breadcrumb.timestampMs >= eventTimestampMs &&
         breadcrumb.timestampMs < eventTimestampMs + 1000

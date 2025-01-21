@@ -1,6 +1,7 @@
 // Benchmarks allow us to make changes and evaluate performance before the code gets shipped to production.
 // They can be used to make performance improvements or to test impact of newly added functionality.
 // Run with: yarn run ts-node --project ./config/tsconfig.benchmark.json -r tsconfig-paths/register static/app/utils/profiling/renderers/textRenderer.benchmark.ts
+// @ts-ignore TS(7016): Could not find a declaration file for module 'benc... Remove this comment to see the full error message
 import benchmarkjs from 'benchmark';
 import maxBy from 'lodash/maxBy';
 
@@ -28,12 +29,12 @@ function benchmark(name: string, callback: () => void) {
 
   suite
     .add(name, callback)
-    .on('cycle', event => {
+    .on('cycle', (event: any) => {
       // well, we need to see the results somewhere
       // eslint-disable-next-line
       console.log(event.target.toString());
     })
-    .on('error', event => {
+    .on('error', (event: any) => {
       // If something goes wrong, fail early
       throw event;
     });
@@ -41,6 +42,7 @@ function benchmark(name: string, callback: () => void) {
   suite.run({async: false});
 }
 
+// @ts-ignore TS(2322): Type '{ devicePixelRatio: number; }' is not assign... Remove this comment to see the full error message
 global.window = {devicePixelRatio: 1};
 
 const makeDrawFullScreen = (renderer: FlamegraphTextRenderer, flamegraph: Flamegraph) => {
@@ -53,6 +55,7 @@ const makeDrawFullScreen = (renderer: FlamegraphTextRenderer, flamegraph: Flameg
 
   const transform = transformMatrixBetweenRect(configView, new Rect(0, 0, 1000, 1000));
   return (searchResults?: FlamegraphSearch) => {
+    // @ts-ignore TS(2345): Argument of type 'FlamegraphSearch | undefined' is... Remove this comment to see the full error message
     renderer.draw(flamegraph.configSpace, transform, searchResults);
   };
 };
@@ -70,6 +73,7 @@ const makeDrawCenterScreen = (
   const transform = transformMatrixBetweenRect(configView, new Rect(0, 0, 1000, 1000));
 
   return (searchResults?: FlamegraphSearch) => {
+    // @ts-ignore TS(2345): Argument of type 'FlamegraphSearch | undefined' is... Remove this comment to see the full error message
     renderer.draw(configView, transform, searchResults);
   };
 };
@@ -87,37 +91,43 @@ const makeDrawRightSideOfScreen = (
   const transform = transformMatrixBetweenRect(configView, new Rect(0, 0, 1000, 1000));
 
   return (searchResults?: FlamegraphSearch) => {
+    // @ts-ignore TS(2345): Argument of type 'FlamegraphSearch | undefined' is... Remove this comment to see the full error message
     renderer.draw(configView, transform, searchResults);
   };
 };
 
+// @ts-ignore TS(2554): Expected 4-5 arguments, but got 3.
 const androidProfile = importProfile(androidTrace as any, '', 'flamechart');
 const androidFlamegraph = new Flamegraph(
   androidProfile.profiles[androidProfile.activeProfileIndex] as any,
   0,
+  // @ts-ignore TS(2554): Expected 1-2 arguments, but got 3.
   {
     inverted: false,
     sort: 'call order',
   }
 );
 
+// @ts-ignore TS(2554): Expected 4-5 arguments, but got 3.
 const iosProfile = importProfile(ios as any, '', 'flamechart');
 const iosFlamegraph = new Flamegraph(
   iosProfile.profiles[iosProfile.activeProfileIndex] as any,
   0,
+  // @ts-ignore TS(2554): Expected 1-2 arguments, but got 3.
   {
     inverted: false,
     sort: 'call order',
   }
 );
 
-const makeTextRenderer = flamegraph =>
+const makeTextRenderer = (flamegraph: any) =>
   new FlamegraphTextRenderer(
     {
       clientWidth: 1000,
       clientHeight: 1000,
       clientLeft: 0,
       clientTop: 0,
+      // @ts-ignore TS(2322): Type '() => { fillRect: () => void; fillText: () =... Remove this comment to see the full error message
       getContext: () => {
         return {
           fillRect: () => {},
@@ -167,7 +177,9 @@ const makeSearchResults = (flamegraph: Flamegraph): FlamegraphSearch => {
   )!;
 
   return {
+    // @ts-ignore TS(2739): Type '{}' is missing the following properties from... Remove this comment to see the full error message
     results: Array.from(data.frames.values()).reduce((acc, frame) => {
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       acc[getFlamegraphFrameSearchId(frame)] = frame;
       return acc;
     }, {}),
@@ -182,12 +194,15 @@ const suite = (
 ) => {
   const results = makeSearchResults(flamegraph);
   benchmark(`${name} (full profile)`, () =>
+    // @ts-ignore TS(2345): Argument of type 'Map<any, any>' is not assignable... Remove this comment to see the full error message
     makeDrawFullScreen(textRenderer, flamegraph)(new Map())
   );
   benchmark(`${name} (center half)`, () =>
+    // @ts-ignore TS(2345): Argument of type 'Map<any, any>' is not assignable... Remove this comment to see the full error message
     makeDrawCenterScreen(textRenderer, flamegraph)(new Map())
   );
   benchmark(`${name} (right quarter)`, () =>
+    // @ts-ignore TS(2345): Argument of type 'Map<any, any>' is not assignable... Remove this comment to see the full error message
     makeDrawRightSideOfScreen(textRenderer, flamegraph)(new Map())
   );
 

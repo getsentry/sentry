@@ -293,7 +293,7 @@ export function FeedbackModal<T extends Data>({
             }))}
             placeholder={t('Select type of feedback')}
             value={state.subject}
-            onChange={value => setState({...state, subject: value})}
+            onChange={(value: any) => setState({...state, subject: value})}
             flexibleControlStateSize
             stacked
             required

@@ -139,7 +139,7 @@ const ValueRow = styled('div')`
   align-items: center;
 `;
 
-const FireIconContainer = styled('span')<{size: IconSize | string}>`
+const FireIconContainer = styled('span')<{size: IconSize}>`
   display: inline-block;
   height: ${p => p.theme.iconSizes[p.size] ?? p.size};
   line-height: ${p => p.theme.iconSizes[p.size] ?? p.size};

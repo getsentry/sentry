@@ -57,6 +57,7 @@ function AlertWizard({organization, params, location, projectId}: AlertWizardPro
 
   function renderCreateAlertButton() {
     let metricRuleTemplate: Readonly<WizardRuleTemplate> | undefined =
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       AlertWizardRuleTemplates[alertOption];
     const isMetricAlert = !!metricRuleTemplate;
     const isTransactionDataset = metricRuleTemplate?.dataset === Dataset.TRANSACTIONS;
@@ -72,7 +73,7 @@ function AlertWizard({organization, params, location, projectId}: AlertWizardPro
       metricRuleTemplate = {...metricRuleTemplate, query: 'is:unresolved'};
     }
 
-    const renderNoAccess = p => (
+    const renderNoAccess = (p: any) => (
       <Hovercard
         body={
           <FeatureDisabled
@@ -160,14 +161,16 @@ function AlertWizard({organization, params, location, projectId}: AlertWizardPro
           <WizardBody>
             <WizardOptions>
               {getAlertWizardCategories(organization).map(
-                ({categoryHeading, options}) => (
+                ({categoryHeading, options}: any) => (
                   <div key={categoryHeading}>
                     <CategoryTitle>{categoryHeading} </CategoryTitle>
                     <WizardGroupedOptions
-                      choices={options.map(alertType => {
+                      choices={options.map((alertType: any) => {
                         return [
                           alertType,
+                          // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                           AlertWizardAlertNames[alertType],
+                          // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                           AlertWizardExtraContent[alertType],
                         ];
                       })}
@@ -238,6 +241,7 @@ const WizardOptions = styled('div')`
 
 const WizardImage = styled('img')`
   max-height: 300px;
+  margin-bottom: ${space(2)};
 `;
 
 const WizardPanel = styled(Panel)<{visible?: boolean}>`

@@ -36,7 +36,11 @@ export const ToolbarFooterButton = styled(Button)<{disabled?: boolean}>`
   color: ${p => (p.disabled ? p.theme.gray300 : p.theme.linkColor)};
 `;
 
-export const ToolbarFooter = styled('div')<{disabled?: boolean}>``;
+export const ToolbarFooter = styled('div')<{disabled?: boolean}>`
+  :not(:last-child) {
+    margin-bottom: ${space(0.5)};
+  }
+`;
 
 export const ToolbarRow = styled('div')`
   display: flex;

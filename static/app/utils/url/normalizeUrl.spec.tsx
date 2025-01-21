@@ -6,7 +6,7 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 
 describe('normalizeUrl', function () {
   let configState: Config;
-  let result;
+  let result: any;
 
   beforeEach(function () {
     configState = ConfigStore.getState();
