@@ -183,7 +183,7 @@ class RepoTreesClient(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_tree(self, repo: str, branch: str) -> RepoTree:
+    def get_tree(self, repo_full_name: str, tree_sha: str) -> dict[str, Any]:
         raise NotImplementedError
 
     @abstractmethod

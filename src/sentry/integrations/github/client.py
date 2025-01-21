@@ -292,7 +292,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
         return self.get_rate_limit().remaining
 
     # https://docs.github.com/en/rest/git/trees#get-a-tree
-    def get_tree(self, repo_full_name: str, tree_sha: str) -> Any:
+    def get_tree(self, repo_full_name: str, tree_sha: str) -> dict[str, Any]:
         tree: Any = {}
         # We do not cache this call since it is a rather large object
         contents: dict[str, Any] = self.get(
