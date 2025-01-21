@@ -6,9 +6,8 @@ import JSXNode from 'sentry/components/stories/jsxNode';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
 import storyBook from 'sentry/stories/storyBook';
 
-import {LineChartWidgetSeries} from '../lineChartWidget/lineChartWidgetSeries';
+import {LineChartWidgetVisualization} from '../lineChartWidget/lineChartWidgetVisualization';
 import sampleDurationTimeSeries from '../lineChartWidget/sampleDurationTimeSeries.json';
-import {TimeSeriesWidgetVisualization} from '../timeSeriesWidget/timeSeriesWidgetVisualization';
 
 import {WidgetButton} from './widgetButton';
 import {WidgetDescription} from './widgetDescription';
@@ -59,18 +58,16 @@ export default storyBook(WidgetLayout, story => {
             Title={<WidgetTitle title="epm()" />}
             Actions={
               <Fragment>
+                <WidgetButton>Say More</WidgetButton>
+                <WidgetButton>Say Less</WidgetButton>
                 <WidgetDescription
                   title="epm()"
                   description="Events received, tracked per minute"
                 />
-                <WidgetButton>Learn more</WidgetButton>
               </Fragment>
             }
             Visualization={
-              <TimeSeriesWidgetVisualization
-                SeriesConstructor={LineChartWidgetSeries}
-                timeseries={[sampleDurationTimeSeries]}
-              />
+              <LineChartWidgetVisualization timeseries={[sampleDurationTimeSeries]} />
             }
           />
         </SmallSizingWindow>
