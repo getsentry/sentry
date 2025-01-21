@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import Badge, {type BadgeProps} from 'sentry/components/badge/badge';
 import {Button, LinkButton} from 'sentry/components/button';
-import {HeaderTitle} from 'sentry/components/charts/styles';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -18,6 +17,7 @@ import {WarningsList} from '../common/warningsList';
 
 import {DescriptionTooltip, type DescriptionTooltipProps} from './descriptionTooltip';
 import {FullScreenViewButton} from './fullScreenViewButton';
+import {TitleTooltip} from './titleTooltip';
 import {WidgetLayout} from './widgetLayout';
 
 export interface WidgetFrameProps extends StateProps, DescriptionTooltipProps {
@@ -67,9 +67,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
             </Tooltip>
           )}
 
-          <Tooltip title={props.title} containerDisplayMode="grid" showOnlyOnOverflow>
-            <TitleText>{props.title}</TitleText>
-          </Tooltip>
+          <TitleTooltip title={props.title} />
 
           {props.badgeProps &&
             (Array.isArray(props.badgeProps) ? props.badgeProps : [props.badgeProps]).map(
@@ -168,11 +166,6 @@ function TitleActionsWrapper({disabled, disabledMessage, children}: TitleActions
     </Tooltip>
   );
 }
-
-const TitleText = styled(HeaderTitle)`
-  ${p => p.theme.overflowEllipsis};
-  font-weight: ${p => p.theme.fontWeightBold};
-`;
 
 const RigidBadge = styled(Badge)`
   flex-shrink: 0;
