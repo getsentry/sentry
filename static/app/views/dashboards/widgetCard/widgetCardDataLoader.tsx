@@ -40,6 +40,7 @@ type Props = {
       | 'timeseriesResults'
       | 'timeseriesResultsTypes'
       | 'totalIssuesCount'
+      | 'confidence'
     >
   ) => void;
   onWidgetSplitDecision?: (splitDecision: WidgetType) => void;

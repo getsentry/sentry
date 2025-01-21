@@ -591,17 +591,18 @@ class OrganizationMemberPermissionRoleTest(OrganizationMemberListTestBase, Hybri
 
         other_team = self.create_team(organization=self.organization, name="Moo Deng's Team")
 
-        def get_data(email: str, other_team_invite: bool = False):
-            data = {
+        def get_data(email: str, other_team_invite: bool = False, use_team_roles: bool = True):
+            team_slug = other_team.slug if other_team_invite else self.team.slug
+            data: dict[str, str | list] = {
                 "email": f"{email}@localhost",
                 "role": "member",
-                "teamRoles": [
-                    {
-                        "teamSlug": other_team.slug if other_team_invite else self.team.slug,
-                        "role": "contributor",
-                    },
-                ],
             }
+
+            if use_team_roles:
+                data["teamRoles"] = [{"teamSlug": team_slug, "role": "contributor"}]
+            else:
+                data["teams"] = [team_slug]
+
             return data
 
         # members can never invite members if disable_member_invite = True
@@ -633,13 +634,35 @@ class OrganizationMemberPermissionRoleTest(OrganizationMemberListTestBase, Hybri
             response.data.get("detail")
             == "You cannot assign members to teams you are not a member of."
         )
+        # also test with teams instead of teamRoles
+        self.get_success_response(
+            self.organization.slug, **get_data("foo5", use_team_roles=False), status_code=201
+        )
+        response = self.get_error_response(
+            self.organization.slug,
+            **get_data("foo6", other_team_invite=True, use_team_roles=False),
+            status_code=400,
+        )
+        assert (
+            response.data.get("detail")
+            == "You cannot assign members to teams you are not a member of."
+        )
 
         # members can invite member to any team if allow_joinleave = True
         self.organization.flags.allow_joinleave = True
         self.organization.flags.disable_member_invite = False
         self.organization.save()
-        self.get_success_response(self.organization.slug, **get_data("foo5"), status_code=201)
-        self.get_success_response(self.organization.slug, **get_data("foo6", True), status_code=201)
+        self.get_success_response(self.organization.slug, **get_data("foo7"), status_code=201)
+        self.get_success_response(self.organization.slug, **get_data("foo8", True), status_code=201)
+        # also test with teams instead of teamRoles
+        self.get_success_response(
+            self.organization.slug, **get_data("foo9", use_team_roles=False), status_code=201
+        )
+        self.get_success_response(
+            self.organization.slug,
+            **get_data("foo10", other_team_invite=True, use_team_roles=False),
+            status_code=201,
+        )
 
     def test_owner_invites(self):
         self.invite_all_helper("owner")
