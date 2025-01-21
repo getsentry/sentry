@@ -59,7 +59,7 @@ class TestTaskBehavior(BaseDeriveCodeMappings):
             '{"message":"Not Found","documentation_url":"https://docs.github.com/rest/reference/apps#create-an-installation-access-token-for-an-app"}'
         )
         with patch(
-            "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org",
+            "sentry.integrations.source_code_management.repo_trees.RepoTreesIntegration.get_trees_for_org",
             side_effect=error,
         ):
             assert (
@@ -71,7 +71,7 @@ class TestTaskBehavior(BaseDeriveCodeMappings):
     @patch("sentry.tasks.auto_source_code_config.logger")
     def test_raises_other_api_errors(self, mock_logger, mock_record):
         with patch(
-            "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org",
+            "sentry.integrations.source_code_management.repo_trees.RepoTreesIntegration.get_trees_for_org",
             side_effect=ApiError("foo"),
         ):
             auto_source_code_config(self.project.id, self.event.event_id, self.event.group_id)
@@ -81,7 +81,7 @@ class TestTaskBehavior(BaseDeriveCodeMappings):
     def test_unable_to_get_lock(self, mock_record):
         error = UnableToAcquireLock()
         with patch(
-            "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org",
+            "sentry.integrations.source_code_management.repo_trees.RepoTreesIntegration.get_trees_for_org",
             side_effect=UnableToAcquireLock(),
         ):
             auto_source_code_config(self.project.id, self.event.event_id, self.event.group_id)
@@ -91,7 +91,7 @@ class TestTaskBehavior(BaseDeriveCodeMappings):
     @patch("sentry.tasks.auto_source_code_config.logger")
     def test_raises_generic_errors(self, mock_logger, mock_record):
         with patch(
-            "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org",
+            "sentry.integrations.source_code_management.repo_trees.RepoTreesIntegration.get_trees_for_org",
             side_effect=Exception("foo"),
         ):
             auto_source_code_config(self.project.id, self.event.event_id, self.event.group_id)
@@ -118,7 +118,7 @@ class TestBackSlashDeriveCodeMappings(BaseDeriveCodeMappings):
     def test_backslash_filename_simple(self):
         repo_name = "foo/bar"
         with patch(
-            "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org"
+            "sentry.integrations.source_code_management.repo_trees.RepoTreesIntegration.get_trees_for_org"
         ) as mock_get_trees_for_org:
             mock_get_trees_for_org.return_value = {
                 repo_name: RepoTree(RepoAndBranch(repo_name, "master"), ["sentry/mouse.py"])
@@ -133,7 +133,7 @@ class TestBackSlashDeriveCodeMappings(BaseDeriveCodeMappings):
     def test_backslash_drive_letter_filename_simple(self):
         repo_name = "foo/bar"
         with patch(
-            "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org"
+            "sentry.integrations.source_code_management.repo_trees.RepoTreesIntegration.get_trees_for_org"
         ) as mock_get_trees_for_org:
             mock_get_trees_for_org.return_value = {
                 repo_name: RepoTree(RepoAndBranch(repo_name, "master"), ["sentry/tasks.py"])
@@ -148,7 +148,7 @@ class TestBackSlashDeriveCodeMappings(BaseDeriveCodeMappings):
     def test_backslash_drive_letter_filename_monoRepoAndBranch(self):
         repo_name = "foo/bar"
         with patch(
-            "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org"
+            "sentry.integrations.source_code_management.repo_trees.RepoTreesIntegration.get_trees_for_org"
         ) as mock_get_trees_for_org:
             mock_get_trees_for_org.return_value = {
                 repo_name: RepoTree(RepoAndBranch(repo_name, "master"), ["src/sentry/tasks.py"])
@@ -163,7 +163,7 @@ class TestBackSlashDeriveCodeMappings(BaseDeriveCodeMappings):
     def test_backslash_drive_letter_filename_abs_path(self):
         repo_name = "foo/bar"
         with patch(
-            "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org"
+            "sentry.integrations.source_code_management.repo_trees.RepoTreesIntegration.get_trees_for_org"
         ) as mock_get_trees_for_org:
             mock_get_trees_for_org.return_value = {
                 repo_name: RepoTree(
@@ -232,7 +232,7 @@ class TestJavascriptDeriveCodeMappings(BaseDeriveCodeMappings):
     def test_auto_source_code_config_starts_with_period_slash(self):
         repo_name = "foo/bar"
         with patch(
-            "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org"
+            "sentry.integrations.source_code_management.repo_trees.RepoTreesIntegration.get_trees_for_org"
         ) as mock_get_trees_for_org:
             mock_get_trees_for_org.return_value = {
                 repo_name: RepoTree(
@@ -251,7 +251,7 @@ class TestJavascriptDeriveCodeMappings(BaseDeriveCodeMappings):
     def test_auto_source_code_config_starts_with_period_slash_no_containing_directory(self):
         repo_name = "foo/bar"
         with patch(
-            "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org"
+            "sentry.integrations.source_code_management.repo_trees.RepoTreesIntegration.get_trees_for_org"
         ) as mock_get_trees_for_org:
             mock_get_trees_for_org.return_value = {
                 repo_name: RepoTree(
@@ -270,7 +270,7 @@ class TestJavascriptDeriveCodeMappings(BaseDeriveCodeMappings):
     def test_auto_source_code_config_one_to_one_match(self):
         repo_name = "foo/bar"
         with patch(
-            "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org"
+            "sentry.integrations.source_code_management.repo_trees.RepoTreesIntegration.get_trees_for_org"
         ) as mock_get_trees_for_org:
             mock_get_trees_for_org.return_value = {
                 repo_name: RepoTree(RepoAndBranch(repo_name, "master"), ["some/path/Test.tsx"])
@@ -286,7 +286,7 @@ class TestJavascriptDeriveCodeMappings(BaseDeriveCodeMappings):
     def test_auto_source_code_config_same_trailing_substring(self):
         repo_name = "foo/bar"
         with patch(
-            "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org"
+            "sentry.integrations.source_code_management.repo_trees.RepoTreesIntegration.get_trees_for_org"
         ) as mock_get_trees_for_org:
             mock_get_trees_for_org.return_value = {
                 repo_name: RepoTree(RepoAndBranch(repo_name, "master"), ["sentry/app.tsx"])
@@ -320,7 +320,7 @@ class TestRubyDeriveCodeMappings(BaseDeriveCodeMappings):
     def test_auto_source_code_config_rb(self):
         repo_name = "foo/bar"
         with patch(
-            "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org"
+            "sentry.integrations.source_code_management.repo_trees.RepoTreesIntegration.get_trees_for_org"
         ) as mock_get_trees_for_org:
             mock_get_trees_for_org.return_value = {
                 repo_name: RepoTree(RepoAndBranch(repo_name, "master"), ["some/path/test.rb"])
@@ -335,7 +335,7 @@ class TestRubyDeriveCodeMappings(BaseDeriveCodeMappings):
     def test_auto_source_code_config_rake(self):
         repo_name = "foo/bar"
         with patch(
-            "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org"
+            "sentry.integrations.source_code_management.repo_trees.RepoTreesIntegration.get_trees_for_org"
         ) as mock_get_trees_for_org:
             mock_get_trees_for_org.return_value = {
                 repo_name: RepoTree(RepoAndBranch(repo_name, "master"), ["lib/tasks/crontask.rake"])
@@ -380,7 +380,7 @@ class TestNodeDeriveCodeMappings(BaseDeriveCodeMappings):
     def test_auto_source_code_config_starts_with_app(self):
         repo_name = "foo/bar"
         with patch(
-            "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org"
+            "sentry.integrations.source_code_management.repo_trees.RepoTreesIntegration.get_trees_for_org"
         ) as mock_get_trees_for_org:
             mock_get_trees_for_org.return_value = {
                 repo_name: RepoTree(RepoAndBranch(repo_name, "master"), ["utils/errors.js"])
@@ -394,7 +394,7 @@ class TestNodeDeriveCodeMappings(BaseDeriveCodeMappings):
     def test_auto_source_code_config_starts_with_app_complex(self):
         repo_name = "foo/bar"
         with patch(
-            "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org"
+            "sentry.integrations.source_code_management.repo_trees.RepoTreesIntegration.get_trees_for_org"
         ) as mock_get_trees_for_org:
             mock_get_trees_for_org.return_value = {
                 repo_name: RepoTree(RepoAndBranch(repo_name, "master"), ["sentry/utils/errors.js"])
@@ -409,7 +409,7 @@ class TestNodeDeriveCodeMappings(BaseDeriveCodeMappings):
     def test_auto_source_code_config_starts_with_multiple_dot_dot_slash(self):
         repo_name = "foo/bar"
         with patch(
-            "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org"
+            "sentry.integrations.source_code_management.repo_trees.RepoTreesIntegration.get_trees_for_org"
         ) as mock_get_trees_for_org:
             mock_get_trees_for_org.return_value = {
                 repo_name: RepoTree(
@@ -426,7 +426,7 @@ class TestNodeDeriveCodeMappings(BaseDeriveCodeMappings):
     def test_auto_source_code_config_starts_with_app_dot_dot_slash(self):
         repo_name = "foo/bar"
         with patch(
-            "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org"
+            "sentry.integrations.source_code_management.repo_trees.RepoTreesIntegration.get_trees_for_org"
         ) as mock_get_trees_for_org:
             mock_get_trees_for_org.return_value = {
                 repo_name: RepoTree(
@@ -467,7 +467,7 @@ class TestGoDeriveCodeMappings(BaseDeriveCodeMappings):
     def test_auto_source_code_config_go_abs_filename(self):
         repo_name = "go_repo"
         with patch(
-            "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org"
+            "sentry.integrations.source_code_management.repo_trees.RepoTreesIntegration.get_trees_for_org"
         ) as mock_get_trees_for_org:
             mock_get_trees_for_org.return_value = {
                 repo_name: RepoTree(RepoAndBranch(repo_name, "master"), ["sentry/capybara.go"])
@@ -482,7 +482,7 @@ class TestGoDeriveCodeMappings(BaseDeriveCodeMappings):
     def test_auto_source_code_config_go_long_abs_filename(self):
         repo_name = "go_repo"
         with patch(
-            "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org"
+            "sentry.integrations.source_code_management.repo_trees.RepoTreesIntegration.get_trees_for_org"
         ) as mock_get_trees_for_org:
             mock_get_trees_for_org.return_value = {
                 repo_name: RepoTree(RepoAndBranch(repo_name, "master"), ["sentry/kangaroo.go"])
@@ -497,7 +497,7 @@ class TestGoDeriveCodeMappings(BaseDeriveCodeMappings):
     def test_auto_source_code_config_similar_but_incorrect_file(self):
         repo_name = "go_repo"
         with patch(
-            "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org"
+            "sentry.integrations.source_code_management.repo_trees.RepoTreesIntegration.get_trees_for_org"
         ) as mock_get_trees_for_org:
             mock_get_trees_for_org.return_value = {
                 repo_name: RepoTree(RepoAndBranch(repo_name, "master"), ["notsentry/main.go"])
@@ -526,7 +526,7 @@ class TestPhpDeriveCodeMappings(BaseDeriveCodeMappings):
     def test_auto_source_code_config_basic_php(self):
         repo_name = "php/place"
         with patch(
-            "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org"
+            "sentry.integrations.source_code_management.repo_trees.RepoTreesIntegration.get_trees_for_org"
         ) as mock_get_trees_for_org:
             mock_get_trees_for_org.return_value = {
                 repo_name: RepoTree(
@@ -543,7 +543,7 @@ class TestPhpDeriveCodeMappings(BaseDeriveCodeMappings):
     def test_auto_source_code_config_different_roots_php(self):
         repo_name = "php/place"
         with patch(
-            "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org"
+            "sentry.integrations.source_code_management.repo_trees.RepoTreesIntegration.get_trees_for_org"
         ) as mock_get_trees_for_org:
             mock_get_trees_for_org.return_value = {
                 repo_name: RepoTree(
@@ -585,7 +585,7 @@ class TestCSharpDeriveCodeMappings(BaseDeriveCodeMappings):
     def test_auto_source_code_config_csharp_trivial(self):
         repo_name = "csharp/repo"
         with patch(
-            "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org"
+            "sentry.integrations.source_code_management.repo_trees.RepoTreesIntegration.get_trees_for_org"
         ) as mock_get_trees_for_org:
             mock_get_trees_for_org.return_value = {
                 repo_name: RepoTree(
@@ -602,7 +602,7 @@ class TestCSharpDeriveCodeMappings(BaseDeriveCodeMappings):
     def test_auto_source_code_config_different_roots_csharp(self):
         repo_name = "csharp/repo"
         with patch(
-            "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org"
+            "sentry.integrations.source_code_management.repo_trees.RepoTreesIntegration.get_trees_for_org"
         ) as mock_get_trees_for_org:
             mock_get_trees_for_org.return_value = {
                 repo_name: RepoTree(
@@ -619,7 +619,7 @@ class TestCSharpDeriveCodeMappings(BaseDeriveCodeMappings):
     def test_auto_source_code_config_non_in_app_frame(self):
         repo_name = "csharp/repo"
         with patch(
-            "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org"
+            "sentry.integrations.source_code_management.repo_trees.RepoTreesIntegration.get_trees_for_org"
         ) as mock_get_trees_for_org:
             mock_get_trees_for_org.return_value = {
                 repo_name: RepoTree(RepoAndBranch(repo_name, "master"), ["sentry/src/functions.cs"])
@@ -747,7 +747,7 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
     def test_auto_source_code_config_stack_and_source_root_do_not_match(self):
         repo_name = "foo/bar"
         with patch(
-            "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org"
+            "sentry.integrations.source_code_management.repo_trees.RepoTreesIntegration.get_trees_for_org"
         ) as mock_get_trees_for_org:
             mock_get_trees_for_org.return_value = {
                 repo_name: RepoTree(
@@ -764,7 +764,7 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
     def test_auto_source_code_config_no_normalization(self):
         repo_name = "foo/bar"
         with patch(
-            "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org"
+            "sentry.integrations.source_code_management.repo_trees.RepoTreesIntegration.get_trees_for_org"
         ) as mock_get_trees_for_org:
             mock_get_trees_for_org.return_value = {
                 repo_name: RepoTree(
