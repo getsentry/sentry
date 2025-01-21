@@ -3,6 +3,7 @@ from rest_framework.response import Response
 
 from sentry import options
 from sentry.api.base import Endpoint
+from sentry.api.permissions import SentryPermission
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.utils.marketo_client import MarketoClient
 
@@ -15,7 +16,7 @@ class EmailCaptureSerialier(CamelSnakeSerializer):
 
 class EmailCaptureEndpoint(Endpoint):
     # Disable authentication and permission requirements.
-    permission_classes = []
+    permission_classes = (SentryPermission,)
 
     def post(self, request):
         if not options.get("demo-mode.enabled"):
