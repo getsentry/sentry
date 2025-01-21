@@ -141,14 +141,10 @@ class RepoTreesIntegration(ABC):
 
         return trees
 
-    def _populate_tree(
-        self, repo_and_branch: RepoAndBranch, only_use_cache: bool, cache_seconds: int
-    ) -> RepoTree:
+    def _populate_tree(self, repo_and_branch: RepoAndBranch, only_use_cache: bool) -> RepoTree:
         full_name = repo_and_branch.name
         branch = repo_and_branch.branch
-        repo_files = self.get_cached_repo_files(
-            full_name, branch, only_use_cache=only_use_cache, cache_seconds=cache_seconds
-        )
+        repo_files = self.get_cached_repo_files(full_name, branch, only_use_cache=only_use_cache)
         return RepoTree(repo_and_branch, repo_files)
 
     # https://docs.github.com/en/rest/git/trees#get-a-tree
@@ -181,7 +177,6 @@ class RepoTreesIntegration(ABC):
         tree_sha: str,
         only_source_code_files: bool = True,
         only_use_cache: bool = False,
-        cache_seconds: int = 3600 * 24,
     ) -> list[str]:
         """It return all files for a repo or just source code files.
 
@@ -190,7 +185,6 @@ class RepoTreesIntegration(ABC):
         only_source_code_files: Include all files or just the source code files
         only_use_cache: Do not hit the network but use the value from the cache
             if any. This is useful if the remaining API requests are low
-        cache_seconds: How long to cache a value for
         """
         key = f"github:repo:{repo_full_name}:{'source-code' if only_source_code_files else 'all'}"
         repo_files: list[str] = cache.get(key, [])
@@ -208,7 +202,7 @@ class RepoTreesIntegration(ABC):
                 # the cost of not having cached the files cached for those
                 # repositories is a single GH API network request, thus,
                 # being acceptable to sometimes not having everything cached
-                cache.set(key, repo_files, cache_seconds)
+                cache.set(key, repo_files, self.CACHE_SECONDS)
 
         return repo_files
 
