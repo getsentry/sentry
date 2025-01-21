@@ -253,8 +253,10 @@ Then, use it to run sync this one time.
 
     fs.ensure_symlink("../../config/hooks/post-merge", f"{reporoot}/.git/hooks/post-merge")
 
-    if not os.path.exists(f"{constants.home}/.sentry/config.yml") or not os.path.exists(
-        f"{constants.home}/.sentry/sentry.conf.py"
+    sentry_conf = os.environ.get("SENTRY_CONF", f"{constants.home}/.sentry")
+
+    if not os.path.exists(f"{sentry_conf}/config.yml") or not os.path.exists(
+        f"{sentry_conf}/sentry.conf.py"
     ):
         proc.run((f"{venv_dir}/bin/sentry", "init", "--dev"))
 

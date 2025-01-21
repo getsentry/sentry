@@ -2,6 +2,7 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {TagsFixture} from 'sentry-fixture/tags';
+import {UserFixture} from 'sentry-fixture/user';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -106,12 +107,12 @@ describe('Dashboards > Dashboard', () => {
           project: {
             id: '3',
           },
-          owners: [
-            {
-              type: 'ownershipRule',
-              owner: 'user:2',
-            },
-          ],
+          assignedTo: {
+            email: 'test@sentry.io',
+            type: 'user',
+            id: '1',
+            name: 'Test User',
+          },
         },
       ],
     });
@@ -403,16 +404,23 @@ describe('Dashboards > Dashboard', () => {
       expect(screen.getByText('Test Issue Widget')).toBeInTheDocument();
     });
 
-    it('renders suggested assignees', async () => {
+    it('renders assignee', async () => {
+      MemberListStore.loadInitialData([
+        UserFixture({
+          name: 'Test User',
+          email: 'test@sentry.io',
+          avatar: {
+            avatarType: 'letter_avatar',
+            avatarUuid: null,
+          },
+        }),
+      ]);
       const mockDashboardWithIssueWidget = {
         ...mockDashboard,
         widgets: [{...issueWidget}],
       };
       mount(mockDashboardWithIssueWidget, organization);
-      expect(await screen.findByText('T')).toBeInTheDocument();
-      await userEvent.hover(screen.getByText('T'));
-      expect(await screen.findByText('Suggestion: test@sentry.io')).toBeInTheDocument();
-      expect(screen.getByText('Matching Issue Owners Rule')).toBeInTheDocument();
+      expect(await screen.findByTitle('Test User')).toBeInTheDocument();
     });
   });
 

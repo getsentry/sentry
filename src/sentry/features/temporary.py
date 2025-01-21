@@ -561,8 +561,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("projects:first-event-severity-calculation", ProjectFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable escalation detection for new issues
     manager.add("projects:first-event-severity-new-escalation", ProjectFeature, FeatureHandlerStrategy.INTERNAL, default=True, api_expose=False)
-    # Enable alternative version of group creation that is supposed to be less racy.
-    manager.add("projects:race-free-group-creation", ProjectFeature, FeatureHandlerStrategy.INTERNAL, default=True, api_expose=False)
     # Enable similarity embeddings API call
     # This feature is only available on the frontend using project details since the handler gets
     # project options and this is slow in the project index endpoint feature flag serialization
