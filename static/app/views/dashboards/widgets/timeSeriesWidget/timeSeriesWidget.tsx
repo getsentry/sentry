@@ -18,7 +18,9 @@ import type {StateProps} from '../common/types';
 export interface TimeSeriesWidgetProps
   extends StateProps,
     Omit<WidgetFrameProps, 'children'>,
-    Partial<TimeSeriesWidgetVisualizationProps> {}
+    Partial<TimeSeriesWidgetVisualizationProps> {
+  visualizationType: TimeSeriesWidgetVisualizationProps['visualizationType'];
+}
 
 export function TimeSeriesWidget(props: TimeSeriesWidgetProps) {
   const {timeseries} = props;
@@ -55,14 +57,14 @@ export function TimeSeriesWidget(props: TimeSeriesWidgetProps) {
       error={error}
       onRetry={props.onRetry}
     >
-      {defined(timeseries) && defined(props.SeriesConstructor) && (
+      {defined(timeseries) && (
         <TimeSeriesWrapper>
           <TimeSeriesWidgetVisualization
+            visualizationType={props.visualizationType}
             timeseries={timeseries}
             releases={props.releases}
             aliases={props.aliases}
             dataCompletenessDelay={props.dataCompletenessDelay}
-            SeriesConstructor={props.SeriesConstructor}
             timeseriesSelection={props.timeseriesSelection}
             onTimeseriesSelectionChange={props.onTimeseriesSelectionChange}
           />
