@@ -21,6 +21,6 @@ social_auth: 0002_default_auto_field
 
 tempest: 0001_create_tempest_credentials_model
 
-uptime: 0021_drop_region_table_col
+uptime: 0022_add_trace_sampling_to_uptime_monitors
 
 workflow_engine: 0023_create_action_trigger_action_table
