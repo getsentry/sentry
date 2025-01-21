@@ -12,7 +12,7 @@ export async function getPreloadedDataPromise(
    * for the promise to resolve
    */
   const wrappedFallback = () => {
-    const fallbackAttribute = `${name}_fallback`;
+    const fallbackAttribute = `${name}_fallback` as const;
     const promise = fallback();
     if (data) {
       data[fallbackAttribute] = promise;
