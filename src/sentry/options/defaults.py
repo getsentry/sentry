@@ -57,7 +57,6 @@ register(
     default=2**31,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-register("system.new-auto-source-code-config-queue", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # URL configuration
 # Absolute URL to the sentry root directory. Should not include a trailing slash.
@@ -2824,12 +2823,6 @@ register(
     "ecosystem:enable_integration_form_error_raise", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 
-# Controls the rate of using the sentry api shared secret for communicating to sentry.
-register(
-    "seer.api.use-nonce-signature",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Restrict uptime issue creation for specific host provider identifiers. Items
 # in this list map to the `host_provider_id` column in the UptimeSubscription
