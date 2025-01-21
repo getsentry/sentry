@@ -116,13 +116,12 @@ def auto_source_code_config(
 
     stacktrace_paths = identify_stacktrace_paths(event.data)
     if not stacktrace_paths:
-        logger.info("No stacktrace paths found.", extra=extra)
         return
 
     installation, organization_integration = get_installation(org)
 
     if not installation or not organization_integration:
-        logger.info("No installation or organization integration found.", extra=extra)
+        logger.error("No installation or organization integration found.", extra=extra)
         return
 
     if not hasattr(installation, "get_trees_for_org") and not hasattr(
@@ -134,6 +133,15 @@ def auto_source_code_config(
         )
         return
 
+    trees = get_trees_for_org(installation, org, extra)
+    trees_helper = CodeMappingTreesHelper(trees)
+    code_mappings = trees_helper.generate_code_mappings(stacktrace_paths)
+    set_project_codemappings(code_mappings, organization_integration, project)
+
+
+def get_trees_for_org(
+    installation: IntegrationInstallation, org: Organization, extra: Mapping[str, Any]
+) -> dict[str, Any]:
     trees = {}
     # Acquire the lock for a maximum of 10 minutes
     lock = locks.get(key=f"get_trees_for_org:{org.slug}", duration=60 * 10, name="process_pending")
@@ -151,22 +159,16 @@ def auto_source_code_config(
         except ApiError as error:
             process_error(error, extra)
             lifecycle.record_halt(error, extra)
-            return
         except UnableToAcquireLock as error:
             extra["error"] = str(error)
             lifecycle.record_failure(error, extra)
-            return
         except Exception:
             lifecycle.record_failure(DeriveCodeMappingsErrorReason.UNEXPECTED_ERROR, extra=extra)
-            return
 
         if not trees:
             lifecycle.record_halt(DeriveCodeMappingsErrorReason.EMPTY_TREES, extra=extra)
-            return
 
-    trees_helper = CodeMappingTreesHelper(trees)
-    code_mappings = trees_helper.generate_code_mappings(stacktrace_paths)
-    set_project_codemappings(code_mappings, organization_integration, project)
+        return trees
 
 
 def identify_stacktrace_paths(data: NodeData) -> list[str]:
