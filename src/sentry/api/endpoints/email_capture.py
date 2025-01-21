@@ -2,7 +2,7 @@ from rest_framework import serializers
 from rest_framework.response import Response
 
 from sentry import options
-from sentry.api.base import Endpoint
+from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.permissions import SentryPermission
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.utils.marketo_client import MarketoClient
@@ -14,6 +14,7 @@ class EmailCaptureSerialier(CamelSnakeSerializer):
     email = serializers.EmailField(required=True)
 
 
+@region_silo_endpoint
 class EmailCaptureEndpoint(Endpoint):
     # Disable authentication and permission requirements.
     permission_classes = (SentryPermission,)
