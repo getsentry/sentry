@@ -3,7 +3,7 @@ import time
 from multiprocessing import Event
 from unittest import mock
 
-from sentry_protos.sentry.v1.taskworker_pb2 import (
+from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
     TASK_ACTIVATION_STATUS_COMPLETE,
     TASK_ACTIVATION_STATUS_FAILURE,
     TASK_ACTIVATION_STATUS_RETRY,

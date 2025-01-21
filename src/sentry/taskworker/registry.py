@@ -9,7 +9,7 @@ from typing import Any
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer
 from arroyo.types import Topic as ArroyoTopic
 from django.conf import settings
-from sentry_protos.sentry.v1.taskworker_pb2 import TaskActivation
+from sentry_protos.taskbroker.v1.taskbroker_pb2 import TaskActivation
 
 from sentry.conf.types.kafka_definition import Topic
 from sentry.taskworker.constants import DEFAULT_PROCESSING_DEADLINE
