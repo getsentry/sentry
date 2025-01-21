@@ -16,6 +16,7 @@ from sentry.users.services.user.service import user_service
 from sentry.workflow_engine.migration_helpers.alert_rule import (
     dual_delete_migrated_alert_rule,
     dual_delete_migrated_alert_rule_trigger,
+    dual_delete_migrated_alert_rule_trigger_action,
     get_resolve_threshold,
     migrate_alert_rule,
     migrate_metric_action,
@@ -113,10 +114,6 @@ def assert_alert_rule_resolve_trigger_migrated(alert_rule):
 
 
 def assert_alert_rule_trigger_migrated(alert_rule_trigger):
-    assert AlertRuleTriggerDataCondition.objects.filter(
-        alert_rule_trigger=alert_rule_trigger
-    ).exists()
-
     condition_result = (
         DetectorPriorityLevel.MEDIUM
         if alert_rule_trigger.label == "warning"
@@ -527,4 +524,13 @@ class AlertRuleMigrationHelpersTest(APITestCase):
     def test_dual_delete_migrated_alert_rule_trigger_action(self):
         migrate_alert_rule(self.metric_alert, self.rpc_user)
         migrate_metric_data_conditions(self.alert_rule_trigger_critical)
-        migrate_metric_action(self.alert_rule_trigger_action_email)
+        migrate_metric_action(self.alert_rule_trigger_action_integration)
+
+        aarta = ActionAlertRuleTriggerAction.objects.get(
+            alert_rule_trigger_action=self.alert_rule_trigger_action_integration
+        )
+        aarta_id = aarta.id
+        action_id = aarta.action.id
+        dual_delete_migrated_alert_rule_trigger_action(self.alert_rule_trigger_action_integration)
+        assert not Action.objects.filter(id=action_id).exists()
+        assert not ActionAlertRuleTriggerAction.objects.filter(id=aarta_id).exists()

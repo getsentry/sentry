@@ -40,6 +40,15 @@ FIELDS_TO_DETECTOR_FIELDS = {
     "team_id": "owner_team_id",
 }
 
+PRIORITY_MAP = {
+    "warning": DetectorPriorityLevel.MEDIUM,
+    "critical": DetectorPriorityLevel.HIGH,
+}
+
+
+class MissingACITableException(Exception):
+    pass
+
 
 def get_action_type(alert_rule_trigger_action: AlertRuleTriggerAction) -> str | None:
     if alert_rule_trigger_action.sentry_app_id:
@@ -70,25 +79,27 @@ def get_detector_trigger(
     try:
         alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=alert_rule)
     except AlertRuleDetector.DoesNotExist:
+        # We attempted to dual delete a trigger that was not dual migrated
         return None
 
     detector = alert_rule_detector.detector
     detector_data_condition_group = detector.workflow_condition_group
     if detector_data_condition_group is None:
-        return None
+        raise MissingACITableException
+
     try:
         detector_trigger = DataCondition.objects.get(
             condition_group=detector_data_condition_group,
             condition_result=priority,
         )
     except DataCondition.DoesNotExist:
-        return None
+        raise MissingACITableException
     return detector_trigger
 
 
 def get_action_filter(
     alert_rule_trigger: AlertRuleTrigger, priority: DetectorPriorityLevel
-) -> DataCondition | None:
+) -> DataCondition:
     """
     Helper method to find the action filter corresponding to an AlertRuleTrigger.
     Returns None if the action filter cannot be found.
@@ -97,7 +108,7 @@ def get_action_filter(
     try:
         alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=alert_rule)
     except AlertRuleWorkflow.DoesNotExist:
-        return None
+        raise MissingACITableException
     workflow = alert_rule_workflow.workflow
     workflow_dcgs = DataConditionGroup.objects.filter(workflowdataconditiongroup__workflow=workflow)
     try:
@@ -106,7 +117,7 @@ def get_action_filter(
             comparison=priority,
         )
     except DataCondition.DoesNotExist:
-        return None
+        raise MissingACITableException
     return action_filter
 
 
@@ -114,18 +125,8 @@ def migrate_metric_action(
     alert_rule_trigger_action: AlertRuleTriggerAction,
 ) -> tuple[Action, DataConditionGroupAction, ActionAlertRuleTriggerAction] | None:
     alert_rule_trigger = alert_rule_trigger_action.alert_rule_trigger
-    priority = (
-        DetectorPriorityLevel.MEDIUM
-        if alert_rule_trigger.label == "warning"
-        else DetectorPriorityLevel.HIGH
-    )
+    priority = PRIORITY_MAP[alert_rule_trigger.label]
     action_filter = get_action_filter(alert_rule_trigger, priority)
-    if action_filter is None:
-        logger.error(
-            "Action filter does not exist",
-            extra={"alert_rule_trigger_id": alert_rule_trigger.id},
-        )
-        return None
 
     action_type = get_action_type(alert_rule_trigger_action)
     if not action_type:
@@ -591,22 +592,14 @@ def dual_delete_migrated_alert_rule_trigger(
     alert_rule_trigger: AlertRuleTrigger,
     user: RpcUser | None = None,
 ) -> None:
-    priority = (
-        DetectorPriorityLevel.MEDIUM
-        if alert_rule_trigger.label == "warning"
-        else DetectorPriorityLevel.HIGH
-    )
+    priority = PRIORITY_MAP[alert_rule_trigger.label]
     detector_trigger = get_detector_trigger(alert_rule_trigger, priority)
     if detector_trigger is None:
         return None
-
     action_filter = get_action_filter(alert_rule_trigger, priority)
-    if action_filter is None:
-        return None
 
     detector_trigger.delete()
     action_filter.delete()
-    logger.info("Dual deleted alert_rule_trigger", extra={"alert_rule_trigger": alert_rule_trigger})
 
     return None
 
@@ -615,15 +608,7 @@ def dual_delete_migrated_alert_rule_trigger_action(
     trigger_action: AlertRuleTriggerAction,
     user: RpcUser | None = None,
 ) -> None:
-    aarta = ActionAlertRuleTriggerAction.objects.filter(
-        alert_rule_trigger_action=trigger_action
-    ).first()
-    if aarta is None:
-        logger.error(
-            "ActionAlertRuleTriggerAction does not exist",
-            extra={"alert_rule_trigger_action_id": trigger_action.id},
-        )
-        return None
+    aarta = ActionAlertRuleTriggerAction.objects.get(alert_rule_trigger_action=trigger_action)
     action = aarta.action
     action.delete()
     return None
