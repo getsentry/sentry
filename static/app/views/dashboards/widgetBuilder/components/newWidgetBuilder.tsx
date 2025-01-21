@@ -16,8 +16,6 @@ import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {decodeBoolean} from 'sentry/utils/queryString';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useKeyPress from 'sentry/utils/useKeyPress';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
@@ -28,7 +26,6 @@ import {
   type DashboardFilters,
   DisplayType,
   type Widget,
-  WidgetType,
 } from 'sentry/views/dashboards/types';
 import {
   DEFAULT_WIDGET_DRAG_POSITIONING,
@@ -225,11 +222,6 @@ export function WidgetPreviewContainer({
   const organization = useOrganization();
   const location = useLocation();
   const theme = useTheme();
-  const {useRpc} = useLocationQuery({
-    fields: {
-      useRpc: decodeBoolean,
-    },
-  });
   const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.small})`);
   // if small screen and draggable, enable dragging
   const isDragEnabled = isSmallScreen && isDraggable;
@@ -335,10 +327,6 @@ export function WidgetPreviewContainer({
                     </WidgetPreviewPlaceholder>
                   ) : (
                     <WidgetPreview
-                      // While we test out RPC for spans, force a re-render if the spans toggle changes
-                      key={
-                        state.dataset === WidgetType.SPANS && useRpc ? 'spans' : 'other'
-                      }
                       dashboardFilters={dashboardFilters}
                       dashboard={dashboard}
                       isWidgetInvalid={isWidgetInvalid}
