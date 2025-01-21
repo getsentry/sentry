@@ -15,7 +15,6 @@ from sentry.issues.grouptype import (
     get_group_type_by_type_id,
 )
 from sentry.issues.grouptype import registry as GT_REGISTRY
-from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.search.events.filter import convert_search_filter_to_snuba_query
 from sentry.snuba.dataset import Dataset
@@ -56,8 +55,8 @@ GroupSearchStrategy = Callable[
         Sequence[Any],
         Sequence[Any],
         int,
-        Sequence[int],
-        Optional[Sequence[Environment]],
+        list[int],
+        Optional[Sequence[str]],
         Optional[Sequence[int]],
         Mapping[str, Sequence[int]],
         Sequence[Any],
@@ -132,8 +131,8 @@ def _query_params_for_error(
     selected_columns: Sequence[Any],
     aggregations: Sequence[Any],
     organization_id: int,
-    project_ids: Sequence[int],
-    environments: Sequence[Environment] | None,
+    project_ids: list[int],
+    environments: Sequence[str] | None,
     group_ids: Sequence[int] | None,
     filters: Mapping[str, Sequence[int]],
     conditions: Sequence[Any],
@@ -168,8 +167,8 @@ def _query_params_for_generic(
     selected_columns: Sequence[Any],
     aggregations: Sequence[Any],
     organization_id: int,
-    project_ids: Sequence[int],
-    environments: Sequence[Environment] | None,
+    project_ids: list[int],
+    environments: Sequence[str] | None,
     group_ids: Sequence[int] | None,
     filters: Mapping[str, Sequence[int]],
     conditions: Sequence[Any],
@@ -255,8 +254,8 @@ def _updated_conditions(
     operator: str,
     value: str,
     organization_id: int,
-    project_ids: Sequence[int],
-    environments: Sequence[Environment] | None,
+    project_ids: list[int],
+    environments: Sequence[str] | None,
     conditions: Sequence[Any],
 ) -> Sequence[Any]:
     search_filter = SearchFilter(
