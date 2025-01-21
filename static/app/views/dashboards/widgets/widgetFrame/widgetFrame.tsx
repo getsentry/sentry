@@ -7,9 +7,8 @@ import {HeaderTitle} from 'sentry/components/charts/styles';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconEllipsis, IconInfo, IconWarning} from 'sentry/icons';
+import {IconEllipsis, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 import {ErrorPanel} from '../common/errorPanel';
 import {WIDGET_RENDER_ERROR_MESSAGE} from '../common/settings';
@@ -17,17 +16,17 @@ import {TooltipIconTrigger} from '../common/tooltipIconTrigger';
 import type {StateProps} from '../common/types';
 import {WarningsList} from '../common/warningsList';
 
+import {DescriptionTooltip, type DescriptionTooltipProps} from './descriptionTooltip';
 import {FullScreenViewButton} from './fullScreenViewButton';
 import {WidgetLayout} from './widgetLayout';
 
-export interface WidgetFrameProps extends StateProps {
+export interface WidgetFrameProps extends StateProps, DescriptionTooltipProps {
   actions?: MenuItemProps[];
   actionsDisabled?: boolean;
   actionsMessage?: string;
   badgeProps?: BadgeProps | BadgeProps[];
   borderless?: boolean;
   children?: React.ReactNode;
-  description?: React.ReactElement | string;
   onFullScreenViewClick?: () => void | Promise<void>;
   title?: string;
   warnings?: string[];
@@ -82,27 +81,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
         <Fragment>
           {props.description && (
             // Ideally we'd use `QuestionTooltip` but we need to firstly paint the icon dark, give it 100% opacity, and remove hover behaviour.
-            <Tooltip
-              title={
-                <span>
-                  {props.title && <WidgetTooltipTitle>{props.title}</WidgetTooltipTitle>}
-                  {props.description && (
-                    <WidgetTooltipDescription>
-                      {props.description}
-                    </WidgetTooltipDescription>
-                  )}
-                </span>
-              }
-              containerDisplayMode="grid"
-              isHoverable
-            >
-              <WidgetTooltipButton
-                aria-label={t('Widget description')}
-                borderless
-                size="xs"
-                icon={<IconInfo size="sm" />}
-              />
-            </Tooltip>
+            <DescriptionTooltip title={props.title} description={props.description} />
           )}
 
           {shouldShowActions && (
@@ -197,23 +176,4 @@ const TitleText = styled(HeaderTitle)`
 
 const RigidBadge = styled(Badge)`
   flex-shrink: 0;
-`;
-
-const WidgetTooltipTitle = styled('div')`
-  font-weight: bold;
-  font-size: ${p => p.theme.fontSizeMedium};
-  text-align: left;
-`;
-
-const WidgetTooltipDescription = styled('div')`
-  margin-top: ${space(0.5)};
-  font-size: ${p => p.theme.fontSizeSmall};
-  text-align: left;
-`;
-
-// We're using a button here to preserve tab accessibility
-const WidgetTooltipButton = styled(Button)`
-  pointer-events: none;
-  padding-top: 0;
-  padding-bottom: 0;
 `;
