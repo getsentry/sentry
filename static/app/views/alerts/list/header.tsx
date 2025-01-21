@@ -9,17 +9,17 @@ import {TabList} from 'sentry/components/tabs';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import useRouter from 'sentry/utils/useRouter';
 
 type Props = {
   activeTab: 'stream' | 'rules';
-  router: InjectedRouter;
 };
 
-function AlertHeader({router, activeTab}: Props) {
+function AlertHeader({activeTab}: Props) {
+  const router = useRouter();
   const organization = useOrganization();
   const {selection} = usePageFilters();
   /**
