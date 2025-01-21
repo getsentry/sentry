@@ -149,7 +149,7 @@ class SeenStats(TypedDict):
     user_count: int
 
 
-def _is_seen_stats(o: object) -> TypeGuard[SeenStats]:
+def is_seen_stats(o: object) -> TypeGuard[SeenStats]:
     # not a perfect check, but simulates what was being validated before
     return isinstance(o, dict) and "times_seen" in o
 
@@ -361,7 +361,7 @@ class GroupSerializerBase(Serializer, ABC):
         # This attribute is currently feature gated
         if "is_unhandled" in attrs:
             group_dict["isUnhandled"] = attrs["is_unhandled"]
-        if _is_seen_stats(attrs):
+        if is_seen_stats(attrs):
             group_dict.update(self._convert_seen_stats(attrs))
         return group_dict
 
