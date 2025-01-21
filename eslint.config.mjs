@@ -344,7 +344,7 @@ export default typescript.config([
       'no-relative-import-paths/no-relative-import-paths': [
         'off',
         {prefix: 'sentry', allowSameFolder: true},
-      ], // TODO(ryan953): Fix violations and enable this rule, followup and disable `allowSameFolder`
+      ], // TODO(ryan953): Fix violations and enable this rule, followup and disable `allowSameFolder`, see also exceptions for *.spec.tsx files
     },
   },
   {
@@ -756,6 +756,11 @@ export default typescript.config([
           ],
         },
       ],
+
+      'no-relative-import-paths/no-relative-import-paths': [
+        'off',
+        {prefix: 'sentry', allowSameFolder: true},
+      ], // TODO(ryan953): Fix violations and enable this rule, keep `allowSameFolder:true`
     },
   },
   {
