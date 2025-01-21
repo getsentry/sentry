@@ -34,7 +34,7 @@ class RuleSource(IntEnum):
         return (
             (cls.ISSUE, "issue"),
             (cls.CRON_MONITOR, "cron_monitor"),
-            (cls.UPTIME, "uptime_monitor"),
+            (cls.UPTIME, "uptime"),
         )
 
 
