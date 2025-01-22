@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import urllib
 from collections.abc import Callable, Iterable, Mapping
 from functools import cached_property
 from typing import Any
@@ -406,11 +407,17 @@ class _ClientConfig:
         # which could cause an error notification (403) to pop up in the user interface.
         if self.user and self.request and self.request.path.startswith("accept/"):
 
-            member_id = self.request.path.split("/")[1]
-            invite_state = get_invite_state(int(member_id), None, int(self.user.id), self.request)
-            invitation_link = getattr(invite_state, "invitation_link", None)
+            request = self.request
+            http_request: HttpRequest = (
+                self.request if isinstance(request, HttpRequest) else request._request
+            )
 
-            if invitation_link == self.request.get_full_path():
+            member_id = http_request.path.split("/")[1]
+            invite_state = get_invite_state(int(member_id), None, int(self.user.id), http_request)
+            invitation_link = getattr(invite_state, "invitation_link", None)
+            accept_path = urllib.parse.urlparse(invitation_link).path
+
+            if accept_path == request.path:
                 return False
 
         return True
