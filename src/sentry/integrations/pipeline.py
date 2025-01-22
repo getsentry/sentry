@@ -126,7 +126,7 @@ class IntegrationPipeline(Pipeline):
                 extra={
                     "error_message": str(e),
                     "error_status": getattr(e, "code", None),
-                    "organization_id": self.organization.id,
+                    "organization_id": self.organization.id if self.organization else None,
                     "provider_key": self.provider.key,
                 },
             )
