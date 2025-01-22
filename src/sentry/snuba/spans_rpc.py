@@ -6,7 +6,11 @@ from typing import Any
 import sentry_sdk
 from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeries, TimeSeriesRequest
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column, TraceItemTableRequest
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeAggregation, AttributeKey
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
+    AttributeAggregation,
+    AttributeKey,
+    Reliability,
+)
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import AndFilter, OrFilter, TraceItemFilter
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
@@ -19,7 +23,7 @@ from sentry.search.eap.types import CONFIDENCES, ConfidenceData, EAPResponse, Se
 from sentry.search.events.fields import get_function_alias, is_function
 from sentry.search.events.types import EventsMeta, SnubaData, SnubaParams
 from sentry.snuba.discover import OTHER_KEY, create_result_key, zerofill
-from sentry.utils import snuba_rpc
+from sentry.utils import metrics, snuba_rpc
 from sentry.utils.snuba import SnubaTSResult, process_value
 
 logger = logging.getLogger("sentry.snuba.spans_rpc")
@@ -137,15 +141,26 @@ def run_table_query(
             final_data.append({})
             final_confidence.append({})
 
+        confidence_buckets: dict[str, int] = {
+            Reliability.RELIABILITY_LOW: 0,
+            Reliability.RELIABILITY_HIGH: 0,
+        }
         for index, result in enumerate(column_value.results):
             result_value: str | int | float
             result_value = getattr(result, str(result.WhichOneof("value")))
             result_value = process_value(result_value)
             final_data[index][attribute] = resolved_column.process_column(result_value)
             if has_reliability:
-                final_confidence[index][attribute] = CONFIDENCES.get(
-                    column_value.reliabilities[index], None
-                )
+                confidence_value = CONFIDENCES.get(column_value.reliabilities[index], None)
+                final_confidence[index][attribute] = confidence_value
+                if confidence_value is not None:
+                    confidence_buckets[confidence_value] += 1
+
+        query_confidence = confidence_buckets[Reliability.RELIABILITY_HIGH] / (
+            confidence_buckets[Reliability.RELIABILITY_LOW]
+            + confidence_buckets[Reliability.RELIABILITY_HIGH]
+        )
+        metrics.distribution("eap.query.confidence", query_confidence, tags={})
 
     return {"data": final_data, "meta": final_meta, "confidence": final_confidence}
 
