@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import urllib
 from collections.abc import Callable, Iterable, Mapping
 from functools import cached_property
 from typing import Any
+from urllib.parse import quote as urlquote
 
 import sentry_sdk
 from django.conf import settings
@@ -44,7 +44,7 @@ from sentry.users.services.user.service import user_service
 from sentry.utils import auth, json
 from sentry.utils.assets import get_frontend_dist_prefix
 from sentry.utils.email import is_smtp_enabled
-from sentry.utils.http import is_using_customer_domain
+from sentry.utils.http import absolute_uri, is_using_customer_domain
 from sentry.utils.settings import (
     is_self_hosted,
     is_self_hosted_errors_only,
@@ -409,10 +409,10 @@ class _ClientConfig:
 
             member_id = self.request.path.split("/")[1]
             invite_state = get_invite_state(int(member_id), None, int(self.user.id), self.request)
-            invitation_link = getattr(invite_state, "invitation_link", None)
-            accept_path = urllib.parse.urlparse(invitation_link).path
+            member = getattr(invite_state, "member", None)
+            invitation_link = member.invitation_link if member else None
 
-            if accept_path == self.request.path:
+            if invitation_link == absolute_uri(urlquote(self.request.path)):
                 return False
 
         return True
