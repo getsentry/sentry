@@ -42,41 +42,16 @@ from sentry.integrations.slack.utils.errors import (
 )
 from sentry.integrations.utils.metrics import EventLifecycle
 from sentry.issues.grouptype import GroupCategory
-from sentry.models.activity import Activity
-from sentry.models.group import Group
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.rule import Rule
 from sentry.notifications.additional_attachment_manager import get_additional_attachment
+from sentry.notifications.utils.open_period import open_period_start_for_group
 from sentry.rules.actions import IntegrationEventAction
 from sentry.rules.base import CallbackFuture
-from sentry.types.activity import ActivityType
 from sentry.types.rules import RuleFuture
 from sentry.utils import metrics
 
 _default_logger: Logger = getLogger(__name__)
-
-
-def open_period_start_for_group(group: Group) -> datetime | None:
-    """
-    Get the start of the open period for a group.
-    This is the last activity of the group that is not a resolution or the first_seen of the group.
-    We need to check the first seen since we don't create an activity when the group is created.
-    """
-
-    # Get the last activity of the group
-    latest_unresolved_activity: Activity | None = (
-        Activity.objects.filter(
-            group=group,
-            type=ActivityType.SET_UNRESOLVED.value,
-        )
-        .order_by("-datetime")
-        .first()
-    )
-
-    if latest_unresolved_activity:
-        return latest_unresolved_activity.datetime
-
-    return group.first_seen
 
 
 class SlackNotifyServiceAction(IntegrationEventAction):
