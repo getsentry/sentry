@@ -649,7 +649,8 @@ class DifAssembleEndpoint(ProjectEndpoint):
 
         use_batch_assemble = features.has(
             "organizations:batch-assemble-debug-files",
-            project.organization,
+            organization=project.organization,
+            actor=request.user,
         )
 
         if use_batch_assemble:
