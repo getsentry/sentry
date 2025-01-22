@@ -395,6 +395,199 @@ class AssociateDSymFilesEndpoint(ProjectEndpoint):
         return Response({"associatedDsymFiles": []})
 
 
+def get_file_info(files, checksum):
+    """
+    Extracts file information from files given a checksum.
+    """
+    file = files.get(checksum)
+    if file is None:
+        return None
+
+    name = file.get("name")
+    debug_id = file.get("debug_id")
+    chunks = file.get("chunks", [])
+
+    return name, debug_id, chunks
+
+
+def batch_assemble(project, files):
+    """
+    Performs assembling in a batch fashion, issuing queries that span multiple files.
+    """
+    # We build a set of all the checksums that still need checks.
+    checksums_to_check = {checksum for checksum in files.keys()}
+    file_response = {}
+
+    # 1. Exclude all files that have already an assemble status.
+    for checksum in checksums_to_check:
+        # First, check the cached assemble status. During assembling, a
+        # `ProjectDebugFile` will be created, and we need to prevent a race
+        # condition.
+        state, detail = get_assemble_status(AssembleTask.DIF, project.id, checksum)
+        if state == ChunkFileState.OK:
+            file_response[checksum] = {
+                "state": state,
+                "detail": None,
+                "missingChunks": [],
+                "dif": detail,
+            }
+            checksums_to_check.remove(checksum)
+        elif state is not None:
+            file_response[checksum] = {"state": state, "detail": detail, "missingChunks": []}
+            checksums_to_check.remove(checksum)
+
+    # 2. Check if this project already owns the `ProjectDebugFile` for each file.
+    debug_files = ProjectDebugFile.objects.filter(
+        project_id=project.id,
+        checksum__in=checksums_to_check,
+    ).select_related("file")
+    for debug_file in debug_files:
+        file_response[debug_file.checksum] = {
+            "state": ChunkFileState.OK,
+            "detail": None,
+            "missingChunks": [],
+            "dif": serialize(debug_file),
+        }
+        checksums_to_check.remove(debug_file.checksum)
+
+    # 3. Compute all the chunks that have to be checked for existence.
+    chunks_to_check = {}
+    for checksum in checksums_to_check:
+        file_info = get_file_info(files, checksum)
+
+        # There is neither a known file nor a cached state, so we will
+        # have to create a new file. Assure that there are checksums.
+        # If not, we assume this is a poll and report `NOT_FOUND`.
+        if file_info is None or not file_info[2]:
+            file_response[checksum] = {"state": ChunkFileState.NOT_FOUND, "missingChunks": []}
+            checksums_to_check.remove(checksum)
+
+        # We make an inverted index from chunk to check to its checksum.
+        chunks_to_check[file_info[2]] = checksum
+
+    # 4. Find missing chunks and group them per checksum.
+    all_missing_chunks = find_missing_chunks(project.organization.id, chunks_to_check)
+    missing_chunks_per_checksum = {}
+    for chunk in all_missing_chunks:
+        # We access the chunk via `[]` since the chunk must be there since `all_missing_chunks` must be a subset of
+        # `chunks_to_check.keys()`.
+        missing_chunks_per_checksum.setdefault(chunks_to_check[chunk], set()).add(chunk)
+
+    # 5. Report missing chunks per checksum.
+    for checksum, missing_chunks in missing_chunks_per_checksum.items():
+        file_response[checksum] = {
+            "state": ChunkFileState.NOT_FOUND,
+            "missingChunks": missing_chunks,
+        }
+        checksums_to_check.remove(checksum)
+
+    from sentry.tasks.assemble import assemble_dif
+
+    # 6. Kickstart async assembling for all remaining chunks that have passed all checks.
+    for checksum in checksums_to_check:
+        file_info = get_file_info(files, checksum)
+        if file_info is None:
+            continue
+
+        name, debug_id, chunks = file_info
+        assemble_dif.apply_async(
+            kwargs={
+                "project_id": project.id,
+                "name": name,
+                "debug_id": debug_id,
+                "checksum": checksum,
+                "chunks": chunks,
+            }
+        )
+
+        file_response[checksum] = {"state": ChunkFileState.CREATED, "missingChunks": []}
+
+    return file_response
+
+
+def sequential_assemble(project, files):
+    """
+    Performs assembling in a sequential fashion, issuing queries for each file, identified by its `checksum`.
+    """
+    file_response = {}
+
+    for checksum, file_to_assemble in files.items():
+        name = file_to_assemble.get("name", None)
+        debug_id = file_to_assemble.get("debug_id", None)
+        chunks = file_to_assemble.get("chunks", [])
+
+        # First, check the cached assemble status. During assembling, a
+        # ProjectDebugFile will be created and we need to prevent a race
+        # condition.
+        state, detail = get_assemble_status(AssembleTask.DIF, project.id, checksum)
+        if state == ChunkFileState.OK:
+            file_response[checksum] = {
+                "state": state,
+                "detail": None,
+                "missingChunks": [],
+                "dif": detail,
+            }
+            continue
+        elif state is not None:
+            file_response[checksum] = {"state": state, "detail": detail, "missingChunks": []}
+            continue
+
+        # Next, check if this project already owns the ProjectDebugFile.
+        # This can under rare circumstances yield more than one file
+        # which is why we use first() here instead of get().
+        dif = (
+            ProjectDebugFile.objects.filter(project_id=project.id, checksum=checksum)
+            .select_related("file")
+            .order_by("-id")
+            .first()
+        )
+
+        if dif is not None:
+            file_response[checksum] = {
+                "state": ChunkFileState.OK,
+                "detail": None,
+                "missingChunks": [],
+                "dif": serialize(dif),
+            }
+            continue
+
+        # There is neither a known file nor a cached state, so we will
+        # have to create a new file.  Assure that there are checksums.
+        # If not, we assume this is a poll and report NOT_FOUND
+        if not chunks:
+            file_response[checksum] = {"state": ChunkFileState.NOT_FOUND, "missingChunks": []}
+            continue
+
+        # Check if all requested chunks have been uploaded.
+        missing_chunks = find_missing_chunks(project.organization.id, chunks)
+        if missing_chunks:
+            file_response[checksum] = {
+                "state": ChunkFileState.NOT_FOUND,
+                "missingChunks": missing_chunks,
+            }
+            continue
+
+        # We don't have a state yet, this means we can now start
+        # an assemble job in the background.
+        set_assemble_status(AssembleTask.DIF, project.id, checksum, ChunkFileState.CREATED)
+
+        from sentry.tasks.assemble import assemble_dif
+
+        assemble_dif.apply_async(
+            kwargs={
+                "project_id": project.id,
+                "name": name,
+                "debug_id": debug_id,
+                "checksum": checksum,
+                "chunks": chunks,
+            }
+        )
+
+        file_response[checksum] = {"state": ChunkFileState.CREATED, "missingChunks": []}
+
+    return file_response
+
+
 @region_silo_endpoint
 class DifAssembleEndpoint(ProjectEndpoint):
     owner = ApiOwner.OWNERS_INGEST
@@ -438,81 +631,12 @@ class DifAssembleEndpoint(ProjectEndpoint):
         except Exception:
             return Response({"error": "Invalid json body"}, status=400)
 
-        file_response = {}
-
-        for checksum, file_to_assemble in files.items():
-            name = file_to_assemble.get("name", None)
-            debug_id = file_to_assemble.get("debug_id", None)
-            chunks = file_to_assemble.get("chunks", [])
-
-            # First, check the cached assemble status. During assembling, a
-            # ProjectDebugFile will be created and we need to prevent a race
-            # condition.
-            state, detail = get_assemble_status(AssembleTask.DIF, project.id, checksum)
-            if state == ChunkFileState.OK:
-                file_response[checksum] = {
-                    "state": state,
-                    "detail": None,
-                    "missingChunks": [],
-                    "dif": detail,
-                }
-                continue
-            elif state is not None:
-                file_response[checksum] = {"state": state, "detail": detail, "missingChunks": []}
-                continue
-
-            # Next, check if this project already owns the ProjectDebugFile.
-            # This can under rare circumstances yield more than one file
-            # which is why we use first() here instead of get().
-            dif = (
-                ProjectDebugFile.objects.filter(project_id=project.id, checksum=checksum)
-                .select_related("file")
-                .order_by("-id")
-                .first()
-            )
-
-            if dif is not None:
-                file_response[checksum] = {
-                    "state": ChunkFileState.OK,
-                    "detail": None,
-                    "missingChunks": [],
-                    "dif": serialize(dif),
-                }
-                continue
-
-            # There is neither a known file nor a cached state, so we will
-            # have to create a new file.  Assure that there are checksums.
-            # If not, we assume this is a poll and report NOT_FOUND
-            if not chunks:
-                file_response[checksum] = {"state": ChunkFileState.NOT_FOUND, "missingChunks": []}
-                continue
-
-            # Check if all requested chunks have been uploaded.
-            missing_chunks = find_missing_chunks(project.organization.id, chunks)
-            if missing_chunks:
-                file_response[checksum] = {
-                    "state": ChunkFileState.NOT_FOUND,
-                    "missingChunks": missing_chunks,
-                }
-                continue
-
-            # We don't have a state yet, this means we can now start
-            # an assemble job in the background.
-            set_assemble_status(AssembleTask.DIF, project.id, checksum, ChunkFileState.CREATED)
-
-            from sentry.tasks.assemble import assemble_dif
-
-            assemble_dif.apply_async(
-                kwargs={
-                    "project_id": project.id,
-                    "name": name,
-                    "debug_id": debug_id,
-                    "checksum": checksum,
-                    "chunks": chunks,
-                }
-            )
-
-            file_response[checksum] = {"state": ChunkFileState.CREATED, "missingChunks": []}
+        # TODO: implement feature flag check.
+        use_batch_assemble = True
+        if use_batch_assemble:
+            file_response = batch_assemble(project=project, files=files)
+        else:
+            file_response = sequential_assemble(project=project, files=files)
 
         return Response(file_response, status=200)
 
