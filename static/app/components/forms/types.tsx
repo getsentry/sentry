@@ -119,7 +119,7 @@ type InputType = {type: 'string' | 'secret'} & {
 type SelectControlType = {type: 'choice' | 'select'} & {
   allowClear?: boolean;
   // for new select
-  defaultOptions?: Array<{label: string; value: any}> | boolean;
+  defaultOptions?: {label: string; value: any}[] | boolean;
   filterOption?: ReturnType<typeof createFilter>;
   multiple?: boolean;
   noOptionsMessage?: () => string;
@@ -167,7 +167,7 @@ export interface TableType {
 export type ProjectMapperType = {
   iconType: string;
   mappedDropdown: {
-    items: Array<{label: string; url: string; value: string | number}>;
+    items: {label: string; url: string; value: string | number}[];
     placeholder: string;
   };
   nextButton: {
@@ -176,7 +176,7 @@ export type ProjectMapperType = {
     // url comes from the `next` parameter in the QS
     description?: string;
   };
-  sentryProjects: Array<AvatarProject & {id: number; name: string}>;
+  sentryProjects: (AvatarProject & {id: number; name: string})[];
   type: 'project_mapper';
 };
 

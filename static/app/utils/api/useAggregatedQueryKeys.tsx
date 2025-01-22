@@ -18,7 +18,7 @@ interface Props<AggregatableQueryKey, Data> {
    * Takes the buffered "aggregates" and outputs an ApiQueryKey.
    * Must not have side-effects.
    */
-  getQueryKey: (ids: ReadonlyArray<AggregatableQueryKey>) => ApiQueryKey;
+  getQueryKey: (ids: readonly AggregatableQueryKey[]) => ApiQueryKey;
 
   /**
    * Data reducer, to integrate new requests with the previous state
@@ -26,7 +26,7 @@ interface Props<AggregatableQueryKey, Data> {
   responseReducer: (
     prevState: undefined | Data,
     result: ApiResult,
-    aggregates: ReadonlyArray<AggregatableQueryKey>
+    aggregates: readonly AggregatableQueryKey[]
   ) => undefined | Data;
 
   /**
@@ -51,7 +51,7 @@ interface Props<AggregatableQueryKey, Data> {
 }
 
 function isQueryKeyInList<AggregatableQueryKey>(queryList: AggregatableQueryKey[]) {
-  return ({queryKey}) => queryList.includes(queryKey[4] as AggregatableQueryKey);
+  return ({queryKey}: any) => queryList.includes(queryKey[4] as AggregatableQueryKey);
 }
 
 /**

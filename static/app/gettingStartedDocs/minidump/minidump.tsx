@@ -3,6 +3,7 @@ import {Fragment} from 'react';
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
+import {StoreCrashReportsConfig} from 'sentry/components/onboarding/gettingStartedDoc/storeCrashReportsConfig';
 import type {
   Docs,
   DocsParams,
@@ -70,7 +71,17 @@ const onboarding: OnboardingConfig = {
     },
   ],
   configure: () => [],
-  verify: () => [],
+  verify: params => [
+    {
+      title: t('Further Settings'),
+      description: (
+        <StoreCrashReportsConfig
+          organization={params.organization}
+          projectSlug={params.projectSlug}
+        />
+      ),
+    },
+  ],
 };
 
 const docs: Docs = {

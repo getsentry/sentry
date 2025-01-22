@@ -46,7 +46,7 @@ export default class RequestIntegrationButton extends Component<Props, State> {
   render() {
     const {isOpen, isSent} = this.state;
 
-    let buttonText;
+    let buttonText: any;
     if (isOpen) {
       buttonText = t('Requesting Installation');
     } else if (isSent) {

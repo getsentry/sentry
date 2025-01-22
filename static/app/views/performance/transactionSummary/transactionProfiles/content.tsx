@@ -432,6 +432,7 @@ function ProfileList({query: userQuery, transaction}: TransactionProfilesContent
   );
 
   const handleCursor = useCallback(
+    // @ts-ignore TS(7006): Parameter 'newCursor' implicitly has an 'any' type... Remove this comment to see the full error message
     (newCursor, pathname, query) => {
       navigate({
         pathname,
@@ -476,7 +477,7 @@ function ProfileList({query: userQuery, transaction}: TransactionProfilesContent
               location,
               organization,
               transactionName: transaction,
-              source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY_PROFILES,
+              source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
             });
 
             const profileTarget = generateProfileLink()(

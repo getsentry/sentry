@@ -114,7 +114,7 @@ export default class AbstractExternalIssueForm<
     );
   };
 
-  onRequestSuccess = ({stateKey, data}) => {
+  onRequestSuccess = ({stateKey, data}: any) => {
     if (stateKey === 'integrationDetails') {
       this.handleReceiveIntegrationDetails(data);
       this.setState({
@@ -257,8 +257,7 @@ export default class AbstractExternalIssueForm<
 
   getDefaultOptions = (field: IssueConfigField) => {
     const choices =
-      (field.choices as Array<[number | string, number | string | React.ReactElement]>) ||
-      [];
+      (field.choices as [number | string, number | string | React.ReactElement][]) || [];
     return choices.map(([value, label]) => ({value, label}));
   };
 
@@ -339,6 +338,7 @@ export default class AbstractExternalIssueForm<
   ) => {
     const initialData: {[key: string]: any} = (formFields || []).reduce(
       (accumulator, field: FormField) => {
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         accumulator[field.name] = field.default;
         return accumulator;
       },

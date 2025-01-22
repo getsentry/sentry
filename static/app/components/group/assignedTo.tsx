@@ -9,11 +9,10 @@ import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import {Button} from 'sentry/components/button';
 import {Chevron} from 'sentry/components/chevron';
-import type {
-  OnAssignCallback,
-  SuggestedAssignee,
-} from 'sentry/components/deprecatedAssigneeSelectorDropdown';
-import {useHandleAssigneeChange} from 'sentry/components/group/assigneeSelector';
+import {
+  type OnAssignCallback,
+  useHandleAssigneeChange,
+} from 'sentry/components/group/assigneeSelector';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {IconSettings, IconUser} from 'sentry/icons';
@@ -23,9 +22,11 @@ import TeamStore from 'sentry/stores/teamStore';
 import {space} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types/core';
 import type {Event} from 'sentry/types/event';
-import type {Group} from 'sentry/types/group';
+import type {Group, SuggestedOwnerReason} from 'sentry/types/group';
 import type {Commit, Committer} from 'sentry/types/integrations';
+import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import type {User} from 'sentry/types/user';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import useApi from 'sentry/utils/useApi';
@@ -50,7 +51,7 @@ type Rule = [RuleDefinition, RuleOwner[]];
 function findMatchedRules(
   rules: EventOwners['rules'],
   owner: Actor
-): Array<Rule[0]> | undefined {
+): Rule[0][] | undefined {
   if (!rules) {
     return undefined;
   }
@@ -78,12 +79,12 @@ type IssueOwner = {
   actor: Actor;
   source: 'codeowners' | 'projectOwnership' | 'suspectCommit';
   commits?: Commit[];
-  rules?: Array<[string, string]> | null;
+  rules?: [string, string][] | null;
 };
 export interface EventOwners {
   owners: Actor[];
   rule: RuleDefinition;
-  rules: Array<Rule>;
+  rules: Rule[];
 }
 
 function getSuggestedReason(owner: IssueOwner) {
@@ -98,6 +99,19 @@ function getSuggestedReason(owner: IssueOwner) {
 
   return '';
 }
+
+type SuggestedAssignee = Actor & {
+  assignee: AssignableTeam | User;
+  suggestedReason: SuggestedOwnerReason;
+  suggestedReasonText?: React.ReactNode;
+};
+
+type AssignableTeam = {
+  display: string;
+  email: string;
+  id: string;
+  team: Team;
+};
 
 /**
  * Combine the committer and ownership data into a single array, merging

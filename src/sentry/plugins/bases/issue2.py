@@ -9,9 +9,11 @@ from django.urls import re_path, reverse
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import analytics
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
+from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.plugin import PluginSerializer
 
 # api compat
@@ -20,7 +22,6 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.groupmeta import GroupMeta
 from sentry.plugins.base.v1 import Plugin
-from sentry.signals import issue_tracker_used
 from sentry.types.activity import ActivityType
 from sentry.users.services.usersocialauth.model import RpcUserSocialAuth
 from sentry.users.services.usersocialauth.service import usersocialauth_service
@@ -312,9 +313,15 @@ class IssueTrackingPlugin2(Plugin):
             data=issue_information,
         )
 
-        issue_tracker_used.send_robust(
-            plugin=self, project=group.project, user=request.user, sender=type(self)
+        analytics.record(
+            "issue_tracker.used",
+            user_id=request.user.id,
+            default_user_id=group.project.organization.get_default_owner().id,
+            organization_id=group.project.organization_id,
+            project_id=group.project.id,
+            issue_tracker=self.slug,
         )
+
         return Response(
             {
                 "issue_url": self.get_issue_url(group, issue["id"]),
@@ -397,7 +404,7 @@ class IssueTrackingPlugin2(Plugin):
             return Response({"message": "Successfully unlinked issue."})
         return Response({"message": "No issues to unlink."}, status=400)
 
-    def plugin_issues(self, request: Request, group, plugin_issues, **kwargs) -> None:
+    def plugin_issues(self, group, plugin_issues, **kwargs) -> None:
         if not self.is_configured(project=group.project):
             return
 
@@ -414,7 +421,7 @@ class IssueTrackingPlugin2(Plugin):
                 "label": self.get_issue_label(group, issue["id"]),
             }
 
-        item.update(PluginSerializer(group.project).serialize(self, None, request.user))
+        item.update(serialize(self, serializer=PluginSerializer(group.project)))
         plugin_issues.append(item)
 
     def get_config(self, project, user=None, initial=None, add_additional_fields: bool = False):

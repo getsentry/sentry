@@ -56,6 +56,7 @@ class FilterConvertParams(TypedDict, total=False):
     organization_id: int
     project_id: list[int]
     environment: list[str]
+    environment_id: list[int] | None
 
 
 def translate_transaction_status(val: str) -> str:

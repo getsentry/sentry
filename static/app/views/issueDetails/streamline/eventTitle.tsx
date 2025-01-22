@@ -44,7 +44,7 @@ type EventNavigationProps = {
   style?: CSSProperties;
 };
 
-const sectionLabels = {
+const sectionLabels: Partial<Record<SectionKey, string>> = {
   [SectionKey.HIGHLIGHTS]: t('Highlights'),
   [SectionKey.STACKTRACE]: t('Stack Trace'),
   [SectionKey.EXCEPTION]: t('Stack Trace'),

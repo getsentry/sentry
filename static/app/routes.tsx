@@ -13,8 +13,8 @@ import withDomainRedirect from 'sentry/utils/withDomainRedirect';
 import withDomainRequired from 'sentry/utils/withDomainRequired';
 import App from 'sentry/views/app';
 import AuthLayout from 'sentry/views/auth/layout';
-import {AutomationRoutes} from 'sentry/views/automations/routes';
-import {DetectorRoutes} from 'sentry/views/detectors/routes';
+import {automationRoutes} from 'sentry/views/automations/routes';
+import {detectorRoutes} from 'sentry/views/detectors/routes';
 import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
 import {SUMMARY_PAGE_BASE_URL} from 'sentry/views/insights/mobile/screenRendering/settings';
 import {AI_LANDING_SUB_PATH} from 'sentry/views/insights/pages/ai/settings';
@@ -163,6 +163,13 @@ function buildRoutes() {
       <Route path=":orgId/" component={make(() => import('sentry/views/auth/login'))} />
     </Route>
   ) : null;
+
+  const traceViewRoute = (
+    <Route
+      path="trace/:traceSlug/"
+      component={make(() => import('sentry/views/performance/traceDetails'))}
+    />
+  );
 
   const rootRoutes = (
     <Fragment>
@@ -1074,6 +1081,7 @@ function buildRoutes() {
             <IndexRoute
               component={make(() => import('sentry/views/dashboards/manage'))}
             />
+            {traceViewRoute}
           </Route>
         )}
         <Route
@@ -1496,6 +1504,7 @@ function buildRoutes() {
         path="homepage/"
         component={make(() => import('sentry/views/discover/homepage'))}
       />
+      {traceViewRoute}
       <Route
         path="queries/"
         component={make(() => import('sentry/views/discover/landing'))}
@@ -1793,10 +1802,7 @@ function buildRoutes() {
           )}
         />
         {transactionSummaryRoutes}
-        <Route
-          path="trace/:traceSlug/"
-          component={make(() => import('sentry/views/performance/traceDetails'))}
-        />
+        {traceViewRoute}
         <Route
           path="trends/"
           component={make(() => import('sentry/views/performance/trends'))}
@@ -1810,10 +1816,7 @@ function buildRoutes() {
           )}
         />
         {transactionSummaryRoutes}
-        <Route
-          path="trace/:traceSlug/"
-          component={make(() => import('sentry/views/performance/traceDetails'))}
-        />
+        {traceViewRoute}
         <Route
           path="trends/"
           component={make(() => import('sentry/views/performance/trends'))}
@@ -1827,10 +1830,7 @@ function buildRoutes() {
           )}
         />
         {transactionSummaryRoutes}
-        <Route
-          path="trace/:traceSlug/"
-          component={make(() => import('sentry/views/performance/traceDetails'))}
-        />
+        {traceViewRoute}
         <Route
           path="trends/"
           component={make(() => import('sentry/views/performance/trends'))}
@@ -1842,10 +1842,7 @@ function buildRoutes() {
           component={make(() => import('sentry/views/insights/pages/ai/aiOverviewPage'))}
         />
         {transactionSummaryRoutes}
-        <Route
-          path="trace/:traceSlug/"
-          component={make(() => import('sentry/views/performance/traceDetails'))}
-        />
+        {traceViewRoute}
         <Route
           path="trends/"
           component={make(() => import('sentry/views/performance/trends'))}
@@ -1871,10 +1868,7 @@ function buildRoutes() {
         path="vitaldetail/"
         component={make(() => import('sentry/views/performance/vitalDetail'))}
       />
-      <Route
-        path="trace/:traceSlug/"
-        component={make(() => import('sentry/views/performance/traceDetails'))}
-      />
+      {traceViewRoute}
       {insightsRedirects}
       <Redirect
         from="browser/resources"
@@ -1902,6 +1896,7 @@ function buildRoutes() {
       withOrgPath
     >
       <IndexRoute component={make(() => import('sentry/views/traces/content'))} />
+      {traceViewRoute}
     </Route>
   );
 
@@ -1922,6 +1917,7 @@ function buildRoutes() {
       <IndexRoute
         component={make(() => import('sentry/views/feedback/feedbackListPage'))}
       />
+      {traceViewRoute}
     </Route>
   );
 
@@ -1929,13 +1925,14 @@ function buildRoutes() {
     <Route path="/issues" component={errorHandler(IssueListContainer)} withOrgPath>
       <IndexRoute component={errorHandler(OverviewWrapper)} />
       <Route path="searches/:searchId/" component={errorHandler(OverviewWrapper)} />
+      {traceViewRoute}
     </Route>
   );
 
   // Once org issues is complete, these routes can be nested under
   // /organizations/:orgId/issues
   const issueTabs = ({forCustomerDomain}: {forCustomerDomain: boolean}) => {
-    const hoc = forCustomerDomain ? withDomainRequired : x => x;
+    const hoc = forCustomerDomain ? withDomainRequired : (x: any) => x;
     return (
       <Fragment>
         <IndexRoute
@@ -2177,6 +2174,7 @@ function buildRoutes() {
         path="profile/:projectId/differential-flamegraph/"
         component={make(() => import('sentry/views/profiling/differentialFlamegraph'))}
       />
+      {traceViewRoute}
       <Route
         path="profile/:projectId/"
         component={make(() => import('sentry/views/profiling/continuousProfileProvider'))}
@@ -2210,6 +2208,7 @@ function buildRoutes() {
         withOrgPath
       >
         <IndexRoute component={make(() => import('sentry/views/metrics/metrics'))} />
+        {traceViewRoute}
       </Route>
       {/* TODO(ddm): fade this out */}
       <Redirect from="/ddm/" to="/metrics/" />
@@ -2306,8 +2305,8 @@ function buildRoutes() {
 
   const organizationRoutes = (
     <Route component={errorHandler(OrganizationLayout)}>
-      <AutomationRoutes />
-      <DetectorRoutes />
+      {automationRoutes}
+      {detectorRoutes}
       {settingsRoutes}
       {projectsRoutes}
       {dashboardRoutes}

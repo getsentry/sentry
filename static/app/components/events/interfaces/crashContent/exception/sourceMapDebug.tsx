@@ -35,14 +35,14 @@ const sentryInit = <code>Sentry.init</code>;
 function getErrorMessage(
   error: SourceMapDebugError,
   sdkName?: string
-): Array<{
+): {
   title: string;
   /**
    * Expandable description
    */
   desc?: React.ReactNode;
   docsLink?: string;
-}> {
+}[] {
   const docPlatform = (sdkName && sourceMapSdkDocsMap[sdkName]) ?? 'javascript';
   const useShortPath = shortPathPlatforms.includes(docPlatform);
 
@@ -213,7 +213,7 @@ function ExpandableErrorList({
 }
 
 function combineErrors(
-  response: Array<SourceMapDebugResponse | undefined | null>,
+  response: (SourceMapDebugResponse | undefined | null)[],
   sdkName?: string
 ) {
   const combinedErrors = uniqBy(

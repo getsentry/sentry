@@ -83,7 +83,7 @@ export type LocationQuery = {
 
 const DATETIME_QUERY_STRING_KEYS = ['start', 'end', 'utc', 'statsPeriod'] as const;
 
-const EXTERNAL_QUERY_STRING_KEYS: Readonly<Array<keyof LocationQuery>> = [
+const EXTERNAL_QUERY_STRING_KEYS: readonly (keyof LocationQuery)[] = [
   ...DATETIME_QUERY_STRING_KEYS,
   'cursor',
 ];
@@ -142,7 +142,7 @@ export function isFieldSortable(
   return !!getSortKeyFromField(field, tableMeta, useFunctionFormat);
 }
 
-const decodeFields = (location: Location): Array<Field> => {
+const decodeFields = (location: Location): Field[] => {
   const {query} = location;
   if (!query || !query.field) {
     return [];
@@ -176,8 +176,7 @@ export const encodeSort = (sort: Sort): string => {
   }
 };
 
-const encodeSorts = (sorts: Readonly<Array<Sort>>): Array<string> =>
-  sorts.map(encodeSort);
+const encodeSorts = (sorts: readonly Sort[]): string[] => sorts.map(encodeSort);
 
 // TODO(__SENTRY_USING_REACT_ROUTER_SIX): This is needed to translate query
 // objects that have non-string values and single-element arrays to match what
@@ -204,10 +203,10 @@ function stringifyQueryParams(
   }
 }
 
-const collectQueryStringByKey = (query: Query, key: string): Array<string> => {
+const collectQueryStringByKey = (query: Query, key: string): string[] => {
   const needle = query[key];
   const collection = decodeList(needle);
-  return collection.reduce((acc: Array<string>, item: string) => {
+  return collection.reduce((acc: string[], item: string) => {
     item = item.trim();
 
     if (item.length > 0) {
@@ -269,16 +268,16 @@ export type EventViewOptions = {
   createdBy: User | undefined;
   display: string | undefined;
   end: string | undefined;
-  environment: Readonly<string[]>;
-  fields: Readonly<Field[]>;
+  environment: readonly string[];
+  fields: readonly Field[];
   id: string | undefined;
   name: string | undefined;
-  project: Readonly<number[]>;
+  project: readonly number[];
   query: string;
-  sorts: Readonly<Sort[]>;
+  sorts: readonly Sort[];
   start: string | undefined;
   statsPeriod: string | undefined;
-  team: Readonly<('myteams' | number)[]>;
+  team: readonly ('myteams' | number)[];
   topEvents: string | undefined;
   additionalConditions?: MutableSearch;
   dataset?: DiscoverDatasets;
@@ -291,16 +290,16 @@ export type EventViewOptions = {
 class EventView {
   id: string | undefined;
   name: string | undefined;
-  fields: Readonly<Field[]>;
-  sorts: Readonly<Sort[]>;
+  fields: readonly Field[];
+  sorts: readonly Sort[];
   query: string;
-  team: Readonly<('myteams' | number)[]>;
-  project: Readonly<number[]>;
+  team: readonly ('myteams' | number)[];
+  project: readonly number[];
   start: string | undefined;
   end: string | undefined;
   statsPeriod: string | undefined;
   utc?: string | boolean | undefined;
-  environment: Readonly<string[]>;
+  environment: readonly string[];
   yAxis: string | string[] | undefined;
   display: string | undefined;
   topEvents: string | undefined;
@@ -567,7 +566,9 @@ class EventView {
     };
     const keys = Object.keys(defaults).filter(key => !omitList.includes(key));
     for (const key of keys) {
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const currentValue = this[key] ?? defaults[key];
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const otherValue = other[key] ?? defaults[key];
 
       if (!isEqual(currentValue, otherValue)) {
@@ -580,7 +581,9 @@ class EventView {
     const dateTimeKeys = ['start', 'end'];
 
     for (const key of dateTimeKeys) {
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const currentValue = this[key];
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const otherValue = other[key];
 
       if (currentValue && otherValue) {
@@ -689,6 +692,7 @@ class EventView {
     };
 
     for (const field of EXTERNAL_QUERY_STRING_KEYS) {
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       output[field] = undefined;
     }
 
@@ -713,7 +717,9 @@ class EventView {
     };
 
     for (const field of EXTERNAL_QUERY_STRING_KEYS) {
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       if (this[field]?.length) {
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         output[field] = this[field];
       }
     }
@@ -1126,6 +1132,7 @@ class EventView {
       'interval',
     ];
     for (const key of remove) {
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       delete payload[key];
     }
 
@@ -1242,7 +1249,9 @@ class EventView {
   getResultsViewShortUrlTarget(slug: string): {pathname: string; query: Query} {
     const output: any = {id: this.id};
     for (const field of [...Object.values(URL_PARAM), 'cursor']) {
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       if (this[field]?.length) {
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         output[field] = this[field];
       }
     }
@@ -1276,7 +1285,9 @@ class EventView {
     };
 
     for (const field of EXTERNAL_QUERY_STRING_KEYS) {
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       if (this[field]?.length) {
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         output[field] = this[field];
       }
     }
@@ -1426,7 +1437,7 @@ class EventView {
     let display = (Object.values(DisplayModes) as string[]).includes(mode)
       ? mode
       : DisplayModes.DEFAULT;
-    const cond = option => option.value === display;
+    const cond = (option: any) => option.value === display;
 
     // Just in case we define a fallback chain that results in an infinite loop.
     // The number 5 isn't anything special, its just larger than the longest fallback
@@ -1436,6 +1447,7 @@ class EventView {
       if (selectedOption && !selectedOption.disabled) {
         return display;
       }
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       display = DISPLAY_MODE_FALLBACK_OPTIONS[display];
     }
 
@@ -1488,8 +1500,8 @@ class EventView {
 export type ImmutableEventView = Readonly<Omit<EventView, 'additionalConditions'>>;
 
 export const isFieldsSimilar = (
-  currentValue: Array<string>,
-  otherValue: Array<string>
+  currentValue: string[],
+  otherValue: string[]
 ): boolean => {
   // For equation's their order matters because we alias them based on index
   const currentEquations = currentValue.filter(isEquation);
@@ -1520,7 +1532,9 @@ export const isAPIPayloadSimilar = (
   }
 
   for (const key of currentKeys) {
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     const currentValue = current[key];
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     const otherValue = other[key];
     if (key === 'field') {
       if (!isFieldsSimilar(currentValue, otherValue)) {

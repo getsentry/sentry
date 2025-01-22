@@ -95,12 +95,13 @@ function getStackTracePlatforms(
   )?.data ?? {}) as StacktraceType;
 
   Object.keys(stackTraceEntry).forEach(key =>
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     addFramePlatforms(platforms, stackTraceEntry[key])
   );
 
   // Add platforms in a thread entry
   const threadEntry = (event.entries.find(entry => entry.type === EntryType.THREADS)?.data
-    .values ?? []) as Array<Thread>;
+    .values ?? []) as Thread[];
 
   threadEntry.forEach(({stacktrace}) => addFramePlatforms(platforms, stacktrace));
 
@@ -126,7 +127,7 @@ function addFramePlatforms(
  */
 function addPlatforms(
   platforms: Set<PlatformKey>,
-  iter: Array<{platform?: PlatformKey | null}>
+  iter: {platform?: PlatformKey | null}[]
 ) {
   for (const o of iter) {
     if (o.platform) {

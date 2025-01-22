@@ -61,12 +61,17 @@ function parseArrayParam<T extends Exclude<any, undefined>>(
   }
 
   // allow single values instead of arrays
+  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   if (!Array.isArray(widget[key])) {
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     const entry = entryParser(widget[key]);
     return entry === undefined ? [] : [entry];
   }
 
-  return widget[key].map(entryParser).filter((entry): entry is T => entry !== undefined);
+  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  return widget[key]
+    .map(entryParser)
+    .filter((entry: any): entry is T => entry !== undefined);
 }
 
 function parseFocusedSeries(series: any): FocusedMetricsSeries | undefined {

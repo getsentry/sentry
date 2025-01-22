@@ -41,7 +41,7 @@ export function searchInTraceTreeTokens(
   previousNode: TraceTreeNode<TraceTree.NodeValue> | null,
   cb: (
     results: [
-      ReadonlyArray<TraceSearchResult>,
+      readonly TraceSearchResult[],
       Map<TraceTreeNode<TraceTree.NodeValue>, number>,
       {resultIndex: number | undefined; resultIteratorIndex: number | undefined} | null,
     ]
@@ -135,11 +135,13 @@ export function searchInTraceTreeTokens(
           bool = token;
           if (stack.length < 2) {
             Sentry.captureMessage('Unbalanced tree - missing left or right token');
-            typeof handle.id === 'number' && window.cancelAnimationFrame(handle.id);
+            if (typeof handle.id === 'number') {
+              window.cancelAnimationFrame(handle.id);
+            }
             cb([[], resultLookup, null]);
             return;
           }
-          // @ts-expect-error the type guard is handled and expected
+          // @ts-ignore TS(2322): Type 'Map<TraceTreeNode<NodeValue>, number> | Proc... Remove this comment to see the full error message
           rightToken = stack.pop()!;
           leftToken = stack.pop()!;
           break;
@@ -154,7 +156,9 @@ export function searchInTraceTreeTokens(
       Sentry.captureMessage(
         'Invalid state in searchInTraceTreeTokens, missing boolean token'
       );
-      typeof handle.id === 'number' && window.cancelAnimationFrame(handle.id);
+      if (typeof handle.id === 'number') {
+        window.cancelAnimationFrame(handle.id);
+      }
       cb([[], resultLookup, null]);
       return;
     }
@@ -162,7 +166,9 @@ export function searchInTraceTreeTokens(
       Sentry.captureMessage(
         'Invalid state in searchInTraceTreeTokens, missing left or right token'
       );
-      typeof handle.id === 'number' && window.cancelAnimationFrame(handle.id);
+      if (typeof handle.id === 'number') {
+        window.cancelAnimationFrame(handle.id);
+      }
       cb([[], resultLookup, null]);
       return;
     }
@@ -244,7 +250,7 @@ export function searchInTraceTreeText(
   previousNode: TraceTreeNode<TraceTree.NodeValue> | null,
   cb: (
     results: [
-      ReadonlyArray<TraceSearchResult>,
+      readonly TraceSearchResult[],
       Map<TraceTreeNode<TraceTree.NodeValue>, number>,
       {resultIndex: number | undefined; resultIteratorIndex: number | undefined} | null,
     ]
@@ -255,7 +261,7 @@ export function searchInTraceTreeText(
     resultIndex: number | undefined;
     resultIteratorIndex: number | undefined;
   } | null = null;
-  const results: Array<TraceSearchResult> = [];
+  const results: TraceSearchResult[] = [];
   const resultLookup = new Map();
 
   let i = 0;
@@ -337,7 +343,9 @@ function booleanResult(
   if (operator === BooleanOperator.AND) {
     const result = new Map();
     for (const [key, value] of left) {
-      right.has(key) && result.set(key, value);
+      if (right.has(key)) {
+        result.set(key, value);
+      }
     }
     return result;
   }
@@ -515,7 +523,9 @@ function resolveValueFromKey(
       }
 
       // Check for direct key access.
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       if (value[key] !== undefined) {
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         return value[key];
       }
 
@@ -527,11 +537,13 @@ function resolveValueFromKey(
       switch (maybeEntity) {
         case 'span':
           if (isSpanNode(node)) {
+            // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             return value[rest.join('.')];
           }
           break;
         case 'transaction':
           if (isTransactionNode(node)) {
+            // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             return value[rest.join('.')];
           }
           break;
@@ -540,6 +552,7 @@ function resolveValueFromKey(
       }
     }
 
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return key ? value[key] ?? null : null;
   }
 

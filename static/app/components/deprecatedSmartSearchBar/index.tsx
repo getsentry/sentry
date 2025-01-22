@@ -297,6 +297,7 @@ type Props = WithRouterProps &
      * A function that returns a warning message for a given filter key
      * will only show a render a warning if the value is truthy
      */
+    // @ts-ignore TS(7006): Parameter 'key' implicitly has an 'any' type.
     getFilterWarning?: (key) => React.ReactNode;
     /**
      * List user's recent searches
@@ -379,7 +380,7 @@ type Props = WithRouterProps &
     /**
      * Projects that the search bar queries over
      */
-    projectIds?: number[] | Readonly<number[]>;
+    projectIds?: number[] | readonly number[];
     /**
      * Indicates the usage of the search bar for analytics
      */

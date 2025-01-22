@@ -23,7 +23,6 @@ import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transaction
 type Props = {
   groupId: string;
   moduleName: ModuleName;
-  onClose?: () => void;
   transactionRoute?: string;
 };
 

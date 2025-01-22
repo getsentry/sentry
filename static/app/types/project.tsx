@@ -59,6 +59,7 @@ export type Project = {
   scrapeJavaScript: boolean;
   scrubIPAddresses: boolean;
   sensitiveFields: string[];
+  storeCrashReports: number | null;
   subjectTemplate: string;
   team: Team;
   teams: Team[];

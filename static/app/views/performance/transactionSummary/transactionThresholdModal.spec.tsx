@@ -56,7 +56,7 @@ describe('TransactionThresholdModal', function () {
   });
 
   const onApply = jest.fn();
-  let postTransactionThresholdMock;
+  let postTransactionThresholdMock: any;
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();

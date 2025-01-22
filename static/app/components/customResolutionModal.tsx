@@ -1,4 +1,5 @@
 import {Fragment, useState} from 'react';
+import {css} from '@emotion/react';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
@@ -79,11 +80,18 @@ function CustomResolutionModal(props: CustomResolutionModalProps) {
           placeholder={t('e.g. 1.0.4')}
           url={url}
           onResults={onAsyncFieldResults}
-          onQuery={query => ({query})}
+          onQuery={(query: any) => ({
+            query,
+          })}
         />
       </Body>
       <Footer>
-        <Button css={{marginRight: space(1.5)}} onClick={props.closeModal}>
+        <Button
+          css={css`
+            margin-right: ${space(1.5)};
+          `}
+          onClick={props.closeModal}
+        >
           {t('Cancel')}
         </Button>
         <Button type="submit" priority="primary">

@@ -195,21 +195,21 @@ function WebVitalData({
       const elements: ReactNode[] = [];
       if ('nodeIds' in attr && Array.isArray(attr.nodeIds)) {
         attr.nodeIds.forEach(nodeId => {
-          selectors.get(nodeId)
-            ? elements.push(
-                <span
-                  key={nodeId}
-                  onMouseEnter={() => onMouseEnter(frame, nodeId)}
-                  onMouseLeave={() => onMouseLeave(frame, nodeId)}
-                >
-                  <ValueObjectKey>{t('element')}</ValueObjectKey>
-                  <span>{': '}</span>
-                  <span>
-                    <SelectorButton>{selectors.get(nodeId)}</SelectorButton>
-                  </span>
+          if (selectors.get(nodeId)) {
+            elements.push(
+              <span
+                key={nodeId}
+                onMouseEnter={() => onMouseEnter(frame, nodeId)}
+                onMouseLeave={() => onMouseLeave(frame, nodeId)}
+              >
+                <ValueObjectKey>{t('element')}</ValueObjectKey>
+                <span>{': '}</span>
+                <span>
+                  <SelectorButton>{selectors.get(nodeId)}</SelectorButton>
                 </span>
-              )
-            : null;
+              </span>
+            );
+          }
         });
       }
       // if we can't find the elements associated with the layout shift, we still show the score with element: unknown
@@ -225,10 +225,12 @@ function WebVitalData({
       layoutShifts.push({[`score ${attr.value}`]: elements});
     }
     if (layoutShifts.length) {
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       webVitalData['Layout shifts'] = layoutShifts;
     }
   } else if (selectors) {
     selectors.forEach((key, value) => {
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       webVitalData[key] = (
         <span
           key={key}

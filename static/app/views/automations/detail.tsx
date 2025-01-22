@@ -6,10 +6,13 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {ActionsProvider} from 'sentry/components/workflowEngine/layout/actions';
 import {BreadcrumbsProvider} from 'sentry/components/workflowEngine/layout/breadcrumbs';
 import DetailLayout from 'sentry/components/workflowEngine/layout/detail';
+import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 export default function AutomationDetail() {
+  useWorkflowEngineFeatureGate({redirect: true});
+
   return (
     <SentryDocumentTitle title={t('Automation')} noSuffix>
       <BreadcrumbsProvider crumb={{label: t('Automations'), to: '/automations'}}>

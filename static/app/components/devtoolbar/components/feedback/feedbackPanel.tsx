@@ -173,7 +173,11 @@ function FeedbackListItem({item}: {item: FeedbackIssueListItem}) {
         <div css={[badgeWithLabelCss, xSmallCss]} style={{gridArea: 'owner'}}>
           {item.project ? (
             <ProjectBadge
-              css={css({'&& img': {boxShadow: 'none'}})}
+              css={css`
+                && img {
+                  box-shadow: none;
+                }
+              `}
               project={item.project}
               avatarSize={16}
               hideName

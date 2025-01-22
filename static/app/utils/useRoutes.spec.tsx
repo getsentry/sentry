@@ -9,7 +9,7 @@ import {TestRouteContext} from 'sentry/views/routeContext';
 
 describe('useRoutes', () => {
   it('returns the current routes object', function () {
-    let routes;
+    let routes: any;
     function HomePage() {
       routes = useRoutes();
       return null;

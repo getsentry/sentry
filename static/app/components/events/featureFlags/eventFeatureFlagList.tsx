@@ -123,7 +123,7 @@ export function EventFeatureFlagList({
   const hydratedFlags = useMemo(() => {
     // Transform the flags array into something readable by the key-value component.
     // Reverse the flags to show newest at the top by default.
-    return eventFlags.toReversed().map(f => {
+    return eventFlags.toReversed().map((f: any) => {
       return {
         item: {
           key: f.flag,
@@ -222,7 +222,11 @@ export function EventFeatureFlagList({
               ref={viewAllButtonRef}
               title={t('View All Flags')}
               onClick={() => {
-                isDrawerOpen ? closeDrawer() : onViewAllFlags();
+                if (isDrawerOpen) {
+                  closeDrawer();
+                } else {
+                  onViewAllFlags();
+                }
               }}
             >
               {t('View All')}

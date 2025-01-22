@@ -25,7 +25,7 @@ type FieldType =
 type SelectFieldType = 'select' | 'choice';
 
 type Config = {
-  choices: Array<[number | string, number | string]>;
+  choices: [number | string, number | string][];
   default: string;
   name: string;
   placeholder: string;
@@ -74,6 +74,7 @@ function GenericField({
     placeholder: config.placeholder,
     required,
     name: config.name,
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     error: formErrors?.[config.name],
     defaultValue: config.default,
     disabled: config.readonly,

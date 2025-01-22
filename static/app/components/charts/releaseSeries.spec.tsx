@@ -11,8 +11,8 @@ import {lightTheme} from 'sentry/utils/theme';
 describe('ReleaseSeries', function () {
   const renderFunc = jest.fn(() => null);
   const organization = OrganizationFixture();
-  let releases;
-  let releasesMock;
+  let releases: any;
+  let releasesMock: any;
 
   beforeEach(function () {
     jest.resetAllMocks();

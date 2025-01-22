@@ -17,7 +17,7 @@ type Props = {
   hasSimilarityEmbeddingsFeature: boolean;
   onMerge: () => void;
   groupId?: string;
-  itemsWouldGroup?: Array<{id: string; shouldBeGrouped: string | undefined}> | undefined;
+  itemsWouldGroup?: {id: string; shouldBeGrouped: string | undefined}[] | undefined;
   organization?: Organization;
   project?: Project;
 };
@@ -36,7 +36,7 @@ class SimilarToolbar extends Component<Props, State> {
     this.listener?.();
   }
 
-  onGroupChange = ({mergeList}) => {
+  onGroupChange = ({mergeList}: any) => {
     if (!mergeList?.length) {
       this.setState({mergeCount: 0});
       return;

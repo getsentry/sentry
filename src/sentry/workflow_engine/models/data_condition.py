@@ -42,6 +42,20 @@ class Condition(models.TextChoices):
     TAGGED_EVENT = "tagged_event"
     ISSUE_PRIORITY_EQUALS = "issue_priority_equals"
 
+    # Event frequency conditions
+    EVENT_FREQUENCY_COUNT = "event_frequency_count"
+    EVENT_FREQUENCY_PERCENT = "event_frequency_percent"
+    EVENT_UNIQUE_USER_FREQUENCY_COUNT = "event_unique_user_frequency_count"
+    EVENT_UNIQUE_USER_FREQUENCY_PERCENT = "event_unique_user_frequency_percent"
+    PERCENT_SESSIONS_COUNT = "percent_sessions_count"
+    PERCENT_SESSIONS_PERCENT = "percent_sessions_percent"
+    EVENT_UNIQUE_USER_FREQUENCY_WITH_CONDITIONS_COUNT = (
+        "event_unique_user_frequency_with_conditions_count"
+    )
+    EVENT_UNIQUE_USER_FREQUENCY_WITH_CONDITIONS_PERCENT = (
+        "event_unique_user_frequency_with_conditions_percent"
+    )
+
 
 CONDITION_OPS = {
     Condition.EQUAL: operator.eq,
@@ -51,6 +65,18 @@ CONDITION_OPS = {
     Condition.LESS: operator.lt,
     Condition.NOT_EQUAL: operator.ne,
 }
+
+SLOW_CONDITIONS = [
+    Condition.EVENT_FREQUENCY_COUNT,
+    Condition.EVENT_FREQUENCY_PERCENT,
+    Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT,
+    Condition.EVENT_UNIQUE_USER_FREQUENCY_PERCENT,
+    Condition.PERCENT_SESSIONS_COUNT,
+    Condition.PERCENT_SESSIONS_PERCENT,
+    Condition.EVENT_UNIQUE_USER_FREQUENCY_WITH_CONDITIONS_COUNT,
+    Condition.EVENT_UNIQUE_USER_FREQUENCY_WITH_CONDITIONS_PERCENT,
+]
+
 
 T = TypeVar("T")
 
@@ -124,6 +150,10 @@ class DataCondition(DefaultFieldsModel):
 
         result = handler.evaluate_value(value, self.comparison)
         return self.get_condition_result() if result else None
+
+
+def is_slow_condition(cond: DataCondition) -> bool:
+    return Condition(cond.type) in SLOW_CONDITIONS
 
 
 @receiver(pre_save, sender=DataCondition)

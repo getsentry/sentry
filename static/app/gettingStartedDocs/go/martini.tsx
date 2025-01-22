@@ -100,7 +100,7 @@ app.Get("/foo", func() string {
 
 app.Run()`;
 
-const getBeforeSendSnippet = params => `
+const getBeforeSendSnippet = (params: any) => `
 sentry.Init(sentry.ClientOptions{
   Dsn: "${params.dsn.public}",
   BeforeSend: func(event *sentry.Event, hint *sentry.EventHint) *sentry.Event {

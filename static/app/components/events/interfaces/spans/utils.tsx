@@ -470,7 +470,7 @@ export function parseTrace(
     }
   );
 
-  const spans: Array<RawSpanType | AggregateSpanType> = spanEntry?.data ?? [];
+  const spans: (RawSpanType | AggregateSpanType)[] = spanEntry?.data ?? [];
 
   const traceContext = getTraceContext(event);
   const traceID = traceContext?.trace_id || '';
@@ -558,7 +558,7 @@ export function parseTrace(
 
     // get any span children whose parent_span_id is equal to span.parent_span_id,
     // otherwise start with an empty array
-    const spanChildren: Array<SpanType> = acc.childSpans[span.parent_span_id] ?? [];
+    const spanChildren: SpanType[] = acc.childSpans[span.parent_span_id] ?? [];
 
     spanChildren.push(span);
 
@@ -769,14 +769,15 @@ export function getMeasurements(
       if (positionDelta <= MERGE_LABELS_THRESHOLD_PERCENT) {
         const verticalMark = mergedMeasurements.get(otherPos)!;
 
-        const {poorThreshold} = VITAL_DETAILS[`measurements.${name}`];
+        const {poorThreshold} =
+          VITAL_DETAILS[`measurements.${name}` as keyof typeof VITAL_DETAILS];
 
         verticalMark.marks = {
           ...verticalMark.marks,
           [name]: {
             value,
             timestamp: measurement.timestamp,
-            failedThreshold: value ? value >= poorThreshold : false,
+            failedThreshold: value ? value >= poorThreshold! : false,
           },
         };
 
@@ -789,13 +790,14 @@ export function getMeasurements(
       }
     }
 
-    const {poorThreshold} = VITAL_DETAILS[`measurements.${name}`];
+    const {poorThreshold} =
+      VITAL_DETAILS[`measurements.${name}` as keyof typeof VITAL_DETAILS];
 
     const marks = {
       [name]: {
         value,
         timestamp: measurement.timestamp,
-        failedThreshold: value ? value >= poorThreshold : false,
+        failedThreshold: value ? value >= poorThreshold! : false,
       },
     };
 

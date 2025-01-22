@@ -9,9 +9,11 @@ export function getWeights(webVitals: WebVitals[] = []): Record<WebVitals, numbe
   );
   return Object.keys(PERFORMANCE_SCORE_WEIGHTS).reduce(
     (acc, webVital) => {
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       acc[webVital] =
         (webVitals.includes(webVital as WebVitals)
-          ? PERFORMANCE_SCORE_WEIGHTS[webVital] * 100
+          ? // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+            PERFORMANCE_SCORE_WEIGHTS[webVital] * 100
           : 0) / totalWeight;
       return acc;
     },

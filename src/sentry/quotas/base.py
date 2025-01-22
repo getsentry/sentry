@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from sentry.models.projectkey import ProjectKey
     from sentry.monitors.models import Monitor
     from sentry.profiles.utils import Profile
+    from sentry.quotas.types import SeatObject
 
 
 @unique
@@ -627,10 +628,30 @@ class Quota(Service):
         """
         return SeatAssignmentResult(assignable=True)
 
+    def check_assign_seat(
+        self, data_category: DataCategory, seat_object: SeatObject
+    ) -> SeatAssignmentResult:
+        """
+        Determines if an assignable seat object can be assigned a seat.
+        If it is not possible to assign a monitor a seat, a reason
+        will be included in the response.
+        """
+        return SeatAssignmentResult(assignable=True)
+
     def check_assign_monitor_seats(self, monitor: list[Monitor]) -> SeatAssignmentResult:
         """
         Determines if a list of monitor can be assigned seat. If it is not possible
         to assign a seat to all given monitors, a reason will be included in the response
+        """
+        return SeatAssignmentResult(assignable=True)
+
+    def check_assign_seats(
+        self, data_category: DataCategory, seat_objects: list[SeatObject]
+    ) -> SeatAssignmentResult:
+        """
+        Determines if a list of assignable seat objects can be assigned seat.
+        If it is not possible to assign a seat to all given objects, a reason
+        will be included in the response.
         """
         return SeatAssignmentResult(assignable=True)
 
@@ -644,9 +665,24 @@ class Quota(Service):
 
         return Outcome.ACCEPTED
 
+    def assign_seat(self, data_category: DataCategory, seat_object: SeatObject) -> int:
+        """
+        Assigns a seat to an object if possible, resulting in Outcome.ACCEPTED.
+        If the object cannot be assigned a seat it will be
+        Outcome.RATE_LIMITED.
+        """
+        from sentry.utils.outcomes import Outcome
+
+        return Outcome.ACCEPTED
+
     def disable_monitor_seat(self, monitor: Monitor) -> None:
         """
         Removes a monitor from it's assigned seat.
+        """
+
+    def disable_seat(self, data_category: DataCategory, seat_object: SeatObject) -> None:
+        """
+        Removes an object from it's assigned seat.
         """
 
     def check_accept_monitor_checkin(self, project_id: int, monitor_slug: str):

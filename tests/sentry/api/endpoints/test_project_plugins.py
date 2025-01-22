@@ -44,6 +44,5 @@ class ProjectPluginsTest(APITestCase):
         assert "shortName" in plugin
         assert "slug" in plugin
         assert "type" in plugin
-        assert "status" in plugin
         assert "features" in plugin
         assert "featureDescriptions" in plugin

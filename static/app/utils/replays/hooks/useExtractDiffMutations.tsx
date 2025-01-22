@@ -72,6 +72,7 @@ async function extractDiffMutations({
             precision: 'ms',
             style: 'hh:mm:ss.sss',
           });
+          // @ts-ignore TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
           item[formattedTimestamp].adds = {
             document: {
               html: node?.documentElement?.outerHTML,
@@ -96,6 +97,7 @@ async function extractDiffMutations({
             continue;
           }
 
+          // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           adds[selector] = {
             document: node.outerHTML,
           };
@@ -107,6 +109,7 @@ async function extractDiffMutations({
           if (!node || !node.outerHTML) {
             continue;
           }
+          // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           attributes[getSelectorForElem(node)] = {
             tag: node.outerHTML.replace(node.innerHTML, '...'),
             changed: attr.attributes,
@@ -120,7 +123,9 @@ async function extractDiffMutations({
             precision: 'ms',
             style: 'hh:mm:ss.sss',
           });
+          // @ts-ignore TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
           item[formattedTimestamp].adds = adds;
+          // @ts-ignore TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
           item[formattedTimestamp].attributes = attributes;
         }
       }
@@ -162,6 +167,7 @@ async function extractDiffMutations({
             continue;
           }
 
+          // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           removes[selector] = {
             html: node.outerHTML,
           };

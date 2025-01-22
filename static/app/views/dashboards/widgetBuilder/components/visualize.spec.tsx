@@ -97,7 +97,7 @@ describe('Visualize', () => {
     expect(screen.queryAllByRole('button', {name: 'Remove field'})[0]).toBeDisabled();
   });
 
-  it('disables the column selection when the aggregate has no parameters', async () => {
+  it('removes the column selection when the aggregate has no parameters', async () => {
     render(
       <WidgetBuilderProvider>
         <Visualize />
@@ -120,10 +120,10 @@ describe('Visualize', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
     await userEvent.click(screen.getByRole('option', {name: 'count'}));
 
-    expect(screen.getByRole('button', {name: 'Column Selection'})).toBeDisabled();
+    expect(
+      screen.queryByRole('button', {name: 'Column Selection'})
+    ).not.toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Aggregate Selection'})).toBeEnabled();
-
-    expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveValue('');
   });
 
   it('adds the default value for the column selection when the aggregate has parameters', async () => {
@@ -144,8 +144,6 @@ describe('Visualize', () => {
         }),
       }
     );
-
-    expect(screen.getByRole('button', {name: 'Column Selection'})).toBeDisabled();
 
     await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
     await userEvent.click(screen.getByRole('option', {name: 'p95'}));
@@ -390,9 +388,9 @@ describe('Visualize', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
     await userEvent.click(screen.getByRole('option', {name: 'count'}));
 
-    expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
-      'None'
-    );
+    expect(
+      screen.queryByRole('button', {name: 'Column Selection'})
+    ).not.toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Aggregate Selection'})).toHaveTextContent(
       'count'
     );
@@ -823,9 +821,9 @@ describe('Visualize', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
     await userEvent.click(screen.getByRole('option', {name: 'count'}));
 
-    expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
-      'None'
-    );
+    expect(
+      screen.queryByRole('button', {name: 'Column Selection'})
+    ).not.toBeInTheDocument();
   });
 
   it('uses the provided value for a value parameter field', async () => {
@@ -856,6 +854,30 @@ describe('Visualize', () => {
     await userEvent.tab();
 
     expect(await screen.findByDisplayValue('400')).toBeInTheDocument();
+  });
+
+  it('restricts deleting the last aggregate in release health widgets', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.RELEASE,
+              field: ['crash_free_rate(session)', 'environment'],
+            },
+          }),
+        }),
+      }
+    );
+
+    const removeButtons = await screen.findAllByRole('button', {name: 'Remove field'});
+    expect(removeButtons).toHaveLength(2);
+    expect(removeButtons[0]).toBeDisabled();
+    expect(removeButtons[1]).toBeEnabled();
   });
 
   describe('spans', () => {

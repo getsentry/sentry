@@ -10,6 +10,6 @@ function projectDisplayCompare(a: Project, b: Project): number {
 /**
  * Sort a list of projects by bookmarkedness, then by id
  */
-export function sortProjects(projects: Readonly<Array<Project>>): Array<Project> {
+export function sortProjects(projects: readonly Project[]): Project[] {
   return projects.toSorted(projectDisplayCompare);
 }

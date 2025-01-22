@@ -74,7 +74,7 @@ const DEVICE_CONNECTIVITY_MESSAGE: Record<string, string> = {
   ethernet: t('Device connected to ethernet'),
 };
 
-const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
+const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
   'replay.init': (frame: BreadcrumbFrame) => ({
     color: 'gray300',
     description: stripURLOrigin(frame.message ?? ''),
@@ -437,7 +437,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
   }),
 };
 
-const MAPPER_DEFAULT = (frame): Details => ({
+const MAPPER_DEFAULT = (frame: any): Details => ({
   color: 'gray300',
   description: frame.message ?? frame.data ?? '',
   tabKey: TabKey.BREADCRUMBS,

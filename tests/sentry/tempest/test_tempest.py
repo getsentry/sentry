@@ -29,7 +29,7 @@ class TempestTasksTest(TestCase):
     def test_fetch_latest_item_id_error(self, mock_fetch):
         mock_fetch.return_value = Mock()
         mock_fetch.return_value.json.return_value = {
-            "error": {"type": "Invalid credentials", "message": "..."}
+            "error": {"type": "invalid_credentials", "message": "..."}
         }
 
         fetch_latest_item_id(self.credentials.id)
@@ -44,7 +44,7 @@ class TempestTasksTest(TestCase):
         mock_fetch.return_value = Mock()
         mock_fetch.return_value.json.return_value = {
             "error": {
-                "type": "IP address not allow-listed",
+                "type": "ip_not_allowlisted",
                 "message": "...",
             }
         }
@@ -61,7 +61,7 @@ class TempestTasksTest(TestCase):
         mock_fetch.return_value = Mock()
         mock_fetch.return_value.json.return_value = {
             "error": {
-                "type": "Internal error",
+                "type": "internal_error",
                 "message": "...",
             }
         }

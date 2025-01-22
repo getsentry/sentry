@@ -1,3 +1,4 @@
+import type {Point} from 'sentry/views/performance/transactionSummary/transactionVitals/types';
 import {
   findNearestBucketIndex,
   getRefRect,
@@ -119,9 +120,9 @@ describe('Utils', function () {
     });
 
     it('maps center points correctly', function () {
-      const expectPointsToBeClose = (point1, point2) => {
-        expect(point1.x).toBeCloseTo(point2.x);
-        expect(point1.y).toBeCloseTo(point2.y);
+      const expectPointsToBeClose = (point1: Point | null, point2: Point) => {
+        expect(point1?.x).toBeCloseTo(point2.x);
+        expect(point1?.y).toBeCloseTo(point2?.y);
       };
 
       const src = {point1: {x: 0, y: 0}, point2: {x: 1, y: 1}};

@@ -437,7 +437,7 @@ export function Control({
    * trigger label.
    */
   const [selectedOptions, setSelectedOptions] = useState<
-    Array<SelectOption<SelectKey> | SelectOption<SelectKey>[]>
+    (SelectOption<SelectKey> | SelectOption<SelectKey>[])[]
   >([]);
   const saveSelectedOptions = useCallback<SelectContextValue['saveSelectedOptions']>(
     (index, newSelectedOptions) => {
@@ -686,7 +686,7 @@ const SearchInput = styled('input')<{visualSize: FormSize}>`
   }
 `;
 
-const withUnits = value => (typeof value === 'string' ? value : `${value}px`);
+const withUnits = (value: any) => (typeof value === 'string' ? value : `${value}px`);
 
 const StyledOverlay = styled(Overlay, {
   shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop),

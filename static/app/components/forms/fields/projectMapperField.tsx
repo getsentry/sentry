@@ -85,7 +85,7 @@ export class RenderField extends Component<RenderProps, State> {
       id: formElementId,
     } = this.props;
 
-    const existingValues: Array<[number, MappedValue]> = incomingValues || [];
+    const existingValues: [number, MappedValue][] = incomingValues || [];
     const nextUrlOrArray = safeGetQsParam('next');
     let nextUrl = Array.isArray(nextUrlOrArray) ? nextUrlOrArray[0] : nextUrlOrArray;
 
@@ -228,7 +228,7 @@ export class RenderField extends Component<RenderProps, State> {
             name="mappedDropdown"
             options={mappedItemOptions}
             components={{
-              SingleValue: containerProps => {
+              SingleValue: (containerProps: any) => {
                 return (
                   <components.ValueContainer {...containerProps}>
                     <MappedValueContainer>
@@ -248,7 +248,7 @@ export class RenderField extends Component<RenderProps, State> {
             name="project"
             options={projectOptions}
             components={{
-              SingleValue: containerProps => {
+              SingleValue: (containerProps: any) => {
                 return (
                   <components.ValueContainer {...containerProps}>
                     {renderIdBadge({id: selectedSentryProjectId, hideName: false})}

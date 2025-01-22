@@ -278,6 +278,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
 
         force_metrics_layer = request.GET.get("forceMetricsLayer") == "true"
         use_rpc = request.GET.get("useRpc", "0") == "1"
+        sentry_sdk.set_tag("performance.use_rpc", use_rpc)
 
         def _get_event_stats(
             scoped_dataset: Any,
@@ -321,6 +322,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     on_demand_metrics_type=on_demand_metrics_type,
                     include_other=include_other,
                     query_source=query_source,
+                    transform_alias_to_input_format=transform_alias_to_input_format,
                     fallback_to_transactions=features.has(
                         "organizations:performance-discover-dataset-selector",
                         organization,

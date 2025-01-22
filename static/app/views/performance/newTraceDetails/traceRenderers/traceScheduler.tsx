@@ -1,6 +1,6 @@
 type ArgumentTypes<F> = F extends (...args: infer A) => any ? A : never;
 type EventStore = {
-  [K in keyof TraceEvents]: Array<[number, TraceEvents[K]]>;
+  [K in keyof TraceEvents]: [number, TraceEvents[K]][];
 };
 
 export enum TraceEventPriority {
@@ -49,8 +49,7 @@ export class TraceScheduler {
 
   once<K extends keyof TraceEvents>(eventName: K, cb: TraceEvents[K]) {
     const wrapper = (...args: any[]) => {
-      // @ts-expect-error
-      cb(...args);
+      (cb as any)(...args);
       this.off(eventName, wrapper);
     };
 
@@ -77,10 +76,10 @@ export class TraceScheduler {
       return;
     }
 
-    // @ts-expect-error - filter out the callback
-    this.events[eventName] = arr.filter(a => a[1] !== cb) as unknown as Array<
-      [TraceEventPriority, K]
-    >;
+    (this.events as any)[eventName] = arr.filter(a => a[1] !== cb) as unknown as [
+      TraceEventPriority,
+      K,
+    ][];
   }
 
   dispatch<K extends keyof TraceEvents>(
@@ -88,8 +87,7 @@ export class TraceScheduler {
     ...args: ArgumentTypes<TraceEvents[K]>
   ): void {
     for (const [_priority, handler] of this.events[eventName]) {
-      // @ts-expect-error
-      handler(...args);
+      (handler as any)(...args);
     }
   }
 }

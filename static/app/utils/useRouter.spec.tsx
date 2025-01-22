@@ -9,7 +9,7 @@ import {TestRouteContext} from 'sentry/views/routeContext';
 
 describe('useRouter', () => {
   it('returns the current router object', function () {
-    let actualRouter;
+    let actualRouter: any;
     function HomePage() {
       actualRouter = useRouter();
       return null;

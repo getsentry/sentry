@@ -92,7 +92,7 @@ function GetStarted({relocationState, onUpdateRelocationState, onComplete}: Step
             aria-label={t('region')}
             placeholder="Select Location"
             options={regions.map(r => ({label: prettyRegionName(r.name), value: r.url}))}
-            onChange={opt => {
+            onChange={(opt: any) => {
               onUpdateRelocationState({regionUrl: opt.value});
             }}
           />

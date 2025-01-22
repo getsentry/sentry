@@ -14,7 +14,6 @@ from sentry.models.organizationonboardingtask import (
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.organizations.services.organization import organization_service
-from sentry.plugins.bases.issue import IssueTrackingPlugin
 from sentry.signals import (
     alert_rule_created,
     event_processed,
@@ -22,10 +21,8 @@ from sentry.signals import (
     first_replay_received,
     first_transaction_received,
     integration_added,
-    issue_tracker_used,
     member_invited,
     member_joined,
-    plugin_enabled,
     project_created,
     transaction_processed,
 )
@@ -273,33 +270,6 @@ class OrganizationOnboardingTaskTest(TestCase):
             status=OnboardingTaskStatus.COMPLETE,
         )
         assert task.data["invited_member_id"] == om.id
-
-    def test_issue_tracker_onboarding(self):
-        plugin_enabled.send(
-            plugin=IssueTrackingPlugin(),
-            project=self.project,
-            user=self.user,
-            sender=type(IssueTrackingPlugin),
-        )
-        task = OrganizationOnboardingTask.objects.get(
-            organization=self.organization,
-            task=OnboardingTask.ISSUE_TRACKER,
-            status=OnboardingTaskStatus.PENDING,
-        )
-        assert task is not None
-
-        issue_tracker_used.send(
-            plugin=IssueTrackingPlugin(),
-            project=self.project,
-            user=self.user,
-            sender=type(IssueTrackingPlugin),
-        )
-        task = OrganizationOnboardingTask.objects.get(
-            organization=self.organization,
-            task=OnboardingTask.ISSUE_TRACKER,
-            status=OnboardingTaskStatus.COMPLETE,
-        )
-        assert task is not None
 
     def test_alert_added(self):
         alert_rule_created.send(

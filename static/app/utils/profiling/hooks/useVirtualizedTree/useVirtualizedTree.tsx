@@ -162,7 +162,7 @@ export function useVirtualizedTree<T extends TreeLike>(
     [state.scrollHeight, state.scrollTop, state.overscroll, tree, props.rowHeight]
   );
 
-  const flattenedHistory = useRef<ReadonlyArray<VirtualizedTreeNode<T>>>(tree.flattened);
+  const flattenedHistory = useRef<readonly VirtualizedTreeNode<T>[]>(tree.flattened);
   const expandedHistory = useRef<Set<T>>(new Set());
 
   // Keep a ref to latest state to avoid re-rendering
@@ -241,12 +241,14 @@ export function useVirtualizedTree<T extends TreeLike>(
     }
 
     let raf: number;
-    function handleScroll(evt) {
+    function handleScroll(evt: any) {
       if (!props.scrollContainer) {
         return;
       }
       const scrollTop = Math.max(0, evt.target.scrollTop);
-      raf !== undefined && window.cancelAnimationFrame(raf);
+      if (raf !== undefined) {
+        window.cancelAnimationFrame(raf);
+      }
 
       raf = window.requestAnimationFrame(() => {
         dispatch({type: 'set scroll top', payload: scrollTop});

@@ -223,7 +223,7 @@ export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps>
                       : mappedSelectors[fieldKey])}
                     height={30}
                     disabled={disabled}
-                    onChange={v => setValue(itemKey, fieldKey, v ? v.value : null)}
+                    onChange={(v: any) => setValue(itemKey, fieldKey, v ? v.value : null)}
                     value={value[itemKey][fieldKey]}
                   />
                 </Control>
@@ -250,7 +250,7 @@ export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps>
     return (
       <FormField
         {...this.props}
-        inline={({model}) => !this.hasValue(model.getValue(this.props.name))}
+        inline={({model}: any) => !this.hasValue(model.getValue(this.props.name))}
       >
         {this.renderField}
       </FormField>

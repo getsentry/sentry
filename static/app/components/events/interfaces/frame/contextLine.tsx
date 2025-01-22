@@ -10,7 +10,7 @@ interface Props {
   isActive: boolean;
   line: [lineNo: number, content: string];
   children?: React.ReactNode;
-  coverage?: Coverage | '';
+  coverage?: Coverage;
 }
 
 const coverageText: Record<Coverage, string | undefined> = {
@@ -26,7 +26,12 @@ const coverageClass: Record<Coverage, string | undefined> = {
   [Coverage.NOT_APPLICABLE]: undefined,
 };
 
-function ContextLine({line, isActive, children, coverage = ''}: Props) {
+function ContextLine({
+  line,
+  isActive,
+  children,
+  coverage = Coverage.NOT_APPLICABLE,
+}: Props) {
   let lineWs = '';
   let lineCode = '';
   if (typeof line[1] === 'string') {

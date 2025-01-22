@@ -224,7 +224,7 @@ export function FilterResultsStep({
   );
 }
 
-function WidgetOnDemandQueryWarning(props: {
+export function WidgetOnDemandQueryWarning(props: {
   query: WidgetQuery;
   queryIndex: number;
   validatedWidgetResponse: Props['validatedWidgetResponse'];

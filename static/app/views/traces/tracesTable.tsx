@@ -125,7 +125,7 @@ export function TracesTable({
   );
 }
 
-function TraceRow({defaultExpanded, trace}: {defaultExpanded; trace: TraceResult}) {
+function TraceRow({defaultExpanded, trace}: {defaultExpanded: any; trace: TraceResult}) {
   const {selection} = usePageFilters();
   const {projects} = useProjects();
 

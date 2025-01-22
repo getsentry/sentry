@@ -50,7 +50,7 @@ function useOverflowingTabs({state}: {state: TabListState<DraggableTabListItemPr
   );
   const outerRef = useRef<HTMLDivElement>(null);
   const addViewTempTabRef = useRef<HTMLDivElement>(null);
-  const [tabElements, setTabElements] = useState<Array<HTMLDivElement | null>>([]);
+  const [tabElements, setTabElements] = useState<(HTMLDivElement | null)[]>([]);
   const {width: outerWidth} = useDimensions({elementRef: outerRef});
   const {width: addViewTempTabWidth} = useDimensions({elementRef: addViewTempTabRef});
   const tabsDimensions = useDimensionsMultiple({elements: tabElements});
@@ -62,9 +62,12 @@ function useOverflowingTabs({state}: {state: TabListState<DraggableTabListItemPr
     const overflowing: Node<DraggableTabListItemProps>[] = [];
 
     for (let i = 0; i < tabsDimensions.length; i++) {
-      totalWidth += tabsDimensions[i]!.width + 1; // 1 extra pixel for the divider
-      if (totalWidth > availableWidth + 1) {
-        overflowing.push(persistentTabs[i]!);
+      totalWidth += (tabsDimensions[i]?.width ?? 0) + 1; // 1 extra pixel for the divider
+
+      const tab = persistentTabs[i];
+
+      if (totalWidth > availableWidth + 1 && tab) {
+        overflowing.push(tab);
       }
     }
 
@@ -142,7 +145,7 @@ function Tabs({
   orientation: 'horizontal' | 'vertical';
   overflowingTabs: Node<DraggableTabListItemProps>[];
   setHoveringKey: (key: Key | 'addView' | null) => void;
-  setTabRefs: Dispatch<SetStateAction<Array<HTMLDivElement | null>>>;
+  setTabRefs: Dispatch<SetStateAction<(HTMLDivElement | null)[]>>;
   state: TabListState<DraggableTabListItemProps>;
   tabs: Node<DraggableTabListItemProps>[];
   tempTabActive: boolean;
@@ -165,6 +168,7 @@ function Tabs({
   // which we do not want (we hide tabs once they overflow
   const dragConstraints = isDragging ? tabListRef : undefined;
 
+  // @ts-ignore TS(7006): Parameter 'tabKey' implicitly has an 'any' type.
   const isTabDividerVisible = tabKey => {
     // If the tab divider is succeeding or preceding the selected tab key
     if (
@@ -289,6 +293,7 @@ function BaseDraggableTabList({
   const ariaProps = {
     selectedKey: value,
     defaultSelectedKey: defaultValue,
+    // @ts-ignore TS(7006): Parameter 'key' implicitly has an 'any' type.
     onSelectionChange: key => {
       onChange?.(key);
 

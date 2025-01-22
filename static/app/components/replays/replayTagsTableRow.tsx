@@ -26,7 +26,7 @@ function renderValueList(values: ReactNode[]) {
   if (typeof values[0] === 'string') {
     return values[0];
   }
-  const valueItems = values[0] as Array<string>;
+  const valueItems = values[0] as string[];
 
   if (!valueItems.length) {
     return undefined;

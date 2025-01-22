@@ -42,7 +42,7 @@ import {
 
 interface DebugMetaProps {
   data: {
-    images: Array<Image | null>;
+    images: (Image | null)[];
   };
   event: Event;
   projectSlug: Project['slug'];
@@ -338,7 +338,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
             overscanRowCount={5}
             rowCount={images.length}
             rowHeight={cache.rowHeight}
-            rowRenderer={listRowProps => renderRow({...listRowProps, images})}
+            rowRenderer={(listRowProps: any) => renderRow({...listRowProps, images})}
             width={width}
             isScrolling={false}
           />

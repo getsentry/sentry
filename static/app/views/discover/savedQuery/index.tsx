@@ -53,7 +53,7 @@ import {
   handleUpdateQuery,
 } from './utils';
 
-const renderDisabled = p => (
+const renderDisabled = (p: any) => (
   <Hovercard
     body={
       <FeatureDisabled
@@ -401,11 +401,12 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
       savedQuery?.queryDataset
     );
 
-    let alertType;
+    let alertType: any;
     let buttonEventView = eventView;
     if (hasDatasetSelector(organization)) {
       alertType = defined(currentDataset)
-        ? {
+        ? // @ts-ignore TS(2339): Property 'discover' does not exist on type '{ tran... Remove this comment to see the full error message
+          {
             [DiscoverDatasets.TRANSACTIONS]: 'throughput',
             [DiscoverDatasets.ERRORS]: 'num_errors',
           }[currentDataset]
@@ -454,7 +455,8 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
             yAxis,
             router,
             widgetType: hasDatasetSelector(organization)
-              ? SAVED_QUERY_DATASET_TO_WIDGET_TYPE[
+              ? // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                SAVED_QUERY_DATASET_TO_WIDGET_TYPE[
                   getSavedQueryDataset(organization, location, savedQuery)
                 ]
               : undefined,
@@ -578,7 +580,8 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
             yAxis,
             router,
             widgetType: hasDatasetSelector(organization)
-              ? SAVED_QUERY_DATASET_TO_WIDGET_TYPE[
+              ? // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                SAVED_QUERY_DATASET_TO_WIDGET_TYPE[
                   getSavedQueryDataset(organization, location, savedQuery)
                 ]
               : undefined,

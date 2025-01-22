@@ -100,7 +100,9 @@ export function treeResultLocator<T>({
         break;
       case Token.KEY_AGGREGATE:
         nodeVisitor(token.name);
-        token.args && nodeVisitor(token.args);
+        if (token.args) {
+          nodeVisitor(token.args);
+        }
         nodeVisitor(token.argsSpaceBefore);
         nodeVisitor(token.argsSpaceAfter);
         break;
@@ -153,7 +155,7 @@ type TreeTransformerOpts = {
  * a transform to those nodes.
  */
 export function treeTransformer({tree, transform}: TreeTransformerOpts) {
-  const nodeVisitor = (token: TokenResult<Token> | null) => {
+  const nodeVisitor = (token: TokenResult<Token> | null): any => {
     if (token === null) {
       return null;
     }
@@ -202,8 +204,7 @@ export function treeTransformer({tree, transform}: TreeTransformerOpts) {
       case Token.VALUE_TEXT_LIST:
         return transform({
           ...token,
-          // TODO(ts): Not sure why `v` cannot be inferred here
-          items: token.items.map((v: any) => ({...v, value: nodeVisitor(v.value)})),
+          items: token.items.map(v => ({...v, value: nodeVisitor(v.value)})),
         });
 
       default:
@@ -295,7 +296,7 @@ function stringifyTokenFilter(token: TokenResult<Token.FILTER>) {
   return stringifiedToken;
 }
 
-export function stringifyToken(token: TokenResult<Token>) {
+export function stringifyToken(token: TokenResult<Token>): string {
   switch (token.type) {
     case Token.FREE_TEXT:
     case Token.SPACES:
