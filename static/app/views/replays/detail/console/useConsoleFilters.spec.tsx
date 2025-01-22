@@ -276,32 +276,5 @@ describe('useConsoleFilters', () => {
         {label: 'log', value: 'log'},
       ]);
     });
-
-    // it('should include issue if a crumb has that for a category', () => {
-    //   const simpleCrumbs = [CRUMB_ISSUE];
-
-    //   const {result} = renderHook(useConsoleFilters, {
-    //     initialProps: {breadcrumbs: simpleCrumbs},
-    //   });
-    //   expect(result.current.getLogLevels()).toStrictEqual([
-    //     {label: 'sentry error', value: 'issue'},
-    //   ]);
-    // });
-
-    // it('should include issue the query includes it', () => {
-    //   const simpleCrumbs = [];
-    //   mockUseLocation.mockReturnValue({
-    //     pathname: '/',
-    //     query: {f_c_logLevel: ['issue']},
-    //   } as Location<FilterFields>);
-
-    //   const {result} = renderHook(useConsoleFilters, {
-    //     initialProps: {frames: simpleCrumbs},
-    //   });
-
-    //   expect(result.current.getLogLevels()).toStrictEqual([
-    //     {label: 'sentry error', value: 'issue'},
-    //   ]);
-    // });
   });
 });
