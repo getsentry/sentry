@@ -1,3 +1,5 @@
+from typing import TypedDict
+
 from django.conf import settings
 
 from sentry import http
@@ -7,8 +9,13 @@ def marketo_option(field):
     return settings.MARKETO[field]
 
 
+MarketoErrorResponse = TypedDict(
+    "DataDict", {"errors": list[TypedDict("ErrorDict", {"code": str, "message": str})]}
+)
+
+
 class MarketoError(Exception):
-    def __init__(self, data):
+    def __init__(self, data: MarketoErrorResponse):
         # just use the first error
         error = data["errors"][0]
         self.code = error["code"]
@@ -22,7 +29,7 @@ class MarketoClient:
     OAUTH_URL = "/identity/oauth/token"
     SUBMIT_FORM_URL = "/rest/v1/leads/submitForm.json"
 
-    def make_request(self, url, *args, **kwargs):
+    def make_request(self, url: str, *args, method="GET", **kwargs):
         base_url = marketo_option("base-url")
         full_url = base_url + url
         method = kwargs.pop("method", "GET")
@@ -31,8 +38,9 @@ class MarketoClient:
         resp.raise_for_status()
         return resp.json()
 
-    def make_rest_request(self, url, *args, **kwargs):
-        headers = kwargs.pop("headers", {})
+    def make_rest_request(self, url: str, *args, headers=None, **kwargs):
+        if headers is None:
+            headers = {}
         headers["Authorization"] = f"Bearer {self.token}"
         headers["Content-Type"] = "application/json"
         data = self.make_request(url, *args, headers=headers, **kwargs)
