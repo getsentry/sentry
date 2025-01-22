@@ -135,7 +135,7 @@ function ProjectOwnershipModal({
     return <LoadingIndicator />;
   }
 
-  if (isOwnershipError || (isUrlTagDataError && error.status === 404)) {
+  if (isOwnershipError || (isUrlTagDataError && error.status !== 404)) {
     return <LoadingError />;
   }
 

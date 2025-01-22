@@ -107,4 +107,50 @@ describe('Project Ownership', () => {
     await userEvent.click(await screen.findByText('Cancel'));
     expect(onCancel).toHaveBeenCalled();
   });
+
+  it('still renders if 404 error occurs', async () => {
+    MockApiClient.addMockResponse({
+      url: `/issues/${issueId}/tags/url/`,
+      statusCode: 404,
+    });
+
+    render(
+      <ProjectOwnershipModal
+        issueId={issueId}
+        organization={org}
+        project={project}
+        eventData={event}
+        onCancel={() => {}}
+      />
+    );
+
+    expect(
+      await screen.findByText(/Assign issues based on custom rules/)
+    ).toBeInTheDocument();
+
+    expect(
+      screen.getByText(/Here’s some suggestions based on this issue/)
+    ).toBeInTheDocument();
+  });
+
+  it('does not render if any other error status occurs', async () => {
+    MockApiClient.addMockResponse({
+      url: `/issues/${issueId}/tags/url/`,
+      statusCode: 401,
+    });
+
+    render(
+      <ProjectOwnershipModal
+        issueId={issueId}
+        organization={org}
+        project={project}
+        eventData={event}
+        onCancel={() => {}}
+      />
+    );
+
+    expect(
+      await screen.findByText('There was an error loading data.')
+    ).toBeInTheDocument();
+  });
 });
