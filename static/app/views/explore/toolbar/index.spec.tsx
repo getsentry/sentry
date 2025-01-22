@@ -1,7 +1,17 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
+import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   PageParamsProvider,
@@ -19,12 +29,24 @@ import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 import {SpanTagsProvider} from '../contexts/spanTagsContext';
 
+jest.mock('sentry/actionCreators/modal');
+
 describe('ExploreToolbar', function () {
-  const organization = OrganizationFixture();
+  const organization = OrganizationFixture({
+    features: ['alerts-eap', 'dashboards-eap', 'dashboards-edit'],
+  });
 
   beforeEach(function () {
     // without this the `CompactSelect` component errors with a bunch of async updates
     jest.spyOn(console, 'error').mockImplementation();
+
+    const project = ProjectFixture({
+      id: '1',
+      slug: 'proj-slug',
+      organization,
+    });
+
+    ProjectsStore.loadInitialData([project]);
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/spans/fields/`,
@@ -450,5 +472,117 @@ describe('ExploreToolbar', function () {
         ],
       })
     );
+  });
+
+  it('opens the right alert', async function () {
+    const router = RouterFixture({
+      location: {
+        pathname: '/traces/',
+        query: {
+          visualize: encodeURIComponent('{"chartType":1,"yAxes":["avg(span.duration)"]}'),
+        },
+      },
+    });
+
+    function Component() {
+      return <ExploreToolbar />;
+    }
+    render(
+      <PageParamsProvider>
+        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+          <Component />
+        </SpanTagsProvider>
+      </PageParamsProvider>,
+      {router, organization}
+    );
+
+    const section = screen.getByTestId('section-save-as');
+
+    await userEvent.click(within(section).getByText(/Save as/));
+    await userEvent.hover(within(section).getByText('Create an alert for'));
+    await userEvent.click(screen.getByText('avg(span.duration)'));
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: '/organizations/org-slug/alerts/new/metric/',
+      query: expect.objectContaining({
+        aggregate: 'avg(span.duration)',
+        dataset: 'events_analytics_platform',
+      }),
+    });
+  });
+  it('add to dashboard options correctly', async function () {
+    const router = RouterFixture({
+      location: {
+        pathname: '/traces/',
+        query: {
+          visualize: encodeURIComponent('{"chartType":1,"yAxes":["avg(span.duration)"]}'),
+        },
+      },
+    });
+
+    function Component() {
+      return <ExploreToolbar />;
+    }
+    render(
+      <PageParamsProvider>
+        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+          <Component />
+        </SpanTagsProvider>
+      </PageParamsProvider>,
+      {router, organization}
+    );
+
+    const section = screen.getByTestId('section-save-as');
+
+    await userEvent.click(within(section).getByText(/Save as/));
+    await userEvent.click(within(section).getByText('Add to Dashboard'));
+    await waitFor(() => {
+      expect(openAddToDashboardModal).toHaveBeenCalledWith(
+        expect.objectContaining({
+          widget: expect.objectContaining({
+            displayType: 'line',
+            queries: [
+              {
+                aggregates: ['avg(span.duration)'],
+                columns: [],
+                conditions: '',
+                fields: ['avg(span.duration)'],
+                name: '',
+                orderby: '-timestamp',
+              },
+            ],
+            title: 'Custom Widget',
+            widgetType: 'spans',
+          }),
+          widgetAsQueryParams: expect.objectContaining({
+            dataset: 'spans',
+            defaultTableColumns: [
+              'id',
+              'project',
+              'span.op',
+              'span.description',
+              'span.duration',
+              'timestamp',
+            ],
+            defaultTitle: 'Custom Widget',
+            defaultWidgetQuery:
+              'name=&aggregates=avg(span.duration)&columns=&fields=avg(span.duration)&conditions=&orderby=-timestamp',
+            displayType: 'line',
+            end: undefined,
+            field: [
+              'id',
+              'project',
+              'span.op',
+              'span.description',
+              'span.duration',
+              'timestamp',
+            ],
+            limit: undefined,
+            source: 'discoverv2',
+            start: undefined,
+            statsPeriod: '14d',
+          }),
+        })
+      );
+    });
   });
 });
