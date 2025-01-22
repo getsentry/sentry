@@ -76,6 +76,7 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
 
         checkin3 = MonitorCheckIn.objects.create(
             monitor=monitor,
+            monitor_environment=monitor_environment,
             project_id=self.project.id,
             date_added=monitor.date_added,
             status=CheckInStatus.OK,
