@@ -404,10 +404,12 @@ class _ClientConfig:
         # If the user is viewing the accept invitation user interface,
         # we should avoid preloading the data as they might not yet have access to it,
         # which could cause an error notification (403) to pop up in the user interface.
-        if self.request.path.startswith("accept/"):
+        if self.user and self.request and self.request.path.startswith("accept/"):
 
             member_id = self.request.path.split("/")[1]
-            invite_state = get_invite_state(member_id, None, self.user.id, self.request)
+            invite_state = get_invite_state(
+                int(member_id), None, int(self.user.id), self.request._request
+            )
             invitation_link = getattr(invite_state, "invitation_link", None)
 
             if invitation_link == self.request.get_full_path():
