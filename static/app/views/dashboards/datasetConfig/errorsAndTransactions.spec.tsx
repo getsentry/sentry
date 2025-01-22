@@ -84,7 +84,7 @@ describe('getCustomFieldRenderer', function () {
     );
     await userEvent.click(await screen.findByText('abcd'));
     expect(router.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/performance/trace/abcd/',
+      pathname: '/organizations/org-slug/dashboards/trace/abcd/',
       query: {
         pageEnd: undefined,
         pageStart: undefined,

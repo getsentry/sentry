@@ -40,13 +40,13 @@ export const enum TraceViewSources {
   MOBILE_SCREENS_MODULE = 'mobile_screens_module',
   SCREEN_RENDERING_MODULE = 'screen_rendering_module',
   PERFORMANCE_TRANSACTION_SUMMARY = 'performance_transaction_summary',
-  PERFORMANCE_TRANSACTION_SUMMARY_PROFILES = 'performance_transaction_summary_profiles',
   ISSUE_DETAILS = 'issue_details',
+  DASHBOARDS = 'dashboards',
   FEEDBACK_DETAILS = 'feedback_details',
 }
 
 // Ideally every new entry to ModuleName, would require a new source to be added here so we don't miss any.
-const TRACE_SOURCE_TO_MODULE: Partial<Record<TraceViewSources, ModuleName>> = {
+const TRACE_SOURCE_TO_INSIGHTS_MODULE: Partial<Record<TraceViewSources, ModuleName>> = {
   app_starts_module: ModuleName.APP_START,
   assets_module: ModuleName.RESOURCE,
   caches_module: ModuleName.CACHE,
@@ -59,6 +59,19 @@ const TRACE_SOURCE_TO_MODULE: Partial<Record<TraceViewSources, ModuleName>> = {
   screen_load_module: ModuleName.SCREEN_LOAD,
   screen_rendering_module: ModuleName.SCREEN_RENDERING,
   mobile_screens_module: ModuleName.MOBILE_SCREENS,
+};
+
+export const TRACE_SOURCE_TO_NON_INSIGHT_ROUTES: Partial<
+  Record<TraceViewSources, string>
+> = {
+  traces: 'traces',
+  metrics: 'metrics',
+  discover: 'discover',
+  profiling_flamegraph: 'profiling',
+  performance_transaction_summary: 'performance',
+  issue_details: 'issues',
+  feedback_details: 'feedback',
+  dashboards: 'dashboards',
 };
 
 function getBreadCrumbTarget(
@@ -182,6 +195,43 @@ function getIssuesBreadCrumbs(organization: Organization, location: Location) {
   return crumbs;
 }
 
+function getDashboardsBreadCrumbs(organization: Organization, location: Location) {
+  const crumbs: Crumb[] = [];
+
+  crumbs.push({
+    label: t('Dashboards'),
+    to: getBreadCrumbTarget('dashboards', location.query, organization),
+  });
+
+  if (location.query.dashboardId) {
+    crumbs.push({
+      label: t('Widgets Legend'),
+      to: getBreadCrumbTarget(
+        `dashboard/${location.query.dashboardId}`,
+        location.query,
+        organization
+      ),
+    });
+
+    if (location.query.widgetId) {
+      crumbs.push({
+        label: t('Widget'),
+        to: getBreadCrumbTarget(
+          `dashboard/${location.query.dashboardId}/widget/${location.query.widgetId}/`,
+          location.query,
+          organization
+        ),
+      });
+    }
+  }
+
+  crumbs.push({
+    label: t('Trace View'),
+  });
+
+  return crumbs;
+}
+
 function getInsightsModuleBreadcrumbs(
   location: Location,
   organization: Organization,
@@ -213,10 +263,12 @@ function getInsightsModuleBreadcrumbs(
 
   if (
     typeof location.query.source === 'string' &&
-    TRACE_SOURCE_TO_MODULE[location.query.source as keyof typeof TRACE_SOURCE_TO_MODULE]
+    TRACE_SOURCE_TO_INSIGHTS_MODULE[
+      location.query.source as keyof typeof TRACE_SOURCE_TO_INSIGHTS_MODULE
+    ]
   ) {
-    moduleName = TRACE_SOURCE_TO_MODULE[
-      location.query.source as keyof typeof TRACE_SOURCE_TO_MODULE
+    moduleName = TRACE_SOURCE_TO_INSIGHTS_MODULE[
+      location.query.source as keyof typeof TRACE_SOURCE_TO_INSIGHTS_MODULE
     ] as RoutableModuleNames;
     crumbs.push({
       label: MODULE_TITLES[moduleName],
@@ -343,7 +395,9 @@ export function getTraceViewBreadcrumbs(
 ): Crumb[] {
   if (
     typeof location.query.source === 'string' &&
-    TRACE_SOURCE_TO_MODULE[location.query.source as keyof typeof TRACE_SOURCE_TO_MODULE]
+    TRACE_SOURCE_TO_INSIGHTS_MODULE[
+      location.query.source as keyof typeof TRACE_SOURCE_TO_INSIGHTS_MODULE
+    ]
   ) {
     return getInsightsModuleBreadcrumbs(location, organization, moduleUrlBuilder, view);
   }
@@ -379,6 +433,18 @@ export function getTraceViewBreadcrumbs(
           label: t('Trace View'),
         },
       ];
+    case TraceViewSources.FEEDBACK_DETAILS:
+      return [
+        {
+          label: t('User Feedback'),
+          to: getBreadCrumbTarget(`feedback`, location.query, organization),
+        },
+        {
+          label: t('Trace View'),
+        },
+      ];
+    case TraceViewSources.DASHBOARDS:
+      return getDashboardsBreadCrumbs(organization, location);
     case TraceViewSources.ISSUE_DETAILS:
       return getIssuesBreadCrumbs(organization, location);
     case TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY:

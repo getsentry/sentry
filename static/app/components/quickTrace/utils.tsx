@@ -20,6 +20,7 @@ import type {
 import {getTraceTimeRangeFromEvent} from 'sentry/utils/performance/quickTrace/utils';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import type {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 export function isQuickTraceEvent(
@@ -144,7 +145,7 @@ export function generateTraceTarget(
   event: Event,
   organization: Organization,
   location: Location,
-  source?: string
+  source?: TraceViewSources
 ): LocationDescriptor {
   const traceId = event.contexts?.trace?.trace_id ?? '';
 
