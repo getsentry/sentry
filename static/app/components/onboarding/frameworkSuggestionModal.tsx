@@ -91,7 +91,7 @@ const topJavaFrameworks: PlatformKey[] = [
   'java-log4j2',
 ];
 
-export const languageDescriptions = {
+export const languageDescriptions: Partial<Record<PlatformKey, string>> = {
   [SupportedLanguages.JAVASCRIPT]: t(
     'Our JavaScript framework SDKs include all the features of our Browser Javascript SDK with additional features specific to that framework'
   ),

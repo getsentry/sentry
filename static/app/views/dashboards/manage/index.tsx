@@ -160,7 +160,7 @@ function ManageDashboards() {
   useEffect(() => {
     const dashboardGridObserver = new ResizeObserver(
       debounce(entries => {
-        entries.forEach(entry => {
+        entries.forEach((entry: any) => {
           const currentWidth = entry.contentRect.width;
 
           setRowsAndColumns(currentWidth);

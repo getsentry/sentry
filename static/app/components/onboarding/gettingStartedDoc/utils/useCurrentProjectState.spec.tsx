@@ -17,7 +17,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
 
 function createWrapper(projectSlug?: string) {
-  return function Wrapper({children}) {
+  return function Wrapper({children}: any) {
     const memoryRouter = createMemoryRouter([
       {
         path: '/',

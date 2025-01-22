@@ -8,7 +8,7 @@ import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/util
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
-import type {Organization} from 'sentry/types/organization';
+import type {Confidence, Organization} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -34,6 +34,7 @@ function getReferrer(displayType: DisplayType) {
 }
 
 export type OnDataFetchedProps = {
+  confidence?: Confidence;
   pageLinks?: string;
   tableResults?: TableDataWithTitle[];
   timeseriesResults?: Series[];
@@ -43,6 +44,7 @@ export type OnDataFetchedProps = {
 
 export type GenericWidgetQueriesChildrenProps = {
   loading: boolean;
+  confidence?: Confidence;
   errorMessage?: string;
   pageLinks?: string;
   tableResults?: TableDataWithTitle[];

@@ -14,6 +14,7 @@ import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modul
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ReleaseComparisonSelector} from 'sentry/views/insights/common/components/releaseSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
+import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
 import {SpanSamplesPanel} from 'sentry/views/insights/mobile/common/components/spanSamplesPanel';
 import {SamplesTables} from 'sentry/views/insights/mobile/common/components/tables/samplesTables';
 import {SpanOperationTable} from 'sentry/views/insights/mobile/ui/components/tables/spanOperationTable';
@@ -64,10 +65,28 @@ function ScreenSummary() {
 }
 
 export function ScreenSummaryContent() {
-  const location = useLocation<Query>();
   const router = useRouter();
+  const location = useLocation<Query>();
 
-  const {transaction: transactionName, spanGroup, spanOp} = location.query;
+  const {transaction: transactionName, spanGroup} = location.query;
+
+  useSamplesDrawer({
+    Component: <SpanSamplesPanel groupId={spanGroup} moduleName={ModuleName.OTHER} />,
+    moduleName: ModuleName.OTHER,
+    requiredParams: ['spanGroup', 'spanOp'],
+    onClose: () => {
+      router.replace({
+        pathname: router.location.pathname,
+        query: omit(
+          router.location.query,
+          'spanGroup',
+          'transactionMethod',
+          'spanDescription',
+          'spanOp'
+        ),
+      });
+    },
+  });
 
   return (
     <Fragment>
@@ -89,25 +108,6 @@ export function ScreenSummaryContent() {
           EventSamples={_props => <div />}
         />
       </SamplesContainer>
-
-      {spanGroup && spanOp && (
-        <SpanSamplesPanel
-          groupId={spanGroup}
-          moduleName={ModuleName.OTHER}
-          onClose={() => {
-            router.replace({
-              pathname: router.location.pathname,
-              query: omit(
-                router.location.query,
-                'spanGroup',
-                'transactionMethod',
-                'spanDescription',
-                'spanOp'
-              ),
-            });
-          }}
-        />
-      )}
     </Fragment>
   );
 }

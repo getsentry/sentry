@@ -11,7 +11,6 @@ import {logout} from 'sentry/actionCreators/account';
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import SidebarContainer from 'sentry/components/sidebar';
 import ConfigStore from 'sentry/stores/configStore';
-import PreferenceStore from 'sentry/stores/preferencesStore';
 import type {Organization} from 'sentry/types/organization';
 import type {StatuspageIncident} from 'sentry/types/system';
 import localStorage from 'sentry/utils/localStorage';
@@ -88,6 +87,13 @@ describe('Sidebar', function () {
     apiMocks.sdkUpdates = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sdk-updates/`,
       body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/onboarding-tasks/`,
+      method: 'GET',
+      body: {
+        onboardingTasks: [],
+      },
     });
   });
 
@@ -196,7 +202,7 @@ describe('Sidebar', function () {
         organization: {...organization, features: ['onboarding']},
       });
 
-      const quickStart = await screen.findByText('Quick Start');
+      const quickStart = await screen.findByText('Onboarding');
 
       expect(quickStart).toBeInTheDocument();
       await userEvent.click(quickStart);
@@ -416,102 +422,6 @@ describe('Sidebar', function () {
         screen.getByTestId('sidebar-accordion-insights-domains-item')
       );
       expect(await screen.findByTestId('floating-accordion')).toBeInTheDocument();
-    });
-  });
-
-  describe('Rollback prompts', () => {
-    beforeEach(() => {
-      PreferenceStore.showSidebar();
-    });
-
-    it('should render the sidebar banner with no dismissed prompts and an existing rollback', async () => {
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/prompts-activity/`,
-        body: {data: null},
-      });
-
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/user-rollback/`,
-        body: {data: null},
-      });
-
-      renderSidebarWithFeatures(['sentry-rollback-2024']);
-
-      expect(await screen.findByText(/Your 2024 Rollback/)).toBeInTheDocument();
-    });
-
-    it('will not render anything if the user does not have a rollback', async () => {
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/prompts-activity/`,
-        body: {data: null},
-      });
-
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/user-rollback/`,
-        statusCode: 404,
-      });
-
-      renderSidebarWithFeatures(['sentry-rollback-2024']);
-
-      await screen.findByText('OS');
-
-      await waitFor(() => {
-        expect(screen.queryByText(/Your 2024 Rollback/)).not.toBeInTheDocument();
-      });
-    });
-
-    it('will not render sidebar banner when collapsed', async () => {
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/prompts-activity/`,
-        body: {data: null},
-      });
-
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/user-rollback/`,
-        body: {data: null},
-      });
-
-      renderSidebarWithFeatures(['sentry-rollback-2024']);
-
-      await userEvent.click(screen.getByTestId('sidebar-collapse'));
-
-      await waitFor(() => {
-        expect(screen.queryByText(/Your 2024 Rollback/)).not.toBeInTheDocument();
-      });
-    });
-
-    it('should show dot on org dropdown after dismissing sidebar banner', async () => {
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/prompts-activity/`,
-        body: {data: null},
-      });
-
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/user-rollback/`,
-        body: {data: null},
-      });
-
-      const dismissMock = MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/prompts-activity/`,
-        method: 'PUT',
-        body: {},
-      });
-
-      renderSidebarWithFeatures(['sentry-rollback-2024']);
-
-      await userEvent.click(await screen.findByRole('button', {name: /Dismiss/}));
-
-      expect(await screen.findByTestId('rollback-notification-dot')).toBeInTheDocument();
-      expect(screen.queryByText(/Your 2024 Rollback/)).not.toBeInTheDocument();
-      expect(dismissMock).toHaveBeenCalled();
-
-      // Opening the org dropdown will remove the dot
-      await userEvent.click(screen.getByTestId('sidebar-dropdown'));
-      await waitFor(() => {
-        expect(screen.queryByTestId('rollback-notification-dot')).not.toBeInTheDocument();
-      });
-
-      expect(dismissMock).toHaveBeenCalledTimes(2);
     });
   });
 });

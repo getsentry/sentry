@@ -156,7 +156,7 @@ export const MetricWidget = memo(
     );
 
     const handleQueryChange = useCallback(
-      (queryIndex, data: Partial<MetricsWidget>) => {
+      (queryIndex: any, data: Partial<MetricsWidget>) => {
         onChange(queryIndex, data);
       },
       [onChange]
@@ -502,7 +502,7 @@ const MetricWidgetBody = memo(
     );
 
     const handleSortChange = useCallback(
-      newSort => {
+      (newSort: any) => {
         onChange?.({sort: newSort});
       },
       [onChange]

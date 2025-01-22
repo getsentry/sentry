@@ -133,7 +133,7 @@ export function transactionSummaryRouteWithQuery({
   };
 }
 
-export function generateTraceLink(dateSelection, view?: DomainView) {
+export function generateTraceLink(dateSelection: any, view?: DomainView) {
   return (
     organization: Organization,
     tableRow: TableDataRow,

@@ -32,7 +32,7 @@ class SplunkPluginTest(PluginTestCase):
             data={"message": "Hello world", "level": "warning"}, project_id=self.project.id
         )
         with self.options({"system.url-prefix": "http://example.com"}):
-            self.plugin.post_process(event)
+            self.plugin.post_process(event=event)
 
         request = responses.calls[0].request
         payload = orjson.loads(request.body)
@@ -54,7 +54,7 @@ class SplunkPluginTest(PluginTestCase):
             data={"message": "Hello world", "level": "warning"}, project_id=self.project.id
         )
         with self.options({"system.url-prefix": "http://example.com"}):
-            self.plugin.post_process(event)
+            self.plugin.post_process(event=event)
 
         resp = responses.calls[0].response
         assert resp.status_code == 404
@@ -74,7 +74,7 @@ class SplunkPluginTest(PluginTestCase):
         )
         with self.options({"system.url-prefix": "http://example.com"}):
             with pytest.raises(ApiError):
-                self.plugin.post_process(event)
+                self.plugin.post_process(event=event)
 
     def test_http_payload(self):
         event = self.store_event(

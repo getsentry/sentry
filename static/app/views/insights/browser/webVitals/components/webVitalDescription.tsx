@@ -204,6 +204,7 @@ export function WebVitalTagsDetailHeader({
 }
 
 export function WebVitalDescription({score, value, webVital}: Props) {
+  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const {longDescription, link} = VITAL_DESCRIPTIONS[WebVital[webVital.toUpperCase()]];
 
   return (
@@ -225,9 +226,9 @@ export function WebVitalDescription({score, value, webVital}: Props) {
       <SupportedBrowsers>
         {Object.values(Browser).map(browser => (
           <BrowserItem key={browser}>
-            {vitalSupportedBrowsers[WebVital[webVital.toUpperCase()]]?.includes(
-              browser
-            ) ? (
+            {vitalSupportedBrowsers[
+              WebVital[webVital.toUpperCase() as Uppercase<typeof webVital>]
+            ]?.includes(browser) ? (
               <IconCheckmark color="successText" size="sm" />
             ) : (
               <IconClose color="dangerText" size="sm" />
@@ -273,7 +274,6 @@ const Value = styled('h2')`
 
 const WebVitalName = styled('h4')`
   margin-bottom: ${space(1)};
-  margin-top: 40px;
   max-width: 400px;
   ${p => p.theme.overflowEllipsis}
 `;
@@ -291,7 +291,7 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
   margin: 20px 65px;
 `;
 
-const ScoreBadge = styled('div')<{status: string}>`
+const ScoreBadge = styled('div')<{status: keyof typeof PERFORMANCE_SCORE_COLORS}>`
   display: flex;
   justify-content: center;
   align-items: center;

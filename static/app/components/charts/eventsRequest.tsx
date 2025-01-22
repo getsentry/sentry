@@ -319,7 +319,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
       errorMessage: undefined,
     }));
 
-    let errorMessage;
+    let errorMessage: any;
     if (expired) {
       errorMessage = t(
         '%s has an invalid date range. Please try a more recent date range.',
@@ -453,7 +453,10 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
     if (seriesName) {
       const unit = meta?.units?.[getAggregateAlias(seriesName)];
       // Scale series values to milliseconds or bytes depending on units from meta
-      scale = (unit && (DURATION_UNITS[unit] ?? SIZE_UNITS[unit])) ?? 1;
+      scale =
+        ((unit &&
+          (DURATION_UNITS[unit as keyof typeof DURATION_UNITS] ??
+            SIZE_UNITS[unit as keyof typeof SIZE_UNITS])) as number) ?? 1;
     }
 
     return [

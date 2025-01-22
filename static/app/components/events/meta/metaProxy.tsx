@@ -7,7 +7,7 @@ const IS_PROXY = Symbol('IS_PROXY');
 
 type SymbolProp = typeof GET_META | typeof IS_PROXY;
 
-function isAnnotated(meta) {
+function isAnnotated(meta: any) {
   if (isEmpty(meta)) {
     return false;
   }
@@ -23,6 +23,7 @@ export class MetaProxy {
     this.local = local;
   }
 
+  // @ts-ignore TS(7023): 'get' implicitly has return type 'any' because it ... Remove this comment to see the full error message
   get<T extends {}>(
     obj: T | Array<T>,
     prop: Extract<keyof T, string> | SymbolProp,
@@ -30,7 +31,7 @@ export class MetaProxy {
   ) {
     // trap calls to `getMeta` to return meta object
     if (prop === GET_META) {
-      return key => {
+      return (key: any) => {
         if (this.local?.[key]?.['']) {
           // TODO: Error checks
           const meta = this.local[key][''];
@@ -85,9 +86,11 @@ export function getMeta<T extends {}>(
   obj: T | undefined,
   prop: Extract<keyof T, string>
 ): Meta | undefined {
+  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   if (!obj || typeof obj[GET_META] !== 'function') {
     return undefined;
   }
 
+  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   return obj[GET_META](prop);
 }

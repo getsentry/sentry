@@ -26,6 +26,7 @@ export function useProcessQueuesTimeSeriesQuery({enabled, destination, referrer}
       yAxis,
       search,
       enabled,
+      transformAliasToInputFormat: true,
     },
     referrer
   );

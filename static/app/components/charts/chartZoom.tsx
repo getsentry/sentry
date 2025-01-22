@@ -115,7 +115,7 @@ class ChartZoom extends Component<Props> {
    * Save current period state from period in props to be used
    * in handling chart's zoom history state
    */
-  saveCurrentPeriod = props => {
+  saveCurrentPeriod = (props: any) => {
     this.currentPeriod = {
       period: props.period,
       start: getDate(props.start),
@@ -132,7 +132,7 @@ class ChartZoom extends Component<Props> {
    *
    * Saves a callback function to be called after chart animation is completed
    */
-  setPeriod = ({period, start, end}, saveHistory = false) => {
+  setPeriod = ({period, start, end}: any, saveHistory = false) => {
     const {router, onZoom, usePageDate, saveOnZoom} = this.props;
     const startFormatted = getDate(start);
     const endFormatted = getDate(end);
@@ -200,7 +200,7 @@ class ChartZoom extends Component<Props> {
     this.$chart.addEventListener('mousedown', this.handleMouseDown);
   };
 
-  handleKeyDown = evt => {
+  handleKeyDown = (evt: any) => {
     if (!this.chart) {
       return;
     }
@@ -225,7 +225,7 @@ class ChartZoom extends Component<Props> {
    *
    * Updates URL state to reflect initial params
    */
-  handleZoomRestore = (evt, chart) => {
+  handleZoomRestore = (evt: any, chart: any) => {
     if (this.isCancellingZoom) {
       // If this restore is caused by a zoom cancel, do not run handlers!
       // The regular handler restores to the earliest point in the zoom history
@@ -263,7 +263,7 @@ class ChartZoom extends Component<Props> {
     document.body.removeEventListener('keydown', this.handleKeyDown, true);
   };
 
-  handleDataZoom = (evt, chart) => {
+  handleDataZoom = (evt: any, chart: any) => {
     const model = chart.getModel();
     const {startValue, endValue} = model._payload.batch[0];
 
@@ -295,14 +295,14 @@ class ChartZoom extends Component<Props> {
    * we can let the native zoom animation on the chart complete
    * before we update URL state and re-render
    */
-  handleChartFinished = (_props, chart) => {
+  handleChartFinished = (_props: any, chart: any) => {
     if (typeof this.zooming === 'function') {
       this.zooming();
       this.zooming = null;
     }
 
     // This attempts to activate the area zoom toolbox feature
-    const zoom = chart._componentsViews?.find(c => c._features?.dataZoom);
+    const zoom = chart._componentsViews?.find((c: any) => c._features?.dataZoom);
     if (zoom && !zoom._features.dataZoom._isZoomActive) {
       // Calling dispatchAction will re-trigger handleChartFinished
       chart.dispatchAction({

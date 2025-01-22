@@ -3,7 +3,16 @@ import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import Link from 'sentry/components/links/link';
-import {IconChevron, IconFile} from 'sentry/icons';
+import {
+  IconChevron,
+  IconCircle,
+  IconCode,
+  IconExpand,
+  IconFile,
+  IconGrid,
+  IconNumber,
+} from 'sentry/icons';
+import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 
@@ -120,6 +129,7 @@ function Folder(props: {node: StoryTreeNode}) {
 function File(props: {node: StoryTreeNode}) {
   const location = useLocation();
   const query = qs.stringify({...location.query, name: props.node.path});
+  const category = props.node.path.split('/').at(1) ?? 'default';
 
   return (
     <li>
@@ -127,13 +137,32 @@ function File(props: {node: StoryTreeNode}) {
         to={`/stories/?${query}`}
         active={location.query.name === props.node.path}
       >
-        {/* @TODO (JonasBadalic): Do file type icons make sense here? */}
-        <IconFile size="xs" />
+        <StoryIcon category={category} />
         {/* @TODO (JonasBadalic): Do we need to show the file extension? */}
         {normalizeFilename(props.node.name)}
       </FolderLink>
     </li>
   );
+}
+
+function StoryIcon(props: {
+  category: 'components' | 'icons' | 'styles' | 'utils' | 'views' | string | {};
+}) {
+  const iconProps: SVGIconProps = {size: 'xs'};
+  switch (props.category) {
+    case 'components':
+      return <IconGrid {...iconProps} />;
+    case 'icons':
+      return <IconExpand {...iconProps} />;
+    case 'styles':
+      return <IconCircle {...iconProps} />;
+    case 'utils':
+      return <IconCode {...iconProps} />;
+    case 'views':
+      return <IconNumber {...iconProps} />;
+    default:
+      return <IconFile {...iconProps} />;
+  }
 }
 
 const StoryList = styled('ul')`

@@ -65,9 +65,9 @@ class ProjectFiltersChart extends Component<Props, State> {
 
   formatData(rawData: UsageSeries) {
     const formattedData = rawData.groups
-      .filter(group => STAT_OPS[group.by.reason!])
+      .filter(group => STAT_OPS[group.by.reason as keyof typeof STAT_OPS])
       .map(group => {
-        const {title, color} = STAT_OPS[group.by.reason!];
+        const {title, color} = STAT_OPS[group.by.reason as keyof typeof STAT_OPS];
         return {
           seriesName: title,
           color,

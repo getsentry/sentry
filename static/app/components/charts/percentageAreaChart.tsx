@@ -76,20 +76,20 @@ export default class PercentageAreaChart extends Component<Props> {
             const series = toArray(seriesParams);
 
             // Filter series that have 0 counts
-            const date =
-              `${
-                series.length && moment(series[0].data[0]).format('MMM D, YYYY')
-              }<br />` || '';
+            const date = `${
+              series.length && moment((series as any)[0].data[0]).format('MMM D, YYYY')
+            }<br />`;
 
             return [
               '<div class="tooltip-series">',
               series
                 .filter(
-                  ({seriesName, data}) => data[1] > 0.001 && seriesName !== FILLER_NAME
+                  ({seriesName, data}) =>
+                    (data as any)[1] > 0.001 && seriesName !== FILLER_NAME
                 )
                 .map(
                   ({marker, seriesName, data}) =>
-                    `<div><span class="tooltip-label">${marker} <strong>${seriesName}</strong></span> ${data[1]}%</div>`
+                    `<div><span class="tooltip-label">${marker} <strong>${seriesName}</strong></span> ${(data as any)[1]}%</div>`
                 )
                 .join(''),
               '</div>',

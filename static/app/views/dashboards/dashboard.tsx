@@ -96,6 +96,10 @@ type Props = {
   isPreview?: boolean;
   newWidget?: Widget;
   onAddWidget?: (dataset?: DataSet) => void;
+  onAddWidgetFromNewWidgetBuilder?: (
+    dataset: DataSet,
+    openWidgetTemplates?: boolean
+  ) => void;
   onEditWidget?: (widget: Widget) => void;
   onSetNewWidget?: () => void;
   paramDashboardId?: string;
@@ -123,7 +127,7 @@ class Dashboard extends Component<Props, State> {
     };
   }
 
-  static getDerivedStateFromProps(props, state) {
+  static getDerivedStateFromProps(props: any, state: any) {
     if (state.isMobile) {
       // Don't need to recalculate any layout state from props in the mobile view
       // because we want to force different positions (i.e. new widgets added
@@ -462,10 +466,10 @@ class Dashboard extends Component<Props, State> {
     );
   }
 
-  handleLayoutChange = (_, allLayouts: Layouts) => {
+  handleLayoutChange = (_: any, allLayouts: Layouts) => {
     const {isMobile} = this.state;
     const {dashboard, onUpdate} = this.props;
-    const isNotAddButton = ({i}) => i !== ADD_WIDGET_BUTTON_DRAG_ID;
+    const isNotAddButton = ({i}: any) => i !== ADD_WIDGET_BUTTON_DRAG_ID;
     const newLayouts = {
       [DESKTOP]: allLayouts[DESKTOP]!.filter(isNotAddButton),
       [MOBILE]: allLayouts[MOBILE]!.filter(isNotAddButton),
@@ -563,8 +567,14 @@ class Dashboard extends Component<Props, State> {
 
   render() {
     const {layouts, isMobile} = this.state;
-    const {isEditingDashboard, dashboard, widgetLimitReached, organization, isPreview} =
-      this.props;
+    const {
+      isEditingDashboard,
+      dashboard,
+      widgetLimitReached,
+      organization,
+      isPreview,
+      onAddWidgetFromNewWidgetBuilder,
+    } = this.props;
     const {widgets} = dashboard;
 
     const columnDepths = calculateColumnDepths(layouts[DESKTOP]!);
@@ -611,7 +621,10 @@ class Dashboard extends Component<Props, State> {
               key={ADD_WIDGET_BUTTON_DRAG_ID}
               data-grid={this.addWidgetLayout}
             >
-              <AddWidget onAddWidget={this.handleStartAdd} />
+              <AddWidget
+                onAddWidget={this.handleStartAdd}
+                onAddWidgetFromNewWidgetBuilder={onAddWidgetFromNewWidgetBuilder}
+              />
             </AddWidgetWrapper>
           )}
       </GridLayout>

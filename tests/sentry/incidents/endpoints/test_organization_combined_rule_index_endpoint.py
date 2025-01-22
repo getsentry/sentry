@@ -7,6 +7,7 @@ from sentry.incidents.models.alert_rule import AlertRuleThresholdType
 from sentry.incidents.models.incident import IncidentTrigger, TriggerStatus
 from sentry.models.rule import Rule, RuleSource
 from sentry.models.rulefirehistory import RuleFireHistory
+from sentry.monitors.models import MonitorStatus
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
@@ -437,10 +438,14 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         proj_uptime_monitor = self.create_project_uptime_subscription(project=self.project)
         proj2_uptime_monitor = self.create_project_uptime_subscription(project=self.project2)
 
+        proj_cron_monitor = self.create_monitor(project=self.project)
+        proj2_cron_monitor = self.create_monitor(project=self.project2)
+
         with self.feature(
             [
                 "organizations:incidents",
                 "organizations:performance-view",
+                "organizations:insights-crons",
             ]
         ):
             request_data = {"project": [self.project.id]}
@@ -450,7 +455,9 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         assert response.status_code == 200
 
         result = json.loads(response.content)
+
         assert [r["id"] for r in result] == [
+            f"{proj_cron_monitor.guid}",
             f"{proj_uptime_monitor.id}",
             f"{self.one_alert_rule.id}",
             f"{self.two_alert_rule.id}",
@@ -463,6 +470,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             [
                 "organizations:incidents",
                 "organizations:performance-view",
+                "organizations:insights-crons",
             ]
         ):
             request_data = {"project": [self.project2.id]}
@@ -473,6 +481,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
 
         result = json.loads(response.content)
         assert [r["id"] for r in result] == [
+            f"{proj2_cron_monitor.guid}",
             f"{proj2_uptime_monitor.id}",
             f"{self.three_alert_rule.id}",
             f"{self.one_alert_rule.id}",
@@ -599,7 +608,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         result = json.loads(response.content)
         assert len(result) == 3
 
-        self.create_issue_alert_rule(
+        self.issue_rule2 = self.create_issue_alert_rule(
             data={
                 "project": self.project,
                 "name": "Issue Rule Test",
@@ -630,43 +639,64 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             name="Uptime unowned",
         )
 
+        team_cron_monitor = self.create_monitor(
+            owner_user_id=None,
+            owner_team_id=self.team.id,
+            name="Cron owned",
+        )
+        unowned_cron_monitor = self.create_monitor(
+            name="Cron unowned",
+            owner_user_id=None,
+        )
+
         with self.feature(
             [
                 "organizations:incidents",
                 "organizations:performance-view",
+                "organizations:insights-crons",
             ]
         ):
             request_data = {
                 "per_page": "10",
                 "project": [self.project.id],
                 "team": [self.team.id],
-                "name": "Uptime",
             }
             response = self.client.get(
                 path=self.combined_rules_url, data=request_data, content_type="application/json"
             )
+
         assert response.status_code == 200
         result = json.loads(response.content)
-        assert [r["id"] for r in result] == [f"{team_uptime_monitor.id}"]
+        assert [r["id"] for r in result] == [
+            f"{team_cron_monitor.guid}",
+            f"{team_uptime_monitor.id}",
+            f"{self.issue_rule2.id}",
+            f"{self.alert_rule.id}",
+        ]
 
         with self.feature(
             [
                 "organizations:incidents",
                 "organizations:performance-view",
+                "organizations:insights-crons",
             ]
         ):
             request_data = {
                 "per_page": "10",
                 "project": [self.project.id],
                 "team": ["unassigned"],
-                "name": "Uptime",
             }
             response = self.client.get(
                 path=self.combined_rules_url, data=request_data, content_type="application/json"
             )
         assert response.status_code == 200
         result = json.loads(response.content)
-        assert [r["id"] for r in result] == [f"{unowned_uptime_monitor.id}"]
+        assert [r["id"] for r in result] == [
+            f"{unowned_cron_monitor.guid}",
+            f"{unowned_uptime_monitor.id}",
+            f"{self.an_unassigned_alert_rule.id}",
+            f"{self.issue_rule.id}",
+        ]
 
     def test_myteams_filter_superuser(self):
         superuser = self.create_user(is_superuser=True)
@@ -768,13 +798,15 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
     def test_name_filter(self):
         self.setup_project_and_rules()
         uptime_monitor = self.create_project_uptime_subscription(name="Uptime")
-        another_uptime_monitor = self.create_project_uptime_subscription(
-            name="yet another Uptime",
-        )
+        another_uptime_monitor = self.create_project_uptime_subscription(name="yet another Uptime")
+        cron_monitor = self.create_monitor(name="Cron")
+        another_cron_monitor = self.create_monitor(name="yet another Cron")
+
         with self.feature(
             [
                 "organizations:incidents",
                 "organizations:performance-view",
+                "organizations:insights-crons",
             ]
         ):
             request_data = {
@@ -788,6 +820,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         assert response.status_code == 200
         result = json.loads(response.content)
         assert [r["id"] for r in result] == [
+            f"{another_cron_monitor.guid}",
             f"{another_uptime_monitor.id}",
             f"{self.yet_another_alert_rule.id}",
         ]
@@ -880,7 +913,32 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             )
         assert response.status_code == 200
         result = json.loads(response.content)
-        assert [r["id"] for r in result] == [f"{another_uptime_monitor.id}", f"{uptime_monitor.id}"]
+        assert [r["id"] for r in result] == [
+            f"{another_uptime_monitor.id}",
+            f"{uptime_monitor.id}",
+        ]
+
+        with self.feature(
+            [
+                "organizations:incidents",
+                "organizations:performance-view",
+                "organizations:insights-crons",
+            ]
+        ):
+            request_data = {
+                "per_page": "10",
+                "project": [self.project.id, self.project2.id],
+                "name": "cron",
+            }
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200
+        result = json.loads(response.content)
+        assert [r["id"] for r in result] == [
+            f"{another_cron_monitor.guid}",
+            f"{cron_monitor.guid}",
+        ]
 
     def test_status_and_date_triggered_sort_order(self):
         self.setup_project_and_rules()
@@ -943,14 +1001,42 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         failed_uptime_monitor = self.create_project_uptime_subscription(
             uptime_status=UptimeStatus.FAILED,
         )
+        ok_cron_monitor = self.create_monitor(
+            name="OK Monitor",
+        )
+        ok_cron_monitor_env = self.create_monitor_environment(
+            monitor=ok_cron_monitor,
+            environment_id=self.environment.id,
+            status=MonitorStatus.OK,
+        )
+        self.create_monitor_incident(
+            monitor=ok_cron_monitor,
+            monitor_environment=ok_cron_monitor_env,
+            starting_timestamp=before_now(minutes=10),
+        )
+        failed_cron_monitor = self.create_monitor(
+            name="Failing Monitor",
+        )
+        failed_cron_monitor_env = self.create_monitor_environment(
+            monitor=failed_cron_monitor,
+            environment_id=self.environment.id,
+            status=MonitorStatus.ERROR,
+        )
+        self.create_monitor_incident(
+            monitor=failed_cron_monitor,
+            monitor_environment=failed_cron_monitor_env,
+            starting_timestamp=before_now(minutes=2),
+        )
+
         with self.feature(
             [
                 "organizations:incidents",
                 "organizations:performance-view",
+                "organizations:insights-crons",
             ]
         ):
             request_data = {
-                "per_page": "10",
+                "per_page": "12",
                 "project": [self.project.id, self.project2.id],
                 "sort": ["incident_status", "date_triggered"],
             }
@@ -963,6 +1049,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         # then issue rules and finally uptime monitors in ok status.
         assert [r["id"] for r in result] == [
             f"{failed_uptime_monitor.id}",
+            f"{failed_cron_monitor.guid}",
             f"{alert_rule_critical.id}",
             f"{another_alert_rule_warning.id}",
             f"{alert_rule_warning.id}",
@@ -971,6 +1058,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             f"{self.yet_another_alert_rule.id}",
             f"{self.issue_rule.id}",
             f"{uptime_monitor.id}",
+            f"{ok_cron_monitor.guid}",
         ]
 
         # Test paging with the status setup:
@@ -978,10 +1066,11 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             [
                 "organizations:incidents",
                 "organizations:performance-view",
+                "organizations:insights-crons",
             ]
         ):
             request_data = {
-                "per_page": "2",
+                "per_page": "3",
                 "project": [self.project.id, self.project2.id],
                 "sort": ["incident_status", "date_triggered"],
             }
@@ -992,6 +1081,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         result = json.loads(response.content)
         assert [r["id"] for r in result] == [
             f"{failed_uptime_monitor.id}",
+            f"{failed_cron_monitor.guid}",
             f"{alert_rule_critical.id}",
         ]
 
@@ -1004,11 +1094,12 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             [
                 "organizations:incidents",
                 "organizations:performance-view",
+                "organizations:insights-crons",
             ]
         ):
             request_data = {
                 "cursor": next_cursor,
-                "per_page": "2",
+                "per_page": "3",
                 "project": [self.project.id, self.project2.id],
                 "sort": ["incident_status", "date_triggered"],
             }
@@ -1020,6 +1111,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         assert [r["id"] for r in result] == [
             f"{another_alert_rule_warning.id}",
             f"{alert_rule_warning.id}",
+            f"{self.alert_rule.id}",
         ]
 
     def test_uptime_feature(self):

@@ -1,4 +1,5 @@
 import type {Layout} from 'react-grid-layout';
+// @ts-ignore TS(7016): Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import {compact} from 'react-grid-layout/build/utils';
 import pickBy from 'lodash/pickBy';
 import sortBy from 'lodash/sortBy';
@@ -220,7 +221,7 @@ export function generateWidgetsAfterCompaction(widgets: Widget[]) {
   // single widget change would affect other widget positions, e.g. deletion
   const nextLayout = compact(getDashboardLayout(widgets), 'vertical', NUM_DESKTOP_COLS);
   return widgets.map(widget => {
-    const layout = nextLayout.find(({i}) => i === constructGridItemKey(widget));
+    const layout = nextLayout.find(({i}: any) => i === constructGridItemKey(widget));
     if (!layout) {
       return widget;
     }

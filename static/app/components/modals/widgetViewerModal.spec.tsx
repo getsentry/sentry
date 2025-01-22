@@ -1223,7 +1223,7 @@ describe('Modals -> WidgetViewerModal', function () {
       conditions: '',
       fields: [`sum(session)`],
       columns: [],
-      aggregates: [],
+      aggregates: ['sum(session)'],
       id: '1',
       name: 'Query Name',
       orderby: '',

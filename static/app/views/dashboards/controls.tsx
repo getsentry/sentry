@@ -7,6 +7,7 @@ import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
+import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import {Hovercard} from 'sentry/components/hovercard';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -34,6 +35,10 @@ type Props = {
   dashboardState: DashboardState;
   dashboards: DashboardListItem[];
   onAddWidget: (dataset: DataSet) => void;
+  onAddWidgetFromNewWidgetBuilder: (
+    dataset: DataSet,
+    openWidgetTemplates: boolean
+  ) => void;
   onCancel: () => void;
   onCommit: () => void;
   onDelete: () => void;
@@ -56,6 +61,7 @@ function Controls({
   onDelete,
   onCancel,
   onAddWidget,
+  onAddWidgetFromNewWidgetBuilder,
 }: Props) {
   const [isFavorited, setIsFavorited] = useState(dashboard.isFavorited);
 
@@ -159,6 +165,19 @@ function Controls({
     dashboard.createdBy
   );
 
+  const addWidgetDropdownItems: MenuItemProps[] = [
+    {
+      key: 'from-widget-library',
+      label: t('From Widget Library'),
+      onAction: () => onAddWidgetFromNewWidgetBuilder(defaultDataset, true),
+    },
+    {
+      key: 'create-custom-widget',
+      label: t('Create Custom Widget'),
+      onAction: () => onAddWidgetFromNewWidgetBuilder(defaultDataset, false),
+    },
+  ];
+
   return (
     <StyledButtonBar gap={1} key="controls">
       <FeedbackWidgetButton />
@@ -248,6 +267,22 @@ function Controls({
                     data-test-id="add-widget-library"
                     disabled={widgetLimitReached}
                   />
+                ) : organization.features.includes(
+                    'dashboards-widget-builder-redesign'
+                  ) ? (
+                  <DropdownMenu
+                    items={addWidgetDropdownItems}
+                    isDisabled={widgetLimitReached || !hasEditAccess}
+                    triggerLabel={t('Add Widget')}
+                    triggerProps={{
+                      'aria-label': t('Add Widget'),
+                      size: 'sm',
+                      showChevron: true,
+                      icon: <IconAdd isCircled size="sm" />,
+                      priority: 'primary',
+                    }}
+                    position="bottom-end"
+                  />
                 ) : (
                   <Button
                     data-test-id="add-widget-library"
@@ -283,7 +318,7 @@ function DashboardEditFeature({
 }: {
   children: (hasFeature: boolean) => React.ReactNode;
 }) {
-  const renderDisabled = p => (
+  const renderDisabled = (p: any) => (
     <Hovercard
       body={
         <FeatureDisabled

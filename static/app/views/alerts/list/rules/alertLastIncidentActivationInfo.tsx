@@ -33,15 +33,12 @@ function LastIssueTrigger({rule}: {rule: IssueAlert}) {
   }
 
   return (
-    <div>
-      {t('Triggered ')}
-      <TimeSince date={rule.lastTriggered} />
-    </div>
+    <div>{tct('Triggered [at]', {at: <TimeSince date={rule.lastTriggered} />})}</div>
   );
 }
 
 /**
- * Displays the last activation for activated alert rules or the last incident for continuous alerts
+ * Displays the last incident for continuous alerts
  */
 function LastMetricAlertIncident({rule}: {rule: MetricAlert}) {
   if (!rule.latestIncident) {
@@ -52,16 +49,16 @@ function LastMetricAlertIncident({rule}: {rule: MetricAlert}) {
   if (activeIncident) {
     return (
       <div>
-        {t('Triggered ')}
-        <TimeSince date={rule.latestIncident.dateCreated} />
+        {tct('Triggered [at]', {
+          at: <TimeSince date={rule.latestIncident.dateCreated} />,
+        })}
       </div>
     );
   }
 
   return (
     <div>
-      {t('Resolved ')}
-      <TimeSince date={rule.latestIncident.dateClosed!} />
+      {tct('Resolved [at]', {at: <TimeSince date={rule.latestIncident.dateClosed!} />})}
     </div>
   );
 }

@@ -1,10 +1,13 @@
 from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any, TypedDict
 
+from django.contrib.auth.models import AnonymousUser
+
 from sentry.api.serializers import Serializer, register
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.utils.providers import get_provider_string
 from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
 
 
 class ExternalActorResponseOptional(TypedDict, total=False):
@@ -23,7 +26,10 @@ class ExternalActorResponse(ExternalActorResponseOptional):
 @register(ExternalActor)
 class ExternalActorSerializer(Serializer):
     def get_attrs(
-        self, item_list: Sequence[ExternalActor], user: User, **kwargs: Any
+        self,
+        item_list: Sequence[ExternalActor],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
     ) -> MutableMapping[ExternalActor, MutableMapping[str, Any]]:
         # create a mapping of external actor to a set of attributes.
         # Those attributes are either {"user": user.id} or {"team": team.id}.
@@ -40,7 +46,7 @@ class ExternalActorSerializer(Serializer):
         self,
         obj: ExternalActor,
         attrs: Mapping[str, Any],
-        user: User,
+        user: User | RpcUser | AnonymousUser,
         key: str | None = None,
         **kwargs: Any,
     ) -> ExternalActorResponse:

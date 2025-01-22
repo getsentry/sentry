@@ -1,4 +1,4 @@
-import type {AlertRuleActivation, IssueAlertRule} from 'sentry/types/alerts';
+import type {IssueAlertRule} from 'sentry/types/alerts';
 import type {User} from 'sentry/types/user';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
@@ -32,7 +32,6 @@ export type Incident = {
   status: IncidentStatus;
   statusMethod: IncidentStatusMethod;
   title: string;
-  activation?: AlertRuleActivation;
   activities?: ActivityType[];
 };
 

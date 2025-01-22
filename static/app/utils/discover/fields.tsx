@@ -163,6 +163,19 @@ export const DURATION_UNIT_MULTIPLIERS: Record<DurationUnit, number> = {
   year: 1000 * 60 * 60 * 24 * 365,
 };
 
+export const DURATION_UNIT_LABELS: Record<DurationUnit, string> = {
+  nanosecond: 'ns',
+  microsecond: 'μs',
+  millisecond: 'ms',
+  second: 's',
+  minute: 'min',
+  hour: 'hr',
+  day: 'd',
+  week: 'wk',
+  month: 'mo',
+  year: 'yr',
+};
+
 export enum SizeUnit {
   BIT = 'bit',
   BYTE = 'byte',
@@ -198,6 +211,23 @@ export const SIZE_UNIT_MULTIPLIERS: Record<SizeUnit, number> = {
   exabyte: 1000 ** 6,
 };
 
+export const SIZE_UNIT_LABELS: Record<SizeUnit, string> = {
+  bit: 'b',
+  byte: 'B',
+  kibibyte: 'KiB',
+  kilobyte: 'KB',
+  mebibyte: 'MiB',
+  megabyte: 'MB',
+  gibibyte: 'GiB',
+  gigabyte: 'GB',
+  tebibyte: 'TiB',
+  terabyte: 'TB',
+  pebibyte: 'PiB',
+  petabyte: 'PB',
+  exbibyte: 'EiB',
+  exabyte: 'EB',
+};
+
 export enum RateUnit {
   PER_SECOND = '1/second',
   PER_MINUTE = '1/minute',
@@ -211,13 +241,13 @@ export const RATE_UNIT_MULTIPLIERS: Record<RateUnit, number> = {
   [RateUnit.PER_HOUR]: 1 / (60 * 60),
 };
 
-export const RATE_UNIT_LABELS = {
+export const RATE_UNIT_LABELS: Record<RateUnit, string> = {
   [RateUnit.PER_SECOND]: '/s',
   [RateUnit.PER_MINUTE]: '/min',
   [RateUnit.PER_HOUR]: '/hr',
 };
 
-export const RATE_UNIT_TITLE = {
+export const RATE_UNIT_TITLE: Record<RateUnit, string> = {
   [RateUnit.PER_SECOND]: 'Per Second',
   [RateUnit.PER_MINUTE]: 'Per Minute',
   [RateUnit.PER_HOUR]: 'Per Hour',
@@ -828,6 +858,7 @@ export function isMeasurement(field: string): boolean {
 
 export function measurementType(field: string): MeasurementType {
   if (MEASUREMENT_FIELDS.hasOwnProperty(field)) {
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return MEASUREMENT_FIELDS[field].valueType as MeasurementType;
   }
 
@@ -994,7 +1025,9 @@ export function generateAggregateFields(
   const functions = Object.keys(AGGREGATIONS);
   const fields = Object.values(eventFields).map(field => field.field);
   functions.forEach(func => {
-    const parameters = AGGREGATIONS[func].parameters.map(param => {
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    const parameters = AGGREGATIONS[func].parameters.map((param: any) => {
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const overrides = AGGREGATIONS[func].getFieldOverrides;
       if (typeof overrides === 'undefined') {
         return param;
@@ -1005,9 +1038,9 @@ export function generateAggregateFields(
       };
     });
 
-    if (parameters.every(param => typeof param.defaultValue !== 'undefined')) {
+    if (parameters.every((param: any) => typeof param.defaultValue !== 'undefined')) {
       const newField = `${func}(${parameters
-        .map(param => param.defaultValue)
+        .map((param: any) => param.defaultValue)
         .join(',')})`;
       if (!fields.includes(newField) && !excludeFields.includes(newField)) {
         fields.push(newField);
@@ -1198,6 +1231,7 @@ export function aggregateFunctionOutputType(
   firstArg: string | undefined
 ): AggregationOutputType | null {
   const aggregate =
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     AGGREGATIONS[ALIASES[funcName] || funcName] ?? SESSIONS_OPERATIONS[funcName];
 
   // Attempt to use the function's outputType.
@@ -1214,6 +1248,7 @@ export function aggregateFunctionOutputType(
   }
 
   if (firstArg && SESSIONS_FIELDS.hasOwnProperty(firstArg)) {
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return SESSIONS_FIELDS[firstArg].type as AggregationOutputType;
   }
 
@@ -1221,7 +1256,9 @@ export function aggregateFunctionOutputType(
     return STARFISH_FIELDS[firstArg]!.outputType;
   }
 
+  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   if (STARFISH_AGGREGATION_FIELDS[funcName]) {
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return STARFISH_AGGREGATION_FIELDS[funcName].defaultOutputType;
   }
 
@@ -1248,6 +1285,7 @@ export function errorsAndTransactionsAggregateFunctionOutputType(
   funcName: string,
   firstArg: string | undefined
 ): AggregationOutputType | null {
+  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const aggregate = AGGREGATIONS[ALIASES[funcName] || funcName];
 
   // Attempt to use the function's outputType.
@@ -1286,6 +1324,7 @@ export function sessionsAggregateFunctionOutputType(
   funcName: string,
   firstArg: string | undefined
 ): AggregationOutputType | null {
+  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const aggregate = SESSIONS_OPERATIONS[funcName];
 
   // Attempt to use the function's outputType.
@@ -1302,6 +1341,7 @@ export function sessionsAggregateFunctionOutputType(
   }
 
   if (firstArg && SESSIONS_FIELDS.hasOwnProperty(firstArg)) {
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return SESSIONS_FIELDS[firstArg].type as AggregationOutputType;
   }
 
@@ -1323,6 +1363,7 @@ export function aggregateMultiPlotType(field: string): PlotType {
   if (!AGGREGATIONS.hasOwnProperty(result.name)) {
     return 'area';
   }
+  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   return AGGREGATIONS[result.name].multiPlotType;
 }
 

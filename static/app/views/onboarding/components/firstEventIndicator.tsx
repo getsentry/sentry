@@ -86,7 +86,7 @@ const StatusWrapper = styled(motion.div)`
   grid-row: 1;
 `;
 
-StatusWrapper.defaultProps = {
+const StatusWrapperDefaultProps = {
   initial: 'initial',
   animate: 'animate',
   exit: 'exit',
@@ -103,18 +103,22 @@ StatusWrapper.defaultProps = {
 
 function Waiting(props: HTMLMotionProps<'div'>) {
   return (
-    <StatusWrapper {...props}>
-      <AnimatedText>{t('Waiting to receive first event to continue')}</AnimatedText>
-      <WaitingIndicator />
+    <StatusWrapper {...StatusWrapperDefaultProps} {...props}>
+      <AnimatedText {...AnimatedTextDefaultProps}>
+        {t('Waiting to receive first event to continue')}
+      </AnimatedText>
+      <WaitingIndicator variants={indicatorAnimation} transition={testableTransition()} />
     </StatusWrapper>
   );
 }
 
 function Success(props: HTMLMotionProps<'div'>) {
   return (
-    <StatusWrapper {...props}>
-      <AnimatedText>{t('Event was received!')}</AnimatedText>
-      <ReceivedIndicator />
+    <StatusWrapper {...StatusWrapperDefaultProps} {...props}>
+      <AnimatedText {...AnimatedTextDefaultProps}>
+        {t('Event was received!')}
+      </AnimatedText>
+      <ReceivedIndicator size="sm" />
     </StatusWrapper>
   );
 }
@@ -127,7 +131,7 @@ const indicatorAnimation: Variants = {
 
 const AnimatedText = styled(motion.div)``;
 
-AnimatedText.defaultProps = {
+const AnimatedTextDefaultProps = {
   variants: indicatorAnimation,
   transition: testableTransition(),
 };
@@ -137,11 +141,6 @@ const WaitingIndicator = styled(motion.div)`
   ${pulsingIndicatorStyles};
 `;
 
-WaitingIndicator.defaultProps = {
-  variants: indicatorAnimation,
-  transition: testableTransition(),
-};
-
 const ReceivedIndicator = styled(IconCheckmark)`
   color: #fff;
   background: ${p => p.theme.green300};
@@ -149,10 +148,6 @@ const ReceivedIndicator = styled(IconCheckmark)`
   padding: 3px;
   margin: 0 ${space(0.25)};
 `;
-
-ReceivedIndicator.defaultProps = {
-  size: 'sm',
-};
 
 export {Indicator};
 

@@ -78,7 +78,7 @@ function OptionSelector({
       multiple,
       value: selected,
       defaultValue,
-      onChange: opt => onChange?.(opt.value),
+      onChange: (opt: any) => onChange?.(opt.value),
       closeOnSelect,
     };
   }, [multiple, selected, defaultValue, onChange, closeOnSelect]);

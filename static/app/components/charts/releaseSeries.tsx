@@ -48,7 +48,7 @@ function getOrganizationReleases(
 ) {
   const query: Record<string, string> = {};
   Object.keys(conditions).forEach(key => {
-    let value = conditions[key];
+    let value = (conditions as any)[key];
     if (value && (key === 'start' || key === 'end')) {
       value = getUtcDateString(value);
     }
@@ -82,6 +82,7 @@ export interface ReleaseSeriesProps extends WithRouterProps {
   start: DateString;
   theme: Theme;
   emphasizeReleases?: string[];
+  enabled?: boolean;
   memoized?: boolean;
   period?: string | null;
   preserveQueryParams?: boolean;
@@ -105,7 +106,7 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
 
   componentDidMount() {
     this._isMounted = true;
-    const {releases} = this.props;
+    const {releases, enabled = true} = this.props;
 
     if (releases) {
       // No need to fetch releases if passed in from props
@@ -113,17 +114,23 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
       return;
     }
 
-    this.fetchData();
+    if (enabled) {
+      this.fetchData();
+    }
   }
 
-  componentDidUpdate(prevProps) {
+  componentDidUpdate(prevProps: any) {
+    const {enabled = true} = this.props;
+
     if (
-      !isEqual(prevProps.projects, this.props.projects) ||
-      !isEqual(prevProps.environments, this.props.environments) ||
-      !isEqual(prevProps.start, this.props.start) ||
-      !isEqual(prevProps.end, this.props.end) ||
-      !isEqual(prevProps.period, this.props.period) ||
-      !isEqual(prevProps.query, this.props.query)
+      (!isEqual(prevProps.projects, this.props.projects) ||
+        !isEqual(prevProps.environments, this.props.environments) ||
+        !isEqual(prevProps.start, this.props.start) ||
+        !isEqual(prevProps.end, this.props.end) ||
+        !isEqual(prevProps.period, this.props.period) ||
+        !isEqual(prevProps.query, this.props.query) ||
+        (!prevProps.enabled && this.props.enabled)) &&
+      enabled
     ) {
       this.fetchData();
     } else if (!isEqual(prevProps.emphasizeReleases, this.props.emphasizeReleases)) {
@@ -186,7 +193,7 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
     }
   }
 
-  setReleasesWithSeries(releases) {
+  setReleasesWithSeries(releases: any) {
     const {emphasizeReleases = []} = this.props;
     const releaseSeries: Series[] = [];
 
@@ -215,7 +222,7 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
     });
   }
 
-  getReleaseSeries = (releases, lineStyle = {}) => {
+  getReleaseSeries = (releases: any, lineStyle = {}) => {
     const {
       organization,
       router,
@@ -251,10 +258,11 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
       label: {
         show: false,
       },
-      data: releases.map(release => ({
+      data: releases.map((release: any) => ({
         xAxis: +new Date(release.date),
         name: formatVersion(release.version, true),
         value: formatVersion(release.version, true),
+
         onClick: () => {
           router.push(
             normalizeUrl({
@@ -265,6 +273,7 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
             })
           );
         },
+
         label: {
           formatter: () => formatVersion(release.version, true),
         },

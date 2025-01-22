@@ -32,26 +32,20 @@ const subItemAnimation = {
   },
 };
 
-const Header = styled(motion.h2)`
+const Header = styled((props: React.ComponentProps<typeof motion.h2>) => (
+  <motion.h2 variants={subItemAnimation} transition={testableTransition()} {...props} />
+))`
   display: flex;
   align-items: center;
   font-weight: ${p => p.theme.fontWeightNormal};
   margin-bottom: ${space(1)};
 `;
 
-Header.defaultProps = {
-  variants: subItemAnimation,
-  transition: testableTransition(),
-};
-
-const Body = styled(motion.div)`
+const Body = styled((props: React.ComponentProps<typeof motion.div>) => (
+  <motion.div variants={subItemAnimation} transition={testableTransition()} {...props} />
+))`
   margin-bottom: ${space(2)};
 `;
-
-Body.defaultProps = {
-  variants: subItemAnimation,
-  transition: testableTransition(),
-};
 
 type ContentOpts = {
   Body: typeof Body;
@@ -206,7 +200,13 @@ function PageOverlay({
   return (
     <MaskedContent {...props}>
       {children}
-      <ContentWrapper ref={contentRef} transition={transition} variants={{animate: {}}}>
+      <ContentWrapper
+        initial="initial"
+        animate="animate"
+        ref={contentRef}
+        transition={transition}
+        variants={{animate: {}}}
+      >
         {BackgroundComponent && (
           <Background>
             <BackgroundComponent anchorRef={anchorRef} />
@@ -233,11 +233,6 @@ const ContentWrapper = styled(motion.div)`
   padding: 10%;
   z-index: 900;
 `;
-
-ContentWrapper.defaultProps = {
-  initial: 'initial',
-  animate: 'animate',
-};
 
 const Background = styled('div')`
   ${absoluteFull}

@@ -195,11 +195,15 @@ export default function StreamlinedGroupHeader({
               ))}
           </StatTitle>
           <Flex gap={space(1)} align="center" justify="flex-start">
-            <ErrorLevel level={group.level} size={'10px'} />
-            {group.isUnhandled && <UnhandledTag />}
+            <Fragment>
+              {issueTypeConfig.logLevel.enabled && (
+                <ErrorLevel level={group.level} size={'10px'} />
+              )}
+              {group.isUnhandled && <UnhandledTag />}
+              {(issueTypeConfig.logLevel.enabled || group.isUnhandled) && <Divider />}
+            </Fragment>
             {statusProps?.status ? (
               <Fragment>
-                <Divider />
                 <Tooltip title={statusProps?.tooltip}>
                   <Subtext>{statusProps?.status}</Subtext>
                 </Tooltip>

@@ -51,7 +51,7 @@ export function SamplingBreakdown({sampleCounts, sampleRates, ...props}: Props) 
         sampledSpans,
       };
     })
-    .toSorted((a, b) => b.sampledSpans - a.sampledSpans);
+    .toSorted((a: any, b: any) => b.sampledSpans - a.sampledSpans);
 
   const hasOthers = spansWithSampleRates.length > ITEMS_TO_SHOW;
 
@@ -60,10 +60,13 @@ export function SamplingBreakdown({sampleCounts, sampleRates, ...props}: Props) 
     : spansWithSampleRates.slice(0, ITEMS_TO_SHOW);
   const otherSpanCount = spansWithSampleRates
     .slice(ITEMS_TO_SHOW - 1)
-    .reduce((acc, item) => acc + item.sampledSpans, 0);
-  const total = spansWithSampleRates.reduce((acc, item) => acc + item.sampledSpans, 0);
+    .reduce((acc: any, item: any) => acc + item.sampledSpans, 0);
+  const total = spansWithSampleRates.reduce(
+    (acc: any, item: any) => acc + item.sampledSpans,
+    0
+  );
 
-  const getSpanRate = spanCount => (total === 0 ? 0 : spanCount / total);
+  const getSpanRate = (spanCount: any) => (total === 0 ? 0 : spanCount / total);
   const otherRate = getSpanRate(otherSpanCount);
 
   return (
@@ -73,7 +76,7 @@ export function SamplingBreakdown({sampleCounts, sampleRates, ...props}: Props) 
         <SubText>{t('Total: %s', formatAbbreviatedNumber(total))}</SubText>
       </Heading>
       <Breakdown>
-        {topItems.map((item, index) => {
+        {topItems.map((item: any, index: any) => {
           const itemPercent = getSpanRate(item.sampledSpans);
           return (
             <Tooltip
@@ -119,7 +122,7 @@ export function SamplingBreakdown({sampleCounts, sampleRates, ...props}: Props) 
         )}
       </Breakdown>
       <Legend>
-        {topItems.map(item => {
+        {topItems.map((item: any) => {
           const itemPercent = getSpanRate(item.sampledSpans);
           return (
             <LegendItem key={item.project.id}>

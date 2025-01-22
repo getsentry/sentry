@@ -573,6 +573,36 @@ describe('useWidgetBuilderState', () => {
 
       expect(result.current.state.selectedAggregate).toBeUndefined();
     });
+
+    it('resets thresholds when the display type is switched', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            dataset: WidgetType.ERRORS,
+            displayType: DisplayType.BIG_NUMBER,
+            thresholds: '{"max_values":{"max1":200,"max2":300},"unit":"milliseconds"}',
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.thresholds).toEqual({
+        max_values: {max1: 200, max2: 300},
+        unit: 'milliseconds',
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.TABLE,
+        });
+      });
+
+      expect(result.current.state.thresholds).toBeUndefined();
+    });
   });
 
   describe('dataset', () => {
@@ -815,6 +845,63 @@ describe('useWidgetBuilderState', () => {
 
       expect(result.current.state.selectedAggregate).toBeUndefined();
     });
+
+    it('resets the sort when the dataset is switched for big number widgets', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            dataset: WidgetType.ERRORS,
+            displayType: DisplayType.BIG_NUMBER,
+            sort: ['-testField'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.sort).toEqual([{field: 'testField', kind: 'desc'}]);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DATASET,
+          payload: WidgetType.TRANSACTIONS,
+        });
+      });
+
+      expect(result.current.state.sort).toEqual([]);
+    });
+
+    it('resets thresholds when the dataset is switched', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            dataset: WidgetType.ERRORS,
+            displayType: DisplayType.BIG_NUMBER,
+            thresholds: '{"max_values":{"max1":200,"max2":300},"unit":"milliseconds"}',
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.thresholds).toEqual({
+        max_values: {max1: 200, max2: 300},
+        unit: 'milliseconds',
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DATASET,
+          payload: WidgetType.TRANSACTIONS,
+        });
+      });
+
+      expect(result.current.state.thresholds).toBeUndefined();
+    });
   });
 
   describe('fields', () => {
@@ -1020,6 +1107,36 @@ describe('useWidgetBuilderState', () => {
 
       expect(result.current.state.sort).toEqual([{field: 'notInFields', kind: 'desc'}]);
     });
+
+    it('adds a default sort when adding a grouping for a timeseries chart', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.LINE,
+            field: [],
+            yAxis: ['count()'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.yAxis).toEqual([
+        {function: ['count', '', undefined, undefined], kind: 'function'},
+      ]);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_FIELDS,
+          payload: [{field: 'browser.name', kind: FieldValueKind.FIELD}],
+        });
+      });
+
+      // The y-axis takes priority
+      expect(result.current.state.sort).toEqual([{field: 'count()', kind: 'desc'}]);
+    });
   });
 
   describe('yAxis', () => {
@@ -1058,6 +1175,36 @@ describe('useWidgetBuilderState', () => {
           kind: 'function',
         },
       ]);
+    });
+
+    it('clears the sort when the y-axis changes and there is no grouping', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.LINE,
+            field: [],
+            yAxis: ['count()'],
+            sort: ['-count()'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.sort).toEqual([{field: 'count()', kind: 'desc'}]);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_Y_AXIS,
+          payload: [
+            {function: ['count_unique', 'user', undefined, undefined], kind: 'function'},
+          ],
+        });
+      });
+
+      expect(result.current.state.sort).toEqual([]);
     });
   });
 

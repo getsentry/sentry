@@ -113,7 +113,7 @@ function SimilarStackTrace({project}: Props) {
       similarLinks: updatedSimilarLinks,
       loading,
       error,
-    }) => {
+    }: any) => {
       if (updatedSimilarItems) {
         setItems({
           similar: updatedSimilarItems,

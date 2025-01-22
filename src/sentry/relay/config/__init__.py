@@ -47,8 +47,6 @@ from sentry.utils.options import sample_modulo
 from .measurements import CUSTOM_MEASUREMENT_LIMIT
 
 # These features will be listed in the project config.
-#
-# NOTE: These features must be sorted or the tests will fail!
 EXPOSABLE_FEATURES = [
     "organizations:continuous-profiling",
     "organizations:continuous-profiling-beta",
@@ -69,6 +67,7 @@ EXPOSABLE_FEATURES = [
     "organizations:indexed-spans-extraction",
     "organizations:ingest-spans-in-eap",
     "projects:relay-otel-endpoint",
+    "organizations:ourlogs-ingestion",
 ]
 
 EXTRACT_METRICS_VERSION = 1

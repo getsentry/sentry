@@ -130,6 +130,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
       staleTime: 60_000,
     }
   );
+  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const userCount = uniqueUsersCount?.data[0]?.['count_unique(user)'] ?? 0;
 
   const {series: eventSeries, count: eventCount} = useMemo(() => {
@@ -185,7 +186,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
 
   const series = useMemo((): BarChartSeries[] => {
     const seriesData: BarChartSeries[] = [];
-    const translucentGray300 = Color(theme.gray300).alpha(0.3).string();
+    const translucentGray300 = Color(theme.gray300).alpha(0.5).string();
 
     if (visibleSeries === EventGraphSeries.USER) {
       if (isUnfilteredStatsEnabled) {
@@ -291,7 +292,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
 
   const onLegendSelectChanged = useMemo(
     () =>
-      ({name, selected: record}) => {
+      ({name, selected: record}: any) => {
         const newValue = record[name];
         setLegendSelected(prevState => ({
           ...prevState,

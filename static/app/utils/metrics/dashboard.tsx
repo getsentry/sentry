@@ -23,7 +23,7 @@ export function convertToDashboardWidget(
   title = ''
 ): Widget {
   // TODO: Ged rid of ts-expect-error
-  // @ts-expect-error TODO: pass interval
+  // @ts-ignore TS(2741): Property 'interval' is missing in type '{ title: s... Remove this comment to see the full error message
   return {
     title,
     displayType: toDisplayType(displayType),
@@ -50,7 +50,7 @@ export function getWidgetQuery(metricsQuery: QueryParams): WidgetQuery {
     columns: metricsQuery.groupBy ?? [],
     fields: [field],
     conditions: metricsQuery.query ?? '',
-    // @ts-expect-error TODO: change type of orderby
+    // @ts-ignore TS(2322): Type 'undefined' is not assignable to type 'string... Remove this comment to see the full error message
     orderby: undefined,
     isHidden: metricsQuery.isHidden,
   };
@@ -63,13 +63,13 @@ export function getWidgetEquation(equation: EquationParams): WidgetQuery {
     columns: [],
     fields: [`equation|${equation.formula}`],
     conditions: '',
-    // @ts-expect-error TODO: change type of orderby
+    // @ts-ignore TS(2322): Type 'undefined' is not assignable to type 'string... Remove this comment to see the full error message
     orderby: undefined,
     isHidden: equation.isHidden,
   };
 }
 
-export function encodeWidgetQuery(query) {
+export function encodeWidgetQuery(query: any) {
   return urlEncode({
     ...query,
     aggregates: query.aggregates.join(','),

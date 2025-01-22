@@ -1,5 +1,6 @@
 import type {Theme} from '@emotion/react';
 import type {XAXisComponentOption} from 'echarts';
+import type {TimeAxisLabelFormatterOption} from 'echarts/types/src/coord/axisCommonTypes';
 import merge from 'lodash/merge';
 
 import type {BaseChartProps} from 'sentry/components/charts/baseChart';
@@ -84,8 +85,7 @@ function XAxis({
       showMaxLabel: false,
       showMinLabel: false,
 
-      // @ts-expect-error formatter type is missing
-      formatter: AxisLabelFormatter,
+      formatter: AxisLabelFormatter as TimeAxisLabelFormatterOption,
     },
     axisPointer: {
       show: true,

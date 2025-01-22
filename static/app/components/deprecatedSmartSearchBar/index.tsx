@@ -8,6 +8,7 @@ import isEqual from 'lodash/isEqual';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchRecentSearches, saveRecentSearch} from 'sentry/actionCreators/savedSearches';
 import type {Client} from 'sentry/api';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {
@@ -57,7 +58,6 @@ import withSentryRouter from 'sentry/utils/withSentryRouter';
 import type {MenuItemProps} from '../dropdownMenu';
 import {DropdownMenu} from '../dropdownMenu';
 
-import {ActionButton} from './actionButton';
 import SearchBarDatePicker from './searchBarDatePicker';
 import SearchDropdown from './searchDropdown';
 import SearchHotkeysListener from './searchHotkeysListener';
@@ -297,6 +297,7 @@ type Props = WithRouterProps &
      * A function that returns a warning message for a given filter key
      * will only show a render a warning if the value is truthy
      */
+    // @ts-ignore TS(7006): Parameter 'key' implicitly has an 'any' type.
     getFilterWarning?: (key) => React.ReactNode;
     /**
      * List user's recent searches
@@ -2116,7 +2117,10 @@ class DeprecatedSmartSearchBar extends Component<DefaultProps & Props, State> {
         <ActionsBar gap={0.5}>
           {query !== '' && !disabled && (
             <ActionButton
+              type="button"
               onClick={this.clearSearch}
+              borderless
+              size="zero"
               icon={<IconClose size="xs" />}
               title={t('Clear search')}
               aria-label={t('Clear search')}
@@ -2129,7 +2133,9 @@ class DeprecatedSmartSearchBar extends Component<DefaultProps & Props, State> {
               trigger={props => (
                 <ActionButton
                   {...props}
+                  type="button"
                   size="sm"
+                  borderless
                   aria-label={t('Show more')}
                   icon={<VerticalEllipsisIcon />}
                 />
@@ -2308,4 +2314,22 @@ const VerticalEllipsisIcon = styled(IconEllipsis)`
 
 const OverlowingActionsMenu = styled(DropdownMenu)`
   display: flex;
+`;
+
+const ActionButton = styled(Button)<{isActive?: boolean}>`
+  color: ${p => (p.isActive ? p.theme.linkColor : p.theme.subText)};
+  width: 18px;
+  height: 18px;
+  padding: 2px;
+  min-height: auto;
+
+  &,
+  &:hover,
+  &:focus {
+    background: transparent;
+  }
+
+  &:hover {
+    color: ${p => p.theme.gray400};
+  }
 `;

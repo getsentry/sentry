@@ -45,7 +45,7 @@ export function UploadBackup({relocationState, onComplete}: StepProps) {
   const inputFileRef = useRef<HTMLInputElement>(null);
   const user = useUser();
 
-  const handleDragEnter = event => {
+  const handleDragEnter = (event: any) => {
     event.preventDefault();
     setDragCounter(dragCounter + 1);
   };
@@ -54,14 +54,14 @@ export function UploadBackup({relocationState, onComplete}: StepProps) {
     setDragCounter(dragCounter - 1);
   };
 
-  const handleDrop = event => {
+  const handleDrop = (event: any) => {
     event.preventDefault();
     setDragCounter(0);
 
     setFile(event.dataTransfer.files[0]);
   };
 
-  const handleFileChange = event => {
+  const handleFileChange = (event: any) => {
     const newFile = event.target.files?.[0];
 
     // No file selected (e.g. user clicked "cancel")

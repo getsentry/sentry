@@ -95,13 +95,18 @@ export function IssueDetailsEventNavigation({
     [EventNavOptions.RECOMMENDED]: isSmallScreen ? t('Rec.') : t('Recommended'),
     [EventNavOptions.OLDEST]: t('First'),
     [EventNavOptions.LATEST]: t('Last'),
-    [EventNavOptions.CUSTOM]: t('Specific'),
+  };
+
+  const EventNavTooltips = {
+    [EventNavOptions.RECOMMENDED]: t('Recommended event matching filters'),
+    [EventNavOptions.OLDEST]: t('First event matching filters'),
+    [EventNavOptions.LATEST]: t('Last event matching filters'),
   };
 
   const onTabChange = (tabKey: typeof selectedOption) => {
     trackAnalytics('issue_details.event_navigation_selected', {
       organization,
-      content: EventNavLabels[tabKey],
+      content: EventNavLabels[tabKey as keyof typeof EventNavLabels],
     });
   };
 
@@ -176,9 +181,14 @@ export function IssueDetailsEventNavigation({
                 to={eventPath}
                 key={label}
                 hidden={label === EventNavOptions.CUSTOM}
-                textValue={EventNavLabels[label]}
+                textValue={EventNavLabels[label as keyof typeof EventNavLabels]}
               >
-                {EventNavLabels[label]}
+                <Tooltip
+                  title={EventNavTooltips[label as keyof typeof EventNavTooltips]}
+                  skipWrapper
+                >
+                  {EventNavLabels[label as keyof typeof EventNavLabels]}
+                </Tooltip>
               </TabList.Item>
             );
           })}

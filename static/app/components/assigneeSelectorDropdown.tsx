@@ -572,7 +572,6 @@ export default function AssigneeSelectorDropdown({
             ? `${group.assignedTo?.type === 'user' ? 'user:' : 'team:'}${group.assignedTo.id}`
             : ''
         }
-        onClear={() => handleSelect(null)}
         menuTitle={t('Assignee')}
         searchPlaceholder="Search users or teams..."
         size="sm"

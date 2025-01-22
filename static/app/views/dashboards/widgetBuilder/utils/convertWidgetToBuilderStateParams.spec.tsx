@@ -98,4 +98,21 @@ describe('convertWidgetToBuilderStateParams', () => {
     const params = convertWidgetToBuilderStateParams(widget);
     expect(params.selectedAggregate).toBe(0);
   });
+
+  it('includes the thresholds in the builder params', () => {
+    const widget = {
+      ...getDefaultWidget(WidgetType.TRANSACTIONS),
+      thresholds: {
+        max_values: {
+          max1: 200,
+          max2: 300,
+        },
+        unit: 'milliseconds',
+      },
+    };
+    const params = convertWidgetToBuilderStateParams(widget);
+    expect(params.thresholds).toBe(
+      '{"max_values":{"max1":200,"max2":300},"unit":"milliseconds"}'
+    );
+  });
 });

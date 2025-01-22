@@ -78,8 +78,8 @@ function build(originalFile, _, bundleTo) {
   );
 }
 
-let originalFile;
-let targetDirValue;
+let originalFile: any;
+let targetDirValue: any;
 
 const argv = process.argv.slice(2);
 

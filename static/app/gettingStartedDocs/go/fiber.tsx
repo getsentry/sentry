@@ -123,6 +123,7 @@ if err := app.Listen(":3000"); err != nil {
   panic(err)
 };`;
 
+// @ts-ignore TS(7006): Parameter 'params' implicitly has an 'any' type.
 const getBeforeSendSnippet = params => `
 sentry.Init(sentry.ClientOptions{
   Dsn: "${params.dsn.public}",

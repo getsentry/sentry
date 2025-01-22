@@ -1,15 +1,19 @@
 import {Fragment} from 'react';
 
+import {t} from 'sentry/locale';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {Referrer} from 'sentry/views/insights/browser/resources/referrer';
 import {useResourceModuleFilters} from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
+import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {
+  getDurationChartTitle,
+  getThroughputChartTitle,
+} from 'sentry/views/insights/common/views/spans/types';
 import {SpanMetricsField} from 'sentry/views/insights/types';
 
-import {AssetSizeChart} from './assetSizeChart';
-import {DurationChart} from './durationChart';
-import {ThroughputChart} from './throughputChart';
+import {DATA_TYPE, FIELD_ALIASES} from '../../settings';
 
 const {
   SPAN_SELF_TIME,
@@ -36,21 +40,25 @@ function ResourceSummaryCharts(props: {groupId: string}) {
       : {}),
   });
 
-  const {data: spanMetricsSeriesData, isPending: areSpanMetricsSeriesLoading} =
-    useSpanMetricsSeries(
-      {
-        search: mutableSearch,
-        yAxis: [
-          `spm()`,
-          `avg(${SPAN_SELF_TIME})`,
-          `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
-          `avg(${HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`,
-          `avg(${HTTP_RESPONSE_TRANSFER_SIZE})`,
-        ],
-        enabled: Boolean(props.groupId),
-      },
-      Referrer.RESOURCE_SUMMARY_CHARTS
-    );
+  const {
+    data: spanMetricsSeriesData,
+    isPending: areSpanMetricsSeriesLoading,
+    error: spanMetricsSeriesError,
+  } = useSpanMetricsSeries(
+    {
+      search: mutableSearch,
+      yAxis: [
+        `spm()`,
+        `avg(${SPAN_SELF_TIME})`,
+        `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
+        `avg(${HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`,
+        `avg(${HTTP_RESPONSE_TRANSFER_SIZE})`,
+      ],
+      enabled: Boolean(props.groupId),
+      transformAliasToInputFormat: true,
+    },
+    Referrer.RESOURCE_SUMMARY_CHARTS
+  );
 
   if (spanMetricsSeriesData) {
     spanMetricsSeriesData[`avg(${HTTP_RESPONSE_TRANSFER_SIZE})`].lineStyle = {
@@ -64,27 +72,34 @@ function ResourceSummaryCharts(props: {groupId: string}) {
   return (
     <Fragment>
       <ModuleLayout.Third>
-        <ThroughputChart
-          series={spanMetricsSeriesData?.[`spm()`]}
+        <InsightsLineChartWidget
+          title={getThroughputChartTitle('resource')}
+          series={[spanMetricsSeriesData?.[`spm()`]]}
           isLoading={areSpanMetricsSeriesLoading}
+          error={spanMetricsSeriesError}
         />
       </ModuleLayout.Third>
 
       <ModuleLayout.Third>
-        <DurationChart
+        <InsightsLineChartWidget
+          title={getDurationChartTitle('resource')}
           series={[spanMetricsSeriesData?.[`avg(${SPAN_SELF_TIME})`]]}
           isLoading={areSpanMetricsSeriesLoading}
+          error={spanMetricsSeriesError}
         />
       </ModuleLayout.Third>
 
       <ModuleLayout.Third>
-        <AssetSizeChart
+        <InsightsLineChartWidget
+          title={t('Average %s Size', DATA_TYPE)}
           series={[
             spanMetricsSeriesData?.[`avg(${HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`],
             spanMetricsSeriesData?.[`avg(${HTTP_RESPONSE_TRANSFER_SIZE})`],
             spanMetricsSeriesData?.[`avg(${HTTP_RESPONSE_CONTENT_LENGTH})`],
           ]}
+          aliases={FIELD_ALIASES}
           isLoading={areSpanMetricsSeriesLoading}
+          error={spanMetricsSeriesError}
         />
       </ModuleLayout.Third>
     </Fragment>

@@ -326,7 +326,8 @@ function replaceTokensWithText(
     (action.tokens[0]?.location.start.offset ?? 0) + action.text.length; // TODO: Ensure this is sorted
   const newParsedQuery = parseQueryBuilderValue(newQuery, getFieldDefinition);
   const focusedToken = newParsedQuery?.find(
-    token => token.type === Token.FREE_TEXT && token.location.end.offset >= cursorPosition
+    (token: any) =>
+      token.type === Token.FREE_TEXT && token.location.end.offset >= cursorPosition
   );
 
   const focusOverride =

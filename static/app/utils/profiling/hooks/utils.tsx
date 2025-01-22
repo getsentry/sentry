@@ -130,8 +130,8 @@ export function transformSingleSeries<F extends string>(
           'milliseconds'
         )
       : type === 'string'
-        ? value => value || ''
-        : value => value;
+        ? (value: any) => value || ''
+        : (value: any) => value;
 
   const series: EventsStatsSeries<F>['data'][number] = {
     axis: yAxis,

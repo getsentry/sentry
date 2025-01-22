@@ -2,6 +2,7 @@ from collections.abc import Mapping, Sequence
 from datetime import timedelta
 from typing import Any
 
+from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
 
 from sentry.api.serializers import Serializer, register, serialize
@@ -19,12 +20,15 @@ from sentry.sentry_apps.api.serializers.sentry_app_avatar import (
 from sentry.sentry_apps.models.sentry_app import MASKED_VALUE, SentryApp
 from sentry.sentry_apps.models.sentry_app_avatar import SentryAppAvatar
 from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 
 
 @register(SentryApp)
 class SentryAppSerializer(Serializer):
-    def get_attrs(self, item_list: Sequence[SentryApp], user: User, **kwargs: Any):
+    def get_attrs(
+        self, item_list: Sequence[SentryApp], user: User | RpcUser | AnonymousUser, **kwargs: Any
+    ):
         # Get associated IntegrationFeatures
         app_feature_attrs = IntegrationFeature.objects.get_by_targets_as_dict(
             targets=item_list, target_type=IntegrationTypes.SENTRY_APP
@@ -57,7 +61,13 @@ class SentryAppSerializer(Serializer):
             for item in item_list
         }
 
-    def serialize(self, obj: SentryApp, attrs: Mapping[str, Any], user: User, **kwargs: Any):
+    def serialize(
+        self,
+        obj: SentryApp,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ):
         from sentry.sentry_apps.logic import consolidate_events
 
         application = attrs["application"]

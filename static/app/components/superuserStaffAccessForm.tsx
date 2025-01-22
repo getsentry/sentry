@@ -35,7 +35,7 @@ type State = {
 };
 
 class SuperuserStaffAccessForm extends Component<Props, State> {
-  constructor(props) {
+  constructor(props: any) {
     super(props);
     this.authUrl = this.props.hasStaff ? '/staff-auth/' : '/auth/';
     this.state = {
@@ -77,7 +77,7 @@ class SuperuserStaffAccessForm extends Component<Props, State> {
     });
   };
 
-  handleSubmit = async data => {
+  handleSubmit = async (data: any) => {
     const {api} = this.props;
     const {superuserAccessCategory, superuserReason, authenticators} = this.state;
     const disableU2FForSUForm = ConfigStore.get('disableU2FForSUForm');
@@ -133,7 +133,7 @@ class SuperuserStaffAccessForm extends Component<Props, State> {
     window.location.reload();
   };
 
-  handleError = err => {
+  handleError = (err: any) => {
     let errorType = '';
     if (err.status === 403) {
       if (err.responseJSON.detail.code === 'no_u2f') {

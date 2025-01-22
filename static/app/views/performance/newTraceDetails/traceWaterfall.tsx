@@ -249,6 +249,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         searchingRaf.current = null;
       }
 
+      // @ts-ignore TS(7031): Binding element 'matches' implicitly has an 'any' ... Remove this comment to see the full error message
       function done([matches, lookup, activeNodeSearchResult]) {
         // If the previous node is still in the results set, we want to keep it
         if (activeNodeSearchResult) {
@@ -571,10 +572,9 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     if (node) {
       if (isAutogroupedNode(node) && type !== 'ag') {
         if (isParentAutogroupedNode(node)) {
-          node = TraceTree.FindByID(node.head, eventId! ?? path!) ?? node;
+          node = TraceTree.FindByID(node.head, eventId ?? path!) ?? node;
         } else if (isSiblingAutogroupedNode(node)) {
-          node =
-            node.children.find(n => TraceTree.FindByID(n, eventId! ?? path!)) ?? node;
+          node = node.children.find(n => TraceTree.FindByID(n, eventId ?? path!)) ?? node;
         }
       }
     }

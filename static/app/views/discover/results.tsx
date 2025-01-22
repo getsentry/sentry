@@ -312,7 +312,7 @@ export class Results extends Component<Props, State> {
 
   openConfirm = () => {};
 
-  setOpenFunction = ({open}) => {
+  setOpenFunction = ({open}: any) => {
     this.openConfirm = open;
     return null;
   };

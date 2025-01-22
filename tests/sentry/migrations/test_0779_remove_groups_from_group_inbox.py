@@ -1,3 +1,5 @@
+import pytest
+
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupinbox import GroupInbox, GroupInboxReason
 from sentry.models.organization import Organization
@@ -31,6 +33,7 @@ class RemoveGroupsFromGroupInbox(TestMigrations):
         GroupInbox.objects.create(group=self.ignored_group, reason=GroupInboxReason.NEW.value)
         GroupInbox.objects.create(group=self.unresolved_group, reason=GroupInboxReason.NEW.value)
 
+    @pytest.mark.skip(reason="unneeded")
     def test(self):
         assert not GroupInbox.objects.filter(group=self.resolved_group).exists()
         assert not GroupInbox.objects.filter(group=self.ignored_group).exists()

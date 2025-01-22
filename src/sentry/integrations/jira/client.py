@@ -161,11 +161,6 @@ class JiraCloudClient(ApiClient):
     def get_priorities(self):
         return self.get_cached(self.PRIORITIES_URL)
 
-    def get_users_for_project(self, project):
-        # Jira Server wants a project key, while cloud is indifferent.
-        project_key = self.get_project_key_for_id(project)
-        return self.get_cached(self.USERS_URL, params={"project": project_key})
-
     def search_users_for_project(self, project, username):
         # Jira Server wants a project key, while cloud is indifferent.
         project_key = self.get_project_key_for_id(project)
