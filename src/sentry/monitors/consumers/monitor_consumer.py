@@ -8,7 +8,7 @@ from concurrent.futures import ThreadPoolExecutor, wait
 from copy import deepcopy
 from datetime import datetime, timedelta
 from functools import partial
-from typing import Any, Literal, NotRequired, TypedDict
+from typing import Literal
 
 import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload
@@ -90,8 +90,8 @@ CHECKIN_QUOTA_WINDOW = 60
 def _ensure_monitor_with_config(
     project: Project,
     monitor_slug: str,
-    config: dict[str, Any] | None,
-) -> Monitor | None:
+    config: Mapping | None,
+):
     try:
         monitor = Monitor.objects.get(
             slug=monitor_slug,
@@ -176,9 +176,9 @@ def _ensure_monitor_with_config(
 
 
 def check_killswitch(
-    metric_kwargs: dict[str, str],
+    metric_kwargs: Mapping,
     project: Project,
-) -> bool:
+):
     """
     Enforce organization level monitor kill switch. Returns true if the
     killswitch is enforced.
@@ -194,7 +194,7 @@ def check_killswitch(
     return is_blocked
 
 
-def check_ratelimit(metric_kwargs: dict[str, str], item: CheckinItem) -> bool:
+def check_ratelimit(metric_kwargs: Mapping, item: CheckinItem):
     """
     Enforce check-in rate limits. Returns True if rate limit is enforced.
     """
@@ -218,19 +218,12 @@ def check_ratelimit(metric_kwargs: dict[str, str], item: CheckinItem) -> bool:
     return is_blocked
 
 
-class _CheckinUpdateKwargs(TypedDict):
-    status: NotRequired[CheckInStatus]
-    duration: int | None
-    timeout_at: NotRequired[datetime | None]
-    date_updated: NotRequired[datetime]
-
-
 def transform_checkin_uuid(
     txn: Transaction | Span,
-    metric_kwargs: dict[str, str],
+    metric_kwargs: Mapping,
     monitor_slug: str,
     check_in_id: str,
-) -> tuple[uuid.UUID, bool] | tuple[None, Literal[False]]:
+):
     """
     Extracts the `UUID` object from the provided check_in_id. Failures will be logged.
     Returns the UUID object and a boolean indicating if the provided GUID
@@ -272,14 +265,14 @@ def transform_checkin_uuid(
 
 def update_existing_check_in(
     txn: Transaction | Span,
-    metric_kwargs: dict[str, str],
+    metric_kwargs: Mapping,
     project_id: int,
     monitor_environment: MonitorEnvironment,
     start_time: datetime,
     existing_check_in: MonitorCheckIn,
     updated_status: CheckInStatus,
-    updated_duration: int | None,
-) -> None:
+    updated_duration: float,
+):
     monitor = monitor_environment.monitor
     processing_errors: list[ProcessingError] = []
 
@@ -380,7 +373,7 @@ def update_existing_check_in(
     if processing_errors:
         raise ProcessingErrorsException(processing_errors, monitor=monitor)
 
-    updated_checkin: _CheckinUpdateKwargs = {
+    updated_checkin = {
         "status": updated_status,
         "duration": updated_duration,
     }
@@ -414,7 +407,7 @@ def update_existing_check_in(
     existing_check_in.update(**updated_checkin)
 
 
-def _process_checkin(item: CheckinItem, txn: Transaction | Span) -> None:
+def _process_checkin(item: CheckinItem, txn: Transaction | Span):
     params = item.payload
 
     start_time = to_datetime(float(item.message["start_time"]))
@@ -508,10 +501,13 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span) -> None:
 
     monitor_config = params.pop("monitor_config", None)
 
-    if params.get("duration") is not None:
+    params["duration"] = (
         # Duration is specified in seconds from the client, it is
         # stored in the checkin model as milliseconds
-        params["duration"] = int(params["duration"] * 1000)
+        int(params["duration"] * 1000)
+        if params.get("duration") is not None
+        else None
+    )
 
     validator = MonitorCheckInValidator(
         data=params,
@@ -784,7 +780,6 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span) -> None:
                             category=DataCategory.MONITOR,
                         )
 
-                        assert check_in.monitor_environment is not None
                         existing_env = check_in.monitor_environment.get_environment().name
 
                         env_mismatch_error: CheckinEnvironmentMismatch = {
@@ -919,7 +914,7 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span) -> None:
         logger.exception("Failed to process check-in")
 
 
-def process_checkin(item: CheckinItem) -> None:
+def process_checkin(item: CheckinItem):
     """
     Process an individual check-in
     """
@@ -937,7 +932,7 @@ def process_checkin(item: CheckinItem) -> None:
         logger.exception("Failed to process check-in")
 
 
-def process_checkin_group(items: list[CheckinItem]) -> None:
+def process_checkin_group(items: list[CheckinItem]):
     """
     Process a group of related check-ins (all part of the same monitor)
     completely serially.
@@ -946,9 +941,7 @@ def process_checkin_group(items: list[CheckinItem]) -> None:
         process_checkin(item)
 
 
-def process_batch(
-    executor: ThreadPoolExecutor, message: Message[ValuesBatch[KafkaPayload]]
-) -> None:
+def process_batch(executor: ThreadPoolExecutor, message: Message[ValuesBatch[KafkaPayload]]):
     """
     Receives batches of check-in messages. This function will take the batch
     and group them together by monitor ID (ensuring order is preserved) and
@@ -959,8 +952,8 @@ def process_batch(
     """
     batch = message.payload
 
-    latest_partition_ts: dict[int, datetime] = {}
-    checkin_mapping: dict[str, list[CheckinItem]] = defaultdict(list)
+    latest_partition_ts: Mapping[int, datetime] = {}
+    checkin_mapping: Mapping[str, list[CheckinItem]] = defaultdict(list)
 
     for item in batch:
         assert isinstance(item, BrokerValue)
@@ -979,13 +972,13 @@ def process_batch(
         if wrapper["message_type"] == "clock_pulse":
             continue
 
-        checkin_item = CheckinItem(
+        item = CheckinItem(
             ts=item.timestamp,
             partition=item.partition.index,
             message=wrapper,
             payload=json.loads(wrapper["payload"]),
         )
-        checkin_mapping[checkin_item.processing_key].append(checkin_item)
+        checkin_mapping[item.processing_key].append(item)
 
     # Number of check-ins that are being processed in this batch
     metrics.gauge("monitors.checkin.parallel_batch_count", len(batch))
@@ -1001,7 +994,7 @@ def process_batch(
         wait(futures)
 
     # Update check in volume for the entire batch we've just processed
-    update_check_in_volume(item.timestamp for item in batch if item.timestamp is not None)
+    update_check_in_volume(item.timestamp for item in batch)
 
     # Attempt to trigger monitor tasks across processed partitions
     for partition, ts in latest_partition_ts.items():
@@ -1011,7 +1004,7 @@ def process_batch(
             logger.exception("Failed to trigger monitor tasks")
 
 
-def process_single(message: Message[KafkaPayload | FilteredPayload]) -> None:
+def process_single(message: Message[KafkaPayload | FilteredPayload]):
     assert not isinstance(message.payload, FilteredPayload)
     assert isinstance(message.value, BrokerValue)
 
