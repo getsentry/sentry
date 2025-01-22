@@ -269,11 +269,11 @@ export function TraceBreakdownRenderer({
             offset={index}
             onMouseEnter={() => {
               setHoveredIndex(index);
-              breakdown.project
-                ? setHighlightedSliceName(
-                    getStylingSliceName(breakdown.project, breakdown.sdkName) ?? ''
-                  )
-                : null;
+              if (breakdown.project) {
+                setHighlightedSliceName(
+                  getStylingSliceName(breakdown.project, breakdown.sdkName) ?? ''
+                );
+              }
             }}
           />
         );

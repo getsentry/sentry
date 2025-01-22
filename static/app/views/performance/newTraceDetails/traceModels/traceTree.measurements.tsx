@@ -125,8 +125,12 @@ export function collectTraceMeasurements(
       vitals.set(node, []);
     }
 
-    WEB_VITALS_LOOKUP.has(measurement) && vital_types.add('web');
-    MOBILE_VITALS_LOOKUP.has(measurement) && vital_types.add('mobile');
+    if (WEB_VITALS_LOOKUP.has(measurement)) {
+      vital_types.add('web');
+    }
+    if (MOBILE_VITALS_LOOKUP.has(measurement)) {
+      vital_types.add('mobile');
+    }
 
     const score = Math.round(
       (measurements[`score.${measurement}`]!?.value /

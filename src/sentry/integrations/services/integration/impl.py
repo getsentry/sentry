@@ -84,29 +84,6 @@ class DatabaseBackedIntegrationService(IntegrationService):
             ),
         )
 
-    def page_organization_integrations_ids(
-        self,
-        *,
-        organization_id: int,
-        statuses: list[int],
-        provider_key: str | None = None,
-        args: RpcPaginationArgs,
-    ) -> RpcPaginationResult:
-        queryset = OrganizationIntegration.objects.filter(
-            organization_id=organization_id,
-            status__in=statuses,
-        )
-
-        if provider_key:
-            queryset = queryset.filter(integration__provider=provider_key.lower())
-
-        return args.do_hybrid_cloud_pagination(
-            description="page_organization_integrations_ids",
-            paginator_cls=OffsetPaginator,
-            order_by="integration__name",
-            queryset=queryset,
-        )
-
     def get_integrations(
         self,
         *,

@@ -175,10 +175,6 @@ INTEGRATION_TYPE_TO_PROVIDER = {
     ],
 }
 
-INTEGRATION_PROVIDER_TO_TYPE = {
-    v: k for k, values in INTEGRATION_TYPE_TO_PROVIDER.items() for v in values
-}
-
 
 class IntegrationProvider(PipelineProvider, abc.ABC):
     """
@@ -516,9 +512,6 @@ class IntegrationInstallation(abc.ABC):
     # NotifyBasicMixin noops
 
     def notify_remove_external_team(self, external_team: ExternalActor, team: Team) -> None:
-        pass
-
-    def remove_notification_settings(self, actor_id: int, provider: str) -> None:
         pass
 
 

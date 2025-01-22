@@ -179,8 +179,8 @@ function Region<Value extends SelectKey>({
       size={size}
       label={label}
     >
-      {(opt: SelectOption<Value>) => (
-        <Item {...opt} key={opt.value}>
+      {(opt: (typeof itemsWithKey)[number]) => (
+        <Item {...opt} key={opt.key}>
           {opt.label}
         </Item>
       )}
