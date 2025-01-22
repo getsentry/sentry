@@ -63,7 +63,7 @@ describe('Project Ownership', () => {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders stacktrace suggestions', () => {
+  it('renders stacktrace suggestions', async () => {
     render(
       <ProjectOwnershipModal
         issueId={issueId}
@@ -75,7 +75,9 @@ describe('Project Ownership', () => {
     );
 
     // Description
-    expect(screen.getByText(/Assign issues based on custom rules/)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/Assign issues based on custom rules/)
+    ).toBeInTheDocument();
 
     // Suggestions
     expect(
@@ -102,7 +104,7 @@ describe('Project Ownership', () => {
     );
 
     // Cancel
-    await userEvent.click(screen.getByText('Cancel'));
+    await userEvent.click(await screen.findByText('Cancel'));
     expect(onCancel).toHaveBeenCalled();
   });
 });
