@@ -15,7 +15,7 @@ from rest_framework.response import Response
 from symbolic.debuginfo import normalize_debug_id
 from symbolic.exceptions import SymbolicError
 
-from sentry import ratelimits
+from sentry import features, ratelimits
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -647,8 +647,11 @@ class DifAssembleEndpoint(ProjectEndpoint):
         except Exception:
             return Response({"error": "Invalid json body"}, status=400)
 
-        # TODO: implement feature flag check.
-        use_batch_assemble = True
+        use_batch_assemble = features.has(
+            "organizations:batch-assemble-debug-files",
+            project.organization,
+        )
+
         if use_batch_assemble:
             file_response = batch_assemble(project=project, files=files)
         else:
