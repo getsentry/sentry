@@ -108,7 +108,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
     });
 
   const {data: uniqueUsersCount, isPending: isPendingUniqueUsersCount} = useApiQuery<{
-    data: Array<{count_unique: number}>;
+    data: {count_unique: number}[];
   }>(
     [
       `/organizations/${organization.slug}/events/`,

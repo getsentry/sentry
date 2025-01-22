@@ -3,7 +3,7 @@ import type {Location, LocationDescriptor} from 'history';
 import ConfigStore from 'sentry/stores/configStore';
 
 // If you change this also update the patterns in sentry.api.utils
-const NORMALIZE_PATTERNS: Array<[pattern: RegExp, replacement: string]> = [
+const NORMALIZE_PATTERNS: [pattern: RegExp, replacement: string][] = [
   // /organizations/slug/section, but not /organizations/new
   [/\/organizations\/(?!new)[^\/]+\/(.*)/, '/$1'],
   // For /settings/:orgId/ -> /settings/organization/

@@ -174,7 +174,7 @@ export function getCurlCommand(data: EntryRequest['data']) {
 }
 
 export function stringifyQueryList(
-  query: string | Array<[key: string, value: string] | null>
+  query: string | ([key: string, value: string] | null)[]
 ) {
   if (typeof query === 'string') {
     return query;

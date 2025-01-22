@@ -20,7 +20,7 @@ export function transformReleaseEvents({
   colorPalette,
   releaseEvents,
 }: {
-  colorPalette: string[] | ReadonlyArray<string>;
+  colorPalette: string[] | readonly string[];
   releaseEvents: any;
   topTransactions: any;
   yAxes: YAxis[];

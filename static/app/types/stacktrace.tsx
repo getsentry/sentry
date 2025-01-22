@@ -15,7 +15,7 @@ export type StacktraceType = {
   framesOmitted: any;
   hasSystemFrames: boolean;
   registers: Record<string, any> | null;
-  frames?: Array<Frame>;
+  frames?: Frame[];
 };
 
 export type RawStacktrace = StacktraceType | null;

@@ -1,6 +1,6 @@
 type ArgumentTypes<F> = F extends (...args: infer A) => any ? A : never;
 type EventStore = {
-  [K in keyof TraceEvents]: Array<[number, TraceEvents[K]]>;
+  [K in keyof TraceEvents]: [number, TraceEvents[K]][];
 };
 
 export enum TraceEventPriority {
@@ -76,9 +76,10 @@ export class TraceScheduler {
       return;
     }
 
-    (this.events as any)[eventName] = arr.filter(a => a[1] !== cb) as unknown as Array<
-      [TraceEventPriority, K]
-    >;
+    (this.events as any)[eventName] = arr.filter(a => a[1] !== cb) as unknown as [
+      TraceEventPriority,
+      K,
+    ][];
   }
 
   dispatch<K extends keyof TraceEvents>(

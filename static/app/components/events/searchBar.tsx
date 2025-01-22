@@ -39,7 +39,7 @@ import {
   STATIC_SPAN_TAGS,
 } from './searchBarFieldConstants';
 
-const getFunctionTags = (fields: Readonly<Field[]> | undefined) => {
+const getFunctionTags = (fields: readonly Field[] | undefined) => {
   if (!fields?.length) {
     return [];
   }
@@ -140,7 +140,7 @@ export type SearchBarProps = Omit<React.ComponentProps<typeof SmartSearchBar>, '
   tags: TagCollection;
   customMeasurements?: CustomMeasurementCollection;
   dataset?: DiscoverDatasets;
-  fields?: Readonly<Field[]>;
+  fields?: readonly Field[];
   includeSessionTagsValues?: boolean;
   includeTransactions?: boolean;
   /**
@@ -149,7 +149,7 @@ export type SearchBarProps = Omit<React.ComponentProps<typeof SmartSearchBar>, '
   maxMenuHeight?: number;
   maxSearchItems?: React.ComponentProps<typeof SmartSearchBar>['maxSearchItems'];
   omitTags?: string[];
-  projectIds?: number[] | Readonly<number[]>;
+  projectIds?: number[] | readonly number[];
   savedSearchType?: SavedSearchType;
   supportedTags?: TagCollection | undefined;
 };

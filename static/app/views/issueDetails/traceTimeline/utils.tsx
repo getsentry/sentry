@@ -9,7 +9,7 @@ export function getEventsByColumn(
   durationMs: number,
   totalColumns: number,
   start: number
-): Array<[column: number, events: TimelineEvent[]]> {
+): [column: number, events: TimelineEvent[]][] {
   const eventsByColumn = events.reduce((map, event) => {
     const columnPositionCalc =
       Math.floor((getEventTimestamp(start, event) / durationMs) * (totalColumns - 1)) + 1;

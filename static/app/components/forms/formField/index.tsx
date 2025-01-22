@@ -54,7 +54,7 @@ const propsToObserve = [
   'visible',
   'disabled',
   'disabledReason',
-] satisfies Array<keyof FormFieldProps>;
+] satisfies (keyof FormFieldProps)[];
 
 interface FormFieldPropModel extends FormFieldProps {
   model: FormModel;

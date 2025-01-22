@@ -20,7 +20,7 @@ const defaultHelp = t(
 type Props = {
   isRegExMatchesSelected: boolean;
   onChange: (value: string) => void;
-  suggestions: Array<SourceSuggestion>;
+  suggestions: SourceSuggestion[];
   value: string;
   error?: string;
   onBlur?: (value: string, event: React.FocusEvent<HTMLInputElement>) => void;
@@ -28,11 +28,11 @@ type Props = {
 
 type State = {
   activeSuggestion: number;
-  fieldValues: Array<SourceSuggestion | Array<SourceSuggestion>>;
+  fieldValues: (SourceSuggestion | SourceSuggestion[])[];
   help: string;
   hideCaret: boolean;
   showSuggestions: boolean;
-  suggestions: Array<SourceSuggestion>;
+  suggestions: SourceSuggestion[];
 };
 
 class SourceField extends Component<Props, State> {
@@ -76,7 +76,7 @@ class SourceField extends Component<Props, State> {
   }
 
   getFilteredSuggestions(value: string, type: SourceSuggestionType) {
-    let valuesToBeFiltered: Array<SourceSuggestion> = [];
+    let valuesToBeFiltered: SourceSuggestion[] = [];
 
     switch (type) {
       case SourceSuggestionType.BINARY: {
@@ -104,7 +104,7 @@ class SourceField extends Component<Props, State> {
   }
 
   // @ts-ignore TS(7023): 'getNewSuggestions' implicitly has return type 'an... Remove this comment to see the full error message
-  getNewSuggestions(fieldValues: Array<SourceSuggestion | Array<SourceSuggestion>>) {
+  getNewSuggestions(fieldValues: (SourceSuggestion | SourceSuggestion[])[]) {
     const lastFieldValue = fieldValues[fieldValues.length - 1]!;
     const penultimateFieldValue = fieldValues[fieldValues.length - 2]!;
 
@@ -168,7 +168,7 @@ class SourceField extends Component<Props, State> {
   }
 
   loadFieldValues(newValue: string) {
-    const fieldValues: Array<SourceSuggestion | Array<SourceSuggestion>> = [];
+    const fieldValues: (SourceSuggestion | SourceSuggestion[])[] = [];
 
     const splittedValue = newValue.split(' ');
 
@@ -238,7 +238,7 @@ class SourceField extends Component<Props, State> {
   changeParentValue() {
     const {onChange} = this.props;
     const {fieldValues} = this.state;
-    const newValue: Array<string> = [];
+    const newValue: string[] = [];
 
     for (const index in fieldValues) {
       const fieldValue = fieldValues[index]!;
@@ -256,7 +256,7 @@ class SourceField extends Component<Props, State> {
 
   getNewFieldValues(
     suggestion: SourceSuggestion
-  ): Array<SourceSuggestion | Array<SourceSuggestion>> {
+  ): (SourceSuggestion | SourceSuggestion[])[] {
     const fieldValues = [...this.state.fieldValues]!;
     const lastFieldValue = fieldValues[fieldValues.length - 1]!;
 

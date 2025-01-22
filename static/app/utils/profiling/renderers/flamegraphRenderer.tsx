@@ -31,10 +31,10 @@ export abstract class FlamegraphRenderer {
   theme: FlamegraphTheme;
   options: FlamegraphRendererOptions;
 
-  frames: ReadonlyArray<FlamegraphFrame>;
-  roots: ReadonlyArray<FlamegraphFrame>;
+  frames: readonly FlamegraphFrame[];
+  roots: readonly FlamegraphFrame[];
 
-  colorBuffer: Array<number>;
+  colorBuffer: number[];
   colorMap: Map<string | number | FlamegraphFrame['node'], number[]>;
 
   isDifferentialFlamegraph: boolean = false;

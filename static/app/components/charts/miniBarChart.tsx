@@ -141,7 +141,7 @@ interface Props extends Omit<BaseChartProps, 'css' | 'colors' | 'series' | 'heig
   /**
    * Colors to use on the chart.
    */
-  colors?: ReadonlyArray<string>;
+  colors?: readonly string[];
 
   /**
    * A list of colors to use on hover.

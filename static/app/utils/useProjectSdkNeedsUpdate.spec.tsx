@@ -18,10 +18,10 @@ function wrapper({children}: {children?: ReactNode}) {
 }
 
 function mockCurrentVersion(
-  mockUpdates: Array<{
+  mockUpdates: {
     projectId: string;
     sdkVersion: string;
-  }>
+  }[]
 ) {
   MockApiClient.addMockResponse({
     url: `/organizations/${MOCK_ORG.slug}/sdk-updates/`,

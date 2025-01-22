@@ -22,7 +22,7 @@ export type TraceSearchAction =
         resultIndex: number | undefined;
         resultIteratorIndex: number | undefined;
       } | null;
-      results: ReadonlyArray<TraceSearchResult>;
+      results: readonly TraceSearchResult[];
       resultsLookup: Map<TraceTreeNode<TraceTree.NodeValue>, number>;
       type: 'set results';
       resultIndex?: number;
@@ -36,7 +36,7 @@ export type TraceSearchState = {
   resultIndex: number | null;
   // Index in the results array
   resultIteratorIndex: number | null;
-  results: ReadonlyArray<TraceSearchResult> | null;
+  results: readonly TraceSearchResult[] | null;
   resultsLookup: Map<TraceTreeNode<TraceTree.NodeValue>, number>;
   status: [ts: number, 'loading' | 'success' | 'error'] | undefined;
 };

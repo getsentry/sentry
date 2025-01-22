@@ -152,7 +152,7 @@ export function CodeOwnerErrors({
       {filteredCodeowners.map(({id, codeMapping, errors}) => {
         const errorPairs = Object.entries(errors).filter(
           ([_, values]) => values.length
-        ) as Array<[CodeOwnerErrorKeys, string[]]>;
+        ) as [CodeOwnerErrorKeys, string[]][];
         const errorCount = errorPairs.reduce(
           (acc, [_, values]) => acc + values.length,
           0

@@ -39,7 +39,7 @@ type ErrorInfo = {
   projectPlatforms: PlatformKey[];
 };
 
-const ErrorInfoChecks: Array<ErrorInfo> = [
+const ErrorInfoChecks: ErrorInfo[] = [
   {
     errorTitle: 'ChunkLoadError',
     projectPlatforms: ['javascript'],

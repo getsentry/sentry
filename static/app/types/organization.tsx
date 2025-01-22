@@ -224,7 +224,7 @@ export interface MissingMember {
  */
 export type SharedViewOrganization = {
   slug: string;
-  features?: Array<string>;
+  features?: string[];
   id?: string;
 };
 
@@ -257,7 +257,7 @@ export type AccessRequest = {
 export type SavedQueryVersions = 1 | 2;
 
 export interface NewQuery {
-  fields: Readonly<string[]>;
+  fields: readonly string[];
   name: string;
   version: SavedQueryVersions;
   createdBy?: User;
@@ -265,20 +265,20 @@ export interface NewQuery {
   datasetSource?: DatasetSource;
   display?: string;
   end?: string | Date;
-  environment?: Readonly<string[]>;
+  environment?: readonly string[];
   expired?: boolean;
   id?: string;
   interval?: string;
   orderby?: string | string[];
-  projects?: Readonly<number[]>;
+  projects?: readonly number[];
   query?: string;
   queryDataset?: SavedQueryDatasets;
   range?: string;
   start?: string | Date;
-  teams?: Readonly<('myteams' | number)[]>;
+  teams?: readonly ('myteams' | number)[];
   topEvents?: string;
   utc?: boolean | string;
-  widths?: Readonly<string[]>;
+  widths?: readonly string[];
   yAxis?: string[];
 }
 

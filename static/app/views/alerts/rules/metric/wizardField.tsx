@@ -28,7 +28,7 @@ import {hasEAPAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 import {getFieldOptionConfig} from './metricField';
 
 type MenuOption = {label: React.ReactNode; value: AlertType};
-type GroupedMenuOption = {label: string; options: Array<MenuOption>};
+type GroupedMenuOption = {label: string; options: MenuOption[]};
 
 type Props = Omit<FormFieldProps, 'children'> & {
   organization: Organization;

@@ -338,9 +338,7 @@ export default class ReplayReader {
       // Do this in here since we bypass setting the global offset
       // Eventually when we have video breadcrumbs we'll probably need to trim them here too
 
-      const updateVideoFrameOffsets = <T extends {offsetMs: number}>(
-        frames: Array<T>
-      ) => {
+      const updateVideoFrameOffsets = <T extends {offsetMs: number}>(frames: T[]) => {
         const offset = clipStartTimestampMs - this._replayRecord.started_at.getTime();
 
         return frames.map(frame => ({
@@ -396,7 +394,7 @@ export default class ReplayReader {
    * Filters out frames that are outside of the supplied window
    */
   _trimFramesToClipWindow = <T extends {timestampMs: number}>(
-    frames: Array<T>,
+    frames: T[],
     startTimestampMs: number,
     endTimestampMs: number
   ) => {
@@ -409,7 +407,7 @@ export default class ReplayReader {
   /**
    * Updates the offsetMs of all frames to be relative to the start of the clip window
    */
-  _updateFrameOffsets = <T extends {offsetMs: number}>(frames: Array<T>) => {
+  _updateFrameOffsets = <T extends {offsetMs: number}>(frames: T[]) => {
     return frames.map(frame => ({
       ...frame,
       offsetMs: frame.offsetMs - this.getStartOffsetMs(),

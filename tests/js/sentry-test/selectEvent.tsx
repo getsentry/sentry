@@ -85,7 +85,7 @@ interface Config extends UserEventOptions {
  */
 const select = async (
   input: HTMLElement,
-  optionOrOptions: Matcher | Array<Matcher>,
+  optionOrOptions: Matcher | Matcher[],
   {user = userEvent, ...config}: Config = {}
 ) => {
   const options = Array.isArray(optionOrOptions) ? optionOrOptions : [optionOrOptions];

@@ -25,7 +25,7 @@ type Props<V extends Values, K extends keyof V> = {
   onChange: (field: K, value: string) => void;
   onUpdateEventId: (eventId: string) => void;
   onValidate: (field: K) => () => void;
-  sourceSuggestions: Array<SourceSuggestion>;
+  sourceSuggestions: SourceSuggestion[];
   values: V;
 };
 

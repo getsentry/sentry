@@ -347,14 +347,14 @@ export function datasetOmittedTags(
   dataset: Dataset,
   org: Organization
 ):
-  | Array<
+  | (
       | FieldKey
       | WebVital
       | MobileVital
       | SpanOpBreakdown
       | ReplayFieldKey
       | ReplayClickFieldKey
-    >
+    )[]
   | undefined {
   // @ts-ignore TS(2339): Property 'events_analytics_platform' does not exis... Remove this comment to see the full error message
   return {

@@ -3,7 +3,7 @@ import type {PlainRoute} from 'sentry/types/legacyReactRouter';
 import {useBreadcrumbTitleEffect} from './context';
 
 type Props = {
-  routes: Array<PlainRoute>;
+  routes: PlainRoute[];
   title: string;
 };
 
