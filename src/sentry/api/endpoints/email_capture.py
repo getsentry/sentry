@@ -30,7 +30,6 @@ class EmailCaptureEndpoint(Endpoint):
             return Response(status=404)
 
         serializer = EmailCaptureSerializer(data=request.data)
-
         serializer.is_valid(raise_exception=True)
 
         email = serializer.validated_data["email"]
