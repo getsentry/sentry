@@ -291,6 +291,7 @@ def get_shared_context(rule, org, project: Project, group, event):
         "tags": event.tags,
         "snooze_alert": snooze_alert,
         "snooze_alert_url": absolute_uri(snooze_alert_url),
+        "enhanced_privacy": org.flags.enhanced_privacy,
     }
 
 
@@ -457,7 +458,11 @@ def alert(request):
     group = event.group
 
     group.substatus = random.choice(
-        [GroupSubStatus.ESCALATING, GroupSubStatus.NEW, GroupSubStatus.REGRESSED]
+        [
+            GroupSubStatus.ESCALATING,
+            GroupSubStatus.NEW,
+            GroupSubStatus.REGRESSED,
+        ]
     )
 
     rule = Rule(id=1, label="An example rule")
@@ -485,6 +490,7 @@ def alert(request):
             "issue_type": group.issue_type.description,
             "replay_id": REPLAY_ID,
             "issue_replays_url": get_issue_replay_link(group, "?referrer=alert_email"),
+            "enhanced_privacy": org.flags.enhanced_privacy,
         },
     ).render(request)
 

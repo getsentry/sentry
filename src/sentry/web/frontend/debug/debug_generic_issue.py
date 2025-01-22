@@ -17,6 +17,7 @@ class DebugGenericIssueEmailView(View):
     def get(self, request):
         org = Organization(id=1, slug="example", name="Example")
         project = Project(id=1, slug="example", name="Example", organization=org)
+        enhanced_privacy = org.flags.enhanced_privacy
 
         event = make_generic_event(project)
         group = event.group
@@ -49,5 +50,6 @@ class DebugGenericIssueEmailView(View):
                 "issue_title": event.occurrence.issue_title,
                 "subtitle": event.occurrence.subtitle,
                 "culprit": event.occurrence.culprit,
+                "enhanced_privacy": enhanced_privacy,
             },
         ).render(request)
