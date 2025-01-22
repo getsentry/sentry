@@ -291,12 +291,14 @@ const HeaderLayout = styled(Layout.Header)`
 const HeaderRow = styled('div')`
   display: flex;
   justify-content: space-between;
+  gap: ${space(2)};
 
   &:not(:first-child) {
     margin: ${space(1)} 0;
   }
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
+    gap: ${space(1)};
     flex-direction: column;
   }
 `;
