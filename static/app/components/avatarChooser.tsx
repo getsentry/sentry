@@ -149,9 +149,11 @@ class AvatarChooser extends Component<Props, State> {
       },
       error: resp => {
         const avatarPhotoErrors = resp?.responseJSON?.avatar_photo || [];
-        avatarPhotoErrors.length
-          ? avatarPhotoErrors.map(this.handleError)
-          : this.handleError.bind(this, t('There was an error saving your preferences.'));
+        if (avatarPhotoErrors.length) {
+          avatarPhotoErrors.map(this.handleError);
+        } else {
+          this.handleError.bind(this, t('There was an error saving your preferences.'));
+        }
       },
     });
   };

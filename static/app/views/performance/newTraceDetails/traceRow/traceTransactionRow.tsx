@@ -56,7 +56,11 @@ export function TraceTransactionRow(
                 expanded={props.node.expanded || props.node.zoomedIn}
                 onDoubleClick={props.onExpandDoubleClick}
                 onClick={e => {
-                  props.node.canFetch ? props.onZoomIn(e) : props.onExpand(e);
+                  if (props.node.canFetch) {
+                    props.onZoomIn(e);
+                  } else {
+                    props.onExpand(e);
+                  }
                 }}
               >
                 {props.node.children.length > 0

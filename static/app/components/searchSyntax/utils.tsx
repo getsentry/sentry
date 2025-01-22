@@ -100,7 +100,9 @@ export function treeResultLocator<T>({
         break;
       case Token.KEY_AGGREGATE:
         nodeVisitor(token.name);
-        token.args && nodeVisitor(token.args);
+        if (token.args) {
+          nodeVisitor(token.args);
+        }
         nodeVisitor(token.argsSpaceBefore);
         nodeVisitor(token.argsSpaceAfter);
         break;
