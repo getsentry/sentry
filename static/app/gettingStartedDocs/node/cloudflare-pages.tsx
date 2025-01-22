@@ -84,7 +84,7 @@ const onboarding: OnboardingConfig = {
         },
         {
           description: tct(
-            'To use this SDK, add the [code:sentryPagesPlugin] as [guideLink:middleware to your Cloudflare Pages application]. We recommend adding a [code:functions/_middleware.js] for the middleware setup so that Sentry is initialized for your entire app.',
+            'Add the [code:sentryPagesPlugin] as [guideLink:middleware to your Cloudflare Pages application]. We recommend adding a [code:functions/_middleware.js] for the middleware setup so that Sentry is initialized for your entire app.',
             {
               code: <code />,
               guideLink: (

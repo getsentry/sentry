@@ -22,9 +22,9 @@ compatibility_flags = ["nodejs_compat"]
 `;
 
 const getSdkSetupSnippet = (params: Params) => `
-import {withSentry} from "@sentry/cloudflare";
+import * as Sentry from "@sentry/cloudflare";
 
-export default withSentry(
+export default Sentry.withSentry(
   env => ({
     dsn: "${params.dsn.public}",
     // Set tracesSampleRate to 1.0 to capture 100% of spans for tracing.
