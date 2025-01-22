@@ -56,7 +56,7 @@ export function ToolbarSaveAs() {
   if (organization.features.includes('alerts-eap')) {
     items.push({
       key: 'create-alert',
-      label: t('Create an alert for'),
+      label: t('An Alert for'),
       children: alertsUrls ?? [],
       disabled: !alertsUrls || alertsUrls.length === 0,
       isSubmenu: true,
@@ -81,15 +81,15 @@ export function ToolbarSaveAs() {
     });
     items.push({
       key: 'add-to-dashboard',
-      textValue: t('Add to Dashboard'),
+      textValue: t('A Dashboard Widget'),
       isSubmenu: chartOptions.length > 1 ? true : false,
       label: (
         <Feature
           hookName="feature-disabled:dashboards-edit"
           features="organizations:dashboards-edit"
-          renderDisabled={() => <DisabledText>{t('Add to Dashboard')}</DisabledText>}
+          renderDisabled={() => <DisabledText>{t('A Dashboard widget')}</DisabledText>}
         >
-          {t('Add to Dashboard')}
+          {t('A Dashboard Widget')}
         </Feature>
       ),
       disabled: disableAddToDashboard,
