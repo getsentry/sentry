@@ -94,7 +94,7 @@ type Props = {
 
 function ProjectDataForwarding({project}: Props) {
   const organization = useOrganization();
-  const {projectId} = useParams();
+  const {projectId} = useParams<{projectId: string}>();
   const [pluginState, setPluginState] = useState<Plugin[]>([]);
 
   const {
