@@ -407,9 +407,7 @@ class _ClientConfig:
         if self.user and self.request and self.request.path.startswith("accept/"):
 
             member_id = self.request.path.split("/")[1]
-            invite_state = get_invite_state(
-                int(member_id), None, int(self.user.id), self.request._request
-            )
+            invite_state = get_invite_state(int(member_id), None, int(self.user.id), self.request)
             invitation_link = getattr(invite_state, "invitation_link", None)
 
             if invitation_link == self.request.get_full_path():
