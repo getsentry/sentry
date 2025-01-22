@@ -21,7 +21,6 @@ from sentry.apidocs.constants import (
     RESPONSE_FORBIDDEN,
     RESPONSE_NO_CONTENT,
 )
-from sentry.apidocs.examples.user_examples import UserExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.users.api.bases.user import UserEndpoint
@@ -115,7 +114,6 @@ class UserEmailsEndpoint(UserEndpoint):
             ),
             403: RESPONSE_FORBIDDEN,
         },
-        examples=UserExamples.LIST_USER_EMAILS,
     )
     def get(self, request: Request, user: User) -> Response:
         """
@@ -143,7 +141,6 @@ class UserEmailsEndpoint(UserEndpoint):
             403: RESPONSE_FORBIDDEN,
             409: RESPONSE_CONFLICT,
         },
-        examples=UserExamples.ADD_SECONDARY_EMAIL,
     )
     @sudo_required
     def post(self, request: Request, user: User) -> Response:
