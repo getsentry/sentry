@@ -99,7 +99,7 @@ function ProjectServiceHooks() {
       clearIndicators();
       setApiQueryData<ServiceHook[]>(
         queryClient,
-        [`/organizations/${organization.slug}/api-keys/`],
+        [`/projects/${organization.slug}/${projectId}/hooks/`],
         oldHookList => {
           return oldHookList.map(h => {
             if (h.id === data.id) {
