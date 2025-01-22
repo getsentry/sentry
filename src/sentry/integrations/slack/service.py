@@ -9,6 +9,7 @@ import orjson
 import sentry_sdk
 from slack_sdk.errors import SlackApiError
 
+from sentry import features
 from sentry.constants import ISSUE_ALERTS_THREAD_DEFAULT
 from sentry.integrations.messaging.metrics import (
     MessagingInteractionEvent,
@@ -33,6 +34,7 @@ from sentry.integrations.slack.threads.activity_notifications import (
 )
 from sentry.integrations.types import ExternalProviderEnum, ExternalProviders
 from sentry.integrations.utils.common import get_active_integration_for_organization
+from sentry.issues.grouptype import GroupCategory
 from sentry.models.activity import Activity
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.rule import Rule
@@ -49,6 +51,7 @@ from sentry.notifications.notifications.activity.resolved_in_release import (
 from sentry.notifications.notifications.activity.unassigned import UnassignedActivityNotification
 from sentry.notifications.notifications.activity.unresolved import UnresolvedActivityNotification
 from sentry.notifications.notifications.base import BaseNotification
+from sentry.notifications.utils.open_period import open_period_start_for_group
 from sentry.silo.base import SiloMode
 from sentry.types.activity import ActivityType
 from sentry.types.actor import Actor
@@ -192,10 +195,25 @@ class SlackService:
                     "project_id": activity.project.id,
                 }
             )
-            parent_notifications = self._notification_message_repository.get_all_parent_notification_messages_by_filters(
-                group_ids=[activity.group.id],
-                project_ids=[activity.project.id],
-            )
+
+            if (
+                features.has(
+                    "organizations:issue-alerts-thread-open-period",
+                    activity.group.project.organization,
+                )
+                and activity.group.issue_category == GroupCategory.UPTIME
+            ):
+                open_period_start = open_period_start_for_group(activity.group)
+                parent_notifications = self._notification_message_repository.get_all_parent_notification_messages_by_filters(
+                    group_ids=[activity.group.id],
+                    project_ids=[activity.project.id],
+                    open_period_start=open_period_start,
+                )
+            else:
+                parent_notifications = self._notification_message_repository.get_all_parent_notification_messages_by_filters(
+                    group_ids=[activity.group.id],
+                    project_ids=[activity.project.id],
+                )
 
         # We don't wrap this in a lifecycle because _handle_parent_notification is already wrapped in a lifecycle
         for parent_notification in parent_notifications:
