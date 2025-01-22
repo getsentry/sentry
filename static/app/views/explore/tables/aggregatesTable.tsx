@@ -138,7 +138,7 @@ export function AggregatesTable({
               return (
                 <TableHeadCell align={align} key={i} isFirst={i === 0}>
                   <TableHeadCellContent onClick={updateSort}>
-                    <span>{label}</span>
+                    <Tooltip title={label}>{label}</Tooltip>
                     {defined(direction) && (
                       <IconArrow
                         size="xs"
