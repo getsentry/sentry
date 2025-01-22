@@ -495,14 +495,14 @@ class SpanTreeModel {
               acc.previousSiblingEndTimestamp = spanModel.span.timestamp;
 
               // It's possible that a section in the minimap is selected so some spans in this group may be out of view
-              if (bounds.isSpanVisibleInView) {
-                acc.descendants.push(enhancedSibling);
-              } else {
-                acc.descendants.push({
-                  type: 'filtered_out',
-                  span: spanModel.span,
-                });
-              }
+              acc.descendants.push(
+                bounds.isSpanVisibleInView
+                  ? enhancedSibling
+                  : {
+                      type: 'filtered_out',
+                      span: spanModel.span,
+                    }
+              );
             }
           });
 
