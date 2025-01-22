@@ -15,6 +15,7 @@ from sentry.integrations.messaging.metrics import (
     MessagingInteractionEvent,
     MessagingInteractionType,
 )
+from sentry.shared_integrations.exceptions import ApiRateLimitedError
 
 from ..utils import logger
 
@@ -62,14 +63,18 @@ def send_incident_alert_notification(
     ).capture() as lifecycle:
         try:
             client.send_message(channel, message)
+        except ApiRateLimitedError as error:
+            # TODO(ecosystem): We should batch this on a per-organization basis
+            lifecycle.record_halt(error)
+            return False
         except Exception as error:
-            # TODO(iamrajjoshi): Update some of these failures to halts
             lifecycle.add_extras(
                 {
                     "incident_id": incident.id,
                     "channel_id": channel,
                 }
             )
+
             lifecycle.record_failure(error)
             return False
         return True
