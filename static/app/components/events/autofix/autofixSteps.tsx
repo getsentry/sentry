@@ -13,6 +13,7 @@ import {
   type AutofixStep,
   AutofixStepType,
 } from 'sentry/components/events/autofix/types';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import testableTransition from 'sentry/utils/testableTransition';
 

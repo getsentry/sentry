@@ -198,6 +198,7 @@ function AutofixInsightCard({
                         size="sm"
                         onClick={handleCancel}
                         title={t('Cancel')}
+                        aria-label={t('Cancel')}
                       >
                         <IconClose size="sm" />
                       </Button>
@@ -206,6 +207,7 @@ function AutofixInsightCard({
                         priority="primary"
                         size="sm"
                         title={t('Rethink from here using your insight')}
+                        aria-label={t('Rethink from here using your insight')}
                       >
                         <IconRefresh size="sm" />
                       </Button>
@@ -243,9 +245,8 @@ function AutofixInsightCard({
                     size="zero"
                     borderless
                     onClick={handleEdit}
-                    icon={
-                      <StyledIconEdit size="sm" isHighlighted={shouldHighlightRethink} />
-                    }
+                    isHighlighted={shouldHighlightRethink ?? false}
+                    icon={<IconEdit size="sm" />}
                     aria-label={t('Edit insight')}
                     title={t('Replace insight and rethink')}
                   />
@@ -548,6 +549,7 @@ function ChainLink({
                       priority="primary"
                       size="sm"
                       title={t('Add insight and rethink')}
+                      aria-label={t('Add insight and rethink')}
                     >
                       <IconRefresh size="sm" />
                     </Button>
@@ -738,10 +740,6 @@ const StyledIconChevron = styled(IconChevron)`
   color: ${p => p.theme.pink400}90;
 `;
 
-const StyledIconEdit = styled(IconEdit)<{isHighlighted?: boolean}>`
-  color: ${p => (p.isHighlighted ? p.theme.pink400 : `${p.theme.pink400}90`)};
-`;
-
 const RightSection = styled('div')`
   display: flex;
   align-items: center;
@@ -764,10 +762,10 @@ const EditInput = styled(Input)`
   flex: 1;
 `;
 
-const EditButton = styled(Button)`
-  color: ${p => p.theme.subText};
+const EditButton = styled(Button)<{isHighlighted?: boolean}>`
+  color: ${p => (p.isHighlighted ? p.theme.pink400 : `${p.theme.pink400}90`)};
   &:hover {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.pink400};
   }
 `;
 

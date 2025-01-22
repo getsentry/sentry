@@ -1,15 +1,26 @@
-import {useLayoutEffect, useRef, useState} from 'react';
+import {useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {motion} from 'framer-motion';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {SeerIcon} from 'sentry/components/ai/SeerIcon';
+import UserAvatar from 'sentry/components/avatar/userAvatar';
 import {Button} from 'sentry/components/button';
-import {useUpdateInsightCard} from 'sentry/components/events/autofix/autofixInsightCards';
+import {
+  makeAutofixQueryKey,
+  useAutofixData,
+} from 'sentry/components/events/autofix/useAutofix';
 import Input from 'sentry/components/input';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import testableTransition from 'sentry/utils/testableTransition';
+import useApi from 'sentry/utils/useApi';
+import {useUser} from 'sentry/utils/useUser';
+
+import type {CommentThreadMessage} from './types';
 
 interface Props {
   groupId: string;
@@ -20,6 +31,46 @@ interface Props {
   stepIndex: number;
 }
 
+interface OptimisticMessage extends CommentThreadMessage {
+  isLoading?: boolean;
+}
+
+function useCommentThread({groupId, runId}: {groupId: string; runId: string}) {
+  const api = useApi({persistInFlight: true});
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (params: {
+      message: string;
+      retain_insight_card_index: number | null;
+      selected_text: string;
+      step_index: number;
+      thread_id: string;
+    }) => {
+      return api.requestPromise(`/issues/${groupId}/autofix/update/`, {
+        method: 'POST',
+        data: {
+          run_id: runId,
+          payload: {
+            type: 'comment_thread',
+            message: params.message,
+            thread_id: params.thread_id,
+            selected_text: params.selected_text,
+            step_index: params.step_index,
+            retain_insight_card_index: params.retain_insight_card_index,
+          },
+        },
+      });
+    },
+    onSuccess: _ => {
+      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(groupId)});
+    },
+    onError: () => {
+      addErrorMessage(t('Something went wrong when sending your comment.'));
+    },
+  });
+}
+
 function AutofixHighlightPopup({
   selectedText,
   groupId,
@@ -28,10 +79,35 @@ function AutofixHighlightPopup({
   retainInsightCardIndex,
   referenceElement,
 }: Props) {
-  const {mutate: updateInsight} = useUpdateInsightCard({groupId, runId});
+  const {mutate: submitComment} = useCommentThread({groupId, runId});
   const [comment, setComment] = useState('');
   const popupRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState({left: 0, top: 0});
+  const [threadId] = useState(() => {
+    const timestamp = Date.now();
+    const random = Math.floor(Math.random() * 10000);
+    return `thread-${timestamp}-${random}`;
+  });
+  const [optimisticMessages, setOptimisticMessages] = useState<OptimisticMessage[]>([]);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Fetch current autofix data to get comment thread
+  const autofixData = useAutofixData({groupId});
+  const currentStep = autofixData?.steps?.[stepIndex];
+  const commentThread =
+    currentStep?.active_comment_thread?.id === threadId
+      ? currentStep.active_comment_thread
+      : null;
+  const messages = useMemo(
+    () => commentThread?.messages ?? [],
+    [commentThread?.messages]
+  );
+
+  // Combine server messages with optimistic ones
+  const allMessages = useMemo(
+    () => [...messages, ...optimisticMessages],
+    [messages, optimisticMessages]
+  );
 
   const truncatedText =
     selectedText.length > 70
@@ -39,6 +115,8 @@ function AutofixHighlightPopup({
         '... ...' +
         selectedText.slice(-35)
       : selectedText;
+
+  const currentUser = useUser();
 
   useLayoutEffect(() => {
     if (!referenceElement || !popupRef.current) {
@@ -72,17 +150,42 @@ function AutofixHighlightPopup({
     if (!comment.trim()) {
       return;
     }
-    updateInsight({
+
+    // Add user message and loading assistant message immediately
+    setOptimisticMessages([
+      {role: 'user', content: comment},
+      {role: 'assistant', content: '', isLoading: true},
+    ]);
+
+    submitComment({
       message: comment,
+      thread_id: threadId,
+      selected_text: selectedText,
       step_index: stepIndex,
       retain_insight_card_index: retainInsightCardIndex,
     });
     setComment('');
   };
 
+  // Clear optimistic messages when we get new server messages
+  useEffect(() => {
+    if (messages.length > 0) {
+      setOptimisticMessages([]);
+    }
+  }, [messages]);
+
   const handleContainerClick = (e: React.MouseEvent) => {
     e.stopPropagation();
   };
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({behavior: 'smooth'});
+  };
+
+  // Add effect to scroll to bottom when messages change
+  useEffect(() => {
+    scrollToBottom();
+  }, [allMessages]);
 
   return createPortal(
     <Wrapper
@@ -106,23 +209,51 @@ function AutofixHighlightPopup({
       <ScaleContainer>
         <Container onClick={handleContainerClick}>
           <Header>
-            <StyledSeerIcon size="md" />
             <SelectedText>
               <span>"{truncatedText}"</span>
             </SelectedText>
           </Header>
-          <InputWrapper onSubmit={handleSubmit}>
-            <StyledInput
-              placeholder={t('Questions or comments?')}
-              value={comment}
-              onChange={e => setComment(e.target.value)}
-              size="sm"
-              autoFocus
-            />
-            <StyledButton size="sm" type="submit" borderless>
-              {t('>')}
-            </StyledButton>
-          </InputWrapper>
+
+          {allMessages.length > 0 && (
+            <MessagesContainer>
+              {allMessages.map((message, i) => (
+                <Message key={i} role={message.role}>
+                  {message.role === 'assistant' ? (
+                    <CircularSeerIcon>
+                      <SeerIcon />
+                    </CircularSeerIcon>
+                  ) : (
+                    <UserAvatar user={currentUser} size={24} />
+                  )}
+                  <MessageContent>
+                    {message.isLoading ? (
+                      <LoadingWrapper>
+                        <LoadingIndicator mini size={12} />
+                      </LoadingWrapper>
+                    ) : (
+                      message.content
+                    )}
+                  </MessageContent>
+                </Message>
+              ))}
+              <div ref={messagesEndRef} />
+            </MessagesContainer>
+          )}
+
+          {commentThread?.is_completed !== true && (
+            <InputWrapper onSubmit={handleSubmit}>
+              <StyledInput
+                placeholder={t('Questions or comments?')}
+                value={comment}
+                onChange={e => setComment(e.target.value)}
+                size="sm"
+                autoFocus
+              />
+              <StyledButton size="sm" type="submit" borderless>
+                {t('>')}
+              </StyledButton>
+            </InputWrapper>
+          )}
         </Container>
       </ScaleContainer>
     </Wrapper>,
@@ -203,10 +334,8 @@ const Header = styled('div')`
   gap: ${space(1)};
   padding: ${space(1)};
   background: ${p => p.theme.backgroundSecondary};
-`;
-
-const StyledSeerIcon = styled(SeerIcon)`
-  flex-shrink: 0;
+  word-break: break-word;
+  overflow-wrap: break-word;
 `;
 
 const SelectedText = styled('div')`
@@ -232,6 +361,54 @@ const Arrow = styled('div')`
   top: 20px;
   right: -6px;
   transform: rotate(135deg);
+`;
+
+const MessagesContainer = styled('div')`
+  padding: ${space(1)};
+  display: flex;
+  flex-direction: column;
+  gap: ${space(0.5)};
+  max-height: 200px;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+`;
+
+const Message = styled('div')<{role: CommentThreadMessage['role']}>`
+  display: flex;
+  gap: ${space(1)};
+  align-items: flex-start;
+`;
+
+const MessageContent = styled('div')`
+  flex-grow: 1;
+  border-radius: ${p => p.theme.borderRadius};
+  padding-top: ${space(0.5)};
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.textColor};
+`;
+
+const CircularSeerIcon = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: ${p => p.theme.purple300};
+  flex-shrink: 0;
+
+  > svg {
+    width: 14px;
+    height: 14px;
+    color: ${p => p.theme.white};
+  }
+`;
+
+const LoadingWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  height: 24px;
+  margin-top: ${space(0.25)};
 `;
 
 function getScrollParents(element: HTMLElement): Element[] {

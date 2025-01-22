@@ -65,7 +65,7 @@ describe('AutofixOutputStream', () => {
     render(<AutofixOutputStream stream="Initial content" groupId="123" runId="456" />);
 
     const user = userEvent.setup();
-    await user.click(screen.getByText('Send'));
+    await user.click(screen.getByText('>'));
 
     expect(mockApi.requestPromise).not.toHaveBeenCalled();
   });
@@ -96,7 +96,7 @@ describe('AutofixOutputStream', () => {
     const input = screen.getByPlaceholderText('Interrupt me...');
 
     await user.type(input, 'Test message');
-    await user.click(screen.getByText('Send'));
+    await user.click(screen.getByText('>'));
 
     await waitFor(() => {
       expect(addSuccessMessage).toHaveBeenCalledWith('Thanks for the input.');
@@ -116,7 +116,7 @@ describe('AutofixOutputStream', () => {
     const input = screen.getByPlaceholderText('Interrupt me...');
 
     await user.type(input, 'Test message');
-    await user.click(screen.getByText('Send'));
+    await user.click(screen.getByText('>'));
 
     await waitFor(() => {
       expect(addErrorMessage).toHaveBeenCalledWith(

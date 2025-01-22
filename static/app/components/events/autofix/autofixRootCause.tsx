@@ -233,9 +233,17 @@ function RootCauseDescription({
 function RootCauseContext({
   cause,
   repos,
+  groupId,
+  runId,
+  previousDefaultStepIndex,
+  previousInsightCount,
 }: {
   cause: AutofixRootCauseData;
+  groupId: string;
   repos: AutofixRepository[];
+  runId: string;
+  previousDefaultStepIndex?: number;
+  previousInsightCount?: number;
 }) {
   const unitTestFileExtension = cause.unit_test?.file_path
     ? getFileExtension(cause.unit_test.file_path)
@@ -243,6 +251,11 @@ function RootCauseContext({
   const unitTestLanguage = unitTestFileExtension
     ? getPrismLanguage(unitTestFileExtension)
     : undefined;
+
+  const reproductionRef = useRef<HTMLDivElement>(null);
+  const reproductionSelection = useTextSelection(reproductionRef);
+  const unitTestDescriptionRef = useRef<HTMLDivElement>(null);
+  const unitTestSelection = useTextSelection(unitTestDescriptionRef);
 
   return (
     <RootCauseContextContainer>
@@ -252,8 +265,25 @@ function RootCauseContext({
           title={'How to reproduce'}
           rounded
         >
+          <AnimatePresence>
+            {reproductionSelection && (
+              <AutofixHighlightPopup
+                selectedText={reproductionSelection.selectedText}
+                referenceElement={reproductionSelection.referenceElement}
+                groupId={groupId}
+                runId={runId}
+                stepIndex={previousDefaultStepIndex ?? 0}
+                retainInsightCardIndex={
+                  previousInsightCount !== undefined && previousInsightCount >= 0
+                    ? previousInsightCount - 1
+                    : -1
+                }
+              />
+            )}
+          </AnimatePresence>
           {cause.reproduction && (
             <CauseDescription
+              ref={reproductionRef}
               dangerouslySetInnerHTML={{
                 __html: marked(replaceHeadersWithBold(cause.reproduction)),
               }}
@@ -262,7 +292,24 @@ function RootCauseContext({
           {cause.unit_test && (
             <Fragment>
               <strong>{t('Unit test that reproduces this root cause:')}</strong>
+              <AnimatePresence>
+                {unitTestSelection && (
+                  <AutofixHighlightPopup
+                    selectedText={unitTestSelection.selectedText}
+                    referenceElement={unitTestSelection.referenceElement}
+                    groupId={groupId}
+                    runId={runId}
+                    stepIndex={previousDefaultStepIndex ?? 0}
+                    retainInsightCardIndex={
+                      previousInsightCount !== undefined && previousInsightCount >= 0
+                        ? previousInsightCount - 1
+                        : -1
+                    }
+                  />
+                )}
+              </AnimatePresence>
               <CauseDescription
+                ref={unitTestDescriptionRef}
                 dangerouslySetInnerHTML={{
                   __html: marked(replaceHeadersWithBold(cause.unit_test.description)),
                 }}
@@ -284,7 +331,14 @@ function RootCauseContext({
           rounded
           expandByDefault
         >
-          <AutofixRootCauseCodeContexts codeContext={cause.code_context} repos={repos} />
+          <AutofixRootCauseCodeContexts
+            codeContext={cause.code_context}
+            repos={repos}
+            groupId={groupId}
+            runId={runId}
+            previousDefaultStepIndex={previousDefaultStepIndex}
+            previousInsightCount={previousInsightCount}
+          />
         </ExpandableInsightContext>
       )}
     </RootCauseContextContainer>
@@ -345,8 +399,21 @@ function AutofixRootCauseDisplay({
                 __html: singleLineRenderer(selectedCause.title),
               }}
             />
-            <RootCauseDescription cause={selectedCause} groupId={groupId} runId={runId} />
-            <RootCauseContext cause={selectedCause} repos={repos} />
+            <RootCauseDescription
+              cause={selectedCause}
+              groupId={groupId}
+              runId={runId}
+              previousDefaultStepIndex={previousDefaultStepIndex}
+              previousInsightCount={previousInsightCount}
+            />
+            <RootCauseContext
+              cause={selectedCause}
+              repos={repos}
+              groupId={groupId}
+              runId={runId}
+              previousDefaultStepIndex={previousDefaultStepIndex}
+              previousInsightCount={previousInsightCount}
+            />
           </Content>
         </ClippedBox>
       </CausesContainer>
@@ -418,7 +485,14 @@ function AutofixRootCauseDisplay({
                 previousDefaultStepIndex={previousDefaultStepIndex}
                 previousInsightCount={previousInsightCount}
               />
-              <RootCauseContext cause={cause} repos={repos} />
+              <RootCauseContext
+                cause={cause}
+                repos={repos}
+                groupId={groupId}
+                runId={runId}
+                previousDefaultStepIndex={previousDefaultStepIndex}
+                previousInsightCount={previousInsightCount}
+              />
             </Fragment>
           )}
         </Content>
@@ -451,14 +525,27 @@ export function AutofixRootCause(props: AutofixRootCauseProps) {
   );
 }
 
-export function AutofixRootCauseCodeContexts({
-  codeContext,
+function CodeContextItem({
+  fix,
+  index,
+  groupId,
+  runId,
+  previousDefaultStepIndex,
+  previousInsightCount,
   repos,
 }: {
-  codeContext: AutofixRootCauseCodeContext[];
+  fix: AutofixRootCauseCodeContext;
+  groupId: string;
+  index: number;
   repos: AutofixRepository[];
+  runId: string;
+  previousDefaultStepIndex?: number;
+  previousInsightCount?: number;
 }) {
-  return codeContext?.map((fix, index) => (
+  const descriptionRef = useRef<HTMLDivElement>(null);
+  const selection = useTextSelection(descriptionRef);
+
+  return (
     <SuggestedFixWrapper key={fix.id}>
       <SuggestedFixHeader>
         <strong
@@ -467,7 +554,24 @@ export function AutofixRootCauseCodeContexts({
           }}
         />
       </SuggestedFixHeader>
-      <p
+      <AnimatePresence>
+        {selection && (
+          <AutofixHighlightPopup
+            selectedText={selection.selectedText}
+            referenceElement={selection.referenceElement}
+            groupId={groupId}
+            runId={runId}
+            stepIndex={previousDefaultStepIndex ?? 0}
+            retainInsightCardIndex={
+              previousInsightCount !== undefined && previousInsightCount >= 0
+                ? previousInsightCount - 1
+                : -1
+            }
+          />
+        )}
+      </AnimatePresence>
+      <div
+        ref={descriptionRef}
         dangerouslySetInnerHTML={{
           __html: marked(fix.description),
         }}
@@ -480,6 +584,35 @@ export function AutofixRootCauseCodeContexts({
         />
       )}
     </SuggestedFixWrapper>
+  );
+}
+
+export function AutofixRootCauseCodeContexts({
+  codeContext,
+  repos,
+  groupId,
+  runId,
+  previousDefaultStepIndex,
+  previousInsightCount,
+}: {
+  codeContext: AutofixRootCauseCodeContext[];
+  groupId: string;
+  repos: AutofixRepository[];
+  runId: string;
+  previousDefaultStepIndex?: number;
+  previousInsightCount?: number;
+}) {
+  return codeContext?.map((fix, index) => (
+    <CodeContextItem
+      key={fix.id}
+      fix={fix}
+      index={index}
+      groupId={groupId}
+      runId={runId}
+      previousDefaultStepIndex={previousDefaultStepIndex}
+      previousInsightCount={previousInsightCount}
+      repos={repos}
+    />
   ));
 }
 
