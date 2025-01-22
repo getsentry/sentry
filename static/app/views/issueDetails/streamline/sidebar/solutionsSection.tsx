@@ -114,9 +114,7 @@ export default function SolutionsSection({
     if (aiConfig.needsGenAIConsent) {
       return (
         <Summary>
-          <HeadlineText>
-            {t('Explore potential root causes and solutions with Sentry AI.')}
-          </HeadlineText>
+          {t('Explore potential root causes and solutions with Sentry AI.')}
         </Summary>
       );
     }
@@ -213,12 +211,6 @@ const SolutionsSectionContainer = styled('div')`
 const Summary = styled('div')`
   margin-bottom: ${space(0.5)};
   position: relative;
-`;
-
-const HeadlineText = styled('span')`
-  margin-right: ${space(0.5)};
-  word-break: break-word;
-  padding: 0 ${space(0.5)};
 `;
 
 const ResourcesWrapper = styled('div')<{isExpanded: boolean}>`
