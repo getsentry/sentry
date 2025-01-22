@@ -11,14 +11,18 @@ import {IconChevron, IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {EntryType, type EventTransaction, type Frame} from 'sentry/types/event';
-import type {PlatformKey} from 'sentry/types/project';
+import type {Organization} from 'sentry/types/organization';
+import type {PlatformKey, Project} from 'sentry/types/project';
 import {StackView} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {Frame as ProfilingFrame} from 'sentry/utils/profiling/frame';
 import type {Profile} from 'sentry/utils/profiling/profile/profile';
-import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
+import {
+  generateContinuousProfileFlamechartRouteWithQuery,
+  generateProfileFlamechartRouteWithQuery,
+} from 'sentry/utils/profiling/routes';
 import {formatTo} from 'sentry/utils/profiling/units/units';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -37,7 +41,12 @@ interface SpanProfileDetailsProps {
   onNoProfileFound?: () => void;
 }
 
-export function useSpanProfileDetails(event: any, span: any) {
+export function useSpanProfileDetails(
+  organization: Organization,
+  project: Project | undefined,
+  event: Readonly<EventTransaction>,
+  span: Readonly<SpanType>
+) {
   const profileGroup = useProfileGroup();
 
   const processedEvent = useMemo(() => {
@@ -131,9 +140,43 @@ export function useSpanProfileDetails(event: any, span: any) {
     };
   }, [index, maxNodes, event, nodes]);
 
+  const profileTarget = useMemo(() => {
+    if (defined(project)) {
+      const profileContext = event.contexts.profile ?? {};
+
+      if (defined(profileContext.profile_id)) {
+        return generateProfileFlamechartRouteWithQuery({
+          orgSlug: organization.slug,
+          projectSlug: project.slug,
+          profileId: profileContext.profile_id,
+          query: {
+            spanId: span.span_id,
+          },
+        });
+      }
+
+      if (defined(profileContext.profiler_id)) {
+        return generateContinuousProfileFlamechartRouteWithQuery({
+          orgSlug: organization.slug,
+          projectSlug: project.slug,
+          profilerId: profileContext.profiler_id,
+          start: new Date(event.startTimestamp * 1000).toISOString(),
+          end: new Date(event.endTimestamp * 1000).toISOString(),
+          query: {
+            eventId: event.id,
+            spanId: span.span_id,
+          },
+        });
+      }
+    }
+
+    return undefined;
+  }, [organization, project, event, span]);
+
   return {
     processedEvent,
     profileGroup,
+    profileTarget,
     profile,
     nodes,
     index,
@@ -156,8 +199,7 @@ export function SpanProfileDetails({
   const project = projects.find(p => p.id === event.projectID);
   const {
     processedEvent,
-    profileGroup,
-    profile,
+    profileTarget,
     nodes,
     index,
     setIndex,
@@ -166,25 +208,9 @@ export function SpanProfileDetails({
     hasPrevious,
     totalWeight,
     frames,
-  } = useSpanProfileDetails(event, span);
+  } = useSpanProfileDetails(organization, project, event, span);
 
-  const spanTarget =
-    project &&
-    profileGroup &&
-    profileGroup.metadata.profileID &&
-    profile &&
-    generateProfileFlamechartRouteWithQuery({
-      orgSlug: organization.slug,
-      projectSlug: project.slug,
-      profileId: profileGroup.metadata.profileID,
-      query: {
-        tid: String(profile.threadId),
-        spanId: span.span_id,
-        sorting: 'call order',
-      },
-    });
-
-  if (!defined(profile) || !defined(spanTarget)) {
+  if (!defined(profileTarget)) {
     return null;
   }
 
@@ -245,7 +271,7 @@ export function SpanProfileDetails({
           </ButtonBar>
         </SpanDetailsItem>
         <SpanDetailsItem>
-          <LinkButton icon={<IconProfiling />} to={spanTarget} size="xs">
+          <LinkButton icon={<IconProfiling />} to={profileTarget} size="xs">
             {t('Profile')}
           </LinkButton>
         </SpanDetailsItem>

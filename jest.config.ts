@@ -1,4 +1,3 @@
-/* eslint-env node */
 import type {Config} from '@jest/types';
 import path from 'node:path';
 import process from 'node:process';

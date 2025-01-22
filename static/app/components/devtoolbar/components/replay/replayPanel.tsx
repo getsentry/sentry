@@ -43,7 +43,11 @@ export default function ReplayPanel() {
         disabled={isDisabled || buttonLoading}
         onClick={async () => {
           setButtonLoading(true);
-          isRecordingSession ? await stopRecording() : await startRecordingSession();
+          if (isRecordingSession) {
+            await stopRecording();
+          } else {
+            await startRecordingSession();
+          }
           setButtonLoading(false);
           const type = isRecordingSession ? 'stop' : 'start';
           trackAnalytics?.({

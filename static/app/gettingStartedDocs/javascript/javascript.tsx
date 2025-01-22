@@ -95,7 +95,7 @@ const result = client.getBooleanValue('my-flag', false);`,
   },
   [IntegrationOptions.UNLEASH]: {
     importStatement: `import { UnleashClient } from 'unleash-proxy-client';`,
-    integration: 'unleashIntegration(UnleashClient)',
+    integration: 'unleashIntegration({unleashClientClass: UnleashClient})',
     sdkInit: `const unleash = new UnleashClient({
   url: "https://<your-unleash-instance>/api/frontend",
   clientKey: "<your-client-side-token>",
