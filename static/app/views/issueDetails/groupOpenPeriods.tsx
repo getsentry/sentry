@@ -96,7 +96,8 @@ function IssueOpenPeriodsList() {
     col: GridColumnOrder<string>,
     dataRow: OpenPeriodDisplayData
   ) => {
-    return <AlignLeft>{dataRow[col.key]}</AlignLeft>;
+    const column = col.key as keyof OpenPeriodDisplayData;
+    return <AlignLeft>{dataRow[column]}</AlignLeft>;
   };
 
   return (
