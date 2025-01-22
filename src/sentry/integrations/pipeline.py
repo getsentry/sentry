@@ -253,7 +253,7 @@ class IntegrationPipeline(Pipeline):
             self.get_logger().info(
                 "finish_pipeline.multi_region_install_error",
                 extra={
-                    "organization_id": self.organization_id,
+                    "organization_id": self.organization.id,
                     "provider_key": self.provider.key,
                 },
             )
