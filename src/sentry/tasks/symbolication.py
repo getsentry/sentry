@@ -148,6 +148,7 @@ def _do_symbolicate_event(
     symbolication_start_time = time()
 
     project = Project.objects.get_from_cache(id=project_id)
+    org = project.organization
     # needed for efficient featureflag checks in getsentry
     # NOTE: The `organization` is used for constructing the symbol sources.
     with sentry_sdk.start_span(op="lang.native.symbolicator.organization.get_from_cache"):
@@ -168,6 +169,7 @@ def _do_symbolicate_event(
     symbolicator = Symbolicator(
         task_kind=task_kind,
         on_request=on_symbolicator_request,
+        org=org,
         project=project,
         event_id=event_id,
     )

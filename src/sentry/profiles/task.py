@@ -498,6 +498,7 @@ def run_symbolicate(
     symbolicator = Symbolicator(
         task_kind=SymbolicatorTaskKind(platform=symbolicator_platform),
         on_request=on_symbolicator_request,
+        org=project.organization,
         project=project,
         event_id=get_event_id(profile),
     )
@@ -765,6 +766,7 @@ def _deobfuscate_using_symbolicator(project: Project, profile: Profile, debug_fi
     symbolicator = Symbolicator(
         task_kind=SymbolicatorTaskKind(platform=SymbolicatorPlatform.jvm),
         on_request=on_symbolicator_request,
+        org=project.organization,
         project=project,
         event_id=get_event_id(profile),
     )

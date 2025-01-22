@@ -21,6 +21,7 @@ from sentry.lang.native.sources import (
     get_scraping_config,
     sources_for_symbolication,
 )
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.net.http import Session
 from sentry.utils import metrics
@@ -76,6 +77,7 @@ class Symbolicator:
         self,
         task_kind: SymbolicatorTaskKind,
         on_request: Callable[[], None],
+        org: Organization,
         project: Project,
         event_id: str,
     ):
@@ -92,6 +94,7 @@ class Symbolicator:
 
         self.base_url = base_url
         self.on_request = on_request
+        self.org = org
         self.project = project
         self.event_id = event_id
 
@@ -103,6 +106,7 @@ class Symbolicator:
         """
         session = SymbolicatorSession(
             url=self.base_url,
+            org_id=str(self.org.id),
             project_id=str(self.project.id),
             event_id=str(self.event_id),
             timeout=settings.SYMBOLICATOR_POLL_TIMEOUT,
@@ -297,11 +301,13 @@ class SymbolicatorSession:
     def __init__(
         self,
         url=None,
+        org_id=None,
         project_id=None,
         event_id=None,
         timeout=None,
     ):
         self.url = url
+        self.org_id = org_id
         self.project_id = project_id
         self.event_id = event_id
         self.timeout = timeout
@@ -403,7 +409,7 @@ class SymbolicatorSession:
                 wait *= 2.0
 
     def create_task(self, path, **kwargs):
-        params = {"timeout": self.timeout, "scope": self.project_id}
+        params = {"timeout": self.timeout, "scope": self.project_id, "org": self.org_id}
 
         with metrics.timer(
             "events.symbolicator.create_task",
@@ -412,7 +418,7 @@ class SymbolicatorSession:
             return self._request(method="post", path=path, params=params, **kwargs)
 
     def query_task(self, task_id):
-        params = {"timeout": self.timeout, "scope": self.project_id}
+        params = {"timeout": self.timeout, "scope": self.project_id, "org": self.org_id}
         task_url = f"requests/{task_id}"
 
         with metrics.timer("events.symbolicator.query_task"):
