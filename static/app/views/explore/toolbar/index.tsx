@@ -50,8 +50,8 @@ export function ExploreToolbar({extras}: ExploreToolbarProps) {
         sorts={sortBys}
         setSorts={setSortBys}
       />
-      <ToolbarSuggestedQueries />
       <ToolbarSaveAs />
+      <ToolbarSuggestedQueries />
     </div>
   );
 }
