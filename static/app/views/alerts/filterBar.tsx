@@ -9,13 +9,16 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 import TeamFilter from './list/rules/teamFilter';
-import {getQueryStatus, getTeamParams} from './utils';
+import {CombinedAlertType} from './types';
+import {getQueryAlertType, getQueryStatus, getTeamParams} from './utils';
 
 interface Props {
   location: Location<any>;
   onChangeFilter: (activeFilters: string[]) => void;
   onChangeSearch: (query: string) => void;
   hasStatusFilters?: boolean;
+  hasTypeFilter?: boolean;
+  onChangeAlertType?: (types: CombinedAlertType[]) => void;
   onChangeStatus?: (status: string) => void;
 }
 
@@ -24,16 +27,48 @@ function FilterBar({
   onChangeSearch,
   onChangeFilter,
   onChangeStatus,
+  onChangeAlertType,
   hasStatusFilters,
+  hasTypeFilter,
 }: Props) {
   const selectedTeams = getTeamParams(location.query.team);
   const selectedStatus = getQueryStatus(location.query.status);
+  const selectedAlertTypes = getQueryAlertType(location.query.alertType);
 
   return (
     <Wrapper>
       <FilterButtons gap={1.5}>
         <TeamFilter selectedTeams={selectedTeams} handleChangeFilter={onChangeFilter} />
         <ProjectPageFilter />
+        {hasTypeFilter && (
+          <CompactSelect
+            multiple
+            triggerLabel={selectedAlertTypes.length === 0 ? t('All') : undefined}
+            triggerProps={{
+              prefix: t('Alert Type'),
+            }}
+            options={[
+              {
+                value: CombinedAlertType.ISSUE,
+                label: t('Issue Alerts'),
+              },
+              {
+                value: CombinedAlertType.METRIC,
+                label: t('Metric Alerts'),
+              },
+              {
+                value: CombinedAlertType.UPTIME,
+                label: t('Uptime Monitors'),
+              },
+              {
+                value: CombinedAlertType.CRONS,
+                label: t('Cron Monitors'),
+              },
+            ]}
+            value={selectedAlertTypes}
+            onChange={value => onChangeAlertType?.(value.map(v => v.value))}
+          />
+        )}
         {hasStatusFilters && onChangeStatus && (
           <CompactSelect
             triggerProps={{

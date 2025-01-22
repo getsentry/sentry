@@ -218,3 +218,20 @@ export function getTeamParams(team?: string | string[]): string[] {
 
   return toArray(team);
 }
+
+/**
+ * Normalize an alert type string
+ */
+export function getQueryAlertType(alertType?: string | string[]): CombinedAlertType[] {
+  if (alertType === undefined) {
+    return [];
+  }
+
+  if (alertType === '') {
+    return [];
+  }
+
+  const validTypes = new Set(Object.values(CombinedAlertType));
+
+  return [...validTypes.intersection(new Set(toArray(alertType)))];
+}
