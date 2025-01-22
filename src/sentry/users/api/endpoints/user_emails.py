@@ -3,7 +3,6 @@ import logging
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from django.utils.translation import gettext as _
-from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -15,17 +14,8 @@ from sentry.api.base import control_silo_endpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.api.validators import AllowedEmailField
-from sentry.apidocs.constants import (
-    RESPONSE_BAD_REQUEST,
-    RESPONSE_CONFLICT,
-    RESPONSE_FORBIDDEN,
-    RESPONSE_NO_CONTENT,
-)
-from sentry.apidocs.examples.user_examples import UserExamples
-from sentry.apidocs.parameters import GlobalParams
-from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.users.api.bases.user import UserEndpoint
-from sentry.users.api.serializers.useremail import UserEmailSerializer, UserEmailSerializerResponse
+from sentry.users.api.serializers.useremail import UserEmailSerializer
 from sentry.users.models.user import User
 from sentry.users.models.user_option import UserOption
 from sentry.users.models.useremail import UserEmail
@@ -94,29 +84,16 @@ def add_email(email: str, user: User) -> UserEmail:
     return new_email
 
 
-@extend_schema(tags=["Users"])
 @control_silo_endpoint
 class UserEmailsEndpoint(UserEndpoint):
     publish_status = {
-        "DELETE": ApiPublishStatus.PUBLIC,
-        "GET": ApiPublishStatus.PUBLIC,
-        "PUT": ApiPublishStatus.PUBLIC,
-        "POST": ApiPublishStatus.PUBLIC,
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.UNOWNED
 
-    @extend_schema(
-        operation_id="List user emails",
-        parameters=[GlobalParams.USER_ID],
-        request=None,
-        responses={
-            200: inline_sentry_response_serializer(
-                "UserEmailSerializerResponse", list[UserEmailSerializerResponse]
-            ),
-            403: RESPONSE_FORBIDDEN,
-        },
-        examples=UserExamples.LIST_USER_EMAILS,
-    )
     def get(self, request: Request, user: User) -> Response:
         """
         Returns a list of emails. Primary email will have `isPrimary: true`
@@ -129,22 +106,6 @@ class UserEmailsEndpoint(UserEndpoint):
             status=200,
         )
 
-    @extend_schema(
-        operation_id="Add a secondary email address",
-        parameters=[GlobalParams.USER_ID],
-        request=EmailValidator,
-        responses={
-            200: inline_sentry_response_serializer(
-                "UserEmailSerializerResponse", list[UserEmailSerializerResponse]
-            ),
-            201: inline_sentry_response_serializer(
-                "UserEmailSerializerResponse", list[UserEmailSerializerResponse]
-            ),
-            403: RESPONSE_FORBIDDEN,
-            409: RESPONSE_CONFLICT,
-        },
-        examples=UserExamples.ADD_SECONDARY_EMAIL,
-    )
     @sudo_required
     def post(self, request: Request, user: User) -> Response:
         """
@@ -196,18 +157,6 @@ class UserEmailsEndpoint(UserEndpoint):
                 status=409,
             )
 
-    @extend_schema(
-        operation_id="Update a primary email address",
-        parameters=[GlobalParams.USER_ID],
-        request=EmailValidator,
-        responses={
-            200: inline_sentry_response_serializer(
-                "UserEmailSerializerResponse", list[UserEmailSerializerResponse]
-            ),
-            403: RESPONSE_FORBIDDEN,
-            400: RESPONSE_BAD_REQUEST,
-        },
-    )
     @sudo_required
     def put(self, request: Request, user: User) -> Response:
         """
@@ -299,16 +248,6 @@ class UserEmailsEndpoint(UserEndpoint):
             status=200,
         )
 
-    @extend_schema(
-        operation_id="Remove an email address",
-        parameters=[GlobalParams.USER_ID],
-        request=UserEmailSerializer,
-        responses={
-            204: RESPONSE_NO_CONTENT,
-            403: RESPONSE_FORBIDDEN,
-            400: RESPONSE_BAD_REQUEST,
-        },
-    )
     @sudo_required
     def delete(self, request: Request, user: User) -> Response:
         """
