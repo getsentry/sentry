@@ -308,7 +308,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
         if contents.get("truncated"):
             # e.g. getsentry/DataForThePeople
             logger.warning(
-                "The tree for %s has been truncated. Use different a approach for retrieving remaining contents of tree.",
+                "The tree for %s has been truncated. Use different a approach for retrieving contents of tree.",
                 repo_full_name,
             )
         tree = contents["tree"]
