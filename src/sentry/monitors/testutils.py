@@ -16,13 +16,13 @@ def build_checkin_item(
     partition: int = 0,
     message_overrides=None,
     payload_overrides=None,
-):
+) -> CheckinItem:
     if ts is None:
         ts = datetime.now()
 
     message: CheckIn = {
         "message_type": "check_in",
-        "payload": {},
+        "payload": "{}",
         "start_time": ts.timestamp(),
         "project_id": 1,
         "sdk": None,
@@ -43,7 +43,7 @@ def build_checkin_item(
 
 def build_checkin_processing_error(
     processing_errors: Sequence[ProcessingError] | None = None, **checkin_item_params
-):
+) -> CheckinProcessingError:
     if processing_errors is None:
         processing_errors = [
             {
