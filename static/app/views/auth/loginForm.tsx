@@ -78,7 +78,7 @@ function LoginForm({authConfig}: Props) {
       {hasLoginProvider && (
         <ExternalProviderOptions
           type="signin"
-          githubLink={vstsLoginLink}
+          gitHubLink={githubLoginLink}
           azureDevOpsLink={vstsLoginLink}
         />
       )}

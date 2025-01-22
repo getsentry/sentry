@@ -114,7 +114,7 @@ function RegisterForm({authConfig}: Props) {
         <ExternalProviderOptions
           type="signup"
           googleLink={signUpProviderUrls.google}
-          githubLink={signUpProviderUrls.github}
+          gitHubLink={signUpProviderUrls.github}
           azureDevOpsLink={signUpProviderUrls.vsts}
         />
       )}

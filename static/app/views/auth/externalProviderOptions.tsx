@@ -10,7 +10,7 @@ import {space} from 'sentry/styles/space';
 interface ExternalProviderOptionsProps {
   type: 'signin' | 'signup';
   azureDevOpsLink?: string;
-  githubLink?: string;
+  gitHubLink?: string;
   googleLink?: string;
 }
 
@@ -19,7 +19,7 @@ interface ExternalProviderOptionsProps {
 export function ExternalProviderOptions({
   type,
   googleLink,
-  githubLink,
+  gitHubLink,
   azureDevOpsLink,
 }: ExternalProviderOptionsProps) {
   return (
@@ -35,9 +35,9 @@ export function ExternalProviderOptions({
             {type === 'signin' ? t('Sign in with Google') : t('Sign up with Google')}
           </LinkButton>
         )}
-        {githubLink && (
-          <LinkButton size="sm" icon={<IconGithub />} href={githubLink}>
-            {type === 'signin' ? t('Sign in with Github') : t('Sign up with Github')}
+        {gitHubLink && (
+          <LinkButton size="sm" icon={<IconGithub />} href={gitHubLink}>
+            {type === 'signin' ? t('Sign in with GitHub') : t('Sign up with GitHub')}
           </LinkButton>
         )}
         {azureDevOpsLink && (
