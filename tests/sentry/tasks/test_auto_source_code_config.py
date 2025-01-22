@@ -8,6 +8,7 @@ from sentry.eventstore.models import Event
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.source_code_management.repo_trees import RepoAndBranch, RepoTree
+from sentry.issues.auto_source_code_config.code_mapping import CodeMapping
 from sentry.models.organization import OrganizationStatus
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
@@ -689,7 +690,20 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
             "sentry/tasks.py",
         ]
 
-    def test_auto_source_code_config_single_project(self):
+    @patch(OLD_CODE_PATH)
+    @patch(
+        "sentry.issues.auto_source_code_config.code_mapping.CodeMappingTreesHelper.generate_code_mappings",
+        return_value=[
+            CodeMapping(
+                repo=RepoAndBranch(name="repo", branch="master"),
+                stacktrace_root="sentry/models",
+                source_path="src/sentry/models",
+            )
+        ],
+    )
+    def test_auto_source_code_config_single_project(
+        self, mock_generate_code_mappings, mock_get_trees_for_org
+    ):
         assert not RepositoryProjectPathConfig.objects.filter(project_id=self.project.id).exists()
 
         for refactored_code_enabled in [True, False]:
