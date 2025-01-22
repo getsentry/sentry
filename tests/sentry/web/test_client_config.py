@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import urllib.parse
 from typing import Any
 
 import pytest
 from django.conf import settings
 from django.core.cache import cache
 from django.test import override_settings
+from django.urls import get_resolver
 
 from sentry import options
 from sentry.app import env
@@ -374,8 +376,11 @@ def test_client_config_no_preload_data_if_accept_invitation_view():
         organization=Factories.create_organization(name="test-org"),
         role="owner",
     )
-
-    request.path = member.get_invite_link().split("/", 3)[-1]
+    invite_url = member.get_invite_link()
+    invite_path = urllib.parse.urlparse(invite_url).path
+    resolver = get_resolver()
+    request.path = invite_path
+    request.resolver_match = resolver.resolve(invite_path)
 
     client_config = get_client_config(request)
 

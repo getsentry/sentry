@@ -3,7 +3,6 @@ from __future__ import annotations
 from collections.abc import Callable, Iterable, Mapping
 from functools import cached_property
 from typing import Any
-from urllib.parse import quote as urlquote
 
 import sentry_sdk
 from django.conf import settings
@@ -17,7 +16,6 @@ from rest_framework.request import Request
 
 import sentry
 from sentry import features, options
-from sentry.api.endpoints.accept_organization_invite import get_invite_state
 from sentry.api.utils import generate_region_url
 from sentry.auth import superuser
 from sentry.auth.services.auth import AuthenticatedToken, AuthenticationContext
@@ -44,7 +42,7 @@ from sentry.users.services.user.service import user_service
 from sentry.utils import auth, json
 from sentry.utils.assets import get_frontend_dist_prefix
 from sentry.utils.email import is_smtp_enabled
-from sentry.utils.http import absolute_uri, is_using_customer_domain
+from sentry.utils.http import is_using_customer_domain
 from sentry.utils.settings import (
     is_self_hosted,
     is_self_hosted_errors_only,
@@ -405,15 +403,16 @@ class _ClientConfig:
         # If the user is viewing the accept invitation user interface,
         # we should avoid preloading the data as they might not yet have access to it,
         # which could cause an error notification (403) to pop up in the user interface.
-        if self.user and self.request and self.request.path.startswith("accept/"):
-
-            member_id = self.request.path.split("/")[1]
-            invite_state = get_invite_state(int(member_id), None, int(self.user.id), self.request)
-            member = getattr(invite_state, "member", None)
-            invitation_link = member.invitation_link if member else None
-
-            if invitation_link == absolute_uri(urlquote(self.request.path)):
-                return False
+        invite_route_names = (
+            "sentry-accept-invite",
+            "sentry-organization-accept-invite",
+        )
+        if (
+            self.request
+            and self.request.resolver_match
+            and self.request.resolver_match.url_name in invite_route_names
+        ):
+            return False
 
         return True
 
