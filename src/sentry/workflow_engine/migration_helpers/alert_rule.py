@@ -73,7 +73,8 @@ def get_detector_trigger(
 ) -> DataCondition | None:
     """
     Helper method to find the detector trigger corresponding to an AlertRuleTrigger.
-    Returns None if the detector trigger cannot be found.
+    Returns None if the detector cannot be found. Raises an exception if the detector
+    exists but the detector trigger cannot be found.
     """
     alert_rule = alert_rule_trigger.alert_rule
     try:
@@ -102,7 +103,7 @@ def get_action_filter(
 ) -> DataCondition:
     """
     Helper method to find the action filter corresponding to an AlertRuleTrigger.
-    Returns None if the action filter cannot be found.
+    Raises an exception if the action filter cannot be found.
     """
     alert_rule = alert_rule_trigger.alert_rule
     try:
@@ -608,7 +609,16 @@ def dual_delete_migrated_alert_rule_trigger_action(
     trigger_action: AlertRuleTriggerAction,
     user: RpcUser | None = None,
 ) -> None:
-    aarta = ActionAlertRuleTriggerAction.objects.get(alert_rule_trigger_action=trigger_action)
+    alert_rule_trigger = trigger_action.alert_rule_trigger
+    # Check that we dual wrote this action
+    priority = PRIORITY_MAP[alert_rule_trigger.label]
+    detector_trigger = get_detector_trigger(alert_rule_trigger, priority)
+    if detector_trigger is None:
+        return None
+    try:
+        aarta = ActionAlertRuleTriggerAction.objects.get(alert_rule_trigger_action=trigger_action)
+    except ActionAlertRuleTriggerAction.DoesNotExist:
+        raise MissingACITableException
     action = aarta.action
     action.delete()
     return None

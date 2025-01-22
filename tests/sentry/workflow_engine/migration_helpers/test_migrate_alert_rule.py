@@ -1,5 +1,7 @@
 from unittest import mock
 
+import pytest
+
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.incidents.grouptype import MetricAlertFire
 from sentry.incidents.models.alert_rule import (
@@ -14,9 +16,12 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.users.services.user.service import user_service
 from sentry.workflow_engine.migration_helpers.alert_rule import (
+    MissingACITableException,
     dual_delete_migrated_alert_rule,
     dual_delete_migrated_alert_rule_trigger,
     dual_delete_migrated_alert_rule_trigger_action,
+    get_action_filter,
+    get_detector_trigger,
     get_resolve_threshold,
     migrate_alert_rule,
     migrate_metric_action,
@@ -534,3 +539,88 @@ class AlertRuleMigrationHelpersTest(APITestCase):
         dual_delete_migrated_alert_rule_trigger_action(self.alert_rule_trigger_action_integration)
         assert not Action.objects.filter(id=action_id).exists()
         assert not ActionAlertRuleTriggerAction.objects.filter(id=aarta_id).exists()
+
+    def test_dual_delete_unmigrated_alert_rule_trigger(self):
+        """
+        Test that nothing weird happens if we try to dual delete a trigger whose alert rule was
+        never dual written.
+        """
+        # returns None quietly—nothing to assert, just make sure we don't throw an error
+        dual_delete_migrated_alert_rule_trigger(self.alert_rule_trigger_critical)
+
+    def test_dual_delete_unmigrated_alert_rule_trigger_action(self):
+        """
+        Test that nothing weird happens if we try to dual delete a trigger action whose alert
+        rule was never dual written.
+        """
+        dual_delete_migrated_alert_rule_trigger_action(self.alert_rule_trigger_action_integration)
+
+    def test_get_detector_trigger_no_detector_condition_group(self):
+        """
+        Test that we raise an exception if the corresponding detector for an
+        alert rule trigger is missing its workflow condition group.
+        """
+        migrate_alert_rule(self.metric_alert, self.rpc_user)
+        detector = AlertRuleDetector.objects.get(alert_rule=self.metric_alert).detector
+        detector.update(workflow_condition_group=None)
+
+        with pytest.raises(MissingACITableException):
+            get_detector_trigger(self.alert_rule_trigger_critical, DetectorPriorityLevel.HIGH)
+
+    def test_get_detector_trigger_no_detector_trigger(self):
+        """
+        Test that we raise an exception if the corresponding detector trigger
+        for an alert rule trigger is missing.
+        """
+        migrate_alert_rule(self.metric_alert, self.rpc_user)
+        data_conditions = migrate_metric_data_conditions(self.alert_rule_trigger_critical)
+        assert data_conditions is not None
+        detector_trigger, _ = data_conditions
+
+        detector_trigger.delete()
+        with pytest.raises(MissingACITableException):
+            get_detector_trigger(self.alert_rule_trigger_critical, DetectorPriorityLevel.HIGH)
+
+    def test_get_action_filter_no_workflow(self):
+        """
+        Test that we raise an exception if the corresponding workflow for an
+        alert rule trigger action does not exist.
+        """
+        migrate_alert_rule(self.metric_alert, self.rpc_user)
+        workflow = AlertRuleWorkflow.objects.get(alert_rule=self.metric_alert).workflow
+        workflow.delete()
+
+        with pytest.raises(MissingACITableException):
+            get_action_filter(self.alert_rule_trigger_critical, DetectorPriorityLevel.HIGH)
+
+    def test_get_action_filter_no_action_filter(self):
+        """
+        Test that we raise an exception if the corresponding action filter for an
+        alert rule trigger action does not exist.
+        """
+        migrate_alert_rule(self.metric_alert, self.rpc_user)
+        data_conditions = migrate_metric_data_conditions(self.alert_rule_trigger_critical)
+        assert data_conditions is not None
+        _, action_filter = data_conditions
+        action_filter.delete()
+
+        with pytest.raises(MissingACITableException):
+            get_action_filter(self.alert_rule_trigger_critical, DetectorPriorityLevel.HIGH)
+
+    def test_dual_delete_action_missing_aarta(self):
+        """
+        Test that we raise an exception if the aarta entry for a migrated trigger action is missing
+        """
+        migrate_alert_rule(self.metric_alert, self.rpc_user)
+        migrate_metric_data_conditions(self.alert_rule_trigger_critical)
+        migrate_metric_action(self.alert_rule_trigger_action_integration)
+
+        aarta = ActionAlertRuleTriggerAction.objects.get(
+            alert_rule_trigger_action=self.alert_rule_trigger_action_integration
+        )
+        aarta.delete()
+
+        with pytest.raises(MissingACITableException):
+            dual_delete_migrated_alert_rule_trigger_action(
+                self.alert_rule_trigger_action_integration
+            )
