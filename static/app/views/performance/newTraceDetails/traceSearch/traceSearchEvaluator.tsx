@@ -41,7 +41,7 @@ export function searchInTraceTreeTokens(
   previousNode: TraceTreeNode<TraceTree.NodeValue> | null,
   cb: (
     results: [
-      ReadonlyArray<TraceSearchResult>,
+      readonly TraceSearchResult[],
       Map<TraceTreeNode<TraceTree.NodeValue>, number>,
       {resultIndex: number | undefined; resultIteratorIndex: number | undefined} | null,
     ]
@@ -250,7 +250,7 @@ export function searchInTraceTreeText(
   previousNode: TraceTreeNode<TraceTree.NodeValue> | null,
   cb: (
     results: [
-      ReadonlyArray<TraceSearchResult>,
+      readonly TraceSearchResult[],
       Map<TraceTreeNode<TraceTree.NodeValue>, number>,
       {resultIndex: number | undefined; resultIteratorIndex: number | undefined} | null,
     ]
@@ -261,7 +261,7 @@ export function searchInTraceTreeText(
     resultIndex: number | undefined;
     resultIteratorIndex: number | undefined;
   } | null = null;
-  const results: Array<TraceSearchResult> = [];
+  const results: TraceSearchResult[] = [];
   const resultLookup = new Map();
 
   let i = 0;

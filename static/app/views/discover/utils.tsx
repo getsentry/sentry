@@ -84,7 +84,7 @@ const TEMPLATE_TABLE_COLUMN: TableColumn<string> = {
   width: COL_WIDTH_UNDEFINED,
 };
 
-export function decodeColumnOrder(fields: Readonly<Field[]>): TableColumn<string>[] {
+export function decodeColumnOrder(fields: readonly Field[]): TableColumn<string>[] {
   return fields.map((f: Field) => {
     const column: TableColumn<string> = {...TEMPLATE_TABLE_COLUMN};
 

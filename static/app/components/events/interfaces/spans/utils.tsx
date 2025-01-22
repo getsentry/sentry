@@ -470,7 +470,7 @@ export function parseTrace(
     }
   );
 
-  const spans: Array<RawSpanType | AggregateSpanType> = spanEntry?.data ?? [];
+  const spans: (RawSpanType | AggregateSpanType)[] = spanEntry?.data ?? [];
 
   const traceContext = getTraceContext(event);
   const traceID = traceContext?.trace_id || '';
@@ -558,7 +558,7 @@ export function parseTrace(
 
     // get any span children whose parent_span_id is equal to span.parent_span_id,
     // otherwise start with an empty array
-    const spanChildren: Array<SpanType> = acc.childSpans[span.parent_span_id] ?? [];
+    const spanChildren: SpanType[] = acc.childSpans[span.parent_span_id] ?? [];
 
     spanChildren.push(span);
 

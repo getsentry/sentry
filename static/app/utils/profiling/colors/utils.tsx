@@ -8,7 +8,7 @@ import type {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
 import type {FlamegraphFrame} from '../flamegraphFrame';
 
 function uniqueCountBy<T>(
-  arr: ReadonlyArray<T>,
+  arr: readonly T[],
   predicate: (t: T) => string | boolean
 ): number {
   const visited: Record<string, number> = {};
@@ -34,11 +34,11 @@ function uniqueCountBy<T>(
   return count;
 }
 
-function uniqueBy<T>(arr: ReadonlyArray<T>, predicate: (t: T) => unknown): Array<T> {
+function uniqueBy<T>(arr: readonly T[], predicate: (t: T) => unknown): T[] {
   const cb = typeof predicate === 'function' ? predicate : (o: T) => o[predicate];
 
   const seen = new Set();
-  const set: Array<T> = [];
+  const set: T[] = [];
 
   for (let i = 0; i < arr.length; i++) {
     const item = arr[i];
@@ -55,7 +55,7 @@ function uniqueBy<T>(arr: ReadonlyArray<T>, predicate: (t: T) => unknown): Array
 }
 
 export function makeColorBufferForNodes(
-  frames: ReadonlyArray<FlamegraphFrame>,
+  frames: readonly FlamegraphFrame[],
   colorMap: Map<any, ColorChannels>,
   fallbackColor: ColorChannels
 ): number[] {
@@ -86,7 +86,7 @@ export function makeColorBufferForNodes(
 }
 
 export function makeColorBuffer(
-  frames: ReadonlyArray<FlamegraphFrame>,
+  frames: readonly FlamegraphFrame[],
   colorMap: Map<any, ColorChannels>,
   fallbackColor: ColorChannels
 ): number[] {
@@ -120,7 +120,7 @@ export const makeStackToColor = (
   fallbackColor: [number, number, number, number]
 ): FlamegraphTheme['COLORS']['STACK_TO_COLOR'] => {
   return (
-    frames: ReadonlyArray<FlamegraphFrame>,
+    frames: readonly FlamegraphFrame[],
     generateColorMap: ColorMapFn,
     colorBucket: FlamegraphTheme['COLORS']['COLOR_BUCKET'],
     theme: FlamegraphTheme
@@ -179,7 +179,7 @@ function defaultFrameSort(a: FlamegraphFrame, b: FlamegraphFrame): number {
 }
 
 export function makeColorMapBySymbolName(
-  frames: ReadonlyArray<FlamegraphFrame>,
+  frames: readonly FlamegraphFrame[],
   colorBucket: FlamegraphTheme['COLORS']['COLOR_BUCKET']
 ): Map<FlamegraphFrame['frame']['key'], ColorChannels> {
   const colors = new Map<FlamegraphFrame['key'], ColorChannels>();
@@ -205,7 +205,7 @@ export function makeColorMapBySymbolName(
 }
 
 export function makeColorMapByRecursion(
-  frames: ReadonlyArray<FlamegraphFrame>,
+  frames: readonly FlamegraphFrame[],
   colorBucket: FlamegraphTheme['COLORS']['COLOR_BUCKET']
 ): Map<FlamegraphFrame['frame']['key'], ColorChannels> {
   const colors = new Map<FlamegraphFrame['frame']['key'], ColorChannels>();
@@ -233,7 +233,7 @@ export function makeColorMapByRecursion(
 }
 
 export function makeColorMapByLibrary(
-  frames: ReadonlyArray<FlamegraphFrame>,
+  frames: readonly FlamegraphFrame[],
   colorBucket: FlamegraphTheme['COLORS']['COLOR_BUCKET']
 ): Map<FlamegraphFrame['frame']['key'], ColorChannels> {
   const colors = new Map<FlamegraphFrame['key'], ColorChannels>();
@@ -265,7 +265,7 @@ export function makeColorMapByLibrary(
 }
 
 export function makeColorMapBySystemFrame(
-  frames: ReadonlyArray<FlamegraphFrame>,
+  frames: readonly FlamegraphFrame[],
   colorBucket: FlamegraphTheme['COLORS']['COLOR_BUCKET']
 ): Map<FlamegraphFrame['frame']['key'], ColorChannels> {
   const colors = new Map<FlamegraphFrame['key'], ColorChannels>();
@@ -294,7 +294,7 @@ export function makeColorMapBySystemFrame(
 }
 
 export function makeColorMapBySystemVsApplicationFrame(
-  frames: ReadonlyArray<FlamegraphFrame>,
+  frames: readonly FlamegraphFrame[],
   _colorBucket: FlamegraphTheme['COLORS']['COLOR_BUCKET'],
   theme: FlamegraphTheme
 ): Map<FlamegraphFrame['frame']['key'], ColorChannels> {
@@ -321,7 +321,7 @@ export function makeColorMapBySystemVsApplicationFrame(
 }
 
 export function makeColorMapByApplicationFrame(
-  frames: ReadonlyArray<FlamegraphFrame>,
+  frames: readonly FlamegraphFrame[],
   colorBucket: FlamegraphTheme['COLORS']['COLOR_BUCKET']
 ): Map<FlamegraphFrame['frame']['key'], ColorChannels> {
   const colors = new Map<FlamegraphFrame['key'], ColorChannels>();
@@ -350,7 +350,7 @@ export function makeColorMapByApplicationFrame(
 }
 
 export function makeColorMapByFrequency(
-  frames: ReadonlyArray<FlamegraphFrame>,
+  frames: readonly FlamegraphFrame[],
   colorBucket: FlamegraphTheme['COLORS']['COLOR_BUCKET']
 ): Map<FlamegraphFrame['frame']['key'], ColorChannels> {
   let max = 0;
@@ -386,7 +386,7 @@ export function makeColorMapByFrequency(
 }
 
 export function makeSpansColorMapByOpAndDescription(
-  spans: ReadonlyArray<SpanChart['spans'][0]>,
+  spans: readonly SpanChart['spans'][0][],
   colorBucket: FlamegraphTheme['COLORS']['COLOR_BUCKET']
 ): Map<SpanChartNode['node']['span']['span_id'], ColorChannels> {
   const colors = new Map<SpanChartNode['node']['span']['span_id'], ColorChannels>();

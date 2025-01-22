@@ -30,12 +30,12 @@ import {
 
 type SimpleTag = {
   key: string;
-  topValues: Array<{
+  topValues: {
     count: number;
     name: string;
     value: string;
     query?: string;
-  }>;
+  }[];
   totalValues: number;
 };
 
