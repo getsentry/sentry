@@ -10,6 +10,8 @@ from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models.savedsearch import SortOptions
 
+DEFAULT_TIME_FILTER = {"period": "14d"}
+
 
 @region_silo_model
 class GroupSearchViewProject(DefaultFieldsModel):
@@ -49,7 +51,7 @@ class GroupSearchView(DefaultFieldsModelExisting):
     environments = ArrayField(
         models.CharField(max_length=ENVIRONMENT_NAME_MAX_LENGTH), default=list
     )
-    time_filters = models.JSONField(null=False, db_default={"period": "14d"})
+    time_filters = models.JSONField(null=False, db_default=DEFAULT_TIME_FILTER)
 
     class Meta:
         app_label = "sentry"
