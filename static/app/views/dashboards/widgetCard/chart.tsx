@@ -140,7 +140,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
 
     const datasetConfig = getDatasetConfig(widget.widgetType);
 
-    const getCustimeFieldRenderer = (
+    const getCustomFieldRenderer = (
       field: string,
       meta: MetaType,
       organization?: Organization
@@ -169,7 +169,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
             data={result.data}
             stickyHeaders
             fieldHeaderMap={datasetConfig.getFieldHeaderMap?.(widget.queries[i])}
-            getCustomFieldRenderer={getCustimeFieldRenderer}
+            getCustomFieldRenderer={getCustomFieldRenderer}
           />
         </TableWrapper>
       );
