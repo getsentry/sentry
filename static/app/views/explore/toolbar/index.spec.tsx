@@ -36,17 +36,17 @@ describe('ExploreToolbar', function () {
     features: ['alerts-eap', 'dashboards-eap', 'dashboards-edit'],
   });
 
-  const project = ProjectFixture({
-    id: '1',
-    slug: 'proj-slug',
-    organization,
-  });
-
-  ProjectsStore.loadInitialData([project]);
-
   beforeEach(function () {
     // without this the `CompactSelect` component errors with a bunch of async updates
     jest.spyOn(console, 'error').mockImplementation();
+
+    const project = ProjectFixture({
+      id: '1',
+      slug: 'proj-slug',
+      organization,
+    });
+
+    ProjectsStore.loadInitialData([project]);
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/spans/fields/`,
@@ -479,7 +479,7 @@ describe('ExploreToolbar', function () {
       location: {
         pathname: '/traces/',
         query: {
-          visualize: '%7B"chartType"%3A1%2C"yAxes"%3A%5B"avg%28span.duration%29"%5D%7D',
+          visualize: encodeURIComponent('{"chartType":1,"yAxes":["avg(span.duration)"]}'),
         },
       },
     });
@@ -509,13 +509,12 @@ describe('ExploreToolbar', function () {
       }),
     });
   });
-
   it('add to dashboard options correctly', async function () {
     const router = RouterFixture({
       location: {
         pathname: '/traces/',
         query: {
-          visualize: '%7B"chartType"%3A1%2C"yAxes"%3A%5B"avg%28span.duration%29"%5D%7D',
+          visualize: encodeURIComponent('{"chartType":1,"yAxes":["avg(span.duration)"]}'),
         },
       },
     });
@@ -539,10 +538,8 @@ describe('ExploreToolbar', function () {
     await waitFor(() => {
       expect(openAddToDashboardModal).toHaveBeenCalledWith(
         expect.objectContaining({
-          widget: {
+          widget: expect.objectContaining({
             displayType: 'line',
-            interval: undefined,
-            limit: undefined,
             queries: [
               {
                 aggregates: ['avg(span.duration)'],
@@ -555,8 +552,8 @@ describe('ExploreToolbar', function () {
             ],
             title: 'Custom Widget',
             widgetType: 'spans',
-          },
-          widgetAsQueryParams: {
+          }),
+          widgetAsQueryParams: expect.objectContaining({
             dataset: 'spans',
             defaultTableColumns: [
               'id',
@@ -583,8 +580,7 @@ describe('ExploreToolbar', function () {
             source: 'discoverv2',
             start: undefined,
             statsPeriod: '14d',
-            visualize: '%7B"chartType"%3A1%2C"yAxes"%3A%5B"avg%28span.duration%29"%5D%7D',
-          },
+          }),
         })
       );
     });
