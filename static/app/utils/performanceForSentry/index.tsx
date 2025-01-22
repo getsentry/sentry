@@ -58,76 +58,74 @@ export const onRenderCallback: ProfilerOnRenderCallback = (id, phase, actualDura
   }
 };
 
-export class PerformanceInteraction {
-  private static interactionSpan: Span | null = null;
-  private static interactionTimeoutId: number | undefined = undefined;
+export const PerformanceInteraction = (function () {
+  let _INTERACTION_SPAN: Span | null = null;
+  let _INTERACTION_TIMEOUT_ID: number | undefined = undefined;
+  return {
+    getSpan() {
+      return _INTERACTION_SPAN;
+    },
 
-  static getSpan() {
-    return PerformanceInteraction.interactionSpan;
-  }
+    startInteraction(name: string, timeout = INTERACTION_TIMEOUT, immediate = true) {
+      try {
+        const currentSpan = Sentry.getActiveSpan();
+        if (currentSpan) {
+          const currentIdleSpan = Sentry.getRootSpan(currentSpan);
+          // If interaction is started while idle still exists.
+          currentIdleSpan.setAttribute(
+            'sentry.idle_span_finish_reason',
+            'sentry.interactionStarted'
+          );
+          currentIdleSpan.end();
+        }
+        PerformanceInteraction.finishInteraction(immediate);
 
-  static startInteraction(name: string, timeout = INTERACTION_TIMEOUT, immediate = true) {
-    try {
-      const currentSpan = Sentry.getActiveSpan();
-      if (currentSpan) {
-        const currentIdleSpan = Sentry.getRootSpan(currentSpan);
-        // If interaction is started while idle still exists.
-        currentIdleSpan.setAttribute(
-          'sentry.idle_span_finish_reason',
-          'sentry.interactionStarted'
-        );
-        currentIdleSpan.end();
+        const span = Sentry.startInactiveSpan({
+          name: `ui.${name}`,
+          op: 'interaction',
+          forceTransaction: true,
+        });
+
+        _INTERACTION_SPAN = span || null;
+
+        // Auto interaction timeout
+        _INTERACTION_TIMEOUT_ID = window.setTimeout(() => {
+          if (!_INTERACTION_SPAN) {
+            return;
+          }
+          _INTERACTION_SPAN.setAttribute('ui.interaction.finish', 'timeout');
+          PerformanceInteraction.finishInteraction(true);
+        }, timeout);
+      } catch (e) {
+        Sentry.captureMessage(e);
       }
-      PerformanceInteraction.finishInteraction(immediate);
+    },
 
-      const span = Sentry.startInactiveSpan({
-        name: `ui.${name}`,
-        op: 'interaction',
-        forceTransaction: true,
-      });
-
-      PerformanceInteraction.interactionSpan = span || null;
-
-      // Auto interaction timeout
-      PerformanceInteraction.interactionTimeoutId = window.setTimeout(() => {
-        if (!PerformanceInteraction.interactionSpan) {
+    async finishInteraction(immediate = false) {
+      try {
+        if (!_INTERACTION_SPAN) {
           return;
         }
-        PerformanceInteraction.interactionSpan.setAttribute(
-          'ui.interaction.finish',
-          'timeout'
-        );
-        PerformanceInteraction.finishInteraction(true);
-      }, timeout);
-    } catch (e) {
-      Sentry.captureMessage(e);
-    }
-  }
+        clearTimeout(_INTERACTION_TIMEOUT_ID);
 
-  static async finishInteraction(immediate = false) {
-    try {
-      if (!PerformanceInteraction.interactionSpan) {
+        if (immediate) {
+          _INTERACTION_SPAN.end();
+          _INTERACTION_SPAN = null;
+          return;
+        }
+
+        // Add a slight wait if this isn't called as the result of another transaction starting.
+        await new Promise(resolve => setTimeout(resolve, WAIT_POST_INTERACTION));
+        _INTERACTION_SPAN?.end();
+        _INTERACTION_SPAN = null;
+
         return;
+      } catch (e) {
+        Sentry.captureMessage(e);
       }
-      clearTimeout(PerformanceInteraction.interactionTimeoutId);
-
-      if (immediate) {
-        PerformanceInteraction.interactionSpan.end();
-        PerformanceInteraction.interactionSpan = null;
-        return;
-      }
-
-      // Add a slight wait if this isn't called as the result of another transaction starting.
-      await new Promise(resolve => setTimeout(resolve, WAIT_POST_INTERACTION));
-      PerformanceInteraction.interactionSpan?.end();
-      PerformanceInteraction.interactionSpan = null;
-
-      return;
-    } catch (e) {
-      Sentry.captureMessage(e);
-    }
-  }
-}
+    },
+  };
+})();
 
 export function CustomProfiler({id, children}: {children: ReactNode; id: string}) {
   return (
