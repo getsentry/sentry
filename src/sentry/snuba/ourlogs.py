@@ -179,9 +179,9 @@ def query(
         query_string=query or "",
         selected_columns=selected_columns,
         orderby=orderby,
-        offset=offset,
+        offset=offset or 0,
         limit=limit,
-        referrer=referrer,
+        referrer=referrer or "referrer unset",
         config=SearchResolverConfig(
             auto_fields=False,
             use_aggregate_conditions=use_aggregate_conditions,
