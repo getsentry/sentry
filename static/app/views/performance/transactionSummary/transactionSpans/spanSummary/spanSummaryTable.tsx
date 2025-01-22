@@ -253,7 +253,7 @@ export default function SpanSummaryTable(props: Props) {
               }),
             // This is now caught by noUncheckedIndexedAccess, ignoring for now as
             // it seems related to some nasty grid editable generic.
-            // @ts-ignore
+            // @ts-ignore TS(2769): No overload matches this call.
             renderBodyCell: renderBodyCell(
               location,
               organization,

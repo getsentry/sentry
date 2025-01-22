@@ -1,16 +1,18 @@
+import type {ApiResult} from 'sentry/api';
+
 export async function getPreloadedDataPromise(
-  name: string,
+  name: 'organization' | 'projects' | 'teams',
   slug: string,
-  fallback: () => Promise<any>,
+  fallback: () => Promise<ApiResult>,
   usePreload?: boolean
-) {
-  const data = (window as any).__sentry_preload;
+): Promise<ApiResult> {
+  const data = window.__sentry_preload;
   /**
    * Save the fallback promise to `__sentry_preload` to allow the sudo modal to wait
    * for the promise to resolve
    */
   const wrappedFallback = () => {
-    const fallbackAttribute = `${name}_fallback`;
+    const fallbackAttribute = `${name}_fallback` as const;
     const promise = fallback();
     if (data) {
       data[fallbackAttribute] = promise;

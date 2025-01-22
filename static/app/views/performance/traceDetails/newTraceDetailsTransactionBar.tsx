@@ -483,7 +483,7 @@ function NewTraceDetailsTransactionBar(props: Props) {
             <ProfilesProvider
               orgSlug={organization.slug}
               projectSlug={embeddedChildren.projectSlug ?? ''}
-              profileId={profileId || ''}
+              profileMeta={profileId || ''}
             >
               <ProfileContext.Consumer>
                 {profiles => (
@@ -929,7 +929,7 @@ function NewTraceDetailsTransactionBar(props: Props) {
   );
 }
 
-function getOffset(generation) {
+function getOffset(generation: any) {
   return generation * (TOGGLE_BORDER_BOX / 2) + MARGIN_LEFT;
 }
 

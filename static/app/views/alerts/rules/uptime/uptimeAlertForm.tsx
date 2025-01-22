@@ -167,7 +167,7 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
             label={t('Environment')}
             placeholder={t('Select an environment')}
             hideLabel
-            onCreateOption={env => {
+            onCreateOption={(env: any) => {
               setNewEnvironment(env);
               formModel.setValue('environment', env);
             }}
@@ -236,7 +236,9 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
             <TextareaField
               name="body"
               label={t('Body')}
-              visible={({model}) => !['GET', 'HEAD'].includes(model.getValue('method'))}
+              visible={({model}: any) =>
+                !['GET', 'HEAD'].includes(model.getValue('method'))
+              }
               rows={4}
               maxRows={15}
               autosize

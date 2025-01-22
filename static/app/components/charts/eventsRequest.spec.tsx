@@ -509,7 +509,7 @@ describe('EventsRequest', function () {
         </EventsRequest>
       );
 
-      const generateExpected = name => {
+      const generateExpected = (name: any) => {
         return {
           seriesName: name,
           data: [
@@ -572,7 +572,7 @@ describe('EventsRequest', function () {
         </EventsRequest>
       );
 
-      const generateExpected = name => {
+      const generateExpected = (name: any) => {
         return {
           seriesName: name,
           data: [

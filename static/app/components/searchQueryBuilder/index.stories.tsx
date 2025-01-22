@@ -627,6 +627,7 @@ export default storyBook(SearchQueryBuilder, story => {
 
     const [enabledConfigs, setEnabledConfigs] = useState<string[]>([...configs]);
     const queryBuilderOptions = enabledConfigs.reduce((acc, config) => {
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       acc[config] = true;
       return acc;
     }, {});

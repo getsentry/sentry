@@ -1,5 +1,3 @@
-/* eslint-env node */
-
 import {WebpackReactSourcemapsPlugin} from '@acemarke/react-prod-sourcemaps';
 import {RsdoctorWebpackPlugin} from '@rsdoctor/webpack-plugin';
 import {sentryWebpackPlugin} from '@sentry/webpack-plugin';
@@ -502,7 +500,7 @@ const appConfig: webpack.Configuration = {
 };
 
 if (IS_TEST) {
-  appConfig.resolve!.alias!['sentry-fixture'] = path.join(
+  (appConfig.resolve!.alias! as any)['sentry-fixture'] = path.join(
     __dirname,
     'tests',
     'js',

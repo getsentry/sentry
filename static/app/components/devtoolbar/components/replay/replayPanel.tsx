@@ -43,7 +43,11 @@ export default function ReplayPanel() {
         disabled={isDisabled || buttonLoading}
         onClick={async () => {
           setButtonLoading(true);
-          isRecordingSession ? await stopRecording() : await startRecordingSession();
+          if (isRecordingSession) {
+            await stopRecording();
+          } else {
+            await startRecordingSession();
+          }
           setButtonLoading(false);
           const type = isRecordingSession ? 'stop' : 'start';
           trackAnalytics?.({
@@ -62,7 +66,14 @@ export default function ReplayPanel() {
       </Button>
       <div css={[smallCss, panelSectionCss, panelInsetContentCss]}>
         {lastReplayId ? (
-          <span css={[resetFlexRowCss, {gap: 'var(--space50)'}]}>
+          <span
+            css={[
+              resetFlexRowCss,
+              css`
+                gap: var(--space50);
+              `,
+            ]}
+          >
             {isRecording ? 'Current replay: ' : 'Last recorded replay: '}
             <AnalyticsProvider keyVal="replay-details-link" nameVal="replay details link">
               <ReplayLink lastReplayId={lastReplayId} />
@@ -88,15 +99,19 @@ function ReplayLink({lastReplayId}: {lastReplayId: string}) {
       <div
         css={[
           resetFlexRowCss,
-          {
-            display: 'inline-flex',
-            gap: 'var(--space50)',
-            alignItems: 'center',
-          },
+          css`
+            display: inline-flex;
+            gap: var(--space50);
+            align-items: center;
+          `,
         ]}
       >
         <ProjectBadge
-          css={css({'&& img': {boxShadow: 'none'}})}
+          css={css`
+            && img {
+              box-shadow: none;
+            }
+          `}
           project={{
             slug: projectSlug,
             id: projectId,

@@ -171,7 +171,7 @@ function WidgetCardContextMenu({
               size="xs"
               icon={<IconExpand />}
               onClick={() => {
-                (seriesData || tableData) &&
+                if (seriesData || tableData) {
                   setData({
                     seriesData,
                     tableData,
@@ -179,6 +179,7 @@ function WidgetCardContextMenu({
                     totalIssuesCount,
                     seriesResultsType,
                   });
+                }
                 openWidgetViewerPath(index);
               }}
             />

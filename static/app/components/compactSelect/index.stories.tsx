@@ -39,7 +39,7 @@ export default storyBook(CompactSelect, story => {
       {value: '5', label: '5XX', details: 'Optional'},
     ];
 
-    const handleValueChange = newValue => {
+    const handleValueChange = (newValue: any) => {
       setValue(newValue.value);
     };
 
@@ -75,8 +75,8 @@ export default storyBook(CompactSelect, story => {
       },
     ];
 
-    const handleValueChange = newValues => {
-      setValues(newValues.map(value => value.value));
+    const handleValueChange = (newValues: any) => {
+      setValues(newValues.map((value: any) => value.value));
     };
 
     return (

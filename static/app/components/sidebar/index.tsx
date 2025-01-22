@@ -17,8 +17,7 @@ import {
   ExpandedContext,
   ExpandedContextProvider,
 } from 'sentry/components/sidebar/expandedContextProvider';
-import {NewOnboardingStatus} from 'sentry/components/sidebar/newOnboardingStatus';
-import {DismissableRollbackBanner} from 'sentry/components/sidebar/rollback/dismissableBanner';
+import {OnboardingStatus} from 'sentry/components/sidebar/onboardingStatus';
 import {isDone} from 'sentry/components/sidebar/utils';
 import {
   IconDashboard,
@@ -526,14 +525,6 @@ function Sidebar() {
               <Hook name="component:superuser-warning" organization={organization} />
             )}
           </DropdownSidebarSection>
-
-          {organization ? (
-            <DismissableRollbackBanner
-              organization={organization}
-              collapsed={collapsed || horizontal}
-            />
-          ) : null}
-
           <PrimaryItems>
             {hasOrganization && (
               <Fragment>
@@ -621,7 +612,7 @@ function Sidebar() {
               {...sidebarItemProps}
             />
             <SidebarSection hasNewNav={hasNewNav} noMargin noPadding>
-              <NewOnboardingStatus
+              <OnboardingStatus
                 currentPanel={activePanel}
                 onShowPanel={() => togglePanel(SidebarPanelKey.ONBOARDING_WIZARD)}
                 hidePanel={hidePanel}

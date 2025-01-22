@@ -146,6 +146,7 @@ export function LLMMonitoringPage({params}: Props) {
                     <ReadoutRibbon>
                       <MetricReadout
                         title={t('Total Tokens Used')}
+                        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                         value={tokenUsedMetric['sum(ai.total_tokens.used)']}
                         unit={'count'}
                         isLoading={
@@ -155,6 +156,7 @@ export function LLMMonitoringPage({params}: Props) {
 
                       <MetricReadout
                         title={t('Total Cost')}
+                        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                         value={tokenUsedMetric['sum(ai.total_cost)']}
                         unit={CurrencyUnit.USD}
                         isLoading={
@@ -164,6 +166,7 @@ export function LLMMonitoringPage({params}: Props) {
 
                       <MetricReadout
                         title={t('Pipeline Duration')}
+                        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                         value={spanMetrics?.[`avg(${SpanMetricsField.SPAN_DURATION})`]}
                         unit={DurationUnit.MILLISECOND}
                         isLoading={useEAP ? isEAPPending : areSpanMetricsLoading}
@@ -171,6 +174,7 @@ export function LLMMonitoringPage({params}: Props) {
 
                       <MetricReadout
                         title={t('Pipeline Runs Per Minute')}
+                        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                         value={spanMetrics?.[`${SpanFunction.SPM}()`]}
                         unit={RateUnit.PER_MINUTE}
                         isLoading={useEAP ? isEAPPending : areSpanMetricsLoading}

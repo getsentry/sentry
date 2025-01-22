@@ -275,9 +275,11 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
       () => {
         const {measure, span, addExpandedSpan, removeExpandedSpan} = this.props;
 
-        this.state.showDetail
-          ? addExpandedSpan(span, measure)
-          : removeExpandedSpan(span, measure);
+        if (this.state.showDetail) {
+          addExpandedSpan(span, measure);
+        } else {
+          removeExpandedSpan(span, measure);
+        }
       }
     );
   };

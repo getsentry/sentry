@@ -23,7 +23,6 @@ from sentry.users.models.user import User
 from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.notifications")
-SLACK_TIMEOUT = 5
 
 
 class SlackNotifyBasicMixin(NotifyBasicMixin):

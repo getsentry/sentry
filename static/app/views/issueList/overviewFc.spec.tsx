@@ -1,7 +1,6 @@
 import merge from 'lodash/merge';
 import {GroupFixture} from 'sentry-fixture/group';
 import {GroupStatsFixture} from 'sentry-fixture/groupStats';
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {MemberFixture} from 'sentry-fixture/member';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -56,7 +55,7 @@ const {organization, projects, router} = initializeOrg({
     access: [],
   },
   router: {
-    location: {query: {}, search: ''},
+    location: {query: {query: DEFAULT_QUERY}},
     params: {},
   },
   projects: [project],
@@ -67,6 +66,17 @@ const routerProps = {
   location: router.location,
 } as RouteComponentProps<{}, {searchId?: string}>;
 
+const initialRouterConfig = {
+  routes: [
+    '/organizations/:orgId/issues/',
+    '/organizations/:orgId/issues/searches/:searchId/',
+  ],
+  location: {
+    pathname: '/organizations/org-slug/issues/',
+    query: {},
+  },
+};
+
 function getSearchInput() {
   const input = screen.getAllByRole('combobox', {name: 'Add a search term'}).at(-1);
 
@@ -76,8 +86,6 @@ function getSearchInput() {
 }
 
 describe('IssueList', function () {
-  let props: any;
-
   const tags = TagsFixture();
   const group = GroupFixture({project});
   const groupStats = GroupStatsFixture();
@@ -89,7 +97,6 @@ describe('IssueList', function () {
   });
 
   let fetchMembersRequest: jest.Mock;
-  const api = new MockApiClient();
   const parseLinkHeaderSpy = jest.spyOn(parseLinkHeader, 'default');
 
   beforeEach(function () {
@@ -169,12 +176,6 @@ describe('IssueList', function () {
     );
 
     TagStore.init?.();
-
-    props = {
-      api,
-      location: {query: {query: DEFAULT_QUERY}, search: `query=${DEFAULT_QUERY}`},
-      params: {},
-    };
   });
 
   afterEach(function () {
@@ -208,7 +209,16 @@ describe('IssueList', function () {
     });
 
     it('loads group rows with default query (no pinned queries, async and no query in URL)', async function () {
-      render(<IssueListWithStores {...routerProps} />, {router, organization});
+      render(<IssueListWithStores {...routerProps} />, {
+        organization,
+        disableRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/issues/',
+            query: {},
+          },
+        },
+      });
 
       await screen.findByRole('grid', {name: 'Create a search query'});
       expect(screen.getByRole('row', {name: 'is:unresolved'})).toBeInTheDocument();
@@ -242,11 +252,16 @@ describe('IssueList', function () {
         ],
       });
 
-      const location = LocationFixture({query: {query: 'level:foo'}});
-
-      render(<IssueListWithStores {...merge({}, routerProps, {location})} />, {
-        router: {location},
+      render(<IssueListWithStores {...routerProps} />, {
         organization,
+        disableRouterMocks: true,
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialRouterConfig.location,
+            query: {query: 'level:foo'},
+          },
+        },
       });
 
       await waitFor(() => {
@@ -282,11 +297,15 @@ describe('IssueList', function () {
         ],
       });
 
-      const localRouter = {params: {searchId: '123'}};
-
-      render(<IssueListWithStores {...merge({}, routerProps, localRouter)} />, {
-        router: localRouter,
+      render(<IssueListWithStores {...routerProps} />, {
         organization,
+        disableRouterMocks: true,
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            pathname: '/organizations/org-slug/issues/searches/123/',
+          },
+        },
       });
 
       await waitFor(() => {
@@ -319,11 +338,14 @@ describe('IssueList', function () {
         ],
       });
 
-      const localRouter = {location: {query: {query: 'level:error'}}};
-
-      render(<IssueListWithStores {...merge({}, routerProps, localRouter)} />, {
-        router,
+      render(<IssueListWithStores {...routerProps} />, {
         organization,
+        disableRouterMocks: true,
+        initialRouterConfig: merge({}, initialRouterConfig, {
+          location: {
+            query: {query: 'level:error'},
+          },
+        }),
       });
 
       await waitFor(() => {
@@ -356,12 +378,17 @@ describe('IssueList', function () {
         ],
       });
 
-      render(
-        <IssueListWithStores
-          {...merge({}, routerProps, {location: {query: {query: undefined}}})}
-        />,
-        {router, organization}
-      );
+      render(<IssueListWithStores {...routerProps} />, {
+        organization,
+        disableRouterMocks: true,
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialRouterConfig.location,
+            query: {},
+          },
+        },
+      });
 
       await waitFor(() => {
         expect(issuesRequest).toHaveBeenCalledWith(
@@ -399,13 +426,10 @@ describe('IssueList', function () {
         new Set()
       );
 
-      const defaultProps = {
-        ...props,
-        ...routerProps,
-      };
-      const {unmount} = render(<IssueListWithStores {...defaultProps} />, {
-        router,
+      const {unmount} = render(<IssueListWithStores {...routerProps} />, {
         organization,
+        disableRouterMocks: true,
+        initialRouterConfig,
       });
 
       expect(
@@ -415,9 +439,10 @@ describe('IssueList', function () {
       unmount();
 
       // Mount component again, getting from cache
-      render(<IssueListWithStores {...defaultProps} />, {
-        router,
+      render(<IssueListWithStores {...routerProps} />, {
         organization,
+        disableRouterMocks: true,
+        initialRouterConfig,
       });
 
       expect(
@@ -433,19 +458,20 @@ describe('IssueList', function () {
         body: [localSavedSearch],
       });
 
-      render(<IssueListWithStores {...routerProps} />, {
-        router,
+      const {router: testRouter} = render(<IssueListWithStores {...routerProps} />, {
         organization,
+        disableRouterMocks: true,
+        initialRouterConfig,
       });
 
       await userEvent.click(await screen.findByRole('button', {name: /custom search/i}));
       await userEvent.click(screen.getByRole('button', {name: localSavedSearch.name}));
 
-      expect(router.push).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          pathname: '/organizations/org-slug/issues/searches/789/',
-        })
-      );
+      await waitFor(() => {
+        expect(testRouter.location.pathname).toBe(
+          '/organizations/org-slug/issues/searches/789/'
+        );
+      });
     });
 
     it('clears a saved search when a custom one is entered', async function () {
@@ -463,9 +489,10 @@ describe('IssueList', function () {
         ],
       });
 
-      render(<IssueListWithStores {...routerProps} />, {
-        router,
+      const {router: testRouter} = render(<IssueListWithStores {...routerProps} />, {
         organization,
+        disableRouterMocks: true,
+        initialRouterConfig,
       });
 
       await screen.findByRole('grid', {name: 'Create a search query'});
@@ -473,17 +500,17 @@ describe('IssueList', function () {
       await userEvent.click(getSearchInput());
       await userEvent.keyboard('dogs{Enter}');
 
-      expect(router.push).toHaveBeenLastCalledWith(
+      await waitFor(() => {
+        expect(testRouter.location.pathname).toBe('/organizations/org-slug/issues/');
+      });
+
+      expect(testRouter.location.query).toEqual(
         expect.objectContaining({
-          pathname: '/organizations/org-slug/issues/',
-          query: {
-            environment: [],
-            project: [3559],
-            referrer: 'issue-list',
-            sort: '',
-            query: 'dogs',
-            statsPeriod: '14d',
-          },
+          project: '3559',
+          referrer: 'issue-list',
+          sort: '',
+          query: 'dogs',
+          statsPeriod: '14d',
         })
       );
     });
@@ -502,9 +529,10 @@ describe('IssueList', function () {
         body: [savedSearch],
       });
 
-      const {rerender} = render(<IssueListWithStores {...routerProps} />, {
-        router,
+      const {router: testRouter} = render(<IssueListWithStores {...routerProps} />, {
         organization,
+        disableRouterMocks: true,
+        initialRouterConfig,
       });
 
       await screen.findByRole('grid', {name: 'Create a search query'});
@@ -513,21 +541,13 @@ describe('IssueList', function () {
       await userEvent.paste('assigned:me level:fatal');
       await userEvent.keyboard('{Enter}');
 
-      expect(router.push).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({
-            query: 'assigned:me level:fatal',
-          }),
-        })
-      );
+      await waitFor(() => {
+        expect(testRouter.location.query.query).toBe('assigned:me level:fatal');
+      });
 
-      await tick();
-
-      const routerWithQuery = {location: {query: {query: 'assigned:me level:fatal'}}};
-
-      rerender(<IssueListWithStores {...merge({}, routerProps, routerWithQuery)} />);
-
-      expect(screen.getByRole('button', {name: 'Custom Search'})).toBeInTheDocument();
+      expect(
+        await screen.findByRole('button', {name: 'Custom Search'})
+      ).toBeInTheDocument();
 
       MockApiClient.clearMockResponses();
       const createPin = MockApiClient.addMockResponse({
@@ -545,15 +565,13 @@ describe('IssueList', function () {
         expect(createPin).toHaveBeenCalled();
       });
 
-      expect(router.replace).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          pathname: '/organizations/org-slug/issues/searches/666/',
-          query: {
-            referrer: 'search-bar',
-          },
-          search: '',
-        })
-      );
+      await waitFor(() => {
+        expect(testRouter.location.pathname).toBe(
+          '/organizations/org-slug/issues/searches/666/'
+        );
+      });
+
+      expect(testRouter.location.query.referrer).toBe('search-bar');
     });
 
     it('unpins a custom query', async function () {
@@ -656,18 +674,6 @@ describe('IssueList', function () {
         body: [savedSearch],
       });
 
-      const {router: newRouter} = initializeOrg({
-        router: {
-          location: {
-            query: {
-              project: ['123'],
-              environment: ['prod'],
-              query: 'assigned:me level:fatal',
-            },
-          },
-        },
-      });
-
       PageFiltersStore.onInitializeUrlState(
         {
           projects: [123],
@@ -682,9 +688,18 @@ describe('IssueList', function () {
         new Set()
       );
 
-      render(<IssueListWithStores {...(newRouter as any)} />, {
-        router: newRouter,
+      const {router: testRouter} = render(<IssueListWithStores {...routerProps} />, {
         organization,
+        disableRouterMocks: true,
+        initialRouterConfig: merge({}, initialRouterConfig, {
+          location: {
+            query: {
+              project: '123',
+              environment: 'prod',
+              query: 'assigned:me level:fatal',
+            },
+          },
+        }),
       });
 
       const createPin = MockApiClient.addMockResponse({
@@ -705,15 +720,18 @@ describe('IssueList', function () {
       await waitFor(() => {
         expect(createPin).toHaveBeenCalled();
       });
-      expect(newRouter.replace).toHaveBeenLastCalledWith(
+
+      await waitFor(() => {
+        expect(testRouter.location.pathname).toBe(
+          '/organizations/org-slug/issues/searches/666/'
+        );
+      });
+
+      expect(testRouter.location.query).toEqual(
         expect.objectContaining({
-          pathname: '/organizations/org-slug/issues/searches/666/',
-          query: expect.objectContaining({
-            project: ['123'],
-            environment: ['prod'],
-            query: 'assigned:me level:fatal',
-            referrer: 'search-bar',
-          }),
+          project: '123',
+          environment: 'prod',
+          query: 'assigned:me level:fatal',
         })
       );
     });
@@ -734,21 +752,6 @@ describe('IssueList', function () {
         method: 'DELETE',
       });
 
-      const {router: newRouter} = initializeOrg(
-        merge({}, router, {
-          router: {
-            location: {
-              query: {
-                project: ['123'],
-                environment: ['prod'],
-                query: 'assigned:me level:fatal',
-              },
-            },
-            params: {searchId: '666'},
-          },
-        })
-      );
-
       PageFiltersStore.onInitializeUrlState(
         {
           projects: [123],
@@ -763,36 +766,43 @@ describe('IssueList', function () {
         new Set()
       );
 
-      render(
-        <IssueListWithStores {...(newRouter as any)} savedSearch={localSavedSearch} />,
-        {
-          router: newRouter,
-          organization,
-        }
-      );
+      const {router: testRouter} = render(<IssueListWithStores {...routerProps} />, {
+        organization,
+        disableRouterMocks: true,
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            pathname: '/organizations/org-slug/issues/searches/666/',
+            query: {
+              project: '123',
+              environment: 'prod',
+              query: 'assigned:me level:fatal',
+            },
+          },
+        },
+      });
 
       await userEvent.click(await screen.findByLabelText(/Remove Default/i));
 
       await waitFor(() => {
         expect(deletePin).toHaveBeenCalled();
       });
-      expect(newRouter.replace).toHaveBeenLastCalledWith(
+
+      expect(testRouter.location.pathname).toBe('/organizations/org-slug/issues/');
+      expect(testRouter.location.query).toEqual(
         expect.objectContaining({
-          pathname: '/organizations/org-slug/issues/',
-          query: expect.objectContaining({
-            project: ['123'],
-            environment: ['prod'],
-            query: 'assigned:me level:fatal',
-            referrer: 'search-bar',
-          }),
+          project: '123',
+          environment: 'prod',
+          query: 'assigned:me level:fatal',
         })
       );
     });
 
     it('does not allow pagination to "previous" while on first page and resets cursors when navigating back to initial page', async function () {
-      const {rerender} = render(<IssueListWithStores {...routerProps} />, {
-        router,
+      const {router: testRouter} = render(<IssueListWithStores {...routerProps} />, {
         organization,
+        disableRouterMocks: true,
+        initialRouterConfig,
       });
 
       expect(await screen.findByRole('button', {name: 'Previous'})).toBeDisabled();
@@ -807,24 +817,16 @@ describe('IssueList', function () {
 
       await userEvent.click(await screen.findByRole('button', {name: 'Next'}));
 
-      let pushArgs = {
-        pathname: '/organizations/org-slug/issues/',
-        query: {
+      await waitFor(() => {
+        expect(testRouter.location.query).toEqual({
           cursor: '1443575000:0:0',
-          page: 1,
-          environment: [],
-          project: [3559],
+          page: '1',
+          project: '3559',
           query: DEFAULT_QUERY,
           statsPeriod: '14d',
           referrer: 'issue-list',
-        },
-      };
-
-      await waitFor(() => {
-        expect(router.push).toHaveBeenLastCalledWith(pushArgs);
+        });
       });
-
-      rerender(<IssueListWithStores {...merge({}, routerProps, {location: pushArgs})} />);
 
       await waitFor(() => {
         expect(screen.getByRole('button', {name: 'Previous'})).toBeEnabled();
@@ -833,65 +835,38 @@ describe('IssueList', function () {
       // Click next again
       await userEvent.click(screen.getByRole('button', {name: 'Next'}));
 
-      pushArgs = {
-        pathname: '/organizations/org-slug/issues/',
-        query: {
+      await waitFor(() => {
+        expect(testRouter.location.query).toEqual({
           cursor: '1443574000:0:0',
-          page: 2,
-          environment: [],
-          project: [3559],
+          page: '2',
+          project: '3559',
           query: DEFAULT_QUERY,
           statsPeriod: '14d',
           referrer: 'issue-list',
-        },
-      };
-
-      await waitFor(() => {
-        expect(router.push).toHaveBeenLastCalledWith(pushArgs);
+        });
       });
-
-      rerender(<IssueListWithStores {...merge({}, routerProps, {location: pushArgs})} />);
 
       // Click previous
       await userEvent.click(screen.getByRole('button', {name: 'Previous'}));
 
-      pushArgs = {
-        pathname: '/organizations/org-slug/issues/',
-        query: {
+      await waitFor(() => {
+        expect(testRouter.location.query).toEqual({
           cursor: '1443575000:0:1',
-          page: 1,
-          environment: [],
-          project: [3559],
+          page: '1',
+          project: '3559',
           query: DEFAULT_QUERY,
           statsPeriod: '14d',
           referrer: 'issue-list',
-        },
-      };
-
-      await waitFor(() => {
-        expect(router.push).toHaveBeenLastCalledWith(pushArgs);
+        });
       });
-
-      rerender(<IssueListWithStores {...merge({}, routerProps, {location: pushArgs})} />);
 
       // Click previous back to initial page
       await userEvent.click(screen.getByRole('button', {name: 'Previous'}));
 
       await waitFor(() => {
-        // cursor is undefined because "prev" cursor is === initial "next" cursor
-        expect(router.push).toHaveBeenLastCalledWith({
-          pathname: '/organizations/org-slug/issues/',
-          query: {
-            cursor: undefined,
-            environment: [],
-            page: undefined,
-            project: [3559],
-            query: DEFAULT_QUERY,
-            statsPeriod: '14d',
-            referrer: 'issue-list',
-          },
-        });
+        expect(testRouter.location.query.cursor).toBeUndefined();
       });
+      expect(testRouter.location.query.page).toBeUndefined();
     });
   });
 
@@ -905,8 +880,9 @@ describe('IssueList', function () {
         },
       });
 
-      render(<IssueListOverview {...props} />, {
-        router,
+      const {router: testRouter} = render(<IssueListOverview {...routerProps} />, {
+        disableRouterMocks: true,
+        initialRouterConfig,
       });
 
       await userEvent.click(screen.getByRole('button', {name: 'Clear search query'}));
@@ -915,22 +891,21 @@ describe('IssueList', function () {
       await userEvent.keyboard('{enter}');
 
       await waitFor(() => {
-        expect(router.push).toHaveBeenCalledWith({
-          pathname: '/organizations/org-slug/issues/',
-          query: {
-            environment: [],
-            project: [parseInt(project.id, 10)],
-            query: 'is:ignored',
-            statsPeriod: '14d',
-            referrer: 'issue-list',
-          },
+        expect(testRouter.location.query).toEqual({
+          project: project.id.toString(),
+          query: 'is:ignored',
+          statsPeriod: '14d',
+          referrer: 'issue-list',
         });
       });
     });
   });
 
   it('fetches members', async function () {
-    render(<IssueListOverview {...routerProps} {...props} />, {router});
+    render(<IssueListOverview {...routerProps} />, {
+      disableRouterMocks: true,
+      initialRouterConfig,
+    });
 
     await waitFor(() => {
       expect(fetchMembersRequest).toHaveBeenCalled();
@@ -952,8 +927,9 @@ describe('IssueList', function () {
     });
 
     it('fetches data on selection change', async function () {
-      const {rerender} = render(<IssueListOverview {...routerProps} {...props} />, {
-        router,
+      const {rerender} = render(<IssueListOverview {...routerProps} />, {
+        disableRouterMocks: true,
+        initialRouterConfig,
       });
 
       PageFiltersStore.onInitializeUrlState(
@@ -965,7 +941,7 @@ describe('IssueList', function () {
         new Set()
       );
 
-      rerender(<IssueListOverview {...routerProps} {...props} />);
+      rerender(<IssueListOverview {...routerProps} />);
 
       await waitFor(() => {
         expect(fetchDataMock).toHaveBeenCalled();
@@ -973,17 +949,12 @@ describe('IssueList', function () {
     });
 
     it('fetches data on savedSearch change', async function () {
-      const {rerender} = render(<IssueListOverview {...routerProps} {...props} />, {
-        router,
+      const {rerender} = render(<IssueListOverview {...routerProps} />, {
+        disableRouterMocks: true,
+        initialRouterConfig,
       });
 
-      rerender(
-        <IssueListOverview
-          {...routerProps}
-          {...props}
-          savedSearch={{id: '1', query: 'is:resolved'}}
-        />
-      );
+      rerender(<IssueListOverview {...routerProps} />);
 
       await waitFor(() => {
         expect(fetchDataMock).toHaveBeenCalled();
@@ -991,9 +962,17 @@ describe('IssueList', function () {
     });
 
     it('uses correct statsPeriod when fetching issues list and no datetime given', async function () {
-      const {rerender} = render(<IssueListOverview {...routerProps} {...props} />, {
-        router,
+      const {rerender} = render(<IssueListOverview {...routerProps} />, {
+        disableRouterMocks: true,
+        initialRouterConfig: merge({}, initialRouterConfig, {
+          location: {
+            query: {
+              query: DEFAULT_QUERY,
+            },
+          },
+        }),
       });
+
       PageFiltersStore.onInitializeUrlState(
         {
           projects: [99],
@@ -1002,7 +981,8 @@ describe('IssueList', function () {
         },
         new Set()
       );
-      rerender(<IssueListOverview {...routerProps} {...props} />);
+
+      rerender(<IssueListOverview {...routerProps} />);
 
       await waitFor(() => {
         expect(fetchDataMock).toHaveBeenLastCalledWith(
@@ -1017,8 +997,9 @@ describe('IssueList', function () {
 
   describe('componentDidUpdate fetching members', function () {
     it('fetches memberlist on project change', async function () {
-      const {rerender} = render(<IssueListOverview {...routerProps} {...props} />, {
-        router,
+      const {rerender} = render(<IssueListOverview {...routerProps} />, {
+        disableRouterMocks: true,
+        initialRouterConfig,
       });
       // Called during componentDidMount
       await waitFor(() => {
@@ -1033,7 +1014,7 @@ describe('IssueList', function () {
         },
         new Set()
       );
-      rerender(<IssueListOverview {...routerProps} {...props} />);
+      rerender(<IssueListOverview {...routerProps} />);
 
       await waitFor(() => {
         expect(fetchMembersRequest).toHaveBeenCalledWith(
@@ -1055,8 +1036,9 @@ describe('IssueList', function () {
         status: 500,
         statusCode: 500,
       });
-      render(<IssueListOverview {...routerProps} {...props} />, {
-        router,
+      render(<IssueListOverview {...routerProps} />, {
+        disableRouterMocks: true,
+        initialRouterConfig,
       });
 
       expect(await screen.findByTestId('loading-error')).toBeInTheDocument();
@@ -1070,7 +1052,10 @@ describe('IssueList', function () {
           Link: DEFAULT_LINKS_HEADER,
         },
       });
-      render(<IssueListOverview {...routerProps} {...props} />, {router});
+      render(<IssueListOverview {...routerProps} />, {
+        disableRouterMocks: true,
+        initialRouterConfig,
+      });
 
       expect(
         await screen.findByText(/Get out there and write some broken code!/i)
@@ -1086,8 +1071,15 @@ describe('IssueList', function () {
         },
       });
 
-      const {rerender} = render(<IssueListOverview {...routerProps} {...props} />, {
-        router,
+      const {router: testRouter} = render(<IssueListOverview {...routerProps} />, {
+        disableRouterMocks: true,
+        initialRouterConfig: merge({}, initialRouterConfig, {
+          location: {
+            query: {
+              query: DEFAULT_QUERY,
+            },
+          },
+        }),
       });
 
       await screen.findByRole('grid', {name: 'Create a search query'});
@@ -1095,23 +1087,10 @@ describe('IssueList', function () {
       await userEvent.keyboard('foo{enter}');
 
       await waitFor(() => {
-        expect(router.push).toHaveBeenLastCalledWith(
-          expect.objectContaining({
-            query: expect.objectContaining({
-              query: 'is:unresolved issue.priority:[high, medium] foo',
-            }),
-          })
+        expect(testRouter.location.query.query).toBe(
+          'is:unresolved issue.priority:[high, medium] foo'
         );
       });
-
-      rerender(
-        <IssueListOverview
-          {...props}
-          {...merge({}, routerProps, {
-            location: {query: {query: 'is:unresolved issue.priority:[high, medium] foo'}},
-          })}
-        />
-      );
 
       expect(await screen.findByText(/No issues match your search/i)).toBeInTheDocument();
     });
@@ -1138,15 +1117,11 @@ describe('IssueList', function () {
         },
       });
 
-      const defaultProps = {
-        ...props,
-        ...merge({}, routerProps, {
-          params: {},
-          location: {query: {query: DEFAULT_QUERY}, search: 'query=is:unresolved'},
-        }),
-        ...moreProps,
-      };
-      render(<IssueListOverview {...defaultProps} />, {router, organization});
+      render(<IssueListOverview {...routerProps} {...moreProps} />, {
+        organization,
+        disableRouterMocks: true,
+        initialRouterConfig,
+      });
 
       await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
     };
@@ -1352,20 +1327,18 @@ describe('IssueList', function () {
         href: '',
       },
     });
-    props = {
-      ...props,
-      location: {
-        query: {
-          cursor: 'some cursor',
-          page: 1,
-        },
-      },
-    };
 
-    const {router: newRouter} = initializeOrg();
-    const {rerender} = render(<IssueListOverview {...props} />, {
-      router: newRouter,
+    const {rerender} = render(<IssueListOverview {...routerProps} />, {
       organization,
+      disableRouterMocks: true,
+      initialRouterConfig: merge({}, initialRouterConfig, {
+        location: {
+          query: {
+            cursor: 'some cursor',
+            page: 1,
+          },
+        },
+      }),
     });
 
     await waitFor(() => {
@@ -1384,7 +1357,7 @@ describe('IssueList', function () {
         href: '',
       },
     });
-    rerender(<IssueListOverview {...props} />);
+    rerender(<IssueListOverview {...routerProps} />);
 
     await waitFor(() => {
       expect(screen.getByText(textWithMarkupMatcher('26-50 of 500'))).toBeInTheDocument();
@@ -1392,8 +1365,6 @@ describe('IssueList', function () {
   });
 
   describe('project low trends queue alert', function () {
-    const {router: newRouter} = initializeOrg();
-
     beforeEach(function () {
       act(() => ProjectsStore.reset());
     });
@@ -1401,8 +1372,9 @@ describe('IssueList', function () {
     it('does not render event processing alert', async function () {
       act(() => ProjectsStore.loadInitialData([project]));
 
-      render(<IssueListOverview {...props} />, {
-        router: newRouter,
+      render(<IssueListOverview {...routerProps} />, {
+        disableRouterMocks: true,
+        initialRouterConfig,
       });
 
       await waitFor(() => {
@@ -1418,7 +1390,11 @@ describe('IssueList', function () {
           ])
         );
 
-        render(<IssueListOverview {...props} />, {router, organization});
+        render(<IssueListOverview {...routerProps} />, {
+          organization,
+          disableRouterMocks: true,
+          initialRouterConfig,
+        });
 
         await waitFor(() => {
           expect(
@@ -1458,9 +1434,10 @@ describe('IssueList', function () {
           new Set()
         );
 
-        render(<IssueListOverview {...props} />, {
-          router: newRouter,
+        render(<IssueListOverview {...routerProps} />, {
           organization,
+          disableRouterMocks: true,
+          initialRouterConfig,
         });
 
         await waitFor(() => {

@@ -146,7 +146,7 @@ const CollapsedProjects = styled('div')`
   gap: ${space(0.5)};
 `;
 
-const AvatarStyle = p => css`
+const AvatarStyle = (p: any) => css`
   border: 2px solid ${p.theme.background};
   margin-right: -8px;
   cursor: default;
@@ -280,11 +280,11 @@ export function TraceBreakdownRenderer({
             offset={index}
             onMouseEnter={() => {
               setHoveredIndex(index);
-              breakdown.project
-                ? setHighlightedSliceName(
-                    getStylingSliceName(breakdown.project, breakdown.sdkName) ?? ''
-                  )
-                : null;
+              if (breakdown.project) {
+                setHighlightedSliceName(
+                  getStylingSliceName(breakdown.project, breakdown.sdkName) ?? ''
+                );
+              }
             }}
           />
         );
@@ -577,6 +577,7 @@ const STATUS_TO_TAG_TYPE: Record<SpanStatus, keyof Theme['tag']> = {
 };
 
 function statusToTagType(status: string) {
+  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   return STATUS_TO_TAG_TYPE[status];
 }
 

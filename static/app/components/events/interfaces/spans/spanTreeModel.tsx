@@ -302,8 +302,7 @@ class SpanTreeModel {
     };
 
     if (wrappedSpan.type === 'root_span') {
-      // @ts-expect-error
-      delete wrappedSpan.toggleNestedSpanGroup;
+      delete (wrappedSpan as any).toggleNestedSpanGroup;
     }
 
     const treeDepthEntry = isOrphanSpan(this.span)
@@ -496,12 +495,14 @@ class SpanTreeModel {
               acc.previousSiblingEndTimestamp = spanModel.span.timestamp;
 
               // It's possible that a section in the minimap is selected so some spans in this group may be out of view
-              bounds.isSpanVisibleInView
-                ? acc.descendants.push(enhancedSibling)
-                : acc.descendants.push({
-                    type: 'filtered_out',
-                    span: spanModel.span,
-                  });
+              acc.descendants.push(
+                bounds.isSpanVisibleInView
+                  ? enhancedSibling
+                  : {
+                      type: 'filtered_out',
+                      span: spanModel.span,
+                    }
+              );
             }
           });
 

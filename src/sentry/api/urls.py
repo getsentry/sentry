@@ -7,8 +7,10 @@ from sentry.api.endpoints.group_ai_summary import GroupAiSummaryEndpoint
 from sentry.api.endpoints.group_autofix_setup_check import GroupAutofixSetupCheck
 from sentry.api.endpoints.group_integration_details import GroupIntegrationDetailsEndpoint
 from sentry.api.endpoints.group_integrations import GroupIntegrationsEndpoint
-from sentry.api.endpoints.org_auth_token_details import OrgAuthTokenDetailsEndpoint
-from sentry.api.endpoints.org_auth_tokens import OrgAuthTokensEndpoint
+from sentry.api.endpoints.organization_auth_token_details import (
+    OrganizationAuthTokenDetailsEndpoint,
+)
+from sentry.api.endpoints.organization_auth_tokens import OrganizationAuthTokensEndpoint
 from sentry.api.endpoints.organization_events_anomalies import OrganizationEventsAnomaliesEndpoint
 from sentry.api.endpoints.organization_events_root_cause_analysis import (
     OrganizationEventsRootCauseAnalysisEndpoint,
@@ -177,9 +179,11 @@ from sentry.issues.endpoints import (
     GroupSimilarIssuesEndpoint,
     GroupTombstoneDetailsEndpoint,
     GroupTombstoneEndpoint,
+    OrganizationDeriveCodeMappingsEndpoint,
     OrganizationGroupIndexEndpoint,
     OrganizationGroupIndexStatsEndpoint,
     OrganizationGroupSearchViewsEndpoint,
+    OrganizationIssuesCountEndpoint,
     OrganizationReleasePreviousCommitsEndpoint,
     OrganizationSearchesEndpoint,
     ProjectEventDetailsEndpoint,
@@ -389,6 +393,7 @@ from .endpoints.debug_files import (
     SourceMapsEndpoint,
     UnknownDebugFilesEndpoint,
 )
+from .endpoints.email_capture import EmailCaptureEndpoint
 from .endpoints.event_apple_crash_report import EventAppleCrashReportEndpoint
 from .endpoints.event_attachment_details import EventAttachmentDetailsEndpoint
 from .endpoints.event_attachments import EventAttachmentsEndpoint
@@ -447,7 +452,6 @@ from .endpoints.organization_dashboard_widget_details import (
     OrganizationDashboardWidgetDetailsEndpoint,
 )
 from .endpoints.organization_dashboards import OrganizationDashboardsEndpoint
-from .endpoints.organization_derive_code_mappings import OrganizationDeriveCodeMappingsEndpoint
 from .endpoints.organization_details import OrganizationDetailsEndpoint
 from .endpoints.organization_environments import OrganizationEnvironmentsEndpoint
 from .endpoints.organization_event_details import OrganizationEventDetailsEndpoint
@@ -486,7 +490,6 @@ from .endpoints.organization_events_trends import (
 from .endpoints.organization_events_trends_v2 import OrganizationEventsNewTrendsStatsEndpoint
 from .endpoints.organization_events_vitals import OrganizationEventsVitalsEndpoint
 from .endpoints.organization_index import OrganizationIndexEndpoint
-from .endpoints.organization_issues_count import OrganizationIssuesCountEndpoint
 from .endpoints.organization_issues_resolved_in_release import (
     OrganizationIssuesResolvedInReleaseEndpoint,
 )
@@ -594,7 +597,6 @@ from .endpoints.project_performance_general_settings import (
     ProjectPerformanceGeneralSettingsEndpoint,
 )
 from .endpoints.project_performance_issue_settings import ProjectPerformanceIssueSettingsEndpoint
-from .endpoints.project_platforms import ProjectPlatformsEndpoint
 from .endpoints.project_plugin_details import ProjectPluginDetailsEndpoint
 from .endpoints.project_plugins import ProjectPluginsEndpoint
 from .endpoints.project_profiling_profile import (
@@ -1286,7 +1288,7 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-dashboard-favorite",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/shortids/(?P<short_id>[^\/]+)/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/shortids/(?P<issue_id>[^\/]+)/$",
         ShortIdLookupEndpoint.as_view(),
         name="sentry-api-0-short-id-lookup",
     ),
@@ -1903,12 +1905,12 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/org-auth-tokens/$",
-        OrgAuthTokensEndpoint.as_view(),
+        OrganizationAuthTokensEndpoint.as_view(),
         name="sentry-api-0-org-auth-tokens",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/org-auth-tokens/(?P<token_id>[^\/]+)/$",
-        OrgAuthTokenDetailsEndpoint.as_view(),
+        OrganizationAuthTokenDetailsEndpoint.as_view(),
         name="sentry-api-0-org-auth-token-details",
     ),
     re_path(
@@ -2222,11 +2224,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/environments/(?P<environment>[^/]+)/$",
         ProjectEnvironmentDetailsEndpoint.as_view(),
         name="sentry-api-0-project-environment-details",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/platforms/$",
-        ProjectPlatformsEndpoint.as_view(),
-        name="sentry-api-0-project-platform-details",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/events/$",
@@ -3021,6 +3018,11 @@ INTERNAL_URLS = [
         r"^feature-flags/ea-feature-flags$",
         InternalEAFeaturesEndpoint.as_view(),
         name="sentry-api-0-internal-ea-features",
+    ),
+    re_path(
+        r"^demo/email-capture$",
+        EmailCaptureEndpoint.as_view(),
+        name="sentry-demo-mode-email-capture",
     ),
 ]
 

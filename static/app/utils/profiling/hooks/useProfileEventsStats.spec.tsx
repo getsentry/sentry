@@ -25,8 +25,6 @@ describe('useProfileEvents', function () {
   });
 
   it('handles no axis', async function () {
-    const yAxes = [];
-
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-stats/`,
       body: {},
@@ -37,7 +35,7 @@ describe('useProfileEvents', function () {
       wrapper: TestContext,
       initialProps: {
         dataset: 'profiles' as const,
-        yAxes,
+        yAxes: [],
         referrer: '',
       },
     });

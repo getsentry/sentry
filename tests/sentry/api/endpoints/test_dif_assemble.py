@@ -20,6 +20,7 @@ from sentry.tasks.assemble import (
     set_assemble_status,
 )
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 
 
@@ -36,6 +37,7 @@ class DifAssembleEndpoint(APITestCase):
             "sentry-api-0-assemble-dif-files", args=[self.organization.slug, self.project.slug]
         )
 
+    @with_feature("organizations:batch-assemble-debug-files")
     def test_assemble_json_schema(self):
         response = self.client.post(
             self.url, data={"lol": "test"}, HTTP_AUTHORIZATION=f"Bearer {self.token.token}"
@@ -63,6 +65,7 @@ class DifAssembleEndpoint(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data[checksum]["state"] == ChunkFileState.NOT_FOUND
 
+    @with_feature("organizations:batch-assemble-debug-files")
     def test_assemble_check(self):
         content = b"foo bar"
         fileobj = ContentFile(content)
@@ -138,6 +141,7 @@ class DifAssembleEndpoint(APITestCase):
         assert response.data[not_found_checksum]["state"] == ChunkFileState.NOT_FOUND
         assert set(response.data[not_found_checksum]["missingChunks"]) == {not_found_checksum}
 
+    @with_feature("organizations:batch-assemble-debug-files")
     @patch("sentry.tasks.assemble.assemble_dif")
     def test_assemble(self, mock_assemble_dif):
         content1 = b"foo"
@@ -209,6 +213,7 @@ class DifAssembleEndpoint(APITestCase):
         file_blob_index = FileBlobIndex.objects.all()
         assert len(file_blob_index) == 3
 
+    @with_feature("organizations:batch-assemble-debug-files")
     def test_dif_response(self):
         sym_file = self.load_fixture("crash.sym")
         blob1 = FileBlob.from_file(ContentFile(sym_file))
@@ -232,6 +237,7 @@ class DifAssembleEndpoint(APITestCase):
             response.data[total_checksum]["dif"]["uuid"] == "67e9247c-814e-392b-a027-dbde6748fcbf"
         )
 
+    @with_feature("organizations:batch-assemble-debug-files")
     def test_dif_error_response(self):
         sym_file = b"fail"
         blob1 = FileBlob.from_file(ContentFile(sym_file))

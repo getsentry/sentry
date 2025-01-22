@@ -194,14 +194,18 @@ function LegacySpanSections({
 }
 
 function ProfileDetails({
+  organization,
+  project,
   event,
   span,
 }: {
   event: Readonly<EventTransaction>;
+  organization: Organization;
+  project: Project | undefined;
   span: Readonly<SpanType>;
 }) {
   const hasNewTraceUi = useHasTraceNewUi();
-  const {profile, frames} = useSpanProfileDetails(event, span);
+  const {profile, frames} = useSpanProfileDetails(organization, project, event, span);
 
   if (!hasNewTraceUi) {
     return <SpanProfileDetails span={span} event={event} />;
@@ -238,7 +242,9 @@ export function SpanNodeDetails({
   }, [node.errors, node.performance_issues]);
 
   const project = projects.find(proj => proj.slug === node.event?.projectSlug);
-  const profileId = node.event?.contexts?.profile?.profile_id ?? null;
+  const profileMeta = getProfileMeta(node) || '';
+  const profileId =
+    typeof profileMeta === 'string' ? profileMeta : profileMeta.profiler_id;
 
   return (
     <TraceDrawerComponents.DetailContainer>
@@ -253,7 +259,7 @@ export function SpanNodeDetails({
           <ProfilesProvider
             orgSlug={organization.slug}
             projectSlug={node.event?.projectSlug}
-            profileId={profileId || ''}
+            profileMeta={profileMeta}
           >
             <ProfileContext.Consumer>
               {profiles => (
@@ -280,7 +286,12 @@ export function SpanNodeDetails({
                     onParentClick={onParentClick}
                   />
                   {organization.features.includes('profiling') ? (
-                    <ProfileDetails event={node.event!} span={node.value} />
+                    <ProfileDetails
+                      organization={organization}
+                      project={project}
+                      event={node.event!}
+                      span={node.value}
+                    />
                   ) : null}
                 </ProfileGroupProvider>
               )}
@@ -290,4 +301,22 @@ export function SpanNodeDetails({
       </TraceDrawerComponents.BodyContainer>
     </TraceDrawerComponents.DetailContainer>
   );
+}
+
+function getProfileMeta(node: TraceTreeNode<TraceTree.Span>) {
+  const profileId = node.event?.contexts?.profile?.profile_id;
+  if (profileId) {
+    return profileId;
+  }
+  const profilerId = node.event?.contexts?.profile?.profiler_id;
+  if (profilerId) {
+    const start = new Date(node.value.start_timestamp * 1000);
+    const end = new Date(node.value.timestamp * 1000);
+    return {
+      profiler_id: profilerId,
+      start: start.toISOString(),
+      end: end.toISOString(),
+    };
+  }
+  return null;
 }

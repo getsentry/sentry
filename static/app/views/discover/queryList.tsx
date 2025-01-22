@@ -191,7 +191,8 @@ class QueryList extends Component<Props> {
               yAxis: view?.yAxis,
               router,
               widgetType: hasDatasetSelector(organization)
-                ? SAVED_QUERY_DATASET_TO_WIDGET_TYPE[
+                ? // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                  SAVED_QUERY_DATASET_TO_WIDGET_TYPE[
                     getSavedQueryDataset(organization, location, newQuery)
                   ]
                 : undefined,
@@ -286,7 +287,8 @@ class QueryList extends Component<Props> {
                     yAxis: savedQuery?.yAxis ?? eventView.yAxis,
                     router,
                     widgetType: hasDatasetSelector(organization)
-                      ? SAVED_QUERY_DATASET_TO_WIDGET_TYPE[
+                      ? // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                        SAVED_QUERY_DATASET_TO_WIDGET_TYPE[
                           getSavedQueryDataset(organization, location, savedQuery)
                         ]
                       : undefined,

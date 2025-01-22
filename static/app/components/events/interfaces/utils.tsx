@@ -38,7 +38,7 @@ export function findImageForAddress({event, addrMode, address}: ImageForAddressP
     return null;
   }
 
-  const image = images.find((img, idx) => {
+  const image = images.find((img: any, idx: any) => {
     if (!addrMode || addrMode === 'abs') {
       const [startAddress, endAddress] = getImageRange(img);
       return address >= (startAddress as any) && address < (endAddress as any);
@@ -84,6 +84,7 @@ export function getHiddenFrameIndices({
   const repeatedIndeces = getRepeatedFrameIndices(data);
   let hiddenFrameIndices: number[] = [];
   Object.keys(toggleFrameMap)
+    // @ts-ignore TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
     .filter(frameIndex => toggleFrameMap[frameIndex] === true)
     .forEach(indexString => {
       const index = parseInt(indexString, 10);
