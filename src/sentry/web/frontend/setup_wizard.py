@@ -36,6 +36,7 @@ from sentry.utils.security.orgauthtoken_token import (
     hash_token,
 )
 from sentry.utils.urls import add_params_to_url
+from sentry.web.client_config import get_client_config
 from sentry.web.frontend.base import BaseView, control_silo_view
 from sentry.web.helpers import render_to_response
 
@@ -64,7 +65,11 @@ class SetupWizardView(BaseView):
         This opens a page where with an active session fill stuff into the cache
         Redirects to organization whenever cache has been deleted
         """
-        context = {"hash": wizard_hash, "enableProjectSelection": False}
+        context = {
+            "hash": wizard_hash,
+            "enableProjectSelection": False,
+            "react_config": get_client_config(request, self.active_organization),
+        }
         cache_key = f"{SETUP_WIZARD_CACHE_KEY}{wizard_hash}"
 
         org_slug = request.GET.get("org_slug")
