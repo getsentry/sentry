@@ -98,10 +98,10 @@ def add_email(email: str, user: User) -> UserEmail:
 @control_silo_endpoint
 class UserEmailsEndpoint(UserEndpoint):
     publish_status = {
-        "DELETE": ApiPublishStatus.PUBLIC,
-        "GET": ApiPublishStatus.PUBLIC,
-        "PUT": ApiPublishStatus.PUBLIC,
-        "POST": ApiPublishStatus.PUBLIC,
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.UNOWNED
 
