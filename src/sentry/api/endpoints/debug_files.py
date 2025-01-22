@@ -419,6 +419,7 @@ def batch_assemble(project, files):
     file_response = {}
 
     # 1. Exclude all files that have already an assemble status.
+    checksums_with_status = set()
     for checksum in checksums_to_check:
         # First, check the cached assemble status. During assembling, a
         # `ProjectDebugFile` will be created, and we need to prevent a race
@@ -431,16 +432,20 @@ def batch_assemble(project, files):
                 "missingChunks": [],
                 "dif": detail,
             }
-            checksums_to_check.remove(checksum)
+            checksums_with_status.add(checksum)
         elif state is not None:
             file_response[checksum] = {"state": state, "detail": detail, "missingChunks": []}
-            checksums_to_check.remove(checksum)
+            checksums_with_status.add(checksum)
+
+    checksums_to_check -= checksums_with_status
 
     # 2. Check if this project already owns the `ProjectDebugFile` for each file.
     debug_files = ProjectDebugFile.objects.filter(
         project_id=project.id,
         checksum__in=checksums_to_check,
     ).select_related("file")
+
+    checksums_with_debug_files = set()
     for debug_file in debug_files:
         file_response[debug_file.checksum] = {
             "state": ChunkFileState.OK,
@@ -448,25 +453,33 @@ def batch_assemble(project, files):
             "missingChunks": [],
             "dif": serialize(debug_file),
         }
-        checksums_to_check.remove(debug_file.checksum)
+        checksums_with_debug_files.add(debug_file.checksum)
+
+    checksums_to_check -= checksums_with_debug_files
 
     # 3. Compute all the chunks that have to be checked for existence.
     chunks_to_check = {}
+    checksums_without_chunks = set()
     for checksum in checksums_to_check:
         file_info = get_file_info(files, checksum)
+        name, debug_id, chunks = file_info or (None, None, None)
 
-        # There is neither a known file nor a cached state, so we will
-        # have to create a new file. Assure that there are checksums.
-        # If not, we assume this is a poll and report `NOT_FOUND`.
-        if file_info is None or not file_info[2]:
+        # If we don't have any chunks, this is likely a poll request
+        # checking for file status, so return NOT_FOUND
+        if not chunks:
             file_response[checksum] = {"state": ChunkFileState.NOT_FOUND, "missingChunks": []}
-            checksums_to_check.remove(checksum)
+            checksums_without_chunks.add(checksum)
+            continue
 
-        # We make an inverted index from chunk to check to its checksum.
-        chunks_to_check[file_info[2]] = checksum
+        # Map each chunk back to its source file checksum
+        for chunk in chunks:
+            chunks_to_check[chunk] = checksum
+
+    checksums_to_check -= checksums_without_chunks
 
     # 4. Find missing chunks and group them per checksum.
     all_missing_chunks = find_missing_chunks(project.organization.id, chunks_to_check)
+
     missing_chunks_per_checksum = {}
     for chunk in all_missing_chunks:
         # We access the chunk via `[]` since the chunk must be there since `all_missing_chunks` must be a subset of
@@ -474,12 +487,15 @@ def batch_assemble(project, files):
         missing_chunks_per_checksum.setdefault(chunks_to_check[chunk], set()).add(chunk)
 
     # 5. Report missing chunks per checksum.
+    checksums_with_missing_chunks = set()
     for checksum, missing_chunks in missing_chunks_per_checksum.items():
         file_response[checksum] = {
             "state": ChunkFileState.NOT_FOUND,
-            "missingChunks": missing_chunks,
+            "missingChunks": list(missing_chunks),
         }
-        checksums_to_check.remove(checksum)
+        checksums_with_missing_chunks.add(checksum)
+
+    checksums_to_check -= checksums_with_missing_chunks
 
     from sentry.tasks.assemble import assemble_dif
 
