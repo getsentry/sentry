@@ -1,6 +1,6 @@
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {PageFilters} from 'sentry/types/core';
-import type {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -45,7 +45,9 @@ export function useTraceSpans<F extends string>({
       project: selection.projects,
       environment: selection.environments,
       ...normalizeDateTimeParams(datetime ?? selection.datetime),
-      dataset,
+      // RPC not supported here yet, fall back to EAP directly
+      dataset:
+        dataset === DiscoverDatasets.SPANS_EAP_RPC ? DiscoverDatasets.SPANS_EAP : dataset,
       field: fields,
       query,
       sort,
