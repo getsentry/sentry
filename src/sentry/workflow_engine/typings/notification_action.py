@@ -1,6 +1,6 @@
 import dataclasses
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, ClassVar
 
 from sentry.integrations.opsgenie.client import OPSGENIE_DEFAULT_PRIORITY
@@ -82,16 +82,16 @@ class BaseActionTranslator(ABC):
         """
         if self.blob_type:
             mapped_data = {}
-            for field in dataclasses.fields(self.blob_type):
-                mapping = self.field_mappings.get(field.name)
+            for field_info in dataclasses.fields(self.blob_type):
+                mapping = self.field_mappings.get(field_info.name)
                 # If a mapping is specified, use the source field value or default value
                 if mapping:
                     source_field = mapping.source_field
                     value = self.action.get(source_field, mapping.default_value)
                 # Otherwise, use the field value
                 else:
-                    value = self.action.get(field.name, "")
-                mapped_data[field.name] = value
+                    value = self.action.get(field_info.name, "")
+                mapped_data[field_info.name] = value
 
             blob_instance = self.blob_type(**mapped_data)
             return dataclasses.asdict(blob_instance)
@@ -101,7 +101,9 @@ class BaseActionTranslator(ABC):
             return {k: v for k, v in self.action.items() if k not in excluded_keys}
 
 
-issue_alert_action_translator_registry = Registry[type[BaseActionTranslator]]()
+issue_alert_action_translator_registry = Registry[type[BaseActionTranslator]](
+    enable_reverse_lookup=False
+)
 
 
 @issue_alert_action_translator_registry.register(
@@ -253,6 +255,34 @@ class OpsgenieActionTranslator(BaseActionTranslator):
         return OnCallDataBlob
 
 
+class TicketActionTranslator(BaseActionTranslator, ABC):
+    @property
+    def required_fields(self) -> list[str]:
+        return ["integration"]
+
+    @property
+    def integration_id(self) -> Any | None:
+        return self.action.get("integration")
+
+    @property
+    def target_type(self) -> ActionTarget:
+        return ActionTarget.SPECIFIC
+
+
+@issue_alert_action_translator_registry.register(
+    "sentry.integrations.github.notify_action.GitHubCreateTicketAction"
+)
+@issue_alert_action_translator_registry.register(
+    "sentry.integrations.github_enterprise.notify_action.GitHubEnterpriseCreateTicketAction"
+)
+class GitHubActionTranslator(TicketActionTranslator):
+    action_type = Action.Type.GITHUB
+
+    @property
+    def blob_type(self) -> type["DataBlob"]:
+        return GitHubDataBlob
+
+
 @dataclass
 class DataBlob:
     """DataBlob is a generic type that represents the data blob for a notification action."""
@@ -282,3 +312,16 @@ class OnCallDataBlob(DataBlob):
     """OnCallDataBlob is a specific type that represents the data blob for a PagerDuty or Opsgenie notification action."""
 
     priority: str = ""
+
+
+@dataclass
+class GitHubDataBlob(DataBlob):
+    """
+    GitHubDataBlob represents the data blob for a GitHub ticket creation action.
+    """
+
+    repo: str
+    assignee: str = ""  # Optional field, defaults to empty string
+    labels: list[str] = field(default_factory=list)  # Optional field, defaults to empty list
+    # This is dynamic and can whatever customer config the customer setup on GitHub
+    dynamic_form_fields: list[dict] = field(default_factory=list)
