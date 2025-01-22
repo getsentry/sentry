@@ -86,6 +86,10 @@ def get_detector_trigger(
     detector = alert_rule_detector.detector
     detector_data_condition_group = detector.workflow_condition_group
     if detector_data_condition_group is None:
+        logger.error(
+            "detector_data_condition does not exist",
+            extra={"alert_rule_trigger_id": alert_rule_trigger.id},
+        )
         raise MissingACITableException
 
     try:
@@ -94,6 +98,10 @@ def get_detector_trigger(
             condition_result=priority,
         )
     except DataCondition.DoesNotExist:
+        logger.exception(
+            "detector trigger does not exist",
+            extra={"alert_rule_trigger_id": alert_rule_trigger.id},
+        )
         raise MissingACITableException
     return detector_trigger
 
@@ -109,6 +117,10 @@ def get_action_filter(
     try:
         alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=alert_rule)
     except AlertRuleWorkflow.DoesNotExist:
+        logger.exception(
+            "workflow does not exist",
+            extra={"alert_rule_trigger_id": alert_rule_trigger.id},
+        )
         raise MissingACITableException
     workflow = alert_rule_workflow.workflow
     workflow_dcgs = DataConditionGroup.objects.filter(workflowdataconditiongroup__workflow=workflow)
@@ -118,6 +130,10 @@ def get_action_filter(
             comparison=priority,
         )
     except DataCondition.DoesNotExist:
+        logger.exception(
+            "action filter does not exist",
+            extra={"alert_rule_trigger_id": alert_rule_trigger.id},
+        )
         raise MissingACITableException
     return action_filter
 
@@ -618,6 +634,10 @@ def dual_delete_migrated_alert_rule_trigger_action(
     try:
         aarta = ActionAlertRuleTriggerAction.objects.get(alert_rule_trigger_action=trigger_action)
     except ActionAlertRuleTriggerAction.DoesNotExist:
+        logger.exception(
+            "ActionAlertRuleTriggerAction does not exist",
+            extra={"alert_rule_trigger_action_id": trigger_action.id},
+        )
         raise MissingACITableException
     action = aarta.action
     action.delete()
