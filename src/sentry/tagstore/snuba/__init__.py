@@ -1,1 +1,1 @@
-from .backend import SnubaTagStorage  # NOQA
+from .backend import SnubaFlagStorage, SnubaTagStorage  # NOQA

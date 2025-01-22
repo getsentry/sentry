@@ -42,8 +42,14 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint, EnvironmentMixin):
             # if the environment doesn't exist then the tag can't possibly exist
             raise ResourceDoesNotExist
 
+        # Flags also autocomplete. We can switch the dataset we target.
+        if request.GET.get("useFlagsBackend") == "1":
+            backend = tagstore.flag_backend
+        else:
+            backend = tagstore.backend
+
         try:
-            tagkey = tagstore.backend.get_tag_key(
+            tagkey = backend.get_tag_key(
                 project.id,
                 environment_id,
                 lookup_key,
@@ -54,7 +60,7 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         start, end = get_date_range_from_params(request.GET)
 
-        paginator = tagstore.backend.get_tag_value_paginator(
+        paginator = backend.get_tag_value_paginator(
             project.id,
             environment_id,
             tagkey.key,
