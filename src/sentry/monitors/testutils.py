@@ -22,7 +22,7 @@ def build_checkin_item(
 
     message: CheckIn = {
         "message_type": "check_in",
-        "payload": "{}",
+        "payload": b"{}",
         "start_time": ts.timestamp(),
         "project_id": 1,
         "sdk": None,

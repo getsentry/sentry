@@ -101,7 +101,7 @@ class MonitorConsumerTest(TestCase):
             "message_type": "check_in",
             "start_time": ts.timestamp(),
             "project_id": self.project.id,
-            "payload": json.dumps(payload),
+            "payload": json.dumps(payload).encode(),
             "sdk": "test/1.0",
             "retention_days": 90,
         }
