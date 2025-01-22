@@ -1972,7 +1972,7 @@ def recursive_tag_replace(condition: Column | Function) -> bool:
     if isinstance(condition, Column):
         if condition.name.startswith("tags[") and condition.name.endswith("]"):
             return Column(
-                name=f"features[{condition.name[5:-1]}]",
+                name=f"flags[{condition.name[5:-1]}]",
                 entity=condition.entity,
             )
     elif isinstance(condition, Function):
