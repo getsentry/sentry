@@ -10,7 +10,7 @@ import {
   type TimeSeriesWidgetVisualizationProps,
 } from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 
-import {MISSING_DATA_MESSAGE} from '../common/settings';
+import {MISSING_DATA_MESSAGE, X_GUTTER, Y_GUTTER} from '../common/settings';
 import type {StateProps} from '../common/types';
 import {LoadingPanel} from '../widgetLayout/loadingPanel';
 
@@ -72,4 +72,5 @@ export function TimeSeriesWidget(props: TimeSeriesWidgetProps) {
 
 const TimeSeriesWrapper = styled('div')`
   flex-grow: 1;
+  padding: 0 ${X_GUTTER} ${Y_GUTTER} ${X_GUTTER};
 `;
