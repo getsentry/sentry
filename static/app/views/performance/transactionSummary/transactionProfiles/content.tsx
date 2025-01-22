@@ -477,7 +477,7 @@ function ProfileList({query: userQuery, transaction}: TransactionProfilesContent
               location,
               organization,
               transactionName: transaction,
-              source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY_PROFILES,
+              source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
             });
 
             const profileTarget = generateProfileLink()(

@@ -53,6 +53,7 @@ import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import type {FieldValue} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {
   createUnnamedTransactionsDiscoverTarget,
@@ -431,39 +432,55 @@ export function renderEventIdAsLinkable(
   );
 }
 
-export function renderTraceAsLinkable(
-  data: any,
-  {eventView, organization, location}: RenderFunctionBaggage
-) {
-  const id: string | unknown = data?.trace;
-  if (!eventView || typeof id !== 'string') {
-    return null;
-  }
-  const dateSelection = eventView.normalizeDateSelection(location);
-  const target = getTraceDetailsUrl({
-    organization,
-    traceSlug: String(data.trace),
-    dateSelection,
-    timestamp: getTimeStampFromTableDateField(data.timestamp),
-    location,
-  });
+export function renderTraceAsLinkable(widget?: Widget) {
+  return function (
+    data: any,
+    {eventView, organization, location}: RenderFunctionBaggage
+  ) {
+    const id: string | unknown = data?.trace;
+    if (!eventView || typeof id !== 'string') {
+      return null;
+    }
+    const dateSelection = eventView.normalizeDateSelection(location);
+    const target = getTraceDetailsUrl({
+      organization,
+      traceSlug: String(data.trace),
+      dateSelection,
+      timestamp: getTimeStampFromTableDateField(data.timestamp),
+      location: widget
+        ? {
+            ...location,
+            query: {
+              ...location.query,
+              widgetId: widget.id,
+              dashboardId: widget.dashboardId,
+            },
+          }
+        : location,
+      source: TraceViewSources.DASHBOARDS,
+    });
 
-  return (
-    <Tooltip title={t('View Trace')}>
-      <Link data-test-id="view-trace" to={target}>
-        <Container>{getShortEventId(id)}</Container>
-      </Link>
-    </Tooltip>
-  );
+    return (
+      <Tooltip title={t('View Trace')}>
+        <Link data-test-id="view-trace" to={target}>
+          <Container>{getShortEventId(id)}</Container>
+        </Link>
+      </Tooltip>
+    );
+  };
 }
 
-export function getCustomEventsFieldRenderer(field: string, meta: MetaType) {
+export function getCustomEventsFieldRenderer(
+  field: string,
+  meta: MetaType,
+  widget?: Widget
+) {
   if (field === 'id') {
     return renderEventIdAsLinkable;
   }
 
   if (field === 'trace') {
-    return renderTraceAsLinkable;
+    return renderTraceAsLinkable(widget);
   }
 
   // When title or transaction are << unparameterized >>, link out to discover showing unparameterized transactions

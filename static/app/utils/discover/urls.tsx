@@ -4,6 +4,7 @@ import type {Location, LocationDescriptorObject} from 'history';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
+import type {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 import {getTimeStampFromTableDateField} from '../dates';
@@ -68,7 +69,7 @@ export function generateLinkToEventInTraceView({
   demo?: string;
   eventView?: EventView;
   isHomepage?: boolean;
-  source?: string;
+  source?: TraceViewSources;
   spanId?: string;
   // targetId represents the span id of the transaction. It will replace eventId once all links
   // to trace view are updated to use spand ids of transactions instead of event ids.

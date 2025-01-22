@@ -164,7 +164,7 @@ describe('Renderers', function () {
       expect(link).toBeInTheDocument();
       expect(link).toHaveAttribute(
         'href',
-        `/organizations/${organization.slug}/performance/trace/${traceId}/?eventId=${span['transaction.id']}&node=span-${span.id}&node=txn-${span['transaction.id']}&source=traces&statsPeriod=14d&timestamp=1720016100`
+        `/organizations/${organization.slug}/traces/trace/${traceId}/?eventId=${span['transaction.id']}&node=span-${span.id}&node=txn-${span['transaction.id']}&source=traces&statsPeriod=14d&timestamp=1720016100`
       );
 
       expect(onClickHandler).toHaveBeenCalledTimes(0);
@@ -193,7 +193,7 @@ describe('Renderers', function () {
       expect(link).toBeInTheDocument();
       expect(link).toHaveAttribute(
         'href',
-        `/organizations/${organization.slug}/performance/trace/${traceId}/?pageEnd&pageStart&source=traces&statsPeriod=14d&timestamp=1720016100`
+        `/organizations/${organization.slug}/traces/trace/${traceId}/?pageEnd&pageStart&source=traces&statsPeriod=14d&timestamp=1720016100`
       );
 
       expect(onClickHandler).toHaveBeenCalledTimes(0);
