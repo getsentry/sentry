@@ -120,7 +120,7 @@ function AutofixHighlightPopup({
 
   useLayoutEffect(() => {
     if (!referenceElement || !popupRef.current) {
-      return;
+      return undefined;
     }
 
     const updatePosition = () => {
@@ -143,6 +143,13 @@ function AutofixHighlightPopup({
     scrollElements.forEach(element => {
       element.addEventListener('scroll', updatePosition, {passive: true});
     });
+
+    return () => {
+      resizeObserver.disconnect();
+      scrollElements.forEach(element => {
+        element.removeEventListener('scroll', updatePosition);
+      });
+    };
   }, [referenceElement]);
 
   const handleSubmit = (e: React.FormEvent) => {

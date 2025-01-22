@@ -159,7 +159,7 @@ export function AutofixOutputStream({
           })}
         >
           <VerticalLine />
-          <Container layout $required={responseRequired}>
+          <Container layout required={responseRequired}>
             {activeLog && (
               <ActiveLogWrapper>
                 <ActiveLog
@@ -213,7 +213,7 @@ const ScaleContainer = styled(motion.div)`
   padding-left: ${space(2)};
 `;
 
-const Container = styled(motion.div)<{$required: boolean}>`
+const Container = styled(motion.div)<{required: boolean}>`
   position: relative;
   width: 100%;
   border-radius: ${p => p.theme.borderRadius};
@@ -228,7 +228,7 @@ const Container = styled(motion.div)<{$required: boolean}>`
     background: linear-gradient(
       90deg,
       transparent,
-      ${p => (p.$required ? p.theme.pink400 : p.theme.active)}20,
+      ${p => (p.required ? p.theme.pink400 : p.theme.active)}20,
       transparent
     );
     background-size: 2000px 100%;

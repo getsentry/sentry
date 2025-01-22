@@ -87,10 +87,7 @@ describe('AutofixInsightCards', () => {
 
   it('shows edit input overlay when "Edit insight" is clicked', async () => {
     renderComponent();
-    const editButton = screen.getAllByRole('button', {name: 'Edit insight'})[0];
-    if (!editButton) {
-      throw new Error('No edit button found');
-    }
+    const editButton = screen.getAllByRole('button', {name: 'Edit insight'})[0]!;
     await userEvent.click(editButton);
     expect(
       screen.getByPlaceholderText('Share your own insight here...')
@@ -99,10 +96,7 @@ describe('AutofixInsightCards', () => {
 
   it('hides edit input when clicked cancel', async () => {
     renderComponent();
-    const editButton = screen.getAllByRole('button', {name: 'Edit insight'})[0];
-    if (!editButton) {
-      throw new Error('No edit button found');
-    }
+    const editButton = screen.getAllByRole('button', {name: 'Edit insight'})[0]!;
     await userEvent.click(editButton);
     expect(
       screen.getByPlaceholderText('Share your own insight here...')
@@ -121,10 +115,7 @@ describe('AutofixInsightCards', () => {
     });
 
     renderComponent();
-    const editButton = screen.getAllByRole('button', {name: 'Edit insight'})[1];
-    if (!editButton) {
-      throw new Error('No edit button found');
-    }
+    const editButton = screen.getAllByRole('button', {name: 'Edit insight'})[1]!;
     await userEvent.click(editButton);
 
     const input = screen.getByPlaceholderText('Share your own insight here...');
@@ -157,10 +148,7 @@ describe('AutofixInsightCards', () => {
     });
 
     renderComponent();
-    const editButton = screen.getAllByRole('button', {name: 'Edit insight'})[0];
-    if (!editButton) {
-      throw new Error('No edit button found');
-    }
+    const editButton = screen.getAllByRole('button', {name: 'Edit insight'})[0]!;
     await userEvent.click(editButton);
 
     const input = screen.getByPlaceholderText('Share your own insight here...');
@@ -182,10 +170,7 @@ describe('AutofixInsightCards', () => {
     });
 
     renderComponent();
-    const editButton = screen.getAllByRole('button', {name: 'Edit insight'})[0];
-    if (!editButton) {
-      throw new Error('No edit button found');
-    }
+    const editButton = screen.getAllByRole('button', {name: 'Edit insight'})[0]!;
     await userEvent.click(editButton);
 
     const input = screen.getByPlaceholderText('Share your own insight here...');
