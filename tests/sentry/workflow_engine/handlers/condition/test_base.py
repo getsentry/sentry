@@ -13,7 +13,7 @@ from sentry.workflow_engine.migration_helpers.issue_alert_conditions import (
 )
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
 from sentry.workflow_engine.models.data_condition_group import DataConditionGroup
-from sentry.workflow_engine.types import DataJob, WorkflowJob
+from sentry.workflow_engine.types import WorkflowEvaluationData, WorkflowJob
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
@@ -46,11 +46,13 @@ class ConditionTestCase(BaseWorkflowTest):
     def assert_does_not_pass(self, data_condition: DataCondition, job: WorkflowJob) -> None:
         assert data_condition.evaluate_value(job) != data_condition.get_condition_result()
 
-    def assert_slow_condition_passes(self, data_condition: DataCondition, job: DataJob) -> None:
+    def assert_slow_condition_passes(
+        self, data_condition: DataCondition, job: WorkflowEvaluationData
+    ) -> None:
         assert data_condition.evaluate_value(job) == data_condition.get_condition_result()
 
     def assert_slow_condition_does_not_pass(
-        self, data_condition: DataCondition, job: DataJob
+        self, data_condition: DataCondition, job: WorkflowEvaluationData
     ) -> None:
         assert data_condition.evaluate_value(job) != data_condition.get_condition_result()
 

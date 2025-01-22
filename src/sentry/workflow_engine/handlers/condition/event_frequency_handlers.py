@@ -78,9 +78,9 @@ class EventFrequencyCountHandler(
 
     @staticmethod
     def evaluate_value(value: WorkflowEvaluationData, comparison: Any) -> DataConditionResult:
-        if not isinstance(value.get("data"), list) or len(value["data"]) != 1:
+        if not ((data := value.get("data")) and isinstance(data, list) and len(data) == 1):
             return False
-        return value["data"][0] > comparison["value"]
+        return data[0] > comparison["value"]
 
 
 @condition_handler_registry.register(Condition.EVENT_FREQUENCY_PERCENT)
@@ -100,6 +100,6 @@ class EventFrequencyPercentHandler(
 
     @staticmethod
     def evaluate_value(value: WorkflowEvaluationData, comparison: Any) -> DataConditionResult:
-        if not isinstance(value.get("data"), list) or len(value["data"]) != 2:
+        if not ((data := value.get("data")) and isinstance(data, list) and len(data) == 2):
             return False
-        return percent_increase(value["data"][0], value["data"][1]) > comparison["value"]
+        return percent_increase(data[0], data[1]) > comparison["value"]
