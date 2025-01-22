@@ -1,4 +1,3 @@
-from collections.abc import Callable
 from typing import Literal
 
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
@@ -12,8 +11,9 @@ from sentry.search.eap.columns import (
     ResolvedColumn,
     VirtualColumnDefinition,
     datetime_processor,
+    project_context_constructor,
     simple_measurements_field,
-    simple_sentry_field,
+    simple_sentry_field, project_term_resolver,
 )
 from sentry.search.events.constants import SPAN_MODULE_CATEGORY_VALUES
 from sentry.search.events.types import SnubaParams
@@ -322,29 +322,6 @@ def translate_internal_to_public_alias(
 ) -> str | None:
     mappings = INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS.get(type, {})
     return mappings.get(internal_alias)
-
-
-def project_context_constructor(column_name: str) -> Callable[[SnubaParams], VirtualColumnContext]:
-    def context_constructor(params: SnubaParams) -> VirtualColumnContext:
-        return VirtualColumnContext(
-            from_column_name="sentry.project_id",
-            to_column_name=column_name,
-            value_map={
-                str(project_id): project_name
-                for project_id, project_name in params.project_id_map.items()
-            },
-        )
-
-    return context_constructor
-
-
-def project_term_resolver(
-    raw_value: str | list[str],
-) -> list[int] | int:
-    if isinstance(raw_value, list):
-        return [int(val) for val in raw_value]
-    else:
-        return int(raw_value)
 
 
 def device_class_context_constructor(params: SnubaParams) -> VirtualColumnContext:
