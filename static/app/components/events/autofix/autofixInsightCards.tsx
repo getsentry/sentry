@@ -91,7 +91,6 @@ interface AutofixInsightCardProps {
   insightCount: number;
   runId: string;
   stepIndex: number;
-  shouldHighlightRethink?: boolean;
 }
 
 function AutofixInsightCard({
@@ -102,7 +101,6 @@ function AutofixInsightCard({
   stepIndex,
   groupId,
   runId,
-  shouldHighlightRethink,
   insightCount,
 }: AutofixInsightCardProps) {
   const isLastInsightInStep = index === insightCount - 1;
@@ -173,7 +171,6 @@ function AutofixInsightCard({
         <AnimationWrapper key="content" {...animationProps}>
           {hasCardAbove && (
             <ChainLink
-              isHighlighted={shouldHighlightRethink}
               stepIndex={stepIndex}
               groupId={groupId}
               runId={runId}
@@ -245,7 +242,6 @@ function AutofixInsightCard({
                     size="zero"
                     borderless
                     onClick={handleEdit}
-                    isHighlighted={shouldHighlightRethink ?? false}
                     icon={<IconEdit size="sm" />}
                     aria-label={t('Edit insight')}
                     title={t('Replace insight and rethink')}
@@ -281,7 +277,6 @@ function AutofixInsightCard({
 
           {hasCardBelow && (
             <ChainLink
-              isHighlighted={shouldHighlightRethink}
               isLastCard={isLastInsightInStep}
               stepIndex={stepIndex}
               groupId={groupId}
@@ -303,12 +298,9 @@ interface AutofixInsightCardsProps {
   runId: string;
   stepIndex: number;
   shouldCollapseByDefault?: boolean;
-  shouldHighlightRethink?: boolean;
 }
 
 function CollapsibleChainLink({
-  isHighlighted,
-  isLastCard,
   isEmpty,
   isCollapsed,
   onToggleCollapse,
@@ -317,8 +309,6 @@ function CollapsibleChainLink({
   insightCount?: number;
   isCollapsed?: boolean;
   isEmpty?: boolean;
-  isHighlighted?: boolean;
-  isLastCard?: boolean;
   onToggleCollapse?: () => void;
 }) {
   return (
@@ -347,20 +337,6 @@ function CollapsibleChainLink({
             />
           </CollapseButtonWrapper>
         )}
-        <AnimatePresence>
-          {isLastCard && isHighlighted && (
-            <RethinkMessage
-              initial={{opacity: 0, x: 20}}
-              animate={{opacity: 1, x: 0}}
-              exit={{opacity: 0, x: 20}}
-              transition={{duration: 0.4}}
-            >
-              {isEmpty
-                ? t('Not satisfied? Leave a comment.')
-                : t('Not satisfied? Leave a comment or edit something.')}
-            </RethinkMessage>
-          )}
-        </AnimatePresence>
       </RethinkButtonContainer>
     </VerticalLineContainer>
   );
@@ -373,7 +349,6 @@ function AutofixInsightCards({
   stepIndex,
   groupId,
   runId,
-  shouldHighlightRethink,
   shouldCollapseByDefault,
 }: AutofixInsightCardsProps) {
   const [isCollapsed, setIsCollapsed] = useState(!!shouldCollapseByDefault);
@@ -394,7 +369,6 @@ function AutofixInsightCards({
         <Fragment>
           {hasStepAbove && (
             <CollapsibleChainLink
-              isHighlighted={shouldHighlightRethink}
               isCollapsed={isCollapsed}
               onToggleCollapse={handleToggleCollapse}
               insightCount={validInsightCount}
@@ -420,7 +394,6 @@ function AutofixInsightCards({
                       groupId={groupId}
                       runId={runId}
                       insightCount={validInsightCount}
-                      shouldHighlightRethink={shouldHighlightRethink}
                     />
                   )
                 )}
@@ -433,7 +406,6 @@ function AutofixInsightCards({
       ) : hasStepBelow ? (
         <EmptyResultsContainer>
           <ChainLink
-            isHighlighted={shouldHighlightRethink}
             isLastCard
             isEmpty
             stepIndex={stepIndex}
@@ -486,12 +458,10 @@ interface ChainLinkProps {
   runId: string;
   stepIndex: number;
   isEmpty?: boolean;
-  isHighlighted?: boolean;
   isLastCard?: boolean;
 }
 
 function ChainLink({
-  isHighlighted,
   isLastCard,
   isEmpty,
   stepIndex,
@@ -565,7 +535,6 @@ function ChainLink({
               icon={<IconAdd size="sm" />}
               title={t('Add insight and rethink')}
               aria-label={t('Add insight and rethink')}
-              isHighlighted={isHighlighted}
             />
           ))}
       </RethinkButtonContainer>
@@ -650,15 +619,6 @@ const RethinkButtonContainer = styled('div')`
   width: calc(100% + ${space(1)});
 `;
 
-const RethinkMessage = styled(motion.div)`
-  color: ${p => p.theme.pink400};
-  font-size: ${p => p.theme.fontSizeSmall};
-  position: absolute;
-  right: 100%;
-  top: -${space(1)};
-  white-space: nowrap;
-`;
-
 const ContentWrapper = styled('div')``;
 
 const MiniHeader = styled('p')`
@@ -737,7 +697,10 @@ const AnimationWrapper = styled(motion.div)`
 `;
 
 const StyledIconChevron = styled(IconChevron)`
-  color: ${p => p.theme.pink400}90;
+  color: ${p => p.theme.textColor};
+  &:hover {
+    color: ${p => p.theme.pink400};
+  }
 `;
 
 const RightSection = styled('div')`
@@ -762,8 +725,8 @@ const EditInput = styled(Input)`
   flex: 1;
 `;
 
-const EditButton = styled(Button)<{isHighlighted?: boolean}>`
-  color: ${p => (p.isHighlighted ? p.theme.pink400 : `${p.theme.pink400}90`)};
+const EditButton = styled(Button)`
+  color: ${p => p.theme.textColor};
   &:hover {
     color: ${p => p.theme.pink400};
   }
@@ -790,8 +753,8 @@ const CollapsedCount = styled('span')`
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
-const AddButton = styled(Button)<{isHighlighted?: boolean}>`
-  color: ${p => (p.isHighlighted ? p.theme.pink400 : `${p.theme.pink400}90`)};
+const AddButton = styled(Button)`
+  color: ${p => p.theme.textColor};
   &:hover {
     color: ${p => p.theme.pink400};
   }
