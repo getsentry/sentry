@@ -450,11 +450,6 @@ export function formatColorForSpan(
   return '';
 }
 
-export function formatColorForFrame(frame: FlamegraphFrame, color: ColorChannels): string;
-export function formatColorForFrame(
-  frame: FlamegraphFrame,
-  color: FlamegraphRenderer
-): string;
 export function formatColorForFrame(
   frame: FlamegraphFrame,
   rendererOrColor: FlamegraphRenderer | ColorChannels

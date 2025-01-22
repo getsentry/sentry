@@ -126,8 +126,6 @@ export function decodeInteger(value: QueryValue, fallback?: number): number | un
   return fallback;
 }
 
-export function decodeSorts(value: QueryValue): Sort[];
-export function decodeSorts(value: QueryValue, fallback: string): Sort[];
 export function decodeSorts(value: QueryValue, fallback?: string): Sort[] {
   const sorts = decodeList(value).filter(Boolean);
   if (!sorts.length) {

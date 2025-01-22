@@ -77,13 +77,8 @@ export class MutableSearch {
   }
 
   /**
-   * Creates a MutableSearch from a string query
+   * Creates a mutable search query from a string or list of query parts
    */
-  constructor(query: string);
-  /**
-   * Creates a mutable search query from a list of query parts
-   */
-  constructor(queries: string[]);
   constructor(tokensOrQuery: string[] | string) {
     const strTokens = Array.isArray(tokensOrQuery)
       ? tokensOrQuery
