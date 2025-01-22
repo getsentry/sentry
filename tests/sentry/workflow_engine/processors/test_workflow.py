@@ -162,6 +162,20 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
         triggered_workflows = evaluate_workflow_triggers({self.workflow}, self.job)
         assert triggered_workflows == {self.workflow}
 
+    def test_evaluate_slow_conditions(self):
+        self.create_data_condition(
+            condition_group=self.workflow.when_condition_group,
+            type=Condition.EVENT_FREQUENCY_COUNT,
+            comparison={
+                "interval": "1h",
+                "value": 100,
+            },
+            condition_result=True,
+        )
+
+        triggered_workflows = evaluate_workflow_triggers({self.workflow}, [101])
+        assert triggered_workflows == {self.workflow}
+
 
 @freeze_time(FROZEN_TIME)
 class TestEnqueueWorkflow(BaseWorkflowTest):

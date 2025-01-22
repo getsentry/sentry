@@ -67,7 +67,7 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
             )
         ]
 
-    def evaluate_trigger_conditions(self, job: WorkflowJob) -> bool:
+    def evaluate_trigger_conditions(self, job: WorkflowJob | list[int]) -> bool:
         """
         Evaluate the conditions for the workflow trigger and return if the evaluation was successful.
         If there aren't any workflow trigger conditions, the workflow is considered triggered.
@@ -75,8 +75,12 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         if self.when_condition_group is None:
             return True
 
-        job["workflow"] = self
-        evaluation, _ = evaluate_condition_group(self.when_condition_group, job)
+        if evaluate_all_conditions := isinstance(job, dict):
+            job["workflow"] = self
+
+        evaluation, _ = evaluate_condition_group(
+            self.when_condition_group, job, evaluate_slow_conditions=not evaluate_all_conditions
+        )
         return evaluation
 
 

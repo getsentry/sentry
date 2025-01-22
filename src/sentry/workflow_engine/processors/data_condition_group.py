@@ -3,6 +3,7 @@ from typing import Any, TypeVar
 
 from sentry.utils.function_cache import cache_func_for_models
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup
+from sentry.workflow_engine.models.data_condition import split_fast_slow_conditions
 from sentry.workflow_engine.types import ProcessedDataConditionResult
 
 logger = logging.getLogger(__name__)
@@ -18,19 +19,10 @@ def get_data_conditions_for_group(data_condition_group_id: int) -> list[DataCond
     return list(DataCondition.objects.filter(condition_group_id=data_condition_group_id))
 
 
-def evaluate_condition_group(
-    data_condition_group: DataConditionGroup,
-    value: T,
+def evaluate_conditions(
+    data_condition_group: DataConditionGroup, value: T, conditions: list[DataCondition]
 ) -> ProcessedDataConditionResult:
-    """
-    Evaluate the conditions for a given group and value.
-    """
     results = []
-    conditions = get_data_conditions_for_group(data_condition_group.id)
-
-    if len(conditions) == 0:
-        # if we don't have any conditions, always return True
-        return True, []
 
     for condition in conditions:
         evaluation_result = condition.evaluate_value(value)
@@ -66,6 +58,28 @@ def evaluate_condition_group(
             return is_all_conditions_met, condition_results
 
     return False, []
+
+
+def evaluate_condition_group(
+    data_condition_group: DataConditionGroup,
+    value: T,
+    evaluate_slow_conditions: bool | None = False,
+) -> ProcessedDataConditionResult:
+    """
+    Evaluate the conditions for a given group and value.
+    """
+    conditions = get_data_conditions_for_group(data_condition_group.id)
+
+    _, slow_conditions = split_fast_slow_conditions(conditions)
+
+    if evaluate_slow_conditions:
+        conditions = slow_conditions
+
+    if len(conditions) == 0:
+        # if we don't have any conditions, always return True
+        return True, []
+
+    return evaluate_conditions(data_condition_group, value, conditions)
 
 
 def process_data_condition_group(

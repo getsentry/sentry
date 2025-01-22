@@ -9,7 +9,6 @@ from sentry.workflow_engine.handlers.condition.event_frequency_handlers import (
     EventFrequencyCountHandler,
 )
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.types import WorkflowJob
 from tests.sentry.workflow_engine.handlers.condition.test_base import (
     ConditionTestCase,
     EventFrequencyQueryTestBase,
@@ -28,10 +27,6 @@ class TestEventFrequencyCountCondition(ConditionTestCase):
         "comparisonType": ComparisonType.COUNT,
     }
 
-    def setUp(self):
-        super().setUp()
-        self.job = WorkflowJob({"event": self.group_event})
-
     def test_count(self):
         dc = self.create_data_condition(
             type=self.condition,
@@ -39,11 +34,8 @@ class TestEventFrequencyCountCondition(ConditionTestCase):
             condition_result=True,
         )
 
-        self.job["snuba_results"] = [1001]
-        self.assert_passes(dc, self.job)
-
-        self.job["snuba_results"] = [999]
-        self.assert_does_not_pass(dc, self.job)
+        self.assert_slow_condition_passes(dc, [1001])
+        self.assert_slow_condition_does_not_pass(dc, [999])
 
     def test_dual_write_count(self):
         dcg = self.create_data_condition_group()
@@ -89,10 +81,6 @@ class TestEventFrequencyPercentCondition(ConditionTestCase):
         "comparisonType": ComparisonType.PERCENT,
     }
 
-    def setUp(self):
-        super().setUp()
-        self.job = WorkflowJob({"event": self.group_event})
-
     def test_percent(self):
         dc = self.create_data_condition(
             type=self.condition,
@@ -104,11 +92,8 @@ class TestEventFrequencyPercentCondition(ConditionTestCase):
             condition_result=True,
         )
 
-        self.job["snuba_results"] = [21, 10]
-        self.assert_passes(dc, self.job)
-
-        self.job["snuba_results"] = [20, 10]
-        self.assert_does_not_pass(dc, self.job)
+        self.assert_slow_condition_passes(dc, [21, 10])
+        self.assert_slow_condition_does_not_pass(dc, [20, 10])
 
     def test_dual_write_percent(self):
         self.payload.update({"comparisonType": ComparisonType.PERCENT, "comparisonInterval": "1d"})

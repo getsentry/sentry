@@ -64,19 +64,24 @@ def enqueue_workflows(
         )
 
 
-def evaluate_workflow_triggers(workflows: set[Workflow], job: WorkflowJob) -> set[Workflow]:
+def evaluate_workflow_triggers(
+    workflows: set[Workflow], job: WorkflowJob | list[int]
+) -> set[Workflow]:
     triggered_workflows: set[Workflow] = set()
     workflows_to_enqueue: set[Workflow] = set()
+    evaluate_all_conditions = isinstance(job, dict)
 
     for workflow in workflows:
         if workflow.evaluate_trigger_conditions(job):
             triggered_workflows.add(workflow)
+
+        # only collect slow conditions to enqueue if we are evaluating all conditions
         else:
-            if get_slow_conditions(workflow):
+            if evaluate_all_conditions and get_slow_conditions(workflow):
                 # enqueue to be evaluated later
                 workflows_to_enqueue.add(workflow)
 
-    if workflows_to_enqueue:
+    if workflows_to_enqueue and isinstance(job, dict):
         enqueue_workflows(workflows_to_enqueue, job)
 
     return triggered_workflows
