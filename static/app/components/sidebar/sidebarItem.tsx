@@ -207,10 +207,14 @@ function SidebarItem({
   const handleItemClick = useCallback(
     (event: React.MouseEvent<HTMLAnchorElement>) => {
       setExpandedItemId(null);
-      !(to || href) && event.preventDefault();
+      if (!to && !href) {
+        event.preventDefault();
+      }
       recordAnalytics();
       onClick?.(id, event);
-      showIsNew && localStorage.setItem(isNewSeenKey, 'true');
+      if (showIsNew) {
+        localStorage.setItem(isNewSeenKey, 'true');
+      }
     },
     [href, to, id, onClick, recordAnalytics, showIsNew, isNewSeenKey, setExpandedItemId]
   );

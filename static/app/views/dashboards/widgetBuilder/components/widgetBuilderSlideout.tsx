@@ -11,14 +11,13 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import useMedia from 'sentry/utils/useMedia';
-import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {useValidateWidgetQuery} from 'sentry/views/dashboards/hooks/useValidateWidget';
 import {
   type DashboardDetails,
   type DashboardFilters,
   DisplayType,
   type Widget,
-  WidgetType,
 } from 'sentry/views/dashboards/types';
 import WidgetBuilderDatasetSelector from 'sentry/views/dashboards/widgetBuilder/components/datasetSelector';
 import WidgetBuilderFilterBar from 'sentry/views/dashboards/widgetBuilder/components/filtersBar';
@@ -29,7 +28,6 @@ import {
   WidgetPreviewContainer,
 } from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilder';
 import WidgetBuilderQueryFilterBuilder from 'sentry/views/dashboards/widgetBuilder/components/queryFilterBuilder';
-import RPCToggle from 'sentry/views/dashboards/widgetBuilder/components/rpcToggle';
 import SaveButton from 'sentry/views/dashboards/widgetBuilder/components/saveButton';
 import WidgetBuilderSortBySelector from 'sentry/views/dashboards/widgetBuilder/components/sortBySelector';
 import ThresholdsSection from 'sentry/views/dashboards/widgetBuilder/components/thresholds';
@@ -37,6 +35,7 @@ import WidgetBuilderTypeSelector from 'sentry/views/dashboards/widgetBuilder/com
 import Visualize from 'sentry/views/dashboards/widgetBuilder/components/visualize';
 import WidgetTemplatesList from 'sentry/views/dashboards/widgetBuilder/components/widgetTemplatesList';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 
 type WidgetBuilderSlideoutProps = {
   dashboard: DashboardDetails;
@@ -67,12 +66,15 @@ function WidgetBuilderSlideout({
   onDataFetched,
   thresholdMetaState,
 }: WidgetBuilderSlideoutProps) {
-  const organization = useOrganization();
   const {state} = useWidgetBuilderContext();
   const [initialState] = useState(state);
   const [error, setError] = useState<Record<string, any>>({});
   const {widgetIndex} = useParams();
   const theme = useTheme();
+
+  const validatedWidgetResponse = useValidateWidgetQuery(
+    convertBuilderStateToWidget(state)
+  );
 
   const isEditing = widgetIndex !== undefined;
   const title = openWidgetTemplates
@@ -148,12 +150,6 @@ function WidgetBuilderSlideout({
             <Section>
               <WidgetBuilderDatasetSelector />
             </Section>
-            {organization.features.includes('visibility-explore-dataset') &&
-              state.dataset === WidgetType.SPANS && (
-                <Section>
-                  <RPCToggle />
-                </Section>
-              )}
             <Section>
               <WidgetBuilderTypeSelector error={error} setError={setError} />
             </Section>
@@ -176,6 +172,7 @@ function WidgetBuilderSlideout({
             <Section>
               <WidgetBuilderQueryFilterBuilder
                 onQueryConditionChange={onQueryConditionChange}
+                validatedWidgetResponse={validatedWidgetResponse}
               />
             </Section>
             {state.displayType === DisplayType.BIG_NUMBER && (
@@ -188,7 +185,9 @@ function WidgetBuilderSlideout({
             )}
             {isChartWidget && (
               <Section>
-                <WidgetBuilderGroupBySelector />
+                <WidgetBuilderGroupBySelector
+                  validatedWidgetResponse={validatedWidgetResponse}
+                />
               </Section>
             )}
             {showSortByStep && (

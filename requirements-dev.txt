@@ -1,7 +1,7 @@
 --index-url https://pypi.devinfra.sentry.io/simple
 
 sentry-devenv>=1.14.2
-devservices>=1.0.9
+devservices>=1.0.11
 
 covdefaults>=2.3.0
 sentry-covdefaults-disable-branch-coverage>=1.0.2
@@ -58,7 +58,7 @@ types-pyyaml
 # make sure to match close-enough to redis==
 types-redis<4
 types-requests>=2.32.0.20241016
-types-requests-oauthlib
+types-requests-oauthlib>=2.0.0.20250119
 types-setuptools>=68
 types-simplejson>=3.17.7.2
 types-unidiff

@@ -25,6 +25,7 @@ import simpleImportSort from 'eslint-plugin-simple-import-sort';
 import testingLibrary from 'eslint-plugin-testing-library';
 // @ts-expect-error TS (7016): Could not find a declaration file
 import typescriptSortKeys from 'eslint-plugin-typescript-sort-keys';
+import unicorn from 'eslint-plugin-unicorn';
 import globals from 'globals';
 import invariant from 'invariant';
 // biome-ignore lint/correctness/noNodejsModules: Need to get the list of things!
@@ -307,6 +308,7 @@ export default typescript.config([
       'import/no-anonymous-default-export': 'error',
       'import/no-duplicates': 'error',
       'import/no-named-default': 'error',
+      'import/no-nodejs-modules': 'error',
       'import/no-webpack-loader-syntax': 'error',
 
       // https://github.com/import-js/eslint-plugin-import/blob/main/config/recommended.js
@@ -423,7 +425,6 @@ export default typescript.config([
       '@typescript-eslint/no-require-imports': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-this-alias': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-unsafe-function-type': 'off', // TODO(ryan953): Fix violations and delete this line
-      '@typescript-eslint/no-unused-expressions': 'off', // TODO(ryan953): Fix violations and delete this line
 
       // Strict overrides
       '@typescript-eslint/no-dynamic-delete': 'off', // TODO(ryan953): Fix violations and delete this line
@@ -496,13 +497,13 @@ export default typescript.config([
         {
           groups: [
             // Side effect imports.
-            ['^\\u0000'],
+            [String.raw`^\u0000`],
 
             // Node.js builtins.
             [`^(${builtinModules.join('|')})(/|$)`],
 
             // Packages. `react` related packages come first.
-            ['^react', '^@?\\w'],
+            ['^react', String.raw`^@?\w`],
 
             // Test should be separate from the app
             ['^(sentry-test|getsentry-test)(/.*|$)'],
@@ -518,13 +519,13 @@ export default typescript.config([
             ['^(admin|getsentry)(/.*|$)'],
 
             // Style imports.
-            ['^.+\\.less$'],
+            [String.raw`^.+\.less$`],
 
             // Parent imports. Put `..` last.
-            ['^\\.\\.(?!/?$)', '^\\.\\./?$'],
+            [String.raw`^\.\.(?!/?$)`, String.raw`^\.\./?$`],
 
             // Other relative imports. Put same-folder imports and `.` last.
-            ['^\\./(?=.*/)(?!/?$)', '^\\.(?!/?$)', '^\\./?$'],
+            [String.raw`^\./(?=.*/)(?!/?$)`, String.raw`^\.(?!/?$)`, String.raw`^\./?$`],
           ],
         },
       ],
@@ -551,6 +552,17 @@ export default typescript.config([
       '@emotion/pkg-renaming': 'off', // Not needed, we have migrated to v11 and the old package names cannot be used anymore
       '@emotion/styled-import': 'error',
       '@emotion/syntax-preference': ['error', 'string'],
+    },
+  },
+  {
+    name: 'plugin/unicorn',
+    plugins: {unicorn},
+    rules: {
+      // The recommended rules are very opinionated. We don't need to enable them.
+
+      'unicorn/no-instanceof-array': 'error',
+      'unicorn/prefer-array-flat-map': 'error',
+      'unicorn/prefer-node-protocol': 'error',
     },
   },
   {
@@ -597,12 +609,16 @@ export default typescript.config([
   },
   {
     name: 'files/*.config.*',
-    files: ['*.config.*'],
+    files: ['**/*.config.*'],
     languageOptions: {
       globals: {
         ...globals.commonjs,
         ...globals.node,
       },
+    },
+
+    rules: {
+      'import/no-nodejs-modules': 'off',
     },
   },
   {
@@ -617,6 +633,8 @@ export default typescript.config([
     },
     rules: {
       'no-console': 'off',
+
+      'import/no-nodejs-modules': 'off',
     },
   },
   {
@@ -625,7 +643,9 @@ export default typescript.config([
       'tests/js/jest-pegjs-transform.js',
       'tests/js/sentry-test/echartsMock.js',
       'tests/js/sentry-test/importStyleMock.js',
+      'tests/js/sentry-test/loadFixtures.ts',
       'tests/js/sentry-test/svgMock.js',
+      'tests/js/setup.ts',
     ],
     languageOptions: {
       sourceType: 'commonjs',
@@ -633,7 +653,9 @@ export default typescript.config([
         ...globals.commonjs,
       },
     },
-    rules: {},
+    rules: {
+      'import/no-nodejs-modules': 'off',
+    },
   },
   {
     name: 'files/devtoolbar',

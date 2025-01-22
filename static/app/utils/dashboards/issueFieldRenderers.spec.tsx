@@ -84,21 +84,16 @@ describe('getIssueFieldRenderer', function () {
         }),
       ]);
 
-      const group = GroupFixture({project});
-      GroupStore.add([
-        {
-          ...group,
-          owners: [
-            {owner: 'user:1', type: 'suspectCommit', date_added: '2020-01-01T00:00:00'},
-          ],
-          assignedTo: {
-            email: 'test@sentry.io',
-            type: 'user',
-            id: '1',
-            name: 'Test User',
-          },
+      const group = GroupFixture({
+        project,
+        assignedTo: {
+          email: 'test@sentry.io',
+          type: 'user',
+          id: '1',
+          name: 'Test User',
         },
-      ]);
+      });
+      GroupStore.add([group]);
       const renderer = getIssueFieldRenderer('assignee');
 
       render(
@@ -107,11 +102,8 @@ describe('getIssueFieldRenderer', function () {
           organization,
         }) as React.ReactElement
       );
-      expect(screen.getByText('TU')).toBeInTheDocument();
       await userEvent.hover(screen.getByText('TU'));
       expect(await screen.findByText('Assigned to Test User')).toBeInTheDocument();
-      expect(screen.getByText('Based on')).toBeInTheDocument();
-      expect(screen.getByText('commit data')).toBeInTheDocument();
     });
 
     it('can render counts', async function () {

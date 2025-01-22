@@ -22,7 +22,7 @@ from sentry.issues.auto_source_code_config.code_mapping import get_sorted_code_m
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.profiles.utils import get_from_profiling_service
-from sentry.seer.signed_seer_api import get_seer_salted_url, sign_with_seer_secret
+from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.autofix import check_autofix_status
@@ -119,10 +119,14 @@ class GroupAutofixEndpoint(GroupEndpoint):
         if response.status == 200:
             profile = orjson.loads(response.data)
             execution_tree = self._convert_profile_to_execution_tree(profile)
-            output = {
-                "profile_matches_issue": profile_matches_event,
-                "execution_tree": execution_tree,
-            }
+            output = (
+                None
+                if not execution_tree
+                else {
+                    "profile_matches_issue": profile_matches_event,
+                    "execution_tree": execution_tree,
+                }
+            )
             return output
         else:
             return None
@@ -132,15 +136,21 @@ class GroupAutofixEndpoint(GroupEndpoint):
         Converts profile data into a hierarchical representation of code execution,
         including only items from the MainThread and app frames.
         """
-        profile = profile_data["profile"]
-        frames = profile["frames"]
-        stacks = profile["stacks"]
-        samples = profile["samples"]
+        profile = profile_data.get("profile")
+        if not profile:
+            return []
 
-        thread_metadata = profile.get("thread_metadata", {})
+        frames = profile.get("frames")
+        stacks = profile.get("stacks")
+        samples = profile.get("samples")
+
+        if not all([frames, stacks, samples]):
+            return []
+
+        thread_metadata = profile.get("thread_metadata") or {}
         main_thread_id = None
         for key, value in thread_metadata.items():
-            if value["name"] == "MainThread":
+            if value.get("name") == "MainThread":
                 main_thread_id = key
                 break
 
@@ -220,7 +230,7 @@ class GroupAutofixEndpoint(GroupEndpoint):
             stack_id = sample["stack_id"]
             thread_id = sample["thread_id"]
 
-            if str(thread_id) != str(main_thread_id):
+            if not main_thread_id or str(thread_id) != str(main_thread_id):
                 continue
 
             stack_frames = process_stack(stack_id)
@@ -289,16 +299,12 @@ class GroupAutofixEndpoint(GroupEndpoint):
             option=orjson.OPT_NON_STR_KEYS,
         )
 
-        url, salt = get_seer_salted_url(f"{settings.SEER_AUTOFIX_URL}{path}")
         response = requests.post(
-            url,
+            f"{settings.SEER_AUTOFIX_URL}{path}",
             data=body,
             headers={
                 "content-type": "application/json;charset=utf-8",
-                **sign_with_seer_secret(
-                    salt,
-                    body=body,
-                ),
+                **sign_with_seer_secret(body),
             },
         )
 

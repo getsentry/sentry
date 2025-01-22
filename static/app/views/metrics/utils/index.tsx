@@ -97,9 +97,11 @@ export function updateQueryWithSeriesFilter(
     if (!defined(value)) {
       return;
     }
-    updateType === MetricSeriesFilterUpdateType.ADD
-      ? addToFilter(mutableSearch, key, value)
-      : excludeFromFilter(mutableSearch, key, value);
+    if (updateType === MetricSeriesFilterUpdateType.ADD) {
+      addToFilter(mutableSearch, key, value);
+    } else {
+      excludeFromFilter(mutableSearch, key, value);
+    }
   });
 
   const extendedQuery = mutableSearch.formatString();

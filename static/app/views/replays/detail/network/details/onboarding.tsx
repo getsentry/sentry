@@ -74,7 +74,20 @@ export function Setup({
 
   const url = item.description || 'http://example.com';
 
-  return isVideoReplay ? null : (
+  return isVideoReplay ? (
+    visibleTab === 'request' || visibleTab === 'response' ? (
+      <StyledAlert type="info" showIcon>
+        {tct(
+          'Request and response headers or bodies are currently not available for mobile platforms. Track this [link:GitHub issue] to get progress on support for this feature.',
+          {
+            link: (
+              <ExternalLink href="https://github.com/getsentry/sentry-react-native/issues/4106" />
+            ),
+          }
+        )}
+      </StyledAlert>
+    ) : null
+  ) : (
     <SetupInstructions
       minVersion="7.53.1"
       sdkNeedsUpdate={sdkNeedsUpdate}
@@ -230,4 +243,8 @@ const StyledInstructions = styled('div')`
   p:last-child {
     margin-bottom: 0;
   }
+`;
+
+const StyledAlert = styled(Alert)`
+  margin: ${space(1)};
 `;

@@ -14,8 +14,6 @@ from sentry.db.models.manager.base import BaseManager
 from sentry.eventstore.models import Event
 
 if TYPE_CHECKING:
-    from django.db.models.query import _QuerySet
-
     from sentry.integrations.services.integration import RpcIntegration
 
 
@@ -53,11 +51,6 @@ class ExternalIssueManager(BaseManager["ExternalIssue"]):
             ).values_list("linked_id", flat=True),
             integration_id=integration.id,
         )
-
-    def get_linked_issue_ids(
-        self, event: Event, integration: RpcIntegration
-    ) -> _QuerySet[ExternalIssue, str]:
-        return self.get_linked_issues(event, integration).values_list("key", flat=True)
 
     def has_linked_issue(self, event: Event, integration: RpcIntegration) -> bool:
         return self.get_linked_issues(event, integration).exists()

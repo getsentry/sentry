@@ -214,7 +214,7 @@ class Client implements ApiNamespace.Client {
       this.request(path, {
         ...options,
         success: (data, ...args) => {
-          includeAllArgs ? resolve([data, ...args]) : resolve(data);
+          resolve(includeAllArgs ? [data, ...args] : data);
         },
         error: (error, ..._args) => {
           reject(error);

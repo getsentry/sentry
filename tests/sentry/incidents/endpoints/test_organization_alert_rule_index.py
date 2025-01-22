@@ -52,6 +52,8 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from tests.sentry.workflow_engine.migration_helpers.test_migrate_alert_rule import (
     assert_alert_rule_migrated,
+    assert_alert_rule_resolve_trigger_migrated,
+    assert_alert_rule_trigger_migrated,
 )
 
 pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
@@ -232,6 +234,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             outbox_runner(),
             self.feature(["organizations:incidents", "organizations:performance-view"]),
         ):
+            self.alert_rule_dict["resolveThreshold"] = 50
             resp = self.get_success_response(
                 self.organization.slug,
                 status_code=201,
@@ -239,8 +242,12 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             )
         assert "id" in resp.data
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
+        triggers = AlertRuleTrigger.objects.filter(alert_rule_id=alert_rule.id)
         assert resp.data == serialize(alert_rule, self.user)
         assert_alert_rule_migrated(alert_rule, self.project.id)
+        assert_alert_rule_trigger_migrated(triggers[0])
+        assert_alert_rule_trigger_migrated(triggers[1])
+        assert_alert_rule_resolve_trigger_migrated(alert_rule)
 
     @with_feature("organizations:slack-metric-alert-description")
     @with_feature("organizations:incidents")

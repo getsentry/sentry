@@ -73,7 +73,9 @@ function Alert({
     ) {
       return;
     }
-    showExpand && setIsExpanded(!isExpanded);
+    if (showExpand) {
+      setIsExpanded(!isExpanded);
+    }
   }
 
   return (

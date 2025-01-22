@@ -246,7 +246,9 @@ export function useVirtualizedTree<T extends TreeLike>(
         return;
       }
       const scrollTop = Math.max(0, evt.target.scrollTop);
-      raf !== undefined && window.cancelAnimationFrame(raf);
+      if (raf !== undefined) {
+        window.cancelAnimationFrame(raf);
+      }
 
       raf = window.requestAnimationFrame(() => {
         dispatch({type: 'set scroll top', payload: scrollTop});

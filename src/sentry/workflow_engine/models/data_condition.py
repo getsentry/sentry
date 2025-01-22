@@ -66,6 +66,18 @@ CONDITION_OPS = {
     Condition.NOT_EQUAL: operator.ne,
 }
 
+SLOW_CONDITIONS = [
+    Condition.EVENT_FREQUENCY_COUNT,
+    Condition.EVENT_FREQUENCY_PERCENT,
+    Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT,
+    Condition.EVENT_UNIQUE_USER_FREQUENCY_PERCENT,
+    Condition.PERCENT_SESSIONS_COUNT,
+    Condition.PERCENT_SESSIONS_PERCENT,
+    Condition.EVENT_UNIQUE_USER_FREQUENCY_WITH_CONDITIONS_COUNT,
+    Condition.EVENT_UNIQUE_USER_FREQUENCY_WITH_CONDITIONS_PERCENT,
+]
+
+
 T = TypeVar("T")
 
 
@@ -138,18 +150,6 @@ class DataCondition(DefaultFieldsModel):
 
         result = handler.evaluate_value(value, self.comparison)
         return self.get_condition_result() if result else None
-
-
-SLOW_CONDITIONS = [
-    Condition.EVENT_FREQUENCY_COUNT,
-    Condition.EVENT_FREQUENCY_PERCENT,
-    Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT,
-    Condition.EVENT_UNIQUE_USER_FREQUENCY_PERCENT,
-    Condition.PERCENT_SESSIONS_COUNT,
-    Condition.PERCENT_SESSIONS_PERCENT,
-    Condition.EVENT_UNIQUE_USER_FREQUENCY_WITH_CONDITIONS_COUNT,
-    Condition.EVENT_UNIQUE_USER_FREQUENCY_WITH_CONDITIONS_PERCENT,
-]
 
 
 def is_slow_condition(cond: DataCondition) -> bool:
