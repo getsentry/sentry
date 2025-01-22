@@ -269,6 +269,14 @@ class OAuth2LoginView(PipelineView):
                 state=state, redirect_uri=absolute_uri(pipeline.redirect_url())
             )
             redirect_uri = f"{self.get_authorize_url()}?{urlencode(params)}"
+            logger.info(
+                "identity.oauth2.login_redirect",
+                extra={
+                    "redirect_uri": redirect_uri,
+                    "organization_id": pipeline.organization.id if pipeline.organization else None,
+                    "provider_key": pipeline.provider.key,
+                },
+            )
 
             pipeline.bind_state("state", state)
             if request.subdomain:
@@ -353,7 +361,15 @@ class OAuth2CallbackView(PipelineView):
             code = request.GET.get("code")
 
             if error:
-                pipeline.logger.info("identity.token-exchange-error", extra={"error": error})
+                pipeline.logger.info(
+                    "identity.token-exchange-error",
+                    extra={
+                        "error": error,
+                        "organization_id": (
+                            pipeline.organization.id if pipeline.organization else None
+                        ),
+                    },
+                )
                 lifecycle.record_failure(
                     "token_exchange_error", extra={"failure_info": ERR_INVALID_STATE}
                 )
@@ -367,6 +383,9 @@ class OAuth2CallbackView(PipelineView):
                         "state": state,
                         "pipeline_state": pipeline.fetch_state("state"),
                         "code": code,
+                        "organization_id": (
+                            pipeline.organization.id if pipeline.organization else None
+                        ),
                     },
                 )
                 lifecycle.record_failure(
