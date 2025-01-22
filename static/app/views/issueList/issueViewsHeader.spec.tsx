@@ -377,24 +377,6 @@ describe('IssueViewsHeader', () => {
       );
     });
 
-    // eslint-disable-next-line jest/no-disabled-tests
-    it.skip('retains unsaved changes after switching tabs', async () => {
-      render(<IssueViewsIssueListHeader {...defaultProps} router={unsavedTabRouter} />, {
-        router: unsavedTabRouter,
-      });
-      expect(await screen.findByTestId('unsaved-changes-indicator')).toBeInTheDocument();
-
-      await userEvent.click(await screen.findByRole('tab', {name: /Medium Priority/}));
-      expect(screen.queryByTestId('unsaved-changes-indicator')).not.toBeInTheDocument();
-
-      await userEvent.click(await screen.findByRole('tab', {name: /High Priority/}));
-      expect(await screen.findByRole('tab', {name: /High Priority/})).toHaveAttribute(
-        'aria-selected',
-        'true'
-      );
-      expect(await screen.findByTestId('unsaved-changes-indicator')).toBeInTheDocument();
-    });
-
     it('renders the unsaved changes indicator if query params contain a viewId and a non-matching query', async () => {
       const goodViewIdChangedQueryRouter = RouterFixture({
         location: LocationFixture({
@@ -620,14 +602,6 @@ describe('IssueViewsHeader', () => {
           ])
         );
       });
-
-      it('should revert edits if esc is pressed while editing', async () => {
-        // TODO(msun)
-      });
-
-      it('should revert edits if the user attemps to rename the tab to an empty string', async () => {
-        // TODO(msun)
-      });
     });
 
     describe('Tab duplication', () => {
@@ -734,39 +708,6 @@ describe('IssueViewsHeader', () => {
         await userEvent.click(
           await screen.findByRole('menuitemradio', {name: 'Save Changes'})
         );
-
-        // Make sure the put request is called, and the saved view is in the request
-        expect(mockPutRequest).toHaveBeenCalledTimes(1);
-        const putRequestViews = mockPutRequest.mock.calls[0][1].data.views;
-        expect(putRequestViews).toHaveLength(3);
-        expect(putRequestViews).toEqual(
-          expect.arrayContaining([
-            expect.objectContaining({
-              id: getRequestViews[0]!.id,
-              name: 'High Priority',
-              query: 'is:unresolved',
-              querySort: getRequestViews[0]!.querySort,
-            }),
-          ])
-        );
-
-        expect(unsavedTabRouter.push).not.toHaveBeenCalled();
-      });
-
-      // eslint-disable-next-line jest/no-disabled-tests
-      it.skip('should save changes when hitting ctrl+s', async () => {
-        const mockPutRequest = MockApiClient.addMockResponse({
-          url: `/organizations/org-slug/group-search-views/`,
-          method: 'PUT',
-        });
-
-        render(
-          <IssueViewsIssueListHeader {...defaultProps} router={unsavedTabRouter} />,
-          {router: unsavedTabRouter}
-        );
-
-        await userEvent.click(await screen.findByRole('tab', {name: 'High Priority'}));
-        await userEvent.keyboard('{Control>}s{/Control}');
 
         // Make sure the put request is called, and the saved view is in the request
         expect(mockPutRequest).toHaveBeenCalledTimes(1);
