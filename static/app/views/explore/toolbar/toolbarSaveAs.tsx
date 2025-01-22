@@ -1,32 +1,36 @@
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
+import {Button} from 'sentry/components/button';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
-import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {dedupeArray} from 'sentry/utils/dedupeArray';
+import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {
+  useExploreQuery,
+  useExploreVisualizes,
+} from 'sentry/views/explore/contexts/pageParamsContext';
 import {useAddToDashboard} from 'sentry/views/explore/hooks/useAddToDashboard';
+import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
+import {ToolbarSection} from 'sentry/views/explore/toolbar/styles';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
-function ChartContextMenu({
-  visualizeIndex,
-  visualizeYAxes,
-  query,
-  interval,
-}: {
-  interval: string;
-  query: string;
-  visualizeIndex: number;
-  visualizeYAxes: string[];
-}) {
+export function ToolbarSaveAs() {
   const {addToDashboard} = useAddToDashboard();
   const organization = useOrganization();
 
   const {projects} = useProjects();
   const pageFilters = usePageFilters();
+
+  const query = useExploreQuery();
+  const visualizes = useExploreVisualizes();
+  const visualizeYAxes = visualizes.flatMap(v => v.yAxes);
+
+  const [interval] = useChartInterval();
 
   const project =
     projects.length === 1
@@ -61,9 +65,24 @@ function ChartContextMenu({
 
   if (organization.features.includes('dashboards-eap')) {
     const disableAddToDashboard = !organization.features.includes('dashboards-edit');
+
+    const chartOptions = visualizes.map((chart, index) => {
+      const dedupedYAxes = dedupeArray(chart.yAxes);
+      const formattedYAxes = dedupedYAxes.map(yaxis => {
+        const func = parseFunction(yaxis);
+        return func ? prettifyParsedFunction(func) : undefined;
+      });
+
+      return {
+        key: chart.label,
+        label: t('%s - %s', chart.label, formattedYAxes.filter(Boolean).join(', ')),
+        onAction: !disableAddToDashboard ? () => addToDashboard(index) : undefined,
+      };
+    });
     items.push({
       key: 'add-to-dashboard',
       textValue: t('Add to Dashboard'),
+      isSubmenu: chartOptions.length > 1 ? true : false,
       label: (
         <Feature
           hookName="feature-disabled:dashboards-edit"
@@ -74,7 +93,11 @@ function ChartContextMenu({
         </Feature>
       ),
       disabled: disableAddToDashboard,
-      onAction: !disableAddToDashboard ? () => addToDashboard(visualizeIndex) : undefined,
+      children: chartOptions.length > 1 ? chartOptions : undefined,
+      onAction:
+        !disableAddToDashboard && chartOptions.length
+          ? () => addToDashboard(0)
+          : undefined, // This is hardcoding
     });
   }
 
@@ -83,21 +106,32 @@ function ChartContextMenu({
   }
 
   return (
-    <DropdownMenu
-      triggerProps={{
-        size: 'sm',
-        borderless: true,
-        showChevron: false,
-        icon: <IconEllipsis />,
-      }}
-      position="bottom-end"
-      items={items}
-    />
+    <ToolbarSection data-test-id="section-save-as">
+      <DropdownMenu
+        items={items}
+        trigger={triggerProps => (
+          <SaveAsButton
+            {...triggerProps}
+            aria-label={t('Save as')}
+            onClick={e => {
+              e.stopPropagation();
+              e.preventDefault();
+
+              triggerProps.onClick?.(e);
+            }}
+          >
+            {`${t('Save as')}\u2026`}
+          </SaveAsButton>
+        )}
+      />
+    </ToolbarSection>
   );
 }
 
-export default ChartContextMenu;
-
 const DisabledText = styled('span')`
   color: ${p => p.theme.disabled};
+`;
+
+const SaveAsButton = styled(Button)`
+  width: 100%;
 `;
