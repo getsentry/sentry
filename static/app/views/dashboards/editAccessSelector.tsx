@@ -112,13 +112,15 @@ function EditAccessSelector({
     ) {
       newSelectedValues = ['_creator'];
     } else {
-      areAllTeamsSelected
-        ? // selecting all teams deselects 'all users'
-          (newSelectedValues = ['_creator', '_allUsers', ...teamIds])
-        : // deselecting any team deselects 'all users'
-          (newSelectedValues = newSelectedValues.filter(
-            (value: any) => value !== '_allUsers'
-          ));
+      if (areAllTeamsSelected) {
+        // selecting all teams deselects 'all users'
+        newSelectedValues = ['_creator', '_allUsers', ...teamIds];
+      } else {
+        // deselecting any team deselects 'all users'
+        newSelectedValues = newSelectedValues.filter(
+          (value: any) => value !== '_allUsers'
+        );
+      }
     }
 
     setSelectedOptions(newSelectedValues);

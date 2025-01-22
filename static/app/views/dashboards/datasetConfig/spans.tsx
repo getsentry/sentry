@@ -21,7 +21,6 @@ import {
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
-import localStorage from 'sentry/utils/localStorage';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import {
@@ -38,7 +37,6 @@ import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/
 import {DisplayType, type Widget, type WidgetQuery} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import SpansSearchBar from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/spansSearchBar';
-import {DASHBOARD_RPC_TOGGLE_KEY} from 'sentry/views/dashboards/widgetBuilder/components/rpcToggle';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
@@ -207,14 +205,12 @@ function getEventsRequest(
   const url = `/organizations/${organization.slug}/events/`;
   const eventView = eventViewFromWidget('', query, pageFilters);
 
-  const useRpc = localStorage.getItem(DASHBOARD_RPC_TOGGLE_KEY) === 'true';
-
   const params: DiscoverQueryRequestParams = {
     per_page: limit,
     cursor,
     referrer,
     dataset: DiscoverDatasets.SPANS_EAP,
-    useRpc: useRpc ? '1' : undefined,
+    useRpc: '1',
     ...queryExtras,
   };
 
@@ -278,8 +274,7 @@ function getSeriesRequest(
     referrer
   );
 
-  const useRpc = localStorage.getItem(DASHBOARD_RPC_TOGGLE_KEY) === 'true';
-  requestData.useRpc = useRpc;
+  requestData.useRpc = true;
 
   return doEventsRequest<true>(api, requestData);
 }

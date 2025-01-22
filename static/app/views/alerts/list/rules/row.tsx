@@ -28,10 +28,7 @@ import AlertLastIncidentActivationInfo from 'sentry/views/alerts/list/rules/aler
 import AlertRuleStatus from 'sentry/views/alerts/list/rules/alertRuleStatus';
 import CombinedAlertBadge from 'sentry/views/alerts/list/rules/combinedAlertBadge';
 import {getActor} from 'sentry/views/alerts/list/rules/utils';
-import {
-  UptimeMonitorMode,
-  UptimeMonitorStatus,
-} from 'sentry/views/alerts/rules/uptime/types';
+import {UptimeMonitorMode} from 'sentry/views/alerts/rules/uptime/types';
 
 import type {CombinedAlerts} from '../../types';
 import {CombinedAlertType} from '../../types';
@@ -60,8 +57,13 @@ function RuleListRow({
   const [assignee, setAssignee] = useState<string>('');
 
   const isUptime = rule.type === CombinedAlertType.UPTIME;
+  const isCron = rule.type === CombinedAlertType.CRONS;
 
-  const slug = isUptime ? rule.projectSlug : rule.projects[0]!;
+  const slug = isUptime
+    ? rule.projectSlug
+    : isCron
+      ? rule.project.slug
+      : rule.projects[0]!;
 
   const editKey = {
     [CombinedAlertType.ISSUE]: 'rules',
@@ -99,6 +101,7 @@ function RuleListRow({
     [CombinedAlertType.ISSUE]: ['edit', 'duplicate', 'delete'],
     [CombinedAlertType.METRIC]: ['edit', 'duplicate', 'delete'],
     [CombinedAlertType.UPTIME]: ['edit', 'delete'],
+    [CombinedAlertType.CRONS]: ['edit', 'delete'],
   };
 
   const actions: MenuItemProps[] = [
@@ -216,20 +219,25 @@ function RuleListRow({
     </Tag>
   ) : null;
 
+  function ruleUrl() {
+    switch (rule.type) {
+      case CombinedAlertType.METRIC:
+        return `/organizations/${orgId}/alerts/rules/details/${rule.id}/`;
+      case CombinedAlertType.CRONS:
+        return `/organizations/${orgId}/alerts/rules/crons/${rule.project.slug}/${rule.id}/details/`;
+      case CombinedAlertType.UPTIME:
+        return `/organizations/${orgId}/alerts/rules/uptime/${rule.projectSlug}/${rule.id}/details/`;
+      default:
+        return `/organizations/${orgId}/alerts/rules/${rule.projects[0]}/${rule.id}/details/`;
+    }
+  }
+
   return (
     <ErrorBoundary>
       <AlertNameWrapper isIssueAlert={isIssueAlert(rule)}>
         <AlertNameAndStatus>
           <AlertName>
-            <Link
-              to={
-                rule.type === CombinedAlertType.ISSUE
-                  ? `/organizations/${orgId}/alerts/rules/${rule.projects[0]}/${rule.id}/details/`
-                  : rule.type === CombinedAlertType.METRIC
-                    ? `/organizations/${orgId}/alerts/rules/details/${rule.id}/`
-                    : `/organizations/${orgId}/alerts/rules/uptime/${rule.projectSlug}/${rule.id}/details/`
-              }
-            >
+            <Link to={ruleUrl()}>
               {rule.name} {titleBadge}
             </Link>
           </AlertName>
@@ -242,17 +250,11 @@ function RuleListRow({
         <FlexCenter>
           <CombinedAlertBadge rule={rule} />
         </FlexCenter>
-        <MarginLeft>
-          {isUptime ? (
-            rule.status === UptimeMonitorStatus.FAILED ? (
-              t('Down')
-            ) : (
-              t('Up')
-            )
-          ) : (
+        {!isUptime && !isCron && (
+          <MarginLeft>
             <AlertRuleStatus rule={rule} />
-          )}
-        </MarginLeft>
+          </MarginLeft>
+        )}
       </FlexCenter>
       <FlexCenter>
         <ProjectBadgeContainer>
