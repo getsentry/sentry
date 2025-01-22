@@ -20,7 +20,7 @@ import {
 import useOrganization from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
-import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {DisplayType, type WidgetType} from 'sentry/views/dashboards/types';
 import type {SortDirection} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {sortDirections} from 'sentry/views/dashboards/widgetBuilder/utils';
 import ArithmeticInput from 'sentry/views/discover/table/arithmeticInput';
@@ -129,11 +129,9 @@ export function SortBySelectors({
             disabled={disableSort}
             fieldValue={
               // Fields in metrics widgets would parse as function in explodeField
-              widgetType === WidgetType.METRICS
-                ? {kind: 'field', field: values.sortBy}
-                : showCustomEquation
-                  ? explodeField({field: CUSTOM_EQUATION_VALUE})
-                  : explodeField({field: values.sortBy})
+              showCustomEquation
+                ? explodeField({field: CUSTOM_EQUATION_VALUE})
+                : explodeField({field: values.sortBy})
             }
             fieldOptions={datasetConfig.getTimeseriesSortOptions!(
               organization,

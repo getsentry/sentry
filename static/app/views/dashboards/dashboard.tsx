@@ -26,7 +26,6 @@ import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DatasetSource} from 'sentry/utils/discover/types';
-import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import theme from 'sentry/utils/theme';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withApi from 'sentry/utils/withApi';
@@ -386,10 +385,6 @@ class Dashboard extends Component<Props, State> {
       widget_type: widget.displayType,
     });
 
-    if (widget.widgetType === WidgetType.METRICS) {
-      return;
-    }
-
     if (organization.features.includes('dashboards-widget-builder-redesign')) {
       onEditWidget?.(widget);
       return;
@@ -571,7 +566,6 @@ class Dashboard extends Component<Props, State> {
       isEditingDashboard,
       dashboard,
       widgetLimitReached,
-      organization,
       isPreview,
       onAddWidgetFromNewWidgetBuilder,
     } = this.props;
@@ -583,9 +577,10 @@ class Dashboard extends Component<Props, State> {
 
     const canModifyLayout = !isMobile && isEditingDashboard;
 
-    const displayInlineAddWidget =
-      hasCustomMetrics(organization) &&
-      isValidLayout({...this.addWidgetLayout, i: ADD_WIDGET_BUTTON_DRAG_ID});
+    const displayInlineAddWidget = isValidLayout({
+      ...this.addWidgetLayout,
+      i: ADD_WIDGET_BUTTON_DRAG_ID,
+    });
 
     return (
       <GridLayout

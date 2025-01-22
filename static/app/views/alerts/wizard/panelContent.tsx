@@ -4,7 +4,6 @@ import diagramCrashFreeSessions from 'sentry-images/spot/alerts-wizard-crash-fre
 import diagramCrashFreeUsers from 'sentry-images/spot/alerts-wizard-crash-free-users.svg';
 import diagramCrons from 'sentry-images/spot/alerts-wizard-crons.svg';
 import diagramCustomTransaction from 'sentry-images/spot/alerts-wizard-custom.svg';
-import diagramCustomMetrics from 'sentry-images/spot/alerts-wizard-custom-metrics.svg';
 import diagramErrors from 'sentry-images/spot/alerts-wizard-errors.svg';
 import diagramFailureRate from 'sentry-images/spot/alerts-wizard-failure-rate.svg';
 import diagramFID from 'sentry-images/spot/alerts-wizard-fid.svg';
@@ -132,18 +131,7 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
     ],
     illustration: diagramCustomTransaction,
   },
-  custom_metrics: {
-    description: t(
-      'Alert on custom metrics that you have configured and are not related to errors, transactions or sessions.'
-    ),
-    examples: [
-      t('When the number of sign-ups dropped by 10% compared to the previous week.'),
-      t(
-        'When the 75th percentile of your login flow is taking longer than 500 milliseconds.'
-      ),
-    ],
-    illustration: diagramCustomMetrics,
-  },
+
   crash_free_sessions: {
     description: t(
       'A session begins when a user starts the application and ends when it’s closed or sent to the background. A crash is when a session ends due to an error and this type of alert lets you monitor when those crashed sessions exceed a threshold. This lets you get a better picture of the health of your app.'

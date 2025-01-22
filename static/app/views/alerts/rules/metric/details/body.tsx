@@ -20,7 +20,6 @@ import {RuleActionsCategories} from 'sentry/types/alerts';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {formatMRIField} from 'sentry/utils/metrics/mri';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
 import AnomalyDetectionFeedbackBanner from 'sentry/views/alerts/rules/metric/details/anomalyDetectionFeedbackBanner';
 import {ErrorMigrationWarning} from 'sentry/views/alerts/rules/metric/details/errorMigrationWarning';
@@ -37,10 +36,8 @@ import {getAlertRuleActionCategory} from 'sentry/views/alerts/rules/utils';
 import type {Anomaly, Incident} from 'sentry/views/alerts/types';
 import {AlertRuleStatus} from 'sentry/views/alerts/types';
 import {alertDetailsLink} from 'sentry/views/alerts/utils';
-import {MetricsBetaEndAlert} from 'sentry/views/metrics/metricsBetaEndAlert';
 
 import {isCrashFreeAlert} from '../utils/isCrashFreeAlert';
-import {isCustomMetricAlert} from '../utils/isCustomMetricAlert';
 
 import type {TimePeriodType} from './constants';
 import {
@@ -100,13 +97,9 @@ export default function MetricDetailsBody({
       return null;
     }
 
-    const {aggregate, dataset, query} = rule;
+    const {dataset, query} = rule;
 
-    if (
-      isCrashFreeAlert(dataset) ||
-      isCustomMetricAlert(aggregate) ||
-      dataset === Dataset.EVENTS_ANALYTICS_PLATFORM
-    ) {
+    if (isCrashFreeAlert(dataset) || dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
       return query.trim().split(' ');
     }
 
@@ -175,18 +168,10 @@ export default function MetricDetailsBody({
     isOnDemandMetricAlert(dataset, aggregate, query) &&
     shouldShowOnDemandMetricAlertUI(organization);
 
-  let formattedAggregate = aggregate;
-  if (isCustomMetricAlert(aggregate)) {
-    formattedAggregate = formatMRIField(aggregate);
-  }
+  const formattedAggregate = aggregate;
 
   return (
     <Fragment>
-      {isCustomMetricAlert(rule.aggregate) && (
-        <StyledLayoutBody>
-          <MetricsBetaEndAlert style={{marginBottom: 0}} organization={organization} />
-        </StyledLayoutBody>
-      )}
       {selectedIncident?.alertRule.status === AlertRuleStatus.SNAPSHOT && (
         <StyledLayoutBody>
           <StyledAlert type="warning" showIcon>

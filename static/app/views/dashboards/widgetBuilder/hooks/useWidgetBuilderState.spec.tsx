@@ -618,27 +618,6 @@ describe('useWidgetBuilderState', () => {
       expect(result.current.state.dataset).toBe(WidgetType.ISSUE);
     });
 
-    it('sets the dataset in the query params', () => {
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
-      });
-
-      act(() => {
-        result.current.dispatch({
-          type: BuilderStateAction.SET_DATASET,
-          payload: WidgetType.METRICS,
-        });
-      });
-
-      jest.runAllTimers();
-
-      expect(mockNavigate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({dataset: WidgetType.METRICS}),
-        })
-      );
-    });
-
     it('returns errors as the default dataset', () => {
       mockedUsedLocation.mockReturnValue(LocationFixture({query: {dataset: 'invalid'}}));
 

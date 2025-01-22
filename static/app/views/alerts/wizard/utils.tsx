@@ -1,4 +1,3 @@
-import {getUseCaseFromMRI, parseField} from 'sentry/utils/metrics/mri';
 import {Dataset, SessionsAggregate} from 'sentry/views/alerts/rules/metric/types';
 
 import type {MetricAlertType, WizardRuleTemplate} from './options';
@@ -52,18 +51,8 @@ export function getAlertTypeFromAggregateDataset({
   aggregate,
   dataset,
 }: Pick<WizardRuleTemplate, 'aggregate' | 'dataset'>): MetricAlertType {
-  const {mri: mri} = parseField(aggregate) ?? {};
-
   if (dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
     return 'eap_metrics';
-  }
-
-  if (mri && getUseCaseFromMRI(mri) === 'spans') {
-    return 'custom_metrics';
-  }
-
-  if (mri && getUseCaseFromMRI(mri) === 'custom') {
-    return 'custom_metrics';
   }
 
   // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message

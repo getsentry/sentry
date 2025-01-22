@@ -32,7 +32,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 
-import {MetricsRemovedAlertsWidgetsAlert} from '../../../metrics/metricsRemovedAlertsWidgetsAlert';
 import FilterBar from '../../filterBar';
 import type {CombinedAlerts} from '../../types';
 import {AlertRuleType, CombinedAlertType} from '../../types';
@@ -194,7 +193,6 @@ function AlertRulesList() {
         <AlertHeader activeTab="rules" />
         <Layout.Body>
           <Layout.Main fullWidth>
-            <MetricsRemovedAlertsWidgetsAlert organization={organization} />
             <DataConsentBanner source="alerts" />
             <FilterBar
               location={location}

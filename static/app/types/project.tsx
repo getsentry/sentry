@@ -25,7 +25,6 @@ export type Project = {
   firstTransactionEvent: boolean;
   groupingConfig: string;
   hasAccess: boolean;
-  hasCustomMetrics: boolean;
   hasFeedbacks: boolean;
   hasFlags: boolean;
   hasInsightsAppStart: boolean;
@@ -52,7 +51,6 @@ export type Project = {
 
   plugins: Plugin[];
   processingIssues: number;
-  relayCustomMetricCardinalityLimit: number | null;
   relayPiiConfig: string;
   resolveAge: number;
   safeFields: string[];

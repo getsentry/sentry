@@ -16,12 +16,10 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
-import {AddWidgetButton} from 'sentry/views/dashboards/addWidget';
 import EditAccessSelector from 'sentry/views/dashboards/editAccessSelector';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
@@ -259,17 +257,7 @@ function Controls({
                 })}
                 disabled={!widgetLimitReached}
               >
-                {hasCustomMetrics(organization) ? (
-                  <AddWidgetButton
-                    onAddWidget={onAddWidget}
-                    aria-label={t('Add Widget')}
-                    priority="primary"
-                    data-test-id="add-widget-library"
-                    disabled={widgetLimitReached}
-                  />
-                ) : organization.features.includes(
-                    'dashboards-widget-builder-redesign'
-                  ) ? (
+                {organization.features.includes('dashboards-widget-builder-redesign') ? (
                   <DropdownMenu
                     items={addWidgetDropdownItems}
                     isDisabled={widgetLimitReached || !hasEditAccess}

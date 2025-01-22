@@ -49,7 +49,6 @@ export enum DataSet {
   EVENTS = 'events',
   ISSUES = 'issues',
   RELEASES = 'releases',
-  METRICS = 'metrics',
   ERRORS = 'error-events',
   TRANSACTIONS = 'transaction-like',
   SPANS = 'spans',

@@ -28,7 +28,7 @@ import type {
   DashboardListItem,
   Widget,
 } from 'sentry/views/dashboards/types';
-import {DisplayType, MAX_WIDGETS, WidgetType} from 'sentry/views/dashboards/types';
+import {DisplayType, MAX_WIDGETS} from 'sentry/views/dashboards/types';
 import {
   eventViewFromWidget,
   getDashboardFiltersFromURL,
@@ -186,9 +186,7 @@ function AddToDashboardModal({
 
     const title =
       // Metric widgets have their default title derived from the query
-      widget.title === '' && widget.widgetType !== WidgetType.METRICS
-        ? t('All Events')
-        : widget.title;
+      widget.title === '' ? t('All Events') : widget.title;
 
     const newWidget = {
       ...widget,

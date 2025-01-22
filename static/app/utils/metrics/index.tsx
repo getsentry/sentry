@@ -32,7 +32,6 @@ import type {
 } from 'sentry/types/metrics';
 import {isMeasurement} from 'sentry/utils/discover/fields';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
-import {DEFAULT_AGGREGATES, SPAN_DURATION_MRI} from 'sentry/utils/metrics/constants';
 import {formatMRI, formatMRIField, MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
 import type {
   MetricsQuery,
@@ -40,11 +39,9 @@ import type {
   MetricsWidget,
 } from 'sentry/utils/metrics/types';
 import {MetricDisplayType} from 'sentry/utils/metrics/types';
-import {
-  isMetricFormula,
-  type MetricsQueryApiQueryParams,
-} from 'sentry/utils/metrics/useMetricsQuery';
 import useRouter from 'sentry/utils/useRouter';
+
+type MetricsQueryApiQueryParams = any;
 
 export function getDefaultMetricDisplayType(
   mri?: MRI,
@@ -275,12 +272,7 @@ export function getMetricsSeriesName(
 }
 
 export function getMetricQueryName(query: MetricsQueryApiQueryParams): string {
-  return (
-    query.alias ??
-    (isMetricFormula(query)
-      ? unescapeMetricsFormula(query.formula)
-      : formatMRIField(MRIToField(query.mri, query.aggregation)))
-  );
+  return query.alias ?? formatMRIField(MRIToField(query.mri, query.aggregation));
 }
 
 export function getMetricsSeriesId(
@@ -348,32 +340,12 @@ export function isTransactionDuration({mri}: {mri: MRI}) {
   return mri === 'd:transactions/duration@millisecond';
 }
 
-export function isCustomMetric({mri}: {mri: MRI}) {
-  return mri.includes(':custom/');
-}
-
 export function isPerformanceMetric({mri}: {mri: MRI}) {
   return mri.includes(':spans/') || mri.includes(':transactions/');
 }
 
-export function isVirtualMetric({mri}: {mri: MRI}) {
-  return mri.startsWith('v:');
-}
-
 export function isCounterMetric({mri}: {mri: MRI}) {
   return mri.startsWith('c:');
-}
-
-export function isSpanDuration({mri}: {mri: MRI}) {
-  return mri === SPAN_DURATION_MRI;
-}
-
-export function getFieldFromMetricsQuery(metricsQuery: MetricsQuery) {
-  if (isCustomMetric(metricsQuery)) {
-    return MRIToField(metricsQuery.mri, metricsQuery.aggregation);
-  }
-
-  return formatMRIField(MRIToField(metricsQuery.mri, metricsQuery.aggregation));
 }
 
 export function getFormattedMQL({

@@ -531,7 +531,6 @@ describe('Dashboards > Detail', function () {
             'dashboards-basic',
             'dashboards-edit',
             'discover-query',
-            'custom-metrics',
             'performance-discover-dataset-selector',
           ],
         }),
@@ -570,7 +569,6 @@ describe('Dashboards > Detail', function () {
             'dashboards-basic',
             'dashboards-edit',
             'discover-query',
-            'custom-metrics',
           ],
         }),
       });

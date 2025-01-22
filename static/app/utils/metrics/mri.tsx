@@ -135,8 +135,3 @@ export function formatMRIField(aggregate: string) {
 
   return `${parsed.aggregation}(${formatMRI(parsed.mri)})`;
 }
-
-export function isExtractedCustomMetric({mri}: {mri: MRI}) {
-  // Extraced metrics are prefixed with `span_attribute_`
-  return mri.substring(1).startsWith(':custom/span_attribute_');
-}

@@ -28,7 +28,6 @@ export function ProjectFixture(params: Partial<Project> = {}): Project {
     firstEvent: null,
     firstTransactionEvent: false,
     groupingConfig: '',
-    hasCustomMetrics: false,
     hasFeedbacks: false,
     hasNewFeedbacks: false,
     hasMinifiedStackTrace: false,

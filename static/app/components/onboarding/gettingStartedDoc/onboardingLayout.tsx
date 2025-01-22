@@ -14,10 +14,7 @@ import {
   ProductSolution,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
-import {
-  PlatformOptionsControl,
-  useUrlPlatformOptions,
-} from 'sentry/components/onboarding/platformOptionsControl';
+import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
 import {ProductSelection} from 'sentry/components/onboarding/productSelection';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -63,14 +60,12 @@ export function OnboardingLayout({
   const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
   const selectedOptions = useUrlPlatformOptions(docsConfig.platformOptions);
-  const {platformOptions} = docsConfig;
   const {urlPrefix, isSelfHosted} = useLegacyStore(ConfigStore);
 
   const {
     introduction,
     steps,
     nextSteps,
-    onPlatformOptionsChange,
     onProductSelectionChange,
     onPageLoad,
     onProductSelectionLoad,
@@ -156,13 +151,7 @@ export function OnboardingLayout({
               onChange={onProductSelectionChange}
               onLoad={onProductSelectionLoad}
             />
-          )}
-          {platformOptions && !['customMetricsOnboarding'].includes(configType) ? (
-            <PlatformOptionsControl
-              platformOptions={platformOptions}
-              onChange={onPlatformOptionsChange}
-            />
-          ) : null}
+          )}{' '}
         </Header>
         <Divider withBottomMargin />
         <div>
