@@ -3471,6 +3471,12 @@ UPTIME_REGIONS = [
     ),
 ]
 
+MARKETO: Mapping[str, Any] = {
+    "base-url": os.getenv("MARKETO_BASE_URL"),
+    "client-id": os.getenv("MARKETO_CLIENT_ID"),
+    "client-secret": os.getenv("MARKETO_CLIENT_SECRET"),
+    "form-id": os.getenv("MARKETO_FORM_ID"),
+}
 
 # Devserver configuration overrides.
 ngrok_host = os.environ.get("SENTRY_DEVSERVER_NGROK")
