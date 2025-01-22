@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, Any
 
 from django.db import IntegrityError, models, router, transaction
 
@@ -15,7 +15,6 @@ from sentry.db.models import (
     control_silo_model,
 )
 from sentry.db.models.fields.jsonfield import JSONField
-from sentry.db.models.manager.base import BaseManager
 from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -34,15 +33,6 @@ if TYPE_CHECKING:
     from sentry.users.services.user import RpcUser
 
 logger = logging.getLogger(__name__)
-
-
-class IntegrationManager(BaseManager["Integration"]):
-    def get_active_integrations(self, organization_id: str):
-        return self.filter(
-            status=ObjectStatus.ACTIVE,
-            organizationintegration__status=ObjectStatus.ACTIVE,
-            organizationintegration__organization_id=organization_id,
-        )
 
 
 @control_silo_model
@@ -64,8 +54,6 @@ class Integration(DefaultFieldsModelExisting):
     status = BoundedPositiveIntegerField(
         default=ObjectStatus.ACTIVE, choices=ObjectStatus.as_choices(), null=True
     )
-
-    objects: ClassVar[IntegrationManager] = IntegrationManager()
 
     class Meta:
         app_label = "sentry"

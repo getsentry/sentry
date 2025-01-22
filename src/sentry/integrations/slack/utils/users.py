@@ -21,7 +21,6 @@ from sentry.utils import metrics
 
 _logger = logging.getLogger(__name__)
 
-SLACK_GET_USERS_PAGE_LIMIT = 100
 SLACK_GET_USERS_PAGE_SIZE = 200
 
 
