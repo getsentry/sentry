@@ -34,8 +34,8 @@ type Props = {
   };
   score?: Record<string, any>;
   scoresByInterface?: {
-    exception: Array<[string, number | null]>;
-    message: Array<[string, any | null]>;
+    exception: [string, number | null][];
+    message: [string, any | null][];
   };
 };
 

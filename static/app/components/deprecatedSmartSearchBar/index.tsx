@@ -380,7 +380,7 @@ type Props = WithRouterProps &
     /**
      * Projects that the search bar queries over
      */
-    projectIds?: number[] | Readonly<number[]>;
+    projectIds?: number[] | readonly number[];
     /**
      * Indicates the usage of the search bar for analytics
      */

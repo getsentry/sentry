@@ -647,7 +647,7 @@ export type Aggregation = {
   /**
    * List of parameters for the function.
    */
-  parameters: Readonly<AggregateParameter[]>;
+  parameters: readonly AggregateParameter[];
   getFieldOverrides?: (
     data: DefaultValueInputs
   ) => Partial<Omit<AggregateParameter, 'kind'>>;

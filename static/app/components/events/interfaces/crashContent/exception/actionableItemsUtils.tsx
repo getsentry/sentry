@@ -173,7 +173,7 @@ const hasThreadOrExceptionMinifiedFrameData = (
   bestThread?: Thread
 ) => {
   if (!bestThread) {
-    const exceptionValues: Array<ExceptionValue> =
+    const exceptionValues: ExceptionValue[] =
       definedEvent.entries?.find(e => e.type === EntryType.EXCEPTION)?.data?.values ?? [];
 
     return exceptionValues.some(exceptionValue =>
@@ -207,7 +207,7 @@ export const useFetchProguardMappingFiles = ({
   );
 
   const debugImages = event.entries?.find(e => e.type === EntryType.DEBUGMETA)?.data
-    .images as undefined | Array<Image>;
+    .images as undefined | Image[];
 
   // When debugImages contains a 'proguard' entry, it must always be only one entry
   const proGuardImage = debugImages?.find(debugImage => debugImage?.type === 'proguard');
@@ -260,7 +260,7 @@ export const useFetchProguardMappingFiles = ({
       ];
     }
 
-    const threads: Array<Thread> =
+    const threads: Thread[] =
       event.entries?.find(e => e.type === EntryType.THREADS)?.data?.values ?? [];
 
     const bestThread = findBestThread(threads);

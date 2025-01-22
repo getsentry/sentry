@@ -42,7 +42,7 @@ import {
 
 interface DebugMetaProps {
   data: {
-    images: Array<Image | null>;
+    images: (Image | null)[];
   };
   event: Event;
   projectSlug: Project['slug'];

@@ -7,7 +7,7 @@ import {space} from 'sentry/styles/space';
 import {nullableValue} from './fieldRenderers';
 
 type Props = {
-  value: Array<string | null>;
+  value: (string | null)[];
 };
 
 function ArrayValue(props: Props) {

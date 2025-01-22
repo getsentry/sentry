@@ -25,7 +25,7 @@
 
 interface Result {
   readonly end: number;
-  readonly matches: ReadonlyArray<[number, number]>;
+  readonly matches: readonly [number, number][];
   readonly score: number;
   readonly start: number;
 }
@@ -170,7 +170,7 @@ function calculateScore(
   sidx: number,
   eidx: number,
   caseSensitive: boolean
-): [number, ReadonlyArray<[number, number]>] {
+): [number, readonly [number, number][]] {
   let pidx = 0;
   let score = 0;
   let inGap: boolean = false;

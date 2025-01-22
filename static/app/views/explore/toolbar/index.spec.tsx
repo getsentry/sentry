@@ -499,7 +499,7 @@ describe('ExploreToolbar', function () {
     const section = screen.getByTestId('section-save-as');
 
     await userEvent.click(within(section).getByText(/Save as/));
-    await userEvent.hover(within(section).getByText('Create an alert for'));
+    await userEvent.hover(within(section).getByText('An Alert for'));
     await userEvent.click(screen.getByText('avg(span.duration)'));
     expect(router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/alerts/new/metric/',
@@ -534,7 +534,7 @@ describe('ExploreToolbar', function () {
     const section = screen.getByTestId('section-save-as');
 
     await userEvent.click(within(section).getByText(/Save as/));
-    await userEvent.click(within(section).getByText('Add to Dashboard'));
+    await userEvent.click(within(section).getByText('A Dashboard widget'));
     await waitFor(() => {
       expect(openAddToDashboardModal).toHaveBeenCalledWith(
         expect.objectContaining({

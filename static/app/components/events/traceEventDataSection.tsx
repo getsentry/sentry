@@ -38,7 +38,7 @@ type State = {
 };
 
 type ChildProps = Omit<State, 'sortBy'> & {
-  display: Array<keyof typeof displayOptions>;
+  display: (keyof typeof displayOptions)[];
   recentFirst: boolean;
 };
 
@@ -92,7 +92,7 @@ export function TraceEventDataSection({
     fullStackTrace: !hasAppOnlyFrames ? true : fullStackTrace,
   });
 
-  const [display, setDisplay] = useLocalStorageState<Array<keyof typeof displayOptions>>(
+  const [display, setDisplay] = useLocalStorageState<(keyof typeof displayOptions)[]>(
     `issue-details-stracktrace-display-${organization.slug}-${projectSlug}`,
     []
   );

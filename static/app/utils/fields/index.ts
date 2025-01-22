@@ -266,14 +266,14 @@ export type AggregateValueParameter = {
   name: string;
   required: boolean;
   defaultValue?: string;
-  options?: Array<{value: string; label?: string}>;
+  options?: {value: string; label?: string}[];
   placeholder?: string;
 };
 
 export type AggregateParameter = AggregateColumnParameter | AggregateValueParameter;
 
 export type ParameterDependentValueType = (
-  parameters: Array<string | null>
+  parameters: (string | null)[]
 ) => FieldValueType;
 
 export interface FieldDefinition {
@@ -349,7 +349,7 @@ function validateForNumericAggregate(
   };
 }
 
-function getDynamicFieldValueType(parameters: Array<string | null>): FieldValueType {
+function getDynamicFieldValueType(parameters: (string | null)[]): FieldValueType {
   const column = parameters[0];
   const fieldDef = column ? getFieldDefinition(column) : null;
   return fieldDef?.valueType ?? FieldValueType.NUMBER;

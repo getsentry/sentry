@@ -219,7 +219,7 @@ export const _timeRangeAutoCompleteFilter = function <T extends RelativeUnitsMap
     maxDateRange,
   }: {
     supportedPeriods: T;
-    supportedUnits: Array<keyof T & string>;
+    supportedUnits: (keyof T & string)[];
     maxDateRange?: number;
     maxDays?: number;
   }
