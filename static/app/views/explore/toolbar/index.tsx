@@ -13,6 +13,7 @@ import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {ToolbarDataset} from 'sentry/views/explore/toolbar/toolbarDataset';
 import {ToolbarGroupBy} from 'sentry/views/explore/toolbar/toolbarGroupBy';
 import {ToolbarMode} from 'sentry/views/explore/toolbar/toolbarMode';
+import {ToolbarSaveAs} from 'sentry/views/explore/toolbar/toolbarSaveAs';
 import {ToolbarSortBy} from 'sentry/views/explore/toolbar/toolbarSortBy';
 import {ToolbarSuggestedQueries} from 'sentry/views/explore/toolbar/toolbarSuggestedQueries';
 import {ToolbarVisualize} from 'sentry/views/explore/toolbar/toolbarVisualize';
@@ -49,6 +50,7 @@ export function ExploreToolbar({extras}: ExploreToolbarProps) {
         sorts={sortBys}
         setSorts={setSortBys}
       />
+      <ToolbarSaveAs />
       <ToolbarSuggestedQueries />
     </div>
   );

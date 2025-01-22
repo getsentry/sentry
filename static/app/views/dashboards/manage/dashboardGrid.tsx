@@ -105,6 +105,11 @@ function DashboardGrid({
   async function handleFavorite(dashboard: DashboardListItem, isFavorited: boolean) {
     await updateDashboardFavorite(api, organization.slug, dashboard.id, isFavorited);
     onDashboardsChange();
+    trackAnalytics('dashboards_manage.toggle_favorite', {
+      organization,
+      dashboard_id: dashboard.id,
+      favorited: isFavorited,
+    });
   }
 
   function renderDropdownMenu(dashboard: DashboardListItem) {

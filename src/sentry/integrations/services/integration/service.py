@@ -54,18 +54,6 @@ class IntegrationService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def page_organization_integrations_ids(
-        self,
-        *,
-        organization_id: int,
-        statuses: list[int],
-        provider_key: str | None = None,
-        args: RpcPaginationArgs,
-    ) -> RpcPaginationResult:
-        pass
-
-    @rpc_method
-    @abstractmethod
     def get_integrations(
         self,
         *,

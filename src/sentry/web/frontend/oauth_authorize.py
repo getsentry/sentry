@@ -7,6 +7,7 @@ from django.http import HttpRequest
 from django.http.response import HttpResponseBase
 from django.utils import timezone
 from django.utils.safestring import mark_safe
+from rest_framework.request import Request
 
 from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
 from sentry.models.apiauthorization import ApiAuthorization
@@ -17,6 +18,12 @@ from sentry.utils import metrics
 from sentry.web.frontend.auth_login import AuthLoginView
 
 logger = logging.getLogger("sentry.api.oauth_authorize")
+
+
+def _not_authenticated(request: HttpRequest) -> bool:
+    # subtle indirection -- otherwise mypy infers `request.user: AnonymousUser`
+    # and then complains about unreachable code (though `request.user` is mutated!)
+    return not request.user.is_authenticated
 
 
 class OAuthAuthorizeView(AuthLoginView):
@@ -70,11 +77,12 @@ class OAuthAuthorizeView(AuthLoginView):
 
         return self.redirect_response(response_type, redirect_uri, {"error": name, "state": state})
 
-    def respond_login(self, request: HttpRequest, context, application, **kwargs):
+    def respond_login(self, request: Request, context, **kwargs):
+        application = kwargs["application"]  # required argument
         context["banner"] = f"Connect Sentry to {application.name}"
         return self.respond("sentry/login.html", context)
 
-    def get(self, request: HttpRequest, **kwargs) -> HttpResponseBase:
+    def get(self, request: Request, **kwargs) -> HttpResponseBase:
         response_type = request.GET.get("response_type")
         client_id = request.GET.get("client_id")
         redirect_uri = request.GET.get("redirect_uri")
@@ -127,9 +135,9 @@ class OAuthAuthorizeView(AuthLoginView):
                 err_response="client_id",
             )
 
-        scopes = request.GET.get("scope")
-        if scopes:
-            scopes = scopes.split(" ")
+        scopes_s = request.GET.get("scope")
+        if scopes_s:
+            scopes = scopes_s.split(" ")
         else:
             scopes = []
         if application.requires_org_level_access:
@@ -243,7 +251,7 @@ class OAuthAuthorizeView(AuthLoginView):
 
         return self.respond("sentry/oauth-authorize.html", context)
 
-    def post(self, request: HttpRequest, **kwargs) -> HttpResponseBase:
+    def post(self, request: Request, **kwargs) -> HttpResponseBase:
         try:
             payload = request.session["oa2"]
         except KeyError:
@@ -264,7 +272,7 @@ class OAuthAuthorizeView(AuthLoginView):
                 {"error": mark_safe("Missing or invalid <em>client_id</em> parameter.")},
             )
 
-        if not request.user.is_authenticated:
+        if _not_authenticated(request):
             response = super().post(request, application=application, **kwargs)
             # once they login, bind their user ID
             if request.user.is_authenticated:

@@ -130,10 +130,6 @@ def main() -> None:
         logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.INFO)
         logger = logging.getLogger(__name__)
 
-        logger.info(
-            "The Sentry runner will report development issues to Sentry.io. "
-            "Use SENTRY_DEVENV_NO_REPORT to avoid reporting issues."
-        )
         try:
             func(**kwargs)
         except Exception as e:
