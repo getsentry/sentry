@@ -407,17 +407,12 @@ class _ClientConfig:
         # which could cause an error notification (403) to pop up in the user interface.
         if self.user and self.request and self.request.path.startswith("accept/"):
 
-            request = self.request
-            http_request: HttpRequest = (
-                self.request if isinstance(request, HttpRequest) else request._request
-            )
-
-            member_id = http_request.path.split("/")[1]
-            invite_state = get_invite_state(int(member_id), None, int(self.user.id), http_request)
+            member_id = self.request.path.split("/")[1]
+            invite_state = get_invite_state(int(member_id), None, int(self.user.id), self.request)
             invitation_link = getattr(invite_state, "invitation_link", None)
             accept_path = urllib.parse.urlparse(invitation_link).path
 
-            if accept_path == request.path:
+            if accept_path == self.request.path:
                 return False
 
         return True
