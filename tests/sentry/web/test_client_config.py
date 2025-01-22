@@ -365,6 +365,7 @@ def test_project_key_default():
 @no_silo_test
 @django_db_all
 def test_client_config_no_preload_data_if_accept_invitation_view():
+    # endpoint = SentryAppBaseEndpoint()
     request, user = make_user_request_from_org()
     request.user = user
 

@@ -16,6 +16,7 @@ from rest_framework.request import Request
 
 import sentry
 from sentry import features, options
+from sentry.api.endpoints.accept_organization_invite import get_invite_state
 from sentry.api.utils import generate_region_url
 from sentry.auth import superuser
 from sentry.auth.services.auth import AuthenticatedToken, AuthenticationContext
@@ -404,6 +405,14 @@ class _ClientConfig:
         # we should avoid preloading the data as they might not yet have access to it,
         # which could cause an error notification (403) to pop up in the user interface.
         if self.request.path.startswith("accept/"):
+
+            member_id = self.request.path.split("/")[1]
+            invite_state = get_invite_state(member_id, None, self.user.id, self.request)
+            invitation_link = getattr(invite_state, "invitation_link", None)
+
+            if invitation_link == self.request.get_full_path():
+                return False
+
             return False
 
         return True
