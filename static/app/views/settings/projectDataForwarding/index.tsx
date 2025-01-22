@@ -27,7 +27,7 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
 function DataForwardingStats() {
-  const {orgId, projectId} = useParams();
+  const {orgId, projectId} = useParams<{orgId: string; projectId: string}>();
 
   const until = Math.floor(new Date().getTime() / 1000);
   const since = until - 3600 * 24 * 30;
