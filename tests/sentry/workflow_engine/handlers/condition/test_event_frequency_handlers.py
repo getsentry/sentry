@@ -9,7 +9,7 @@ from sentry.workflow_engine.handlers.condition.event_frequency_handlers import (
     EventFrequencyCountHandler,
 )
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.types import DataJob
+from sentry.workflow_engine.types import WorkflowEvaluationData
 from tests.sentry.workflow_engine.handlers.condition.test_base import (
     ConditionTestCase,
     EventFrequencyQueryTestBase,
@@ -30,7 +30,7 @@ class TestEventFrequencyCountCondition(ConditionTestCase):
 
     def setUp(self):
         super().setUp()
-        self.job = DataJob({"results": []})
+        self.job = WorkflowEvaluationData({"data": []})
 
     def test_count(self):
         dc = self.create_data_condition(
@@ -39,10 +39,10 @@ class TestEventFrequencyCountCondition(ConditionTestCase):
             condition_result=True,
         )
 
-        self.job.update({"results": [1001]})
+        self.job.update({"data": [1001]})
         self.assert_slow_condition_passes(dc, self.job)
 
-        self.job.update({"results": [999]})
+        self.job.update({"data": [999]})
         self.assert_slow_condition_does_not_pass(dc, self.job)
 
     def test_dual_write_count(self):
@@ -91,7 +91,7 @@ class TestEventFrequencyPercentCondition(ConditionTestCase):
 
     def setUp(self):
         super().setUp()
-        self.job = DataJob({"results": []})
+        self.job = WorkflowEvaluationData({"data": []})
 
     def test_percent(self):
         dc = self.create_data_condition(
@@ -104,10 +104,10 @@ class TestEventFrequencyPercentCondition(ConditionTestCase):
             condition_result=True,
         )
 
-        self.job.update({"results": [21, 10]})
+        self.job.update({"data": [21, 10]})
         self.assert_slow_condition_passes(dc, self.job)
 
-        self.job.update({"results": [20, 10]})
+        self.job.update({"data": [20, 10]})
         self.assert_slow_condition_does_not_pass(dc, self.job)
 
     def test_dual_write_percent(self):

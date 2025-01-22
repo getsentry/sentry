@@ -5,14 +5,13 @@ from typing import cast
 import sentry_sdk
 
 from sentry import buffer
-from sentry.eventstore.models import GroupEvent
 from sentry.utils import json, metrics
 from sentry.workflow_engine.models import Detector, Workflow, WorkflowDataConditionGroup
 from sentry.workflow_engine.models.workflow import get_slow_conditions
 from sentry.workflow_engine.processors.action import evaluate_workflow_action_filters
 from sentry.workflow_engine.processors.data_condition_group import evaluate_condition_group
 from sentry.workflow_engine.processors.detector import get_detector_by_event
-from sentry.workflow_engine.types import DataJob, WorkflowJob
+from sentry.workflow_engine.types import WorkflowEvaluationData, WorkflowJob
 
 logger = logging.getLogger(__name__)
 
@@ -66,10 +65,12 @@ def enqueue_workflows(
         )
 
 
-def evaluate_workflow_triggers(workflows: set[Workflow], job: DataJob) -> set[Workflow]:
+def evaluate_workflow_triggers(
+    workflows: set[Workflow], job: WorkflowEvaluationData
+) -> set[Workflow]:
     triggered_workflows: set[Workflow] = set()
     workflows_to_enqueue: set[Workflow] = set()
-    evaluate_all_conditions = isinstance(job.get("event"), GroupEvent)
+    evaluate_all_conditions = isinstance(job["data"], dict)
 
     for workflow in workflows:
         if workflow.evaluate_trigger_conditions(job):
@@ -81,8 +82,8 @@ def evaluate_workflow_triggers(workflows: set[Workflow], job: DataJob) -> set[Wo
                 # enqueue to be evaluated later
                 workflows_to_enqueue.add(workflow)
 
-    if workflows_to_enqueue and isinstance(job.get("event"), GroupEvent):
-        workflow_job = cast(WorkflowJob, job)
+    if workflows_to_enqueue and isinstance(job["data"], dict):
+        workflow_job = cast(WorkflowJob, job["data"])
         enqueue_workflows(workflows_to_enqueue, workflow_job)
 
     return triggered_workflows
@@ -106,7 +107,7 @@ def process_workflows(job: WorkflowJob) -> set[Workflow]:
 
     # Get the workflows, evaluate the when_condition_group, finally evaluate the actions for workflows that are triggered
     workflows = set(Workflow.objects.filter(detectorworkflow__detector_id=detector.id).distinct())
-    data_job = cast(DataJob, job)
+    data_job = WorkflowEvaluationData({"data": job})
     triggered_workflows = evaluate_workflow_triggers(workflows, data_job)
     actions = evaluate_workflow_action_filters(triggered_workflows, job)
 

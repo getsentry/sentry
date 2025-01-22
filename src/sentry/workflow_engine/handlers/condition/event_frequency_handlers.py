@@ -16,7 +16,11 @@ from sentry.workflow_engine.handlers.condition.event_frequency_base_handler impo
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
-from sentry.workflow_engine.types import DataConditionHandler, DataConditionResult, DataJob
+from sentry.workflow_engine.types import (
+    DataConditionHandler,
+    DataConditionResult,
+    WorkflowEvaluationData,
+)
 
 
 class EventFrequencyConditionHandler(BaseEventFrequencyConditionHandler):
@@ -59,7 +63,9 @@ class EventFrequencyConditionHandler(BaseEventFrequencyConditionHandler):
 
 
 @condition_handler_registry.register(Condition.EVENT_FREQUENCY_COUNT)
-class EventFrequencyCountHandler(EventFrequencyConditionHandler, DataConditionHandler[DataJob]):
+class EventFrequencyCountHandler(
+    EventFrequencyConditionHandler, DataConditionHandler[WorkflowEvaluationData]
+):
     comparison_json_schema = {
         "type": "object",
         "properties": {
@@ -71,14 +77,16 @@ class EventFrequencyCountHandler(EventFrequencyConditionHandler, DataConditionHa
     }
 
     @staticmethod
-    def evaluate_value(value: DataJob, comparison: Any) -> DataConditionResult:
-        if not value.get("results") or len(value.get("results", [])) != 1:
+    def evaluate_value(value: WorkflowEvaluationData, comparison: Any) -> DataConditionResult:
+        if not isinstance(value.get("data"), list) or len(value["data"]) != 1:
             return False
-        return value["results"][0] > comparison["value"]
+        return value["data"][0] > comparison["value"]
 
 
 @condition_handler_registry.register(Condition.EVENT_FREQUENCY_PERCENT)
-class EventFrequencyPercentHandler(EventFrequencyConditionHandler, DataConditionHandler[DataJob]):
+class EventFrequencyPercentHandler(
+    EventFrequencyConditionHandler, DataConditionHandler[WorkflowEvaluationData]
+):
     comparison_json_schema = {
         "type": "object",
         "properties": {
@@ -91,7 +99,7 @@ class EventFrequencyPercentHandler(EventFrequencyConditionHandler, DataCondition
     }
 
     @staticmethod
-    def evaluate_value(value: DataJob, comparison: Any) -> DataConditionResult:
-        if not value.get("results") or len(value.get("results", [])) != 2:
+    def evaluate_value(value: WorkflowEvaluationData, comparison: Any) -> DataConditionResult:
+        if not isinstance(value.get("data"), list) or len(value["data"]) != 2:
             return False
-        return percent_increase(value["results"][0], value["results"][1]) > comparison["value"]
+        return percent_increase(value["data"][0], value["data"][1]) > comparison["value"]

@@ -39,7 +39,7 @@ class EventJob(TypedDict):
     event: GroupEvent
 
 
-class PostProcessJob(TypedDict, total=False):
+class WorkflowJob(EventJob, total=False):
     group_state: GroupState
     is_reprocessed: bool
     has_reappeared: bool
@@ -48,13 +48,8 @@ class PostProcessJob(TypedDict, total=False):
     workflow: Workflow
 
 
-class WorkflowJob(EventJob, PostProcessJob):
-    pass
-
-
-class DataJob(PostProcessJob, total=False):
-    event: GroupEvent
-    results: list[int]
+class WorkflowEvaluationData(TypedDict):
+    data: WorkflowJob | list[int]
 
 
 class ActionHandler:

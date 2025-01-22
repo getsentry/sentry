@@ -1,4 +1,4 @@
-from sentry.workflow_engine.types import DataJob
+from sentry.workflow_engine.types import WorkflowEvaluationData, WorkflowJob
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
@@ -9,7 +9,7 @@ class WorkflowTest(BaseWorkflowTest):
         )
         self.data_condition = self.data_condition_group.conditions.first()
         self.group, self.event, self.group_event = self.create_group_event()
-        self.job = DataJob({"event": self.group_event})
+        self.job = WorkflowEvaluationData({"data": WorkflowJob({"event": self.group_event})})
 
     def test_evaluate_trigger_conditions__condition_new_event__True(self):
         evaluation = self.workflow.evaluate_trigger_conditions(self.job)
