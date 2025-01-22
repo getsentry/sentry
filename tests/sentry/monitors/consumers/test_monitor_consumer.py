@@ -146,7 +146,7 @@ class MonitorConsumerTest(TestCase):
                 datetime.fromtimestamp(expected_checkin["start_time"]),
                 self.partition.index,
                 expected_checkin,
-                json.loads(expected_checkin["payload"]),
+                json.loads(expected_checkin["payload"]),  # type: ignore[arg-type]
             )
             if expected_monitor_slug:
                 expected_error.monitor = Monitor.objects.get(
