@@ -293,14 +293,14 @@ def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource
 
     project = Project.objects.get_from_cache(id=project_id)
 
-    should_filter, reason = should_filter_feedback(event, project_id, source)
+    should_filter, filter_reason = should_filter_feedback(event, project_id, source)
     if should_filter:
         track_outcome(
             org_id=project.organization_id,
             project_id=project_id,
             key_id=None,
             outcome=Outcome.FILTERED,
-            reason=reason,
+            reason=filter_reason,
             timestamp=datetime.fromtimestamp(event["timestamp"], UTC),
             event_id=event["event_id"],
             category=DataCategory.USER_REPORT_V2,
