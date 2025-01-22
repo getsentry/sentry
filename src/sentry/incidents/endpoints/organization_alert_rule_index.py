@@ -322,13 +322,20 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
                 ),
             )
 
-        intermediaries = [
-            CombinedQuerysetIntermediary(alert_rules, sort_key),
-            CombinedQuerysetIntermediary(issue_rules, rule_sort_key),
-            CombinedQuerysetIntermediary(uptime_rules, sort_key),
-        ]
+        type_filter = request.GET.getlist("alertType", [])
 
-        if features.has("organizations:insights-crons", organization):
+        def has_type(type: str) -> bool:
+            return not type_filter or type in type_filter
+
+        intermediaries: list[CombinedQuerysetIntermediary] = []
+
+        if has_type("alert_rule"):
+            intermediaries.append(CombinedQuerysetIntermediary(alert_rules, sort_key))
+        if has_type("rule"):
+            intermediaries.append(CombinedQuerysetIntermediary(issue_rules, rule_sort_key))
+        if has_type("uptime"):
+            intermediaries.append(CombinedQuerysetIntermediary(uptime_rules, sort_key))
+        if has_type("monitor") and features.has("organizations:insights-crons", organization):
             intermediaries.append(CombinedQuerysetIntermediary(crons_rules, sort_key))
 
         response = self.paginate(
