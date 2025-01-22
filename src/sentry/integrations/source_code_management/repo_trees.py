@@ -47,9 +47,16 @@ class RepoTreesIntegration(ABC):
 
     CACHE_SECONDS = 3600 * 24
 
+    # These are methods the base integration must implement
     @abstractmethod
     def get_client(self) -> RepoTreesClient:
         """Returns the client for the integration. The client must be a subclass of RepositoryClient."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_repositories(
+        self, query: str | None = None, fetch_max_pages: bool = False
+    ) -> Sequence[dict[str, Any]]:
         raise NotImplementedError
 
     @property
@@ -80,8 +87,8 @@ class RepoTreesIntegration(ABC):
             # XXX: Switch to the integration get_repositories to be more generic
             # Remove unnecessary fields from GitHub's API response
             repositories = [
-                RepoAndBranch(name=repo["full_name"], branch=repo["default_branch"])
-                for repo in self.get_client().get_repositories(fetch_max_pages=True)
+                RepoAndBranch(name=repo_info["identifier"], branch=repo_info["default_branch"])
+                for repo_info in self.get_repositories(fetch_max_pages=True)
             ]
 
         if repositories:
