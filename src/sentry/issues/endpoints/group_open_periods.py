@@ -63,9 +63,9 @@ def get_open_periods_for_group(
         )
 
     open_periods = open_periods[::-1]
-    if offset:
-        open_periods = open_periods[offset:]
-    if limit:
+    if offset and limit:
+        open_periods = open_periods[offset : offset + limit]
+    elif limit:
         open_periods = open_periods[:limit]
 
     return open_periods
