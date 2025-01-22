@@ -13,8 +13,6 @@ from sentry.integrations.discord.client import (
 from sentry.integrations.discord.message_builder.base.base import DiscordMessageBuilder
 from sentry.integrations.discord.message_builder.base.flags import (
     EPHEMERAL_FLAG,
-    LOADING_FLAG,
-    SUPPRESS_NOTIFICATIONS_FLAG,
     DiscordMessageFlags,
 )
 from sentry.testutils.cases import TestCase
@@ -148,7 +146,7 @@ class DiscordClientTest(TestCase):
                         "components": [],
                         "content": "test",
                         "embeds": [],
-                        "flags": EPHEMERAL_FLAG | LOADING_FLAG | SUPPRESS_NOTIFICATIONS_FLAG,
+                        "flags": EPHEMERAL_FLAG,
                     }
                 ),
             ],
@@ -156,7 +154,7 @@ class DiscordClientTest(TestCase):
 
         message = DiscordMessageBuilder(
             content="test",
-            flags=DiscordMessageFlags().set_loading().set_ephemeral().set_suppress_notifications(),
+            flags=DiscordMessageFlags().set_ephemeral(),
         )
 
         self.discord_client.send_message(

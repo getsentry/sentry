@@ -10,7 +10,7 @@ import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations
 jest.mock('sentry/actionCreators/modal');
 
 describe('AddIntegrationRow', function () {
-  let org;
+  let org: any;
   const project = ProjectFixture();
   const provider = GitHubIntegrationProviderFixture();
 

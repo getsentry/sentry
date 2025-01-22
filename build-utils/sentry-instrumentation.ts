@@ -1,4 +1,3 @@
-/* eslint-env node */
 import type {Span} from '@sentry/core';
 import type * as Sentry from '@sentry/node';
 import crypto from 'node:crypto';

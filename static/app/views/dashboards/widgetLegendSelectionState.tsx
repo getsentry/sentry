@@ -77,22 +77,18 @@ class WidgetLegendSelectionState {
         return widgetLegend;
       });
 
-      !isInQuery
-        ? router.replace({
-            query: {
-              ...location.query,
-              unselectedSeries: [
-                ...location.query.unselectedSeries,
-                this.encodeLegendQueryParam(widget, selected),
-              ],
-            },
-          })
-        : router.replace({
-            query: {
-              ...location.query,
-              unselectedSeries: newLegendQuery,
-            },
-          });
+      const unselectedSeries = isInQuery
+        ? newLegendQuery
+        : [
+            ...location.query.unselectedSeries,
+            this.encodeLegendQueryParam(widget, selected),
+          ];
+      router.replace({
+        query: {
+          ...location.query,
+          unselectedSeries,
+        },
+      });
     } else {
       if (location.query.unselectedSeries?.includes(widget.id!)) {
         router.replace({
@@ -179,6 +175,7 @@ class WidgetLegendSelectionState {
       const [_, seriesNameString] = widgetLegendString.split(WIDGET_ID_DELIMITER);
       const seriesNames = seriesNameString!.split(SERIES_LIST_DELIMITER);
       return seriesNames.reduce((acc, series) => {
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         acc[
           decodeURIComponent(
             WidgetLegendNameEncoderDecoder.encodeSeriesNameForLegend(series, widget.id)

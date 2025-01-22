@@ -110,6 +110,14 @@ Then, use it to run sync this one time.
 
     USE_NEW_DEVSERVICES = os.environ.get("USE_NEW_DEVSERVICES") == "1"
 
+    if constants.DARWIN and check_minimum_version("1.14.2"):
+        # `devenv update`ing to >=1.14.0 will install global colima
+        # so if it's there, uninstall the repo local stuff
+        if os.path.exists(f"{constants.root}/bin/colima"):
+            binroot = f"{reporoot}/.devenv/bin"
+            colima.uninstall(binroot)
+            limactl.uninstall(binroot)
+
     from devenv.lib import node
 
     node.install(
@@ -131,26 +139,18 @@ Then, use it to run sync this one time.
     venv.ensure(venv_dir, python_version, url, sha256)
 
     if constants.DARWIN:
-        if check_minimum_version("1.14.2"):
-            # `devenv update`ing to >=1.14.0 will install global colima
-            # so if it's there, uninstall the repo local stuff
-            if os.path.exists(f"{constants.root}/bin/colima"):
-                binroot = f"{reporoot}/.devenv/bin"
-                colima.uninstall(binroot)
-                limactl.uninstall(binroot)
-        else:
-            colima.install(
-                repo_config["colima"]["version"],
-                repo_config["colima"][constants.SYSTEM_MACHINE],
-                repo_config["colima"][f"{constants.SYSTEM_MACHINE}_sha256"],
-                reporoot,
-            )
-            limactl.install(
-                repo_config["lima"]["version"],
-                repo_config["lima"][constants.SYSTEM_MACHINE],
-                repo_config["lima"][f"{constants.SYSTEM_MACHINE}_sha256"],
-                reporoot,
-            )
+        colima.install(
+            repo_config["colima"]["version"],
+            repo_config["colima"][constants.SYSTEM_MACHINE],
+            repo_config["colima"][f"{constants.SYSTEM_MACHINE}_sha256"],
+            reporoot,
+        )
+        limactl.install(
+            repo_config["lima"]["version"],
+            repo_config["lima"][constants.SYSTEM_MACHINE],
+            repo_config["lima"][f"{constants.SYSTEM_MACHINE}_sha256"],
+            reporoot,
+        )
 
     if not run_procs(
         repo,
@@ -253,8 +253,10 @@ Then, use it to run sync this one time.
 
     fs.ensure_symlink("../../config/hooks/post-merge", f"{reporoot}/.git/hooks/post-merge")
 
-    if not os.path.exists(f"{constants.home}/.sentry/config.yml") or not os.path.exists(
-        f"{constants.home}/.sentry/sentry.conf.py"
+    sentry_conf = os.environ.get("SENTRY_CONF", f"{constants.home}/.sentry")
+
+    if not os.path.exists(f"{sentry_conf}/config.yml") or not os.path.exists(
+        f"{sentry_conf}/sentry.conf.py"
     ):
         proc.run((f"{venv_dir}/bin/sentry", "init", "--dev"))
 

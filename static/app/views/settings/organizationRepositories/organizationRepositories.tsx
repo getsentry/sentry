@@ -10,7 +10,6 @@ import {IconCommit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Repository, RepositoryStatus} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
-import useApi from 'sentry/utils/useApi';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
@@ -21,8 +20,6 @@ type Props = {
 };
 
 function OrganizationRepositories({itemList, onRepositoryChange, organization}: Props) {
-  const api = useApi();
-
   const hasItemList = itemList && itemList.length > 0;
 
   return (
@@ -54,7 +51,6 @@ function OrganizationRepositories({itemList, onRepositoryChange, organization}: 
             <div>
               {itemList.map(repo => (
                 <RepositoryRow
-                  api={api}
                   key={repo.id}
                   repository={repo}
                   showProvider

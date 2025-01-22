@@ -1,13 +1,20 @@
 from __future__ import annotations
 
 import os.path
-import pathlib
 import shutil
 import subprocess
 import sys
 import tempfile
 
 import pytest
+
+
+def _fill_init_pyi(tmpdir: str, path: str) -> str:
+    os.makedirs(os.path.join(tmpdir, path))
+    for part in path.split(os.sep):
+        tmpdir = os.path.join(tmpdir, part)
+        open(os.path.join(tmpdir, "__init__.pyi"), "a").close()
+    return tmpdir
 
 
 def call_mypy(src: str, *, plugins: list[str] | None = None) -> tuple[int, str]:
@@ -18,12 +25,32 @@ def call_mypy(src: str, *, plugins: list[str] | None = None) -> tuple[int, str]:
         with open(cfg, "w") as f:
             f.write(f"[tool.mypy]\nplugins = {plugins!r}\n")
 
+        # we stub several files in order to test our plugin
+        # the tests cannot depend on sentry being importable (it isn't!)
+        here = os.path.dirname(__file__)
+
+        # stubs for lazy_service_wrapper
+        utils_dir = _fill_init_pyi(tmpdir, "sentry/utils")
+        sentry_src = os.path.join(here, "../../../src/sentry/utils/lazy_service_wrapper.py")
+        shutil.copy(sentry_src, utils_dir)
+        with open(os.path.join(utils_dir, "__init__.pyi"), "w") as f:
+            f.write("from typing import Any\ndef __getattr__(k: str) -> Any: ...\n")
+
+        # stubs for auth types
+        auth_dir = _fill_init_pyi(tmpdir, "sentry/auth/services/auth")
+        with open(os.path.join(auth_dir, "model.pyi"), "w") as f:
+            f.write("class AuthenticatedToken: ...")
+
         ret = subprocess.run(
             (
                 *(sys.executable, "-m", "mypy"),
                 *("--config", cfg),
                 *("-c", src),
+                "--show-traceback",
+                # we only stub out limited parts of the sentry source tree
+                "--ignore-missing-imports",
             ),
+            env={**os.environ, "MYPYPATH": tmpdir},
             capture_output=True,
             encoding="UTF-8",
         )
@@ -168,7 +195,30 @@ x.{attr}
     assert ret == 0, (ret, out)
 
 
-def test_lazy_service_wrapper(tmp_path: pathlib.Path) -> None:
+def test_adjusted_drf_request_auth() -> None:
+    src = """\
+from rest_framework.request import Request
+x: Request
+reveal_type(x.auth)
+"""
+    expected_no_plugins = """\
+<string>:3: note: Revealed type is "Union[rest_framework.authtoken.models.Token, Any]"
+Success: no issues found in 1 source file
+"""
+    expected_plugins = """\
+<string>:3: note: Revealed type is "Union[sentry.auth.services.auth.model.AuthenticatedToken, None]"
+Success: no issues found in 1 source file
+"""
+    ret, out = call_mypy(src, plugins=[])
+    assert ret == 0
+    assert out == expected_no_plugins
+
+    ret, out = call_mypy(src)
+    assert ret == 0
+    assert out == expected_plugins
+
+
+def test_lazy_service_wrapper() -> None:
     src = """\
 from typing import assert_type, Literal
 from sentry.utils.lazy_service_wrapper import LazyServiceWrapper, Service, _EmptyType
@@ -195,42 +245,9 @@ assert_type(backend._wrapped, _EmptyType | MyService)
 Found 2 errors in 1 file (checked 1 source file)
 """
 
-    # tools tests aren't allowed to import from `sentry` so we fixture
-    # the particular source file we are testing
-    utils_dir = tmp_path.joinpath("sentry/utils")
-    utils_dir.mkdir(parents=True)
-
-    here = os.path.dirname(__file__)
-    sentry_src = os.path.join(here, "../../../src/sentry/utils/lazy_service_wrapper.py")
-    shutil.copy(sentry_src, utils_dir)
-
-    init_pyi = "from typing import Any\ndef __getattr__(self) -> Any: ...\n"
-    utils_dir.joinpath("__init__.pyi").write_text(init_pyi)
-
-    cfg = tmp_path.joinpath("mypy.toml")
-    cfg.write_text("[tool.mypy]\nplugins = []\n")
-
-    # can't use our helper above because we're fixturing sentry src, so mimic it here
-    def _mypy() -> tuple[int, str]:
-        ret = subprocess.run(
-            (
-                *(sys.executable, "-m", "mypy"),
-                *("--config", cfg),
-                # we only stub out limited parts of the sentry source tree
-                "--ignore-missing-imports",
-                *("-c", src),
-            ),
-            env={**os.environ, "MYPYPATH": str(tmp_path)},
-            capture_output=True,
-            encoding="UTF-8",
-        )
-        assert not ret.stderr
-        return ret.returncode, ret.stdout
-
-    ret, out = _mypy()
+    ret, out = call_mypy(src, plugins=[])
     assert ret
     assert out == expected
 
-    cfg.write_text('[tool.mypy]\nplugins = ["tools.mypy_helpers.plugin"]\n')
-    ret, out = _mypy()
+    ret, out = call_mypy(src)
     assert ret == 0

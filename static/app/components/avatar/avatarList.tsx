@@ -17,6 +17,10 @@ type Props = {
   avatarSize?: number;
   className?: string;
   maxVisibleAvatars?: number;
+  renderCollapsedAvatars?: (
+    avatarSize: number,
+    numCollapsedAvatars: number
+  ) => React.ReactNode;
   renderTooltip?: UserAvatarProps['renderTooltip'];
   renderUsersFirst?: boolean;
   teams?: Team[];
@@ -25,8 +29,14 @@ type Props = {
   users?: Array<Actor | AvatarUser>;
 };
 
-const CollapsedAvatars = forwardRef(function CollapsedAvatars(
-  {size, children}: {children: React.ReactNode; size: number},
+export const CollapsedAvatars = forwardRef(function CollapsedAvatars(
+  {
+    size,
+    children,
+  }: {
+    children: React.ReactNode;
+    size: number;
+  },
   ref: React.ForwardedRef<HTMLDivElement>
 ) {
   const hasStreamlinedUI = useHasStreamlinedUI();
@@ -55,6 +65,7 @@ function AvatarList({
   teams = [],
   renderUsersFirst = false,
   renderTooltip,
+  renderCollapsedAvatars,
 }: Props) {
   const numTeams = teams.length;
   const numVisibleTeams = maxVisibleAvatars - numTeams > 0 ? numTeams : maxVisibleAvatars;
@@ -82,14 +93,20 @@ function AvatarList({
 
   return (
     <AvatarListWrapper className={className}>
-      {!!numCollapsedAvatars && (
-        <Tooltip title={`${numCollapsedAvatars} other ${typeAvatars}`} skipWrapper>
-          <CollapsedAvatars size={avatarSize} data-test-id="avatarList-collapsedavatars">
-            {numCollapsedAvatars < 99 && <Plus>+</Plus>}
-            {numCollapsedAvatars}
-          </CollapsedAvatars>
-        </Tooltip>
-      )}
+      {!!numCollapsedAvatars &&
+        (renderCollapsedAvatars ? (
+          renderCollapsedAvatars(avatarSize, numCollapsedAvatars)
+        ) : (
+          <Tooltip title={`${numCollapsedAvatars} other ${typeAvatars}`} skipWrapper>
+            <CollapsedAvatars
+              size={avatarSize}
+              data-test-id="avatarList-collapsedavatars"
+            >
+              {numCollapsedAvatars < 99 && <Plus>+</Plus>}
+              {numCollapsedAvatars}
+            </CollapsedAvatars>
+          </Tooltip>
+        ))}
 
       {renderUsersFirst
         ? visibleTeamAvatars.map(team => (

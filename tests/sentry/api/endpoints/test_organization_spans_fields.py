@@ -892,3 +892,28 @@ class OrganizationEAPSpansTagKeyValuesEndpointTest(OrganizationSpansTagKeyValues
                 format="json",
                 **kwargs,
             )
+
+    def test_boolean_autocomplete(self):
+        keys = ["is_transaction"]
+        self.project
+        for key in keys:
+            response = self.do_request(key)
+            assert response.status_code == 200, response.data
+            assert response.data == [
+                {
+                    "count": mock.ANY,
+                    "key": key,
+                    "value": "false",
+                    "name": "false",
+                    "firstSeen": mock.ANY,
+                    "lastSeen": mock.ANY,
+                },
+                {
+                    "count": mock.ANY,
+                    "key": key,
+                    "value": "true",
+                    "name": "true",
+                    "firstSeen": mock.ANY,
+                    "lastSeen": mock.ANY,
+                },
+            ]

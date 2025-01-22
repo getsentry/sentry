@@ -26,14 +26,6 @@ const StepperTransitionIndicator = styled(motion.span)`
   background-color: ${p => p.theme.progressBar};
   position: absolute;
 `;
-StepperTransitionIndicator.defaultProps = {
-  layout: true,
-  transition: testableTransition({
-    type: 'spring',
-    stiffness: 175,
-    damping: 18,
-  }),
-};
 
 type Props = React.HTMLAttributes<HTMLDivElement> & {
   currentStepIndex: number;
@@ -53,7 +45,16 @@ function Stepper({currentStepIndex, numSteps, onClick, ...props}: Props) {
             clickable={i < currentStepIndex}
           >
             {currentStepIndex === i && (
-              <StepperTransitionIndicator initial={false} layoutId="animation" />
+              <StepperTransitionIndicator
+                layout
+                transition={testableTransition({
+                  type: 'spring',
+                  stiffness: 175,
+                  damping: 18,
+                })}
+                initial={false}
+                layoutId="animation"
+              />
             )}
           </StepperIndicator>
         ))}

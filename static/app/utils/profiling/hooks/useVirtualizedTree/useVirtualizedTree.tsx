@@ -241,12 +241,14 @@ export function useVirtualizedTree<T extends TreeLike>(
     }
 
     let raf: number;
-    function handleScroll(evt) {
+    function handleScroll(evt: any) {
       if (!props.scrollContainer) {
         return;
       }
       const scrollTop = Math.max(0, evt.target.scrollTop);
-      raf !== undefined && window.cancelAnimationFrame(raf);
+      if (raf !== undefined) {
+        window.cancelAnimationFrame(raf);
+      }
 
       raf = window.requestAnimationFrame(() => {
         dispatch({type: 'set scroll top', payload: scrollTop});

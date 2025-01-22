@@ -12,13 +12,15 @@ import {
   type TimeSeriesWidgetVisualizationProps,
 } from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 
-import {MISSING_DATA_MESSAGE, X_GUTTER, Y_GUTTER} from '../common/settings';
+import {MISSING_DATA_MESSAGE} from '../common/settings';
 import type {StateProps} from '../common/types';
 
 export interface TimeSeriesWidgetProps
   extends StateProps,
     Omit<WidgetFrameProps, 'children'>,
-    Partial<TimeSeriesWidgetVisualizationProps> {}
+    Partial<TimeSeriesWidgetVisualizationProps> {
+  visualizationType: TimeSeriesWidgetVisualizationProps['visualizationType'];
+}
 
 export function TimeSeriesWidget(props: TimeSeriesWidgetProps) {
   const {timeseries} = props;
@@ -27,7 +29,7 @@ export function TimeSeriesWidget(props: TimeSeriesWidgetProps) {
     return (
       <WidgetFrame title={props.title} description={props.description}>
         <LoadingPlaceholder>
-          <TransparentLoadingMask visible />
+          <LoadingMask visible />
           <LoadingIndicator mini />
         </LoadingPlaceholder>
       </WidgetFrame>
@@ -55,14 +57,16 @@ export function TimeSeriesWidget(props: TimeSeriesWidgetProps) {
       error={error}
       onRetry={props.onRetry}
     >
-      {defined(timeseries) && defined(props.SeriesConstructor) && (
+      {defined(timeseries) && (
         <TimeSeriesWrapper>
           <TimeSeriesWidgetVisualization
+            visualizationType={props.visualizationType}
             timeseries={timeseries}
             releases={props.releases}
             aliases={props.aliases}
             dataCompletenessDelay={props.dataCompletenessDelay}
-            SeriesConstructor={props.SeriesConstructor}
+            timeseriesSelection={props.timeseriesSelection}
+            onTimeseriesSelectionChange={props.onTimeseriesSelectionChange}
           />
         </TimeSeriesWrapper>
       )}
@@ -72,7 +76,6 @@ export function TimeSeriesWidget(props: TimeSeriesWidgetProps) {
 
 const TimeSeriesWrapper = styled('div')`
   flex-grow: 1;
-  padding: 0 ${X_GUTTER} ${Y_GUTTER} ${X_GUTTER};
 `;
 
 const LoadingPlaceholder = styled('div')`
@@ -82,4 +85,8 @@ const LoadingPlaceholder = styled('div')`
   display: flex;
   justify-content: center;
   align-items: center;
+`;
+
+const LoadingMask = styled(TransparentLoadingMask)`
+  background: ${p => p.theme.background};
 `;

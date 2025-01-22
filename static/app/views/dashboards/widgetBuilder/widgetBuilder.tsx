@@ -236,6 +236,7 @@ function WidgetBuilder({
   const isSubmittingRef = useRef(false);
 
   const [datasetConfig, setDataSetConfig] = useState<ReturnType<typeof getDatasetConfig>>(
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     getDatasetConfig(DATA_SET_TO_WIDGET_TYPE[dataSet])
   );
 
@@ -329,7 +330,7 @@ function WidgetBuilder({
     if (isEditing && isValidWidgetIndex) {
       const widgetFromDashboard = dashboard.widgets[widgetIndexNum]!;
 
-      let queries;
+      let queries: any;
       let newDisplayType = widgetFromDashboard.displayType;
       let newLimit = widgetFromDashboard.limit;
       if (widgetFromDashboard.displayType === DisplayType.TOP_N) {
@@ -546,7 +547,7 @@ function WidgetBuilder({
   function handleDisplayTypeOrAnnotationChange<
     F extends keyof Pick<State, 'displayType' | 'title' | 'description'>,
   >(field: F, value: State[F]) {
-    value &&
+    if (value) {
       trackAnalytics('dashboards_views.widget_builder.change', {
         from: source,
         field,
@@ -555,7 +556,7 @@ function WidgetBuilder({
         organization,
         new_widget: !isEditing,
       });
-
+    }
     setState(prevState => {
       const newState = cloneDeep(prevState);
       set(newState, field, value);
@@ -588,6 +589,7 @@ function WidgetBuilder({
         set(newState, 'displayType', DisplayType.TABLE);
       }
 
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const config = getDatasetConfig(DATA_SET_TO_WIDGET_TYPE[newDataSet]);
       setDataSetConfig(config);
 
@@ -1188,7 +1190,7 @@ function WidgetBuilder({
                                       placeholder={t('Enter title')}
                                       error={state.errors?.title}
                                       data-test-id="widget-builder-title-input"
-                                      onChange={newTitle => {
+                                      onChange={(newTitle: any) => {
                                         handleDisplayTypeOrAnnotationChange(
                                           'title',
                                           newTitle
@@ -1204,7 +1206,7 @@ function WidgetBuilder({
                                       aria-label={t('Widget Description')}
                                       placeholder={t('Enter description (Optional)')}
                                       error={state.errors?.description}
-                                      onChange={newDescription => {
+                                      onChange={(newDescription: any) => {
                                         handleDisplayTypeOrAnnotationChange(
                                           'description',
                                           newDescription

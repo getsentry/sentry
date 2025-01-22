@@ -45,6 +45,7 @@ function getDisabledProducts(organization: Organization): DisabledProducts {
     return Object.values(ProductSolution)
       .filter(product => product !== ProductSolution.ERROR_MONITORING)
       .reduce((acc, prod) => {
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         acc[prod] = {reason};
         return acc;
       }, {});
@@ -102,6 +103,9 @@ export const platformProductAvailability = {
   'go-negroni': [ProductSolution.PERFORMANCE_MONITORING],
   ionic: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.SESSION_REPLAY],
   java: [ProductSolution.PERFORMANCE_MONITORING],
+  'java-log4j2': [ProductSolution.PERFORMANCE_MONITORING],
+  'java-logback': [ProductSolution.PERFORMANCE_MONITORING],
+  'java-spring': [ProductSolution.PERFORMANCE_MONITORING],
   'java-spring-boot': [ProductSolution.PERFORMANCE_MONITORING],
   javascript: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.SESSION_REPLAY],
   'javascript-react': [

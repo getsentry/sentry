@@ -165,6 +165,7 @@ export default function useInviteModal({organization, initialData, source}: Prop
     setState(prev => {
       const emails = prev.pendingInvites[0]!.emails;
       const filteredEmails = Array.from(emails).filter(
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         email => !prev.inviteStatus[email]?.sent
       );
       return {
@@ -192,9 +193,6 @@ export default function useInviteModal({organization, initialData, source}: Prop
       {
         organization,
         modal_session: sessionId.current,
-        sent_invites: sentCount,
-        failed_invites: errorCount,
-        is_new_modal: organization.features.includes('invite-members-new-modal'),
       }
     );
   }, [organization, state.inviteStatus, state.sendingInvites, willInvite]);
@@ -202,11 +200,9 @@ export default function useInviteModal({organization, initialData, source}: Prop
   const sendInvites = useCallback(async () => {
     setState(prev => ({...prev, sendingInvites: true}));
     await Promise.all(invites.map(sendInvite));
-    if (organization.features.includes('invite-members-new-modal')) {
-      removeSentInvites();
-    }
+    removeSentInvites();
     setState(prev => ({...prev, sendingInvites: false, complete: true}));
-  }, [organization, invites, sendInvite, removeSentInvites]);
+  }, [invites, sendInvite, removeSentInvites]);
 
   const addInviteRow = useCallback(() => {
     setState(prev => ({

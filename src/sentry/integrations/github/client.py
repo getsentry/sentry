@@ -26,7 +26,7 @@ from sentry.integrations.source_code_management.commit_context import (
 )
 from sentry.integrations.source_code_management.repository import RepositoryClient
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
-from sentry.integrations.utils.code_mapping import (
+from sentry.issues.auto_source_code_config.code_mapping import (
     MAX_CONNECTION_ERRORS,
     Repo,
     RepoTree,
@@ -256,14 +256,6 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient)
         Returns the merged pull request that introduced the commit to the repository. If the commit is not present in the default branch, will only return open pull requests associated with the commit.
         """
         return self.get(f"/repos/{repo}/commits/{sha}/pulls")
-
-    def get_pullrequest(self, repo: str, pull_number: str) -> Any:
-        """
-        https://docs.github.com/en/rest/pulls/pulls#get-a-pull-request
-
-        Returns the pull request details
-        """
-        return self.get(f"/repos/{repo}/pulls/{pull_number}")
 
     def get_pullrequest_files(self, repo: str, pull_number: str) -> Any:
         """

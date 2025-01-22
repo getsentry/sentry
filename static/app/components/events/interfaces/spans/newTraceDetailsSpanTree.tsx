@@ -604,7 +604,7 @@ class NewTraceDetailsSpanTree extends Component<PropType> {
           toggleSiblingSpanGroup = payload.toggleSiblingSpanGroup;
         }
 
-        let groupType;
+        let groupType: any;
         if (toggleSpanGroup) {
           groupType = GroupType.DESCENDANTS;
         } else if (toggleSiblingSpanGroup) {
@@ -796,8 +796,9 @@ class NewTraceDetailsSpanTree extends Component<PropType> {
     }
 
     const limitExceededMessage = this.generateLimitExceededMessage();
-    limitExceededMessage &&
+    if (limitExceededMessage) {
       spanTree.push({type: SpanTreeNodeType.MESSAGE, element: limitExceededMessage});
+    }
 
     return (
       <TraceViewContainer>
