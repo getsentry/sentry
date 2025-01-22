@@ -321,13 +321,13 @@
     {# support for gmail actions #}
     <div itemscope itemtype="http://schema.org/EmailMessage">
       <meta itemprop="description" content="View Issue Details in Sentry"/>
-      <div itemprop="action" itemscope itemtype="http://schema.org/ViewAction">
-        <link itemprop="url" href="{{ link }}"/>
+      <div itemprop="potentialAction" itemscope itemtype="http://schema.org/ViewAction">
+        <link itemprop="target" href="{{ link }}"/>
         <meta itemprop="name" content="View in Sentry"/>
       </div>
       <div itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-        <meta itemprop="name" content="GetSentry"/>
-        <link itemprop="url" href="https://sentry.io/"/>
+        <meta itemprop="name" content="Sentry.io"/>
+        <link itemprop="url" href="https://sentry.io"/>
       </div>
     </div>
   </div>
