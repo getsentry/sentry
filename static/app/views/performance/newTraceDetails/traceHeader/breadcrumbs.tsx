@@ -41,6 +41,7 @@ export const enum TraceViewSources {
   SCREEN_RENDERING_MODULE = 'screen_rendering_module',
   PERFORMANCE_TRANSACTION_SUMMARY = 'performance_transaction_summary',
   ISSUE_DETAILS = 'issue_details',
+  DASHBOARDS = 'dashboards',
   FEEDBACK_DETAILS = 'feedback_details',
 }
 
@@ -70,6 +71,7 @@ export const TRACE_SOURCE_TO_NON_INSIGHT_ROUTES: Partial<
   performance_transaction_summary: 'performance',
   issue_details: 'issues',
   feedback_details: 'feedback',
+  dashboards: 'dashboards',
 };
 
 function getBreadCrumbTarget(
@@ -184,6 +186,43 @@ function getIssuesBreadCrumbs(organization: Organization, location: Location) {
         organization
       ),
     });
+  }
+
+  crumbs.push({
+    label: t('Trace View'),
+  });
+
+  return crumbs;
+}
+
+function getDashboardsBreadCrumbs(organization: Organization, location: Location) {
+  const crumbs: Crumb[] = [];
+
+  crumbs.push({
+    label: t('Dashboards'),
+    to: getBreadCrumbTarget('dashboards', location.query, organization),
+  });
+
+  if (location.query.dashboardId) {
+    crumbs.push({
+      label: t('Widgets Legend'),
+      to: getBreadCrumbTarget(
+        `dashboard/${location.query.dashboardId}`,
+        location.query,
+        organization
+      ),
+    });
+
+    if (location.query.widgetId) {
+      crumbs.push({
+        label: t('Widget'),
+        to: getBreadCrumbTarget(
+          `dashboard/${location.query.dashboardId}/widget/${location.query.widgetId}/`,
+          location.query,
+          organization
+        ),
+      });
+    }
   }
 
   crumbs.push({
@@ -404,6 +443,8 @@ export function getTraceViewBreadcrumbs(
           label: t('Trace View'),
         },
       ];
+    case TraceViewSources.DASHBOARDS:
+      return getDashboardsBreadCrumbs(organization, location);
     case TraceViewSources.ISSUE_DETAILS:
       return getIssuesBreadCrumbs(organization, location);
     case TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY:

@@ -210,7 +210,11 @@ export const renderGridBodyCell = ({
           return dataRow[column.key];
         }
         const unit = tableData.meta.units?.[column.key];
-        cell = getCustomEventsFieldRenderer(columnKey, tableData.meta)(dataRow, {
+        cell = getCustomEventsFieldRenderer(
+          columnKey,
+          tableData.meta,
+          widget
+        )(dataRow, {
           organization,
           location,
           eventView,

@@ -37,7 +37,7 @@ import {
   getDurationUnit,
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
-import type {EventsMetaType} from 'sentry/utils/discover/eventView';
+import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {
   aggregateOutputType,
@@ -140,6 +140,16 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
 
     const datasetConfig = getDatasetConfig(widget.widgetType);
 
+    const getCustimeFieldRenderer = (
+      field: string,
+      meta: MetaType,
+      organization?: Organization
+    ) => {
+      return (
+        datasetConfig.getCustomFieldRenderer?.(field, meta, widget, organization) || null
+      );
+    };
+
     return tableResults.map((result, i) => {
       const fields = widget.queries[i]?.fields?.map(stripDerivedMetricsPrefix) ?? [];
       const fieldAliases = widget.queries[i]?.fieldAliases ?? [];
@@ -159,7 +169,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
             data={result.data}
             stickyHeaders
             fieldHeaderMap={datasetConfig.getFieldHeaderMap?.(widget.queries[i])}
-            getCustomFieldRenderer={datasetConfig.getCustomFieldRenderer}
+            getCustomFieldRenderer={getCustimeFieldRenderer}
           />
         </TableWrapper>
       );

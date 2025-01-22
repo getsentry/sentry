@@ -389,7 +389,7 @@ describe('TableView > CellActions', function () {
       'href',
       expect.stringMatching(
         RegExp(
-          '/organizations/org-slug/performance/trace/7fdf8efed85a4f9092507063ced1995b/?.*'
+          '/organizations/org-slug/discover/trace/7fdf8efed85a4f9092507063ced1995b/?.*'
         )
       )
     );

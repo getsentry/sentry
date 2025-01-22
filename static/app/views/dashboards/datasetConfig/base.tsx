@@ -129,6 +129,7 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
   getCustomFieldRenderer?: (
     field: string,
     meta: MetaType,
+    widget?: Widget,
     organization?: Organization
   ) => ReturnType<typeof getFieldRenderer> | null;
   /**

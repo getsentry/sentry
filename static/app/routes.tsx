@@ -1074,6 +1074,10 @@ function buildRoutes() {
             <IndexRoute
               component={make(() => import('sentry/views/dashboards/manage'))}
             />
+            <Route
+              path="trace/:traceSlug/"
+              component={make(() => import('sentry/views/performance/traceDetails'))}
+            />
           </Route>
         )}
         <Route

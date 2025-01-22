@@ -90,6 +90,7 @@ export type Widget = {
   interval: string;
   queries: WidgetQuery[];
   title: string;
+  dashboardId?: string;
   datasetSource?: DatasetSource;
   description?: string;
   id?: string;

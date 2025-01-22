@@ -23,6 +23,7 @@ import {
 import type {SpanSample} from 'sentry/views/insights/common/queries/useSpanSamples';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {type ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
+import type {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
 const {HTTP_RESPONSE_CONTENT_LENGTH, SPAN_DESCRIPTION} = SpanMetricsField;
 
@@ -77,7 +78,7 @@ type Props = {
   highlightedSpanId?: string;
   onMouseLeaveSample?: () => void;
   onMouseOverSample?: (sample: SpanSample) => void;
-  source?: string;
+  source?: TraceViewSources;
 };
 
 export function SpanSamplesTable({
