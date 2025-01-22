@@ -89,7 +89,7 @@ const VisualizationWrapper = styled('div')`
   flex-grow: 1;
   min-height: 0;
   position: relative;
-  padding: 0 ${X_GUTTER} ${Y_GUTTER} ${X_GUTTER};
+  padding: 0;
 `;
 
 const CaptionWrapper = styled('div')`
