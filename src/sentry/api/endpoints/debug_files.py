@@ -465,13 +465,13 @@ def batch_assemble(project, files):
         name, debug_id, chunks = file_info or (None, None, None)
 
         # If we don't have any chunks, this is likely a poll request
-        # checking for file status, so return NOT_FOUND
+        # checking for file status, so return NOT_FOUND.
         if not chunks:
             file_response[checksum] = {"state": ChunkFileState.NOT_FOUND, "missingChunks": []}
             checksums_without_chunks.add(checksum)
             continue
 
-        # Map each chunk back to its source file checksum
+        # Map each chunk back to its source file checksum.
         for chunk in chunks:
             chunks_to_check[chunk] = checksum
 
@@ -480,7 +480,7 @@ def batch_assemble(project, files):
     # 4. Find missing chunks and group them per checksum.
     all_missing_chunks = find_missing_chunks(project.organization.id, list(chunks_to_check.keys()))
 
-    missing_chunks_per_checksum = {}
+    missing_chunks_per_checksum: dict[str, set[str]] = {}
     for chunk in all_missing_chunks:
         # We access the chunk via `[]` since the chunk must be there since `all_missing_chunks` must be a subset of
         # `chunks_to_check.keys()`.
