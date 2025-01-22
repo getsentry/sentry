@@ -1,7 +1,5 @@
 import styled from '@emotion/styled';
 
-import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {defined} from 'sentry/utils';
 import {
   WidgetFrame,
@@ -14,6 +12,7 @@ import {
 
 import {MISSING_DATA_MESSAGE} from '../common/settings';
 import type {StateProps} from '../common/types';
+import {LoadingPanel} from '../widgetLayout/loadingPanel';
 
 export interface TimeSeriesWidgetProps
   extends StateProps,
@@ -28,10 +27,7 @@ export function TimeSeriesWidget(props: TimeSeriesWidgetProps) {
   if (props.isLoading) {
     return (
       <WidgetFrame title={props.title} description={props.description}>
-        <LoadingPlaceholder>
-          <LoadingMask visible />
-          <LoadingIndicator mini />
-        </LoadingPlaceholder>
+        <LoadingPanel />
       </WidgetFrame>
     );
   }
@@ -76,17 +72,4 @@ export function TimeSeriesWidget(props: TimeSeriesWidgetProps) {
 
 const TimeSeriesWrapper = styled('div')`
   flex-grow: 1;
-`;
-
-const LoadingPlaceholder = styled('div')`
-  position: absolute;
-  inset: 0;
-
-  display: flex;
-  justify-content: center;
-  align-items: center;
-`;
-
-const LoadingMask = styled(TransparentLoadingMask)`
-  background: ${p => p.theme.background};
 `;
