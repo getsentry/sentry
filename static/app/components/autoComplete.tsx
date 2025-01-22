@@ -129,10 +129,10 @@ export interface AutoCompleteProps<T> extends DefaultProps {
   inputValue?: string;
   isOpen?: boolean;
   itemToString?: (item?: T) => string;
-  onClose?: (...args: Array<any>) => void;
+  onClose?: (...args: any[]) => void;
   onInputValueChange?: (value: string) => void;
   onMenuOpen?: () => void;
-  onOpen?: (...args: Array<any>) => void;
+  onOpen?: (...args: any[]) => void;
   onSelect?: (
     item: T,
     state?: State<T>,
@@ -416,7 +416,7 @@ class AutoComplete<T extends Item> extends Component<AutoCompleteProps<T>, State
    *
    * This is exposed to render function
    */
-  openMenu = (...args: Array<any>) => {
+  openMenu = (...args: any[]) => {
     const {onOpen, disabled} = this.props;
 
     onOpen?.(...args);
@@ -436,7 +436,7 @@ class AutoComplete<T extends Item> extends Component<AutoCompleteProps<T>, State
    *
    * This is exposed to render function
    */
-  closeMenu = (...args: Array<any>) => {
+  closeMenu = (...args: any[]) => {
     const {onClose, resetInputOnClose} = this.props;
 
     onClose?.(...args);

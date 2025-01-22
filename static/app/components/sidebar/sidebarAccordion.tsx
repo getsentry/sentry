@@ -194,7 +194,7 @@ const renderChildrenWithProps = (children: React.ReactNode): React.ReactNode => 
 function findChildElementsInTree(
   children: React.ReactNode,
   componentName: string,
-  found: Array<React.ReactNode> = []
+  found: React.ReactNode[] = []
 ): React.ReactNode {
   Children.toArray(children).forEach(child => {
     if (!isValidElement(child)) {

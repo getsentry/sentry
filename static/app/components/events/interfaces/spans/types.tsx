@@ -69,12 +69,12 @@ export type RawSpanType = {
 export type AggregateSpanType = RawSpanType & {
   count: number;
   frequency: number;
-  samples: Array<{
+  samples: {
     span: string;
     timestamp: number;
     trace: string;
     transaction: string;
-  }>;
+  }[];
   total: number;
   type: 'aggregate';
 };
@@ -133,7 +133,7 @@ export type SpanSiblingGroupProps = {
 };
 
 type CommonEnhancedProcessedSpanType = {
-  continuingTreeDepths: Array<TreeDepthType>;
+  continuingTreeDepths: TreeDepthType[];
   fetchEmbeddedChildrenState: FetchEmbeddedChildrenState;
   isEmbeddedTransactionTimeAdjusted: boolean;
   isLastSibling: boolean;
@@ -173,20 +173,20 @@ export type EnhancedProcessedSpanType =
       type: 'out_of_view';
     }
   | ({
-      continuingTreeDepths: Array<TreeDepthType>;
+      continuingTreeDepths: TreeDepthType[];
       span: SpanType;
       treeDepth: number;
       type: 'span_group_chain';
     } & SpanGroupProps)
   | ({
-      continuingTreeDepths: Array<TreeDepthType>;
+      continuingTreeDepths: TreeDepthType[];
       span: SpanType;
       treeDepth: number;
       type: 'span_group_siblings';
     } & SpanSiblingGroupProps);
 
 // map span_id to children whose parent_span_id is equal to span_id
-export type SpanChildrenLookupType = {[span_id: string]: Array<SpanType>};
+export type SpanChildrenLookupType = {[span_id: string]: SpanType[]};
 
 export type ParsedTraceType = {
   childSpans: SpanChildrenLookupType;

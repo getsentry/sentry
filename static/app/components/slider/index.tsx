@@ -171,7 +171,7 @@ function BaseSlider(
   }, [ticks, ticksInterval, tickValues, min, max]);
 
   const nThumbs = state.values.length;
-  const refs = useRef<Array<HTMLInputElement>>([]);
+  const refs = useRef<HTMLInputElement[]>([]);
   useImperativeHandle(forwardedRef, () => {
     if (nThumbs > 1) {
       return refs.current;

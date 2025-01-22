@@ -166,7 +166,7 @@ function handleFilterDuration(
   symbol: FilterSymbols,
   trendChangeType: TrendChangeType,
   projects: Project[],
-  projectIds: Readonly<number[]>
+  projectIds: readonly number[]
 ) {
   const durationTag = getCurrentTrendParameter(location, projects, projectIds).column;
   const queryString = decodeScalar(location.query.query);

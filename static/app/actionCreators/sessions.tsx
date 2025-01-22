@@ -10,7 +10,7 @@ export type DoSessionsRequestOptions = {
   orgSlug: Organization['slug'];
   cursor?: string;
   end?: DateString;
-  environment?: Readonly<string[]>;
+  environment?: readonly string[];
   groupBy?: string[];
   includeAllArgs?: boolean;
   includeSeries?: boolean;
@@ -18,7 +18,7 @@ export type DoSessionsRequestOptions = {
   interval?: string;
   limit?: number;
   orderBy?: string;
-  project?: Readonly<number[]>;
+  project?: readonly number[];
   query?: string;
   start?: DateString;
   statsPeriod?: string | null;

@@ -15,7 +15,7 @@ type TrustedRelaysResponseError = {
 
 interface TrustedRelaysRequestError extends RequestError {
   responseJSON?: {
-    trustedRelays: Array<string>;
+    trustedRelays: string[];
   };
 }
 

@@ -8,7 +8,7 @@ import type {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
 
 function computeAbsoluteSampleTimestamps(
   startedAt: number,
-  weights: ReadonlyArray<number>
+  weights: readonly number[]
 ): number[] {
   if (!weights.length) {
     return [];

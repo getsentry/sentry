@@ -17,7 +17,7 @@ type Props = {
   hasSimilarityEmbeddingsFeature: boolean;
   onMerge: () => void;
   groupId?: string;
-  itemsWouldGroup?: Array<{id: string; shouldBeGrouped: string | undefined}> | undefined;
+  itemsWouldGroup?: {id: string; shouldBeGrouped: string | undefined}[] | undefined;
   organization?: Organization;
   project?: Project;
 };

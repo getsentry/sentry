@@ -65,10 +65,10 @@ type Props = {
 
 const createSelectOptions = (
   actions: IssueAlertRuleActionTemplate[]
-): Array<{
+): {
   label: React.ReactNode;
   value: IssueAlertRuleActionTemplate;
-}> => {
+}[] => {
   return actions.map(node => {
     if (node.id === IssueAlertActionType.NOTIFY_EMAIL) {
       const label = t('Suggested Assignees, Team, or Member');

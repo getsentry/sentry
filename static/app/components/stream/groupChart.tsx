@@ -16,12 +16,12 @@ function asChartPoint(point: [number, number]): {name: number | string; value: n
   };
 }
 
-const EMPTY_STATS: ReadonlyArray<TimeseriesValue> = [];
+const EMPTY_STATS: readonly TimeseriesValue[] = [];
 
 type Props = {
-  stats: ReadonlyArray<TimeseriesValue>;
+  stats: readonly TimeseriesValue[];
   height?: number;
-  secondaryStats?: ReadonlyArray<TimeseriesValue>;
+  secondaryStats?: readonly TimeseriesValue[];
   showMarkLine?: boolean;
   showSecondaryPoints?: boolean;
 };

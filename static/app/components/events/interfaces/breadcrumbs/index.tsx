@@ -32,7 +32,7 @@ type SelectOptionWithLevels = SelectOption<string> & {levels?: BreadcrumbLevelTy
 
 type Props = {
   data: {
-    values: Array<RawCrumb>;
+    values: RawCrumb[];
   };
   event: Event;
   organization: Organization;

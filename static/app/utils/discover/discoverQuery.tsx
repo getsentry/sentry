@@ -16,7 +16,7 @@ export type TableDataRow = {
  * A DiscoverQuery result including rows and metadata.
  */
 export type TableData = {
-  data: Array<TableDataRow>;
+  data: TableDataRow[];
   meta?: MetaType;
 };
 
@@ -24,7 +24,7 @@ export type TableData = {
  * A DiscoverQuery result including rows and metadata from the events endpoint.
  */
 export type EventsTableData = {
-  data: Array<TableDataRow>;
+  data: TableDataRow[];
   meta?: EventsMetaType;
 };
 

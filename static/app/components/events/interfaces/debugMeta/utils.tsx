@@ -44,10 +44,7 @@ export function normalizeId(id?: string) {
   return id?.trim().toLowerCase().replace(/[- ]/g, '') ?? '';
 }
 
-export function shouldSkipSection(
-  filteredImages: Array<Image>,
-  images: Array<Image | null>
-) {
+export function shouldSkipSection(filteredImages: Image[], images: (Image | null)[]) {
   if (filteredImages.length) {
     return false;
   }
@@ -58,7 +55,7 @@ export function shouldSkipSection(
     return true;
   }
 
-  if ((definedImages as Array<Image>).every(image => image.type === 'proguard')) {
+  if ((definedImages as Image[]).every(image => image.type === 'proguard')) {
     return true;
   }
 

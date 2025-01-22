@@ -57,7 +57,7 @@ export const NOTIFICATION_SETTINGS_PATHNAMES: Record<NotificationSettingsType, s
 };
 
 export const NOTIFICATION_FEATURE_MAP: Partial<
-  Record<NotificationSettingsType, string | Array<string>>
+  Record<NotificationSettingsType, string | string[]>
 > = {
   quota: ['spend-visibility-notifications', 'user-spend-notifications-settings'],
   spikeProtection: 'spike-projections',

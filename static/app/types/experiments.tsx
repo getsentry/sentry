@@ -16,7 +16,7 @@ export type ExperimentConfig = {
   /**
    * Possible assignment values of the experiment
    */
-  assignments: ReadonlyArray<string | number | typeof unassignedValue>;
+  assignments: readonly (string | number | typeof unassignedValue)[];
   /**
    * The name of the organization. This maps to the key exposed by the
    * organization manager on the backend.

@@ -163,7 +163,7 @@ export function getCurrentTrendFunction(
 
 function getDefaultTrendParameter(
   projects: Project[],
-  projectIds: Readonly<number[]>
+  projectIds: readonly number[]
 ): TrendParameter {
   const performanceType = platformToPerformanceType(projects, projectIds);
   const trendParameter = performanceTypeToTrendParameterLabel(performanceType!);
@@ -174,7 +174,7 @@ function getDefaultTrendParameter(
 export function getCurrentTrendParameter(
   location: Location,
   projects: Project[],
-  projectIds: Readonly<number[]>
+  projectIds: readonly number[]
 ): TrendParameter {
   const trendParameterLabel = decodeScalar(location?.query?.trendParameter);
   const trendParameter = TRENDS_PARAMETERS.find(
@@ -342,8 +342,8 @@ export function transformValueDelta(value: number, trendType: TrendChangeType) {
  * To minimize extra renders with missing results.
  */
 export function normalizeTrends(
-  data: Array<TrendsTransaction>
-): Array<NormalizedTrendsTransaction> {
+  data: TrendsTransaction[]
+): NormalizedTrendsTransaction[] {
   const received_at = moment(); // Adding the received time for the transaction so calls to get baseline always line up with the transaction
   return data.map(row => {
     return {

@@ -46,7 +46,7 @@ function SentryAppExternalInstallationContent({params, ...props}: Props) {
   // The selected organization's slug. Should be removed as we have the selected organization as well.
   const [selectedOrgSlug, setSelectedOrgSlug] = useState<string>();
 
-  const [organizations, setOrganizations] = useState<Array<OrganizationSummary>>([]);
+  const [organizations, setOrganizations] = useState<OrganizationSummary[]>([]);
   const [orgsLoading, setOrgsLoading] = useState<boolean>(true);
   const [isInstalled, setIsInstalled] = useState<boolean>();
 
@@ -290,7 +290,7 @@ function CheckAndRenderError({
 }
 
 type SingleOrgProps = {
-  organizations: Array<OrganizationSummary>;
+  organizations: OrganizationSummary[];
   sentryApp: SentryApp;
 };
 function SingleOrgView({organizations, sentryApp}: SingleOrgProps) {
@@ -311,7 +311,7 @@ type SelectOrgCallback = (slug: string) => void;
 
 type MultiOrgProps = {
   onSelectOrg: SelectOrgCallback;
-  organizations: Array<OrganizationSummary>;
+  organizations: OrganizationSummary[];
   selectedOrgSlug: string | undefined;
   sentryApp: SentryApp;
 };
@@ -347,11 +347,11 @@ function MultiOrgView({
 
 const hasAccess = (org: Organization) => org.access.includes('org:integrations');
 
-function isSingleOrg(organizations: Array<OrganizationSummary>): boolean {
+function isSingleOrg(organizations: OrganizationSummary[]): boolean {
   return organizations.length === 1;
 }
 
-function getOrganizationOptions(organizations: Array<OrganizationSummary>) {
+function getOrganizationOptions(organizations: OrganizationSummary[]) {
   return organizations.map(org => ({
     value: org.slug,
     label: (

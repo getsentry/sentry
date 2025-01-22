@@ -102,7 +102,7 @@ export function getQuery({location, perPage = 40, activeRepository}: GetQueryPro
 /**
  * Get repositories to render according to the activeRepository
  */
-export function getReposToRender(repos: Array<string>, activeRepository?: Repository) {
+export function getReposToRender(repos: string[], activeRepository?: Repository) {
   if (!activeRepository) {
     return repos;
   }

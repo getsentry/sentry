@@ -1,6 +1,6 @@
 import {scaleSampleRates} from 'sentry/views/settings/dynamicSampling/utils/scaleSampleRates';
 
-function getAverageSampleRate(items: Array<{count: number; sampleRate: number}>) {
+function getAverageSampleRate(items: {count: number; sampleRate: number}[]) {
   const total = items.reduce((acc, item) => acc + item.count, 0);
   return items.reduce((acc, item) => acc + (item.count * item.sampleRate) / total, 0);
 }

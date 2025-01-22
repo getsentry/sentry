@@ -40,7 +40,7 @@ export function getSpanInfoFromTransactionEvent(
     return entry.type === EntryType.SPANS;
   });
 
-  const spans: Array<RawSpanType | TraceContextSpanProxy> = spanEntry?.data
+  const spans: (RawSpanType | TraceContextSpanProxy)[] = spanEntry?.data
     ? [...spanEntry.data]
     : [];
 

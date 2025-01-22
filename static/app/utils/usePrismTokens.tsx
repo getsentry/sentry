@@ -49,7 +49,7 @@ const getPrismGrammar = (language: string) => {
 };
 
 const splitMultipleTokensByLine = (
-  tokens: Array<string | Prism.Token>,
+  tokens: (string | Prism.Token)[],
   types: Set<string> = new Set(['token'])
 ) => {
   const lines: IntermediateToken[][] = [];
@@ -112,7 +112,7 @@ const splitTokenContentByLine = (
 };
 
 export const breakTokensByLine = (
-  tokens: Array<string | Prism.Token>
+  tokens: (string | Prism.Token)[]
 ): SyntaxHighlightLine[] => {
   const lines = splitMultipleTokensByLine(tokens);
 

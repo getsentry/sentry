@@ -142,7 +142,7 @@ const guideToSelectOption = ({key, label}: any) => ({label, value: key});
 export default function MonitorQuickStartGuide({monitor}: Props) {
   const org = useOrganization();
 
-  const {data: projectKeys} = useApiQuery<Array<ProjectKey>>(
+  const {data: projectKeys} = useApiQuery<ProjectKey[]>(
     [`/projects/${org.slug}/${monitor.project.slug}/keys/`],
     {staleTime: Infinity}
   );

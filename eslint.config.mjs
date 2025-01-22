@@ -434,7 +434,6 @@ export default typescript.config([
       '@typescript-eslint/unified-signatures': 'off', // TODO(ryan953): Fix violations and delete this line
 
       // Stylistic overrides
-      '@typescript-eslint/array-type': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/class-literal-property-style': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/consistent-generic-constructors': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/consistent-indexed-object-style': 'off', // TODO(ryan953): Fix violations and delete this line

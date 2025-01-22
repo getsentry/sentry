@@ -2,7 +2,7 @@
  * Replace item at `index` in `array` with `obj` without mutating `array`
  */
 export default function replaceAtArrayIndex<T>(
-  array: Readonly<T[]>,
+  array: readonly T[],
   index: number,
   obj: T
 ): T[] {

@@ -85,11 +85,11 @@ interface ChecksumVariant extends BaseVariant {
 }
 
 interface HasComponentGrouping {
-  client_values?: Array<string>;
+  client_values?: string[];
   component?: EventGroupComponent;
   config?: EventGroupingConfig;
   matched_rule?: string;
-  values?: Array<string>;
+  values?: string[];
 }
 
 interface ComponentVariant extends BaseVariant, HasComponentGrouping {
@@ -128,14 +128,14 @@ export type EventGroupInfo = Record<EventGroupVariantKey, EventGroupVariant>;
  * SDK Update metadata
  */
 type EnableIntegrationSuggestion = {
-  enables: Array<SDKUpdatesSuggestion>;
+  enables: SDKUpdatesSuggestion[];
   integrationName: string;
   type: 'enableIntegration';
   integrationUrl?: string | null;
 };
 
 export type UpdateSdkSuggestion = {
-  enables: Array<SDKUpdatesSuggestion>;
+  enables: SDKUpdatesSuggestion[];
   newSdkVersion: string;
   sdkName: string;
   type: 'updateSdk';
@@ -143,7 +143,7 @@ export type UpdateSdkSuggestion = {
 };
 
 type ChangeSdkSuggestion = {
-  enables: Array<SDKUpdatesSuggestion>;
+  enables: SDKUpdatesSuggestion[];
   newSdkName: string;
   type: 'changeSdk';
   sdkUrl?: string | null;
@@ -186,7 +186,7 @@ export enum LockType {
 export type Frame = {
   absPath: string | null;
   colNo: number | null;
-  context: Array<[number, string]>;
+  context: [number, string][];
   filename: string | null;
   function: string | null;
   inApp: boolean;
@@ -229,7 +229,7 @@ export type ExceptionValue = {
 export type ExceptionType = {
   excOmitted: any | null;
   hasSystemFrames: boolean;
-  values?: Array<ExceptionValue>;
+  values?: ExceptionValue[];
 };
 
 // This type is incomplete
@@ -284,21 +284,21 @@ export enum EntryType {
 
 export type EntryDebugMeta = {
   data: {
-    images: Array<Image | null>;
+    images: (Image | null)[];
   };
   type: EntryType.DEBUGMETA;
 };
 
 export type EntryBreadcrumbs = {
   data: {
-    values: Array<RawCrumb>;
+    values: RawCrumb[];
   };
   type: EntryType.BREADCRUMBS;
 };
 
 export type EntryThreads = {
   data: {
-    values?: Array<Thread>;
+    values?: Thread[];
   };
   type: EntryType.THREADS;
 };
@@ -335,17 +335,17 @@ export interface EntryRequestDataDefault {
   apiTarget: null;
   method: string;
   url: string;
-  cookies?: Array<[key: string, value: string] | null>;
+  cookies?: ([key: string, value: string] | null)[];
   data?: string | null | Record<string, any> | [key: string, value: any][];
   env?: Record<string, string>;
   fragment?: string | null;
-  headers?: Array<[key: string, value: string] | null>;
+  headers?: ([key: string, value: string] | null)[];
   inferredContentType?:
     | null
     | 'application/json'
     | 'application/x-www-form-urlencoded'
     | 'multipart/form-data';
-  query?: Array<[key: string, value: string] | null> | string;
+  query?: ([key: string, value: string] | null)[] | string;
 }
 
 export interface EntryRequestDataGraphQl
@@ -795,7 +795,7 @@ interface EventBase {
     name: string;
     version: string;
   } | null;
-  sdkUpdates?: Array<SDKUpdatesSuggestion>;
+  sdkUpdates?: SDKUpdatesSuggestion[];
   userReport?: any;
 }
 

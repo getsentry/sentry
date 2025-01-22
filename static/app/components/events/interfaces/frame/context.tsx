@@ -50,7 +50,7 @@ type Props = {
 export function getLineCoverage(
   lines: [number, string][],
   lineCov: LineCoverage[]
-): [Array<Coverage | undefined>, boolean] {
+): [(Coverage | undefined)[], boolean] {
   const keyedCoverage = keyBy(lineCov, 0);
   const lineCoverage = lines.map<Coverage | undefined>(
     ([lineNo]) => keyedCoverage[lineNo]?.[1]

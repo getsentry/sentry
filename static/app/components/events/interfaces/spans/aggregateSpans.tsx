@@ -18,7 +18,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
-type SpanSamples = Array<[string, string]>;
+type SpanSamples = [string, string][];
 
 type AggregateSpanRow = {
   'avg(absolute_offset)': number;

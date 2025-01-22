@@ -50,7 +50,7 @@ function useOverflowingTabs({state}: {state: TabListState<DraggableTabListItemPr
   );
   const outerRef = useRef<HTMLDivElement>(null);
   const addViewTempTabRef = useRef<HTMLDivElement>(null);
-  const [tabElements, setTabElements] = useState<Array<HTMLDivElement | null>>([]);
+  const [tabElements, setTabElements] = useState<(HTMLDivElement | null)[]>([]);
   const {width: outerWidth} = useDimensions({elementRef: outerRef});
   const {width: addViewTempTabWidth} = useDimensions({elementRef: addViewTempTabRef});
   const tabsDimensions = useDimensionsMultiple({elements: tabElements});
@@ -142,7 +142,7 @@ function Tabs({
   orientation: 'horizontal' | 'vertical';
   overflowingTabs: Node<DraggableTabListItemProps>[];
   setHoveringKey: (key: Key | 'addView' | null) => void;
-  setTabRefs: Dispatch<SetStateAction<Array<HTMLDivElement | null>>>;
+  setTabRefs: Dispatch<SetStateAction<(HTMLDivElement | null)[]>>;
   state: TabListState<DraggableTabListItemProps>;
   tabs: Node<DraggableTabListItemProps>[];
   tempTabActive: boolean;

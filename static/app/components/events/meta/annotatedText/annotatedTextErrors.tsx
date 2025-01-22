@@ -39,7 +39,7 @@ function ErrorMessage({error}: {error?: MetaError}) {
   return <Fragment>{formatErrorKind(error)}</Fragment>;
 }
 
-export function AnnotatedTextErrors({errors = []}: {errors: Array<MetaError>}) {
+export function AnnotatedTextErrors({errors = []}: {errors: MetaError[]}) {
   if (!errors.length) {
     return null;
   }

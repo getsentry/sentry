@@ -51,7 +51,7 @@ type Rule = [RuleDefinition, RuleOwner[]];
 function findMatchedRules(
   rules: EventOwners['rules'],
   owner: Actor
-): Array<Rule[0]> | undefined {
+): Rule[0][] | undefined {
   if (!rules) {
     return undefined;
   }
@@ -79,12 +79,12 @@ type IssueOwner = {
   actor: Actor;
   source: 'codeowners' | 'projectOwnership' | 'suspectCommit';
   commits?: Commit[];
-  rules?: Array<[string, string]> | null;
+  rules?: [string, string][] | null;
 };
 export interface EventOwners {
   owners: Actor[];
   rule: RuleDefinition;
-  rules: Array<Rule>;
+  rules: Rule[];
 }
 
 function getSuggestedReason(owner: IssueOwner) {

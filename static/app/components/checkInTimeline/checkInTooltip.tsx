@@ -61,7 +61,7 @@ export function CheckInTooltip<Status extends string>({
           </tr>
         </HiddenHeader>
         <tbody>
-          {(Object.entries(stats) as Array<[Status, number]>).map(
+          {(Object.entries(stats) as [Status, number][]).map(
             ([status, count]) =>
               count > 0 && (
                 <tr key={status}>

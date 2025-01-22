@@ -23,8 +23,8 @@ interface Release {
 
 interface ReleaseQuery {
   end: DateString;
-  environment: Readonly<string[]>;
-  project: Readonly<number[]>;
+  environment: readonly string[];
+  project: readonly number[];
   start: DateString;
   cursor?: string;
   query?: string;

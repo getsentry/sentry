@@ -11,7 +11,7 @@ function Add({savedRules, ...props}: Props) {
   const handleGetNewRules = (
     values: Parameters<ModalManagerProps['onGetNewRules']>[0]
   ) => {
-    return [...savedRules, {...values, id: savedRules.length}] as Array<Rule>;
+    return [...savedRules, {...values, id: savedRules.length}] as Rule[];
   };
 
   return (

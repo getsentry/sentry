@@ -20,14 +20,14 @@ type Props = ModalRenderProps & {
   api: Client;
   onSubmitSuccess: (organization: Organization) => void;
   orgSlug: Organization['slug'];
-  savedRelays: Array<Relay>;
+  savedRelays: Relay[];
 };
 
 type State = {
   disables: FormProps['disables'];
   errors: FormProps['errors'];
   isFormValid: boolean;
-  requiredValues: Array<keyof Values>;
+  requiredValues: (keyof Values)[];
   title: string;
   values: Values;
 };
@@ -69,7 +69,7 @@ class DialogManager<P extends Props = Props, S extends State = State> extends Co
     return '';
   }
 
-  getData(): {trustedRelays: Array<Relay>} {
+  getData(): {trustedRelays: Relay[]} {
     // Child has to implement this
     throw new Error('Not implemented');
   }

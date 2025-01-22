@@ -457,11 +457,11 @@ export class TokenConverter {
   });
 
   tokenLogicGroup = (
-    inner: Array<
+    inner: (
       | ReturnType<TokenConverter['tokenLogicBoolean']>
       | ReturnType<TokenConverter['tokenFilter']>
       | ReturnType<TokenConverter['tokenFreeText']>
-    >
+    )[]
   ) => ({
     ...this.defaultTokenFields,
     type: Token.LOGIC_GROUP as const,
@@ -546,9 +546,9 @@ export class TokenConverter {
 
   tokenValueIso8601Date = (
     value: string,
-    date: Array<string | string[]>,
-    time?: Array<string | string[] | Array<string[]>>,
-    tz?: Array<string | string[]>
+    date: (string | string[])[],
+    time?: (string | string[] | string[][])[],
+    tz?: (string | string[])[]
   ) => ({
     ...this.defaultTokenFields,
     type: Token.VALUE_ISO_8601_DATE as const,

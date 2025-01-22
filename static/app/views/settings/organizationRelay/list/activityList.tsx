@@ -7,7 +7,7 @@ import {t} from 'sentry/locale';
 import type {RelayActivity} from 'sentry/types/relay';
 
 type Props = {
-  activities: Array<RelayActivity>;
+  activities: RelayActivity[];
 };
 
 function ActivityList({activities}: Props) {

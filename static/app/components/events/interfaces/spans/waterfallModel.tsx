@@ -37,7 +37,7 @@ class WaterfallModel {
   filterSpans: FilterSpans | undefined = undefined;
   searchQuery: string | undefined = undefined;
   hiddenSpanSubTrees: Set<string>;
-  traceBounds: Array<TraceBound>;
+  traceBounds: TraceBound[];
   focusedSpanIds: Set<string> | undefined = undefined;
   traceInfo: TraceInfo | undefined = undefined;
 

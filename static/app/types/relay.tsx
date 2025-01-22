@@ -16,7 +16,7 @@ export type RelayActivity = {
 
 export type RelaysByPublickey = {
   [publicKey: string]: {
-    activities: Array<RelayActivity>;
+    activities: RelayActivity[];
     name: string;
     created?: string;
     description?: string;

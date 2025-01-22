@@ -115,7 +115,7 @@ class FormModel {
   /**
    * Holds a list of `fields` states
    */
-  snapshots: Array<Snapshot> = [];
+  snapshots: Snapshot[] = [];
 
   /**
    * POJO of field name -> value

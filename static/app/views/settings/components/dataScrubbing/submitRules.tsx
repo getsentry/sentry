@@ -43,7 +43,7 @@ function getSubmitFormatRule(rule: Rule): PiiConfig {
   };
 }
 
-function submitRules(api: Client, endpoint: string, rules: Array<Rule>) {
+function submitRules(api: Client, endpoint: string, rules: Rule[]) {
   const applications: Applications = {};
   const submitFormatRules: Record<string, PiiConfig> = {};
 

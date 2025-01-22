@@ -257,8 +257,7 @@ export default class AbstractExternalIssueForm<
 
   getDefaultOptions = (field: IssueConfigField) => {
     const choices =
-      (field.choices as Array<[number | string, number | string | React.ReactElement]>) ||
-      [];
+      (field.choices as [number | string, number | string | React.ReactElement][]) || [];
     return choices.map(([value, label]) => ({value, label}));
   };
 

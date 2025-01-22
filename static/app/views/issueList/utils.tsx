@@ -51,7 +51,7 @@ type OverviewTab = {
  * Get a list of currently active tabs
  */
 export function getTabs() {
-  const tabs: Array<[string, OverviewTab]> = [
+  const tabs: [string, OverviewTab][] = [
     [
       Query.PRIORITIZED,
       {

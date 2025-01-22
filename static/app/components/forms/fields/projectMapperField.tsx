@@ -85,7 +85,7 @@ export class RenderField extends Component<RenderProps, State> {
       id: formElementId,
     } = this.props;
 
-    const existingValues: Array<[number, MappedValue]> = incomingValues || [];
+    const existingValues: [number, MappedValue][] = incomingValues || [];
     const nextUrlOrArray = safeGetQsParam('next');
     let nextUrl = Array.isArray(nextUrlOrArray) ? nextUrlOrArray[0] : nextUrlOrArray;
 

@@ -33,7 +33,7 @@ type State = {
   filteredSimilarItems: SimilarItem[];
   loading: boolean;
   mergeDisabled: boolean;
-  mergeList: Array<string>;
+  mergeList: string[];
   mergeState: Map<any, Readonly<{busy?: boolean; checked?: boolean}>>;
   // List of fingerprints that belong to issue
   mergedItems: Fingerprint[];
@@ -76,7 +76,7 @@ type ChildFingerprint = {
 };
 
 export type Fingerprint = {
-  children: Array<ChildFingerprint>;
+  children: ChildFingerprint[];
   eventCount: number;
   id: string;
   latestEvent: Event;
@@ -97,9 +97,9 @@ export type SimilarItem = {
   };
   score?: Record<string, number | null>;
   scoresByInterface?: {
-    exception: Array<[string, number | null]>;
-    message: Array<[string, any | null]>;
-    shouldBeGrouped?: Array<[string, string | null]>;
+    exception: [string, number | null][];
+    message: [string, any | null][];
+    shouldBeGrouped?: [string, string | null][];
   };
 };
 
@@ -110,7 +110,7 @@ type ResponseProcessors = {
     isBelowThreshold: boolean;
     issue: Group;
     score: ScoreMap;
-    scoresByInterface: Record<string, Array<[string, number | null]>>;
+    scoresByInterface: Record<string, [string, number | null][]>;
   };
 };
 
@@ -118,13 +118,13 @@ type DataKey = keyof ResponseProcessors;
 
 type ResultsAsArrayDataMerged = Parameters<ResponseProcessors['merged']>[0];
 
-type ResultsAsArrayDataSimilar = Array<Parameters<ResponseProcessors['similar']>[0]>;
+type ResultsAsArrayDataSimilar = Parameters<ResponseProcessors['similar']>[0][];
 
-type ResultsAsArray = Array<{
+type ResultsAsArray = {
   data: ResultsAsArrayDataMerged | ResultsAsArrayDataSimilar;
   dataKey: DataKey;
   links: string | null;
-}>;
+}[];
 
 type IdState = {
   busy?: boolean;
@@ -147,11 +147,11 @@ interface GroupingStoreDefinition extends StrictStoreDefinition<State> {
   init(): void;
   isAllUnmergedSelected(): boolean;
   onFetch(
-    toFetchArray: Array<{
+    toFetchArray: {
       dataKey: DataKey;
       endpoint: string;
       queryParams?: Record<string, any>;
-    }>
+    }[]
   ): Promise<any>;
   onMerge(props: {
     projectId: Project['id'];
@@ -177,7 +177,7 @@ interface GroupingStoreDefinition extends StrictStoreDefinition<State> {
    */
   setStateForId(
     stateProperty: 'mergeState' | 'unmergeState',
-    idOrIds: Array<string> | string,
+    idOrIds: string[] | string,
     newState: IdState
   ): void;
   triggerFetchState(): Readonly<
@@ -252,7 +252,7 @@ const storeConfig: GroupingStoreDefinition = {
 
   isAllUnmergedSelected() {
     const lockedItems =
-      (Array.from(this.state.unmergeState.values()) as Array<IdState>).filter(
+      (Array.from(this.state.unmergeState.values()) as IdState[]).filter(
         ({busy}) => busy
       ) || [];
     return (
@@ -482,7 +482,7 @@ const storeConfig: GroupingStoreDefinition = {
   },
 
   onUnmerge({groupId, loadingMessage, orgSlug, successMessage, errorMessage}) {
-    const grouphashIds = Array.from(this.state.unmergeList.keys()) as Array<string>;
+    const grouphashIds = Array.from(this.state.unmergeList.keys()) as string[];
 
     return new Promise((resolve, reject) => {
       if (this.isAllUnmergedSelected()) {

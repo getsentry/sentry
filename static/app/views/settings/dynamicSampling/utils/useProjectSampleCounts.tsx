@@ -10,7 +10,7 @@ export interface ProjectSampleCount {
   count: number;
   ownCount: number;
   project: Project;
-  subProjects: Array<{count: number; slug: string}>;
+  subProjects: {count: number; slug: string}[];
 }
 
 export type ProjectionSamplePeriod = '24h' | '30d';
@@ -66,7 +66,7 @@ export function useProjectSampleCounts({period}: {period: ProjectionSamplePeriod
         count: number;
         ownCount: number;
         slug: string;
-        subProjects: Array<{count: number; slug: string}>;
+        subProjects: {count: number; slug: string}[];
       }
     >();
 

@@ -71,10 +71,10 @@ export type QueryFC<T extends WidgetDataConstraint> = React.ComponentType<
     organization: OrganizationSummary;
     widgetData: T;
     end?: DateString;
-    environment?: Readonly<string[]>;
+    environment?: readonly string[];
     fields?: string | string[];
     period?: string | null;
-    project?: Readonly<number[]>;
+    project?: readonly number[];
     query?: string;
     referrer?: string;
     start?: DateString;
@@ -116,7 +116,7 @@ type Visualization<T> = {
   queryFields?: string[]; // Used to determine placeholder and loading sizes. Will also be passed to the component.
 };
 
-type Visualizations<T extends WidgetDataConstraint> = Readonly<Visualization<T>[]>; // Readonly because of index being used for React key.
+type Visualizations<T extends WidgetDataConstraint> = readonly Visualization<T>[]; // Readonly because of index being used for React key.
 
 type HeaderActions<T> = React.ComponentType<{
   widgetData: T;

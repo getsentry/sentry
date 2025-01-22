@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 type Props = {
-  items: Array<React.ReactElement>;
+  items: React.ReactElement[];
   className?: string;
 };
 
