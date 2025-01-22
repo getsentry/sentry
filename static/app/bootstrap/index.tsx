@@ -97,6 +97,16 @@ function preloadOrganizationData(config: Config) {
     if (!slug) {
       return;
     }
+
+    // If the user is viewing the accept invitation user interface,
+    // we should avoid preloading the data as they might not yet have access to it,
+    // which could cause an error notification (403) to pop up in the UI.
+    const invitationLink = window.location.pathname.startsWith('/accept/');
+
+    if (invitationLink) {
+      return;
+    }
+
     preloadPromises.organization = promiseRequest(
       makeUrl('/?detailed=0&include_feature_flags=1')
     );
