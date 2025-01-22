@@ -9,9 +9,13 @@ def marketo_option(field):
     return settings.MARKETO[field]
 
 
-MarketoErrorResponse = TypedDict(
-    "DataDict", {"errors": list[TypedDict("ErrorDict", {"code": str, "message": str})]}
-)
+class ErrorDict(TypedDict):
+    code: str
+    message: str
+
+
+class MarketoErrorResponse(TypedDict):
+    errors: list[ErrorDict]
 
 
 class MarketoError(Exception):
