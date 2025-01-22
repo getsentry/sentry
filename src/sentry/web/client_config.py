@@ -413,8 +413,6 @@ class _ClientConfig:
             if invitation_link == self.request.get_full_path():
                 return False
 
-            return False
-
         return True
 
     @property
