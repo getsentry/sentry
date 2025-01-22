@@ -89,16 +89,6 @@ class DatabaseBackedRepositoryService(RepositoryService):
 
             repository.save()
 
-    def reinstall_repositories_for_integration(
-        self, *, organization_id: int, integration_id: int, provider: str
-    ) -> None:
-        with transaction.atomic(router.db_for_write(Repository)):
-            Repository.objects.filter(
-                organization_id=organization_id,
-                integration_id=integration_id,
-                provider=provider,
-            ).update(status=ObjectStatus.ACTIVE)
-
     def disable_repositories_for_integration(
         self, *, organization_id: int, integration_id: int, provider: str
     ) -> None:

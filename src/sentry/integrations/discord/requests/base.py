@@ -252,9 +252,6 @@ class DiscordRequest:
     def is_message_component(self) -> bool:
         return self._data.get("type", 0) == DiscordRequestTypes.MESSAGE_COMPONENT
 
-    def is_modal_submit(self) -> bool:
-        return self._data.get("type", 0) == DiscordRequestTypes.MODAL_SUBMIT
-
     def get_command_name(self) -> str:
         if not self.is_command():
             return ""
