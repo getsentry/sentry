@@ -8,6 +8,7 @@ import {Button} from 'sentry/components/button';
 import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
 import Input from 'sentry/components/input';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {singleLineRenderer} from 'sentry/utils/marked';
@@ -183,8 +184,13 @@ export function AutofixOutputStream({
                 }
                 required={responseRequired}
               />
-              <StyledButton type="submit" borderless>
-                {'>'}
+              <StyledButton
+                type="submit"
+                borderless
+                aria-label={t('Submit Comment')}
+                size="zero"
+              >
+                <IconChevron direction="right" />
               </StyledButton>
             </InputWrapper>
           </Container>
