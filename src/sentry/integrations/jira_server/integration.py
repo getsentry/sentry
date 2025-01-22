@@ -1050,12 +1050,33 @@ class JiraServerIntegration(IssueSyncIntegration):
 
         jira_user = None
         if user and assign:
+            logging_context = {
+                "integration_id": external_issue.integration_id,
+                "user_id": user.id,
+                "issue_key": external_issue.key,
+                "user_email_count": len(user.emails),
+            }
             total_queried_jira_users = 0
             total_available_jira_emails = 0
             for ue in user.emails:
                 try:
                     possible_users = client.search_users_for_issue(external_issue.key, ue)
-                except (ApiUnauthorized, ApiError):
+                except ApiUnauthorized:
+                    logger.info(
+                        "jira.user-search-unauthorized",
+                        extra={
+                            **logging_context,
+                        },
+                    )
+                    continue
+                except ApiError as e:
+                    logger.info(
+                        "jira.user-search-request-error",
+                        extra={
+                            **logging_context,
+                            "error": str(e),
+                        },
+                    )
                     continue
 
                 total_queried_jira_users += len(possible_users)
@@ -1076,11 +1097,9 @@ class JiraServerIntegration(IssueSyncIntegration):
                 logger.info(
                     "jira.assignee-not-found",
                     extra={
-                        "integration_id": external_issue.integration_id,
+                        **logging_context,
                         "jira_user_count_match": total_queried_jira_users,
                         "total_available_jira_emails": total_available_jira_emails,
-                        "user_id": user.id,
-                        "issue_key": external_issue.key,
                     },
                 )
                 return
@@ -1088,15 +1107,19 @@ class JiraServerIntegration(IssueSyncIntegration):
         try:
             id_field = client.user_id_field()
             client.assign_issue(external_issue.key, jira_user and jira_user.get(id_field))
-        except (ApiUnauthorized, ApiError):
-            # TODO(jess): do we want to email people about these types of failures?
+        except ApiUnauthorized:
             logger.info(
-                "jira.failed-to-assign",
+                "jira.user-assignment-unauthorized",
                 extra={
-                    "organization_id": external_issue.organization_id,
-                    "integration_id": external_issue.integration_id,
-                    "user_id": user.id if user else None,
-                    "issue_key": external_issue.key,
+                    **logging_context,
+                },
+            )
+        except ApiError as e:
+            logger.info(
+                "jira.user-assignment-request-error",
+                extra={
+                    **logging_context,
+                    "error": str(e),
                 },
             )
 
