@@ -140,7 +140,14 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                 )
                 and event.group.issue_category == GroupCategory.UPTIME
             ):
+                _default_logger.info(
+                    "open_period_start_for_group_called", extra={"group_id": event.group.id}
+                )
                 open_period_start = open_period_start_for_group(event.group)
+                _default_logger.info(
+                    "open_period_start_for_group_returned",
+                    extra={"group_id": event.group.id, "open_period_start": open_period_start},
+                )
                 new_notification_message_object.open_period_start = open_period_start
 
             def get_thread_ts(lifecycle: EventLifecycle) -> str | None:
@@ -176,8 +183,21 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                     return None
 
                 if parent_notification_message is None:
+                    if open_period_start:
+                        _default_logger.info(
+                            "parent_notification_message_not_found",
+                            extra={"group_id": event.group.id},
+                        )
                     return None
 
+                if open_period_start:
+                    _default_logger.info(
+                        "parent_notification_message_found",
+                        extra={
+                            "group_id": event.group.id,
+                            "parent_notification_message_id": parent_notification_message.id,
+                        },
+                    )
                 # If a parent notification exists for this rule and action, then we can reply in a thread
                 # Make sure we track that this reply will be in relation to the parent row
                 new_notification_message_object.parent_notification_message_id = (

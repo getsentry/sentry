@@ -1,8 +1,11 @@
+import logging
 from datetime import datetime
 
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.types.activity import ActivityType
+
+logger = logging.getLogger("sentry.notifications.utils.open_period")
 
 
 def open_period_start_for_group(group: Group) -> datetime | None:
@@ -11,6 +14,8 @@ def open_period_start_for_group(group: Group) -> datetime | None:
     This is the last activity of the group that is not a resolution or the first_seen of the group.
     We need to check the first seen since we don't create an activity when the group is created.
     """
+
+    logger.info("open_period_start_queried_for_group", extra={"group_id": group.id})
 
     # Get the last activity of the group
     latest_unresolved_activity: Activity | None = (
@@ -23,6 +28,11 @@ def open_period_start_for_group(group: Group) -> datetime | None:
     )
 
     if latest_unresolved_activity:
+        logger.info(
+            "open_period_start_found_for_group",
+            extra={"group_id": group.id, "activity_id": latest_unresolved_activity.id},
+        )
         return latest_unresolved_activity.datetime
 
+    logger.info("open_period_start_not_found_for_group", extra={"group_id": group.id})
     return group.first_seen
