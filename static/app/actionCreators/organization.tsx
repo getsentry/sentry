@@ -8,6 +8,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {setActiveOrganization} from 'sentry/actionCreators/organizations';
 import type {ApiResult} from 'sentry/api';
 import {Client} from 'sentry/api';
+import {appQueryClient, localStoragePersister} from 'sentry/appQueryClient';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -66,25 +67,41 @@ async function fetchOrg(
 async function fetchProjectsAndTeams(
   slug: string,
   usePreload?: boolean
-): Promise<[ApiResult<Project[]>, ApiResult<Team[]>]> {
+): Promise<[Project[], ApiResult<Team[]>]> {
   // Create a new client so the request is not cancelled
   const uncancelableApi = new Client();
 
-  const projectsPromise = getPreloadedDataPromise(
-    'projects',
-    slug,
-    () =>
-      // This data should get preloaded in static/sentry/index.ejs
-      // If this url changes make sure to update the preload
-      uncancelableApi.requestPromise(`/organizations/${slug}/projects/`, {
-        includeAllArgs: true,
-        query: {
-          all_projects: 1,
-          collapse: ['latestDeploys', 'unusedFeatures'],
-        },
-      }),
-    usePreload
-  );
+  const persistedClient = await localStoragePersister.restoreClient();
+  console.log({persistedClient});
+  const projectsPromise = appQueryClient.fetchQuery({
+    queryKey: [
+      `/organizations/${slug}/projects/`,
+      {
+        query: {all_projects: 1, collapse: ['latestDeploys', 'unusedFeatures']},
+        persistToLocalStorage: true,
+      },
+    ] as const,
+    queryFn: async ({queryKey}): Promise<Project[]> => {
+      const [projects] = await getPreloadedDataPromise(
+        'projects',
+        slug,
+        () =>
+          // This data should get preloaded in static/sentry/index.ejs
+          // If this url changes make sure to update the preload
+          uncancelableApi.requestPromise(queryKey[0], {
+            includeAllArgs: true,
+            query: queryKey[1].query,
+          }),
+        usePreload
+      );
+      console.log({projects});
+      return projects;
+    },
+
+    // 10 minutes
+    staleTime: Infinity,
+    gcTime: Infinity,
+  });
 
   const teamsPromise = getPreloadedDataPromise(
     'teams',
@@ -111,10 +128,7 @@ async function fetchProjectsAndTeams(
     }
   }
 
-  return [
-    [[], undefined, undefined],
-    [[], undefined, undefined],
-  ];
+  return [[], [[], undefined, undefined]];
 }
 
 /**
@@ -176,7 +190,8 @@ export async function fetchOrganizationDetails(
   };
 
   const loadTeamsAndProjects = async () => {
-    const [[projects], [teams, , resp]] = await fetchProjectsAndTeams(slug, usePreload);
+    const [projects, [teams, , resp]] = await fetchProjectsAndTeams(slug, usePreload);
+    console.log({projects});
 
     ProjectsStore.loadInitialData(projects ?? []);
 
