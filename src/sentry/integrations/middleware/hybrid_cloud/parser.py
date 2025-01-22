@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from abc import ABC
 from collections.abc import Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import TYPE_CHECKING, Any, ClassVar
@@ -52,12 +53,14 @@ class RegionResult:
         self.error = error
 
 
-class BaseRequestParser:
+class BaseRequestParser(ABC):
     """Base Class for Integration Request Parsers"""
 
-    # abstract
     provider: ClassVar[str]
+    """The integration provider identifier"""
+
     webhook_identifier: ClassVar[WebhookProviderIdentifier]
+    """The webhook provider identifier"""
 
     def __init__(self, request: HttpRequest, response_handler: ResponseHandler):
         self.request = request
@@ -67,15 +70,12 @@ class BaseRequestParser:
             self.view_class = self.match.func.view_class
         self.response_handler = response_handler
 
-    def get_provider(self) -> str:
-        return getattr(self, "provider", "")
-
     # Common Helpers
 
     def ensure_control_silo(self):
         with MiddlewareOperationEvent(
             operation_type=MiddlewareOperationType.ENSURE_CONTROL_SILO,
-            integration_name=self.get_provider(),
+            integration_name=self.provider,
         ).capture() as lifecycle:
             lifecycle.add_extras(
                 {
@@ -102,8 +102,8 @@ class BaseRequestParser:
         self.ensure_control_silo()
 
         with MiddlewareOperationEvent(
-            operation_type=MiddlewareOperationType.GET_RESPONSE_FROM_CONTROL_SILO,
-            integration_name=self.get_provider(),
+            operation_type=MiddlewareOperationType.GET_CONTROL_RESPONSE,
+            integration_name=self.provider,
         ).capture() as lifecycle:
             lifecycle.add_extra("path", self.request.path)
             response = self.response_handler(self.request)
@@ -117,8 +117,8 @@ class BaseRequestParser:
         ):
             region_client = RegionSiloClient(region, retry=True)
             with MiddlewareOperationEvent(
-                operation_type=MiddlewareOperationType.GET_RESPONSE_FROM_REGION_SILO,
-                integration_name=self.get_provider(),
+                operation_type=MiddlewareOperationType.GET_REGION_RESPONSE,
+                integration_name=self.provider,
                 region=region.name,
             ).capture() as lifecycle:
                 lifecycle.add_extras(
@@ -298,8 +298,8 @@ class BaseRequestParser:
         the integration request.
         """
         with MiddlewareOperationEvent(
-            operation_type=MiddlewareOperationType.GET_ORGANIZATIONS_FROM_INTEGRATION,
-            integration_name=self.get_provider(),
+            operation_type=MiddlewareOperationType.GET_ORGS_FROM_INTEGRATION,
+            integration_name=self.provider,
         ).capture() as lifecycle:
             lifecycle.add_extras(
                 {

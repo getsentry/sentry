@@ -11,12 +11,12 @@ class MiddlewareOperationType(StrEnum):
 
     ENSURE_CONTROL_SILO = "ensure_control_silo"
 
-    GET_RESPONSE_FROM_CONTROL_SILO = "get_response_from_control_silo"
-    GET_RESPONSE_FROM_REGION_SILO = "get_response_from_region_silo"
+    GET_CONTROL_RESPONSE = "get_control_response"
+    GET_REGION_RESPONSE = "get_region_response"
     GET_RESPONSE_FROM_FIRST_REGION = "get_response_from_first_region"
     GET_RESPONSE_FROM_ALL_REGIONS = "get_response_from_all_regions"
 
-    GET_ORGANIZATIONS_FROM_INTEGRATION = "get_organizations_from_integration"
+    GET_ORGS_FROM_INTEGRATION = "get_orgs_from_integration"
 
 
 @dataclass
