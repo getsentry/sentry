@@ -264,7 +264,13 @@ function ManageDashboards() {
         />
         <Feature features={'organizations:dashboards-table-view'}>
           <SegmentedControl<DashboardsLayout>
-            onChange={setDashboardsLayout}
+            onChange={newValue => {
+              setDashboardsLayout(newValue);
+              trackAnalytics('dashboards_manage.change_view_type', {
+                organization,
+                view_type: newValue,
+              });
+            }}
             size="md"
             value={dashboardsLayout}
             aria-label={t('Layout Control')}

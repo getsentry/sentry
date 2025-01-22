@@ -7,7 +7,7 @@ import {
   locationDescriptorToTo,
 } from './reactRouter6Compat/location';
 
-const historyMethods: Array<keyof History> = [
+const historyMethods: (keyof History)[] = [
   'listenBefore',
   'listen',
   'transitionTo',

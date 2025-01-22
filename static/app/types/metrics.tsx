@@ -69,7 +69,7 @@ export type MetricsApiResponse = {
 export interface MetricsQueryApiResponse {
   data: {
     by: Record<string, string>;
-    series: Array<number | null>;
+    series: (number | null)[];
     totals: number;
   }[][];
   end: string;
@@ -94,7 +94,7 @@ export interface MetricsQueryApiResponseLastMeta {
 
 export type MetricsGroup = {
   by: Record<string, string>;
-  series: Record<string, Array<number | null>>;
+  series: Record<string, (number | null)[]>;
   totals: Record<string, number | null>;
 };
 

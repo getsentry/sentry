@@ -17,7 +17,7 @@ import type {Team} from './organization';
 import type {PlatformKey, Project} from './project';
 import type {AvatarUser, User} from './user';
 
-export type EntryData = Record<string, any | Array<any>>;
+export type EntryData = Record<string, any | any[]>;
 
 /**
  * Saved issues searches
@@ -307,7 +307,7 @@ type Topvalue = {
 export type TagWithTopValues = {
   key: string;
   name: string;
-  topValues: Array<Topvalue>;
+  topValues: Topvalue[];
   totalValues: number;
   uniqueValues: number;
   canDelete?: boolean;
@@ -575,7 +575,7 @@ export interface GroupActivityReprocess extends GroupActivityBase {
 
 interface GroupActivityUnmergeDestination extends GroupActivityBase {
   data: {
-    fingerprints: Array<string>;
+    fingerprints: string[];
     source?: {
       id: string;
       shortId: string;
@@ -586,7 +586,7 @@ interface GroupActivityUnmergeDestination extends GroupActivityBase {
 
 interface GroupActivityUnmergeSource extends GroupActivityBase {
   data: {
-    fingerprints: Array<string>;
+    fingerprints: string[];
     destination?: {
       id: string;
       shortId: string;
@@ -597,7 +597,7 @@ interface GroupActivityUnmergeSource extends GroupActivityBase {
 
 interface GroupActivityMerge extends GroupActivityBase {
   data: {
-    issues: Array<any>;
+    issues: any[];
   };
   type: GroupActivityType.MERGE;
 }
@@ -816,7 +816,7 @@ export interface BaseGroup {
   logger: string | null;
   metadata: EventMetadata;
   numComments: number;
-  participants: Array<UserParticipant | TeamParticipant>;
+  participants: (UserParticipant | TeamParticipant)[];
   permalink: string;
   platform: PlatformKey;
   pluginActions: TitledPlugin[];
@@ -890,14 +890,14 @@ export interface GroupTombstoneHelper extends GroupTombstone {
  * Datascrubbing
  */
 export type Meta = {
-  chunks: Array<ChunkType>;
-  err: Array<MetaError>;
+  chunks: ChunkType[];
+  err: MetaError[];
   len: number;
-  rem: Array<MetaRemark>;
+  rem: MetaRemark[];
 };
 
 export type MetaError = string | [string, any];
-export type MetaRemark = Array<string | number>;
+export type MetaRemark = (string | number)[];
 
 export type ChunkType = {
   rule_id: string | number;

@@ -1407,8 +1407,12 @@ export class VirtualizedViewManager {
   // DRAW METHODS
 
   hideSpanBar(span_bar: this['span_bars'][0], span_text: this['span_text'][0]) {
-    span_bar && (span_bar.ref.style.transform = 'translate(-10000px, -10000px)');
-    span_text && (span_text.ref.style.transform = 'translate(-10000px, -10000px)');
+    if (span_bar) {
+      span_bar.ref.style.transform = 'translate(-10000px, -10000px)';
+    }
+    if (span_text) {
+      span_text.ref.style.transform = 'translate(-10000px, -10000px)';
+    }
   }
 
   hideSpanArrow(span_arrow: this['span_arrows'][0]) {

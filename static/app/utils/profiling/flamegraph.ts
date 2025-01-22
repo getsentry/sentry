@@ -37,7 +37,7 @@ const leftHeavyTreeSort = makeTreeSort(sortByTotalWeight);
 
 export class Flamegraph {
   profile: Profile;
-  frames: ReadonlyArray<FlamegraphFrame> = [];
+  frames: readonly FlamegraphFrame[] = [];
 
   inverted: boolean = false;
   sort: 'left heavy' | 'alphabetical' | 'call order' = 'call order';

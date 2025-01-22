@@ -393,6 +393,7 @@ from .endpoints.debug_files import (
     SourceMapsEndpoint,
     UnknownDebugFilesEndpoint,
 )
+from .endpoints.email_capture import EmailCaptureEndpoint
 from .endpoints.event_apple_crash_report import EventAppleCrashReportEndpoint
 from .endpoints.event_attachment_details import EventAttachmentDetailsEndpoint
 from .endpoints.event_attachments import EventAttachmentsEndpoint
@@ -596,7 +597,6 @@ from .endpoints.project_performance_general_settings import (
     ProjectPerformanceGeneralSettingsEndpoint,
 )
 from .endpoints.project_performance_issue_settings import ProjectPerformanceIssueSettingsEndpoint
-from .endpoints.project_platforms import ProjectPlatformsEndpoint
 from .endpoints.project_plugin_details import ProjectPluginDetailsEndpoint
 from .endpoints.project_plugins import ProjectPluginsEndpoint
 from .endpoints.project_profiling_profile import (
@@ -2226,11 +2226,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-environment-details",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/platforms/$",
-        ProjectPlatformsEndpoint.as_view(),
-        name="sentry-api-0-project-platform-details",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/events/$",
         ProjectEventsEndpoint.as_view(),
         name="sentry-api-0-project-events",
@@ -3023,6 +3018,11 @@ INTERNAL_URLS = [
         r"^feature-flags/ea-feature-flags$",
         InternalEAFeaturesEndpoint.as_view(),
         name="sentry-api-0-internal-ea-features",
+    ),
+    re_path(
+        r"^demo/email-capture$",
+        EmailCaptureEndpoint.as_view(),
+        name="sentry-demo-mode-email-capture",
     ),
 ]
 

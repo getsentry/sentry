@@ -41,9 +41,9 @@ class Term {
 
 export class TokenConverter {
   numOperations: number;
-  errors: Array<string>;
-  fields: Array<Term>;
-  functions: Array<Term>;
+  errors: string[];
+  fields: Term[];
+  functions: Term[];
 
   constructor() {
     this.numOperations = 0;
@@ -52,7 +52,7 @@ export class TokenConverter {
     this.functions = [];
   }
 
-  tokenTerm = (maybeFactor: Expression, remainingAdds: Array<Operation>): Expression => {
+  tokenTerm = (maybeFactor: Expression, remainingAdds: Operation[]): Expression => {
     if (remainingAdds.length > 0) {
       remainingAdds[0]!.lhs = maybeFactor;
       return flatten(remainingAdds);
@@ -74,7 +74,7 @@ export class TokenConverter {
     return new Operation({operator, rhs});
   };
 
-  tokenFactor = (primary: Expression, remaining: Array<Operation>): Operation => {
+  tokenFactor = (primary: Expression, remaining: Operation[]): Operation => {
     remaining[0]!.lhs = primary;
     return flatten(remaining);
   };
@@ -93,7 +93,7 @@ export class TokenConverter {
 }
 
 // Assumes an array with at least one element
-function flatten(remaining: Array<Operation>): Operation {
+function flatten(remaining: Operation[]): Operation {
   let term = remaining.shift();
   while (remaining.length > 0) {
     const nextTerm = remaining.shift();

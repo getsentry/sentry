@@ -101,7 +101,7 @@ class MonitorConsumerTest(TestCase):
             "message_type": "check_in",
             "start_time": ts.timestamp(),
             "project_id": self.project.id,
-            "payload": json.dumps(payload),
+            "payload": json.dumps(payload).encode(),
             "sdk": "test/1.0",
             "retention_days": 90,
         }
@@ -146,7 +146,7 @@ class MonitorConsumerTest(TestCase):
                 datetime.fromtimestamp(expected_checkin["start_time"]),
                 self.partition.index,
                 expected_checkin,
-                json.loads(expected_checkin["payload"]),  # type: ignore[arg-type]
+                json.loads(expected_checkin["payload"]),
             )
             if expected_monitor_slug:
                 expected_error.monitor = Monitor.objects.get(
@@ -787,7 +787,7 @@ class MonitorConsumerTest(TestCase):
         # Test invalid implicit duration
         old_checkin = MonitorCheckIn.objects.create(
             monitor=monitor,
-            monitor_environment=MonitorEnvironment.objects.filter(monitor=monitor).first(),
+            monitor_environment=MonitorEnvironment.objects.get(monitor=monitor),
             project_id=self.project.id,
             status=CheckInStatus.IN_PROGRESS,
             date_added=monitor.date_added - timedelta(weeks=52),

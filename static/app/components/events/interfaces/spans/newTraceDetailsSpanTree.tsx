@@ -796,8 +796,9 @@ class NewTraceDetailsSpanTree extends Component<PropType> {
     }
 
     const limitExceededMessage = this.generateLimitExceededMessage();
-    limitExceededMessage &&
+    if (limitExceededMessage) {
       spanTree.push({type: SpanTreeNodeType.MESSAGE, element: limitExceededMessage});
+    }
 
     return (
       <TraceViewContainer>

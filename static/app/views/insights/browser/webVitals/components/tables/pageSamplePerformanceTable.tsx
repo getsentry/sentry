@@ -192,7 +192,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
       };
     }
 
-    const canSort = (sortableFields as ReadonlyArray<string>).includes(col.key);
+    const canSort = (sortableFields as readonly string[]).includes(col.key);
 
     if (
       [

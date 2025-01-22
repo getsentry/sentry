@@ -158,7 +158,7 @@ export type SentryAppSchemaStacktraceLink = {
   type: 'stacktrace-link';
   uri: string;
   url: string;
-  params?: Array<string>;
+  params?: string[];
 };
 
 export enum Coverage {
@@ -313,11 +313,11 @@ export type DocIntegration = {
   url: string;
   avatar?: Avatar;
   features?: IntegrationFeature[];
-  resources?: Array<{title: string; url: string}>;
+  resources?: {title: string; url: string}[];
 };
 
 type IntegrationAspects = {
-  alerts?: Array<AlertProps & {text: string; icon?: string | React.ReactNode}>;
+  alerts?: (AlertProps & {text: string; icon?: string | React.ReactNode})[];
   configure_integration?: {
     title: string;
   };
@@ -486,7 +486,7 @@ export type PluginNoProject = {
     label: string | any;
     url: string;
   };
-  resourceLinks?: Array<{title: string; url: string}>;
+  resourceLinks?: {title: string; url: string}[];
   version?: string;
 };
 

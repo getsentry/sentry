@@ -16,4 +16,4 @@ export interface Token {
   type: TokenType;
 }
 
-export type TokenList = Array<Token>;
+export type TokenList = Token[];

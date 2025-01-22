@@ -294,7 +294,7 @@ export const getDimensionValue = (dimension?: number | string | null) => {
 };
 
 const RGB_LIGHTEN_VALUE = 30;
-export const lightenHexToRgb = (colors: ReadonlyArray<string>) =>
+export const lightenHexToRgb = (colors: readonly string[]) =>
   colors.map(hex => {
     const rgb = [
       Math.min(parseInt(hex.slice(1, 3), 16) + RGB_LIGHTEN_VALUE, 255),
@@ -344,7 +344,7 @@ export const getPreviousSeriesName = (seriesName: string) => {
   return `previous ${seriesName}`;
 };
 
-function formatList(items: Array<string | number | undefined>) {
+function formatList(items: (string | number | undefined)[]) {
   const filteredItems = items.filter((item): item is string | number => !!item);
 
   return oxfordizeArray(filteredItems.map(item => item.toString()));

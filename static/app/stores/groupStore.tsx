@@ -49,7 +49,7 @@ interface GroupStoreDefinition extends StrictStoreDefinition<Item[]>, InternalDe
 
   get: (id: string) => Readonly<Item> | undefined;
   getAllItemIds: () => string[];
-  getAllItems: () => Readonly<Item[]>;
+  getAllItems: () => readonly Item[];
 
   hasStatus: (id: string, status: string) => boolean;
   init: () => void;
@@ -88,9 +88,9 @@ interface GroupStoreDefinition extends StrictStoreDefinition<Item[]>, InternalDe
 }
 
 function mergePendingChanges(
-  items: Readonly<Item[]>,
+  items: readonly Item[],
   pendingChanges: Map<ChangeId, Change>
-): Readonly<Item[]> {
+): readonly Item[] {
   // Merge pending changes into the existing group items. This gives the
   // apperance of optimistic updates
   const pendingById: Record<string, Change[]> = {};
