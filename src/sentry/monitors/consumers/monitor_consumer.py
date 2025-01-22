@@ -784,7 +784,6 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span) -> None:
                             category=DataCategory.MONITOR,
                         )
 
-                        assert check_in.monitor_environment is not None
                         existing_env = check_in.monitor_environment.get_environment().name
 
                         env_mismatch_error: CheckinEnvironmentMismatch = {
