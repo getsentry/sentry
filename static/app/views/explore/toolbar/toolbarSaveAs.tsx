@@ -81,7 +81,7 @@ export function ToolbarSaveAs() {
     });
     items.push({
       key: 'add-to-dashboard',
-      textValue: t('A Dashboard Widget'),
+      textValue: t('A Dashboard widget'),
       isSubmenu: chartOptions.length > 1 ? true : false,
       label: (
         <Feature
@@ -89,7 +89,7 @@ export function ToolbarSaveAs() {
           features="organizations:dashboards-edit"
           renderDisabled={() => <DisabledText>{t('A Dashboard widget')}</DisabledText>}
         >
-          {t('A Dashboard Widget')}
+          {t('A Dashboard widget')}
         </Feature>
       ),
       disabled: disableAddToDashboard,
