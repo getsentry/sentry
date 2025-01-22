@@ -48,10 +48,12 @@ export type RawSpanType = {
   // this is essentially end_timestamp
   timestamp: number;
   trace_id: string;
+  attributes?: {[key: string]: string};
   data?: SpanSourceCodeAttributes & SpanDatabaseAttributes & Record<string, any>;
   description?: string;
   exclusive_time?: number;
   hash?: string;
+  name?: string;
   op?: string;
   origin?: string;
   parent_span_id?: string;
