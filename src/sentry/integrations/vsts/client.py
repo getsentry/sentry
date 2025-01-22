@@ -36,7 +36,6 @@ FIELD_MAP = {
     "assigned_to": "/fields/System.AssignedTo",
     "state": "/fields/System.State",
 }
-INVALID_ACCESS_TOKEN = "HTTP 400 (invalid_request): The access token is not valid"
 
 
 class VstsApiPath:
@@ -160,7 +159,6 @@ class VstsSetupApiClient(ApiClient, VstsApiMixin):
 class VstsApiClient(IntegrationProxyClient, VstsApiMixin, RepositoryClient):
     integration_name = "vsts"
     _identity: Identity | None = None
-    INVALID_CLIENT_ERROR = "invalid_client"
 
     def __init__(
         self,

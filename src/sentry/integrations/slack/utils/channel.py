@@ -29,7 +29,6 @@ from sentry.utils import metrics
 
 _logger = logging.getLogger(__name__)
 
-SLACK_GET_CHANNEL_ID_PAGE_SIZE = 200
 SLACK_DEFAULT_TIMEOUT = 10
 MEMBER_PREFIX = "@"
 CHANNEL_PREFIX = "#"
@@ -49,14 +48,6 @@ class SlackChannelIdData:
     prefix: str
     channel_id: str | None
     timed_out: bool
-
-
-# Different list types in slack that we'll use to resolve a channel name. Format is
-# (<list_name>, <result_name>, <prefix>).
-LIST_TYPES: list[tuple[str, str, str]] = [
-    ("conversations", "channels", CHANNEL_PREFIX),
-    ("users", "members", MEMBER_PREFIX),
-]
 
 
 def strip_channel_name(name: str) -> str:
