@@ -2,50 +2,15 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
-import {LinkButton} from 'sentry/components/button';
 import SecretField from 'sentry/components/forms/fields/secretField';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
 import Link from 'sentry/components/links/link';
-import {IconGithub, IconGoogle, IconVsts} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
 import type {AuthConfig} from 'sentry/types/auth';
 import {browserHistory} from 'sentry/utils/browserHistory';
-
-type LoginProvidersProps = Partial<
-  Pick<AuthConfig, 'vstsLoginLink' | 'githubLoginLink' | 'googleLoginLink'>
->;
-
-// TODO(epurkhiser): The abstraction here would be much nicer if we just
-// exposed a configuration object telling us what auth providers there are.
-function LoginProviders({
-  vstsLoginLink,
-  githubLoginLink,
-  googleLoginLink,
-}: LoginProvidersProps) {
-  return (
-    <ProviderWrapper>
-      <ProviderHeading>{t('External Account Login')}</ProviderHeading>
-      {googleLoginLink && (
-        <LinkButton size="sm" icon={<IconGoogle />} href={googleLoginLink}>
-          {t('Sign in with Google')}
-        </LinkButton>
-      )}
-      {githubLoginLink && (
-        <LinkButton size="sm" icon={<IconGithub />} href={githubLoginLink}>
-          {t('Sign in with GitHub')}
-        </LinkButton>
-      )}
-      {vstsLoginLink && (
-        <LinkButton size="sm" icon={<IconVsts />} href={vstsLoginLink}>
-          {t('Sign in with Azure DevOps')}
-        </LinkButton>
-      )}
-    </ProviderWrapper>
-  );
-}
+import {ExternalProviderOptions} from 'sentry/views/auth/externalProviderOptions';
 
 type Props = {
   authConfig: AuthConfig;
@@ -110,7 +75,13 @@ function LoginForm({authConfig}: Props) {
           required
         />
       </Form>
-      {hasLoginProvider && <LoginProviders {...{vstsLoginLink, githubLoginLink}} />}
+      {hasLoginProvider && (
+        <ExternalProviderOptions
+          type="signin"
+          githubLink={vstsLoginLink}
+          azureDevOpsLink={vstsLoginLink}
+        />
+      )}
     </FormWrapper>
   );
 }
@@ -119,30 +90,6 @@ const FormWrapper = styled('div')<{hasLoginProvider: boolean}>`
   display: grid;
   gap: 60px;
   grid-template-columns: ${p => (p.hasLoginProvider ? '1fr 0.8fr' : '1fr')};
-`;
-
-const ProviderHeading = styled('div')`
-  margin: 0;
-  font-size: 15px;
-  font-weight: ${p => p.theme.fontWeightBold};
-  line-height: 24px;
-`;
-
-const ProviderWrapper = styled('div')`
-  position: relative;
-  display: grid;
-  grid-auto-rows: max-content;
-  gap: ${space(1.5)};
-
-  &:before {
-    position: absolute;
-    display: block;
-    content: '';
-    top: 0;
-    bottom: 0;
-    left: -30px;
-    border-left: 1px solid ${p => p.theme.border};
-  }
 `;
 
 const LostPasswordLink = styled(Link)`
