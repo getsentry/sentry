@@ -36,7 +36,10 @@ export function ExploreContent() {
     });
   }, [location, navigate]);
   const ourlogsEnabled = organization.features.includes('ourlogs-enabled');
-  const selectedTab = location.query.exploreTab || 'spans';
+  const selectedTab =
+    (Array.isArray(location.query.exploreTab)
+      ? location.query.exploreTab[0]
+      : location.query.exploreTab) ?? 'spans';
 
   return (
     <SentryDocumentTitle title={t('Traces')} orgSlug={organization?.slug}>

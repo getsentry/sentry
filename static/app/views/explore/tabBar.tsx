@@ -5,9 +5,8 @@ import {TabList} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 
-export type TraceExplorerSelectedTab = 'spans' | 'ourlogs';
 interface Props {
-  selected: TraceExplorerSelectedTab;
+  selected: string;
 }
 
 export default function TraceExplorerTabs({selected}: Props) {
