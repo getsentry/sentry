@@ -547,7 +547,7 @@ function WidgetBuilder({
   function handleDisplayTypeOrAnnotationChange<
     F extends keyof Pick<State, 'displayType' | 'title' | 'description'>,
   >(field: F, value: State[F]) {
-    value &&
+    if (value) {
       trackAnalytics('dashboards_views.widget_builder.change', {
         from: source,
         field,
@@ -556,7 +556,7 @@ function WidgetBuilder({
         organization,
         new_widget: !isEditing,
       });
-
+    }
     setState(prevState => {
       const newState = cloneDeep(prevState);
       set(newState, field, value);

@@ -105,7 +105,11 @@ class MissingProjectMembership extends Component<Props, State> {
       if (!team) {
         return;
       }
-      team.isPending ? pending.push(team.slug) : request.push(team.slug);
+      if (team.isPending) {
+        pending.push(team.slug);
+      } else {
+        request.push(team.slug);
+      }
     });
 
     return [request, pending];

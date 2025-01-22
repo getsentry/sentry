@@ -167,11 +167,12 @@ const storeConfig: GuideStoreDefinition = {
     // map server guide state (i.e. seen status) with guide content
     const guides = guidesContent.reduce((acc: Guide[], content) => {
       const serverGuide = data.find(guide => guide.guide === content.guide);
-      serverGuide &&
+      if (serverGuide) {
         acc.push({
           ...content,
           ...serverGuide,
         });
+      }
       return acc;
     }, []);
 

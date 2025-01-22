@@ -222,7 +222,11 @@ export function EventFeatureFlagList({
               ref={viewAllButtonRef}
               title={t('View All Flags')}
               onClick={() => {
-                isDrawerOpen ? closeDrawer() : onViewAllFlags();
+                if (isDrawerOpen) {
+                  closeDrawer();
+                } else {
+                  onViewAllFlags();
+                }
               }}
             >
               {t('View All')}

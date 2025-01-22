@@ -61,8 +61,12 @@ function ProjectAlertSettings({canEditRule, params}: ProjectAlertSettingsProps) 
     return (
       <LoadingError
         onRetry={() => {
-          isProjectError && refetchProject();
-          isPluginListError && refetchPluginList();
+          if (isProjectError) {
+            refetchProject();
+          }
+          if (isPluginListError) {
+            refetchPluginList();
+          }
         }}
       />
     );

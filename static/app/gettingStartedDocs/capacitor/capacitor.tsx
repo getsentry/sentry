@@ -370,7 +370,6 @@ function getNpmPackage(siblingOption: string): string {
 }
 
 function getSiblingName(siblingOption: string): string {
-  siblingOption;
   switch (siblingOption) {
     case SiblingOption.ANGULARV10:
     case SiblingOption.ANGULARV12:
@@ -386,7 +385,6 @@ function getSiblingName(siblingOption: string): string {
 }
 
 function getSiblingImportName(siblingOption: string): string {
-  siblingOption;
   switch (siblingOption) {
     case SiblingOption.ANGULARV10:
     case SiblingOption.ANGULARV12:

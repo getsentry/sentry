@@ -156,10 +156,11 @@ export default function SpanSiblingGroupBar(props: SpanSiblingGroupBarProps) {
       generateBounds={generateBounds}
       toggleSpanGroup={() => {
         toggleSiblingSpanGroup?.(spanGrouping[0]!.span, occurrence);
-        isEmbeddedSpanTree &&
+        if (isEmbeddedSpanTree) {
           trackAnalytics('issue_details.performance.autogrouped_siblings_toggle', {
             organization,
           });
+        }
       }}
       renderSpanTreeConnector={renderSpanTreeConnector}
       renderGroupSpansTitle={renderGroupSpansTitle}

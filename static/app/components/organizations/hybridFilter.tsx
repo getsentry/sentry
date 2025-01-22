@@ -161,7 +161,9 @@ export function HybridFilter<Value extends SelectKey>({
   const onKeyUp = useCallback(() => setModifierKeyPressed(false), []);
   const onKeyDown = useCallback(
     (e: any) => {
-      e.key === 'Escape' && commitStagedChanges();
+      if (e.key === 'Escape') {
+        commitStagedChanges();
+      }
       setModifierKeyPressed(isModifierKeyPressed(e));
     },
     [commitStagedChanges]
@@ -323,7 +325,9 @@ export function HybridFilter<Value extends SelectKey>({
 
       // A modifier key is being pressed --> enter multiple selection mode
       if (multiple && modifierKeyPressed) {
-        !modifierTipSeen && setModifierTipSeen(true);
+        if (!modifierTipSeen) {
+          setModifierTipSeen(true);
+        }
         toggleOption(diff[0]!);
         return;
       }

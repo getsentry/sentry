@@ -87,7 +87,9 @@ function GridList({
     e => {
       const continueCallback = keyDownHandler?.(e);
       // Prevent grid list from clearing value on Escape key press
-      continueCallback && e.key !== 'Escape' && gridProps.onKeyDown?.(e);
+      if (continueCallback && e.key !== 'Escape') {
+        gridProps.onKeyDown?.(e);
+      }
     },
     [keyDownHandler, gridProps]
   );
