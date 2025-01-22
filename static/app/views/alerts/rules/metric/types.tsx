@@ -247,7 +247,7 @@ export type MetricActionTemplate = {
   /**
    * For some available actions, we pass in the list of available targets.
    */
-  options?: Array<{label: string; value: any}>;
+  options?: {label: string; value: any}[];
 
   /**
    * SentryApp id for this `type`, should be passed to backend as `sentryAppId` when creating an action.
@@ -316,7 +316,7 @@ type UnsavedAction = {
   /**
    * For some available actions, we pass in the list of available targets.
    */
-  options: Array<{label: string; value: any}> | null;
+  options: {label: string; value: any}[] | null;
   /**
    * How to identify the target. Can be email, slack channel, pagerduty service,
    * user_id, team_id, SentryApp id, etc

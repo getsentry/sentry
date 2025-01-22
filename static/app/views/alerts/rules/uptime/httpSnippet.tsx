@@ -8,7 +8,7 @@ import {safeURL} from 'sentry/utils/url/safeURL';
 
 interface Props {
   body: string | null;
-  headers: Array<[key: string, value: string]>;
+  headers: [key: string, value: string][];
   method: string;
   traceSampling: boolean;
   url: string;

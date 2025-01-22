@@ -40,7 +40,7 @@ type State = {
   errors: FormProps['errors'];
   eventId: EventId;
   isFormValid: boolean;
-  requiredValues: Array<keyof Values>;
+  requiredValues: (keyof Values)[];
   sourceSuggestions: SourceSuggestions;
   values: Values;
 };
@@ -94,7 +94,7 @@ class ModalManager extends Component<Props, State> {
 
   getRequiredValues(values: Values) {
     const {type} = values;
-    const requiredValues: Array<KeysOfUnion<Values>> = ['type', 'method', 'source'];
+    const requiredValues: KeysOfUnion<Values>[] = ['type', 'method', 'source'];
 
     if (type === RuleType.PATTERN) {
       requiredValues.push('pattern');

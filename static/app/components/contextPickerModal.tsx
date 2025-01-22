@@ -128,8 +128,8 @@ class ContextPickerModal extends Component<Props> {
   // i.e. When there is only 1 org and no project is needed or
   // there is only 1 org and only 1 project (which should be rare)
   navigateIfFinish = (
-    organizations: Array<{slug: string}>,
-    projects: Array<{slug: string}>,
+    organizations: {slug: string}[],
+    projects: {slug: string}[],
     latestOrg = this.props.organization
   ) => {
     const {needProject, onFinish, nextPath, integrationConfigs} = this.props;

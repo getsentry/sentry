@@ -83,7 +83,7 @@ describe('buildRoutes()', function () {
 
     // All routes that exist under orgId path slugs should
     // have a sibling under customer-domains.
-    const mismatch: Array<{domain: string; slug: string}> = [];
+    const mismatch: {domain: string; slug: string}[] = [];
     for (const path of routes) {
       // Normalize the URLs so that we know the path we're looking for.
       const domainPath = normalizeUrl(path, {forceCustomerDomain: true});

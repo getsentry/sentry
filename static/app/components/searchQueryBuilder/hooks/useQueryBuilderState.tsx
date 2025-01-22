@@ -122,10 +122,7 @@ function removeQueryToken(query: string, token: TokenResult<Token>): string {
   );
 }
 
-function removeQueryTokensFromQuery(
-  query: string,
-  tokens: Array<TokenResult<Token>>
-): string {
+function removeQueryTokensFromQuery(query: string, tokens: TokenResult<Token>[]): string {
   if (!tokens.length) {
     return query;
   }
@@ -261,7 +258,7 @@ function replaceQueryToken(
 // Takes a list of token replacements and applies them to the query
 function multipleReplaceQueryToken(
   query: string,
-  replacements: Array<{replacement: string; token: TokenResult<Token>}>
+  replacements: {replacement: string; token: TokenResult<Token>}[]
 ) {
   // Because replacements to earlier tokens can affect the offsets of later tokens,
   // we need to apply the replacements in order from rightmost to leftmost

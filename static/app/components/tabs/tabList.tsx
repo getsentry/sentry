@@ -40,7 +40,7 @@ export function useOverflowTabs({
   tabItemsRef: React.RefObject<Record<string | number, HTMLLIElement | null>>;
   tabListRef: React.RefObject<HTMLUListElement>;
 }) {
-  const [overflowTabs, setOverflowTabs] = useState<Array<string | number>>([]);
+  const [overflowTabs, setOverflowTabs] = useState<(string | number)[]>([]);
 
   useEffect(() => {
     if (disabled) {

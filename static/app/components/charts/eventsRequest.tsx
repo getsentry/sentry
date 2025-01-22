@@ -144,7 +144,7 @@ type EventsRequestPartialProps = {
   /**
    * List of environments to query
    */
-  environment?: Readonly<string[]>;
+  environment?: readonly string[];
   /**
    * Is query out of retention
    */
@@ -181,7 +181,7 @@ type EventsRequestPartialProps = {
   /**
    * List of project ids to query
    */
-  project?: Readonly<number[]>;
+  project?: readonly number[];
   /**
    * A container for query batching data and functions.
    */

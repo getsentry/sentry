@@ -217,7 +217,7 @@ export interface Config {
     upgradeAvailable: boolean;
   };
   partnershipAgreementPrompt?: {
-    agreements: Array<ParntershipAgreementType>;
+    agreements: ParntershipAgreementType[];
     partnerDisplayName: string;
   } | null;
   relocationConfig?: {

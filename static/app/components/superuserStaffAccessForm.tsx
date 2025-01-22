@@ -25,7 +25,7 @@ type Props = {
 };
 
 type State = {
-  authenticators: Array<Authenticator>;
+  authenticators: Authenticator[];
   error: boolean;
   errorType: string;
   isLoading: boolean;

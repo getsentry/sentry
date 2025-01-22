@@ -370,7 +370,7 @@ class DeprecatedAsyncComponent<
    *   ['stateKeyName', '/endpoint/', {optional: 'query params'}, {options}]
    * ]
    */
-  getEndpoints(): Array<[string, string, any?, any?]> {
+  getEndpoints(): [string, string, any?, any?][] {
     return [];
   }
 

@@ -10,7 +10,7 @@ import {setBodyUserSelect} from 'sentry/utils/userselect';
 const DEFAULT_DIVIDER_POSITION = 0.4;
 
 const selectRefs = (
-  refs: Array<React.RefObject<HTMLDivElement>>,
+  refs: React.RefObject<HTMLDivElement>[],
   transform: (dividerDOM: HTMLDivElement) => void
 ) => {
   refs.forEach(ref => {
@@ -60,8 +60,8 @@ export class Provider extends Component<PropType, StateType> {
   previousUserSelect: UserSelectValues | null = null;
   dividerHandlePosition: number = DEFAULT_DIVIDER_POSITION;
   isDragging: boolean = false;
-  dividerLineRefs: Array<React.RefObject<HTMLDivElement>> = [];
-  ghostDividerLineRefs: Array<React.RefObject<HTMLDivElement>> = [];
+  dividerLineRefs: React.RefObject<HTMLDivElement>[] = [];
+  ghostDividerLineRefs: React.RefObject<HTMLDivElement>[] = [];
 
   hasInteractiveLayer = (): boolean => !!this.props.interactiveLayerRef.current;
 

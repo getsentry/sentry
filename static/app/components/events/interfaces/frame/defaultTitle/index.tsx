@@ -40,7 +40,7 @@ function DefaultTitle({
   isUsedForGrouping,
   meta,
 }: Props) {
-  const title: Array<React.ReactElement> = [];
+  const title: React.ReactElement[] = [];
   const framePlatform = getPlatform(frame.platform, platform);
   const tooltipDelay = isHoverPreviewed ? SLOW_TOOLTIP_DELAY : undefined;
 

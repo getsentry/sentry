@@ -38,9 +38,9 @@ type Props = {
 };
 
 type State = {
-  baseEvent: Array<string>;
+  baseEvent: string[];
   loading: boolean;
-  targetEvent: Array<string>;
+  targetEvent: string[];
   SplitDiffAsync?: typeof SplitDiff;
 };
 
