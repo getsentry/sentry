@@ -47,6 +47,7 @@ import {
 import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import useProfileExists from 'sentry/views/insights/browser/webVitals/utils/useProfileExists';
 import {useWebVitalsSort} from 'sentry/views/insights/browser/webVitals/utils/useWebVitalsSort';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {
   ModuleName,
   SpanIndexedField,
@@ -106,6 +107,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
   const {replayExists} = useReplayExists();
   const routes = useRoutes();
   const navigate = useNavigate();
+  const domainViewFilters = useDomainViewFilters();
 
   const browserTypes = decodeBrowserTypes(location.query[SpanIndexedField.BROWSER_NAME]);
   const subregions = decodeList(
@@ -392,6 +394,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
         timestamp: row.timestamp,
         organization,
         location,
+        view: domainViewFilters.view,
         source: TraceViewSources.WEB_VITALS_MODULE,
       });
 
