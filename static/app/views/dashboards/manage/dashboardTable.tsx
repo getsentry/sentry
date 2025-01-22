@@ -98,6 +98,11 @@ function FavoriteButton({
           setFavorited(!favorited);
           await updateDashboardFavorite(api, organization.slug, dashboardId, !favorited);
           onDashboardsChange();
+          trackAnalytics('dashboards_manage.toggle_favorite', {
+            organization,
+            dashboard_id: dashboardId,
+            favorited: !favorited,
+          });
         } catch (error) {
           // If the api call fails, revert the state
           setFavorited(favorited);
