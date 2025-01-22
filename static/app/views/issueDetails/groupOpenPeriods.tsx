@@ -19,12 +19,12 @@ export const ALL_EVENTS_EXCLUDED_TAGS = [
   ...ISSUE_PROPERTY_FIELDS,
 ];
 
-interface OpenPeriodDisplayData {
+type OpenPeriodDisplayData = {
   duration: string;
   end: string;
   start: string;
   title: string;
-}
+};
 
 // TODO(snigdha): make this work for the old UI
 // TODO(snigdha): suppot pagination
@@ -92,22 +92,23 @@ function IssueOpenPeriodsList() {
     return <AlignLeft>{col.name}</AlignLeft>;
   };
 
-  const renderBodyCell = (col: GridColumnOrder, dataRow: OpenPeriodDisplayData) => {
+  const renderBodyCell = (
+    col: GridColumnOrder<string>,
+    dataRow: OpenPeriodDisplayData
+  ) => {
     return <AlignLeft>{dataRow[col.key]}</AlignLeft>;
   };
-
-  const columnOrder: GridColumnOrder[] = [
-    {key: 'title', width: COL_WIDTH_UNDEFINED, name: t('Title')},
-    {key: 'start', width: COL_WIDTH_UNDEFINED, name: t('Start')},
-    {key: 'end', width: COL_WIDTH_UNDEFINED, name: t('End')},
-    {key: 'duration', width: COL_WIDTH_UNDEFINED, name: t('Duration')},
-  ];
 
   return (
     <GridEditable
       isLoading={isGroupPending}
       data={data}
-      columnOrder={columnOrder}
+      columnOrder={[
+        {key: 'title', width: COL_WIDTH_UNDEFINED, name: t('Title')},
+        {key: 'start', width: COL_WIDTH_UNDEFINED, name: t('Start')},
+        {key: 'end', width: COL_WIDTH_UNDEFINED, name: t('End')},
+        {key: 'duration', width: COL_WIDTH_UNDEFINED, name: t('Duration')},
+      ]}
       columnSortBy={[]}
       grid={{
         renderHeadCell,
