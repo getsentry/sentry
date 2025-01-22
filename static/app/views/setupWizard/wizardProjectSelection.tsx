@@ -1,12 +1,16 @@
-import {useCallback, useMemo, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import OrganizationAvatar from 'sentry/components/avatar/organizationAvatar';
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import IdBadge from 'sentry/components/idBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import {t, tct} from 'sentry/locale';
+import Input from 'sentry/components/input';
+import {canCreateProject} from 'sentry/components/projects/canCreateProject';
+import {IconAdd} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -14,18 +18,27 @@ import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/useCompactSelectOptionsCache';
 import {ProjectLoadingError} from 'sentry/views/setupWizard/projectLoadingError';
 import type {OrganizationWithRegion} from 'sentry/views/setupWizard/types';
+import {hasSetupWizardCreateProjectFeature} from 'sentry/views/setupWizard/utils/features';
+import {useCreateProjectFromWizard} from 'sentry/views/setupWizard/utils/useCreateProjectFromWizard';
+import {useOrganizationDetails} from 'sentry/views/setupWizard/utils/useOrganizationDetails';
 import {useOrganizationProjects} from 'sentry/views/setupWizard/utils/useOrganizationProjects';
+import {useOrganizationTeams} from 'sentry/views/setupWizard/utils/useOrganizationTeams';
 import {useUpdateWizardCache} from 'sentry/views/setupWizard/utils/useUpdateWizardCache';
 import {WaitingForWizardToConnect} from 'sentry/views/setupWizard/waitingForWizardToConnect';
+
+const CREATE_PROJECT_VALUE = 'create-new-project';
+
+const urlParams = new URLSearchParams(location.search);
+const platformParam = urlParams.get('project_platform');
+const orgSlugParam = urlParams.get('org_slug');
 
 function getInitialOrgId(organizations: Organization[]) {
   if (organizations.length === 1) {
     return organizations[0]!.id;
   }
 
-  const urlParams = new URLSearchParams(location.search);
-  const orgSlug = urlParams.get('org_slug');
-  const orgMatchingSlug = orgSlug && organizations.find(org => org.slug === orgSlug);
+  const orgMatchingSlug =
+    orgSlugParam && organizations.find(org => org.slug === orgSlugParam);
 
   if (orgMatchingSlug) {
     return orgMatchingSlug.id;
@@ -48,45 +61,46 @@ export function WizardProjectSelection({
   organizations: OrganizationWithRegion[];
 }) {
   const [search, setSearch] = useState('');
+
   const debouncedSearch = useDebouncedValue(search, 300);
   const isSearchStale = search !== debouncedSearch;
   const [selectedOrgId, setSelectedOrgId] = useState<string | null>(() =>
     getInitialOrgId(organizations)
   );
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const isCreateProjectSelected = selectedProjectId === CREATE_PROJECT_VALUE;
+
+  const [newProjectName, setNewProjectName] = useState(platformParam || '');
+  const [newProjectTeam, setNewProjectTeam] = useState<string | null>(null);
 
   const selectedOrg = useMemo(
     () => organizations.find(org => org.id === selectedOrgId),
     [organizations, selectedOrgId]
   );
 
+  const orgDetailsRequest = useOrganizationDetails({organization: selectedOrg});
+  const teamsRequest = useOrganizationTeams({organization: selectedOrg});
   const orgProjectsRequest = useOrganizationProjects({
     organization: selectedOrg,
     query: debouncedSearch,
   });
 
-  const {mutate: updateWizardCache, isPending, isSuccess} = useUpdateWizardCache(hash);
+  const isCreationEnabled =
+    orgDetailsRequest.data &&
+    teamsRequest.data &&
+    teamsRequest.data.length > 0 &&
+    hasSetupWizardCreateProjectFeature(orgDetailsRequest.data) &&
+    canCreateProject(orgDetailsRequest.data) &&
+    platformParam;
 
-  const handleSubmit = useCallback(
-    (event: React.FormEvent) => {
-      event.preventDefault();
-      if (!selectedOrgId || !selectedProjectId) {
-        return;
-      }
-      updateWizardCache(
-        {
-          organizationId: selectedOrgId,
-          projectId: selectedProjectId,
-        },
-        {
-          onError: () => {
-            addErrorMessage(t('Something went wrong! Please try again.'));
-          },
-        }
-      );
-    },
-    [selectedOrgId, selectedProjectId, updateWizardCache]
-  );
+  const updateWizardCacheMutation = useUpdateWizardCache(hash);
+  const createProjectMutation = useCreateProjectFromWizard();
+
+  const isPending =
+    updateWizardCacheMutation.isPending || createProjectMutation.isPending;
+  const isSuccess = isCreateProjectSelected
+    ? updateWizardCacheMutation.isSuccess && createProjectMutation.isSuccess
+    : updateWizardCacheMutation.isSuccess;
 
   const orgOptions = useMemo(
     () =>
@@ -131,28 +145,71 @@ export function WizardProjectSelection({
     [selectedProjectId, sortedProjectOptions]
   );
 
-  const isFormValid = selectedOrg && selectedProject;
+  const selectedTeam = useMemo(
+    () => teamsRequest.data?.find(team => team.slug === newProjectTeam),
+    [newProjectTeam, teamsRequest]
+  );
+
+  const isProjectSelected = isCreateProjectSelected
+    ? newProjectName && newProjectTeam
+    : selectedProject;
+
+  const isFormValid = selectedOrg && isProjectSelected;
+
+  const handleSubmit = useCallback(
+    async (event: React.FormEvent) => {
+      event.preventDefault();
+      if (!isFormValid || !selectedOrg || !selectedProjectId) {
+        return;
+      }
+
+      let projectId = selectedProjectId;
+      try {
+        if (isCreateProjectSelected) {
+          const project = await createProjectMutation.mutateAsync({
+            organization: selectedOrg,
+            team: newProjectTeam!,
+            name: newProjectName,
+            platform: platformParam || 'other',
+          });
+
+          projectId = project.id;
+        }
+      } catch {
+        addErrorMessage('Failed to create project! Please try again');
+        return;
+      }
+
+      try {
+        await updateWizardCacheMutation.mutateAsync({
+          organizationId: selectedOrg.id,
+          projectId,
+        });
+      } catch {
+        addErrorMessage(t('Something went wrong! Please try again.'));
+      }
+    },
+    [
+      isFormValid,
+      selectedOrg,
+      selectedProjectId,
+      isCreateProjectSelected,
+      createProjectMutation,
+      newProjectTeam,
+      newProjectName,
+      updateWizardCacheMutation,
+    ]
+  );
 
   if (isSuccess) {
     return <WaitingForWizardToConnect hash={hash} organizations={organizations} />;
   }
 
-  let emptyMessage: React.ReactNode = tct('No projects found. [link:Create a project]', {
-    organization: selectedOrg?.name || selectedOrg?.slug || 'organization',
-    link: (
-      <a
-        href={`/organizations/${selectedOrg?.slug}/projects/new`}
-        target="_blank"
-        rel="noreferrer"
-      />
-    ),
-  });
+  let emptyMessage: React.ReactNode = t('No projects found.');
 
   if (orgProjectsRequest.isPending || isSearchStale) {
     emptyMessage = t('Loading...');
-  }
-
-  if (search) {
+  } else if (search) {
     emptyMessage = t('No projects matching search');
   }
 
@@ -204,22 +261,81 @@ export function WizardProjectSelection({
             searchable
             options={sortedProjectOptions}
             triggerProps={{
-              icon: selectedProject ? (
+              icon: isCreateProjectSelected ? (
+                <IconAdd isCircled />
+              ) : selectedProject ? (
                 <ProjectBadge avatarSize={16} project={selectedProject} hideName />
               ) : null,
             }}
             triggerLabel={
-              selectedProject?.name || (
-                <SelectPlaceholder>{t('Select a project')}</SelectPlaceholder>
-              )
+              isCreateProjectSelected
+                ? t('Create Project')
+                : selectedProject?.name || (
+                    <SelectPlaceholder>{t('Select a project')}</SelectPlaceholder>
+                  )
             }
             onChange={({value}) => {
               setSelectedProjectId(value as string);
             }}
             emptyMessage={emptyMessage}
+            menuFooter={
+              isCreationEnabled
+                ? ({closeOverlay}) => (
+                    <AlignRight>
+                      <Button
+                        size="xs"
+                        onClick={() => {
+                          setSelectedProjectId(CREATE_PROJECT_VALUE);
+                          closeOverlay();
+                        }}
+                        icon={<IconAdd isCircled />}
+                      >
+                        {t('Create Project')}
+                      </Button>
+                    </AlignRight>
+                  )
+                : undefined
+            }
           />
         )}
       </FieldWrapper>
+      {isCreateProjectSelected && (
+        <Fragment>
+          <Columns>
+            <FieldWrapper>
+              <label>{t('Project Name')}</label>
+              <Input
+                value={newProjectName}
+                onChange={event => setNewProjectName(event.target.value)}
+                placeholder={t('Enter a project name')}
+              />
+            </FieldWrapper>
+            <FieldWrapper>
+              <label>{t('Team')}</label>
+              <StyledCompactSelect
+                value={newProjectTeam as string}
+                options={
+                  teamsRequest.data?.map(team => ({
+                    value: team.slug,
+                    label: `#${team.slug}`,
+                    leadingItems: <IdBadge team={team} hideName />,
+                    searchKey: team.slug,
+                  })) || []
+                }
+                triggerLabel={selectedTeam ? `#${selectedTeam.slug}` : t('Select a team')}
+                triggerProps={{
+                  icon: selectedTeam ? (
+                    <IdBadge avatarSize={16} team={selectedTeam} hideName />
+                  ) : null,
+                }}
+                onChange={({value}) => {
+                  setNewProjectTeam(value as string);
+                }}
+              />
+            </FieldWrapper>
+          </Columns>
+        </Fragment>
+      )}
       <SubmitButton disabled={!isFormValid || isPending} priority="primary" type="submit">
         {t('Continue')}
       </SubmitButton>
@@ -243,12 +359,27 @@ const FieldWrapper = styled('div')`
   gap: ${space(0.5)};
 `;
 
+const Columns = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: ${space(2)};
+
+  @media (max-width: ${p => p.theme.breakpoints.xsmall}) {
+    grid-template-columns: 1fr;
+  }
+`;
+
 const StyledCompactSelect = styled(CompactSelect)`
   width: 100%;
 
   & > button {
     width: 100%;
   }
+`;
+
+const AlignRight = styled('div')`
+  display: flex;
+  justify-content: flex-end;
 `;
 
 const SelectPlaceholder = styled('span')`
