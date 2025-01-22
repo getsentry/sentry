@@ -46,7 +46,7 @@ PRIORITY_MAP = {
 }
 
 
-class MissingACITableException(Exception):
+class MissingDataConditionGroup(Exception):
     pass
 
 
@@ -81,28 +81,25 @@ def get_detector_trigger(
         alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=alert_rule)
     except AlertRuleDetector.DoesNotExist:
         # We attempted to dual delete a trigger that was not dual migrated
+        logger.info(
+            "alert rule was not dual written, returning early",
+            extra={"alert_rule": alert_rule},
+        )
         return None
 
     detector = alert_rule_detector.detector
     detector_data_condition_group = detector.workflow_condition_group
     if detector_data_condition_group is None:
         logger.error(
-            "detector_data_condition does not exist",
+            "detector_data_condition_group does not exist",
             extra={"alert_rule_trigger_id": alert_rule_trigger.id},
         )
-        raise MissingACITableException
+        raise MissingDataConditionGroup
 
-    try:
-        detector_trigger = DataCondition.objects.get(
-            condition_group=detector_data_condition_group,
-            condition_result=priority,
-        )
-    except DataCondition.DoesNotExist:
-        logger.exception(
-            "detector trigger does not exist",
-            extra={"alert_rule_trigger_id": alert_rule_trigger.id},
-        )
-        raise MissingACITableException
+    detector_trigger = DataCondition.objects.get(
+        condition_group=detector_data_condition_group,
+        condition_result=priority,
+    )
     return detector_trigger
 
 
@@ -114,27 +111,13 @@ def get_action_filter(
     Raises an exception if the action filter cannot be found.
     """
     alert_rule = alert_rule_trigger.alert_rule
-    try:
-        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=alert_rule)
-    except AlertRuleWorkflow.DoesNotExist:
-        logger.exception(
-            "workflow does not exist",
-            extra={"alert_rule_trigger_id": alert_rule_trigger.id},
-        )
-        raise MissingACITableException
+    alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=alert_rule)
     workflow = alert_rule_workflow.workflow
     workflow_dcgs = DataConditionGroup.objects.filter(workflowdataconditiongroup__workflow=workflow)
-    try:
-        action_filter = DataCondition.objects.get(
-            condition_group__in=workflow_dcgs,
-            comparison=priority,
-        )
-    except DataCondition.DoesNotExist:
-        logger.exception(
-            "action filter does not exist",
-            extra={"alert_rule_trigger_id": alert_rule_trigger.id},
-        )
-        raise MissingACITableException
+    action_filter = DataCondition.objects.get(
+        condition_group__in=workflow_dcgs,
+        comparison=priority,
+    )
     return action_filter
 
 
@@ -142,7 +125,7 @@ def migrate_metric_action(
     alert_rule_trigger_action: AlertRuleTriggerAction,
 ) -> tuple[Action, DataConditionGroupAction, ActionAlertRuleTriggerAction] | None:
     alert_rule_trigger = alert_rule_trigger_action.alert_rule_trigger
-    priority = PRIORITY_MAP[alert_rule_trigger.label]
+    priority = PRIORITY_MAP.get(alert_rule_trigger.label, DetectorPriorityLevel.HIGH)
     action_filter = get_action_filter(alert_rule_trigger, priority)
 
     action_type = get_action_type(alert_rule_trigger_action)
@@ -198,11 +181,7 @@ def migrate_metric_data_conditions(
         if alert_rule.threshold_type == AlertRuleThresholdType.ABOVE.value
         else Condition.LESS
     )
-    condition_result = (
-        DetectorPriorityLevel.MEDIUM
-        if alert_rule_trigger.label == "warning"
-        else DetectorPriorityLevel.HIGH
-    )
+    condition_result = PRIORITY_MAP.get(alert_rule_trigger.label, DetectorPriorityLevel.HIGH)
 
     detector_trigger = DataCondition.objects.create(
         comparison=alert_rule_trigger.alert_threshold,
@@ -225,11 +204,7 @@ def migrate_metric_data_conditions(
     )
 
     action_filter = DataCondition.objects.create(
-        comparison=(
-            DetectorPriorityLevel.MEDIUM
-            if alert_rule_trigger.label == "warning"
-            else DetectorPriorityLevel.HIGH
-        ),
+        comparison=PRIORITY_MAP.get(alert_rule_trigger.label, DetectorPriorityLevel.HIGH),
         condition_result=True,
         type=Condition.ISSUE_PRIORITY_EQUALS,
         condition_group=data_condition_group,
@@ -609,7 +584,7 @@ def dual_delete_migrated_alert_rule_trigger(
     alert_rule_trigger: AlertRuleTrigger,
     user: RpcUser | None = None,
 ) -> None:
-    priority = PRIORITY_MAP[alert_rule_trigger.label]
+    priority = PRIORITY_MAP.get(alert_rule_trigger.label, DetectorPriorityLevel.HIGH)
     detector_trigger = get_detector_trigger(alert_rule_trigger, priority)
     if detector_trigger is None:
         return None
@@ -627,18 +602,15 @@ def dual_delete_migrated_alert_rule_trigger_action(
 ) -> None:
     alert_rule_trigger = trigger_action.alert_rule_trigger
     # Check that we dual wrote this action
-    priority = PRIORITY_MAP[alert_rule_trigger.label]
+    priority = PRIORITY_MAP.get(alert_rule_trigger.label, DetectorPriorityLevel.HIGH)
     detector_trigger = get_detector_trigger(alert_rule_trigger, priority)
     if detector_trigger is None:
-        return None
-    try:
-        aarta = ActionAlertRuleTriggerAction.objects.get(alert_rule_trigger_action=trigger_action)
-    except ActionAlertRuleTriggerAction.DoesNotExist:
-        logger.exception(
-            "ActionAlertRuleTriggerAction does not exist",
-            extra={"alert_rule_trigger_action_id": trigger_action.id},
+        logger.info(
+            "alert rule was not dual written, returning early",
+            extra={"alert_rule": alert_rule_trigger.alert_rule},
         )
-        raise MissingACITableException
+        return None
+    aarta = ActionAlertRuleTriggerAction.objects.get(alert_rule_trigger_action=trigger_action)
     action = aarta.action
     action.delete()
     return None

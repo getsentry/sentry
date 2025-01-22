@@ -16,7 +16,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.users.services.user.service import user_service
 from sentry.workflow_engine.migration_helpers.alert_rule import (
-    MissingACITableException,
+    MissingDataConditionGroup,
     dual_delete_migrated_alert_rule,
     dual_delete_migrated_alert_rule_trigger,
     dual_delete_migrated_alert_rule_trigger_action,
@@ -540,20 +540,31 @@ class AlertRuleMigrationHelpersTest(APITestCase):
         assert not Action.objects.filter(id=action_id).exists()
         assert not ActionAlertRuleTriggerAction.objects.filter(id=aarta_id).exists()
 
-    def test_dual_delete_unmigrated_alert_rule_trigger(self):
+    @mock.patch("sentry.workflow_engine.migration_helpers.alert_rule.logger")
+    def test_dual_delete_unmigrated_alert_rule_trigger(self, mock_logger):
         """
         Test that nothing weird happens if we try to dual delete a trigger whose alert rule was
         never dual written.
         """
-        # returns None quietly—nothing to assert, just make sure we don't throw an error
+        assert not AlertRuleDetector.objects.filter(alert_rule_id=self.metric_alert.id).exists()
         dual_delete_migrated_alert_rule_trigger(self.alert_rule_trigger_critical)
+        mock_logger.info.assert_called_with(
+            "alert rule was not dual written, returning early",
+            extra={"alert_rule": self.metric_alert},
+        )
 
-    def test_dual_delete_unmigrated_alert_rule_trigger_action(self):
+    @mock.patch("sentry.workflow_engine.migration_helpers.alert_rule.logger")
+    def test_dual_delete_unmigrated_alert_rule_trigger_action(self, mock_logger):
         """
         Test that nothing weird happens if we try to dual delete a trigger action whose alert
         rule was never dual written.
         """
+        assert not AlertRuleDetector.objects.filter(alert_rule_id=self.metric_alert.id).exists()
         dual_delete_migrated_alert_rule_trigger_action(self.alert_rule_trigger_action_integration)
+        mock_logger.info.assert_called_with(
+            "alert rule was not dual written, returning early",
+            extra={"alert_rule": self.metric_alert},
+        )
 
     def test_get_detector_trigger_no_detector_condition_group(self):
         """
@@ -564,7 +575,7 @@ class AlertRuleMigrationHelpersTest(APITestCase):
         detector = AlertRuleDetector.objects.get(alert_rule=self.metric_alert).detector
         detector.update(workflow_condition_group=None)
 
-        with pytest.raises(MissingACITableException):
+        with pytest.raises(MissingDataConditionGroup):
             get_detector_trigger(self.alert_rule_trigger_critical, DetectorPriorityLevel.HIGH)
 
     def test_get_detector_trigger_no_detector_trigger(self):
@@ -578,7 +589,7 @@ class AlertRuleMigrationHelpersTest(APITestCase):
         detector_trigger, _ = data_conditions
 
         detector_trigger.delete()
-        with pytest.raises(MissingACITableException):
+        with pytest.raises(DataCondition.DoesNotExist):
             get_detector_trigger(self.alert_rule_trigger_critical, DetectorPriorityLevel.HIGH)
 
     def test_get_action_filter_no_workflow(self):
@@ -590,7 +601,7 @@ class AlertRuleMigrationHelpersTest(APITestCase):
         workflow = AlertRuleWorkflow.objects.get(alert_rule=self.metric_alert).workflow
         workflow.delete()
 
-        with pytest.raises(MissingACITableException):
+        with pytest.raises(AlertRuleWorkflow.DoesNotExist):
             get_action_filter(self.alert_rule_trigger_critical, DetectorPriorityLevel.HIGH)
 
     def test_get_action_filter_no_action_filter(self):
@@ -604,7 +615,7 @@ class AlertRuleMigrationHelpersTest(APITestCase):
         _, action_filter = data_conditions
         action_filter.delete()
 
-        with pytest.raises(MissingACITableException):
+        with pytest.raises(DataCondition.DoesNotExist):
             get_action_filter(self.alert_rule_trigger_critical, DetectorPriorityLevel.HIGH)
 
     def test_dual_delete_action_missing_aarta(self):
@@ -620,7 +631,7 @@ class AlertRuleMigrationHelpersTest(APITestCase):
         )
         aarta.delete()
 
-        with pytest.raises(MissingACITableException):
+        with pytest.raises(ActionAlertRuleTriggerAction.DoesNotExist):
             dual_delete_migrated_alert_rule_trigger_action(
                 self.alert_rule_trigger_action_integration
             )
