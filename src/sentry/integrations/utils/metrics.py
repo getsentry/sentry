@@ -248,13 +248,15 @@ class EventLifecycle:
 class IntegrationPipelineViewType(StrEnum):
     """A specific step in an integration's pipeline that is not a static page."""
 
+    PIPELINE_ADVANCER = "pipeline_advancer"
+
     # IdentityProviderPipeline
     IDENTITY_LOGIN = "identity_login"
     IDENTITY_LINK = "identity_link"
     TOKEN_EXCHANGE = "token_exchange"
 
     # GitHub
-    OAUTH_LOGIN = "oauth_loging"
+    OAUTH_LOGIN = "oauth_login"
     GITHUB_INSTALLATION = "github_installation"
 
     # Bitbucket

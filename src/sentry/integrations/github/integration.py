@@ -153,6 +153,7 @@ def error(
             "document_origin": get_document_origin(org),
         },
         request=request,
+        status=400,
     )
 
 

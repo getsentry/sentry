@@ -209,6 +209,7 @@ class Pipeline(abc.ABC):
             template="sentry/pipeline-error.html",
             context={"error": message},
             request=self.request,
+            status=400,
         )
 
     def render_warning(self, message: str) -> HttpResponseBase:

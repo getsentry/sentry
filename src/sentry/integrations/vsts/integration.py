@@ -690,6 +690,7 @@ class AccountConfigView(PipelineView):
                     template="sentry/integrations/vsts-config.html",
                     context={"no_accounts": True},
                     request=request,
+                    status=400,
                 )
             accounts = accounts["value"]
             pipeline.bind_state("accounts", accounts)
@@ -698,6 +699,7 @@ class AccountConfigView(PipelineView):
                 template="sentry/integrations/vsts-config.html",
                 context={"form": account_form, "no_accounts": False},
                 request=request,
+                status=400,
             )
 
     def get_account_from_id(
