@@ -5,7 +5,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {AutofixRootCause} from 'sentry/components/events/autofix/autofixRootCause';
 
 describe('AutofixRootCause', function () {
-  let mockApi;
+  let mockApi: jest.Mock<any, any, any>;
 
   beforeEach(function () {
     mockApi = MockApiClient.addMockResponse({
