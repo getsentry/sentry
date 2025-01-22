@@ -148,15 +148,13 @@ describe('Actionable Items', () => {
       {
         type: JavascriptProcessingErrors.JS_MISSING_SOURCES_CONTENT,
         data: {
-          source:
-            'org-dartlang-sdk:///dart-sdk/lib/async/future_impl.dart',
+          source: 'org-dartlang-sdk:///dart-sdk/lib/async/future_impl.dart',
         },
       },
       {
         type: JavascriptProcessingErrors.JS_MISSING_SOURCES_CONTENT,
         data: {
-          source:
-            'org-dartlang-sdk:///dart-sdk/lib/async/zone.dart',
+          source: 'org-dartlang-sdk:///dart-sdk/lib/async/zone.dart',
         },
       },
     ];
