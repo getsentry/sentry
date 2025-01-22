@@ -1258,20 +1258,6 @@ describe('TraceTree', () => {
     });
   });
 
-  // @TODO: These are helper methods that are in some cases already tested indirectly through the tests above,
-  // but it wouldnt hurt to test them explicitly.
-
-  // describe('VisibleChildren', () => {
-  //   it.todo('expanded transaction children are visible');
-  //   it.todo('zoomed in transaction children are visible');
-  //   it.todo('collapsed span children are not visible');
-  //   it.todo('expanded parent autogroup children shows head to tail chain');
-  //   it.todo(
-  //     'expanded parent autogroup with intermediary collapsed span stop the chain at the collapsed span'
-  //   );
-  //   it.todo('collapsed parent autogroup shows tail chain');
-  // });
-
   describe('PathToNode', () => {
     const nestedTransactionTrace = makeTrace({
       transactions: [
