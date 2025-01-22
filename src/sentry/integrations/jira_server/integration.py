@@ -1047,15 +1047,16 @@ class JiraServerIntegration(IssueSyncIntegration):
         Propagate a sentry issue's assignee to a jira issue's assignee
         """
         client = self.get_client()
+        logging_context = {
+            "integration_id": external_issue.integration_id,
+            "issue_key": external_issue.key,
+        }
 
         jira_user = None
         if user and assign:
-            logging_context = {
-                "integration_id": external_issue.integration_id,
-                "user_id": user.id,
-                "issue_key": external_issue.key,
-                "user_email_count": len(user.emails),
-            }
+            logging_context["user_id"] = user.id
+            logging_context["user_email_count"] = len(user.emails)
+
             total_queried_jira_users = 0
             total_available_jira_emails = 0
             for ue in user.emails:
