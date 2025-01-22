@@ -304,14 +304,23 @@ def run_taskworker(
     help="The path to the function name of the task to execute",
     required=True,
 )
+@click.option(
+    "--bootstrap-servers",
+    type=str,
+    help="The bootstrap servers to use for the kafka topic",
+    required=True,
+)
 def taskbroker_send_tasks(
     task_function_path: str,
     args: str,
     kwargs: str,
     repeat: int,
+    bootstrap_servers: str,
 ) -> None:
+    from sentry.conf.server import KAFKA_CLUSTERS
     from sentry.utils.imports import import_string
 
+    KAFKA_CLUSTERS["default"]["common"]["bootstrap.servers"] = bootstrap_servers
     try:
         func = import_string(task_function_path)
     except Exception as e:
