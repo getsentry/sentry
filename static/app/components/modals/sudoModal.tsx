@@ -206,16 +206,12 @@ function SudoModal({
   };
 
   const handleU2fTap = async (data: Parameters<OnTapProps>[0]) => {
-    try {
-      data.isSuperuserModal = isSuperuser;
-      data.superuserAccessCategory = state.superuserAccessCategory;
-      data.superuserReason = state.superuserReason;
-      await api.requestPromise('/auth/', {method: 'PUT', data});
-      handleSuccess();
-    } catch (err) {
-      // u2fInterface relies on this
-      throw err;
-    }
+    data.isSuperuserModal = isSuperuser;
+    data.superuserAccessCategory = state.superuserAccessCategory;
+    data.superuserReason = state.superuserReason;
+    // It's ok to throw from here, u2fInterface will handle it.
+    await api.requestPromise('/auth/', {method: 'PUT', data});
+    handleSuccess();
   };
 
   const getAuthLoginPath = (): string => {
