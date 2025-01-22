@@ -39,14 +39,22 @@ class EventJob(TypedDict):
     event: GroupEvent
 
 
-class WorkflowJob(EventJob, total=False):
+class PostProcessJob(TypedDict, total=False):
     group_state: GroupState
     is_reprocessed: bool
     has_reappeared: bool
     has_alert: bool
     has_escalated: bool
     workflow: Workflow
-    snuba_results: list[int]  # TODO - @saponifi3 / TODO(cathy): audit this
+
+
+class WorkflowJob(EventJob, PostProcessJob):
+    pass
+
+
+class DataJob(PostProcessJob, total=False):
+    event: GroupEvent
+    results: list[int]
 
 
 class ActionHandler:

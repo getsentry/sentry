@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, cast
 
 from django.conf import settings
 from django.db import models
@@ -8,10 +8,11 @@ from django.dispatch import receiver
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.eventstore.models import GroupEvent
 from sentry.models.owner_base import OwnerModel
 from sentry.workflow_engine.models.data_condition import DataCondition, is_slow_condition
 from sentry.workflow_engine.processors.data_condition_group import evaluate_condition_group
-from sentry.workflow_engine.types import WorkflowJob
+from sentry.workflow_engine.types import DataJob, WorkflowJob
 
 from .json_config import JSONConfigBase
 
@@ -67,7 +68,7 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
             )
         ]
 
-    def evaluate_trigger_conditions(self, job: WorkflowJob | list[int]) -> bool:
+    def evaluate_trigger_conditions(self, job: DataJob) -> bool:
         """
         Evaluate the conditions for the workflow trigger and return if the evaluation was successful.
         If there aren't any workflow trigger conditions, the workflow is considered triggered.
@@ -75,12 +76,18 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         if self.when_condition_group is None:
             return True
 
-        if evaluate_all_conditions := isinstance(job, dict):
+        if evaluate_all_conditions := isinstance(job.get("event"), GroupEvent):
             job["workflow"] = self
+            evaluation, _ = evaluate_condition_group(
+                self.when_condition_group,
+                cast(WorkflowJob, job),
+                evaluate_slow_conditions=not evaluate_all_conditions,
+            )
+        else:
+            evaluation, _ = evaluate_condition_group(
+                self.when_condition_group, job, evaluate_slow_conditions=not evaluate_all_conditions
+            )
 
-        evaluation, _ = evaluate_condition_group(
-            self.when_condition_group, job, evaluate_slow_conditions=not evaluate_all_conditions
-        )
         return evaluation
 
 

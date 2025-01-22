@@ -1,4 +1,5 @@
 from datetime import timedelta
+from typing import cast
 from unittest import mock
 
 from sentry import buffer
@@ -13,7 +14,7 @@ from sentry.workflow_engine.processors.workflow import (
     evaluate_workflow_triggers,
     process_workflows,
 )
-from sentry.workflow_engine.types import WorkflowJob
+from sentry.workflow_engine.types import DataJob, WorkflowJob
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 FROZEN_TIME = before_now(days=1).replace(hour=1, minute=30, second=0, microsecond=0)
@@ -104,7 +105,7 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
         self.group, self.event, self.group_event = self.create_group_event(
             occurrence=occurrence,
         )
-        self.job = WorkflowJob({"event": self.group_event})
+        self.job = DataJob({"event": self.group_event})
 
     def test_workflow_trigger(self):
         triggered_workflows = evaluate_workflow_triggers({self.workflow}, self.job)
@@ -173,7 +174,8 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
             condition_result=True,
         )
 
-        triggered_workflows = evaluate_workflow_triggers({self.workflow}, [101])
+        job = DataJob({"results": [101]})
+        triggered_workflows = evaluate_workflow_triggers({self.workflow}, job)
         assert triggered_workflows == {self.workflow}
 
 
@@ -194,6 +196,7 @@ class TestEnqueueWorkflow(BaseWorkflowTest):
             occurrence=occurrence,
         )
         self.job = WorkflowJob({"event": self.group_event})
+        self.data_job = cast(DataJob, self.job)
         self.create_workflow_action(self.workflow)
         self.mock_redis_buffer = mock_redis_buffer()
         self.mock_redis_buffer.__enter__()
@@ -214,7 +217,7 @@ class TestEnqueueWorkflow(BaseWorkflowTest):
             condition_result=True,
         )
 
-        triggered_workflows = evaluate_workflow_triggers({self.workflow}, self.job)
+        triggered_workflows = evaluate_workflow_triggers({self.workflow}, self.data_job)
         assert not triggered_workflows
 
         process_workflows(self.job)
@@ -245,7 +248,7 @@ class TestEnqueueWorkflow(BaseWorkflowTest):
             condition_result=True,
         )
 
-        triggered_workflows = evaluate_workflow_triggers({self.workflow}, self.job)
+        triggered_workflows = evaluate_workflow_triggers({self.workflow}, self.data_job)
         assert not triggered_workflows
 
         process_workflows(self.job)

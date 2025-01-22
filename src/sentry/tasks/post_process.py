@@ -5,7 +5,7 @@ import uuid
 from collections.abc import MutableMapping, Sequence
 from datetime import datetime
 from time import time
-from typing import TYPE_CHECKING, Any, TypedDict
+from typing import TYPE_CHECKING, Any, TypedDict, cast
 
 import sentry_sdk
 from django.conf import settings
@@ -947,7 +947,7 @@ def process_workflow_engine(job: PostProcessJob) -> None:
         return
 
     try:
-        workflow_job = WorkflowJob({**job})  # type: ignore[typeddict-item]
+        workflow_job = cast(WorkflowJob, job)
     except Exception:
         logger.exception("Could not create WorkflowJob", extra={"job": job})
         return
