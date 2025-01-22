@@ -57,6 +57,10 @@ class TestAssignedToCondition(ConditionTestCase):
         with pytest.raises(ValidationError):
             self.dc.save()
 
+        self.dc.comparison.update({"hello": "there"})
+        with pytest.raises(ValidationError):
+            self.dc.save()
+
     def test_assigned_to_member_passes(self):
         GroupAssignee.objects.create(user_id=self.user.id, group=self.group, project=self.project)
         self.dc.update(comparison={"target_type": "Member", "target_identifier": self.user.id})
