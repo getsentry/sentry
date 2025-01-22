@@ -155,7 +155,6 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
         )
         assert len(resp.data) == 1
         assert resp.data[0]["id"] == str(checkin1.guid)
-        assert checkin1.monitor_environment is not None
         assert resp.data[0]["environment"] == checkin1.monitor_environment.get_environment().name
 
     def test_bad_monitorenvironment(self):
