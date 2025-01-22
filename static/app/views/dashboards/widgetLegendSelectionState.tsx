@@ -77,22 +77,24 @@ class WidgetLegendSelectionState {
         return widgetLegend;
       });
 
-      !isInQuery
-        ? router.replace({
-            query: {
-              ...location.query,
-              unselectedSeries: [
-                ...location.query.unselectedSeries,
-                this.encodeLegendQueryParam(widget, selected),
-              ],
-            },
-          })
-        : router.replace({
-            query: {
-              ...location.query,
-              unselectedSeries: newLegendQuery,
-            },
-          });
+      if (isInQuery) {
+        router.replace({
+          query: {
+            ...location.query,
+            unselectedSeries: newLegendQuery,
+          },
+        });
+      } else {
+        router.replace({
+          query: {
+            ...location.query,
+            unselectedSeries: [
+              ...location.query.unselectedSeries,
+              this.encodeLegendQueryParam(widget, selected),
+            ],
+          },
+        });
+      }
     } else {
       if (location.query.unselectedSeries?.includes(widget.id!)) {
         router.replace({

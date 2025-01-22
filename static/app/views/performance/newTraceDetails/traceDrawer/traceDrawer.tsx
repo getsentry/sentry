@@ -547,9 +547,11 @@ function TraceDrawerTab(props: TraceDrawerTabProps) {
         onClick={e => {
           e.stopPropagation();
           traceAnalytics.trackTabPin(organization);
-          props.pinned
-            ? props.traceDispatch({type: 'unpin tab', payload: props.index})
-            : props.traceDispatch({type: 'pin tab'});
+          if (props.pinned) {
+            props.traceDispatch({type: 'unpin tab', payload: props.index});
+          } else {
+            props.traceDispatch({type: 'pin tab'});
+          }
         }}
       />
     </Tab>

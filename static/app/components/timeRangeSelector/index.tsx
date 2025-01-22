@@ -247,7 +247,9 @@ export function TimeRangeSelector({
   );
 
   const commitChanges = useCallback(() => {
-    showRelative && setShowAbsoluteSelector(false);
+    if (showRelative) {
+      setShowAbsoluteSelector(false);
+    }
     setSearch('');
 
     if (!hasChanges) {
