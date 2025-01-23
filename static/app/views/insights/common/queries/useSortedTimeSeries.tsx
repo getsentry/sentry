@@ -24,6 +24,8 @@ import type {SpanFunctions, SpanIndexedField} from 'sentry/views/insights/types'
 
 import {getRetryDelay, shouldRetryHandler} from '../utils/retryHandlers';
 
+import {isEventsStats, isMultiSeriesEventsStats} from './isEventsStats';
+
 type SeriesMap = {
   [seriesName: string]: Series[];
 };
@@ -118,22 +120,6 @@ export const useSortedTimeSeries = <
     meta: result.data?.meta,
   };
 };
-
-export function isEventsStats(
-  obj: EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats
-): obj is EventsStats {
-  return typeof obj === 'object' && obj !== null && typeof obj.data === 'object';
-}
-
-function isMultiSeriesEventsStats(
-  obj: EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats
-): obj is MultiSeriesEventsStats {
-  if (typeof obj !== 'object' || obj === null) {
-    return false;
-  }
-
-  return Object.values(obj).every(series => isEventsStats(series));
-}
 
 export function transformToSeriesMap(
   result: MultiSeriesEventsStats | GroupedMultiSeriesEventsStats | undefined,
