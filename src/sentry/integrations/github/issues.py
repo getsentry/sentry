@@ -180,7 +180,7 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
             "title": data["title"],
             "body": data["description"],
         }
-        
+
         # Only include optional fields if they have valid values
         if data.get("assignee"):
             issue_data["assignee"] = data["assignee"]
