@@ -248,7 +248,6 @@ abstract class AbstractIntegrationDetailedView<
   renderRequestIntegrationButton() {
     return (
       <RequestIntegrationButton
-        organization={this.props.organization}
         name={this.integrationName}
         slug={this.integrationSlug}
         type={this.integrationType}
