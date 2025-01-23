@@ -48,7 +48,7 @@ function ProjectToolbarSettings({organization, project, params: {projectId}}: Pr
               {t('Domains where the dev toolbar is allowed to access your data.')}
               <br />
               {t(
-                'Protocol and port are optional, wildcard subdomains (*) are are supported.'
+                'Protocol and port are optional; wildcard subdomains (*) are are supported.'
               )}
               <br />
               {tct(
