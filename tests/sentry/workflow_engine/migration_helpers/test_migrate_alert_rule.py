@@ -143,6 +143,16 @@ def assert_alert_rule_trigger_migrated(alert_rule_trigger):
     ).exists()
 
 
+def assert_alert_rule_trigger_action_migrated(alert_rule_trigger_action, action_type):
+    aarta = ActionAlertRuleTriggerAction.objects.get(
+        alert_rule_trigger_action=alert_rule_trigger_action
+    )
+    action = Action.objects.get(id=aarta.action_id, type=action_type)
+    assert DataConditionGroupAction.objects.filter(
+        action_id=action.id,
+    ).exists()
+
+
 class AlertRuleMigrationHelpersTest(APITestCase):
     def setUp(self):
         METADATA = {
@@ -343,31 +353,15 @@ class AlertRuleMigrationHelpersTest(APITestCase):
         migrate_metric_action(self.alert_rule_trigger_action_integration)
         migrate_metric_action(self.alert_rule_trigger_action_sentry_app)
 
-        # we can cheat a bit, because only one alert rule's triggers have been migrated
-        action_filters = DataCondition.objects.filter(
-            comparison__in=[
-                DetectorPriorityLevel.MEDIUM,
-                DetectorPriorityLevel.HIGH,
-            ]
+        assert_alert_rule_trigger_action_migrated(
+            self.alert_rule_trigger_action_email, Action.Type.EMAIL
         )
-        data_condition_group_actions = DataConditionGroupAction.objects.filter(
-            condition_group_id__in=[
-                action_filter.condition_group.id for action_filter in action_filters
-            ]
+        assert_alert_rule_trigger_action_migrated(
+            self.alert_rule_trigger_action_integration, Action.Type.OPSGENIE
         )
-        actions = Action.objects.filter(
-            id__in=[item.action.id for item in data_condition_group_actions]
+        assert_alert_rule_trigger_action_migrated(
+            self.alert_rule_trigger_action_sentry_app, Action.Type.SENTRY_APP
         )
-        assert len(actions) == 3
-
-        assert actions[0].type.lower() == Action.Type.EMAIL
-        assert actions[1].type.lower() == Action.Type.OPSGENIE
-        assert actions[2].type.lower() == Action.Type.SENTRY_APP
-
-        aartas = ActionAlertRuleTriggerAction.objects.filter(
-            id__in=[item.action.id for item in data_condition_group_actions]
-        )
-        assert len(aartas) == 3
 
     @mock.patch("sentry.workflow_engine.migration_helpers.alert_rule.logger")
     def test_create_metric_alert_trigger_action_no_type(self, mock_logger):
