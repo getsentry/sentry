@@ -40,7 +40,7 @@ function HookStats() {
     isPending,
     isError,
     refetch,
-  } = useApiQuery<{total: number; ts: number}[]>(
+  } = useApiQuery<Array<{total: number; ts: number}>>(
     [
       `/projects/${organization.slug}/${projectId}/hooks/${hookId}/stats/`,
       {
