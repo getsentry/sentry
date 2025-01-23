@@ -1,8 +1,14 @@
 import type {DashboardsLayout} from 'sentry/views/dashboards/manage';
 
+export enum WidgetBuilderVersion {
+  PAGE = 'page',
+  SLIDEOUT = 'slideout',
+}
+
 // Used in the full-page widget builder
 type DashboardsEventParametersWidgetBuilder = {
   'dashboards_views.widget_builder.change': {
+    builder_version: WidgetBuilderVersion;
     field: string;
     from: string;
     new_widget: boolean;
@@ -10,9 +16,11 @@ type DashboardsEventParametersWidgetBuilder = {
     widget_type: string;
   };
   'dashboards_views.widget_builder.opened': {
+    builder_version: WidgetBuilderVersion;
     new_widget: boolean;
   };
   'dashboards_views.widget_builder.save': {
+    builder_version: WidgetBuilderVersion;
     data_set: string;
     new_widget: boolean;
   };
