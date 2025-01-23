@@ -242,12 +242,14 @@ def run_top_events_timeseries_query(
     validate_granularity(params, granularity_secs)
     search_resolver = get_resolver(params, config)
     top_events = run_table_query(
+        params,
         query_string,
         raw_groupby + y_axes,
         orderby,
         0,
         limit,
         referrer,
+        config,
         search_resolver,
     )
     if len(top_events["data"]) == 0:
