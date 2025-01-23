@@ -20,13 +20,13 @@ from sentry.workflow_engine.types import DetectorPriorityLevel
 class TestDetectorSerializer(TestCase):
     def test_serialize_simple(self):
         detector = self.create_detector(
-            organization_id=self.organization.id, name="Test Detector", type=MetricAlertFire.slug
+            project_id=self.project.id, name="Test Detector", type=MetricAlertFire.slug
         )
         result = serialize(detector)
 
         assert result == {
             "id": str(detector.id),
-            "organizationId": str(self.organization.id),
+            "projectId": str(detector.project_id),
             "name": "Test Detector",
             "type": MetricAlertFire.slug,
             "dateCreated": detector.date_added,
@@ -50,7 +50,7 @@ class TestDetectorSerializer(TestCase):
         action = self.create_action(type=Action.Type.EMAIL, data={"foo": "bar"})
         self.create_data_condition_group_action(condition_group=condition_group, action=action)
         detector = self.create_detector(
-            organization_id=self.organization.id,
+            project_id=self.project.id,
             name="Test Detector",
             type=MetricAlertFire.slug,
             workflow_condition_group=condition_group,
@@ -79,7 +79,7 @@ class TestDetectorSerializer(TestCase):
         # print("result: ", result)
         assert result == {
             "id": str(detector.id),
-            "organizationId": str(self.organization.id),
+            "projectId": str(detector.project_id),
             "name": "Test Detector",
             "type": MetricAlertFire.slug,
             "dateCreated": detector.date_added,
@@ -131,7 +131,7 @@ class TestDetectorSerializer(TestCase):
     def test_serialize_bulk(self):
         detectors = [
             self.create_detector(
-                organization_id=self.organization.id,
+                project_id=self.project.id,
                 name=f"Test Detector {i}",
                 type=MetricAlertFire.slug,
             )
@@ -293,8 +293,8 @@ class TestWorkflowSerializer(TestCase):
             "config": {},
             "dateCreated": workflow.date_added,
             "dateUpdated": workflow.date_updated,
-            "triggerConditionGroup": None,
-            "dataConditionGroups": [],
+            "triggers": None,
+            "actionFilters": [],
             "environment": None,
         }
 
@@ -343,7 +343,7 @@ class TestWorkflowSerializer(TestCase):
             "config": {},
             "dateCreated": workflow.date_added,
             "dateUpdated": workflow.date_updated,
-            "triggerConditionGroup": {
+            "triggers": {
                 "id": str(when_condition_group.id),
                 "organizationId": str(self.organization.id),
                 "logicType": DataConditionGroup.Type.ANY.value,
@@ -357,7 +357,7 @@ class TestWorkflowSerializer(TestCase):
                 ],
                 "actions": [],
             },
-            "dataConditionGroups": [
+            "actionFilters": [
                 {
                     "id": str(condition_group.id),
                     "organizationId": str(self.organization.id),
