@@ -157,6 +157,9 @@ function validateParameter(
     return Boolean(columnOptions.find(option => option.value === value)?.value);
   }
   if (parameter.kind === 'value') {
+    if (parameter.dataType === 'number') {
+      return !isNaN(Number(value));
+    }
     return true;
   }
   return false;
@@ -422,7 +425,6 @@ function Visualize({error, setError}: VisualizeProps) {
                   ) : (
                     <Fragment>
                       <PrimarySelectRow hasColumnParameter={hasColumnParameter}>
-                        {/** TODO: Add support for the value parameter type for cases like user_misery, apdex */}
                         {hasColumnParameter && (
                           <ColumnCompactSelect
                             searchable
@@ -495,12 +497,17 @@ function Visualize({error, setError}: VisualizeProps) {
                                       // If no column filter method is provided, show all options
                                       columnFilterMethod ?? (() => true)
                                     );
-                                    const isValidColumn = Boolean(
-                                      newColumnOptions.find(
-                                        option =>
-                                          option.value === currentField.function[1]
-                                      )?.value
-                                    );
+                                    const newAggregateIsApdexOrUserMisery =
+                                      newAggregate?.value.meta.name === 'apdex' ||
+                                      newAggregate?.value.meta.name === 'user_misery';
+                                    const isValidColumn =
+                                      !newAggregateIsApdexOrUserMisery &&
+                                      Boolean(
+                                        newColumnOptions.find(
+                                          option =>
+                                            option.value === currentField.function[1]
+                                        )?.value
+                                      );
                                     currentField.function[1] =
                                       (isValidColumn
                                         ? currentField.function[1]
@@ -671,6 +678,25 @@ function Visualize({error, setError}: VisualizeProps) {
                             )}
                           </ParameterRefinements>
                         )}
+                      {isApdexOrUserMisery && field.kind === FieldValueKind.FUNCTION && (
+                        <AggregateParameterField
+                          parameter={matchingAggregate?.value.meta.parameters[0]}
+                          fieldValue={field}
+                          currentValue={field.function[1]}
+                          onChange={value => {
+                            const newFields = cloneDeep(fields);
+                            if (newFields[index]!.kind !== FieldValueKind.FUNCTION) {
+                              return;
+                            }
+                            newFields[index]!.function[1] = value;
+                            dispatch({
+                              type: updateAction,
+                              payload: newFields,
+                            });
+                            setError?.({...error, queries: []});
+                          }}
+                        />
+                      )}
                     </Fragment>
                   )}
                 </FieldBar>
@@ -779,6 +805,11 @@ function AggregateParameterField({
       onUpdate: (value: any) => {
         onChange(value);
       },
+      onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+          onChange(e.currentTarget.value);
+        }
+      },
       placeholder: parameter.placeholder,
     };
     switch (parameter.dataType) {
@@ -786,7 +817,7 @@ function AggregateParameterField({
         return (
           <BufferedInput
             name="refinement"
-            key="parameter:number"
+            key={`parameter:number-${currentValue}`}
             type="text"
             inputMode="numeric"
             pattern="[0-9]*(\.[0-9]*)?"
