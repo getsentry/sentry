@@ -4,8 +4,9 @@ import pytest
 from rest_framework.exceptions import ErrorDetail
 
 from sentry.api.serializers import serialize
+from sentry.constants import ObjectStatus
 from sentry.models.environment import Environment
-from sentry.uptime.models import ProjectUptimeSubscription
+from sentry.uptime.models import ProjectUptimeSubscription, UptimeSubscription
 from tests.sentry.uptime.endpoints import UptimeAlertBaseEndpointTest
 
 
@@ -195,6 +196,33 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
             resp.data["url"][0]
             == "The domain *.example.com has already been used in 1 uptime monitoring alerts, which is the limit. You cannot create any additional alerts for this domain."
         )
+
+    def test_status_disable(self):
+        uptime_monitor = self.create_project_uptime_subscription()
+        resp = self.get_success_response(
+            self.organization.slug,
+            uptime_monitor.project.slug,
+            uptime_monitor.id,
+            name="test_2",
+            status="disabled",
+        )
+        uptime_monitor.refresh_from_db()
+        assert resp.data == serialize(uptime_monitor, self.user)
+        assert uptime_monitor.status == ObjectStatus.DISABLED
+        assert uptime_monitor.uptime_subscription.status == UptimeSubscription.Status.DISABLED.value
+
+    def test_status_enable(self):
+        uptime_monitor = self.create_project_uptime_subscription(status=ObjectStatus.DISABLED)
+        resp = self.get_success_response(
+            self.organization.slug,
+            uptime_monitor.project.slug,
+            uptime_monitor.id,
+            name="test_2",
+            status="active",
+        )
+        uptime_monitor.refresh_from_db()
+        assert resp.data == serialize(uptime_monitor, self.user)
+        assert uptime_monitor.status == ObjectStatus.ACTIVE
 
 
 class ProjectUptimeAlertDetailsDeleteEndpointTest(ProjectUptimeAlertDetailsBaseEndpointTest):
