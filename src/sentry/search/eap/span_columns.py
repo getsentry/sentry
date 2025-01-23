@@ -12,8 +12,9 @@ from sentry.search.eap.columns import (
     VirtualColumnDefinition,
     datetime_processor,
     project_context_constructor,
+    project_term_resolver,
     simple_measurements_field,
-    simple_sentry_field, project_term_resolver,
+    simple_sentry_field,
 )
 from sentry.search.eap.common_columns import COMMON_COLUMNS
 from sentry.search.events.constants import SPAN_MODULE_CATEGORY_VALUES

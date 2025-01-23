@@ -187,7 +187,7 @@ def project_context_constructor(column_name: str) -> Callable[[SnubaParams], Vir
 
 
 def project_term_resolver(
-        raw_value: str | list[str],
+    raw_value: str | list[str],
 ) -> list[int] | int:
     if isinstance(raw_value, list):
         return [int(val) for val in raw_value]
