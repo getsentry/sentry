@@ -33,10 +33,10 @@ class ProjectDetectorIndexBaseTest(APITestCase):
 class ProjectDetectorIndexGetTest(ProjectDetectorIndexBaseTest):
     def test_simple(self):
         detector = self.create_detector(
-            organization_id=self.organization.id, name="Test Detector", type=MetricAlertFire.slug
+            project_id=self.project.id, name="Test Detector", type=MetricAlertFire.slug
         )
         detector_2 = self.create_detector(
-            organization_id=self.organization.id, name="Test Detector 2", type=MetricAlertFire.slug
+            project_id=self.project.id, name="Test Detector 2", type=MetricAlertFire.slug
         )
         response = self.get_success_response(self.organization.slug, self.project.slug)
         assert response.data == serialize([detector, detector_2])
@@ -120,7 +120,7 @@ class ProjectDetectorIndexPostTest(ProjectDetectorIndexBaseTest):
         assert response.data == serialize([detector])[0]
         assert detector.name == "Test Detector"
         assert detector.type == MetricAlertFire.slug
-        assert detector.organization_id == self.organization.id
+        assert detector.project_id == self.project.id
 
         # Verify data source
         data_source = DataSource.objects.get(detector=detector)
