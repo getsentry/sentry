@@ -403,13 +403,6 @@ class _ClientConfig:
 
         return True
 
-    @property
-    def demo_mode(self) -> bool:
-        if not options.get("demo-mode.enabled"):
-            return False
-
-        return is_readonly_user(self.user)
-
     def get_context(self) -> Mapping[str, Any]:
         return {
             "initialTrace": self.tracing_data,
@@ -465,7 +458,7 @@ class _ClientConfig:
             "memberRegions": self.member_regions,
             "regions": self.regions,
             "relocationConfig": {"selectableRegions": options.get("relocation.selectable-regions")},
-            "demoMode": self.demo_mode,
+            "demoMode": is_readonly_user(self.user),
             "enableAnalytics": settings.ENABLE_ANALYTICS,
             "validateSUForm": getattr(
                 settings, "VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON", False
