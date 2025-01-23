@@ -11,6 +11,6 @@ class TempestCredentialsPermission(ProjectPermission):
             "org:write",
             "org:admin",
         ],
-        "POST": ["org:admin"],
-        "DELETE": ["org:admin"],
+        "POST": ["org:admin", "org:write", "project:admin", "project:write"],
+        "DELETE": ["org:admin", "org:write", "project:admin", "project:write"],
     }
