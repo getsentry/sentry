@@ -310,6 +310,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             assert response.data["id"] == str(group.id)
             assert response.data["count"] == "16"
 
+
 class GroupUpdateTest(APITestCase):
     def test_resolve(self) -> None:
         self.login_as(user=self.user)
