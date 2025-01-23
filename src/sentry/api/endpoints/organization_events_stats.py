@@ -185,8 +185,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
     def get(self, request: Request, organization: Organization) -> Response:
         query_source = self.get_request_source(request)
 
-        transform_alias_to_input_format = request.GET.get("transformAliasToInputFormat") == "1"
-
         with sentry_sdk.start_span(op="discover.endpoint", name="filter_params") as span:
             span.set_data("organization", organization)
 
@@ -278,6 +276,9 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
 
         force_metrics_layer = request.GET.get("forceMetricsLayer") == "true"
         use_rpc = request.GET.get("useRpc", "0") == "1" and dataset == spans_eap
+        transform_alias_to_input_format = (
+            request.GET.get("transformAliasToInputFormat") == "1" or use_rpc
+        )
         sentry_sdk.set_tag("performance.use_rpc", use_rpc)
 
         def _get_event_stats(
@@ -573,8 +574,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     zerofill_results=zerofill_results,
                     comparison_delta=comparison_delta,
                     dataset=dataset,
-                    # use_rpc should always transform_alias_to_input_format
-                    transform_alias_to_input_format=transform_alias_to_input_format or use_rpc,
+                    transform_alias_to_input_format=transform_alias_to_input_format,
                 ),
                 status=200,
             )
