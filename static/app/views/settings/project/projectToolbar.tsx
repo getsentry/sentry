@@ -59,18 +59,15 @@ function ProjectToolbarSettings({organization, project, params: {projectId}}: Pr
         renderDisabled={NoAccess}
       >
         <PermissionAlert project={project} />
-        <Alert type="info" showIcon>
-          {tct(
-            'Copy paste this domain into the text box next to Allowed Origins: [domain] ',
-            {domain: <strong>{domain}</strong>}
-          )}
-          <CopyToClipboardButton
-            borderless
-            iconSize="xs"
-            size="zero"
-            text={domain ?? ''}
-          />
-        </Alert>
+        {domain && (
+          <Alert type="info" showIcon>
+            {tct(
+              'Copy paste this domain into the text box next to Allowed Origins: [domain] ',
+              {domain: <strong>{domain}</strong>}
+            )}
+            <CopyToClipboardButton borderless iconSize="xs" size="zero" text={domain} />
+          </Alert>
+        )}
 
         <Form
           apiMethod="PUT"
