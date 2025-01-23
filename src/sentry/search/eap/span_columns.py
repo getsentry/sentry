@@ -1,4 +1,3 @@
-from collections.abc import Callable
 from typing import Literal
 
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
@@ -12,9 +11,12 @@ from sentry.search.eap.columns import (
     ResolvedColumn,
     VirtualColumnDefinition,
     datetime_processor,
+    project_context_constructor,
+    project_term_resolver,
     simple_measurements_field,
     simple_sentry_field,
 )
+from sentry.search.eap.common_columns import COMMON_COLUMNS
 from sentry.search.events.constants import SPAN_MODULE_CATEGORY_VALUES
 from sentry.search.events.types import SnubaParams
 from sentry.search.utils import DEVICE_CLASS
@@ -22,7 +24,8 @@ from sentry.utils.validators import is_event_id, is_span_id
 
 SPAN_ATTRIBUTE_DEFINITIONS = {
     column.public_alias: column
-    for column in [
+    for column in COMMON_COLUMNS
+    + [
         ResolvedColumn(
             public_alias="id",
             internal_name="sentry.span_id",
@@ -34,24 +37,6 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             internal_name="sentry.parent_span_id",
             search_type="string",
             validator=is_span_id,
-        ),
-        ResolvedColumn(
-            public_alias="organization.id",
-            internal_name="sentry.organization_id",
-            search_type="string",
-        ),
-        ResolvedColumn(
-            public_alias="project.id",
-            internal_name="sentry.project_id",
-            internal_type=constants.INT,
-            search_type="string",
-        ),
-        ResolvedColumn(
-            public_alias="project_id",
-            internal_name="sentry.project_id",
-            internal_type=constants.INT,
-            search_type="string",
-            secondary_alias=True,
         ),
         ResolvedColumn(
             public_alias="span.action",
@@ -322,29 +307,6 @@ def translate_internal_to_public_alias(
 ) -> str | None:
     mappings = INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS.get(type, {})
     return mappings.get(internal_alias)
-
-
-def project_context_constructor(column_name: str) -> Callable[[SnubaParams], VirtualColumnContext]:
-    def context_constructor(params: SnubaParams) -> VirtualColumnContext:
-        return VirtualColumnContext(
-            from_column_name="sentry.project_id",
-            to_column_name=column_name,
-            value_map={
-                str(project_id): project_name
-                for project_id, project_name in params.project_id_map.items()
-            },
-        )
-
-    return context_constructor
-
-
-def project_term_resolver(
-    raw_value: str | list[str],
-) -> list[int] | int:
-    if isinstance(raw_value, list):
-        return [int(val) for val in raw_value]
-    else:
-        return int(raw_value)
 
 
 def device_class_context_constructor(params: SnubaParams) -> VirtualColumnContext:
