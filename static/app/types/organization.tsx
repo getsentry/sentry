@@ -332,7 +332,10 @@ export type MultiSeriesEventsStats = {
 
 // API response for a grouped top N Discover series
 export type GroupedMultiSeriesEventsStats = {
-  [groupName: string]: MultiSeriesEventsStats & {order: number};
+  [groupName: string]: {
+    [seriesName: string]: EventsStats | number;
+    order: number;
+  };
 };
 
 export type EventsStatsSeries<F extends string> = {

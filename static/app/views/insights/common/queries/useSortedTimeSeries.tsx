@@ -166,9 +166,13 @@ export function transformToSeriesMap(
   // First, we process the grouped multi series into a list of [seriesName, order, {[aggFunctionAlias]: EventsStats}]
   // to enable sorting.
   const processedResults: Array<[string, number, MultiSeriesEventsStats]> = [];
-  Object.keys(result).forEach(seriesName => {
-    const {order: groupOrder, ...groupData} = result[seriesName]!;
-    processedResults.push([seriesName, groupOrder || 0, groupData]);
+  Object.keys(result).forEach(groupName => {
+    const {order: groupOrder, ...groupData} = result[groupName]!;
+    processedResults.push([
+      groupName,
+      groupOrder || 0,
+      groupData as MultiSeriesEventsStats,
+    ]);
   });
 
   return processedResults
