@@ -198,12 +198,12 @@ describe('AddToDashboardButton', () => {
         // For Open in Widget Builder
         widgetAsQueryParams: expect.objectContaining({
           dataset: WidgetType.SPANS,
-          defaultTableColumns: ['avg(span.duration)'],
+          defaultTableColumns: ['span.op', 'avg(span.duration)'],
           defaultTitle: 'Custom Widget',
           defaultWidgetQuery:
             'name=&aggregates=avg(span.duration)&columns=&fields=avg(span.duration)&conditions=&orderby=-avg(span.duration)',
           displayType: DisplayType.LINE,
-          field: ['avg(span.duration)'],
+          field: ['span.op', 'avg(span.duration)'],
         }),
       })
     );
@@ -263,6 +263,7 @@ describe('AddToDashboardButton', () => {
         widgetAsQueryParams: expect.objectContaining({
           dataset: WidgetType.SPANS,
           defaultTableColumns: [
+            'span.op',
             'avg(span.duration)',
             'max(span.duration)',
             'min(span.duration)',
@@ -271,7 +272,12 @@ describe('AddToDashboardButton', () => {
           defaultWidgetQuery:
             'name=&aggregates=avg(span.duration)%2Cmax(span.duration)%2Cmin(span.duration)&columns=&fields=avg(span.duration)%2Cmax(span.duration)%2Cmin(span.duration)&conditions=&orderby=-avg(span.duration)',
           displayType: DisplayType.LINE,
-          field: ['avg(span.duration)', 'max(span.duration)', 'min(span.duration)'],
+          field: [
+            'span.op',
+            'avg(span.duration)',
+            'max(span.duration)',
+            'min(span.duration)',
+          ],
         }),
       })
     );

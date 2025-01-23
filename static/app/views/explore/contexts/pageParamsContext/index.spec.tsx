@@ -86,7 +86,7 @@ describe('PageParamsProvider', function () {
         'span.duration',
         'timestamp',
       ],
-      groupBys: [''],
+      groupBys: ['span.op'],
       mode: Mode.SAMPLES,
       query: '',
       sortBys: [{field: 'timestamp', kind: 'desc'}],
@@ -153,6 +153,50 @@ describe('PageParamsProvider', function () {
       dataset: DiscoverDatasets.SPANS_EAP_RPC,
       fields: ['id', 'timestamp'],
       groupBys: ['browser.name', 'sdk.name'],
+      mode: Mode.AGGREGATE,
+      query: '',
+      sortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
+      visualizes: [
+        {
+          chartType: ChartType.AREA,
+          label: 'A',
+          yAxes: ['count(span.self_time)'],
+        },
+      ],
+    });
+  });
+
+  it('correctly gives default for empty groupBys', function () {
+    renderTestComponent();
+
+    act(() => setGroupBys([]));
+
+    expect(pageParams).toEqual({
+      dataset: DiscoverDatasets.SPANS_EAP_RPC,
+      fields: ['id', 'timestamp'],
+      groupBys: ['span.op'],
+      mode: Mode.AGGREGATE,
+      query: '',
+      sortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
+      visualizes: [
+        {
+          chartType: ChartType.AREA,
+          label: 'A',
+          yAxes: ['count(span.self_time)'],
+        },
+      ],
+    });
+  });
+
+  it('permits ungrouped', function () {
+    renderTestComponent();
+
+    act(() => setGroupBys(['']));
+
+    expect(pageParams).toEqual({
+      dataset: DiscoverDatasets.SPANS_EAP_RPC,
+      fields: ['id', 'timestamp'],
+      groupBys: [''],
       mode: Mode.AGGREGATE,
       query: '',
       sortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
