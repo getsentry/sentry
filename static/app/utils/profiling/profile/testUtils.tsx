@@ -17,7 +17,7 @@ export const nthCallee = (node: CallTreeNode, n: number) => {
 };
 
 export const makeTestingBoilerplate = () => {
-  const timings: [Frame['name'], string][] = [];
+  const timings: Array<[Frame['name'], string]> = [];
 
   const openSpy = jest.fn();
   const closeSpy = jest.fn();

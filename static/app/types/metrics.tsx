@@ -67,18 +67,22 @@ export type MetricsApiResponse = {
 };
 
 export interface MetricsQueryApiResponse {
-  data: {
-    by: Record<string, string>;
-    series: (number | null)[];
-    totals: number;
-  }[][];
+  data: Array<
+    Array<{
+      by: Record<string, string>;
+      series: Array<number | null>;
+      totals: number;
+    }>
+  >;
   end: string;
   intervals: string[];
-  meta: [
-    ...{name: string; type: string}[],
-    // The last entry in meta has a different shape
-    MetricsQueryApiResponseLastMeta,
-  ][];
+  meta: Array<
+    [
+      ...Array<{name: string; type: string}>,
+      // The last entry in meta has a different shape
+      MetricsQueryApiResponseLastMeta,
+    ]
+  >;
   start: string;
 }
 
@@ -94,7 +98,7 @@ export interface MetricsQueryApiResponseLastMeta {
 
 export type MetricsGroup = {
   by: Record<string, string>;
-  series: Record<string, (number | null)[]>;
+  series: Record<string, Array<number | null>>;
   totals: Record<string, number | null>;
 };
 

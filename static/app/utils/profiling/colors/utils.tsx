@@ -386,7 +386,7 @@ export function makeColorMapByFrequency(
 }
 
 export function makeSpansColorMapByOpAndDescription(
-  spans: readonly SpanChart['spans'][0][],
+  spans: ReadonlyArray<SpanChart['spans'][0]>,
   colorBucket: FlamegraphTheme['COLORS']['COLOR_BUCKET']
 ): Map<SpanChartNode['node']['span']['span_id'], ColorChannels> {
   const colors = new Map<SpanChartNode['node']['span']['span_id'], ColorChannels>();

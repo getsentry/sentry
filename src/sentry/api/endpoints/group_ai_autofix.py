@@ -107,6 +107,28 @@ class GroupAutofixEndpoint(GroupEndpoint):
         if not profile_id and results:  # fallback to a similar transaction in the trace
             profile_matches_event = False
             profile_id = results[0].data.get("contexts", {}).get("profile", {}).get("profile_id")
+        if (
+            not profile_id
+        ):  # fallback to any profile in that kind of transaction, not just the same trace
+            event_filter = eventstore.Filter(
+                project_ids=[project.id],
+                conditions=[
+                    ["transaction", "=", transaction_name],
+                    ["profile_id", "IS NOT NULL", None],
+                ],
+            )
+            results = eventstore.backend.get_events(
+                filter=event_filter,
+                dataset=Dataset.Transactions,
+                referrer=Referrer.API_GROUP_AI_AUTOFIX,
+                tenant_ids={"organization_id": project.organization_id},
+                limit=1,
+            )
+            if results:
+                profile_id = (
+                    results[0].data.get("contexts", {}).get("profile", {}).get("profile_id")
+                )
+
         if not profile_id:
             return None
 

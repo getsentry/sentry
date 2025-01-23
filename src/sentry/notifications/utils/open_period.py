@@ -16,7 +16,7 @@ def open_period_start_for_group(group: Group) -> datetime | None:
     latest_unresolved_activity: Activity | None = (
         Activity.objects.filter(
             group=group,
-            type=ActivityType.SET_UNRESOLVED.value,
+            type=ActivityType.SET_REGRESSION.value,
         )
         .order_by("-datetime")
         .first()

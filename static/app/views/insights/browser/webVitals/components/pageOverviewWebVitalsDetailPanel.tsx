@@ -40,6 +40,7 @@ import type {
 import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import useProfileExists from 'sentry/views/insights/browser/webVitals/utils/useProfileExists';
 import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {SpanIndexedField, type SubregionCode} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
@@ -86,6 +87,7 @@ export function PageOverviewWebVitalsDetailPanel({
   const organization = useOrganization();
   const routes = useRoutes();
   const {replayExists} = useReplayExists();
+  const domainViewFilters = useDomainViewFilters();
 
   const browserTypes = decodeBrowserTypes(location.query[SpanIndexedField.BROWSER_NAME]);
   const subregions = location.query[
@@ -224,6 +226,7 @@ export function PageOverviewWebVitalsDetailPanel({
         projectSlug,
         organization,
         location,
+        view: domainViewFilters.view,
         source: TraceViewSources.WEB_VITALS_MODULE,
       });
       return (
