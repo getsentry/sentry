@@ -92,6 +92,7 @@ export function AggregatesTable({
 
   const tableRef = useRef<HTMLTableElement>(null);
   const {initialTableStyles, onResizeMouseDown} = useTableStyles(fields, tableRef, {
+    minimumColumnWidth: 50,
     prefixColumnWidth: 'min-content',
   });
 
