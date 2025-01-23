@@ -12,9 +12,7 @@ from sentry.utils.cache import cache
 logger = logging.getLogger(__name__)
 
 
-# Read this to learn about file extensions for different languages
-# https://github.com/github/linguist/blob/master/lib/linguist/languages.yml
-# We only care about the ones that would show up in stacktraces after symbolication
+# We only care about extensions of files which would show up in stacktraces after symbolication
 SUPPORTED_EXTENSIONS = ["js", "jsx", "tsx", "ts", "mjs", "py", "rb", "rake", "php", "go", "cs"]
 EXCLUDED_EXTENSIONS = ["spec.jsx"]
 EXCLUDED_PATHS = ["tests/"]
@@ -97,53 +95,6 @@ class RepoTreesIntegration(ABC):
 
         return repositories
 
-    def _populate_trees_process_error(self, error: ApiError, extra: dict[str, str]) -> bool:
-        """
-        Log different messages based on the error received. Returns a boolean indicating whether
-        the error should count towards the connection errors tally.
-        """
-        msg = "Continuing execution."
-        should_count_error = False
-        error_message = error.text
-        if error.json:
-            json_data: Any = error.json
-            error_message = json_data.get("message")
-
-        # TODO: Add condition for  getsentry/DataForThePeople
-        # e.g. getsentry/nextjs-sentry-example
-        if error_message == "Git Repository is empty.":
-            logger.warning("The repository is empty. %s", msg, extra=extra)
-        elif error_message == "Not Found":
-            logger.warning("The app does not have access to the repo. %s", msg, extra=extra)
-        elif error_message == "Repository access blocked":
-            logger.warning("Github has blocked the repository. %s", msg, extra=extra)
-        elif error_message == "Server Error":
-            logger.warning("Github failed to respond. %s.", msg, extra=extra)
-            should_count_error = True
-        elif error_message == "Bad credentials":
-            logger.warning("No permission granted for this repo. %s.", msg, extra=extra)
-        elif error_message == "Connection reset by peer":
-            logger.warning("Connection reset by GitHub. %s.", msg, extra=extra)
-            should_count_error = True
-        elif error_message == "Connection broken: invalid chunk length":
-            logger.warning("Connection broken by chunk with invalid length. %s.", msg, extra=extra)
-            should_count_error = True
-        elif error_message and error_message.startswith("Unable to reach host:"):
-            logger.warning("Unable to reach host at the moment. %s.", msg, extra=extra)
-            should_count_error = True
-        elif error_message and error_message.startswith(
-            "Due to U.S. trade controls law restrictions, this GitHub"
-        ):
-            logger.warning("Github has blocked this org. We will not continue.", extra=extra)
-            # Raising the error will about the task and be handled at the task level
-            raise error
-        else:
-            # We do not raise the exception so we can keep iterating through the repos.
-            # Nevertheless, investigate the error to determine if we should abort the processing
-            logger.warning("Continuing execution. Investigate: %s", error_message, extra=extra)
-
-        return should_count_error
-
     def _populate_trees(self, repositories: Sequence[RepoAndBranch]) -> dict[str, RepoTree]:
         """
         For every repository, fetch the tree associated and cache it.
@@ -178,7 +129,7 @@ class RepoTreesIntegration(ABC):
                     repo_and_branch, use_cache, 3600 * (index % 24)
                 )
             except ApiError as error:
-                if self._populate_trees_process_error(error, extra):
+                if self.get_client().should_count_api_error(error, extra):
                     connection_error_count += 1
             except Exception:
                 # Report for investigation but do not stop processing
@@ -251,6 +202,10 @@ class RepoTreesClient(ABC):
 
     @abstractmethod
     def get_tree(self, repo_full_name: str, tree_sha: str) -> list[dict[str, Any]]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def should_count_api_error(self, error: ApiError, extra: dict[str, str]) -> bool:
         raise NotImplementedError
 
 

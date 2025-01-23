@@ -394,46 +394,32 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
 
         return repositories
 
-    # XXX: Drop this method
-    def _populate_trees_process_error(self, error: ApiError, extra: dict[str, str]) -> bool:
+    # Used by RepoTreesIntegration
+    def should_count_api_error(self, error: ApiError, extra: dict[str, str]) -> bool:
         """
-        Log different messages based on the error received. Returns a boolean indicating whether
-        the error should count towards the connection errors tally.
+        Returns a boolean indicating whether the error should count towards the connection errors tally.
         """
-        msg = "Continuing execution."
         should_count_error = False
-        error_message = error.text
-        if error.json:
-            json_data: Any = error.json
-            error_message = json_data.get("message")
+        error_message = error.json.get("message") if error.json else error.text
 
-        # TODO: Add condition for  getsentry/DataForThePeople
-        # e.g. getsentry/nextjs-sentry-example
-        if error_message == "Git Repository is empty.":
-            logger.warning("The repository is empty. %s", msg, extra=extra)
-        elif error_message == "Not Found":
-            logger.warning("The app does not have access to the repo. %s", msg, extra=extra)
-        elif error_message == "Repository access blocked":
-            logger.warning("Github has blocked the repository. %s", msg, extra=extra)
-        elif error_message == "Server Error":
-            logger.warning("Github failed to respond. %s.", msg, extra=extra)
-            should_count_error = True
-        elif error_message == "Bad credentials":
-            logger.warning("No permission granted for this repo. %s.", msg, extra=extra)
-        elif error_message == "Connection reset by peer":
-            logger.warning("Connection reset by GitHub. %s.", msg, extra=extra)
-            should_count_error = True
-        elif error_message == "Connection broken: invalid chunk length":
-            logger.warning("Connection broken by chunk with invalid length. %s.", msg, extra=extra)
-            should_count_error = True
-        elif error_message and error_message.startswith("Unable to reach host:"):
-            logger.warning("Unable to reach host at the moment. %s.", msg, extra=extra)
+        if error_message in (
+            "Git Repository is empty.",
+            "Not Found.",  # The app does not have access to the repo
+            "Repository access blocked",  # GitHub has blocked the repository
+            "Bad credentials",  # No permission granted for this repo
+        ):
+            logger.warning(error_message, extra=extra)
+        elif error_message in (
+            "Server Error",  # Github failed to respond
+            "Connection reset by peer",  # Connection reset by GitHub
+            "Connection broken: invalid chunk length",  # Connection broken by chunk with invalid length
+            "Unable to reach host:",  # Unable to reach host at the moment
+        ):
             should_count_error = True
         elif error_message and error_message.startswith(
             "Due to U.S. trade controls law restrictions, this GitHub"
         ):
-            logger.warning("Github has blocked this org. We will not continue.", extra=extra)
-            # Raising the error will about the task and be handled at the task level
+            # Raising the error will stop execution and let the task handle it
             raise error
         else:
             # We do not raise the exception so we can keep iterating through the repos.
@@ -483,7 +469,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
                     repo_info, only_use_cache, (3600 * 24) + (3600 * (index % 24))
                 )
             except ApiError as error:
-                should_count_error = self._populate_trees_process_error(error, extra)
+                should_count_error = self.should_count_api_error(error, extra)
                 if should_count_error:
                     connection_error_count += 1
             except Exception:
