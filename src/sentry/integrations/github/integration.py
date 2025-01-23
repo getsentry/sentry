@@ -229,7 +229,18 @@ class GitHubIntegration(RepositoryIntegration, GitHubIssuesSpec, CommitContextIn
 
     def get_repositories(
         self, query: str | None = None, fetch_max_pages: bool = False
-    ) -> Sequence[Mapping[str, Any]]:
+    ) -> list[dict[str, Any]]:
+        """
+        args:
+         * fetch_max_pages - fetch as many repos as possible using pagination (slow)
+
+        This fetches all repositories accessible to the Github App
+        https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation
+
+        It uses page_size from the base class to specify how many items per page.
+        The upper bound of requests is controlled with self.page_number_limit to prevent infinite requests.
+        """
+
         """
         This fetches all repositories accessible to a Github App
         https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation
@@ -237,13 +248,20 @@ class GitHubIntegration(RepositoryIntegration, GitHubIssuesSpec, CommitContextIn
         per_page: The number of results per page (max 100; default 30).
         """
         if not query:
+            # XXX: In order to speed up this function we will need to parallelize this
+            # Use ThreadPoolExecutor; see src/sentry/utils/snuba.py#L358
+            repos = self.get_client().get_with_pagination(
+                "/installation/repositories",
+                response_key="repositories",
+                page_number_limit=self.page_number_limit if fetch_max_pages else 1,
+            )
             return [
                 {
                     "name": i["name"],
                     "identifier": i["full_name"],
                     "default_branch": i.get("default_branch"),
                 }
-                for i in self.get_client().get_repositories(fetch_max_pages)
+                for i in [repo for repo in repos if not repo.get("archived")]
             ]
 
         full_query = build_repository_query(self.model.metadata, self.model.name, query)
@@ -422,7 +440,7 @@ def record_event(event: IntegrationPipelineViewType):
 
 
 class OAuthLoginView(PipelineView):
-    def dispatch(self, request: Request, pipeline) -> HttpResponseBase:
+    def dispatch(self, request: Request, pipeline: Pipeline) -> HttpResponseBase:
         with record_event(IntegrationPipelineViewType.OAUTH_LOGIN).capture() as lifecycle:
             self.determine_active_organization(request)
             lifecycle.add_extra(

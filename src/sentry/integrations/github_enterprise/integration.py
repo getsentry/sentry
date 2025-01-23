@@ -181,7 +181,7 @@ class GitHubEnterpriseIntegration(
 
     # RepositoryIntegration methods
 
-    def get_repositories(self, query=None):
+    def get_repositories(self, query: str | None = None, **kwargs: Any) -> list[dict[str, Any]]:
         if not query:
             return [
                 {

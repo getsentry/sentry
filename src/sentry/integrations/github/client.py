@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Any, cast
+from typing import Any
 
 import orjson
 import sentry_sdk
@@ -95,7 +95,7 @@ class GithubProxyClient(IntegrationProxyClient):
             },
         )
         data = self.post(f"/app/installations/{self._get_installation_id()}/access_tokens")
-        access_token = cast(str, data["token"])
+        access_token = data["token"]
         expires_at = datetime.strptime(data["expires_at"], "%Y-%m-%dT%H:%M:%SZ").isoformat()
         integration.metadata.update({"access_token": access_token, "expires_at": expires_at})
         integration.save()
@@ -492,26 +492,6 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient)
             full_name, branch, only_use_cache=only_use_cache, cache_seconds=cache_seconds
         )
         return RepoTree(Repo(full_name, branch), repo_files)
-
-    def get_repositories(self, fetch_max_pages: bool = False) -> Sequence[Any]:
-        """
-        args:
-         * fetch_max_pages - fetch as many repos as possible using pagination (slow)
-
-        This fetches all repositories accessible to the Github App
-        https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation
-
-        It uses page_size from the base class to specify how many items per page.
-        The upper bound of requests is controlled with self.page_number_limit to prevent infinite requests.
-        """
-        # XXX: In order to speed up this function we will need to parallelize this
-        # Use ThreadPoolExecutor; see src/sentry/utils/snuba.py#L358
-        repos = self.get_with_pagination(
-            "/installation/repositories",
-            response_key="repositories",
-            page_number_limit=self.page_number_limit if fetch_max_pages else 1,
-        )
-        return [repo for repo in repos if not repo.get("archived")]
 
     # XXX: Find alternative approach
     def search_repositories(self, query: bytes) -> Mapping[str, Sequence[Any]]:

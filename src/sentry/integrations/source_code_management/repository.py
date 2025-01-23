@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from typing import Any
 
 import sentry_sdk
@@ -21,7 +21,7 @@ from sentry.users.models.identity import Identity
 
 class BaseRepositoryIntegration(ABC):
     @abstractmethod
-    def get_repositories(self, query: str | None = None) -> Sequence[dict[str, Any]]:
+    def get_repositories(self, query: str | None = None, **kwargs: Any) -> list[dict[str, Any]]:
         """
         Get a list of available repositories for an installation
 
@@ -36,6 +36,8 @@ class BaseRepositoryIntegration(ABC):
         The shape of the `identifier` should match the data
         returned by the integration's
         IntegrationRepositoryProvider.repository_external_slug()
+
+        You can use the `query` argument to filter repositories.
         """
         raise NotImplementedError
 
@@ -94,7 +96,7 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
         """
         return []
 
-    def record_event(self, event: SCMIntegrationInteractionType):
+    def record_event(self, event: SCMIntegrationInteractionType) -> SCMIntegrationInteractionEvent:
         return SCMIntegrationInteractionEvent(
             interaction_type=event,
             provider_key=self.integration_name,
@@ -158,7 +160,7 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
                 {
                     "filepath": filepath,
                     "default": default,
-                    "version": version,
+                    "version": version or "",
                     "organization_id": repo.organization_id,
                 }
             )
@@ -195,7 +197,7 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
         ).capture() as lifecycle:
             lifecycle.add_extras(
                 {
-                    "ref": ref,
+                    "ref": ref or "",
                     "organization_id": repo.organization_id,
                 }
             )
