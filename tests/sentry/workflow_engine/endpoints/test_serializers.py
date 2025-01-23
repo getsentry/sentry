@@ -293,8 +293,8 @@ class TestWorkflowSerializer(TestCase):
             "config": {},
             "dateCreated": workflow.date_added,
             "dateUpdated": workflow.date_updated,
-            "triggerConditionGroup": None,
-            "dataConditionGroups": [],
+            "triggers": None,
+            "actionFilters": [],
             "environment": None,
         }
 
@@ -343,7 +343,7 @@ class TestWorkflowSerializer(TestCase):
             "config": {},
             "dateCreated": workflow.date_added,
             "dateUpdated": workflow.date_updated,
-            "triggerConditionGroup": {
+            "triggers": {
                 "id": str(when_condition_group.id),
                 "organizationId": str(self.organization.id),
                 "logicType": DataConditionGroup.Type.ANY.value,
@@ -357,7 +357,7 @@ class TestWorkflowSerializer(TestCase):
                 ],
                 "actions": [],
             },
-            "dataConditionGroups": [
+            "actionFilters": [
                 {
                     "id": str(condition_group.id),
                     "organizationId": str(self.organization.id),
