@@ -54,7 +54,15 @@ export function useSamplesDrawer({
 
   const shouldCloseOnLocationChange = useCallback(
     (newLocation: Location) => {
-      return !requiredParams.some(paramName => Boolean(newLocation.query[paramName]));
+      if (!requiredParams.every(paramName => Boolean(newLocation.query[paramName]))) {
+        return true;
+      }
+
+      if (newLocation.pathname.includes('/trace/')) {
+        return true;
+      }
+
+      return false;
     },
     [requiredParams]
   );

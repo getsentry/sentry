@@ -53,7 +53,7 @@ interface Props {
   widgetType: WidgetType;
   dashboardFilters?: DashboardFilters;
   projectIds?: number[] | readonly number[];
-  queryErrors?: Record<string, any>[];
+  queryErrors?: Array<Record<string, any>>;
 }
 
 export function FilterResultsStep({
@@ -224,7 +224,7 @@ export function FilterResultsStep({
   );
 }
 
-function WidgetOnDemandQueryWarning(props: {
+export function WidgetOnDemandQueryWarning(props: {
   query: WidgetQuery;
   queryIndex: number;
   validatedWidgetResponse: Props['validatedWidgetResponse'];

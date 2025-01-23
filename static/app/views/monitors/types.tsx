@@ -173,7 +173,7 @@ export interface CheckIn {
   /**
    * Groups associated to this check-in (determiend by traceId)
    */
-  groups?: {id: number; shortId: string}[];
+  groups?: Array<{id: number; shortId: string}>;
 }
 
 type StatsBucket = {

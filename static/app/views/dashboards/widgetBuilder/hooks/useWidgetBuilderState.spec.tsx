@@ -71,12 +71,16 @@ describe('useWidgetBuilderState', () => {
     jest.runAllTimers();
 
     expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({query: expect.objectContaining({title: 'new title'})})
+      expect.objectContaining({
+        query: expect.objectContaining({title: 'new title'}),
+      }),
+      {replace: true}
     );
     expect(mockNavigate).toHaveBeenCalledWith(
       expect.objectContaining({
         query: expect.objectContaining({description: 'new description'}),
-      })
+      }),
+      {replace: true}
     );
   });
 
@@ -126,7 +130,8 @@ describe('useWidgetBuilderState', () => {
       expect(mockNavigate).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({displayType: DisplayType.AREA}),
-        })
+        }),
+        {replace: true}
       );
     });
 
@@ -635,7 +640,8 @@ describe('useWidgetBuilderState', () => {
       expect(mockNavigate).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({dataset: WidgetType.METRICS}),
-        })
+        }),
+        {replace: true}
       );
     });
 
@@ -1107,6 +1113,36 @@ describe('useWidgetBuilderState', () => {
 
       expect(result.current.state.sort).toEqual([{field: 'notInFields', kind: 'desc'}]);
     });
+
+    it('adds a default sort when adding a grouping for a timeseries chart', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.LINE,
+            field: [],
+            yAxis: ['count()'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.yAxis).toEqual([
+        {function: ['count', '', undefined, undefined], kind: 'function'},
+      ]);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_FIELDS,
+          payload: [{field: 'browser.name', kind: FieldValueKind.FIELD}],
+        });
+      });
+
+      // The y-axis takes priority
+      expect(result.current.state.sort).toEqual([{field: 'count()', kind: 'desc'}]);
+    });
   });
 
   describe('yAxis', () => {
@@ -1145,6 +1181,36 @@ describe('useWidgetBuilderState', () => {
           kind: 'function',
         },
       ]);
+    });
+
+    it('clears the sort when the y-axis changes and there is no grouping', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.LINE,
+            field: [],
+            yAxis: ['count()'],
+            sort: ['-count()'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.sort).toEqual([{field: 'count()', kind: 'desc'}]);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_Y_AXIS,
+          payload: [
+            {function: ['count_unique', 'user', undefined, undefined], kind: 'function'},
+          ],
+        });
+      });
+
+      expect(result.current.state.sort).toEqual([]);
     });
   });
 
@@ -1287,7 +1353,8 @@ describe('useWidgetBuilderState', () => {
       expect(mockNavigate).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({selectedAggregate: undefined}),
-        })
+        }),
+        {replace: true}
       );
     });
   });

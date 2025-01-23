@@ -229,17 +229,6 @@ class BaseRequestParser:
 
         return HttpResponse(status=status.HTTP_202_ACCEPTED)
 
-    def get_response_from_webhookpayload_for_integration(
-        self, regions: Sequence[Region], integration: Integration | RpcIntegration
-    ):
-        """
-        Used to create outboxes for provided regions to handle the webhooks asynchronously.
-        Responds to the webhook provider with a 202 Accepted status.
-        """
-        return self.get_response_from_webhookpayload(
-            regions=regions, identifier=integration.id, integration_id=integration.id
-        )
-
     def get_mailbox_identifier(
         self, integration: RpcIntegration | Integration, data: Mapping[str, Any]
     ) -> str:

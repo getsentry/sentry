@@ -380,7 +380,7 @@ type Props = WithRouterProps &
     /**
      * Projects that the search bar queries over
      */
-    projectIds?: number[] | Readonly<number[]>;
+    projectIds?: number[] | readonly number[];
     /**
      * Indicates the usage of the search bar for analytics
      */
@@ -644,7 +644,7 @@ class DeprecatedSmartSearchBar extends Component<DefaultProps & Props, State> {
     }
   }
 
-  moveToNextToken = (filterTokens: TokenResult<Token.FILTER>[]) => {
+  moveToNextToken = (filterTokens: Array<TokenResult<Token.FILTER>>) => {
     const token = this.cursorToken;
 
     if (this.searchInput.current && filterTokens.length > 0) {
@@ -1229,9 +1229,9 @@ class DeprecatedSmartSearchBar extends Component<DefaultProps & Props, State> {
     };
   }
 
-  get filterTokens(): TokenResult<Token.FILTER>[] {
+  get filterTokens(): Array<TokenResult<Token.FILTER>> {
     return (this.state.parsedQuery?.filter(tok => tok.type === Token.FILTER) ??
-      []) as TokenResult<Token.FILTER>[];
+      []) as Array<TokenResult<Token.FILTER>>;
   }
 
   /**

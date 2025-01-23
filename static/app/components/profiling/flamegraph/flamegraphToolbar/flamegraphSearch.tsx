@@ -144,8 +144,8 @@ function findBestMatchFromRegexpMatchArray(
 
 function yieldingRafFrameSearch(
   query: string,
-  spans: ReadonlyArray<SpanChartNode>,
-  frames: ReadonlyArray<FlamegraphFrame>,
+  spans: readonly SpanChartNode[],
+  frames: readonly FlamegraphFrame[],
   cb: (results: FlamegraphSearchResults['results']) => void
 ): {id: number} {
   const raf = {id: 0};
@@ -231,7 +231,7 @@ function sortFrameResults(
   }
 
   let fid = -1;
-  const frames: Array<FlamegraphFrame> = new Array(results.frames.size);
+  const frames: FlamegraphFrame[] = new Array(results.frames.size);
   for (const n of results.frames.values()) {
     frames[++fid] = n.frame;
   }

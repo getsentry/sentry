@@ -77,7 +77,7 @@ type Props = {
   loading: boolean;
   type: ChartType;
   aggregateOutputFormat?: AggregationOutputType;
-  chartColors?: string[] | ReadonlyArray<string>;
+  chartColors?: string[] | readonly string[];
   chartGroup?: string;
   dataMax?: number;
   definedAxisTicks?: number;
@@ -108,7 +108,7 @@ type Props = {
   scatterPlot?: Series[];
   showLegend?: boolean;
   stacked?: boolean;
-  throughput?: {count: number; interval: string}[];
+  throughput?: Array<{count: number; interval: string}>;
   tooltipFormatterOptions?: FormatterOptions;
 };
 
@@ -143,11 +143,7 @@ function Chart({
   onLegendSelectChanged,
   onDataZoom,
   legendOptions,
-  /**
-   * Setting a default formatter for some reason causes `>` to
-   * render correctly instead of rendering as `&gt;` in the legend.
-   */
-  legendFormatter = name => name,
+  legendFormatter,
 }: Props) {
   const theme = useTheme();
   const pageFilters = usePageFilters();
@@ -355,7 +351,13 @@ function Chart({
   };
 
   const legend = isLegendVisible
-    ? {top: 0, right: 10, formatter: legendFormatter, ...legendOptions}
+    ? {
+        top: 0,
+        right: 10,
+        truncate: true,
+        formatter: legendFormatter,
+        ...legendOptions,
+      }
     : undefined;
 
   const areaChartProps = {

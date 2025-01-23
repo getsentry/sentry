@@ -34,6 +34,7 @@ function getReferrer(displayType: DisplayType) {
 }
 
 export type OnDataFetchedProps = {
+  confidence?: Confidence;
   pageLinks?: string;
   tableResults?: TableDataWithTitle[];
   timeseriesResults?: Series[];
@@ -130,7 +131,10 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
     // Also don't count empty fields when checking for field changes
     const previousQueries = prevProps.widget.queries;
     const [prevWidgetQueryNames, prevWidgetQueries] = previousQueries.reduce(
-      ([names, queries]: [string[], Omit<WidgetQuery, 'name'>[]], {name, ...rest}) => {
+      (
+        [names, queries]: [string[], Array<Omit<WidgetQuery, 'name'>>],
+        {name, ...rest}
+      ) => {
         names.push(name);
         rest.fields = rest.fields?.filter(field => !!field) ?? [];
 
@@ -144,7 +148,10 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
 
     const nextQueries = widget.queries;
     const [widgetQueryNames, widgetQueries] = nextQueries.reduce(
-      ([names, queries]: [string[], Omit<WidgetQuery, 'name'>[]], {name, ...rest}) => {
+      (
+        [names, queries]: [string[], Array<Omit<WidgetQuery, 'name'>>],
+        {name, ...rest}
+      ) => {
         names.push(name);
         rest.fields = rest.fields?.filter(field => !!field) ?? [];
 

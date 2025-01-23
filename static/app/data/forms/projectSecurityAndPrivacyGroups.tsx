@@ -43,14 +43,20 @@ function hasProjectWriteAndOrgOverride({
 function projectWriteAndOrgOverrideDisabledReason({
   organization,
   name,
+  project,
 }: {
   name: string;
   organization: Organization;
+  project: Project;
 }) {
   if (hasOrgOverride({organization, name})) {
     return t(
       "This option is enforced by your organization's settings and cannot be customized per-project."
     );
+  }
+
+  if (!hasEveryAccess(['project:write'], {organization, project})) {
+    return t("You do not have permission to modify this project's setting.");
   }
 
   return null;
@@ -61,6 +67,8 @@ const formGroups: JsonFormObject[] = [
     title: t('Security & Privacy'),
     fields: [
       {
+        disabled: hasProjectWriteAndOrgOverride,
+        disabledReason: projectWriteAndOrgOverrideDisabledReason,
         name: 'storeCrashReports',
         type: 'select',
         label: t('Store Minidumps As Attachments'),
@@ -74,9 +82,10 @@ const formGroups: JsonFormObject[] = [
             }
           ),
         visible: ({features}) => features.has('event-attachments'),
-        placeholder: ({organization, value}) => {
+        placeholder: ({organization, name, model}) => {
+          const value = model.getValue(name);
           // empty value means that this project should inherit organization settings
-          if (value === '') {
+          if (value === null) {
             return tct('Inherit organization settings ([organizationValue])', {
               organizationValue: formatStoreCrashReports(organization.storeCrashReports),
             });

@@ -17,14 +17,12 @@ export const DEFAULT_FLAMEGRAPH_RENDERER_OPTIONS: FlamegraphRendererOptions = {
   draw_border: false,
 };
 
-export interface FlamegraphRendererConstructor {
-  new (
-    canvas: HTMLCanvasElement,
-    flamegraph: Flamegraph,
-    theme: FlamegraphTheme,
-    options?: FlamegraphRendererOptions
-  ): FlamegraphRenderer;
-}
+export type FlamegraphRendererConstructor = new (
+  canvas: HTMLCanvasElement,
+  flamegraph: Flamegraph,
+  theme: FlamegraphTheme,
+  options?: FlamegraphRendererOptions
+) => FlamegraphRenderer;
 
 export abstract class FlamegraphRenderer {
   ctx: CanvasRenderingContext2D | WebGLRenderingContext | null = null;
@@ -33,10 +31,10 @@ export abstract class FlamegraphRenderer {
   theme: FlamegraphTheme;
   options: FlamegraphRendererOptions;
 
-  frames: ReadonlyArray<FlamegraphFrame>;
-  roots: ReadonlyArray<FlamegraphFrame>;
+  frames: readonly FlamegraphFrame[];
+  roots: readonly FlamegraphFrame[];
 
-  colorBuffer: Array<number>;
+  colorBuffer: number[];
   colorMap: Map<string | number | FlamegraphFrame['node'], number[]>;
 
   isDifferentialFlamegraph: boolean = false;

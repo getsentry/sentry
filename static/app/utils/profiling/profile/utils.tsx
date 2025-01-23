@@ -105,7 +105,7 @@ export function createFrameIndex(
 ): FrameIndex;
 export function createFrameIndex(
   type: 'mobile' | 'node' | 'javascript',
-  frames: Readonly<JSSelfProfiling.Frame[]>,
+  frames: readonly JSSelfProfiling.Frame[],
   trace: Readonly<JSSelfProfiling.Trace>
 ): FrameIndex;
 export function createFrameIndex(
@@ -145,7 +145,7 @@ export function createFrameIndex(
   }, {});
 }
 
-type Cache<Arguments extends ReadonlyArray<any> | any, Value> = {
+type Cache<Arguments extends readonly any[] | any, Value> = {
   args: Arguments;
   value: Value;
 };
@@ -229,7 +229,7 @@ export const isApplicationCall = (node: CallTreeNode): boolean => {
 };
 
 function indexNodeToParents(
-  roots: Readonly<FlamegraphFrame[]>,
+  roots: readonly FlamegraphFrame[],
   map: Record<string, FlamegraphFrame[]>,
   leafs: FlamegraphFrame[]
 ) {
@@ -271,7 +271,7 @@ function indexNodeToParents(
 }
 
 function reverseTrail(
-  nodes: Readonly<FlamegraphFrame[]>,
+  nodes: readonly FlamegraphFrame[],
   parentMap: Record<string, FlamegraphFrame[]>
 ): FlamegraphFrame[] {
   const splits: FlamegraphFrame[] = [];
@@ -297,7 +297,7 @@ function reverseTrail(
   return splits;
 }
 
-export const invertCallTree = (roots: Readonly<FlamegraphFrame[]>): FlamegraphFrame[] => {
+export const invertCallTree = (roots: readonly FlamegraphFrame[]): FlamegraphFrame[] => {
   const nodeToParentIndex: Record<string, FlamegraphFrame[]> = {};
   const leafNodes: FlamegraphFrame[] = [];
 
@@ -307,7 +307,7 @@ export const invertCallTree = (roots: Readonly<FlamegraphFrame[]>): FlamegraphFr
 };
 
 export function resolveFlamegraphSamplesProfileIds(
-  samplesProfiles: Readonly<number[][]>,
+  samplesProfiles: readonly number[][],
   profileIds: Profiling.ProfileReference[]
 ): Profiling.ProfileReference[][] {
   return samplesProfiles.map(profileIdIndices => {
@@ -320,7 +320,7 @@ interface SortableProfileSample {
 }
 
 export function sortProfileSamples<S extends SortableProfileSample>(
-  samples: Readonly<S[]>,
+  samples: readonly S[],
   stacks: Readonly<Profiling.SentrySampledProfile['profile']['stacks']>,
   frames: Readonly<Profiling.SentrySampledProfile['profile']['frames']>,
   frameFilter?: (i: number) => boolean

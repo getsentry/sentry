@@ -39,7 +39,7 @@ class DeriveCodeMappingsErrorReason(StrEnum):
     EMPTY_TREES = "The trees are empty."
 
 
-def process_error(error: ApiError, extra: dict[str, str]) -> None:
+def process_error(error: ApiError, extra: dict[str, Any]) -> None:
     """Log known issues and report unknown ones"""
     if error.json:
         json_data: Any = error.json
@@ -79,24 +79,15 @@ def process_error(error: ApiError, extra: dict[str, str]) -> None:
     )
 
 
-# XXX: To be deleted after queue is empty
-@instrumented_task(
-    name="sentry.tasks.derive_code_mappings.derive_code_mappings",
-    queue="derive_code_mappings",
-    default_retry_delay=60 * 10,
-    max_retries=3,
-)
-def derive_code_mappings(project_id: int, event_id: str, **kwargs: Any) -> None:
-    auto_source_code_config(project_id, event_id=event_id, **kwargs)
-
-
 @instrumented_task(
     name="sentry.tasks.auto_source_code_config",
     queue="auto_source_code_config",
     default_retry_delay=60 * 10,
     max_retries=3,
 )
-def auto_source_code_config(project_id: int, event_id: str, **kwargs: Any) -> None:
+def auto_source_code_config(
+    project_id: int, event_id: str, group_id: int | None = None, **kwargs: Any
+) -> None:
     """
     Process errors for customers with source code management installed and calculate code mappings
     among other things.
@@ -104,19 +95,27 @@ def auto_source_code_config(project_id: int, event_id: str, **kwargs: Any) -> No
     This task is queued at most once per hour per project.
     """
     project = Project.objects.get(id=project_id)
-    org: Organization = Organization.objects.get(id=project.organization_id)
+    org = Organization.objects.get(id=project.organization_id)
     set_tag("organization.slug", org.slug)
     # When you look at the performance page the user is a default column
     set_user({"username": org.slug})
     set_tag("project.slug", project.slug)
-    extra: dict[str, Any] = {"organization.slug": org.slug, "event_id": event_id}
+    extra = {
+        "organization.slug": org.slug,
+        "project_id": project_id,
+        "group_id": group_id,
+        "event_id": event_id,
+    }
 
-    event = eventstore.backend.get_event_by_id(project_id, event_id)
+    if group_id is None:
+        event = eventstore.backend.get_event_by_id(project_id, event_id)
+    else:
+        event = eventstore.backend.get_event_by_id(project_id, event_id, group_id)
     if event is None:
-        logger.error("Event not found.", extra={"project_id": project_id, "event_id": event_id})
+        logger.error("Event not found.", extra=extra)
         return
 
-    stacktrace_paths: list[str] = identify_stacktrace_paths(event.data)
+    stacktrace_paths = identify_stacktrace_paths(event.data)
     if not stacktrace_paths:
         logger.info("No stacktrace paths found.", extra=extra)
         return
@@ -144,7 +143,7 @@ def auto_source_code_config(project_id: int, event_id: str, **kwargs: Any) -> No
             lifecycle.record_halt(error, extra)
             return
         except UnableToAcquireLock as error:
-            extra["error"] = error
+            extra["error"] = str(error)
             lifecycle.record_failure(error, extra)
             return
         except Exception:

@@ -83,7 +83,7 @@ export type LocationQuery = {
 
 const DATETIME_QUERY_STRING_KEYS = ['start', 'end', 'utc', 'statsPeriod'] as const;
 
-const EXTERNAL_QUERY_STRING_KEYS: Readonly<Array<keyof LocationQuery>> = [
+const EXTERNAL_QUERY_STRING_KEYS: ReadonlyArray<keyof LocationQuery> = [
   ...DATETIME_QUERY_STRING_KEYS,
   'cursor',
 ];
@@ -142,7 +142,7 @@ export function isFieldSortable(
   return !!getSortKeyFromField(field, tableMeta, useFunctionFormat);
 }
 
-const decodeFields = (location: Location): Array<Field> => {
+const decodeFields = (location: Location): Field[] => {
   const {query} = location;
   if (!query || !query.field) {
     return [];
@@ -176,8 +176,7 @@ export const encodeSort = (sort: Sort): string => {
   }
 };
 
-const encodeSorts = (sorts: Readonly<Array<Sort>>): Array<string> =>
-  sorts.map(encodeSort);
+const encodeSorts = (sorts: readonly Sort[]): string[] => sorts.map(encodeSort);
 
 // TODO(__SENTRY_USING_REACT_ROUTER_SIX): This is needed to translate query
 // objects that have non-string values and single-element arrays to match what
@@ -204,10 +203,10 @@ function stringifyQueryParams(
   }
 }
 
-const collectQueryStringByKey = (query: Query, key: string): Array<string> => {
+const collectQueryStringByKey = (query: Query, key: string): string[] => {
   const needle = query[key];
   const collection = decodeList(needle);
-  return collection.reduce((acc: Array<string>, item: string) => {
+  return collection.reduce((acc: string[], item: string) => {
     item = item.trim();
 
     if (item.length > 0) {
@@ -235,7 +234,7 @@ const decodeTeam = (value: string): 'myteams' | number => {
   return parseInt(value, 10);
 };
 
-const decodeTeams = (location: Location): ('myteams' | number)[] => {
+const decodeTeams = (location: Location): Array<'myteams' | number> => {
   if (!location.query || !location.query.team) {
     return [];
   }
@@ -269,16 +268,16 @@ export type EventViewOptions = {
   createdBy: User | undefined;
   display: string | undefined;
   end: string | undefined;
-  environment: Readonly<string[]>;
-  fields: Readonly<Field[]>;
+  environment: readonly string[];
+  fields: readonly Field[];
   id: string | undefined;
   name: string | undefined;
-  project: Readonly<number[]>;
+  project: readonly number[];
   query: string;
-  sorts: Readonly<Sort[]>;
+  sorts: readonly Sort[];
   start: string | undefined;
   statsPeriod: string | undefined;
-  team: Readonly<('myteams' | number)[]>;
+  team: ReadonlyArray<'myteams' | number>;
   topEvents: string | undefined;
   additionalConditions?: MutableSearch;
   dataset?: DiscoverDatasets;
@@ -291,16 +290,16 @@ export type EventViewOptions = {
 class EventView {
   id: string | undefined;
   name: string | undefined;
-  fields: Readonly<Field[]>;
-  sorts: Readonly<Sort[]>;
+  fields: readonly Field[];
+  sorts: readonly Sort[];
   query: string;
-  team: Readonly<('myteams' | number)[]>;
-  project: Readonly<number[]>;
+  team: ReadonlyArray<'myteams' | number>;
+  project: readonly number[];
   start: string | undefined;
   end: string | undefined;
   statsPeriod: string | undefined;
   utc?: string | boolean | undefined;
-  environment: Readonly<string[]>;
+  environment: readonly string[];
   yAxis: string | string[] | undefined;
   display: string | undefined;
   topEvents: string | undefined;
@@ -779,7 +778,7 @@ class EventView {
     return this.fields.length;
   }
 
-  getColumns(): TableColumn<React.ReactText>[] {
+  getColumns(): Array<TableColumn<React.ReactText>> {
     return decodeColumnOrder(this.fields);
   }
 
@@ -1070,13 +1069,13 @@ class EventView {
     return newEventView;
   }
 
-  withTeams(teams: ('myteams' | number)[]): EventView {
+  withTeams(teams: Array<'myteams' | number>): EventView {
     const newEventView = this.clone();
     newEventView.team = teams;
     return newEventView;
   }
 
-  getSorts(): TableColumnSort<React.ReactText>[] {
+  getSorts(): Array<TableColumnSort<React.ReactText>> {
     return this.sorts.map(
       sort =>
         ({
@@ -1358,7 +1357,7 @@ class EventView {
     return newEventView;
   }
 
-  getYAxisOptions(): SelectValue<string>[] {
+  getYAxisOptions(): Array<SelectValue<string>> {
     // Make option set and add the default options in.
     return uniqBy(
       this.getAggregateFields()
@@ -1399,7 +1398,7 @@ class EventView {
     return defaultOption;
   }
 
-  getDisplayOptions(): SelectValue<string>[] {
+  getDisplayOptions(): Array<SelectValue<string>> {
     return DISPLAY_MODE_OPTIONS.map(item => {
       if (item.value === DisplayModes.PREVIOUS) {
         if (this.start || this.end) {
@@ -1501,8 +1500,8 @@ class EventView {
 export type ImmutableEventView = Readonly<Omit<EventView, 'additionalConditions'>>;
 
 export const isFieldsSimilar = (
-  currentValue: Array<string>,
-  otherValue: Array<string>
+  currentValue: string[],
+  otherValue: string[]
 ): boolean => {
   // For equation's their order matters because we alias them based on index
   const currentEquations = currentValue.filter(isEquation);

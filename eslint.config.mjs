@@ -25,6 +25,7 @@ import simpleImportSort from 'eslint-plugin-simple-import-sort';
 import testingLibrary from 'eslint-plugin-testing-library';
 // @ts-expect-error TS (7016): Could not find a declaration file
 import typescriptSortKeys from 'eslint-plugin-typescript-sort-keys';
+import unicorn from 'eslint-plugin-unicorn';
 import globals from 'globals';
 import invariant from 'invariant';
 // biome-ignore lint/correctness/noNodejsModules: Need to get the list of things!
@@ -236,6 +237,7 @@ export default typescript.config([
       'consistent-return': 'error',
       'default-case': 'error',
       'dot-notation': 'error',
+      eqeqeq: 'error',
       'guard-for-in': 'off', // TODO(ryan953): Fix violations and enable this rule
       'multiline-comment-style': ['error', 'separate-lines'],
       'no-alert': 'error',
@@ -268,6 +270,7 @@ export default typescript.config([
       'no-sequences': 'error',
       'no-throw-literal': 'error',
       'object-shorthand': ['error', 'properties'],
+      radix: 'error',
       'require-await': 'error', // Enabled in favor of @typescript-eslint/require-await, which requires type info
       'spaced-comment': [
         'error',
@@ -277,21 +280,17 @@ export default typescript.config([
           block: {exceptions: ['*'], balanced: true},
         },
       ],
+      strict: 'error',
       'vars-on-top': 'off',
       'wrap-iife': ['error', 'any'],
-      radix: 'error',
-      strict: 'error',
       yoda: 'error',
 
       // https://github.com/eslint/eslint/blob/main/packages/js/src/configs/eslint-recommended.js
       ...eslint.configs.recommended.rules,
       'no-cond-assign': ['error', 'always'],
       'no-case-declarations': 'off', // TODO(ryan953): Fix violations and delete this line
-      'no-dupe-class-members': 'off', // TODO(ryan953): Fix violations and delete this line
-      'no-import-assign': 'off', // TODO(ryan953): Fix violations and delete this line
       'no-prototype-builtins': 'off', // TODO(ryan953): Fix violations and delete this line
       'no-unsafe-optional-chaining': 'off', // TODO(ryan953): Fix violations and delete this line
-      'no-useless-catch': 'off', // TODO(ryan953): Fix violations and delete this line
       'no-useless-escape': 'off', // TODO(ryan953): Fix violations and delete this line
     },
   },
@@ -306,6 +305,7 @@ export default typescript.config([
       'import/no-anonymous-default-export': 'error',
       'import/no-duplicates': 'error',
       'import/no-named-default': 'error',
+      'import/no-nodejs-modules': 'error',
       'import/no-webpack-loader-syntax': 'error',
 
       // https://github.com/import-js/eslint-plugin-import/blob/main/config/recommended.js
@@ -369,6 +369,7 @@ export default typescript.config([
         {selector: 'typeLike', format: ['PascalCase'], leadingUnderscore: 'allow'},
         {selector: 'enumMember', format: ['UPPER_CASE']},
       ],
+
       '@typescript-eslint/no-restricted-types': [
         'error',
         {
@@ -392,6 +393,7 @@ export default typescript.config([
       ],
       '@typescript-eslint/no-shadow': 'error',
       '@typescript-eslint/no-use-before-define': 'off', // Enabling this will cause a lot of thrash to the git history
+      '@typescript-eslint/no-useless-empty-export': 'error',
     },
   },
   // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/base.ts
@@ -406,8 +408,8 @@ export default typescript.config([
     // https://typescript-eslint.io/rules/
     plugins: {'@typescript-eslint': typescript.plugin},
     rules: {
-      'no-var': 'off', // TODO(ryan953): Fix violations and delete this line
       'prefer-spread': 'off', // TODO(ryan953): Fix violations and delete this line
+      '@typescript-eslint/prefer-enum-initializers': 'error',
 
       // Recommended overrides
       '@typescript-eslint/ban-ts-comment': 'off', // TODO(ryan953): Fix violations and delete this line
@@ -420,18 +422,16 @@ export default typescript.config([
       '@typescript-eslint/no-require-imports': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-this-alias': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-unsafe-function-type': 'off', // TODO(ryan953): Fix violations and delete this line
-      '@typescript-eslint/no-unused-expressions': 'off', // TODO(ryan953): Fix violations and delete this line
 
       // Strict overrides
       '@typescript-eslint/no-dynamic-delete': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-extraneous-class': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-invalid-void-type': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-non-null-assertion': 'off', // TODO(ryan953): Fix violations and delete this line
-      '@typescript-eslint/prefer-literal-enum-member': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/unified-signatures': 'off', // TODO(ryan953): Fix violations and delete this line
 
       // Stylistic overrides
-      '@typescript-eslint/array-type': 'off', // TODO(ryan953): Fix violations and delete this line
+      '@typescript-eslint/array-type': ['error', {default: 'array-simple'}],
       '@typescript-eslint/class-literal-property-style': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/consistent-generic-constructors': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/consistent-indexed-object-style': 'off', // TODO(ryan953): Fix violations and delete this line
@@ -439,7 +439,6 @@ export default typescript.config([
       '@typescript-eslint/no-empty-function': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-inferrable-types': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/prefer-for-of': 'off', // TODO(ryan953): Fix violations and delete this line
-      '@typescript-eslint/prefer-function-type': 'off', // TODO(ryan953): Fix violations and delete this line
 
       // Customization
       '@typescript-eslint/no-unused-vars': [
@@ -495,13 +494,13 @@ export default typescript.config([
         {
           groups: [
             // Side effect imports.
-            ['^\\u0000'],
+            [String.raw`^\u0000`],
 
             // Node.js builtins.
             [`^(${builtinModules.join('|')})(/|$)`],
 
             // Packages. `react` related packages come first.
-            ['^react', '^@?\\w'],
+            ['^react', String.raw`^@?\w`],
 
             // Test should be separate from the app
             ['^(sentry-test|getsentry-test)(/.*|$)'],
@@ -517,13 +516,13 @@ export default typescript.config([
             ['^(admin|getsentry)(/.*|$)'],
 
             // Style imports.
-            ['^.+\\.less$'],
+            [String.raw`^.+\.less$`],
 
             // Parent imports. Put `..` last.
-            ['^\\.\\.(?!/?$)', '^\\.\\./?$'],
+            [String.raw`^\.\.(?!/?$)`, String.raw`^\.\./?$`],
 
             // Other relative imports. Put same-folder imports and `.` last.
-            ['^\\./(?=.*/)(?!/?$)', '^\\.(?!/?$)', '^\\./?$'],
+            [String.raw`^\./(?=.*/)(?!/?$)`, String.raw`^\.(?!/?$)`, String.raw`^\./?$`],
           ],
         },
       ],
@@ -553,31 +552,33 @@ export default typescript.config([
     },
   },
   {
+    name: 'plugin/unicorn',
+    plugins: {unicorn},
+    rules: {
+      // The recommended rules are very opinionated. We don't need to enable them.
+
+      'unicorn/no-instanceof-array': 'error',
+      'unicorn/prefer-array-flat-map': 'error',
+      'unicorn/prefer-node-protocol': 'error',
+    },
+  },
+  {
     name: 'plugin/jest',
     files: ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'],
     // https://github.com/jest-community/eslint-plugin-jest/tree/main/docs/rules
     plugins: jest.configs['flat/recommended'].plugins,
     rules: {
+      'jest/max-nested-describe': 'error',
+      'jest/no-duplicate-hooks': 'error',
+      'jest/no-large-snapshots': ['error', {maxSize: 2000}], // We don't recommend snapshots, but if there are any keep it small
+
       // https://github.com/jest-community/eslint-plugin-jest/blob/main/src/index.ts
       ...jest.configs['flat/recommended'].rules,
       ...jest.configs['flat/style'].rules,
 
-      // `recommended` set this to warn, we've upgraded to error
-      'jest/no-disabled-tests': 'error',
-
-      // `recommended` set this to warn, we've downgraded to off
-      // Disabled as we have many tests which render as simple validations
-      'jest/expect-expect': 'off',
-
-      // Disabled as we have some comment out tests that cannot be
-      // uncommented due to typescript errors.
-      'jest/no-commented-out-tests': 'off', // TODO(ryan953): Fix violations then delete this line
-
-      // Disabled as we do sometimes have conditional expects
+      'jest/expect-expect': 'off', // Disabled as we have many tests which render as simple validations
       'jest/no-conditional-expect': 'off', // TODO(ryan953): Fix violations then delete this line
-
-      // We don't recommend snapshots, but if there are any keep it small
-      'jest/no-large-snapshots': ['error', {maxSize: 2000}],
+      'jest/no-disabled-tests': 'error', // `recommended` set this to warn, we've upgraded to error
     },
   },
   {
@@ -604,12 +605,16 @@ export default typescript.config([
   },
   {
     name: 'files/*.config.*',
-    files: ['*.config.*'],
+    files: ['**/*.config.*'],
     languageOptions: {
       globals: {
         ...globals.commonjs,
         ...globals.node,
       },
+    },
+
+    rules: {
+      'import/no-nodejs-modules': 'off',
     },
   },
   {
@@ -624,6 +629,8 @@ export default typescript.config([
     },
     rules: {
       'no-console': 'off',
+
+      'import/no-nodejs-modules': 'off',
     },
   },
   {
@@ -632,7 +639,9 @@ export default typescript.config([
       'tests/js/jest-pegjs-transform.js',
       'tests/js/sentry-test/echartsMock.js',
       'tests/js/sentry-test/importStyleMock.js',
+      'tests/js/sentry-test/loadFixtures.ts',
       'tests/js/sentry-test/svgMock.js',
+      'tests/js/setup.ts',
     ],
     languageOptions: {
       sourceType: 'commonjs',
@@ -640,7 +649,9 @@ export default typescript.config([
         ...globals.commonjs,
       },
     },
-    rules: {},
+    rules: {
+      'import/no-nodejs-modules': 'off',
+    },
   },
   {
     name: 'files/devtoolbar',

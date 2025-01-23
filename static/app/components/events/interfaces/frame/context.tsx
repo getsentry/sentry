@@ -30,7 +30,7 @@ import {usePrismTokensSourceContext} from './usePrismTokensSourceContext';
 import {useStacktraceCoverage} from './useStacktraceCoverage';
 
 type Props = {
-  components: SentryAppComponent<SentryAppSchemaStacktraceLink>[];
+  components: Array<SentryAppComponent<SentryAppSchemaStacktraceLink>>;
   event: Event;
   frame: Frame;
   registers: {[key: string]: string};
@@ -48,7 +48,7 @@ type Props = {
 };
 
 export function getLineCoverage(
-  lines: [number, string][],
+  lines: Array<[number, string]>,
   lineCov: LineCoverage[]
 ): [Array<Coverage | undefined>, boolean] {
   const keyedCoverage = keyBy(lineCov, 0);

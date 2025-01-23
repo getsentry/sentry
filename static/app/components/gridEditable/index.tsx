@@ -63,8 +63,8 @@ export type ColResizeMetadata = {
 };
 
 type GridEditableProps<DataRow, ColumnKey> = {
-  columnOrder: GridColumnOrder<ColumnKey>[];
-  columnSortBy: GridColumnSortBy<ColumnKey>[];
+  columnOrder: Array<GridColumnOrder<ColumnKey>>;
+  columnSortBy: Array<GridColumnSortBy<ColumnKey>>;
   data: DataRow[];
 
   /**
