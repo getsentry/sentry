@@ -1,15 +1,17 @@
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
+import {LinkButton} from 'sentry/components/button';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {JsonFormObject} from 'sentry/components/forms/types';
 import {NoAccess} from 'sentry/components/noAccess';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
 type RouteParams = {
@@ -34,8 +36,19 @@ function ProjectToolbarSettings({organization, project, params: {projectId}}: Pr
 
           // additional data/props that is related to rendering of form field rather than data
           label: t('Allowed Origins'),
-          help: t(
-            'Domain URLs where the dev toolbar can be installed and access your data. Wildcards (*) are supported. Please separate multiple entries with a newline.'
+          help: (
+            <div>
+              {t('Domains where the dev toolbar is allowed to access your data.')}
+              <br />
+              {t(
+                'Protocol and port are optional, wildcard subdomains (*) are are supported.'
+              )}
+              <br />
+              {tct(
+                'Example: [code:localhost] is equivalent to [code:http://localhost] or [code:localhost:80]',
+                {code: <code />}
+              )}
+            </div>
           ),
           getData: data => ({options: data}),
         },
@@ -45,12 +58,24 @@ function ProjectToolbarSettings({organization, project, params: {projectId}}: Pr
 
   return (
     <SentryDocumentTitle title={t('Toolbar Settings')} projectSlug={project.slug}>
-      <SettingsPageHeader title={t('Developer Toolbar')} />
+      <SettingsPageHeader
+        title={t('Dev Toolbar')}
+        action={
+          <LinkButton href="https://docs.sentry.io/product/dev-toolbar/" external>
+            {t('Read the Docs')}
+          </LinkButton>
+        }
+      />
       <Feature
         features="dev-toolbar-ui"
         organization={organization}
         renderDisabled={NoAccess}
       >
+        <TextBlock>
+          {t(
+            `Bring critical Sentry insights and tools directly into your web app for easier troubleshooting with the Dev Toolbar.`
+          )}
+        </TextBlock>
         <PermissionAlert project={project} />
 
         <Form
