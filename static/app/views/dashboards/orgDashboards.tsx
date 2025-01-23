@@ -69,10 +69,6 @@ class OrgDashboards extends DeprecatedAsyncComponent<Props, State> {
 
     if (params.dashboardId) {
       endpoints.push(['selectedDashboard', `${url}${params.dashboardId}/`]);
-      this.props.setEventNames('dashboards2.view', 'Dashboards2: View dashboard');
-      this.props.setRouteAnalyticsParams({
-        dashboard_id: params.dashboardId,
-      });
     }
 
     return endpoints;
