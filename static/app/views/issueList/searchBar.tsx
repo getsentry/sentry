@@ -36,13 +36,13 @@ const getFilterKeySections = (tags: TagCollection): FilterKeySection[] => {
 
   // TODO: flag[*] syntax not implemented yet by search backend.
   const eventTags = orderBy(
-    allTags.filter(tag => tag.kind === FieldKind.TAG && !tag.key.startsWith('flag[')),
+    allTags.filter(tag => tag.kind === FieldKind.TAG),
     ['totalValues', 'key'],
     ['desc', 'asc']
   ).map(tag => tag.key);
 
   const eventFeatureFlags = orderBy(
-    allTags.filter(tag => tag.kind === FieldKind.TAG && tag.key.startsWith('flag[')),
+    allTags.filter(tag => tag.kind === FieldKind.FEATURE_FLAG),
     ['totalValues', 'key'],
     ['desc', 'asc']
   ).map(tag => tag.key);
@@ -64,8 +64,7 @@ const getFilterKeySections = (tags: TagCollection): FilterKeySection[] => {
       children: eventTags,
     },
     {
-      // TODO: not making a new FieldKind for now, because flag data format and unstructured-ness are same as tags.
-      value: 'feature_flag',
+      value: FieldKind.FEATURE_FLAG,
       label: t('Event Feature Flags'),
       children: eventFeatureFlags,
     },

@@ -32,7 +32,11 @@ export function KeyDescription({size = 'sm', tag}: KeyDescriptionProps) {
 
   const description =
     fieldDefinition?.desc ??
-    (tag.kind === FieldKind.TAG ? t('A tag sent with one or more events') : null);
+    (tag.kind === FieldKind.TAG
+      ? t('A tag sent with one or more events')
+      : tag.kind === FieldKind.FEATURE_FLAG
+        ? t('A feature flag evaluated before an error event')
+        : null);
 
   return (
     <DescriptionWrapper size={size}>
