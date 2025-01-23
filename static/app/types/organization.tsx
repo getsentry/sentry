@@ -314,7 +314,9 @@ export type EventsStats = {
     fields: Record<string, AggregationOutputType>;
     isMetricsData: boolean;
     tips: {columns?: string; query?: string};
-    units: Record<string, string>;
+    units: Record<string, string | null>;
+    dataset?: string;
+    datasetReason?: string;
     discoverSplitDecision?: WidgetType;
     isMetricsExtractedData?: boolean;
   };
