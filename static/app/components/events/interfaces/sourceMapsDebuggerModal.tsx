@@ -27,6 +27,7 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {SourceMapWizardBlueThunderAnalyticsParams} from 'sentry/utils/analytics/stackTraceAnalyticsEvents';
+import ConfigStore from 'sentry/stores/configStore';
 
 const SOURCE_MAP_SCRAPING_REASON_MAP = {
   not_found: {
@@ -1247,6 +1248,7 @@ function VerifyAgainNote() {
 }
 
 function ChecklistDoneNote() {
+  const isSelfHosted = ConfigStore.get('isSelfHosted');
   return (
     <CompletionNoteContainer>
       <IconCheckmark size="md" color="green200" />
@@ -1254,6 +1256,15 @@ function ChecklistDoneNote() {
         {t(
           'You completed all of the steps above. Capture a new event to verify your setup!'
         )}
+        {isSelfHosted
+          ? ' ' +
+            tct(
+              'If the newly captured event is still not sourcemapped, please check the logs of the [symbolicator] service of your self-hosted instance.',
+              {
+                symbolicator: <MonoBlock>symbolicator</MonoBlock>,
+              }
+            )
+          : ''}
       </p>
     </CompletionNoteContainer>
   );
