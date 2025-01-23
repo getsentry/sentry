@@ -172,6 +172,29 @@ def datetime_processor(datetime_string: str) -> str:
     return datetime.fromisoformat(datetime_string).replace(tzinfo=tz.tzutc()).isoformat()
 
 
+def project_context_constructor(column_name: str) -> Callable[[SnubaParams], VirtualColumnContext]:
+    def context_constructor(params: SnubaParams) -> VirtualColumnContext:
+        return VirtualColumnContext(
+            from_column_name="sentry.project_id",
+            to_column_name=column_name,
+            value_map={
+                str(project_id): project_name
+                for project_id, project_name in params.project_id_map.items()
+            },
+        )
+
+    return context_constructor
+
+
+def project_term_resolver(
+    raw_value: str | list[str],
+) -> list[int] | int:
+    if isinstance(raw_value, list):
+        return [int(val) for val in raw_value]
+    else:
+        return int(raw_value)
+
+
 @dataclass(frozen=True)
 class ColumnDefinitions:
     functions: dict[str, FunctionDefinition]
