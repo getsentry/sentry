@@ -251,7 +251,7 @@ class SlackService:
             sentry_sdk.capture_message(
                 f"slack.notify_all_threads_for_activity.multiple_parent_notifications_for_single_open_period Activity: {activity.id}, Group: {activity.group.id}, Project: {activity.project.id}, Integration: {integration.id}, Parent Notification Count: {parent_notification_count}"
             )
-            self._logger.info(
+            self._logger.error(
                 "multiple parent notifications found for single open period",
                 extra={
                     "activity_id": activity.id,
