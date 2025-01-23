@@ -41,7 +41,10 @@ describe('UrlParamBatchProvider', () => {
 
     expect(mockNavigate).toHaveBeenCalledTimes(1);
     expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({query: {foo: 'bar', potato: 'test'}})
+      expect.objectContaining({
+        query: {foo: 'bar', potato: 'test'},
+      }),
+      {replace: true}
     );
   });
 });

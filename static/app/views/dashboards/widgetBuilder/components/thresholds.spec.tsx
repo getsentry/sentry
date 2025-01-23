@@ -39,7 +39,8 @@ describe('Thresholds', () => {
         query: expect.objectContaining({
           thresholds: undefined,
         }),
-      })
+      }),
+      {replace: true}
     );
   });
 
@@ -59,7 +60,8 @@ describe('Thresholds', () => {
         query: expect.objectContaining({
           thresholds: '{"max_values":{"max1":100,"max2":200},"unit":null}',
         }),
-      })
+      }),
+      {replace: true}
     );
   });
 
@@ -87,7 +89,8 @@ describe('Thresholds', () => {
         query: expect.objectContaining({
           thresholds: '{"max_values":{"max1":100,"max2":200},"unit":"second"}',
         }),
-      })
+      }),
+      {replace: true}
     );
   });
 });

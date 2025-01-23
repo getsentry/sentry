@@ -399,7 +399,8 @@ describe('Visualize', () => {
         query: expect.objectContaining({
           field: ['count()'],
         }),
-      })
+      }),
+      {replace: true}
     );
   });
 
@@ -437,7 +438,8 @@ describe('Visualize', () => {
         query: expect.objectContaining({
           field: ['count_miserable(user,300)'],
         }),
-      })
+      }),
+      {replace: true}
     );
   });
 
@@ -768,7 +770,8 @@ describe('Visualize', () => {
         query: expect.objectContaining({
           selectedAggregate: undefined,
         }),
-      })
+      }),
+      {replace: true}
     );
   });
 

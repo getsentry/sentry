@@ -41,7 +41,8 @@ describe('DatasetSelector', function () {
       expect.objectContaining({
         ...router.location,
         query: expect.objectContaining({dataset: 'issue'}),
-      })
+      }),
+      {replace: true}
     );
   });
 });
