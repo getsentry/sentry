@@ -53,19 +53,25 @@ describe('useQueryParamState', () => {
     expect(result.current[0]).toBe('newValue');
 
     // The query param should not be updated yet
-    expect(mockedNavigate).not.toHaveBeenCalledWith({
-      ...LocationFixture(),
-      query: {testField: 'initial state'},
-    });
+    expect(mockedNavigate).not.toHaveBeenCalledWith(
+      {
+        ...LocationFixture(),
+        query: {testField: 'initial state'},
+      },
+      {replace: true}
+    );
 
     // Run the timers to trigger queued updates
     jest.runAllTimers();
 
     // The query param should be updated
-    expect(mockedNavigate).toHaveBeenCalledWith({
-      ...LocationFixture(),
-      query: {testField: 'newValue'},
-    });
+    expect(mockedNavigate).toHaveBeenCalledWith(
+      {
+        ...LocationFixture(),
+        query: {testField: 'newValue'},
+      },
+      {replace: true}
+    );
 
     // The local state should be still reflect the new value
     expect(result.current[0]).toBe('newValue');
@@ -112,10 +118,13 @@ describe('useQueryParamState', () => {
       result.current[1]({value: 'newValue', count: 2, isActive: true});
     });
 
-    expect(mockedNavigate).toHaveBeenCalledWith({
-      ...LocationFixture(),
-      query: {testField: 'newValue - 2 - true'},
-    });
+    expect(mockedNavigate).toHaveBeenCalledWith(
+      {
+        ...LocationFixture(),
+        query: {testField: 'newValue - 2 - true'},
+      },
+      {replace: true}
+    );
   });
 
   it('can decode and update sorts', () => {
@@ -142,9 +151,12 @@ describe('useQueryParamState', () => {
       result.current[1]([{field: 'testField', kind: 'asc'}]);
     });
 
-    expect(mockedNavigate).toHaveBeenCalledWith({
-      ...LocationFixture(),
-      query: {sort: ['testField']},
-    });
+    expect(mockedNavigate).toHaveBeenCalledWith(
+      {
+        ...LocationFixture(),
+        query: {sort: ['testField']},
+      },
+      {replace: true}
+    );
   });
 });
