@@ -66,7 +66,7 @@ class BaseGroupTypeDetectorValidator(CamelSnakeSerializer):
                     condition_group=condition_group,
                 )
             detector = Detector.objects.create(
-                organization_id=self.context["project"].organization_id,
+                project_id=self.context["project"].id,
                 name=validated_data["name"],
                 workflow_condition_group=condition_group,
                 type=validated_data["group_type"].slug,

@@ -210,7 +210,7 @@ class DetectorValidatorTest(TestCase):
         detector = Detector.objects.get(id=detector.id)
         assert detector.name == "Test Detector"
         assert detector.type == "metric_alert_fire"
-        assert detector.organization_id == self.project.organization_id
+        assert detector.project_id == self.project.id
 
         # Verify data source in DB
         data_source = DataSource.objects.get(detector=detector)
@@ -307,7 +307,7 @@ class TestMetricAlertsDetectorValidator(TestCase):
         detector = Detector.objects.get(id=detector.id)
         assert detector.name == "Test Detector"
         assert detector.type == "metric_alert_fire"
-        assert detector.organization_id == self.project.organization_id
+        assert detector.project_id == self.project.id
 
         # Verify data source and query subscription in DB
         data_source = DataSource.objects.get(detector=detector)

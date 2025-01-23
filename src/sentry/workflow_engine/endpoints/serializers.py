@@ -185,7 +185,7 @@ class DetectorSerializer(Serializer):
     def serialize(self, obj: Detector, attrs: Mapping[str, Any], user, **kwargs) -> dict[str, Any]:
         return {
             "id": str(obj.id),
-            "organizationId": str(obj.organization_id),
+            "projectId": str(obj.project_id),
             "name": obj.name,
             "type": obj.type,
             "dateCreated": obj.date_added,

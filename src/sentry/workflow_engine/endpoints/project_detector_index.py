@@ -72,7 +72,7 @@ class ProjectDetectorIndexEndpoint(ProjectEndpoint):
         Return a list of detectors for a given project.
         """
         queryset = Detector.objects.filter(
-            organization_id=project.organization_id,
+            project_id=project.id,
         ).order_by("id")
 
         return self.paginate(

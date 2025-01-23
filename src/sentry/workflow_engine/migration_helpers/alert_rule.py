@@ -142,7 +142,6 @@ def migrate_metric_action(
         "sentry_app_config": alert_rule_trigger_action.sentry_app_config,
     }
     action = Action.objects.create(
-        required=False,
         type=action_type,
         data=data,
         integration_id=alert_rule_trigger_action.integration_id,
