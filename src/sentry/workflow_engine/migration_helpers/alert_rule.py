@@ -545,18 +545,15 @@ def dual_update_migrated_alert_rule_trigger_action(
     # update the trigger before calling this method so that we can reuse the get_action_type method: is this kosher?
     alert_rule_trigger = trigger_action.alert_rule_trigger
     # Check that we dual wrote this action
-    priority = PRIORITY_MAP[alert_rule_trigger.label]
+    priority = PRIORITY_MAP.get(alert_rule_trigger.label, DetectorPriorityLevel.HIGH)
     detector_trigger = get_detector_trigger(alert_rule_trigger, priority)
     if detector_trigger is None:
-        return None
-    try:
-        aarta = ActionAlertRuleTriggerAction.objects.get(alert_rule_trigger_action=trigger_action)
-    except ActionAlertRuleTriggerAction.DoesNotExist:
-        logger.exception(
-            "ActionAlertRuleTriggerAction does not exist",
-            extra={"alert_rule_trigger_action_id": trigger_action.id},
+        logger.info(
+            "alert rule was not dual written, returning early",
+            extra={"alert_rule": alert_rule_trigger.alert_rule},
         )
-        raise MissingACITableException
+        return None
+    aarta = ActionAlertRuleTriggerAction.objects.get(alert_rule_trigger_action=trigger_action)
     action = aarta.action
 
     updated_action_fields: dict[str, Any] = {}
