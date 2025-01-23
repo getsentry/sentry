@@ -364,17 +364,17 @@ def devserver(
 
     # Create all topics if the Kafka eventstream is selected
     if kafka_consumers:
-        use_new_devservices = os.environ.get("USE_NEW_DEVSERVICES") == "1"
+        use_old_devservices = os.environ.get("USE_OLD_DEVSERVICES") == "1"
         valid_kafka_container_names = ["kafka-kafka-1", "sentry_kafka"]
-        kafka_container_name = "kafka-kafka-1" if use_new_devservices else "sentry_kafka"
+        kafka_container_name = "sentry_kafka" if use_old_devservices else "kafka-kafka-1"
         kafka_container_warning_message = (
             f"""
-Devserver is configured to work with the revamped devservices. Looks like the `{kafka_container_name}` container is not running.
-Please run `devservices up` to start it. If you would like to use devserver with `sentry devservices`, set `USE_NEW_DEVSERVICES=0` in your environment."""
-            if use_new_devservices
-            else f"""
 Devserver is configured to work with `sentry devservices`. Looks like the `{kafka_container_name}` container is not running.
-Please run `sentry devservices up kafka` to start it. If you would like to use devserver with the revamped devservices, set `USE_NEW_DEVSERVICES=1` in your environment."""
+Please run `sentry devservices up kafka` to start it. If you would like to use devserver with the revamped devservices, set `USE_OLD_DEVSERVICES=1` in your environment."""
+            if use_old_devservices
+            else f"""
+Devserver is configured to work with the revamped devservices. Looks like the `{kafka_container_name}` container is not running.
+Please run `devservices up` to start it. If you would like to use devserver with `sentry devservices`, set `USE_OLD_DEVSERVICES=0` in your environment."""
         )
         if not any(name in containers for name in valid_kafka_container_names):
             raise click.ClickException(
