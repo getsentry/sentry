@@ -122,7 +122,7 @@ function TagPreviewProgressBar({tag}: {tag: GroupTag}) {
       ? null
       : otherPercentage < 1
         ? '<1%'
-        : `${otherPercentage.toFixed(0)}%`;
+        : `${otherPercentage.toFixed(1)}%`;
 
   return (
     <Fragment>
