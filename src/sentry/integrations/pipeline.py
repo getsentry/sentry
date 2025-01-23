@@ -137,7 +137,7 @@ class IntegrationPipeline(Pipeline):
                 extra={
                     "error_message": str(e),
                     "error_status": getattr(e, "code", None),
-                    "organization_id": self.organization.id,
+                    "organization_id": self.organization.id if self.organization else None,
                     "provider_key": self.provider.key,
                 },
             )
@@ -223,7 +223,7 @@ class IntegrationPipeline(Pipeline):
                             "object_id": matched_identity.id,
                             "user_id": self.request.user.id,
                             "type": identity["type"],
-                            "organization_id": self.organization.id,
+                            "organization_id": self.organization.id if self.organization else None,
                             "provider_key": self.provider.key,
                         },
                     )
@@ -253,7 +253,7 @@ class IntegrationPipeline(Pipeline):
             self.get_logger().info(
                 "finish_pipeline.multi_region_install_error",
                 extra={
-                    "organization_id": self.organization.id,
+                    "organization_id": self.organization.id if self.organization else None,
                     "provider_key": self.provider.key,
                 },
             )
@@ -294,7 +294,7 @@ class IntegrationPipeline(Pipeline):
             extra={
                 "document_origin": document_origin,
                 "success": success,
-                "organization_id": self.organization.id,
+                "organization_id": self.organization.id if self.organization else None,
                 "provider_key": self.provider.key,
                 "dialog": data,
             },
