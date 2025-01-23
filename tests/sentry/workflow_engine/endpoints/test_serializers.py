@@ -290,10 +290,11 @@ class TestWorkflowSerializer(TestCase):
         assert result == {
             "id": str(workflow.id),
             "organizationId": str(self.organization.id),
+            "config": {},
             "dateCreated": workflow.date_added,
             "dateUpdated": workflow.date_updated,
-            "triggerConditionGroup": None,
-            "dataConditionGroups": [],
+            "triggers": None,
+            "actionFilters": [],
             "environment": None,
         }
 
@@ -339,12 +340,13 @@ class TestWorkflowSerializer(TestCase):
         assert result == {
             "id": str(workflow.id),
             "organizationId": str(self.organization.id),
+            "config": {},
             "dateCreated": workflow.date_added,
             "dateUpdated": workflow.date_updated,
-            "triggerConditionGroup": {
+            "triggers": {
                 "id": str(when_condition_group.id),
                 "organizationId": str(self.organization.id),
-                "logicType": DataConditionGroup.Type.ANY,
+                "logicType": DataConditionGroup.Type.ANY.value,
                 "conditions": [
                     {
                         "id": str(trigger_condition.id),
@@ -355,17 +357,17 @@ class TestWorkflowSerializer(TestCase):
                 ],
                 "actions": [],
             },
-            "dataConditionGroups": [
+            "actionFilters": [
                 {
                     "id": str(condition_group.id),
                     "organizationId": str(self.organization.id),
-                    "logicType": DataConditionGroup.Type.ALL,
+                    "logicType": DataConditionGroup.Type.ALL.value,
                     "conditions": [
                         {
                             "id": str(condition.id),
                             "condition": "gt",
                             "comparison": 100,
-                            "result": DetectorPriorityLevel.HIGH,
+                            "result": DetectorPriorityLevel.HIGH.value,
                         }
                     ],
                     "actions": [

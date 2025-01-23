@@ -106,7 +106,7 @@ class ProjectDetectorIndexPostTest(ProjectDetectorIndexBaseTest):
             )
             assert response.data == {"groupType": ["Group type not compatible with detectors"]}
 
-    @mock.patch("sentry.workflow_engine.endpoints.validators.base.create_audit_entry")
+    @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
     def test_valid_creation(self, mock_audit):
         with self.tasks():
             response = self.get_success_response(
@@ -132,7 +132,6 @@ class ProjectDetectorIndexPostTest(ProjectDetectorIndexBaseTest):
         # Verify query subscription
         query_sub = QuerySubscription.objects.get(id=data_source.query_id)
         assert query_sub.project == self.project
-        assert query_sub.snuba_query
         assert query_sub.snuba_query.type == SnubaQuery.Type.ERROR.value
         assert query_sub.snuba_query.dataset == Dataset.Events.value
         assert query_sub.snuba_query.query == "test query"

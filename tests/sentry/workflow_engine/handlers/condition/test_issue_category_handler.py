@@ -1,5 +1,8 @@
 from unittest.mock import patch
 
+import pytest
+from jsonschema import ValidationError
+
 from sentry.issues.grouptype import GroupCategory
 from sentry.rules.filters.issue_category import IssueCategoryFilter
 from sentry.workflow_engine.models.data_condition import Condition
@@ -40,6 +43,22 @@ class TestIssueCategoryCondition(ConditionTestCase):
         }
         assert dc.condition_result is True
         assert dc.condition_group == dcg
+
+    def test_json_schema(self):
+        self.dc.comparison.update({"value": 2})
+        self.dc.save()
+
+        self.dc.comparison.update({"value": "asdf"})
+        with pytest.raises(ValidationError):
+            self.dc.save()
+
+        self.dc.comparison = {}
+        with pytest.raises(ValidationError):
+            self.dc.save()
+
+        self.dc.comparison.update({"hello": "there"})
+        with pytest.raises(ValidationError):
+            self.dc.save()
 
     def test_valid_input_values(self):
         self.dc.update(comparison={"value": 1})
