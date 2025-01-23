@@ -4,6 +4,7 @@ import {t} from 'sentry/locale';
 
 import {
   isAutogroupedNode,
+  isHelpNode,
   isMissingInstrumentationNode,
   isSpanNode,
   isTraceErrorNode,
@@ -42,12 +43,16 @@ export function getTraceTabTitle(node: TraceTreeNode<TraceTree.NodeValue>) {
     return t('Trace');
   }
 
+  if (isHelpNode(node)) {
+    return t('Help');
+  }
+
   Sentry.captureMessage('Unknown node type in trace drawer');
   return 'Unknown';
 }
 
 type Tab = {
-  node: TraceTreeNode<TraceTree.NodeValue> | 'trace' | 'profiles' | 'vitals';
+  node: TraceTreeNode<TraceTree.NodeValue> | 'trace' | 'profiles' | 'vitals' | 'help';
   label?: string;
 };
 

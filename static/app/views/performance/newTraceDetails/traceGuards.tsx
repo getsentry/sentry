@@ -72,6 +72,12 @@ export function isTraceNode(
   );
 }
 
+export function isHelpNode(
+  node: TraceTreeNode<TraceTree.NodeValue>
+): node is TraceTreeNode<TraceTree.Help> {
+  return !!(node.value && 'type' in node.value && node.value.type === 'help');
+}
+
 export function shouldAddMissingInstrumentationSpan(sdk: string | undefined): boolean {
   if (!sdk) {
     return true;

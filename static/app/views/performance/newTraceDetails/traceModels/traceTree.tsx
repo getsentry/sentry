@@ -137,6 +137,10 @@ export declare namespace TraceTree {
   };
   type Root = null;
 
+  interface Help {
+    type: 'help';
+  }
+
   // All possible node value types
   type NodeValue =
     | Trace
@@ -147,8 +151,8 @@ export declare namespace TraceTree {
     | SiblingAutogroup
     | ChildrenAutogroup
     | CollapsedNode
-    | Root;
-
+    | Root
+    | Help;
   interface CollapsedNode {
     type: 'collapsed';
   }
