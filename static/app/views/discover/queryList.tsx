@@ -23,6 +23,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {decodeList} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
+import {DashboardWidgetSource} from 'sentry/views/dashboards/types';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 
 import {
@@ -196,6 +197,7 @@ class QueryList extends Component<Props> {
                     getSavedQueryDataset(organization, location, newQuery)
                   ]
                 : undefined,
+              source: DashboardWidgetSource.DISCOVERV2,
             }),
         },
         {
@@ -292,6 +294,7 @@ class QueryList extends Component<Props> {
                           getSavedQueryDataset(organization, location, savedQuery)
                         ]
                       : undefined,
+                    source: DashboardWidgetSource.DISCOVERV2,
                   }),
               },
             ]
