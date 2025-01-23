@@ -16,9 +16,18 @@ import {getInstallConfig} from 'sentry/utils/gettingStartedDocs/node';
 
 type Params = DocsParams;
 
-const getSdkConfigureSnippet = () => `
+const getSdkConfigureSnippetToml = () => `
 compatibility_flags = ["nodejs_compat"]
 # compatibility_flags = ["nodejs_als"]
+`;
+
+const getSdkConfigureSnippetJson = () => `
+{
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "compatibility_date": "2024-09-23"
+}
 `;
 
 const getSdkSetupSnippet = (params: Params) => `
@@ -78,7 +87,14 @@ const onboarding: OnboardingConfig = {
               value: 'toml',
               language: 'toml',
               filename: 'wrangler.toml',
-              code: getSdkConfigureSnippet(),
+              code: getSdkConfigureSnippetToml(),
+            },
+            {
+              label: 'JSON',
+              value: 'json',
+              language: 'json',
+              filename: 'wrangler.json',
+              code: getSdkConfigureSnippetJson(),
             },
           ],
         },
