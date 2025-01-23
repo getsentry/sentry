@@ -90,7 +90,6 @@ class MonitorConsumerTest(TestCase):
         payload = {
             "monitor_slug": monitor_slug,
             "status": "ok",
-            "duration": None,
             "check_in_id": self.guid,
             "environment": "production",
             "contexts": {"trace": {"trace_id": self.trace_id}},
