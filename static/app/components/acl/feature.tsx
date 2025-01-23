@@ -105,9 +105,9 @@ interface ChildRenderProps extends FeatureRenderProps {
 export type ChildrenRenderFn = (props: ChildRenderProps) => React.ReactNode;
 
 type AllFeatures = {
-  configFeatures: ReadonlyArray<string>;
-  organization: ReadonlyArray<string>;
-  project: ReadonlyArray<string>;
+  configFeatures: readonly string[];
+  organization: readonly string[];
+  project: readonly string[];
 };
 
 /**

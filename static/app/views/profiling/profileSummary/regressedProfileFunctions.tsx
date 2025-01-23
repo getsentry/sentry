@@ -35,7 +35,7 @@ import {ProfilingSparklineChart} from './profilingSparklineChart';
 const REGRESSED_FUNCTIONS_LIMIT = 5;
 const REGRESSED_FUNCTIONS_CURSOR = 'functionRegressionCursor';
 
-function trendToPoints(trend: FunctionTrend): {timestamp: number; value: number}[] {
+function trendToPoints(trend: FunctionTrend): Array<{timestamp: number; value: number}> {
   if (!trend.stats.data.length) {
     return [];
   }
@@ -43,6 +43,7 @@ function trendToPoints(trend: FunctionTrend): {timestamp: number; value: number}
   return trend.stats.data.map(p => {
     return {
       timestamp: p[0],
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       value: p[1][0].count,
     };
   });
@@ -133,7 +134,7 @@ export function MostRegressedProfileFunctions(props: MostRegressedProfileFunctio
   );
 
   const handleRegressedFunctionsCursor = useCallback(
-    (cursor, pathname, query) => {
+    (cursor: any, pathname: any, query: any) => {
       navigate({
         pathname,
         query: {...query, [REGRESSED_FUNCTIONS_CURSOR]: cursor},
@@ -160,7 +161,7 @@ export function MostRegressedProfileFunctions(props: MostRegressedProfileFunctio
 
   const trends = trendsQuery?.data ?? [];
 
-  const onChangeTrendType = useCallback(v => setTrendType(v.value), []);
+  const onChangeTrendType = useCallback((v: any) => setTrendType(v.value), []);
 
   const hasDifferentialFlamegraphPageFeature = organization.features.includes(
     'profiling-differential-flamegraph-page'
@@ -330,6 +331,7 @@ function RegressedFunctionBeforeAfterFlamechart(
   }, [props.organization]);
 
   let rendered = <TextTruncateOverflow>{props.fn.function}</TextTruncateOverflow>;
+  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const example = props.fn['all_examples()']?.[0];
   if (defined(example)) {
     rendered = (
@@ -488,7 +490,7 @@ const RegressedFunctionsQueryState = styled('div')`
 `;
 
 const TRIGGER_PROPS = {borderless: true, size: 'zero' as const};
-const TREND_FUNCTION_OPTIONS: SelectOption<TrendType>[] = [
+const TREND_FUNCTION_OPTIONS: Array<SelectOption<TrendType>> = [
   {
     label: t('Most Regressed Functions'),
     value: 'regression' as const,

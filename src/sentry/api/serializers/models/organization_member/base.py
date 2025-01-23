@@ -44,6 +44,8 @@ class OrganizationMemberSerializer(Serializer):
         users_by_id: MutableMapping[str, Any] = {}
         email_map: MutableMapping[str, str] = {}
         for u in user_service.serialize_many(filter={"user_ids": users_set}):
+            # Filter out the emails from the user data
+            u.pop("emails", None)
             users_by_id[u["id"]] = u
             email_map[u["id"]] = u["email"]
 
@@ -96,17 +98,39 @@ class OrganizationMemberSerializer(Serializer):
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> OrganizationMemberResponse:
+        serialized_user = attrs["user"]
+        if obj.user_id:
+            # if the OrganizationMember has a user_id, the user has an account
+            # `email` on the OrganizationMember will be null, so we need to pull
+            # the email address from the user's actual account
+            email = serialized_user["email"] if serialized_user else obj.email
+        else:
+            # when there is no user_id, the OrganizationMember is an invited user
+            # and the email field on OrganizationMember will be populated, so we
+            # will use it directly
+            email = obj.email
+
+        # helping mypy - the email will always be populated at this point
+        # in the case that it is a user that has an account, we pull the email
+        # address above from the serialized_user. The email field on OrganizationMember
+        # is null in the case, so it is necessary.
+        #
+        # invited users do not yet have a full account and the email field
+        # on OrganizationMember will be populated in such cases
+        assert email is not None
+
         inviter_name = None
         if obj.inviter_id:
             inviter = attrs["inviter"]
             if inviter:
                 inviter_name = inviter.get_display_name()
-        serialized_user = attrs["user"]
-        email = attrs["email"]
+
+        name = serialized_user["name"] if serialized_user else email
+
         data: OrganizationMemberResponse = {
             "id": str(obj.id),
             "email": email,
-            "name": serialized_user["name"] if serialized_user else email,
+            "name": name,
             "user": attrs["user"],
             "orgRole": obj.role,
             "pending": obj.is_pending,

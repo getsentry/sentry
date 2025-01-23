@@ -103,8 +103,7 @@ describe('getFramesByColumn', () => {
   it('should return an empty list when no crumbs exist', () => {
     const columnCount = 3;
     const columns = getFramesByColumn(durationMs, [], columnCount);
-    const expectedEntries = [];
-    expect(columns).toEqual(new Map(expectedEntries));
+    expect(columns).toEqual(new Map([]));
   });
 
   it('should put a crumbs in the first and last buckets', () => {

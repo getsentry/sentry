@@ -54,7 +54,7 @@ export const INTERVAL_DISPLAY_MODES: string[] = [
   DisplayModes.BAR,
 ];
 
-export const DISPLAY_MODE_OPTIONS: SelectValue<string>[] = [
+export const DISPLAY_MODE_OPTIONS: Array<SelectValue<string>> = [
   {value: DisplayModes.DEFAULT, label: t('Total Period')},
   {value: DisplayModes.PREVIOUS, label: t('Previous Period')},
   {value: DisplayModes.TOP5, label: t('Top 5 Period')},

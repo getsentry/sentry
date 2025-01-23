@@ -35,7 +35,7 @@ class OrganizationJoinRequest extends Component<Props, State> {
     addErrorMessage(t('Request to join failed'));
   }
 
-  handleCancel = e => {
+  handleCancel = (e: any) => {
     e.preventDefault();
     const {params} = this.props;
 

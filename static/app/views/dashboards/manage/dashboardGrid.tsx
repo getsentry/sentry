@@ -103,12 +103,13 @@ function DashboardGrid({
   }
 
   async function handleFavorite(dashboard: DashboardListItem, isFavorited: boolean) {
-    try {
-      await updateDashboardFavorite(api, organization.slug, dashboard.id, isFavorited);
-      onDashboardsChange();
-    } catch (error) {
-      throw error;
-    }
+    await updateDashboardFavorite(api, organization.slug, dashboard.id, isFavorited);
+    onDashboardsChange();
+    trackAnalytics('dashboards_manage.toggle_favorite', {
+      organization,
+      dashboard_id: dashboard.id,
+      favorited: isFavorited,
+    });
   }
 
   function renderDropdownMenu(dashboard: DashboardListItem) {
@@ -162,7 +163,7 @@ function DashboardGrid({
       />
     );
   }
-  function renderGridPreview(dashboard) {
+  function renderGridPreview(dashboard: any) {
     return <GridPreview widgetPreview={dashboard.widgetPreview} />;
   }
 

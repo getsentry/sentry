@@ -15,7 +15,7 @@ export function TagPreviewDistribution({tag}: {tag: GroupTag}) {
   const totalVisible = tag.topValues.reduce((sum, value) => sum + value.count, 0);
   const hasOther = totalVisible < tag.totalValues;
 
-  const otherPercentage = Math.round(
+  const otherPercentage = Math.floor(
     percent(tag.totalValues - totalVisible, tag.totalValues)
   );
   const otherDisplayPercentage =
@@ -57,6 +57,17 @@ export function TagPreviewDistribution({tag}: {tag: GroupTag}) {
 export function TagDistribution({tag}: {tag: GroupTag}) {
   const location = useLocation();
 
+  const visibleTagValues = tag.topValues.slice(0, 3);
+
+  const totalVisible = visibleTagValues.reduce((sum, value) => sum + value.count, 0);
+  const hasOther = totalVisible < tag.totalValues;
+
+  const otherPercentage = Math.floor(
+    percent(tag.totalValues - totalVisible, tag.totalValues)
+  );
+  const otherDisplayPercentage =
+    otherPercentage < 1 ? '<1%' : `${otherPercentage.toFixed(0)}%`;
+
   return (
     <div>
       <TagPanel
@@ -71,7 +82,7 @@ export function TagDistribution({tag}: {tag: GroupTag}) {
           </Tooltip>
         </TagHeader>
         <TagValueContent>
-          {tag.topValues.map((tagValue, tagValueIdx) => {
+          {visibleTagValues.map((tagValue, tagValueIdx) => {
             const percentage = percent(tagValue.count, tag.totalValues);
             const displayPercentage =
               percentage < 1 ? '<1%' : `${percentage.toFixed(0)}%`;
@@ -101,6 +112,23 @@ export function TagDistribution({tag}: {tag: GroupTag}) {
               </TagValueRow>
             );
           })}
+          {hasOther && (
+            <TagValueRow>
+              <TagValue>{t('Other')}</TagValue>
+              <Tooltip
+                title={tct('[count] of [total] tagged events', {
+                  count: (tag.totalValues - totalVisible).toLocaleString(),
+                  total: tag.totalValues.toLocaleString(),
+                })}
+                skipWrapper
+              >
+                <TooltipContainer>
+                  <TagBarValue>{otherDisplayPercentage}</TagBarValue>
+                  <TagBar percentage={otherPercentage} />
+                </TooltipContainer>
+              </Tooltip>
+            </TagValueRow>
+          )}
         </TagValueContent>
       </TagPanel>
     </div>

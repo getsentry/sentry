@@ -365,7 +365,6 @@ class BaseApiClient(TrackResponseMixin):
         **kwargs: Any,
     ) -> Sequence[BaseApiResponse]:
         page_size = self.page_size
-        offset = 0
         output = []
 
         for i in range(self.page_number_limit):
@@ -374,7 +373,6 @@ class BaseApiClient(TrackResponseMixin):
             num_results = len(results)
 
             output += results
-            offset += num_results
             # if the number is lower than our page_size, we can quit
             if num_results < page_size:
                 return output

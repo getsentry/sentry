@@ -92,7 +92,7 @@ export function getGroupReleaseChartMarkers(
   const markerTooltip = {
     show: true,
     trigger: 'item',
-    formatter: ({data}) => {
+    formatter: ({data}: any) => {
       const time = getFormattedDate(data.displayValue, 'MMM D, YYYY LT', {
         local: true,
       });

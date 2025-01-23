@@ -191,7 +191,6 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         with self.feature("organizations:incidents"):
             resp = self.get_success_response(self.organization.slug, alert_rule.id)
             assert resp.data["aggregate"] == "count_unique(user)"
-            assert alert_rule.snuba_query is not None
             assert alert_rule.snuba_query.aggregate == "count_unique(tags[sentry:user])"
 
     def test_expand_latest_incident(self):
@@ -676,7 +675,6 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         # If the aggregate changed we'd have a new subscription, validate that
         # it hasn't changed explicitly
         updated_alert_rule = AlertRule.objects.get(id=self.alert_rule.id)
-        assert updated_alert_rule.snuba_query is not None
         updated_sub = updated_alert_rule.snuba_query.subscriptions.get()
         assert updated_sub.subscription_id == existing_sub.subscription_id
 

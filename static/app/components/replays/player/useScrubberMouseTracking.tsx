@@ -16,7 +16,7 @@ export function useScrubberMouseTracking<T extends Element>({elem}: Opts<T>) {
   const durationMs = replay?.getDurationMs();
 
   const handlePositionChange = useCallback(
-    params => {
+    (params: any) => {
       if (!params || durationMs === undefined) {
         setCurrentHoverTime(undefined);
         return;
@@ -50,7 +50,7 @@ export function useTimelineScrubberMouseTracking<T extends Element>(
   const durationMs = replay?.getDurationMs();
 
   const handlePositionChange = useCallback(
-    params => {
+    (params: any) => {
       if (!params || durationMs === undefined) {
         setCurrentHoverTime(undefined);
         return;

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import urllib
 from typing import Any
 
 from django.conf import settings
@@ -668,6 +669,24 @@ class AuthLoginView(BaseView):
                 if not user.is_active:
                     return self.redirect(reverse("sentry-reactivate-account"))
                 if organization:
+                    # Check if the user is a member of the provided organization based on their email
+                    membership = organization_service.check_membership_by_email(
+                        email=user.email, organization_id=organization.id
+                    )
+
+                    invitation_link = getattr(membership, "invitation_link", None)
+
+                    # If the user is a member, the user_id is None, and they are in a "pending invite acceptance" state with a valid invitation link,
+                    # we redirect them to the invitation page to explicitly accept the invite
+                    if (
+                        membership
+                        and membership.user_id is None
+                        and membership.is_pending
+                        and invitation_link
+                    ):
+                        accept_path = urllib.parse.urlparse(invitation_link).path
+                        return self.redirect(accept_path)
+
                     # Refresh the organization we fetched prior to login in order to check its login state.
                     org_context = organization_service.get_organization_by_slug(
                         user_id=request.user.id,

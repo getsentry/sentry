@@ -16,7 +16,7 @@ interface Props {
   onYAxisChange: (newFields: QueryFieldValue[], newSelectedAggregate?: number) => void;
   tags: TagCollection;
   widgetType: WidgetType;
-  queryErrors?: Record<string, any>[];
+  queryErrors?: Array<Record<string, any>>;
   selectedAggregate?: number;
 }
 

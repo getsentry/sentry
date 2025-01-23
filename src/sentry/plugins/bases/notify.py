@@ -1,6 +1,5 @@
 import logging
 from urllib.error import HTTPError as UrllibHTTPError
-from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 from django import forms
 from requests.exceptions import HTTPError, SSLError
@@ -20,29 +19,12 @@ class NotificationConfigurationForm(forms.Form):
     pass
 
 
-class BaseNotificationUserOptionsForm(forms.Form):
-    def __init__(self, plugin, user, *args, **kwargs):
-        self.plugin = plugin
-        self.user = user
-        super().__init__(*args, **kwargs)
-
-    def get_title(self):
-        return self.plugin.get_conf_title()
-
-    def get_description(self):
-        return ""
-
-    def save(self):
-        raise NotImplementedError
-
-
 class NotificationPlugin(Plugin):
     slug = ""
     description = (
         "Notify project members when a new event is seen for the first time, or when an "
         "already resolved event has changed back to unresolved."
     )
-    # site_conf_form = NotificationConfigurationForm
     project_conf_form: type[forms.Form] = NotificationConfigurationForm
 
     def get_plugin_type(self):
@@ -203,23 +185,3 @@ class NotificationPlugin(Plugin):
         else:
             test_results = "No errors returned"
         return test_results
-
-    def get_notification_doc_html(self, **kwargs):
-        return ""
-
-    def add_notification_referrer_param(self, url):
-        if self.slug:
-            parsed_url = urlparse(url)
-            query = parse_qs(parsed_url.query)
-            query["referrer"] = self.slug
-
-            url_list = list(parsed_url)
-            url_list[4] = urlencode(query, doseq=True)
-            return urlunparse(url_list)
-
-        return url
-
-
-# Backwards-compatibility
-NotifyConfigurationForm = NotificationConfigurationForm
-NotifyPlugin = NotificationPlugin

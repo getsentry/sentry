@@ -4,7 +4,7 @@ import {TeamFixture} from 'sentry-fixture/team';
 import getProjectsByTeams from 'sentry/utils/getProjectsByTeams';
 
 describe('getProjectsByTeams', function () {
-  let projectsByTeams;
+  let projectsByTeams: any;
   beforeEach(function () {
     const team1 = TeamFixture({id: '1', slug: 'team1'});
     const team2 = TeamFixture({id: '2', slug: 'team2'});

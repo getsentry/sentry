@@ -4,7 +4,7 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 
 export function handleXhrErrorResponse(message: string, err: RequestError): void {
   // Sudo errors are handled separately elsewhere
-  // @ts-expect-error Property 'code' does not exist on type 'string'
+  // @ts-ignore TS(2339): Property 'code' does not exist on type 'string | {... Remove this comment to see the full error message
   if (!err || err.responseJSON?.detail?.code === 'sudo-required') {
     return;
   }

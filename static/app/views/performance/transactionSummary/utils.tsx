@@ -133,7 +133,7 @@ export function transactionSummaryRouteWithQuery({
   };
 }
 
-export function generateTraceLink(dateSelection, view?: DomainView) {
+export function generateTraceLink(dateSelection: any, view?: DomainView) {
   return (
     organization: Organization,
     tableRow: TableDataRow,
@@ -226,7 +226,7 @@ export function generateProfileLink() {
   };
 }
 
-export function generateReplayLink(routes: PlainRoute<any>[]) {
+export function generateReplayLink(routes: Array<PlainRoute<any>>) {
   const referrer = getRouteStringFromRoutes(routes);
 
   return (

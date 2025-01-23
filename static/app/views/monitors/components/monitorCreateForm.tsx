@@ -152,7 +152,11 @@ export default function MonitorCreateForm() {
                           name="config.schedule"
                           placeholder="* * * * *"
                           defaultValue={DEFAULT_SCHEDULE_CONFIG.cronSchedule}
-                          css={{input: {fontFamily: commonTheme.text.familyMono}}}
+                          css={css`
+                            input {
+                              font-family: ${commonTheme.text.familyMono};
+                            }
+                          `}
                           required={selectedCrontab}
                           stacked
                           inline={false}

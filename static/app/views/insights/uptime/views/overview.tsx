@@ -4,6 +4,7 @@ import * as qs from 'query-string';
 
 import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import EmptyMessage from 'sentry/components/emptyMessage';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -12,6 +13,7 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import Pagination from 'sentry/components/pagination';
+import Panel from 'sentry/components/panels/panel';
 import SearchBar from 'sentry/components/searchBar';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -127,7 +129,21 @@ export default function UptimeOverview() {
               {uptimeListPageLinks && <Pagination pageLinks={uptimeListPageLinks} />}
             </Fragment>
           ) : (
-            'LAnding thing here'
+            <Panel>
+              <EmptyMessage
+                title={t('The selected projects have no uptime monitors')}
+                action={
+                  <LinkButton
+                    size="sm"
+                    priority="primary"
+                    to={`/organizations/${organization.slug}/alerts/new/uptime/`}
+                    icon={<IconAdd isCircled />}
+                  >
+                    {t('Add Uptime Monitor')}
+                  </LinkButton>
+                }
+              />
+            </Panel>
           )}
         </Layout.Main>
       </Layout.Body>

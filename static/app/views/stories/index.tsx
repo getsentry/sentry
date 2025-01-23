@@ -183,7 +183,14 @@ function useStoryTree(query: string, files: string[]) {
     const lowerCaseQuery = query.toLowerCase();
 
     for (const {node, path} of root) {
-      const match = fzf(node.name, lowerCaseQuery, false);
+      // index files are useless when trying to match by name, so we'll special
+      // case them and match by their full path as it'll contain a more
+      // relevant path that we can match against.
+      const name = node.name.startsWith('index.')
+        ? [node.name, ...path.map(p => p.name)].join('.')
+        : node.name;
+
+      const match = fzf(name, lowerCaseQuery, false);
       node.result = match;
 
       if (match.score > 0) {
@@ -239,8 +246,11 @@ export class StoryTreeNode {
   }
 
   // Iterator that yields all files in the tree, excluding folders
-  *[Symbol.iterator](): Generator<{node: StoryTreeNode; path: StoryTreeNode[]}> {
-    function* recurse(node: StoryTreeNode, path: StoryTreeNode[]) {
+  *[Symbol.iterator]() {
+    function* recurse(
+      node: StoryTreeNode,
+      path: StoryTreeNode[]
+    ): Generator<{node: StoryTreeNode; path: StoryTreeNode[]}> {
       yield {node, path};
 
       for (const child of Object.values(node.children)) {

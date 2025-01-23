@@ -21,7 +21,7 @@ export default function JSXProperty({name, value}: Props) {
     return <code data-property="boolean">{`${name}={${value}}`}</code>;
   }
   if (value === Number || value === Boolean || value === Function) {
-    // @ts-expect-error
+    // @ts-ignore TS(2339): Property 'name' does not exist on type 'object'.
     return <code data-property="constructor">{`${name}={${value.name}}`}</code>;
   }
   if (typeof value === 'string') {

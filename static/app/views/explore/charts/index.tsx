@@ -19,7 +19,6 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import usePrevious from 'sentry/utils/usePrevious';
-import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
 import ChartContextMenu from 'sentry/views/explore/components/chartContextMenu';
 import {
@@ -81,7 +80,7 @@ export function ExploreCharts({
   const previousTimeseriesResult = usePrevious(timeseriesResult);
 
   const getSeries = useCallback(
-    (dedupedYAxes: string[], formattedYAxes: (string | undefined)[]) => {
+    (dedupedYAxes: string[], formattedYAxes: Array<string | undefined>) => {
       const shouldUsePreviousResults =
         timeseriesResult.isPending &&
         canUsePreviousResults &&
@@ -233,7 +232,6 @@ export function ExploreCharts({
                   top: '32px', // make room to fit the legend above the chart
                   bottom: '0',
                 }}
-                legendFormatter={value => formatVersion(value)}
                 legendOptions={{
                   itemGap: 24,
                   top: '4px',

@@ -71,26 +71,21 @@ export function ScreenSummaryContent() {
   const {transaction: transactionName, spanGroup} = location.query;
 
   useSamplesDrawer({
-    Component: (
-      <SpanSamplesPanel
-        groupId={spanGroup}
-        moduleName={ModuleName.OTHER}
-        onClose={() => {
-          router.replace({
-            pathname: router.location.pathname,
-            query: omit(
-              router.location.query,
-              'spanGroup',
-              'transactionMethod',
-              'spanDescription',
-              'spanOp'
-            ),
-          });
-        }}
-      />
-    ),
+    Component: <SpanSamplesPanel groupId={spanGroup} moduleName={ModuleName.OTHER} />,
     moduleName: ModuleName.OTHER,
     requiredParams: ['spanGroup', 'spanOp'],
+    onClose: () => {
+      router.replace({
+        pathname: router.location.pathname,
+        query: omit(
+          router.location.query,
+          'spanGroup',
+          'transactionMethod',
+          'spanDescription',
+          'spanOp'
+        ),
+      });
+    },
   });
 
   return (

@@ -20,7 +20,7 @@ const discoverxAxis = XAxis({
   axisLabel: {fontSize: 11, fontFamily: DEFAULT_FONT_FAMILY},
 });
 
-export const discoverCharts: RenderDescriptor<ChartType>[] = [];
+export const discoverCharts: Array<RenderDescriptor<ChartType>> = [];
 
 discoverCharts.push({
   key: ChartType.SLACK_DISCOVER_TOTAL_PERIOD,
@@ -50,7 +50,7 @@ discoverCharts.push({
     }
 
     const stats = Object.keys(data.stats).map(key =>
-      Object.assign({}, {key}, data.stats[key])
+      Object.assign({}, {key}, (data.stats as any)[key])
     );
     const color = theme.charts.getColorPalette(stats.length - 2);
 
@@ -61,7 +61,7 @@ discoverCharts.push({
           name: s.key,
           stack: 'area',
           data: s.data.map(
-            ([timestamp, countsForTimestamp]: [number, {count: number}[]]) => [
+            ([timestamp, countsForTimestamp]: [number, Array<{count: number}>]) => [
               timestamp * 1000,
               countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
             ]
@@ -113,7 +113,7 @@ discoverCharts.push({
     }
 
     const stats = Object.keys(data.stats).map(key =>
-      Object.assign({}, {key}, data.stats[key])
+      Object.assign({}, {key}, (data.stats as any)[key])
     );
     const color = theme.charts.getColorPalette(stats.length - 2);
 
@@ -124,7 +124,7 @@ discoverCharts.push({
           name: s.key,
           stack: 'area',
           data: s.data.map(
-            ([timestamp, countsForTimestamp]: [number, {count: number}[]]) => ({
+            ([timestamp, countsForTimestamp]: [number, Array<{count: number}>]) => ({
               value: [
                 timestamp * 1000,
                 countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
@@ -187,7 +187,7 @@ discoverCharts.push({
         AreaSeries({
           stack: 'area',
           data: topSeries.data.map(
-            ([timestamp, countsForTimestamp]: [number, {count: number}[]]) => [
+            ([timestamp, countsForTimestamp]: [number, Array<{count: number}>]) => [
               timestamp * 1000,
               countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
             ]
@@ -247,7 +247,7 @@ discoverCharts.push({
       .map((topSeries, i) =>
         LineSeries({
           data: topSeries.data.map(
-            ([timestamp, countsForTimestamp]: [number, {count: number}[]]) => [
+            ([timestamp, countsForTimestamp]: [number, Array<{count: number}>]) => [
               timestamp * 1000,
               countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
             ]
@@ -308,7 +308,7 @@ discoverCharts.push({
         BarSeries({
           stack: 'area',
           data: topSeries.data.map(
-            ([timestamp, countsForTimestamp]: [number, {count: number}[]]) => [
+            ([timestamp, countsForTimestamp]: [number, Array<{count: number}>]) => [
               timestamp * 1000,
               countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
             ]
@@ -369,7 +369,7 @@ discoverCharts.push({
     }
 
     const stats = Object.keys(data.stats).map(key =>
-      Object.assign({}, {key}, data.stats[key])
+      Object.assign({}, {key}, (data.stats as any)[key])
     );
     const color = theme.charts.getColorPalette(stats.length - 2) ?? [];
     const previousPeriodColor = lightenHexToRgb(color);
@@ -389,10 +389,12 @@ discoverCharts.push({
             stack: 'area',
             data: s.data
               .slice(dataMiddleIndex)
-              .map(([timestamp, countsForTimestamp]: [number, {count: number}[]]) => [
-                timestamp * 1000,
-                countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
-              ]),
+              .map(
+                ([timestamp, countsForTimestamp]: [number, Array<{count: number}>]) => [
+                  timestamp * 1000,
+                  countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
+                ]
+              ),
             lineStyle: {color: color?.[i], opacity: 1, width: 0.4},
             areaStyle: {color: color?.[i], opacity: 1},
           })
@@ -402,7 +404,10 @@ discoverCharts.push({
             name: t('previous %s', s.key),
             stack: 'previous',
             data: previous.map(
-              ([_, countsForTimestamp]: [number, {count: number}[]], index: number) => [
+              (
+                [_, countsForTimestamp]: [number, Array<{count: number}>],
+                index: number
+              ) => [
                 current[index][0] * 1000,
                 countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
               ]
