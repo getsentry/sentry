@@ -13,10 +13,10 @@ class GroupSearchViewValidatorResponse(TypedDict):
     query: str
     querySort: SORT_LITERALS
     position: int
-    timeFilters: dict[str, Any]
-    projects: list[int] | None
-    environments: list[str] | None
-    isAllProjects: bool | None
+    projects: NotRequired[list[int]]
+    isAllProjects: NotRequired[bool]
+    environments: NotRequired[list[str]]
+    timeFilters: NotRequired[dict[str, Any]]
     dateCreated: str | None
     dateUpdated: str | None
 

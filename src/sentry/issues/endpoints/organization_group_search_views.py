@@ -1,4 +1,5 @@
 import sentry_sdk
+from django.contrib.auth.models import AnonymousUser
 from django.db import IntegrityError, router, transaction
 from rest_framework import status
 from rest_framework.request import Request
@@ -17,12 +18,12 @@ from sentry.api.serializers.rest_framework.groupsearchview import (
     GroupSearchViewValidator,
     GroupSearchViewValidatorResponse,
 )
-from sentry.interfaces.user import User
 from sentry.models.groupsearchview import GroupSearchView
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.savedsearch import SortOptions
 from sentry.models.team import Team
+from sentry.users.models.user import User
 
 DEFAULT_VIEWS: list[GroupSearchViewValidatorResponse] = [
     {
@@ -128,7 +129,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
 
 
 def validate_projects(
-    org: Organization, user: User, view: GroupSearchViewValidatorResponse
+    org: Organization, user: User | AnonymousUser, view: GroupSearchViewValidatorResponse
 ) -> None:
     if "projects" in view and view["projects"] is not None:
         if not features.has("organizations:global-views", org) and (
@@ -145,7 +146,7 @@ def validate_projects(
 
             if projects.count() != len(view["projects"]):
                 raise ValidationError("One or more projects do not exist")
-            view["projects"] = projects
+            view["projects"] = list(projects)
             view["isAllProjects"] = False
     else:
         if features.has("organizations:global-views", org):
@@ -158,10 +159,13 @@ def validate_projects(
             view["isAllProjects"] = False
 
 
-def pick_default_project(org: Organization, user: User) -> int:
+def pick_default_project(org: Organization, user: User | AnonymousUser) -> int:
     user_teams = Team.objects.get_for_user(organization=org, user=user)
+    user_team_ids = [team.id for team in user_teams]
     user_projects = (
-        Project.objects.get_for_team_ids(user_teams).order_by("slug").values_list("id", flat=True)
+        Project.objects.get_for_team_ids(user_team_ids)
+        .order_by("slug")
+        .values_list("id", flat=True)
     )
     if len(user_projects) == 0:
         raise ValidationError("You do not have access to any projects")
