@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from typing import Any
 
 import sentry_sdk
@@ -24,7 +24,7 @@ REPOSITORY_INTEGRATION_GET_FILE_METRIC = "repository_integration.get_file.{resul
 
 class BaseRepositoryIntegration(ABC):
     @abstractmethod
-    def get_repositories(self, query: str | None = None) -> Sequence[dict[str, Any]]:
+    def get_repositories(self, query: str | None = None, **kwargs: Any) -> list[dict[str, Any]]:
         """
         Get a list of available repositories for an installation
 

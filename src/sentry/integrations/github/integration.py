@@ -230,9 +230,7 @@ class GitHubIntegration(
         _, _, source_path = url.partition("/")
         return source_path
 
-    def get_repositories(
-        self, query: str | None = None, fetch_max_pages: bool = False
-    ) -> Sequence[dict[str, Any]]:
+    def get_repositories(self, query: str | None = None, **kwargs: Any) -> Sequence[dict[str, Any]]:
         """
         This fetches all repositories accessible to a Github App
         https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation
@@ -244,6 +242,7 @@ class GitHubIntegration(
         per_page: The number of results per page (max 100; default 30).
         """
         if not query:
+            fetch_max_pages = kwargs.get("fetch_max_pages", False)
             # XXX: In order to speed up this function we will need to parallelize this
             # Use ThreadPoolExecutor; see src/sentry/utils/snuba.py#L358
             all_repos = self.get_client().get_with_pagination(

@@ -822,7 +822,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
     @responses.activate
     @patch(
-        "sentry.integrations.github.client.GitHubApiClient.get_repositories",
+        "sentry.integrations.github.integration.GitHubIntegration.get_repositories",
         return_value=[{"name": "abc", "full_name": "testgit/abc"}],
     )
     @with_feature("organizations:codecov-integration")
