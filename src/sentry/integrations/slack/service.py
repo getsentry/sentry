@@ -196,6 +196,7 @@ class SlackService:
                 }
             )
 
+            use_open_period_start = False
             if (
                 features.has(
                     "organizations:issue-alerts-thread-open-period",
@@ -203,6 +204,7 @@ class SlackService:
                 )
                 and activity.group.issue_category == GroupCategory.UPTIME
             ):
+                use_open_period_start = True
                 open_period_start = open_period_start_for_group(activity.group)
                 parent_notifications = self._notification_message_repository.get_all_parent_notification_messages_by_filters(
                     group_ids=[activity.group.id],
@@ -216,11 +218,13 @@ class SlackService:
                 )
 
         # We don't wrap this in a lifecycle because _handle_parent_notification is already wrapped in a lifecycle
+        parent_notification_count = 0
         for parent_notification in parent_notifications:
             with MessagingInteractionEvent(
                 interaction_type=MessagingInteractionType.SEND_ACTIVITY_NOTIFICATION,
                 spec=SlackMessagingSpec(),
             ).capture() as lifecycle:
+                parent_notification_count += 1
                 lifecycle.add_extras(
                     {
                         "activity_id": activity.id,
@@ -242,6 +246,18 @@ class SlackService:
                         record_lifecycle_termination_level(lifecycle, err)
                     else:
                         lifecycle.record_failure(err)
+
+        if use_open_period_start and parent_notification_count != 1:
+            sentry_sdk.capture_message(
+                f"slack.notify_all_threads_for_activity.multiple_parent_notifications_for_single_open_period Activity: {activity.id}, Group: {activity.group.id}, Project: {activity.project.id}, Integration: {integration.id}, Parent Notification Count: {parent_notification_count}"
+            )
+            self._logger.info(
+                "multiple parent notifications found for single open period",
+                extra={
+                    "activity_id": activity.id,
+                    "parent_notification_count": parent_notification_count,
+                },
+            )
 
     def _handle_parent_notification(
         self,
