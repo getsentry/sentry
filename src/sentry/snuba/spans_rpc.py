@@ -59,7 +59,7 @@ def run_table_query(
     meta = resolver.resolve_meta(referrer=referrer)
     where, having, query_contexts = resolver.resolve_query(query_string)
     columns, column_contexts = resolver.resolve_columns(selected_columns)
-    contexts = resolver.clean_contexts(query_contexts + column_contexts)
+    contexts = resolver.resolve_contexts(query_contexts + column_contexts)
     # We allow orderby function_aliases if they're a selected_column
     # eg. can orderby sum_span_self_time, assuming sum(span.self_time) is selected
     orderby_aliases = {
@@ -185,8 +185,6 @@ def get_timeseries_query(
             if isinstance(groupby.proto_definition, AttributeKey)
         ],
         granularity_secs=granularity_secs,
-        # TODO: need to add this once the RPC supports it
-        # virtual_column_contexts=[context for context in resolver.clean_contexts(query_contexts) if context is not None],
     )
 
 

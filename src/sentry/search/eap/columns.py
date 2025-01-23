@@ -102,6 +102,21 @@ class FunctionDefinition:
         return [arg for arg in self.arguments if arg.default_arg is None and not arg.ignored]
 
 
+@dataclass
+class VirtualColumnDefinition:
+    constructor: Callable[[SnubaParams], VirtualColumnContext]
+    # Allows additional processing to the term after its been resolved
+    term_resolver: (
+        Callable[
+            [str | list[str]],
+            int | str | list[int] | list[str],
+        ]
+        | None
+    ) = None
+    filter_column: str | None = None
+    default_value: str | None = None
+
+
 @dataclass(frozen=True, kw_only=True)
 class ResolvedFunction(ResolvedAttribute):
     # The internal rpc alias for this column
@@ -161,5 +176,5 @@ def datetime_processor(datetime_string: str) -> str:
 class ColumnDefinitions:
     functions: dict[str, FunctionDefinition]
     columns: dict[str, ResolvedColumn]
-    contexts: dict[str, Callable[[SnubaParams], VirtualColumnContext]]
+    contexts: dict[str, VirtualColumnDefinition]
     trace_item_type: TraceItemType.ValueType

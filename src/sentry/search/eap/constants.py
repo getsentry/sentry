@@ -48,6 +48,12 @@ STRING = AttributeKey.TYPE_STRING
 BOOLEAN = AttributeKey.TYPE_BOOLEAN
 DOUBLE = AttributeKey.TYPE_DOUBLE
 INT = AttributeKey.TYPE_INT
+TYPE_TO_STRING_MAP = {
+    STRING: "string",
+    BOOLEAN: "boolean",
+    DOUBLE: "double",
+    INT: "integer",
+}
 
 # TODO: we need a datetime type
 # Maps search types back to types for the proto
@@ -105,3 +111,6 @@ VALID_GRANULARITIES = frozenset(
 TRUTHY_VALUES = {"1", "true"}
 FALSEY_VALUES = {"0", "false"}
 BOOLEAN_VALUES = TRUTHY_VALUES.union(FALSEY_VALUES)
+
+PROJECT_FIELDS = {"project", "project.slug", "project.name"}
+REVERSE_CONTEXT_ERROR = "Unknown value {} for filter {}, expecting one of: {}"

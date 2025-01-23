@@ -10,6 +10,7 @@ from sentry.search.eap.columns import (
     ColumnDefinitions,
     FunctionDefinition,
     ResolvedColumn,
+    VirtualColumnDefinition,
     datetime_processor,
     simple_measurements_field,
     simple_sentry_field,
@@ -337,6 +338,15 @@ def project_context_constructor(column_name: str) -> Callable[[SnubaParams], Vir
     return context_constructor
 
 
+def project_term_resolver(
+    raw_value: str | list[str],
+) -> list[int] | int:
+    if isinstance(raw_value, list):
+        return [int(val) for val in raw_value]
+    else:
+        return int(raw_value)
+
+
 def device_class_context_constructor(params: SnubaParams) -> VirtualColumnContext:
     # EAP defaults to lower case `unknown`, but in querybuilder we used `Unknown`
     value_map = {"": "Unknown"}
@@ -360,12 +370,22 @@ def module_context_constructor(params: SnubaParams) -> VirtualColumnContext:
 
 
 SPAN_VIRTUAL_CONTEXTS = {
-    "project": project_context_constructor("project"),
-    "project.slug": project_context_constructor("project.slug"),
-    "project.name": project_context_constructor("project.name"),
-    "device.class": device_class_context_constructor,
-    "span.module": module_context_constructor,
+    "device.class": VirtualColumnDefinition(
+        constructor=device_class_context_constructor,
+        filter_column="sentry.device.class",
+        # TODO: need to change this so the VCC is using it too, but would require rewriting the term_resolver
+        default_value="Unknown",
+    ),
+    "span.module": VirtualColumnDefinition(
+        constructor=module_context_constructor,
+    ),
 }
+for key in constants.PROJECT_FIELDS:
+    SPAN_VIRTUAL_CONTEXTS[key] = VirtualColumnDefinition(
+        constructor=project_context_constructor(key),
+        term_resolver=project_term_resolver,
+        filter_column="project.id",
+    )
 
 
 SPAN_FUNCTION_DEFINITIONS = {

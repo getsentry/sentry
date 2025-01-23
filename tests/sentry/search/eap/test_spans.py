@@ -548,7 +548,8 @@ class SearchResolverColumnTest(TestCase):
         assert resolved_column.proto_definition == AttributeKey(
             name="project", type=AttributeKey.Type.TYPE_STRING
         )
-        assert virtual_context == VirtualColumnContext(
+        assert virtual_context is not None
+        assert virtual_context.constructor(self.resolver.params) == VirtualColumnContext(
             from_column_name="sentry.project_id",
             to_column_name="project",
             value_map={str(self.project.id): self.project.slug},
@@ -559,7 +560,8 @@ class SearchResolverColumnTest(TestCase):
         assert resolved_column.proto_definition == AttributeKey(
             name="project.slug", type=AttributeKey.Type.TYPE_STRING
         )
-        assert virtual_context == VirtualColumnContext(
+        assert virtual_context is not None
+        assert virtual_context.constructor(self.resolver.params) == VirtualColumnContext(
             from_column_name="sentry.project_id",
             to_column_name="project.slug",
             value_map={str(self.project.id): self.project.slug},
