@@ -24,6 +24,19 @@ type DashboardsEventParametersWidgetBuilder = {
     data_set: string;
     new_widget: boolean;
   };
+  'dashboards_views.widget_builder.templates.add_to_dashboard': {
+    title: string;
+    widget_type: string;
+  };
+  'dashboards_views.widget_builder.templates.add_to_dashboard.customize': {
+    title: string;
+    widget_type: string;
+  };
+  'dashboards_views.widget_builder.templates.open': {};
+  'dashboards_views.widget_builder.templates.selected': {
+    title: string;
+    widget_type: string;
+  };
 };
 
 const dashboardsEventMapWidgetBuilder: Record<
@@ -33,6 +46,13 @@ const dashboardsEventMapWidgetBuilder: Record<
   'dashboards_views.widget_builder.change': 'Widget Builder: Field changed',
   'dashboards_views.widget_builder.save': 'Widget Builder: Form submitted',
   'dashboards_views.widget_builder.opened': 'Widget Builder: Page opened',
+  'dashboards_views.widget_builder.templates.open': 'Widget Builder: Templates opened',
+  'dashboards_views.widget_builder.templates.selected':
+    'Widget Builder: Template selected',
+  'dashboards_views.widget_builder.templates.add_to_dashboard':
+    'Widget Builder: Template added to dashboard',
+  'dashboards_views.widget_builder.templates.add_to_dashboard.customize':
+    'Widget Builder: Template added to dashboard and customized',
 };
 
 export type DashboardsEventParameters = {
