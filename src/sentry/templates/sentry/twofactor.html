@@ -61,7 +61,7 @@
     {% script %}
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        var input = document.querySelector('input[name="otp"]');
+        const input = document.querySelector('input[name="otp"]');
         input.addEventListener('change', function() {
             if (input.value.length >= 6) {
                 input.form.submit();
