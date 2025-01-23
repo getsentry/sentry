@@ -17,10 +17,10 @@ const defaultData: TableDataRow = {
   'measurements.fcp': 1234,
   'percentile(measurements.fcp, 0.5)': 1234,
   // TODO: Fix this type
-  // @ts-ignore
+  // @ts-expect-error
   'error.handled': [null],
   // TODO: Fix this type
-  // @ts-ignore
+  // @ts-expect-error
   'error.type': [
     'ServerException',
     'ClickhouseError',
@@ -222,7 +222,7 @@ describe('Discover -> CellAction', function () {
         data: {
           ...defaultData,
           // TODO: Fix this type
-          // @ts-ignore
+          // @ts-expect-error
           'error.handled': ['0'],
         },
       });
@@ -313,7 +313,7 @@ describe('Discover -> CellAction', function () {
         handleCellAction,
         columnIndex: 3,
         // TODO: Fix this type
-        // @ts-ignore
+        // @ts-expect-error
         data: {...defaultData, release: null},
       });
       await openMenu();
@@ -349,7 +349,7 @@ describe('Discover -> CellAction', function () {
         data: {
           ...defaultData,
           // TODO: Fix this type
-          // @ts-ignore
+          // @ts-expect-error
           'measurements.fcp': null,
         },
       });
@@ -389,7 +389,7 @@ describe('Discover -> CellAction', function () {
         data: {
           ...defaultData,
           // TODO: Fix this type
-          // @ts-ignore
+          // @ts-expect-error
           'percentile(measurements.fcp, 0.5)': null,
         },
       });
@@ -426,21 +426,21 @@ describe('updateQuery()', function () {
   it('modifies the query with has/!has', function () {
     let results = new MutableSearch([]);
     // TODO: Fix this type
-    // @ts-ignore
+    // @ts-expect-error
     updateQuery(results, Actions.ADD, columnA, null);
     expect(results.formatString()).toBe('!has:a');
     // TODO: Fix this type
-    // @ts-ignore
+    // @ts-expect-error
     updateQuery(results, Actions.EXCLUDE, columnA, null);
     expect(results.formatString()).toBe('has:a');
     // TODO: Fix this type
-    // @ts-ignore
+    // @ts-expect-error
     updateQuery(results, Actions.ADD, columnA, null);
     expect(results.formatString()).toBe('!has:a');
 
     results = new MutableSearch([]);
     // TODO: Fix this type
-    // @ts-ignore
+    // @ts-expect-error
     updateQuery(results, Actions.ADD, columnA, [null]);
     expect(results.formatString()).toBe('!has:a');
   });
@@ -529,7 +529,7 @@ describe('updateQuery()', function () {
   it('errors for unknown actions', function () {
     const results = new MutableSearch([]);
     // TODO: Fix this type
-    // @ts-ignore
+    // @ts-expect-error
     expect(() => updateQuery(results, 'unknown', columnA, '')).toThrow();
   });
 });

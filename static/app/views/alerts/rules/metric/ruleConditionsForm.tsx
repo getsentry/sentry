@@ -157,7 +157,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
     const {measurements} = this.state;
     const measurementsWithKind = Object.keys(measurements).reduce(
       (measurement_tags, key) => {
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         measurement_tags[key] = {
           ...measurements[key],
           kind: FieldKind.MEASUREMENT,
@@ -403,7 +403,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
 
                 // set the value of the dataset and event type from data source
                 const {dataset: datasetFromDataSource, eventTypes} =
-                  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                   DATA_SOURCE_TO_SET_AND_EVENT_TYPES[value] ?? {};
 
                 model.setValue('dataset', datasetFromDataSource);
