@@ -170,11 +170,14 @@ def get_trees_for_org(
         except ApiError as error:
             process_error(error, extra)
             lifecycle.record_halt(error, extra)
+            return
         except UnableToAcquireLock as error:
             extra["error"] = str(error)
             lifecycle.record_failure(error, extra)
+            return
         except Exception:
             lifecycle.record_failure(DeriveCodeMappingsErrorReason.UNEXPECTED_ERROR, extra=extra)
+            return
 
         if not trees:
             lifecycle.record_halt(DeriveCodeMappingsErrorReason.EMPTY_TREES, extra=extra)

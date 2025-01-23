@@ -17,7 +17,7 @@ from sentry.tasks.auto_source_code_config import (
     auto_source_code_config,
     identify_stacktrace_paths,
 )
-from sentry.testutils.asserts import assert_failure_metric
+from sentry.testutils.asserts import assert_failure_metric, assert_halt_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode_of
@@ -72,8 +72,7 @@ class TestTaskBehavior(BaseDeriveCodeMappings):
                 auto_source_code_config(self.project.id, self.event.event_id, self.event.group_id)
                 is None
             )
-            # XXX: Disable for now
-            # assert_halt_metric(mock_record, error)
+            assert_halt_metric(mock_record, error)
 
     def test_does_not_raise_installation_removed_old_code_path(self, mock_record):
         error = ApiError(
@@ -84,8 +83,7 @@ class TestTaskBehavior(BaseDeriveCodeMappings):
                 auto_source_code_config(self.project.id, self.event.event_id, self.event.group_id)
                 is None
             )
-            # XXX: Disable for now
-            # assert_halt_metric(mock_record, error)
+            assert_halt_metric(mock_record, error)
 
     @patch("sentry.tasks.auto_source_code_config.logger")
     def test_raises_other_api_errors(self, mock_logger, mock_record):
@@ -95,8 +93,7 @@ class TestTaskBehavior(BaseDeriveCodeMappings):
         ):
             auto_source_code_config(self.project.id, self.event.event_id, self.event.group_id)
             assert mock_logger.error.call_count == 1
-            # XXX: Disable for now
-            # assert_halt_metric(mock_record, ApiError("foo"))
+            assert_halt_metric(mock_record, ApiError("foo"))
 
     def test_unable_to_get_lock(self, mock_record):
         error = UnableToAcquireLock()
