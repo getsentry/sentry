@@ -2,7 +2,7 @@ import {getCachedChartPalette} from 'sentry/views/metrics/utils/metricsChartPale
 
 describe('getQuerySymbol', () => {
   it('should cache palettes', () => {
-    const cache: Record<string, string>[] = [];
+    const cache: Array<Record<string, string>> = [];
 
     const abcPalette = getCachedChartPalette(cache, ['a', 'b', 'c']);
     expect(cache).toHaveLength(1);
@@ -20,7 +20,7 @@ describe('getQuerySymbol', () => {
   });
 
   it('should not cache single series palettes', () => {
-    const cache: Record<string, string>[] = [];
+    const cache: Array<Record<string, string>> = [];
 
     const aPalette = getCachedChartPalette(cache, ['a']);
     expect(cache).toHaveLength(0);
@@ -32,7 +32,7 @@ describe('getQuerySymbol', () => {
   });
 
   it('should not cache more than CACHE_SIZE (20) palettes', () => {
-    const cache: Record<string, string>[] = Array.from({length: 20}).map(() => ({
+    const cache: Array<Record<string, string>> = Array.from({length: 20}).map(() => ({
       z: '#123123',
     }));
 
@@ -41,7 +41,7 @@ describe('getQuerySymbol', () => {
     expect(cache).toHaveLength(20);
 
     // Ensure it removes more than 1 cache entry
-    const cache2: Record<string, string>[] = Array.from({length: 100}).map(() => ({
+    const cache2: Array<Record<string, string>> = Array.from({length: 100}).map(() => ({
       z: '#123123',
     }));
 

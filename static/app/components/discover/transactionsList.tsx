@@ -54,7 +54,7 @@ export type DropdownOption = {
   /**
    * override the eventView query
    */
-  query?: [string, string][];
+  query?: Array<[string, string]>;
   /**
    * Included if the option is for a trend
    */

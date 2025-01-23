@@ -67,7 +67,7 @@ interface SearchProps {
    * The sources to query
    */
   // TODO(ts): Improve any type here
-  sources?: React.ComponentType<any>[];
+  sources?: Array<React.ComponentType<any>>;
 }
 
 function Search({

@@ -84,7 +84,7 @@ const TEMPLATE_TABLE_COLUMN: TableColumn<string> = {
   width: COL_WIDTH_UNDEFINED,
 };
 
-export function decodeColumnOrder(fields: readonly Field[]): TableColumn<string>[] {
+export function decodeColumnOrder(fields: readonly Field[]): Array<TableColumn<string>> {
   return fields.map((f: Field) => {
     const column: TableColumn<string> = {...TEMPLATE_TABLE_COLUMN};
 
@@ -280,7 +280,7 @@ export function getExpandedResults(
   const fieldSet = new Set();
   // Expand any functions in the resulting column, and dedupe the result.
   // Mark any column as null to remove it.
-  const expandedColumns: (Column | null)[] = eventView.fields.map((field: Field) => {
+  const expandedColumns: Array<Column | null> = eventView.fields.map((field: Field) => {
     const exploded = explodeFieldString(field.field, field.alias);
     const column = exploded.kind === 'function' ? drilldownAggregate(exploded) : exploded;
 
@@ -490,7 +490,7 @@ function generateExpandedConditions(
 type FieldGeneratorOpts = {
   organization: OrganizationSummary;
   aggregations?: Record<string, Aggregation>;
-  customMeasurements?: {functions: string[]; key: string}[] | null;
+  customMeasurements?: Array<{functions: string[]; key: string}> | null;
   fieldKeys?: string[];
   measurementKeys?: string[] | null;
   spanOperationBreakdownKeys?: string[];

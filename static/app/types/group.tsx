@@ -816,7 +816,7 @@ export interface BaseGroup {
   logger: string | null;
   metadata: EventMetadata;
   numComments: number;
-  participants: (UserParticipant | TeamParticipant)[];
+  participants: Array<UserParticipant | TeamParticipant>;
   permalink: string;
   platform: PlatformKey;
   pluginActions: TitledPlugin[];
@@ -897,7 +897,7 @@ export type Meta = {
 };
 
 export type MetaError = string | [string, any];
-export type MetaRemark = (string | number)[];
+export type MetaRemark = Array<string | number>;
 
 export type ChunkType = {
   rule_id: string | number;
@@ -960,7 +960,7 @@ export type Note = {
   /**
    * Array of [id, display string] tuples used for @-mentions
    */
-  mentions: [string, string][];
+  mentions: Array<[string, string]>;
 
   /**
    * Note contents (markdown allowed)

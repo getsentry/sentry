@@ -110,7 +110,7 @@ export const useProjectRawWebVitalsValuesTimeseriesQuery = ({
 
   // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   result?.data?.['p75(measurements.lcp)']?.data.forEach((interval: any, index: any) => {
-    const map: {key: string; series: SeriesDataUnit[]}[] = [
+    const map: Array<{key: string; series: SeriesDataUnit[]}> = [
       {key: 'p75(measurements.cls)', series: data.cls},
       {key: 'p75(measurements.lcp)', series: data.lcp},
       {key: 'p75(measurements.fcp)', series: data.fcp},
