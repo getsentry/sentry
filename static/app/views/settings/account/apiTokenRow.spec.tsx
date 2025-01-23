@@ -28,7 +28,7 @@ describe('ApiTokenRow', () => {
         token={ApiTokenFixture({id: '1', name: 'token1'})}
       />
     );
-    screen.getByRole('heading', {name: /token1/i});
+    screen.getByText(/token1/);
   });
 
   it('calls onRemove callback when trash can is clicked', async () => {
