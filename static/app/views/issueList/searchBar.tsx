@@ -132,11 +132,9 @@ function IssueListSearchBar({
         'count'
       );
 
-      return mergeAndSortTagValues(
-        eventsAndIssuePlatformValues,
-        featureFlagValues,
-        'count'
-      );
+      return featureFlagValues
+        ? mergeAndSortTagValues(eventsAndIssuePlatformValues, featureFlagValues, 'count')
+        : eventsAndIssuePlatformValues;
     },
     [
       api,
