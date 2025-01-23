@@ -42,6 +42,8 @@ const STAT_OPS = {
   'release-version': {title: t('Release'), color: theme.purple200},
   'web-crawlers': {title: t('Web Crawler'), color: theme.red300},
   'filtered-transaction': {title: t('Health Check'), color: theme.yellow400},
+  'react-hydration-errors': {title: t('Hydration Errors'), color: theme.outcome.filtered},
+  'chunk-load-error': {title: t('Chunk Load Errors'), color: theme.outcome.filtered},
 };
 
 class ProjectFiltersChart extends Component<Props, State> {
