@@ -73,7 +73,7 @@ from sentry.models.dashboard_widget import (
 from sentry.models.dynamicsampling import CustomDynamicSamplingRule
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupbookmark import GroupBookmark
-from sentry.models.groupsearchview import GroupSearchView
+from sentry.models.groupsearchview import GroupSearchView, GroupSearchViewProject
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupshare import GroupShare
 from sentry.models.groupsubscription import GroupSubscription
@@ -613,7 +613,7 @@ class ExhaustiveFixtures(Fixtures):
 
         # Group*
         group = self.create_group(project=project)
-        GroupSearchView.objects.create(
+        group_search_view = GroupSearchView.objects.create(
             name=f"View 1 for {slug}",
             user_id=owner_id,
             organization=org,
@@ -621,6 +621,11 @@ class ExhaustiveFixtures(Fixtures):
             query_sort="date",
             position=0,
         )
+        GroupSearchViewProject.objects.create(
+            group_search_view=group_search_view,
+            project=project,
+        )
+
         Activity.objects.create(
             project=project,
             group=group,
