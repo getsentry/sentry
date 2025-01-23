@@ -33,7 +33,7 @@ jobs:
         uses: ./.github/actions/setup-sentry
         with:
           use-new-devservices: true
-          mode: openapi
+          mode: migrations
         if: steps.changes.outputs.api_docs == 'true'
 
       - name: Checkout getsentry/sentry-api-schema
