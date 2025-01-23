@@ -246,7 +246,7 @@ class GitHubIntegration(
         if not query:
             # XXX: In order to speed up this function we will need to parallelize this
             # Use ThreadPoolExecutor; see src/sentry/utils/snuba.py#L358
-            all_repos = self.get_with_pagination(
+            all_repos = self.get_client().get_with_pagination(
                 "/installation/repositories",
                 response_key="repositories",
                 page_number_limit=self.page_number_limit if fetch_max_pages else 1,
