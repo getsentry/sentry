@@ -62,5 +62,5 @@ def query(
             auto_fields=False,
             use_aggregate_conditions=use_aggregate_conditions,
         ),
-        search_resolver=get_resolver(params=snuba_params, config=SearchResolverConfig()),
+        resolver=get_resolver(params=snuba_params, config=SearchResolverConfig()),
     )

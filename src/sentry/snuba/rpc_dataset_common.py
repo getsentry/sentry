@@ -6,9 +6,9 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeAggregation
 
 from sentry.search.eap.columns import ResolvedColumn, ResolvedFunction
 from sentry.search.eap.resolver import SearchResolver
-from sentry.search.eap.types import CONFIDENCES, ConfidenceData, EAPResponse, SearchResolverConfig
+from sentry.search.eap.types import CONFIDENCES, ConfidenceData, EAPResponse
 from sentry.search.events.fields import get_function_alias
-from sentry.search.events.types import EventsMeta, SnubaData, SnubaParams
+from sentry.search.events.types import EventsMeta, SnubaData
 from sentry.utils import snuba_rpc
 from sentry.utils.snuba import process_value
 
@@ -24,13 +24,13 @@ def categorize_column(column: ResolvedColumn | ResolvedFunction) -> Column:
 
 @sentry_sdk.trace
 def run_table_query(
-        query_string: str,
-        selected_columns: list[str],
-        orderby: list[str] | None,
-        offset: int,
-        limit: int,
-        referrer: str,
-        resolver: SearchResolver,
+    query_string: str,
+    selected_columns: list[str],
+    orderby: list[str] | None,
+    offset: int,
+    limit: int,
+    referrer: str,
+    resolver: SearchResolver,
 ) -> EAPResponse:
     """Make the query"""
     meta = resolver.resolve_meta(referrer=referrer)

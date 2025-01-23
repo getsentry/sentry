@@ -71,7 +71,7 @@ from sentry.shared_integrations.exceptions import (
     DuplicateDisplayNameError,
     IntegrationError,
 )
-from sentry.snuba import spans_rpc
+from sentry.snuba import rpc_dataset_common, spans_rpc
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.entity_subscription import (
     ENTITY_TIME_COLUMNS,
@@ -388,16 +388,18 @@ def get_incident_aggregates(
         )
 
         try:
-            results = spans_rpc.run_table_query(
-                params,
+            results = rpc_dataset_common.run_table_query(
                 query_string=snuba_query.query,
                 selected_columns=[entity_subscription.aggregate],
                 orderby=None,
                 offset=0,
                 limit=1,
                 referrer=Referrer.API_ALERTS_ALERT_RULE_CHART.value,
-                config=SearchResolverConfig(
-                    auto_fields=True,
+                resolver=spans_rpc.get_resolver(
+                    params=params,
+                    config=SearchResolverConfig(
+                        auto_fields=True,
+                    ),
                 ),
             )
 

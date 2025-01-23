@@ -227,7 +227,7 @@ def run_top_events_timeseries_query(
         limit,
         referrer,
         config,
-        search_resolver=search_resolver,
+        search_resolver,
     )
     if len(top_events["data"]) == 0:
         return {}
