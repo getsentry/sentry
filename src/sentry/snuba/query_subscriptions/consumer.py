@@ -137,10 +137,6 @@ def handle_message(
                 logger.exception("Failed to delete unused subscription from snuba.")
             return
 
-        if subscription.snuba_query is None:
-            metrics.incr("snuba_query_subscriber.subscription_snuba_query_missing")
-            return
-
         if subscription.type not in subscriber_registry:
             metrics.incr(
                 "snuba_query_subscriber.subscription_type_not_registered", tags={"dataset": dataset}
