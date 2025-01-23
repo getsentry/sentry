@@ -5,7 +5,7 @@ import {space} from 'sentry/styles/space';
 import {DEEMPHASIS_COLOR_NAME} from 'sentry/views/dashboards/widgets/bigNumberWidget/settings';
 import type {StateProps} from 'sentry/views/dashboards/widgets/common/types';
 
-import {X_GUTTER, Y_GUTTER} from './settings';
+import {X_GUTTER, Y_GUTTER} from '../common/settings';
 
 interface ErrorPanelProps {
   error: StateProps['error'];
@@ -27,7 +27,7 @@ const Panel = styled('div')<{height?: string}>`
   position: absolute;
   inset: 0;
 
-  padding: ${X_GUTTER} ${Y_GUTTER};
+  padding: ${Y_GUTTER} ${X_GUTTER};
 
   display: flex;
   gap: ${space(1)};

@@ -16,7 +16,7 @@ from sentry.workflow_engine.handlers.condition.event_frequency_base_handler impo
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
-from sentry.workflow_engine.types import DataConditionHandler, DataConditionResult
+from sentry.workflow_engine.types import DataConditionHandler, DataConditionResult, WorkflowJob
 
 
 class EventFrequencyConditionHandler(BaseEventFrequencyConditionHandler):
@@ -59,7 +59,7 @@ class EventFrequencyConditionHandler(BaseEventFrequencyConditionHandler):
 
 
 @condition_handler_registry.register(Condition.EVENT_FREQUENCY_COUNT)
-class EventFrequencyCountHandler(EventFrequencyConditionHandler, DataConditionHandler[int]):
+class EventFrequencyCountHandler(EventFrequencyConditionHandler, DataConditionHandler[WorkflowJob]):
     comparison_json_schema = {
         "type": "object",
         "properties": {
@@ -71,12 +71,16 @@ class EventFrequencyCountHandler(EventFrequencyConditionHandler, DataConditionHa
     }
 
     @staticmethod
-    def evaluate_value(value: int, comparison: Any) -> DataConditionResult:
-        return value > comparison["value"]
+    def evaluate_value(value: WorkflowJob, comparison: Any) -> DataConditionResult:
+        if len(value.get("snuba_results", [])) != 1:
+            return False
+        return value["snuba_results"][0] > comparison["value"]
 
 
 @condition_handler_registry.register(Condition.EVENT_FREQUENCY_PERCENT)
-class EventFrequencyPercentHandler(EventFrequencyConditionHandler, DataConditionHandler[list[int]]):
+class EventFrequencyPercentHandler(
+    EventFrequencyConditionHandler, DataConditionHandler[WorkflowJob]
+):
     comparison_json_schema = {
         "type": "object",
         "properties": {
@@ -89,7 +93,10 @@ class EventFrequencyPercentHandler(EventFrequencyConditionHandler, DataCondition
     }
 
     @staticmethod
-    def evaluate_value(value: list[int], comparison: Any) -> DataConditionResult:
-        if len(value) != 2:
+    def evaluate_value(value: WorkflowJob, comparison: Any) -> DataConditionResult:
+        if len(value.get("snuba_results", [])) != 2:
             return False
-        return percent_increase(value[0], value[1]) > comparison["value"]
+        return (
+            percent_increase(value["snuba_results"][0], value["snuba_results"][1])
+            > comparison["value"]
+        )

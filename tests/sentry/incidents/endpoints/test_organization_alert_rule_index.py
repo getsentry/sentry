@@ -452,7 +452,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         assert "id" in resp.data
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
         assert resp.data == serialize(alert_rule, self.user)
-        assert alert_rule.snuba_query is not None
         assert alert_rule.snuba_query.query == "is:unresolved"
 
     def test_spm_function(self):
@@ -508,7 +507,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         assert "id" in resp.data
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
         assert resp.data == serialize(alert_rule, self.user)
-        assert alert_rule.snuba_query is not None
         assert alert_rule.snuba_query.query == "span.module:db has:span.description"
         assert alert_rule.snuba_query.aggregate == "spm()"
 
@@ -565,7 +563,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         assert "id" in resp.data
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
         assert resp.data == serialize(alert_rule, self.user)
-        assert alert_rule.snuba_query is not None
         assert alert_rule.snuba_query.query == "transaction.op:pageload"
         assert alert_rule.snuba_query.aggregate == "performance_score(measurements.score.fcp)"
 

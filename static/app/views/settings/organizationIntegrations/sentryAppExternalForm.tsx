@@ -260,7 +260,9 @@ export class SentryAppExternalForm extends Component<Props, State> {
     );
 
     // If there is a default choice prepopulate the select with it
-    defaultValue ? this.model.setValue(field.name, defaultValue) : '';
+    if (defaultValue) {
+      this.model.setValue(field.name, defaultValue);
+    }
 
     return choices || [];
   };

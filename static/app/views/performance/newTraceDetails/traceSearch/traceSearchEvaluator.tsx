@@ -37,11 +37,11 @@ export type TraceSearchResult = {
  */
 export function searchInTraceTreeTokens(
   tree: TraceTree,
-  tokens: TokenResult<Token>[],
+  tokens: Array<TokenResult<Token>>,
   previousNode: TraceTreeNode<TraceTree.NodeValue> | null,
   cb: (
     results: [
-      ReadonlyArray<TraceSearchResult>,
+      readonly TraceSearchResult[],
       Map<TraceTreeNode<TraceTree.NodeValue>, number>,
       {resultIndex: number | undefined; resultIteratorIndex: number | undefined} | null,
     ]
@@ -121,10 +121,9 @@ export function searchInTraceTreeTokens(
   const left: Map<TraceTreeNode<TraceTree.NodeValue>, number> = new Map();
   const right: Map<TraceTreeNode<TraceTree.NodeValue>, number> = new Map();
 
-  const stack: (
-    | ProcessedTokenResult
-    | Map<TraceTreeNode<TraceTree.NodeValue>, number>
-  )[] = [];
+  const stack: Array<
+    ProcessedTokenResult | Map<TraceTreeNode<TraceTree.NodeValue>, number>
+  > = [];
 
   function search(): void {
     const ts = performance.now();
@@ -135,7 +134,9 @@ export function searchInTraceTreeTokens(
           bool = token;
           if (stack.length < 2) {
             Sentry.captureMessage('Unbalanced tree - missing left or right token');
-            typeof handle.id === 'number' && window.cancelAnimationFrame(handle.id);
+            if (typeof handle.id === 'number') {
+              window.cancelAnimationFrame(handle.id);
+            }
             cb([[], resultLookup, null]);
             return;
           }
@@ -154,7 +155,9 @@ export function searchInTraceTreeTokens(
       Sentry.captureMessage(
         'Invalid state in searchInTraceTreeTokens, missing boolean token'
       );
-      typeof handle.id === 'number' && window.cancelAnimationFrame(handle.id);
+      if (typeof handle.id === 'number') {
+        window.cancelAnimationFrame(handle.id);
+      }
       cb([[], resultLookup, null]);
       return;
     }
@@ -162,7 +165,9 @@ export function searchInTraceTreeTokens(
       Sentry.captureMessage(
         'Invalid state in searchInTraceTreeTokens, missing left or right token'
       );
-      typeof handle.id === 'number' && window.cancelAnimationFrame(handle.id);
+      if (typeof handle.id === 'number') {
+        window.cancelAnimationFrame(handle.id);
+      }
       cb([[], resultLookup, null]);
       return;
     }
@@ -244,7 +249,7 @@ export function searchInTraceTreeText(
   previousNode: TraceTreeNode<TraceTree.NodeValue> | null,
   cb: (
     results: [
-      ReadonlyArray<TraceSearchResult>,
+      readonly TraceSearchResult[],
       Map<TraceTreeNode<TraceTree.NodeValue>, number>,
       {resultIndex: number | undefined; resultIteratorIndex: number | undefined} | null,
     ]
@@ -255,7 +260,7 @@ export function searchInTraceTreeText(
     resultIndex: number | undefined;
     resultIteratorIndex: number | undefined;
   } | null = null;
-  const results: Array<TraceSearchResult> = [];
+  const results: TraceSearchResult[] = [];
   const resultLookup = new Map();
 
   let i = 0;
@@ -337,7 +342,9 @@ function booleanResult(
   if (operator === BooleanOperator.AND) {
     const result = new Map();
     for (const [key, value] of left) {
-      right.has(key) && result.set(key, value);
+      if (right.has(key)) {
+        result.set(key, value);
+      }
     }
     return result;
   }

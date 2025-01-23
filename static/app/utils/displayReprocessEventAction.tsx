@@ -101,7 +101,7 @@ function getStackTracePlatforms(
 
   // Add platforms in a thread entry
   const threadEntry = (event.entries.find(entry => entry.type === EntryType.THREADS)?.data
-    .values ?? []) as Array<Thread>;
+    .values ?? []) as Thread[];
 
   threadEntry.forEach(({stacktrace}) => addFramePlatforms(platforms, stacktrace));
 

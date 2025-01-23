@@ -25,6 +25,7 @@ import simpleImportSort from 'eslint-plugin-simple-import-sort';
 import testingLibrary from 'eslint-plugin-testing-library';
 // @ts-expect-error TS (7016): Could not find a declaration file
 import typescriptSortKeys from 'eslint-plugin-typescript-sort-keys';
+import unicorn from 'eslint-plugin-unicorn';
 import globals from 'globals';
 import invariant from 'invariant';
 // biome-ignore lint/correctness/noNodejsModules: Need to get the list of things!
@@ -288,11 +289,8 @@ export default typescript.config([
       ...eslint.configs.recommended.rules,
       'no-cond-assign': ['error', 'always'],
       'no-case-declarations': 'off', // TODO(ryan953): Fix violations and delete this line
-      'no-dupe-class-members': 'off', // TODO(ryan953): Fix violations and delete this line
-      'no-import-assign': 'off', // TODO(ryan953): Fix violations and delete this line
       'no-prototype-builtins': 'off', // TODO(ryan953): Fix violations and delete this line
       'no-unsafe-optional-chaining': 'off', // TODO(ryan953): Fix violations and delete this line
-      'no-useless-catch': 'off', // TODO(ryan953): Fix violations and delete this line
       'no-useless-escape': 'off', // TODO(ryan953): Fix violations and delete this line
     },
   },
@@ -307,6 +305,7 @@ export default typescript.config([
       'import/no-anonymous-default-export': 'error',
       'import/no-duplicates': 'error',
       'import/no-named-default': 'error',
+      'import/no-nodejs-modules': 'error',
       'import/no-webpack-loader-syntax': 'error',
 
       // https://github.com/import-js/eslint-plugin-import/blob/main/config/recommended.js
@@ -423,7 +422,6 @@ export default typescript.config([
       '@typescript-eslint/no-require-imports': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-this-alias': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-unsafe-function-type': 'off', // TODO(ryan953): Fix violations and delete this line
-      '@typescript-eslint/no-unused-expressions': 'off', // TODO(ryan953): Fix violations and delete this line
 
       // Strict overrides
       '@typescript-eslint/no-dynamic-delete': 'off', // TODO(ryan953): Fix violations and delete this line
@@ -433,7 +431,7 @@ export default typescript.config([
       '@typescript-eslint/unified-signatures': 'off', // TODO(ryan953): Fix violations and delete this line
 
       // Stylistic overrides
-      '@typescript-eslint/array-type': 'off', // TODO(ryan953): Fix violations and delete this line
+      '@typescript-eslint/array-type': ['error', {default: 'array-simple'}],
       '@typescript-eslint/class-literal-property-style': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/consistent-generic-constructors': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/consistent-indexed-object-style': 'off', // TODO(ryan953): Fix violations and delete this line
@@ -496,13 +494,13 @@ export default typescript.config([
         {
           groups: [
             // Side effect imports.
-            ['^\\u0000'],
+            [String.raw`^\u0000`],
 
             // Node.js builtins.
             [`^(${builtinModules.join('|')})(/|$)`],
 
             // Packages. `react` related packages come first.
-            ['^react', '^@?\\w'],
+            ['^react', String.raw`^@?\w`],
 
             // Test should be separate from the app
             ['^(sentry-test|getsentry-test)(/.*|$)'],
@@ -518,13 +516,13 @@ export default typescript.config([
             ['^(admin|getsentry)(/.*|$)'],
 
             // Style imports.
-            ['^.+\\.less$'],
+            [String.raw`^.+\.less$`],
 
             // Parent imports. Put `..` last.
-            ['^\\.\\.(?!/?$)', '^\\.\\./?$'],
+            [String.raw`^\.\.(?!/?$)`, String.raw`^\.\./?$`],
 
             // Other relative imports. Put same-folder imports and `.` last.
-            ['^\\./(?=.*/)(?!/?$)', '^\\.(?!/?$)', '^\\./?$'],
+            [String.raw`^\./(?=.*/)(?!/?$)`, String.raw`^\.(?!/?$)`, String.raw`^\./?$`],
           ],
         },
       ],
@@ -554,6 +552,17 @@ export default typescript.config([
     },
   },
   {
+    name: 'plugin/unicorn',
+    plugins: {unicorn},
+    rules: {
+      // The recommended rules are very opinionated. We don't need to enable them.
+
+      'unicorn/no-instanceof-array': 'error',
+      'unicorn/prefer-array-flat-map': 'error',
+      'unicorn/prefer-node-protocol': 'error',
+    },
+  },
+  {
     name: 'plugin/jest',
     files: ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'],
     // https://github.com/jest-community/eslint-plugin-jest/tree/main/docs/rules
@@ -568,7 +577,6 @@ export default typescript.config([
       ...jest.configs['flat/style'].rules,
 
       'jest/expect-expect': 'off', // Disabled as we have many tests which render as simple validations
-      'jest/no-commented-out-tests': 'off', // TODO(ryan953): Fix violations then delete this line
       'jest/no-conditional-expect': 'off', // TODO(ryan953): Fix violations then delete this line
       'jest/no-disabled-tests': 'error', // `recommended` set this to warn, we've upgraded to error
     },
@@ -597,12 +605,16 @@ export default typescript.config([
   },
   {
     name: 'files/*.config.*',
-    files: ['*.config.*'],
+    files: ['**/*.config.*'],
     languageOptions: {
       globals: {
         ...globals.commonjs,
         ...globals.node,
       },
+    },
+
+    rules: {
+      'import/no-nodejs-modules': 'off',
     },
   },
   {
@@ -617,6 +629,8 @@ export default typescript.config([
     },
     rules: {
       'no-console': 'off',
+
+      'import/no-nodejs-modules': 'off',
     },
   },
   {
@@ -625,7 +639,9 @@ export default typescript.config([
       'tests/js/jest-pegjs-transform.js',
       'tests/js/sentry-test/echartsMock.js',
       'tests/js/sentry-test/importStyleMock.js',
+      'tests/js/sentry-test/loadFixtures.ts',
       'tests/js/sentry-test/svgMock.js',
+      'tests/js/setup.ts',
     ],
     languageOptions: {
       sourceType: 'commonjs',
@@ -633,7 +649,9 @@ export default typescript.config([
         ...globals.commonjs,
       },
     },
-    rules: {},
+    rules: {
+      'import/no-nodejs-modules': 'off',
+    },
   },
   {
     name: 'files/devtoolbar',

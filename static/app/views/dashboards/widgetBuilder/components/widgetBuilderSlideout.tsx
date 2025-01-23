@@ -11,7 +11,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import useMedia from 'sentry/utils/useMedia';
-import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useValidateWidgetQuery} from 'sentry/views/dashboards/hooks/useValidateWidget';
 import {
@@ -19,7 +18,6 @@ import {
   type DashboardFilters,
   DisplayType,
   type Widget,
-  WidgetType,
 } from 'sentry/views/dashboards/types';
 import WidgetBuilderDatasetSelector from 'sentry/views/dashboards/widgetBuilder/components/datasetSelector';
 import WidgetBuilderFilterBar from 'sentry/views/dashboards/widgetBuilder/components/filtersBar';
@@ -30,7 +28,6 @@ import {
   WidgetPreviewContainer,
 } from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilder';
 import WidgetBuilderQueryFilterBuilder from 'sentry/views/dashboards/widgetBuilder/components/queryFilterBuilder';
-import RPCToggle from 'sentry/views/dashboards/widgetBuilder/components/rpcToggle';
 import SaveButton from 'sentry/views/dashboards/widgetBuilder/components/saveButton';
 import WidgetBuilderSortBySelector from 'sentry/views/dashboards/widgetBuilder/components/sortBySelector';
 import ThresholdsSection from 'sentry/views/dashboards/widgetBuilder/components/thresholds';
@@ -69,7 +66,6 @@ function WidgetBuilderSlideout({
   onDataFetched,
   thresholdMetaState,
 }: WidgetBuilderSlideoutProps) {
-  const organization = useOrganization();
   const {state} = useWidgetBuilderContext();
   const [initialState] = useState(state);
   const [error, setError] = useState<Record<string, any>>({});
@@ -154,12 +150,6 @@ function WidgetBuilderSlideout({
             <Section>
               <WidgetBuilderDatasetSelector />
             </Section>
-            {organization.features.includes('visibility-explore-dataset') &&
-              state.dataset === WidgetType.SPANS && (
-                <Section>
-                  <RPCToggle />
-                </Section>
-              )}
             <Section>
               <WidgetBuilderTypeSelector error={error} setError={setError} />
             </Section>

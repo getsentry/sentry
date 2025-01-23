@@ -59,7 +59,7 @@ type State = DeprecatedAsyncComponent['state'] & {
   // TODO(ts): When we have alert conditional types, convert this
   conditions: any;
   interval: string;
-  intervalChoices: [string, string][] | undefined;
+  intervalChoices: Array<[string, string]> | undefined;
   metric: MetricValues;
 
   threshold: string;
@@ -67,8 +67,8 @@ type State = DeprecatedAsyncComponent['state'] & {
 
 type RequestDataFragment = {
   actionMatch: string;
-  actions: Omit<IssueAlertRuleAction, 'label' | 'name' | 'prompt'>[];
-  conditions: {id: string; interval: string; value: string}[] | undefined;
+  actions: Array<Omit<IssueAlertRuleAction, 'label' | 'name' | 'prompt'>>;
+  conditions: Array<{id: string; interval: string; value: string}> | undefined;
   defaultRules: boolean;
   frequency: number;
   name: string;
@@ -139,7 +139,7 @@ class IssueAlertOptions extends DeprecatedAsyncComponent<Props, State> {
 
   getIssueAlertsChoices(
     hasProperlyLoadedConditions: boolean
-  ): [string, string | React.ReactElement][] {
+  ): Array<[string, string | React.ReactElement]> {
     const customizedAlertOption: [string, React.ReactNode] = [
       RuleAction.CUSTOMIZED_ALERTS.toString(),
       <CustomizeAlert
@@ -188,7 +188,7 @@ class IssueAlertOptions extends DeprecatedAsyncComponent<Props, State> {
 
     const default_label = t('Alert me on high priority issues');
 
-    const options: [string, React.ReactNode][] = [
+    const options: Array<[string, React.ReactNode]> = [
       [RuleAction.DEFAULT_ALERT.toString(), default_label],
       ...(hasProperlyLoadedConditions ? [customizedAlertOption] : []),
       [RuleAction.CREATE_ALERT_LATER.toString(), t("I'll create my own alerts later")],

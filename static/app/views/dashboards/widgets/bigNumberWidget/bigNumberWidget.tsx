@@ -92,6 +92,6 @@ const BigNumberResizeWrapper = styled('div')`
 
 const LoadingPlaceholder = styled('span')`
   color: ${p => p.theme[DEEMPHASIS_COLOR_NAME]};
-  padding: ${X_GUTTER} ${Y_GUTTER};
   font-size: ${p => p.theme.fontSizeLarge};
+  padding: ${Y_GUTTER} ${X_GUTTER};
 `;

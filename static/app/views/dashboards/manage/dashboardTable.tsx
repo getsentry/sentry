@@ -98,6 +98,11 @@ function FavoriteButton({
           setFavorited(!favorited);
           await updateDashboardFavorite(api, organization.slug, dashboardId, !favorited);
           onDashboardsChange();
+          trackAnalytics('dashboards_manage.toggle_favorite', {
+            organization,
+            dashboard_id: dashboardId,
+            favorited: !favorited,
+          });
         } catch (error) {
           // If the api call fails, revert the state
           setFavorited(favorited);
@@ -115,7 +120,7 @@ function DashboardTable({
   onDashboardsChange,
   isLoading,
 }: Props) {
-  const columnOrder: GridColumnOrder<ResponseKeys>[] = [
+  const columnOrder: Array<GridColumnOrder<ResponseKeys>> = [
     {key: ResponseKeys.NAME, name: t('Name'), width: COL_WIDTH_UNDEFINED},
     {key: ResponseKeys.WIDGETS, name: t('Widgets'), width: COL_WIDTH_UNDEFINED},
     {key: ResponseKeys.OWNER, name: t('Owner'), width: COL_WIDTH_UNDEFINED},

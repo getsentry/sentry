@@ -64,7 +64,7 @@ const NONE_AGGREGATE = {
 
 function formatColumnOptions(
   dataset: WidgetType,
-  options: SelectValue<FieldValue>[],
+  options: Array<SelectValue<FieldValue>>,
   columnFilterMethod: (
     option: SelectValue<FieldValue>,
     field?: QueryFieldValue
@@ -146,7 +146,7 @@ function getColumnOptions(
 }
 
 function validateParameter(
-  columnOptions: SelectValue<string>[],
+  columnOptions: Array<SelectValue<string>>,
   parameter: AggregateParameter,
   value: string | undefined
 ) {
@@ -157,6 +157,9 @@ function validateParameter(
     return Boolean(columnOptions.find(option => option.value === value)?.value);
   }
   if (parameter.kind === 'value') {
+    if (parameter.dataType === 'number') {
+      return !isNaN(Number(value));
+    }
     return true;
   }
   return false;
@@ -366,6 +369,17 @@ function Visualize({error, setError}: VisualizeProps) {
                 ? matchingAggregate?.value.meta.parameters.slice(1)
                 : [];
 
+            // Apdex and User Misery are special cases where the column parameter is not applicable
+            const isApdexOrUserMisery =
+              matchingAggregate?.value.meta.name === 'apdex' ||
+              matchingAggregate?.value.meta.name === 'user_misery';
+
+            const hasColumnParameter =
+              (fields[index]!.kind === FieldValueKind.FUNCTION &&
+                !isApdexOrUserMisery &&
+                matchingAggregate?.value.meta.parameters.length !== 0) ||
+              fields[index]!.kind === FieldValueKind.FIELD;
+
             return (
               <FieldRow key={index}>
                 {fields.length > 1 && state.displayType === DisplayType.BIG_NUMBER && (
@@ -410,47 +424,46 @@ function Visualize({error, setError}: VisualizeProps) {
                     />
                   ) : (
                     <Fragment>
-                      <PrimarySelectRow>
-                        {/** TODO: Add support for the value parameter type for cases like user_misery, apdex */}
-                        <ColumnCompactSelect
-                          searchable
-                          options={
-                            state.dataset === WidgetType.SPANS &&
-                            field.kind !== FieldValueKind.FUNCTION
-                              ? spanColumnOptions
-                              : columnOptions
-                          }
-                          value={
-                            field.kind === FieldValueKind.FUNCTION
-                              ? parseFunction(stringFields?.[index] ?? '')
-                                  ?.arguments[0] ?? ''
-                              : field.field
-                          }
-                          onChange={newField => {
-                            const newFields = cloneDeep(fields);
-                            const currentField = newFields[index]!;
-                            // Update the current field's aggregate with the new aggregate
-                            if (currentField.kind === FieldValueKind.FUNCTION) {
-                              currentField.function[1] = newField.value as string;
+                      <PrimarySelectRow hasColumnParameter={hasColumnParameter}>
+                        {hasColumnParameter && (
+                          <ColumnCompactSelect
+                            searchable
+                            options={
+                              state.dataset === WidgetType.SPANS &&
+                              field.kind !== FieldValueKind.FUNCTION
+                                ? spanColumnOptions
+                                : columnOptions
                             }
-                            if (currentField.kind === FieldValueKind.FIELD) {
-                              currentField.field = newField.value as string;
+                            value={
+                              field.kind === FieldValueKind.FUNCTION
+                                ? parseFunction(stringFields?.[index] ?? '')
+                                    ?.arguments[0] ?? ''
+                                : field.field
                             }
-                            dispatch({
-                              type: updateAction,
-                              payload: newFields,
-                            });
-                            setError?.({...error, queries: []});
-                          }}
-                          triggerProps={{
-                            'aria-label': t('Column Selection'),
-                          }}
-                          disabled={
-                            fields[index]!.kind === FieldValueKind.FUNCTION &&
-                            matchingAggregate?.value.meta.parameters.length === 0
-                          }
-                        />
+                            onChange={newField => {
+                              const newFields = cloneDeep(fields);
+                              const currentField = newFields[index]!;
+                              // Update the current field's aggregate with the new aggregate
+                              if (currentField.kind === FieldValueKind.FUNCTION) {
+                                currentField.function[1] = newField.value as string;
+                              }
+                              if (currentField.kind === FieldValueKind.FIELD) {
+                                currentField.field = newField.value as string;
+                              }
+                              dispatch({
+                                type: updateAction,
+                                payload: newFields,
+                              });
+                              setError?.({...error, queries: []});
+                            }}
+                            triggerProps={{
+                              'aria-label': t('Column Selection'),
+                            }}
+                          />
+                        )}
                         <AggregateCompactSelect
+                          searchable
+                          hasColumnParameter={hasColumnParameter}
                           disabled={aggregateOptions.length <= 1}
                           options={aggregateOptions}
                           value={parseFunction(stringFields?.[index] ?? '')?.name ?? ''}
@@ -485,12 +498,17 @@ function Visualize({error, setError}: VisualizeProps) {
                                       // If no column filter method is provided, show all options
                                       columnFilterMethod ?? (() => true)
                                     );
-                                    const isValidColumn = Boolean(
-                                      newColumnOptions.find(
-                                        option =>
-                                          option.value === currentField.function[1]
-                                      )?.value
-                                    );
+                                    const newAggregateIsApdexOrUserMisery =
+                                      newAggregate?.value.meta.name === 'apdex' ||
+                                      newAggregate?.value.meta.name === 'user_misery';
+                                    const isValidColumn =
+                                      !newAggregateIsApdexOrUserMisery &&
+                                      Boolean(
+                                        newColumnOptions.find(
+                                          option =>
+                                            option.value === currentField.function[1]
+                                        )?.value
+                                      );
                                     currentField.function[1] =
                                       (isValidColumn
                                         ? currentField.function[1]
@@ -661,6 +679,25 @@ function Visualize({error, setError}: VisualizeProps) {
                             )}
                           </ParameterRefinements>
                         )}
+                      {isApdexOrUserMisery && field.kind === FieldValueKind.FUNCTION && (
+                        <AggregateParameterField
+                          parameter={matchingAggregate?.value.meta.parameters[0]}
+                          fieldValue={field}
+                          currentValue={field.function[1]}
+                          onChange={value => {
+                            const newFields = cloneDeep(fields);
+                            if (newFields[index]!.kind !== FieldValueKind.FUNCTION) {
+                              return;
+                            }
+                            newFields[index]!.function[1] = value;
+                            dispatch({
+                              type: updateAction,
+                              payload: newFields,
+                            });
+                            setError?.({...error, queries: []});
+                          }}
+                        />
+                      )}
                     </Fragment>
                   )}
                 </FieldBar>
@@ -769,6 +806,11 @@ function AggregateParameterField({
       onUpdate: (value: any) => {
         onChange(value);
       },
+      onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+          onChange(e.currentTarget.value);
+        }
+      },
       placeholder: parameter.placeholder,
     };
     switch (parameter.dataType) {
@@ -776,10 +818,11 @@ function AggregateParameterField({
         return (
           <BufferedInput
             name="refinement"
-            key="parameter:number"
+            key={`parameter:number-${currentValue}`}
             type="text"
             inputMode="numeric"
             pattern="[0-9]*(\.[0-9]*)?"
+            aria-label={t('Numeric Input')}
             {...inputProps}
           />
         );
@@ -791,6 +834,7 @@ function AggregateParameterField({
             type="text"
             inputMode="numeric"
             pattern="[0-9]*"
+            aria-label={t('Integer Input')}
             {...inputProps}
           />
         );
@@ -800,6 +844,7 @@ function AggregateParameterField({
             name="refinement"
             key="parameter:text"
             type="text"
+            aria-label={t('Text Input')}
             {...inputProps}
           />
         );
@@ -818,6 +863,7 @@ function AggregateParameterField({
         onChange={({value}: any) => {
           onChange(value);
         }}
+        searchable
       />
     );
   }
@@ -833,10 +879,17 @@ const ColumnCompactSelect = styled(CompactSelect)`
   }
 `;
 
-const AggregateCompactSelect = styled(CompactSelect)`
-  width: fit-content;
-  max-width: 150px;
-  left: -1px;
+const AggregateCompactSelect = styled(CompactSelect)<{hasColumnParameter: boolean}>`
+  ${p =>
+    p.hasColumnParameter
+      ? `
+    width: fit-content;
+    max-width: 150px;
+    left: -1px;
+  `
+      : `
+    width: 100%;
+  `}
 
   > button {
     width: 100%;
@@ -862,7 +915,7 @@ const FieldBar = styled('div')`
   flex: 3;
 `;
 
-const PrimarySelectRow = styled('div')`
+const PrimarySelectRow = styled('div')<{hasColumnParameter: boolean}>`
   display: flex;
   width: 100%;
   flex: 3;
@@ -873,8 +926,12 @@ const PrimarySelectRow = styled('div')`
   }
 
   & > ${AggregateCompactSelect} > button {
-    border-top-left-radius: 0;
-    border-bottom-left-radius: 0;
+    ${p =>
+      p.hasColumnParameter &&
+      `
+      border-top-left-radius: 0;
+      border-bottom-left-radius: 0;
+    `}
   }
 `;
 
