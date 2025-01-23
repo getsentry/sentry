@@ -236,7 +236,7 @@ function modifyFilterValueDate(
 // Uses the token's location to replace a sequence of tokens with the new text value
 function replaceQueryTokens(
   query: string,
-  tokens: TokenResult<Token>[],
+  tokens: Array<TokenResult<Token>>,
   value: string
 ): string {
   if (tokens.length === 0) {
@@ -289,7 +289,7 @@ function removeExcessWhitespaceFromParts(...parts: string[]): string {
 // and cleans up any extra whitespace
 export function replaceTokensWithPadding(
   query: string,
-  tokens: TokenResult<Token>[],
+  tokens: Array<TokenResult<Token>>,
   value: string
 ): string {
   if (tokens.length === 0) {

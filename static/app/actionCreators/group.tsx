@@ -120,16 +120,16 @@ type UpdateParams = ParamsType & {
 type QueryArgs =
   | {
       query: string;
-      environment?: string | Array<string>;
+      environment?: string | string[];
       project?: Array<number | string>;
     }
   | {
-      id: Array<number> | Array<string>;
-      environment?: string | Array<string>;
+      id: number[] | string[];
+      environment?: string | string[];
       project?: Array<number | string>;
     }
   | {
-      environment?: string | Array<string>;
+      environment?: string | string[];
       project?: Array<number | string>;
     };
 

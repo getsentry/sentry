@@ -393,6 +393,7 @@ from .endpoints.debug_files import (
     SourceMapsEndpoint,
     UnknownDebugFilesEndpoint,
 )
+from .endpoints.email_capture import EmailCaptureEndpoint
 from .endpoints.event_apple_crash_report import EventAppleCrashReportEndpoint
 from .endpoints.event_attachment_details import EventAttachmentDetailsEndpoint
 from .endpoints.event_attachments import EventAttachmentsEndpoint
@@ -2171,6 +2172,7 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         OrganizationUptimeAlertIndexEndpoint.as_view(),
         name="sentry-api-0-organization-uptime-alert-index",
     ),
+    *workflow_urls.organization_urlpatterns,
 ]
 
 PROJECT_URLS: list[URLPattern | URLResolver] = [
@@ -2762,7 +2764,7 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         TempestCredentialsDetailsEndpoint.as_view(),
         name="sentry-api-0-project-tempest-credentials-details",
     ),
-    *workflow_urls.urlpatterns,
+    *workflow_urls.project_urlpatterns,
 ]
 
 TEAM_URLS = [
@@ -3017,6 +3019,11 @@ INTERNAL_URLS = [
         r"^feature-flags/ea-feature-flags$",
         InternalEAFeaturesEndpoint.as_view(),
         name="sentry-api-0-internal-ea-features",
+    ),
+    re_path(
+        r"^demo/email-capture/$",
+        EmailCaptureEndpoint.as_view(),
+        name="sentry-demo-mode-email-capture",
     ),
 ]
 

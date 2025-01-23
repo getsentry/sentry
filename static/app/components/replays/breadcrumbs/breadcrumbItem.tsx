@@ -190,26 +190,26 @@ function WebVitalData({
 }) {
   const webVitalData = {value: frame.data.value};
   if (isCLSFrame(frame) && frame.data.attributions && selectors) {
-    const layoutShifts: {[x: string]: ReactNode[]}[] = [];
+    const layoutShifts: Array<{[x: string]: ReactNode[]}> = [];
     for (const attr of frame.data.attributions) {
       const elements: ReactNode[] = [];
       if ('nodeIds' in attr && Array.isArray(attr.nodeIds)) {
         attr.nodeIds.forEach(nodeId => {
-          selectors.get(nodeId)
-            ? elements.push(
-                <span
-                  key={nodeId}
-                  onMouseEnter={() => onMouseEnter(frame, nodeId)}
-                  onMouseLeave={() => onMouseLeave(frame, nodeId)}
-                >
-                  <ValueObjectKey>{t('element')}</ValueObjectKey>
-                  <span>{': '}</span>
-                  <span>
-                    <SelectorButton>{selectors.get(nodeId)}</SelectorButton>
-                  </span>
+          if (selectors.get(nodeId)) {
+            elements.push(
+              <span
+                key={nodeId}
+                onMouseEnter={() => onMouseEnter(frame, nodeId)}
+                onMouseLeave={() => onMouseLeave(frame, nodeId)}
+              >
+                <ValueObjectKey>{t('element')}</ValueObjectKey>
+                <span>{': '}</span>
+                <span>
+                  <SelectorButton>{selectors.get(nodeId)}</SelectorButton>
                 </span>
-              )
-            : null;
+              </span>
+            );
+          }
         });
       }
       // if we can't find the elements associated with the layout shift, we still show the score with element: unknown

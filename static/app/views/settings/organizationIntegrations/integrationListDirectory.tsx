@@ -175,7 +175,7 @@ export class IntegrationListDirectory extends DeprecatedAsyncComponent<
 
   getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization} = this.props;
-    const baseEndpoints: ([string, string, any] | [string, string])[] = [
+    const baseEndpoints: Array<[string, string, any] | [string, string]> = [
       ['config', `/organizations/${organization.slug}/config/integrations/`],
       [
         'integrations',

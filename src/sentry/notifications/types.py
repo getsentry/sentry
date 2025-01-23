@@ -218,7 +218,7 @@ FALLTHROUGH_CHOICES = [
 ]
 
 
-class AssigneeTargetType(Enum):
+class AssigneeTargetType(StrEnum):
     UNASSIGNED = "Unassigned"
     TEAM = "Team"
     MEMBER = "Member"

@@ -39,7 +39,7 @@ type Options = {
   comparisonDelta?: number;
   dataset?: DiscoverDatasets;
   end?: DateString;
-  environment?: Readonly<string[]>;
+  environment?: readonly string[];
   excludeOther?: boolean;
   field?: string[];
   generatePathname?: (org: OrganizationSummary) => string;
@@ -48,7 +48,7 @@ type Options = {
   limit?: number;
   orderby?: string;
   period?: string | null;
-  project?: Readonly<number[]>;
+  project?: readonly number[];
   query?: string;
   queryBatching?: QueryBatching;
   queryExtras?: Record<string, string | boolean | number>;
@@ -192,7 +192,7 @@ export type TagSegment = {
 
 export type Tag = {
   key: string;
-  topValues: Array<TagSegment>;
+  topValues: TagSegment[];
 };
 
 /**

@@ -20,7 +20,7 @@ import {tableLayout} from './utils';
 
 type Props = RouteComponentProps<{}, {}>;
 
-type IpListType = Array<InternetProtocol> | null;
+type IpListType = InternetProtocol[] | null;
 
 function SessionHistory({routes, params, location}: Props) {
   const {

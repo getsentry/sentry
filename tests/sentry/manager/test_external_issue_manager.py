@@ -78,28 +78,6 @@ class ExternalIssueManagerTest(TestCase):
         )
         assert len(result) == 0
 
-    def test_get_linked_issue_ids(self):
-        # Base case
-        result = ExternalIssue.objects.get_linked_issue_ids(
-            event=self.event1, integration=self.api_integration1
-        )
-        assert len(result) == 1
-        assert self.external_issue1.key in result
-        external_issue4 = self.create_integration_external_issue(
-            group=self.event1.group, integration=self.integration1, key="JKL-000"
-        )
-        result = ExternalIssue.objects.get_linked_issue_ids(
-            event=self.event1, integration=self.api_integration1
-        )
-        assert len(result) == 2
-        for ei in [self.external_issue1, external_issue4]:
-            assert ei.key in result
-        # Empty case
-        result = ExternalIssue.objects.get_linked_issue_ids(
-            event=self.event2, integration=self.api_integration2
-        )
-        assert len(result) == 0
-
     def test_has_linked_issue(self):
         # Base case
         result = ExternalIssue.objects.has_linked_issue(

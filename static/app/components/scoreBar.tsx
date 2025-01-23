@@ -5,7 +5,7 @@ import theme from 'sentry/utils/theme';
 type Props = {
   score: number;
   className?: string;
-  palette?: Readonly<string[]>;
+  palette?: readonly string[];
   paletteClassNames?: string[];
   radius?: number;
   size?: number;

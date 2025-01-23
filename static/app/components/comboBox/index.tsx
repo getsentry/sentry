@@ -251,7 +251,7 @@ function ControlledComboBox<Value extends string>({
   ComboBoxProps<Value>,
   'items' | 'defaultItems' | 'children' | 'hasSearch' | 'hiddenOptions'
 > & {
-  options: ComboBoxOptionOrSection<Value>[];
+  options: Array<ComboBoxOptionOrSection<Value>>;
   defaultValue?: Value;
   filterOption?: (option: ComboBoxOption<Value>, inputValue: string) => boolean;
   onChange?: (value: ComboBoxOption<Value>) => void;
@@ -278,7 +278,7 @@ function ControlledComboBox<Value extends string>({
   }, [value, options]);
 
   const items = useMemo(() => {
-    return getItemsWithKeys(options) as ComboBoxOptionOrSectionWithKey<Value>[];
+    return getItemsWithKeys(options) as Array<ComboBoxOptionOrSectionWithKey<Value>>;
   }, [options]);
 
   const hiddenOptions = useMemo(

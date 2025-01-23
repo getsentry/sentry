@@ -35,7 +35,7 @@ import {ProfilingSparklineChart} from './profilingSparklineChart';
 const REGRESSED_FUNCTIONS_LIMIT = 5;
 const REGRESSED_FUNCTIONS_CURSOR = 'functionRegressionCursor';
 
-function trendToPoints(trend: FunctionTrend): {timestamp: number; value: number}[] {
+function trendToPoints(trend: FunctionTrend): Array<{timestamp: number; value: number}> {
   if (!trend.stats.data.length) {
     return [];
   }
@@ -490,7 +490,7 @@ const RegressedFunctionsQueryState = styled('div')`
 `;
 
 const TRIGGER_PROPS = {borderless: true, size: 'zero' as const};
-const TREND_FUNCTION_OPTIONS: SelectOption<TrendType>[] = [
+const TREND_FUNCTION_OPTIONS: Array<SelectOption<TrendType>> = [
   {
     label: t('Most Regressed Functions'),
     value: 'regression' as const,

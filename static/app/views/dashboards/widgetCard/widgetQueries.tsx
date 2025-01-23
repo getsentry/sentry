@@ -158,7 +158,7 @@ function WidgetQueries({
   }
 
   const isSeriesMetricsDataResults: boolean[] = [];
-  const isSeriesMetricsExtractedDataResults: (boolean | undefined)[] = [];
+  const isSeriesMetricsExtractedDataResults: Array<boolean | undefined> = [];
   const afterFetchSeriesData = (rawResults: SeriesResult) => {
     if (rawResults.data) {
       rawResults = rawResults as EventsStats;
