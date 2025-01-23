@@ -1,18 +1,18 @@
-import React from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import Input from 'sentry/components/deprecatedforms/input';
+import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 type Props = {
-  IconArrow: any;
   onSubmit?: (email: string) => void;
 };
 
-export default function EmailForm({onSubmit, IconArrow}: Props) {
-  const [disabledButton, setDisabledButton] = React.useState(true);
+export default function EmailForm({onSubmit}: Props) {
+  const [disabledButton, setDisabledButton] = useState(true);
   return (
     <StyledForm
       onSubmit={event => {
