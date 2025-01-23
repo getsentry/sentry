@@ -72,7 +72,7 @@ class AgeComparisonFilter(EventFilter):
 
         _, delta_time = timeranges[time]
 
-        passes_: bool = age_comparison_map[comparison_type](
+        passes_: bool = age_comparison_map[AgeComparisonType(comparison_type)](
             first_seen + (value * delta_time), current_time
         )
         return passes_

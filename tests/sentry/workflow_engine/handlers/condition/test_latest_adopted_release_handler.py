@@ -1,8 +1,12 @@
 from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 
+import pytest
+from jsonschema import ValidationError
+
 from sentry.models.environment import Environment
 from sentry.models.release import Release
+from sentry.rules.age import AgeComparisonType
 from sentry.rules.filters.latest_adopted_release_filter import (
     LatestAdoptedReleaseFilter,
     get_first_last_release_for_group_cache_key,
@@ -86,6 +90,22 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
         }
         assert dc.condition_result is True
         assert dc.condition_group == dcg
+
+    def test_json_schema(self):
+        self.dc.comparison.update({"age_comparison": AgeComparisonType.OLDER})
+        self.dc.save()
+
+        self.dc.comparison.update({"age_comparison": "new"})
+        with pytest.raises(ValidationError):
+            self.dc.save()
+
+        self.dc.comparison.update({"release_age_type": "new"})
+        with pytest.raises(ValidationError):
+            self.dc.save()
+
+        self.dc.comparison.update({"environment": 123})
+        with pytest.raises(ValidationError):
+            self.dc.save()
 
     def test_semver(self):
         # Test no release
