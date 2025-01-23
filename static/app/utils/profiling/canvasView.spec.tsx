@@ -115,8 +115,9 @@ describe('CanvasView', () => {
       const canvas = makeCanvasMock({
         getContext: jest
           .fn()
-          // @ts-expect-error
-          .mockReturnValue(makeContextMock({canvas: {width: 1000, height: 2000}})),
+          .mockReturnValue(
+            makeContextMock({canvas: {width: 1000, height: 2000} as HTMLCanvasElement})
+          ),
       });
 
       const flamegraph = makeFlamegraph({startValue: 0, endValue: 100});
