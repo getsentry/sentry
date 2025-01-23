@@ -203,17 +203,6 @@ class AlertRuleMigrationHelpersTest(APITestCase):
         migrate_alert_rule(self.metric_alert, self.rpc_user)
         assert_alert_rule_migrated(self.metric_alert, self.project.id)
 
-    def test_create_metric_alert_no_data_source(self):
-        """
-        Test that when we return None and don't create any ACI models if the data source can't be created
-        """
-        self.metric_alert.update(snuba_query=None)
-        migrated = migrate_alert_rule(self.metric_alert, self.rpc_user)
-        assert migrated is None
-        assert len(DataSource.objects.all()) == 0
-        assert not AlertRuleWorkflow.objects.filter(alert_rule=self.metric_alert).exists()
-        assert not AlertRuleDetector.objects.filter(alert_rule=self.metric_alert).exists()
-
     def test_delete_metric_alert(self):
         migrate_alert_rule(self.metric_alert, self.rpc_user)
         alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=self.metric_alert)

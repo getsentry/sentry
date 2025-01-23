@@ -15,7 +15,7 @@ remote_subscriptions: 0003_drop_remote_subscription
 
 replays: 0004_index_together
 
-sentry: 0818_enforce_check_in_environment_not_null
+sentry: 0819_alert_rule_snuba_query_non_null
 
 social_auth: 0002_default_auto_field
 
