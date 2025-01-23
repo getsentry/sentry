@@ -310,7 +310,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             assert response.data["id"] == str(group.id)
             assert response.data["count"] == "16"
 
-    def test_open_periods_non_metric(self) -> None:
+    def test_open_periods_flag_off(self) -> None:
         self.login_as(user=self.user)
         group = self.create_group()
         url = f"/api/0/issues/{group.id}/"
@@ -320,6 +320,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert response.data["openPeriods"] == []
 
+    @with_feature("organizations:issue-open-periods")
     def test_open_periods_new_group(self) -> None:
         self.login_as(user=self.user)
         group = self.create_group()
@@ -335,6 +336,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             {"start": group.first_seen, "end": None, "duration": None, "isOpen": True}
         ]
 
+    @with_feature("organizations:issue-open-periods")
     def test_open_periods_resolved_group(self) -> None:
         self.login_as(user=self.user)
         group = self.create_group()
@@ -365,6 +367,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             }
         ]
 
+    @with_feature("organizations:issue-open-periods")
     def test_open_periods_unresolved_group(self) -> None:
         self.login_as(user=self.user)
         group = self.create_group()
