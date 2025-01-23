@@ -29,7 +29,6 @@ from sentry.snuba import (
     errors,
     metrics_enhanced_performance,
     metrics_performance,
-    rpc_dataset_common,
     spans_eap,
     spans_rpc,
     transactions,
@@ -449,19 +448,17 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             query: str | None,
         ):
             if use_rpc and dataset == spans_eap:
-                return rpc_dataset_common.run_table_query(
+                return spans_rpc.run_table_query(
                     query_string=query or "",
                     selected_columns=self.get_field_list(organization, request),
                     orderby=self.get_orderby(request),
                     offset=offset,
                     limit=limit,
                     referrer=referrer,
-                    resolver=spans_rpc.get_resolver(
-                        params=snuba_params,
-                        config=SearchResolverConfig(
-                            auto_fields=True,
-                            use_aggregate_conditions=use_aggregate_conditions,
-                        ),
+                    params=snuba_params,
+                    config=SearchResolverConfig(
+                        auto_fields=True,
+                        use_aggregate_conditions=use_aggregate_conditions,
                     ),
                 )
             query_source = self.get_request_source(request)

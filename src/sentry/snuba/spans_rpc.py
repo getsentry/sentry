@@ -16,8 +16,8 @@ from sentry.search.eap.span_columns import SPAN_DEFINITIONS
 from sentry.search.eap.types import CONFIDENCES, EAPResponse, SearchResolverConfig
 from sentry.search.events.fields import get_function_alias, is_function
 from sentry.search.events.types import SnubaData, SnubaParams
+from sentry.snuba import rpc_dataset_common
 from sentry.snuba.discover import OTHER_KEY, create_result_key, zerofill
-from sentry.snuba.rpc_dataset_common import run_table_query
 from sentry.utils import snuba_rpc
 from sentry.utils.snuba import SnubaTSResult, process_value
 
@@ -29,6 +29,29 @@ def get_resolver(params: SnubaParams, config: SearchResolverConfig) -> SearchRes
         params=params,
         config=config,
         definitions=SPAN_DEFINITIONS,
+    )
+
+
+@sentry_sdk.trace
+def run_table_query(
+    params: SnubaParams,
+    query_string: str,
+    selected_columns: list[str],
+    orderby: list[str] | None,
+    offset: int,
+    limit: int,
+    referrer: str,
+    config: SearchResolverConfig,
+    search_resolver: SearchResolver | None = None,
+):
+    return rpc_dataset_common.run_table_query(
+        query_string,
+        selected_columns,
+        orderby,
+        offset,
+        limit,
+        referrer,
+        search_resolver or get_resolver(params, config),
     )
 
 
