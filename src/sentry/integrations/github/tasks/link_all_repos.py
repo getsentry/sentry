@@ -24,7 +24,7 @@ def get_repo_config(repo, integration_id):
     return {
         "external_id": repo["id"],
         "integration_id": integration_id,
-        "identifier": repo.get("full_name") or repo.get("identifier"),
+        "identifier": repo["full_name"],
     }
 
 
