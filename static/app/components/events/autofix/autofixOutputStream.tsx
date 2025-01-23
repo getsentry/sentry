@@ -8,7 +8,7 @@ import {Button} from 'sentry/components/button';
 import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
 import Input from 'sentry/components/input';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {IconArrow} from 'sentry/icons';
+import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {singleLineRenderer} from 'sentry/utils/marked';
@@ -148,19 +148,19 @@ export function AutofixOutputStream({
         })}
       >
         <ScaleContainer
-          initial={{scale: 0.8}}
-          animate={{scale: 1}}
-          exit={{scale: 0.8}}
+          initial={{scaleY: 0.8}}
+          animate={{scaleY: 1}}
+          exit={{scaleY: 0.8}}
           transition={testableTransition({
             duration: 0.2,
-            scale: {
+            scaleY: {
               type: 'spring',
               bounce: 0.2,
             },
           })}
         >
-          <StyledArrow direction="down" size="sm" />
-          <Container layout $required={responseRequired}>
+          <VerticalLine />
+          <Container layout required={responseRequired}>
             {activeLog && (
               <ActiveLogWrapper>
                 <ActiveLog
@@ -168,7 +168,7 @@ export function AutofixOutputStream({
                     __html: singleLineRenderer(displayedActiveLog),
                   }}
                 />
-                {isProcessing && <StyledLoadingIndicator size={14} mini hideMessage />}
+                {isProcessing && <StyledLoadingIndicator mini size={14} />}
               </ActiveLogWrapper>
             )}
             {!responseRequired && stream && (
@@ -184,8 +184,13 @@ export function AutofixOutputStream({
                 }
                 required={responseRequired}
               />
-              <StyledButton type="submit" borderless>
-                Send
+              <StyledButton
+                type="submit"
+                borderless
+                aria-label={t('Submit Comment')}
+                size="zero"
+              >
+                <IconChevron direction="right" />
               </StyledButton>
             </InputWrapper>
           </Container>
@@ -198,8 +203,9 @@ export function AutofixOutputStream({
 const Wrapper = styled(motion.div)`
   display: flex;
   flex-direction: column;
-  align-items: center;
-  margin: ${space(1)} ${space(4)};
+  align-items: flex-start;
+  margin-bottom: ${space(1)};
+  margin-right: ${space(2)};
   gap: ${space(1)};
   overflow: hidden;
 `;
@@ -208,12 +214,12 @@ const ScaleContainer = styled(motion.div)`
   width: 100%;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: ${space(1)};
-  transform-origin: top center;
+  align-items: flex-start;
+  transform-origin: top left;
+  padding-left: ${space(2)};
 `;
 
-const Container = styled(motion.div)<{$required: boolean}>`
+const Container = styled(motion.div)<{required: boolean}>`
   position: relative;
   width: 100%;
   border-radius: ${p => p.theme.borderRadius};
@@ -228,7 +234,7 @@ const Container = styled(motion.div)<{$required: boolean}>`
     background: linear-gradient(
       90deg,
       transparent,
-      ${p => (p.$required ? p.theme.pink400 : p.theme.active)}20,
+      ${p => (p.required ? p.theme.pink400 : p.theme.active)}20,
       transparent
     );
     background-size: 2000px 100%;
@@ -254,24 +260,28 @@ const ActiveLogWrapper = styled('div')`
   align-items: center;
   justify-content: space-between;
   padding: ${space(1)};
-  padding-right: ${space(3)};
+  padding-right: 0;
+  padding-left: ${space(2)};
   background: ${p => p.theme.backgroundSecondary};
+  gap: ${space(1)};
 `;
 
 const ActiveLog = styled('div')`
   flex-grow: 1;
 `;
 
-const StyledArrow = styled(IconArrow)`
-  color: ${p => p.theme.subText};
-  opacity: 0.5;
+const VerticalLine = styled('div')`
+  width: 0;
+  height: ${space(4)};
+  border-left: 2px dashed ${p => p.theme.subText};
+  margin-left: 17px;
+  margin-bottom: -1px;
 `;
 
 const InputWrapper = styled('form')`
   display: flex;
-  gap: ${space(0.25)};
-  padding: ${space(0.25)} ${space(0.25)};
-  background: ${p => p.theme.backgroundSecondary};
+  padding: ${space(0.5)};
+  position: relative;
 `;
 
 const StyledInput = styled(Input)`
@@ -279,6 +289,7 @@ const StyledInput = styled(Input)`
   background: ${p => p.theme.background}
     linear-gradient(to left, ${p => p.theme.background}, ${p => p.theme.pink400}20);
   border-color: ${p => p.theme.innerBorder};
+  padding-right: ${space(4)};
 
   &:hover {
     border-color: ${p => p.theme.border};
@@ -286,9 +297,17 @@ const StyledInput = styled(Input)`
 `;
 
 const StyledButton = styled(Button)`
-  flex-shrink: 0;
+  position: absolute;
+  right: ${space(1)};
+  top: 50%;
+  transform: translateY(-50%);
+  height: 24px;
+  width: 24px;
+  margin-right: 0;
+  z-index: 2;
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
-  margin: 0;
+  position: relative;
+  top: ${space(0.5)};
 `;

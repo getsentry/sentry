@@ -13,6 +13,7 @@ import {
   type AutofixStep,
   AutofixStepType,
 } from 'sentry/components/events/autofix/types';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import testableTransition from 'sentry/utils/testableTransition';
 
@@ -29,8 +30,10 @@ interface StepProps {
   hasStepBelow: boolean;
   repos: AutofixRepository[];
   runId: string;
-  shouldHighlightRethink: boolean;
   step: AutofixStep;
+  previousDefaultStepIndex?: number;
+  previousInsightCount?: number;
+  shouldCollapseByDefault?: boolean;
 }
 
 interface AutofixStepsProps {
@@ -63,7 +66,9 @@ export function Step({
   hasStepBelow,
   hasStepAbove,
   hasErroredStepBefore,
-  shouldHighlightRethink,
+  shouldCollapseByDefault,
+  previousDefaultStepIndex,
+  previousInsightCount,
 }: StepProps) {
   return (
     <StepCard>
@@ -84,7 +89,7 @@ export function Step({
                   stepIndex={step.index}
                   groupId={groupId}
                   runId={runId}
-                  shouldHighlightRethink={shouldHighlightRethink}
+                  shouldCollapseByDefault={shouldCollapseByDefault}
                 />
               )}
               {step.type === AutofixStepType.ROOT_CAUSE_ANALYSIS && (
@@ -95,10 +100,18 @@ export function Step({
                   rootCauseSelection={step.selection}
                   terminationReason={step.termination_reason}
                   repos={repos}
+                  previousDefaultStepIndex={previousDefaultStepIndex}
+                  previousInsightCount={previousInsightCount}
                 />
               )}
               {step.type === AutofixStepType.CHANGES && (
-                <AutofixChanges step={step} groupId={groupId} runId={runId} />
+                <AutofixChanges
+                  step={step}
+                  groupId={groupId}
+                  runId={runId}
+                  previousDefaultStepIndex={previousDefaultStepIndex}
+                  previousInsightCount={previousInsightCount}
+                />
               )}
             </Fragment>
           </AnimationWrapper>
@@ -129,6 +142,16 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
     <div>
       <StepsContainer ref={containerRef}>
         {steps.map((step, index) => {
+          const previousDefaultStepIndex = steps
+            .slice(0, index)
+            .findLastIndex(s => s.type === AutofixStepType.DEFAULT);
+          const previousDefaultStep =
+            previousDefaultStepIndex >= 0 ? steps[previousDefaultStepIndex] : undefined;
+          const previousInsightCount =
+            previousDefaultStep?.type === AutofixStepType.DEFAULT
+              ? previousDefaultStep.insights.length
+              : undefined;
+
           const previousStep = index > 0 ? steps[index - 1] : null;
           const previousStepErrored =
             previousStep !== null &&
@@ -140,27 +163,13 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
             step.type === AutofixStepType.DEFAULT &&
             step.insights.length > 0 &&
             nextStep.insights.length > 0;
-          const twoNonDefaultStepsInARow =
-            previousStep &&
-            (previousStep?.type !== AutofixStepType.DEFAULT ||
-              previousStep?.insights.length === 0) &&
-            step.type !== AutofixStepType.DEFAULT;
           const stepBelowProcessingAndEmpty =
             nextStep?.type === AutofixStepType.DEFAULT &&
             nextStep?.status === 'PROCESSING' &&
             nextStep?.insights?.length === 0;
 
-          const isNextStepLastStep = index === steps.length - 2;
-          const shouldHighlightRethink =
-            (nextStep?.type === AutofixStepType.ROOT_CAUSE_ANALYSIS &&
-              isNextStepLastStep) ||
-            (nextStep?.type === AutofixStepType.CHANGES &&
-              nextStep.changes.length > 0 &&
-              !nextStep.changes.every(change => change.pull_request));
-
           return (
             <div ref={el => (stepsRef.current[index] = el)} key={step.id}>
-              {twoNonDefaultStepsInARow && <br />}
               <Step
                 step={step}
                 hasStepBelow={
@@ -173,7 +182,20 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
                 runId={runId}
                 repos={repos}
                 hasErroredStepBefore={previousStepErrored}
-                shouldHighlightRethink={shouldHighlightRethink}
+                shouldCollapseByDefault={
+                  step.type === AutofixStepType.DEFAULT &&
+                  (step.status === 'ERROR' ||
+                    (nextStep?.type === AutofixStepType.ROOT_CAUSE_ANALYSIS &&
+                      steps[index + 2]?.type === AutofixStepType.DEFAULT) ||
+                    (nextStep?.type === AutofixStepType.CHANGES &&
+                      nextStep.changes.every(
+                        change => change.pull_request || change.branch_name
+                      )))
+                }
+                previousDefaultStepIndex={
+                  previousDefaultStepIndex >= 0 ? previousDefaultStepIndex : undefined
+                }
+                previousInsightCount={previousInsightCount}
               />
             </div>
           );
@@ -199,8 +221,8 @@ const StepMessage = styled('div')`
   padding: ${space(1)};
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
-  justify-content: center;
-  text-align: center;
+  justify-content: flex-start;
+  text-align: left;
 `;
 
 const StepsContainer = styled('div')``;

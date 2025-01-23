@@ -35,16 +35,22 @@ type AutofixChangesProps = {
   groupId: string;
   runId: string;
   step: AutofixChangesStep;
+  previousDefaultStepIndex?: number;
+  previousInsightCount?: number;
 };
 
 function AutofixRepoChange({
   change,
   groupId,
   runId,
+  previousDefaultStepIndex,
+  previousInsightCount,
 }: {
   change: AutofixCodebaseChange;
   groupId: string;
   runId: string;
+  previousDefaultStepIndex?: number;
+  previousInsightCount?: number;
 }) {
   return (
     <Content>
@@ -60,6 +66,8 @@ function AutofixRepoChange({
         runId={runId}
         repoId={change.repo_external_id}
         editable={!change.pull_request}
+        previousDefaultStepIndex={previousDefaultStepIndex}
+        previousInsightCount={previousInsightCount}
       />
     </Content>
   );
@@ -305,7 +313,13 @@ function SetupAndCreatePRsButton({
   return <CreatePRsButton changes={changes} groupId={groupId} runId={runId} />;
 }
 
-export function AutofixChanges({step, groupId, runId}: AutofixChangesProps) {
+export function AutofixChanges({
+  step,
+  groupId,
+  runId,
+  previousDefaultStepIndex,
+  previousInsightCount,
+}: AutofixChangesProps) {
   const data = useAutofixData({groupId});
 
   const {mutate: sendFeedbackOnChanges} = useUpdateInsightCard({groupId, runId});
@@ -397,41 +411,65 @@ export function AutofixChanges({step, groupId, runId}: AutofixChangesProps) {
                   />
                 </ButtonBar>
               ) : prsMade ? (
-                <StyledScrollCarousel aria-label={t('View pull requests')}>
-                  {step.changes.map(
-                    change =>
-                      change.pull_request?.pr_url && (
-                        <LinkButton
-                          key={`${change.repo_external_id}-${Math.random()}`}
-                          size="xs"
-                          priority="primary"
-                          icon={<IconOpen size="xs" />}
-                          href={change.pull_request.pr_url}
-                          external
-                        >
-                          View PR in {change.repo_name}
-                        </LinkButton>
-                      )
-                  )}
-                </StyledScrollCarousel>
+                step.changes.length === 1 &&
+                step.changes[0] &&
+                step.changes[0].pull_request?.pr_url ? (
+                  <LinkButton
+                    size="xs"
+                    priority="primary"
+                    icon={<IconOpen size="xs" />}
+                    href={step.changes[0].pull_request.pr_url}
+                    external
+                  >
+                    View PR in {step.changes[0].repo_name}
+                  </LinkButton>
+                ) : (
+                  <StyledScrollCarousel aria-label={t('View pull requests')}>
+                    {step.changes.map(
+                      change =>
+                        change.pull_request?.pr_url && (
+                          <LinkButton
+                            key={`${change.repo_external_id}-${Math.random()}`}
+                            size="xs"
+                            priority="primary"
+                            icon={<IconOpen size="xs" />}
+                            href={change.pull_request.pr_url}
+                            external
+                          >
+                            View PR in {change.repo_name}
+                          </LinkButton>
+                        )
+                    )}
+                  </StyledScrollCarousel>
+                )
               ) : branchesMade ? (
-                <StyledScrollCarousel aria-label={t('Check out branches')}>
-                  {step.changes.map(
-                    change =>
-                      change.branch_name && (
-                        <BranchButton
-                          key={`${change.repo_external_id}-${Math.random()}`}
-                          change={change}
-                        />
-                      )
-                  )}
-                </StyledScrollCarousel>
+                step.changes.length === 1 && step.changes[0] ? (
+                  <BranchButton change={step.changes[0]} />
+                ) : (
+                  <StyledScrollCarousel aria-label={t('Check out branches')}>
+                    {step.changes.map(
+                      change =>
+                        change.branch_name && (
+                          <BranchButton
+                            key={`${change.repo_external_id}-${Math.random()}`}
+                            change={change}
+                          />
+                        )
+                    )}
+                  </StyledScrollCarousel>
+                )
               ) : null}
             </HeaderWrapper>
             {step.changes.map((change, i) => (
               <Fragment key={change.repo_external_id}>
                 {i > 0 && <Separator />}
-                <AutofixRepoChange change={change} groupId={groupId} runId={runId} />
+                <AutofixRepoChange
+                  change={change}
+                  groupId={groupId}
+                  runId={runId}
+                  previousDefaultStepIndex={previousDefaultStepIndex}
+                  previousInsightCount={previousInsightCount}
+                />
               </Fragment>
             ))}
           </ClippedBox>

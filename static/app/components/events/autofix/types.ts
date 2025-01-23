@@ -86,8 +86,21 @@ interface BaseStep {
   status: AutofixStatus;
   title: string;
   type: AutofixStepType;
+  active_comment_thread?: CommentThread | null;
   completedMessage?: string;
   output_stream?: string | null;
+}
+
+export type CommentThread = {
+  id: string;
+  is_completed: boolean;
+  messages: CommentThreadMessage[];
+};
+
+export interface CommentThreadMessage {
+  content: string;
+  role: 'user' | 'assistant';
+  isLoading?: boolean;
 }
 
 export type CodeSnippetContext = {

@@ -304,7 +304,7 @@ const Container = styled('div')`
   width: 100%;
   border-radius: ${p => p.theme.borderRadius};
   background: ${p => p.theme.background}
-    linear-gradient(135deg, ${p => p.theme.background}, ${p => p.theme.pink400}20);
+    linear-gradient(135deg, ${p => p.theme.pink400}08, ${p => p.theme.pink400}20);
   overflow: hidden;
   padding: ${space(0.5)};
 `;
