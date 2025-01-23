@@ -294,7 +294,7 @@ class TestWorkflowSerializer(TestCase):
             "dateCreated": workflow.date_added,
             "dateUpdated": workflow.date_updated,
             "triggers": None,
-            "actions": [],
+            "actionFilters": [],
             "environment": None,
         }
 
@@ -357,7 +357,7 @@ class TestWorkflowSerializer(TestCase):
                 ],
                 "actions": [],
             },
-            "actions": [
+            "actionFilters": [
                 {
                     "id": str(condition_group.id),
                     "organizationId": str(self.organization.id),

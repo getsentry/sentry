@@ -227,7 +227,7 @@ class WorkflowSerializer(Serializer):
             attrs[item]["triggers"] = trigger_condition_map.get(
                 item.when_condition_group_id
             )  # when condition group
-            attrs[item]["actions"] = dcg_map.get(
+            attrs[item]["actionFilters"] = dcg_map.get(
                 item.id, []
             )  # The data condition groups for filtering actions
         return attrs
@@ -239,7 +239,7 @@ class WorkflowSerializer(Serializer):
             "dateCreated": obj.date_added,
             "dateUpdated": obj.date_updated,
             "triggers": attrs.get("triggers"),
-            "actions": attrs.get("actions"),
+            "actionFilters": attrs.get("actionFilters"),
             "environment": obj.environment.name if obj.environment else None,
             "config": obj.config,
         }
