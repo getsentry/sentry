@@ -1,16 +1,9 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import WidgetBuilderGroupBySelector from 'sentry/views/dashboards/widgetBuilder/components/groupBySelector';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
-
-jest.mock('sentry/utils/useNavigate', () => ({
-  useNavigate: jest.fn(),
-}));
-
-const mockUseNavigate = jest.mocked(useNavigate);
 
 describe('WidgetBuilderGroupBySelector', function () {
   beforeEach(function () {
@@ -21,9 +14,6 @@ describe('WidgetBuilderGroupBySelector', function () {
   });
 
   it('renders', async function () {
-    const mockNavigate = jest.fn();
-    mockUseNavigate.mockReturnValue(mockNavigate);
-
     render(
       <WidgetBuilderProvider>
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>

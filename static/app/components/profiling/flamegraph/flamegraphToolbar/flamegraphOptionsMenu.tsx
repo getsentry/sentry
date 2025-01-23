@@ -52,7 +52,7 @@ function FlamegraphOptionsMenu({
   );
 }
 
-const colorCodingOptions: SelectOption<FlamegraphPreferences['colorCoding']>[] = [
+const colorCodingOptions: Array<SelectOption<FlamegraphPreferences['colorCoding']>> = [
   {value: 'by system vs application frame', label: t('By System vs Application Frame')},
   {value: 'by symbol name', label: t('By Symbol Name')},
   {value: 'by library', label: t('By Package')},

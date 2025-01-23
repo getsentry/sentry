@@ -37,7 +37,7 @@ export type TraceSearchResult = {
  */
 export function searchInTraceTreeTokens(
   tree: TraceTree,
-  tokens: TokenResult<Token>[],
+  tokens: Array<TokenResult<Token>>,
   previousNode: TraceTreeNode<TraceTree.NodeValue> | null,
   cb: (
     results: [
@@ -121,10 +121,9 @@ export function searchInTraceTreeTokens(
   const left: Map<TraceTreeNode<TraceTree.NodeValue>, number> = new Map();
   const right: Map<TraceTreeNode<TraceTree.NodeValue>, number> = new Map();
 
-  const stack: (
-    | ProcessedTokenResult
-    | Map<TraceTreeNode<TraceTree.NodeValue>, number>
-  )[] = [];
+  const stack: Array<
+    ProcessedTokenResult | Map<TraceTreeNode<TraceTree.NodeValue>, number>
+  > = [];
 
   function search(): void {
     const ts = performance.now();

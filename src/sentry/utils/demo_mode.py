@@ -1,3 +1,5 @@
+from django.contrib.auth.models import AnonymousUser
+
 from sentry import options
 from sentry.models.organization import Organization
 from sentry.users.models.user import User
@@ -15,7 +17,7 @@ READONLY_SCOPES = frozenset(
 )
 
 
-def is_readonly_user(user: User | None) -> bool:
+def is_readonly_user(user: User | AnonymousUser | None) -> bool:
     if not options.get("demo-mode.enabled"):
         return False
 

@@ -200,7 +200,7 @@ class DetectorValidatorTest(TestCase):
             },
         }
 
-    @mock.patch("sentry.workflow_engine.endpoints.validators.base.create_audit_entry")
+    @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
     def test_create_with_mock_validator(self, mock_audit):
         validator = MockDetectorValidator(data=self.valid_data, context=self.context)
         assert validator.is_valid(), validator.errors
@@ -292,7 +292,7 @@ class TestMetricAlertsDetectorValidator(TestCase):
             ],
         }
 
-    @mock.patch("sentry.workflow_engine.endpoints.validators.base.create_audit_entry")
+    @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
     def test_create_with_valid_data(self, mock_audit):
         validator = MetricAlertsDetectorValidator(
             data=self.valid_data,
