@@ -5,7 +5,7 @@ import type {
 
 import grammar from './equation.pegjs';
 
-type TokenTree = (Token | TokenTree)[];
+type TokenTree = Array<Token | TokenTree>;
 
 export function parseFormula(formula: string): TokenList {
   const tree = grammar.parse(formula) as TokenTree;

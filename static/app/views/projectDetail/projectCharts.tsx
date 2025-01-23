@@ -137,7 +137,7 @@ class ProjectCharts extends Component<Props, State> {
     return displayMode;
   }
 
-  get displayModes(): SelectValue<string>[] {
+  get displayModes(): Array<SelectValue<string>> {
     const {organization, hasSessions, hasTransactions, project} = this.props;
     const hasPerformance = organization.features.includes('performance-view');
     const noPerformanceTooltip = NOT_AVAILABLE_MESSAGES.performance;

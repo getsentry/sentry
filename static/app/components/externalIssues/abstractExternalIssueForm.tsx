@@ -148,7 +148,7 @@ export default class AbstractExternalIssueForm<
    */
   updateFetchedFieldOptionsCache = (
     field: IssueConfigField,
-    result: SelectValue<string | number>[]
+    result: Array<SelectValue<string | number>>
   ): void => {
     const {fetchedFieldOptionsCache} = this.state;
     this.setState({
@@ -169,8 +169,8 @@ export default class AbstractExternalIssueForm<
    */
   ensureCurrentOption = (
     field: IssueConfigField,
-    result: SelectValue<string | number>[]
-  ): SelectValue<string | number>[] => {
+    result: Array<SelectValue<string | number>>
+  ): Array<SelectValue<string | number>> => {
     const currentOption = this.getDefaultOptions(field).find(
       option => option.value === this.model.getValue(field.name)
     );
@@ -257,7 +257,8 @@ export default class AbstractExternalIssueForm<
 
   getDefaultOptions = (field: IssueConfigField) => {
     const choices =
-      (field.choices as [number | string, number | string | React.ReactElement][]) || [];
+      (field.choices as Array<[number | string, number | string | React.ReactElement]>) ||
+      [];
     return choices.map(([value, label]) => ({value, label}));
   };
 

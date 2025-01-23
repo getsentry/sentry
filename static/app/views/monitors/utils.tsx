@@ -89,7 +89,7 @@ export const tickStyle: Record<CheckInStatus, TickStyle> = {
   },
 };
 
-export const getScheduleIntervals = (n: number): SelectValue<string>[] => [
+export const getScheduleIntervals = (n: number): Array<SelectValue<string>> => [
   {value: 'minute', label: tn('minute', 'minutes', n)},
   {value: 'hour', label: tn('hour', 'hours', n)},
   {value: 'day', label: tn('day', 'days', n)},

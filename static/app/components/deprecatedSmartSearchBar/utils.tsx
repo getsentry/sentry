@@ -420,7 +420,7 @@ const getItemTitle = (key: string, kind: FieldKind) => {
  * The parent will become interactive if there exists a key "device".
  */
 export const getTagItemsFromKeys = (
-  tagKeys: readonly Readonly<string>[],
+  tagKeys: ReadonlyArray<Readonly<string>>,
   supportedTags: TagCollection,
   fieldDefinitionGetter: typeof getFieldDefinition = getFieldDefinition
 ) => {

@@ -120,7 +120,7 @@ function DashboardTable({
   onDashboardsChange,
   isLoading,
 }: Props) {
-  const columnOrder: GridColumnOrder<ResponseKeys>[] = [
+  const columnOrder: Array<GridColumnOrder<ResponseKeys>> = [
     {key: ResponseKeys.NAME, name: t('Name'), width: COL_WIDTH_UNDEFINED},
     {key: ResponseKeys.WIDGETS, name: t('Widgets'), width: COL_WIDTH_UNDEFINED},
     {key: ResponseKeys.OWNER, name: t('Owner'), width: COL_WIDTH_UNDEFINED},

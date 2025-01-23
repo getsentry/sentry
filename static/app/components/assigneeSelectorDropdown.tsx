@@ -97,7 +97,7 @@ export interface AssigneeSelectorDropdownProps {
   /**
    * Optional list of suggested owners of the group
    */
-  owners?: Omit<SuggestedAssignee, 'assignee'>[];
+  owners?: Array<Omit<SuggestedAssignee, 'assignee'>>;
   /**
    * Maximum number of teams/users to display in the dropdown
    */
@@ -414,8 +414,8 @@ export default function AssigneeSelectorDropdown({
     };
   };
 
-  const makeAllOptions = (): SelectOptionOrSection<string>[] => {
-    const options: SelectOptionOrSection<string>[] = [];
+  const makeAllOptions = (): Array<SelectOptionOrSection<string>> => {
+    const options: Array<SelectOptionOrSection<string>> = [];
 
     let memList = currentMemberList;
     let assignableTeamList = getAssignableTeams();

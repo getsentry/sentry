@@ -58,10 +58,10 @@ interface CodeSnippetProps {
    */
   onTabClick?: (tab: string) => void;
   selectedTab?: string;
-  tabs?: {
+  tabs?: Array<{
     label: string;
     value: string;
-  }[];
+  }>;
 }
 
 export function CodeSnippet({

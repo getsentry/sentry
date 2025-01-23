@@ -121,7 +121,7 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
   const steps = data.steps;
   const repos = data.repositories;
 
-  const stepsRef = useRef<(HTMLDivElement | null)[]>([]);
+  const stepsRef = useRef<Array<HTMLDivElement | null>>([]);
   const containerRef = useRef<HTMLDivElement>(null);
   const [hasSeenBottom, setHasSeenBottom] = useState(false);
   const [isBottomVisible, setIsBottomVisible] = useState(false);

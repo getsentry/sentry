@@ -291,7 +291,7 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
     const {notificationType} = this.props;
     // get the choices but only the ones that are available to the user
     const choices = (
-      NOTIFICATION_SETTING_FIELDS.provider!.choices as [SupportedProviders, string][]
+      NOTIFICATION_SETTING_FIELDS.provider!.choices as Array<[SupportedProviders, string]>
     ).filter(([providerSlug]) => this.isProviderSupported(providerSlug));
 
     const defaultField = Object.assign({}, NOTIFICATION_SETTING_FIELDS.provider, {

@@ -208,7 +208,7 @@ const normalizeLineEndings = (line?: string) => {
 };
 
 const convertContextLines = (
-  contextLines: [number, string][],
+  contextLines: Array<[number, string]>,
   executedLineNo: number | null
 ) => {
   if (!executedLineNo) {
@@ -249,7 +249,7 @@ export const usePrismTokensSourceContext = ({
 }: {
   fileExtension: string;
   lineNo: number | null;
-  contextLines?: [number, string][];
+  contextLines?: Array<[number, string]>;
 }) => {
   const organization = useOrganization({allowNull: true});
 

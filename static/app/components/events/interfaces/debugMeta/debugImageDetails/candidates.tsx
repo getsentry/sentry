@@ -43,8 +43,8 @@ type Props = {
 };
 
 type State = {
-  filterOptions: SelectSection<string>[];
-  filterSelections: SelectOption<string>[];
+  filterOptions: Array<SelectSection<string>>;
+  filterSelections: Array<SelectOption<string>>;
   filteredCandidatesByFilter: ImageCandidates;
   filteredCandidatesBySearch: ImageCandidates;
   searchTerm: string;
@@ -156,7 +156,7 @@ class Candidates extends Component<Props, State> {
   }
 
   getFilterOptions(candidates: ImageCandidates) {
-    const filterOptions: SelectSection<string>[] = [];
+    const filterOptions: Array<SelectSection<string>> = [];
 
     const candidateStatus = [
       ...new Set(candidates.map(candidate => candidate.download.status)),
@@ -194,7 +194,7 @@ class Candidates extends Component<Props, State> {
 
   getFilteredCandidatedByFilter(
     candidates: ImageCandidates,
-    filterOptions: SelectOption<string>[]
+    filterOptions: Array<SelectOption<string>>
   ) {
     const checkedStatusOptions = new Set(
       filterOptions
@@ -264,7 +264,7 @@ class Candidates extends Component<Props, State> {
     this.setState({searchTerm});
   };
 
-  handleChangeFilter = (filterSelections: SelectOption<string>[]) => {
+  handleChangeFilter = (filterSelections: Array<SelectOption<string>>) => {
     const {filteredCandidatesBySearch} = this.state;
     const filteredCandidatesByFilter = this.getFilteredCandidatedByFilter(
       filteredCandidatesBySearch,

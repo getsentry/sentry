@@ -93,7 +93,7 @@ function useParameterSuggestions({
 }: {
   parameterIndex: number;
   token: AggregateFilter;
-}): SelectOptionWithKey<string>[] {
+}): Array<SelectOptionWithKey<string>> {
   const {getFieldDefinition, filterKeys} = useSearchQueryBuilder();
   const fieldDefinition = getFieldDefinition(token.key.name.text);
 

@@ -69,12 +69,12 @@ export type RawSpanType = {
 export type AggregateSpanType = RawSpanType & {
   count: number;
   frequency: number;
-  samples: {
+  samples: Array<{
     span: string;
     timestamp: number;
     trace: string;
     transaction: string;
-  }[];
+  }>;
   total: number;
   type: 'aggregate';
 };
@@ -248,7 +248,7 @@ export type IndexedFusedSpan = {
 };
 
 export type FilterSpans = {
-  results: Fuse.FuseResult<IndexedFusedSpan>[];
+  results: Array<Fuse.FuseResult<IndexedFusedSpan>>;
   spanIDs: Set<string>;
 };
 

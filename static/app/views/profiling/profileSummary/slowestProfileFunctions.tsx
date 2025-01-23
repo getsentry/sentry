@@ -296,7 +296,7 @@ const SlowestFunctionMetricsRow = styled('div')`
 `;
 
 const TRIGGER_PROPS = {borderless: true, size: 'zero' as const};
-const SLOWEST_FUNCTION_OPTIONS: SelectOption<'application' | 'system' | 'all'>[] = [
+const SLOWEST_FUNCTION_OPTIONS: Array<SelectOption<'application' | 'system' | 'all'>> = [
   {
     label: t('Slowest Application Functions'),
     value: 'application' as const,

@@ -360,7 +360,7 @@ function ProducerMetricsRibbon({
   isLoading,
 }: {
   isLoading: boolean;
-  metrics: Partial<SpanMetricsResponse>[];
+  metrics: Array<Partial<SpanMetricsResponse>>;
 }) {
   const errorRate = 1 - (metrics[0]?.['trace_status_rate(ok)'] ?? 0);
   return (
@@ -386,7 +386,7 @@ function ConsumerMetricsRibbon({
   isLoading,
 }: {
   isLoading: boolean;
-  metrics: Partial<SpanMetricsResponse>[];
+  metrics: Array<Partial<SpanMetricsResponse>>;
 }) {
   const errorRate = 1 - (metrics[0]?.['trace_status_rate(ok)'] ?? 0);
   return (

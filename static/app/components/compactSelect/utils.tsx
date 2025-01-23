@@ -23,14 +23,14 @@ export function getEscapedKey<Value extends SelectKey | undefined>(value: Value)
 }
 
 export function getItemsWithKeys<Value extends SelectKey>(
-  options: SelectOption<Value>[]
-): SelectOptionWithKey<Value>[];
+  options: Array<SelectOption<Value>>
+): Array<SelectOptionWithKey<Value>>;
 export function getItemsWithKeys<Value extends SelectKey>(
-  options: SelectOptionOrSection<Value>[]
-): SelectOptionOrSectionWithKey<Value>[];
+  options: Array<SelectOptionOrSection<Value>>
+): Array<SelectOptionOrSectionWithKey<Value>>;
 export function getItemsWithKeys<Value extends SelectKey>(
-  options: SelectOptionOrSection<Value>[]
-): SelectOptionOrSectionWithKey<Value>[] {
+  options: Array<SelectOptionOrSection<Value>>
+): Array<SelectOptionOrSectionWithKey<Value>> {
   return options.map((item, i) => {
     if ('options' in item) {
       return {
@@ -52,10 +52,10 @@ export function getItemsWithKeys<Value extends SelectKey>(
  * non-flat arrays that contain sections (groups of options).
  */
 export function getSelectedOptions<Value extends SelectKey>(
-  items: SelectOptionOrSectionWithKey<Value>[],
+  items: Array<SelectOptionOrSectionWithKey<Value>>,
   selection: Selection
-): SelectOption<Value>[] {
-  return items.reduce<SelectOption<Value>[]>((acc, cur) => {
+): Array<SelectOption<Value>> {
+  return items.reduce<Array<SelectOption<Value>>>((acc, cur) => {
     // If this is a section
     if ('options' in cur) {
       return acc.concat(getSelectedOptions(cur.options, selection));
@@ -76,7 +76,7 @@ export function getSelectedOptions<Value extends SelectKey>(
  * were removed.
  */
 export function getDisabledOptions<Value extends SelectKey>(
-  items: SelectOptionOrSectionWithKey<Value>[],
+  items: Array<SelectOptionOrSectionWithKey<Value>>,
   isOptionDisabled?: (opt: SelectOptionWithKey<Value>) => boolean
 ): SelectKey[] {
   return items.reduce((acc: SelectKey[], cur) => {
@@ -102,7 +102,7 @@ export function getDisabledOptions<Value extends SelectKey>(
  * outside the list box's count limit.
  */
 export function getHiddenOptions<Value extends SelectKey>(
-  items: SelectOptionOrSectionWithKey<Value>[],
+  items: Array<SelectOptionOrSectionWithKey<Value>>,
   search: string,
   limit: number = Infinity,
   filterOption?: (opt: SelectOption<Value>, search: string) => boolean

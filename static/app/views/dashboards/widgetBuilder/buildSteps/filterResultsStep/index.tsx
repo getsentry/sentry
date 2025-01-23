@@ -53,7 +53,7 @@ interface Props {
   widgetType: WidgetType;
   dashboardFilters?: DashboardFilters;
   projectIds?: number[] | readonly number[];
-  queryErrors?: Record<string, any>[];
+  queryErrors?: Array<Record<string, any>>;
 }
 
 export function FilterResultsStep({

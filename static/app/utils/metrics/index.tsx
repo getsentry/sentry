@@ -78,8 +78,8 @@ export function getMetricsUrl(
     project,
     ...otherParams
   }: Omit<MetricsQueryParams, 'project' | 'widgets'> & {
-    widgets: Partial<MetricsWidget>[];
-    project?: (string | number)[];
+    widgets: Array<Partial<MetricsWidget>>;
+    project?: Array<string | number>;
   }
 ) {
   const urlParams: Partial<MetricsQueryParams> = {

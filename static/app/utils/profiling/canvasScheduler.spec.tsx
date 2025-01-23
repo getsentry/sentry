@@ -1,7 +1,7 @@
 import type {FlamegraphEvents} from 'sentry/utils/profiling/canvasScheduler';
 import {CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 
-const handlers: (keyof FlamegraphEvents)[] = [
+const handlers: Array<keyof FlamegraphEvents> = [
   'reset zoom',
   'set config view',
   'highlight frame',

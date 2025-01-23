@@ -48,7 +48,7 @@ function TraceErrorAlerts({
     return null;
   }
 
-  const traceErrors: (TraceError | TracePerformanceIssue)[] = [];
+  const traceErrors: Array<TraceError | TracePerformanceIssue> = [];
   if (errors && errors.length > 0) {
     traceErrors.push(...errors);
   }

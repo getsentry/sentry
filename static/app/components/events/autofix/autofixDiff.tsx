@@ -179,7 +179,7 @@ function DiffHunkContent({
   }, []);
 
   const lineGroups = useMemo(() => {
-    const groups: {end: number; start: number; type: 'change' | DiffLineType}[] = [];
+    const groups: Array<{end: number; start: number; type: 'change' | DiffLineType}> = [];
     let currentGroup: (typeof groups)[number] | null = null;
 
     linesWithChanges.forEach((line, index) => {

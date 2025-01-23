@@ -194,7 +194,7 @@ function SearchBar(props: SearchBarProps) {
   // with data when ready
   const getEventFieldValues = memoize(
     (tag, query, endpointParams): Promise<string[]> => {
-      const projectIdStrings = (projectIds as Readonly<number>[])?.map(String);
+      const projectIdStrings = (projectIds as Array<Readonly<number>>)?.map(String);
 
       if (isAggregateField(tag.key) || isMeasurement(tag.key)) {
         // We can't really auto suggest values for aggregate fields

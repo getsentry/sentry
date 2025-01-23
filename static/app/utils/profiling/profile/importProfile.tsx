@@ -473,7 +473,7 @@ const tryParseInputString: JSONParser = input => {
 type JSONParser = (input: string) => [any, null] | [null, Error];
 
 // @ts-ignore TS(7051): Parameter has a name but no type. Did you mean 'ar... Remove this comment to see the full error message
-const TRACE_JSON_PARSERS: ((string) => ReturnType<JSONParser>)[] = [
+const TRACE_JSON_PARSERS: Array<(string) => ReturnType<JSONParser>> = [
   (input: string) => tryParseInputString(input),
   (input: string) => tryParseInputString(input + ']'),
 ];

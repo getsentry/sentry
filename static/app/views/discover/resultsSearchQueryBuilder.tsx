@@ -167,7 +167,7 @@ function ResultsSearchQueryBuilder(props: Props) {
   // with data when ready
   const getEventFieldValues = useCallback(
     async (tag: any, query: any): Promise<string[]> => {
-      const projectIdStrings = (projectIds as Readonly<number>[])?.map(String);
+      const projectIdStrings = (projectIds as Array<Readonly<number>>)?.map(String);
 
       if (isAggregateField(tag.key) || isMeasurement(tag.key)) {
         // We can't really auto suggest values for aggregate fields

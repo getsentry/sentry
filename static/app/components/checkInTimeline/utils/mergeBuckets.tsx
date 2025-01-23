@@ -23,10 +23,10 @@ function generateJobTickFromBucketWithStats<Status extends string>(
 
 export function mergeBuckets<Status extends string>(
   statusPrecedent: Status[],
-  data: CheckInStats<Status>[]
-): JobTickData<Status>[] {
+  data: Array<CheckInStats<Status>>
+): Array<JobTickData<Status>> {
   const minTickWidth = 4;
-  const jobTicks: JobTickData<Status>[] = [];
+  const jobTicks: Array<JobTickData<Status>> = [];
 
   data.reduce<JobTickData<Status> | null>((currentJobTick, [timestamp, stats], i) => {
     const statsEmpty = isStatsBucketEmpty(stats);

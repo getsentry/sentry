@@ -24,18 +24,18 @@ type WidgetDefinition = {
   title: string;
   type: string;
   widgets: ImportWidget[];
-  legend_columns?: ('avg' | 'max' | 'min' | 'sum' | 'value')[];
+  legend_columns?: Array<'avg' | 'max' | 'min' | 'sum' | 'value'>;
   requests?: Request[];
 };
 
 type Request = {
   display_type: 'area' | 'bars' | 'line';
   formulas: Formula[];
-  queries: {
+  queries: Array<{
     data_source: string;
     name: string;
     query: string;
-  }[];
+  }>;
   response_format: 'note' | 'timeseries';
   style?: {
     line_type: 'dotted' | 'solid';
@@ -47,12 +47,12 @@ type Formula = {
   alias?: string;
 };
 
-type MetricWidgetReport = {
+type MetricWidgetReport = Array<{
   errors: string[];
   id: number;
   outcome: ImportOutcome;
   title: string;
-}[];
+}>;
 
 type ImportOutcome = 'success' | 'warning' | 'error';
 
@@ -443,7 +443,7 @@ export class WidgetParser {
   }
 
   private constructMetricQueryFilter(
-    filters: {key: string; value: string}[],
+    filters: Array<{key: string; value: string}>,
     availableTags: string[]
   ) {
     const queryFilters = filters.map(filter => {

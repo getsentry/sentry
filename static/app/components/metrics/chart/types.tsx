@@ -8,7 +8,7 @@ import type {MetricDisplayType} from 'sentry/utils/metrics/types';
 export type Series = {
   aggregate: MetricAggregation;
   color: string;
-  data: {name: number; value: number}[];
+  data: Array<{name: number; value: number}>;
   id: string;
   seriesName: string;
   total: number;

@@ -83,7 +83,7 @@ export type LocationQuery = {
 
 const DATETIME_QUERY_STRING_KEYS = ['start', 'end', 'utc', 'statsPeriod'] as const;
 
-const EXTERNAL_QUERY_STRING_KEYS: readonly (keyof LocationQuery)[] = [
+const EXTERNAL_QUERY_STRING_KEYS: ReadonlyArray<keyof LocationQuery> = [
   ...DATETIME_QUERY_STRING_KEYS,
   'cursor',
 ];
@@ -234,7 +234,7 @@ const decodeTeam = (value: string): 'myteams' | number => {
   return parseInt(value, 10);
 };
 
-const decodeTeams = (location: Location): ('myteams' | number)[] => {
+const decodeTeams = (location: Location): Array<'myteams' | number> => {
   if (!location.query || !location.query.team) {
     return [];
   }
@@ -277,7 +277,7 @@ export type EventViewOptions = {
   sorts: readonly Sort[];
   start: string | undefined;
   statsPeriod: string | undefined;
-  team: readonly ('myteams' | number)[];
+  team: ReadonlyArray<'myteams' | number>;
   topEvents: string | undefined;
   additionalConditions?: MutableSearch;
   dataset?: DiscoverDatasets;
@@ -293,7 +293,7 @@ class EventView {
   fields: readonly Field[];
   sorts: readonly Sort[];
   query: string;
-  team: readonly ('myteams' | number)[];
+  team: ReadonlyArray<'myteams' | number>;
   project: readonly number[];
   start: string | undefined;
   end: string | undefined;
@@ -778,7 +778,7 @@ class EventView {
     return this.fields.length;
   }
 
-  getColumns(): TableColumn<React.ReactText>[] {
+  getColumns(): Array<TableColumn<React.ReactText>> {
     return decodeColumnOrder(this.fields);
   }
 
@@ -1069,13 +1069,13 @@ class EventView {
     return newEventView;
   }
 
-  withTeams(teams: ('myteams' | number)[]): EventView {
+  withTeams(teams: Array<'myteams' | number>): EventView {
     const newEventView = this.clone();
     newEventView.team = teams;
     return newEventView;
   }
 
-  getSorts(): TableColumnSort<React.ReactText>[] {
+  getSorts(): Array<TableColumnSort<React.ReactText>> {
     return this.sorts.map(
       sort =>
         ({
@@ -1357,7 +1357,7 @@ class EventView {
     return newEventView;
   }
 
-  getYAxisOptions(): SelectValue<string>[] {
+  getYAxisOptions(): Array<SelectValue<string>> {
     // Make option set and add the default options in.
     return uniqBy(
       this.getAggregateFields()
@@ -1398,7 +1398,7 @@ class EventView {
     return defaultOption;
   }
 
-  getDisplayOptions(): SelectValue<string>[] {
+  getDisplayOptions(): Array<SelectValue<string>> {
     return DISPLAY_MODE_OPTIONS.map(item => {
       if (item.value === DisplayModes.PREVIOUS) {
         if (this.start || this.end) {

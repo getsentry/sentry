@@ -5,7 +5,7 @@ import type {PlainRoute} from 'sentry/types/legacyReactRouter';
 
 import {useTestRouteContext} from './useRouteContext';
 
-export function useRoutes(): PlainRoute<any>[] {
+export function useRoutes(): Array<PlainRoute<any>> {
   // When running in test mode we still read from the legacy route context to
   // keep test compatability while we fully migrate to react router 6
   const testRouteContext = useTestRouteContext();

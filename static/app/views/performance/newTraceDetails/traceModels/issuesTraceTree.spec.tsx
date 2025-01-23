@@ -87,7 +87,7 @@ describe('IssuesTraceTree', () => {
     const error = IssuesTraceTree.Find(tree.root, hasErrors);
 
     let node = error;
-    const nodes: TraceTreeNode<any>[] = [];
+    const nodes: Array<TraceTreeNode<any>> = [];
     while (node && !isTraceNode(node)) {
       nodes.push(node);
       node = node.parent;

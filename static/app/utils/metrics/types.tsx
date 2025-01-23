@@ -128,18 +128,18 @@ export type MetricCorrelation = {
   profileId: string;
   projectId: number;
   segmentName: string;
-  spansDetails: {
+  spansDetails: Array<{
     spanDuration: number;
     spanId: string;
     spanTimestamp: string;
-  }[];
+  }>;
   spansNumber: number;
   timestamp: string;
   traceId: string;
   transactionId: string;
   transactionSpanId: string;
-  spansSummary?: {
+  spansSummary?: Array<{
     spanDuration: number;
     spanOp: string;
-  }[];
+  }>;
 };

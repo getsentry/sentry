@@ -21,7 +21,7 @@ jest.mock('sentry/actionCreators/modal');
 
 describe('Discover > QueryList', function () {
   let location: ReturnType<typeof LocationFixture>;
-  let savedQueries: ReturnType<typeof DiscoverSavedQueryFixture>[];
+  let savedQueries: Array<ReturnType<typeof DiscoverSavedQueryFixture>>;
   let organization: ReturnType<typeof OrganizationFixture>;
   let deleteMock: jest.Mock;
   let duplicateMock: jest.Mock;

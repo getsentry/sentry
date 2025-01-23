@@ -3,8 +3,9 @@ import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 
 describe('ScrollCarousel', function () {
-  let intersectionOnbserverCb: (entries: Partial<IntersectionObserverEntry>[]) => void =
-    jest.fn();
+  let intersectionOnbserverCb: (
+    entries: Array<Partial<IntersectionObserverEntry>>
+  ) => void = jest.fn();
 
   window.IntersectionObserver = class IntersectionObserver {
     root = null;

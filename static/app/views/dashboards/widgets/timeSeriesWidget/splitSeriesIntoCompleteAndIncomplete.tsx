@@ -5,7 +5,7 @@ import type {TimeseriesData} from '../common/types';
 export function splitSeriesIntoCompleteAndIncomplete(
   serie: TimeseriesData,
   delay: number
-): (TimeseriesData | undefined)[] {
+): Array<TimeseriesData | undefined> {
   const penultimateDatum = serie.data.at(-2);
   const finalDatum = serie.data.at(-1);
 

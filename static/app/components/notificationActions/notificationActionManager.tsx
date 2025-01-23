@@ -48,7 +48,7 @@ function NotificationActionManager({
   disabled = false,
 }: NotificationActionManagerProps) {
   const [notificationActions, setNotificationActions] =
-    useState<Partial<NotificationAction>[]>(actions);
+    useState<Array<Partial<NotificationAction>>>(actions);
 
   useEffect(() => {
     setNotificationActions(actions);
@@ -96,11 +96,11 @@ function NotificationActionManager({
   // Will render the notif actions in the order the keys are listed in
   const actionsMap: Record<
     NotificationActionService,
-    {action: NotificationAction; index: number}[]
+    Array<{action: NotificationAction; index: number}>
   > = useMemo(() => {
     const notificationActionsMap: Record<
       NotificationActionService,
-      {action: NotificationAction; index: number}[]
+      Array<{action: NotificationAction; index: number}>
     > = {
       [NotificationActionService.SENTRY_NOTIFICATION]: [],
       [NotificationActionService.EMAIL]: [],

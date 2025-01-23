@@ -155,8 +155,8 @@ export function transformToSeriesMap(
   // Multiple series, applies to multi axis or topN events queries
   const hasMultipleYAxes = yAxis.length > 1;
   if (isMultiSeriesEventsStats(result)) {
-    const processedResults: [number, Series][] = Object.keys(result).map(seriesName =>
-      processSingleEventStats(seriesName, result[seriesName]!)
+    const processedResults: Array<[number, Series]> = Object.keys(result).map(
+      seriesName => processSingleEventStats(seriesName, result[seriesName]!)
     );
 
     if (!hasMultipleYAxes) {
@@ -179,7 +179,7 @@ export function transformToSeriesMap(
   // Grouped multi series, applies to topN events queries with multiple y-axes
   // First, we process the grouped multi series into a list of [seriesName, order, {[aggFunctionAlias]: EventsStats}]
   // to enable sorting.
-  const processedResults: [string, number, MultiSeriesEventsStats][] = [];
+  const processedResults: Array<[string, number, MultiSeriesEventsStats]> = [];
   Object.keys(result).forEach(seriesName => {
     const {order: groupOrder, ...groupData} = result[seriesName]!;
     processedResults.push([seriesName, groupOrder || 0, groupData]);

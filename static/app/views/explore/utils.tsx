@@ -28,7 +28,7 @@ export function getExploreUrl({
   interval: string;
   orgSlug: string;
   selection: PageFilters;
-  visualize: Omit<Visualize, 'label'>[];
+  visualize: Array<Omit<Visualize, 'label'>>;
   field?: string[];
   groupBy?: string[];
   mode?: Mode;
@@ -132,7 +132,7 @@ export function limitMaxPickableDays(organization: Organization): {
     30: '30d',
   };
 
-  const relativeOptions: [DefaultPeriod, React.ReactNode][] = [
+  const relativeOptions: Array<[DefaultPeriod, React.ReactNode]> = [
     ['7d', t('Last 7 days')],
     ['14d', t('Last 14 days')],
     ['30d', t('Last 30 days')],

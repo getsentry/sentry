@@ -159,7 +159,7 @@ export function flattenFrames(frames: SpanFrame[]): FlattenedSpanRange[] {
  * Finds the index of the mobile replay segment that is nearest
  */
 export function findVideoSegmentIndex(
-  trackList: [ts: number, index: number][],
+  trackList: Array<[ts: number, index: number]>,
   segments: VideoEvent[],
   targetTimestamp: number,
   optionalStart?: number,

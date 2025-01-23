@@ -16,7 +16,7 @@ function WidgetBuilderDatasetSelector() {
   const organization = useOrganization();
   const {state, dispatch} = useWidgetBuilderContext();
 
-  const datasetChoices: RadioOption<WidgetType>[] = [];
+  const datasetChoices: Array<RadioOption<WidgetType>> = [];
   datasetChoices.push([WidgetType.ERRORS, t('Errors')]);
   datasetChoices.push([WidgetType.TRANSACTIONS, t('Transactions')]);
 

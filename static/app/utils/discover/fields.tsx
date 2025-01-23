@@ -81,7 +81,7 @@ export type AggregateParameter =
   | {
       dataType: string;
       kind: 'dropdown';
-      options: SelectValue<string>[];
+      options: Array<SelectValue<string>>;
       required: boolean;
       defaultValue?: string;
       placeholder?: string;
@@ -794,7 +794,7 @@ export const TRACING_FIELDS = [
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 ];
 
-export const TRANSACTION_ONLY_FIELDS: (FieldKey | SpanOpBreakdown)[] = [
+export const TRANSACTION_ONLY_FIELDS: Array<FieldKey | SpanOpBreakdown> = [
   FieldKey.TRANSACTION_DURATION,
   FieldKey.TRANSACTION_OP,
   FieldKey.TRANSACTION_STATUS,
@@ -810,7 +810,7 @@ export const ERROR_FIELDS = DISCOVER_FIELDS.filter(
   f => !TRANSACTION_ONLY_FIELDS.includes(f)
 );
 
-export const ERROR_ONLY_FIELDS: (FieldKey | SpanOpBreakdown)[] = [
+export const ERROR_ONLY_FIELDS: Array<FieldKey | SpanOpBreakdown> = [
   FieldKey.LOCATION,
   FieldKey.EVENT_TYPE,
   FieldKey.ERROR_TYPE,

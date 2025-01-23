@@ -36,7 +36,7 @@ export const ISSUE_WIDGET_SORT_OPTIONS = [
   IssueSortOptions.USER,
 ];
 
-export function generateIssueWidgetOrderOptions(): SelectValue<string>[] {
+export function generateIssueWidgetOrderOptions(): Array<SelectValue<string>> {
   const sortOptions = [...ISSUE_WIDGET_SORT_OPTIONS];
   return sortOptions.map(sortOption => ({
     label: getSortLabel(sortOption),

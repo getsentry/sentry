@@ -13,7 +13,7 @@ import {DEFAULT_FONT_FAMILY, slackChartDefaults, slackChartSize} from './slack';
 import type {RenderDescriptor} from './types';
 import {ChartType} from './types';
 
-export const performanceCharts: RenderDescriptor<ChartType>[] = [];
+export const performanceCharts: Array<RenderDescriptor<ChartType>> = [];
 
 export type FunctionRegressionPercentileData = {
   data: EventsStatsSeries<'p95()'>;

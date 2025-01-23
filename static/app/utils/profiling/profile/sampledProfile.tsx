@@ -49,7 +49,11 @@ function sortSamples(
   profile: Readonly<Profiling.SampledProfile>,
   profileIds: Profiling.ProfileReference[][] = [],
   frameFilter?: (i: number) => boolean
-): {aggregate_sample_duration: number; stack: number[]; weight: number | undefined}[] {
+): Array<{
+  aggregate_sample_duration: number;
+  stack: number[];
+  weight: number | undefined;
+}> {
   return stacksWithWeights(profile, profileIds, frameFilter).sort(sortStacks);
 }
 

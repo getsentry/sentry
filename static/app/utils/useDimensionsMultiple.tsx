@@ -1,7 +1,7 @@
 import {useLayoutEffect, useRef, useState} from 'react';
 
 interface Props<Element extends HTMLElement> {
-  elements: (Element | null)[];
+  elements: Array<Element | null>;
 }
 
 /**

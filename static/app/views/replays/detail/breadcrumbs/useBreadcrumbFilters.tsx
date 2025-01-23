@@ -20,7 +20,7 @@ type Options = {
 
 type Return = {
   expandPathsRef: RefObject<Map<number, Set<string>>>;
-  getBreadcrumbTypes: () => {label: string; value: string}[];
+  getBreadcrumbTypes: () => Array<{label: string; value: string}>;
   items: ReplayFrame[];
   searchTerm: string;
   setSearchTerm: (searchTerm: string) => void;

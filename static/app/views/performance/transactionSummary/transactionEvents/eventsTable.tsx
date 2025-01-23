@@ -95,7 +95,7 @@ type Props = {
   transactionName: string;
   applyEnvironmentFilter?: boolean;
   columnTitles?: string[];
-  customColumns?: ('attachments' | 'minidump')[];
+  customColumns?: Array<'attachments' | 'minidump'>;
   domainViewFilters?: DomainViewFilters;
   excludedTags?: string[];
   hidePagination?: boolean;

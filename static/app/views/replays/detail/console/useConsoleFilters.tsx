@@ -27,7 +27,7 @@ type Options = {
 
 type Return = {
   expandPathsRef: RefObject<Map<number, Set<string>>>;
-  getLogLevels: () => {label: string; value: string}[];
+  getLogLevels: () => Array<{label: string; value: string}>;
   items: BreadcrumbFrame[];
   logLevel: string[];
   searchTerm: string;

@@ -11,7 +11,7 @@ type TFeedbackIds = 'all' | string[];
 
 export type ListCache = {
   pageParams: unknown[];
-  pages: ApiResult<FeedbackIssueListItem[]>[];
+  pages: Array<ApiResult<FeedbackIssueListItem[]>>;
 };
 
 const issueApiEndpointRegexp = /^\/organizations\/\w+\/issues\/\d+\/$/;

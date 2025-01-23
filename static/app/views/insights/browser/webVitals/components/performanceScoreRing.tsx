@@ -12,7 +12,12 @@ type Props = React.HTMLAttributes<SVGSVGElement> & {
   backgroundColors: readonly string[];
   segmentColors: readonly string[];
   text: React.ReactNode;
-  values: {key: string; maxValue: number; value: number; onHoverActions?: () => void}[];
+  values: Array<{
+    key: string;
+    maxValue: number;
+    value: number;
+    onHoverActions?: () => void;
+  }>;
   /**
    * The width of the progress ring bar
    */

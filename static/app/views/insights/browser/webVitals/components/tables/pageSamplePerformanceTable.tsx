@@ -60,7 +60,9 @@ import {generateReplayLink} from 'sentry/views/performance/transactionSummary/ut
 type Column = GridColumnHeader<keyof TransactionSampleRowWithScore>;
 type InteractionsColumn = GridColumnHeader<keyof InteractionSpanSampleRowWithScore>;
 
-const PAGELOADS_COLUMN_ORDER: GridColumnOrder<keyof TransactionSampleRowWithScore>[] = [
+const PAGELOADS_COLUMN_ORDER: Array<
+  GridColumnOrder<keyof TransactionSampleRowWithScore>
+> = [
   {key: 'id', width: COL_WIDTH_UNDEFINED, name: t('Event ID')},
   {key: 'user.display', width: COL_WIDTH_UNDEFINED, name: t('User')},
   {key: 'measurements.lcp', width: COL_WIDTH_UNDEFINED, name: 'LCP'},
@@ -72,9 +74,9 @@ const PAGELOADS_COLUMN_ORDER: GridColumnOrder<keyof TransactionSampleRowWithScor
   {key: 'totalScore', width: COL_WIDTH_UNDEFINED, name: t('Score')},
 ];
 
-const INTERACTION_SAMPLES_COLUMN_ORDER: GridColumnOrder<
-  keyof InteractionSpanSampleRowWithScore
->[] = [
+const INTERACTION_SAMPLES_COLUMN_ORDER: Array<
+  GridColumnOrder<keyof InteractionSpanSampleRowWithScore>
+> = [
   {
     key: SpanIndexedField.SPAN_DESCRIPTION,
     width: COL_WIDTH_UNDEFINED,

@@ -38,7 +38,7 @@ import {ScheduleType} from '../types';
 
 import {platformsWithGuides} from './monitorQuickStartGuide';
 
-const SCHEDULE_OPTIONS: SelectValue<string>[] = [
+const SCHEDULE_OPTIONS: Array<SelectValue<string>> = [
   {value: ScheduleType.CRONTAB, label: t('Crontab')},
   {value: ScheduleType.INTERVAL, label: t('Interval')},
 ];

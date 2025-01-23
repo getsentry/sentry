@@ -14,7 +14,7 @@ describe('OpenInContextLine', function () {
   const filename = '/sentry/app.py';
   const group = GroupFixture();
   const install = SentryAppInstallationFixture();
-  const components: SentryAppComponent<SentryAppSchemaStacktraceLink>[] = [
+  const components: Array<SentryAppComponent<SentryAppSchemaStacktraceLink>> = [
     {
       uuid: 'ed517da4-a324-44c0-aeea-1894cd9923fb',
       type: 'stacktrace-link',

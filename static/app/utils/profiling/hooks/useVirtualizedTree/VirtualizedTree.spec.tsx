@@ -5,8 +5,8 @@ const n = (d: any) => {
   return {...d, children: []};
 };
 
-function toFlattenedList(tree: VirtualizedTree<any>): VirtualizedTreeNode<any>[] {
-  const list: VirtualizedTreeNode<any>[] = [];
+function toFlattenedList(tree: VirtualizedTree<any>): Array<VirtualizedTreeNode<any>> {
+  const list: Array<VirtualizedTreeNode<any>> = [];
 
   function visit(node: VirtualizedTreeNode<any>): void {
     list.push(node);

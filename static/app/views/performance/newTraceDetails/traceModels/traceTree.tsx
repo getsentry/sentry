@@ -248,7 +248,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
   profiled_events = new Set<TraceTreeNode<TraceTree.NodeValue>>();
   indicators: TraceTree.Indicator[] = [];
 
-  list: TraceTreeNode<TraceTree.NodeValue>[] = [];
+  list: Array<TraceTreeNode<TraceTree.NodeValue>> = [];
   events: Map<string, EventTransaction> = new Map();
 
   private _spanPromises: Map<string, Promise<EventTransaction>> = new Map();
@@ -430,12 +430,12 @@ export class TraceTree extends TraceTreeEventDispatcher {
     event: EventTransaction | null
   ): [TraceTreeNode<TraceTree.NodeValue>, [number, number]] {
     // collect transactions
-    const transactions = TraceTree.FindAll(node, n =>
-      isTransactionNode(n)
-    ) as TraceTreeNode<TraceTree.Transaction>[];
+    const transactions = TraceTree.FindAll(node, n => isTransactionNode(n)) as Array<
+      TraceTreeNode<TraceTree.Transaction>
+    >;
 
     // Create span nodes
-    const spanNodes: TraceTreeNode<TraceTree.Span>[] = [];
+    const spanNodes: Array<TraceTreeNode<TraceTree.Span>> = [];
     const spanIdToNode = new Map<string, TraceTreeNode<TraceTree.NodeValue>>();
 
     // Transactions have a span_id that needs to be used as the edge to child child span
@@ -990,7 +990,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
   static DirectVisibleChildren(
     node: TraceTreeNode<TraceTree.NodeValue>
-  ): TraceTreeNode<TraceTree.NodeValue>[] {
+  ): Array<TraceTreeNode<TraceTree.NodeValue>> {
     if (isParentAutogroupedNode(node)) {
       if (node.expanded) {
         return [node.head];
@@ -1003,9 +1003,9 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
   static VisibleChildren(
     root: TraceTreeNode<TraceTree.NodeValue>
-  ): TraceTreeNode<TraceTree.NodeValue>[] {
-    const queue: TraceTreeNode<TraceTree.NodeValue>[] = [];
-    const visibleChildren: TraceTreeNode<TraceTree.NodeValue>[] = [];
+  ): Array<TraceTreeNode<TraceTree.NodeValue>> {
+    const queue: Array<TraceTreeNode<TraceTree.NodeValue>> = [];
+    const visibleChildren: Array<TraceTreeNode<TraceTree.NodeValue>> = [];
 
     if (root.expanded || isParentAutogroupedNode(root)) {
       const children = TraceTree.DirectVisibleChildren(root);
@@ -1041,7 +1041,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     }
 
     // Otherwise, we need to traverse up the tree until we find a transaction node.
-    const nodes: TraceTreeNode<TraceTree.NodeValue>[] = [node];
+    const nodes: Array<TraceTreeNode<TraceTree.NodeValue>> = [node];
     let current: TraceTreeNode<TraceTree.NodeValue> | null = node.parent;
 
     while (current && !isTransactionNode(current)) {
@@ -1059,7 +1059,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     root: TraceTreeNode<TraceTree.NodeValue>,
     cb: (node: TraceTreeNode<TraceTree.NodeValue>) => void
   ): void {
-    const queue: TraceTreeNode<TraceTree.NodeValue>[] = [];
+    const queue: Array<TraceTreeNode<TraceTree.NodeValue>> = [];
 
     if (isParentAutogroupedNode(root)) {
       queue.push(root.head);
@@ -1134,9 +1134,9 @@ export class TraceTree extends TraceTreeEventDispatcher {
   static FindAll(
     root: TraceTreeNode<TraceTree.NodeValue>,
     predicate: (node: TraceTreeNode<TraceTree.NodeValue>) => boolean
-  ): TraceTreeNode<TraceTree.NodeValue>[] {
+  ): Array<TraceTreeNode<TraceTree.NodeValue>> {
     const queue = [root];
-    const results: TraceTreeNode<TraceTree.NodeValue>[] = [];
+    const results: Array<TraceTreeNode<TraceTree.NodeValue>> = [];
 
     while (queue.length > 0) {
       const next = queue.pop()!;
@@ -1724,7 +1724,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     return connectors;
   }
 
-  toList(): TraceTreeNode<TraceTree.NodeValue>[] {
+  toList(): Array<TraceTreeNode<TraceTree.NodeValue>> {
     this.list = TraceTree.VisibleChildren(this.root);
     return this.list;
   }

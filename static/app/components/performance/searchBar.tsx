@@ -61,7 +61,7 @@ function SearchBar(props: SearchBarProps) {
 
   const url = `/organizations/${organization.slug}/events/`;
 
-  const projectIdStrings = (eventView.project as Readonly<number>[])?.map(String);
+  const projectIdStrings = (eventView.project as Array<Readonly<number>>)?.map(String);
 
   const handleSearchChange = (query: any) => {
     setSearchString(query);

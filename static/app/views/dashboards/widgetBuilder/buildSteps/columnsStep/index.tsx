@@ -22,7 +22,7 @@ interface Props {
   onQueryChange: (queryIndex: number, newQuery: WidgetQuery) => void;
   tags: TagCollection;
   widgetType: WidgetType;
-  queryErrors?: Record<string, any>[];
+  queryErrors?: Array<Record<string, any>>;
 }
 
 export function ColumnsStep({

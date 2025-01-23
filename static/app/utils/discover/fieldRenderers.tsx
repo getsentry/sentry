@@ -457,7 +457,7 @@ const SPECIAL_FIELDS: SpecialFields = {
   minidump: {
     sortField: null,
     renderFunc: (data, {organization, projectSlug}) => {
-      const attachments: (IssueAttachment & {url: string})[] = data.attachments;
+      const attachments: Array<IssueAttachment & {url: string}> = data.attachments;
 
       const minidump = attachments.find(
         attachment => attachment.type === 'event.minidump'

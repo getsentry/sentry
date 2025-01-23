@@ -30,8 +30,8 @@ type ThroughputDataRow<K extends string> = RawDataRow<K> & {
 
 interface EventRegressionTableProps<K extends string> {
   causeType: 'duration' | 'throughput';
-  columns: GridColumnOrder<K>[];
-  data: (DurationDataRow<K> | ThroughputDataRow<K>)[];
+  columns: Array<GridColumnOrder<K>>;
+  data: Array<DurationDataRow<K> | ThroughputDataRow<K>>;
   isError: boolean;
   isLoading: boolean;
   options: Record<

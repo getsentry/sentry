@@ -19,7 +19,7 @@ interface Props {
   onChange: (newColumns: QueryFieldValue[]) => void;
   organization: Organization;
   widgetType: WidgetType;
-  errors?: Record<string, string>[];
+  errors?: Array<Record<string, string>>;
   filterAggregateParameters?: (option: FieldValueOption) => boolean;
   filterPrimaryOptions?: (option: FieldValueOption) => boolean;
   noFieldsMessage?: string;

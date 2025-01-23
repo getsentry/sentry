@@ -65,7 +65,7 @@ function ResourceSummaryTable() {
     renderBlockingStatus: filters[RESOURCE_RENDER_BLOCKING_STATUS],
   });
 
-  const columnOrder: GridColumnOrder<keyof Row>[] = [
+  const columnOrder: Array<GridColumnOrder<keyof Row>> = [
     {key: 'transaction', width: COL_WIDTH_UNDEFINED, name: 'Found on page'},
     {
       key: 'spm()',

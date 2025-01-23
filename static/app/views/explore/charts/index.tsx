@@ -80,7 +80,7 @@ export function ExploreCharts({
   const previousTimeseriesResult = usePrevious(timeseriesResult);
 
   const getSeries = useCallback(
-    (dedupedYAxes: string[], formattedYAxes: (string | undefined)[]) => {
+    (dedupedYAxes: string[], formattedYAxes: Array<string | undefined>) => {
       const shouldUsePreviousResults =
         timeseriesResult.isPending &&
         canUsePreviousResults &&

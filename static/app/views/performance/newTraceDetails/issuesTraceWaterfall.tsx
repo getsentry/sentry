@@ -207,7 +207,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
     const index = node ? props.tree.list.indexOf(node) : -1;
 
     if (node) {
-      const preserveNodes: TraceTreeNode<TraceTree.NodeValue>[] = [node];
+      const preserveNodes: Array<TraceTreeNode<TraceTree.NodeValue>> = [node];
 
       let start = index;
       while (--start > 0) {

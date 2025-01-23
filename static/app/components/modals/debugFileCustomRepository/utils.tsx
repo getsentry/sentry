@@ -11,7 +11,9 @@ import {t, tct} from 'sentry/locale';
 import {CustomRepoType} from 'sentry/types/debugFiles';
 import {uniqueId} from 'sentry/utils/guid';
 
-function objectToChoices(obj: Record<string, string>): [key: string, value: string][] {
+function objectToChoices(
+  obj: Record<string, string>
+): Array<[key: string, value: string]> {
   return Object.entries(obj).map(([key, value]) => [key, value]);
 }
 

@@ -27,7 +27,7 @@ function SamplingModal(props: Props) {
 
   const project = projects.find(p => `${eventView.project[0]}` === p.id);
 
-  const choices: [string, ReactNode][] = [
+  const choices: Array<[string, ReactNode]> = [
     ['true', t('Automatically switch to sampled data when required')],
     ['false', t('Always show sampled data')],
   ];

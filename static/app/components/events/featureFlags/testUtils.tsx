@@ -4,7 +4,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import type {FeatureFlag} from 'sentry/types/event';
 
-export const MOCK_FLAGS: Required<FeatureFlag>[] = [
+export const MOCK_FLAGS: Array<Required<FeatureFlag>> = [
   {
     flag: 'mobile-replay-ui',
     result: false,

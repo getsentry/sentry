@@ -16,11 +16,11 @@ const operatorTokens = new Set([
 
 interface EquationFormatterProps {
   equation: string;
-  errors?: {
+  errors?: Array<{
     message: string;
     start: number;
     end?: number;
-  }[];
+  }>;
 }
 
 export function EquationFormatter({equation: formula, errors}: EquationFormatterProps) {

@@ -27,7 +27,7 @@ type State = {
   disables: FormProps['disables'];
   errors: FormProps['errors'];
   isFormValid: boolean;
-  requiredValues: (keyof Values)[];
+  requiredValues: Array<keyof Values>;
   title: string;
   values: Values;
 };

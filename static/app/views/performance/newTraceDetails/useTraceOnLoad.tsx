@@ -32,7 +32,7 @@ async function maybeAutoExpandTrace(
     return tree;
   }
 
-  const promises: Promise<any>[] = [];
+  const promises: Array<Promise<any>> = [];
   for (const transaction of transactions) {
     promises.push(tree.zoom(transaction, true, options));
   }

@@ -18,7 +18,7 @@ export const getComparisonMarkLines = (
   triggers: Trigger[],
   thresholdType: AlertRuleThresholdType
 ): LineChartSeries[] => {
-  const changeStatuses: {name: number | string; status: string}[] = [];
+  const changeStatuses: Array<{name: number | string; status: string}> = [];
 
   if (
     timeseriesData?.[0]?.data !== undefined &&

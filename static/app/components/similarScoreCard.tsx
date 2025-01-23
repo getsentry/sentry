@@ -23,7 +23,7 @@ type Props = {
   // we treat the score list keys as opaque as we wish to be able to extend the
   // backend without having to fix UI. Keys not in scoreComponents are grouped
   // into Other anyway
-  scoreList?: [string, ScoreValue][];
+  scoreList?: Array<[string, ScoreValue]>;
 };
 
 function SimilarScoreCard({scoreList = []}: Props) {

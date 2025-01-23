@@ -32,7 +32,7 @@ export interface CheckInTimelineProps<Status extends string>
   /**
    * Represents each check-in tick as bucketed check-in data.
    */
-  bucketedData: CheckInBucket<Status>[];
+  bucketedData: Array<CheckInBucket<Status>>;
 }
 
 function getBucketedCheckInsPosition(

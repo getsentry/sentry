@@ -88,7 +88,7 @@ export default function BrowserTypeSelector() {
       triggerLabel={value.length === 0 ? 'All' : undefined}
       menuTitle={'Filter Browsers'}
       options={browserOptions ?? []}
-      onChange={(selectedOptions: SelectOption<string>[]) => {
+      onChange={(selectedOptions: Array<SelectOption<string>>) => {
         trackAnalytics('insight.vital.select_browser_value', {
           organization,
           browsers: selectedOptions.map(v => v.value),

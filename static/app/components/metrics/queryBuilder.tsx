@@ -133,7 +133,7 @@ export const QueryBuilder = memo(function QueryBuilder({
   );
 
   const handleGroupByChange = useCallback(
-    (options: SelectOption<string>[]) => {
+    (options: Array<SelectOption<string>>) => {
       trackAnalytics('ddm.widget.group', {organization});
       incrementQueryMetric('ddm.widget.group', {
         groupBy: options.map(o => o.value),

@@ -54,7 +54,7 @@ export const INTERVAL_DISPLAY_MODES: string[] = [
   DisplayModes.BAR,
 ];
 
-export const DISPLAY_MODE_OPTIONS: SelectValue<string>[] = [
+export const DISPLAY_MODE_OPTIONS: Array<SelectValue<string>> = [
   {value: DisplayModes.DEFAULT, label: t('Total Period')},
   {value: DisplayModes.PREVIOUS, label: t('Previous Period')},
   {value: DisplayModes.TOP5, label: t('Top 5 Period')},
@@ -92,7 +92,7 @@ export const MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES = [
   DisplayModes.BAR,
 ];
 
-export const CONDITIONS_ARGUMENTS: {value: string; label?: string}[] = [
+export const CONDITIONS_ARGUMENTS: Array<{value: string; label?: string}> = [
   {
     label: 'is equal to',
     value: 'equals',
@@ -119,7 +119,7 @@ export const CONDITIONS_ARGUMENTS: {value: string; label?: string}[] = [
   },
 ];
 
-export const WEB_VITALS_QUALITY: {value: string; label?: string}[] = [
+export const WEB_VITALS_QUALITY: Array<{value: string; label?: string}> = [
   {
     label: 'good',
     value: 'good',

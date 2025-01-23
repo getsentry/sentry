@@ -8,7 +8,7 @@ import {decodeInteger, decodeList} from 'sentry/utils/queryString';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 interface Props<K extends string> {
-  columns: GridColumnOrder<K>[];
+  columns: Array<GridColumnOrder<K>>;
   location: Location;
   paramName?: string;
 }

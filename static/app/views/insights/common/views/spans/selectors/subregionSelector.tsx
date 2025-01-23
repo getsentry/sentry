@@ -77,7 +77,7 @@ export default function SubregionSelector({size}: Props) {
         </MenuTitleContainer>
       }
       options={options}
-      onChange={(selectedOptions: SelectOption<string>[]) => {
+      onChange={(selectedOptions: Array<SelectOption<string>>) => {
         trackAnalytics('insight.general.select_region_value', {
           organization,
           // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message

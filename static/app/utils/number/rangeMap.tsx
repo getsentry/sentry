@@ -23,9 +23,9 @@ export type Range<T> = {
  * ```
  */
 export class RangeMap<T> {
-  ranges: Range<T>[];
+  ranges: Array<Range<T>>;
 
-  constructor(ranges: Range<T>[]) {
+  constructor(ranges: Array<Range<T>>) {
     // Filter out sparse array slots just in case
     const filteredRanges = ranges.filter(Boolean);
 

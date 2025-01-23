@@ -53,7 +53,7 @@ export type ParameterDescription =
   | {
       dataType: string;
       kind: 'dropdown';
-      options: SelectValue<string>[];
+      options: Array<SelectValue<string>>;
       required: boolean;
       value: string;
       placeholder?: string;

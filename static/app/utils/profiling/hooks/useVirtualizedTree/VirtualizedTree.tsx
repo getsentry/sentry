@@ -3,10 +3,13 @@ import type {TreeLike} from 'sentry/utils/profiling/hooks/useVirtualizedTree/use
 import {VirtualizedTreeNode} from './VirtualizedTreeNode';
 
 export class VirtualizedTree<T extends TreeLike> {
-  roots: VirtualizedTreeNode<T>[] = [];
-  flattened: VirtualizedTreeNode<T>[] = [];
+  roots: Array<VirtualizedTreeNode<T>> = [];
+  flattened: Array<VirtualizedTreeNode<T>> = [];
 
-  constructor(roots: VirtualizedTreeNode<T>[], flattenedList?: VirtualizedTreeNode<T>[]) {
+  constructor(
+    roots: Array<VirtualizedTreeNode<T>>,
+    flattenedList?: Array<VirtualizedTreeNode<T>>
+  ) {
     this.roots = roots;
     this.flattened = flattenedList || VirtualizedTree.toExpandedList(this.roots);
   }
@@ -21,12 +24,12 @@ export class VirtualizedTree<T extends TreeLike> {
     // to carry-them over and preserver their state.
     expandedNodes?: Set<T>
   ): VirtualizedTree<T> {
-    const roots: VirtualizedTreeNode<T>[] = [];
+    const roots: Array<VirtualizedTreeNode<T>> = [];
 
     function toTreeNode(
       node: T,
       parent: VirtualizedTreeNode<T> | null,
-      collection: VirtualizedTreeNode<T>[] | null,
+      collection: Array<VirtualizedTreeNode<T>> | null,
       depth: number
     ) {
       const shouldUseExpandedSet = expandedNodes && expandedNodes.size > 0;
@@ -68,9 +71,9 @@ export class VirtualizedTree<T extends TreeLike> {
 
   // Returns a list of nodes that are visible in the tree.
   static toExpandedList<T extends TreeLike>(
-    nodes: VirtualizedTreeNode<T>[]
-  ): VirtualizedTreeNode<T>[] {
-    const list: VirtualizedTreeNode<T>[] = [];
+    nodes: Array<VirtualizedTreeNode<T>>
+  ): Array<VirtualizedTreeNode<T>> {
+    const list: Array<VirtualizedTreeNode<T>> = [];
 
     function visit(node: VirtualizedTreeNode<T>): void {
       list.push(node);

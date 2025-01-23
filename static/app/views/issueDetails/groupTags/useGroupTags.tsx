@@ -10,7 +10,7 @@ import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 export interface GroupTag {
   key: string;
   name: string;
-  topValues: {
+  topValues: Array<{
     count: number;
     firstSeen: string;
     lastSeen: string;
@@ -26,7 +26,7 @@ export interface GroupTag {
      * @deprecated - Use the frontend to get readable device names
      */
     readable?: string;
-  }[];
+  }>;
   totalValues: number;
 }
 

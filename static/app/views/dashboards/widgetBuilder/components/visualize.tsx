@@ -64,7 +64,7 @@ const NONE_AGGREGATE = {
 
 function formatColumnOptions(
   dataset: WidgetType,
-  options: SelectValue<FieldValue>[],
+  options: Array<SelectValue<FieldValue>>,
   columnFilterMethod: (
     option: SelectValue<FieldValue>,
     field?: QueryFieldValue
@@ -146,7 +146,7 @@ function getColumnOptions(
 }
 
 function validateParameter(
-  columnOptions: SelectValue<string>[],
+  columnOptions: Array<SelectValue<string>>,
   parameter: AggregateParameter,
   value: string | undefined
 ) {

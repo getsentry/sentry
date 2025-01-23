@@ -37,7 +37,7 @@ type TestCase = {
 /**
  * Normalize results to match the json test cases
  */
-const normalizeResult = (tokens: TokenResult<Token>[]) =>
+const normalizeResult = (tokens: Array<TokenResult<Token>>) =>
   treeTransformer({
     tree: tokens,
     transform: token => {

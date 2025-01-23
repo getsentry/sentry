@@ -38,7 +38,7 @@ type State = {
 };
 
 type ChildProps = Omit<State, 'sortBy'> & {
-  display: (keyof typeof displayOptions)[];
+  display: Array<keyof typeof displayOptions>;
   recentFirst: boolean;
 };
 
@@ -92,7 +92,7 @@ export function TraceEventDataSection({
     fullStackTrace: !hasAppOnlyFrames ? true : fullStackTrace,
   });
 
-  const [display, setDisplay] = useLocalStorageState<(keyof typeof displayOptions)[]>(
+  const [display, setDisplay] = useLocalStorageState<Array<keyof typeof displayOptions>>(
     `issue-details-stracktrace-display-${organization.slug}-${projectSlug}`,
     []
   );
@@ -142,7 +142,7 @@ export function TraceEventDataSection({
   );
 
   const handleDisplayChange = useCallback(
-    (vals: (keyof typeof displayOptions)[]) => {
+    (vals: Array<keyof typeof displayOptions>) => {
       if (vals.includes('raw-stack-trace')) {
         trackAnalytics('stack-trace.display_option_raw_stack_trace_clicked', {
           organization,
@@ -248,12 +248,12 @@ export function TraceEventDataSection({
     [organization, platform, projectSlug, isMobile, display, setDisplay]
   );
 
-  function getDisplayOptions(): {
+  function getDisplayOptions(): Array<{
     label: string;
     value: keyof typeof displayOptions;
     disabled?: boolean;
     tooltip?: string;
-  }[] {
+  }> {
     if (
       platform === 'objc' ||
       platform === 'native' ||

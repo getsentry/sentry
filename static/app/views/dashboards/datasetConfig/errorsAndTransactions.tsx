@@ -172,7 +172,7 @@ export function getTableSortOptions(
   widgetQuery: WidgetQuery
 ) {
   const {columns, aggregates} = widgetQuery;
-  const options: SelectValue<string>[] = [];
+  const options: Array<SelectValue<string>> = [];
   let equations = 0;
   [...aggregates, ...columns]
     .filter(field => !!field)

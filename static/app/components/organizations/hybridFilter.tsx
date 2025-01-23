@@ -169,7 +169,7 @@ export function HybridFilter<Value extends SelectKey>({
     [commitStagedChanges]
   );
 
-  const mappedOptions = useMemo<SelectOptionOrSection<Value>[]>(() => {
+  const mappedOptions = useMemo<Array<SelectOptionOrSection<Value>>>(() => {
     const mapOption = (option: SelectOption<Value>): SelectOption<Value> => ({
       ...option,
       hideCheck: true,
@@ -301,7 +301,7 @@ export function HybridFilter<Value extends SelectKey>({
   );
 
   const handleChange = useCallback(
-    (selectedOptions: SelectOption<Value>[]) => {
+    (selectedOptions: Array<SelectOption<Value>>) => {
       const oldValue = stagedValue;
       const newValue = selectedOptions.map(op => op.value);
       const oldValueSet = new Set(oldValue);

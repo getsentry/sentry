@@ -49,7 +49,7 @@ export function ScreensBarChart({
   const yAxis = decodeScalar(location.query[chartKey]);
   const selectedDisplay = yAxis ? chartOptions.findIndex(o => o.yAxis === yAxis) : 0;
 
-  const menuOptions: SelectOption<string>[] = [];
+  const menuOptions: Array<SelectOption<string>> = [];
 
   for (const option of chartOptions) {
     menuOptions.push({

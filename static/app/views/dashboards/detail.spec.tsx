@@ -231,7 +231,7 @@ describe('Dashboards > Detail', function () {
 
   describe('custom dashboards', function () {
     let initialData!: ReturnType<typeof initializeOrg>;
-    let widgets!: ReturnType<typeof WidgetFixture>[];
+    let widgets!: Array<ReturnType<typeof WidgetFixture>>;
     let mockVisit!: jest.Mock;
     let mockPut!: jest.Mock;
 

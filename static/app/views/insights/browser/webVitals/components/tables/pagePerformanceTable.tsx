@@ -40,7 +40,7 @@ import {
 
 type Column = GridColumnHeader<keyof RowWithScoreAndOpportunity>;
 
-const COLUMN_ORDER: GridColumnOrder<keyof RowWithScoreAndOpportunity>[] = [
+const COLUMN_ORDER: Array<GridColumnOrder<keyof RowWithScoreAndOpportunity>> = [
   {key: 'transaction', width: COL_WIDTH_UNDEFINED, name: 'Pages'},
   {key: 'project', width: COL_WIDTH_UNDEFINED, name: 'Project'},
   {key: 'count()', width: COL_WIDTH_UNDEFINED, name: 'Pageloads'},

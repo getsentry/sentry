@@ -127,7 +127,7 @@ function addFramePlatforms(
  */
 function addPlatforms(
   platforms: Set<PlatformKey>,
-  iter: {platform?: PlatformKey | null}[]
+  iter: Array<{platform?: PlatformKey | null}>
 ) {
   for (const o of iter) {
     if (o.platform) {

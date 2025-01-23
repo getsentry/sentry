@@ -24,7 +24,7 @@ interface PartialInjectedRouter<P>
 interface InitializeOrgOptions<RouterParams> {
   organization?: Partial<Organization>;
   project?: Partial<Project>;
-  projects?: Partial<Project>[];
+  projects?: Array<Partial<Project>>;
   router?: PartialInjectedRouter<RouterParams>;
 }
 

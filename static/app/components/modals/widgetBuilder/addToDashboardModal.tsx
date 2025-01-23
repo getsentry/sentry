@@ -240,7 +240,7 @@ function AddToDashboardModal({
           }),
         tooltipOptions: {position: 'right'},
       })),
-    ].filter(Boolean) as SelectValue<string>[];
+    ].filter(Boolean) as Array<SelectValue<string>>;
   }, [allowCreateNewDashboard, dashboards]);
 
   const widgetLegendState = new WidgetLegendSelectionState({

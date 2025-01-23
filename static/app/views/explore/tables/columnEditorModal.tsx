@@ -40,7 +40,7 @@ export function ColumnEditorModal({
   numberTags,
   stringTags,
 }: ColumnEditorModalProps) {
-  const tags: SelectOption<string>[] = useMemo(() => {
+  const tags: Array<SelectOption<string>> = useMemo(() => {
     const allTags = [
       ...columns
         .filter(
@@ -149,7 +149,7 @@ interface ColumnEditorRowProps {
   column: Column;
   onColumnChange: (column: string) => void;
   onColumnDelete: () => void;
-  options: SelectOption<string>[];
+  options: Array<SelectOption<string>>;
 }
 
 function ColumnEditorRow({

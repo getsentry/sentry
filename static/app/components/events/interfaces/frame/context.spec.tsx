@@ -22,7 +22,7 @@ describe('Frame - Context', function () {
     ProjectsStore.loadInitialData([project]);
   });
 
-  const lines: [number, string][] = [
+  const lines: Array<[number, string]> = [
     [231, 'this is line 231'],
     [232, 'this is line 232'],
     [233, 'this is line 233'],

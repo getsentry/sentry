@@ -46,7 +46,7 @@ function MetricsOnboardingSidebar(props: CommonSidebarProps) {
   });
 
   const projectSelectOptions = useMemo(() => {
-    const supportedProjectItems: SelectValue<string>[] = supportedProjects
+    const supportedProjectItems: Array<SelectValue<string>> = supportedProjects
       .sort((aProject, bProject) => {
         // if we're comparing two projects w/ or w/o custom metrics alphabetical sort
         if (aProject.hasCustomMetrics === bProject.hasCustomMetrics) {
@@ -65,7 +65,7 @@ function MetricsOnboardingSidebar(props: CommonSidebarProps) {
         };
       });
 
-    const unsupportedProjectItems: SelectValue<string>[] = unsupportedProjects.map(
+    const unsupportedProjectItems: Array<SelectValue<string>> = unsupportedProjects.map(
       project => {
         return {
           value: project.id,

@@ -63,9 +63,9 @@ export function mapResponseToReplayRecord(apiResponse: any): ReplayRecord {
  */
 export function replayTimestamps(
   replayRecord: ReplayRecord,
-  rrwebEvents: {timestamp: number}[],
-  rawCrumbs: {timestamp: number}[],
-  rawSpanData: {endTimestamp: number; op: string; startTimestamp: number}[]
+  rrwebEvents: Array<{timestamp: number}>,
+  rawCrumbs: Array<{timestamp: number}>,
+  rawSpanData: Array<{endTimestamp: number; op: string; startTimestamp: number}>
 ) {
   const rrwebTimestamps = rrwebEvents.map(event => event.timestamp).filter(Boolean);
   const breadcrumbTimestamps = rawCrumbs

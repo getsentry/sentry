@@ -43,7 +43,7 @@ interface BaseField {
   autosize?: boolean;
   choices?:
     | ((props: {[key: string]: any}) => void)
-    | readonly Readonly<[number | string, React.ReactNode]>[];
+    | ReadonlyArray<Readonly<[number | string, React.ReactNode]>>;
   confirm?: {[key: string]: React.ReactNode};
   defaultValue?: FieldValue;
   disabled?: boolean | ((props: any) => boolean);
@@ -119,11 +119,11 @@ type InputType = {type: 'string' | 'secret'} & {
 type SelectControlType = {type: 'choice' | 'select'} & {
   allowClear?: boolean;
   // for new select
-  defaultOptions?: {label: string; value: any}[] | boolean;
+  defaultOptions?: Array<{label: string; value: any}> | boolean;
   filterOption?: ReturnType<typeof createFilter>;
   multiple?: boolean;
   noOptionsMessage?: () => string;
-  options?: SelectValue<any>[];
+  options?: Array<SelectValue<any>>;
 };
 
 type TextareaType = {type: 'textarea'} & {
@@ -167,7 +167,7 @@ export interface TableType {
 export type ProjectMapperType = {
   iconType: string;
   mappedDropdown: {
-    items: {label: string; url: string; value: string | number}[];
+    items: Array<{label: string; url: string; value: string | number}>;
     placeholder: string;
   };
   nextButton: {
@@ -176,7 +176,7 @@ export type ProjectMapperType = {
     // url comes from the `next` parameter in the QS
     description?: string;
   };
-  sentryProjects: (AvatarProject & {id: number; name: string})[];
+  sentryProjects: Array<AvatarProject & {id: number; name: string}>;
   type: 'project_mapper';
 };
 

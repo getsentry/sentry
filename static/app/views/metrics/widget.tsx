@@ -167,7 +167,9 @@ export const MetricWidget = memo(
       onChange(index, {displayType: value});
     };
 
-    const handleOverlayChange = (options: SelectOption<MetricChartOverlayType>[]) => {
+    const handleOverlayChange = (
+      options: Array<SelectOption<MetricChartOverlayType>>
+    ) => {
       const values = options.map(({value}) => value);
 
       Sentry.metrics.increment('ddm.widget.overlay', 1, {

@@ -49,17 +49,19 @@ export const useSpanSamples = <Fields extends SpanIndexedProperty[]>(
 
   const result = useApiQuery<{
     data:
-      | Pick<
-          SpanIndexedResponse,
-          | Fields[number]
-          // These fields are returned by default
-          | SpanIndexedField.PROJECT
-          | SpanIndexedField.TRANSACTION_ID
-          | SpanIndexedField.TIMESTAMP
-          | SpanIndexedField.ID
-          | SpanIndexedField.PROFILE_ID
-          | SpanIndexedField.SPAN_SELF_TIME
-        >[]
+      | Array<
+          Pick<
+            SpanIndexedResponse,
+            | Fields[number]
+            // These fields are returned by default
+            | SpanIndexedField.PROJECT
+            | SpanIndexedField.TRANSACTION_ID
+            | SpanIndexedField.TIMESTAMP
+            | SpanIndexedField.ID
+            | SpanIndexedField.PROFILE_ID
+            | SpanIndexedField.SPAN_SELF_TIME
+          >
+        >
       // This type is a little awkward but it explicitly states that the response could be empty. This doesn't enable unchecked access errors, but it at least indicates that it's possible that there's no data
       // eslint-disable-next-line @typescript-eslint/no-restricted-types
       | [];

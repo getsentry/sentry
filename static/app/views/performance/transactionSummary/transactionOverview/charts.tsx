@@ -42,7 +42,7 @@ import VitalsChart from './vitalsChart';
 
 function generateDisplayOptions(
   currentFilter: SpanOperationBreakdownFilter
-): SelectValue<string>[] {
+): Array<SelectValue<string>> {
   if (currentFilter === SpanOperationBreakdownFilter.NONE) {
     return [
       {value: DisplayModes.DURATION, label: t('Duration Breakdown')},
@@ -65,7 +65,7 @@ function generateDisplayOptions(
   ];
 }
 
-const TREND_FUNCTIONS_OPTIONS: SelectValue<string>[] = TRENDS_FUNCTIONS.map(
+const TREND_FUNCTIONS_OPTIONS: Array<SelectValue<string>> = TRENDS_FUNCTIONS.map(
   ({field, label}) => ({
     value: field,
     label,
@@ -127,7 +127,7 @@ function TransactionSummaryCharts({
     });
   }
 
-  const TREND_PARAMETERS_OPTIONS: SelectValue<string>[] = TRENDS_PARAMETERS.map(
+  const TREND_PARAMETERS_OPTIONS: Array<SelectValue<string>> = TRENDS_PARAMETERS.map(
     ({label}) => ({
       value: label,
       label,

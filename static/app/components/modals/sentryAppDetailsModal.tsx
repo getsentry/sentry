@@ -72,7 +72,7 @@ export default class SentryAppDetailsModal extends DeprecatedAsyncComponent<
     return [['featureData', `/sentry-apps/${sentryApp.slug}/features/`]];
   }
 
-  featureTags(features: Pick<IntegrationFeature, 'featureGate'>[]) {
+  featureTags(features: Array<Pick<IntegrationFeature, 'featureGate'>>) {
     return features.map(feature => {
       const feat = feature.featureGate.replace(/integrations/g, '');
       return <StyledTag key={feat}>{feat.replace(/-/g, ' ')}</StyledTag>;

@@ -1,10 +1,12 @@
 import type {Item, ItemsAfterFilter, ItemsBeforeFilter} from './types';
 
 type Items = ItemsBeforeFilter;
-type ItemsWithChildren = (Omit<Item, 'index'> & {
-  items: Omit<Item, 'index'>[];
-  hideGroupLabel?: boolean;
-})[];
+type ItemsWithChildren = Array<
+  Omit<Item, 'index'> & {
+    items: Array<Omit<Item, 'index'>>;
+    hideGroupLabel?: boolean;
+  }
+>;
 
 function hasRootGroup(items: Items): items is ItemsWithChildren {
   return !!items[0]?.items;

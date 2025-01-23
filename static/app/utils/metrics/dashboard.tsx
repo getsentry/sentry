@@ -18,7 +18,7 @@ interface EquationParams {
 }
 
 export function convertToDashboardWidget(
-  metricQueries: (QueryParams | EquationParams)[],
+  metricQueries: Array<QueryParams | EquationParams>,
   displayType?: MetricDisplayType,
   title = ''
 ): Widget {

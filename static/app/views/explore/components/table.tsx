@@ -68,7 +68,7 @@ export function useTableStyles(
       : options?.prefixColumnWidth;
 
   const resizingColumnIndex = useRef<number | null>(null);
-  const columnWidthsRef = useRef<(number | null)[]>(fields.map(() => null));
+  const columnWidthsRef = useRef<Array<number | null>>(fields.map(() => null));
 
   useEffect(() => {
     columnWidthsRef.current = fields.map(

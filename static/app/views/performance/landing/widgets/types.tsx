@@ -116,7 +116,7 @@ type Visualization<T> = {
   queryFields?: string[]; // Used to determine placeholder and loading sizes. Will also be passed to the component.
 };
 
-type Visualizations<T extends WidgetDataConstraint> = readonly Visualization<T>[]; // Readonly because of index being used for React key.
+type Visualizations<T extends WidgetDataConstraint> = ReadonlyArray<Visualization<T>>; // Readonly because of index being used for React key.
 
 type HeaderActions<T> = React.ComponentType<{
   widgetData: T;
@@ -177,7 +177,7 @@ export type QueryDefinitionWithKey<T extends WidgetDataConstraint> = QueryDefini
 export type QueryHandlerProps<T extends WidgetDataConstraint> = {
   api: Client;
   eventView: EventView;
-  queries: QueryDefinitionWithKey<T>[];
+  queries: Array<QueryDefinitionWithKey<T>>;
   queryProps: WidgetPropUnion<T>;
   children?: React.ReactNode;
 } & WidgetDataProps<T>;

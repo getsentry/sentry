@@ -191,13 +191,13 @@ export type DeadRageSelectorItem = {
 };
 
 export type DeadRageSelectorListResponse = {
-  data: {
+  data: Array<{
     count_dead_clicks: number;
     count_rage_clicks: number;
     dom_element: string;
     element: ReplayClickElement;
     project_id: number;
-  }[];
+  }>;
 };
 
 export type ReplayClickElement = {

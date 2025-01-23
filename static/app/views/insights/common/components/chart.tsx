@@ -108,7 +108,7 @@ type Props = {
   scatterPlot?: Series[];
   showLegend?: boolean;
   stacked?: boolean;
-  throughput?: {count: number; interval: string}[];
+  throughput?: Array<{count: number; interval: string}>;
   tooltipFormatterOptions?: FormatterOptions;
 };
 

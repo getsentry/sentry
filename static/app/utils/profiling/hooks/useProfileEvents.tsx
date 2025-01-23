@@ -18,7 +18,7 @@ export interface UseProfileEventsOptions<F extends string = ProfilingFieldType> 
   datetime?: PageFilters['datetime'];
   enabled?: boolean;
   limit?: number;
-  projects?: (number | string)[];
+  projects?: Array<number | string>;
   query?: string;
   refetchOnMount?: boolean;
 }

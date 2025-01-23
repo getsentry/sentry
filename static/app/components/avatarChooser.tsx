@@ -198,7 +198,7 @@ class AvatarChooser extends Component<Props, State> {
     const isOrganization = type === 'organization';
     const isSentryApp = type?.startsWith('sentryApp');
 
-    const choices: [AvatarType, string][] = [];
+    const choices: Array<[AvatarType, string]> = [];
 
     if (allowDefault && preview) {
       choices.push(['default', defaultChoiceText ?? t('Use default avatar')]);

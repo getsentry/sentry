@@ -27,7 +27,7 @@ interface Options {
 export function useChartInterval(): [
   string,
   (interval: string) => void,
-  intervalOptions: {label: string; value: string}[],
+  intervalOptions: Array<{label: string; value: string}>,
 ] {
   const location = useLocation();
   const navigate = useNavigate();
@@ -44,7 +44,7 @@ function useChartIntervalImpl({
 }: Options): [
   string,
   (interval: string) => void,
-  intervalOptions: {label: string; value: string}[],
+  intervalOptions: Array<{label: string; value: string}>,
 ] {
   const {datetime} = pagefilters.selection;
   const intervalOptions = useMemo(

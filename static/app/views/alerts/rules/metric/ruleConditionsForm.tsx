@@ -560,7 +560,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
     } = this.props;
 
     const {environments, filterKeys} = this.state;
-    const environmentOptions: SelectValue<string | null>[] = [
+    const environmentOptions: Array<SelectValue<string | null>> = [
       {
         value: null,
         label: t('All Environments'),

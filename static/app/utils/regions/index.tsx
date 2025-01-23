@@ -57,7 +57,7 @@ export function getRegions(): Region[] {
   return ConfigStore.get('regions') ?? [];
 }
 
-export function getRegionChoices(exclude: RegionData[] = []): [string, string][] {
+export function getRegionChoices(exclude: RegionData[] = []): Array<[string, string]> {
   const regions = getRegions();
   const excludedRegionNames = exclude.map(region => region.name);
 

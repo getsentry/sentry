@@ -183,7 +183,7 @@ function SpanSummaryContent(props: ContentProps) {
   );
 }
 
-function parseSpanHeaderData(data: Partial<SpanMetricsResponse>[]) {
+function parseSpanHeaderData(data: Array<Partial<SpanMetricsResponse>>) {
   if (!data || data.length === 0) {
     return undefined;
   }

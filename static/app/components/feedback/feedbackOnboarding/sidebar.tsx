@@ -55,7 +55,7 @@ function FeedbackOnboardingSidebar(props: CommonSidebarProps) {
   });
 
   const projectSelectOptions = useMemo(() => {
-    const supportedProjectItems: SelectValue<string>[] = allProjects
+    const supportedProjectItems: Array<SelectValue<string>> = allProjects
       .sort((aProject, bProject) => {
         // if we're comparing two projects w/ or w/o feedback alphabetical sort
         if (aProject.hasNewFeedbacks === bProject.hasNewFeedbacks) {

@@ -174,7 +174,7 @@ export function getCurlCommand(data: EntryRequest['data']) {
 }
 
 export function stringifyQueryList(
-  query: string | ([key: string, value: string] | null)[]
+  query: string | Array<[key: string, value: string] | null>
 ) {
   if (typeof query === 'string') {
     return query;
@@ -225,12 +225,12 @@ export function getFullUrl(data: EntryRequest['data']): string | undefined {
  */
 export function objectToSortedTupleArray(obj: Record<string, string | string[]>) {
   return Object.keys(obj)
-    .reduce<[string, string][]>((out, k) => {
+    .reduce<Array<[string, string]>>((out, k) => {
       const val = obj[k];
       return out.concat(
         Array.isArray(val)
           ? val.map(v => [k, v]) // key has multiple values (array)
-          : ([[k, val]] as [string, string][]) // key has single value
+          : ([[k, val]] as Array<[string, string]>) // key has single value
       );
     }, [])
     .sort(function ([keyA, valA], [keyB, valB]) {

@@ -174,12 +174,12 @@ type CodeLocationContextProps = {
 function CodeLocationContext({codeLocation, isLast}: CodeLocationContextProps) {
   const lineNo = codeLocation.lineNo ?? 0;
 
-  const preContextLines: [number, string][] = useMemo(
+  const preContextLines: Array<[number, string]> = useMemo(
     () => codeLocation.preContext?.map((line, index) => [lineNo - 5 + index, line]) ?? [],
     [codeLocation.preContext, lineNo]
   );
 
-  const postContextLines: [number, string][] = useMemo(
+  const postContextLines: Array<[number, string]> = useMemo(
     () => codeLocation.postContext?.map((line, index) => [lineNo + index, line]) ?? [],
     [codeLocation.postContext, lineNo]
   );

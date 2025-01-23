@@ -10,7 +10,7 @@ interface TraceRowWidthMeasurerEvents<T> {
 
 export class TraceRowWidthMeasurer<T> {
   cache: Map<T, number> = new Map();
-  queue: [T, HTMLElement][] = [];
+  queue: Array<[T, HTMLElement]> = [];
   drainRaf: number | null = null;
   max: number = 0;
 

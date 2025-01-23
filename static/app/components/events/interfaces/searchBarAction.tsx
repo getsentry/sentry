@@ -11,9 +11,9 @@ type Props = {
   placeholder: string;
   query: string;
   className?: string;
-  filterOptions?: SelectOptionOrSection<string>[];
-  filterSelections?: SelectOption<string>[];
-  onFilterChange?: (options: SelectOption<string>[]) => void;
+  filterOptions?: Array<SelectOptionOrSection<string>>;
+  filterSelections?: Array<SelectOption<string>>;
+  onFilterChange?: (options: Array<SelectOption<string>>) => void;
 };
 
 function SearchBarAction({

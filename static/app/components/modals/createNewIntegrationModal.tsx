@@ -83,7 +83,7 @@ function CreateNewIntegrationModal({
         )}
       </RadioChoiceDescription>,
     ],
-  ] as [string, ReactNode, ReactNode][];
+  ] as Array<[string, ReactNode, ReactNode]>;
 
   return (
     <Fragment>

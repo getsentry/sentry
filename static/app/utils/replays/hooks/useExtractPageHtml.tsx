@@ -24,7 +24,7 @@ async function extractPageHtml({
   offsetMsToStopAt,
   rrwebEvents,
   startTimestampMs,
-}: Args): Promise<[number, string][]> {
+}: Args): Promise<Array<[number, string]>> {
   const frames: ReplayFrame[] = offsetMsToStopAt.map(offsetMs => ({
     offsetMs,
     timestamp: new Date(startTimestampMs + offsetMs),

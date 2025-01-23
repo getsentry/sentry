@@ -102,7 +102,7 @@ function SpanChildrenTraversalButton({
   organization: Organization;
 }) {
   const childTransactions = useMemo(() => {
-    const transactions: TraceTreeNode<TraceTree.Transaction>[] = [];
+    const transactions: Array<TraceTreeNode<TraceTree.Transaction>> = [];
     TraceTree.ForEachChild(node, c => {
       if (isTransactionNode(c)) {
         transactions.push(c);
@@ -170,7 +170,7 @@ export function useSpanAncestryAndGroupingItems({
   const hasTraceNewUi = useHasTraceNewUi();
   const parentTransaction = useMemo(() => TraceTree.ParentTransaction(node), [node]);
   const childTransactions = useMemo(() => {
-    const transactions: TraceTreeNode<TraceTree.Transaction>[] = [];
+    const transactions: Array<TraceTreeNode<TraceTree.Transaction>> = [];
     TraceTree.ForEachChild(node, c => {
       if (isTransactionNode(c)) {
         transactions.push(c);

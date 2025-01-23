@@ -124,7 +124,7 @@ export class Provider extends Component<Props, State> {
   wheelTimeout: NodeJS.Timeout | null = null;
   animationTimeout: NodeJS.Timeout | null = null;
   previousUserSelect: UserSelectValues | null = null;
-  spanBars: (SpanBar | NewTraceDetailsSpanBar)[] = [];
+  spanBars: Array<SpanBar | NewTraceDetailsSpanBar> = [];
   currentLeftPos = 0;
 
   getReferenceSpanBar() {

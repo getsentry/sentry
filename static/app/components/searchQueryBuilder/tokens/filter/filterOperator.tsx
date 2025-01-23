@@ -112,7 +112,7 @@ function FilterKeyOperatorLabel({
 export function getOperatorInfo(token: TokenResult<Token.FILTER>): {
   label: ReactNode;
   operator: TermOperator;
-  options: SelectOption<TermOperator>[];
+  options: Array<SelectOption<TermOperator>>;
 } {
   if (isDateToken(token)) {
     const operator = getOperatorFromDateToken(token);

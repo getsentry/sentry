@@ -14,7 +14,7 @@ import useApi from 'sentry/utils/useApi';
 
 interface Props {
   organization: Organization;
-  initialData?: Partial<InviteRow>[];
+  initialData?: Array<Partial<InviteRow>>;
   source?: string;
 }
 

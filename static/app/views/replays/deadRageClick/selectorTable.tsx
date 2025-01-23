@@ -36,7 +36,7 @@ export function transformSelectorQuery(selector: string) {
     .replaceAll('*', '\\*');
 }
 interface Props {
-  clickCountColumns: {key: string; name: string}[];
+  clickCountColumns: Array<{key: string; name: string}>;
   clickCountSortable: boolean;
   data: DeadRageSelectorItem[];
   isError: boolean;
@@ -45,7 +45,7 @@ interface Props {
   title?: ReactNode;
 }
 
-const BASE_COLUMNS: GridColumnOrder<string>[] = [
+const BASE_COLUMNS: Array<GridColumnOrder<string>> = [
   {key: 'project_id', name: 'project'},
   {key: 'element', name: 'element'},
   {key: 'dom_element', name: 'selector'},

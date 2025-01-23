@@ -8,7 +8,7 @@ import {getAggregateStatus} from './getAggregateStatus';
  */
 export function getAggregateStatusFromMultipleBuckets<Status extends string>(
   statusPrecedent: Status[],
-  statsArr: StatsBucket<Status>[]
+  statsArr: Array<StatsBucket<Status>>
 ) {
   return statsArr
     .map(stats => getAggregateStatus(statusPrecedent, stats))

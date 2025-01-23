@@ -301,7 +301,7 @@ export interface BaseChartProps {
    * Pass `true` to have 2 x-axes with default properties.  Can pass an array
    * of multiple objects to customize xAxis properties
    */
-  xAxes?: true | BaseChartProps['xAxis'][];
+  xAxes?: true | Array<BaseChartProps['xAxis']>;
   /**
    * Must be explicitly `null` to disable xAxis
    *
@@ -313,7 +313,7 @@ export interface BaseChartProps {
    * Pass `true` to have 2 y-axes with default properties. Can pass an array of
    * objects to customize yAxis properties
    */
-  yAxes?: true | BaseChartProps['yAxis'][];
+  yAxes?: true | Array<BaseChartProps['yAxis']>;
 
   /**
    * Must be explicitly `null` to disable yAxis

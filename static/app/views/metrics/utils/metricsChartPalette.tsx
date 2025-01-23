@@ -35,7 +35,7 @@ export function createChartPalette(seriesNames: string[]): Record<string, string
  * @returns an object mapping seriesNames to colors
  */
 export function getCachedChartPalette(
-  cache: Readonly<Record<string, string>>[],
+  cache: Array<Readonly<Record<string, string>>>,
   seriesNames: string[]
 ): Readonly<Record<string, string>> {
   // Check if we already have a palette that includes all of the given seriesNames
@@ -82,7 +82,7 @@ export function getCachedChartPalette(
  * **NOTE: Not yet optimized for performance, it should only be used for the metrics page with a limited amount of series**
  */
 export const useGetCachedChartPalette = () => {
-  const cacheRef = useRef<Readonly<Record<string, string>>[]>([]);
+  const cacheRef = useRef<Array<Readonly<Record<string, string>>>>([]);
   return useCallback((seriesNames: string[]) => {
     // copy the cache to avoid mutating it
     return {...getCachedChartPalette(cacheRef.current, seriesNames)};

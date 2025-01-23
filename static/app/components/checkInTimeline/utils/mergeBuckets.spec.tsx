@@ -12,7 +12,7 @@ function generateJobRunWithStats(jobStatus: string) {
 
 describe('mergeBucketsWithStats', function () {
   it('does not generate ticks less than 3px width', function () {
-    const bucketData: CheckInBucket<string>[] = [
+    const bucketData: Array<CheckInBucket<string>> = [
       [1, generateJobRunWithStats('ok')],
       [2, generateJobRunWithStats('ok')],
       [3, generateJobRunWithStats('ok')],
@@ -38,7 +38,7 @@ describe('mergeBucketsWithStats', function () {
   });
 
   it('generates adjacent ticks without border radius', function () {
-    const bucketData: CheckInBucket<string>[] = [
+    const bucketData: Array<CheckInBucket<string>> = [
       [1, generateJobRunWithStats('ok')],
       [2, generateJobRunWithStats('ok')],
       [3, generateJobRunWithStats('ok')],
@@ -72,7 +72,7 @@ describe('mergeBucketsWithStats', function () {
   });
 
   it('does not generate a separate tick if the next generated tick would be the same status', function () {
-    const bucketData: CheckInBucket<string>[] = [
+    const bucketData: Array<CheckInBucket<string>> = [
       [1, generateJobRunWithStats('timeout')],
       [2, generateJobRunWithStats('timeout')],
       [3, generateJobRunWithStats('timeout')],

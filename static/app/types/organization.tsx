@@ -58,7 +58,7 @@ export interface Organization extends OrganizationSummary {
   allowSuperuserAccess: boolean;
   attachmentsRole: string;
   /** @deprecated use orgRoleList instead. */
-  availableRoles: {id: string; name: string}[];
+  availableRoles: Array<{id: string; name: string}>;
   dataScrubber: boolean;
   dataScrubberDefaults: boolean;
   debugFilesRole: string;
@@ -185,10 +185,10 @@ export interface Member {
   teamRoleList: TeamRole[];
 
   // TODO: Move to global store
-  teamRoles: {
+  teamRoles: Array<{
     role: string | null;
     teamSlug: string;
-  }[];
+  }>;
   /**
    * @deprecated use teamRoles
    */
@@ -275,7 +275,7 @@ export interface NewQuery {
   queryDataset?: SavedQueryDatasets;
   range?: string;
   start?: string | Date;
-  teams?: readonly ('myteams' | number)[];
+  teams?: ReadonlyArray<'myteams' | number>;
   topEvents?: string;
   utc?: boolean | string;
   widths?: readonly string[];
@@ -296,9 +296,11 @@ export type SavedQueryState = {
 
 export type Confidence = 'high' | 'low' | null;
 
-export type EventsStatsData = [number, {count: number; comparisonCount?: number}[]][];
+export type EventsStatsData = Array<
+  [number, Array<{count: number; comparisonCount?: number}>]
+>;
 
-export type ConfidenceStatsData = [number, {count: Confidence}[]][];
+export type ConfidenceStatsData = Array<[number, Array<{count: Confidence}>]>;
 
 // API response format for a single series
 export type EventsStats = {
@@ -331,11 +333,11 @@ export type GroupedMultiSeriesEventsStats = {
 };
 
 export type EventsStatsSeries<F extends string> = {
-  data: {
+  data: Array<{
     axis: F;
     values: number[];
     label?: string;
-  }[];
+  }>;
   meta: {
     dataset: string;
     end: number;
@@ -349,11 +351,11 @@ export type EventsStatsSeries<F extends string> = {
  */
 // Base type for series style API response
 export interface SeriesApi {
-  groups: {
+  groups: Array<{
     by: Record<string, string | number>;
     series: Record<string, number[]>;
     totals: Record<string, number>;
-  }[];
+  }>;
   intervals: string[];
 }
 
