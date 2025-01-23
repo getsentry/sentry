@@ -5,31 +5,23 @@ from typing import Any
 
 import sentry_sdk
 from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeries, TimeSeriesRequest
-from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column, TraceItemTableRequest
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeAggregation, AttributeKey
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import AndFilter, OrFilter, TraceItemFilter
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.exceptions import InvalidSearchQuery
-from sentry.search.eap.columns import ResolvedColumn, ResolvedFunction
 from sentry.search.eap.constants import MAX_ROLLUP_POINTS, VALID_GRANULARITIES
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.span_columns import SPAN_DEFINITIONS
-from sentry.search.eap.types import CONFIDENCES, ConfidenceData, EAPResponse, SearchResolverConfig
+from sentry.search.eap.types import CONFIDENCES, EAPResponse, SearchResolverConfig
 from sentry.search.events.fields import get_function_alias, is_function
-from sentry.search.events.types import EventsMeta, SnubaData, SnubaParams
+from sentry.search.events.types import SnubaData, SnubaParams
+from sentry.snuba import rpc_dataset_common
 from sentry.snuba.discover import OTHER_KEY, create_result_key, zerofill
 from sentry.utils import snuba_rpc
 from sentry.utils.snuba import SnubaTSResult, process_value
 
 logger = logging.getLogger("sentry.snuba.spans_rpc")
-
-
-def categorize_column(column: ResolvedColumn | ResolvedFunction) -> Column:
-    if isinstance(column, ResolvedFunction):
-        return Column(aggregation=column.proto_definition, label=column.public_alias)
-    else:
-        return Column(key=column.proto_definition, label=column.public_alias)
 
 
 def get_resolver(params: SnubaParams, config: SearchResolverConfig) -> SearchResolver:
@@ -51,103 +43,16 @@ def run_table_query(
     referrer: str,
     config: SearchResolverConfig,
     search_resolver: SearchResolver | None = None,
-) -> EAPResponse:
-    """Make the query"""
-    resolver = (
-        get_resolver(params=params, config=config) if search_resolver is None else search_resolver
+):
+    return rpc_dataset_common.run_table_query(
+        query_string,
+        selected_columns,
+        orderby,
+        offset,
+        limit,
+        referrer,
+        search_resolver or get_resolver(params, config),
     )
-    meta = resolver.resolve_meta(referrer=referrer)
-    where, having, query_contexts = resolver.resolve_query(query_string)
-    columns, column_contexts = resolver.resolve_columns(selected_columns)
-    contexts = resolver.resolve_contexts(query_contexts + column_contexts)
-    # We allow orderby function_aliases if they're a selected_column
-    # eg. can orderby sum_span_self_time, assuming sum(span.self_time) is selected
-    orderby_aliases = {
-        get_function_alias(column_name): resolved_column
-        for resolved_column, column_name in zip(columns, selected_columns)
-    }
-    # Orderby is only applicable to TraceItemTableRequest
-    resolved_orderby = []
-    orderby_columns = orderby if orderby is not None else []
-    for orderby_column in orderby_columns:
-        stripped_orderby = orderby_column.lstrip("-")
-        if stripped_orderby in orderby_aliases:
-            resolved_column = orderby_aliases[stripped_orderby]
-        else:
-            resolved_column = resolver.resolve_column(stripped_orderby)[0]
-        resolved_orderby.append(
-            TraceItemTableRequest.OrderBy(
-                column=categorize_column(resolved_column),
-                descending=orderby_column.startswith("-"),
-            )
-        )
-    has_aggregations = any(
-        col for col in columns if isinstance(col.proto_definition, AttributeAggregation)
-    )
-
-    labeled_columns = [categorize_column(col) for col in columns]
-
-    """Run the query"""
-    rpc_request = TraceItemTableRequest(
-        meta=meta,
-        filter=where,
-        aggregation_filter=having,
-        columns=labeled_columns,
-        group_by=(
-            [
-                col.proto_definition
-                for col in columns
-                if isinstance(col.proto_definition, AttributeKey)
-            ]
-            if has_aggregations
-            else []
-        ),
-        order_by=resolved_orderby,
-        limit=limit,
-        virtual_column_contexts=[context for context in contexts if context is not None],
-    )
-    rpc_response = snuba_rpc.table_rpc([rpc_request])[0]
-
-    """Process the results"""
-    final_data: SnubaData = []
-    final_confidence: ConfidenceData = []
-    final_meta: EventsMeta = EventsMeta(fields={})
-    # Mapping from public alias to resolved column so we know type etc.
-    columns_by_name = {col.public_alias: col for col in columns}
-
-    for column_value in rpc_response.column_values:
-        attribute = column_value.attribute_name
-        if attribute not in columns_by_name:
-            logger.warning(
-                "A column was returned by the rpc but not a known column",
-                extra={"attribute": attribute},
-            )
-            continue
-        resolved_column = columns_by_name[attribute]
-        final_meta["fields"][attribute] = resolved_column.search_type
-
-        # When there's no aggregates reliabilities is an empty array
-        has_reliability = len(column_value.reliabilities) > 0
-        if has_reliability:
-            assert len(column_value.results) == len(column_value.reliabilities), Exception(
-                "Length of rpc results do not match length of rpc reliabilities"
-            )
-
-        while len(final_data) < len(column_value.results):
-            final_data.append({})
-            final_confidence.append({})
-
-        for index, result in enumerate(column_value.results):
-            result_value: str | int | float
-            result_value = getattr(result, str(result.WhichOneof("value")))
-            result_value = process_value(result_value)
-            final_data[index][attribute] = resolved_column.process_column(result_value)
-            if has_reliability:
-                final_confidence[index][attribute] = CONFIDENCES.get(
-                    column_value.reliabilities[index], None
-                )
-
-    return {"data": final_data, "meta": final_meta, "confidence": final_confidence}
 
 
 def get_timeseries_query(
@@ -345,7 +250,7 @@ def run_top_events_timeseries_query(
         limit,
         referrer,
         config,
-        search_resolver=search_resolver,
+        search_resolver,
     )
     if len(top_events["data"]) == 0:
         return {}
