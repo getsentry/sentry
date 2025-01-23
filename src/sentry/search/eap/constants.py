@@ -51,7 +51,7 @@ INT = AttributeKey.TYPE_INT
 TYPE_TO_STRING_MAP = {
     STRING: "string",
     BOOLEAN: "boolean",
-    FLOAT: "float",
+    DOUBLE: "double",
     INT: "integer",
 }
 
