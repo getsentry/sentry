@@ -380,9 +380,9 @@ class TaskWorker:
     def fetch_task(self) -> TaskActivation | None:
         try:
             activation = self.client.get_task(self._namespace)
-        except grpc.RpcError:
+        except grpc.RpcError as e:
             metrics.incr("taskworker.worker.fetch_task", tags={"status": "failed"})
-            logger.info("taskworker.fetch_task.failed")
+            logger.info("taskworker.fetch_task.failed", extra={"error": e})
             return None
 
         if not activation:
