@@ -80,5 +80,5 @@ const FeatureBadgeAlignmentWrapper = styled('div')`
 `;
 
 const StyledSectionHeader = styled(SectionHeader)`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${space(1)};
 `;
