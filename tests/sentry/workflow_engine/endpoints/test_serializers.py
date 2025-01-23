@@ -20,7 +20,7 @@ from sentry.workflow_engine.types import DetectorPriorityLevel
 class TestDetectorSerializer(TestCase):
     def test_serialize_simple(self):
         detector = self.create_detector(
-            organization_id=self.organization.id, name="Test Detector", type=MetricAlertFire.slug
+            project_id=self.project.id, name="Test Detector", type=MetricAlertFire.slug
         )
         result = serialize(detector)
 
@@ -50,7 +50,7 @@ class TestDetectorSerializer(TestCase):
         action = self.create_action(type=Action.Type.EMAIL, data={"foo": "bar"})
         self.create_data_condition_group_action(condition_group=condition_group, action=action)
         detector = self.create_detector(
-            organization_id=self.organization.id,
+            project_id=self.project.id,
             name="Test Detector",
             type=MetricAlertFire.slug,
             workflow_condition_group=condition_group,
@@ -131,7 +131,7 @@ class TestDetectorSerializer(TestCase):
     def test_serialize_bulk(self):
         detectors = [
             self.create_detector(
-                organization_id=self.organization.id,
+                project_id=self.project.id,
                 name=f"Test Detector {i}",
                 type=MetricAlertFire.slug,
             )
