@@ -171,10 +171,10 @@ describe('ExploreToolbar', function () {
 
     expect(fields).toEqual([
       'id',
-      'project',
       'span.op',
       'span.description',
       'span.duration',
+      'transaction',
       'timestamp',
     ]); // default
 
@@ -190,10 +190,10 @@ describe('ExploreToolbar', function () {
     await userEvent.click(samples);
     expect(fields).toEqual([
       'id',
-      'project',
       'span.op',
       'span.description',
       'span.duration',
+      'transaction',
       'timestamp',
       'release',
     ]); // default
@@ -397,11 +397,11 @@ describe('ExploreToolbar', function () {
     // check the default field options
     const fields = [
       'id',
-      'project',
       'span.description',
       'span.duration',
       'span.op',
       'timestamp',
+      'transaction',
     ];
     await userEvent.click(within(section).getByRole('button', {name: 'timestamp'}));
     const fieldOptions = await within(section).findAllByRole('option');
@@ -561,10 +561,10 @@ describe('ExploreToolbar', function () {
             dataset: 'spans',
             defaultTableColumns: [
               'id',
-              'project',
               'span.op',
               'span.description',
               'span.duration',
+              'transaction',
               'timestamp',
             ],
             defaultTitle: 'Custom Widget',
@@ -574,10 +574,10 @@ describe('ExploreToolbar', function () {
             end: undefined,
             field: [
               'id',
-              'project',
               'span.op',
               'span.description',
               'span.duration',
+              'transaction',
               'timestamp',
             ],
             limit: undefined,

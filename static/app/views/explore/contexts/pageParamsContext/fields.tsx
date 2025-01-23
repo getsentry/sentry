@@ -4,7 +4,14 @@ import {defined} from 'sentry/utils';
 import {decodeList} from 'sentry/utils/queryString';
 
 export function defaultFields(): string[] {
-  return ['id', 'project', 'span.op', 'span.description', 'span.duration', 'timestamp'];
+  return [
+    'id',
+    'span.op',
+    'span.description',
+    'span.duration',
+    'transaction',
+    'timestamp',
+  ];
 }
 
 export function getFieldsFromLocation(location: Location): string[] {
