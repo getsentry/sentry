@@ -1,34 +1,28 @@
+import {useState} from 'react';
 import styled from '@emotion/styled';
-import moment from 'moment-timezone';
 
+import {DateTime} from 'sentry/components/dateTime';
+import Duration from 'sentry/components/duration';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   type GridColumnOrder,
 } from 'sentry/components/gridEditable';
 import LoadingError from 'sentry/components/loadingError';
 import {t} from 'sentry/locale';
-import {ISSUE_PROPERTY_FIELDS} from 'sentry/utils/fields';
 import {useParams} from 'sentry/utils/useParams';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 
-export const ALL_EVENTS_EXCLUDED_TAGS = [
-  'environment',
-  'performance.issue_ids',
-  'transaction.op',
-  'transaction.status',
-  ...ISSUE_PROPERTY_FIELDS,
-];
-
 type OpenPeriodDisplayData = {
-  duration: string;
-  end: string;
-  start: string;
-  title: string;
+  duration: React.ReactNode;
+  end: React.ReactNode;
+  start: React.ReactNode;
+  title: React.ReactNode;
 };
 
 // TODO(snigdha): make this work for the old UI
-// TODO(snigdha): suppot pagination
+// TODO(snigdha): support pagination
 function IssueOpenPeriodsList() {
+  const [now] = useState(() => new Date());
   const params = useParams<{groupId: string}>();
   const {
     data: group,
@@ -48,33 +42,12 @@ function IssueOpenPeriodsList() {
     end: period.end ? new Date(period.end) : null,
   }));
 
-  const now = new Date();
   const getDuration = (start: Date, end?: Date) => {
     const duration = end
-      ? end.getTime() - start.getTime()
-      : now.getTime() - start.getTime();
+      ? (end.getTime() - start.getTime()) / 1000
+      : (now.getTime() - start.getTime()) / 1000;
 
-    const days = Math.floor(
-      (duration % (30 * 24 * 60 * 60 * 1000)) / (24 * 60 * 60 * 1000)
-    );
-    const hours = Math.floor((duration % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
-    const minutes = Math.floor((duration % (60 * 60 * 1000)) / (60 * 1000));
-    const seconds = Math.floor((duration % (60 * 1000)) / 1000);
-
-    const durationStr: string[] = [];
-    if (days > 0) {
-      durationStr.push(`${days} days`);
-    }
-    if (hours > 0) {
-      durationStr.push(`${hours} hr`);
-    }
-    if (minutes > 0) {
-      durationStr.push(`${minutes} min`);
-    }
-    if (seconds > 0) {
-      durationStr.push(`${seconds} sec`);
-    }
-    return durationStr.join(', ');
+    return <Duration seconds={duration} precision="minutes" exact />;
   };
 
   if (!openPeriods) {
@@ -82,9 +55,9 @@ function IssueOpenPeriodsList() {
   }
 
   const data: OpenPeriodDisplayData[] = openPeriods.map(period => ({
-    title: moment(period.start).format('MMM DD'),
-    start: moment(period.start).format('MMM DD, YYYY hh:mm'),
-    end: period.end ? moment(period.end).format('MMM DD, YYYY hh:mm') : '—',
+    title: <DateTime date={period.start} />,
+    start: <DateTime date={period.start} />,
+    end: period.end ? <DateTime date={period.end} /> : '—',
     duration: getDuration(period.start, period.end ?? undefined),
   }));
 
@@ -119,9 +92,8 @@ function IssueOpenPeriodsList() {
   );
 }
 
-const AlignLeft = styled('span')<{color?: string}>`
+const AlignLeft = styled('span')`
   text-align: left;
   width: 100%;
-  ${p => (p.color ? `color: ${p.color};` : '')}
 `;
 export default IssueOpenPeriodsList;
