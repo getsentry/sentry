@@ -3,7 +3,7 @@ from django.urls import re_path
 from .organization_workflow_index import OrganizationWorkflowIndexEndpoint
 from .project_detector_index import ProjectDetectorIndexEndpoint
 
-# TODO @saponifi3d - Add the missing API endpoints
+# TODO @saponifi3d - Add the remaining API endpoints
 
 # Remaining Detector Endpoints
 #   - GET /detector w/ filters
