@@ -352,6 +352,10 @@ class SearchResolver:
             final_raw_value = new_value
         elif raw_value in reversed_context:
             final_raw_value = reversed_context[raw_value]
+        elif context.default_value and context.default_value == raw_value:
+            # Avoiding this for now, while this could work with the Unknown:"" mapping
+            # But that won't work once we use the VirtualColumnContext.default_value
+            raise InvalidSearchQuery(f"Using {raw_value} is not currently supported")
         else:
             valid_values = list(reversed_context.keys())[:5]
             if len(valid_values) > 5:
