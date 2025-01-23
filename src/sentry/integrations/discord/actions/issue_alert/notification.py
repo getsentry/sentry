@@ -63,7 +63,7 @@ class DiscordNotifyServiceAction(IntegrationEventAction):
                 except ApiRateLimitedError as e:
                     # TODO(ecosystem): We should batch this on a per-organization basis
                     lifecycle.record_halt(e)
-                    # Errors that we recieve from the Discord API
+                # Errors that we recieve from the Discord API
                 except ApiError as error:
                     if error.code in DISCORD_HALT_ERROR_CODES:
                         lifecycle.record_halt(error)
