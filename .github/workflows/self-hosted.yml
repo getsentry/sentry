@@ -19,7 +19,14 @@ env:
 
 jobs:
   self-hosted:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: [amd64, arm64]
+    runs-on: |-
+      ${{fromJson('{
+        "amd64": "ubuntu-latest",
+        "arm64": "ubuntu-24.04-arm"
+      }')[matrix.arch] }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -81,10 +88,35 @@ jobs:
 
           docker buildx build \
             --pull \
-            --cache-from ghcr.io/getsentry/sentry-self-hosted:latest \
             --cache-to type=inline \
-            --tag ghcr.io/getsentry/sentry-self-hosted:${{ github.sha }} \
+            --tag ghcr.io/getsentry/sentry-self-hosted:${{ matrix.arch }}-${{ github.sha }} \
             --file self-hosted/Dockerfile \
             --build-arg SOURCE_COMMIT=${{ github.sha }} \
+            --build-arg TARGETARCH=${{ matrix.arch }} \
+            --platform linux/${{ matrix.arch }} \
             "${args[@]}" \
             .
+
+      - run: docker push ghcr.io/getsentry/sentry-self-hosted:${{ matrix.arch }}-${{ github.sha }}
+        if: github.event_name != 'pull_request'
+
+  assemble:
+    needs: build-image
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Docker Login
+        run: docker login --username '${{ github.actor }}' --password '${{ secrets.GITHUB_TOKEN }}' ghcr.io
+
+      - name: Assemble Sha Image
+        run: |
+          docker buildx imagetools create -t "ghcr.io/getsentry/sentry-self-hosted:${{ github.sha }}" \
+            "ghcr.io/getsentry/sentry-self-hosted:arm64-${{ github.sha }}" \
+            "ghcr.io/getsentry/sentry-self-hosted:amd64-${{ github.sha }}"
+
+      - name: Assemble Latest Image
+        if: github.ref_name == 'master'
+        run: |
+          docker buildx imagetools create -t "ghcr.io/getsentry/sentry-self-hosted:latest" \
+            "ghcr.io/getsentry/sentry-self-hosted:arm64-${{ github.sha }}" \
+            "ghcr.io/getsentry/sentry-self-hosted:amd64-${{ github.sha }}"
