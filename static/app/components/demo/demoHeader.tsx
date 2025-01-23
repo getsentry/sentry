@@ -13,7 +13,6 @@ import {
   extraQueryParameterWithEmail,
   isDemoModeEnabled,
   openDemoEmailModal,
-  openDemoSignupModal,
   urlAttachQueryParams,
 } from 'sentry/utils/demoMode';
 
@@ -22,7 +21,6 @@ export default function DemoHeader() {
 
   useEffect(() => {
     openDemoEmailModal();
-    openDemoSignupModal();
   }, []);
 
   if (!isDemoModeEnabled()) {

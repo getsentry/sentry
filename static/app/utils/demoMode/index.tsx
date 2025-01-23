@@ -39,7 +39,6 @@ export function openDemoSignupModal() {
   if (!isDemoModeEnabled()) {
     return;
   }
-
   setTimeout(() => {
     demoSignupModal();
   }, SIGN_UP_MODAL_DELAY);
@@ -55,16 +54,18 @@ export function openDemoEmailModal() {
     return;
   }
 
-  demoEmailModal({onAddedEmail, onFailure: handleFailure});
+  demoEmailModal({
+    onAddedEmail,
+    onFailure: () => {
+      setForceHide(false);
+    },
+  });
 }
 
 function onAddedEmail(email: string) {
   setForceHide(false);
   localStorage.setItem(DEMO_MODE_EMAIL_KEY, email);
-}
-
-function handleFailure() {
-  setForceHide(false);
+  openDemoSignupModal();
 }
 
 // Function to determine which tour has completed depending on the guide that is being passed in.
