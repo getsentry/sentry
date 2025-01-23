@@ -493,6 +493,25 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient)
         )
         return RepoTree(Repo(full_name, branch), repo_files)
 
+    def get_repos(self, fetch_max_pages: bool = False) -> list[dict[str, Any]]:
+        """
+        args:
+         * fetch_max_pages - fetch as many repos as possible using pagination (slow)
+
+        This fetches all repositories accessible to the Github App
+        https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation
+
+        It uses page_size from the base class to specify how many items per page.
+        The upper bound of requests is controlled with self.page_number_limit to prevent infinite requests.
+        """
+        # XXX: In order to speed up this function we could use ThreadPoolExecutor
+        # to fetch repositories in parallel. See src/sentry/utils/snuba.py
+        return self.get_with_pagination(
+            "/installation/repositories",
+            response_key="repositories",
+            page_number_limit=self.page_number_limit if fetch_max_pages else 1,
+        )
+
     # XXX: Find alternative approach
     def search_repositories(self, query: bytes) -> Mapping[str, Sequence[Any]]:
         """

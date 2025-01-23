@@ -24,7 +24,7 @@ def get_repo_config(repo, integration_id):
     return {
         "external_id": repo["id"],
         "integration_id": integration_id,
-        "identifier": repo["full_name"],
+        "identifier": repo.get("full_name") or repo.get("identifier"),
     }
 
 
@@ -79,7 +79,7 @@ def link_all_repos(
         client = installation.get_client()
 
         try:
-            repositories = client.get_repositories(fetch_max_pages=True)
+            repositories = client.get_repos(fetch_max_pages=True)
         except ApiError as e:
             if installation.is_rate_limited_error(e):
                 lifecycle.record_halt(str(LinkAllReposHaltReason.RATE_LIMITED))

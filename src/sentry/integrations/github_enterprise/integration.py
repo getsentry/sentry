@@ -183,13 +183,21 @@ class GitHubEnterpriseIntegration(
 
     def get_repositories(self, query: str | None = None, **kwargs: Any) -> list[dict[str, Any]]:
         if not query:
+            fetch_max_pages = kwargs.get("fetch_max_pages", False)
+            # XXX: In order to speed up this function we will need to parallelize this
+            # Use ThreadPoolExecutor; see src/sentry/utils/snuba.py#L358
+            all_repos = self.get_client().get_with_pagination(
+                "/installation/repositories",
+                response_key="repositories",
+                page_number_limit=self.get_client().page_number_limit if fetch_max_pages else 1,
+            )
             return [
                 {
                     "name": i["name"],
                     "identifier": i["full_name"],
                     "default_branch": i.get("default_branch"),
                 }
-                for i in self.get_client().get_repositories()
+                for i in all_repos
             ]
 
         full_query = build_repository_query(self.model.metadata, self.model.name, query)

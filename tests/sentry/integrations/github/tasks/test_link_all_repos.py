@@ -34,10 +34,12 @@ class LinkAllReposTestCase(IntegrationTestCase):
                 "repositories": [
                     {
                         "id": 1,
+                        "name": "sentry",
                         "full_name": "getsentry/sentry",
                     },
                     {
                         "id": 2,
+                        "name": "snuba",
                         "full_name": "getsentry/snuba",
                     },
                 ],
@@ -64,7 +66,7 @@ class LinkAllReposTestCase(IntegrationTestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_link_all_repos(self, mock_record, _):
+    def test_link_all_repos_simple(self, mock_record, _):
         self._add_responses()
 
         link_all_repos(
@@ -88,45 +90,6 @@ class LinkAllReposTestCase(IntegrationTestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_link_all_repos_api_response_keyerror(self, mock_record, _):
-
-        responses.add(
-            responses.GET,
-            self.base_url + "/installation/repositories?per_page=100",
-            status=200,
-            json={
-                "total_count": 2,
-                "repositories": [
-                    {
-                        "full_name": "getsentry/sentry",
-                    },
-                    {
-                        "id": 2,
-                        "full_name": "getsentry/snuba",
-                    },
-                ],
-            },
-        )
-
-        link_all_repos(
-            integration_key=self.key,
-            integration_id=self.integration.id,
-            organization_id=self.organization.id,
-        )
-
-        with assume_test_silo_mode(SiloMode.REGION):
-            repos = Repository.objects.all()
-        assert len(repos) == 1
-
-        assert repos[0].organization_id == self.organization.id
-        assert repos[0].provider == "integrations:github"
-
-        assert repos[0].name == "getsentry/snuba"
-
-        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
-
-    @responses.activate
-    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_link_all_repos_api_response_keyerror_single_repo(self, mock_record, _):
 
         responses.add(
@@ -137,7 +100,9 @@ class LinkAllReposTestCase(IntegrationTestCase):
                 "total_count": 2,
                 "repositories": [
                     {
+                        "name": "sentry",
                         "full_name": "getsentry/sentry",
+                        "default_branch": "master",
                     },
                 ],
             },

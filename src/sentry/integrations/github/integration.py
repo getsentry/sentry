@@ -243,15 +243,10 @@ class GitHubIntegration(RepositoryIntegration, GitHubIssuesSpec, CommitContextIn
         """
         if not query:
             fetch_max_pages = kwargs.get("fetch_max_pages", False)
-            # XXX: In order to speed up this function we could use ThreadPoolExecutor
-            # to fetch repositories in parallel. See src/sentry/utils/snuba.py
-            repos = self.get_client().get_with_pagination(
-                "/installation/repositories",
-                response_key="repositories",
-                page_number_limit=self.page_number_limit if fetch_max_pages else 1,
-            )
+            repos = self.get_client().get_repos(fetch_max_pages)
             return [
                 {
+                    "id": i["id"],
                     "name": i["name"],
                     "identifier": i["full_name"],
                     "default_branch": i.get("default_branch"),
@@ -263,6 +258,7 @@ class GitHubIntegration(RepositoryIntegration, GitHubIssuesSpec, CommitContextIn
         response = self.get_client().search_repositories(full_query)
         return [
             {
+                "id": i["id"],
                 "name": i["name"],
                 "identifier": i["full_name"],
                 "default_branch": i.get("default_branch"),
