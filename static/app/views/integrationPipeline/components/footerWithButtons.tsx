@@ -7,7 +7,7 @@ import {space} from 'sentry/styles/space';
 interface FooterWithButtonsProps {
   buttonText: string;
   disabled?: boolean;
-  formFields?: {name: string; value: any}[];
+  formFields?: Array<{name: string; value: any}>;
   formProps?: React.FormHTMLAttributes<HTMLFormElement>;
   href?: string;
   onClick?: ButtonProps['onClick'];

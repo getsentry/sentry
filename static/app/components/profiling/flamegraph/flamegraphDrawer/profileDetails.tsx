@@ -193,11 +193,11 @@ function TransactionDeviceDetails({
     const deviceContext = transaction.contexts.device;
     const osContext = transaction.contexts.os;
 
-    const details: {
+    const details: Array<{
       key: string;
       label: string;
       value: React.ReactNode;
-    }[] = [
+    }> = [
       {
         key: 'model',
         label: t('Model'),
@@ -276,11 +276,11 @@ function TransactionEventDetails({
           })
         : null;
 
-    const details: {
+    const details: Array<{
       key: string;
       label: string;
       value: React.ReactNode;
-    }[] = [
+    }> = [
       {
         key: 'transaction',
         label: t('Transaction'),

@@ -176,7 +176,7 @@ class SentryApplicationDetails extends DeprecatedAsyncComponent<Props, State> {
       if (this.hasTokenAccess) {
         endpoints.push(['tokens', `/sentry-apps/${appSlug}/api-tokens/`]);
       }
-      return endpoints as [string, string][];
+      return endpoints as Array<[string, string]>;
     }
 
     return [];

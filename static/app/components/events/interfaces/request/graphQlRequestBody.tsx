@@ -16,7 +16,7 @@ import {loadPrismLanguage} from 'sentry/utils/prism';
 type GraphQlBodyProps = {data: EntryRequestDataGraphQl['data']; event: Event};
 
 type GraphQlError = {
-  locations?: {column: number; line: number}[];
+  locations?: Array<{column: number; line: number}>;
   message?: string;
   path?: string[];
 };

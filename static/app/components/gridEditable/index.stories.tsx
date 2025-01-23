@@ -18,7 +18,7 @@ interface ExampleDataItem {
 }
 
 export default storyBook(GridEditable, story => {
-  const columns: GridColumnOrder<keyof ExampleDataItem>[] = [
+  const columns: Array<GridColumnOrder<keyof ExampleDataItem>> = [
     {key: 'category', name: 'Platform Category'},
     {key: 'name', name: 'Platform Name'},
   ];
@@ -32,7 +32,7 @@ export default storyBook(GridEditable, story => {
     return <GridEditable data={[]} columnOrder={columns} columnSortBy={[]} grid={{}} />;
   });
 
-  const columnsWithWidth: GridColumnOrder<keyof ExampleDataItem | 'other'>[] =
+  const columnsWithWidth: Array<GridColumnOrder<keyof ExampleDataItem | 'other'>> =
     columns.map(col => {
       col.width = 200;
       return col;
@@ -136,7 +136,7 @@ export default storyBook(GridEditable, story => {
 
   function useStatefulColumnWidths() {
     const [columnsWithDynamicWidths, setColumns] =
-      useState<GridColumnOrder<keyof ExampleDataItem | 'other'>[]>(columnsWithWidth);
+      useState<Array<GridColumnOrder<keyof ExampleDataItem | 'other'>>>(columnsWithWidth);
 
     const handleResizeColumn = useCallback(
       (

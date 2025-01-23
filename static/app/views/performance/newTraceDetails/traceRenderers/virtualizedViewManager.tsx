@@ -33,8 +33,8 @@ function getHorizontalDelta(x: number, y: number): number {
 }
 
 type ViewColumn = {
-  column_nodes: TraceTreeNode<TraceTree.NodeValue>[];
-  column_refs: (HTMLElement | undefined)[];
+  column_nodes: Array<TraceTreeNode<TraceTree.NodeValue>>;
+  column_refs: Array<HTMLElement | undefined>;
   translate: [number, number];
   width: number;
 };
@@ -71,22 +71,25 @@ export class VirtualizedViewManager {
   horizontal_scrollbar_container: HTMLElement | null = null;
   indicator_container: HTMLElement | null = null;
 
-  intervals: (number | undefined)[] = [];
+  intervals: Array<number | undefined> = [];
   // We want to render an indicator every 100px, but because we dont track resizing
   // of the container, we need to precompute the number of intervals we need to render.
   // We'll oversize the count by 3x, assuming no user will ever resize the window to 3x the
   // original size.
   interval_bars = new Array(Math.ceil(window.innerWidth / 100) * 3).fill(0);
-  indicators: ({indicator: TraceTree['indicators'][0]; ref: HTMLElement} | undefined)[] =
-    [];
-  timeline_indicators: (HTMLElement | undefined)[] = [];
+  indicators: Array<
+    {indicator: TraceTree['indicators'][0]; ref: HTMLElement} | undefined
+  > = [];
+  timeline_indicators: Array<HTMLElement | undefined> = [];
   vertical_indicators: {[key: string]: VerticalIndicator} = {};
   vertical_indicator_labels: {[key: string]: HTMLElement | undefined} = {};
-  span_bars: ({color: string; ref: HTMLElement; space: [number, number]} | undefined)[] =
+  span_bars: Array<
+    {color: string; ref: HTMLElement; space: [number, number]} | undefined
+  > = [];
+  span_patterns: Array<Array<{ref: HTMLElement; space: [number, number]} | undefined>> =
     [];
-  span_patterns: ({ref: HTMLElement; space: [number, number]} | undefined)[][] = [];
-  invisible_bars: ({ref: HTMLElement; space: [number, number]} | undefined)[] = [];
-  span_arrows: (
+  invisible_bars: Array<{ref: HTMLElement; space: [number, number]} | undefined> = [];
+  span_arrows: Array<
     | {
         position: 0 | 1;
         ref: HTMLElement;
@@ -94,9 +97,10 @@ export class VirtualizedViewManager {
         visible: boolean;
       }
     | undefined
-  )[] = [];
-  span_text: ({ref: HTMLElement; space: [number, number]; text: string} | undefined)[] =
-    [];
+  > = [];
+  span_text: Array<
+    {ref: HTMLElement; space: [number, number]; text: string} | undefined
+  > = [];
 
   row_depth_padding: number = 22;
 
@@ -1725,7 +1729,7 @@ function getIconTimestamps(
 function computeTimelineIntervals(
   view: TraceView,
   targetInterval: number,
-  results: (number | undefined)[]
+  results: Array<number | undefined>
 ): void {
   const minInterval = Math.pow(10, Math.floor(Math.log10(targetInterval)));
   let interval = minInterval;

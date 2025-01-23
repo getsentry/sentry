@@ -24,7 +24,7 @@ export function useSystemSelectorOptions() {
     'api.starfish.database-system-selector'
   );
 
-  const options: SelectOption<string>[] = [];
+  const options: Array<SelectOption<string>> = [];
   data.forEach(entry => {
     const system = entry['span.system'];
     if (system) {

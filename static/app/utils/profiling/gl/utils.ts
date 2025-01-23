@@ -821,7 +821,7 @@ export function getMinimapCanvasCursor(
 }
 
 export function useResizeCanvasObserver(
-  canvases: (HTMLCanvasElement | null)[],
+  canvases: Array<HTMLCanvasElement | null>,
   canvasPoolManager: CanvasPoolManager,
   canvas: FlamegraphCanvas | null,
   view: CanvasView<any> | null

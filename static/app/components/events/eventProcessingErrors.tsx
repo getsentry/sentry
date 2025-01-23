@@ -33,7 +33,7 @@ export default function EventErrorCard({
   title,
   data,
 }: {
-  data: {key: string; subject: any; value: any}[];
+  data: Array<{key: string; subject: any; value: any}>;
   title: string;
 }) {
   const contentItems = data.map(datum => {

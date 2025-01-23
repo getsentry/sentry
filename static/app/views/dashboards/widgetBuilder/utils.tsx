@@ -119,9 +119,9 @@ export const generateOrderOptions = ({
   aggregates: string[];
   columns: string[];
   widgetType: WidgetType;
-}): SelectValue<string>[] => {
+}): Array<SelectValue<string>> => {
   const isRelease = widgetType === WidgetType.RELEASE;
-  const options: SelectValue<string>[] = [];
+  const options: Array<SelectValue<string>> = [];
   let equations = 0;
   (isRelease
     ? [...aggregates.map(stripDerivedMetricsPrefix), ...columns]

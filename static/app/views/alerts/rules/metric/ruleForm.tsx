@@ -1410,7 +1410,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
 function formatStatsToHistoricalDataset(
   data: EventsStats | MultiSeriesEventsStats | null
-): [number, {count: number}][] {
+): Array<[number, {count: number}]> {
   return Array.isArray(data?.data)
     ? data.data.flatMap(([timestamp, entries]) =>
         entries.map(entry => [timestamp, entry] as [number, {count: number}])

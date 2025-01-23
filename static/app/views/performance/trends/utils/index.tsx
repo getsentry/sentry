@@ -390,7 +390,7 @@ function getLimitTransactionItems(query: string) {
   return limitQuery.formatString();
 }
 
-export const smoothTrend = (data: [number, number][], resolution = 100) => {
+export const smoothTrend = (data: Array<[number, number]>, resolution = 100) => {
   return ASAP(data, resolution);
 };
 

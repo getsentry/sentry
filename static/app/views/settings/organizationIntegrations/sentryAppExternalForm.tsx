@@ -20,7 +20,7 @@ const hasValue = (value: any) => !!value || value === 0;
 export type FieldFromSchema = Omit<Field, 'choices' | 'type'> & {
   type: 'select' | 'textarea' | 'text';
   async?: boolean;
-  choices?: [any, string][];
+  choices?: Array<[any, string]>;
   default?: 'issue.title' | 'issue.description';
   depends_on?: string[];
   skip_load_on_open?: boolean;
@@ -42,7 +42,7 @@ type SentryAppSetting = {
 
 // only need required_fields and optional_fields
 type State = Omit<SchemaFormConfig, 'uri' | 'description'> & {
-  optionsByField: Map<string, {label: string; value: any}[]>;
+  optionsByField: Map<string, Array<{label: string; value: any}>>;
   selectedOptions: {[name: string]: GeneralSelectValue};
 };
 

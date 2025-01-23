@@ -60,7 +60,7 @@ export function getMobileLayout(desktopLayout: Layout[], widgets: Widget[]) {
     return [];
   }
 
-  const layoutWidgetPairs = zip(desktopLayout, widgets) as [Layout, Widget][];
+  const layoutWidgetPairs = zip(desktopLayout, widgets) as Array<[Layout, Widget]>;
 
   // Sort by y and then subsort by x
   const sorted = sortBy(layoutWidgetPairs, ['0.y', '0.x']);
@@ -109,7 +109,7 @@ export function getInitialColumnDepths() {
  * Creates an array from layouts where each column stores how deep it is.
  */
 export function calculateColumnDepths(
-  layouts: Pick<Layout, 'h' | 'w' | 'x' | 'y'>[]
+  layouts: Array<Pick<Layout, 'h' | 'w' | 'x' | 'y'>>
 ): number[] {
   const depths = getInitialColumnDepths();
 

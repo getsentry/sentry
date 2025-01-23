@@ -42,7 +42,7 @@ export function ToolbarGroupBy({disabled}: ToolbarGroupByProps) {
   const groupBys = useExploreGroupBys();
   const setGroupBys = useSetExploreGroupBys();
 
-  const options: SelectOption<string>[] = useMemo(() => {
+  const options: Array<SelectOption<string>> = useMemo(() => {
     const potentialOptions = [
       ...Object.keys(tags),
 
@@ -137,7 +137,7 @@ interface ColumnEditorRowProps {
   column: Column;
   onColumnChange: (column: string) => void;
   onColumnDelete: () => void;
-  options: SelectOption<string>[];
+  options: Array<SelectOption<string>>;
   disabled?: boolean;
 }
 
