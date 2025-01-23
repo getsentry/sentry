@@ -1199,7 +1199,9 @@ describe('handleAddQueryToDashboard', function () {
             limit: undefined,
             widgetType: WidgetType.TRANSACTIONS,
           },
-          source: DashboardWidgetSource.DISCOVERV2,
+          widgetAsQueryParams: expect.objectContaining({
+            source: DashboardWidgetSource.DISCOVERV2,
+          }),
         })
       );
     });
@@ -1239,7 +1241,9 @@ describe('handleAddQueryToDashboard', function () {
             limit: 5,
             widgetType: WidgetType.TRANSACTIONS,
           },
-          source: DashboardWidgetSource.DISCOVERV2,
+          widgetAsQueryParams: expect.objectContaining({
+            source: DashboardWidgetSource.DISCOVERV2,
+          }),
         })
       );
     });
@@ -1278,7 +1282,9 @@ describe('handleAddQueryToDashboard', function () {
             limit: undefined,
             widgetType: WidgetType.TRANSACTIONS,
           },
-          source: DashboardWidgetSource.DISCOVERV2,
+          widgetAsQueryParams: expect.objectContaining({
+            source: DashboardWidgetSource.DISCOVERV2,
+          }),
         })
       );
     });
