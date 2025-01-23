@@ -198,7 +198,7 @@ class DetectorSerializer(Serializer):
 
 @register(Workflow)
 class WorkflowSerializer(Serializer):
-    def get_attrs(self, item_list, user, **kwargs):
+    def get_attrs(self, item_list, user, **kwargs) -> MutableMapping[Workflow, dict[str, Any]]:
         attrs: MutableMapping[Workflow, dict[str, Any]] = defaultdict(dict)
         trigger_conditions = list(
             DataConditionGroup.objects.filter(
@@ -233,7 +233,6 @@ class WorkflowSerializer(Serializer):
         return attrs
 
     def serialize(self, obj: Workflow, attrs: Mapping[str, Any], user, **kwargs) -> dict[str, Any]:
-        # WHAT TO DO ABOUT CONFIG?
         return {
             "id": str(obj.id),
             "organizationId": str(obj.organization_id),
@@ -242,4 +241,5 @@ class WorkflowSerializer(Serializer):
             "triggerConditionGroup": attrs.get("trigger_condition_group"),
             "dataConditionGroups": attrs.get("data_condition_groups"),
             "environment": obj.environment.name if obj.environment else None,
+            "config": obj.config,
         }
