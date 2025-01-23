@@ -121,16 +121,16 @@ type QueryArgs =
   | {
       query: string;
       environment?: string | string[];
-      project?: (number | string)[];
+      project?: Array<number | string>;
     }
   | {
       id: number[] | string[];
       environment?: string | string[];
-      project?: (number | string)[];
+      project?: Array<number | string>;
     }
   | {
       environment?: string | string[];
-      project?: (number | string)[];
+      project?: Array<number | string>;
     };
 
 /**
@@ -175,7 +175,7 @@ function getUpdateUrl({projectId, orgId}: UpdateParams) {
 }
 
 function chainUtil<Args extends any[]>(
-  ...funcs: (((...args: Args) => any) | undefined)[]
+  ...funcs: Array<((...args: Args) => any) | undefined>
 ) {
   const filteredFuncs = funcs.filter(
     (f): f is (...args: Args) => any => typeof f === 'function'

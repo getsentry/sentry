@@ -464,7 +464,7 @@ export const SpanOps = [
  * This is a result of a custom discover query
  */
 export type RawReplayError = {
-  ['error.type']: (string | undefined | null)[];
+  ['error.type']: Array<string | undefined | null>;
   id: string;
   issue: string;
   ['issue.id']: number;

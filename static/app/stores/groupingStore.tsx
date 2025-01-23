@@ -97,9 +97,9 @@ export type SimilarItem = {
   };
   score?: Record<string, number | null>;
   scoresByInterface?: {
-    exception: [string, number | null][];
-    message: [string, any | null][];
-    shouldBeGrouped?: [string, string | null][];
+    exception: Array<[string, number | null]>;
+    message: Array<[string, any | null]>;
+    shouldBeGrouped?: Array<[string, string | null]>;
   };
 };
 
@@ -110,7 +110,7 @@ type ResponseProcessors = {
     isBelowThreshold: boolean;
     issue: Group;
     score: ScoreMap;
-    scoresByInterface: Record<string, [string, number | null][]>;
+    scoresByInterface: Record<string, Array<[string, number | null]>>;
   };
 };
 
@@ -118,13 +118,13 @@ type DataKey = keyof ResponseProcessors;
 
 type ResultsAsArrayDataMerged = Parameters<ResponseProcessors['merged']>[0];
 
-type ResultsAsArrayDataSimilar = Parameters<ResponseProcessors['similar']>[0][];
+type ResultsAsArrayDataSimilar = Array<Parameters<ResponseProcessors['similar']>[0]>;
 
-type ResultsAsArray = {
+type ResultsAsArray = Array<{
   data: ResultsAsArrayDataMerged | ResultsAsArrayDataSimilar;
   dataKey: DataKey;
   links: string | null;
-}[];
+}>;
 
 type IdState = {
   busy?: boolean;
@@ -147,11 +147,11 @@ interface GroupingStoreDefinition extends StrictStoreDefinition<State> {
   init(): void;
   isAllUnmergedSelected(): boolean;
   onFetch(
-    toFetchArray: {
+    toFetchArray: Array<{
       dataKey: DataKey;
       endpoint: string;
       queryParams?: Record<string, any>;
-    }[]
+    }>
   ): Promise<any>;
   onMerge(props: {
     projectId: Project['id'];

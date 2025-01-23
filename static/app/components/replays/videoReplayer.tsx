@@ -45,7 +45,7 @@ export class VideoReplayer {
   private _currentIndex: number | undefined;
   private _startTimestamp: number;
   private _timer = new Timer();
-  private _trackList: [ts: number, index: number][];
+  private _trackList: Array<[ts: number, index: number]>;
   private _isPlaying: boolean = false;
   private _listeners: RemoveListener[] = [];
   /**

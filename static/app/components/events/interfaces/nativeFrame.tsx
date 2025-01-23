@@ -49,7 +49,7 @@ import Context from './frame/context';
 import {SymbolicatorStatus} from './types';
 
 type Props = {
-  components: SentryAppComponent<SentryAppSchemaStacktraceLink>[];
+  components: Array<SentryAppComponent<SentryAppSchemaStacktraceLink>>;
   event: Event;
   frame: Frame;
   isUsedForGrouping: boolean;

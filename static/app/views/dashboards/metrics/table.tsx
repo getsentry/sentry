@@ -126,7 +126,7 @@ const getEmptyGroup = (tags: string[]) =>
 function getGroupByCombos(
   queries: MetricsQueryApiRequestQuery[],
   results: MetricsQueryApiResponse['data']
-): Record<string, string>[] {
+): Array<Record<string, string>> {
   const groupBys = Array.from(new Set(queries.flatMap(query => query.groupBy ?? [])));
   const emptyBy = getEmptyGroup(groupBys);
 
@@ -144,12 +144,12 @@ function getGroupByCombos(
 type Row = Record<string, {formattedValue?: string; value?: number}>;
 
 interface TableData {
-  headers: {
+  headers: Array<{
     label: string;
     name: string;
     order: Order;
     type: string;
-  }[];
+  }>;
   rows: Row[];
 }
 

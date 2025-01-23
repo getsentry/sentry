@@ -53,7 +53,7 @@ function FeatureFlagOnboardingSidebar(props: CommonSidebarProps) {
   });
 
   const projectSelectOptions = useMemo(() => {
-    const supportedProjectItems: SelectValue<string>[] = supportedProjects.map(
+    const supportedProjectItems: Array<SelectValue<string>> = supportedProjects.map(
       project => {
         return {
           value: project.id,
@@ -65,7 +65,7 @@ function FeatureFlagOnboardingSidebar(props: CommonSidebarProps) {
       }
     );
 
-    const unsupportedProjectItems: SelectValue<string>[] = unsupportedProjects.map(
+    const unsupportedProjectItems: Array<SelectValue<string>> = unsupportedProjects.map(
       project => {
         return {
           value: project.id,

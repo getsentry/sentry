@@ -36,7 +36,7 @@ type StatsProps = {
 };
 
 type StatsState = {
-  stats: {total: number; ts: number}[] | null;
+  stats: Array<{total: number; ts: number}> | null;
 } & DeprecatedAsyncComponent['state'];
 
 class HookStats extends DeprecatedAsyncComponent<StatsProps, StatsState> {
