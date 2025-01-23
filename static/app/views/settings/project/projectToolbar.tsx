@@ -62,7 +62,7 @@ function ProjectToolbarSettings({organization, project, params: {projectId}}: Pr
         {domain && (
           <Alert type="info" showIcon>
             {tct(
-              'Copy and paste this domain into the text box next to Allowed Origins: [domain] ',
+              'To enable the Dev Toolbar, copy and paste your domain into the Allowed Origins text box below: [domain] ',
               {domain: <strong>{domain}</strong>}
             )}
             <CopyToClipboardButton borderless iconSize="xs" size="zero" text={domain} />
