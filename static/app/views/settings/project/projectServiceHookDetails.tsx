@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 
 import {
   addErrorMessage,
@@ -19,7 +19,6 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t} from 'sentry/locale';
 import type {ServiceHook} from 'sentry/types/integrations';
-import getDynamicText from 'sentry/utils/getDynamicText';
 import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
@@ -33,7 +32,7 @@ function HookStats() {
   const organization = useOrganization();
   const {hookId, projectId} = useParams<{hookId: string; projectId: string}>();
 
-  const until = Math.floor(new Date().getTime() / 1000);
+  const [until] = useState(() => Math.floor(new Date().getTime() / 1000));
   const since = until - 3600 * 24 * 30;
 
   const {
@@ -107,7 +106,7 @@ function HookStats() {
 export default function ProjectServiceHookDetails() {
   const organization = useOrganization();
   const {hookId, projectId} = useParams<{hookId: string; projectId: string}>();
-  const api = useApi();
+  const api = useApi({persistInFlight: true});
   const navigate = useNavigate();
 
   const {
@@ -186,12 +185,7 @@ export default function ProjectServiceHookDetails() {
             inline={false}
             help={t('The shared secret used for generating event HMAC signatures.')}
           >
-            <TextCopyInput>
-              {getDynamicText({
-                value: hook.secret,
-                fixed: 'a dynamic secret value',
-              })}
-            </TextCopyInput>
+            <TextCopyInput>{hook.secret}</TextCopyInput>
           </FieldGroup>
         </PanelBody>
       </Panel>
