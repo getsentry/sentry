@@ -499,6 +499,8 @@ class OrganizationGroupSearchViewsWithPageFiltersPutTest(BaseGSVTestCase):
         assert len(response.data) == 3
         assert response.data[0]["environments"] == []
 
+    @with_feature({"organizations:issue-stream-custom-views": True})
+    @with_feature({"organizations:global-views": True})
     def test_update_time_filters(self) -> None:
         views = self.client.get(self.url).data
         view = views[0]
@@ -569,6 +571,7 @@ class OrganizationGroupSearchViewsPutRegressionTest(APITestCase):
         )
 
     @with_feature({"organizations:issue-stream-custom-views": True})
+    @with_feature({"organizations:global-views": True})
     def test_cannot_rename_other_users_views(self) -> None:
         self.login_as(user=self.user)
         views = self.client.get(self.url).data
