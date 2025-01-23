@@ -98,7 +98,7 @@ export type MinimalProject = Pick<Project, 'id' | 'slug' | 'platform'>;
 // Response from project_keys endpoints.
 export type ProjectKey = {
   browserSdk: {
-    choices: [key: string, value: string][];
+    choices: Array<[key: string, value: string]>;
   };
   browserSdkVersion: ProjectKey['browserSdk']['choices'][number][0];
   dateCreated: string;

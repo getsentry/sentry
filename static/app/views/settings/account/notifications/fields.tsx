@@ -6,7 +6,7 @@ export type FineTuneField = {
   title: string;
   type: 'select';
   defaultValue?: string;
-  options?: SelectValue<string>[];
+  options?: Array<SelectValue<string>>;
 };
 
 // TODO: clean up unused fields

@@ -173,7 +173,7 @@ export interface Config {
   /**
    * This comes from django (django.contrib.messages)
    */
-  messages: {level: keyof Theme['alert']; message: string}[];
+  messages: Array<{level: keyof Theme['alert']; message: string}>;
   needsUpgrade: boolean;
   privacyUrl: string | null;
   // The list of regions the user has has access to.
@@ -217,7 +217,7 @@ export interface Config {
     upgradeAvailable: boolean;
   };
   partnershipAgreementPrompt?: {
-    agreements: Array<ParntershipAgreementType>;
+    agreements: ParntershipAgreementType[];
     partnerDisplayName: string;
   } | null;
   relocationConfig?: {

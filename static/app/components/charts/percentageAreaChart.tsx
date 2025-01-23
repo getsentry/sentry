@@ -42,7 +42,7 @@ export default class PercentageAreaChart extends Component<Props> {
   getSeries() {
     const {series, getDataItemName, getValue} = this.props;
 
-    const totalsArray: [string | number, number][] = series.length
+    const totalsArray: Array<[string | number, number]> = series.length
       ? series[0]!.data.map(({name}, i) => [
           name,
           series.reduce((sum, {data}) => sum + data[i]!.value, 0),

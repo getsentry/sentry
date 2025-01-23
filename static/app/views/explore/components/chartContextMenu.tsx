@@ -32,24 +32,20 @@ function ChartContextMenu({
     projects.length === 1
       ? projects[0]
       : projects.find(p => p.id === `${pageFilters.selection.projects[0]}`);
-  const singleProject =
-    (pageFilters.selection.projects.length === 1 || projects.length === 1) && project;
 
-  const alertsUrls = singleProject
-    ? visualizeYAxes.map(yAxis => ({
-        key: yAxis,
-        label: yAxis,
-        to: getAlertsUrl({
-          project,
-          query,
-          pageFilters: pageFilters.selection,
-          aggregate: yAxis,
-          orgSlug: organization.slug,
-          dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
-          interval,
-        }),
-      }))
-    : undefined;
+  const alertsUrls = visualizeYAxes.map((yAxis, index) => ({
+    key: `${yAxis}-${index}`,
+    label: yAxis,
+    to: getAlertsUrl({
+      project,
+      query,
+      pageFilters: pageFilters.selection,
+      aggregate: yAxis,
+      orgSlug: organization.slug,
+      dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+      interval,
+    }),
+  }));
 
   const items: MenuItemProps[] = [];
 
@@ -58,10 +54,7 @@ function ChartContextMenu({
       key: 'create-alert',
       label: t('Create an alert for'),
       children: alertsUrls ?? [],
-      tooltip: !singleProject
-        ? t('Cannot create an alert when multiple projects are selected')
-        : undefined,
-      disabled: !alertsUrls || alertsUrls.length === 0 || !singleProject,
+      disabled: !alertsUrls || alertsUrls.length === 0,
       isSubmenu: true,
     });
   }

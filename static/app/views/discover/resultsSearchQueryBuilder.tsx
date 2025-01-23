@@ -49,7 +49,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useTags from 'sentry/utils/useTags';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
 
-const getFunctionTags = (fields: Readonly<Field[]> | undefined) => {
+const getFunctionTags = (fields: readonly Field[] | undefined) => {
   if (!fields?.length) {
     return [];
   }
@@ -118,14 +118,14 @@ export const getHasTag = (tags: TagCollection) => ({
 type Props = {
   customMeasurements?: CustomMeasurementCollection;
   dataset?: DiscoverDatasets;
-  fields?: Readonly<Field[]>;
+  fields?: readonly Field[];
   includeSessionTagsValues?: boolean;
   includeTransactions?: boolean;
   omitTags?: string[];
   onChange?: (query: string, state: CallbackSearchState) => void;
   onSearch?: (query: string) => void;
   placeholder?: string;
-  projectIds?: number[] | Readonly<number[]>;
+  projectIds?: number[] | readonly number[];
   query?: string;
   recentSearches?: SavedSearchType;
   searchSource?: string;
@@ -167,7 +167,7 @@ function ResultsSearchQueryBuilder(props: Props) {
   // with data when ready
   const getEventFieldValues = useCallback(
     async (tag: any, query: any): Promise<string[]> => {
-      const projectIdStrings = (projectIds as Readonly<number>[])?.map(String);
+      const projectIdStrings = (projectIds as Array<Readonly<number>>)?.map(String);
 
       if (isAggregateField(tag.key) || isMeasurement(tag.key)) {
         // We can't really auto suggest values for aggregate fields

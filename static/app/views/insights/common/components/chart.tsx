@@ -77,7 +77,7 @@ type Props = {
   loading: boolean;
   type: ChartType;
   aggregateOutputFormat?: AggregationOutputType;
-  chartColors?: string[] | ReadonlyArray<string>;
+  chartColors?: string[] | readonly string[];
   chartGroup?: string;
   dataMax?: number;
   definedAxisTicks?: number;
@@ -108,7 +108,7 @@ type Props = {
   scatterPlot?: Series[];
   showLegend?: boolean;
   stacked?: boolean;
-  throughput?: {count: number; interval: string}[];
+  throughput?: Array<{count: number; interval: string}>;
   tooltipFormatterOptions?: FormatterOptions;
 };
 

@@ -28,7 +28,7 @@ type Props = {
 type State = {
   error: boolean;
   loading: boolean;
-  mergedItems: Array<Fingerprint>;
+  mergedItems: Fingerprint[];
   query: string;
   mergedLinks?: string;
 };

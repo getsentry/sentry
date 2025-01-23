@@ -33,7 +33,7 @@ type State = {
   filteredSimilarItems: SimilarItem[];
   loading: boolean;
   mergeDisabled: boolean;
-  mergeList: Array<string>;
+  mergeList: string[];
   mergeState: Map<any, Readonly<{busy?: boolean; checked?: boolean}>>;
   // List of fingerprints that belong to issue
   mergedItems: Fingerprint[];
@@ -76,7 +76,7 @@ type ChildFingerprint = {
 };
 
 export type Fingerprint = {
-  children: Array<ChildFingerprint>;
+  children: ChildFingerprint[];
   eventCount: number;
   id: string;
   latestEvent: Event;
@@ -177,7 +177,7 @@ interface GroupingStoreDefinition extends StrictStoreDefinition<State> {
    */
   setStateForId(
     stateProperty: 'mergeState' | 'unmergeState',
-    idOrIds: Array<string> | string,
+    idOrIds: string[] | string,
     newState: IdState
   ): void;
   triggerFetchState(): Readonly<
@@ -252,7 +252,7 @@ const storeConfig: GroupingStoreDefinition = {
 
   isAllUnmergedSelected() {
     const lockedItems =
-      (Array.from(this.state.unmergeState.values()) as Array<IdState>).filter(
+      (Array.from(this.state.unmergeState.values()) as IdState[]).filter(
         ({busy}) => busy
       ) || [];
     return (
@@ -482,7 +482,7 @@ const storeConfig: GroupingStoreDefinition = {
   },
 
   onUnmerge({groupId, loadingMessage, orgSlug, successMessage, errorMessage}) {
-    const grouphashIds = Array.from(this.state.unmergeList.keys()) as Array<string>;
+    const grouphashIds = Array.from(this.state.unmergeList.keys()) as string[];
 
     return new Promise((resolve, reject) => {
       if (this.isAllUnmergedSelected()) {

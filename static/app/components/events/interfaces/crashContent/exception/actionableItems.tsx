@@ -63,7 +63,7 @@ const keyMapping = {
 export function getErrorMessage(
   error: ActionableItemErrors | EventErrorData,
   meta?: Record<string, any>
-): Array<ErrorMessage> {
+): ErrorMessage[] {
   const errorData = error.data ?? {};
   const metaData = meta ?? {};
   switch (error.type) {

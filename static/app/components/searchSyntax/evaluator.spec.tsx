@@ -70,8 +70,8 @@ const tokensToString = (tokens: ProcessedTokenResult[]): string => {
 };
 
 function assertTokens(
-  tokens: TokenResult<Token>[] | null
-): asserts tokens is TokenResult<Token>[] {
+  tokens: Array<TokenResult<Token>> | null
+): asserts tokens is Array<TokenResult<Token>> {
   if (tokens === null) {
     throw new Error('Expected tokens to be an array');
   }

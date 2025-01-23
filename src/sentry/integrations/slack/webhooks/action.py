@@ -79,19 +79,6 @@ SUCCESS_MESSAGE = (
     "{invite_type} request for {email} has been {verb}. <{url}|See Members and Requests>."
 )
 
-RESOLVE_SELECTOR = {
-    "label": "Resolve issue",
-    "type": "select",
-    "name": "resolve_type",
-    "placeholder": "Select the resolution target",
-    "value": "resolved",
-    "options": [
-        {"label": "Immediately", "value": "resolved"},
-        {"label": "In the next release", "value": "resolved:inNextRelease"},
-        {"label": "In the current release", "value": "resolved:inCurrentRelease"},
-    ],
-}
-
 RESOLVE_OPTIONS = {
     "Immediately": "resolved",
     "In the next release": "resolved:inNextRelease",

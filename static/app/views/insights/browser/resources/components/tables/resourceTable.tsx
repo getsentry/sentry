@@ -91,7 +91,7 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
     referrer: 'api.performance.browser.resources.main-table',
   });
 
-  const columnOrder: GridColumnOrder<keyof Row>[] = [
+  const columnOrder: Array<GridColumnOrder<keyof Row>> = [
     {
       key: SPAN_DESCRIPTION,
       width: COL_WIDTH_UNDEFINED,

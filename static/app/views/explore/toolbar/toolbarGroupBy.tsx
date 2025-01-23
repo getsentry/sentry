@@ -43,7 +43,7 @@ export function ToolbarGroupBy({disabled}: ToolbarGroupByProps) {
   const groupBys = useExploreGroupBys();
   const setGroupBys = useSetExploreGroupBys();
 
-  const disabledOptions: SelectOption<string>[] = useMemo(() => {
+  const disabledOptions: Array<SelectOption<string>> = useMemo(() => {
     return [
       {
         label: <Disabled>{t('Samples not grouped')}</Disabled>,
@@ -53,7 +53,7 @@ export function ToolbarGroupBy({disabled}: ToolbarGroupByProps) {
     ];
   }, []);
 
-  const enabledOptions: SelectOption<string>[] = useMemo(() => {
+  const enabledOptions: Array<SelectOption<string>> = useMemo(() => {
     const potentialOptions = [
       ...Object.keys(tags),
 
@@ -142,7 +142,7 @@ interface ColumnEditorRowProps {
   column: Column;
   onColumnChange: (column: string) => void;
   onColumnDelete: () => void;
-  options: SelectOption<string>[];
+  options: Array<SelectOption<string>>;
   disabled?: boolean;
 }
 

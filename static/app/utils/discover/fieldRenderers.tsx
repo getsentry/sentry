@@ -421,7 +421,7 @@ const SPECIAL_FIELDS: SpecialFields = {
   attachments: {
     sortField: null,
     renderFunc: (data, {organization, projectSlug}) => {
-      const attachments: Array<IssueAttachment> = data.attachments;
+      const attachments: IssueAttachment[] = data.attachments;
 
       const items: MenuItemProps[] = attachments
         .filter(attachment => attachment.type !== 'event.minidump')

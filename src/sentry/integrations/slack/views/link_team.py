@@ -24,8 +24,6 @@ from sentry.web.helpers import render_to_response
 
 from . import build_linking_url as base_build_linking_url
 
-ALLOWED_METHODS = ["GET", "POST"]
-
 ALREADY_LINKED_TITLE = "Already linked"
 ALREADY_LINKED_MESSAGE = "The {slug} team has already been linked to a Slack channel."
 SUCCESS_LINKED_TITLE = "Team linked"

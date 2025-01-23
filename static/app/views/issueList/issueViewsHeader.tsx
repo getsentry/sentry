@@ -375,7 +375,7 @@ function IssueViewsIssueListHeaderTabsContent({
 
   return (
     <DraggableTabList
-      onReorder={(newOrder: Node<DraggableTabListItemProps>[]) =>
+      onReorder={(newOrder: Array<Node<DraggableTabListItemProps>>) =>
         dispatch({
           type: 'REORDER_TABS',
           newKeyOrder: newOrder.map(node => node.key.toString()),
