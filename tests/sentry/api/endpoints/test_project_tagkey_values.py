@@ -166,10 +166,11 @@ class ProjectTagKeyValuesTest(APITestCase, SnubaTestCase):
             },
         )
 
-        response = self.client.get(url + "?useFlagsBackend=1")
-        assert response.status_code == 200
-        assert len(response.data) == 2
+        with self.feature({"organizations:feature-flag-search": True}):
+            response = self.client.get(url + "?useFlagsBackend=1")
+            assert response.status_code == 200
+            assert len(response.data) == 2
 
-        results = sorted(response.data, key=lambda i: i["value"])
-        assert results[0]["value"] == "false"
-        assert results[1]["value"] == "true"
+            results = sorted(response.data, key=lambda i: i["value"])
+            assert results[0]["value"] == "false"
+            assert results[1]["value"] == "true"

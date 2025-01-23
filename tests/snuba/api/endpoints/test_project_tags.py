@@ -102,9 +102,10 @@ class ProjectTagsTest(APITestCase, SnubaTestCase):
             project_id=self.project.id,
         )
 
-        response = self.get_success_response(
-            self.project.organization.slug, self.project.slug, useFlagsBackend="1"
-        )
+        with self.feature({"organizations:feature-flag-search": True}):
+            response = self.get_success_response(
+                self.project.organization.slug, self.project.slug, useFlagsBackend="1"
+            )
 
         data = {v["key"]: v for v in response.data}
         assert len(data) == 2

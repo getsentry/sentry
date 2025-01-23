@@ -625,3 +625,11 @@ def register_temporary_features(manager: FeatureManager):
         FeatureHandlerStrategy.FLAGPOLE,
         api_expose=True,
     )
+
+    # Feature Flags Features.
+    manager.add(
+        "organizations:feature-flag-search",
+        OrganizationFeature,
+        FeatureHandlerStrategy.FLAGPOLE,
+        api_expose=True,
+    )

@@ -1,7 +1,7 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import tagstore
+from sentry import features, tagstore
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
@@ -42,8 +42,12 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint, EnvironmentMixin):
             # if the environment doesn't exist then the tag can't possibly exist
             raise ResourceDoesNotExist
 
-        # Flags also autocomplete. We can switch the dataset we target.
-        if request.GET.get("useFlagsBackend") == "1":
+        # Flags are stored on the same table as tags but on a different column. Ideally both
+        # could be queried in a single request. But at present we're not sure if we want to
+        # treat tags and flags as the same or different and in which context.
+        if request.GET.get("useFlagsBackend") == "1" and features.has(
+            "organizations:feature-flag-search", project.organization, actor=request.user
+        ):
             backend = tagstore.flag_backend
         else:
             backend = tagstore.backend
