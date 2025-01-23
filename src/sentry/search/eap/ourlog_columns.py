@@ -1,6 +1,5 @@
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 
-from sentry.search.eap import constants
 from sentry.search.eap.columns import (
     ColumnDefinitions,
     ResolvedColumn,
@@ -8,34 +7,18 @@ from sentry.search.eap.columns import (
     project_context_constructor,
     simple_sentry_field,
 )
+from sentry.search.eap.common_columns import COMMON_COLUMNS
 from sentry.utils.validators import is_event_id, is_span_id
 
 OURLOG_ATTRIBUTE_DEFINITIONS = {
     column.public_alias: column
-    for column in [
+    for column in COMMON_COLUMNS
+    + [
         ResolvedColumn(
             public_alias="span_id",
             internal_name="sentry.span_id",
             search_type="string",
             validator=is_span_id,
-        ),
-        ResolvedColumn(
-            public_alias="organization.id",
-            internal_name="sentry.organization_id",
-            search_type="string",
-        ),
-        ResolvedColumn(
-            public_alias="project.id",
-            internal_name="sentry.project_id",
-            internal_type=constants.INT,
-            search_type="string",
-        ),
-        ResolvedColumn(
-            public_alias="project_id",
-            internal_name="sentry.project_id",
-            internal_type=constants.INT,
-            search_type="string",
-            secondary_alias=True,
         ),
         ResolvedColumn(
             public_alias="log.body",
@@ -51,12 +34,6 @@ OURLOG_ATTRIBUTE_DEFINITIONS = {
             public_alias="log.severity_text",
             internal_name="sentry.severity_text",
             search_type="string",
-        ),
-        ResolvedColumn(
-            public_alias="description",
-            internal_name="sentry.name",
-            search_type="string",
-            secondary_alias=True,
         ),
         # Message maps to body, this is to allow wildcard searching
         ResolvedColumn(
