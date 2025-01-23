@@ -403,10 +403,17 @@ function useTimeRangeWarning(props: {widget: Widget}) {
     return null;
   }
 
-  // Check if the requested time range is over the equivalent of 30days and then return a warning
+  const dataRetentionStart = new Date('2024-12-29');
+  if (datetime.start && new Date(datetime.start) < dataRetentionStart) {
+    // This message applies if the user has selected a time range that is before the data retention start date
+    return t('Spans-based widgets can only visualize the last 30d of data currently.');
+  }
+
   if (statsPeriodToDays(datetime.period, datetime.start, datetime.end) > 30) {
+    // This message applies if the user has selected a time range >30d because we can't guarantee
+    // the query will successfully run for a time range >30d at this time.
     return t(
-      "Spans-based widgets can only reliably visualize the last 30d of data at the moment. We're working on ramping this up."
+      "Spans-based widgets can only visualize the last 30d of data currently. We're working on ramping this up."
     );
   }
 
