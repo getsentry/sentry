@@ -822,6 +822,7 @@ function AggregateParameterField({
             type="text"
             inputMode="numeric"
             pattern="[0-9]*(\.[0-9]*)?"
+            aria-label={t('Numeric Input')}
             {...inputProps}
           />
         );
@@ -833,6 +834,7 @@ function AggregateParameterField({
             type="text"
             inputMode="numeric"
             pattern="[0-9]*"
+            aria-label={t('Integer Input')}
             {...inputProps}
           />
         );
@@ -842,6 +844,7 @@ function AggregateParameterField({
             name="refinement"
             key="parameter:text"
             type="text"
+            aria-label={t('Text Input')}
             {...inputProps}
           />
         );
