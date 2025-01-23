@@ -25,7 +25,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ISSUES
 
     @extend_schema(
-        operation_id="Fetch a Workflows",
+        operation_id="Fetch Workflows",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
         ],

@@ -1,5 +1,4 @@
 from sentry.api.serializers import serialize
-from sentry.models.environment import Environment
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -10,9 +9,6 @@ class OrganizationWorkflowAPITestCase(APITestCase):
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
-        self.environment = Environment.objects.create(
-            organization_id=self.organization.id, name="production"
-        )
 
 
 @region_silo_test
