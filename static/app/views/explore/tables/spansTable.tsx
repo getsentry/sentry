@@ -76,7 +76,13 @@ export function SpansTable({confidences, spansTableResult}: SpansTableProps) {
   });
 
   const tableRef = useRef<HTMLTableElement>(null);
-  const {initialTableStyles, onResizeMouseDown} = useTableStyles(visibleFields, tableRef);
+  const {initialTableStyles, onResizeMouseDown} = useTableStyles(
+    visibleFields,
+    tableRef,
+    {
+      minimumColumnWidth: 50,
+    }
+  );
 
   const meta = result.meta ?? {};
 
