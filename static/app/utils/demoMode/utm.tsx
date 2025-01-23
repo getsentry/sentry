@@ -18,7 +18,7 @@ type UTMState = {
   trackableQuery: {[key: string]: string};
 };
 
-export function GetUTMData(): UTMState {
+export function getUTMState(): UTMState {
   const query = qs.parse(window.location.search);
   const trackableQuery: {[key: string]: string} = Object.keys(query).reduce((a, k) => {
     return trackableParamsRegExp.test(k) && !!query[k] ? {...a, [k]: query[k]} : a;
@@ -74,7 +74,7 @@ export function GetUTMData(): UTMState {
   };
 }
 
-export function UpdateTouches(state: UTMState) {
+export function updateTouches(state: UTMState) {
   // Update our list of touches if the form was successful.
   const newTouches = Object.keys(state.trackableQuery)
     .filter(isUTM)

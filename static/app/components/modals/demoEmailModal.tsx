@@ -4,10 +4,14 @@ import styled from '@emotion/styled';
 
 import sandboxDemo from 'sentry-images/spot/sandbox.jpg';
 
+import {Button} from 'sentry/components/button';
 import {IconArrow} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EmailForm from 'sentry/utils/demoMode/emailForm';
-import {GetUTMData, UpdateTouches} from 'sentry/utils/demoMode/utm';
+import {getUTMState, updateTouches} from 'sentry/utils/demoMode/utm';
+import theme from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
 
 type Props = {
@@ -44,7 +48,7 @@ export default function Modal({onAddedEmail, closeModal, onFailure}: Props) {
 
   const handleSubmit = useCallback(
     async (email: string) => {
-      const utmState = GetUTMData();
+      const utmState = getUTMState();
 
       // always save the email before the API call
       if (onAddedEmail) {
@@ -60,7 +64,7 @@ export default function Modal({onAddedEmail, closeModal, onFailure}: Props) {
           },
         });
 
-        UpdateTouches(utmState);
+        updateTouches(utmState);
       } catch (error) {
         onFailure();
       }
@@ -72,17 +76,19 @@ export default function Modal({onAddedEmail, closeModal, onFailure}: Props) {
 
   return (
     <div>
-      <BackButton onClick={handleBackClick}>
-        {<IconArrow direction="left" />} {'Go back'}
-      </BackButton>
+      <BackButtonWrapper>
+        <Button onClick={handleBackClick} icon={<IconArrow direction="left" />} size="sm">
+          {t('Go back')}
+        </Button>
+      </BackButtonWrapper>
       <StartModal>
         <SignUpBody>
-          <Subheader> Sandbox Demo </Subheader>
-          <h2> Interactive Sandbox </h2>
+          <Subheader> {t('Sandbox Demo')} </Subheader>
+          <h2> {t('Interactive Sandbox')} </h2>
           <p>
-            Welcome to our digital showroom where you get to kick our proverbial tires. To
-            see Sentry in action and get updates about the latest and greatest features,
-            enter your email below.
+            {t(
+              'Welcome to our digital showroom where you get to kick our proverbial tires. To see Sentry in action and get updates about the latest and greatest features, enter your email below.'
+            )}
           </p>
           <EmailForm onSubmit={handleSubmit} IconArrow={IconArrow} />
         </SignUpBody>
@@ -94,31 +100,28 @@ export default function Modal({onAddedEmail, closeModal, onFailure}: Props) {
   );
 }
 
-const BackButton = styled('button')`
-  border: 1px solid #e1dbd6;
-  border-radius: 4px;
-  background-color: white;
-  font-size: 0.75rem;
-  font-weight: 600;
-  padding: 6px 8px;
-  display: flex;
-  gap: 5px;
-`;
-
 const ImagePosition = styled('div')`
   margin: auto;
   max-width: 400px;
 `;
 
 const PositionRight = styled('img')`
-  border-radius: 0.5rem;
+  border-radius: ${space(1)};
   pointer-events: none;
 `;
 
+const BackButtonWrapper = styled('div')`
+  padding: ${space(2)} 0;
+`;
+
 const SignUpBody = styled('div')`
-  padding: 20px 0;
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
+
+  padding: 0;
   p {
-    font-size: 16px;
+    font-size: ${theme.fontSizeLarge};
     margin: 0;
   }
   h2 {
@@ -131,15 +134,15 @@ const StartModal = styled('div')`
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
-  gap: 30px;
+  gap: ${space(4)};
 `;
 
 const Subheader = styled('h4')`
-  margin-bottom: 8px;
+  margin-bottom: ${space(1)};
   text-transform: uppercase;
   font-weight: bold;
-  color: #6c5fc7;
-  font-size: 14px;
+  color: ${theme.purple300};
+  font-size: ${theme.fontSizeMedium};
 `;
 
 export const modalCss = css`

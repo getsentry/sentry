@@ -1,6 +1,12 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/button';
+import Input from 'sentry/components/deprecatedforms/input';
+// import Form from 'sentry/components/forms/form';
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
+
 type Props = {
   IconArrow: any;
   onSubmit?: (email: string) => void;
@@ -9,7 +15,7 @@ type Props = {
 export default function EmailForm({onSubmit, IconArrow}: Props) {
   const [disabledButton, setDisabledButton] = React.useState(true);
   return (
-    <form
+    <StyledForm
       onSubmit={event => {
         event.preventDefault();
         const email = (event.target as HTMLFormElement).email.value;
@@ -18,23 +24,27 @@ export default function EmailForm({onSubmit, IconArrow}: Props) {
         }
       }}
     >
-      <EmailFormInput
+      <Input
         type="email"
         name="email"
         autoComplete="email"
-        placeholder="Work email"
+        placeholder={t('Work email')}
         onInput={event => {
           const email = (event.target as HTMLInputElement).value;
           setDisabledButton(!email);
         }}
       />
       <ButtonContainer>
-        <SubmitButton type="submit" disabled={disabledButton}>
-          {<IconArrow direction="right" size="md" />}
-          {'Enter Sandbox'}
-        </SubmitButton>
+        <Button
+          type="submit"
+          disabled={disabledButton}
+          priority="primary"
+          icon={<IconArrow direction="right" size="md" />}
+        >
+          {t('Enter Sandbox')}
+        </Button>
       </ButtonContainer>
-    </form>
+    </StyledForm>
   );
 }
 
@@ -44,36 +54,9 @@ const ButtonContainer = styled('div')`
   justify-content: end;
 `;
 
-const Button = styled('button')`
-  border: none;
-  border-radius: 0.5rem;
-  cursor: pointer;
-  font-size: 16px;
-  margin-top: 10px;
-`;
-
-const SubmitButton = styled(Button)`
-  background-color: #6c5fc7;
-  color: white;
-  font-weight: bold;
-  white-space: nowrap;
-  padding: 10px 10px;
+const StyledForm = styled('form')`
   display: flex;
-  align-items: center;
-  gap: 5px;
-  :disabled {
-    background-color: #a79fdd;
-    cursor: not-allowed;
-  }
-`;
-
-const EmailFormInput = styled('input')`
-  border: 1px solid #c6becf;
-  box-sizing: border-box;
-  box-shadow: inset 0px 2px 1px rgba(0, 0, 0, 0.05);
-  border-radius: 4px;
-  font-size: 15px;
-  padding: 8px;
-  width: 100%;
-  margin-top: 1.5rem;
+  flex-direction: column;
+  padding: 0;
+  gap: ${space(2)};
 `;
