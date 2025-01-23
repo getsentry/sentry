@@ -324,7 +324,11 @@ class MailPreview:
     def render(self, request: HttpRequest):
         return render_to_response(
             "sentry/debug/mail/preview.html",
-            context={"preview": self, "format": request.GET.get("format")},
+            context={
+                "preview": self,
+                "format": request.GET.get("format"),
+                "enhanced_privacy": request.GET.get("enhanced_privacy", False),
+            },
         )
 
 
@@ -453,6 +457,8 @@ def alert(request):
     platform = request.GET.get("platform", "python")
     org = Organization(id=1, slug="example", name="Example")
     project = Project(id=1, slug="example", name="Example", organization=org)
+
+    org.flags.enhanced_privacy = request.GET.get("enhanced_privacy", False)
 
     event = make_error_event(request, project, platform)
     group = event.group
