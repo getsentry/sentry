@@ -70,7 +70,7 @@ def evaluate_condition_group(
     """
     conditions = get_data_conditions_for_group(data_condition_group.id)
 
-    _, slow_conditions = split_fast_slow_conditions(conditions)
+    conditions, slow_conditions = split_fast_slow_conditions(conditions)
 
     if evaluate_slow_conditions:
         conditions = slow_conditions
@@ -79,7 +79,20 @@ def evaluate_condition_group(
         # if we don't have any conditions, always return True
         return True, []
 
-    return evaluate_conditions(data_condition_group, value, conditions)
+    evaluation: ProcessedDataConditionResult = evaluate_conditions(
+        data_condition_group, value, conditions
+    )
+
+    if (
+        not evaluate_slow_conditions
+        and data_condition_group.logic_type == data_condition_group.Type.ALL
+        and evaluation[0]
+        and bool(slow_conditions)
+    ):
+        # if all fast conditions pass but we have slow conditions, we can't return True yet
+        return False, []
+
+    return evaluation
 
 
 def process_data_condition_group(
