@@ -1,4 +1,11 @@
-import {useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
+import {
+  startTransition,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
@@ -72,18 +79,15 @@ function useCommentThread({groupId, runId}: {groupId: string; runId: string}) {
   });
 }
 
-function AutofixHighlightPopup({
+function AutofixHighlightPopupContent({
   selectedText,
   groupId,
   runId,
   stepIndex,
   retainInsightCardIndex,
-  referenceElement,
-}: Props) {
+}: Omit<Props, 'referenceElement'>) {
   const {mutate: submitComment} = useCommentThread({groupId, runId});
   const [comment, setComment] = useState('');
-  const popupRef = useRef<HTMLDivElement>(null);
-  const [position, setPosition] = useState({left: 0, top: 0});
   const [threadId] = useState(() => {
     const timestamp = Date.now();
     const random = Math.floor(Math.random() * 10000);
@@ -118,40 +122,6 @@ function AutofixHighlightPopup({
       : selectedText;
 
   const currentUser = useUser();
-
-  useLayoutEffect(() => {
-    if (!referenceElement || !popupRef.current) {
-      return undefined;
-    }
-
-    const updatePosition = () => {
-      const rect = referenceElement.getBoundingClientRect();
-      setPosition({
-        left: rect.left - 320,
-        top: rect.top,
-      });
-    };
-
-    // Initial position
-    updatePosition();
-
-    // Create observer to track reference element changes
-    const resizeObserver = new ResizeObserver(updatePosition);
-    resizeObserver.observe(referenceElement);
-
-    // Track scroll events
-    const scrollElements = [window, ...getScrollParents(referenceElement)];
-    scrollElements.forEach(element => {
-      element.addEventListener('scroll', updatePosition, {passive: true});
-    });
-
-    return () => {
-      resizeObserver.disconnect();
-      scrollElements.forEach(element => {
-        element.removeEventListener('scroll', updatePosition);
-      });
-    };
-  }, [referenceElement]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -195,6 +165,104 @@ function AutofixHighlightPopup({
     scrollToBottom();
   }, [allMessages]);
 
+  return (
+    <Container onClick={handleContainerClick}>
+      <Header>
+        <SelectedText>
+          <span>"{truncatedText}"</span>
+        </SelectedText>
+      </Header>
+
+      {allMessages.length > 0 && (
+        <MessagesContainer>
+          {allMessages.map((message, i) => (
+            <Message key={i} role={message.role}>
+              {message.role === 'assistant' ? (
+                <CircularSeerIcon>
+                  <SeerIcon />
+                </CircularSeerIcon>
+              ) : (
+                <UserAvatar user={currentUser} size={24} />
+              )}
+              <MessageContent>
+                {message.isLoading ? (
+                  <LoadingWrapper>
+                    <LoadingIndicator mini size={12} />
+                  </LoadingWrapper>
+                ) : (
+                  message.content
+                )}
+              </MessageContent>
+            </Message>
+          ))}
+          <div ref={messagesEndRef} />
+        </MessagesContainer>
+      )}
+
+      {commentThread?.is_completed !== true && (
+        <InputWrapper onSubmit={handleSubmit}>
+          <StyledInput
+            placeholder={t('Questions or comments?')}
+            value={comment}
+            onChange={e => setComment(e.target.value)}
+            size="sm"
+            autoFocus
+          />
+          <StyledButton
+            size="zero"
+            type="submit"
+            borderless
+            aria-label={t('Submit Comment')}
+          >
+            <IconChevron direction="right" />
+          </StyledButton>
+        </InputWrapper>
+      )}
+    </Container>
+  );
+}
+
+function AutofixHighlightPopup(props: Props) {
+  const {referenceElement} = props;
+  const popupRef = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState({left: 0, top: 0});
+
+  useLayoutEffect(() => {
+    if (!referenceElement || !popupRef.current) {
+      return undefined;
+    }
+
+    const updatePosition = () => {
+      const rect = referenceElement.getBoundingClientRect();
+      startTransition(() => {
+        setPosition({
+          left: rect.left - 320,
+          top: rect.top,
+        });
+      });
+    };
+
+    // Initial position
+    updatePosition();
+
+    // Create observer to track reference element changes
+    const resizeObserver = new ResizeObserver(updatePosition);
+    resizeObserver.observe(referenceElement);
+
+    // Track scroll events
+    const scrollElements = [window, ...getScrollParents(referenceElement)];
+    scrollElements.forEach(element => {
+      element.addEventListener('scroll', updatePosition, {passive: true});
+    });
+
+    return () => {
+      resizeObserver.disconnect();
+      scrollElements.forEach(element => {
+        element.removeEventListener('scroll', updatePosition);
+      });
+    };
+  }, [referenceElement]);
+
   return createPortal(
     <Wrapper
       ref={popupRef}
@@ -211,63 +279,10 @@ function AutofixHighlightPopup({
         top: `${position.top}px`,
         transform: 'none',
       }}
-      onClick={handleContainerClick}
     >
       <Arrow />
       <ScaleContainer>
-        <Container onClick={handleContainerClick}>
-          <Header>
-            <SelectedText>
-              <span>"{truncatedText}"</span>
-            </SelectedText>
-          </Header>
-
-          {allMessages.length > 0 && (
-            <MessagesContainer>
-              {allMessages.map((message, i) => (
-                <Message key={i} role={message.role}>
-                  {message.role === 'assistant' ? (
-                    <CircularSeerIcon>
-                      <SeerIcon />
-                    </CircularSeerIcon>
-                  ) : (
-                    <UserAvatar user={currentUser} size={24} />
-                  )}
-                  <MessageContent>
-                    {message.isLoading ? (
-                      <LoadingWrapper>
-                        <LoadingIndicator mini size={12} />
-                      </LoadingWrapper>
-                    ) : (
-                      message.content
-                    )}
-                  </MessageContent>
-                </Message>
-              ))}
-              <div ref={messagesEndRef} />
-            </MessagesContainer>
-          )}
-
-          {commentThread?.is_completed !== true && (
-            <InputWrapper onSubmit={handleSubmit}>
-              <StyledInput
-                placeholder={t('Questions or comments?')}
-                value={comment}
-                onChange={e => setComment(e.target.value)}
-                size="sm"
-                autoFocus
-              />
-              <StyledButton
-                size="zero"
-                type="submit"
-                borderless
-                aria-label={t('Submit Comment')}
-              >
-                <IconChevron direction="right" />
-              </StyledButton>
-            </InputWrapper>
-          )}
-        </Container>
+        <AutofixHighlightPopupContent {...props} />
       </ScaleContainer>
     </Wrapper>,
     document.body
@@ -321,9 +336,9 @@ const Container = styled(motion.div)`
 
 const InputWrapper = styled('form')`
   display: flex;
-  gap: ${space(0.25)};
-  padding: ${space(0.25)} ${space(0.25)};
+  padding: ${space(0.5)};
   background: ${p => p.theme.backgroundSecondary};
+  position: relative;
 `;
 
 const StyledInput = styled(Input)`
@@ -331,6 +346,7 @@ const StyledInput = styled(Input)`
   background: ${p => p.theme.background}
     linear-gradient(to left, ${p => p.theme.background}, ${p => p.theme.pink400}20);
   border-color: ${p => p.theme.innerBorder};
+  padding-right: ${space(4)};
 
   &:hover {
     border-color: ${p => p.theme.border};
@@ -338,7 +354,15 @@ const StyledInput = styled(Input)`
 `;
 
 const StyledButton = styled(Button)`
-  flex-shrink: 0;
+  position: absolute;
+  right: ${space(1)};
+  top: 50%;
+  transform: translateY(-50%);
+  height: 24px;
+  width: 24px;
+  margin-right: 0;
+
+  z-index: 2;
 `;
 
 const Header = styled('div')`

@@ -168,7 +168,7 @@ export function AutofixOutputStream({
                     __html: singleLineRenderer(displayedActiveLog),
                   }}
                 />
-                {isProcessing && <StyledLoadingIndicator size={14} mini hideMessage />}
+                {isProcessing && <StyledLoadingIndicator mini size={14} />}
               </ActiveLogWrapper>
             )}
             {!responseRequired && stream && (
@@ -260,8 +260,10 @@ const ActiveLogWrapper = styled('div')`
   align-items: center;
   justify-content: space-between;
   padding: ${space(1)};
-  padding-right: ${space(3)};
+  padding-right: 0;
+  padding-left: ${space(2)};
   background: ${p => p.theme.backgroundSecondary};
+  gap: ${space(1)};
 `;
 
 const ActiveLog = styled('div')`
@@ -278,9 +280,8 @@ const VerticalLine = styled('div')`
 
 const InputWrapper = styled('form')`
   display: flex;
-  gap: ${space(0.25)};
-  padding: ${space(0.25)} ${space(0.25)};
-  background: ${p => p.theme.backgroundSecondary};
+  padding: ${space(0.5)};
+  position: relative;
 `;
 
 const StyledInput = styled(Input)`
@@ -288,6 +289,7 @@ const StyledInput = styled(Input)`
   background: ${p => p.theme.background}
     linear-gradient(to left, ${p => p.theme.background}, ${p => p.theme.pink400}20);
   border-color: ${p => p.theme.innerBorder};
+  padding-right: ${space(4)};
 
   &:hover {
     border-color: ${p => p.theme.border};
@@ -295,9 +297,17 @@ const StyledInput = styled(Input)`
 `;
 
 const StyledButton = styled(Button)`
-  flex-shrink: 0;
+  position: absolute;
+  right: ${space(1)};
+  top: 50%;
+  transform: translateY(-50%);
+  height: 24px;
+  width: 24px;
+  margin-right: 0;
+  z-index: 2;
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
-  margin: 0 0 0 ${space(0.5)};
+  position: relative;
+  top: ${space(0.5)};
 `;
