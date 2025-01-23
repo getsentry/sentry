@@ -111,7 +111,7 @@ const PositionRight = styled('img')`
 `;
 
 const BackButtonWrapper = styled('div')`
-  padding: ${space(2)} 0;
+  padding-bottom: ${space(2)};
 `;
 
 const SignUpBody = styled('div')`
