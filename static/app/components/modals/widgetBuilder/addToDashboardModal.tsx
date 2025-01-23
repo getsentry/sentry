@@ -26,7 +26,6 @@ import {IndexedEventsSelectionAlert} from 'sentry/views/dashboards/indexedEvents
 import type {
   DashboardDetails,
   DashboardListItem,
-  DashboardWidgetSource,
   Widget,
 } from 'sentry/views/dashboards/types';
 import {DisplayType, MAX_WIDGETS, WidgetType} from 'sentry/views/dashboards/types';
@@ -71,7 +70,6 @@ export type AddToDashboardModalProps = {
   organization: Organization;
   router: InjectedRouter;
   selection: PageFilters;
-  source: DashboardWidgetSource;
   widget: Widget;
   widgetAsQueryParams: WidgetAsQueryParams;
   actions?: AddToDashboardModalActions[];
@@ -96,7 +94,6 @@ function AddToDashboardModal({
   organization,
   router,
   selection,
-  source,
   widget,
   widgetAsQueryParams,
   actions = DEFAULT_ACTIONS,
@@ -170,7 +167,6 @@ function AddToDashboardModal({
         query: {
           ...widgetAsQueryParams,
           ...(selectedDashboard ? getSavedPageFilters(selectedDashboard) : {}),
-          source,
         },
       })
     );

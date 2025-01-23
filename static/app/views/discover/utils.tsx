@@ -768,7 +768,6 @@ export function handleAddQueryToDashboard({
     // @ts-ignore TS(2322): Type '{ dataset?: WidgetType | undefined; descript... Remove this comment to see the full error message
     widgetAsQueryParams,
     location,
-    source,
   });
   return;
 }
