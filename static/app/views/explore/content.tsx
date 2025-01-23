@@ -10,6 +10,7 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -36,10 +37,7 @@ export function ExploreContent() {
     });
   }, [location, navigate]);
   const ourlogsEnabled = organization.features.includes('ourlogs-enabled');
-  const selectedTab =
-    (Array.isArray(location.query.exploreTab)
-      ? location.query.exploreTab[0]
-      : location.query.exploreTab) ?? 'spans';
+  const selectedTab = decodeScalar(location.query.exploreTab, 'spans');
 
   return (
     <SentryDocumentTitle title={t('Traces')} orgSlug={organization?.slug}>
