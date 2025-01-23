@@ -4,6 +4,7 @@ import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {GridResizer} from 'sentry/components/gridEditable/styles';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
@@ -104,10 +105,14 @@ export function SpansTable({confidences, spansTableResult}: SpansTableProps) {
                 setSortBys([{field, kind}]);
               }
 
+              const label = tag?.name ?? prettifyTagKey(field);
+
               return (
                 <TableHeadCell align={align} key={i} isFirst={i === 0}>
                   <TableHeadCellContent onClick={updateSort}>
-                    <span>{tag?.name ?? prettifyTagKey(field)}</span>
+                    <Tooltip showOnlyOnOverflow title={label}>
+                      {label}
+                    </Tooltip>
                     {defined(direction) && (
                       <IconArrow
                         size="xs"
