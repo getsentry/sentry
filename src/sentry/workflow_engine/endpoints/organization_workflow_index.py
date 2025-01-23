@@ -47,6 +47,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         return self.paginate(
             request=request,
             queryset=queryset,
+            order_by="id",
             on_results=lambda x: serialize(x, request.user),
         )
 
