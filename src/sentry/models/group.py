@@ -178,7 +178,7 @@ STATUS_WITHOUT_SUBSTATUS = {
 }
 
 # Statuses that can be queried/searched for
-STATUS_QUERY_CHOICES: Mapping[str, int] = {
+STATUS_QUERY_CHOICES: dict[str, int] = {
     "resolved": GroupStatus.RESOLVED,
     "unresolved": GroupStatus.UNRESOLVED,
     "ignored": GroupStatus.IGNORED,
