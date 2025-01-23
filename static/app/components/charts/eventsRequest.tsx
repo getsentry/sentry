@@ -396,7 +396,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
     data: EventsStatsData,
     getName: (
       timestamp: number,
-      countArray: {count: number}[],
+      countArray: Array<{count: number}>,
       i: number
     ) => number = timestamp => timestamp * 1000
   ): SeriesDataUnit[] {

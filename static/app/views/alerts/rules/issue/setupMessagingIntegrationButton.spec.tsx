@@ -19,7 +19,7 @@ describe('SetupAlertIntegrationButton', function () {
     GitHubIntegrationProviderFixture({key: providerKey}),
   ];
   const providerKeys = ['slack', 'discord', 'msteams'];
-  let mockResponses: jest.Mock<any>[] = [];
+  let mockResponses: Array<jest.Mock<any>> = [];
 
   const getComponent = () => (
     <SetupMessagingIntegrationButton

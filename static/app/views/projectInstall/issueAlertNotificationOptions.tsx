@@ -122,7 +122,7 @@ export function useCreateNotificationAction() {
 
   type Props = {
     actionMatch: string | undefined;
-    conditions: {id: string; interval: string; value: string}[] | undefined;
+    conditions: Array<{id: string; interval: string; value: string}> | undefined;
     frequency: number | undefined;
     name: string | undefined;
     projectSlug: string;

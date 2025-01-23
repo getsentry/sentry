@@ -307,7 +307,7 @@ export class Flamegraph {
 
   findAllMatchingFramesBy(
     query: string,
-    fields: (keyof FlamegraphFrame['frame'])[]
+    fields: Array<keyof FlamegraphFrame['frame']>
   ): FlamegraphFrame[] {
     const matches: FlamegraphFrame[] = [];
     if (!fields.length) {

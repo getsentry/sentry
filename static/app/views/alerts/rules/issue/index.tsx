@@ -282,7 +282,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
       ]);
     }
 
-    return endpoints as [string, string][];
+    return endpoints as Array<[string, string]>;
   }
 
   onRequestSuccess({stateKey, data}: any) {

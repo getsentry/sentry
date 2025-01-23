@@ -4,7 +4,7 @@ import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
 import type {Monitor} from 'sentry/views/monitors/types';
 
-type Data = [number, {count: number}[]][];
+type Data = Array<[number, Array<{count: number}>]>;
 
 export enum AlertRuleType {
   METRIC = 'metric',

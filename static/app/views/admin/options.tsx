@@ -20,7 +20,7 @@ export type Field = {
   key: string;
   label: React.ReactNode;
   allowEmpty?: boolean;
-  choices?: [value: string, label: string][];
+  choices?: Array<[value: string, label: string]>;
   component?: React.ComponentType<any>;
   defaultValue?: () => string | number | false;
   disabled?: boolean;
