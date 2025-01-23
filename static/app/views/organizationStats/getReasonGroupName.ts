@@ -164,7 +164,7 @@ export function getReasonGroupName(outcome: string | number, reason: string): st
     case Outcome.ABUSE:
       return getRateLimitedReasonGroupName(reason as RateLimitedReason);
     case Outcome.FILTERED:
-      return startCase(reason.replace('-', ' '));
+      return startCase(reason);
     case Outcome.CLIENT_DISCARD:
       return getClientDiscardReasonGroupName(reason as ClientDiscardReason);
     default:
