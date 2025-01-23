@@ -82,7 +82,7 @@ function AlertRulesList() {
     getResponseHeader,
     isPending,
     isError,
-  } = useApiQuery<Array<CombinedAlerts | null>>(
+  } = useApiQuery<(CombinedAlerts | null)[]>(
     getAlertListQueryKey(organization.slug, location.query),
     {
       staleTime: 0,
@@ -107,6 +107,17 @@ function AlertRulesList() {
       query: {
         ...currentQuery,
         name,
+      },
+    });
+  };
+
+  const handleChangeType = (alertType: CombinedAlertType[]) => {
+    const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
+    router.push({
+      pathname: location.pathname,
+      query: {
+        ...currentQuery,
+        alertType,
       },
     });
   };
@@ -149,7 +160,7 @@ function AlertRulesList() {
 
     try {
       await api.requestPromise(deleteEndpoints[rule.type], {method: 'DELETE'});
-      setApiQueryData<Array<CombinedAlerts | null>>(
+      setApiQueryData<(CombinedAlerts | null)[]>(
         queryClient,
         getAlertListQueryKey(organization.slug, location.query),
         data => data?.filter(r => r?.id !== rule.id && r?.type !== rule.type)
@@ -200,6 +211,8 @@ function AlertRulesList() {
               location={location}
               onChangeFilter={handleChangeFilter}
               onChangeSearch={handleChangeSearch}
+              onChangeAlertType={handleChangeType}
+              hasTypeFilter
             />
             <StyledPanelTable
               isLoading={isPending}

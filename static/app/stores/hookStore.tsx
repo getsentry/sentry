@@ -14,7 +14,7 @@ type HookCallback = (...args: any[]) => void;
 
 interface HookStoreDefinition extends StoreDefinition, Internals {
   add<H extends HookName>(hookName: H, callback: Hooks[H]): void;
-  get<H extends HookName>(hookName: H): Array<Hooks[H]>;
+  get<H extends HookName>(hookName: H): Hooks[H][];
   getCallback<H extends HookName>(hookName: H, key: string): HookCallback | undefined;
   init(): void;
   persistCallback<H extends HookName>(

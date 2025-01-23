@@ -138,13 +138,17 @@ function getEventsTableFieldOptions(
   });
 }
 
-export function getCustomEventsFieldRenderer(field: string, meta: MetaType) {
+export function getCustomEventsFieldRenderer(
+  field: string,
+  meta: MetaType,
+  widget?: Widget
+) {
   if (field === 'id') {
     return renderEventIdAsLinkable;
   }
 
   if (field === 'trace') {
-    return renderTraceAsLinkable;
+    return renderTraceAsLinkable(widget);
   }
 
   return getFieldRenderer(field, meta, false);

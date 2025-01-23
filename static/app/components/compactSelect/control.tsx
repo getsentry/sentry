@@ -437,7 +437,7 @@ export function Control({
    * trigger label.
    */
   const [selectedOptions, setSelectedOptions] = useState<
-    Array<SelectOption<SelectKey> | SelectOption<SelectKey>[]>
+    (SelectOption<SelectKey> | SelectOption<SelectKey>[])[]
   >([]);
   const saveSelectedOptions = useCallback<SelectContextValue['saveSelectedOptions']>(
     (index, newSelectedOptions) => {

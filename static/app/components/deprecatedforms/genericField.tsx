@@ -25,7 +25,7 @@ type FieldType =
 type SelectFieldType = 'select' | 'choice';
 
 type Config = {
-  choices: Array<[number | string, number | string]>;
+  choices: [number | string, number | string][];
   default: string;
   name: string;
   placeholder: string;

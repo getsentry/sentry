@@ -77,7 +77,7 @@ type Props = {
   loading: boolean;
   type: ChartType;
   aggregateOutputFormat?: AggregationOutputType;
-  chartColors?: string[] | ReadonlyArray<string>;
+  chartColors?: string[] | readonly string[];
   chartGroup?: string;
   dataMax?: number;
   definedAxisTicks?: number;

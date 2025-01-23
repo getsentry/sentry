@@ -144,8 +144,8 @@ function findBestMatchFromRegexpMatchArray(
 
 function yieldingRafFrameSearch(
   query: string,
-  spans: ReadonlyArray<SpanChartNode>,
-  frames: ReadonlyArray<FlamegraphFrame>,
+  spans: readonly SpanChartNode[],
+  frames: readonly FlamegraphFrame[],
   cb: (results: FlamegraphSearchResults['results']) => void
 ): {id: number} {
   const raf = {id: 0};
@@ -221,17 +221,17 @@ function sortByDepthAndStart(
 
 function sortFrameResults(
   results: FlamegraphSearchResults['results']
-): Array<FlamegraphFrame | SpanChartNode> {
+): (FlamegraphFrame | SpanChartNode)[] {
   // If frames have the same start times, move frames with lower stack depth first.
   // This results in top down and left to right iteration
   let sid = -1;
-  const spans: Array<SpanChartNode | FlamegraphFrame> = new Array(results.frames.size);
+  const spans: (SpanChartNode | FlamegraphFrame)[] = new Array(results.frames.size);
   for (const n of results.spans.values()) {
     spans[++sid] = n.span;
   }
 
   let fid = -1;
-  const frames: Array<FlamegraphFrame> = new Array(results.frames.size);
+  const frames: FlamegraphFrame[] = new Array(results.frames.size);
   for (const n of results.frames.values()) {
     frames[++fid] = n.frame;
   }

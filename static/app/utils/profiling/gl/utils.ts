@@ -341,16 +341,16 @@ export function measureText(string: string, ctx?: CanvasRenderingContext2D): Rec
  */
 export function upperBound<T extends {end: number; start: number}>(
   target: number,
-  values: Array<T> | ReadonlyArray<T>
+  values: T[] | readonly T[]
 ): number;
 export function upperBound<T>(
   target: number,
-  values: Array<T> | ReadonlyArray<T>,
+  values: T[] | readonly T[],
   getValue: (value: T) => number
 ): number;
 export function upperBound<T extends {end: number; start: number} | {x: number}>(
   target: number,
-  values: Array<T> | ReadonlyArray<T> | Record<any, any>,
+  values: T[] | readonly T[] | Record<any, any>,
   getValue?: (value: T) => number
 ) {
   let low = 0;
@@ -396,16 +396,16 @@ export function upperBound<T extends {end: number; start: number} | {x: number}>
  */
 export function lowerBound<T extends {end: number; start: number}>(
   target: number,
-  values: Array<T> | ReadonlyArray<T>
+  values: T[] | readonly T[]
 ): number;
 export function lowerBound<T>(
   target: number,
-  values: Array<T> | ReadonlyArray<T>,
+  values: T[] | readonly T[],
   getValue: (value: T) => number
 ): number;
 export function lowerBound<T extends {end: number; start: number}>(
   target: number,
-  values: Array<T> | ReadonlyArray<T>,
+  values: T[] | readonly T[],
   getValue?: (value: T) => number
 ): number {
   let low = 0;

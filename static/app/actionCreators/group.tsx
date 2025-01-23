@@ -120,17 +120,17 @@ type UpdateParams = ParamsType & {
 type QueryArgs =
   | {
       query: string;
-      environment?: string | Array<string>;
-      project?: Array<number | string>;
+      environment?: string | string[];
+      project?: (number | string)[];
     }
   | {
-      id: Array<number> | Array<string>;
-      environment?: string | Array<string>;
-      project?: Array<number | string>;
+      id: number[] | string[];
+      environment?: string | string[];
+      project?: (number | string)[];
     }
   | {
-      environment?: string | Array<string>;
-      project?: Array<number | string>;
+      environment?: string | string[];
+      project?: (number | string)[];
     };
 
 /**
@@ -175,7 +175,7 @@ function getUpdateUrl({projectId, orgId}: UpdateParams) {
 }
 
 function chainUtil<Args extends any[]>(
-  ...funcs: Array<((...args: Args) => any) | undefined>
+  ...funcs: (((...args: Args) => any) | undefined)[]
 ) {
   const filteredFuncs = funcs.filter(
     (f): f is (...args: Args) => any => typeof f === 'function'

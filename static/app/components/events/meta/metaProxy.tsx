@@ -25,7 +25,7 @@ export class MetaProxy {
 
   // @ts-ignore TS(7023): 'get' implicitly has return type 'any' because it ... Remove this comment to see the full error message
   get<T extends {}>(
-    obj: T | Array<T>,
+    obj: T | T[],
     prop: Extract<keyof T, string> | SymbolProp,
     receiver: T
   ) {
