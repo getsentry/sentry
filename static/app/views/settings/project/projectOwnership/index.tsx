@@ -40,7 +40,7 @@ export default function ProjectOwnership({project}: {project: Project}) {
   ];
   const {
     data: ownership,
-    isLoading: isOwnershipLoading,
+    isPending: isOwnershipPending,
     isError: isOwnershipError,
   } = useApiQuery<IssueOwnership>(ownershipQueryKey, {staleTime: Infinity});
 
@@ -51,8 +51,11 @@ export default function ProjectOwnership({project}: {project: Project}) {
   const {
     data: codeowners = [],
     isLoading: isCodeownersLoading,
-    error: codeownersRequestError,
-  } = useApiQuery<CodeOwner[]>(codeownersQueryKey, {staleTime: Infinity});
+    isError: isCodeownersError,
+  } = useApiQuery<CodeOwner[]>(codeownersQueryKey, {
+    staleTime: Infinity,
+    enabled: organization.features.includes('integrations-codeowners'),
+  });
 
   const handleOwnershipSave = (newOwnership: IssueOwnership) => {
     setApiQueryData<IssueOwnership>(queryClient, ownershipQueryKey, data =>
@@ -104,7 +107,7 @@ export default function ProjectOwnership({project}: {project: Project}) {
   });
   const hasCodeowners = organization.features?.includes('integrations-codeowners');
 
-  if (isOwnershipLoading || isCodeownersLoading) {
+  if (isOwnershipPending || isCodeownersLoading) {
     return <LoadingIndicator />;
   }
 
@@ -162,7 +165,7 @@ export default function ProjectOwnership({project}: {project: Project}) {
         access={!editOwnershipRulesDisabled ? ['project:read'] : ['project:write']}
         project={project}
       />
-      {codeownersRequestError && (
+      {isCodeownersError && (
         <Alert type="error">
           {t(
             "There was an error loading this project's codeowners. If this issue persists, consider importing it again."
