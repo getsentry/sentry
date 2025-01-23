@@ -1251,6 +1251,18 @@ function WidgetBuilder({
                                         'displayType',
                                         newDisplayType
                                       );
+                                      trackAnalytics(
+                                        'dashboards_views.widget_builder.change',
+                                        {
+                                          from: source,
+                                          field: 'displayType',
+                                          value: newDisplayType,
+                                          widget_type: widgetType,
+                                          organization,
+                                          new_widget: !isEditing,
+                                          builder_version: WidgetBuilderVersion.PAGE,
+                                        }
+                                      );
                                     }}
                                     isWidgetInvalid={!state.queryConditionsValid}
                                     onWidgetSplitDecision={
