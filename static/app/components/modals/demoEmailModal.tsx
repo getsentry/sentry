@@ -45,9 +45,6 @@ export default function Modal({onAddedEmail, closeModal, onFailure}: Props) {
   const handleSubmit = useCallback(
     async (email: string) => {
       const utmState = GetUTMData();
-      if (closeModal) {
-        closeModal();
-      }
 
       // always save the email before the API call
       if (onAddedEmail) {
@@ -55,7 +52,7 @@ export default function Modal({onAddedEmail, closeModal, onFailure}: Props) {
       }
 
       try {
-        await api.requestPromise('/demo/email-capture/', {
+        await api.requestPromise('/internal/demo/email-capture/', {
           method: 'POST',
           data: {
             ...utmState.data,
@@ -67,6 +64,8 @@ export default function Modal({onAddedEmail, closeModal, onFailure}: Props) {
       } catch (error) {
         onFailure();
       }
+
+      closeModal();
     },
     [api, closeModal, onFailure, onAddedEmail]
   );
