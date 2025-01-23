@@ -45,7 +45,6 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
             alert_rule_trigger = create_alert_rule_trigger(
                 alert_rule=self.context["alert_rule"], **validated_data
             )
-            self._handle_actions(alert_rule_trigger, actions)
 
         except forms.ValidationError as e:
             # if we fail in create_alert_rule_trigger, then only one message is ever returned
@@ -58,6 +57,7 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
             alert_rule_trigger.alert_rule.organization,
         ):
             migrate_metric_data_conditions(alert_rule_trigger)
+        self._handle_actions(alert_rule_trigger, actions)
         return alert_rule_trigger
 
     def update(self, instance, validated_data):
