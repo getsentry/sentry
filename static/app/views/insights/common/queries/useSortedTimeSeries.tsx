@@ -22,9 +22,11 @@ import {determineSeriesConfidence} from 'sentry/views/alerts/rules/metric/utils/
 import {getSeriesEventView} from 'sentry/views/insights/common/queries/getSeriesEventView';
 import type {SpanFunctions, SpanIndexedField} from 'sentry/views/insights/types';
 
+import {
+  isEventsStats,
+  isMultiSeriesEventsStats,
+} from '../../../dashboards/utils/isEventsStats';
 import {getRetryDelay, shouldRetryHandler} from '../utils/retryHandlers';
-
-import {isEventsStats, isMultiSeriesEventsStats} from './isEventsStats';
 
 type SeriesMap = {
   [seriesName: string]: Series[];
