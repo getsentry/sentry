@@ -316,7 +316,7 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
   };
 
   render() {
-    const {children, enabled} = this.props;
+    const {children, enabled = true} = this.props;
 
     return children({
       releases: enabled ? this.state.releases : [],
