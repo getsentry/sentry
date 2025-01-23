@@ -316,11 +316,11 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
   };
 
   render() {
-    const {children} = this.props;
+    const {children, enabled = true} = this.props;
 
     return children({
-      releases: this.state.releases,
-      releaseSeries: this.state.releaseSeries,
+      releases: enabled ? this.state.releases : [],
+      releaseSeries: enabled ? this.state.releaseSeries : [],
     });
   }
 }
