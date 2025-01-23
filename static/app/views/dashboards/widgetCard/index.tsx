@@ -14,7 +14,7 @@ import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
+import type {Confidence, Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {getFormattedDate} from 'sentry/utils/dates';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
@@ -31,7 +31,7 @@ import withSentryRouter from 'sentry/utils/withSentryRouter';
 import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/dashboard';
 import {useDiscoverSplitAlert} from 'sentry/views/dashboards/discoverSplitAlert';
 import {MetricWidgetCard} from 'sentry/views/dashboards/metrics/widgetCard';
-import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
+import WidgetCardChartContainer from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 
 import type {DashboardFilters, Widget} from '../types';
 import {DisplayType, OnDemandExtractionState, WidgetType} from '../types';
@@ -86,6 +86,7 @@ type Props = WithRouterProps & {
   onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
   shouldResize?: boolean;
+  showConfidenceWarning?: boolean;
   showContextMenu?: boolean;
   showStoredAlert?: boolean;
   tableItemLimit?: number;
@@ -93,6 +94,7 @@ type Props = WithRouterProps & {
 };
 
 type Data = {
+  confidence?: Confidence;
   pageLinks?: string;
   tableResults?: TableDataWithTitle[];
   timeseriesResults?: Series[];
@@ -109,7 +111,7 @@ function WidgetCard(props: Props) {
       props.onDataFetched(newData.tableResults);
     }
 
-    setData(newData);
+    setData(prevData => ({...prevData, ...newData}));
   };
 
   const {
@@ -131,6 +133,7 @@ function WidgetCard(props: Props) {
     legendOptions,
     widgetLegendState,
     disableFullscreen,
+    showConfidenceWarning,
   } = props;
 
   if (widget.displayType === DisplayType.TOP_N) {
@@ -184,6 +187,7 @@ function WidgetCard(props: Props) {
         tableData: data?.tableResults,
         seriesResultsType: data?.timeseriesResultsTypes,
         totalIssuesCount: data?.totalIssuesCount,
+        confidence: data?.confidence,
       });
 
       props.router.push({
@@ -337,6 +341,7 @@ function WidgetCard(props: Props) {
               onLegendSelectChanged={onLegendSelectChanged}
               legendOptions={legendOptions}
               widgetLegendState={widgetLegendState}
+              showConfidenceWarning={showConfidenceWarning}
             />
           </WidgetFrame>
         )}

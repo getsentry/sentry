@@ -5,7 +5,7 @@ import {DAY, HOUR, MINUTE, SECOND, WEEK} from 'sentry/utils/formatters';
  * e.g., categorizeDuration(1200) = MINUTE
  * @param value Duration in ms
  */
-export function categorizeDuration(value): number {
+export function categorizeDuration(value: number): number {
   if (value >= WEEK) {
     return WEEK;
   }

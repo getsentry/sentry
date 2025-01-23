@@ -1,7 +1,7 @@
 import type {TimeWindowConfig} from 'sentry/components/checkInTimeline/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import useRouter from 'sentry/utils/useRouter';
 
 import type {MonitorBucket} from '../types';
 
@@ -22,7 +22,8 @@ interface Options {
 export function useMonitorStats({monitors, timeWindowConfig}: Options) {
   const {start, end, elapsedMinutes, timelineWidth} = timeWindowConfig;
 
-  const rollup = Math.floor((elapsedMinutes * 60) / timelineWidth);
+  // Minimum rollup is 1 second
+  const rollup = Math.floor((elapsedMinutes * 60) / timelineWidth) || 1;
 
   const selectionQuery = {
     since: Math.floor(start.getTime() / 1000),
@@ -31,8 +32,7 @@ export function useMonitorStats({monitors, timeWindowConfig}: Options) {
   };
 
   const organization = useOrganization();
-  const router = useRouter();
-  const location = router.location;
+  const location = useLocation();
 
   const monitorStatsQueryKey = `/organizations/${organization.slug}/monitors-stats/`;
 

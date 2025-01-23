@@ -1,3 +1,4 @@
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
@@ -79,6 +80,15 @@ function ReplayClipPreviewPlayer({
   });
   const organization = useOrganization();
 
+  useEffect(() => {
+    if (replayReaderResult.fetchError) {
+      trackAnalytics('replay.render-missing-replay-alert', {
+        organization,
+        surface: 'issue details - clip preview',
+      });
+    }
+  }, [organization, replayReaderResult.fetchError]);
+
   if (replayReaderResult.replayRecord?.is_archived) {
     return (
       <Alert type="warning" data-test-id="replay-error">
@@ -91,10 +101,6 @@ function ReplayClipPreviewPlayer({
   }
 
   if (replayReaderResult.fetchError) {
-    trackAnalytics('replay.render-missing-replay-alert', {
-      organization,
-      surface: 'issue details - clip preview',
-    });
     return <MissingReplayAlert orgSlug={orgSlug} />;
   }
 

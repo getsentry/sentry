@@ -20,6 +20,7 @@ function getChartTitle(yAxis: string, countTopScreens: number) {
     ],
   };
 
+  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const [singularTopScreenTitle, pluralTopScreenTitle] = TITLES[yAxis];
 
   return countTopScreens > 1 ? pluralTopScreenTitle : singularTopScreenTitle;
@@ -31,7 +32,7 @@ export function TopScreensChart({
   transformedReleaseEvents,
   chartHeight,
   isLoading,
-}) {
+}: any) {
   const {primaryRelease, secondaryRelease} = useReleaseSelection();
   const {truncatedPrimaryRelease, truncatedSecondaryRelease} = useTruncatedReleaseNames();
 

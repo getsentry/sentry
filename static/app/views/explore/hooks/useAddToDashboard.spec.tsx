@@ -44,7 +44,7 @@ describe('AddToDashboardButton', () => {
       expect.objectContaining({
         // For Add + Stay on Page
         widget: {
-          title: 'Custom Explore Widget',
+          title: 'Custom Widget',
           displayType: DisplayType.LINE,
           interval: undefined,
           limit: undefined,
@@ -72,7 +72,7 @@ describe('AddToDashboardButton', () => {
             'span.duration',
             'timestamp',
           ],
-          defaultTitle: 'Custom Explore Widget',
+          defaultTitle: 'Custom Widget',
           defaultWidgetQuery:
             'name=&aggregates=avg(span.duration)&columns=&fields=avg(span.duration)&conditions=&orderby=-timestamp',
           displayType: DisplayType.LINE,
@@ -117,7 +117,7 @@ describe('AddToDashboardButton', () => {
       expect.objectContaining({
         // For Add + Stay on Page
         widget: {
-          title: 'Custom Explore Widget',
+          title: 'Custom Widget',
           displayType: DisplayType.LINE,
           interval: undefined,
           limit: undefined,
@@ -145,7 +145,7 @@ describe('AddToDashboardButton', () => {
             'span.duration',
             'timestamp',
           ],
-          defaultTitle: 'Custom Explore Widget',
+          defaultTitle: 'Custom Widget',
           defaultWidgetQuery:
             'name=&aggregates=max(span.duration)&columns=&fields=max(span.duration)&conditions=&orderby=-timestamp',
           displayType: DisplayType.LINE,
@@ -178,7 +178,7 @@ describe('AddToDashboardButton', () => {
       expect.objectContaining({
         // For Add + Stay on Page
         widget: {
-          title: 'Custom Explore Widget',
+          title: 'Custom Widget',
           displayType: DisplayType.LINE,
           interval: undefined,
           limit: undefined,
@@ -198,12 +198,12 @@ describe('AddToDashboardButton', () => {
         // For Open in Widget Builder
         widgetAsQueryParams: expect.objectContaining({
           dataset: WidgetType.SPANS,
-          defaultTableColumns: ['avg(span.duration)'],
-          defaultTitle: 'Custom Explore Widget',
+          defaultTableColumns: ['span.op', 'avg(span.duration)'],
+          defaultTitle: 'Custom Widget',
           defaultWidgetQuery:
             'name=&aggregates=avg(span.duration)&columns=&fields=avg(span.duration)&conditions=&orderby=-avg(span.duration)',
           displayType: DisplayType.LINE,
-          field: ['avg(span.duration)'],
+          field: ['span.op', 'avg(span.duration)'],
         }),
       })
     );
@@ -238,7 +238,7 @@ describe('AddToDashboardButton', () => {
       expect.objectContaining({
         // For Add + Stay on Page
         widget: {
-          title: 'Custom Explore Widget',
+          title: 'Custom Widget',
           displayType: DisplayType.LINE,
           interval: undefined,
           limit: undefined,
@@ -263,15 +263,21 @@ describe('AddToDashboardButton', () => {
         widgetAsQueryParams: expect.objectContaining({
           dataset: WidgetType.SPANS,
           defaultTableColumns: [
+            'span.op',
             'avg(span.duration)',
             'max(span.duration)',
             'min(span.duration)',
           ],
-          defaultTitle: 'Custom Explore Widget',
+          defaultTitle: 'Custom Widget',
           defaultWidgetQuery:
             'name=&aggregates=avg(span.duration)%2Cmax(span.duration)%2Cmin(span.duration)&columns=&fields=avg(span.duration)%2Cmax(span.duration)%2Cmin(span.duration)&conditions=&orderby=-avg(span.duration)',
           displayType: DisplayType.LINE,
-          field: ['avg(span.duration)', 'max(span.duration)', 'min(span.duration)'],
+          field: [
+            'span.op',
+            'avg(span.duration)',
+            'max(span.duration)',
+            'min(span.duration)',
+          ],
         }),
       })
     );

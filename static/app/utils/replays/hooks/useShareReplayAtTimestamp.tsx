@@ -13,7 +13,7 @@ import {parseClockToSeconds} from 'sentry/utils/duration/parseClockToSeconds';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {useRoutes} from 'sentry/utils/useRoutes';
 
-function ShareModal({currentTimeSec, Header, Body}) {
+function ShareModal({currentTimeSec, Header, Body}: any) {
   const routes = useRoutes();
   const [customSeconds, setSeconds] = useState(currentTimeSec);
   const [shareMode, setShareMode] = useState<'current' | 'user'>('current');

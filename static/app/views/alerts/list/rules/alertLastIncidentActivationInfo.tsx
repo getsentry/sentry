@@ -1,15 +1,16 @@
 import TimeSince from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
-import {MonitorType} from 'sentry/types/alerts';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {hasActiveIncident} from 'sentry/views/alerts/list/rules/utils';
 import {
   type CombinedAlerts,
   CombinedAlertType,
+  type CronRule,
   type IssueAlert,
   type MetricAlert,
   type UptimeAlert,
 } from 'sentry/views/alerts/types';
+import {scheduleAsText} from 'sentry/views/monitors/utils/scheduleAsText';
 
 interface Props {
   rule: CombinedAlerts;
@@ -19,9 +20,18 @@ interface Props {
  * Displays the time since the last uptime incident given an uptime alert rule
  */
 function LastUptimeIncident({rule}: {rule: UptimeAlert}) {
-  // TODO(davidenwang): Once we have a lastTriggered field returned from backend, display that info here
+  // TODO(davidenwang): Once we have a lastTriggered field returned from
+  // backend, display that info here
   return tct('Actively monitoring every [interval]', {
     interval: getDuration(rule.intervalSeconds),
+  });
+}
+
+function LastCronMonitorIncident({rule}: {rule: CronRule}) {
+  // TODO(evanpurkhiser): Would probably be better if we had a way to get the
+  // most recent incident.
+  return tct('Expected [interval]', {
+    interval: scheduleAsText(rule.config),
   });
 }
 
@@ -34,30 +44,14 @@ function LastIssueTrigger({rule}: {rule: IssueAlert}) {
   }
 
   return (
-    <div>
-      {t('Triggered ')}
-      <TimeSince date={rule.lastTriggered} />
-    </div>
+    <div>{tct('Triggered [at]', {at: <TimeSince date={rule.lastTriggered} />})}</div>
   );
 }
 
 /**
- * Displays the last activation for activated alert rules or the last incident for continuous alerts
+ * Displays the last incident for continuous alerts
  */
 function LastMetricAlertIncident({rule}: {rule: MetricAlert}) {
-  if (rule.monitorType === MonitorType.ACTIVATED) {
-    if (!rule.activations?.length) {
-      return t('Alert has not been activated yet');
-    }
-
-    return (
-      <div>
-        {t('Last activated ')}
-        <TimeSince date={rule.activations[0]!.dateCreated} />
-      </div>
-    );
-  }
-
   if (!rule.latestIncident) {
     return t('Alert not triggered yet');
   }
@@ -66,16 +60,16 @@ function LastMetricAlertIncident({rule}: {rule: MetricAlert}) {
   if (activeIncident) {
     return (
       <div>
-        {t('Triggered ')}
-        <TimeSince date={rule.latestIncident.dateCreated} />
+        {tct('Triggered [at]', {
+          at: <TimeSince date={rule.latestIncident.dateCreated} />,
+        })}
       </div>
     );
   }
 
   return (
     <div>
-      {t('Resolved ')}
-      <TimeSince date={rule.latestIncident.dateClosed!} />
+      {tct('Resolved [at]', {at: <TimeSince date={rule.latestIncident.dateClosed!} />})}
     </div>
   );
 }
@@ -85,6 +79,8 @@ export default function AlertLastIncidentActivationInfo({rule}: Props) {
   switch (rule.type) {
     case CombinedAlertType.UPTIME:
       return <LastUptimeIncident rule={rule} />;
+    case CombinedAlertType.CRONS:
+      return <LastCronMonitorIncident rule={rule} />;
     case CombinedAlertType.ISSUE:
       return <LastIssueTrigger rule={rule} />;
     case CombinedAlertType.METRIC:

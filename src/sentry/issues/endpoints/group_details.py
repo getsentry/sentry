@@ -29,7 +29,7 @@ from sentry.integrations.api.serializers.models.external_issue import ExternalIs
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.issues.constants import get_issue_tsdb_group_model
 from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
-from sentry.issues.grouptype import GroupCategory, MetricIssuePOC
+from sentry.issues.grouptype import GroupCategory
 from sentry.models.activity import Activity
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.group import Group
@@ -90,7 +90,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         return [seen for seen in serialize(seen_by, request.user) if seen is not None]
 
     def _get_open_periods_for_group(self, group: Group) -> list[OpenPeriod]:
-        if group.type != MetricIssuePOC.type_id:
+        if not features.has("organizations:issue-open-periods", group.organization):
             return []
 
         activities = Activity.objects.filter(
@@ -246,7 +246,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 data.update({"inbox": inbox_reason})
 
             if "owners" in expand:
-                owner_details = get_owner_details([group], request.user)
+                owner_details = get_owner_details([group])
                 owners = owner_details.get(group.id)
                 data.update({"owners": owners})
 
@@ -271,7 +271,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 )
                 integration_issues = serialize(
                     external_issues,
-                    request,
+                    request.user,
                     serializer=ExternalIssueSerializer(),
                 )
                 data.update({"integrationIssues": integration_issues})
@@ -280,7 +280,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 platform_external_issues = PlatformExternalIssue.objects.filter(group_id=group.id)
                 sentry_app_issues = serialize(
                     list(platform_external_issues),
-                    request,
+                    request.user,
                     serializer=PlatformExternalIssueSerializer(),
                 )
                 data.update({"sentryAppIssues": sentry_app_issues})
@@ -305,8 +305,8 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                     "activity": serialize(activity, request.user),
                     "openPeriods": [open_period.to_dict() for open_period in open_periods],
                     "seenBy": seen_by,
-                    "pluginActions": get_actions(request, group),
-                    "pluginIssues": get_available_issue_plugins(request, group),
+                    "pluginActions": get_actions(group),
+                    "pluginIssues": get_available_issue_plugins(group),
                     "pluginContexts": self._get_context_plugins(request, group),
                     "userReportCount": user_reports.count(),
                     "stats": {"24h": hourly_stats, "30d": daily_stats},

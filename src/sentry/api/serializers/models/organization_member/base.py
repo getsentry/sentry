@@ -2,12 +2,14 @@ from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any
 
+from django.contrib.auth.models import AnonymousUser
+
 from sentry import roles
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.models.organizationmember import OrganizationMember
 from sentry.users.models.user import User
-from sentry.users.services.user import RpcUser
+from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 
 from .response import OrganizationMemberResponse
@@ -20,7 +22,10 @@ class OrganizationMemberSerializer(Serializer):
         self.expand = expand or []
 
     def get_attrs(
-        self, item_list: Sequence[OrganizationMember], user: User, **kwargs: Any
+        self,
+        item_list: Sequence[OrganizationMember],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
     ) -> MutableMapping[OrganizationMember, MutableMapping[str, Any]]:
         """
         Fetch all of the associated Users and ExternalActors needed to serialize
@@ -39,6 +44,8 @@ class OrganizationMemberSerializer(Serializer):
         users_by_id: MutableMapping[str, Any] = {}
         email_map: MutableMapping[str, str] = {}
         for u in user_service.serialize_many(filter={"user_ids": users_set}):
+            # Filter out the emails from the user data
+            u.pop("emails", None)
             users_by_id[u["id"]] = u
             email_map[u["id"]] = u["email"]
 
@@ -85,19 +92,45 @@ class OrganizationMemberSerializer(Serializer):
         return attrs
 
     def serialize(
-        self, obj: OrganizationMember, attrs: Mapping[str, Any], user: Any, **kwargs: Any
+        self,
+        obj: OrganizationMember,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
     ) -> OrganizationMemberResponse:
+        serialized_user = attrs["user"]
+        if obj.user_id:
+            # if the OrganizationMember has a user_id, the user has an account
+            # `email` on the OrganizationMember will be null, so we need to pull
+            # the email address from the user's actual account
+            email = serialized_user["email"] if serialized_user else obj.email
+        else:
+            # when there is no user_id, the OrganizationMember is an invited user
+            # and the email field on OrganizationMember will be populated, so we
+            # will use it directly
+            email = obj.email
+
+        # helping mypy - the email will always be populated at this point
+        # in the case that it is a user that has an account, we pull the email
+        # address above from the serialized_user. The email field on OrganizationMember
+        # is null in the case, so it is necessary.
+        #
+        # invited users do not yet have a full account and the email field
+        # on OrganizationMember will be populated in such cases
+        assert email is not None
+
         inviter_name = None
         if obj.inviter_id:
             inviter = attrs["inviter"]
             if inviter:
                 inviter_name = inviter.get_display_name()
-        user = attrs["user"]
-        email = attrs["email"]
+
+        name = serialized_user["name"] if serialized_user else email
+
         data: OrganizationMemberResponse = {
             "id": str(obj.id),
             "email": email,
-            "name": user["name"] if user else email,
+            "name": name,
             "user": attrs["user"],
             "orgRole": obj.role,
             "pending": obj.is_pending,

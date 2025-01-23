@@ -14,10 +14,10 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {
   getIssueTitleFromType,
   IssueCategory,
-  IssueType,
   PriorityLevel,
   type Tag,
   type TagCollection,
+  VISIBLE_ISSUE_TYPES,
 } from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
@@ -267,20 +267,7 @@ function builtInIssuesFields(
     [FieldKey.ISSUE_TYPE]: {
       ...PREDEFINED_FIELDS[FieldKey.ISSUE_TYPE]!,
       name: 'Issue Type',
-      values: [
-        IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
-        IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
-        IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
-        IssueType.PERFORMANCE_SLOW_DB_QUERY,
-        IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET,
-        IssueType.PERFORMANCE_UNCOMPRESSED_ASSET,
-        IssueType.PERFORMANCE_ENDPOINT_REGRESSION,
-        IssueType.PROFILE_FILE_IO_MAIN_THREAD,
-        IssueType.PROFILE_IMAGE_DECODE_MAIN_THREAD,
-        IssueType.PROFILE_JSON_DECODE_MAIN_THREAD,
-        IssueType.PROFILE_REGEX_MAIN_THREAD,
-        IssueType.PROFILE_FUNCTION_REGRESSION,
-      ].map(value => ({
+      values: VISIBLE_ISSUE_TYPES.map(value => ({
         icon: null,
         title: value,
         name: value,

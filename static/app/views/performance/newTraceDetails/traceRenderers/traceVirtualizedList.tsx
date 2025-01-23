@@ -158,7 +158,7 @@ export const useVirtualizedList = (
       props.manager
     );
 
-    const onScroll = event => {
+    const onScroll = (event: any) => {
       if (!list.current) {
         return;
       }

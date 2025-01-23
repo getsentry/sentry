@@ -152,7 +152,7 @@ export default function DataSecrecy() {
         : undefined,
     value: allowDateFormData,
     onBlur: updateTempAccessDate,
-    onChange: v => {
+    onChange: (v: any) => {
       // Don't allow the user to set the date if they have allowed access
       if (allowAccess) {
         return;

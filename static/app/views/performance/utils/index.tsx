@@ -111,7 +111,7 @@ const BACKEND_PLATFORMS: string[] = backend.filter(
 const MOBILE_PLATFORMS: string[] = [...mobile];
 
 export function platformToPerformanceType(
-  projects: (Project | ReleaseProject)[],
+  projects: Array<Project | ReleaseProject>,
   projectIds: readonly number[]
 ) {
   if (projectIds.length === 0 || projectIds[0] === ALL_ACCESS_PROJECTS) {
@@ -369,11 +369,7 @@ export function getProject(
   eventData: EventData,
   projects: Project[]
 ): Project | undefined {
-  const projectSlug = (eventData?.project as string) || undefined;
-
-  if (typeof projectSlug === undefined) {
-    return undefined;
-  }
+  const projectSlug = eventData.project as string | undefined;
 
   return projects.find(currentProject => currentProject.slug === projectSlug);
 }

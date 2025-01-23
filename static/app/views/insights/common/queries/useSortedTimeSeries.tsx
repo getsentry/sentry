@@ -135,7 +135,7 @@ function isMultiSeriesEventsStats(
   return Object.values(obj).every(series => isEventsStats(series));
 }
 
-function transformToSeriesMap(
+export function transformToSeriesMap(
   result: MultiSeriesEventsStats | GroupedMultiSeriesEventsStats | undefined,
   yAxis: string[]
 ): SeriesMap {
@@ -155,8 +155,8 @@ function transformToSeriesMap(
   // Multiple series, applies to multi axis or topN events queries
   const hasMultipleYAxes = yAxis.length > 1;
   if (isMultiSeriesEventsStats(result)) {
-    const processedResults: [number, Series][] = Object.keys(result).map(seriesName =>
-      processSingleEventStats(seriesName, result[seriesName]!)
+    const processedResults: Array<[number, Series]> = Object.keys(result).map(
+      seriesName => processSingleEventStats(seriesName, result[seriesName]!)
     );
 
     if (!hasMultipleYAxes) {
@@ -170,6 +170,7 @@ function transformToSeriesMap(
     return processedResults
       .sort(([a], [b]) => a - b)
       .reduce((acc, [, series]) => {
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         acc[series.seriesName] = [series];
         return acc;
       }, {});
@@ -178,7 +179,7 @@ function transformToSeriesMap(
   // Grouped multi series, applies to topN events queries with multiple y-axes
   // First, we process the grouped multi series into a list of [seriesName, order, {[aggFunctionAlias]: EventsStats}]
   // to enable sorting.
-  const processedResults: [string, number, MultiSeriesEventsStats][] = [];
+  const processedResults: Array<[string, number, MultiSeriesEventsStats]> = [];
   Object.keys(result).forEach(seriesName => {
     const {order: groupOrder, ...groupData} = result[seriesName]!;
     processedResults.push([seriesName, groupOrder || 0, groupData]);
@@ -211,6 +212,7 @@ function processSingleEventStats(
   if (seriesName) {
     const unit = seriesData.meta?.units?.[getAggregateAlias(seriesName)];
     // Scale series values to milliseconds or bytes depending on units from meta
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     scale = (unit && (DURATION_UNITS[unit] ?? SIZE_UNITS[unit])) ?? 1;
   }
 

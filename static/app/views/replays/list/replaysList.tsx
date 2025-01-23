@@ -29,7 +29,7 @@ function ReplaysList() {
       environment: decodeList,
       project: decodeList,
       query: decodeScalar,
-      sort: value => decodeScalar(value, '-started_at'),
+      sort: (value: any) => decodeScalar(value, '-started_at'),
       start: decodeScalar,
       statsPeriod: decodeScalar,
       utc: decodeScalar,

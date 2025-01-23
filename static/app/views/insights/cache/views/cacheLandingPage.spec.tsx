@@ -93,29 +93,6 @@ describe('CacheLandingPage', function () {
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
-    expect(requestMocks.missRateChart).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/events-stats/`,
-      expect.objectContaining({
-        method: 'GET',
-        query: {
-          cursor: undefined,
-          dataset: 'spansMetrics',
-          environment: [],
-          excludeOther: 0,
-          field: [],
-          interval: '30m',
-          orderby: undefined,
-          partial: 1,
-          per_page: 50,
-          project: [],
-          query: 'span.op:[cache.get_item,cache.get] project.id:1',
-          referrer: 'api.performance.cache.samples-cache-hit-miss-chart',
-          statsPeriod: '10d',
-          topEvents: undefined,
-          yAxis: 'cache_miss_rate()',
-        },
-      })
-    );
     expect(requestMocks.throughputChart).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/events-stats/`,
       expect.objectContaining({
@@ -136,6 +113,7 @@ describe('CacheLandingPage', function () {
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: 'spm()',
+          transformAliasToInputFormat: '1',
         },
       })
     );

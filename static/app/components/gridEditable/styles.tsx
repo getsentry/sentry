@@ -46,7 +46,7 @@ export const HeaderButtonContainer = styled('div')`
   }
 `;
 
-export const Body = styled(({children, ...props}) => (
+export const Body = styled(({children, ...props}: any) => (
   <Panel {...props}>
     <PanelBody>{children}</PanelBody>
   </Panel>
@@ -248,7 +248,7 @@ const GridStatusFloat = styled('div')`
   overflow: hidden;
 `;
 
-export function GridBodyCellStatus(props) {
+export function GridBodyCellStatus(props: any) {
   return (
     <GridStatusWrapper>
       <GridStatusFloat>{props.children}</GridStatusFloat>

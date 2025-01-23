@@ -242,6 +242,7 @@ def worker(ignore_unknown_queues: bool, **options: Any) -> None:
 @click.option(
     "--max-task-count", help="Number of tasks this worker should run before exiting", default=10000
 )
+@click.option("--concurrency", help="Number of child worker processes to create.", default=1)
 @click.option(
     "--namespace", help="The dedicated task namespace that taskworker operates on", default=None
 )
@@ -258,7 +259,7 @@ def taskworker(**options: Any) -> None:
 
 
 def run_taskworker(
-    rpc_host: str, max_task_count: int, namespace: str | None, **options: Any
+    rpc_host: str, max_task_count: int, namespace: str | None, concurrency: int, **options: Any
 ) -> None:
     """
     taskworker factory that can be reloaded
@@ -267,7 +268,11 @@ def run_taskworker(
 
     with managed_bgtasks(role="taskworker"):
         worker = TaskWorker(
-            rpc_host=rpc_host, max_task_count=max_task_count, namespace=namespace, **options
+            rpc_host=rpc_host,
+            max_task_count=max_task_count,
+            namespace=namespace,
+            concurrency=concurrency,
+            **options,
         )
         exitcode = worker.start()
         raise SystemExit(exitcode)
@@ -299,14 +304,23 @@ def run_taskworker(
     help="The path to the function name of the task to execute",
     required=True,
 )
+@click.option(
+    "--bootstrap-servers",
+    type=str,
+    help="The bootstrap servers to use for the kafka topic",
+    required=True,
+)
 def taskbroker_send_tasks(
     task_function_path: str,
     args: str,
     kwargs: str,
     repeat: int,
+    bootstrap_servers: str,
 ) -> None:
+    from sentry.conf.server import KAFKA_CLUSTERS
     from sentry.utils.imports import import_string
 
+    KAFKA_CLUSTERS["default"]["common"]["bootstrap.servers"] = bootstrap_servers
     try:
         func = import_string(task_function_path)
     except Exception as e:

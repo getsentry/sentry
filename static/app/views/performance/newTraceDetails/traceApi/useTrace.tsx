@@ -89,11 +89,11 @@ export function getTraceQueryParams(
   };
   for (const key in queryParams) {
     if (
-      queryParams[key] === '' ||
-      queryParams[key] === null ||
-      queryParams[key] === undefined
+      queryParams[key as keyof typeof queryParams] === '' ||
+      queryParams[key as keyof typeof queryParams] === null ||
+      queryParams[key as keyof typeof queryParams] === undefined
     ) {
-      delete queryParams[key];
+      delete queryParams[key as keyof typeof queryParams];
     }
   }
 
@@ -179,7 +179,7 @@ function useDemoTrace(
 
   // Casting here since the 'select' option is not available in the useApiQuery hook to transform the data
   // from EventTransaction to TraceSplitResults<TraceFullDetailed>
-  return {...demoEventQuery, data} as UseApiQueryResult<
+  return {...demoEventQuery, data} as unknown as UseApiQueryResult<
     TraceSplitResults<TraceTree.Transaction>,
     any
   >;

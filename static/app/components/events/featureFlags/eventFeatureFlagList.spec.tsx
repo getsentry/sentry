@@ -16,6 +16,7 @@ import {
   MOCK_FLAGS,
   NO_FLAG_CONTEXT_SECTION_PROPS_CTA,
   NO_FLAG_CONTEXT_SECTION_PROPS_NO_CTA,
+  NO_FLAG_CONTEXT_WITH_FLAGS_SECTION_PROPS_NO_CTA,
 } from 'sentry/components/events/featureFlags/testUtils';
 
 // Needed to mock useVirtualizer lists.
@@ -245,6 +246,26 @@ describe('EventFeatureFlagList', function () {
     // wait for the CTA to be rendered
     expect(await screen.findByText('Set Up Feature Flags')).toBeInTheDocument();
     expect(screen.getByText('Feature Flags')).toBeInTheDocument();
+  });
+
+  it('renders empty state if event.contexts.flags is not set but should not show cta - flags already sent', function () {
+    const org = OrganizationFixture({features: ['feature-flag-cta']});
+
+    render(
+      <EventFeatureFlagList {...NO_FLAG_CONTEXT_WITH_FLAGS_SECTION_PROPS_NO_CTA} />,
+      {
+        organization: org,
+      }
+    );
+
+    const control = screen.queryByRole('button', {name: 'Sort Flags'});
+    expect(control).not.toBeInTheDocument();
+    const search = screen.queryByRole('button', {name: 'Open Feature Flag Search'});
+    expect(search).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Set Up Integration'})).toBeInTheDocument();
+    expect(
+      screen.getByText('No feature flags were found for this event')
+    ).toBeInTheDocument();
   });
 
   it('renders nothing if event.contexts.flags is not set and should not show cta - wrong platform', async function () {

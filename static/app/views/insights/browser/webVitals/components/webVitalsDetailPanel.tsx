@@ -2,6 +2,7 @@ import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import type {LineChartSeries} from 'sentry/components/charts/lineChart';
+import {DrawerHeader} from 'sentry/components/globalDrawer/components';
 import type {
   GridColumnHeader,
   GridColumnOrder,
@@ -34,7 +35,7 @@ import type {
   WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
 import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
-import DetailPanel from 'sentry/views/insights/common/components/detailPanel';
+import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
 import {SpanIndexedField, type SubregionCode} from 'sentry/views/insights/types';
 
 type Column = GridColumnHeader;
@@ -51,13 +52,7 @@ const sort: GridColumnSortBy<keyof Row> = {key: 'count()', order: 'desc'};
 
 const MAX_ROWS = 10;
 
-export function WebVitalsDetailPanel({
-  webVital,
-  onClose,
-}: {
-  onClose: () => void;
-  webVital: WebVitals | null;
-}) {
+export function WebVitalsDetailPanel({webVital}: {webVital: WebVitals | null}) {
   const location = useLocation();
   const organization = useOrganization();
   const browserTypes = decodeBrowserTypes(location.query[SpanIndexedField.BROWSER_NAME]);
@@ -133,8 +128,6 @@ export function WebVitalsDetailPanel({
     seriesName: webVital ?? '',
   };
 
-  const detailKey = webVital;
-
   useEffect(() => {
     if (webVital !== null) {
       trackAnalytics('insight.vital.vital_sidebar_opened', {
@@ -195,7 +188,7 @@ export function WebVitalsDetailPanel({
     if (key === 'score') {
       return (
         <AlignCenter>
-          <PerformanceBadge score={row[`${webVital}Score`]} />
+          <PerformanceBadge score={row[`${webVital!}Score`]} />
         </AlignCenter>
       );
     }
@@ -230,12 +223,15 @@ export function WebVitalsDetailPanel({
     }
     if (key === 'count') {
       const count =
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         webVital === 'inp' ? row['count_scores(measurements.score.inp)'] : row['count()'];
       return <AlignRight>{formatAbbreviatedNumber(count)}</AlignRight>;
     }
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return <AlignRight>{row[key]}</AlignRight>;
   };
 
+  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const webVitalScore = projectScore[`${webVital}Score`];
   const webVitalValue = projectData?.data?.[0]?.[mapWebVitalToColumn(webVital)] as
     | number
@@ -243,7 +239,9 @@ export function WebVitalsDetailPanel({
 
   return (
     <PageAlertProvider>
-      <DetailPanel detailKey={detailKey ?? undefined} onClose={onClose}>
+      <DrawerHeader />
+
+      <SampleDrawerBody>
         {webVital && (
           <WebVitalDescription
             value={
@@ -274,7 +272,7 @@ export function WebVitalsDetailPanel({
           />
         </TableContainer>
         <PageAlert />
-      </DetailPanel>
+      </SampleDrawerBody>
     </PageAlertProvider>
   );
 }

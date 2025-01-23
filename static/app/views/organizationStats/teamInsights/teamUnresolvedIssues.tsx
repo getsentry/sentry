@@ -105,13 +105,16 @@ export function TeamUnresolvedIssues({
     )
   );
   // Total by day for all projects
-  const totalByDay = allData.reduce((acc, [bucket, unresolved]) => {
-    if (acc[bucket] === undefined) {
-      acc[bucket] = 0;
-    }
-    acc[bucket] += unresolved;
-    return acc;
-  }, {});
+  const totalByDay = allData.reduce(
+    (acc, [bucket, unresolved]) => {
+      if (acc[bucket] === undefined) {
+        acc[bucket] = 0;
+      }
+      acc[bucket] += unresolved;
+      return acc;
+    },
+    {} as Record<string, number>
+  );
 
   const seriesData = sortSeriesByDay(convertDayValueObjectToSeries(totalByDay));
 
@@ -158,7 +161,12 @@ export function TeamUnresolvedIssues({
               ]}
             >
               {groupedProjects.map(({project}, idx) => {
-                const totals = projectTotals[project.id]! ?? {};
+                const totals = projectTotals[project.id] ?? {
+                  percentChange: 0,
+                  periodAvg: undefined,
+                  projectId: undefined,
+                  today: undefined,
+                };
 
                 if (idx >= COLLAPSE_COUNT && !isExpanded) {
                   return null;

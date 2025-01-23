@@ -81,8 +81,8 @@ def relay_server_setup(live_server, tmpdir_factory):
     template_vars = {
         "SENTRY_HOST": f"http://host.docker.internal:{port}/",
         "RELAY_PORT": relay_port,
-        "KAFKA_HOST": "sentry_kafka" if use_old_devservices else "kafka-kafka-1",
-        "REDIS_HOST": "sentry_redis" if use_old_devservices else "redis-redis-1",
+        "KAFKA_HOST": "sentry_kafka" if use_old_devservices else "kafka",
+        "REDIS_HOST": "sentry_redis" if use_old_devservices else "redis",
         "REDIS_DB": redis_db,
     }
 

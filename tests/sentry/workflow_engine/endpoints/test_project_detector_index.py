@@ -32,15 +32,11 @@ class ProjectDetectorIndexBaseTest(APITestCase):
 @region_silo_test
 class ProjectDetectorIndexGetTest(ProjectDetectorIndexBaseTest):
     def test_simple(self):
-        detector = Detector.objects.create(
-            organization_id=self.organization.id,
-            name="Test Detector",
-            type=MetricAlertFire.slug,
+        detector = self.create_detector(
+            organization_id=self.organization.id, name="Test Detector", type=MetricAlertFire.slug
         )
-        detector_2 = Detector.objects.create(
-            organization_id=self.organization.id,
-            name="Test Detector 2",
-            type=MetricAlertFire.slug,
+        detector_2 = self.create_detector(
+            organization_id=self.organization.id, name="Test Detector 2", type=MetricAlertFire.slug
         )
         response = self.get_success_response(self.organization.slug, self.project.slug)
         assert response.data == serialize([detector, detector_2])
@@ -136,7 +132,6 @@ class ProjectDetectorIndexPostTest(ProjectDetectorIndexBaseTest):
         # Verify query subscription
         query_sub = QuerySubscription.objects.get(id=data_source.query_id)
         assert query_sub.project == self.project
-        assert query_sub.snuba_query
         assert query_sub.snuba_query.type == SnubaQuery.Type.ERROR.value
         assert query_sub.snuba_query.dataset == Dataset.Events.value
         assert query_sub.snuba_query.query == "test query"

@@ -21,6 +21,7 @@ import {
   ProfilingUpgradeButton,
 } from 'sentry/components/profiling/billing/alerts';
 import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {TabList, Tabs} from 'sentry/components/tabs';
@@ -119,13 +120,13 @@ export default function ProfilingContent({location}: ProfilingContentProps) {
                     <WidgetsContainer>
                       <LandingWidgetSelector
                         cursorName={LEFT_WIDGET_CURSOR}
-                        widgetHeight="340px"
+                        widgetHeight="410px"
                         defaultWidget="slowest functions"
                         storageKey="profiling-landing-widget-0"
                       />
                       <LandingWidgetSelector
                         cursorName={RIGHT_WIDGET_CURSOR}
-                        widgetHeight="340px"
+                        widgetHeight="410px"
                         defaultWidget="regressed functions"
                         storageKey="profiling-landing-widget-1"
                       />
@@ -136,8 +137,24 @@ export default function ProfilingContent({location}: ProfilingContentProps) {
                       <TabList hideBorder>
                         <TabList.Item key="transactions">
                           {t('Transactions')}
+                          <StyledQuestionTooltip
+                            position="top"
+                            size="sm"
+                            title={t(
+                              'Transactions breakdown the profiling data by transactions to provide a more focused view of the data. It allows you to view an aggregate flamegraph for just that transaction and find specific examples.'
+                            )}
+                          />
                         </TabList.Item>
-                        <TabList.Item key="flamegraph">{t('Flamegraph')}</TabList.Item>
+                        <TabList.Item key="flamegraph">
+                          {t('Aggregate Flamegraph')}
+                          <StyledQuestionTooltip
+                            position="top"
+                            size="sm"
+                            title={t(
+                              'Aggregate flamegraphs are a visual representation of stacktraces that helps identify where a program spends its time. Look for the widest stacktraces as they indicate where your application is spending more time.'
+                            )}
+                          />
+                        </TabList.Item>
                       </TabList>
                     </Tabs>
                   </div>
@@ -402,4 +419,8 @@ const SearchbarContainer = styled('div')`
 
 const StyledPagination = styled(Pagination)`
   margin: 0;
+`;
+
+const StyledQuestionTooltip = styled(QuestionTooltip)`
+  margin-left: ${space(0.5)};
 `;

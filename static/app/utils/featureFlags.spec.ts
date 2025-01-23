@@ -7,7 +7,7 @@ import {
 } from 'sentry/utils/featureFlags';
 
 describe('addOrganizationFeaturesHandler', () => {
-  let organization;
+  let organization: any;
 
   beforeEach(() => {
     organization = OrganizationFixture({
@@ -38,7 +38,7 @@ describe('addOrganizationFeaturesHandler', () => {
 });
 
 describe('addProjectFeaturesHandler', () => {
-  let project;
+  let project: any;
 
   beforeEach(() => {
     project = ProjectFixture({

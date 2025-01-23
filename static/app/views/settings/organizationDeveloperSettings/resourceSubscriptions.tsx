@@ -26,7 +26,7 @@ export default class Subscriptions extends Component<Props> {
     webhookDisabled: false,
   };
 
-  constructor(props: Props, context) {
+  constructor(props: Props, context: any) {
     super(props, context);
     this.context.form.setValue('events', this.props.events);
   }
@@ -54,7 +54,11 @@ export default class Subscriptions extends Component<Props> {
 
   onChange = (resource: Resource, checked: boolean) => {
     const events = new Set(this.props.events);
-    checked ? events.add(resource) : events.delete(resource);
+    if (checked) {
+      events.add(resource);
+    } else {
+      events.delete(resource);
+    }
     this.save(Array.from(events));
   };
 

@@ -4,7 +4,7 @@ import type {StatsBucket} from '../types';
  * Combines job status counts
  */
 export function mergeStats<Status extends string>(
-  statusPrecedent: string[],
+  statusPrecedent: Status[],
   statsA: StatsBucket<Status>,
   statsB: StatsBucket<Status>
 ): StatsBucket<Status> {

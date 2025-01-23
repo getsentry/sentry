@@ -266,6 +266,7 @@ export enum SpanIndexedField {
   MESSAGING_MESSAGE_RETRY_COUNT = 'measurements.messaging.message.retry.count',
   MESSAGING_MESSAGE_DESTINATION_NAME = 'messaging.destination.name',
   USER_GEO_SUBREGION = 'user.geo.subregion',
+  IS_TRANSACTION = 'is_transaction',
 }
 
 export type SpanIndexedResponse = {

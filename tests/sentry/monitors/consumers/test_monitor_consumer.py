@@ -14,7 +14,7 @@ from django.test.utils import override_settings
 from rest_framework.exceptions import ErrorDetail
 from sentry_kafka_schemas.schema_types.ingest_monitors_v1 import CheckIn
 
-from sentry import killswitches
+from sentry import audit_log, killswitches
 from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField
 from sentry.models.environment import Environment
@@ -31,7 +31,9 @@ from sentry.monitors.models import (
 )
 from sentry.monitors.processing_errors.errors import ProcessingErrorsException, ProcessingErrorType
 from sentry.monitors.types import CheckinItem
+from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import TestCase
+from sentry.testutils.outbox import outbox_runner
 from sentry.utils import json
 from sentry.utils.outcomes import Outcome
 
@@ -88,7 +90,6 @@ class MonitorConsumerTest(TestCase):
         payload = {
             "monitor_slug": monitor_slug,
             "status": "ok",
-            "duration": None,
             "check_in_id": self.guid,
             "environment": "production",
             "contexts": {"trace": {"trace_id": self.trace_id}},
@@ -99,7 +100,7 @@ class MonitorConsumerTest(TestCase):
             "message_type": "check_in",
             "start_time": ts.timestamp(),
             "project_id": self.project.id,
-            "payload": json.dumps(payload),
+            "payload": json.dumps(payload).encode(),
             "sdk": "test/1.0",
             "retention_days": 90,
         }
@@ -144,7 +145,7 @@ class MonitorConsumerTest(TestCase):
                 datetime.fromtimestamp(expected_checkin["start_time"]),
                 self.partition.index,
                 expected_checkin,
-                json.loads(expected_checkin["payload"]),  # type: ignore[arg-type]
+                json.loads(expected_checkin["payload"]),
             )
             if expected_monitor_slug:
                 expected_error.monitor = Monitor.objects.get(
@@ -186,7 +187,6 @@ class MonitorConsumerTest(TestCase):
         assert checkin.status == CheckInStatus.OK
         assert checkin.monitor_config == monitor.config
 
-        assert checkin.monitor_environment is not None
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.OK
         assert monitor_environment.last_checkin == checkin.date_added
@@ -256,7 +256,6 @@ class MonitorConsumerTest(TestCase):
         assert checkin.status == CheckInStatus.OK
         assert checkin.monitor_config == monitor.config
 
-        assert checkin.monitor_environment is not None
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.OK
         assert monitor_environment.last_checkin == checkin.date_added
@@ -280,7 +279,6 @@ class MonitorConsumerTest(TestCase):
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.status == CheckInStatus.ERROR
 
-        assert checkin.monitor_environment is not None
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.ERROR
         assert monitor_environment.last_checkin == checkin.date_added
@@ -298,7 +296,6 @@ class MonitorConsumerTest(TestCase):
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.status == CheckInStatus.ERROR
 
-        assert checkin.monitor_environment is not None
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
 
         # The created monitor environment is in line with the check-in, but the
@@ -446,7 +443,6 @@ class MonitorConsumerTest(TestCase):
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.status == CheckInStatus.OK
 
-        assert checkin.monitor_environment is not None
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.OK
         assert monitor_environment.get_environment().name == "jungle"
@@ -467,7 +463,6 @@ class MonitorConsumerTest(TestCase):
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.status == CheckInStatus.OK
 
-        assert checkin.monitor_environment is not None
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.OK
         assert monitor_environment.monitor.name == "my-new-monitor"
@@ -494,7 +489,6 @@ class MonitorConsumerTest(TestCase):
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.status == CheckInStatus.OK
 
-        assert checkin.monitor_environment is not None
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.OK
         monitor = monitor_environment.monitor
@@ -515,7 +509,6 @@ class MonitorConsumerTest(TestCase):
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.status == CheckInStatus.OK
 
-        assert checkin.monitor_environment is not None
         monitor_environment = checkin.monitor_environment
         assert monitor_environment.status == MonitorStatus.OK
         monitor = monitor_environment.monitor
@@ -536,7 +529,6 @@ class MonitorConsumerTest(TestCase):
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.status == CheckInStatus.OK
 
-        assert checkin.monitor_environment is not None
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.OK
         monitor.refresh_from_db()
@@ -556,7 +548,6 @@ class MonitorConsumerTest(TestCase):
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.status == CheckInStatus.OK
 
-        assert checkin.monitor_environment is not None
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.OK
         monitor.refresh_from_db()
@@ -579,7 +570,6 @@ class MonitorConsumerTest(TestCase):
         # The monitor config is merged, so checkin_margin is not overwritten
         assert monitor.config["checkin_margin"] == 5
 
-        assert checkin.monitor_environment is not None
         monitor_environment = checkin.monitor_environment
         assert checkin.monitor_environment.status == MonitorStatus.OK
         assert checkin.monitor_environment.last_checkin == checkin.date_added
@@ -665,7 +655,6 @@ class MonitorConsumerTest(TestCase):
         self.send_checkin(monitor.slug, status="in_progress")
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
-        assert checkin.monitor_environment is not None
         assert checkin.monitor_environment.get_environment().name == "production"
 
         self.send_checkin(
@@ -686,7 +675,6 @@ class MonitorConsumerTest(TestCase):
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.status == CheckInStatus.IN_PROGRESS
-        assert checkin.monitor_environment is not None
         assert checkin.monitor_environment.get_environment().name != "test"
 
     def test_invalid_duration(self):
@@ -785,7 +773,7 @@ class MonitorConsumerTest(TestCase):
         # Test invalid implicit duration
         old_checkin = MonitorCheckIn.objects.create(
             monitor=monitor,
-            monitor_environment=MonitorEnvironment.objects.filter(monitor=monitor).first(),
+            monitor_environment=MonitorEnvironment.objects.get(monitor=monitor),
             project_id=self.project.id,
             status=CheckInStatus.IN_PROGRESS,
             date_added=monitor.date_added - timedelta(weeks=52),
@@ -1143,11 +1131,12 @@ class MonitorConsumerTest(TestCase):
         check_accept_monitor_checkin.return_value = PermitCheckInStatus.ACCEPTED_FOR_UPSERT
         assign_monitor_seat.return_value = Outcome.ACCEPTED
 
-        self.send_checkin(
-            "my-monitor",
-            monitor_config={"schedule": {"type": "crontab", "value": "13 * * * *"}},
-            environment="my-environment",
-        )
+        with outbox_runner():
+            self.send_checkin(
+                "my-monitor",
+                monitor_config={"schedule": {"type": "crontab", "value": "13 * * * *"}},
+                environment="my-environment",
+            )
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.status == CheckInStatus.OK
@@ -1157,6 +1146,12 @@ class MonitorConsumerTest(TestCase):
 
         check_accept_monitor_checkin.assert_called_with(self.project.id, monitor.slug)
         assign_monitor_seat.assert_called_with(monitor)
+
+        assert_org_audit_log_exists(
+            organization=self.organization,
+            event=audit_log.get_event_id("MONITOR_ADD"),
+            data={"upsert": True, **monitor.get_audit_log_data()},
+        )
 
     @mock.patch("sentry.quotas.backend.assign_monitor_seat")
     @mock.patch("sentry.quotas.backend.check_accept_monitor_checkin")

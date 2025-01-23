@@ -12,8 +12,6 @@ SLACK_ISSUE_ALERT_SUCCESS_DATADOG_METRIC = "sentry.integrations.slack.issue_aler
 SLACK_ISSUE_ALERT_FAILURE_DATADOG_METRIC = "sentry.integrations.slack.issue_alert.failure"
 
 # Webhooks
-SLACK_WEBHOOK_DM_ENDPOINT_SUCCESS_DATADOG_METRIC = "sentry.integrations.slack.dm_endpoint.success"
-SLACK_WEBHOOK_DM_ENDPOINT_FAILURE_DATADOG_METRIC = "sentry.integrations.slack.dm_endpoint.failure"
 SLACK_WEBHOOK_EVENT_ENDPOINT_SUCCESS_DATADOG_METRIC = (
     "sentry.integrations.slack.event_endpoint.success"
 )

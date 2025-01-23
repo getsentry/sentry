@@ -1,3 +1,67 @@
+25.1.0
+------
+
+### Various fixes & improvements
+
+- fix(issues): inherit ShortIdLookupEndpoint from GroupEndpoint (#83502) by @oioki
+- feat(widget-builder): Create blank widget preview for templates (#83509) by @nikkikapadia
+- fix(eslint): Cleanup some TS cruft in the eslint.config.mjs file (#83468) by @ryan953
+- feat(eap): Add has filters to eap search query builder (#83437) by @Zylphrex
+- feat(explore): Add is_transaction to explore fields (#83423) by @Zylphrex
+- styles(explore): Fix spacing between explore toolbar visualize (#83449) by @Zylphrex
+- feat(streamline): Add an option to remove opt-out for new users (#83205) by @leeandher
+- ref(issue-details): Remove all query params from legacy UI when no event is found. (#83441) by @leeandher
+- Revert "ref(quick-start): Update backend enums names (#83361)" (0729289d) by @getsentry-bot
+- feat(symx): Add os as a tag (#83504) by @loewenheim
+- ref(quick-start): Update backend enums names (#83361) by @priscilawebdev
+- ref: fix type for serializers.models.rule (#83444) by @asottile-sentry
+- ref: fix typing for plugins.bases.issue{,2} (#83445) by @asottile-sentry
+- ref: standardize user param as User | RpcUser | AnonymousUser in Serializers (#83436) by @asottile-sentry
+- Reapply "ref: upgrade to python 3.13" (#83448) by @asottile-sentry
+- feat(widget-builder): Add widget dropdown for templates (#83426) by @nikkikapadia
+- ref(quick-start): Update comments in onboarding tasks model (#83496) by @priscilawebdev
+- ref(quick-start): Remove unused functions (#83499) by @priscilawebdev
+- ref(quick-start): Remove 'INTEGRATIONS' from onboarding task (#83488) by @priscilawebdev
+- ref(quick-start): Remove 'USER_CONTEXT' from onboarding tasks (#83489) by @priscilawebdev
+- ref(quick-start): Remove 'METRIC_ALERT' from onboarding task (#83487) by @priscilawebdev
+- ref(quick-start): Add 'default=True' to the flag manager (#83483) by @priscilawebdev
+- ref(quick-start): Remove 'USER_REPORTS' from onboarding task (#83490) by @priscilawebdev
+- fix(symx): Remove log message (#83491) by @tobias-wilfert
+
+_Plus 26 more_
+
+24.12.2
+-------
+
+### Various fixes & improvements
+
+- feat(devservices): Add option to setup sentry with new devservices to existing action (#83415) by @hubertdeng123
+- ref(react19): Remove various styled defaultProps (#83409) by @scttcper
+- feat(new-trace-issues): Updating designs for trace preview in issue details (#83430) by @Abdkhan14
+- feat(metric-issues): Add "correlated issues" section  (#83353) by @snigdhas
+- fix(ui): Clamp timeline zoom to the minute (#83435) by @evanpurkhiser
+- fix(eslint): Enable no-constant-binary-expression and fix violations (#83273) by @ryan953
+- feat(eap): Support eap autocompleting booleans (#83433) by @Zylphrex
+- fix(migrations): Actually fix BoundedPositiveBigIntegerField (#83431) by @wedamija
+- ref: delete dead serializer code (#83429) by @asottile-sentry
+- feat(ui): List available param keys in useParams (#83428) by @scttcper
+- ref: fix types for mentions serializer (#83424) by @asottile-sentry
+- :recycle: feat(workflow_engine): issue alert action migration util for slack (#83123) by @iamrajjoshi
+- feat(metric-issues): Hide log level indicator for non-error issues (#83354) by @snigdhas
+- ref: use types-requests-oauthlib (#83418) by @asottile-sentry
+- ref: use types-unidiff (#83416) by @asottile-sentry
+- ref(profiling) drop drag and drop functionality (#83420) by @JonasBa
+- ref: upgrade django-stubs (#83413) by @asottile-sentry
+- chore(alerts): Remove lingering activated alerts code (#83342) by @ceorourke
+- chore(analytics): Add experimental analytics for new streamlined orgs  (#83390) by @leeandher
+- feat(dashboards): Improve duration Y axis label formatting (#83337) by @gggritso
+- ref(profiling): Merge profile provider for both modes (#83338) by @Zylphrex
+- fix(migrations): Set the correct internal type for BoundedPositiveBigIntegerField (#83412) by @wedamija
+- fix: check user in helper (#83407) by @oioki
+- fix(widget-builder): Aggregates with no column not wiped (#83410) by @narsaynorath
+
+_Plus 775 more_
+
 24.12.1
 -------
 

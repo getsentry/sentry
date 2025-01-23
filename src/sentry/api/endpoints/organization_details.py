@@ -486,7 +486,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 
         return incoming
 
-    def save(self):
+    def save(self, **kwargs):
         org = self.context["organization"]
         changed_data = {}
         if not hasattr(org, "__data"):
@@ -622,13 +622,13 @@ def post_org_pending_deletion(
             transaction_id=org_delete_response.schedule_guid,
         )
 
-        delete_confirmation_args: DeleteConfirmationArgs = dict(
-            username=request.user.get_username(),
-            ip_address=entry.ip_address,
-            deletion_datetime=entry.datetime,
-            countdown=ONE_DAY,
-            organization=updated_organization,
-        )
+        delete_confirmation_args: DeleteConfirmationArgs = {
+            "username": request.user.get_username(),
+            "ip_address": entry.ip_address,
+            "deletion_datetime": entry.datetime,
+            "countdown": ONE_DAY,
+            "organization": updated_organization,
+        }
         send_delete_confirmation(delete_confirmation_args)
 
 
@@ -921,10 +921,11 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         include_feature_flags = request.GET.get("include_feature_flags", "0") != "0"
 
         # We don't need to check for staff here b/c the _admin portal uses another endpoint to update orgs
-        if request.access.has_scope("org:admin"):
-            serializer_cls = OwnerOrganizationSerializer
-        else:
-            serializer_cls = OrganizationSerializer
+        serializer_cls: type[OwnerOrganizationSerializer | OrganizationSerializer] = (
+            OwnerOrganizationSerializer
+            if request.access.has_scope("org:admin")
+            else OrganizationSerializer
+        )
 
         was_pending_deletion = organization.status in DELETION_STATUSES
 
@@ -1147,7 +1148,7 @@ def update_tracked_data(model):
 
 class DeleteConfirmationArgs(TypedDict):
     username: str
-    ip_address: str
+    ip_address: str | None
     deletion_datetime: datetime
     organization: RpcOrganization
     countdown: int
@@ -1157,11 +1158,11 @@ def send_delete_confirmation(delete_confirmation_args: DeleteConfirmationArgs):
     from sentry import options
     from sentry.utils.email import MessageBuilder
 
-    organization = delete_confirmation_args.get("organization")
-    username = delete_confirmation_args.get("username")
-    user_ip_address = delete_confirmation_args.get("ip_address")
-    deletion_datetime = delete_confirmation_args.get("deletion_datetime")
-    countdown = delete_confirmation_args.get("countdown")
+    organization = delete_confirmation_args["organization"]
+    username = delete_confirmation_args["username"]
+    user_ip_address = delete_confirmation_args["ip_address"]
+    deletion_datetime = delete_confirmation_args["deletion_datetime"]
+    countdown = delete_confirmation_args["countdown"]
 
     url = organization.absolute_url(
         reverse("sentry-restore-organization", args=[organization.slug])

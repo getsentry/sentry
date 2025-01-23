@@ -146,8 +146,8 @@ function DurationChart({
         queryExtras={queryExtras}
       >
         {({results, errored, loading, reloading, timeframe: timeFrame}) => {
-          const stripParamsForLegend = seriesResults =>
-            seriesResults?.map(series => ({
+          const stripParamsForLegend = (seriesResults: any) =>
+            seriesResults?.map((series: any) => ({
               ...series,
               seriesName: `${parseFunction(series.seriesName)?.name}()`,
             }));

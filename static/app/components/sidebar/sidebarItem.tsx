@@ -207,10 +207,14 @@ function SidebarItem({
   const handleItemClick = useCallback(
     (event: React.MouseEvent<HTMLAnchorElement>) => {
       setExpandedItemId(null);
-      !(to || href) && event.preventDefault();
+      if (!to && !href) {
+        event.preventDefault();
+      }
       recordAnalytics();
       onClick?.(id, event);
-      showIsNew && localStorage.setItem(isNewSeenKey, 'true');
+      if (showIsNew) {
+        localStorage.setItem(isNewSeenKey, 'true');
+      }
     },
     [href, to, id, onClick, recordAnalytics, showIsNew, isNewSeenKey, setExpandedItemId]
   );
@@ -521,7 +525,7 @@ const TruncatedLabel = styled(TextOverflow)<{hasNewNav?: boolean}>`
     `}
 `;
 
-const getCollapsedBadgeStyle = ({collapsed, theme}) => {
+const getCollapsedBadgeStyle = ({collapsed, theme}: any) => {
   if (!collapsed) {
     return '';
   }
@@ -540,6 +544,7 @@ const getCollapsedBadgeStyle = ({collapsed, theme}) => {
   `;
 };
 
+// @ts-ignore TS(7031): Binding element '_' implicitly has an 'any' type.
 const SidebarItemBadge = styled(({collapsed: _, ...props}) => <span {...props} />)`
   display: block;
   text-align: center;

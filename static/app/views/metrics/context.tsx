@@ -197,7 +197,7 @@ export function useMetricWidgets(defaultQuery: Record<string, any> | null) {
   const addWidget = useCallback(
     (type: MetricExpressionType = MetricExpressionType.QUERY) => {
       const lastIndexOfSameType = currentWidgetsRef.current.findLastIndex(
-        w => w.type === type
+        (w: any) => w.type === type
       );
       if (lastIndexOfSameType > -1) {
         duplicateWidget(lastIndexOfSameType);

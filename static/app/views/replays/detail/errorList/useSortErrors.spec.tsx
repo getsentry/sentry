@@ -8,13 +8,13 @@ import useSortErrors from 'sentry/views/replays/detail/errorList/useSortErrors';
 
 jest.mock('sentry/utils/useUrlParams', () => {
   const map = new Map();
-  return (name, dflt) => {
+  return (name: any, dflt: any) => {
     if (!map.has(name)) {
       map.set(name, dflt);
     }
     return {
       getParamValue: () => map.get(name),
-      setParamValue: value => {
+      setParamValue: (value: any) => {
         map.set(name, value);
       },
     };

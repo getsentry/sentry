@@ -1,14 +1,14 @@
 import logging
 
 import grpc
-from sentry_protos.sentry.v1.taskworker_pb2 import (
+from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
     FetchNextTask,
     GetTaskRequest,
     SetTaskStatusRequest,
     TaskActivation,
     TaskActivationStatus,
 )
-from sentry_protos.sentry.v1.taskworker_pb2_grpc import ConsumerServiceStub
+from sentry_protos.taskbroker.v1.taskbroker_pb2_grpc import ConsumerServiceStub
 
 logger = logging.getLogger("sentry.taskworker.client")
 
@@ -44,7 +44,10 @@ class TaskworkerClient:
         return None
 
     def update_task(
-        self, task_id: str, status: TaskActivationStatus.ValueType, fetch_next_task: FetchNextTask
+        self,
+        task_id: str,
+        status: TaskActivationStatus.ValueType,
+        fetch_next_task: FetchNextTask | None = None,
     ) -> TaskActivation | None:
         """
         Update the status for a given task activation.

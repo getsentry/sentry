@@ -103,7 +103,7 @@ from sentry.net.http import connection_from_url
 from sentry.plugins.base import plugins
 from sentry.quotas.base import index_data_category
 from sentry.receivers.features import record_event_processed
-from sentry.receivers.onboarding import record_release_received, record_user_context_received
+from sentry.receivers.onboarding import record_release_received
 from sentry.reprocessing2 import is_reprocessed_event
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.signals import (
@@ -2538,7 +2538,6 @@ def _record_transaction_info(jobs: Sequence[Job], projects: ProjectsMapping) -> 
             # instead of sending a signal. we should consider potentially
             # deleting these
             record_event_processed(project, event)
-            record_user_context_received(project, event)
             record_release_received(project, event)
         except Exception:
             sentry_sdk.capture_exception()

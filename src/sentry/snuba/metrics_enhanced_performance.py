@@ -235,6 +235,7 @@ def top_events_timeseries(
     on_demand_metrics_type: MetricSpecType | None = None,
     query_source: QuerySource | None = None,
     fallback_to_transactions: bool = False,
+    transform_alias_to_input_format: bool = False,
 ) -> SnubaTSResult | dict[str, Any]:
     metrics_compatible = False
     equations, _ = categorize_columns(selected_columns)
@@ -262,6 +263,7 @@ def top_events_timeseries(
                 on_demand_metrics_enabled=on_demand_metrics_enabled,
                 on_demand_metrics_type=on_demand_metrics_type,
                 query_source=query_source,
+                transform_alias_to_input_format=transform_alias_to_input_format,
             )
         # raise Invalid Queries since the same thing will happen with discover
         except InvalidSearchQuery:
@@ -296,6 +298,7 @@ def top_events_timeseries(
             include_other,
             functions_acl,
             query_source=query_source,
+            transform_alias_to_input_format=transform_alias_to_input_format,
         )
     return SnubaTSResult(
         {

@@ -41,6 +41,7 @@ function TagPanel() {
     const sortedTags = Object.keys(unorderedTags)
       .sort()
       .reduce((acc, key) => {
+        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         acc[key] = unorderedTags[key];
         return acc;
       }, {});

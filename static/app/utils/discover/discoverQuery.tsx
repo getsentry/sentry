@@ -16,7 +16,7 @@ export type TableDataRow = {
  * A DiscoverQuery result including rows and metadata.
  */
 export type TableData = {
-  data: Array<TableDataRow>;
+  data: TableDataRow[];
   meta?: MetaType;
 };
 
@@ -24,7 +24,7 @@ export type TableData = {
  * A DiscoverQuery result including rows and metadata from the events endpoint.
  */
 export type EventsTableData = {
-  data: Array<TableDataRow>;
+  data: TableDataRow[];
   meta?: EventsMetaType;
 };
 
@@ -52,7 +52,7 @@ function shouldRefetchData(
 }
 
 function DiscoverQuery(props: DiscoverQueryComponentProps) {
-  const afterFetch = (data, _) => {
+  const afterFetch = (data: any, _: any) => {
     const {fields, ...otherMeta} = data.meta ?? {};
     return {
       ...data,
@@ -70,7 +70,7 @@ function DiscoverQuery(props: DiscoverQueryComponentProps) {
 }
 
 export function useDiscoverQuery(props: Omit<DiscoverQueryComponentProps, 'children'>) {
-  const afterFetch = (data, _) => {
+  const afterFetch = (data: any, _: any) => {
     const {fields, ...otherMeta} = data.meta ?? {};
     return {
       ...data,

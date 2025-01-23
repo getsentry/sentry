@@ -60,9 +60,9 @@ export default function getOutputType({isSetup, item, visibleTab}: Args): Output
   }
 
   if (['request', 'response'].includes(visibleTab)) {
-    // @ts-expect-error: is BODY_SKIPPED really emitted from the SDK?
+    // @ts-ignore TS(2345): Argument of type '"BODY_SKIPPED"' is not assignabl... Remove this comment to see the full error message
     const isReqBodySkipped = reqWarnings.includes('BODY_SKIPPED');
-    // @ts-expect-error: is BODY_SKIPPED really emitted from the SDK?
+    // @ts-ignore TS(2345): Argument of type '"BODY_SKIPPED"' is not assignabl... Remove this comment to see the full error message
     const isRespBodySkipped = respWarnings.includes('BODY_SKIPPED');
     if (isReqBodySkipped || isRespBodySkipped) {
       return Output.BODY_SKIPPED;

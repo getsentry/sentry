@@ -20,8 +20,10 @@ interface Props {
 export function MonitorHeader({monitor, orgSlug, onUpdate, linkToAlerts}: Props) {
   const crumbs = [
     {
-      label: t('Alerts'),
-      to: `/organizations/${orgSlug}/crons/`,
+      label: linkToAlerts ? t('Alerts') : t('Crons'),
+      to: linkToAlerts
+        ? `/organizations/${orgSlug}/alerts/rules/`
+        : `/organizations/${orgSlug}/crons/`,
       preservePageFilters: true,
     },
     {

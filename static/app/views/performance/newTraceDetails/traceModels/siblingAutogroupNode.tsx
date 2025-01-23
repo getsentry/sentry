@@ -6,7 +6,7 @@ export class SiblingAutogroupNode extends TraceTreeNode<TraceTree.SiblingAutogro
   groupCount: number = 0;
   profiles: TraceTree.Profile[] = [];
 
-  private _autogroupedSegments: [number, number][] | undefined;
+  private _autogroupedSegments: Array<[number, number]> | undefined;
 
   constructor(
     parent: TraceTreeNode<TraceTree.NodeValue> | null,
@@ -17,7 +17,7 @@ export class SiblingAutogroupNode extends TraceTreeNode<TraceTree.SiblingAutogro
     this.expanded = false;
   }
 
-  get autogroupedSegments(): [number, number][] {
+  get autogroupedSegments(): Array<[number, number]> {
     if (this._autogroupedSegments) {
       return this._autogroupedSegments;
     }
