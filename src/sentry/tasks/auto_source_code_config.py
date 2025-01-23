@@ -167,20 +167,16 @@ def get_trees_for_org(
                             "Installation missing get_trees_for_org_old method",
                             extra={"installation_type": type(installation).__name__, **extra},
                         )
+                if not trees:
+                    lifecycle.record_halt(DeriveCodeMappingsErrorReason.EMPTY_TREES, extra=extra)
         except ApiError as error:
             process_error(error, extra)
             lifecycle.record_halt(error, extra)
-            return
         except UnableToAcquireLock as error:
             extra["error"] = str(error)
             lifecycle.record_failure(error, extra)
-            return
         except Exception:
             lifecycle.record_failure(DeriveCodeMappingsErrorReason.UNEXPECTED_ERROR, extra=extra)
-            return
-
-        if not trees:
-            lifecycle.record_halt(DeriveCodeMappingsErrorReason.EMPTY_TREES, extra=extra)
 
         return trees
 
