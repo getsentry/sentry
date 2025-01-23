@@ -26,7 +26,7 @@ class TestDetectorSerializer(TestCase):
 
         assert result == {
             "id": str(detector.id),
-            "organizationId": str(self.organization.id),
+            "projectId": str(detector.project_id),
             "name": "Test Detector",
             "type": MetricAlertFire.slug,
             "dateCreated": detector.date_added,
@@ -79,7 +79,7 @@ class TestDetectorSerializer(TestCase):
         # print("result: ", result)
         assert result == {
             "id": str(detector.id),
-            "organizationId": str(self.organization.id),
+            "projectId": str(detector.project_id),
             "name": "Test Detector",
             "type": MetricAlertFire.slug,
             "dateCreated": detector.date_added,
