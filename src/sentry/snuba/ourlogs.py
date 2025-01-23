@@ -51,16 +51,17 @@ def query(
     query_source: QuerySource | None = None,
 ) -> EventsResponse:
     return run_table_query(
-        params=snuba_params,
         query_string=query or "",
         selected_columns=selected_columns,
         orderby=orderby,
         offset=offset or 0,
         limit=limit,
         referrer=referrer or "referrer unset",
-        config=SearchResolverConfig(
-            auto_fields=False,
-            use_aggregate_conditions=use_aggregate_conditions,
+        resolver=get_resolver(
+            params=snuba_params,
+            config=SearchResolverConfig(
+                auto_fields=False,
+                use_aggregate_conditions=use_aggregate_conditions,
+            ),
         ),
-        resolver=get_resolver(params=snuba_params, config=SearchResolverConfig()),
     )
