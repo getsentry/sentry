@@ -366,7 +366,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient)
         if not repositories:
             # Remove unnecessary fields from the response
             repositories = [
-                {"full_name": repo["full_name"], "default_branch": repo["default_branch"]}
+                {"full_name": repo["identifier"], "default_branch": repo["default_branch"]}
                 for repo in self.get_repositories(fetch_max_pages=True)
             ]
             if not repositories:

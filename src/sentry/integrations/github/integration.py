@@ -241,8 +241,8 @@ class GitHubIntegration(RepositoryIntegration, GitHubIssuesSpec, CommitContextIn
         It uses page_size from the base class to specify how many items per page (max 100; default 30).
         The upper bound of requests is controlled with self.page_number_limit to prevent infinite requests.
         """
-        fetch_max_pages = kwargs.get("fetch_max_pages", False)
         if not query:
+            fetch_max_pages = kwargs.get("fetch_max_pages", False)
             # XXX: In order to speed up this function we could use ThreadPoolExecutor
             # to fetch repositories in parallel. See src/sentry/utils/snuba.py
             repos = self.get_client().get_with_pagination(
