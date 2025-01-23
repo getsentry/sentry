@@ -400,6 +400,20 @@ class _ClientConfig:
         if not self.user_details:
             return False
 
+        # If the user is viewing the accept invitation user interface,
+        # we should avoid preloading the data as they might not yet have access to it,
+        # which could cause an error notification (403) to pop up in the user interface.
+        invite_route_names = (
+            "sentry-accept-invite",
+            "sentry-organization-accept-invite",
+        )
+        if (
+            self.request
+            and self.request.resolver_match
+            and self.request.resolver_match.url_name in invite_route_names
+        ):
+            return False
+
         return True
 
     @property
