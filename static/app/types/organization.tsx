@@ -302,7 +302,7 @@ export type EventsStatsData = Array<
 
 export type ConfidenceStatsData = Array<[number, Array<{count: Confidence}>]>;
 
-// API response format for a single series
+// API response for a single Discover timeseries
 export type EventsStats = {
   data: EventsStatsData;
   confidence?: ConfidenceStatsData;
@@ -323,11 +323,12 @@ export type EventsStats = {
   totals?: {count: number};
 };
 
-// API response format for multiple series
+// API response for a top N Discover series or a multi-axis Discover series
 export type MultiSeriesEventsStats = {
   [seriesName: string]: EventsStats;
 };
 
+// API response for a grouped top N Discover series
 export type GroupedMultiSeriesEventsStats = {
   [seriesName: string]: MultiSeriesEventsStats & {order: number};
 };
