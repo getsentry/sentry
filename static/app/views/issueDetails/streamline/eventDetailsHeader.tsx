@@ -87,20 +87,23 @@ export function EventDetailsHeader({
         <GraphSection>
           <EventGraph event={event} group={group} style={{flex: 1}} />
           <SectionDivider />
-          <IssueTagsPreview groupId={group.id} environments={environments} />
-          <IssueTagsButton
-            aria-label={t('View issue tag distributions')}
-            to={{
-              pathname: `${baseUrl}${TabPaths[Tab.TAGS]}`,
-              query: location.query,
-              replace: true,
-            }}
-            analyticsEventKey="issue_details.issue_tags_clicked"
-            analyticsEventName="Issue Details: Issue Tags Clicked"
-            disabled={!tags || tags.length === 0}
-          >
-            {t('All Tags')}
-          </IssueTagsButton>
+          <IssueTagPreviewSection>
+            <IssueTagsPreview groupId={group.id} environments={environments} />
+            <IssueTagsButton
+              aria-label={t('View issue tag distributions')}
+              size="xs"
+              to={{
+                pathname: `${baseUrl}${TabPaths[Tab.TAGS]}`,
+                query: location.query,
+                replace: true,
+              }}
+              analyticsEventKey="issue_details.issue_tags_clicked"
+              analyticsEventName="Issue Details: Issue Tags Clicked"
+              disabled={!tags || tags.length === 0}
+            >
+              {t('All Tags')}
+            </IssueTagsButton>
+          </IssueTagPreviewSection>
         </GraphSection>
       </FilterContainer>
     </PageErrorBoundary>
@@ -161,8 +164,6 @@ const IssueTagsButton = styled(LinkButton)`
   display: block;
   flex: 0;
   height: unset;
-  margin: ${space(1)} ${space(2)} ${space(1)} ${space(1)};
-  padding: ${space(1)} ${space(1.5)};
   text-align: center;
   span {
     white-space: unset;
@@ -182,4 +183,12 @@ const PageErrorBoundary = styled(ErrorBoundary)`
   border-width: 0 1px 1px 0;
   border-radius: 0;
   padding: ${space(1.5)} 24px;
+`;
+
+const IssueTagPreviewSection = styled('div')`
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: ${space(0.5)};
+  padding: ${space(1)};
 `;
