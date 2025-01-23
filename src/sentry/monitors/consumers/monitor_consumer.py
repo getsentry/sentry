@@ -735,7 +735,7 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span) -> None:
         with transaction.atomic(router.db_for_write(Monitor)):
             status = getattr(CheckInStatus, validated_params["status"].upper())
             trace_id = validated_params.get("contexts", {}).get("trace", {}).get("trace_id")
-            duration = validated_params["duration"]
+            duration = validated_params.get("duration")
 
             # 03-A
             # Retrieve existing check-in for update
