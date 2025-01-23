@@ -4,60 +4,16 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import AutofixInsightCards from 'sentry/components/events/autofix/autofixInsightCards';
 import type {AutofixInsight} from 'sentry/components/events/autofix/types';
 
-jest.mock('sentry/utils/marked', () => ({
-  singleLineRenderer: jest.fn(text => text),
-}));
-
 jest.mock('sentry/actionCreators/indicator');
 
 const sampleInsights: AutofixInsight[] = [
   {
-    breadcrumb_context: [
-      {
-        body: 'Breadcrumb body',
-        category: 'ui',
-        level: 'info',
-        data_as_json: '{"testData": "testValue"}',
-        type: 'info',
-      },
-    ],
-    codebase_context: [
-      {
-        snippet: 'console.log("Hello, World!");',
-        repo_name: 'sample-repo',
-        file_path: 'src/index.js',
-      },
-    ],
     insight: 'Sample insight 1',
     justification: 'Sample justification 1',
-    stacktrace_context: [
-      {
-        code_snippet: 'function() { throw new Error("Test error"); }',
-        repo_name: 'sample-repo',
-        file_name: 'src/error.js',
-        vars_as_json: '{"testVar": "testValue"}',
-        col_no: 1,
-        line_no: 1,
-        function: 'testFunction',
-      },
-    ],
   },
   {
     insight: 'User message',
     justification: 'USER',
-    breadcrumb_context: [],
-    stacktrace_context: [],
-    codebase_context: [],
-  },
-];
-
-const sampleRepos = [
-  {
-    external_id: '1',
-    name: 'sample-repo',
-    default_branch: 'main',
-    provider: 'github',
-    url: 'github.com/org/sample-repo',
   },
 ];
 
@@ -72,7 +28,6 @@ describe('AutofixInsightCards', () => {
     return render(
       <AutofixInsightCards
         insights={sampleInsights}
-        repos={sampleRepos}
         hasStepAbove={false}
         hasStepBelow={false}
         groupId="1"
@@ -89,33 +44,6 @@ describe('AutofixInsightCards', () => {
     expect(screen.getByText('User message')).toBeInTheDocument();
   });
 
-  it('renders breadcrumb context correctly', async () => {
-    renderComponent();
-    const contextButton = screen.getByText('Sample insight 1');
-    await userEvent.click(contextButton);
-    expect(screen.getByText('Breadcrumb body')).toBeInTheDocument();
-    expect(screen.getByText('info')).toBeInTheDocument();
-  });
-
-  it('renders codebase context correctly', async () => {
-    renderComponent();
-    const contextButton = screen.getByText('Sample insight 1');
-    await userEvent.click(contextButton);
-    expect(screen.getByText('console.log("Hello, World!");')).toBeInTheDocument();
-    expect(screen.getByText('src/index.js')).toBeInTheDocument();
-  });
-
-  it('renders stacktrace context correctly', async () => {
-    renderComponent();
-    const contextButton = screen.getByText('Sample insight 1');
-    await userEvent.click(contextButton);
-    expect(
-      screen.getByText('function() { throw new Error("Test error"); }')
-    ).toBeInTheDocument();
-    expect(screen.getByText('src/error.js')).toBeInTheDocument();
-    expect(screen.getByText('testVar')).toBeInTheDocument();
-  });
-
   it('renders user messages differently', () => {
     renderComponent();
     const userMessage = screen.getByText('User message');
@@ -127,10 +55,14 @@ describe('AutofixInsightCards', () => {
     const contextButton = screen.getByText('Sample insight 1');
 
     await userEvent.click(contextButton);
-    expect(screen.getByText('Sample justification 1')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('Sample justification 1')).toBeInTheDocument();
+    });
 
     await userEvent.click(contextButton);
-    expect(screen.queryByText('Sample justification 1')).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByText('Sample justification 1')).not.toBeInTheDocument();
+    });
   });
 
   it('renders multiple insights correctly', () => {
@@ -147,59 +79,49 @@ describe('AutofixInsightCards', () => {
     expect(screen.getByText('Another insight')).toBeInTheDocument();
   });
 
-  it('renders "Rethink from here" buttons', () => {
+  it('renders "Edit insight" buttons', () => {
     renderComponent();
-    const rethinkButtons = screen.getAllByRole('button', {name: 'Rethink from here'});
-    expect(rethinkButtons.length).toBeGreaterThan(0);
+    const editButtons = screen.getAllByRole('button', {name: 'Edit insight'});
+    expect(editButtons.length).toBeGreaterThan(0);
   });
 
-  it('shows rethink input overlay when "Rethink from here" is clicked', async () => {
+  it('shows edit input overlay when "Edit insight" is clicked', async () => {
     renderComponent();
-    const rethinkButton = screen.getByRole('button', {name: 'Rethink from here'});
-    await userEvent.click(rethinkButton);
+    const editButton = screen.getAllByRole('button', {name: 'Edit insight'})[0]!;
+    await userEvent.click(editButton);
     expect(
-      screen.getByPlaceholderText(
-        'You should know X... Dive deeper into Y... Look at Z...'
-      )
+      screen.getByPlaceholderText('Share your own insight here...')
     ).toBeInTheDocument();
   });
 
-  it('hides rethink input overlay when clicked outside', async () => {
+  it('hides edit input when clicked cancel', async () => {
     renderComponent();
-    const rethinkButton = screen.getByRole('button', {name: 'Rethink from here'});
-    await userEvent.click(rethinkButton);
+    const editButton = screen.getAllByRole('button', {name: 'Edit insight'})[0]!;
+    await userEvent.click(editButton);
     expect(
-      screen.getByPlaceholderText(
-        'You should know X... Dive deeper into Y... Look at Z...'
-      )
+      screen.getByPlaceholderText('Share your own insight here...')
     ).toBeInTheDocument();
 
-    await userEvent.click(document.body);
+    await userEvent.click(screen.getByLabelText('Cancel'));
     expect(
-      screen.queryByPlaceholderText(
-        'You should know X... Dive deeper into Y... Look at Z...'
-      )
+      screen.queryByPlaceholderText('Share your own insight here...')
     ).not.toBeInTheDocument();
   });
 
-  it('submits rethink request when form is submitted', async () => {
+  it('submits edit request when form is submitted', async () => {
     const mockApi = MockApiClient.addMockResponse({
       url: '/issues/1/autofix/update/',
       method: 'POST',
     });
 
     renderComponent();
-    const rethinkButton = screen.getByRole('button', {name: 'Rethink from here'});
-    await userEvent.click(rethinkButton);
+    const editButton = screen.getAllByRole('button', {name: 'Edit insight'})[1]!;
+    await userEvent.click(editButton);
 
-    const input = screen.getByPlaceholderText(
-      'You should know X... Dive deeper into Y... Look at Z...'
-    );
-    await userEvent.type(input, 'Rethink this part');
+    const input = screen.getByPlaceholderText('Share your own insight here...');
+    await userEvent.type(input, 'Here is my insight.');
 
-    const submitButton = screen.getByLabelText(
-      'Restart analysis from this point in the chain'
-    );
+    const submitButton = screen.getByLabelText('Rethink from here using your insight');
     await userEvent.click(submitButton);
 
     expect(mockApi).toHaveBeenCalledWith(
@@ -210,7 +132,7 @@ describe('AutofixInsightCards', () => {
           run_id: '1',
           payload: expect.objectContaining({
             type: 'restart_from_point_with_feedback',
-            message: 'Rethink this part',
+            message: 'Here is my insight.',
             step_index: 0,
             retain_insight_card_index: 0,
           }),
@@ -219,24 +141,20 @@ describe('AutofixInsightCards', () => {
     );
   });
 
-  it('shows success message after successful rethink submission', async () => {
+  it('shows success message after successful edit submission', async () => {
     MockApiClient.addMockResponse({
       url: '/issues/1/autofix/update/',
       method: 'POST',
     });
 
     renderComponent();
-    const rethinkButton = screen.getByRole('button', {name: 'Rethink from here'});
-    await userEvent.click(rethinkButton);
+    const editButton = screen.getAllByRole('button', {name: 'Edit insight'})[0]!;
+    await userEvent.click(editButton);
 
-    const input = screen.getByPlaceholderText(
-      'You should know X... Dive deeper into Y... Look at Z...'
-    );
-    await userEvent.type(input, 'Rethink this part');
+    const input = screen.getByPlaceholderText('Share your own insight here...');
+    await userEvent.type(input, 'Here is my insight.');
 
-    const submitButton = screen.getByLabelText(
-      'Restart analysis from this point in the chain'
-    );
+    const submitButton = screen.getByLabelText('Rethink from here using your insight');
     await userEvent.click(submitButton);
 
     await waitFor(() => {
@@ -244,7 +162,7 @@ describe('AutofixInsightCards', () => {
     });
   });
 
-  it('shows error message after failed rethink submission', async () => {
+  it('shows error message after failed edit submission', async () => {
     MockApiClient.addMockResponse({
       url: '/issues/1/autofix/update/',
       method: 'POST',
@@ -252,17 +170,13 @@ describe('AutofixInsightCards', () => {
     });
 
     renderComponent();
-    const rethinkButton = screen.getByRole('button', {name: 'Rethink from here'});
-    await userEvent.click(rethinkButton);
+    const editButton = screen.getAllByRole('button', {name: 'Edit insight'})[0]!;
+    await userEvent.click(editButton);
 
-    const input = screen.getByPlaceholderText(
-      'You should know X... Dive deeper into Y... Look at Z...'
-    );
-    await userEvent.type(input, 'Rethink this part');
+    const input = screen.getByPlaceholderText('Share your own insight here...');
+    await userEvent.type(input, 'Here is my insight.');
 
-    const submitButton = screen.getByLabelText(
-      'Restart analysis from this point in the chain'
-    );
+    const submitButton = screen.getByLabelText('Rethink from here using your insight');
     await userEvent.click(submitButton);
 
     await waitFor(() => {
