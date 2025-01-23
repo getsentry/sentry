@@ -17,7 +17,7 @@ import orjson
 import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
-from sentry_protos.sentry.v1.taskworker_pb2 import (
+from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
     TASK_ACTIVATION_STATUS_COMPLETE,
     TASK_ACTIVATION_STATUS_FAILURE,
     TASK_ACTIVATION_STATUS_RETRY,
