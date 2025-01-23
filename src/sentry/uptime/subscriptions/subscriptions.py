@@ -7,6 +7,7 @@ from django.db.models import TextField
 from django.db.models.expressions import Value
 from django.db.models.functions import MD5, Coalesce
 
+from sentry.constants import ObjectStatus
 from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.types.actor import Actor
@@ -262,6 +263,49 @@ def update_project_uptime_subscription(
     # uptime monitor. Check if the old subscription was orphaned due to this.
     if updated_subscription:
         remove_uptime_subscription_if_unused(cur_uptime_subscription)
+
+
+def disable_project_uptime_subscription(uptime_monitor: ProjectUptimeSubscription):
+    """
+    Disables a project uptime subscription. If the uptime subscription no
+    longer has any active project subscriptions the subscription itself will
+    also be disabled.
+    """
+    if uptime_monitor.status == ObjectStatus.DISABLED:
+        return
+
+    uptime_monitor.update(status=ObjectStatus.DISABLED)
+    uptime_subscription = uptime_monitor.uptime_subscription
+
+    # Are there any other project subscriptions associated to the subscription
+    # that are NOT disabled?
+    has_active_subscription = uptime_subscription.projectuptimesubscription_set.exclude(
+        status=ObjectStatus.DISABLED
+    ).exists()
+
+    # All project subscriptions are disabled, we can disable the subscription
+    # and remove the remote subscription.
+    if not has_active_subscription:
+        uptime_subscription.update(status=UptimeSubscription.Status.DISABLED.value)
+        delete_remote_uptime_subscription.delay(uptime_subscription.id)
+
+
+def enable_project_uptime_subscription(uptime_monitor: ProjectUptimeSubscription):
+    """
+    Re-enables a project uptime subscription. If the uptime subscription was
+    also disabled it will be re-activated and the remote subscription will be
+    published.
+    """
+    if uptime_monitor.status != ObjectStatus.DISABLED:
+        return
+
+    uptime_monitor.update(status=ObjectStatus.ACTIVE)
+    uptime_subscription = uptime_monitor.uptime_subscription
+
+    # The subscription was disabled, it can be re-activated now
+    if uptime_subscription.status == UptimeSubscription.Status.DISABLED.value:
+        uptime_subscription.update(status=UptimeSubscription.Status.CREATING.value)
+        create_remote_uptime_subscription.delay(uptime_subscription.id)
 
 
 def delete_uptime_subscriptions_for_project(
