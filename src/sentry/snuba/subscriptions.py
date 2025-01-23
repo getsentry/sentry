@@ -137,7 +137,7 @@ def update_snuba_query(
 def bulk_create_snuba_subscriptions(
     projects: Iterable[Project],
     subscription_type: str,
-    snuba_query: SnubaQuery | None,
+    snuba_query: SnubaQuery,
     query_extra: str | None = None,
 ) -> list[QuerySubscription]:
     """
@@ -161,7 +161,7 @@ def bulk_create_snuba_subscriptions(
 def create_snuba_subscription(
     project: Project,
     subscription_type: str,
-    snuba_query: SnubaQuery | None,
+    snuba_query: SnubaQuery,
     query_extra: str | None = None,
 ) -> QuerySubscription:
     """
