@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import Input from 'sentry/components/deprecatedforms/input';
-// import Form from 'sentry/components/forms/form';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
