@@ -17,7 +17,10 @@ interface UseExploreSpansTableOptions {
   query: string;
 }
 
-export type SpansTableResult = ReturnType<typeof useSpansQuery<any[]>>;
+export interface SpansTableResult {
+  columns: ReturnType<typeof EventView.prototype.getColumns>;
+  result: ReturnType<typeof useSpansQuery<any[]>>;
+}
 
 export function useExploreSpansTable({
   enabled,
@@ -65,6 +68,10 @@ export function useExploreSpansTable({
     return EventView.fromNewQueryWithPageFilters(discoverQuery, selection);
   }, [dataset, sortBys, query, selection, visibleFields]);
 
+  const columns = useMemo(() => {
+    return eventView.getColumns();
+  }, [eventView]);
+
   const result = useSpansQuery({
     enabled,
     eventView,
@@ -74,5 +81,7 @@ export function useExploreSpansTable({
     allowAggregateConditions: false,
   });
 
-  return result;
+  return useMemo(() => {
+    return {columns, result};
+  }, [result, columns]);
 }

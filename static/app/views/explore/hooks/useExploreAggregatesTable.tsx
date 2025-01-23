@@ -20,6 +20,7 @@ interface UseExploreAggregatesTableOptions {
 }
 
 export interface AggregatesTableResult {
+  columns: ReturnType<typeof EventView.prototype.getColumns>;
   fields: string[];
   result: ReturnType<typeof useSpansQuery<any[]>>;
 }
@@ -84,6 +85,10 @@ export function useExploreAggregatesTable({
     return EventView.fromNewQueryWithPageFilters(discoverQuery, selection);
   }, [dataset, fields, sorts, query, selection]);
 
+  const columns = useMemo(() => {
+    return eventView.getColumns();
+  }, [eventView]);
+
   const result = useSpansQuery({
     enabled,
     eventView,
@@ -93,6 +98,6 @@ export function useExploreAggregatesTable({
   });
 
   return useMemo(() => {
-    return {fields, result};
-  }, [fields, result]);
+    return {columns, fields, result};
+  }, [fields, result, columns]);
 }

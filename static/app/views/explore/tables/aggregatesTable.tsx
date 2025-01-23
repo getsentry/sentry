@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useRef} from 'react';
+import {Fragment, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -22,7 +22,6 @@ import {
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {
   Table,
   TableBody,
@@ -70,19 +69,11 @@ export function AggregatesTable({
   const groupBys = useExploreGroupBys();
   const visualizes = useExploreVisualizes();
 
-  const {result, fields} = aggregatesTableResult;
+  const {result, fields, columns} = aggregatesTableResult;
 
   const sorts = useExploreSortBys();
   const setSorts = useSetExploreSortBys();
   const query = useExploreQuery();
-
-  const columns = useMemo(() => {
-    return decodeColumnOrder(
-      fields.map(f => {
-        return {field: f};
-      })
-    );
-  }, [fields]);
 
   useAnalytics({
     dataset,

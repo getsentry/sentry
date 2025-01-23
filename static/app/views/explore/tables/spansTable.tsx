@@ -11,7 +11,6 @@ import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {fieldAlignment, prettifyTagKey} from 'sentry/utils/discover/fields';
 import useOrganization from 'sentry/utils/useOrganization';
-import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {
   Table,
   TableBody,
@@ -58,19 +57,13 @@ export function SpansTable({confidences, spansTableResult}: SpansTableProps) {
     [fields]
   );
 
-  const columnsFromVisibleFields = useMemo(() => {
-    return decodeColumnOrder(
-      visibleFields.map(f => {
-        return {field: f};
-      })
-    );
-  }, [visibleFields]);
+  const {result, columns} = spansTableResult;
 
   useAnalytics({
     dataset,
-    resultLength: spansTableResult.data?.length,
+    resultLength: result.data?.length,
     resultMode: 'span samples',
-    resultStatus: spansTableResult.status,
+    resultStatus: result.status,
     visualizes,
     organization,
     columns: fields,
@@ -82,7 +75,7 @@ export function SpansTable({confidences, spansTableResult}: SpansTableProps) {
   const tableRef = useRef<HTMLTableElement>(null);
   const {initialTableStyles, onResizeMouseDown} = useTableStyles(visibleFields, tableRef);
 
-  const meta = spansTableResult.meta ?? {};
+  const meta = result.meta ?? {};
 
   const numberTags = useSpanTags('number');
   const stringTags = useSpanTags('string');
@@ -94,7 +87,7 @@ export function SpansTable({confidences, spansTableResult}: SpansTableProps) {
           <TableRow>
             {visibleFields.map((field, i) => {
               // Hide column names before alignment is determined
-              if (spansTableResult.isPending) {
+              if (result.isPending) {
                 return <TableHeadCell key={i} isFirst={i === 0} />;
               }
 
@@ -129,10 +122,8 @@ export function SpansTable({confidences, spansTableResult}: SpansTableProps) {
                   {i !== visibleFields.length - 1 && (
                     <GridResizer
                       dataRows={
-                        !spansTableResult.isError &&
-                        !spansTableResult.isPending &&
-                        spansTableResult.data
-                          ? spansTableResult.data.length
+                        !result.isError && !result.isPending && result.data
+                          ? result.data.length
                           : 0
                       }
                       onMouseDown={e => onResizeMouseDown(e, i)}
@@ -144,22 +135,22 @@ export function SpansTable({confidences, spansTableResult}: SpansTableProps) {
           </TableRow>
         </TableHead>
         <TableBody>
-          {spansTableResult.isPending ? (
+          {result.isPending ? (
             <TableStatus>
               <LoadingIndicator />
             </TableStatus>
-          ) : spansTableResult.isError ? (
+          ) : result.isError ? (
             <TableStatus>
               <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
             </TableStatus>
-          ) : spansTableResult.isFetched && spansTableResult.data?.length ? (
-            spansTableResult.data?.map((row, i) => (
+          ) : result.isFetched && result.data?.length ? (
+            result.data?.map((row, i) => (
               <TableRow key={i}>
                 {visibleFields.map((field, j) => {
                   return (
                     <TableBodyCell key={j}>
                       <FieldRenderer
-                        column={columnsFromVisibleFields[j]!}
+                        column={columns[j]!}
                         data={row}
                         unit={meta?.units?.[field]}
                         meta={meta}
@@ -178,7 +169,7 @@ export function SpansTable({confidences, spansTableResult}: SpansTableProps) {
           )}
         </TableBody>
       </Table>
-      <Pagination pageLinks={spansTableResult.pageLinks} />
+      <Pagination pageLinks={result.pageLinks} />
     </Fragment>
   );
 }
