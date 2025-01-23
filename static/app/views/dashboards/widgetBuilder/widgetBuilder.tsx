@@ -549,17 +549,6 @@ function WidgetBuilder({
   function handleDisplayTypeOrAnnotationChange<
     F extends keyof Pick<State, 'displayType' | 'title' | 'description'>,
   >(field: F, value: State[F]) {
-    if (value) {
-      trackAnalytics('dashboards_views.widget_builder.change', {
-        from: source,
-        field,
-        value,
-        widget_type: widgetType,
-        organization,
-        new_widget: !isEditing,
-        builder_version: WidgetBuilderVersion.PAGE,
-      });
-    }
     setState(prevState => {
       const newState = cloneDeep(prevState);
       set(newState, field, value);
@@ -1203,6 +1192,20 @@ function WidgetBuilder({
                                         );
                                       }}
                                       value={state.title}
+                                      onBlur={() => {
+                                        trackAnalytics(
+                                          'dashboards_views.widget_builder.change',
+                                          {
+                                            from: source,
+                                            field: 'title',
+                                            value: state.title ?? '',
+                                            widget_type: widgetType,
+                                            organization,
+                                            new_widget: !isEditing,
+                                            builder_version: WidgetBuilderVersion.PAGE,
+                                          }
+                                        );
+                                      }}
                                     />
                                     <StyledTextAreaField
                                       name="description"
@@ -1219,6 +1222,20 @@ function WidgetBuilder({
                                         );
                                       }}
                                       value={state.description}
+                                      onBlur={() => {
+                                        trackAnalytics(
+                                          'dashboards_views.widget_builder.change',
+                                          {
+                                            from: source,
+                                            field: 'description',
+                                            value: state.description ?? '',
+                                            widget_type: widgetType,
+                                            organization,
+                                            new_widget: !isEditing,
+                                            builder_version: WidgetBuilderVersion.PAGE,
+                                          }
+                                        );
+                                      }}
                                     />
                                   </NameWidgetStep>
                                   <VisualizationStep
