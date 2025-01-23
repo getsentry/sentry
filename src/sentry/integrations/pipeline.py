@@ -126,7 +126,6 @@ class IntegrationPipeline(Pipeline):
                 extra={
                     "error_message": str(e),
                     "error_status": getattr(e, "code", None),
-                    "organization_id": self.organization.id if self.organization else None,
                     "provider_key": self.provider.key,
                 },
             )
@@ -137,7 +136,6 @@ class IntegrationPipeline(Pipeline):
                 extra={
                     "error_message": str(e),
                     "error_status": getattr(e, "code", None),
-                    "organization_id": self.organization.id,
                     "provider_key": self.provider.key,
                 },
             )
@@ -223,8 +221,6 @@ class IntegrationPipeline(Pipeline):
                             "object_id": matched_identity.id,
                             "user_id": self.request.user.id,
                             "type": identity["type"],
-                            "organization_id": self.organization.id,
-                            "provider_key": self.provider.key,
                         },
                     )
                     # if we don't need a default identity, we don't have to throw an error
@@ -250,13 +246,6 @@ class IntegrationPipeline(Pipeline):
         if self.provider.is_region_restricted and is_violating_region_restriction(
             organization_id=self.organization.id, integration_id=self.integration.id
         ):
-            self.get_logger().info(
-                "finish_pipeline.multi_region_install_error",
-                extra={
-                    "organization_id": self.organization.id,
-                    "provider_key": self.provider.key,
-                },
-            )
             return self._dialog_response(
                 {
                     "error": _(
@@ -295,8 +284,6 @@ class IntegrationPipeline(Pipeline):
                 "document_origin": document_origin,
                 "success": success,
                 "organization_id": self.organization.id,
-                "provider_key": self.provider.key,
-                "dialog": data,
             },
         )
         return render_to_response("sentry/integrations/dialog-complete.html", context, self.request)
