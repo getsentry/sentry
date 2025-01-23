@@ -520,7 +520,6 @@ class ExhaustiveFixtures(Fixtures):
         alert.user_id = owner_id
         alert.save()
         trigger = self.create_alert_rule_trigger(alert_rule=alert)
-        assert alert.snuba_query is not None
         self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
 
         # Incident*

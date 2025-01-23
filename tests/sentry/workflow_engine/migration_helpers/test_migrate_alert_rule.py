@@ -78,7 +78,6 @@ def assert_alert_rule_migrated(alert_rule, project_id):
 
     assert workflow.when_condition_group is None
 
-    assert alert_rule.snuba_query
     query_subscription = QuerySubscription.objects.get(snuba_query=alert_rule.snuba_query.id)
     data_source = DataSource.objects.get(
         organization_id=alert_rule.organization_id, query_id=query_subscription.id
@@ -215,7 +214,6 @@ class AlertRuleMigrationHelpersTest(APITestCase):
         detector_workflow = DetectorWorkflow.objects.get(detector=detector)
         data_condition_group = detector.workflow_condition_group
         assert data_condition_group is not None
-        assert self.metric_alert.snuba_query
         query_subscription = QuerySubscription.objects.get(
             snuba_query=self.metric_alert.snuba_query.id
         )

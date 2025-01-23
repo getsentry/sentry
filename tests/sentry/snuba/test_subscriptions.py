@@ -335,7 +335,6 @@ class UpdateSnubaSubscriptionTest(TestCase):
         update_snuba_subscription(subscription, old_type, old_dataset, old_aggregate, old_query)
         assert subscription.status == QuerySubscription.Status.UPDATING.value
         assert subscription.subscription_id == subscription_id
-        assert subscription.snuba_query is not None
         assert subscription.snuba_query.dataset == dataset.value
         assert subscription.snuba_query.query == query
         assert subscription.snuba_query.aggregate == aggregate
