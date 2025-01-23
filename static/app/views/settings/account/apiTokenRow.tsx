@@ -37,7 +37,7 @@ function ApiTokenRow({token, onRemove, tokenPrefix = '', canEdit = false}: Props
             </Link>
           </LinkWrapper>
         ) : (
-          <StyledTokenName>{token.name ? token.name : ''}</StyledTokenName>
+          <p>{token.name ? token.name : ''}</p>
         )}
         <ButtonWrapper>
           <Confirm
@@ -149,10 +149,6 @@ const ButtonWrapper = styled('div')`
   justify-content: flex-end;
   font-size: ${p => p.theme.fontSizeSmall};
   gap: ${space(1)};
-`;
-
-const StyledTokenName = styled('p')`
-  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 export default ApiTokenRow;
