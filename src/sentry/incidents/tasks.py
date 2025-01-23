@@ -40,7 +40,7 @@ def handle_subscription_metrics_logger(
     from sentry.incidents.subscription_processor import SubscriptionProcessor
 
     try:
-        if subscription.snuba_query.dataset == Dataset.Metrics.value:
+        if subscription.snuba_query and subscription.snuba_query.dataset == Dataset.Metrics.value:
             processor = SubscriptionProcessor(subscription)
             # XXX: Temporary hack so that we can extract these values without raising an exception
             processor.reset_trigger_counts = lambda *arg, **kwargs: None  # type: ignore[method-assign]
