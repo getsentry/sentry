@@ -246,7 +246,6 @@ class GitHubIntegration(RepositoryIntegration, GitHubIssuesSpec, CommitContextIn
             repos = self.get_client().get_repos(fetch_max_pages)
             return [
                 {
-                    "id": i["id"],
                     "name": i["name"],
                     "identifier": i["full_name"],
                     "default_branch": i.get("default_branch"),
@@ -258,7 +257,6 @@ class GitHubIntegration(RepositoryIntegration, GitHubIssuesSpec, CommitContextIn
         response = self.get_client().search_repositories(full_query)
         return [
             {
-                "id": i["id"],
                 "name": i["name"],
                 "identifier": i["full_name"],
                 "default_branch": i.get("default_branch"),
