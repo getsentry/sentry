@@ -41,6 +41,7 @@ from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
 from sentry.utils import auth, json
 from sentry.utils.assets import get_frontend_dist_prefix
+from sentry.utils.demo_mode import is_readonly_user
 from sentry.utils.email import is_smtp_enabled
 from sentry.utils.http import is_using_customer_domain
 from sentry.utils.settings import (
@@ -407,9 +408,7 @@ class _ClientConfig:
         if not options.get("demo-mode.enabled"):
             return False
 
-        email = getattr(self.user, "email", None)
-
-        return email in options.get("demo-mode.users")
+        return is_readonly_user(self.user)
 
     def get_context(self) -> Mapping[str, Any]:
         return {
