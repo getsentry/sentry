@@ -227,29 +227,24 @@ class GitHubIntegration(RepositoryIntegration, GitHubIssuesSpec, CommitContextIn
         _, _, source_path = url.partition("/")
         return source_path
 
-    def get_repositories(
-        self, query: str | None = None, fetch_max_pages: bool = False
-    ) -> list[dict[str, Any]]:
+    def get_repositories(self, query: str | None = None, **kwargs: Any) -> list[dict[str, Any]]:
         """
         args:
-         * fetch_max_pages - fetch as many repos as possible using pagination (slow)
+        * query - a query to filter the repositories by
+
+        kwargs:
+        * fetch_max_pages - fetch as many repos as possible using pagination (slow)
 
         This fetches all repositories accessible to the Github App
         https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation
 
-        It uses page_size from the base class to specify how many items per page.
+        It uses page_size from the base class to specify how many items per page (max 100; default 30).
         The upper bound of requests is controlled with self.page_number_limit to prevent infinite requests.
         """
-
-        """
-        This fetches all repositories accessible to a Github App
-        https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation
-
-        per_page: The number of results per page (max 100; default 30).
-        """
+        fetch_max_pages = kwargs.get("fetch_max_pages", False)
         if not query:
-            # XXX: In order to speed up this function we will need to parallelize this
-            # Use ThreadPoolExecutor; see src/sentry/utils/snuba.py#L358
+            # XXX: In order to speed up this function we could use ThreadPoolExecutor
+            # to fetch repositories in parallel. See src/sentry/utils/snuba.py
             repos = self.get_client().get_with_pagination(
                 "/installation/repositories",
                 response_key="repositories",
