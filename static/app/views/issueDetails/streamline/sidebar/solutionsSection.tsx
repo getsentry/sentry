@@ -50,6 +50,7 @@ export default function SolutionsSection({
             viewAllButton?.contains(element) ||
             document.getElementById('sentry-feedback')?.contains(element) ||
             document.getElementById('autofix-rethink-input')?.contains(element) ||
+            document.getElementById('autofix-output-stream')?.contains(element) ||
             document.getElementById('autofix-write-access-modal')?.contains(element) ||
             element.closest('[data-overlay="true"]')
           ) {
