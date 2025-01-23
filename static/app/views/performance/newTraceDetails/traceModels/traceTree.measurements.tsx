@@ -133,8 +133,8 @@ export function collectTraceMeasurements(
     }
 
     const score = Math.round(
-      (measurements[`score.${measurement}`]!?.value /
-        measurements[`score.weight.${measurement}`]!?.value) *
+      (measurements[`score.${measurement}`]?.value! /
+        measurements[`score.weight.${measurement}`]?.value!) *
         100
     );
 

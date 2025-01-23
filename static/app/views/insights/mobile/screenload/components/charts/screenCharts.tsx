@@ -137,7 +137,7 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
         if (yAxis in transformedReleaseSeries) {
           const data =
             // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-            series[release]![yAxis]!?.data.map((datum: any) => {
+            series[release]![yAxis]?.data.map((datum: any) => {
               return {
                 name: datum[0] * 1000,
                 value: datum[1][0].count,

@@ -549,7 +549,7 @@ class EventsTable extends Component<Props, State> {
                   tableData ??= {data: []};
                   const pageEventsCount = tableData?.data?.length ?? 0;
                   const parsedPageLinks = parseLinkHeader(pageLinks);
-                  const cursor = parsedPageLinks?.next!?.cursor;
+                  const cursor = parsedPageLinks?.next?.cursor;
                   const shouldFetchAttachments: boolean =
                     organization.features.includes('event-attachments') &&
                     !!this.props.issueId &&
@@ -563,7 +563,7 @@ class EventsTable extends Component<Props, State> {
                           totalEventsCount: totalEventsCount.toLocaleString(),
                         })
                       : undefined;
-                  if (shouldFetchAttachments) {
+                  if (cursor && shouldFetchAttachments) {
                     fetchAttachments(tableData, cursor);
                   }
                   joinCustomData(tableData);
