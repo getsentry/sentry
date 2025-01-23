@@ -14,7 +14,7 @@ import {
   useApiQuery,
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
-import type {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 
 const MAX_TAGS = 1000;
 
@@ -212,6 +212,62 @@ export function fetchSpanFieldValues({
   });
 }
 
+/**
+ * Fetch feature flag values for an organization. This is done by querying ERRORS with useFlagsBackend=1.
+ * This only returns feature flags, not other tags.
+ *
+ * The `projectIds` argument can be used to subset projects.
+ */
+export function fetchFeatureFlagValues({
+  api,
+  orgSlug,
+  tagKey,
+  endpointParams,
+  projectIds,
+  search,
+  sort,
+}: {
+  api: Client;
+  orgSlug: string;
+  tagKey: string;
+  endpointParams?: Query;
+  projectIds?: string[];
+  search?: string;
+  sort?: '-last_seen' | '-count';
+}): Promise<TagValue[]> {
+  const url = `/organizations/${orgSlug}/tags/${tagKey}/values/`;
+
+  const query: Query = {};
+  query.dataset = Dataset.ERRORS;
+  query.useFlagsBackend = '1';
+
+  if (search) {
+    query.query = search;
+  }
+  if (projectIds) {
+    query.project = projectIds;
+  }
+  if (endpointParams) {
+    if (endpointParams.start) {
+      query.start = endpointParams.start;
+    }
+    if (endpointParams.end) {
+      query.end = endpointParams.end;
+    }
+    if (endpointParams.statsPeriod) {
+      query.statsPeriod = endpointParams.statsPeriod;
+    }
+  }
+  if (sort) {
+    query.sort = sort;
+  }
+
+  return api.requestPromise(url, {
+    method: 'GET',
+    query,
+  });
+}
+
 type FetchOrganizationTagsParams = {
   orgSlug: string;
   dataset?: Dataset;
@@ -222,6 +278,7 @@ type FetchOrganizationTagsParams = {
   start?: string;
   statsPeriod?: string | null;
   useCache?: boolean;
+  useFlagsBackend?: boolean;
 };
 
 export const makeFetchOrganizationTags = ({
@@ -229,6 +286,7 @@ export const makeFetchOrganizationTags = ({
   dataset,
   projectIds,
   useCache = true,
+  useFlagsBackend = false,
   statsPeriod,
   start,
   end,
@@ -238,6 +296,7 @@ export const makeFetchOrganizationTags = ({
   query.dataset = dataset;
   query.useCache = useCache ? '1' : '0';
   query.project = projectIds;
+  query.useFlagsBackend = useFlagsBackend ? '1' : '0';
 
   if (statsPeriod) {
     query.statsPeriod = statsPeriod;

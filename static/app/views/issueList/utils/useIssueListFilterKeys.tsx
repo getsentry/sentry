@@ -10,6 +10,7 @@ export function useIssueListFilterKeys() {
     org: organization,
     projectIds: pageFilters.projects.map(id => id.toString()),
     keepPreviousData: true,
+    includeFeatureFlags: true,
     start: pageFilters.datetime.start
       ? getUtcDateString(pageFilters.datetime.start)
       : undefined,

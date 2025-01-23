@@ -1,7 +1,7 @@
 import {useCallback, useMemo} from 'react';
 import orderBy from 'lodash/orderBy';
 
-import {fetchTagValues} from 'sentry/actionCreators/tags';
+import {fetchFeatureFlagValues, fetchTagValues} from 'sentry/actionCreators/tags';
 import {
   SearchQueryBuilder,
   type SearchQueryBuilderProps,
@@ -23,16 +23,26 @@ const getFilterKeySections = (tags: TagCollection): FilterKeySection[] => {
   const allTags: Tag[] = Object.values(tags).filter(
     tag => !EXCLUDED_TAGS.includes(tag.key)
   );
+
   const issueFields = orderBy(
     allTags.filter(tag => tag.kind === FieldKind.ISSUE_FIELD),
     ['key']
   ).map(tag => tag.key);
+
   const eventFields = orderBy(
     allTags.filter(tag => tag.kind === FieldKind.EVENT_FIELD),
     ['key']
   ).map(tag => tag.key);
+
+  // TODO: flag[*] syntax not implemented yet by search backend.
   const eventTags = orderBy(
-    allTags.filter(tag => tag.kind === FieldKind.TAG),
+    allTags.filter(tag => tag.kind === FieldKind.TAG && !tag.key.startsWith('flag[')),
+    ['totalValues', 'key'],
+    ['desc', 'asc']
+  ).map(tag => tag.key);
+
+  const eventFeatureFlags = orderBy(
+    allTags.filter(tag => tag.kind === FieldKind.TAG && tag.key.startsWith('flag[')),
     ['totalValues', 'key'],
     ['desc', 'asc']
   ).map(tag => tag.key);
@@ -52,6 +62,12 @@ const getFilterKeySections = (tags: TagCollection): FilterKeySection[] => {
       value: FieldKind.TAG,
       label: t('Event Tags'),
       children: eventTags,
+    },
+    {
+      // TODO: not making a new FieldKind for now, because flag data format and unstructured-ness are same as tags.
+      value: 'feature_flag',
+      label: t('Event Feature Flags'),
+      children: eventFeatureFlags,
     },
   ];
 };
@@ -96,20 +112,30 @@ function IssueListSearchBar({
         sort: '-count' as const,
       };
 
-      const [eventsDatasetValues, issuePlatformDatasetValues] = await Promise.all([
-        fetchTagValues({
-          ...fetchTagValuesPayload,
-          dataset: Dataset.ERRORS,
-        }),
-        fetchTagValues({
-          ...fetchTagValuesPayload,
-          dataset: Dataset.ISSUE_PLATFORM,
-        }),
-      ]);
+      const [eventsDatasetValues, issuePlatformDatasetValues, featureFlagValues] =
+        await Promise.all([
+          fetchTagValues({
+            ...fetchTagValuesPayload,
+            dataset: Dataset.ERRORS,
+          }),
+          fetchTagValues({
+            ...fetchTagValuesPayload,
+            dataset: Dataset.ISSUE_PLATFORM,
+          }),
+          fetchFeatureFlagValues({
+            ...fetchTagValuesPayload,
+          }),
+        ]);
 
-      return mergeAndSortTagValues(
+      const eventsAndIssuePlatformValues = mergeAndSortTagValues(
         eventsDatasetValues,
         issuePlatformDatasetValues,
+        'count'
+      );
+
+      return mergeAndSortTagValues(
+        eventsAndIssuePlatformValues,
+        featureFlagValues,
         'count'
       );
     },
