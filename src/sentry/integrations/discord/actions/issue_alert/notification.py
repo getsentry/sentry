@@ -6,13 +6,14 @@ from sentry.integrations.discord.actions.issue_alert.form import DiscordNotifySe
 from sentry.integrations.discord.client import DiscordClient
 from sentry.integrations.discord.message_builder.issues import DiscordIssuesMessageBuilder
 from sentry.integrations.discord.spec import DiscordMessagingSpec
+from sentry.integrations.discord.utils.errors import DISCORD_HALT_ERROR_CODES
 from sentry.integrations.messaging.metrics import (
     MessagingInteractionEvent,
     MessagingInteractionType,
 )
 from sentry.rules.actions import IntegrationEventAction
 from sentry.rules.base import CallbackFuture
-from sentry.shared_integrations.exceptions import ApiRateLimitedError
+from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
 from sentry.types.rules import RuleFuture
 from sentry.utils import metrics
 
@@ -62,6 +63,12 @@ class DiscordNotifyServiceAction(IntegrationEventAction):
                 except ApiRateLimitedError as e:
                     # TODO(ecosystem): We should batch this on a per-organization basis
                     lifecycle.record_halt(e)
+                    # Errors that we recieve from the Discord API
+                except ApiError as error:
+                    if error.code in DISCORD_HALT_ERROR_CODES:
+                        lifecycle.record_halt(error)
+                    else:
+                        lifecycle.record_failure(error)
                 except Exception as e:
                     lifecycle.add_extras(
                         {

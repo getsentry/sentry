@@ -11,11 +11,12 @@ from sentry.integrations.discord.message_builder.metric_alerts import (
     DiscordMetricAlertMessageBuilder,
 )
 from sentry.integrations.discord.spec import DiscordMessagingSpec
+from sentry.integrations.discord.utils.errors import DISCORD_HALT_ERROR_CODES
 from sentry.integrations.messaging.metrics import (
     MessagingInteractionEvent,
     MessagingInteractionType,
 )
-from sentry.shared_integrations.exceptions import ApiRateLimitedError
+from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
 
 from ..utils import logger
 
@@ -67,6 +68,14 @@ def send_incident_alert_notification(
             # TODO(ecosystem): We should batch this on a per-organization basis
             lifecycle.record_halt(error)
             return False
+        # Errors that we recieve from the Discord API
+        except ApiError as error:
+            if error.code in DISCORD_HALT_ERROR_CODES:
+                lifecycle.record_halt(error)
+                return False
+            else:
+                lifecycle.record_failure(error)
+                return False
         except Exception as error:
             lifecycle.add_extras(
                 {
