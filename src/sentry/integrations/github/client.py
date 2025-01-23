@@ -287,6 +287,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
         assert specific_resource in ("core", "search", "graphql")
         return GithubRateLimitInfo(self.get("/rate_limit")["resources"][specific_resource])
 
+    # This method is used by RepoTreesIntegration
     def get_remaining_api_requests(self) -> int:
         """This gives information of the current rate limit"""
         return self.get_rate_limit().remaining

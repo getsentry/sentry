@@ -6,7 +6,6 @@ from collections.abc import Sequence
 from typing import Any, NamedTuple
 
 from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.cache import cache
 
@@ -247,25 +246,11 @@ class RepoTreesIntegration(ABC):
 # These are methods that the client for the integration must implement
 class RepoTreesClient(ABC):
     @abstractmethod
-    def get(self, *args: Any, **kwargs: Any) -> BaseApiResponseX:
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_trees_for_org(self) -> dict[str, RepoTree]:
-        raise NotImplementedError
-
-    @abstractmethod
     def get_remaining_api_requests(self) -> int:
         raise NotImplementedError
 
-    # @abstractmethod
-    # def get_repositories(
-    #     self, query: str | None = None, fetch_max_pages: bool = False
-    # ) -> Sequence[Any]:
-    #     raise NotImplementedError
-
     @abstractmethod
-    def get_tree(self, repo_full_name: str, tree_sha: str) -> list[dict[str, Any]]:
+    def get_tree(self, repo_full_name: str, tree_sha: str) -> dict[str, Any]:
         raise NotImplementedError
 
 
