@@ -294,8 +294,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
 
     # This method is used by RepoTreesIntegration
     # https://docs.github.com/en/rest/git/trees#get-a-tree
-    def get_tree(self, repo_full_name: str, tree_sha: str) -> dict[str, Any]:
-        tree: dict[str, Any] = {}
+    def get_tree(self, repo_full_name: str, tree_sha: str) -> list[dict[str, Any]]:
         # We do not cache this call since it is a rather large object
         contents: dict[str, Any] = self.get(
             f"/repos/{repo_full_name}/git/trees/{tree_sha}",
@@ -312,9 +311,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
                 "The tree for %s has been truncated. Use different a approach for retrieving contents of tree.",
                 repo_full_name,
             )
-        tree = contents["tree"]
-
-        return tree
+        return contents["tree"]
 
     # XXX: Drop this method
     def get_cached_repo_files(
