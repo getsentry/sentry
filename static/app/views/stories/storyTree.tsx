@@ -100,6 +100,11 @@ function Folder(props: {node: StoryTreeNode}) {
       <FolderName
         onClick={() => {
           props.node.expanded = !props.node.expanded;
+          if (props.node.expanded) {
+            for (const child of Object.values(props.node.children)) {
+              child.visible = true;
+            }
+          }
           setExpanded(props.node.expanded);
         }}
       >
