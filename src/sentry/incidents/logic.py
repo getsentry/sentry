@@ -389,14 +389,16 @@ def get_incident_aggregates(
 
         try:
             results = spans_rpc.run_table_query(
+                params,
                 query_string=snuba_query.query,
                 selected_columns=[entity_subscription.aggregate],
                 orderby=None,
                 offset=0,
                 limit=1,
                 referrer=Referrer.API_ALERTS_ALERT_RULE_CHART.value,
-                params=params,
-                config=SearchResolverConfig(auto_fields=True),
+                config=SearchResolverConfig(
+                    auto_fields=True,
+                ),
             )
 
         except Exception:

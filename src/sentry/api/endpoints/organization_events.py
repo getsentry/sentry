@@ -449,13 +449,13 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
         ):
             if use_rpc and dataset == spans_eap:
                 return spans_rpc.run_table_query(
+                    params=snuba_params,
                     query_string=query or "",
                     selected_columns=self.get_field_list(organization, request),
                     orderby=self.get_orderby(request),
                     offset=offset,
                     limit=limit,
                     referrer=referrer,
-                    params=snuba_params,
                     config=SearchResolverConfig(
                         auto_fields=True,
                         use_aggregate_conditions=use_aggregate_conditions,
