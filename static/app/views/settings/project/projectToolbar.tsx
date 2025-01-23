@@ -1,14 +1,18 @@
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
+import Alert from 'sentry/components/alert';
+import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {JsonFormObject} from 'sentry/components/forms/types';
 import {NoAccess} from 'sentry/components/noAccess';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {useLocation} from 'sentry/utils/useLocation';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
@@ -21,6 +25,9 @@ type Props = RouteComponentProps<RouteParams, {}> & {
 };
 
 function ProjectToolbarSettings({organization, project, params: {projectId}}: Props) {
+  const location = useLocation();
+  const domain = decodeScalar(location.query.domain);
+
   const formGroups: JsonFormObject[] = [
     {
       title: 'Settings',
@@ -52,6 +59,15 @@ function ProjectToolbarSettings({organization, project, params: {projectId}}: Pr
         renderDisabled={NoAccess}
       >
         <PermissionAlert project={project} />
+        {domain && (
+          <Alert type="info" showIcon>
+            {tct(
+              'To enable the Dev Toolbar, copy and paste your domain into the Allowed Origins text box below: [domain] ',
+              {domain: <strong>{domain}</strong>}
+            )}
+            <CopyToClipboardButton borderless iconSize="xs" size="zero" text={domain} />
+          </Alert>
+        )}
 
         <Form
           apiMethod="PUT"
