@@ -34,14 +34,7 @@ const BACKEND_TAGS = [
   'organization.slug',
   'environment',
 ];
-const MOBILE_TAGS = [
-  'device',
-  'device.class',
-  'os',
-  'release',
-  'environment',
-  'transaction',
-];
+const MOBILE_TAGS = ['device', 'os', 'release', 'environment', 'transaction'];
 
 type Segment = {
   count: number;
