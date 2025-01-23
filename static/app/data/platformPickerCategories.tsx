@@ -146,6 +146,7 @@ const serverless: Set<PlatformKey> = new Set([
   'node-awslambda',
   'node-azurefunctions',
   'node-gcpfunctions',
+  'node-cloudflare-pages',
   'node-cloudflare-workers',
   'python-awslambda',
   'python-gcpfunctions',

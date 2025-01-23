@@ -124,6 +124,7 @@ SERVERLESS = {
     "node-awslambda",
     "node-azurefunctions",
     "node-gcpfunctions",
+    "node-cloudflare-pages",
     "node-cloudflare-workers",
     "python-awslambda",
     "python-azurefunctions",

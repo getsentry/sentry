@@ -87,6 +87,9 @@ export const backend: PlatformKey[] = [
   'node-express',
   'node-koa',
   'node-connect',
+  'node-cloudflare-pages',
+  'node-cloudflare-workers',
+
   'perl',
   'php',
   'php-laravel',
@@ -127,6 +130,8 @@ export const serverless: PlatformKey[] = [
   'node-awslambda',
   'node-azurefunctions',
   'node-gcpfunctions',
+  'node-cloudflare-pages',
+  'node-cloudflare-workers',
   'python-awslambda',
   'python-azurefunctions',
   'python-gcpfunctions',
