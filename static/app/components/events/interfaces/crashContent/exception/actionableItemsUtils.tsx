@@ -151,7 +151,7 @@ export function shouldErrorBeShown(error: EventErrorData, event: Event) {
     const source: string | undefined = error.data?.source;
     if (
       source &&
-      (source.includes('org-dartlang-sdk:///dart-sdk/lib/_internal') ||
+      (source.includes('org-dartlang-sdk:///dart-sdk/lib/') ||
         source.includes('flutter/packages/flutter/lib'))
     ) {
       return false;
