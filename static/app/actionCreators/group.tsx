@@ -1,7 +1,6 @@
 import * as Sentry from '@sentry/react';
 
-import type {RequestCallbacks, RequestOptions} from 'sentry/api';
-import {Client} from 'sentry/api';
+import {Client, type RequestCallbacks, type RequestOptions} from 'sentry/api';
 import GroupStore from 'sentry/stores/groupStore';
 import type {Actor} from 'sentry/types/core';
 import type {Group, Tag as GroupTag, TagValue} from 'sentry/types/group';
@@ -224,8 +223,9 @@ export function bulkDelete(
       success: response => {
         GroupStore.onDeleteSuccess(id, itemIds, response);
       },
-      error: error => {
-        GroupStore.onDeleteError(id, itemIds, error);
+      error: _error => {
+        // which was previously not caught
+        GroupStore.onDeleteError(id, itemIds);
       },
     },
     options

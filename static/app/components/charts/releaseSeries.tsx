@@ -7,7 +7,8 @@ import memoize from 'lodash/memoize';
 import partition from 'lodash/partition';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import type {Client, ResponseMeta} from 'sentry/api';
+import type {Client} from 'sentry/api';
+import type {ApiResult} from 'sentry/api';
 import MarkLine from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
 import type {DateString} from 'sentry/types/core';
@@ -61,7 +62,7 @@ function getOrganizationReleases(
     includeAllArgs: true,
     method: 'GET',
     query,
-  }) as Promise<[ReleaseMetaBasic[], any, ResponseMeta]>;
+  }) as Promise<ApiResult<ReleaseMetaBasic[]>>;
 }
 
 const getOrganizationReleasesMemoized = memoize(

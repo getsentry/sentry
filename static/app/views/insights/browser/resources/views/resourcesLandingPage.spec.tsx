@@ -66,6 +66,7 @@ describe('ResourcesLandingPage', function () {
   [
     "/organizations/org-slug/events/",
     {
+      "cancelable": undefined,
       "error": [Function],
       "method": "GET",
       "query": {
@@ -82,7 +83,6 @@ describe('ResourcesLandingPage', function () {
         "sort": "-count",
         "statsPeriod": "10d",
       },
-      "skipAbort": undefined,
       "success": [Function],
     },
   ],
@@ -99,6 +99,7 @@ describe('ResourcesLandingPage', function () {
   [
     "/organizations/org-slug/events/",
     {
+      "cancelable": undefined,
       "error": [Function],
       "method": "GET",
       "query": {
@@ -123,7 +124,6 @@ describe('ResourcesLandingPage', function () {
         "sort": "-time_spent_percentage()",
         "statsPeriod": "10d",
       },
-      "skipAbort": undefined,
       "success": [Function],
     },
   ],

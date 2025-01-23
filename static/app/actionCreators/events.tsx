@@ -2,7 +2,7 @@ import type {LocationDescriptor} from 'history';
 import pick from 'lodash/pick';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import type {ApiResult, Client, ResponseMeta} from 'sentry/api';
+import type {ApiResult, Client} from 'sentry/api';
 import {canIncludePreviousPeriod} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import type {DateString} from 'sentry/types/core';
@@ -113,9 +113,7 @@ export const doEventsRequest = <IncludeAllArgsType extends boolean = false>(
     useRpc,
   }: EventsStatsOptions<IncludeAllArgsType>
 ): IncludeAllArgsType extends true
-  ? Promise<
-      [EventsStats | MultiSeriesEventsStats, string | undefined, ResponseMeta | undefined]
-    >
+  ? Promise<ApiResult<EventsStats | MultiSeriesEventsStats>>
   : Promise<EventsStats | MultiSeriesEventsStats> => {
   const pathname =
     generatePathname?.(organization) ??

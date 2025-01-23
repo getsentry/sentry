@@ -4,10 +4,7 @@ import type * as ApiNamespace from 'sentry/api';
 
 const RealApi: typeof ApiNamespace = jest.requireActual('sentry/api');
 
-export class Request {}
-
 export const initApiClientErrorHandling = RealApi.initApiClientErrorHandling;
-export const hasProjectBeenRenamed = RealApi.hasProjectBeenRenamed;
 
 const respond = (asyncDelay: AsyncDelay, fn?: Function, ...args: any[]): void => {
   if (!fn) {
@@ -21,8 +18,6 @@ const respond = (asyncDelay: AsyncDelay, fn?: Function, ...args: any[]): void =>
 
   fn(...args);
 };
-
-type FunctionCallback<Args extends any[] = any[]> = (...args: Args) => void;
 
 /**
  * Callables for matching requests based on arbitrary conditions.
@@ -86,10 +81,7 @@ class Client implements ApiNamespace.Client {
   baseUrl = '';
   // uses the default client json headers. Sadly, we cannot refernce the real client
   // because it will cause a circular dependency and explode, hence the copy/paste
-  headers = {
-    Accept: 'application/json; charset=utf-8',
-    'Content-Type': 'application/json',
-  };
+  headers = RealApi.Client.JSON_HEADERS;
 
   static mockResponses: MockResponse[] = [];
 
@@ -145,7 +137,7 @@ class Client implements ApiNamespace.Client {
         statusCode: 200,
         statusText: 'OK',
         responseText: '',
-        responseJSON: '',
+        responseJSON: {},
         body: '',
         method: 'GET',
         callCount: 0,
@@ -185,22 +177,11 @@ class Client implements ApiNamespace.Client {
    * clearMockResponses. You probably don't want to call this from a test.
    */
   clear() {
-    Object.values(this.activeRequests).forEach(r => r.cancel());
-  }
-
-  wrapCallback<T extends any[]>(
-    _id: string,
-    func: FunctionCallback<T> | undefined,
-    _cleanup: boolean = false
-  ) {
-    const asyncDelay = Client.asyncDelay;
-
-    return (...args: T) => {
-      if ((RealApi.hasProjectBeenRenamed as any)(...args)) {
-        return;
+    for (const request of Object.values(this.activeRequests)) {
+      if (request.cancel()) {
+        delete this.activeRequests[request.id];
       }
-      respond(asyncDelay, func, ...args);
-    };
+    }
   }
 
   requestPromise(
