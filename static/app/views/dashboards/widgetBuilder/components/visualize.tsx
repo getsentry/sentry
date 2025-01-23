@@ -462,6 +462,7 @@ function Visualize({error, setError}: VisualizeProps) {
                           />
                         )}
                         <AggregateCompactSelect
+                          searchable
                           hasColumnParameter={hasColumnParameter}
                           disabled={aggregateOptions.length <= 1}
                           options={aggregateOptions}
@@ -859,6 +860,7 @@ function AggregateParameterField({
         onChange={({value}: any) => {
           onChange(value);
         }}
+        searchable
       />
     );
   }
