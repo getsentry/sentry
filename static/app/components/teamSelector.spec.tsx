@@ -80,8 +80,7 @@ describe('Team Selector', function () {
   });
 
   it('respects the team filter', async function () {
-    const teamFilter = team => team.slug === 'team1';
-    createWrapper({teamFilter});
+    createWrapper({teamFilter: team => team.slug === 'team1'});
 
     await userEvent.type(screen.getByText('Select...'), '{keyDown}');
 
@@ -103,8 +102,10 @@ describe('Team Selector', function () {
   });
 
   it('respects the team and project filter', async function () {
-    const teamFilter = team => team.slug === 'team1' || team.slug === 'team2';
-    createWrapper({teamFilter, project});
+    createWrapper({
+      teamFilter: team => team.slug === 'team1' || team.slug === 'team2',
+      project,
+    });
     await userEvent.type(screen.getByText('Select...'), '{keyDown}');
 
     expect(screen.getByText('#team1')).toBeInTheDocument();

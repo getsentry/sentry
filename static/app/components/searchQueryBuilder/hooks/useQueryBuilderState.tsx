@@ -236,7 +236,7 @@ function modifyFilterValueDate(
 // Uses the token's location to replace a sequence of tokens with the new text value
 function replaceQueryTokens(
   query: string,
-  tokens: TokenResult<Token>[],
+  tokens: Array<TokenResult<Token>>,
   value: string
 ): string {
   if (tokens.length === 0) {
@@ -289,7 +289,7 @@ function removeExcessWhitespaceFromParts(...parts: string[]): string {
 // and cleans up any extra whitespace
 export function replaceTokensWithPadding(
   query: string,
-  tokens: TokenResult<Token>[],
+  tokens: Array<TokenResult<Token>>,
   value: string
 ): string {
   if (tokens.length === 0) {
@@ -326,7 +326,8 @@ function replaceTokensWithText(
     (action.tokens[0]?.location.start.offset ?? 0) + action.text.length; // TODO: Ensure this is sorted
   const newParsedQuery = parseQueryBuilderValue(newQuery, getFieldDefinition);
   const focusedToken = newParsedQuery?.find(
-    token => token.type === Token.FREE_TEXT && token.location.end.offset >= cursorPosition
+    (token: any) =>
+      token.type === Token.FREE_TEXT && token.location.end.offset >= cursorPosition
   );
 
   const focusOverride =

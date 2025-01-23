@@ -1,9 +1,9 @@
 import logging
 
+import requests
 from django.conf import settings
 from requests import Response
 
-from sentry import http
 from sentry.models.projectkey import ProjectKey, UseCase
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -61,13 +61,13 @@ def fetch_latest_item_id(credentials_id: int) -> None:
             credentials.save(update_fields=["message", "latest_fetched_item_id"])
             return
         elif "error" in result:
-            if result["error"]["type"] == "Invalid credentials":
+            if result["error"]["type"] == "invalid_credentials":
                 credentials.message = "Seems like the provided credentials are invalid"
                 credentials.message_type = MessageType.ERROR
                 credentials.save(update_fields=["message", "message_type"])
 
                 logger.info(
-                    "Invalid credentials",
+                    "invalid_credentials",
                     extra={
                         "org_id": org_id,
                         "project_id": project_id,
@@ -77,13 +77,13 @@ def fetch_latest_item_id(credentials_id: int) -> None:
                     },
                 )
                 return
-            elif result["error"]["type"] == "IP address not allow-listed":
+            elif result["error"]["type"] == "ip_not_allowlisted":
                 credentials.message = "Seems like our IP is not allow-listed"
                 credentials.message_type = MessageType.ERROR
                 credentials.save(update_fields=["message", "message_type"])
 
                 logger.info(
-                    "IP address not allow-listed",
+                    "ip_not_allowlisted",
                     extra={
                         "org_id": org_id,
                         "project_id": project_id,
@@ -188,12 +188,21 @@ def fetch_latest_id_from_tempest(
         "client_secret": client_secret,
     }
 
-    response = http.safe_urlopen(
+    response = requests.post(
         url=settings.SENTRY_TEMPEST_URL + "/latest-id",
-        method="POST",
         headers={"Content-Type": "application/json"},
         json=payload,
     )
+
+    logger.info(
+        "Tempest API response",
+        extra={
+            "status_code": response.status_code,
+            "response_text": response.text,
+            "endpoint": "/latest-id",
+        },
+    )
+
     return response
 
 
@@ -219,11 +228,20 @@ def fetch_items_from_tempest(
         "attach_screenshot": attach_screenshot,
     }
 
-    response = http.safe_urlopen(
+    response = requests.post(
         url=settings.SENTRY_TEMPEST_URL + "/crashes",
-        method="POST",
         headers={"Content-Type": "application/json"},
         json=payload,
         timeout=time_out,
     )
+
+    logger.info(
+        "Tempest API response",
+        extra={
+            "status_code": response.status_code,
+            "response_text": response.text,
+            "endpoint": "/crashes",
+        },
+    )
+
     return response

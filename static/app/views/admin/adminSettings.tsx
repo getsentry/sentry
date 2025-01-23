@@ -85,11 +85,10 @@ export default function AdminSettings() {
     return <LoadingIndicator />;
   }
 
-  const initialData = {};
-  const fields = {};
+  const initialData: Record<string, React.ReactNode> = {};
+  const fields: Record<string, React.ReactNode> = {};
   for (const key of optionsAvailable) {
-    // TODO(dcramer): we should not be mutating options
-    const option = data[key]! ?? {field: {}, value: undefined};
+    const option = data[key] ?? ({field: {}, value: undefined} as FieldDef);
 
     if (option.value === undefined || option.value === '') {
       const defn = getOption(key);

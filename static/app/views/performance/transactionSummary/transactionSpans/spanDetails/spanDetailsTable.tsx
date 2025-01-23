@@ -120,6 +120,7 @@ export default function SpanTable(props: Props) {
 }
 
 function renderHeadCell(column: TableColumn, _index: number): React.ReactNode {
+  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const align = fieldAlignment(column.key, COLUMN_TYPE[column.key]);
   return (
     <SortLink
@@ -156,7 +157,7 @@ function renderBodyCellWithMeta(
     if (column.key === 'id') {
       const traceSlug = dataRow.spans[0] ? dataRow.spans[0].trace : '';
       const worstSpan = dataRow.spans.length
-        ? dataRow.spans.reduce((worst, span) =>
+        ? dataRow.spans.reduce((worst: any, span: any) =>
             worst.exclusiveTime >= span.exclusiveTime ? worst : span
           )
         : null;

@@ -156,7 +156,7 @@ export const MetricWidget = memo(
     );
 
     const handleQueryChange = useCallback(
-      (queryIndex, data: Partial<MetricsWidget>) => {
+      (queryIndex: any, data: Partial<MetricsWidget>) => {
         onChange(queryIndex, data);
       },
       [onChange]
@@ -167,7 +167,9 @@ export const MetricWidget = memo(
       onChange(index, {displayType: value});
     };
 
-    const handleOverlayChange = (options: SelectOption<MetricChartOverlayType>[]) => {
+    const handleOverlayChange = (
+      options: Array<SelectOption<MetricChartOverlayType>>
+    ) => {
       const values = options.map(({value}) => value);
 
       Sentry.metrics.increment('ddm.widget.overlay', 1, {
@@ -502,7 +504,7 @@ const MetricWidgetBody = memo(
     );
 
     const handleSortChange = useCallback(
-      newSort => {
+      (newSort: any) => {
         onChange?.({sort: newSort});
       },
       [onChange]

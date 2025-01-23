@@ -101,7 +101,8 @@ function DebugFileCustomRepository({
                 >
                   {fields.map((field, i) => (
                     <FieldFromConfig
-                      key={field.name || i}
+                      key={field?.name || i}
+                      // @ts-ignore TS(2322): Type '(CustomType & BaseField) | ({ type: "select"... Remove this comment to see the full error message
                       field={field}
                       inline={false}
                       stacked

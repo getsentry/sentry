@@ -263,7 +263,7 @@ export interface IssueAlertRule extends UnsavedIssueAlertRule {
    */
   disableDate?: string;
   disableReason?: 'noisy';
-  errors?: {detail: string}[];
+  errors?: Array<{detail: string}>;
   lastTriggered?: string;
   /**
    * Set to true to opt out of the rule being automatically disabled
@@ -310,37 +310,3 @@ export enum RuleActionsCategories {
   SOME_DEFAULT = 'some_default',
   NO_DEFAULT = 'no_default',
 }
-
-export enum MonitorType {
-  CONTINUOUS = 0,
-  ACTIVATED = 1,
-}
-
-export enum ActivationConditionType {
-  RELEASE_CREATION = 0,
-  DEPLOY_CREATION = 1,
-}
-
-export type AlertRuleActivation = {
-  activator: string;
-  alertRuleId: string;
-  conditionType: string;
-  dateCreated: string;
-  finishedAt: string;
-  id: string;
-  isComplete: boolean;
-  querySubscriptionId: string;
-  metricValue?: number;
-};
-
-export enum ActivationTrigger {
-  ACTIVATED = 'activated',
-  FINISHED = 'finished',
-}
-
-export type ActivationTriggerActivity = {
-  activator: string;
-  conditionType: string;
-  dateCreated: string;
-  type: ActivationTrigger;
-};

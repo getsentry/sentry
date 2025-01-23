@@ -32,9 +32,13 @@ const initialStyles = {
 
 type Props = {
   onAddWidget: (dataset: DataSet) => void;
+  onAddWidgetFromNewWidgetBuilder?: (
+    dataset: DataSet,
+    openWidgetTemplates?: boolean
+  ) => void;
 };
 
-function AddWidget({onAddWidget}: Props) {
+function AddWidget({onAddWidget, onAddWidgetFromNewWidgetBuilder}: Props) {
   const {setNodeRef, transform} = useSortable({
     disabled: true,
     id: ADD_WIDGET_BUTTON_DRAG_ID,
@@ -48,6 +52,19 @@ function AddWidget({onAddWidget}: Props) {
   )
     ? DataSet.ERRORS
     : DataSet.EVENTS;
+
+  const addWidgetDropdownItems: MenuItemProps[] = [
+    {
+      key: 'from-widget-library',
+      label: t('From Widget Library'),
+      onAction: () => onAddWidgetFromNewWidgetBuilder?.(defaultDataset, true),
+    },
+    {
+      key: 'create-custom-widget',
+      label: t('Create Custom Widget'),
+      onAction: () => onAddWidgetFromNewWidgetBuilder?.(defaultDataset, false),
+    },
+  ];
 
   return (
     <Feature features="dashboards-edit">
@@ -77,6 +94,20 @@ function AddWidget({onAddWidget}: Props) {
               onAddWidget={onAddWidget}
               aria-label={t('Add Widget')}
               data-test-id="widget-add"
+            />
+          </InnerWrapper>
+        ) : organization.features.includes('dashboards-widget-builder-redesign') ? (
+          <InnerWrapper onClick={() => onAddWidgetFromNewWidgetBuilder?.(defaultDataset)}>
+            <DropdownMenu
+              items={addWidgetDropdownItems}
+              data-test-id="widget-add"
+              triggerProps={{
+                'aria-label': t('Add Widget'),
+                size: 'md',
+                showChevron: false,
+                icon: <IconAdd isCircled size="lg" color="inactive" />,
+                borderless: true,
+              }}
             />
           </InnerWrapper>
         ) : (

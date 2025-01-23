@@ -23,6 +23,7 @@ export const errorConfig: IssueCategoryConfigMapping = {
     },
     attachments: {enabled: true},
     autofix: true,
+    logLevel: {enabled: true},
     mergedIssues: {enabled: true},
     replays: {enabled: true},
     similarIssues: {enabled: true},
@@ -38,7 +39,7 @@ type ErrorInfo = {
   projectPlatforms: PlatformKey[];
 };
 
-const ErrorInfoChecks: Array<ErrorInfo> = [
+const ErrorInfoChecks: ErrorInfo[] = [
   {
     errorTitle: 'ChunkLoadError',
     projectPlatforms: ['javascript'],

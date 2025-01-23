@@ -100,7 +100,7 @@ export interface DeprecatedLineProps {
 }
 
 interface Props extends DeprecatedLineProps {
-  components: SentryAppComponent<SentryAppSchemaStacktraceLink>[];
+  components: Array<SentryAppComponent<SentryAppSchemaStacktraceLink>>;
 }
 
 type State = {
@@ -143,7 +143,7 @@ export class DeprecatedLine extends Component<Props, State> {
     this.setState({isHovering: false});
   };
 
-  toggleContext = evt => {
+  toggleContext = (evt: any) => {
     evt?.preventDefault();
 
     this.setState({
@@ -195,7 +195,7 @@ export class DeprecatedLine extends Component<Props, State> {
     }
   }
 
-  scrollToImage = event => {
+  scrollToImage = (event: any) => {
     event.stopPropagation(); // to prevent collapsing if collapsible
 
     const {instructionAddr, addrMode} = this.props.data;
@@ -210,14 +210,14 @@ export class DeprecatedLine extends Component<Props, State> {
       ?.scrollIntoView({block: 'start', behavior: 'smooth'});
   };
 
-  scrollToSuspectRootCause = event => {
+  scrollToSuspectRootCause = (event: any) => {
     event.stopPropagation(); // to prevent collapsing if collapsible
     document
       .getElementById(SectionKey.SUSPECT_ROOT_CAUSE)
       ?.scrollIntoView({block: 'start', behavior: 'smooth'});
   };
 
-  preventCollapse = evt => {
+  preventCollapse = (evt: any) => {
     evt.stopPropagation();
   };
 

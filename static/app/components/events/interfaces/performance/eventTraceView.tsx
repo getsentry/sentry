@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
 import {LinkButton} from 'sentry/components/button';
+import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {IconOpen} from 'sentry/icons';
@@ -11,6 +12,7 @@ import type {Event} from 'sentry/types/event';
 import {type Group, IssueCategory} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -58,9 +60,15 @@ interface EventTraceViewInnerProps {
   event: Event;
   organization: Organization;
   traceId: string;
+  traceTarget: LocationDescriptor;
 }
 
-function EventTraceViewInner({event, organization, traceId}: EventTraceViewInnerProps) {
+function EventTraceViewInner({
+  event,
+  organization,
+  traceId,
+  traceTarget,
+}: EventTraceViewInnerProps) {
   const timestamp = new Date(event.dateReceived).getTime() / 1e3;
 
   const trace = useTrace({
@@ -108,7 +116,14 @@ function EventTraceViewInner({event, organization, traceId}: EventTraceViewInner
           replay={null}
           event={event}
         />
-        <IssuesTraceOverlay event={event} />
+        <IssuesTraceOverlayContainer
+          href={getHrefFromTraceTarget(traceTarget)}
+          onClick={() => {
+            trackAnalytics('issue_details.view_full_trace_waterfall_clicked', {
+              organization,
+            });
+          }}
+        />
       </IssuesTraceContainer>
     </TraceStateProvider>
   );
@@ -127,39 +142,6 @@ function getHrefFromTraceTarget(traceTarget: LocationDescriptor) {
   }
 
   return `${traceTarget.pathname}?${searchParams.toString()}`;
-}
-
-function IssuesTraceOverlay({event}: {event: Event}) {
-  const location = useLocation();
-  const organization = useOrganization();
-
-  const traceTarget = generateTraceTarget(
-    event,
-    organization,
-    {
-      ...location,
-      query: {
-        ...location.query,
-        groupId: event.groupID,
-      },
-    },
-    TraceViewSources.ISSUE_DETAILS
-  );
-
-  return (
-    <IssuesTraceOverlayContainer>
-      <LinkButton
-        size="sm"
-        icon={<IconOpen />}
-        href={getHrefFromTraceTarget(traceTarget)}
-        external
-        analyticsEventName="Issue Details: View Full Trace"
-        analyticsEventKey="issue_details.view_full_trace"
-      >
-        {t('View Full Trace')}
-      </LinkButton>
-    </IssuesTraceOverlayContainer>
-  );
 }
 
 function OneOtherIssueEvent({event}: {event: Event}) {
@@ -200,37 +182,38 @@ const IssuesTraceContainer = styled('div')`
   position: relative;
 `;
 
-const IssuesTraceOverlayContainer = styled('div')`
+const IssuesTraceOverlayContainer = styled(ExternalLink)`
   position: absolute;
   inset: 0;
   z-index: 10;
-
-  a {
-    display: none;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-  }
-
-  &:hover {
-    background-color: rgba(128, 128, 128, 0.4);
-
-    a {
-      display: block;
-    }
-  }
 `;
 
-interface EventTraceViewProps extends Omit<EventTraceViewInnerProps, 'traceId'> {
+interface EventTraceViewProps {
+  event: Event;
   group: Group;
+  organization: Organization;
 }
 
 export function EventTraceView({group, event, organization}: EventTraceViewProps) {
   const traceId = event.contexts.trace?.trace_id;
+  const location = useLocation();
+
   if (!traceId) {
     return null;
   }
+
+  const traceTarget = generateTraceTarget(
+    event,
+    organization,
+    {
+      ...location,
+      query: {
+        ...location.query,
+        groupId: event.groupID,
+      },
+    },
+    TraceViewSources.ISSUE_DETAILS
+  );
 
   const hasProfilingFeature = organization.features.includes('profiling');
   const hasTracePreviewFeature =
@@ -239,13 +222,29 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
     group.issueCategory !== IssueCategory.PERFORMANCE;
 
   return (
-    <InterimSection type={SectionKey.TRACE} title={t('Trace')}>
+    <InterimSection
+      type={SectionKey.TRACE}
+      title={t('Trace Preview')}
+      actions={
+        <LinkButton
+          size="xs"
+          icon={<IconOpen />}
+          href={getHrefFromTraceTarget(traceTarget)}
+          external
+          analyticsEventName="Issue Details: View Full Trace Action Button Clicked"
+          analyticsEventKey="issue_details.view_full_trace_action_button_clicked"
+        >
+          {t('View Full Trace')}
+        </LinkButton>
+      }
+    >
       <OneOtherIssueEvent event={event} />
       {hasTracePreviewFeature && (
         <EventTraceViewInner
           event={event}
           organization={organization}
           traceId={traceId}
+          traceTarget={traceTarget}
         />
       )}
     </InterimSection>

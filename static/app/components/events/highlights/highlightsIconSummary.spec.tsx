@@ -2,6 +2,7 @@ import {EventFixture} from 'sentry-fixture/event';
 import {EventAttachmentFixture} from 'sentry-fixture/eventAttachment';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -100,29 +101,37 @@ describe('HighlightsIconSummary', function () {
   });
 
   it('hides device for non mobile/native', function () {
+    const groupWithPlatform = GroupFixture({
+      project: ProjectFixture({
+        platform: 'javascript',
+      }),
+    });
     const eventWithDevice = EventFixture({
       contexts: {
         ...TEST_EVENT_CONTEXTS,
         device: iosDeviceContext,
       },
-      platform: 'javascript',
     });
 
-    render(<HighlightsIconSummary event={eventWithDevice} group={group} />);
+    render(<HighlightsIconSummary event={eventWithDevice} group={groupWithPlatform} />);
     expect(screen.queryByText('iPhone 13')).not.toBeInTheDocument();
     expect(screen.queryByText('x86')).not.toBeInTheDocument();
   });
 
   it('displays device for mobile/native event platforms', async function () {
+    const groupWithPlatform = GroupFixture({
+      project: ProjectFixture({
+        platform: 'android',
+      }),
+    });
     const eventWithDevice = EventFixture({
       contexts: {
         ...TEST_EVENT_CONTEXTS,
         device: iosDeviceContext,
       },
-      platform: 'android',
     });
 
-    render(<HighlightsIconSummary event={eventWithDevice} group={group} />);
+    render(<HighlightsIconSummary event={eventWithDevice} group={groupWithPlatform} />);
     expect(screen.getByText('iPhone 13')).toBeInTheDocument();
     expect(screen.getByText('x86')).toBeInTheDocument();
     await userEvent.hover(screen.getByText('x86'));

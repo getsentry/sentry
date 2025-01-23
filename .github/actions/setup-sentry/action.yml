@@ -38,11 +38,19 @@ inputs:
   python-version:
     description: 'python version to install'
     required: false
-    default: '3.12.6'
+    default: '3.13.1'
   pg-version:
     description: 'PostgreSQL version to use'
     default: '14'
     required: false
+  use-new-devservices:
+    description: 'Use new devservices'
+    required: false
+    default: 'false'
+  mode:
+    description: 'Mode to bring up by new devservices'
+    required: false
+    default: 'default'
 
 outputs:
   yarn-cache-dir:
@@ -139,6 +147,7 @@ runs:
 
     - name: Start devservices
       shell: bash --noprofile --norc -eo pipefail -ux {0}
+      if: ${{ inputs.use-new-devservices != 'true' }}
       env:
         NEED_KAFKA: ${{ inputs.kafka }}
         NEED_SNUBA: ${{ inputs.snuba }}
@@ -195,3 +204,22 @@ runs:
         # This is necessary when other repositories (e.g. relay) want to take advantage of this workflow
         # without needing to fork it. The path needed is the one where tools are located
         cd "$WORKDIR"
+
+    - name: Start new devservices
+      if: ${{ inputs.use-new-devservices == 'true' }}
+      shell: bash --noprofile --norc -eo pipefail -ux {0}
+      env:
+        WORKDIR: ${{ inputs.workdir }}
+        ENABLE_AUTORUN_MIGRATION_SEARCH_ISSUES: '1'
+      run: |
+        sentry init
+
+        # This is necessary to bring up devservices with appropriate sentry config
+        cd "$WORKDIR"
+
+        devservices up --mode ${{ inputs.mode }}
+
+        # have tests listen on the docker gateway ip so loopback can occur
+        echo "DJANGO_LIVE_TEST_SERVER_ADDRESS=$(docker network inspect bridge --format='{{(index .IPAM.Config 0).Gateway}}')" >> "$GITHUB_ENV"
+
+        docker ps -a

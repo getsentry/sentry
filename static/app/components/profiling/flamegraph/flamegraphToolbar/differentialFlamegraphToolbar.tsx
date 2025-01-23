@@ -11,7 +11,7 @@ import type {DifferentialFlamegraph} from 'sentry/utils/profiling/differentialFl
 
 import {DifferentialFlamegraphSettingsButton} from './differentialFlamegraphSettingsButton';
 
-const EMPTY_SPANS = [];
+const EMPTY_SPANS: any = [];
 
 interface DifferentialFlamegraphProps {
   canvasPoolManager: CanvasPoolManager;

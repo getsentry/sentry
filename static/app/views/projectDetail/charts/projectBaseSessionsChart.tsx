@@ -216,6 +216,7 @@ class Chart extends Component<ChartProps, ChartState> {
     type: 'legendselectchanged';
   }> = ({selected}) => {
     const seriesSelection = Object.keys(selected).reduce((state, key) => {
+      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       state[key] = selected[key];
       return state;
     }, {});

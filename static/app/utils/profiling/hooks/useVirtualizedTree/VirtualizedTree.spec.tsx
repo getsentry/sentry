@@ -1,12 +1,12 @@
 import {VirtualizedTree} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTree';
 import type {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTreeNode';
 
-const n = d => {
+const n = (d: any) => {
   return {...d, children: []};
 };
 
-function toFlattenedList(tree: VirtualizedTree<any>): VirtualizedTreeNode<any>[] {
-  const list: VirtualizedTreeNode<any>[] = [];
+function toFlattenedList(tree: VirtualizedTree<any>): Array<VirtualizedTreeNode<any>> {
+  const list: Array<VirtualizedTreeNode<any>> = [];
 
   function visit(node: VirtualizedTreeNode<any>): void {
     list.push(node);

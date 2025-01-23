@@ -113,7 +113,18 @@ function useTimelineCursor<E extends HTMLElement>({
     <AnimatePresence>
       {isVisible && (
         <Fragment>
-          <Cursor role="presentation" />
+          <Cursor
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            transition={testableTransition({duration: 0.1})}
+            variants={{
+              initial: {opacity: 0},
+              animate: {opacity: 1},
+              exit: {opacity: 0},
+            }}
+            role="presentation"
+          />
           {cursorLabel}
         </Fragment>
       )}
@@ -134,18 +145,6 @@ const Cursor = styled(motion.div)`
   transform: translateX(-2px);
   z-index: 3;
 `;
-
-Cursor.defaultProps = {
-  initial: 'initial',
-  animate: 'animate',
-  exit: 'exit',
-  transition: testableTransition({duration: 0.1}),
-  variants: {
-    initial: {opacity: 0},
-    animate: {opacity: 1},
-    exit: {opacity: 0},
-  },
-};
 
 const CursorLabel = styled(Overlay)`
   font-variant-numeric: tabular-nums;

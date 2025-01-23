@@ -5,7 +5,47 @@ import {CUSTOMER_DOMAIN, USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 
 import {useTestRouteContext} from './useRouteContext';
 
-export function useParams<P = Record<string, string>>(): P {
+/**
+ * List of keys used in routes.tsx `/example/:paramKey/...`
+ *
+ * Prevents misspelling of param keys
+ */
+type ParamKeys =
+  | 'apiKey'
+  | 'appId'
+  | 'appSlug'
+  | 'authId'
+  | 'dataExportId'
+  | 'eventId'
+  | 'fineTuneType'
+  | 'groupId'
+  | 'id'
+  | 'installationId'
+  | 'integrationSlug'
+  | 'issueId'
+  | 'memberId'
+  | 'orgId'
+  | 'projectId'
+  | 'release'
+  | 'scrubbingId'
+  | 'searchId'
+  | 'sentryAppSlug'
+  | 'shareId'
+  | 'spanSlug'
+  | 'tagKey'
+  | 'teamId'
+  | 'traceSlug'
+  | 'widgetIndex';
+
+/**
+ * Get params from the current route. Param availability depends on the current route.
+ *
+ * @example
+ * ```tsx
+ * const params = useParams<{projectId: string}>();
+ * ```
+ */
+export function useParams<P extends Partial<Record<ParamKeys, string | undefined>>>(): P {
   // When running in test mode we still read from the legacy route context to
   // keep test compatability while we fully migrate to react router 6
   const testRouteContext = useTestRouteContext();

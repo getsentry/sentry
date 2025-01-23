@@ -26,7 +26,7 @@ const COLOR_ENCODING_LABELS: Record<ColorEncoding, string> = {
   transaction_name: t('Transaction Name'),
 };
 
-export const COLOR_ENCODINGS: SelectValue<ColorEncoding>[] = Object.entries(
+export const COLOR_ENCODINGS: Array<SelectValue<ColorEncoding>> = Object.entries(
   COLOR_ENCODING_LABELS
 ).map(([value, label]) => ({label, value: value as ColorEncoding}));
 

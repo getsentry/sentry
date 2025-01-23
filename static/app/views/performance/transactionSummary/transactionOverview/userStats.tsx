@@ -57,7 +57,8 @@ function UserStats({
 
   if (!isLoading && error === null && totals) {
     const threshold: number | undefined = totals.project_threshold_config
-      ? totals.project_threshold_config[1]
+      ? // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        totals.project_threshold_config[1]
       : undefined;
     const miserableUsers: number | undefined = totals['count_miserable_user()'];
     const userMiseryScore: number = totals['user_misery()'] || 0;

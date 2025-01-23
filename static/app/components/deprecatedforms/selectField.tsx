@@ -19,7 +19,7 @@ export default class SelectField extends FormField<Props> {
     multiple: false,
   };
 
-  UNSAFE_componentWillReceiveProps(nextProps, nextContext) {
+  UNSAFE_componentWillReceiveProps(nextProps: any, nextContext: any) {
     const newError = this.getError(nextProps, nextContext);
     if (newError !== this.state.error) {
       this.setState({error: newError});
@@ -44,7 +44,7 @@ export default class SelectField extends FormField<Props> {
   }
 
   // Overriding this so that we can support `multi` fields through property
-  getValue(props, context) {
+  getValue(props: any, context: any) {
     const form = (context || this.context)?.form;
     props = props || this.props;
 
@@ -66,13 +66,13 @@ export default class SelectField extends FormField<Props> {
   //
   // This is also needed to get `multi` select working since we need the {label, value} object
   // for react-select (but forms expect just the value to be propagated)
-  coerceValue(value) {
+  coerceValue(value: any) {
     if (!value) {
       return '';
     }
 
     if (this.isMultiple()) {
-      return value.map(v => v.value);
+      return value.map((v: any) => v.value);
     }
     if (value.hasOwnProperty('value')) {
       return value.value;
@@ -81,7 +81,7 @@ export default class SelectField extends FormField<Props> {
     return value;
   }
 
-  isMultiple(props?) {
+  isMultiple(props?: any) {
     props = props || this.props;
     // this is to maintain compatibility with the 'multi' prop
     return props.multi || props.multiple;
@@ -91,7 +91,7 @@ export default class SelectField extends FormField<Props> {
     return '';
   }
 
-  onChange = opt => {
+  onChange = (opt: any) => {
     // Changing this will most likely break react-select (e.g. you won't be able to select
     // a menu option that is from an async request, or a multi select).
     this.setValue(opt);

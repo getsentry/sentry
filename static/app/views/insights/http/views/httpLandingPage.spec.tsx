@@ -188,6 +188,7 @@ describe('HTTPLandingPage', function () {
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: 'spm()',
+          transformAliasToInputFormat: '1',
         },
       })
     );
@@ -213,6 +214,7 @@ describe('HTTPLandingPage', function () {
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: 'avg(span.self_time)',
+          transformAliasToInputFormat: '1',
         },
       })
     );
@@ -242,6 +244,7 @@ describe('HTTPLandingPage', function () {
             'http_response_rate(4)',
             'http_response_rate(5)',
           ],
+          transformAliasToInputFormat: '1',
         },
       })
     );

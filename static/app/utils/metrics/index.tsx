@@ -78,8 +78,8 @@ export function getMetricsUrl(
     project,
     ...otherParams
   }: Omit<MetricsQueryParams, 'project' | 'widgets'> & {
-    widgets: Partial<MetricsWidget>[];
-    project?: (string | number)[];
+    widgets: Array<Partial<MetricsWidget>>;
+    project?: Array<string | number>;
   }
 ) {
   const urlParams: Partial<MetricsQueryParams> = {
@@ -158,6 +158,7 @@ export function getDefaultAggregation(mri: MRI): MetricAggregation {
     return fallbackAggregate;
   }
 
+  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   return DEFAULT_AGGREGATES[parsedMRI.type] || fallbackAggregate;
 }
 
@@ -298,6 +299,7 @@ export function groupByOp(metrics: MetricMeta[]): Record<string, MetricMeta[]> {
   ].sort();
 
   const groupedByAggregation = uniqueOperations.reduce((result, aggregation) => {
+    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     result[aggregation] = metrics.filter(field => field.operations.includes(aggregation));
     return result;
   }, {});

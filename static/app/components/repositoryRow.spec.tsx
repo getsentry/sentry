@@ -21,18 +21,15 @@ describe('RepositoryRow', function () {
     status: RepositoryStatus.PENDING_DELETION,
   });
 
-  const api = new MockApiClient();
-
   describe('rendering with access', function () {
     const organization = OrganizationFixture({
       access: ['org:integrations'],
     });
 
     it('displays provider information', function () {
-      render(
-        <RepositoryRow repository={repository} api={api} orgSlug={organization.slug} />,
-        {organization}
-      );
+      render(<RepositoryRow repository={repository} orgSlug={organization.slug} />, {
+        organization,
+      });
       expect(screen.getByText(repository.name)).toBeInTheDocument();
       expect(screen.getByText('github.com/example/repo-name')).toBeInTheDocument();
 
@@ -44,10 +41,9 @@ describe('RepositoryRow', function () {
     });
 
     it('displays cancel pending button', function () {
-      render(
-        <RepositoryRow repository={pendingRepo} api={api} orgSlug={organization.slug} />,
-        {organization}
-      );
+      render(<RepositoryRow repository={pendingRepo} orgSlug={organization.slug} />, {
+        organization,
+      });
 
       // Trash button should be disabled
       expect(screen.getByRole('button', {name: 'delete'})).toBeDisabled();
@@ -64,20 +60,18 @@ describe('RepositoryRow', function () {
     });
 
     it('displays disabled trash', function () {
-      render(
-        <RepositoryRow repository={repository} api={api} orgSlug={organization.slug} />,
-        {organization}
-      );
+      render(<RepositoryRow repository={repository} orgSlug={organization.slug} />, {
+        organization,
+      });
 
       // Trash button should be disabled
       expect(screen.getByRole('button', {name: 'delete'})).toBeDisabled();
     });
 
     it('displays disabled cancel', function () {
-      render(
-        <RepositoryRow repository={pendingRepo} api={api} orgSlug={organization.slug} />,
-        {organization}
-      );
+      render(<RepositoryRow repository={pendingRepo} orgSlug={organization.slug} />, {
+        organization,
+      });
 
       // Cancel should be disabled
       expect(screen.getByRole('button', {name: 'Cancel'})).toBeDisabled();
@@ -97,10 +91,9 @@ describe('RepositoryRow', function () {
         body: {status: 'hidden'},
       });
 
-      render(
-        <RepositoryRow repository={repository} api={api} orgSlug={organization.slug} />,
-        {organization}
-      );
+      render(<RepositoryRow repository={repository} orgSlug={organization.slug} />, {
+        organization,
+      });
       renderGlobalModal();
       await userEvent.click(screen.getByRole('button', {name: 'delete'}));
 
@@ -124,10 +117,9 @@ describe('RepositoryRow', function () {
         body: {},
       });
 
-      render(
-        <RepositoryRow repository={pendingRepo} api={api} orgSlug={organization.slug} />,
-        {organization}
-      );
+      render(<RepositoryRow repository={pendingRepo} orgSlug={organization.slug} />, {
+        organization,
+      });
       await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
 
       expect(cancel).toHaveBeenCalled();

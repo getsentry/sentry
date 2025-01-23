@@ -25,11 +25,6 @@ class GithubPluginClientMixin(AuthApiClient):
         # where start sha is oldest and end is most recent
         return self.get(f"/repos/{repo}/compare/{start_sha}...{end_sha}")
 
-    def get_pr_commits(self, repo, num):
-        # see https://developer.github.com/v3/pulls/#list-commits-on-a-pull-request
-        # Max: 250 Commits
-        return self.get(f"/repos/{repo}/pulls/{num}/commits")
-
 
 class GithubPluginClient(GithubPluginClientMixin, AuthApiClient):
     def __init__(self, url=None, auth=None):

@@ -36,7 +36,7 @@ export function transformSelectorQuery(selector: string) {
     .replaceAll('*', '\\*');
 }
 interface Props {
-  clickCountColumns: {key: string; name: string}[];
+  clickCountColumns: Array<{key: string; name: string}>;
   clickCountSortable: boolean;
   data: DeadRageSelectorItem[];
   isError: boolean;
@@ -45,7 +45,7 @@ interface Props {
   title?: ReactNode;
 }
 
-const BASE_COLUMNS: GridColumnOrder<string>[] = [
+const BASE_COLUMNS: Array<GridColumnOrder<string>> = [
   {key: 'project_id', name: 'project'},
   {key: 'element', name: 'element'},
   {key: 'dom_element', name: 'selector'},
@@ -105,7 +105,7 @@ export default function SelectorTable({
   const queryPrefix = currentSort.field.includes('count_dead_clicks') ? 'dead' : 'rage';
 
   const renderBodyCell = useCallback(
-    (column, dataRow) => {
+    (column: any, dataRow: any) => {
       const value = dataRow[column.key];
       switch (column.key) {
         case 'dom_element':
@@ -209,7 +209,7 @@ function renderClickCount<T>(column: GridColumnOrder<string>, dataRow: T) {
   return (
     <ClickCount>
       <IconCursorArrow size="xs" color={color} />
-      {dataRow[column.key]}
+      {dataRow[column.key as keyof T] as React.ReactNode}
     </ClickCount>
   );
 }

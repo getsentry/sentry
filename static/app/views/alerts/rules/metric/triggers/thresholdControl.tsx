@@ -76,7 +76,7 @@ class ThresholdControl extends Component<Props, State> {
     this.setState({currentValue: null});
   };
 
-  handleTypeChange = ({value}) => {
+  handleTypeChange = ({value}: any) => {
     const {onThresholdTypeChange} = this.props;
     onThresholdTypeChange(value);
   };
@@ -138,7 +138,7 @@ class ThresholdControl extends Component<Props, State> {
               styles={
                 disableThresholdType
                   ? {
-                      control: provided => ({
+                      control: (provided: any) => ({
                         ...provided,
                         cursor: 'not-allowed',
                         pointerEvents: 'auto',

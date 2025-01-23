@@ -15,7 +15,7 @@ export default function useFeedbackHasNewItems({listPrefetchQueryKey}: Props) {
   const {data} = useApiQuery<unknown[]>(listPrefetchQueryKey ?? [''], {
     refetchInterval: POLLING_INTERVAL_MS,
     staleTime: 0,
-    enabled: Boolean(listPrefetchQueryKey?.[0]) && !foundData,
+    enabled: Boolean(listPrefetchQueryKey) && !foundData,
   });
 
   useEffect(() => {

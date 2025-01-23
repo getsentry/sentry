@@ -241,12 +241,14 @@ export function useVirtualizedTree<T extends TreeLike>(
     }
 
     let raf: number;
-    function handleScroll(evt) {
+    function handleScroll(evt: any) {
       if (!props.scrollContainer) {
         return;
       }
       const scrollTop = Math.max(0, evt.target.scrollTop);
-      raf !== undefined && window.cancelAnimationFrame(raf);
+      if (raf !== undefined) {
+        window.cancelAnimationFrame(raf);
+      }
 
       raf = window.requestAnimationFrame(() => {
         dispatch({type: 'set scroll top', payload: scrollTop});
@@ -711,7 +713,7 @@ export function useVirtualizedTree<T extends TreeLike>(
       // it enables us to make constant space updates to the tree and avoid doing an O(n) lookup
       // for all node children when they are expanded. Since stack size is capped, this should never
       // exceed a couple hundred iterations and **should** be a reasonable tradeoff in performance.
-      const edges: VirtualizedTreeNode<T>[] = [];
+      const edges: Array<VirtualizedTreeNode<T>> = [];
       let path: VirtualizedTreeNode<T> | null = node.parent;
 
       while (path && !path.expanded) {

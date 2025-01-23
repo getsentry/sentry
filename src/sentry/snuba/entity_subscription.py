@@ -314,7 +314,7 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
             )
             # required in order to correctly clean up the custom metric alert subscriptions
             or features.has(
-                "custom-metrics-alerts-widgets-removal-info",
+                "organizations:custom-metrics-alerts-widgets-removal-info",
                 Organization.objects.get_from_cache(id=self.org_id),
             )
         )

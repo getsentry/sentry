@@ -151,7 +151,7 @@ export function DatabaseSpanDescription({
   );
 }
 
-function QueryClippedBox(props) {
+function QueryClippedBox(props: any) {
   const {isExpanded, children} = props;
 
   if (isExpanded) {

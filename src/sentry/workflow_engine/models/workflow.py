@@ -9,6 +9,7 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models.owner_base import OwnerModel
+from sentry.workflow_engine.models.data_condition import DataCondition, is_slow_condition
 from sentry.workflow_engine.processors.data_condition_group import evaluate_condition_group
 from sentry.workflow_engine.types import WorkflowJob
 
@@ -35,6 +36,8 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     environment = FlexibleForeignKey("sentry.Environment", null=True)
 
     created_by_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
+
+    DEFAULT_FREQUENCY = 30
 
     @property
     def config_schema(self) -> dict[str, Any]:
@@ -75,6 +78,18 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         job["workflow"] = self
         evaluation, _ = evaluate_condition_group(self.when_condition_group, job)
         return evaluation
+
+
+def get_slow_conditions(workflow: Workflow) -> list[DataCondition]:
+    if not workflow.when_condition_group:
+        return []
+
+    slow_conditions = [
+        condition
+        for condition in workflow.when_condition_group.conditions.all()
+        if is_slow_condition(condition)
+    ]
+    return slow_conditions
 
 
 @receiver(pre_save, sender=Workflow)

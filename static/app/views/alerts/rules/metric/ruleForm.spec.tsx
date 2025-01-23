@@ -31,9 +31,9 @@ jest.mock('sentry/utils/analytics', () => ({
 }));
 
 describe('Incident Rules Form', () => {
-  let organization, project, router, location, anomalies;
+  let organization: any, project: any, router: any, location: any, anomalies: any;
   // create wrapper
-  const createWrapper = props =>
+  const createWrapper = (props: any) =>
     render(
       <RuleFormContainer
         params={{orgId: organization.slug, projectId: project.slug}}
@@ -162,7 +162,7 @@ describe('Incident Rules Form', () => {
   });
 
   describe('Creating a new rule', () => {
-    let createRule;
+    let createRule: any;
     beforeEach(() => {
       ProjectsStore.loadInitialData([
         project,
@@ -419,8 +419,8 @@ describe('Incident Rules Form', () => {
   });
 
   describe('Editing a rule', () => {
-    let editRule;
-    let editTrigger;
+    let editRule: any;
+    let editTrigger: any;
     const rule = MetricRuleFixture();
 
     beforeEach(() => {

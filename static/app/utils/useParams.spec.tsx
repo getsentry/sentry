@@ -29,7 +29,7 @@ jest.mock('sentry/constants', () => {
 describe('useParams', () => {
   describe('when the path has no params', () => {
     it('returns an empty object', () => {
-      let params;
+      let params: any;
       function HomePage() {
         params = useParams();
         return null;
@@ -54,7 +54,7 @@ describe('useParams', () => {
 
   describe('when the path has some params', () => {
     it('returns an object of the URL params', () => {
-      let params;
+      let params: any;
       function HomePage() {
         params = useParams();
         return null;
@@ -85,8 +85,8 @@ describe('useParams', () => {
       mockUsingCustomerDomain.mockReturnValue(true);
       mockCustomerDomain.mockReturnValue('albertos-apples');
 
-      let originalParams;
-      let useParamsValue;
+      let originalParams: any;
+      let useParamsValue: any;
 
       function Component() {
         const {params} = useTestRouteContext()!;
@@ -123,8 +123,8 @@ describe('useParams', () => {
       mockUsingCustomerDomain.mockReturnValue(false);
       mockCustomerDomain.mockReturnValue(undefined);
 
-      let originalParams;
-      let useParamsValue;
+      let originalParams: any;
+      let useParamsValue: any;
 
       function Component() {
         const {params} = useTestRouteContext()!;

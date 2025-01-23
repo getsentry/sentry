@@ -540,13 +540,16 @@ def emit_apple_symbol_stats(apple_symbol_stats, data):
         if in_random_rollout("symbolicate.symx-logging-rate") and os_name and os_version:
             os_description = os_name + str(os_version)
             if os_description in options.get("symbolicate.symx-os-description-list"):
-                logger.info(
-                    "Failed to find symbols using symx",
-                    extra={"id": data.get("event_id"), "modules": old},
-                )
                 with sentry_sdk.isolation_scope() as scope:
+                    scope.set_tag("os", os_description)
                     scope.set_context(
-                        "Event Info", {"id": data.get("event_id"), "modules": str(old)}
+                        "Event Info",
+                        {
+                            "project": data.get("project"),
+                            "id": data.get("event_id"),
+                            "modules": old,
+                            "os": os_description,
+                        },
                     )
                     sentry_sdk.capture_message("Failed to find symbols using symx")
 

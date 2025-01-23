@@ -9,7 +9,7 @@ from sentry.search.utils import get_latest_release
 from sentry.utils.cache import cache
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
-from sentry.workflow_engine.types import DataConditionHandler, WorkflowJob
+from sentry.workflow_engine.types import DataConditionHandler, DataConditionHandlerType, WorkflowJob
 
 
 def get_latest_release_for_env(
@@ -41,6 +41,9 @@ def get_latest_release_for_env(
 
 @condition_handler_registry.register(Condition.LATEST_RELEASE)
 class LatestReleaseConditionHandler(DataConditionHandler[WorkflowJob]):
+    type = DataConditionHandlerType.ACTION_FILTER
+    comparison_json_schema = {"type": "boolean"}
+
     @staticmethod
     def evaluate_value(job: WorkflowJob, comparison: Any) -> bool:
         event = job["event"]

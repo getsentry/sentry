@@ -1,5 +1,6 @@
 import {trimPackage} from 'sentry/components/events/interfaces/frame/utils';
 import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import type {ProfilingFormatterUnit} from 'sentry/utils/profiling/units/units';
 
 import {Profile} from './profile/profile';
 import {SampledProfile} from './profile/sampledProfile';
@@ -37,7 +38,7 @@ const leftHeavyTreeSort = makeTreeSort(sortByTotalWeight);
 
 export class Flamegraph {
   profile: Profile;
-  frames: ReadonlyArray<FlamegraphFrame> = [];
+  frames: readonly FlamegraphFrame[] = [];
 
   inverted: boolean = false;
   sort: 'left heavy' | 'alphabetical' | 'call order' = 'call order';
@@ -55,6 +56,7 @@ export class Flamegraph {
     children: [],
   };
 
+  unit: ProfilingFormatterUnit;
   formatter: (value: number) => string;
   timelineFormatter: (value: number) => string;
 
@@ -128,6 +130,7 @@ export class Flamegraph {
         throw new TypeError(`Unknown flamechart sort type: ${this.sort}`);
     }
 
+    this.unit = profile.unit;
     this.formatter = makeFormatter(profile.unit);
     this.timelineFormatter = makeTimelineFormatter(profile.unit);
 
@@ -304,7 +307,7 @@ export class Flamegraph {
 
   findAllMatchingFramesBy(
     query: string,
-    fields: (keyof FlamegraphFrame['frame'])[]
+    fields: Array<keyof FlamegraphFrame['frame']>
   ): FlamegraphFrame[] {
     const matches: FlamegraphFrame[] = [];
     if (!fields.length) {

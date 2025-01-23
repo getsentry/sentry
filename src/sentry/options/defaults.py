@@ -759,10 +759,6 @@ register(
 # Killswitch to stop storing any reprocessing payloads.
 register("store.reprocessing-force-disable", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
-register(
-    "store.race-free-group-creation-force-disable", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-
 # Enable calling the severity modeling API on group creation
 register(
     "processing.calculate-severity-on-group-creation",
@@ -825,6 +821,23 @@ register(
     "issues.priority.projects-allowlist",
     type=Sequence,
     default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+
+#  Percentage of orgs that will be put into a bucket using the split rate below.
+register(
+    "issues.details.streamline-experiment-rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# 50% of orgs will only see the Streamline UI, 50% will only see the Legacy UI.
+register(
+    "issues.details.streamline-experiment-split-rate",
+    type=Float,
+    default=0.5,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -2806,12 +2819,6 @@ register(
     "ecosystem:enable_integration_form_error_raise", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 
-# Controls the rate of using the sentry api shared secret for communicating to sentry.
-register(
-    "seer.api.use-nonce-signature",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Restrict uptime issue creation for specific host provider identifiers. Items
 # in this list map to the `host_provider_id` column in the UptimeSubscription

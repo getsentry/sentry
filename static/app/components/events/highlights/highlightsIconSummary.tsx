@@ -39,6 +39,7 @@ export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps
   // Project slug and project id are pull out because group is not always available
   const projectSlug = group?.project.slug ?? event.projectSlug;
   const projectId = group?.project.id ?? event.projectID;
+  const projectPlatform = group?.project.platform;
 
   const {data: attachments = []} = useFetchEventAttachments({
     orgSlug: organization.slug,
@@ -48,7 +49,7 @@ export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps
   const screenshot = attachments.find(({name}) => SCREENSHOT_NAMES.includes(name));
   // Hide device for non-native platforms since it's mostly duplicate of the client_os or os context
   const shouldDisplayDevice =
-    isMobilePlatform(event.platform) || isNativePlatform(event.platform);
+    isMobilePlatform(projectPlatform) || isNativePlatform(projectPlatform);
   // For now, highlight icons are only interpretted from context. We should extend this to tags
   // eventually, but for now, it'll match the previous expectations.
   const items = getOrderedContextItems(event)

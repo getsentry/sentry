@@ -96,9 +96,18 @@ export type IssueEventParameters = {
   'issue.search_sidebar_clicked': {};
   'issue.share_from_icon': {};
   'issue.shared_publicly': {};
-  'issue_details.comment_created': {streamline: boolean};
-  'issue_details.comment_deleted': {streamline: boolean};
-  'issue_details.comment_updated': {streamline: boolean};
+  'issue_details.comment_created': {
+    org_streamline_only: boolean | undefined;
+    streamline: boolean;
+  };
+  'issue_details.comment_deleted': {
+    org_streamline_only: boolean | undefined;
+    streamline: boolean;
+  };
+  'issue_details.comment_updated': {
+    org_streamline_only: boolean | undefined;
+    streamline: boolean;
+  };
   'issue_details.copy_event_id_clicked': StreamlineGroupEventParams;
   'issue_details.copy_event_link_clicked': StreamlineGroupEventParams;
   'issue_details.escalating_feedback_received': {
@@ -130,6 +139,7 @@ export type IssueEventParameters = {
   };
   'issue_details.section_fold': {
     open: boolean;
+    org_streamline_only: boolean | undefined;
     sectionKey: string;
   };
   'issue_details.set_priority': SetPriorityParams;
@@ -158,6 +168,7 @@ export type IssueEventParameters = {
   'issue_details.streamline_ui_toggle': {
     isEnabled: boolean;
   };
+  'issue_details.view_full_trace_waterfall_clicked': {};
   'issue_details.view_hierarchy.hover_rendering_system': {
     platform?: string;
     user_org_role?: string;
@@ -453,6 +464,8 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
     'Issue Group Details: Tags distribution value bar clicked',
   'integrations.integration_reinstall_clicked': 'Integration Reinstall Button Clicked',
   'one_other_related_trace_issue.clicked': 'One Other Related Trace Issue Clicked',
+  'issue_details.view_full_trace_waterfall_clicked':
+    ' Issue Details: View Full Trace Waterfall Clicked',
 
   // Performance Issue specific events here
   'issue_details.performance.autogrouped_siblings_toggle':

@@ -4,13 +4,11 @@ import type {MotionProps} from 'framer-motion';
 import {motion} from 'framer-motion';
 
 import OnboardingInstall from 'sentry-images/spot/onboarding-install.svg';
-import OnboardingSetup from 'sentry-images/spot/onboarding-setup.svg';
 
-import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
 import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import testableTransition from 'sentry/utils/testableTransition';
@@ -115,26 +113,6 @@ function TargetedOnboardingWelcome(props: StepProps) {
               }
             />
           </ActionItem>
-          <ActionItem {...fadeAway}>
-            <InnerAction
-              title={t('Set up my team')}
-              subText={tct(
-                'Invite [friends] coworkers. You shouldn’t have to fix what you didn’t break',
-                {friends: <Strike>{t('friends')}</Strike>}
-              )}
-              src={OnboardingSetup}
-              cta={
-                <ButtonWithFill
-                  onClick={() => {
-                    openInviteMembersModal({source});
-                  }}
-                  priority="primary"
-                >
-                  {t('Invite Team')}
-                </ButtonWithFill>
-              }
-            />
-          </ActionItem>
           <motion.p style={{margin: 0}} {...fadeAway}>
             {t("Gee, I've used Sentry before.")}
             <br />
@@ -205,10 +183,6 @@ const TextWrapper = styled('div')`
     margin: ${space(1)} ${space(1)};
     margin-top: ${space(3)};
   }
-`;
-
-const Strike = styled('span')`
-  text-decoration: line-through;
 `;
 
 const ActionTitle = styled('h5')`

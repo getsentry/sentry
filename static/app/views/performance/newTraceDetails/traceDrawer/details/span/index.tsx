@@ -28,6 +28,7 @@ import type {TraceTreeNode} from '../../../traceModels/traceTreeNode';
 import {useHasTraceNewUi} from '../../../useHasTraceNewUi';
 import {TraceDrawerComponents} from '.././styles';
 import {IssueList} from '../issues/issues';
+import {getProfileMeta} from '../utils';
 
 import Alerts from './sections/alerts';
 import {SpanDescription} from './sections/description';
@@ -194,14 +195,18 @@ function LegacySpanSections({
 }
 
 function ProfileDetails({
+  organization,
+  project,
   event,
   span,
 }: {
   event: Readonly<EventTransaction>;
+  organization: Organization;
+  project: Project | undefined;
   span: Readonly<SpanType>;
 }) {
   const hasNewTraceUi = useHasTraceNewUi();
-  const {profile, frames} = useSpanProfileDetails(event, span);
+  const {profile, frames} = useSpanProfileDetails(organization, project, event, span);
 
   if (!hasNewTraceUi) {
     return <SpanProfileDetails span={span} event={event} />;
@@ -238,7 +243,9 @@ export function SpanNodeDetails({
   }, [node.errors, node.performance_issues]);
 
   const project = projects.find(proj => proj.slug === node.event?.projectSlug);
-  const profileId = node.event?.contexts?.profile?.profile_id ?? null;
+  const profileMeta = getProfileMeta(node.event) || '';
+  const profileId =
+    typeof profileMeta === 'string' ? profileMeta : profileMeta.profiler_id;
 
   return (
     <TraceDrawerComponents.DetailContainer>
@@ -253,7 +260,7 @@ export function SpanNodeDetails({
           <ProfilesProvider
             orgSlug={organization.slug}
             projectSlug={node.event?.projectSlug}
-            profileId={profileId || ''}
+            profileMeta={profileMeta}
           >
             <ProfileContext.Consumer>
               {profiles => (
@@ -280,7 +287,12 @@ export function SpanNodeDetails({
                     onParentClick={onParentClick}
                   />
                   {organization.features.includes('profiling') ? (
-                    <ProfileDetails event={node.event!} span={node.value} />
+                    <ProfileDetails
+                      organization={organization}
+                      project={project}
+                      event={node.event!}
+                      span={node.value}
+                    />
                   ) : null}
                 </ProfileGroupProvider>
               )}

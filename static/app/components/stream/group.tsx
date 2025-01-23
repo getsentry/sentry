@@ -264,7 +264,7 @@ function BaseGroupRow({
     [group]
   );
 
-  const groupStats = useMemo<ReadonlyArray<TimeseriesValue>>(() => {
+  const groupStats = useMemo<readonly TimeseriesValue[]>(() => {
     if (!group) {
       return [];
     }
@@ -274,7 +274,7 @@ function BaseGroupRow({
       : group.stats?.[statsPeriod]!;
   }, [group, statsPeriod]);
 
-  const groupSecondaryStats = useMemo<ReadonlyArray<TimeseriesValue>>(() => {
+  const groupSecondaryStats = useMemo<readonly TimeseriesValue[]>(() => {
     if (!group) {
       return [];
     }
@@ -862,7 +862,7 @@ export const PrimaryCount = styled(Count)<{hasNewLayout?: boolean}>`
   font-variant-numeric: tabular-nums;
 `;
 
-const SecondaryCount = styled(({value, ...p}) => <Count {...p} value={value} />)<{
+const SecondaryCount = styled(({value, ...p}: any) => <Count {...p} value={value} />)<{
   hasNewLayout?: boolean;
 }>`
   font-size: ${p => (p.hasNewLayout ? p.theme.fontSizeSmall : p.theme.fontSizeLarge)};
