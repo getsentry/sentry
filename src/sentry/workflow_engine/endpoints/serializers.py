@@ -241,5 +241,5 @@ class WorkflowSerializer(Serializer):
             "triggerConditionGroup": attrs.get("trigger_condition_group"),
             "dataConditionGroups": attrs.get("data_condition_groups"),
             "environment": obj.environment.name if obj.environment else None,
-            "config": json.loads(obj.config),
+            "config": obj.config,
         }
