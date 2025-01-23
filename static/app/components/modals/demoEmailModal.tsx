@@ -90,7 +90,7 @@ export default function Modal({onAddedEmail, closeModal, onFailure}: Props) {
               'Welcome to our digital showroom where you get to kick our proverbial tires. To see Sentry in action and get updates about the latest and greatest features, enter your email below.'
             )}
           </p>
-          <EmailForm onSubmit={handleSubmit} IconArrow={IconArrow} />
+          <EmailForm onSubmit={handleSubmit} />
         </SignUpBody>
         <ImagePosition>
           <PositionRight src={sandboxDemo} />
