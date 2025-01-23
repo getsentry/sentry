@@ -252,6 +252,7 @@ class TaskWorker:
         )
         self._children: list[multiprocessing.Process] = []
         self._shutdown_event = multiprocessing.Event()
+        self.backoff_sleep_seconds = 0
 
     def __del__(self) -> None:
         self._shutdown()
@@ -311,11 +312,15 @@ class TaskWorker:
         task = self.fetch_task()
         if task:
             try:
+                self.backoff_sleep_seconds = 0
                 self._child_tasks.put(task, timeout=0.1)
             except queue.Full:
                 logger.warning(
                     "taskworker.add_task.child_task_queue_full", extra={"task_id": task.id}
                 )
+        else:
+            time.sleep(self.backoff_sleep_seconds)
+            self.backoff_sleep_seconds = min(self.backoff_sleep_seconds + 1, 10)
 
     def _drain_result(self, fetch: bool = True) -> bool:
         """
