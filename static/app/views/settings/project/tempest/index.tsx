@@ -111,8 +111,8 @@ export default function TempestSettings({organization, project}: Props) {
                 {
                   name: 'tempestFetchScreenshots',
                   type: 'boolean',
-                  label: t('Include Screenshots'),
-                  help: t('Allow Tempest to include screenshots in issues.'),
+                  label: t('Attach Screenshots'),
+                  help: t('Attach screenshots to issues.'),
                 },
               ],
             },
