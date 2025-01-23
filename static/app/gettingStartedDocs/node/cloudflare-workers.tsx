@@ -27,8 +27,7 @@ const getSdkConfigureSnippetJson = () => `
     "nodejs_compat"
   ],
   "compatibility_date": "2024-09-23"
-}
-`;
+}`;
 
 const getSdkSetupSnippet = (params: Params) => `
 import * as Sentry from "@sentry/cloudflare";
@@ -55,11 +54,8 @@ setTimeout(() => {
 
 const onboarding: OnboardingConfig = {
   introduction: () =>
-    tct(
-      'In this quick guide you’ll use [strong:npm], [strong:yarn] or [strong:pnpm] to set up:',
-      {
-        strong: <strong />,
-      }
+    t(
+      'In this quick guide you’ll set up and configure the Sentry Cloudflare SDK for the use in your Cloudflare Workers application.'
     ),
   install: params => [
     {
@@ -79,19 +75,12 @@ const onboarding: OnboardingConfig = {
       configurations: [
         {
           description: tct(
-            "To use the SDK, you'll need to set either the [code:nodejs_compat] or [code:nodejs_als] compatibility flags in your [code:wrangler.toml]. This is because the SDK needs access to the [code:AsyncLocalStorage] API to work correctly.",
+            "To use the SDK, you'll need to set either the [code:nodejs_compat] or [code:nodejs_als] compatibility flags in your [code:wrangler.json]/[code:wrangler.toml]. This is because the SDK needs access to the [code:AsyncLocalStorage] API to work correctly.",
             {
               code: <code />,
             }
           ),
           code: [
-            {
-              label: 'Toml',
-              value: 'toml',
-              language: 'toml',
-              filename: 'wrangler.toml',
-              code: getSdkConfigureSnippetToml(),
-            },
             {
               label: 'JSON',
               value: 'json',
@@ -99,11 +88,18 @@ const onboarding: OnboardingConfig = {
               filename: 'wrangler.json',
               code: getSdkConfigureSnippetJson(),
             },
+            {
+              label: 'Toml',
+              value: 'toml',
+              language: 'toml',
+              filename: 'wrangler.toml',
+              code: getSdkConfigureSnippetToml(),
+            },
           ],
         },
         {
           description: tct(
-            'To use this SDK, wrap your handler with the [code:withSentry] function. This will initialize the SDK and hook into the environment. Note that you can turn off almost all side effects using the respective options.',
+            'In order to initialize the SDK, wrap your handler with the [code:withSentry] function. Note that you can turn off almost all side effects using the respective options.',
             {
               code: <code />,
               guideLink: (

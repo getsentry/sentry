@@ -27,8 +27,7 @@ const getSdkConfigureSnippetJson = () => `
     "nodejs_compat"
   ],
   "compatibility_date": "2024-09-23"
-}
-`;
+}`;
 
 const getSdkSetupSnippet = (params: Params) => `
 import * as Sentry from "@sentry/cloudflare";
@@ -52,11 +51,8 @@ setTimeout(() => {
 
 const onboarding: OnboardingConfig = {
   introduction: () =>
-    tct(
-      'In this quick guide you’ll use [strong:npm], [strong:yarn] or [strong:pnpm] to set up:',
-      {
-        strong: <strong />,
-      }
+    t(
+      'In this quick guide you’ll set up and configure the Sentry Cloudflare SDK for the use in your Cloudflare Pages application.'
     ),
   install: params => [
     {
@@ -83,18 +79,18 @@ const onboarding: OnboardingConfig = {
           ),
           code: [
             {
-              label: 'Toml',
-              value: 'toml',
-              language: 'toml',
-              filename: 'wrangler.toml',
-              code: getSdkConfigureSnippetToml(),
-            },
-            {
               label: 'JSON',
               value: 'json',
               language: 'json',
               filename: 'wrangler.json',
               code: getSdkConfigureSnippetJson(),
+            },
+            {
+              label: 'Toml',
+              value: 'toml',
+              language: 'toml',
+              filename: 'wrangler.toml',
+              code: getSdkConfigureSnippetToml(),
             },
           ],
         },
