@@ -1,5 +1,3 @@
-import pytest
-
 from sentry.api.serializers import serialize
 from sentry.models.environment import Environment
 from sentry.testutils.cases import APITestCase
@@ -29,7 +27,6 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         response = self.get_success_response(self.organization.slug)
         assert response.data == serialize([workflow, workflow_two])
 
-    @pytest.mark.skip(reason="DEBUGGING OTHER TEST")
     def test_empty_result(self):
         response = self.get_success_response(self.organization.slug)
         assert response.data == []
