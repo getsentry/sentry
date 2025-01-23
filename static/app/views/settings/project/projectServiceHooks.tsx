@@ -68,7 +68,7 @@ function ServiceHookRow({orgId, projectId, hook, onToggleActive}: RowProps) {
 function ProjectServiceHooks() {
   const organization = useOrganization();
   const {projectId} = useParams<{projectId: string}>();
-  const api = useApi();
+  const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
 
   const {
