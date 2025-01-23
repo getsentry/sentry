@@ -1,9 +1,11 @@
+import type React from 'react';
 import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import Color from 'color';
 
 import {LinkButton} from 'sentry/components/button';
+import {DeviceName} from 'sentry/components/deviceName';
 import Placeholder from 'sentry/components/placeholder';
 import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -15,6 +17,7 @@ import type {Project} from 'sentry/types/project';
 import {percent} from 'sentry/utils';
 import {isMobilePlatform} from 'sentry/utils/platform';
 import {useLocation} from 'sentry/utils/useLocation';
+import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 import {useGroupTagsReadable} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 import {useEventQuery} from 'sentry/views/issueDetails/streamline/eventSearch';
@@ -42,7 +45,7 @@ const MOBILE_TAGS = [
 
 type Segment = {
   count: number;
-  name: string;
+  name: string | React.ReactNode;
   percentage: number;
   color?: string;
 };
@@ -103,11 +106,20 @@ function SegmentedBar({
 }
 
 function TagPreviewProgressBar({tag}: {tag: GroupTag}) {
-  const segments: Segment[] = tag.topValues.map(value => ({
-    name: value.name,
-    percentage: percent(value.count, tag.totalValues),
-    count: value.count,
-  }));
+  const segments: Segment[] = tag.topValues.map(value => {
+    let name: string | React.ReactNode = value.name;
+    if (tag.key === 'release') {
+      name = formatVersion(value.name);
+    } else if (tag.key === 'device') {
+      name = <DeviceName value={value.name} />;
+    }
+
+    return {
+      name,
+      percentage: percent(value.count, tag.totalValues),
+      count: value.count,
+    };
+  });
 
   const topSegment = segments[0];
   if (!topSegment) {
