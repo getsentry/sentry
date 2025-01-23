@@ -13,7 +13,6 @@ from .project_detector_index import ProjectDetectorIndexEndpoint
 
 # Remaining Workflows Endpoints
 # - GET /workflow w/ filters
-# - GET /workflow
 # - POST /workflow
 # - GET /workflow/:id
 # - PUT /workflow/:id
