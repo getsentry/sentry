@@ -120,7 +120,7 @@ class ProjectDetectorIndexPostTest(ProjectDetectorIndexBaseTest):
         assert response.data == serialize([detector])[0]
         assert detector.name == "Test Detector"
         assert detector.type == MetricAlertFire.slug
-        assert detector.organization_id == self.organization.id
+        assert detector.project_id == self.project.id
 
         # Verify data source
         data_source = DataSource.objects.get(detector=detector)
