@@ -19,11 +19,7 @@ from sentry.api.invite_helper import (
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
-from sentry.organizations.services.organization import (
-    RpcUserInviteContext,
-    RpcUserOrganizationContext,
-    organization_service,
-)
+from sentry.organizations.services.organization import RpcUserInviteContext, organization_service
 from sentry.types.region import RegionResolutionError, get_region_by_name
 from sentry.utils import auth
 
@@ -111,7 +107,7 @@ class AcceptOrganizationInvite(Endpoint):
         return Response(status=status.HTTP_400_BAD_REQUEST, data={"details": "Invalid invite code"})
 
     def get_helper(
-        self, request: Request, token: str, invite_context: RpcUserOrganizationContext
+        self, request: Request, token: str, invite_context: RpcUserInviteContext
     ) -> ApiInviteHelper:
         return ApiInviteHelper(request=request, token=token, invite_context=invite_context)
 
@@ -140,6 +136,7 @@ class AcceptOrganizationInvite(Endpoint):
         if (
             not helper.member_pending
             or not helper.valid_token
+            or not organization_member
             or not organization_member.invite_approved
         ):
             return self.respond_invalid()
