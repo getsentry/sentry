@@ -607,7 +607,7 @@ const VerticalLine = styled('div')`
   top: 0;
   bottom: 0;
   width: 2px;
-  background-color: ${p => p.theme.pink400}80;
+  background-color: ${p => p.theme.subText};
   grid-column: 2 / 3;
   transition: background-color 0.2s ease;
 `;
@@ -674,7 +674,7 @@ const ContextHeaderText = styled('p')`
 const ContextBody = styled('div')`
   padding: ${space(2)} ${space(2)} 0;
   background: ${p => p.theme.background}
-    linear-gradient(135deg, ${p => p.theme.background}, ${p => p.theme.pink400}20);
+    linear-gradient(135deg, ${p => p.theme.pink400}08, ${p => p.theme.pink400}20);
   border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
   overflow: hidden;
 `;

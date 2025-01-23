@@ -271,8 +271,7 @@ const ActiveLog = styled('div')`
 const VerticalLine = styled('div')`
   width: 0;
   height: ${space(4)};
-  border-left: 2px dashed ${p => p.theme.pink400};
-  opacity: 0.5;
+  border-left: 2px dashed ${p => p.theme.subText};
   margin-left: 17px;
   margin-bottom: -1px;
 `;
