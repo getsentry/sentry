@@ -3020,7 +3020,7 @@ INTERNAL_URLS = [
         name="sentry-api-0-internal-ea-features",
     ),
     re_path(
-        r"^demo/email-capture$",
+        r"^demo/email-capture/$",
         EmailCaptureEndpoint.as_view(),
         name="sentry-demo-mode-email-capture",
     ),
