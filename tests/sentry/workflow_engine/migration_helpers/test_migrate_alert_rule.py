@@ -144,24 +144,14 @@ def assert_alert_rule_trigger_migrated(alert_rule_trigger):
     ).exists()
 
 
-def assert_alert_rule_trigger_action_migrated(alert_rule_trigger, action_type):
-    action_filters = DataCondition.objects.filter(
-        comparison__in=[
-            DetectorPriorityLevel.MEDIUM,
-            DetectorPriorityLevel.HIGH,
-        ]
+def assert_alert_rule_trigger_action_migrated(alert_rule_trigger_action, action_type):
+    aarta = ActionAlertRuleTriggerAction.objects.get(
+        alert_rule_trigger_action=alert_rule_trigger_action
     )
-    data_condition_group_actions = DataConditionGroupAction.objects.filter(
-        condition_group_id__in=[
-            action_filter.condition_group.id for action_filter in action_filters
-        ]
-    )
-    assert Action.objects.filter(
-        id__in=[item.action.id for item in data_condition_group_actions], type=action_type
+    action = Action.objects.get(id=aarta.id, type=action_type)
+    assert DataConditionGroupAction.objects.filter(
+        action_id=action.id,
     ).exists()
-    assert ActionAlertRuleTriggerAction.objects.filter(
-        id__in=[item.action.id for item in data_condition_group_actions]
-    )
 
 
 class AlertRuleMigrationHelpersTest(APITestCase):
