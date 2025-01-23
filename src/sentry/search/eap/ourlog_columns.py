@@ -1,10 +1,13 @@
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 
+from sentry.search.eap import constants
 from sentry.search.eap.columns import (
     ColumnDefinitions,
     ResolvedColumn,
+    VirtualColumnDefinition,
     datetime_processor,
     project_context_constructor,
+    project_term_resolver,
     simple_sentry_field,
 )
 from sentry.search.eap.common_columns import COMMON_COLUMNS
@@ -60,9 +63,12 @@ OURLOG_ATTRIBUTE_DEFINITIONS = {
 }
 
 OURLOG_VIRTUAL_CONTEXTS = {
-    "project": project_context_constructor("project"),
-    "project.slug": project_context_constructor("project.slug"),
-    "project.name": project_context_constructor("project.name"),
+    key: VirtualColumnDefinition(
+        constructor=project_context_constructor(key),
+        term_resolver=project_term_resolver,
+        filter_column="project.id",
+    )
+    for key in constants.PROJECT_FIELDS
 }
 
 
