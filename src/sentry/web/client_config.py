@@ -41,6 +41,7 @@ from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
 from sentry.utils import auth, json
 from sentry.utils.assets import get_frontend_dist_prefix
+from sentry.utils.demo_mode import is_readonly_user
 from sentry.utils.email import is_smtp_enabled
 from sentry.utils.http import is_using_customer_domain
 from sentry.utils.settings import (
@@ -416,15 +417,6 @@ class _ClientConfig:
 
         return True
 
-    @property
-    def demo_mode(self) -> bool:
-        if not options.get("demo-mode.enabled"):
-            return False
-
-        email = getattr(self.user, "email", None)
-
-        return email in options.get("demo-mode.users")
-
     def get_context(self) -> Mapping[str, Any]:
         return {
             "initialTrace": self.tracing_data,
@@ -480,7 +472,7 @@ class _ClientConfig:
             "memberRegions": self.member_regions,
             "regions": self.regions,
             "relocationConfig": {"selectableRegions": options.get("relocation.selectable-regions")},
-            "demoMode": self.demo_mode,
+            "demoMode": is_readonly_user(self.user),
             "enableAnalytics": settings.ENABLE_ANALYTICS,
             "validateSUForm": getattr(
                 settings, "VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON", False
