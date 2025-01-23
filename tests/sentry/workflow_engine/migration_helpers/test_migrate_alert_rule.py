@@ -148,7 +148,7 @@ def assert_alert_rule_trigger_action_migrated(alert_rule_trigger_action, action_
     aarta = ActionAlertRuleTriggerAction.objects.get(
         alert_rule_trigger_action=alert_rule_trigger_action
     )
-    action = Action.objects.get(id=aarta.id, type=action_type)
+    action = Action.objects.get(id=aarta.action_id, type=action_type)
     assert DataConditionGroupAction.objects.filter(
         action_id=action.id,
     ).exists()
