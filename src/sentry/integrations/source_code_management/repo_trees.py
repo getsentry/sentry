@@ -47,7 +47,7 @@ class RepoTreesIntegration(ABC):
 
     CACHE_SECONDS = 3600 * 24
 
-    # These are methods the base integration must implement
+    # This method must be implemented
     @abstractmethod
     def get_client(self) -> RepoTreesClient:
         """Returns the client for the integration. The client must be a subclass of RepositoryClient."""
@@ -67,6 +67,10 @@ class RepoTreesIntegration(ABC):
     def org_slug(self) -> str:
         raise NotImplementedError
 
+    @property
+    def integration_name(self) -> str:
+        raise NotImplementedError
+
     def get_trees_for_org(self) -> dict[str, RepoTree]:
         trees = {}
         if not self.org_integration:
@@ -80,12 +84,10 @@ class RepoTreesIntegration(ABC):
         return trees
 
     def _populate_repositories(self) -> list[RepoAndBranch]:
-        cache_key = f"githubtrees:repositories:{self.org_slug}"
+        cache_key = f"{self.integration_name}trees:repositories:{self.org_slug}"
         repositories: list[RepoAndBranch] = cache.get(cache_key, [])
 
         if not repositories:
-            # XXX: Switch to the integration get_repositories to be more generic
-            # Remove unnecessary fields from GitHub's API response
             repositories = [
                 RepoAndBranch(name=repo_info["identifier"], branch=repo_info["default_branch"])
                 for repo_info in self.get_repositories(fetch_max_pages=True)
@@ -171,7 +173,7 @@ class RepoTreesIntegration(ABC):
                 remaining_requests -= 1
 
             try:
-                # The Github API rate limit is reset every hour
+                # The API rate limit is reset every hour
                 # Spread the expiration of the cache of each repo across the day
                 trees[repo_full_name] = self._populate_tree(
                     repo_and_branch, use_cache, 3600 * (index % 24)
@@ -188,7 +190,7 @@ class RepoTreesIntegration(ABC):
             # This is a rudimentary circuit breaker
             if connection_error_count >= MAX_CONNECTION_ERRORS:
                 logger.warning(
-                    "Falling back to the cache because we've hit too many errors connecting to GitHub.",
+                    "Falling back to the cache because we've hit too many error connections.",
                     extra=extra,
                 )
                 use_cache = True
@@ -204,30 +206,6 @@ class RepoTreesIntegration(ABC):
             full_name, branch, shifted_seconds, only_use_cache=only_use_cache
         )
         return RepoTree(repo_and_branch, repo_files)
-
-    # https://docs.github.com/en/rest/git/trees#get-a-tree
-    def get_tree(self, repo_full_name: str, tree_sha: str) -> list[dict[str, Any]]:
-        tree: list[dict[str, Any]] = []
-        # We do not cache this call since it is a rather large object
-        contents = self.get_client().get(
-            f"/repos/{repo_full_name}/git/trees/{tree_sha}",
-            # It will fetch all objects or subtrees referenced by the tree specified in :tree_sha
-            params={"recursive": 1},
-        )
-        assert isinstance(contents, dict)
-        # If truncated is true in the response then the number of items in the tree array exceeded our maximum limit.
-        # If you need to fetch more items, use the non-recursive method of fetching trees, and fetch one sub-tree at a time.
-        # Note: The limit for the tree array is 100,000 entries with a maximum size of 7 MB when using the recursive parameter.
-        # XXX: We will need to improve this by iterating through trees without using the recursive parameter
-        if contents.get("truncated"):
-            # e.g. getsentry/DataForThePeople
-            logger.warning(
-                "The tree for %s has been truncated. Use different a approach for retrieving remaining contents of tree.",
-                repo_full_name,
-            )
-        tree = contents["tree"]
-
-        return tree
 
     def get_cached_repo_files(
         self,
@@ -245,10 +223,10 @@ class RepoTreesIntegration(ABC):
         only_use_cache: Do not hit the network but use the value from the cache
             if any. This is useful if the remaining API requests are low
         """
-        key = f"github:repo:{repo_full_name}:{'source-code' if only_source_code_files else 'all'}"
+        key = f"{self.integration_name}:repo:{repo_full_name}:{'source-code' if only_source_code_files else 'all'}"
         repo_files: list[str] = cache.get(key, [])
         if not repo_files and not only_use_cache:
-            tree = self.get_tree(repo_full_name, tree_sha)
+            tree = self.get_client().get_tree(repo_full_name, tree_sha)
             if tree:
                 # Keep files; discard directories
                 repo_files = [x["path"] for x in tree if x["type"] == "blob"]
@@ -259,7 +237,7 @@ class RepoTreesIntegration(ABC):
                 # As an example, all file paths in Sentry is about 1.3MB
                 # Larger customers may have larger repositories, however,
                 # the cost of not having cached the files cached for those
-                # repositories is a single GH API network request, thus,
+                # repositories is a single API network request, thus,
                 # being acceptable to sometimes not having everything cached
                 cache.set(key, repo_files, self.CACHE_SECONDS + shifted_seconds)
 
@@ -280,10 +258,14 @@ class RepoTreesClient(ABC):
     def get_remaining_api_requests(self) -> int:
         raise NotImplementedError
 
+    # @abstractmethod
+    # def get_repositories(
+    #     self, query: str | None = None, fetch_max_pages: bool = False
+    # ) -> Sequence[Any]:
+    #     raise NotImplementedError
+
     @abstractmethod
-    def get_repositories(
-        self, query: str | None = None, fetch_max_pages: bool = False
-    ) -> Sequence[Any]:
+    def get_tree(self, repo_full_name: str, tree_sha: str) -> list[dict[str, Any]]:
         raise NotImplementedError
 
 

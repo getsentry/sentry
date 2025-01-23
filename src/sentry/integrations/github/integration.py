@@ -313,7 +313,7 @@ class GitHubIntegration(
                 "No organization information was found. Continuing execution.", extra=extra
             )
         else:
-            trees = self.get_client().get_trees_for_org(gh_org=gh_org, cache_seconds=cache_seconds)
+            trees = self.get_client().get_trees_for_org_deprecate(gh_org, cache_seconds)
 
         return trees
 

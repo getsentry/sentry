@@ -291,10 +291,10 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
         """This gives information of the current rate limit"""
         return self.get_rate_limit().remaining
 
-    # XXX: Drop this method
+    # This method is used by RepoTreesIntegration
     # https://docs.github.com/en/rest/git/trees#get-a-tree
     def get_tree(self, repo_full_name: str, tree_sha: str) -> dict[str, Any]:
-        tree: Any = {}
+        tree: dict[str, Any] = {}
         # We do not cache this call since it is a rather large object
         contents: dict[str, Any] = self.get(
             f"/repos/{repo_full_name}/git/trees/{tree_sha}",
@@ -354,7 +354,9 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
         return repo_files
 
     # XXX: Drop this method
-    def get_trees_for_org(self, gh_org: str, cache_seconds: int = 3600 * 24) -> dict[str, RepoTree]:
+    def get_trees_for_org_deprecate(
+        self, gh_org: str, cache_seconds: int = 3600 * 24
+    ) -> dict[str, RepoTree]:
         """
         This fetches tree representations of all repos for an org and saves its
         contents into the cache.
