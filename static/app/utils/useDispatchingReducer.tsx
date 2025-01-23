@@ -80,7 +80,7 @@ export class DispatchingReducerEmitter<R extends React.Reducer<any, any>> {
 
 function update<R extends React.Reducer<any, any>>(
   state: ReducerState<R>,
-  actions: ReducerAction<R>[],
+  actions: Array<ReducerAction<R>>,
   reducer: R,
   emitter: DispatchingReducerEmitter<R>
 ) {
@@ -116,7 +116,7 @@ export function useDispatchingReducer<R extends React.Reducer<any, any>>(
   const reducerRef = useRef(reducer);
   reducerRef.current = reducer;
 
-  const actionQueue = useRef<ReducerAction<R>[]>([]);
+  const actionQueue = useRef<Array<ReducerAction<R>>>([]);
   const updatesRef = useRef<number | null>(null);
 
   const wrappedDispatch = useCallback(

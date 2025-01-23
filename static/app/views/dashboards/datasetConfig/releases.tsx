@@ -149,7 +149,7 @@ function disableSortOptions(widgetQuery: WidgetQuery) {
 
 function getTableSortOptions(_organization: Organization, widgetQuery: WidgetQuery) {
   const {columns, aggregates} = widgetQuery;
-  const options: SelectValue<string>[] = [];
+  const options: Array<SelectValue<string>> = [];
   [...aggregates, ...columns]
     .filter(field => !!field)
     .filter(field => !DISABLED_SORT.includes(field))

@@ -13,7 +13,7 @@ export default function storyBook(
   bookContext: string | React.ComponentType<any>,
   setup: SetupFunction
 ): StoryRenderFunction {
-  const contexts: {name: string; render: StoryRenderFunction}[] = [];
+  const contexts: Array<{name: string; render: StoryRenderFunction}> = [];
 
   const storyFn: StoryFunction = (name: string, render: StoryRenderFunction) => {
     contexts.push({name, render});

@@ -79,7 +79,7 @@ export function getIntervalOptionsForStatsPeriod(
 
 export function validateInterval(
   interval: string,
-  options: {label: string; value: string; disabled?: boolean}[]
+  options: Array<{label: string; value: string; disabled?: boolean}>
 ) {
   const isPeriod = !!parseStatsPeriod(interval);
   const enabledOptions = options.filter(option => !option.disabled);

@@ -18,8 +18,11 @@ interface Props {
 }
 
 const expandedViewKeys = [
+  // Java, Cocoa, React Native
   'sdk.replay.maskedViewClasses',
   'sdk.replay.unmaskedViewClasses',
+  // Flutter
+  'sdk.replay.maskingRules',
 ];
 
 function renderValueList(values: ReactNode[]) {

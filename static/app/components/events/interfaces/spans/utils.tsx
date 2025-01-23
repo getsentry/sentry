@@ -470,7 +470,7 @@ export function parseTrace(
     }
   );
 
-  const spans: (RawSpanType | AggregateSpanType)[] = spanEntry?.data ?? [];
+  const spans: Array<RawSpanType | AggregateSpanType> = spanEntry?.data ?? [];
 
   const traceContext = getTraceContext(event);
   const traceID = traceContext?.trace_id || '';
@@ -1001,7 +1001,7 @@ export function getSpanGroupBounds(
 }
 
 export function getCumulativeAlertLevelFromErrors(
-  errors?: Pick<TraceError, 'level' | 'type'>[]
+  errors?: Array<Pick<TraceError, 'level' | 'type'>>
 ): keyof Theme['alert'] | undefined {
   const highestErrorLevel = maxBy(
     errors || [],

@@ -27,7 +27,7 @@ type Props = {
   columnOrder: string[];
   columnTooltipMap: Record<string, string> | undefined;
   data: TableData | undefined;
-  defaultSort: GridColumnSortBy<string>[];
+  defaultSort: Array<GridColumnSortBy<string>>;
   eventView: EventView;
   isLoading: boolean;
   pageLinks: string | undefined;

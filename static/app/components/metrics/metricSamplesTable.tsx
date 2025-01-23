@@ -375,8 +375,8 @@ function getColumnForMRI(mri?: MRI): GridColumnOrder<ResultField> {
         };
 }
 
-function getColumnOrder(mri?: MRI): GridColumnOrder<ResultField>[] {
-  const orders: (GridColumnOrder<ResultField> | undefined)[] = [
+function getColumnOrder(mri?: MRI): Array<GridColumnOrder<ResultField>> {
+  const orders: Array<GridColumnOrder<ResultField> | undefined> = [
     {key: 'id', width: COL_WIDTH_UNDEFINED, name: 'Span ID'},
     {key: 'span.description', width: COL_WIDTH_UNDEFINED, name: 'Description'},
     {key: 'span.op', width: COL_WIDTH_UNDEFINED, name: 'Operation'},

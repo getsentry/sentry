@@ -112,7 +112,7 @@ export function eventViewFromWidget(
 
 export function getThresholdUnitSelectOptions(
   dataType: string
-): {label: string; value: string}[] {
+): Array<{label: string; value: string}> {
   if (dataType === 'duration') {
     return Object.keys(DURATION_UNITS)
       .map(unit => ({label: unit, value: unit}))

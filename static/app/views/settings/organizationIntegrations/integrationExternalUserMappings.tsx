@@ -28,7 +28,7 @@ type Props = DeprecatedAsyncComponent['props'] &
 
 type State = DeprecatedAsyncComponent['state'] & {
   initialResults: Member[];
-  members: (Member & {externalUsers: ExternalUser[]})[];
+  members: Array<Member & {externalUsers: ExternalUser[]}>;
 };
 
 class IntegrationExternalUserMappings extends DeprecatedAsyncComponent<Props, State> {
