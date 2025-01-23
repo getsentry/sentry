@@ -54,6 +54,8 @@ enum FilteredReason {
   LOCALHOST = 'localhost',
   RELEASE_VERSION = 'release-version',
   WEB_CRAWLER = 'web-crawlers',
+  REACT_HYDRATION_ERRORS = 'react-hydration-errors',
+  CHUNK_LOAD_ERROR = 'chunk-load-error',
 }
 
 // List of Client Discard Reason according to the Client Report's doc - https://develop.sentry.dev/sdk/client-reports/#envelope-item-payload
@@ -160,6 +162,8 @@ function getFilteredReasonGroupName(reason: FilteredReason): string {
     case FilteredReason.LOCALHOST:
     case FilteredReason.RELEASE_VERSION:
     case FilteredReason.WEB_CRAWLER:
+    case FilteredReason.REACT_HYDRATION_ERRORS:
+    case FilteredReason.CHUNK_LOAD_ERROR:
       return reason;
     default:
       return 'other';
