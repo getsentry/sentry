@@ -805,6 +805,11 @@ function AggregateParameterField({
       onUpdate: (value: any) => {
         onChange(value);
       },
+      onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+          onChange(e.currentTarget.value);
+        }
+      },
       placeholder: parameter.placeholder,
     };
     switch (parameter.dataType) {
