@@ -29,7 +29,7 @@ from sentry.integrations.api.serializers.models.external_issue import ExternalIs
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.issues.constants import get_issue_tsdb_group_model
 from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
-from sentry.issues.grouptype import GroupCategory, MetricIssuePOC
+from sentry.issues.grouptype import GroupCategory
 from sentry.models.activity import Activity
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.group import Group
@@ -90,7 +90,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         return [seen for seen in serialize(seen_by, request.user) if seen is not None]
 
     def _get_open_periods_for_group(self, group: Group) -> list[OpenPeriod]:
-        if group.type != MetricIssuePOC.type_id:
+        if not features.has("organizations:issue-open-periods", group.organization):
             return []
 
         activities = Activity.objects.filter(
