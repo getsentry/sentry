@@ -114,6 +114,9 @@ class ProjectDetectorIndexEndpoint(ProjectEndpoint):
         :param object data_source: Configuration for the data source
         :param array data_conditions: List of conditions to trigger the detector
         """
+        # TODO @saponifi3d - I think we'll need to refactor this to take data we'd expect from an input form rather than
+        # the normalized data this is currently expecting. We can probably hold off until we get a better idea of what the
+        # form will look like.
         group_type = request.data.get("group_type")
         if not group_type:
             raise ValidationError({"groupType": ["This field is required."]})

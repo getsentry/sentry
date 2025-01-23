@@ -1,4 +1,6 @@
 from drf_spectacular.utils import extend_schema
+from rest_framework import status
+from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -23,6 +25,11 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.ISSUES
+
+    def _get_validator(self, request, organization):
+        # TODO - validate the POST request data
+        # This should be similar to: BaseGroupTypeDetectorValidator
+        pass
 
     @extend_schema(
         operation_id="Fetch Workflows",
@@ -51,8 +58,33 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
             on_results=lambda x: serialize(x, request.user),
         )
 
+    @extend_schema(
+        operation_id="Create a Workflow",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+        ],
+        responses={
+            201: WorkflowSerializer,
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
     def post(self, request, organization):
         """
         Creates a workflow for an organization
+        ``````````````````````````````````````
+        Create a new workflow for an organization.
+
+        :param string name: The name of the workflow
+        :param list[Conditions] conditions: The conditions that must be met for the workflow to trigger
+        :param list[Actions] actions: The actions that will be triggered when the workflow is triggered
         """
-        pass
+        validator = self._get_validator(request, organization)
+
+        if validator.is_valid():
+            return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        workflow = validator.save()
+        return Response(serialize(workflow, request.user), status=status.HTTP_201_CREATED)
