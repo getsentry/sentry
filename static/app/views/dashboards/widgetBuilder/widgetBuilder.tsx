@@ -25,6 +25,7 @@ import type {TagCollection} from 'sentry/types/group';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
@@ -316,6 +317,7 @@ function WidgetBuilder({
     trackAnalytics('dashboards_views.widget_builder.opened', {
       organization,
       new_widget: !isEditing,
+      builder_version: WidgetBuilderVersion.PAGE,
     });
 
     if (isEmptyObject(tags) && dataSet !== DataSet.SPANS) {
@@ -547,16 +549,6 @@ function WidgetBuilder({
   function handleDisplayTypeOrAnnotationChange<
     F extends keyof Pick<State, 'displayType' | 'title' | 'description'>,
   >(field: F, value: State[F]) {
-    if (value) {
-      trackAnalytics('dashboards_views.widget_builder.change', {
-        from: source,
-        field,
-        value,
-        widget_type: widgetType,
-        organization,
-        new_widget: !isEditing,
-      });
-    }
     setState(prevState => {
       const newState = cloneDeep(prevState);
       set(newState, field, value);
@@ -579,6 +571,7 @@ function WidgetBuilder({
       widget_type: widgetType,
       organization,
       new_widget: !isEditing,
+      builder_version: WidgetBuilderVersion.PAGE,
     });
     setState(prevState => {
       const newState = cloneDeep(prevState);
@@ -913,6 +906,7 @@ function WidgetBuilder({
         organization,
         data_set: widgetData.widgetType ?? defaultWidgetType,
         new_widget: false,
+        builder_version: WidgetBuilderVersion.PAGE,
       });
       return;
     }
@@ -924,6 +918,7 @@ function WidgetBuilder({
       organization,
       data_set: widgetData.widgetType ?? defaultWidgetType,
       new_widget: true,
+      builder_version: WidgetBuilderVersion.PAGE,
     });
   }
 
@@ -1197,6 +1192,20 @@ function WidgetBuilder({
                                         );
                                       }}
                                       value={state.title}
+                                      onBlur={() => {
+                                        trackAnalytics(
+                                          'dashboards_views.widget_builder.change',
+                                          {
+                                            from: source,
+                                            field: 'title',
+                                            value: state.title ?? '',
+                                            widget_type: widgetType,
+                                            organization,
+                                            new_widget: !isEditing,
+                                            builder_version: WidgetBuilderVersion.PAGE,
+                                          }
+                                        );
+                                      }}
                                     />
                                     <StyledTextAreaField
                                       name="description"
@@ -1213,6 +1222,20 @@ function WidgetBuilder({
                                         );
                                       }}
                                       value={state.description}
+                                      onBlur={() => {
+                                        trackAnalytics(
+                                          'dashboards_views.widget_builder.change',
+                                          {
+                                            from: source,
+                                            field: 'description',
+                                            value: state.description ?? '',
+                                            widget_type: widgetType,
+                                            organization,
+                                            new_widget: !isEditing,
+                                            builder_version: WidgetBuilderVersion.PAGE,
+                                          }
+                                        );
+                                      }}
                                     />
                                   </NameWidgetStep>
                                   <VisualizationStep
@@ -1227,6 +1250,18 @@ function WidgetBuilder({
                                       handleDisplayTypeOrAnnotationChange(
                                         'displayType',
                                         newDisplayType
+                                      );
+                                      trackAnalytics(
+                                        'dashboards_views.widget_builder.change',
+                                        {
+                                          from: source,
+                                          field: 'displayType',
+                                          value: newDisplayType,
+                                          widget_type: widgetType,
+                                          organization,
+                                          new_widget: !isEditing,
+                                          builder_version: WidgetBuilderVersion.PAGE,
+                                        }
                                       );
                                     }}
                                     isWidgetInvalid={!state.queryConditionsValid}

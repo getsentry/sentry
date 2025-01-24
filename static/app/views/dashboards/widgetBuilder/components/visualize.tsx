@@ -462,6 +462,7 @@ function Visualize({error, setError}: VisualizeProps) {
                           />
                         )}
                         <AggregateCompactSelect
+                          searchable
                           hasColumnParameter={hasColumnParameter}
                           disabled={aggregateOptions.length <= 1}
                           options={aggregateOptions}
@@ -821,6 +822,7 @@ function AggregateParameterField({
             type="text"
             inputMode="numeric"
             pattern="[0-9]*(\.[0-9]*)?"
+            aria-label={t('Numeric Input')}
             {...inputProps}
           />
         );
@@ -832,6 +834,7 @@ function AggregateParameterField({
             type="text"
             inputMode="numeric"
             pattern="[0-9]*"
+            aria-label={t('Integer Input')}
             {...inputProps}
           />
         );
@@ -841,6 +844,7 @@ function AggregateParameterField({
             name="refinement"
             key="parameter:text"
             type="text"
+            aria-label={t('Text Input')}
             {...inputProps}
           />
         );
@@ -859,6 +863,7 @@ function AggregateParameterField({
         onChange={({value}: any) => {
           onChange(value);
         }}
+        searchable
       />
     );
   }

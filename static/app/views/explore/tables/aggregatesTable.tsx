@@ -92,6 +92,7 @@ export function AggregatesTable({
 
   const tableRef = useRef<HTMLTableElement>(null);
   const {initialTableStyles, onResizeMouseDown} = useTableStyles(fields, tableRef, {
+    minimumColumnWidth: 50,
     prefixColumnWidth: 'min-content',
   });
 
@@ -138,7 +139,9 @@ export function AggregatesTable({
               return (
                 <TableHeadCell align={align} key={i} isFirst={i === 0}>
                   <TableHeadCellContent onClick={updateSort}>
-                    <span>{label}</span>
+                    <Tooltip showOnlyOnOverflow title={label}>
+                      {label}
+                    </Tooltip>
                     {defined(direction) && (
                       <IconArrow
                         size="xs"
