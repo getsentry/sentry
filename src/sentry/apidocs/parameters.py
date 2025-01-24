@@ -317,6 +317,16 @@ class IssueParams:
     )
 
 
+class DetectorParams:
+    DETECTOR_ID = OpenApiParameter(
+        name="detector_id",
+        location="path",
+        required=True,
+        type=int,
+        description="The ID of the detector you'd like to query.",
+    )
+
+
 class IssueAlertParams:
     ISSUE_RULE_ID = OpenApiParameter(
         name="rule_id",
