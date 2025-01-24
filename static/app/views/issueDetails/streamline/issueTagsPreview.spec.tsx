@@ -1,18 +1,27 @@
 import {GroupFixture} from 'sentry-fixture/group';
+<<<<<<< HEAD
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TagsFixture} from 'sentry-fixture/tags';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+=======
+import {TagsFixture} from 'sentry-fixture/tags';
+
+import {render, screen} from 'sentry-test/reactTestingLibrary';
+>>>>>>> 029174362c3 (feat(issues): New tags preview with colors (#83972))
 
 import IssueTagsPreview from './issueTagsPreview';
 
 describe('IssueTagsPreview', () => {
+<<<<<<< HEAD
   beforeEach(() => {
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/',
       body: [ProjectFixture()],
     });
   });
+=======
+>>>>>>> 029174362c3 (feat(issues): New tags preview with colors (#83972))
   it('renders preview tags', async () => {
     const group = GroupFixture();
     MockApiClient.addMockResponse({
@@ -24,7 +33,13 @@ describe('IssueTagsPreview', () => {
     );
 
     expect(await screen.findByText('prod')).toBeInTheDocument();
+<<<<<<< HEAD
     expect(screen.getByRole('link', {name: 'View all tags'})).toBeInTheDocument();
+=======
+    expect(
+      screen.getByRole('button', {name: 'View issue tag distributions'})
+    ).toBeInTheDocument();
+>>>>>>> 029174362c3 (feat(issues): New tags preview with colors (#83972))
   });
 
   it('renders no tags', async () => {
@@ -41,6 +56,7 @@ describe('IssueTagsPreview', () => {
       await screen.findByRole('button', {name: 'View issue tag distributions'})
     ).toBeInTheDocument();
   });
+<<<<<<< HEAD
 
   it('renders tags edge case correctly with prefetching', async () => {
     const group = GroupFixture();
@@ -135,4 +151,6 @@ describe('IssueTagsPreview', () => {
 
     expect(screen.queryByText('Other')).not.toBeInTheDocument();
   });
+=======
+>>>>>>> 029174362c3 (feat(issues): New tags preview with colors (#83972))
 });

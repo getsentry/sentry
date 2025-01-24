@@ -1,12 +1,19 @@
 import type React from 'react';
+<<<<<<< HEAD
 import {Fragment, useMemo, useState} from 'react';
+=======
+import {Fragment, useMemo} from 'react';
+>>>>>>> 029174362c3 (feat(issues): New tags preview with colors (#83972))
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import Color from 'color';
 
 import {LinkButton} from 'sentry/components/button';
 import {DeviceName} from 'sentry/components/deviceName';
+<<<<<<< HEAD
 import Link from 'sentry/components/links/link';
+=======
+>>>>>>> 029174362c3 (feat(issues): New tags preview with colors (#83972))
 import Placeholder from 'sentry/components/placeholder';
 import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -16,19 +23,27 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {percent} from 'sentry/utils';
+<<<<<<< HEAD
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isMobilePlatform} from 'sentry/utils/platform';
 import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
+=======
+import {isMobilePlatform} from 'sentry/utils/platform';
+import {useLocation} from 'sentry/utils/useLocation';
+>>>>>>> 029174362c3 (feat(issues): New tags preview with colors (#83972))
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 import {useGroupTagsReadable} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 import {useEventQuery} from 'sentry/views/issueDetails/streamline/eventSearch';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
+<<<<<<< HEAD
 import {usePrefetchTagValues} from 'sentry/views/issueDetails/utils';
+=======
+>>>>>>> 029174362c3 (feat(issues): New tags preview with colors (#83972))
 
 const DEFAULT_TAGS = ['transaction', 'environment', 'release'];
 const FRONTEND_TAGS = ['browser', 'release', 'url', 'environment'];
@@ -41,7 +56,10 @@ const BACKEND_TAGS = [
   'environment',
 ];
 const MOBILE_TAGS = ['device', 'os', 'release', 'environment', 'transaction'];
+<<<<<<< HEAD
 const RTL_TAGS = ['transaction', 'url'];
+=======
+>>>>>>> 029174362c3 (feat(issues): New tags preview with colors (#83972))
 
 type Segment = {
   count: number;
@@ -52,6 +70,7 @@ type Segment = {
 
 const bgColor = (index: number) =>
   Color(CHART_PALETTE[4].at(index)).alpha(0.8).toString();
+<<<<<<< HEAD
 const getRoundedPercentage = (percentage: number) =>
   percentage < 1 ? '<1%' : `${Math.floor(percentage)}%`;
 
@@ -81,6 +100,60 @@ function TagPreviewProgressBar({tag, groupId}: {groupId: string; tag: GroupTag})
   const [prefetchTagValue, setPrefetchTagValue] = useState('');
 
   usePrefetchTagValues(prefetchTagValue, groupId, isHovered);
+=======
+
+function SegmentedBar({
+  segments,
+  otherPercentage,
+  tagName,
+}: {
+  otherPercentage: string | null;
+  segments: Segment[];
+  tagName: string;
+}) {
+  const theme = useTheme();
+  const tooltipContent = (
+    <TooltipLegend>
+      <LegendTitle>{tagName}</LegendTitle>
+      <LegendGrid>
+        {segments.map((segment, idx) => (
+          <Fragment key={idx}>
+            <LegendColor style={{backgroundColor: bgColor(idx)}} />
+            <LegendText>{segment.name}</LegendText>
+            <LegendPercentage>{segment.percentage.toFixed(0)}%</LegendPercentage>
+          </Fragment>
+        ))}
+        {otherPercentage && (
+          <Fragment>
+            <LegendColor style={{backgroundColor: theme.gray200}} />
+            <LegendText>{t('Other')}</LegendText>
+            <LegendPercentage>{otherPercentage}</LegendPercentage>
+          </Fragment>
+        )}
+      </LegendGrid>
+    </TooltipLegend>
+  );
+
+  return (
+    <Tooltip title={tooltipContent} skipWrapper>
+      <TagBarPlaceholder>
+        {segments.map((segment, idx) => (
+          <TagBarSegment
+            key={idx}
+            style={{
+              left: `${segments.slice(0, idx).reduce((sum, s) => sum + s.percentage, 0)}%`,
+              width: `${segment.percentage}%`,
+              backgroundColor: bgColor(idx),
+            }}
+          />
+        ))}
+      </TagBarPlaceholder>
+    </Tooltip>
+  );
+}
+
+function TagPreviewProgressBar({tag}: {tag: GroupTag}) {
+>>>>>>> 029174362c3 (feat(issues): New tags preview with colors (#83972))
   const segments: Segment[] = tag.topValues.map(value => {
     let name: string | React.ReactNode = value.name;
     if (tag.key === 'release') {
@@ -101,6 +174,7 @@ function TagPreviewProgressBar({tag, groupId}: {groupId: string; tag: GroupTag})
     return null;
   }
 
+<<<<<<< HEAD
   const topPercentageString = getRoundedPercentage(topSegment.percentage);
   const totalVisible = segments.reduce((sum, value) => sum + value.count, 0);
   const hasOther = totalVisible < tag.totalValues;
@@ -176,21 +250,64 @@ function IssueTagButton({
   if (tags.length === 0 || searchQuery || isScreenSmall) {
     return (
       <VerticalIssueTagsButton
+=======
+  const topPercentageString =
+    topSegment.percentage < 1 ? '<1%' : `${topSegment.percentage.toFixed(0)}%`;
+  const otherPercentage = segments.reduce((sum, s) => sum - s.percentage, 100);
+  const otherPercentageString =
+    otherPercentage === 0
+      ? null
+      : otherPercentage < 1
+        ? '<1%'
+        : `${otherPercentage.toFixed(0)}%`;
+
+  return (
+    <Fragment>
+      <TagBarPlaceholder>
+        <SegmentedBar
+          segments={segments}
+          otherPercentage={otherPercentageString}
+          tagName={tag.key}
+        />
+      </TagBarPlaceholder>
+      <TopPercentage>{topPercentageString}</TopPercentage>
+      <TextOverflow>{topSegment?.name}</TextOverflow>
+    </Fragment>
+  );
+}
+
+function IssueTagButton({tags}: {tags: GroupTag[]}) {
+  const {baseUrl} = useGroupDetailsRoute();
+  const location = useLocation();
+  if (tags.length === 0) {
+    return (
+      <HorizontalIssueTagsButton
+>>>>>>> 029174362c3 (feat(issues): New tags preview with colors (#83972))
         aria-label={t('View issue tag distributions')}
         size="xs"
         to={{
           pathname: `${baseUrl}${TabPaths[Tab.TAGS]}`,
           query: location.query,
+<<<<<<< HEAD
         }}
         replace
         disabled={tags.length === 0}
       >
         {t('View All Tags')}
       </VerticalIssueTagsButton>
+=======
+          replace: true,
+        }}
+        disabled
+      >
+        {t('All Tags')}
+      </HorizontalIssueTagsButton>
+>>>>>>> 029174362c3 (feat(issues): New tags preview with colors (#83972))
     );
   }
 
   return (
+<<<<<<< HEAD
     <IssueTagsLink
       to={{
         pathname: `${baseUrl}${TabPaths[Tab.TAGS]}`,
@@ -202,6 +319,21 @@ function IssueTagButton({
     >
       {t('View all tags')}
     </IssueTagsLink>
+=======
+    <IssueTagsButton
+      aria-label={t('View issue tag distributions')}
+      size="xs"
+      to={{
+        pathname: `${baseUrl}${TabPaths[Tab.TAGS]}`,
+        query: location.query,
+        replace: true,
+      }}
+      analyticsEventKey="issue_details.issue_tags_clicked"
+      analyticsEventName="Issue Details: Issue Tags Clicked"
+    >
+      {t('All Tags')}
+    </IssueTagsButton>
+>>>>>>> 029174362c3 (feat(issues): New tags preview with colors (#83972))
   );
 }
 
@@ -245,10 +377,13 @@ export default function IssueTagsPreview({
       return [];
     }
 
+<<<<<<< HEAD
     const highlightTags = tags
       .filter(tag => highlightTagKeys.includes(tag.key))
       .sort((a, b) => highlightTagKeys.indexOf(a.key) - highlightTagKeys.indexOf(b.key));
 
+=======
+>>>>>>> 029174362c3 (feat(issues): New tags preview with colors (#83972))
     const priorityTags = isMobilePlatform(project?.platform)
       ? MOBILE_TAGS
       : frontend.some(val => val === project?.platform)
@@ -261,14 +396,20 @@ export default function IssueTagsPreview({
       .filter(tag => priorityTags.includes(tag.key))
       .sort((a, b) => priorityTags.indexOf(a.key) - priorityTags.indexOf(b.key));
 
+<<<<<<< HEAD
     const remainingTagKeys = tags.filter(tag => !priorityTags.includes(tag.key)).sort();
     const orderedTags = [...highlightTags, ...sortedTags, ...remainingTagKeys];
     const uniqueTags = [...new Set(orderedTags)];
     return uniqueTags.slice(0, 4);
   }, [tags, project?.platform, highlightTagKeys]);
+=======
+    return sortedTags.slice(0, 4);
+  }, [tags, project?.platform]);
+>>>>>>> 029174362c3 (feat(issues): New tags preview with colors (#83972))
 
   if (isPending || isHighlightPending) {
     return (
+<<<<<<< HEAD
       <Fragment>
         <SectionDivider />
         <IssueTagPreviewSection>
@@ -304,6 +445,31 @@ export default function IssueTagsPreview({
         <IssueTagButton tags={tagsToPreview} />
       </IssueTagPreviewSection>
     </Fragment>
+=======
+      <IssueTagPreviewSection>
+        <Placeholder width="240px" height="100px" />
+      </IssueTagPreviewSection>
+    );
+  }
+
+  if (isError || searchQuery) {
+    return null;
+  }
+
+  if (tagsToPreview.length === 0) {
+    return <IssueTagButton tags={tagsToPreview} />;
+  }
+
+  return (
+    <IssueTagPreviewSection>
+      <TagsPreview>
+        {tagsToPreview.map(tag => (
+          <TagPreviewProgressBar key={tag.key} tag={tag} />
+        ))}
+      </TagsPreview>
+      <IssueTagButton tags={tagsToPreview} />
+    </IssueTagPreviewSection>
+>>>>>>> 029174362c3 (feat(issues): New tags preview with colors (#83972))
   );
 }
 
@@ -316,9 +482,15 @@ const IssueTagPreviewSection = styled('div')`
 `;
 
 const TagsPreview = styled('div')`
+<<<<<<< HEAD
   width: 340px;
   display: grid;
   grid-template-columns: auto 30% min-content auto;
+=======
+  width: 240px;
+  display: grid;
+  grid-template-columns: 45% min-content auto;
+>>>>>>> 029174362c3 (feat(issues): New tags preview with colors (#83972))
   align-items: center;
   align-content: center;
   gap: 1px;
@@ -376,6 +548,7 @@ const LegendColor = styled('div')`
   border-radius: 100%;
 `;
 
+<<<<<<< HEAD
 const TagPreviewGrid = styled(Link)`
   display: grid;
   grid-template-columns: subgrid;
@@ -396,6 +569,12 @@ const TagPreviewGrid = styled(Link)`
 const LegendText = styled(TextOverflow)`
   font-size: ${p => p.theme.fontSizeSmall};
   white-space: nowrap;
+=======
+const LegendText = styled('span')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  white-space: nowrap;
+  ${p => p.theme.overflowEllipsis};
+>>>>>>> 029174362c3 (feat(issues): New tags preview with colors (#83972))
 `;
 
 const LegendPercentage = styled('span')`
@@ -406,6 +585,7 @@ const LegendPercentage = styled('span')`
 `;
 
 const LegendTitle = styled('div')`
+<<<<<<< HEAD
   font-weight: 600;
   margin-bottom: ${space(0.75)};
 `;
@@ -420,6 +600,25 @@ const IssueTagsLink = styled(Link)`
 `;
 
 const VerticalIssueTagsButton = styled(LinkButton)`
+=======
+  font-size: ${p => p.theme.fontSizeSmall};
+  font-weight: 600;
+  color: ${p => p.theme.textColor};
+  margin-bottom: ${space(0.75)};
+`;
+
+const IssueTagsButton = styled(LinkButton)`
+  display: block;
+  flex: 0;
+  height: unset;
+  text-align: center;
+  span {
+    white-space: unset;
+  }
+`;
+
+const HorizontalIssueTagsButton = styled(LinkButton)`
+>>>>>>> 029174362c3 (feat(issues): New tags preview with colors (#83972))
   display: block;
   flex: 0;
   margin: ${space(1)} ${space(2)} ${space(1)} ${space(1)};
@@ -430,6 +629,7 @@ const VerticalIssueTagsButton = styled(LinkButton)`
   span {
     white-space: unset;
   }
+<<<<<<< HEAD
 `;
 
 const SectionDivider = styled('div')`
@@ -441,4 +641,6 @@ const SectionDivider = styled('div')`
 
 const TagKey = styled(TextOverflow)`
   font-weight: bold;
+=======
+>>>>>>> 029174362c3 (feat(issues): New tags preview with colors (#83972))
 `;

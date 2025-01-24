@@ -2,7 +2,10 @@ import {Fragment, useEffect} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+<<<<<<< HEAD
 import {Button} from 'sentry/components/button';
+=======
+>>>>>>> 029174362c3 (feat(issues): New tags preview with colors (#83972))
 import {Flex} from 'sentry/components/container/flex';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -15,9 +18,12 @@ import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+<<<<<<< HEAD
 import useOrganization from 'sentry/utils/useOrganization';
 import {MetricIssueChart} from 'sentry/views/issueDetails/metricIssues/metricIssueChart';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
+=======
+>>>>>>> 029174362c3 (feat(issues): New tags preview with colors (#83972))
 import {EventGraph} from 'sentry/views/issueDetails/streamline/eventGraph';
 import {
   EventSearch,
@@ -43,9 +49,14 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
   const location = useLocation();
   const environments = useEnvironmentsFromUrl();
   const searchQuery = useEventQuery({groupId: group.id});
+<<<<<<< HEAD
+=======
+
+>>>>>>> 029174362c3 (feat(issues): New tags preview with colors (#83972))
   const issueTypeConfig = getConfigForIssueType(group, project);
   const {dispatch} = useIssueDetails();
 
+<<<<<<< HEAD
   useEffect(() => {
     if (event) {
       // Since detector details are identical across the issue but only provided at the event level,
@@ -73,11 +84,15 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
     issueTypeConfig.header.occurrenceSummary.enabled;
 
   if (!hasHeader) {
+=======
+  if (!issueTypeConfig.filterAndSearchHeader.enabled) {
+>>>>>>> 029174362c3 (feat(issues): New tags preview with colors (#83972))
     return null;
   }
 
   return (
     <PageErrorBoundary mini message={t('There was an error loading the event filters')}>
+<<<<<<< HEAD
       <FilterContainer
         role="group"
         aria-description={t('Event filtering controls')}
@@ -141,6 +156,48 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
         {issueTypeConfig.header.occurrenceSummary.enabled && (
           <OccurrenceSummarySection group={group} event={event} />
         )}
+=======
+      <FilterContainer role="group" aria-description={t('Event filtering controls')}>
+        <EnvironmentFilter
+          triggerProps={{
+            borderless: true,
+            style: {
+              borderRadius: 0,
+            },
+          }}
+        />
+        <DateFilter
+          triggerProps={{
+            borderless: true,
+            style: {
+              borderRadius: 0,
+            },
+          }}
+        />
+        <Flex style={{gridArea: 'search'}}>
+          <SearchFilter
+            group={group}
+            handleSearch={query => {
+              navigate({...location, query: {...location.query, query}}, {replace: true});
+            }}
+            environments={environments}
+            query={searchQuery}
+            queryBuilderProps={{
+              disallowFreeText: true,
+            }}
+          />
+          <ToggleSidebar />
+        </Flex>
+        <GraphSection>
+          <EventGraph event={event} group={group} style={{flex: 1}} />
+          <SectionDivider />
+          <IssueTagsPreview
+            groupId={group.id}
+            environments={environments}
+            project={project}
+          />
+        </GraphSection>
+>>>>>>> 029174362c3 (feat(issues): New tags preview with colors (#83972))
       </FilterContainer>
     </PageErrorBoundary>
   );
@@ -224,6 +281,7 @@ const DateFilter = styled(DatePageFilter)`
 const GraphSection = styled('div')`
   grid-area: graph;
   display: flex;
+<<<<<<< HEAD
   &:not(:first-child) {
     border-top: 1px solid ${p => p.theme.translucentBorder};
   }
@@ -237,6 +295,16 @@ const OccurrenceSummarySection = styled(OccurrenceSummary)`
   &:not(:first-child) {
     border-top: 1px solid ${p => p.theme.translucentBorder};
   }
+=======
+  border-top: 1px solid ${p => p.theme.translucentBorder};
+`;
+
+const SectionDivider = styled('div')`
+  border-left: 1px solid ${p => p.theme.translucentBorder};
+  display: flex;
+  align-items: center;
+  margin: ${space(1)};
+>>>>>>> 029174362c3 (feat(issues): New tags preview with colors (#83972))
 `;
 
 const PageErrorBoundary = styled(ErrorBoundary)`

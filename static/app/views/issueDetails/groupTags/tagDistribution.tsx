@@ -13,7 +13,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 import {usePrefetchTagValues} from 'sentry/views/issueDetails/utils';
 
+<<<<<<< HEAD
 export function TagDistribution({tag, groupId}: {groupId: string; tag: GroupTag}) {
+=======
+export function TagDistribution({tag}: {tag: GroupTag}) {
+>>>>>>> 029174362c3 (feat(issues): New tags preview with colors (#83972))
   const location = useLocation();
   const [prefetchEnabled, setPrefetchEnabled] = useState(false);
   const hoverTimeoutRef = useRef<number | undefined>();
