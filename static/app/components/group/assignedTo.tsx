@@ -84,7 +84,7 @@ type IssueOwner = {
 export interface EventOwners {
   owners: Actor[];
   rule: RuleDefinition;
-  rules: Array<Rule>;
+  rules: Rule[];
 }
 
 function getSuggestedReason(owner: IssueOwner) {
@@ -141,7 +141,7 @@ export function getOwnerList(
   committers: Committer[],
   eventOwners: EventOwners | undefined,
   assignedTo: Actor | null
-): Omit<SuggestedAssignee, 'assignee'>[] {
+): Array<Omit<SuggestedAssignee, 'assignee'>> {
   const owners: IssueOwner[] = committers.map(commiter => ({
     actor: {...commiter.author, type: 'user'},
     commits: commiter.commits,

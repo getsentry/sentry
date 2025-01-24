@@ -51,11 +51,11 @@ function LinkedIssue({eventId, groupId}: Props) {
 
   const issueUrl = `${group.permalink}events/${eventId}/`;
 
-  const groupStats: ReadonlyArray<TimeseriesValue> = group.filtered
+  const groupStats: readonly TimeseriesValue[] = group.filtered
     ? group.filtered.stats?.['30d']!
     : group.stats?.['30d']!;
 
-  const groupSecondaryStats: ReadonlyArray<TimeseriesValue> = group.filtered
+  const groupSecondaryStats: readonly TimeseriesValue[] = group.filtered
     ? group.stats?.['30d']!
     : [];
 

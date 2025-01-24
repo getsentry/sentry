@@ -47,6 +47,7 @@ import {
 import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import useProfileExists from 'sentry/views/insights/browser/webVitals/utils/useProfileExists';
 import {useWebVitalsSort} from 'sentry/views/insights/browser/webVitals/utils/useWebVitalsSort';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {
   ModuleName,
   SpanIndexedField,
@@ -59,7 +60,9 @@ import {generateReplayLink} from 'sentry/views/performance/transactionSummary/ut
 type Column = GridColumnHeader<keyof TransactionSampleRowWithScore>;
 type InteractionsColumn = GridColumnHeader<keyof InteractionSpanSampleRowWithScore>;
 
-const PAGELOADS_COLUMN_ORDER: GridColumnOrder<keyof TransactionSampleRowWithScore>[] = [
+const PAGELOADS_COLUMN_ORDER: Array<
+  GridColumnOrder<keyof TransactionSampleRowWithScore>
+> = [
   {key: 'id', width: COL_WIDTH_UNDEFINED, name: t('Event ID')},
   {key: 'user.display', width: COL_WIDTH_UNDEFINED, name: t('User')},
   {key: 'measurements.lcp', width: COL_WIDTH_UNDEFINED, name: 'LCP'},
@@ -71,9 +74,9 @@ const PAGELOADS_COLUMN_ORDER: GridColumnOrder<keyof TransactionSampleRowWithScor
   {key: 'totalScore', width: COL_WIDTH_UNDEFINED, name: t('Score')},
 ];
 
-const INTERACTION_SAMPLES_COLUMN_ORDER: GridColumnOrder<
-  keyof InteractionSpanSampleRowWithScore
->[] = [
+const INTERACTION_SAMPLES_COLUMN_ORDER: Array<
+  GridColumnOrder<keyof InteractionSpanSampleRowWithScore>
+> = [
   {
     key: SpanIndexedField.SPAN_DESCRIPTION,
     width: COL_WIDTH_UNDEFINED,
@@ -106,6 +109,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
   const {replayExists} = useReplayExists();
   const routes = useRoutes();
   const navigate = useNavigate();
+  const domainViewFilters = useDomainViewFilters();
 
   const browserTypes = decodeBrowserTypes(location.query[SpanIndexedField.BROWSER_NAME]);
   const subregions = decodeList(
@@ -192,7 +196,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
       };
     }
 
-    const canSort = (sortableFields as ReadonlyArray<string>).includes(col.key);
+    const canSort = (sortableFields as readonly string[]).includes(col.key);
 
     if (
       [
@@ -348,9 +352,9 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
 
     if (key === 'replayId') {
       const replayTarget =
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         (row['transaction.duration'] !== undefined ||
-          // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           row[SpanIndexedField.SPAN_SELF_TIME] !== undefined) &&
         replayLinkGenerator(
           organization,
@@ -359,9 +363,9 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
             id: '', // id doesn't get used in replayLinkGenerator. This is just to satisfy the type.
             'transaction.duration':
               datatype === Datatype.INTERACTIONS
-                ? // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                   row[SpanIndexedField.SPAN_SELF_TIME]
-                : // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                   row['transaction.duration'],
             timestamp: row.timestamp,
           },
@@ -392,6 +396,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
         timestamp: row.timestamp,
         organization,
         location,
+        view: domainViewFilters.view,
         source: TraceViewSources.WEB_VITALS_MODULE,
       });
 
@@ -412,7 +417,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
       );
     }
 
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return <NoOverflow>{row[key]}</NoOverflow>;
   }
 

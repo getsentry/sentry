@@ -111,6 +111,17 @@ function AlertRulesList() {
     });
   };
 
+  const handleChangeType = (alertType: CombinedAlertType[]) => {
+    const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
+    router.push({
+      pathname: location.pathname,
+      query: {
+        ...currentQuery,
+        alertType,
+      },
+    });
+  };
+
   const handleOwnerChange = (
     projectId: string,
     rule: CombinedAlerts,
@@ -200,6 +211,8 @@ function AlertRulesList() {
               location={location}
               onChangeFilter={handleChangeFilter}
               onChangeSearch={handleChangeSearch}
+              onChangeAlertType={handleChangeType}
+              hasTypeFilter
             />
             <StyledPanelTable
               isLoading={isPending}

@@ -30,7 +30,7 @@ type ThresholdRowProp = {
   color: string;
   maxInputProps: NumberFieldProps;
   minInputProps: NumberFieldProps;
-  unitOptions: {label: string; value: string}[];
+  unitOptions: Array<{label: string; value: string}>;
   unitSelectProps: SelectFieldProps<any>;
   maxKey?: ThresholdMaxKeys;
   onThresholdChange?: (maxKey: ThresholdMaxKeys, value: string) => void;

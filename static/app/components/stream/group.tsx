@@ -264,7 +264,7 @@ function BaseGroupRow({
     [group]
   );
 
-  const groupStats = useMemo<ReadonlyArray<TimeseriesValue>>(() => {
+  const groupStats = useMemo<readonly TimeseriesValue[]>(() => {
     if (!group) {
       return [];
     }
@@ -274,7 +274,7 @@ function BaseGroupRow({
       : group.stats?.[statsPeriod]!;
   }, [group, statsPeriod]);
 
-  const groupSecondaryStats = useMemo<ReadonlyArray<TimeseriesValue>>(() => {
+  const groupSecondaryStats = useMemo<readonly TimeseriesValue[]>(() => {
     if (!group) {
       return [];
     }

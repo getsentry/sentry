@@ -37,7 +37,7 @@ function ApiTokenRow({token, onRemove, tokenPrefix = '', canEdit = false}: Props
             </Link>
           </LinkWrapper>
         ) : (
-          <h1>{token.name ? token.name : ''}</h1>
+          <p>{token.name ? token.name : ''}</p>
         )}
         <ButtonWrapper>
           <Confirm

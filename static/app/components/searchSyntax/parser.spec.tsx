@@ -37,31 +37,30 @@ type TestCase = {
 /**
  * Normalize results to match the json test cases
  */
-const normalizeResult = (tokens: TokenResult<Token>[]) =>
+const normalizeResult = (tokens: Array<TokenResult<Token>>) =>
   treeTransformer({
     tree: tokens,
     transform: token => {
       // XXX: This attempts to keep the test data simple, only including keys
       // that are really needed to validate functionality.
 
-      // @ts-expect-error
+      // @ts-expect-error keep test data simple
       delete token.location;
-      // @ts-expect-error
+      // @ts-expect-error keep test data simple
       delete token.text;
-      // @ts-expect-error
+      // @ts-expect-error keep test data simple
       delete token.config;
 
       if (!parse) {
-        // @ts-expect-error
+        // @ts-expect-error keep test data simple
         delete token.parsed;
       }
 
-      // token warnings only exist in the FE atm
-      // @ts-expect-error
+      // @ts-expect-error token warnings only exist in the FE atm
       delete token.warning;
 
       if (token.type === Token.FILTER && token.invalid === null) {
-        // @ts-expect-error
+        // @ts-expect-error keep test data simple
         delete token.invalid;
       }
 

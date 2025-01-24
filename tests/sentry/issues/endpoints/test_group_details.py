@@ -310,7 +310,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             assert response.data["id"] == str(group.id)
             assert response.data["count"] == "16"
 
-    def test_open_periods_non_metric(self) -> None:
+    def test_open_periods_flag_off(self) -> None:
         self.login_as(user=self.user)
         group = self.create_group()
         url = f"/api/0/issues/{group.id}/"
@@ -320,6 +320,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert response.data["openPeriods"] == []
 
+    @with_feature("organizations:issue-open-periods")
     def test_open_periods_new_group(self) -> None:
         self.login_as(user=self.user)
         group = self.create_group()
@@ -329,12 +330,25 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         group.type = MetricIssuePOC.type_id
         group.save()
 
+        alert_rule = self.create_alert_rule(
+            organization=self.organization,
+            projects=[self.project],
+            name="Test Alert Rule",
+        )
+        time = timezone.now() - timedelta(seconds=alert_rule.snuba_query.time_window)
+
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
-        assert response.data["openPeriods"] == [
-            {"start": group.first_seen, "end": None, "duration": None, "isOpen": True}
-        ]
+        open_periods = response.data["openPeriods"]
+        assert len(open_periods) == 1
+        open_period = open_periods[0]
+        assert open_period["start"] == group.first_seen
+        assert open_period["end"] is None
+        assert open_period["duration"] is None
+        assert open_period["isOpen"] is True
+        assert open_period["lastChecked"] > time
 
+    @with_feature("organizations:issue-open-periods")
     def test_open_periods_resolved_group(self) -> None:
         self.login_as(user=self.user)
         group = self.create_group()
@@ -354,17 +368,25 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             datetime=resolved_time,
         )
 
+        alert_rule = self.create_alert_rule(
+            organization=self.organization,
+            projects=[self.project],
+            name="Test Alert Rule",
+        )
+        time = timezone.now() - timedelta(seconds=alert_rule.snuba_query.time_window)
+
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
-        assert response.data["openPeriods"] == [
-            {
-                "start": group.first_seen,
-                "end": resolved_time,
-                "duration": resolved_time - group.first_seen,
-                "isOpen": False,
-            }
-        ]
+        open_periods = response.data["openPeriods"]
+        assert len(open_periods) == 1
+        open_period = open_periods[0]
+        assert open_period["start"] == group.first_seen
+        assert open_period["end"] == resolved_time
+        assert open_period["duration"] == resolved_time - group.first_seen
+        assert open_period["isOpen"] is False
+        assert open_period["lastChecked"] > time
 
+    @with_feature("organizations:issue-open-periods")
     def test_open_periods_unresolved_group(self) -> None:
         self.login_as(user=self.user)
         group = self.create_group()
@@ -376,7 +398,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         group.status = GroupStatus.RESOLVED
         group.save()
         resolved_time = timezone.now()
-        Activity.objects.create(
+        first_resolved_activity = Activity.objects.create(
             group=group,
             project=group.project,
             type=ActivityType.SET_RESOLVED.value,
@@ -397,7 +419,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         second_resolved_time = timezone.now()
         group.status = GroupStatus.RESOLVED
         group.save()
-        Activity.objects.create(
+        second_resolved_activity = Activity.objects.create(
             group=group,
             project=group.project,
             type=ActivityType.SET_RESOLVED.value,
@@ -411,12 +433,14 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
                 "end": second_resolved_time,
                 "duration": second_resolved_time - unresolved_time,
                 "isOpen": False,
+                "lastChecked": second_resolved_activity.datetime,
             },
             {
                 "start": group.first_seen,
                 "end": resolved_time,
                 "duration": resolved_time - group.first_seen,
                 "isOpen": False,
+                "lastChecked": first_resolved_activity.datetime,
             },
         ]
 
