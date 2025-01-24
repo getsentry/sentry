@@ -298,7 +298,7 @@ class VstsIntegration(RepositoryIntegration, VstsIssuesSpec):
 
     # RepositoryIntegration methods
 
-    def get_repositories(self, query: str | None = None, **kwargs: Any) -> list[dict[str, Any]]:
+    def get_repositories(self, query: str | None = None) -> list[dict[str, Any]]:
         try:
             repos = self.get_client().get_repos()
         except (ApiError, IdentityNotValid) as e:

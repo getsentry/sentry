@@ -227,7 +227,9 @@ class GitHubIntegration(RepositoryIntegration, GitHubIssuesSpec, CommitContextIn
         _, _, source_path = url.partition("/")
         return source_path
 
-    def get_repositories(self, query: str | None = None, **kwargs: Any) -> list[dict[str, Any]]:
+    def get_repositories(
+        self, query: str | None = None, fetch_max_pages: bool = False
+    ) -> list[dict[str, Any]]:
         """
         args:
         * query - a query to filter the repositories by
@@ -242,7 +244,6 @@ class GitHubIntegration(RepositoryIntegration, GitHubIssuesSpec, CommitContextIn
         The upper bound of requests is controlled with self.page_number_limit to prevent infinite requests.
         """
         if not query:
-            fetch_max_pages = kwargs.get("fetch_max_pages", False)
             repos = self.get_client().get_repos(fetch_max_pages)
             return [
                 {
