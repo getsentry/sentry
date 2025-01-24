@@ -41,7 +41,7 @@ function IssueOpenPeriodsList() {
   }
 
   // update the open periods to have date objects
-  const openPeriods = group?.openPeriods?.map(period => ({
+  const openPeriods = group.openPeriods?.map(period => ({
     ...period,
     start: new Date(period.start),
     end: period.end ? new Date(period.end) : null,
