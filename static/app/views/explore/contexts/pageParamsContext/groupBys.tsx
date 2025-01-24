@@ -10,13 +10,10 @@ export function defaultGroupBys(): string[] {
 }
 
 export function getGroupBysFromLocation(location: Location): string[] {
-  // We do not support grouping by span id, we have a dedicated sample mode for that
-  const filteredGroupBys = decodeList(location.query.groupBy).filter(
-    groupBy => groupBy !== 'id'
-  );
+  const rawGroupBys = decodeList(location.query.groupBy);
 
-  if (filteredGroupBys.length) {
-    return filteredGroupBys;
+  if (rawGroupBys.length) {
+    return rawGroupBys;
   }
 
   // If the param is defined by has empty string for value
