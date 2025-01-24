@@ -13,7 +13,7 @@ function useTimeout({timeMs, onTimeout}: Options) {
       clearTimeout(timeoutRef.current);
     }
     // See: https://reactjs.org/docs/hooks-faq.html#is-there-something-like-instance-variables
-    // @ts-ignore TS(2540): Cannot assign to 'current' because it is a read-on... Remove this comment to see the full error message
+    // @ts-expect-error TS(2540): Cannot assign to 'current' because it is a read-on... Remove this comment to see the full error message
     timeoutRef.current = timeout;
   }, []);
 

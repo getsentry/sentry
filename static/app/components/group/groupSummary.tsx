@@ -121,6 +121,7 @@ export function GroupSummary({
             normalizeUrl(
               `/organizations/${organization.slug}/issues/${data?.groupId}/events/${data?.eventId}/`
             ),
+      disabled: event?.id === data?.eventId,
     },
     ...(event?.id !== data?.eventId
       ? [
@@ -179,8 +180,8 @@ export function GroupSummary({
     <div data-testid="group-summary">
       {isError ? <div>{t('Error loading summary')}</div> : null}
       <Content>
-        {data?.eventId && !isPending && (
-          <TooltipWrapper id="group-summary-tooltip-wrapper" preview={preview}>
+        {data?.eventId && !isPending && !preview && (
+          <TooltipWrapper id="group-summary-tooltip-wrapper">
             <DropdownMenu
               items={eventDetailsItems}
               triggerProps={{
@@ -314,9 +315,9 @@ const CardContent = styled('div')`
   flex: 1;
 `;
 
-const TooltipWrapper = styled('div')<{preview?: boolean}>`
+const TooltipWrapper = styled('div')`
   position: absolute;
-  top: ${p => (p.preview ? `-32px` : `-${space(0.5)}`)};
+  top: -${space(0.5)};
   right: 0;
 `;
 
