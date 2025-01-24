@@ -2,6 +2,7 @@ import logging
 
 import sentry_sdk
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column, TraceItemTableRequest
+from sentry_protos.snuba.v1.request_common_pb2 import PageToken
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeAggregation, AttributeKey
 
 from sentry.search.eap.columns import ResolvedColumn, ResolvedFunction
@@ -81,6 +82,7 @@ def run_table_query(
         ),
         order_by=resolved_orderby,
         limit=limit,
+        page_token=PageToken(offset=offset),
         virtual_column_contexts=[context for context in contexts if context is not None],
     )
     rpc_response = snuba_rpc.table_rpc([rpc_request])[0]
