@@ -93,7 +93,7 @@ def get_timeseries_query(
             granularity_secs=granularity_secs,
         ),
         aggregations,
-        groupbys
+        groupbys,
     )
 
 
