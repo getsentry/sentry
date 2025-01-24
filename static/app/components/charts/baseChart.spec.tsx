@@ -19,7 +19,7 @@ describe('BaseChart', function () {
         ]}
       />
     );
-    // @ts-expect-error
+    // @ts-expect-error TODO: Fix this type
     const series = ReactEchartsCore.mock.calls[0][0].option.series;
     expect(series).toHaveLength(1);
     expect(series[0].lineStyle.color).toEqual(theme.gray200);
@@ -44,7 +44,7 @@ describe('BaseChart', function () {
       />
     );
     const series =
-      // @ts-expect-error
+      // @ts-expect-error TODO: Fix this type
       ReactEchartsCore.mock.calls[ReactEchartsCore.mock.calls.length - 1][0].option
         .series;
     expect(series).toHaveLength(3);

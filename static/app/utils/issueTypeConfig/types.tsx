@@ -108,6 +108,10 @@ export type IssueTypeConfig = {
    */
   showFeedbackWidget: boolean;
   /**
+   * showOpenPeriods
+   */
+  showOpenPeriods: boolean;
+  /**
    * Is the Similar Issues tab shown for this issue
    */
   similarIssues: DisabledWithReasonConfig;

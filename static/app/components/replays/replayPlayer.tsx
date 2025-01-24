@@ -166,7 +166,7 @@ function BasePlayerRoot({
         1.5
       );
       if (scale) {
-        // @ts-ignore TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
+        // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
         viewEl.current.style['transform-origin'] = 'top left';
         viewEl.current.style.transform = `scale(${scale})`;
         viewEl.current.style.width = `${videoDimensions.width * scale}px`;

@@ -302,7 +302,7 @@ export type EventsStatsData = Array<
 
 export type ConfidenceStatsData = Array<[number, Array<{count: Confidence}>]>;
 
-// API response format for a single series
+// API response for a single Discover timeseries
 export type EventsStats = {
   data: EventsStatsData;
   confidence?: ConfidenceStatsData;
@@ -314,7 +314,9 @@ export type EventsStats = {
     fields: Record<string, AggregationOutputType>;
     isMetricsData: boolean;
     tips: {columns?: string; query?: string};
-    units: Record<string, string>;
+    units: Record<string, string | null>;
+    dataset?: string;
+    datasetReason?: string;
     discoverSplitDecision?: WidgetType;
     isMetricsExtractedData?: boolean;
   };
@@ -323,13 +325,17 @@ export type EventsStats = {
   totals?: {count: number};
 };
 
-// API response format for multiple series
+// API response for a top N Discover series or a multi-axis Discover series
 export type MultiSeriesEventsStats = {
-  [seriesName: string]: EventsStats;
+  [groupOrSeriesName: string]: EventsStats;
 };
 
+// API response for a grouped top N Discover series
 export type GroupedMultiSeriesEventsStats = {
-  [seriesName: string]: MultiSeriesEventsStats & {order: number};
+  [groupName: string]: {
+    [seriesName: string]: EventsStats | number;
+    order: number;
+  };
 };
 
 export type EventsStatsSeries<F extends string> = {
