@@ -490,6 +490,16 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
         )
         return RepoTree(RepoAndBranch(full_name, branch), repo_files)
 
+    def get_repos(self) -> list[dict[str, Any]]:
+        """
+        This fetches all repositories accessible to the Github App
+        https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation
+        It uses page_size from the base class to specify how many items per page.
+        The upper bound of requests is controlled with self.page_number_limit to prevent infinite requests.
+        """
+        repos = self.get_with_pagination("/installation/repositories", response_key="repositories")
+        return [repo for repo in repos if not repo.get("archived")]
+
     # XXX: Find alternative approach
     def search_repositories(self, query: bytes) -> Mapping[str, Sequence[Any]]:
         """
