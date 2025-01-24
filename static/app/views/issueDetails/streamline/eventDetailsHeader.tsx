@@ -22,6 +22,7 @@ import {
 } from 'sentry/views/issueDetails/streamline/eventSearch';
 import IssueTagsPreview from 'sentry/views/issueDetails/streamline/issueTagsPreview';
 import {ToggleSidebar} from 'sentry/views/issueDetails/streamline/sidebar/toggleSidebar';
+import {TimelineSummary} from 'sentry/views/issueDetails/streamline/timelineSummary';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
@@ -114,6 +115,7 @@ export function EventDetailsHeader({
             </Fragment>
           )}
         </GraphSection>
+        <TimelineSection group={group} />
       </FilterContainer>
     </PageErrorBoundary>
   );
@@ -123,10 +125,11 @@ const FilterContainer = styled('div')`
   padding-left: 24px;
   display: grid;
   grid-template-columns: auto auto minmax(100px, 1fr);
-  grid-template-rows: minmax(38px, auto) auto;
+  grid-template-rows: minmax(38px, auto) auto auto;
   grid-template-areas:
-    'env    date  search  toggle'
-    'graph  graph graph   graph';
+    'env      date      search    toggle'
+    'graph    graph     graph     graph'
+    'timeline timeline  timeline  timeline';
   border: 0px solid ${p => p.theme.translucentBorder};
   border-width: 0 1px 1px 0;
 `;
@@ -166,6 +169,13 @@ const DateFilter = styled(DatePageFilter)`
 const GraphSection = styled('div')`
   grid-area: graph;
   display: flex;
+  border-top: 1px solid ${p => p.theme.translucentBorder};
+`;
+
+const TimelineSection = styled(TimelineSummary)`
+  grid-area: timeline;
+  padding: ${space(2)};
+  padding-right: 0;
   border-top: 1px solid ${p => p.theme.translucentBorder};
 `;
 

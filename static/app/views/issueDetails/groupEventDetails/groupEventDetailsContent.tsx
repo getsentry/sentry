@@ -213,6 +213,7 @@ export function EventDetailsContent({
           organization={organization}
         />
       ) : null}
+
       {group.issueCategory === IssueCategory.UPTIME && (
         <UptimeDataSection event={event} project={project} group={group} />
       )}
