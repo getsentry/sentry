@@ -173,7 +173,9 @@ export function SpansTabContentImpl({
                   }
                 : undefined
             }
-            supportedAggregates={ALLOWED_EXPLORE_VISUALIZE_AGGREGATES}
+            supportedAggregates={
+              mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES
+            }
             numberTags={numberTags}
             stringTags={stringTags}
           />
