@@ -2194,21 +2194,6 @@ function buildRoutes() {
     </Route>
   );
 
-  const metricsRoutes = (
-    <Fragment>
-      <Route
-        path="/metrics/"
-        component={make(() => import('sentry/views/metrics'))}
-        withOrgPath
-      >
-        <IndexRoute component={make(() => import('sentry/views/metrics/metrics'))} />
-        {traceViewRoute}
-      </Route>
-      {/* TODO(ddm): fade this out */}
-      <Redirect from="/ddm/" to="/metrics/" />
-    </Fragment>
-  );
-
   // Support for deprecated URLs (pre-Sentry 10). We just redirect users to new
   // canonical URLs.
   //
@@ -2319,7 +2304,6 @@ function buildRoutes() {
       {tracesRoutes}
       {llmMonitoringRedirects}
       {profilingRoutes}
-      {metricsRoutes}
       {gettingStartedRoutes}
       {adminManageRoutes}
       {legacyOrganizationRootRoutes}

@@ -8,12 +8,10 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconClose, IconCopy, IconDashboard, IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {isCustomMeasurement} from 'sentry/utils/metrics';
 import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import type {MetricsEquationWidget} from 'sentry/utils/metrics/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useMetricsContext} from 'sentry/views/metrics/context';
-import {useCreateDashboard} from 'sentry/views/metrics/useCreateDashboard';
 import type {useFormulaDependencies} from 'sentry/views/metrics/utils/useFormulaDependencies';
 
 type ContextMenuProps = {
@@ -22,19 +20,10 @@ type ContextMenuProps = {
   widgetIndex: number;
 };
 
-export function MetricFormulaContextMenu({
-  widgetIndex,
-  formulaWidget,
-  formulaDependencies,
-}: ContextMenuProps) {
+export function MetricFormulaContextMenu({widgetIndex}: ContextMenuProps) {
   const organization = useOrganization();
   const {removeWidget, duplicateWidget, widgets} = useMetricsContext();
   const canDelete = widgets.length > 1;
-
-  const createDashboardWidget = useCreateDashboardWidget(
-    formulaWidget,
-    formulaDependencies
-  );
 
   const items = useMemo<MenuItemProps[]>(
     () => [
@@ -66,7 +55,6 @@ export function MetricFormulaContextMenu({
             )}
           </Feature>
         ),
-        disabled: !createDashboardWidget,
         onAction: () => {
           if (!organization.features.includes('dashboards-edit')) {
             return;
@@ -76,7 +64,6 @@ export function MetricFormulaContextMenu({
             source: 'widget',
           });
           Sentry.metrics.increment('ddm.widget.dashboard');
-          createDashboardWidget?.();
         },
       },
       {
@@ -90,14 +77,7 @@ export function MetricFormulaContextMenu({
         },
       },
     ],
-    [
-      organization,
-      createDashboardWidget,
-      canDelete,
-      duplicateWidget,
-      widgetIndex,
-      removeWidget,
-    ]
+    [organization, canDelete, duplicateWidget, widgetIndex, removeWidget]
   );
 
   if (!hasCustomMetrics(organization)) {
@@ -116,22 +96,6 @@ export function MetricFormulaContextMenu({
       position="bottom-end"
     />
   );
-}
-
-function useCreateDashboardWidget(
-  formulaWidget: MetricsEquationWidget,
-  formulaDependencies: ReturnType<typeof useFormulaDependencies>
-) {
-  const {dependencies, isError} = formulaDependencies[formulaWidget.id]!;
-
-  const widgetArray = useMemo(() => [formulaWidget], [formulaWidget]);
-  const createDashboard = useCreateDashboard(widgetArray, formulaDependencies, false);
-
-  if (!formulaWidget.formula || isError || dependencies.some(isCustomMeasurement)) {
-    return undefined;
-  }
-
-  return createDashboard;
 }
 
 const AddToDashboardItem = styled('div')<{disabled: boolean}>`

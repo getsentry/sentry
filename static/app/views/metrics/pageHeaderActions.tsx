@@ -1,21 +1,13 @@
 import {useCallback, useMemo} from 'react';
-import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
-import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {CreateMetricAlertFeature} from 'sentry/components/metrics/createMetricAlertFeature';
 import {getQuerySymbol} from 'sentry/components/metrics/querySymbol';
-import {
-  IconBookmark,
-  IconDashboard,
-  IconEllipsis,
-  IconSettings,
-  IconSiren,
-} from 'sentry/icons';
+import {IconBookmark, IconEllipsis, IconSettings, IconSiren} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isCustomMeasurement} from 'sentry/utils/metrics';
@@ -27,8 +19,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import {useMetricsContext} from 'sentry/views/metrics/context';
 import {getCreateAlert} from 'sentry/views/metrics/metricQueryContextMenu';
-import {useCreateDashboard} from 'sentry/views/metrics/useCreateDashboard';
-import {useFormulaDependencies} from 'sentry/views/metrics/utils/useFormulaDependencies';
 
 interface Props {
   addCustomMetric: () => void;
@@ -39,15 +29,9 @@ export function PageHeaderActions({showAddMetricButton, addCustomMetric}: Props)
   const router = useRouter();
   const organization = useOrganization();
   const metricsNewInputs = hasMetricsNewInputs(organization);
-  const formulaDependencies = useFormulaDependencies();
 
-  const {isDefaultQuery, setDefaultQuery, widgets, showQuerySymbols, isMultiChartMode} =
+  const {isDefaultQuery, setDefaultQuery, widgets, showQuerySymbols} =
     useMetricsContext();
-  const createDashboard = useCreateDashboard(
-    widgets,
-    formulaDependencies,
-    isMultiChartMode
-  );
 
   const handleToggleDefaultQuery = useCallback(() => {
     if (isDefaultQuery) {
@@ -66,34 +50,6 @@ export function PageHeaderActions({showAddMetricButton, addCustomMetric}: Props)
   }, [isDefaultQuery, organization, router.location.query, setDefaultQuery]);
 
   const items = useMemo(() => {
-    const createDashboardItem = {
-      leadingItems: [<IconDashboard key="icon" />],
-      key: 'add-dashboard',
-      label: (
-        <Feature
-          organization={organization}
-          hookName="feature-disabled:dashboards-edit"
-          features="dashboards-edit"
-        >
-          {({hasFeature}) => (
-            <AddToDashboardItem disabled={!hasFeature}>
-              {t('Add to Dashboard')}
-            </AddToDashboardItem>
-          )}
-        </Feature>
-      ),
-      onAction: () => {
-        if (!organization.features.includes('dashboards-edit')) {
-          return;
-        }
-        trackAnalytics('ddm.add-to-dashboard', {
-          organization,
-          source: 'global',
-        });
-        createDashboard();
-      },
-    };
-
     const settingsItem = {
       leadingItems: [<IconSettings key="icon" />],
       key: 'Metrics Settings',
@@ -102,11 +58,8 @@ export function PageHeaderActions({showAddMetricButton, addCustomMetric}: Props)
         navigateTo(`/settings/${organization.slug}/projects/:projectId/metrics/`, router),
     };
 
-    if (hasCustomMetrics(organization)) {
-      return [createDashboardItem, settingsItem];
-    }
     return [settingsItem];
-  }, [createDashboard, organization, router]);
+  }, [organization, router]);
 
   const alertItems = useMemo(
     () =>
@@ -196,7 +149,3 @@ export function PageHeaderActions({showAddMetricButton, addCustomMetric}: Props)
     </ButtonBar>
   );
 }
-
-const AddToDashboardItem = styled('div')<{disabled: boolean}>`
-  color: ${p => (p.disabled ? p.theme.disabled : p.theme.textColor)};
-`;

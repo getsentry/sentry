@@ -10,8 +10,8 @@ import {
   type SelectKey,
   type SingleSelectProps,
 } from 'sentry/components/compactSelect';
+import Input from 'sentry/components/deprecatedforms/input';
 import _SmartSearchBar from 'sentry/components/deprecatedSmartSearchBar';
-import {DebouncedInput as _DebouncedInput} from 'sentry/components/modals/metricWidgetViewerModal/queries';
 import {SearchQueryBuilder as _SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {Tooltip} from 'sentry/components/tooltip';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
@@ -174,7 +174,7 @@ const Label = styled('span')`
   }
 `;
 
-const DebouncedInput = styled(_DebouncedInput)`
+const DebouncedInput = styled(Input)`
   border-radius: 0;
   z-index: 1;
 `;

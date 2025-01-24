@@ -29,7 +29,6 @@ const useMetricsContextReturnValueMock = {
   toggleWidgetVisibility: () => {},
 };
 
-jest.mock('sentry/views/metrics/useCreateDashboard');
 jest.mock('sentry/views/metrics/scratchpad');
 jest.mock('sentry/views/metrics/queries');
 

@@ -1,7 +1,6 @@
 import {useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
@@ -21,21 +20,13 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isCustomMeasurement, isCustomMetric, isVirtualMetric} from 'sentry/utils/metrics';
-import {
-  convertToDashboardWidget,
-  encodeWidgetQuery,
-  getWidgetAsQueryParams,
-  getWidgetQuery,
-} from 'sentry/utils/metrics/dashboard';
 import {hasCustomMetrics, hasMetricAlertFeature} from 'sentry/utils/metrics/features';
 import {
   isMetricsQueryWidget,
   type MetricDisplayType,
   type MetricsQuery,
 } from 'sentry/utils/metrics/types';
-import {useVirtualMetricsContext} from 'sentry/utils/metrics/virtualMetricsContext';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import {useMetricsContext} from 'sentry/views/metrics/context';
 import {openCreateAlertModal} from 'sentry/views/metrics/createAlertModal';
@@ -46,26 +37,15 @@ type ContextMenuProps = {
   widgetIndex: number;
 };
 
-export function MetricQueryContextMenu({
-  metricsQuery,
-  displayType,
-  widgetIndex,
-}: ContextMenuProps) {
+export function MetricQueryContextMenu({metricsQuery, widgetIndex}: ContextMenuProps) {
   const organization = useOrganization();
   const router = useRouter();
 
   const {removeWidget, duplicateWidget, widgets} = useMetricsContext();
   const createAlert = getCreateAlert(organization, metricsQuery);
 
-  const createDashboardWidget = useCreateDashboardWidget(
-    organization,
-    metricsQuery,
-    displayType
-  );
-
   // At least one query must remain
   const canDelete = widgets.filter(isMetricsQueryWidget).length > 1;
-  const hasDashboardFeature = organization.features.includes('dashboards-edit');
 
   const items = useMemo<MenuItemProps[]>(() => {
     const duplicateItem = {
@@ -121,7 +101,6 @@ export function MetricQueryContextMenu({
           <span>{t('Add to Dashboard')}</span>
         </Feature>
       ),
-      disabled: !createDashboardWidget || !hasDashboardFeature,
       onAction: () => {
         if (!organization.features.includes('dashboards-edit')) {
           return;
@@ -131,7 +110,6 @@ export function MetricQueryContextMenu({
           source: 'widget',
         });
         Sentry.metrics.increment('ddm.widget.dashboard');
-        createDashboardWidget?.();
       },
     };
 
@@ -185,8 +163,7 @@ export function MetricQueryContextMenu({
     createAlert,
     organization,
     metricsQuery,
-    createDashboardWidget,
-    hasDashboardFeature,
+
     canDelete,
     duplicateWidget,
     widgetIndex,
@@ -224,57 +201,4 @@ export function getCreateAlert(organization: Organization, metricsQuery: Metrics
   return function () {
     openCreateAlertModal({metricsQuery, organization});
   };
-}
-
-function useCreateDashboardWidget(
-  organization: Organization,
-  metricsQuery: MetricsQuery,
-  displayType?: MetricDisplayType
-) {
-  const router = useRouter();
-  const {resolveVirtualMRI} = useVirtualMetricsContext();
-  const {selection} = usePageFilters();
-
-  return useMemo(() => {
-    if (
-      !metricsQuery.mri ||
-      !metricsQuery.aggregation ||
-      isCustomMeasurement(metricsQuery)
-    ) {
-      return undefined;
-    }
-
-    const queryCopy = {...metricsQuery};
-    if (isVirtualMetric(metricsQuery) && metricsQuery.condition) {
-      const {mri, aggregation} = resolveVirtualMRI(
-        metricsQuery.mri,
-        metricsQuery.condition,
-        metricsQuery.aggregation
-      );
-      queryCopy.mri = mri;
-      queryCopy.aggregation = aggregation;
-    }
-
-    const widgetQuery = getWidgetQuery(queryCopy);
-    const urlWidgetQuery = encodeWidgetQuery(widgetQuery);
-    const widgetAsQueryParams = getWidgetAsQueryParams(
-      selection,
-      urlWidgetQuery,
-      displayType
-    );
-
-    return () =>
-      openAddToDashboardModal({
-        organization,
-        selection,
-        widget: convertToDashboardWidget([queryCopy], displayType),
-        router,
-        // Previously undetected because the type relied on implicit any.
-        // @ts-ignore TS(2741): Property 'source' is missing in type '{ start: Dat... Remove this comment to see the full error message
-        widgetAsQueryParams,
-        location: router.location,
-        actions: ['add-and-open-dashboard', 'add-and-stay-on-current-page'],
-        allowCreateNewDashboard: false,
-      });
-  }, [metricsQuery, selection, displayType, resolveVirtualMRI, organization, router]);
 }

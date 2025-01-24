@@ -30,11 +30,10 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/dashboard';
 import {useDiscoverSplitAlert} from 'sentry/views/dashboards/discoverSplitAlert';
-import {MetricWidgetCard} from 'sentry/views/dashboards/metrics/widgetCard';
 import WidgetCardChartContainer from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 
 import type {DashboardFilters, Widget} from '../types';
-import {DisplayType, OnDemandExtractionState, WidgetType} from '../types';
+import {DisplayType, OnDemandExtractionState, type WidgetType} from '../types';
 import {DEFAULT_RESULTS_LIMIT} from '../widgetBuilder/utils';
 import type WidgetLegendSelectionState from '../widgetLegendSelectionState';
 import {BigNumberWidget} from '../widgets/bigNumberWidget/bigNumberWidget';
@@ -158,26 +157,6 @@ function WidgetCard(props: Props) {
   const onDemandWarning = useOnDemandWarning({widget});
   const discoverSplitAlert = useDiscoverSplitAlert({widget, onSetTransactionsDataset});
   const sessionDurationWarning = hasSessionDuration ? SESSION_DURATION_ALERT_TEXT : null;
-
-  if (widget.widgetType === WidgetType.METRICS) {
-    return (
-      <MetricWidgetCard
-        index={props.index}
-        isEditingDashboard={props.isEditingDashboard}
-        onEdit={props.onEdit}
-        onDelete={props.onDelete}
-        onDuplicate={props.onDuplicate}
-        router={props.router}
-        location={props.location}
-        organization={organization}
-        selection={selection}
-        widget={widget}
-        dashboardFilters={dashboardFilters}
-        renderErrorMessage={renderErrorMessage}
-        showContextMenu={props.showContextMenu}
-      />
-    );
-  }
 
   const onFullScreenViewClick = () => {
     if (!isWidgetViewerPath(location.pathname)) {

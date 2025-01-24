@@ -37,9 +37,7 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {DashboardImportButton} from 'sentry/views/dashboards/manage/dashboardImport';
 import DashboardTable from 'sentry/views/dashboards/manage/dashboardTable';
-import {MetricsRemovedAlertsWidgetsAlert} from 'sentry/views/metrics/metricsRemovedAlertsWidgetsAlert';
 import RouteError from 'sentry/views/routeError';
 
 import {getDashboardTemplates} from '../data';
@@ -452,7 +450,6 @@ function ManageDashboards() {
                         />
                       </TemplateSwitch>
                       <FeedbackWidgetButton />
-                      <DashboardImportButton />
                       <Button
                         data-test-id="dashboard-create"
                         onClick={event => {
@@ -486,8 +483,6 @@ function ManageDashboards() {
                 </Layout.Header>
                 <Layout.Body>
                   <Layout.Main fullWidth>
-                    <MetricsRemovedAlertsWidgetsAlert organization={organization} />
-
                     {showTemplates && renderTemplates()}
                     {renderActions()}
                     <div ref={dashboardGridRef} id="dashboard-list-container">
