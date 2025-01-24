@@ -6,7 +6,8 @@ import ConfigStore from 'sentry/stores/configStore';
 import GuideStore from 'sentry/stores/guideStore';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getDemoGuides, getTourTask, isDemoModeEnabled} from 'sentry/utils/demoMode';
+import {isDemoModeEnabled} from 'sentry/utils/demoMode';
+import {getDemoGuides, getTourTask} from 'sentry/utils/demoMode/guides';
 
 import {demoEndModal} from './modal';
 import {updateOnboardingTask} from './onboardingTasks';

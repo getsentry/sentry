@@ -20,7 +20,8 @@ import type {
 import {OnboardingTaskGroup, OnboardingTaskKey} from 'sentry/types/onboarding';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {getDemoOnboardingTasks, isDemoModeEnabled} from 'sentry/utils/demoMode';
+import {isDemoModeEnabled} from 'sentry/utils/demoMode';
+import {getDemoWalkthroughTasks} from 'sentry/utils/demoMode/guides';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 
@@ -366,7 +367,7 @@ export function getOnboardingTasks({
 export function getMergedTasks({organization, projects, onboardingContext}: Options) {
   const taskDescriptors = getOnboardingTasks({organization, projects, onboardingContext});
   const serverTasks = isDemoModeEnabled()
-    ? getDemoOnboardingTasks(organization)
+    ? getDemoWalkthroughTasks(organization)
     : organization.onboardingTasks;
 
   // Map server task state (i.e. completed status) with tasks objects
