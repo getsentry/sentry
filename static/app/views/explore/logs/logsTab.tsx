@@ -7,6 +7,7 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {LogsTable} from 'sentry/views/explore/logs/logsTable';
@@ -41,7 +42,7 @@ export function LogsTabContent({
             />
           </PageFilterBar>
           <SearchQueryBuilder
-            placeholder="Search for logs"
+            placeholder={t('Search for logs')}
             filterKeys={{}}
             getTagValues={() => new Promise<string[]>(() => [])}
             initialQuery=""

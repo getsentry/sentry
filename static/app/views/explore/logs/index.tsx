@@ -21,10 +21,7 @@ export default function LogsPage() {
             <Layout.HeaderContent>
               <Layout.Title>
                 {t('Logs')}
-                <FeatureBadge
-                  title={t('This feature is experimental and might drastically change')}
-                  type="experimental"
-                />
+                <FeatureBadge type="experimental" />
               </Layout.Title>
             </Layout.HeaderContent>
           </Layout.Header>

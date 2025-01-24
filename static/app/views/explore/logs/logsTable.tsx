@@ -11,14 +11,13 @@ export type LogsTableProps = {
 export function LogsTable(props: LogsTableProps) {
   const {data, error, isPending} = useOurlogs(
     {
-      limit: 30,
+      limit: 100,
       sorts: [],
       fields: ['sentry.severity_text', 'sentry.body', 'sentry.timestamp'],
       search: props.search,
     },
     'api.logs-tab.view'
   );
-  // data = data as OurlogsFields
   return (
     <GridEditable<OurlogsFields, keyof OurlogsFields>
       isLoading={isPending}
