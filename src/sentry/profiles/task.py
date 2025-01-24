@@ -987,7 +987,11 @@ def _track_duration_outcome(
         key_id=None,
         outcome=Outcome.ACCEPTED,
         timestamp=datetime.now(timezone.utc),
-        category=DataCategory.PROFILE_DURATION,
+        category=(
+            DataCategory.PROFILE_DURATION_UI
+            if profile["platform"] in {"cocoa", "android", "javascript"}
+            else DataCategory.PROFILE_DURATION
+        ),
         quantity=duration_ms,
     )
 
