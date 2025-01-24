@@ -5,6 +5,7 @@ from urllib.parse import urlparse
 from uuid import uuid4
 
 from django.utils.functional import cached_property
+from requests import RequestException
 
 from sentry.http import safe_urlread
 from sentry.models.group import Group
@@ -83,7 +84,7 @@ class IssueLinkRequester:
                 },
                 status_code=503,
             )
-        except Exception as e:
+        except RequestException as e:
             error_type = "issue-link-requester.error"
             extras = {
                 "sentry_app": self.sentry_app.slug,
