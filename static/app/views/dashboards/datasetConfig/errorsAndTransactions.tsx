@@ -71,14 +71,9 @@ import {
   getWidgetInterval,
   hasDatasetSelector,
 } from '../utils';
-import {
-  isEventsStats,
-  isGroupedMultiSeriesEventsStats,
-  isMultiSeriesEventsStats,
-} from '../utils/isEventsStats';
+import {transformEventsResponseToSeries} from '../utils/transformEventsResponseToSeries';
 import {EventsSearchBar} from '../widgetBuilder/buildSteps/filterResultsStep/eventsSearchBar';
 import {CUSTOM_EQUATION_VALUE} from '../widgetBuilder/buildSteps/sortByStep';
-import {transformSeries} from '../widgetCard/widgetQueries';
 
 import type {DatasetConfig} from './base';
 import {handleOrderByReset} from './base';
@@ -343,56 +338,6 @@ export function filterYAxisOptions(displayType: DisplayType) {
 
     return option.value.kind === FieldValueKind.FUNCTION;
   };
-}
-
-export function transformEventsResponseToSeries(
-  data: EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,
-  widgetQuery: WidgetQuery
-): Series[] {
-  const seriesWithOrdering: SeriesWithOrdering[] = [];
-  const queryAlias = widgetQuery.name;
-
-  if (isEventsStats(data)) {
-    const field = widgetQuery.aggregates[0]!;
-    const prefixedName = queryAlias ? `${queryAlias} : ${field}` : field;
-
-    seriesWithOrdering.push([0, transformSeries(data, prefixedName, field)]);
-  } else if (isMultiSeriesEventsStats(data)) {
-    Object.keys(data).forEach(seriesName => {
-      const seriesData = data[seriesName]!;
-      const prefixedName = queryAlias ? `${queryAlias} : ${seriesName}` : seriesName;
-
-      seriesWithOrdering.push([
-        seriesData.order ?? 0,
-        transformSeries(seriesData, prefixedName, seriesName),
-      ]);
-    });
-  } else if (isGroupedMultiSeriesEventsStats(data)) {
-    Object.keys(data).forEach(groupName => {
-      const groupData = data[groupName] as MultiSeriesEventsStats;
-
-      Object.keys(groupData).forEach(seriesName => {
-        if (seriesName === 'order') {
-          // `order` is a special key on grouped responses, we can skip over it
-          return;
-        }
-
-        const seriesData = groupData[seriesName] as EventsStats;
-        const prefixedName = queryAlias
-          ? `${queryAlias} > ${groupName} : ${seriesName}`
-          : `${groupName} : ${seriesName}`;
-
-        seriesWithOrdering.push([
-          (groupData.order as unknown as number) ?? 0,
-          transformSeries(seriesData, prefixedName, seriesName),
-        ]);
-      });
-    });
-  }
-
-  return seriesWithOrdering
-    .toSorted((itemA, itemB) => itemA[0] - itemB[0])
-    .map(item => item[1]);
 }
 
 // Get the series result type from the EventsStats meta

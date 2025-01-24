@@ -33,6 +33,7 @@ import {generateFieldOptions} from 'sentry/views/discover/utils';
 import type {Widget, WidgetQuery} from '../types';
 import {DisplayType} from '../types';
 import {eventViewFromWidget} from '../utils';
+import {transformEventsResponseToSeries} from '../utils/transformEventsResponseToSeries';
 import {EventsSearchBar} from '../widgetBuilder/buildSteps/filterResultsStep/eventsSearchBar';
 
 import {type DatasetConfig, handleOrderByReset} from './base';
@@ -44,7 +45,6 @@ import {
   getTimeseriesSortOptions,
   renderEventIdAsLinkable,
   renderTraceAsLinkable,
-  transformEventsResponseToSeries,
   transformEventsResponseToTable,
 } from './errorsAndTransactions';
 
