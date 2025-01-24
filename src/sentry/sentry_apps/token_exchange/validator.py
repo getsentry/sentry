@@ -8,6 +8,8 @@ from sentry.sentry_apps.services.app import RpcSentryAppInstallation
 from sentry.sentry_apps.utils.errors import SentryAppIntegratorError, SentryAppSentryError
 from sentry.users.models.user import User
 
+SENSITIVE_CHARACTER_LIMIT = 4
+
 
 @dataclass
 class Validator:
@@ -65,5 +67,5 @@ class Validator:
         except ApiApplication.DoesNotExist:
             raise SentryAppSentryError(
                 "Application does not exist",
-                webhook_context={"client_id": self.client_id[:4]},
+                webhook_context={"client_id": self.client_id[:SENSITIVE_CHARACTER_LIMIT]},
             )
