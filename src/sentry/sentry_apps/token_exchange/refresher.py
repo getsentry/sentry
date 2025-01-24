@@ -10,7 +10,7 @@ from sentry.models.apitoken import ApiToken
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation
-from sentry.sentry_apps.token_exchange.util import token_expiration
+from sentry.sentry_apps.token_exchange.util import SENSITIVE_CHARACTER_LIMIT, token_expiration
 from sentry.sentry_apps.token_exchange.validator import Validator
 from sentry.sentry_apps.utils.errors import SentryAppIntegratorError, SentryAppSentryError
 from sentry.users.models.user import User
@@ -97,7 +97,6 @@ class Refresher:
                 message="Given refresh token does not exist",
                 status_code=401,
                 webhook_context={
-                    "token": self.refresh_token,
                     "installation_uuid": self.install.uuid,
                 },
             )
@@ -127,5 +126,6 @@ class Refresher:
                 webhook_context={
                     "application_id": self.application.id,
                     "installation_uuid": self.install.uuid,
+                    "client_id": self.application.client_id[:SENSITIVE_CHARACTER_LIMIT],
                 },
             )

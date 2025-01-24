@@ -5,10 +5,9 @@ from django.utils.functional import cached_property
 from sentry.models.apiapplication import ApiApplication
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation
+from sentry.sentry_apps.token_exchange.util import SENSITIVE_CHARACTER_LIMIT
 from sentry.sentry_apps.utils.errors import SentryAppIntegratorError, SentryAppSentryError
 from sentry.users.models.user import User
-
-SENSITIVE_CHARACTER_LIMIT = 4
 
 
 @dataclass
@@ -40,7 +39,11 @@ class Validator:
         if self.sentry_app.proxy_user != self.user:
             raise SentryAppIntegratorError(
                 "Integration does not belong to given user",
-                webhook_context={"user": self.user.name, "integration": self.sentry_app.slug},
+                webhook_context={
+                    "user": self.user.name,
+                    "integration": self.sentry_app.slug,
+                    "installation_uuid": self.install.uuid,
+                },
             )
 
     def _validate_installation(self) -> None:

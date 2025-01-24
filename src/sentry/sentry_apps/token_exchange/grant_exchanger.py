@@ -12,7 +12,7 @@ from sentry.models.apitoken import ApiToken
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation
-from sentry.sentry_apps.token_exchange.util import token_expiration
+from sentry.sentry_apps.token_exchange.util import SENSITIVE_CHARACTER_LIMIT, token_expiration
 from sentry.sentry_apps.token_exchange.validator import Validator
 from sentry.sentry_apps.utils.errors import SentryAppIntegratorError, SentryAppSentryError
 from sentry.silo.safety import unguarded_write
@@ -122,7 +122,10 @@ class GrantExchanger:
             raise SentryAppSentryError(
                 "Could not find application from grant",
                 status_code=401,
-                webhook_context={"code": self.code[:4], "grant_id": self.grant.id},
+                webhook_context={
+                    "code": self.code[:SENSITIVE_CHARACTER_LIMIT],
+                    "grant_id": self.grant.id,
+                },
             )
 
     @property
