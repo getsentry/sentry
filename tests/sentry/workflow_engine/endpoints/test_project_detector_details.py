@@ -8,7 +8,12 @@ from sentry.incidents.grouptype import MetricAlertFire
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import region_silo_test
-from sentry.workflow_engine.models import DataSourceDetector, Detector
+from sentry.workflow_engine.models import (
+    DataCondition,
+    DataConditionGroup,
+    DataSourceDetector,
+    Detector,
+)
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
@@ -34,6 +39,26 @@ class ProjectDetectorDetailsBaseTest(APITestCase):
         self.environment = self.create_environment(
             organization_id=self.organization.id, name="production"
         )
+        self.data_source = self.create_data_source(organization=self.organization)
+        self.condition_group = self.create_data_condition_group(
+            organization_id=self.organization.id,
+            logic_type=DataConditionGroup.Type.ANY,
+        )
+        self.condition = self.create_data_condition(
+            condition_group=self.condition_group,
+            type=Condition.LESS,
+            comparison=50,
+            condition_result=DetectorPriorityLevel.LOW,
+        )
+        self.detector = self.create_detector(
+            project_id=self.project.id,
+            name="Test Detector",
+            type=MetricAlertFire.slug,
+            workflow_condition_group=self.condition_group,
+        )
+        DataSourceDetector.objects.create(data_source=self.data_source, detector=self.detector)
+        assert self.detector.data_sources is not None
+>>>>>>> 484ea61f06f (update condition group)
 
 
 @region_silo_test
@@ -123,6 +148,18 @@ class ProjectDetectorDetailsPostTest(ProjectDetectorDetailsGetTest):
         assert detector.name == "Updated Detector"
         assert detector.type == MetricAlertFire.slug
         assert detector.project_id == self.project.id
+
+        condition_group = detector.workflow_condition_group
+        assert condition_group
+        assert condition_group.logic_type == DataConditionGroup.Type.ANY
+        assert condition_group.organization_id == self.organization.id
+
+        conditions = list(DataCondition.objects.filter(condition_group=condition_group))
+        assert len(conditions) == 1
+        condition = conditions[0]
+        assert condition.type == Condition.GREATER
+        assert condition.comparison == 100
+        assert condition.condition_result == DetectorPriorityLevel.HIGH
 
         # data_source_detector = DataSourceDetector.objects.get(detector=detector)
         # data_source = DataSource.objects.get(id=data_source_detector.detector.id)
