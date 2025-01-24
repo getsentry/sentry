@@ -66,10 +66,9 @@ def evaluate_condition_group(
         condition_results = []
 
     elif data_condition_group.logic_type == data_condition_group.Type.ANY:
-        is_any_condition_met = any([result[0] for result in results])
+        logic_result = any([result[0] for result in results])
 
-        if is_any_condition_met:
-            logic_result = is_any_condition_met
+        if logic_result:
             condition_results = [result[1] for result in results if result[0]]
 
     elif data_condition_group.logic_type == data_condition_group.Type.ALL:
