@@ -30,6 +30,7 @@ import {groupActivityTypeIconMapping} from 'sentry/views/issueDetails/streamline
 import getGroupActivityItem from 'sentry/views/issueDetails/streamline/sidebar/groupActivityItem';
 import {NoteDropdown} from 'sentry/views/issueDetails/streamline/sidebar/noteDropdown';
 import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar/sidebar';
+import {ViewButton} from 'sentry/views/issueDetails/streamline/sidebar/viewButton';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
@@ -225,9 +226,7 @@ export default function StreamlinedActivitySection({
       {!isDrawer && (
         <Flex justify="space-between" align="center">
           <SidebarSectionTitle>{t('Activity')}</SidebarSectionTitle>
-          <TextLinkButton
-            borderless
-            size="zero"
+          <ViewButton
             aria-label={t('Open activity drawer')}
             to={{
               pathname: `${baseUrl}${TabPaths[Tab.ACTIVITY]}`,
@@ -243,7 +242,7 @@ export default function StreamlinedActivitySection({
             }}
           >
             {t('View')}
-          </TextLinkButton>
+          </ViewButton>
         </Flex>
       )}
       <Timeline.Container>
@@ -334,12 +333,6 @@ const ActivityTimelineItem = styled(Timeline.Item)`
 const Timestamp = styled(TimeSince)`
   font-size: ${p => p.theme.fontSizeSmall};
   white-space: nowrap;
-`;
-
-const TextLinkButton = styled(LinkButton)`
-  font-weight: ${p => p.theme.fontWeightNormal};
-  font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.subText};
 `;
 
 const RotatedEllipsisIcon = styled(IconEllipsis)`

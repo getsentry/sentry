@@ -204,6 +204,7 @@ function renderBodyCell(
           eventView: EventView.fromLocation(location),
           spanId: row[SpanIndexedField.ID],
           source: TraceViewSources.LLM_MODULE,
+          view: 'ai',
         })}
       >
         {row[SpanIndexedField.ID]}

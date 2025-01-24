@@ -118,7 +118,7 @@ export function getRelativeSummary(
 ): string {
   try {
     const defaultRelativePeriodString =
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       relativeOptions?.[relative] ?? DEFAULT_RELATIVE_PERIODS[relative];
 
     if (defaultRelativePeriodString) {
@@ -219,7 +219,7 @@ export const _timeRangeAutoCompleteFilter = function <T extends RelativeUnitsMap
     maxDateRange,
   }: {
     supportedPeriods: T;
-    supportedUnits: (keyof T & string)[];
+    supportedUnits: Array<keyof T & string>;
     maxDateRange?: number;
     maxDays?: number;
   }

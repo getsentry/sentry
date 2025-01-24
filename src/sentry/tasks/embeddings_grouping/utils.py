@@ -118,7 +118,10 @@ def create_project_cohort(
         query = query.exclude(projectoption__key=PROJECT_BACKFILL_COMPLETED)
     project_cohort_list = (
         query.values_list("id", flat=True)
-        .extra(where=["id %% %s = %s"], params=[total_worker_count, worker_number])
+        .extra(
+            where=["abs(hashtext(cast(id as varchar))) %% %s = %s"],
+            params=[total_worker_count, worker_number],
+        )
         .order_by("id")[:cohort_size]
     )
     return list(project_cohort_list)

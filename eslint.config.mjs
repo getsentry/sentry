@@ -341,7 +341,7 @@ export default typescript.config([
       ...react.configs.flat.recommended.rules,
       ...react.configs.flat['jsx-runtime'].rules,
       'react/display-name': 'off', // TODO(ryan953): Fix violations and delete this line
-      'react/no-unescaped-entities': 'off', // TODO(ryan953): Fix violations and delete this line
+      'react/no-unescaped-entities': 'off',
       'react/no-unknown-property': ['error', {ignore: ['css']}],
       'react/prop-types': 'off', // TODO(ryan953): Fix violations and delete this line
     },
@@ -412,11 +412,9 @@ export default typescript.config([
       '@typescript-eslint/prefer-enum-initializers': 'error',
 
       // Recommended overrides
-      '@typescript-eslint/ban-ts-comment': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-array-constructor': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-empty-object-type': 'off', // TODO(ryan953): Fix violations and delete this line
-      '@typescript-eslint/no-explicit-any': 'off', // TODO(ryan953): Fix violations and delete this line
-      '@typescript-eslint/no-extra-non-null-assertion': 'off', // TODO(ryan953): Fix violations and delete this line
+      '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-namespace': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-non-null-asserted-optional-chain': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-require-imports': 'off', // TODO(ryan953): Fix violations and delete this line
@@ -431,6 +429,7 @@ export default typescript.config([
       '@typescript-eslint/unified-signatures': 'off', // TODO(ryan953): Fix violations and delete this line
 
       // Stylistic overrides
+      '@typescript-eslint/array-type': ['error', {default: 'array-simple'}],
       '@typescript-eslint/class-literal-property-style': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/consistent-generic-constructors': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/consistent-indexed-object-style': 'off', // TODO(ryan953): Fix violations and delete this line

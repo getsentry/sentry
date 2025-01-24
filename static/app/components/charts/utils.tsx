@@ -344,7 +344,7 @@ export const getPreviousSeriesName = (seriesName: string) => {
   return `previous ${seriesName}`;
 };
 
-function formatList(items: (string | number | undefined)[]) {
+function formatList(items: Array<string | number | undefined>) {
   const filteredItems = items.filter((item): item is string | number => !!item);
 
   return oxfordizeArray(filteredItems.map(item => item.toString()));

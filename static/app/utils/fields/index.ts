@@ -266,14 +266,14 @@ export type AggregateValueParameter = {
   name: string;
   required: boolean;
   defaultValue?: string;
-  options?: {value: string; label?: string}[];
+  options?: Array<{value: string; label?: string}>;
   placeholder?: string;
 };
 
 export type AggregateParameter = AggregateColumnParameter | AggregateValueParameter;
 
 export type ParameterDependentValueType = (
-  parameters: (string | null)[]
+  parameters: Array<string | null>
 ) => FieldValueType;
 
 export interface FieldDefinition {
@@ -349,7 +349,7 @@ function validateForNumericAggregate(
   };
 }
 
-function getDynamicFieldValueType(parameters: (string | null)[]): FieldValueType {
+function getDynamicFieldValueType(parameters: Array<string | null>): FieldValueType {
   const column = parameters[0];
   const fieldDef = column ? getFieldDefinition(column) : null;
   return fieldDef?.valueType ?? FieldValueType.NUMBER;
@@ -2419,32 +2419,32 @@ export const getFieldDefinition = (
   switch (type) {
     case 'replay':
       if (key in REPLAY_FIELD_DEFINITIONS) {
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         return REPLAY_FIELD_DEFINITIONS[key];
       }
       if (key in REPLAY_CLICK_FIELD_DEFINITIONS) {
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         return REPLAY_CLICK_FIELD_DEFINITIONS[key];
       }
       if (REPLAY_FIELDS.includes(key as FieldKey)) {
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         return EVENT_FIELD_DEFINITIONS[key];
       }
       return null;
     case 'feedback':
       if (key in FEEDBACK_FIELD_DEFINITIONS) {
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         return FEEDBACK_FIELD_DEFINITIONS[key];
       }
       if (FEEDBACK_FIELDS.includes(key as FieldKey)) {
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         return EVENT_FIELD_DEFINITIONS[key];
       }
       return null;
     case 'span':
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       if (SPAN_FIELD_DEFINITIONS[key]) {
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         return SPAN_FIELD_DEFINITIONS[key];
       }
 
@@ -2468,7 +2468,7 @@ export const getFieldDefinition = (
       return null;
     case 'event':
     default:
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       return EVENT_FIELD_DEFINITIONS[key] ?? null;
   }
 };

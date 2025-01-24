@@ -31,13 +31,13 @@ export function TraceShortcuts() {
   );
 }
 
-const KEYBOARD_SHORTCUTS: [string, string][] = [
+const KEYBOARD_SHORTCUTS: Array<[string, string]> = [
   ['\u2191 / \u2193', t('Navigate up or down')],
   ['\u2190 / \u2192', t('Collapse or expand')],
   [t('Shift') + ' + \u2191 / \u2193', t('Jump to first/last element')],
 ];
 
-const TIMELINE_SHORTCUTS: [string, string][] = [
+const TIMELINE_SHORTCUTS: Array<[string, string]> = [
   [t('Cmd / Ctrl + Scroll'), t('Zoom in/out at cursor')],
   [t('Shift + Scroll'), t('Scroll horizontally')],
   [t('Double click'), t('Zoom to fill')],

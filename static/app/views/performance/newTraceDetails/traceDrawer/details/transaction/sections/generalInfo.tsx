@@ -29,7 +29,9 @@ import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../styles'
 import {OpsBreakdown} from './opsBreakDown';
 
 type GeneralInfoProps = {
-  cacheMetrics: Pick<SpanMetricsResponse, 'avg(cache.item_size)' | 'cache_miss_rate()'>[];
+  cacheMetrics: Array<
+    Pick<SpanMetricsResponse, 'avg(cache.item_size)' | 'cache_miss_rate()'>
+  >;
   event: EventTransaction;
   location: Location;
   node: TraceTreeNode<TraceTree.Transaction>;

@@ -36,7 +36,7 @@ class OpenPeriodTestCase(TestCase):
         unresolved_activity = Activity.objects.create(
             group=self.group,
             project=self.group.project,
-            type=ActivityType.SET_UNRESOLVED.value,
+            type=ActivityType.SET_REGRESSION.value,
             datetime=unresolved_time,
         )
 
@@ -51,7 +51,7 @@ class OpenPeriodTestCase(TestCase):
         Activity.objects.create(
             group=self.group,
             project=self.group.project,
-            type=ActivityType.SET_UNRESOLVED.value,
+            type=ActivityType.SET_REGRESSION.value,
             datetime=first_unresolved,
         )
 
@@ -60,7 +60,7 @@ class OpenPeriodTestCase(TestCase):
         second_activity = Activity.objects.create(
             group=self.group,
             project=self.group.project,
-            type=ActivityType.SET_UNRESOLVED.value,
+            type=ActivityType.SET_REGRESSION.value,
             datetime=second_unresolved,
         )
 
