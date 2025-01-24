@@ -684,7 +684,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
     @responses.activate
     @patch(
-        "sentry.integrations.github.integration.GitHubIntegration.get_repositories",
+        "sentry.integrations.github.client.GitHubBaseClient.get_repos",
         return_value=[{"name": "cool-repo", "full_name": "testgit/cool-repo"}],
     )
     @with_feature(["organizations:codecov-integration", "organizations:dynamic-sampling-custom"])
@@ -822,7 +822,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
     @responses.activate
     @patch(
-        "sentry.integrations.github.client.GitHubApiClient.get_repositories",
+        "sentry.integrations.github.client.GitHubBaseClient.get_repos",
         return_value=[{"name": "abc", "full_name": "testgit/abc"}],
     )
     @with_feature("organizations:codecov-integration")
