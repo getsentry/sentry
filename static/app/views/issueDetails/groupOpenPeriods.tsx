@@ -8,6 +8,7 @@ import GridEditable, {
   type GridColumnOrder,
 } from 'sentry/components/gridEditable';
 import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {useParams} from 'sentry/utils/useParams';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
@@ -35,6 +36,10 @@ function IssueOpenPeriodsList() {
     return <LoadingError onRetry={refetchGroup} />;
   }
 
+  if (isGroupPending) {
+    return <LoadingIndicator />;
+  }
+
   // update the open periods to have date objects
   const openPeriods = group?.openPeriods?.map(period => ({
     ...period,
@@ -51,7 +56,7 @@ function IssueOpenPeriodsList() {
   };
 
   if (!openPeriods) {
-    return null;
+    return <LoadingError onRetry={refetchGroup} />;
   }
 
   const data: OpenPeriodDisplayData[] = openPeriods.map(period => ({
