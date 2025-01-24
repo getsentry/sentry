@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {DeprecatedNavContextProvider} from 'sentry/components/nav/contextDeprecated';
 import MobileTopbar from 'sentry/components/nav/mobileTopbar';
 import {Sidebar} from 'sentry/components/nav/sidebar';
-import {useBreakpoints} from 'sentry/utils/metrics/useBreakpoints';
+import {useBreakpoints} from 'sentry/utils/useBreakpoints';
 
 function Nav() {
   const screen = useBreakpoints();

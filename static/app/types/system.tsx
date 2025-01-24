@@ -292,7 +292,6 @@ export const enum StatusPageComponent {
   API = 'qywmfv7jr0pd',
   AUTHENTICATION_SERVICES = 'f5rs5z9q0dtk',
   AZURE_DEVOPS = 'tn9py6p7f85x',
-  CUSTOM_METRICS = '7wrqyj84ltw7',
   DASHBOARD = 'khtl9dcky3lb',
   ELECTRON_SYMBOL_SERVER = '3jzzl28504tq',
   EMAIL = 'tjmyq3lb26w0',

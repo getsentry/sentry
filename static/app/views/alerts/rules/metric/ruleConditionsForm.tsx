@@ -251,12 +251,6 @@ class RuleConditionsForm extends PureComponent<Props, State> {
 
   get timeWindowOptions() {
     let options: Record<string, string> = TIME_WINDOW_MAP;
-    const {alertType} = this.props;
-
-    if (alertType === 'custom_metrics') {
-      // Do not show ONE MINUTE interval as an option for custom_metrics alert
-      options = omit(options, TimeWindow.ONE_MINUTE.toString());
-    }
 
     if (isCrashFreeAlert(this.props.dataset)) {
       options = pick(TIME_WINDOW_MAP, [
@@ -348,7 +342,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
 
     if (
       organization.features.includes('performance-view') &&
-      (alertType === 'custom_transactions' || alertType === 'custom_metrics')
+      alertType === 'custom_transactions'
     ) {
       dataSourceOptions.push({
         label: t('Transactions'),

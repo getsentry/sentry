@@ -1,5 +1,3 @@
-import {t} from 'sentry/locale';
-import type {MetricType} from 'sentry/types/metrics';
 import {defined} from 'sentry/utils';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
@@ -16,20 +14,6 @@ import {
   WEEK,
 } from 'sentry/utils/formatters';
 import {formatNumberWithDynamicDecimalPoints} from 'sentry/utils/number/formatNumberWithDynamicDecimalPoints';
-
-const metricTypeToReadable: Record<Exclude<MetricType, 'v'>, string> = {
-  c: t('counter'),
-  g: t('gauge'),
-  d: t('distribution'),
-  s: t('set'),
-  e: t('derived'),
-};
-
-// Converts from "c" to "counter"
-export function getReadableMetricType(type?: string) {
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-  return metricTypeToReadable[type as MetricType] ?? t('unknown');
-}
 
 function formatDuration(seconds: number): string {
   if (!seconds) {
@@ -264,23 +248,4 @@ export function formatMetricUsingUnit(value: number | null, unit: string) {
     default:
       return formatAbbreviatedNumberWithDynamicPrecision(value);
   }
-}
-
-// @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-const getShortMetricUnit = (unit: string): string => METRIC_UNIT_TO_SHORT[unit] ?? '';
-
-export function formatMetricUsingFixedUnit(
-  value: number | null,
-  unit: string,
-  op?: string
-) {
-  if (value === null) {
-    return '\u2014';
-  }
-
-  const formattedNumber = formatNumberWithDynamicDecimalPoints(value);
-
-  return op === 'count'
-    ? formattedNumber
-    : `${formattedNumber}${getShortMetricUnit(unit)}`.trim();
 }
