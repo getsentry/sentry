@@ -264,9 +264,9 @@ export default function GroupSidebar({
         issueTypeConfig.issueSummary.enabled &&
         !organization.hideAiFeatures) ||
         issueTypeConfig.resources) && (
-        <SolutionsSectionContainer>
+        <ErrorBoundary mini>
           <SolutionsSection group={group} project={project} event={event} />
-        </SolutionsSectionContainer>
+        </ErrorBoundary>
       )}
 
       {hasStreamlinedUI && event && (
@@ -318,12 +318,6 @@ export default function GroupSidebar({
     </Container>
   );
 }
-
-const SolutionsSectionContainer = styled('div')`
-  margin-bottom: ${space(2)};
-  border-bottom: 1px solid ${p => p.theme.border};
-  padding-bottom: ${space(2)};
-`;
 
 const Container = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
