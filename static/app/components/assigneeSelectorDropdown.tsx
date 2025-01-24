@@ -373,7 +373,7 @@ export default function AssigneeSelectorDropdown({
   const makeTeamOption = (assignableTeam: AssignableTeam): SelectOption<string> => ({
     label: <TeamBadge data-test-id="assignee-option" team={assignableTeam.team} />,
     value: `team:${assignableTeam.team.id}`,
-    textValue: assignableTeam.team.slug,
+    textValue: `#${assignableTeam.team.slug}`,
   });
 
   const makeSuggestedAssigneeOption = (
