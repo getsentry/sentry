@@ -2,7 +2,7 @@ import {Fragment, lazy} from 'react';
 import memoize from 'lodash/memoize';
 
 import LazyLoad from 'sentry/components/lazyLoad';
-import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
+import {EXPERIMENTAL_SPA, USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
 import type {HookName} from 'sentry/types/hooks';
@@ -12,6 +12,7 @@ import retryableImport from 'sentry/utils/retryableImport';
 import withDomainRedirect from 'sentry/utils/withDomainRedirect';
 import withDomainRequired from 'sentry/utils/withDomainRequired';
 import App from 'sentry/views/app';
+import AuthLayout from 'sentry/views/auth/layout';
 import {automationRoutes} from 'sentry/views/automations/routes';
 import {detectorRoutes} from 'sentry/views/detectors/routes';
 import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
@@ -156,14 +157,12 @@ function buildRoutes() {
   //   next to the routes they redirect to, and place 'legacy route' redirects
   //   for routes that have completely changed in this tree.
 
-  // const experimentalSpaRoutes = EXPERIMENTAL_SPA ? (
-  //   <Route path="/auth/login/" component={errorHandler(AuthLayout)}>
-  //     <IndexRoute component={make(() => import('sentry/views/auth/login'))} />
-  //     <Route path=":orgId/" component={make(() => import('sentry/views/auth/login'))} />
-  //   </Route>
-  // ) : null;
-
-  const experimentalSpaRoutes = null;
+  const experimentalSpaRoutes = EXPERIMENTAL_SPA ? (
+    <Route path="/auth/login/" component={errorHandler(AuthLayout)}>
+      <IndexRoute component={make(() => import('sentry/views/auth/login'))} />
+      <Route path=":orgId/" component={make(() => import('sentry/views/auth/login'))} />
+    </Route>
+  ) : null;
 
   const traceViewRoute = (
     <Route
