@@ -1,10 +1,22 @@
 import {useMemo} from 'react';
 
-import type {MetricsQueryApiResponse} from 'sentry/types/metrics';
 import type {Project} from 'sentry/types/project';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+
+interface MetricsQueryApiResponse {
+  data: Array<
+    Array<{
+      by: Record<string, string>;
+      series: Array<number | null>;
+      totals: number;
+    }>
+  >;
+  end: string;
+  intervals: string[];
+  start: string;
+}
 
 export interface ProjectSampleCount {
   count: number;
