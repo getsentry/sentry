@@ -102,8 +102,8 @@ class RpcAlertRuleActionResult(RpcModel):
     success: bool
     message: str
     error_type: SentryAppErrorType | None
-    webhook_context: dict[str, Any]
-    public_context: dict[str, Any]
+    webhook_context: dict[str, Any] | None
+    public_context: dict[str, Any] | None
 
 
 class SentryAppEventDataInterface(Protocol):
