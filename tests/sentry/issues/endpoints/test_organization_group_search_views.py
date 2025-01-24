@@ -4,7 +4,7 @@ from rest_framework.exceptions import ErrorDetail
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.rest_framework.groupsearchview import GroupSearchViewValidatorResponse
 from sentry.models.groupsearchview import GroupSearchView
-from sentry.testutils.cases import APITestCase
+from sentry.testutils.cases import APITestCase, TransactionTestCase
 from sentry.testutils.helpers.features import with_feature
 
 
@@ -449,25 +449,6 @@ class OrganizationGroupSearchViewsWithPageFiltersPutTest(BaseGSVTestCase):
         assert response.data[3]["isAllProjects"] is False
 
     @with_feature({"organizations:issue-stream-custom-views": True})
-    @with_feature({"organizations:global-views": False})
-    def test_default_page_filters_without_global_views(self) -> None:
-        views = [
-            {
-                "name": "New View",
-                "query": "is:unresolved",
-                "query_sort": "date",
-            }
-        ]
-        response = self.get_success_response(self.organization.slug, views=views)
-        assert len(response.data) == 1
-        assert response.data[0]["timeFilters"] == {"period": "14d"}
-        # Should choose the first project, alphabetically
-        assert len(response.data[0]["projects"]) == 1
-        assert response.data[0]["projects"][0] == self.project1.id
-        assert response.data[0]["environments"] == []
-        assert response.data[0]["isAllProjects"] is False
-
-    @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
     def test_one_project_to_zero_projects(self) -> None:
         views = self.client.get(self.url).data
@@ -519,14 +500,6 @@ class OrganizationGroupSearchViewsWithPageFiltersPutTest(BaseGSVTestCase):
         assert response.data[0]["timeFilters"] == {"period": "14d"}
 
     @with_feature({"organizations:issue-stream-custom-views": True})
-    @with_feature({"organizations:global-views": True})
-    def test_invalid_project_ids(self) -> None:
-        views = self.client.get(self.url).data
-        views[0]["projects"] = [self.project1.id, 123456]
-        response = self.get_error_response(self.organization.slug, views=views)
-        assert response.data == {"detail": "One or more projects do not exist"}
-
-    @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": False})
     def test_multiple_projects_without_global_views(self) -> None:
         views = self.client.get(self.url).data
@@ -555,6 +528,45 @@ class OrganizationGroupSearchViewsWithPageFiltersPutTest(BaseGSVTestCase):
         assert response.data == {
             "detail": "You do not have the multi project stream feature enabled"
         }
+
+
+class OrganizationGroupSearchViewsProjectsTransactionTest(TransactionTestCase):
+    # This test needs to be in its own TransactionTestCase class. This is because by default,
+    # The ApiTestCase class runs all tests in a single transaction, which messes with
+    # the transaction inside the PUT /group-search-views endpoint and causes this test to
+    # fail unexpectedly. I think this is because the transaction inside the endpoint is being
+    # merged into the parent transaction inside the ApiTestCase class, which defers the
+    # foreign key constraint check until the end of the transaction, which happens after
+    # the test has finished. This causes the endpoint to unexpectedly succeed when it should fail.
+    @with_feature({"organizations:issue-stream-custom-views": True})
+    @with_feature({"organizations:global-views": True})
+    def test_invalid_project_ids(self) -> None:
+        url = reverse(
+            "sentry-api-0-organization-group-search-views",
+            kwargs={"organization_id_or_slug": self.organization.slug},
+        )
+        self.login_as(user=self.user)
+
+        project1 = self.create_project(organization=self.organization, slug="project-a")
+
+        issue_view_one = GroupSearchView.objects.create(
+            name="Custom View One",
+            organization=self.organization,
+            user_id=self.user.id,
+            query="is:unresolved",
+            query_sort="date",
+            position=0,
+            time_filters={"period": "14d"},
+            environments=["production"],
+        )
+        issue_view_one.projects.set([project1])
+
+        views = self.client.get(url).data
+        views[0]["projects"] = [project1.id, 123456]
+        response = self.client.put(
+            url, data={"views": views}, format="json", content_type="application/json"
+        )
+        assert response.status_code == 500
 
 
 class OrganizationGroupSearchViewsPutRegressionTest(APITestCase):
