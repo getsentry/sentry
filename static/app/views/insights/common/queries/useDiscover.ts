@@ -49,7 +49,7 @@ export const useOurlogs = <Fields extends Array<keyof OurlogsFields>>(
     referrer
   );
   const castData = data as OurlogsFields[];
-  return {rest, data: castData};
+  return {...rest, data: castData};
 };
 
 export const useEAPSpans = <Fields extends EAPSpanProperty[]>(
