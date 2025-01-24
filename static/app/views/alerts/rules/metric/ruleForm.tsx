@@ -71,7 +71,7 @@ import {
   DatasetMEPAlertQueryTypes,
 } from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
-import {isEventsStats} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+import {isEventsStats} from 'sentry/views/dashboards/utils/isEventsStats';
 import {MetricsBetaEndAlert} from 'sentry/views/metrics/metricsBetaEndAlert';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
