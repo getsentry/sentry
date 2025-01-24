@@ -22,6 +22,7 @@ const ALL_AVAILABLE_FEATURES = [
   'custom-metrics',
   'user-feedback-ui',
   'session-replay-ui',
+  'ourlogs-enabled',
   'performance-view',
   'performance-trace-explorer',
   'starfish-mobile-ui-module',
