@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Any, cast
+from typing import Any
 
 import orjson
 import sentry_sdk
@@ -95,7 +95,7 @@ class GithubProxyClient(IntegrationProxyClient):
             },
         )
         data = self.post(f"/app/installations/{self._get_installation_id()}/access_tokens")
-        access_token = cast(str, data["token"])
+        access_token = data["token"]
         expires_at = datetime.strptime(data["expires_at"], "%Y-%m-%dT%H:%M:%SZ").isoformat()
         integration.metadata.update({"access_token": access_token, "expires_at": expires_at})
         integration.save()
@@ -367,7 +367,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient)
             # Remove unnecessary fields from the response
             repositories = [
                 {"full_name": repo["full_name"], "default_branch": repo["default_branch"]}
-                for repo in self.get_repositories(fetch_max_pages=True)
+                for repo in self.get_repos(fetch_max_pages=True)
             ]
             if not repositories:
                 logger.warning("Fetching repositories returned an empty list.")
@@ -493,7 +493,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient)
         )
         return RepoTree(Repo(full_name, branch), repo_files)
 
-    def get_repositories(self, fetch_max_pages: bool = False) -> Sequence[Any]:
+    def get_repos(self, fetch_max_pages: bool = False) -> list[dict[str, Any]]:
         """
         args:
          * fetch_max_pages - fetch as many repos as possible using pagination (slow)
