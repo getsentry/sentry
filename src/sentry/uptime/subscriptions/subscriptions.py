@@ -167,6 +167,7 @@ def get_or_create_project_uptime_subscription(
     headers: Sequence[tuple[str, str]] | None = None,
     body: str | None = None,
     mode: ProjectUptimeSubscriptionMode = ProjectUptimeSubscriptionMode.MANUAL,
+    status: int = ObjectStatus.ACTIVE,
     name: str = "",
     owner: Actor | None = None,
     trace_sampling: bool = False,
@@ -197,7 +198,7 @@ def get_or_create_project_uptime_subscription(
             owner_user_id = owner.id
         if owner.is_team:
             owner_team_id = owner.id
-    return ProjectUptimeSubscription.objects.get_or_create(
+    uptime_monitor, created = ProjectUptimeSubscription.objects.get_or_create(
         project=project,
         environment=environment,
         uptime_subscription=uptime_subscription,
@@ -206,6 +207,16 @@ def get_or_create_project_uptime_subscription(
         owner_user_id=owner_user_id,
         owner_team_id=owner_team_id,
     )
+
+    # Update status. This may have the side effect of removing or creating a
+    # remote subscription.
+    match status:
+        case ObjectStatus.ACTIVE:
+            enable_project_uptime_subscription(uptime_monitor)
+        case ObjectStatus.DISABLED:
+            disable_project_uptime_subscription(uptime_monitor)
+
+    return uptime_monitor, created
 
 
 def update_project_uptime_subscription(
@@ -220,6 +231,7 @@ def update_project_uptime_subscription(
     name: str,
     owner: Actor | None,
     trace_sampling: bool,
+    status: int = ObjectStatus.ACTIVE,
 ):
     """
     Links a project to an uptime subscription so that it can process results.
@@ -263,6 +275,14 @@ def update_project_uptime_subscription(
     # uptime monitor. Check if the old subscription was orphaned due to this.
     if updated_subscription:
         remove_uptime_subscription_if_unused(cur_uptime_subscription)
+
+    # Update status. This may have the side effect of removing or creating a
+    # remote subscription.
+    match status:
+        case ObjectStatus.DISABLED:
+            disable_project_uptime_subscription(uptime_monitor)
+        case ObjectStatus.ACTIVE:
+            enable_project_uptime_subscription(uptime_monitor)
 
 
 def disable_project_uptime_subscription(uptime_monitor: ProjectUptimeSubscription):
