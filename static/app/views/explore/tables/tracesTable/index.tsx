@@ -15,20 +15,13 @@ import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {
-  useExploreDataset,
-  useExploreQuery,
-  useExploreTitle,
-  useExploreVisualizes,
-} from 'sentry/views/explore/contexts/pageParamsContext';
-import {useAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
+import {useExploreQuery} from 'sentry/views/explore/contexts/pageParamsContext';
 import type {TracesTableResult} from 'sentry/views/explore/hooks/useExploreTracesTable';
 import type {TraceResult} from 'sentry/views/explore/hooks/useTraces';
 import {
@@ -52,39 +45,13 @@ import {
 } from 'sentry/views/explore/tables/tracesTable/styles';
 
 interface TracesTableProps {
-  confidences: Confidence[];
   tracesTableResult: TracesTableResult;
 }
 
-export function TracesTable({confidences, tracesTableResult}: TracesTableProps) {
-  const title = useExploreTitle();
-  const dataset = useExploreDataset();
+export function TracesTable({tracesTableResult}: TracesTableProps) {
   const query = useExploreQuery();
-  const visualizes = useExploreVisualizes();
-  const organization = useOrganization();
 
   const {result} = tracesTableResult;
-
-  useAnalytics({
-    dataset,
-    resultLength: result.data?.data?.length,
-    resultMode: 'trace samples',
-    resultStatus: result.status,
-    resultMissingRoot: result.data?.data?.filter(trace => !defined(trace.name))?.length,
-    visualizes,
-    organization,
-    columns: [
-      'trace id',
-      'trace root',
-      'total spans',
-      'timeline',
-      'root duration',
-      'timestamp',
-    ],
-    userQuery: query,
-    confidences,
-    title,
-  });
 
   const {data, isPending, isError, getResponseHeader} = result;
 

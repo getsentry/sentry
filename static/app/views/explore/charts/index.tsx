@@ -300,6 +300,7 @@ export function useExtrapolationMeta({
     initialData: [],
     referrer: 'api.explore.spans-extrapolation-meta',
     enabled: dataset === DiscoverDatasets.SPANS_EAP_RPC,
+    trackResponseAnalytics: false,
   });
 }
 

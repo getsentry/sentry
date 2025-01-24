@@ -1,3 +1,5 @@
+import {useMemo} from 'react';
+
 import type {Series} from 'sentry/types/echarts';
 import type {
   Confidence,
@@ -109,9 +111,9 @@ export const useSortedTimeSeries = <
 
   const isFetchingOrLoading = result.isPending || result.isFetching;
 
-  const data: SeriesMap = isFetchingOrLoading
-    ? {}
-    : transformToSeriesMap(result.data, yAxis);
+  const data: SeriesMap = useMemo(() => {
+    return isFetchingOrLoading ? {} : transformToSeriesMap(result.data, yAxis);
+  }, [isFetchingOrLoading, result.data, yAxis]);
 
   const pageLinks = result.response?.getResponseHeader('Link') ?? undefined;
 
