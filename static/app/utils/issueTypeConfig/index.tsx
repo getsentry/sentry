@@ -65,6 +65,7 @@ const BASE_CONFIG: IssueTypeConfig = {
   resources: null,
   usesIssuePlatform: true,
   issueSummary: {enabled: false},
+  useOpenPeriodChecks: false,
 };
 
 const issueTypeConfig: Config = {

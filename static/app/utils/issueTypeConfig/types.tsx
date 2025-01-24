@@ -133,6 +133,10 @@ export type IssueTypeConfig = {
    */
   tagsTab: DisabledWithReasonConfig;
   /**
+   * Whether to use open periods for the last checked date
+   */
+  useOpenPeriodChecks: boolean;
+  /**
    * Is the User Feedback tab shown for this issue
    */
   userFeedback: DisabledWithReasonConfig;
