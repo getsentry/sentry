@@ -14,6 +14,7 @@ from typing_extensions import TypedDict
 
 from sentry.constants import SentryAppInstallationStatus
 from sentry.hybridcloud.rpc import RpcModel, RpcModelProtocolMeta
+from sentry.sentry_apps.utils.errors import SentryAppErrorType
 
 
 class RpcApiApplication(RpcModel):
@@ -100,6 +101,7 @@ class RpcSentryAppComponentContext(RpcModel):
 class RpcAlertRuleActionResult(RpcModel):
     success: bool
     message: str
+    error_type: SentryAppErrorType | None
 
 
 class SentryAppEventDataInterface(Protocol):
