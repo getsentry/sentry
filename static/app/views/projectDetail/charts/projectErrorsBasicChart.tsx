@@ -10,7 +10,6 @@ import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
-import getDynamicText from 'sentry/utils/getDynamicText';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -89,21 +88,18 @@ function ProjectErrorsBasicChart({projectId, onTotalValuesChange}: Props) {
     },
   ];
 
-  return getDynamicText({
-    value: (
-      <Fragment>
-        <HeaderTitleLegend>{t('Daily Errors')}</HeaderTitleLegend>
-        <BaseChart
-          series={series}
-          isGroupedByDate
-          showTimeInTooltip
-          colors={theme => [theme.purple300, theme.purple200]}
-          grid={{left: '10px', right: '10px', top: '40px', bottom: '0px'}}
-        />
-      </Fragment>
-    ),
-    fixed: t('Number of Errors Chart'),
-  });
+  return (
+    <Fragment>
+      <HeaderTitleLegend>{t('Daily Errors')}</HeaderTitleLegend>
+      <BaseChart
+        series={series}
+        isGroupedByDate
+        showTimeInTooltip
+        colors={theme => [theme.purple300, theme.purple200]}
+        grid={{left: '10px', right: '10px', top: '40px', bottom: '0px'}}
+      />
+    </Fragment>
+  );
 }
 
 export default ProjectErrorsBasicChart;
