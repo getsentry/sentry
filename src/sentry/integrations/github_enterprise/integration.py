@@ -181,7 +181,7 @@ class GitHubEnterpriseIntegration(
 
     # RepositoryIntegration methods
 
-    def get_repositories(self, query=None, **kwargs):
+    def get_repositories(self, query=None):
         if not query:
             all_repos = self.get_client().get_repos()
             return [

@@ -230,16 +230,13 @@ class GitHubIntegration(
         _, _, source_path = url.partition("/")
         return source_path
 
-    def get_repositories(self, query: str | None = None, **kwargs: Any) -> Sequence[dict[str, Any]]:
+    def get_repositories(self, query: str | None = None) -> Sequence[dict[str, Any]]:
         """
-        This fetches all repositories accessible to a Github App
-        https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation
-
         args:
         * query - a query to filter the repositories by
-        * fetch_max_pages - fetch as many repos as possible using pagination (slow)
 
-        per_page: The number of results per page (max 100; default 30).
+        This fetches all repositories accessible to the Github App
+        https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation
         """
         if not query:
             all_repos = self.get_client().get_repos()
@@ -429,7 +426,7 @@ def record_event(event: IntegrationPipelineViewType):
 
 
 class OAuthLoginView(PipelineView):
-    def dispatch(self, request: Request, pipeline) -> HttpResponseBase:
+    def dispatch(self, request: Request, pipeline: Pipeline) -> HttpResponseBase:
         with record_event(IntegrationPipelineViewType.OAUTH_LOGIN).capture() as lifecycle:
             self.determine_active_organization(request)
             lifecycle.add_extra(

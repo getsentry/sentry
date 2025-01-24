@@ -57,10 +57,7 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
         issueTypeConfig.issueSummary.enabled &&
         !organization.hideAiFeatures) ||
         issueTypeConfig.resources) && (
-        <ErrorBoundary mini>
-          <SolutionsSection group={group} project={project} event={event} />
-          <StyledBreak />
-        </ErrorBoundary>
+        <SolutionsSection group={group} project={project} event={event} />
       )}
       {event && (
         <ErrorBoundary mini>

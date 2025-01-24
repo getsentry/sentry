@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Any, cast
+from typing import Any
 
 import orjson
 import sentry_sdk
@@ -96,7 +96,7 @@ class GithubProxyClient(IntegrationProxyClient):
             },
         )
         data = self.post(f"/app/installations/{self._get_installation_id()}/access_tokens")
-        access_token = cast(str, data["token"])
+        access_token = data["token"]
         expires_at = datetime.strptime(data["expires_at"], "%Y-%m-%dT%H:%M:%SZ").isoformat()
         integration.metadata.update({"access_token": access_token, "expires_at": expires_at})
         integration.save()
