@@ -61,7 +61,6 @@ import {
 } from 'sentry/views/alerts/rules/metric/utils/determineSeriesConfidence';
 import {getEventTypeFilter} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
 import hasThresholdValue from 'sentry/views/alerts/rules/metric/utils/hasThresholdValue';
-import {isCustomMetricAlert} from 'sentry/views/alerts/rules/metric/utils/isCustomMetricAlert';
 import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
 import {AlertRuleType, type Anomaly} from 'sentry/views/alerts/types';
 import {ruleNeedsErrorMigration} from 'sentry/views/alerts/utils/migrationUi';
@@ -72,7 +71,6 @@ import {
 } from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 import {isEventsStats} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
-import {MetricsBetaEndAlert} from 'sentry/views/metrics/metricsBetaEndAlert';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
 import {isCrashFreeAlert} from './utils/isCrashFreeAlert';
@@ -1304,9 +1302,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     return (
       <Main fullWidth>
         <PermissionAlert access={['alerts:write']} project={project} />
-        {isCustomMetricAlert(rule.aggregate) && (
-          <MetricsBetaEndAlert organization={organization} />
-        )}
 
         {eventView && <IncompatibleAlertQuery eventView={eventView} />}
         <Form

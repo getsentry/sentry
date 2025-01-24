@@ -11,7 +11,6 @@ import type {
   Series,
 } from 'sentry/components/metrics/chart/types';
 import {fitToValueRect} from 'sentry/components/metrics/chart/utils';
-import type {Field} from 'sentry/components/metrics/metricSamplesTable';
 import {t} from 'sentry/locale';
 import type {EChartClickHandler, ReactEchartsRef} from 'sentry/types/echarts';
 import type {MetricAggregation} from 'sentry/types/metrics';
@@ -63,8 +62,8 @@ interface UseMetricChartSamplesOptions {
   timeseries: Series[];
   aggregation?: MetricAggregation;
   highlightedSampleId?: string;
-  onSampleClick?: (sample: MetricsSamplesResults<Field>['data'][number]) => void;
-  samples?: MetricsSamplesResults<Field>['data'];
+  onSampleClick?: (sample: MetricsSamplesResults<any>['data'][number]) => void;
+  samples?: MetricsSamplesResults<any>['data'];
   unit?: string;
 }
 
@@ -83,7 +82,6 @@ export function useMetricChartSamples({
 
   const samplesById = useMemo(() => {
     return (samples ?? []).reduce((acc, sample) => {
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       acc[sample.id] = sample;
       return acc;
     }, {});
@@ -133,7 +131,6 @@ export function useMetricChartSamples({
       },
       valueFormatter: (_: any, label?: string) => {
         // We need to access the sample as the charts datapoints are fit to the charts viewport
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         const sample = samplesById[label ?? ''];
         const yValue = getSummaryValueForAggregation(sample.summary, aggregation);
         return formatMetricUsingUnit(yValue, unit);
@@ -143,7 +140,6 @@ export function useMetricChartSamples({
 
   const handleClick = useCallback<EChartClickHandler>(
     (event: EChartMouseEventParam) => {
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const sample = samplesById[event.seriesName];
       if (defined(onSampleClick) && defined(sample)) {
         onSampleClick(sample);

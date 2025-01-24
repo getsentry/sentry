@@ -8,7 +8,6 @@ import isEqual from 'lodash/isEqual';
 import moment from 'moment-timezone';
 
 import {Button} from 'sentry/components/button';
-import type {DateTimeObject} from 'sentry/components/charts/utils';
 import type {
   CombinedMetricChartProps,
   FocusAreaSelection,
@@ -27,28 +26,12 @@ import type {DateString} from 'sentry/types/core';
 import type {EChartBrushEndHandler, ReactEchartsRef} from 'sentry/types/echarts';
 import mergeRefs from 'sentry/utils/mergeRefs';
 import {CHART_HEIGHT} from 'sentry/views/metrics/constants';
-import type {FocusAreaProps} from 'sentry/views/metrics/context';
 
 interface AbsolutePosition {
   height: string;
   left: string;
   top: string;
   width: string;
-}
-
-interface UseFocusAreaOptions {
-  widgetIndex: number;
-  isDisabled?: boolean;
-  useFullYAxis?: boolean;
-}
-
-export interface UseFocusAreaProps extends FocusAreaProps {
-  chartRef: RefObject<ReactEchartsRef>;
-  opts: UseFocusAreaOptions;
-  scalingFactor: number;
-  chartUnit?: string;
-  onZoom?: (range: DateTimeObject) => void;
-  sampleUnit?: string;
 }
 
 type BrushEndResult = Parameters<EChartBrushEndHandler>[0];
@@ -60,7 +43,7 @@ export function useFocusArea({
   onDraw,
   onRemove,
   onZoom,
-}: UseFocusAreaProps) {
+}: any) {
   const hasFocusArea = !isDisabled && selection && selection.widgetIndex === widgetIndex;
   const chartRef = useRef<ReactEchartsRef>(null);
   const chartElement = chartRef.current?.ele;

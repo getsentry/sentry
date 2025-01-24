@@ -560,18 +560,7 @@ function buildRoutes() {
         name={t('Performance')}
         component={make(() => import('sentry/views/settings/projectPerformance'))}
       />
-      <Route path="metrics/" name={t('Metrics')}>
-        <IndexRoute
-          component={make(() => import('sentry/views/settings/projectMetrics'))}
-        />
-        <Route
-          name={t('Metrics Details')}
-          path=":mri/"
-          component={make(
-            () => import('sentry/views/settings/projectMetrics/projectMetricsDetails')
-          )}
-        />
-      </Route>
+
       <Route
         path="playstation/"
         name={t('PlayStation')}

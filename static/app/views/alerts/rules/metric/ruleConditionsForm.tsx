@@ -27,7 +27,6 @@ import SelectField from 'sentry/components/forms/fields/selectField';
 import FormField from 'sentry/components/forms/formField';
 import IdBadge from 'sentry/components/idBadge';
 import ListItem from 'sentry/components/list/listItem';
-import {MetricSearchBar} from 'sentry/components/metrics/metricSearchBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -55,8 +54,6 @@ import {
   getMeasurements,
   type MeasurementCollection,
 } from 'sentry/utils/measurements/measurements';
-import {hasCustomMetrics} from 'sentry/utils/metrics/features';
-import {getMRI} from 'sentry/utils/metrics/mri';
 import {getOnDemandKeys, isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
 import {hasOnDemandMetricAlertFeature} from 'sentry/utils/onDemandMetrics/features';
 import withApi from 'sentry/utils/withApi';
@@ -553,7 +550,6 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       isExtrapolatedChartData,
       isTransactionMigration,
       isErrorMigration,
-      aggregate,
       project,
       comparisonType,
       isLowConfidenceChartData,
@@ -646,22 +642,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                   flexibleControlStateSize
                 >
                   {({onChange, onBlur, initialData, value}: any) => {
-                    return hasCustomMetrics(organization) &&
-                      alertType === 'custom_metrics' ? (
-                      <MetricSearchBar
-                        mri={getMRI(aggregate)}
-                        projectIds={[project.id]}
-                        placeholder={this.searchPlaceholder}
-                        query={initialData.query}
-                        defaultQuery={initialData?.query ?? ''}
-                        useFormWrapper={false}
-                        searchSource="alert_builder"
-                        onChange={query => {
-                          onFilterSearch(query, true);
-                          onChange(query, {});
-                        }}
-                      />
-                    ) : alertType === 'eap_metrics' ? (
+                    return alertType === 'eap_metrics' ? (
                       <SpanTagsContext.Consumer>
                         {tags => (
                           <EAPSpanSearchQueryBuilder

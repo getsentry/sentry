@@ -87,7 +87,7 @@ describe('useCurrentProjectState', () => {
     const {result} = renderHook(useCurrentProjectState, {
       initialProps: {
         currentPanel: SidebarPanelKey.REPLAYS_ONBOARDING,
-        targetPanel: SidebarPanelKey.REPLAYS_ONBOARDING,
+        targetPanel: SidebarPanelKey.FEEDBACK_ONBOARDING,
         onboardingPlatforms: replayOnboardingPlatforms,
         allPlatforms: replayOnboardingPlatforms,
       },
