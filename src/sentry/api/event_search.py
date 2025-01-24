@@ -5,7 +5,7 @@ from collections import namedtuple
 from collections.abc import Mapping, Sequence
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import Any, Literal, NamedTuple, Union
+from typing import TYPE_CHECKING, Any, Literal, NamedTuple, Union
 
 from django.utils.functional import cached_property
 from parsimonious.exceptions import IncompleteParseError
@@ -505,13 +505,26 @@ class AggregateKey(NamedTuple):
     name: str
 
 
-class AggregateFilter(NamedTuple):
-    key: AggregateKey
-    operator: str
-    value: SearchValue
+# https://github.com/python/mypy/issues/18520
+# without this mypy thinks that AggregateFilter and SearchFilter are
+# structurally equivalent and will refuse to narrow them
+if TYPE_CHECKING:
 
-    def __str__(self):
-        return f"{self.key.name}{self.operator}{self.value.raw_value}"
+    class AggregateFilter(NamedTuple):
+        key: AggregateKey
+        operator: str
+        value: SearchValue
+        DO_NOT_USE_ME_I_AM_FOR_MYPY: bool = True
+
+else:  # real implementation here!
+
+    class AggregateFilter(NamedTuple):
+        key: AggregateKey
+        operator: str
+        value: SearchValue
+
+        def __str__(self) -> str:
+            return f"{self.key.name}{self.operator}{self.value.raw_value}"
 
 
 @dataclass

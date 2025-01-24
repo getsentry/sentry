@@ -318,6 +318,7 @@ function WidgetBuilder({
       organization,
       new_widget: !isEditing,
       builder_version: WidgetBuilderVersion.PAGE,
+      from: source,
     });
 
     if (isEmptyObject(tags) && dataSet !== DataSet.SPANS) {
