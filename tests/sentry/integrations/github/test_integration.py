@@ -139,6 +139,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         repositories: dict[str, Any] = {
             "xyz": {
+                "name": "xyz",
                 "full_name": "Test-Organization/xyz",
                 "default_branch": "master",
             },
@@ -556,7 +557,12 @@ class GitHubIntegrationTest(IntegrationTestCase):
             GitHubIntegration, integration, self.organization.id
         )
 
-        with patch.object(sentry.integrations.github.client.GitHubBaseClient, "page_size", 1):
+        with (
+            patch.object(
+                sentry.integrations.github.client.GitHubBaseClient, "page_number_limit", 1
+            ),
+            patch.object(sentry.integrations.github.client.GitHubBaseClient, "page_size", 1),
+        ):
             result = installation.get_repositories()
             assert result == [
                 {"name": "foo", "identifier": "Test-Organization/foo", "default_branch": "master"},
@@ -833,10 +839,10 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
     def _expected_cached_repos(self):
         return [
-            {"full_name": f"{self.gh_org}/xyz", "default_branch": "master"},
-            {"full_name": f"{self.gh_org}/foo", "default_branch": "master"},
-            {"full_name": f"{self.gh_org}/bar", "default_branch": "main"},
-            {"full_name": f"{self.gh_org}/baz", "default_branch": "master"},
+            {"name": "xyz", "full_name": f"{self.gh_org}/xyz", "default_branch": "master"},
+            {"name": "foo", "full_name": f"{self.gh_org}/foo", "default_branch": "master"},
+            {"name": "bar", "full_name": f"{self.gh_org}/bar", "default_branch": "main"},
+            {"name": "baz", "full_name": f"{self.gh_org}/baz", "default_branch": "master"},
         ]
 
     @responses.activate
