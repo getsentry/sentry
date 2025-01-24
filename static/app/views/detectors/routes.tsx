@@ -6,7 +6,7 @@ export const detectorRoutes = (
     <IndexRoute component={make(() => import('sentry/views/detectors/list'))} />
     <Route path="new/" component={make(() => import('sentry/views/detectors/new'))} />
     <Route
-      path="new/settings"
+      path="new/settings/"
       component={make(() => import('sentry/views/detectors/new-settings'))}
     />
     <Route
