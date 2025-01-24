@@ -45,7 +45,7 @@ export class VideoReplayer {
   private _currentIndex: number | undefined;
   private _startTimestamp: number;
   private _timer = new Timer();
-  private _trackList: [ts: number, index: number][];
+  private _trackList: Array<[ts: number, index: number]>;
   private _isPlaying: boolean = false;
   private _listeners: RemoveListener[] = [];
   /**
@@ -690,7 +690,7 @@ export class VideoReplayer {
     Object.entries(config)
       .filter(([, value]) => value !== undefined)
       .forEach(([key, value]) => {
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         this.config[key] = value;
       });
 

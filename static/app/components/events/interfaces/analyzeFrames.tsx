@@ -15,7 +15,7 @@ type SuspectFrame = {
   module: string | RegExp;
   resources: React.ReactNode;
   exceptionMessage?: string;
-  functions?: (string | RegExp)[];
+  functions?: Array<string | RegExp>;
   offendingThreadStates?: ThreadStates[];
 };
 

@@ -114,7 +114,7 @@ export function SearchableMetricSamplesTable({
 }
 
 interface MetricsSamplesSearchBarProps {
-  // @ts-ignore TS(7051): Parameter has a name but no type. Did you mean 'ar... Remove this comment to see the full error message
+  // @ts-expect-error TS(7051): Parameter has a name but no type. Did you mean 'ar... Remove this comment to see the full error message
   handleSearch: (string) => void;
   query: string;
   mri?: MRI;
@@ -375,8 +375,8 @@ function getColumnForMRI(mri?: MRI): GridColumnOrder<ResultField> {
         };
 }
 
-function getColumnOrder(mri?: MRI): GridColumnOrder<ResultField>[] {
-  const orders: (GridColumnOrder<ResultField> | undefined)[] = [
+function getColumnOrder(mri?: MRI): Array<GridColumnOrder<ResultField>> {
+  const orders: Array<GridColumnOrder<ResultField> | undefined> = [
     {key: 'id', width: COL_WIDTH_UNDEFINED, name: 'Span ID'},
     {key: 'span.description', width: COL_WIDTH_UNDEFINED, name: 'Description'},
     {key: 'span.op', width: COL_WIDTH_UNDEFINED, name: 'Operation'},

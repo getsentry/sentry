@@ -23,7 +23,7 @@ export interface RenderFieldProps extends InputFieldProps {
    * When using groupProjects you must specify the labels of the groups as a
    * list of key and label. The ordering determines the order of the groups.
    */
-  groups?: {key: string; label: React.ReactNode}[];
+  groups?: Array<{key: string; label: React.ReactNode}>;
   projects?: Project[];
   /**
    * Use the slug as the select field value. Without setting this the numeric id

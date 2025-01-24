@@ -45,7 +45,7 @@ type TreeResultLocatorOpts = {
   /**
    * The tree to visit
    */
-  tree: TokenResult<Token>[];
+  tree: Array<TokenResult<Token>>;
   /**
    * A function used to check if we've found the result in the node we're
    * visiting. May also indicate that we want to skip any further traversal of
@@ -147,7 +147,7 @@ type TreeTransformerOpts = {
   /**
    * The tree to transform
    */
-  tree: TokenResult<Token>[];
+  tree: Array<TokenResult<Token>>;
 };
 
 /**

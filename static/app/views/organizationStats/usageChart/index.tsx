@@ -93,7 +93,7 @@ export enum ChartDataTransform {
   PERIODIC = 'periodic',
 }
 
-export const CHART_OPTIONS_DATA_TRANSFORM: SelectValue<ChartDataTransform>[] = [
+export const CHART_OPTIONS_DATA_TRANSFORM: Array<SelectValue<ChartDataTransform>> = [
   {
     label: t('Cumulative'),
     value: ChartDataTransform.CUMULATIVE,

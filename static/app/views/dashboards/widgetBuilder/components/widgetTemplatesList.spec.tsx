@@ -112,7 +112,8 @@ describe('WidgetTemplatesList', () => {
           displayType: 'line',
           dataset: 'transactions-like',
         }),
-      })
+      }),
+      {replace: true}
     );
   });
 

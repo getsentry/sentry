@@ -23,7 +23,7 @@ type Props = {
   // we treat the score list keys as opaque as we wish to be able to extend the
   // backend without having to fix UI. Keys not in scoreComponents are grouped
   // into Other anyway
-  scoreList?: [string, ScoreValue][];
+  scoreList?: Array<[string, ScoreValue]>;
 };
 
 function SimilarScoreCard({scoreList = []}: Props) {
@@ -38,7 +38,7 @@ function SimilarScoreCard({scoreList = []}: Props) {
     <Fragment>
       {scoreList.map(([key, score]) => {
         const title =
-          // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           scoreComponents[key.replace(/similarity:\d\d\d\d-\d\d-\d\d/, 'similarity:*')];
 
         if (!title) {

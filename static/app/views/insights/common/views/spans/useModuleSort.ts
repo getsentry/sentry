@@ -31,7 +31,7 @@ export function useModuleSort(
   const location = useLocation<Query>();
 
   return (
-    // @ts-ignore TS(2551): Property 'spansCursor' does not exist on type 'Que... Remove this comment to see the full error message
+    // @ts-expect-error TS(2551): Property 'spansCursor' does not exist on type 'Que... Remove this comment to see the full error message
     decodeSorts(location.query[sortParameterName]).filter(isAValidSort)[0] ?? fallback
   );
 }

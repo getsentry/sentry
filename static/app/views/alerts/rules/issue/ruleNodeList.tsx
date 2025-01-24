@@ -65,10 +65,10 @@ type Props = {
 
 const createSelectOptions = (
   actions: IssueAlertRuleActionTemplate[]
-): {
+): Array<{
   label: React.ReactNode;
   value: IssueAlertRuleActionTemplate;
-}[] => {
+}> => {
   return actions.map(node => {
     if (node.id === IssueAlertActionType.NOTIFY_EMAIL) {
       const label = t('Suggested Assignees, Team, or Member');
@@ -143,7 +143,7 @@ const groupSelectOptions = (actions: IssueAlertRuleActionTemplate[]) => {
     .filter(([_, values]) => values.length)
     .map(([key, values]) => {
       return {
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         label: groupLabels[key],
         options: createSelectOptions(values),
       };
@@ -212,7 +212,7 @@ class RuleNodeList extends Component<Props> {
         ...changeAlertNode,
         label: changeAlertNode.label.replace(
           '{comparisonType}',
-          // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           COMPARISON_TYPE_CHOICE_VALUES[item.comparisonType]
         ),
       };
