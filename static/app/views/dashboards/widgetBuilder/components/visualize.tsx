@@ -14,6 +14,8 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
 import {
   type AggregateParameter,
   type AggregationKeyWithAlias,
@@ -36,6 +38,8 @@ import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
+import useIsEditingWidget from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import ArithmeticInput from 'sentry/views/discover/table/arithmeticInput';
 import {
@@ -200,6 +204,8 @@ function Visualize({error, setError}: VisualizeProps) {
   const [selectedAggregateSet, setSelectedAggregateSet] = useState(
     defined(queryParamSelectedAggregate)
   );
+  const source = useDashboardWidgetSource();
+  const isEditing = useIsEditingWidget();
 
   const isChartWidget =
     state.displayType !== DisplayType.TABLE &&
@@ -396,7 +402,18 @@ function Visualize({error, setError}: VisualizeProps) {
                           payload: index,
                         });
                       }}
-                      onClick={() => setSelectedAggregateSet(true)}
+                      onClick={() => {
+                        setSelectedAggregateSet(true);
+                        trackAnalytics('dashboards_views.widget_builder.change', {
+                          builder_version: WidgetBuilderVersion.SLIDEOUT,
+                          field: 'visualize.selectAggregate',
+                          from: source,
+                          new_widget: !isEditing,
+                          value: '',
+                          widget_type: state.dataset ?? '',
+                          organization,
+                        });
+                      }}
                       aria-label={'field' + index}
                     />
                   </RadioLineItem>
@@ -417,6 +434,15 @@ function Visualize({error, setError}: VisualizeProps) {
                           ),
                         });
                         setError?.({...error, queries: []});
+                        trackAnalytics('dashboards_views.widget_builder.change', {
+                          builder_version: WidgetBuilderVersion.SLIDEOUT,
+                          field: 'visualize.updateEquation',
+                          from: source,
+                          new_widget: !isEditing,
+                          value: '',
+                          widget_type: state.dataset ?? '',
+                          organization,
+                        });
                       }}
                       options={fields}
                       placeholder={t('Equation')}
@@ -455,6 +481,18 @@ function Visualize({error, setError}: VisualizeProps) {
                                 payload: newFields,
                               });
                               setError?.({...error, queries: []});
+                              trackAnalytics('dashboards_views.widget_builder.change', {
+                                builder_version: WidgetBuilderVersion.SLIDEOUT,
+                                field: 'visualize.updateColumn',
+                                from: source,
+                                new_widget: !isEditing,
+                                value:
+                                  currentField.kind === FieldValueKind.FIELD
+                                    ? 'column'
+                                    : 'aggregate',
+                                widget_type: state.dataset ?? '',
+                                organization,
+                              });
                             }}
                             triggerProps={{
                               'aria-label': t('Column Selection'),
@@ -595,6 +633,15 @@ function Visualize({error, setError}: VisualizeProps) {
                                   function: newFunction,
                                 };
                               }
+                              trackAnalytics('dashboards_views.widget_builder.change', {
+                                builder_version: WidgetBuilderVersion.SLIDEOUT,
+                                field: 'visualize.updateAggregate',
+                                from: source,
+                                new_widget: !isEditing,
+                                value: 'aggregate',
+                                widget_type: state.dataset ?? '',
+                                organization,
+                              });
                             } else {
                               // Handle selecting None so we can select just a field, e.g. for samples
                               // If none is selected, set the field to a field value
@@ -630,6 +677,16 @@ function Visualize({error, setError}: VisualizeProps) {
                                 kind: FieldValueKind.FIELD,
                                 field: validColumn,
                               };
+
+                              trackAnalytics('dashboards_views.widget_builder.change', {
+                                builder_version: WidgetBuilderVersion.SLIDEOUT,
+                                field: 'visualize.updateAggregate',
+                                from: source,
+                                new_widget: !isEditing,
+                                value: 'column',
+                                widget_type: state.dataset ?? '',
+                                organization,
+                              });
                             }
                             dispatch({
                               type: updateAction,
@@ -716,6 +773,17 @@ function Visualize({error, setError}: VisualizeProps) {
                           payload: newFields,
                         });
                       }}
+                      onBlur={() => {
+                        trackAnalytics('dashboards_views.widget_builder.change', {
+                          builder_version: WidgetBuilderVersion.SLIDEOUT,
+                          field: 'visualize.legendAlias',
+                          from: source,
+                          new_widget: !isEditing,
+                          value: '',
+                          widget_type: state.dataset ?? '',
+                          organization,
+                        });
+                      }}
                     />
                   )}
                   <StyledDeleteButton
@@ -743,6 +811,19 @@ function Visualize({error, setError}: VisualizeProps) {
                           });
                         }
                       }
+
+                      trackAnalytics('dashboards_views.widget_builder.change', {
+                        builder_version: WidgetBuilderVersion.SLIDEOUT,
+                        field:
+                          field.kind === FieldValueKind.EQUATION
+                            ? 'visualize.deleteEquation'
+                            : 'visualize.deleteField',
+                        from: source,
+                        new_widget: !isEditing,
+                        value: '',
+                        widget_type: state.dataset ?? '',
+                        organization,
+                      });
                     }}
                     aria-label={t('Remove field')}
                   />
@@ -757,12 +838,22 @@ function Visualize({error, setError}: VisualizeProps) {
         <AddButton
           priority="link"
           aria-label={isChartWidget ? t('Add Series') : t('Add Field')}
-          onClick={() =>
+          onClick={() => {
             dispatch({
               type: updateAction,
               payload: [...(fields ?? []), cloneDeep(datasetConfig.defaultField)],
-            })
-          }
+            });
+
+            trackAnalytics('dashboards_views.widget_builder.change', {
+              builder_version: WidgetBuilderVersion.SLIDEOUT,
+              field: 'visualize.addField',
+              from: source,
+              new_widget: !isEditing,
+              value: '',
+              widget_type: state.dataset ?? '',
+              organization,
+            });
+          }}
         >
           {isChartWidget ? t('+ Add Series') : t('+ Add Field')}
         </AddButton>
@@ -770,12 +861,22 @@ function Visualize({error, setError}: VisualizeProps) {
           <AddButton
             priority="link"
             aria-label={t('Add Equation')}
-            onClick={() =>
+            onClick={() => {
               dispatch({
                 type: updateAction,
                 payload: [...(fields ?? []), {kind: FieldValueKind.EQUATION, field: ''}],
-              })
-            }
+              });
+
+              trackAnalytics('dashboards_views.widget_builder.change', {
+                builder_version: WidgetBuilderVersion.SLIDEOUT,
+                field: 'visualize.addEquation',
+                from: source,
+                new_widget: !isEditing,
+                value: '',
+                widget_type: state.dataset ?? '',
+                organization,
+              });
+            }}
           >
             {t('+ Add Equation')}
           </AddButton>
