@@ -134,9 +134,15 @@ def get_trees_for_org(
     installation: IntegrationInstallation, org: Organization, extra: dict[str, Any]
 ) -> dict[str, Any]:
     trees: dict[str, Any] = {}
-    if not hasattr(installation, "get_trees_for_org") and not hasattr(
-        installation, "get_trees_for_org_old"
+    get_trees_method = None
+    if options.get("github-app.get-trees-refactored-code") and hasattr(
+        installation, "get_trees_for_org"
     ):
+        get_trees_method = installation.get_trees_for_org
+    elif hasattr(installation, "get_trees_for_org_old"):
+        get_trees_method = installation.get_trees_for_org_old
+
+    if not get_trees_method:
         logger.error(
             "Installation does not have required method get_trees_for_org",
             extra={"installation_type": type(installation).__name__, **extra},
@@ -151,22 +157,7 @@ def get_trees_for_org(
     ).capture() as lifecycle:
         try:
             with lock.acquire():
-                if options.get("github-app.get-trees-refactored-code"):
-                    if hasattr(installation, "get_trees_for_org"):
-                        trees = installation.get_trees_for_org()
-                    else:
-                        logger.error(
-                            "Installation missing get_trees_for_org method",
-                            extra={"installation_type": type(installation).__name__, **extra},
-                        )
-                else:
-                    if hasattr(installation, "get_trees_for_org_old"):
-                        trees = installation.get_trees_for_org_old()
-                    else:
-                        logger.error(
-                            "Installation missing get_trees_for_org_old method",
-                            extra={"installation_type": type(installation).__name__, **extra},
-                        )
+                trees = get_trees_method()
                 if not trees:
                     lifecycle.record_halt(DeriveCodeMappingsErrorReason.EMPTY_TREES, extra=extra)
         except ApiError as error:
