@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from typing import Any, NamedTuple
 
-from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.organizations.services.organization import RpcOrganizationIntegration
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.cache import cache
 
@@ -51,17 +51,11 @@ class RepoTreesIntegration(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_repositories(
-        self, query: str | None = None, fetch_max_pages: bool = False
-    ) -> Sequence[dict[str, Any]]:
+    def get_repositories(self, query: str | None = None) -> Sequence[dict[str, Any]]:
         raise NotImplementedError
 
     @property
-    def org_integration(self) -> OrganizationIntegration | None:
-        raise NotImplementedError
-
-    @property
-    def org_slug(self) -> str:
+    def org_integration(self) -> RpcOrganizationIntegration | None:
         raise NotImplementedError
 
     @property
@@ -70,8 +64,6 @@ class RepoTreesIntegration(ABC):
 
     def get_trees_for_org(self) -> dict[str, RepoTree]:
         trees = {}
-        if not self.org_integration:
-            raise IntegrationError("Organization Integration does not exist")
         repositories = self._populate_repositories()
         if not repositories:
             logger.warning("Fetching repositories returned an empty list.")
@@ -81,6 +73,9 @@ class RepoTreesIntegration(ABC):
         return trees
 
     def _populate_repositories(self) -> list[RepoAndBranch]:
+        if not self.org_integration:
+            raise IntegrationError("Organization Integration does not exist")
+
         cache_key = (
             f"{self.integration_name}trees:repositories:{self.org_integration.organization_id}"
         )
