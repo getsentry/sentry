@@ -786,6 +786,7 @@ if (CODECOV_TOKEN && ENABLE_CODECOV_BA) {
       bundleName: 'app-webpack-bundle',
       uploadToken: CODECOV_TOKEN,
       debug: true,
+      gitService: 'github',
       uploadOverrides: {
         sha: GH_COMMIT_SHA,
       },
