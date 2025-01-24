@@ -1,23 +1,23 @@
 import {Fragment} from 'react';
 
 import type {GridColumnOrder} from 'sentry/components/gridEditable';
-import type {Monitor} from 'sentry/components/workflowEngine/gridCell/monitorsCell';
 import GridEditable from 'sentry/components/gridEditable';
 import {
   type Action,
   ActionCell,
 } from 'sentry/components/workflowEngine/gridCell/actionCell';
-import {MonitorsCell} from 'sentry/components/workflowEngine/gridCell/monitorsCell';
-import {TimeAgoCell} from 'sentry/components/workflowEngine/gridCell/timeAgoCell';
-import storyBook from 'sentry/stories/storyBook';
 import {
   AutomationTitleCell,
   type AutomationTitleCellProps,
 } from 'sentry/components/workflowEngine/gridCell/automationTitleCell';
+import type {Monitor} from 'sentry/components/workflowEngine/gridCell/monitorsCell';
+import {MonitorsCell} from 'sentry/components/workflowEngine/gridCell/monitorsCell';
+import {TimeAgoCell} from 'sentry/components/workflowEngine/gridCell/timeAgoCell';
+import storyBook from 'sentry/stories/storyBook';
 
 type ExampleAutomation = {
-  automation: AutomationTitleCellProps;
   action: Action[];
+  automation: AutomationTitleCellProps;
   monitors: Monitor[];
   timeAgo: Date | null;
 };
@@ -102,19 +102,19 @@ export default storyBook('Grid Cell Components', story => {
     },
   ];
 
-  const automationTitleTable: GridColumnOrder<keyof ExampleAutomation>[] = [
+  const automationTitleTable: Array<GridColumnOrder<keyof ExampleAutomation>> = [
     {key: 'automation', name: 'Name', width: 200},
   ];
 
-  const actionTable: GridColumnOrder<keyof ExampleAutomation>[] = [
+  const actionTable: Array<GridColumnOrder<keyof ExampleAutomation>> = [
     {key: 'action', name: 'Action', width: 200},
   ];
 
-  const timeAgoTable: GridColumnOrder<keyof ExampleAutomation>[] = [
+  const timeAgoTable: Array<GridColumnOrder<keyof ExampleAutomation>> = [
     {key: 'timeAgo', name: 'Last Triggered', width: 200},
   ];
 
-  const monitorsTable: GridColumnOrder<keyof ExampleAutomation>[] = [
+  const monitorsTable: Array<GridColumnOrder<keyof ExampleAutomation>> = [
     {key: 'monitors', name: 'Connected Monitors', width: 200},
   ];
 
