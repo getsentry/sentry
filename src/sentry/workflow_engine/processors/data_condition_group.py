@@ -39,8 +39,6 @@ def evaluate_condition_group(
         conditions = get_slow_conditions(conditions)
         pass
 
-    # split fast and slow conditions
-    # evaluate fast conditions with code below ... "process_condition_group?"
     if len(conditions) == 0:
         # if we don't have any conditions, always return True
         return True, []
