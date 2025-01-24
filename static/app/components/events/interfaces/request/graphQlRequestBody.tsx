@@ -97,7 +97,7 @@ export function GraphQlRequestBody({data, event}: GraphQlBodyProps) {
 
   // https://prismjs.com/plugins/line-highlight/
   useEffect(() => {
-    // @ts-ignore TS(7016): Could not find a declaration file for module 'pris... Remove this comment to see the full error message
+    // @ts-expect-error TS(7016): Could not find a declaration file for module 'pris... Remove this comment to see the full error message
     import('prismjs/plugins/line-highlight/prism-line-highlight');
   }, []);
 

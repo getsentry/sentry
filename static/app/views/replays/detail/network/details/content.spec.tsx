@@ -60,12 +60,12 @@ const [
       method: 'GET',
       statusCode: 200,
       request: {
-        // @ts-expect-error
+        // @ts-expect-error 'BODY_SKIPPED' is not assignable to type NetworkMetaWarning
         _meta: {warnings: ['BODY_SKIPPED']},
         headers: {accept: 'application/json'},
       },
       response: {
-        // @ts-expect-error
+        // @ts-expect-error 'BODY_SKIPPED' is not assignable to type NetworkMetaWarning
         _meta: {warnings: ['BODY_SKIPPED']},
         headers: {'content-type': 'application/json'},
       },

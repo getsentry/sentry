@@ -544,7 +544,7 @@ const getCollapsedBadgeStyle = ({collapsed, theme}: any) => {
   `;
 };
 
-// @ts-ignore TS(7031): Binding element '_' implicitly has an 'any' type.
+// @ts-expect-error TS(7031): Binding element '_' implicitly has an 'any' type.
 const SidebarItemBadge = styled(({collapsed: _, ...props}) => <span {...props} />)`
   display: block;
   text-align: center;
