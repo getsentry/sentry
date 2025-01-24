@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping, Sequence
-from typing import Any, Literal, Self, TypedDict, Union, overload
+from collections.abc import Callable, Mapping
+from typing import Any, Literal, Self, TypedDict, overload
 
 import sentry_sdk
 from django.core.cache import cache
@@ -26,9 +26,6 @@ from ..exceptions import (
 )
 from ..response.base import BaseApiResponse
 from ..track_response import TrackResponseMixin
-
-# TODO(mgaeta): HACK Fix the line where _request() returns "{}".
-BaseApiResponseX = Union[BaseApiResponse, Mapping[str, Any], Response]
 
 
 class SessionSettings(TypedDict):
@@ -170,7 +167,7 @@ class BaseApiClient(TrackResponseMixin):
         ignore_webhook_errors: bool = False,
         prepared_request: PreparedRequest | None = None,
         raw_response: bool = ...,
-    ) -> BaseApiResponseX: ...
+    ) -> Any: ...
 
     def _request(
         self,
@@ -187,7 +184,7 @@ class BaseApiClient(TrackResponseMixin):
         ignore_webhook_errors: bool = False,
         prepared_request: PreparedRequest | None = None,
         raw_response: bool = False,
-    ) -> BaseApiResponseX:
+    ) -> Any | Response:
         if allow_redirects is None:
             allow_redirects = self.allow_redirects
 
@@ -304,10 +301,10 @@ class BaseApiClient(TrackResponseMixin):
         )
 
     # subclasses should override ``request``
-    def request(self, *args: Any, **kwargs: Any) -> BaseApiResponseX:
+    def request(self, *args: Any, **kwargs: Any) -> Any:
         return self._request(*args, **kwargs)
 
-    def delete(self, *args: Any, **kwargs: Any) -> BaseApiResponseX:
+    def delete(self, *args: Any, **kwargs: Any) -> Any:
         return self.request("DELETE", *args, **kwargs)
 
     def get_cache_key(self, path: str, query: str = "", data: str | None = "") -> str:
@@ -315,13 +312,13 @@ class BaseApiClient(TrackResponseMixin):
             return self.get_cache_prefix() + md5_text(self.build_url(path), query).hexdigest()
         return self.get_cache_prefix() + md5_text(self.build_url(path), query, data).hexdigest()
 
-    def check_cache(self, cache_key: str) -> BaseApiResponseX | None:
+    def check_cache(self, cache_key: str) -> Any | None:
         return cache.get(cache_key)
 
-    def set_cache(self, cache_key: str, result: BaseApiResponseX, cache_time: int) -> None:
+    def set_cache(self, cache_key: str, result: Any, cache_time: int) -> None:
         cache.set(cache_key, result, cache_time)
 
-    def _get_cached(self, path: str, method: str, *args: Any, **kwargs: Any) -> BaseApiResponseX:
+    def _get_cached(self, path: str, method: str, *args: Any, **kwargs: Any) -> Any:
         data = kwargs.get("data", None)
         query = ""
         if kwargs.get("params", None):
@@ -335,25 +332,25 @@ class BaseApiClient(TrackResponseMixin):
             self.set_cache(key, result, cache_time)
         return result
 
-    def get_cached(self, path: str, *args: Any, **kwargs: Any) -> BaseApiResponseX:
+    def get_cached(self, path: str, *args: Any, **kwargs: Any) -> Any:
         return self._get_cached(path, "GET", *args, **kwargs)
 
-    def get(self, *args: Any, **kwargs: Any) -> BaseApiResponseX:
+    def get(self, *args: Any, **kwargs: Any) -> Any:
         return self.request("GET", *args, **kwargs)
 
-    def patch(self, *args: Any, **kwargs: Any) -> BaseApiResponseX:
+    def patch(self, *args: Any, **kwargs: Any) -> Any:
         return self.request("PATCH", *args, **kwargs)
 
-    def post(self, *args: Any, **kwargs: Any) -> BaseApiResponseX:
+    def post(self, *args: Any, **kwargs: Any) -> Any:
         return self.request("POST", *args, **kwargs)
 
-    def put(self, *args: Any, **kwargs: Any) -> BaseApiResponseX:
+    def put(self, *args: Any, **kwargs: Any) -> Any:
         return self.request("PUT", *args, **kwargs)
 
-    def head(self, *args: Any, **kwargs: Any) -> BaseApiResponseX:
+    def head(self, *args: Any, **kwargs: Any) -> Any:
         return self.request("HEAD", *args, **kwargs)
 
-    def head_cached(self, path: str, *args: Any, **kwargs: Any) -> BaseApiResponseX:
+    def head_cached(self, path: str, *args: Any, **kwargs: Any) -> Any:
         return self._get_cached(path, "HEAD", *args, **kwargs)
 
     def get_with_pagination(
@@ -363,7 +360,7 @@ class BaseApiClient(TrackResponseMixin):
         get_results: Callable[..., Any],
         *args: Any,
         **kwargs: Any,
-    ) -> Sequence[BaseApiResponse]:
+    ) -> list[Any]:
         page_size = self.page_size
         output = []
 
