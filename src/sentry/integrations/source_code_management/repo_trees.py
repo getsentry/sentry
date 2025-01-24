@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from typing import Any, NamedTuple
 
-from sentry.organizations.services.organization import RpcOrganizationIntegration
+from sentry.integrations.services.integration import RpcOrganizationIntegration
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.cache import cache
 
