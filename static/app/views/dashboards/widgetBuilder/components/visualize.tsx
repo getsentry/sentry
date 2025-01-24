@@ -255,7 +255,7 @@ function Visualize({error, setError}: VisualizeProps) {
         };
       }),
     ];
-    // @ts-ignore TS(7006): Parameter 'a' implicitly has an 'any' type.
+    // @ts-expect-error TS(7006): Parameter 'a' implicitly has an 'any' type.
     spanColumnOptions.sort((a, b) => {
       if (a.label < b.label) {
         return -1;
