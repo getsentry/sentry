@@ -1,6 +1,7 @@
 from django.urls import re_path
 
 from .organization_workflow_index import OrganizationWorkflowIndexEndpoint
+from .project_detector_details import ProjectDetectorDetailsEndpoint
 from .project_detector_index import ProjectDetectorIndexEndpoint
 
 # TODO @saponifi3d - Add the remaining API endpoints
@@ -23,6 +24,11 @@ project_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/detectors/$",
         ProjectDetectorIndexEndpoint.as_view(),
         name="sentry-api-0-project-detector-index",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/detectors/(?P<detector_id>[^\/]+)/$",
+        ProjectDetectorDetailsEndpoint.as_view(),
+        name="sentry-api-0-project-detector-details",
     ),
 ]
 
