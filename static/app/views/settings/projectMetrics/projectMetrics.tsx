@@ -10,7 +10,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {METRICS_DOCS_URL} from 'sentry/utils/metrics/constants';
 import routeTitleGen from 'sentry/utils/routeTitle';
-import {useMetricsOnboardingSidebar} from 'sentry/views/metrics/ddmOnboarding/useMetricsOnboardingSidebar';
 import {MetricsBetaEndAlert} from 'sentry/views/metrics/metricsBetaEndAlert';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
@@ -23,8 +22,6 @@ type Props = {
 } & RouteComponentProps<{projectId: string}, {}>;
 
 function ProjectMetrics({project, organization}: Props) {
-  const {activateSidebar} = useMetricsOnboardingSidebar();
-
   return (
     <Fragment>
       <SentryDocumentTitle title={routeTitleGen(t('Metrics'), project.slug, false)} />
@@ -39,7 +36,6 @@ function ProjectMetrics({project, organization}: Props) {
                   referrer: 'settings',
                 },
               });
-              activateSidebar();
             }}
             size="sm"
           >

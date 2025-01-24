@@ -74,7 +74,6 @@ import {
   DOMAIN_VIEW_BASE_TITLE,
   DOMAIN_VIEW_BASE_URL,
 } from 'sentry/views/insights/pages/settings';
-import MetricsOnboardingSidebar from 'sentry/views/metrics/ddmOnboarding/sidebar';
 import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 
 import {ProfilingOnboardingSidebar} from '../profiling/profilingOnboardingSidebar';
@@ -605,12 +604,7 @@ function Sidebar() {
               hidePanel={hidePanel}
               {...sidebarItemProps}
             />
-            <MetricsOnboardingSidebar
-              currentPanel={activePanel}
-              onShowPanel={() => togglePanel(SidebarPanelKey.METRICS_ONBOARDING)}
-              hidePanel={hidePanel}
-              {...sidebarItemProps}
-            />
+
             <SidebarSection hasNewNav={hasNewNav} noMargin noPadding>
               <OnboardingStatus
                 currentPanel={activePanel}

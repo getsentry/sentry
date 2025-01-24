@@ -12,7 +12,6 @@ import {
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {getPythonMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -298,9 +297,7 @@ sentry_sdk.init(
 const docs: Docs = {
   onboarding,
   performanceOnboarding,
-  customMetricsOnboarding: getPythonMetricsOnboarding({
-    installSnippet: getInstallSnippet(),
-  }),
+
   crashReportOnboarding: crashReportOnboardingPython,
   featureFlagOnboarding,
 };

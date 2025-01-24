@@ -28,7 +28,6 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useMetricsContext} from 'sentry/views/metrics/context';
-import {useMetricsOnboardingSidebar} from 'sentry/views/metrics/ddmOnboarding/useMetricsOnboardingSidebar';
 import {IntervalSelect} from 'sentry/views/metrics/intervalSelect';
 import {MetricsBetaEndAlert} from 'sentry/views/metrics/metricsBetaEndAlert';
 import {PageHeaderActions} from 'sentry/views/metrics/pageHeaderActions';
@@ -62,7 +61,6 @@ export const MetricsLayout = memo(() => {
 
   const isLoading = isHasMetricsLoading || virtualMetrics.isLoading;
 
-  const {activateSidebar} = useMetricsOnboardingSidebar();
   const {dismiss: emptyStateDismiss, isDismissed: isEmptyStateDismissed} =
     useDismissAlert({
       key: `${organization.id}:${selectedProjects}:metrics-empty-state-dismissed`,
@@ -80,9 +78,8 @@ export const MetricsLayout = memo(() => {
         organization,
         source: referrer,
       });
-      activateSidebar();
     },
-    [activateSidebar, organization]
+    [organization]
   );
 
   const viewPerformanceMetrics = useCallback(() => {

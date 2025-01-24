@@ -7,7 +7,6 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {getPythonMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {
   AlternativeConfiguration,
   crashReportOnboardingPython,
@@ -237,9 +236,7 @@ const onboarding: OnboardingConfig = {
 
 const docs: Docs = {
   onboarding,
-  customMetricsOnboarding: getPythonMetricsOnboarding({
-    installSnippet: getInstallSnippet(),
-  }),
+
   crashReportOnboarding: crashReportOnboardingPython,
 };
 
