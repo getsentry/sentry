@@ -79,7 +79,7 @@ def link_all_repos(
         client = installation.get_client()
 
         try:
-            repositories = client.get_repositories(fetch_max_pages=True)
+            repositories = client.get_repos()
         except ApiError as e:
             if installation.is_rate_limited_error(e):
                 lifecycle.record_halt(str(LinkAllReposHaltReason.RATE_LIMITED))

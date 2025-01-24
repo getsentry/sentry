@@ -227,9 +227,7 @@ class GitHubIntegration(RepositoryIntegration, GitHubIssuesSpec, CommitContextIn
         _, _, source_path = url.partition("/")
         return source_path
 
-    def get_repositories(
-        self, query: str | None = None, fetch_max_pages: bool = False
-    ) -> Sequence[Mapping[str, Any]]:
+    def get_repositories(self, query: str | None = None) -> Sequence[Mapping[str, Any]]:
         """
         This fetches all repositories accessible to a Github App
         https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation
@@ -243,7 +241,7 @@ class GitHubIntegration(RepositoryIntegration, GitHubIssuesSpec, CommitContextIn
                     "identifier": i["full_name"],
                     "default_branch": i.get("default_branch"),
                 }
-                for i in self.get_client().get_repositories(fetch_max_pages)
+                for i in self.get_client().get_repositories()
             ]
 
         full_query = build_repository_query(self.model.metadata, self.model.name, query)

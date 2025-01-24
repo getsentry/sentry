@@ -367,7 +367,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient)
             # Remove unnecessary fields from the response
             repositories = [
                 {"full_name": repo["full_name"], "default_branch": repo["default_branch"]}
-                for repo in self.get_repositories(fetch_max_pages=True)
+                for repo in self.get_repos()
             ]
             if not repositories:
                 logger.warning("Fetching repositories returned an empty list.")
@@ -493,11 +493,8 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient)
         )
         return RepoTree(Repo(full_name, branch), repo_files)
 
-    def get_repositories(self, fetch_max_pages: bool = False) -> Sequence[Any]:
+    def get_repositories(self) -> Sequence[Any]:
         """
-        args:
-         * fetch_max_pages - fetch as many repos as possible using pagination (slow)
-
         This fetches all repositories accessible to the Github App
         https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation
 
@@ -509,7 +506,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient)
         repos = self.get_with_pagination(
             "/installation/repositories",
             response_key="repositories",
-            page_number_limit=self.page_number_limit if fetch_max_pages else 1,
+            page_number_limit=self.page_number_limit,
         )
         return [repo for repo in repos if not repo.get("archived")]
 
