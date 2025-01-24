@@ -1813,9 +1813,9 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                     if condition is not None:
                         if features.has(
                             "organizations:feature-flag-autocomplete", organization
-                        ) and recursive_tag_check(condition.lhs):
+                        ) and has_tags_filter(condition.lhs):
                             feature_condition = Condition(
-                                lhs=recursive_tag_replace(condition.lhs),
+                                lhs=substitute_tags_filter(condition.lhs),
                                 op=condition.op,
                                 rhs=condition.rhs,
                             )
@@ -1955,7 +1955,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
 
 # This should update the search box so we can fetch the correct
 # issues.
-def recursive_tag_check(condition: Column | Function) -> bool:
+def has_tags_filter(condition: Column | Function) -> bool:
     if isinstance(condition, Column):
         if (
             condition.entity.name == "events"
@@ -1966,11 +1966,11 @@ def recursive_tag_check(condition: Column | Function) -> bool:
     elif isinstance(condition, Function):
         for parameter in condition.parameters:
             if isinstance(parameter, (Column, Function)):
-                return recursive_tag_check(parameter)
+                return has_tags_filter(parameter)
     return False
 
 
-def recursive_tag_replace(condition: Column | Function) -> bool:
+def substitute_tags_filter(condition: Column | Function) -> bool:
     if isinstance(condition, Column):
         if condition.name.startswith("tags[") and condition.name.endswith("]"):
             return Column(
@@ -1980,5 +1980,5 @@ def recursive_tag_replace(condition: Column | Function) -> bool:
     elif isinstance(condition, Function):
         for parameter in condition.parameters:
             if isinstance(parameter, (Column, Function)):
-                return recursive_tag_replace(parameter)
+                return substitute_tags_filter(parameter)
     return condition
