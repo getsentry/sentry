@@ -33,6 +33,7 @@ import {SESSIONS_OPERATIONS} from 'sentry/views/dashboards/widgetBuilder/release
 import type {generateFieldOptions} from '../utils';
 
 import type {FieldValueOption} from './queryField';
+import {QueryField} from './queryField';
 import {FieldValueKind} from './types';
 
 type Sources = WidgetType;
@@ -313,7 +314,11 @@ class ColumnEditCollection extends Component<Props, State> {
     });
 
     // Issue column in Issue widgets are fixed (cannot be moved or deleted)
-    if (targetIndex >= 0 && targetIndex !== draggingTargetIndex) {
+    if (
+      targetIndex >= 0 &&
+      targetIndex !== draggingTargetIndex &&
+      !this.isFixedMetricsColumn(targetIndex)
+    ) {
       this.setState({draggingTargetIndex: targetIndex});
     }
   };
@@ -330,6 +335,11 @@ class ColumnEditCollection extends Component<Props, State> {
       column.kind === 'field' &&
       column.field === FieldKey.ISSUE
     );
+  };
+
+  isFixedMetricsColumn = (columnIndex: number) => {
+    const {source} = this.props;
+    return source === WidgetType.METRICS && columnIndex === 0;
   };
 
   isRemainingReleaseHealthAggregate = (columnIndex: number) => {
@@ -421,6 +431,8 @@ class ColumnEditCollection extends Component<Props, State> {
       canDelete = true,
       canDrag = true,
       isGhost = false,
+      gridColumns = 2,
+      disabled = false,
     }: {
       gridColumns: number;
       singleColumn: boolean;
@@ -430,7 +442,16 @@ class ColumnEditCollection extends Component<Props, State> {
       isGhost?: boolean;
     }
   ) {
-    const {showAliasField, isOnDemandWidget} = this.props;
+    const {
+      columns,
+      fieldOptions,
+      filterAggregateParameters,
+      filterPrimaryOptions,
+      noFieldsMessage,
+      showAliasField,
+      source,
+      isOnDemandWidget,
+    } = this.props;
     const {isDragging, draggingTargetIndex, draggingIndex} = this.state;
 
     let placeholder: React.ReactNode = null;
@@ -475,7 +496,23 @@ class ColumnEditCollection extends Component<Props, State> {
           ) : singleColumn && showAliasField ? null : (
             <span />
           )}
-
+          {source === WidgetType.METRICS && !this.isFixedMetricsColumn(i) && (
+            <QueryField
+              fieldOptions={fieldOptions}
+              gridColumns={gridColumns}
+              fieldValue={col}
+              onChange={value => this.handleUpdateColumn(i, value)}
+              error={this.state.error.get(i)}
+              takeFocus={i === this.props.columns.length - 1}
+              otherColumns={columns}
+              shouldRenderTag
+              disabled={disabled}
+              filterPrimaryOptions={filterPrimaryOptions}
+              filterAggregateParameters={filterAggregateParameters}
+              noFieldsMessage={noFieldsMessage}
+              skipParameterPlaceholder={showAliasField}
+            />
+          )}
           {showAliasField && (
             <AliasField singleColumn={singleColumn}>
               <AliasInput
@@ -588,7 +625,14 @@ class ColumnEditCollection extends Component<Props, State> {
               gridColumns,
             });
           }
-
+          if (this.isFixedMetricsColumn(i)) {
+            return this.renderItem(col, i, {
+              singleColumn,
+              canDelete: false,
+              canDrag: false,
+              gridColumns,
+            });
+          }
           return this.renderItem(col, i, {
             singleColumn,
             canDelete,
