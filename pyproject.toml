@@ -263,7 +263,6 @@ module = [
     "sentry.web.frontend.base",
     "sentry.web.frontend.react_page",
     "sentry.web.frontend.shared_group_details",
-    "sentry_plugins.bitbucket.client",
     "sentry_plugins.bitbucket.mixins",
     "sentry_plugins.github.plugin",
     "sentry_plugins.jira.plugin",
