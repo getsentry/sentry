@@ -45,7 +45,7 @@ export function ToolbarSortBy({
   const numberTags = useSpanTags('number');
   const stringTags = useSpanTags('string');
 
-  const fieldOptions: SelectOption<string>[] = useMemo(() => {
+  const fieldOptions: Array<SelectOption<string>> = useMemo(() => {
     const uniqueOptions: string[] = [];
     if (mode === Mode.SAMPLES) {
       for (const field of fields) {
@@ -126,7 +126,7 @@ export function ToolbarSortBy({
     [setSorts, sorts]
   );
 
-  const kindOptions: SelectOption<Sort['kind']>[] = useMemo(() => {
+  const kindOptions: Array<SelectOption<Sort['kind']>> = useMemo(() => {
     return [
       {
         label: 'Desc',

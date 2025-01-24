@@ -24,12 +24,12 @@ export function useSystemSelectorOptions() {
     'api.starfish.database-system-selector'
   );
 
-  const options: SelectOption<string>[] = [];
+  const options: Array<SelectOption<string>> = [];
   data.forEach(entry => {
     const system = entry['span.system'];
     if (system) {
       const textValue =
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         system in DATABASE_SYSTEM_TO_LABEL ? DATABASE_SYSTEM_TO_LABEL[system] : system;
 
       const supportedSystemSet: Set<string> = new Set(

@@ -9,8 +9,8 @@ interface Props<Key extends string> {
   currentSort: Sort;
   makeSortLinkGenerator: (column: GridColumnOrder<Key>) => () => LocationDescriptorObject;
   onClick(column: GridColumnOrder<Key>, e: MouseEvent<HTMLAnchorElement>): void;
-  rightAlignedColumns: GridColumnOrder<string>[];
-  sortableColumns: GridColumnOrder<string>[];
+  rightAlignedColumns: Array<GridColumnOrder<string>>;
+  sortableColumns: Array<GridColumnOrder<string>>;
 }
 
 export default function renderSortableHeaderCell<Key extends string>({

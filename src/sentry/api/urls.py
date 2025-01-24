@@ -2172,6 +2172,7 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         OrganizationUptimeAlertIndexEndpoint.as_view(),
         name="sentry-api-0-organization-uptime-alert-index",
     ),
+    *workflow_urls.organization_urlpatterns,
 ]
 
 PROJECT_URLS: list[URLPattern | URLResolver] = [
@@ -2763,7 +2764,7 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         TempestCredentialsDetailsEndpoint.as_view(),
         name="sentry-api-0-project-tempest-credentials-details",
     ),
-    *workflow_urls.urlpatterns,
+    *workflow_urls.project_urlpatterns,
 ]
 
 TEAM_URLS = [
@@ -3020,7 +3021,7 @@ INTERNAL_URLS = [
         name="sentry-api-0-internal-ea-features",
     ),
     re_path(
-        r"^demo/email-capture$",
+        r"^demo/email-capture/$",
         EmailCaptureEndpoint.as_view(),
         name="sentry-demo-mode-email-capture",
     ),

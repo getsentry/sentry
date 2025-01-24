@@ -558,7 +558,7 @@ export function parseTrace(
 
     // get any span children whose parent_span_id is equal to span.parent_span_id,
     // otherwise start with an empty array
-    const spanChildren: Array<SpanType> = acc.childSpans[span.parent_span_id] ?? [];
+    const spanChildren: SpanType[] = acc.childSpans[span.parent_span_id] ?? [];
 
     spanChildren.push(span);
 
@@ -1001,7 +1001,7 @@ export function getSpanGroupBounds(
 }
 
 export function getCumulativeAlertLevelFromErrors(
-  errors?: Pick<TraceError, 'level' | 'type'>[]
+  errors?: Array<Pick<TraceError, 'level' | 'type'>>
 ): keyof Theme['alert'] | undefined {
   const highestErrorLevel = maxBy(
     errors || [],

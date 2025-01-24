@@ -8,6 +8,7 @@ from typing import Any
 from unittest.mock import ANY, call, patch
 
 import pytest
+from django.db import connection
 from django.db.models import Q
 from google.api_core.exceptions import ServiceUnavailable
 from snuba_sdk import Column, Condition, Entity, Limit, Op, Query, Request
@@ -22,6 +23,7 @@ from sentry.grouping.api import GroupingConfigNotFound
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
+from sentry.models.project import Project
 from sentry.seer.similarity.grouping_records import CreateGroupingRecordData
 from sentry.seer.similarity.types import RawSeerSimilarIssueData
 from sentry.seer.similarity.utils import MAX_FRAME_COUNT
@@ -211,6 +213,11 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
 
     def assert_group_metadata_not_updated(self, group: Group) -> None:
         assert group.data["metadata"].get("seer_similarity") is None
+
+    def get_worker_number_for_project(self, project: Project, num_workers: int) -> int:
+        cursor = connection.cursor()
+        cursor.execute("select abs(hashtext(cast(%s as varchar))) %% %s", [project.id, num_workers])
+        return cursor.fetchone()[0]
 
     def setUp(self):
         super().setUp()
@@ -1671,13 +1678,20 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         Test that when no cohort or current project id is provided, cohorts of project ids are generated where \
         project_id % thread_number == worker_number
         """
-        # Create 2 seer eligible projects that project_id % thread_number == worker_number
-        thread_number = options.get("similarity.backfill_total_worker_count")
-        worker_number = self.project.id % thread_number
+        total_workers = options.get("similarity.backfill_total_worker_count")
+        worker_number = self.get_worker_number_for_project(self.project, total_workers)
 
-        project_same_cohort = self.create_project(
-            organization=self.organization, id=self.project.id + thread_number
-        )
+        # Create a project whose worker number matches that of `self.project`, to prove they both
+        # end up in the same cohort. Regenerate the project if necessary until the worker numbers
+        # are the same. (We have to do it this way - rather than forcing a return value - because we
+        # can't mock a function that's run inside the DB.)
+        project_same_cohort = self.create_project(organization=self.organization)
+        while (
+            self.get_worker_number_for_project(project_same_cohort, total_workers) != worker_number
+        ):
+            project_same_cohort.delete()
+            project_same_cohort = self.create_project(organization=self.organization)
+
         event_same_cohort = self.store_event(
             data={
                 "exception": EXCEPTION,
@@ -1690,8 +1704,18 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         event_same_cohort.group.times_seen = 5
         event_same_cohort.group.save()
 
-        # Create one project where project_id % thread_number != worker_number
-        self.create_project(organization=self.organization, id=self.project.id + 1)
+        # Create one project whose worker number is different from the other two, to prove that it
+        # won't get included in the cohort. Regenerate the project if necessary until the worker
+        # numbers are different.
+        project_different_cohort = self.create_project(organization=self.organization)
+        while (
+            self.get_worker_number_for_project(project_different_cohort, total_workers)
+            == worker_number
+        ):
+            project_different_cohort.delete()
+            project_different_cohort = self.create_project(organization=self.organization)
+
+        assert len(Project.objects.all()) == 3
 
         mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
         with TaskRunner():
@@ -1776,13 +1800,20 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         """
         Test that when the cohort size is 1, multiple cohorts of size 1 are created and processed.
         """
-        # Create 2 seer eligible projects that project_id % thread_number == worker_number
-        thread_number = options.get("similarity.backfill_total_worker_count")
-        worker_number = self.project.id % thread_number
+        total_workers = options.get("similarity.backfill_total_worker_count")
+        worker_number = self.get_worker_number_for_project(self.project, total_workers)
 
-        project_same_worker = self.create_project(
-            organization=self.organization, id=self.project.id + thread_number
-        )
+        # Create a project whose worker number matches that of `self.project`, to prove they
+        # nonetheless end up in different cohorts. Regenerate the project if necessary until the
+        # worker numbers are the same. (We have to do it this way - rather than forcing a return
+        # value - because we can't mock a function that's run inside the DB.)
+        project_same_worker = self.create_project(organization=self.organization)
+        while (
+            self.get_worker_number_for_project(project_same_worker, total_workers) != worker_number
+        ):
+            project_same_worker.delete()
+            project_same_worker = self.create_project(organization=self.organization)
+
         event_same_worker = self.store_event(
             data={
                 "exception": EXCEPTION,
@@ -1795,8 +1826,18 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         event_same_worker.group.times_seen = 5
         event_same_worker.group.save()
 
-        # Create one project where project_id % thread_number != worker_number
-        self.create_project(organization=self.organization, id=self.project.id + 1)
+        # Create one project whose worker number is different from the other two, to prove that it
+        # won't get included in a cohort. Regenerate the project if necessary until the worker
+        # numbers are different.
+        project_different_cohort = self.create_project(organization=self.organization)
+        while (
+            self.get_worker_number_for_project(project_different_cohort, total_workers)
+            == worker_number
+        ):
+            project_different_cohort.delete()
+            project_different_cohort = self.create_project(organization=self.organization)
+
+        assert len(Project.objects.all()) == 3
 
         mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
         with TaskRunner():

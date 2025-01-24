@@ -1,5 +1,5 @@
 import type {Layout} from 'react-grid-layout';
-// @ts-ignore TS(7016): Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+// @ts-expect-error TS(7016): Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import {compact} from 'react-grid-layout/build/utils';
 import pickBy from 'lodash/pickBy';
 import sortBy from 'lodash/sortBy';
@@ -60,7 +60,7 @@ export function getMobileLayout(desktopLayout: Layout[], widgets: Widget[]) {
     return [];
   }
 
-  const layoutWidgetPairs = zip(desktopLayout, widgets) as [Layout, Widget][];
+  const layoutWidgetPairs = zip(desktopLayout, widgets) as Array<[Layout, Widget]>;
 
   // Sort by y and then subsort by x
   const sorted = sortBy(layoutWidgetPairs, ['0.y', '0.x']);
@@ -109,7 +109,7 @@ export function getInitialColumnDepths() {
  * Creates an array from layouts where each column stores how deep it is.
  */
 export function calculateColumnDepths(
-  layouts: Pick<Layout, 'h' | 'w' | 'x' | 'y'>[]
+  layouts: Array<Pick<Layout, 'h' | 'w' | 'x' | 'y'>>
 ): number[] {
   const depths = getInitialColumnDepths();
 

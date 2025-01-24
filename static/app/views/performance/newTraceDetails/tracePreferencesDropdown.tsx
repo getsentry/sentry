@@ -19,7 +19,7 @@ interface TracePreferencesDropdownProps {
   onMissingInstrumentationChange: () => void;
 }
 
-const TRACE_PREFERENCES_DROPDOWN_OPTIONS: SelectOption<string>[] = [
+const TRACE_PREFERENCES_DROPDOWN_OPTIONS: Array<SelectOption<string>> = [
   {
     label: t('Autogrouping'),
     value: 'autogroup',
@@ -52,7 +52,7 @@ export function TracePreferencesDropdown(props: TracePreferencesDropdownProps) {
   const onMissingInstrumentationChange = props.onMissingInstrumentationChange;
 
   const onChange = useCallback(
-    (newValues: SelectOption<string>[]) => {
+    (newValues: Array<SelectOption<string>>) => {
       const newValuesArray = newValues.map(v => v.value);
 
       if (values.length < newValuesArray.length) {

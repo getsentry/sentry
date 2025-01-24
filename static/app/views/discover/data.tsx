@@ -66,7 +66,7 @@ export const getTransactionViews = (organization: Organization) => {
       range: '24h',
       queryDataset: SavedQueryDatasets.TRANSACTIONS,
     },
-  ] as Readonly<Array<NewQuery>>;
+  ] as readonly NewQuery[];
 };
 
 export const getWebVitalsViews = (organization: Organization) => {
@@ -94,7 +94,7 @@ export const getWebVitalsViews = (organization: Organization) => {
       yAxis: ['epm()'],
       queryDataset: SavedQueryDatasets.TRANSACTIONS,
     },
-  ] as Readonly<Array<NewQuery>>;
+  ] as readonly NewQuery[];
 };
 
 export const getAllViews = (organization: Organization) => {
@@ -125,5 +125,5 @@ export const getAllViews = (organization: Organization) => {
       display: 'top5',
       queryDataset: SavedQueryDatasets.ERRORS,
     },
-  ] as Readonly<Array<NewQuery>>;
+  ] as readonly NewQuery[];
 };

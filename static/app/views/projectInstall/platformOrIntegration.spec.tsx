@@ -13,7 +13,7 @@ type ProjectWithBadPlatform = Omit<Project, 'platform'> & {
   platform: string;
 };
 
-function mockProjectApiResponses(projects: (Project | ProjectWithBadPlatform)[]) {
+function mockProjectApiResponses(projects: Array<Project | ProjectWithBadPlatform>) {
   MockApiClient.addMockResponse({
     method: 'GET',
     url: '/projects/org-slug/project-slug/rules/',
