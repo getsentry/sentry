@@ -370,11 +370,11 @@ def devserver(
         kafka_container_warning_message = (
             f"""
 Devserver is configured to work with `sentry devservices`. Looks like the `{kafka_container_name}` container is not running.
-Please run `sentry devservices up kafka` to start it. If you would like to use devserver with the revamped devservices, set `USE_OLD_DEVSERVICES=1` in your environment."""
+Please run `sentry devservices up kafka` to start it."""
             if use_old_devservices
             else f"""
 Devserver is configured to work with the revamped devservices. Looks like the `{kafka_container_name}` container is not running.
-Please run `devservices up` to start it. If you would like to use devserver with `sentry devservices`, set `USE_OLD_DEVSERVICES=0` in your environment."""
+Please run `devservices up` to start it."""
         )
         if not any(name in containers for name in valid_kafka_container_names):
             raise click.ClickException(
