@@ -173,6 +173,12 @@ class TestEventAttributeCondition(ConditionTestCase):
         with pytest.raises(ValidationError):
             self.dc.save()
 
+        self.dc.comparison.update(
+            {"match": MatchType.EQUAL, "attribute": "platform", "value": 2000, "extra": "extra"}
+        )
+        with pytest.raises(ValidationError):
+            self.dc.save()
+
     def test_not_in_registry(self):
         with pytest.raises(NoRegistrationExistsError):
             attribute_registry.get("transaction")

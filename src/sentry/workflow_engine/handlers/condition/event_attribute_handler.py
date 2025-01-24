@@ -23,6 +23,7 @@ class EventAttributeConditionHandler(DataConditionHandler[WorkflowJob]):
             "value": {"type": "string"},
         },
         "required": ["attribute", "match", "value"],
+        "additionalProperties": False,
     }
 
     @staticmethod
