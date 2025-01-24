@@ -72,18 +72,22 @@ class RepoTreesIntegration(ABC):
 
         return trees
 
-    def _populate_repositories(self) -> list[RepoAndBranch]:
+    def _populate_repositories(self) -> list[dict[str, str]]:
         if not self.org_integration:
             raise IntegrationError("Organization Integration does not exist")
 
         cache_key = (
             f"{self.integration_name}trees:repositories:{self.org_integration.organization_id}"
         )
-        repositories: list[RepoAndBranch] = cache.get(cache_key, [])
+        repositories: list[dict[str, str]] = cache.get(cache_key, [])
 
         if not repositories:
             repositories = [
-                RepoAndBranch(name=repo_info["identifier"], branch=repo_info["default_branch"])
+                # Do not use RepoAndBranch so it stores in the cache as a simple dict
+                {
+                    "full_name": repo_info["identifier"],
+                    "default_branch": repo_info["default_branch"],
+                }
                 for repo_info in self.get_repositories()
                 if not repo_info.get("archived")
             ]
@@ -93,7 +97,7 @@ class RepoTreesIntegration(ABC):
 
         return repositories
 
-    def _populate_trees(self, repositories: Sequence[RepoAndBranch]) -> dict[str, RepoTree]:
+    def _populate_trees(self, repositories: Sequence[dict[str, str]]) -> dict[str, RepoTree]:
         """
         For every repository, fetch the tree associated and cache it.
         This function takes API rate limits into consideration to prevent exhaustion.
@@ -110,8 +114,8 @@ class RepoTreesIntegration(ABC):
             # Report so we can investigate
             logger.warning("Loading trees from cache. Execution will continue. Check logs.")
 
-        for index, repo_and_branch in enumerate(repositories):
-            repo_full_name = repo_and_branch.name
+        for index, repo_info in enumerate(repositories):
+            repo_full_name = repo_info["full_name"]
             extra = {"repo_full_name": repo_full_name}
             # Only use the cache if we drop below the lower ceiling
             # We will fetch after the limit is reset (every hour)
@@ -124,7 +128,9 @@ class RepoTreesIntegration(ABC):
                 # The API rate limit is reset every hour
                 # Spread the expiration of the cache of each repo across the day
                 trees[repo_full_name] = self._populate_tree(
-                    repo_and_branch, use_cache, 3600 * (index % 24)
+                    RepoAndBranch(repo_full_name, repo_info["default_branch"]),
+                    use_cache,
+                    3600 * (index % 24),
                 )
             except ApiError as error:
                 if self.get_client().should_count_api_error(error, extra):

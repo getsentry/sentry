@@ -839,10 +839,10 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
     def _expected_cached_repos(self):
         return [
-            {"name": "xyz", "full_name": f"{self.gh_org}/xyz", "default_branch": "master"},
-            {"name": "foo", "full_name": f"{self.gh_org}/foo", "default_branch": "master"},
-            {"name": "bar", "full_name": f"{self.gh_org}/bar", "default_branch": "main"},
-            {"name": "baz", "full_name": f"{self.gh_org}/baz", "default_branch": "master"},
+            {"full_name": f"{self.gh_org}/xyz", "default_branch": "master"},
+            {"full_name": f"{self.gh_org}/foo", "default_branch": "master"},
+            {"full_name": f"{self.gh_org}/bar", "default_branch": "main"},
+            {"full_name": f"{self.gh_org}/baz", "default_branch": "master"},
         ]
 
     @responses.activate
@@ -852,7 +852,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         cache.clear()
         self.set_rate_limit()
         expected_trees = self._expected_trees()
-        repos_key = "githubtrees:repositories:Test-Organization"
+        repos_key = f"githubtrees:repositories:{self.organization.id}"
         repo_key = lambda x: f"github:repo:Test-Organization/{x}:source-code"
         # Check that the cache is clear
         assert cache.get(repos_key) is None
@@ -871,7 +871,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
     @responses.activate
     def test_get_trees_for_org_prevent_exhaustion_some_repos(self):
         """Some repos will hit the network but the rest will grab from the cache."""
-        repos_key = "githubtrees:repositories:Test-Organization"
+        repos_key = f"githubtrees:repositories:{self.organization.id}"
         cache.clear()
         installation = self.get_installation_helper()
         expected_trees = self._expected_trees(
@@ -884,7 +884,11 @@ class GitHubIntegrationTest(IntegrationTestCase):
             ]
         )
 
-        with patch("sentry.integrations.github.client.MINIMUM_REQUESTS", new=5, autospec=False):
+        with patch(
+            "sentry.integrations.source_code_management.repo_trees.MINIMUM_REQUESTS_REMAINING",
+            new=5,
+            autospec=False,
+        ):
             # We start with one request left before reaching the minimum remaining requests floor
             self.set_rate_limit(remaining=6)
             assert cache.get(repos_key) is None
@@ -1007,7 +1011,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         cache.clear()
 
         with patch(
-            "sentry.integrations.github.client.MAX_CONNECTION_ERRORS",
+            "sentry.integrations.source_code_management.repo_trees.MAX_CONNECTION_ERRORS",
             new=1,
         ):
 
