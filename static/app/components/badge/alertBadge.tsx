@@ -6,7 +6,7 @@ import {
   IconExclamation,
   IconFire,
   IconIssues,
-  IconMute,
+  IconPause,
 } from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
@@ -48,7 +48,7 @@ function AlertBadge({status, withText, isIssue, isDisabled}: Props) {
 
   if (isDisabled) {
     statusText = t('Disabled');
-    Icon = IconMute;
+    Icon = IconPause;
     color = 'disabled';
   } else if (isIssue) {
     statusText = t('Issue');
