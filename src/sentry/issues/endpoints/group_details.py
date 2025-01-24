@@ -24,6 +24,7 @@ from sentry.api.serializers import GroupSerializer, GroupSerializerSnuba, serial
 from sentry.api.serializers.models.group_stream import get_actions, get_available_issue_plugins
 from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.api.serializers.models.team import TeamSerializer
+from sentry.incidents.models.alert_rule import AlertRule
 from sentry.incidents.utils.metric_issue_poc import OpenPeriod
 from sentry.integrations.api.serializers.models.external_issue import ExternalIssueSerializer
 from sentry.integrations.models.external_issue import ExternalIssue
@@ -110,6 +111,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                         end=activity.datetime,
                         duration=activity.datetime - start,
                         is_open=False,
+                        last_checked=activity.datetime,
                     )
                 )
                 start = None
@@ -117,12 +119,27 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 start = activity.datetime
 
         if start:
+            event = group.get_latest_event()
+            last_checked = group.last_seen
+            if event:
+                alert_rule_id = (
+                    event.data.get("contexts", {}).get("metric_alert", {}).get("alert_rule_id")
+                )
+                if alert_rule_id:
+                    try:
+                        alert_rule = AlertRule.objects.get(id=alert_rule_id)
+                        now = timezone.now()
+                        last_checked = now - timedelta(seconds=alert_rule.snuba_query.time_window)
+                    except AlertRule.DoesNotExist:
+                        pass
+
             open_periods.append(
                 OpenPeriod(
                     start=start,
                     end=None,
                     duration=None,
                     is_open=True,
+                    last_checked=last_checked,
                 )
             )
 
