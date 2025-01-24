@@ -1125,6 +1125,11 @@ def delete_alert_rule_trigger(trigger: AlertRuleTrigger) -> None:
     """
     Deletes an AlertRuleTrigger
     """
+    from sentry.workflow_engine.migration_helpers.alert_rule import (
+        dual_delete_migrated_alert_rule_trigger,
+    )
+
+    dual_delete_migrated_alert_rule_trigger(trigger)
     trigger.delete()
 
 
@@ -1631,6 +1636,11 @@ def delete_alert_rule_trigger_action(trigger_action: AlertRuleTriggerAction) -> 
     Schedules a deletion for a AlertRuleTriggerAction, and marks it as pending deletion.
     Marking it as pending deletion should filter out the object through the manager when querying.
     """
+    from sentry.workflow_engine.migration_helpers.alert_rule import (
+        dual_delete_migrated_alert_rule_trigger_action,
+    )
+
+    dual_delete_migrated_alert_rule_trigger_action(trigger_action)
     RegionScheduledDeletion.schedule(instance=trigger_action, days=0)
     trigger_action.update(status=ObjectStatus.PENDING_DELETION)
 

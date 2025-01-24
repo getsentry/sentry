@@ -1878,6 +1878,24 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
         assert not AlertRule.objects.filter(id=alert_rule_id).exists()
         assert not AlertRule.objects_with_snapshots.filter(id=alert_rule_id).exists()
 
+    @patch("sentry.workflow_engine.migration_helpers.alert_rule.dual_delete_migrated_alert_rule")
+    def test_dual_delete(self, mock_dual_delete):
+        alert_rule_id = self.alert_rule.id
+        with self.tasks():
+            delete_alert_rule(self.alert_rule)
+        # we test the logic for this method elsewhere, so just test that it's correctly called
+        assert mock_dual_delete.call_count == 1
+        kwargs = mock_dual_delete.call_args_list[0][1]
+        assert kwargs["alert_rule"] == self.alert_rule
+        assert not AlertRule.objects.filter(id=alert_rule_id).exists()
+        assert AlertRule.objects_with_snapshots.filter(id=alert_rule_id).exists()
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert not AlertRule.objects.filter(id=alert_rule_id).exists()
+        assert not AlertRule.objects_with_snapshots.filter(id=alert_rule_id).exists()
+
     def test_with_incident(self):
         incident = self.create_incident()
         incident.update(alert_rule=self.alert_rule)
@@ -2248,6 +2266,19 @@ class DeleteAlertRuleTriggerTest(TestCase):
         trigger = create_alert_rule_trigger(alert_rule, "hi", 1000)
         trigger_id = trigger.id
         delete_alert_rule_trigger(trigger)
+        assert not AlertRuleTrigger.objects.filter(id=trigger_id).exists()
+
+    @mock.patch(
+        "sentry.workflow_engine.migration_helpers.alert_rule.dual_delete_migrated_alert_rule_trigger"
+    )
+    def test_dual_delete(self, mock_dual_delete):
+        alert_rule = self.create_alert_rule()
+        trigger = create_alert_rule_trigger(alert_rule, "hi", 1000)
+        trigger_id = trigger.id
+        delete_alert_rule_trigger(trigger)
+        # we test the logic for this method elsewhere, so just test that it's correctly called
+        assert mock_dual_delete.call_count == 1
+        assert mock_dual_delete.call_args_list[0][0][0] == trigger
         assert not AlertRuleTrigger.objects.filter(id=trigger_id).exists()
 
 
@@ -3262,6 +3293,17 @@ class DeleteAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
         delete_alert_rule_trigger_action(self.action)
         with pytest.raises(AlertRuleTriggerAction.DoesNotExist):
             AlertRuleTriggerAction.objects.get(id=action_id)
+
+    @mock.patch(
+        "sentry.workflow_engine.migration_helpers.alert_rule.dual_delete_migrated_alert_rule_trigger_action"
+    )
+    def test_dual_delete(self, mock_dual_delete):
+        action_id = self.action.id
+        delete_alert_rule_trigger_action(self.action)
+        # we test the logic for this method elsewhere, so just test that it's correctly called
+        assert mock_dual_delete.call_count == 1
+        assert mock_dual_delete.call_args_list[0][0][0] == self.action
+        assert not AlertRuleTriggerAction.objects.filter(id=action_id).exists()
 
 
 class GetActionsForTriggerTest(BaseAlertRuleTriggerActionTest):
