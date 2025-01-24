@@ -377,6 +377,7 @@ module = [
     "sentry.integrations.services.*",
     "sentry.integrations.slack.threads.*",
     "sentry.integrations.slack.views.*",
+    "sentry.integrations.source_code_management.repository",
     "sentry.integrations.vsts.actions.*",
     "sentry.integrations.vsts.tasks.*",
     "sentry.integrations.web.debug.*",
