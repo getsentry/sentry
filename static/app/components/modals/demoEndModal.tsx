@@ -12,6 +12,7 @@ import {t} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
@@ -71,14 +72,16 @@ export default function DemoEndingModal({tour, closeModal, CloseButton, orgSlug}
   }, [path, navigate]);
 
   async function handleRestart() {
-    await Promise.all(
-      guides.map(guide =>
-        api.requestPromise('/assistant/', {
-          method: 'PUT',
-          data: {guide, status: 'restart'},
-        })
-      )
-    );
+    if (!isDemoModeEnabled()) {
+      await Promise.all(
+        guides.map(guide =>
+          api.requestPromise('/assistant/', {
+            method: 'PUT',
+            data: {guide, status: 'restart'},
+          })
+        )
+      );
+    }
 
     trackAnalytics('growth.end_modal_restart_tours', {
       organization: null,

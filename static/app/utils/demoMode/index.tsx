@@ -1,6 +1,7 @@
 import {setForceHide} from 'sentry/actionCreators/guides';
 import ConfigStore from 'sentry/stores/configStore';
-import {OnboardingTaskKey} from 'sentry/types/onboarding';
+import {OnboardingTaskKey, type OnboardingTaskStatus} from 'sentry/types/onboarding';
+import type {Organization} from 'sentry/types/organization';
 
 import {demoEmailModal, demoSignupModal} from '../../actionCreators/modal';
 
@@ -84,4 +85,40 @@ export function getTourTask(
     default:
       return undefined;
   }
+}
+
+export function getDemoGuides() {
+  return [
+    {guide: 'sidebar_v2', seen: false},
+    {guide: 'issues_v3', seen: false},
+    {guide: 'releases_v2', seen: false},
+    {guide: 'react-native-release', seen: false},
+    {guide: 'release-details_v2', seen: false},
+    {guide: 'performance', seen: false},
+    {guide: 'transaction_summary', seen: false},
+    {guide: 'transaction_details_v2', seen: false},
+    {guide: 'issue_stream_v3', seen: false},
+  ];
+}
+
+let onboardingTasks: OnboardingTaskStatus[] = [];
+
+export function getDemoOnboardingTasks(
+  organization: Organization
+): OnboardingTaskStatus[] {
+  if (!onboardingTasks.length) {
+    onboardingTasks = organization.onboardingTasks;
+  }
+  return onboardingTasks;
+}
+
+export function updateDemoOnboardingTask(updatedTask: any) {
+  const hasExistingTask = onboardingTasks.find(task => task.task === updatedTask.task);
+
+  const user = ConfigStore.get('user');
+  onboardingTasks = hasExistingTask
+    ? onboardingTasks.map(task =>
+        task.task === updatedTask.task ? {...task, ...updatedTask} : task
+      )
+    : [...onboardingTasks, {...updatedTask, user} as OnboardingTaskStatus];
 }

@@ -3,6 +3,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import type {OnboardingTask, OnboardingTaskStatus} from 'sentry/types/onboarding';
 import type {Organization} from 'sentry/types/organization';
+import {isDemoModeEnabled, updateDemoOnboardingTask} from 'sentry/utils/demoMode';
 
 interface UpdatedTask extends Partial<Pick<OnboardingTask, 'status' | 'data'>> {
   task: OnboardingTask['task'];
@@ -24,6 +25,10 @@ export function updateOnboardingTask(
   organization: Organization,
   updatedTask: UpdatedTask
 ) {
+  if (isDemoModeEnabled()) {
+    updateDemoOnboardingTask(updatedTask);
+    return;
+  }
   if (api !== null) {
     api.requestPromise(`/organizations/${organization.slug}/onboarding-tasks/`, {
       method: 'POST',
