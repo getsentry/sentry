@@ -1,3 +1,5 @@
+import styled from '@emotion/styled';
+
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
@@ -26,7 +28,11 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   project: Project;
 };
 
-function ProjectToolbarSettings({organization, project, params: {projectId}}: Props) {
+export default function ProjectToolbarSettings({
+  organization,
+  project,
+  params: {projectId},
+}: Props) {
   const location = useLocation();
   const domain = decodeScalar(location.query.domain);
 
@@ -45,6 +51,10 @@ function ProjectToolbarSettings({organization, project, params: {projectId}}: Pr
           label: t('Allowed Origins'),
           help: (
             <div>
+              <Important>
+                {t('Only add trusted domains, that you control, to this list.')}
+              </Important>
+              <br />
               {t('Domains where the dev toolbar is allowed to access your data.')}
               <br />
               {t(
@@ -115,4 +125,6 @@ function ProjectToolbarSettings({organization, project, params: {projectId}}: Pr
   );
 }
 
-export default ProjectToolbarSettings;
+const Important = styled('strong')`
+  color: ${p => p.theme.red400};
+`;
