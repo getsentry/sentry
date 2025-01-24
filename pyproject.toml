@@ -146,7 +146,6 @@ module = [
     "sentry.api.endpoints.user_subscriptions",
     "sentry.api.helpers.group_index.index",
     "sentry.api.invite_helper",
-    "sentry.api.issue_search",
     "sentry.api.paginator",
     "sentry.api.permissions",
     "sentry.api.serializers.models.auth_provider",
