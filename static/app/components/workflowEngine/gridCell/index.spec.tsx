@@ -2,11 +2,11 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {MonitorsCell} from './monitorsCell';
 import {TimeAgoCell} from './timeAgoCell';
-import {Action, ActionCell} from './actionCell';
+import {ActionCell} from './actionCell';
 
 describe('Action Cell Component', function () {
   it('renders', function () {
-    render(<ActionCell actions={[Action.SLACK, Action.DISCORD, Action.EMAIL]} />);
+    render(<ActionCell actions={['slack', 'discord', 'email']} />);
 
     const text = screen.getByText('Slack, Discord, Email');
     expect(text).toBeInTheDocument();

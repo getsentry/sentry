@@ -21,6 +21,9 @@ type MonitorsCellProps = {
 };
 
 export function MonitorsCell({monitors}: MonitorsCellProps) {
+  if (monitors.length === 0) {
+    return <div>&mdash;</div>;
+  }
   return (
     <div>
       <Hovercard
@@ -74,7 +77,7 @@ const MonitorDetails = styled('div')`
   }
 `;
 
-const Separator = styled('div')`
+const Separator = styled('span')`
   height: 10px;
   width: 1px;
   background-color: ${p => p.theme.innerBorder};
@@ -86,17 +89,35 @@ const Divider = styled('hr')`
   width: 95%;
   background: ${p => p.theme.border};
   border: none;
-  margin-top: ${space(1)};
-  margin-bottom: ${space(1.5)};
+  margin-top: 16px;
+  margin-bottom: 16px;
 `;
 
 const HovercardRow = styled(Link)`
   display: flex;
   flex-direction: column;
   gap: ${space(0.5)};
+  color: ${p => p.theme.textColor};
+  margin: -${space(2)};
+  padding: ${space(2)};
+
+  &:first-child {
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+  }
+
+  &:last-child {
+    border-bottom-left-radius: 6px;
+    border-bottom-right-radius: 6px;
+  }
 
   &:hover {
     background-color: ${p => p.theme.backgroundTertiary};
+    color: ${p => p.theme.textColor};
+  }
+
+  &:hover strong {
+    text-decoration: underline;
   }
 `;
 
