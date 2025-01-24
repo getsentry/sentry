@@ -61,7 +61,7 @@ export default function CombinedAlertBadge({rule}: Props) {
     const {statusText, incidentStatus} = UptimeStatusText[rule.uptimeStatus];
     return (
       <Tooltip title={tct('Uptime Alert Status: [statusText]', {statusText})}>
-        <AlertBadge status={incidentStatus} />
+        <AlertBadge status={incidentStatus} isDisabled={rule.status === 'disabled'} />
       </Tooltip>
     );
   }
