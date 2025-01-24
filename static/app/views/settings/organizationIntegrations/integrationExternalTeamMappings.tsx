@@ -186,13 +186,12 @@ class IntegrationExternalTeamMappings extends DeprecatedAsyncComponent<Props, St
   };
 
   renderBody() {
-    const {integration, organization} = this.props;
+    const {integration} = this.props;
     const {teamsPageLinks} = this.state;
     return (
       <IntegrationExternalMappings
         type="team"
         integration={integration}
-        organization={organization}
         mappings={this.mappings}
         dataEndpoint={this.dataEndpoint}
         getBaseFormEndpoint={mapping => this.getBaseFormEndpoint(mapping)}
