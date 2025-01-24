@@ -95,7 +95,7 @@ def get_repository(meta: Mapping[str, str]) -> str:
 
 def get_payload_and_token(
     payload: Mapping[str, Any], organization_id: int, sentry_project_id: int
-) -> tuple[Mapping[str, Any], str]:
+) -> tuple[dict[str, Any], str]:
     meta = payload["deployment"]["meta"]
 
     # look up the project so we can get the slug

@@ -210,7 +210,6 @@ module = [
     "sentry.integrations.utils.sync",
     "sentry.integrations.vercel.client",
     "sentry.integrations.vercel.integration",
-    "sentry.integrations.vercel.webhook",
     "sentry.integrations.vsts.client",
     "sentry.integrations.vsts.integration",
     "sentry.integrations.vsts.issues",
