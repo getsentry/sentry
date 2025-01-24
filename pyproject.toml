@@ -191,7 +191,6 @@ module = [
     "sentry.integrations.msteams.client",
     "sentry.integrations.msteams.integration",
     "sentry.integrations.msteams.notifications",
-    "sentry.integrations.notifications",
     "sentry.integrations.pagerduty.actions.form",
     "sentry.integrations.pagerduty.client",
     "sentry.integrations.pagerduty.integration",
