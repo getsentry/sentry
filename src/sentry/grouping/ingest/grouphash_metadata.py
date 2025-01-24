@@ -41,7 +41,7 @@ from sentry.types.grouphash_metadata import (
     StacktraceHashingMetadata,
     TemplateHashingMetadata,
 )
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 from sentry.utils.metrics import MutableTags
 
 logger = logging.getLogger(__name__)
@@ -318,7 +318,7 @@ def _get_fingerprint_hashing_metadata(
     metadata: FingerprintHashingMetadata = {
         # For simplicity, we stringify fingerprint values (which are always lists) to keep
         # `hashing_metadata` a flat structure
-        "fingerprint": str(contributing_variant.values),
+        "fingerprint": json.dumps(contributing_variant.values),
         "fingerprint_source": (
             "client"
             if not matched_rule
