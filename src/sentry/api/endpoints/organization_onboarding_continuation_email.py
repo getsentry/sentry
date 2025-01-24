@@ -1,3 +1,4 @@
+from django.contrib.auth.models import AnonymousUser
 from rest_framework import serializers
 from rest_framework.request import Request
 
@@ -52,6 +53,8 @@ class OrganizationOnboardingContinuationEmail(OrganizationEndpoint):
         serializer = OnboardingContinuationSerializer(data=request.data)
         if not serializer.is_valid():
             return self.respond(serializer.errors, status=400)
+        if isinstance(request.user, AnonymousUser):
+            return self.respond(status=401)
 
         msg = MessageBuilder(
             **get_request_builder_args(
