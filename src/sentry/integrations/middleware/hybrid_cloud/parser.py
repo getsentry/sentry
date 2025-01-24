@@ -80,7 +80,7 @@ class BaseRequestParser(ABC):
             lifecycle.add_extras(
                 {
                     "path": self.request.path,
-                    "silo": str(SiloMode.get_current_mode().value),
+                    "silo": SiloMode.get_current_mode().value,
                 }
             )
             if SiloMode.get_current_mode() != SiloMode.CONTROL:
