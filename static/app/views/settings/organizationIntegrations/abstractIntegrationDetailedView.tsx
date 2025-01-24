@@ -98,7 +98,7 @@ abstract class AbstractIntegrationDetailedView<
   }
 
   // Returns a list of the resources displayed at the bottom of the overview card
-  get resourceLinks(): {title: string; url: string}[] {
+  get resourceLinks(): Array<{title: string; url: string}> {
     // Allow children to implement this
     throw new Error('Not implemented');
   }
@@ -248,7 +248,6 @@ abstract class AbstractIntegrationDetailedView<
   renderRequestIntegrationButton() {
     return (
       <RequestIntegrationButton
-        organization={this.props.organization}
         name={this.integrationName}
         slug={this.integrationSlug}
         type={this.integrationType}

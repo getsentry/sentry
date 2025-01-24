@@ -58,7 +58,7 @@ function transformAreaSeries(series: AreaChartSeries[]): LineSeriesOption[] {
   });
 }
 
-export const metricAlertCharts: RenderDescriptor<ChartType>[] = [];
+export const metricAlertCharts: Array<RenderDescriptor<ChartType>> = [];
 
 metricAlertCharts.push({
   key: ChartType.SLACK_METRIC_ALERT_EVENTS,

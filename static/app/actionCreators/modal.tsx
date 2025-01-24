@@ -48,7 +48,7 @@ type EmailVerificationModalOptions = {
 };
 
 type InviteMembersModalOptions = {
-  initialData?: Partial<InviteRow>[];
+  initialData?: Array<Partial<InviteRow>>;
   onClose?: () => void;
   source?: string;
 };

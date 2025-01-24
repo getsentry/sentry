@@ -399,7 +399,8 @@ describe('Visualize', () => {
         query: expect.objectContaining({
           field: ['count()'],
         }),
-      })
+      }),
+      {replace: true}
     );
   });
 
@@ -437,7 +438,8 @@ describe('Visualize', () => {
         query: expect.objectContaining({
           field: ['count_miserable(user,300)'],
         }),
-      })
+      }),
+      {replace: true}
     );
   });
 
@@ -768,7 +770,8 @@ describe('Visualize', () => {
         query: expect.objectContaining({
           selectedAggregate: undefined,
         }),
-      })
+      }),
+      {replace: true}
     );
   });
 
@@ -901,7 +904,7 @@ describe('Visualize', () => {
     expect(
       await screen.findByRole('button', {name: 'Aggregate Selection'})
     ).toHaveTextContent('apdex');
-    expect(screen.getAllByRole('textbox')[0]).toHaveValue('3000');
+    expect(screen.getByRole('textbox', {name: 'Numeric Input'})).toHaveValue('3000');
     expect(
       screen.queryByRole('button', {name: 'Column Selection'})
     ).not.toBeInTheDocument();
@@ -928,7 +931,7 @@ describe('Visualize', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
     await userEvent.click(screen.getByRole('option', {name: 'user_misery'}));
 
-    expect(screen.getAllByRole('textbox')[0]).toHaveValue('300');
+    expect(screen.getByRole('textbox', {name: 'Numeric Input'})).toHaveValue('300');
   });
 
   describe('spans', () => {

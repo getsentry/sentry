@@ -65,10 +65,10 @@ function getExpressionIdFromWidgetQuery(query: WidgetQuery): number {
 }
 
 function fillMissingExpressionIds(
-  expressions: (DashboardMetricsExpression | null)[],
+  expressions: Array<DashboardMetricsExpression | null>,
   indizesWithoutId: number[],
   usedIds: Set<number>
-): (DashboardMetricsExpression | null)[] {
+): Array<DashboardMetricsExpression | null> {
   if (indizesWithoutId.length > 0) {
     const generateId = getUniqueQueryIdGenerator(usedIds);
     for (const index of indizesWithoutId) {

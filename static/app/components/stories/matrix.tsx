@@ -9,7 +9,7 @@ import {space} from 'sentry/styles/space';
 type RenderProps = {};
 
 export type PropMatrix<P extends RenderProps> = Partial<{
-  [Prop in keyof P]: P[Prop][];
+  [Prop in keyof P]: Array<P[Prop]>;
 }>;
 
 interface Props<P extends RenderProps> {

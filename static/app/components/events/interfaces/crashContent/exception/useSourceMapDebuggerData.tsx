@@ -33,9 +33,9 @@ interface SourceMapDebugBlueThunderResponseFrame {
 
 interface SourceMapDebugBlueThunderResponse {
   dist: string | null;
-  exceptions: {
+  exceptions: Array<{
     frames: SourceMapDebugBlueThunderResponseFrame[];
-  }[];
+  }>;
   has_debug_ids: boolean;
   has_uploaded_some_artifact_with_a_debug_id: boolean;
   project_has_some_artifact_bundle: boolean;

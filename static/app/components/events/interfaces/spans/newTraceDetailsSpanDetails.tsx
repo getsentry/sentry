@@ -108,7 +108,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
   );
 
   const childTransactions = useMemo(() => {
-    const transactions: TraceTreeNode<TraceTree.Transaction>[] = [];
+    const transactions: Array<TraceTreeNode<TraceTree.Transaction>> = [];
     TraceTree.ForEachChild(props.node, c => {
       if (isTransactionNode(c)) {
         transactions.push(c);
