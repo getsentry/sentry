@@ -20,6 +20,7 @@ class OpenPeriod:
     end: datetime | None
     duration: timedelta | None
     is_open: bool
+    last_checked: datetime
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -27,6 +28,7 @@ class OpenPeriod:
             "end": self.end,
             "duration": self.duration,
             "isOpen": self.is_open,
+            "lastChecked": self.last_checked,
         }
 
 
