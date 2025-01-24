@@ -9,6 +9,7 @@ from io import BytesIO
 from uuid import UUID
 
 from django.db import router
+from django.db.utils import IntegrityError
 from sentry_sdk import capture_exception
 
 from sentry.hybridcloud.models.outbox import ControlOutbox
@@ -116,11 +117,16 @@ class DBBackedRelocationExportService(RegionRelocationExportService):
             # idempotent, since only one (relocation_uuid, relocation_file_kind) pairing can exist
             # in that database's table at a time. If we try to write a second, it will fail due to
             # that unique constraint.
-            RelocationFile.objects.create(
-                relocation=relocation,
-                file=file,
-                kind=RelocationFile.Kind.RAW_USER_DATA.value,
-            )
+            try:
+                RelocationFile.objects.create(
+                    relocation=relocation,
+                    file=file,
+                    kind=RelocationFile.Kind.RAW_USER_DATA.value,
+                )
+            except IntegrityError:
+                # We already have the file, we can proceed.
+                pass
+
             logger.info("SaaS -> SaaS relocation RelocationFile saved", extra=logger_data)
 
             uploading_complete.apply_async(args=[relocation.uuid])
