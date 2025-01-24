@@ -45,6 +45,7 @@ export function GroupByStep({
         fieldOptions={groupByOptions}
         onChange={onGroupByChange}
         validatedWidgetResponse={validatedWidgetResponse}
+        widgetType={DATA_SET_TO_WIDGET_TYPE[dataSet]}
       />
     </BuildStep>
   );

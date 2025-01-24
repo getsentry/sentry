@@ -1199,7 +1199,7 @@ function WidgetBuilder({
                                           {
                                             from: source,
                                             field: 'title',
-                                            value: state.title ?? '',
+                                            value: '',
                                             widget_type: widgetType,
                                             organization,
                                             new_widget: !isEditing,
@@ -1229,7 +1229,7 @@ function WidgetBuilder({
                                           {
                                             from: source,
                                             field: 'description',
-                                            value: state.description ?? '',
+                                            value: '',
                                             widget_type: widgetType,
                                             organization,
                                             new_widget: !isEditing,
