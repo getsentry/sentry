@@ -6,7 +6,6 @@ import sentry_sdk
 from sentry import buffer
 from sentry.utils import json, metrics
 from sentry.workflow_engine.models import Detector, Workflow, WorkflowDataConditionGroup
-from sentry.workflow_engine.models.workflow import get_slow_conditions
 from sentry.workflow_engine.processors.action import evaluate_workflow_action_filters
 from sentry.workflow_engine.processors.data_condition_group import evaluate_condition_group
 from sentry.workflow_engine.processors.detector import get_detector_by_event
@@ -66,18 +65,10 @@ def enqueue_workflows(
 
 def evaluate_workflow_triggers(workflows: set[Workflow], job: WorkflowJob) -> set[Workflow]:
     triggered_workflows: set[Workflow] = set()
-    workflows_to_enqueue: set[Workflow] = set()
 
     for workflow in workflows:
         if workflow.evaluate_trigger_conditions(job):
             triggered_workflows.add(workflow)
-        else:
-            if get_slow_conditions(workflow):
-                # enqueue to be evaluated later
-                workflows_to_enqueue.add(workflow)
-
-    if workflows_to_enqueue:
-        enqueue_workflows(workflows_to_enqueue, job)
 
     return triggered_workflows
 
