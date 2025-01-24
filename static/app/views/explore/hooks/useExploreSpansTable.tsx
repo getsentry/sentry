@@ -75,6 +75,7 @@ export function useExploreSpansTable({
     limit,
     referrer: 'api.explore.spans-samples-table',
     allowAggregateConditions: false,
+    trackResponseAnalytics: false,
   });
 
   return useMemo(() => {

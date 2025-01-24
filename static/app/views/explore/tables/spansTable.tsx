@@ -8,10 +8,8 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
-import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {fieldAlignment, prettifyTagKey} from 'sentry/utils/discover/fields';
-import useOrganization from 'sentry/utils/useOrganization';
 import {
   Table,
   TableBody,
@@ -24,34 +22,23 @@ import {
   useTableStyles,
 } from 'sentry/views/explore/components/table';
 import {
-  useExploreDataset,
   useExploreFields,
-  useExploreQuery,
   useExploreSortBys,
-  useExploreTitle,
-  useExploreVisualizes,
   useSetExploreSortBys,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
-import {useAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 
 import {FieldRenderer} from './fieldRenderer';
 
 interface SpansTableProps {
-  confidences: Confidence[];
   spansTableResult: SpansTableResult;
 }
 
-export function SpansTable({confidences, spansTableResult}: SpansTableProps) {
-  const dataset = useExploreDataset();
-  const title = useExploreTitle();
+export function SpansTable({spansTableResult}: SpansTableProps) {
   const fields = useExploreFields();
   const sortBys = useExploreSortBys();
   const setSortBys = useSetExploreSortBys();
-  const query = useExploreQuery();
-  const visualizes = useExploreVisualizes();
-  const organization = useOrganization();
 
   const visibleFields = useMemo(
     () => (fields.includes('id') ? fields : ['id', ...fields]),
@@ -61,19 +48,6 @@ export function SpansTable({confidences, spansTableResult}: SpansTableProps) {
   const {result, eventView} = spansTableResult;
 
   const columnsFromEventView = useMemo(() => eventView.getColumns(), [eventView]);
-
-  useAnalytics({
-    dataset,
-    resultLength: result.data?.length,
-    resultMode: 'span samples',
-    resultStatus: result.status,
-    visualizes,
-    organization,
-    columns: fields,
-    userQuery: query,
-    confidences,
-    title,
-  });
 
   const tableRef = useRef<HTMLTableElement>(null);
   const {initialTableStyles, onResizeMouseDown} = useTableStyles(
