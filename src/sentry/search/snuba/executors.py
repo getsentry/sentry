@@ -1811,7 +1811,9 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                         ),
                     )
                     if condition is not None:
-                        if recursive_tag_check(condition.lhs):
+                        if features.has(
+                            "organizations:feature-flag-autocomplete", organization
+                        ) and recursive_tag_check(condition.lhs):
                             feature_condition = Condition(
                                 lhs=recursive_tag_replace(condition.lhs),
                                 op=condition.op,
