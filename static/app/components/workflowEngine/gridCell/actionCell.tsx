@@ -1,7 +1,9 @@
 import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/container/flex';
 import {IconCircledNumber} from 'sentry/components/iconCircledNumber';
 import {Tooltip} from 'sentry/components/tooltip';
+import {EmptyCell} from 'sentry/components/workflowEngine/gridCell/emptyCell';
 import {IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
@@ -21,37 +23,28 @@ type ActionCellProps = {
 
 export function ActionCell({actions}: ActionCellProps) {
   if (!actions || actions.length === 0) {
-    return <div>{t('No actions')}</div>;
+    return <EmptyCell />;
   }
   if (actions.length === 1 && actions[0]) {
     return (
-      <Inline>
+      <Flex align="center" gap={space(0.75)}>
         <IconContainer>{ActionMetadata[actions[0]].icon}</IconContainer>
         {ActionMetadata[actions[0]].name}
-      </Inline>
+      </Flex>
     );
   }
-  const actionsList = actions
-    .map(action => ActionMetadata[action].name)
-    .reduce((acc, action) => `${acc}, ${action}`);
+  const actionsList = actions.map(action => ActionMetadata[action].name).join(', ');
   return (
-    <Inline>
+    <Flex align="center" gap={space(0.75)}>
       <IconContainer>
         <IconCircledNumber number={actions.length} />
       </IconContainer>
       <Tooltip title={actionsList}>
         <ActionsList>{actionsList}</ActionsList>
       </Tooltip>
-    </Inline>
+    </Flex>
   );
 }
-
-const Inline = styled('div')`
-  display: flex;
-  flex-direction: row;
-  gap: ${space(0.75)};
-  align-items: center;
-`;
 
 const ActionsList = styled('span')`
   ${p => p.theme.tooltipUnderline()};

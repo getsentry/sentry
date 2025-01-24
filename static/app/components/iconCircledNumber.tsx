@@ -1,14 +1,20 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+
+import type {IconSize} from 'sentry/utils/theme';
 
 type IconCircledNumberProps = {
   number: number;
-  size?: number;
+  size?: IconSize;
 };
 
-export function IconCircledNumber({number, size = 20}: IconCircledNumberProps) {
+export function IconCircledNumber({number, size = 'md'}: IconCircledNumberProps) {
+  const theme = useTheme();
+  const numericSize = theme.iconNumberSizes[size];
+
   return (
-    <Circle size={size} role="img" aria-label={`circled number ${number}`}>
-      <Number size={size}>{number}</Number>
+    <Circle size={numericSize} role="img" aria-label={`circled number ${number}`}>
+      <Number size={numericSize}>{number}</Number>
     </Circle>
   );
 }

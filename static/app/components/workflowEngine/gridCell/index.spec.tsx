@@ -38,28 +38,37 @@ describe('Time Ago Cell Component', function () {
   });
 });
 
+const renderMonitorCell = () => {
+  render(
+    <MonitorsCell
+      monitors={[
+        {
+          name: '/endpoint',
+          id: 'def456',
+          project: {slug: 'javascript', platform: 'javascript'},
+          description: 'transaction.duration',
+        },
+      ]}
+    />
+  );
+};
+
 describe('Monitors Cell Component', function () {
   it('renders children and context values', function () {
-    render(
-      <MonitorsCell
-        monitors={[
-          {
-            name: '/endpoint',
-            id: 'def456',
-            project: {slug: 'javascript', platform: 'javascript'},
-            description: 'transaction.duration',
-          },
-          {
-            name: '/checkout',
-            id: 'ghi789',
-            project: {slug: 'javascript', platform: 'javascript'},
-            description: 'transaction.duration',
-          },
-        ]}
-      />
-    );
+    renderMonitorCell();
 
-    const text = screen.getByText('2 monitors');
+    const text = screen.getByText('1 monitor');
     expect(text).toBeInTheDocument();
+  });
+
+  it('renders hovercard', async function () {
+    renderMonitorCell();
+
+    const span = screen.getByText('1 monitor');
+    expect(span).toBeInTheDocument();
+    await userEvent.hover(span, {delay: 100});
+    expect(await screen.findByText('/endpoint')).toBeInTheDocument();
+    expect(await screen.findByText('javascript')).toBeInTheDocument();
+    expect(await screen.findByText('transaction.duration')).toBeInTheDocument();
   });
 });

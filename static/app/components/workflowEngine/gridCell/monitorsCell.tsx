@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {Hovercard} from 'sentry/components/hovercard';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
+import {EmptyCell} from 'sentry/components/workflowEngine/gridCell/emptyCell';
 import {tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {AvatarProject} from 'sentry/types/project';
@@ -22,7 +23,7 @@ type MonitorsCellProps = {
 
 export function MonitorsCell({monitors}: MonitorsCellProps) {
   if (monitors.length === 0) {
-    return <div>&mdash;</div>;
+    return <EmptyCell />;
   }
   return (
     <div>
@@ -89,8 +90,8 @@ const Divider = styled('hr')`
   width: 95%;
   background: ${p => p.theme.border};
   border: none;
-  margin-top: 16px;
-  margin-bottom: 16px;
+  margin-top: ${space(2)};
+  margin-bottom: ${space(2)};
 `;
 
 const HovercardRow = styled(Link)`
