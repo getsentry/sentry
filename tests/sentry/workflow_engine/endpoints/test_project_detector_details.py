@@ -164,3 +164,6 @@ class ProjectDetectorDetailsPostTest(ProjectDetectorDetailsGetTest):
         # data_source_detector = DataSourceDetector.objects.get(detector=detector)
         # data_source = DataSource.objects.get(id=data_source_detector.detector.id)
         # assert data_source.query == "test query"
+
+    def test_update_missing_data_condition(self):
+        pass
