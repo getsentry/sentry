@@ -14,7 +14,6 @@ from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionType,
 )
 from sentry.models.repository import Repository
-from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.users.models.identity import Identity
 
@@ -217,7 +216,7 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
 
 class RepositoryClient(ABC):
     @abstractmethod
-    def check_file(self, repo: Repository, path: str, version: str | None) -> BaseApiResponseX:
+    def check_file(self, repo: Repository, path: str, version: str | None) -> object | None:
         """Check if the file exists. Currently used for stacktrace linking and CODEOWNERS."""
         raise NotImplementedError
 
