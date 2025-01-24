@@ -64,9 +64,7 @@ function SegmentedBar({
           <Fragment key={idx}>
             <LegendColor style={{backgroundColor: bgColor(idx)}} />
             <LegendText>{segment.name}</LegendText>
-            <LegendPercentage>
-              {segment.percentage === 100 ? '100' : segment.percentage.toFixed(1)}%
-            </LegendPercentage>
+            <LegendPercentage>{segment.percentage.toFixed(0)}%</LegendPercentage>
           </Fragment>
         ))}
         {otherPercentage && (
@@ -127,7 +125,7 @@ function TagPreviewProgressBar({tag}: {tag: GroupTag}) {
       ? null
       : otherPercentage < 1
         ? '<1%'
-        : `${otherPercentage.toFixed(1)}%`;
+        : `${otherPercentage.toFixed(0)}%`;
 
   return (
     <Fragment>
