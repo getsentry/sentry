@@ -199,6 +199,80 @@ class AlertRuleMigrationHelpersTest(APITestCase):
             alert_rule_trigger=self.alert_rule_trigger_critical,
         )
 
+    def mock_migrate_alert_rule(self, metric_alert) -> tuple[
+        DataSource,
+        DataConditionGroup,
+        Workflow,
+        Detector,
+        DetectorState,
+        AlertRuleDetector,
+        AlertRuleWorkflow,
+        DetectorWorkflow,
+    ]:
+        """
+        Create mock data for a dual-written alert rule.
+        Return all models that we expect for a dual written alert rule.
+        """
+        detector_data_condition_group = self.create_data_condition_group(
+            organization=self.organization
+        )
+        query_subscription = QuerySubscription.objects.get(snuba_query=metric_alert.snuba_query.id)
+        data_source = self.create_data_source(
+            organization_id=self.organization.id,
+            query_id=query_subscription.id,
+            type="snuba_query_subscription",
+        )
+        detector = self.create_detector(
+            project_id=self.project.id,
+            enabled=True,
+            created_by_id=self.rpc_user.id,
+            name=metric_alert.name,
+            workflow_condition_group=detector_data_condition_group,
+            type=MetricAlertFire.slug,
+            description=None,
+            owner_user_id=None,
+            owner_team=None,
+            config={
+                "threshold_period": 1,
+                "sensitivity": None,
+                "seasonality": None,
+                "comparison_delta": None,
+                "detection_type": AlertRuleDetectionType.STATIC,
+            },
+        )
+        workflow = self.create_workflow(
+            name=metric_alert.name,
+            organization_id=self.organization.id,
+            when_condition_group=None,
+            enabled=True,
+            created_by_id=self.rpc_user.id,
+            config={},
+        )
+        data_source.detectors.set([detector])
+        detector_state = self.create_detector_state(
+            detector=detector,
+            active=False,
+            state=DetectorPriorityLevel.OK,
+        )
+        alert_rule_detector = AlertRuleDetector.objects.create(
+            alert_rule=metric_alert, detector=detector
+        )
+        alert_rule_workflow = AlertRuleWorkflow.objects.create(
+            alert_rule=metric_alert, workflow=workflow
+        )
+        detector_workflow = DetectorWorkflow.objects.create(detector=detector, workflow=workflow)
+
+        return (
+            data_source,
+            detector_data_condition_group,
+            workflow,
+            detector,
+            detector_state,
+            alert_rule_detector,
+            alert_rule_workflow,
+            detector_workflow,
+        )
+
     def test_create_metric_alert(self):
         """
         Test that when we call the helper methods we create all the ACI models correctly for an alert rule
@@ -207,7 +281,7 @@ class AlertRuleMigrationHelpersTest(APITestCase):
         assert_alert_rule_migrated(self.metric_alert, self.project.id)
 
     def test_delete_metric_alert(self):
-        migrate_alert_rule(self.metric_alert, self.rpc_user)
+        self.mock_migrate_alert_rule(self.metric_alert)
         alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=self.metric_alert)
         alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=self.metric_alert)
         workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
@@ -392,7 +466,7 @@ class AlertRuleMigrationHelpersTest(APITestCase):
         )
 
     def test_update_metric_alert(self):
-        migrate_alert_rule(self.metric_alert, self.rpc_user)
+        self.mock_migrate_alert_rule(self.metric_alert)
         updated_fields = {
             "name": "hojicha",
             "description": "a Japanese green tea roasted over charcoal",
@@ -419,7 +493,7 @@ class AlertRuleMigrationHelpersTest(APITestCase):
         assert detector_state.active is False
 
     def test_update_metric_alert_owner(self):
-        migrate_alert_rule(self.metric_alert, self.rpc_user)
+        self.mock_migrate_alert_rule(self.metric_alert)
         updated_fields = {
             "user_id": self.user.id,
             "team_id": None,
@@ -436,7 +510,7 @@ class AlertRuleMigrationHelpersTest(APITestCase):
         assert detector.owner_team_id is None
 
     def test_update_metric_alert_config(self):
-        migrate_alert_rule(self.metric_alert, self.rpc_user)
+        self.mock_migrate_alert_rule(self.metric_alert)
         updated_fields = {
             "detection_type": "percent",
             "threshold_period": 1,
@@ -464,7 +538,7 @@ class AlertRuleMigrationHelpersTest(APITestCase):
         metric_alert = self.create_alert_rule()
         critical_trigger = self.create_alert_rule_trigger(alert_rule=metric_alert, label="critical")
 
-        migrate_alert_rule(metric_alert, self.rpc_user)
+        self.mock_migrate_alert_rule(metric_alert)
         migrate_metric_data_conditions(critical_trigger)
         migrate_resolve_threshold_data_conditions(metric_alert)
         # because there are only two objects in the DB
