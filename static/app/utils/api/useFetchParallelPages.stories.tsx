@@ -12,7 +12,7 @@ export default storyBook('useFetchParallelPages', story => {
         Using this hook might not be a good idea!
         <br />
         Pagination is a good strategy to limit the amount of data that a server needs to
-        fetch at a given time, it also limits the amount of data that the browser needs to
+        fetch at a given time; it also limits the amount of data that the browser needs to
         hold in memory. Loading all data with this hook could cause rate-limiting, memory
         exhaustion, slow rendering, and other problems.
       </p>

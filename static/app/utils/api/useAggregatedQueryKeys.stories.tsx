@@ -63,7 +63,7 @@ export default storyBook('useAggregatedQueryKeys', story => {
       <Fragment>
         <p>
           Checkout the network traffic to really understand how this works. We've called{' '}
-          <code>cache.buffer()</code> in two independany places, but those 3 ids were
+          <code>cache.buffer()</code> in two independent places, but those 3 ids were
           grouped together into one request on the network.
         </p>
         <StructuredEventData data={cache.data} />
