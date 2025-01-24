@@ -456,7 +456,7 @@ def get_single_metric_info(
         derived_metric = all_derived_metrics[metric_mri]
         response_dict.update(
             {
-                "operations": derived_metric.generate_available_operations(),
+                "operations": [],
                 "unit": derived_metric.unit,
                 "type": derived_metric.result_type,
             }
