@@ -7,6 +7,7 @@ from django.urls import reverse
 
 from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
 from sentry.models.group import Group
+from sentry.organizations.services.organization.service import organization_service
 from sentry.shared_integrations.exceptions import ApiError, IntegrationFormError
 from sentry.silo.base import all_silo_function
 from sentry.users.models.user import User
@@ -41,11 +42,21 @@ class BitbucketIssuesSpec(SourceCodeIssueIntegration):
     ) -> list[dict[str, Any]]:
         kwargs["link_referrer"] = "bitbucket_integration"
 
-        fields = super().get_create_issue_config(group, user, **kwargs)
+        if group:
+            fields = super().get_create_issue_config(group, user, **kwargs)
+            org = group.organization
+        else:
+            fields = []
+            org_context = organization_service.get_organization_by_id(
+                id=self.organization_id, include_projects=False, include_teams=False
+            )
+            if not org_context:
+                raise IntegrationFormError({"repo": "Organization not found"})
+            org = org_context.organization
+
         params = kwargs.pop("params", {})
         default_repo, repo_choices = self.get_repository_choices(group, params, **kwargs)
 
-        org = group.organization
         autocomplete_url = reverse(
             "sentry-extensions-bitbucket-search", args=[org.slug, self.model.id]
         )

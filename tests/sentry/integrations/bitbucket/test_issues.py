@@ -238,6 +238,38 @@ class BitbucketIssueTest(APITestCase):
         ]
 
     @responses.activate
+    def test_get_create_issue_config_without_group(self):
+        responses.add(
+            responses.GET,
+            "https://api.bitbucket.org/2.0/repositories/myaccount",
+            json={
+                "values": [
+                    {"full_name": "myaccount/repo1"},
+                    {"full_name": "myaccount/repo2"},
+                ],
+            },
+        )
+
+        responses.add(
+            responses.GET,
+            "https://api.bitbucket.org/2.0/repositories/myaccount/issues/labels",
+            json=[
+                {"name": "bug"},
+                {"name": "not-bug"},
+            ],
+        )
+
+        installation = self.integration.get_installation(self.organization.id)
+        config = installation.get_create_issue_config(None, self.user, params={})
+        [repo_field, assignee_field, label_field] = config
+        assert repo_field["name"] == "repo"
+        assert repo_field["type"] == "select"
+        assert repo_field["label"] == "Bitbucket Repository"
+        assert label_field["name"] == "priority"
+        assert label_field["type"] == "select"
+        assert label_field["label"] == "Priority"
+
+    @responses.activate
     def test_get_link_issue_config(self):
         responses.add(
             responses.GET,
