@@ -55,7 +55,8 @@ export function ToolbarGroupBy({disabled}: ToolbarGroupByProps) {
 
   const enabledOptions: Array<SelectOption<string>> = useMemo(() => {
     const potentialOptions = [
-      ...Object.keys(tags),
+      // We do not support grouping by span id, we have a dedicated sample mode for that
+      ...Object.keys(tags).filter(key => key !== 'id'),
 
       // These options aren't known to exist on this project but it was inserted into
       // the group bys somehow so it should be a valid options in the group bys.
