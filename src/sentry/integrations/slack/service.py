@@ -9,6 +9,7 @@ import orjson
 import sentry_sdk
 from slack_sdk.errors import SlackApiError
 
+from sentry import features
 from sentry.constants import ISSUE_ALERTS_THREAD_DEFAULT
 from sentry.integrations.messaging.metrics import (
     MessagingInteractionEvent,
@@ -33,6 +34,7 @@ from sentry.integrations.slack.threads.activity_notifications import (
 )
 from sentry.integrations.types import ExternalProviderEnum, ExternalProviders
 from sentry.integrations.utils.common import get_active_integration_for_organization
+from sentry.issues.grouptype import GroupCategory
 from sentry.models.activity import Activity
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.rule import Rule
@@ -49,6 +51,7 @@ from sentry.notifications.notifications.activity.resolved_in_release import (
 from sentry.notifications.notifications.activity.unassigned import UnassignedActivityNotification
 from sentry.notifications.notifications.activity.unresolved import UnresolvedActivityNotification
 from sentry.notifications.notifications.base import BaseNotification
+from sentry.notifications.utils.open_period import open_period_start_for_group
 from sentry.silo.base import SiloMode
 from sentry.types.activity import ActivityType
 from sentry.types.actor import Actor
@@ -192,17 +195,36 @@ class SlackService:
                     "project_id": activity.project.id,
                 }
             )
-            parent_notifications = self._notification_message_repository.get_all_parent_notification_messages_by_filters(
-                group_ids=[activity.group.id],
-                project_ids=[activity.project.id],
-            )
+
+            use_open_period_start = False
+            if (
+                features.has(
+                    "organizations:issue-alerts-thread-open-period",
+                    activity.group.project.organization,
+                )
+                and activity.group.issue_category == GroupCategory.UPTIME
+            ):
+                use_open_period_start = True
+                open_period_start = open_period_start_for_group(activity.group)
+                parent_notifications = self._notification_message_repository.get_all_parent_notification_messages_by_filters(
+                    group_ids=[activity.group.id],
+                    project_ids=[activity.project.id],
+                    open_period_start=open_period_start,
+                )
+            else:
+                parent_notifications = self._notification_message_repository.get_all_parent_notification_messages_by_filters(
+                    group_ids=[activity.group.id],
+                    project_ids=[activity.project.id],
+                )
 
         # We don't wrap this in a lifecycle because _handle_parent_notification is already wrapped in a lifecycle
+        parent_notification_count = 0
         for parent_notification in parent_notifications:
             with MessagingInteractionEvent(
                 interaction_type=MessagingInteractionType.SEND_ACTIVITY_NOTIFICATION,
                 spec=SlackMessagingSpec(),
             ).capture() as lifecycle:
+                parent_notification_count += 1
                 lifecycle.add_extras(
                     {
                         "activity_id": activity.id,
@@ -224,6 +246,18 @@ class SlackService:
                         record_lifecycle_termination_level(lifecycle, err)
                     else:
                         lifecycle.record_failure(err)
+
+        if use_open_period_start and parent_notification_count != 1:
+            sentry_sdk.capture_message(
+                f"slack.notify_all_threads_for_activity.multiple_parent_notifications_for_single_open_period Activity: {activity.id}, Group: {activity.group.id}, Project: {activity.project.id}, Integration: {integration.id}, Parent Notification Count: {parent_notification_count}"
+            )
+            self._logger.error(
+                "multiple parent notifications found for single open period",
+                extra={
+                    "activity_id": activity.id,
+                    "parent_notification_count": parent_notification_count,
+                },
+            )
 
     def _handle_parent_notification(
         self,

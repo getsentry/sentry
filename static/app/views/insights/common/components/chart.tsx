@@ -227,10 +227,10 @@ function Chart({
   let incompleteSeries: Series[] = [];
 
   const bucketSize =
-    new Date(series[0]!?.data[1]!?.name).getTime() -
-    new Date(series[0]!?.data[0]!?.name).getTime();
+    new Date(series[0]?.data[1]?.name!).getTime() -
+    new Date(series[0]?.data[0]?.name!).getTime();
   const lastBucketTimestamp = new Date(
-    series[0]!?.data?.[series[0]!?.data?.length - 1]!?.name
+    series[0]?.data?.[series[0]?.data?.length - 1]?.name!
   ).getTime();
   const ingestionBuckets = useMemo(() => {
     if (isNaN(bucketSize) || isNaN(lastBucketTimestamp)) {
@@ -320,16 +320,16 @@ function Chart({
       const uniqueSeries = new Set<string>();
       deDupedParams = params.filter(param => {
         // Filter null values from tooltip
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         if (param.value[1] === null) {
           return false;
         }
 
-        // @ts-ignore TS(2345): Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
+        // @ts-expect-error TS(2345): Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
         if (uniqueSeries.has(param.seriesName)) {
           return false;
         }
-        // @ts-ignore TS(2345): Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
+        // @ts-expect-error TS(2345): Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
         uniqueSeries.add(param.seriesName);
         return true;
       });
