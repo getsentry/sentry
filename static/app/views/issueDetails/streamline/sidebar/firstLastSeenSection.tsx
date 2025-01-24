@@ -9,6 +9,7 @@ import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import type {Release} from 'sentry/types/release';
+import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useFetchAllEnvsGroupData} from 'sentry/views/issueDetails/groupSidebar';
@@ -21,6 +22,7 @@ interface GroupRelease {
 export default function FirstLastSeenSection({group}: {group: Group}) {
   const organization = useOrganization();
   const {project} = group;
+  const issueTypeConfig = getConfigForIssueType(group, group.project);
 
   const {data: allEnvironments} = useFetchAllEnvsGroupData(organization, group);
   const {data: groupReleaseData} = useApiQuery<GroupRelease>(
@@ -31,6 +33,14 @@ export default function FirstLastSeenSection({group}: {group: Group}) {
     }
   );
 
+  const lastSeen = issueTypeConfig.useOpenPeriodChecks
+    ? group.openPeriods?.[0]?.lastChecked ?? group.lastSeen
+    : group.lastSeen;
+
+  const dateGlobal = issueTypeConfig.useOpenPeriodChecks
+    ? lastSeen
+    : allEnvironments?.lastSeen ?? lastSeen;
+
   return (
     <Flex column gap={space(0.75)}>
       <div>
@@ -38,8 +48,8 @@ export default function FirstLastSeenSection({group}: {group: Group}) {
           <Title>{t('Last seen')}</Title>
           {group.lastSeen ? (
             <SeenInfo
-              date={group.lastSeen}
-              dateGlobal={allEnvironments?.lastSeen ?? group.lastSeen}
+              date={lastSeen}
+              dateGlobal={dateGlobal}
               organization={organization}
               projectId={project.id}
               projectSlug={project.slug}

@@ -848,8 +848,8 @@ export interface GroupOpenPeriod {
   duration: string;
   end: string;
   isOpen: boolean;
+  lastChecked: string;
   start: string;
-  lastChecked?: string;
 }
 
 export interface GroupReprocessing extends BaseGroup, GroupStats {
