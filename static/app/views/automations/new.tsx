@@ -21,9 +21,9 @@ export default function AutomationNew() {
           <StickyFooter>
             <StickyFooterLabel>{t('Step 1 of 2')}</StickyFooterLabel>
             <Flex gap={space(1)}>
-              <Button priority="default">Cancel</Button>
+              <Button priority="default">{t('Cancel')}</Button>
               <LinkButton priority="primary" to="/automations/new/settings">
-                Next
+                {t('Next')}
               </LinkButton>
             </Flex>
           </StickyFooter>
