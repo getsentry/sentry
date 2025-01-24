@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
-from typing import TypedDict
+from typing import Any
 
 import sentry_sdk
 from django.db import IntegrityError, router
@@ -32,17 +32,9 @@ class Conflict(Exception):
     pass
 
 
-class UserReportDict(TypedDict):
-    name: str
-    email: str
-    comments: str
-    event_id: str
-    level: str
-
-
 def save_userreport(
     project: Project,
-    report: UserReportDict,
+    report: dict[str, Any],
     source: FeedbackCreationSource,
     start_time: datetime | None = None,
 ) -> UserReport | None:
