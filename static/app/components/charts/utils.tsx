@@ -253,6 +253,9 @@ export function getSeriesSelection(
   );
 }
 
+/**
+ * @deprecated Prefer `isEventsStats`
+ */
 function isSingleSeriesStats(
   data: MultiSeriesEventsStats | EventsStats | GroupedMultiSeriesEventsStats
 ): data is EventsStats {
@@ -263,6 +266,9 @@ function isSingleSeriesStats(
   );
 }
 
+/**
+ * @deprecated Prefer `isMultiSeriesEventsStats`
+ */
 export function isMultiSeriesStats(
   data:
     | MultiSeriesEventsStats
