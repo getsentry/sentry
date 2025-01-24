@@ -11,6 +11,7 @@ export function UptimeRuleFixture(params: Partial<UptimeRule> = {}): UptimeRule 
     projectSlug: 'project-slug',
     environment: 'prod',
     uptimeStatus: UptimeMonitorStatus.OK,
+    status: 'active',
     timeoutMs: 5000,
     url: 'https://sentry.io/',
     headers: [],
