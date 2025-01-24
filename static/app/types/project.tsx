@@ -239,6 +239,8 @@ export type PlatformKey =
   | 'node'
   | 'node-awslambda'
   | 'node-azurefunctions'
+  | 'node-cloudflare-pages'
+  | 'node-cloudflare-workers'
   | 'node-connect'
   | 'node-express'
   | 'node-fastify'
