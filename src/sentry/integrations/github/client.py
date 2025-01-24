@@ -33,7 +33,6 @@ from sentry.issues.auto_source_code_config.code_mapping import (
     filter_source_code_files,
 )
 from sentry.models.repository import Repository
-from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
 from sentry.shared_integrations.response.mapping import MappingApiResponse
@@ -632,7 +631,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient)
         """
         return self.get(f"/repos/{repo}/labels", params={"per_page": 100})
 
-    def check_file(self, repo: Repository, path: str, version: str | None) -> BaseApiResponseX:
+    def check_file(self, repo: Repository, path: str, version: str | None) -> object | None:
         return self.head_cached(path=f"/repos/{repo.name}/contents/{path}", params={"ref": version})
 
     def get_file(

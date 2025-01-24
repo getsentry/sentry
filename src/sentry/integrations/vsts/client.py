@@ -15,7 +15,6 @@ from sentry.integrations.client import ApiClient
 from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.source_code_management.repository import RepositoryClient
 from sentry.models.repository import Repository
-from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.silo.base import control_silo_function
 from sentry.users.models.identity import Identity
@@ -144,9 +143,7 @@ class VstsSetupApiClient(ApiClient, VstsApiMixin):
         self.oauth_redirect_url = oauth_redirect_url
         self.access_token = access_token
 
-    def request(
-        self, method, path, data=None, params=None, api_preview: bool = False
-    ) -> BaseApiResponseX:
+    def request(self, method, path, data=None, params=None, api_preview: bool = False) -> Any:
         headers = prepare_headers(
             api_version=self.api_version,
             method=method,
@@ -179,7 +176,7 @@ class VstsApiClient(IntegrationProxyClient, VstsApiMixin, RepositoryClient):
         self._identity = Identity.objects.get(id=self.identity_id)
         return self._identity
 
-    def request(self, method: str, *args: Any, **kwargs: Any) -> BaseApiResponseX:
+    def request(self, method: str, *args: Any, **kwargs: Any) -> Any:
         api_preview = kwargs.pop("api_preview", False)
         headers = kwargs.pop("headers", {})
         new_headers = prepare_headers(
@@ -437,7 +434,7 @@ class VstsApiClient(IntegrationProxyClient, VstsApiMixin, RepositoryClient):
             api_preview=True,
         )
 
-    def check_file(self, repo: Repository, path: str, version: str | None) -> BaseApiResponseX:
+    def check_file(self, repo: Repository, path: str, version: str | None) -> object | None:
         return self.get_cached(
             path=VstsApiPath.items.format(
                 instance=repo.config["instance"],
