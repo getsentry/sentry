@@ -88,6 +88,7 @@ class RepoTreesIntegration(ABC):
             repositories = [
                 RepoAndBranch(name=repo_info["identifier"], branch=repo_info["default_branch"])
                 for repo_info in self.get_repositories(fetch_max_pages=True)
+                if not repo_info.get("archived")
             ]
 
         if repositories:

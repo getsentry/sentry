@@ -377,6 +377,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
             repositories = [
                 {"full_name": repo["full_name"], "default_branch": repo["default_branch"]}
                 for repo in self.get_repos(fetch_max_pages=True)
+                if not repo.get("archived")
             ]
             if not repositories:
                 logger.warning("Fetching repositories returned an empty list.")
@@ -497,8 +498,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
         It uses page_size from the base class to specify how many items per page.
         The upper bound of requests is controlled with self.page_number_limit to prevent infinite requests.
         """
-        repos = self.get_with_pagination("/installation/repositories", response_key="repositories")
-        return [repo for repo in repos if not repo.get("archived")]
+        return self.get_with_pagination("/installation/repositories", response_key="repositories")
 
     # XXX: Find alternative approach
     def search_repositories(self, query: bytes) -> Mapping[str, Sequence[Any]]:
