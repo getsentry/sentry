@@ -367,7 +367,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient)
             # Remove unnecessary fields from the response
             repositories = [
                 {"full_name": repo["full_name"], "default_branch": repo["default_branch"]}
-                for repo in self.get_repos()
+                for repo in self.get_repositories()
             ]
             if not repositories:
                 logger.warning("Fetching repositories returned an empty list.")
