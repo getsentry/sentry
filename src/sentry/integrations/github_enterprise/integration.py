@@ -353,10 +353,14 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
         ``oauth_config_information`` is available in the pipeline state. This
         method should be late bound into the pipeline vies.
         """
+        oauth_information = self.pipeline.fetch_state("oauth_config_information")
+        if oauth_information is None:
+            raise AssertionError("pipeline called out of order")
+
         identity_pipeline_config = dict(
             oauth_scopes=(),
             redirect_url=absolute_uri("/extensions/github-enterprise/setup/"),
-            **self.pipeline.fetch_state("oauth_config_information"),
+            **oauth_information,
         )
 
         return NestedPipelineView(

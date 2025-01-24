@@ -275,7 +275,6 @@ disable_error_code = [
     "attr-defined",
     "call-arg",
     "call-overload",
-    "dict-item",
     "index",
     "misc",
     "operator",

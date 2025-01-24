@@ -135,8 +135,8 @@ class SafePoolManager(PoolManager):
     def __init__(self, *args, is_ipaddress_permitted: IsIpAddressPermitted = None, **kwargs):
         PoolManager.__init__(self, *args, **kwargs)
         self.pool_classes_by_scheme = {
-            "http": partial(SafeHTTPConnectionPool, is_ipaddress_permitted=is_ipaddress_permitted),
-            "https": partial(
+            "http": partial(SafeHTTPConnectionPool, is_ipaddress_permitted=is_ipaddress_permitted),  # type: ignore[dict-item]  # https://github.com/urllib3/urllib3/issues/3554
+            "https": partial(  # type: ignore[dict-item]  # https://github.com/urllib3/urllib3/issues/3554
                 SafeHTTPSConnectionPool, is_ipaddress_permitted=is_ipaddress_permitted
             ),
         }
