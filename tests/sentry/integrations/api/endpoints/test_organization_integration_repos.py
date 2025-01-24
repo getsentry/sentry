@@ -16,9 +16,7 @@ class OrganizationIntegrationReposTest(APITestCase):
             f"/api/0/organizations/{self.org.slug}/integrations/{self.integration.id}/repos/"
         )
 
-    @patch(
-        "sentry.integrations.github.integration.GitHubIntegration.get_repositories", return_value=[]
-    )
+    @patch("sentry.integrations.github.client.GitHubApiClient.get_repos", return_value=[])
     def test_simple(self, get_repositories):
         get_repositories.return_value = [
             {"name": "rad-repo", "identifier": "Example/rad-repo", "default_branch": "main"},
@@ -39,9 +37,7 @@ class OrganizationIntegrationReposTest(APITestCase):
             "searchable": True,
         }
 
-    @patch(
-        "sentry.integrations.github.integration.GitHubIntegration.get_repositories", return_value=[]
-    )
+    @patch("sentry.integrations.github.client.GitHubApiClient.get_repos", return_value=[])
     def test_hide_hidden_repos(self, get_repositories):
         get_repositories.return_value = [
             {
