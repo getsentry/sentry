@@ -538,7 +538,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         )
 
         with patch.object(sentry.integrations.github.client.GitHubBaseClient, "page_size", 1):
-            result = installation.get_repositories(fetch_max_pages=True)
+            result = installation.get_repositories()
             assert result == [
                 {"name": "foo", "identifier": "Test-Organization/foo", "default_branch": "master"},
                 {"name": "bar", "identifier": "Test-Organization/bar", "default_branch": "main"},

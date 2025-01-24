@@ -81,13 +81,15 @@ class RepoTreesIntegration(ABC):
         return trees
 
     def _populate_repositories(self) -> list[RepoAndBranch]:
-        cache_key = f"{self.integration_name}trees:repositories:{self.org_slug}"
+        cache_key = (
+            f"{self.integration_name}trees:repositories:{self.org_integration.organization_id}"
+        )
         repositories: list[RepoAndBranch] = cache.get(cache_key, [])
 
         if not repositories:
             repositories = [
                 RepoAndBranch(name=repo_info["identifier"], branch=repo_info["default_branch"])
-                for repo_info in self.get_repositories(fetch_max_pages=True)
+                for repo_info in self.get_repositories()
                 if not repo_info.get("archived")
             ]
 
