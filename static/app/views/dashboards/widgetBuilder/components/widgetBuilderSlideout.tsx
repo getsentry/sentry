@@ -272,5 +272,5 @@ const SlideoutBodyWrapper = styled('div')`
 `;
 
 const Section = styled('div')`
-  margin-bottom: ${space(4)};
+  margin-bottom: ${space(3)};
 `;
