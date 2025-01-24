@@ -581,7 +581,7 @@ describe('ExploreToolbar', function () {
               'timestamp',
             ],
             limit: undefined,
-            source: 'discoverv2',
+            source: 'traceExplorer',
             start: undefined,
             statsPeriod: '14d',
           }),

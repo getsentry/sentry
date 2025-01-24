@@ -53,7 +53,7 @@ import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 
 import {
-  DashboardWidgetSource,
+  type DashboardWidgetSource,
   DisplayType,
   type Widget,
   type WidgetQuery,
@@ -699,11 +699,13 @@ export function handleAddQueryToDashboard({
   router,
   yAxis,
   widgetType,
+  source,
 }: {
   eventView: EventView;
   location: Location;
   organization: Organization;
   router: InjectedRouter;
+  source: DashboardWidgetSource;
   widgetType: WidgetType | undefined;
   query?: NewQuery;
   yAxis?: string | string[];
@@ -722,6 +724,7 @@ export function handleAddQueryToDashboard({
     yAxis,
     location,
     widgetType,
+    source,
   });
 
   openAddToDashboardModal({
@@ -813,9 +816,11 @@ export function constructAddQueryToDashboardLink({
   yAxis,
   location,
   widgetType,
+  source,
 }: {
   eventView: EventView;
   organization: Organization;
+  source: DashboardWidgetSource;
   location?: Location;
   query?: NewQuery;
   widgetType?: WidgetType;
@@ -870,6 +875,7 @@ export function constructAddQueryToDashboardLink({
         end: eventView.end,
         statsPeriod: eventView.statsPeriod,
         ...convertWidgetToBuilderStateParams(widget),
+        source,
       },
     };
   }
@@ -878,7 +884,6 @@ export function constructAddQueryToDashboardLink({
     pathname: `/organizations/${organization.slug}/dashboards/new/widget/new/`,
     query: {
       ...location?.query,
-      source: DashboardWidgetSource.DISCOVERV2,
       start: eventView.start,
       end: eventView.end,
       statsPeriod: eventView.statsPeriod,
@@ -889,6 +894,7 @@ export function constructAddQueryToDashboardLink({
       dataset: widgetType,
       field: eventView.getFields(),
       limit,
+      source,
     },
   };
 }
