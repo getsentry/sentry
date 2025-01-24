@@ -48,7 +48,7 @@ type EmailVerificationModalOptions = {
 };
 
 type InviteMembersModalOptions = {
-  initialData?: Partial<InviteRow>[];
+  initialData?: Array<Partial<InviteRow>>;
   onClose?: () => void;
   source?: string;
 };
@@ -307,6 +307,18 @@ export type DemoEndModalOptions = {
 
 export async function demoEndModal(options: DemoEndModalOptions) {
   const mod = await import('sentry/components/modals/demoEndModal');
+  const {default: Modal, modalCss} = mod;
+
+  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
+}
+
+export type DemoEmailModalOptions = {
+  onAddedEmail: (email: string) => void;
+  onFailure: () => void;
+};
+
+export async function demoEmailModal(options: DemoEmailModalOptions) {
+  const mod = await import('sentry/components/modals/demoEmailModal');
   const {default: Modal, modalCss} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});

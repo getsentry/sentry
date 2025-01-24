@@ -67,7 +67,7 @@ export function MetricScratchpad() {
         return;
       }
 
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const isTransaction = sample.id === sample['segment.id'];
       const dataRow: {
         id: string;
@@ -205,10 +205,10 @@ function MultiChartWidgetQueries({
     return [
       widgetToQuery({widget, metricsNewInputs}),
       ...(isMetricsEquationWidget(widget)
-        ? formulaDependencies[widget.id]!?.dependencies?.map(dependency =>
+        ? formulaDependencies[widget.id]?.dependencies?.map(dependency =>
             widgetToQuery({widget: dependency, isQueryOnly: true, metricsNewInputs})
           )
-        : []),
+        : [])!,
     ];
   }, [widget, formulaDependencies, metricsNewInputs]);
 

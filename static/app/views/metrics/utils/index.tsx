@@ -19,7 +19,7 @@ import {addToFilter, excludeFromFilter} from '../../discover/table/cellAction';
  */
 export function extendQueryWithGroupBys(
   query: string,
-  groupBys: (Record<string, string> | undefined)[]
+  groupBys: Array<Record<string, string> | undefined>
 ) {
   const mutableSearch = new MutableSearch(query);
 
@@ -97,9 +97,11 @@ export function updateQueryWithSeriesFilter(
     if (!defined(value)) {
       return;
     }
-    updateType === MetricSeriesFilterUpdateType.ADD
-      ? addToFilter(mutableSearch, key, value)
-      : excludeFromFilter(mutableSearch, key, value);
+    if (updateType === MetricSeriesFilterUpdateType.ADD) {
+      addToFilter(mutableSearch, key, value);
+    } else {
+      excludeFromFilter(mutableSearch, key, value);
+    }
   });
 
   const extendedQuery = mutableSearch.formatString();

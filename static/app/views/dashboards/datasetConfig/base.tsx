@@ -129,6 +129,7 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
   getCustomFieldRenderer?: (
     field: string,
     meta: MetaType,
+    widget?: Widget,
     organization?: Organization
   ) => ReturnType<typeof getFieldRenderer> | null;
   /**
@@ -190,7 +191,7 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
   getTableSortOptions?: (
     organization: Organization,
     widgetQuery: WidgetQuery
-  ) => SelectValue<string>[];
+  ) => Array<SelectValue<string>>;
   /**
    * Generate the list of sort options for timeseries
    * displays on the 'Sort by' step of the Widget Builder.

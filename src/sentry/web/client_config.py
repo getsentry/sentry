@@ -41,6 +41,7 @@ from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
 from sentry.utils import auth, json
 from sentry.utils.assets import get_frontend_dist_prefix
+from sentry.utils.demo_mode import is_readonly_user
 from sentry.utils.email import is_smtp_enabled
 from sentry.utils.http import is_using_customer_domain
 from sentry.utils.settings import (
@@ -400,16 +401,21 @@ class _ClientConfig:
         if not self.user_details:
             return False
 
-        return True
-
-    @property
-    def demo_mode(self) -> bool:
-        if not options.get("demo-mode.enabled"):
+        # If the user is viewing the accept invitation user interface,
+        # we should avoid preloading the data as they might not yet have access to it,
+        # which could cause an error notification (403) to pop up in the user interface.
+        invite_route_names = (
+            "sentry-accept-invite",
+            "sentry-organization-accept-invite",
+        )
+        if (
+            self.request
+            and self.request.resolver_match
+            and self.request.resolver_match.url_name in invite_route_names
+        ):
             return False
 
-        email = getattr(self.user, "email", None)
-
-        return email in options.get("demo-mode.users")
+        return True
 
     def get_context(self) -> Mapping[str, Any]:
         return {
@@ -466,7 +472,7 @@ class _ClientConfig:
             "memberRegions": self.member_regions,
             "regions": self.regions,
             "relocationConfig": {"selectableRegions": options.get("relocation.selectable-regions")},
-            "demoMode": self.demo_mode,
+            "demoMode": is_readonly_user(self.user),
             "enableAnalytics": settings.ENABLE_ANALYTICS,
             "validateSUForm": getattr(
                 settings, "VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON", False

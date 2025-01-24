@@ -6,7 +6,7 @@ import * as Sentry from '@sentry/react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {setActiveOrganization} from 'sentry/actionCreators/organizations';
-import type {ResponseMeta} from 'sentry/api';
+import type {ApiResult} from 'sentry/api';
 import {Client} from 'sentry/api';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
@@ -66,12 +66,7 @@ async function fetchOrg(
 async function fetchProjectsAndTeams(
   slug: string,
   usePreload?: boolean
-): Promise<
-  [
-    [Project[], string | undefined, XMLHttpRequest | ResponseMeta | undefined],
-    [Team[], string | undefined, XMLHttpRequest | ResponseMeta | undefined],
-  ]
-> {
+): Promise<[ApiResult<Project[]>, ApiResult<Team[]>]> {
   // Create a new client so the request is not cancelled
   const uncancelableApi = new Client();
 

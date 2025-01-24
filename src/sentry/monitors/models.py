@@ -473,7 +473,7 @@ class MonitorCheckIn(Model):
     guid = UUIDField(unique=True, auto_add=True)
     project_id = BoundedBigIntegerField(db_index=True)
     monitor = FlexibleForeignKey("sentry.Monitor")
-    monitor_environment = FlexibleForeignKey("sentry.MonitorEnvironment", null=True)
+    monitor_environment = FlexibleForeignKey("sentry.MonitorEnvironment")
     location = FlexibleForeignKey("sentry.MonitorLocation", null=True)
     """
     XXX(epurkhiser): Currently unused

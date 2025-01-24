@@ -131,7 +131,7 @@ export interface SavedMetricRule extends UnsavedMetricRule {
   snooze: boolean;
   status: number;
   createdBy?: {email: string; id: number; name: string} | null;
-  errors?: {detail: string}[];
+  errors?: Array<{detail: string}>;
   /**
    * Returned with the expand=latestIncident query parameter
    */

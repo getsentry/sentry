@@ -90,6 +90,7 @@ export type Widget = {
   interval: string;
   queries: WidgetQuery[];
   title: string;
+  dashboardId?: string;
   datasetSource?: DatasetSource;
   description?: string;
   id?: string;
@@ -173,4 +174,5 @@ export enum DashboardWidgetSource {
   DASHBOARDS = 'dashboards',
   LIBRARY = 'library',
   ISSUE_DETAILS = 'issueDetail',
+  TRACE_EXPLORER = 'traceExplorer',
 }

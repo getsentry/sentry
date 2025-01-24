@@ -111,7 +111,7 @@ function createIncidentSeries(
       data: [
         {
           xAxis: incidentTimestamp,
-          // @ts-ignore TS(2322): Type '{ xAxis: number; onClick: () => void | undef... Remove this comment to see the full error message
+          // @ts-expect-error TS(2322): Type '{ xAxis: number; onClick: () => void | undef... Remove this comment to see the full error message
           onClick: () => handleIncidentClick?.(incident),
         },
       ],
@@ -218,9 +218,9 @@ export function getMetricAlertChartOption({
         ) / ALERT_CHART_MIN_MAX_BUFFER
       )
     : 0;
-  const startDate = new Date(dataArr[0]!?.name);
-  const endDate =
-    dataArr.length > 1 ? new Date(dataArr[dataArr.length - 1]!?.name) : new Date();
+  const startDate = new Date(dataArr[0]?.name!);
+
+  const endDate = dataArr.length > 1 ? new Date(dataArr.at(-1)!.name) : new Date();
   const firstPoint = startDate.getTime();
   const lastPoint = endDate.getTime();
   const totalDuration = lastPoint - firstPoint;
@@ -234,8 +234,8 @@ export function getMetricAlertChartOption({
 
   if (showWaitingForData) {
     const {startIndex, endIndex} = getWaitingForDataRange(dataArr);
-    const startTime = new Date(dataArr[startIndex]!?.name).getTime();
-    const endTime = new Date(dataArr[endIndex]!?.name).getTime();
+    const startTime = new Date(dataArr[startIndex]?.name!).getTime();
+    const endTime = new Date(dataArr[endIndex]?.name!).getTime();
 
     waitingForDataDuration = Math.abs(endTime - startTime);
 
@@ -452,7 +452,7 @@ export function transformSessionResponseToSeries(
       data: getCrashFreeRateSeries(
         response?.groups,
         response?.intervals,
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         SESSION_AGGREGATE_TO_FIELD[aggregate]
       ),
     },

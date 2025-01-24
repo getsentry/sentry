@@ -46,7 +46,6 @@ class ErrorDetectorValidator(BaseGroupTypeDetectorValidator):
         with transaction.atomic(router.db_for_write(Detector)):
             detector = Detector.objects.create(
                 project_id=self.context["project"].id,
-                organization_id=self.context["project"].organization_id,
                 name=validated_data["name"],
                 # no workflow_condition_group
                 type=validated_data["group_type"].slug,

@@ -53,6 +53,7 @@ import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import type {FieldValue} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {
   createUnnamedTransactionsDiscoverTarget,
@@ -171,7 +172,7 @@ export function getTableSortOptions(
   widgetQuery: WidgetQuery
 ) {
   const {columns, aggregates} = widgetQuery;
-  const options: SelectValue<string>[] = [];
+  const options: Array<SelectValue<string>> = [];
   let equations = 0;
   [...aggregates, ...columns]
     .filter(field => !!field)
@@ -395,11 +396,11 @@ function getSeriesResultType(
   // Need to use getAggregateAlias since events-stats still uses aggregate alias format
   if (isMultiSeriesStats(data)) {
     Object.keys(data).forEach(
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       key => (resultTypes[key] = data[key]!.meta?.fields[getAggregateAlias(key)])
     );
   } else {
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     resultTypes[field] = data.meta?.fields[getAggregateAlias(field)];
   }
   return resultTypes;
@@ -431,39 +432,55 @@ export function renderEventIdAsLinkable(
   );
 }
 
-export function renderTraceAsLinkable(
-  data: any,
-  {eventView, organization, location}: RenderFunctionBaggage
-) {
-  const id: string | unknown = data?.trace;
-  if (!eventView || typeof id !== 'string') {
-    return null;
-  }
-  const dateSelection = eventView.normalizeDateSelection(location);
-  const target = getTraceDetailsUrl({
-    organization,
-    traceSlug: String(data.trace),
-    dateSelection,
-    timestamp: getTimeStampFromTableDateField(data.timestamp),
-    location,
-  });
+export function renderTraceAsLinkable(widget?: Widget) {
+  return function (
+    data: any,
+    {eventView, organization, location}: RenderFunctionBaggage
+  ) {
+    const id: string | unknown = data?.trace;
+    if (!eventView || typeof id !== 'string') {
+      return null;
+    }
+    const dateSelection = eventView.normalizeDateSelection(location);
+    const target = getTraceDetailsUrl({
+      organization,
+      traceSlug: String(data.trace),
+      dateSelection,
+      timestamp: getTimeStampFromTableDateField(data.timestamp),
+      location: widget
+        ? {
+            ...location,
+            query: {
+              ...location.query,
+              widgetId: widget.id,
+              dashboardId: widget.dashboardId,
+            },
+          }
+        : location,
+      source: TraceViewSources.DASHBOARDS,
+    });
 
-  return (
-    <Tooltip title={t('View Trace')}>
-      <Link data-test-id="view-trace" to={target}>
-        <Container>{getShortEventId(id)}</Container>
-      </Link>
-    </Tooltip>
-  );
+    return (
+      <Tooltip title={t('View Trace')}>
+        <Link data-test-id="view-trace" to={target}>
+          <Container>{getShortEventId(id)}</Container>
+        </Link>
+      </Tooltip>
+    );
+  };
 }
 
-export function getCustomEventsFieldRenderer(field: string, meta: MetaType) {
+export function getCustomEventsFieldRenderer(
+  field: string,
+  meta: MetaType,
+  widget?: Widget
+) {
   if (field === 'id') {
     return renderEventIdAsLinkable;
   }
 
   if (field === 'trace') {
-    return renderTraceAsLinkable;
+    return renderTraceAsLinkable(widget);
   }
 
   // When title or transaction are << unparameterized >>, link out to discover showing unparameterized transactions
@@ -677,21 +694,21 @@ export async function doOnDemandMetricsRequest(
       generatePathname: isEditing ? fetchEstimatedStats : undefined,
     });
 
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     response[0] = {...response[0]};
 
     if (
       hasDatasetSelector(requestData.organization) &&
       widgetType === WidgetType.DISCOVER
     ) {
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const meta = response[0].meta ?? {};
       meta.discoverSplitDecision = 'transaction-like';
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       response[0] = {...response[0], ...{meta}};
     }
 
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return [response[0], response[1], response[2]];
   } catch (err) {
     Sentry.captureMessage('Failed to fetch metrics estimation stats', {extra: err});

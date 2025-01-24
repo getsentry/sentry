@@ -111,6 +111,17 @@ function AlertRulesList() {
     });
   };
 
+  const handleChangeType = (alertType: CombinedAlertType[]) => {
+    const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
+    router.push({
+      pathname: location.pathname,
+      query: {
+        ...currentQuery,
+        alertType,
+      },
+    });
+  };
+
   const handleOwnerChange = (
     projectId: string,
     rule: CombinedAlerts,
@@ -140,10 +151,11 @@ function AlertRulesList() {
   };
 
   const handleDeleteRule = async (projectId: string, rule: CombinedAlerts) => {
-    const deleteEndpoints = {
+    const deleteEndpoints: Record<CombinedAlertType, string> = {
       [CombinedAlertType.ISSUE]: `/projects/${organization.slug}/${projectId}/rules/${rule.id}/`,
       [CombinedAlertType.METRIC]: `/organizations/${organization.slug}/alert-rules/${rule.id}/`,
       [CombinedAlertType.UPTIME]: `/projects/${organization.slug}/${projectId}/uptime/${rule.id}/`,
+      [CombinedAlertType.CRONS]: `/projects/${organization.slug}/${projectId}/monitors/${rule.id}/`,
     };
 
     try {
@@ -165,7 +177,11 @@ function AlertRulesList() {
   const ruleList = ruleListResponse.filter(defined);
   const projectsFromResults = uniq(
     ruleList.flatMap(rule =>
-      rule.type === CombinedAlertType.UPTIME ? [rule.projectSlug] : rule.projects
+      rule.type === CombinedAlertType.UPTIME
+        ? [rule.projectSlug]
+        : rule.type === CombinedAlertType.CRONS
+          ? [rule.project.slug]
+          : rule.projects
     )
   );
   const ruleListPageLinks = getResponseHeader?.('Link');
@@ -186,7 +202,7 @@ function AlertRulesList() {
       <SentryDocumentTitle title={t('Alerts')} orgSlug={organization.slug} />
 
       <PageFiltersContainer>
-        <AlertHeader router={router} activeTab="rules" />
+        <AlertHeader activeTab="rules" />
         <Layout.Body>
           <Layout.Main fullWidth>
             <MetricsRemovedAlertsWidgetsAlert organization={organization} />
@@ -195,6 +211,8 @@ function AlertRulesList() {
               location={location}
               onChangeFilter={handleChangeFilter}
               onChangeSearch={handleChangeSearch}
+              onChangeAlertType={handleChangeType}
+              hasTypeFilter
             />
             <StyledPanelTable
               isLoading={isPending}

@@ -448,10 +448,10 @@ class TriggersChart extends PureComponent<Props, State> {
 
     const showExtrapolatedChartData =
       shouldShowOnDemandMetricAlertUI(organization) &&
-      seriesAdditionalInfo?.[timeseriesData[0]!?.seriesName]?.isExtrapolatedData;
+      seriesAdditionalInfo?.[timeseriesData[0]?.seriesName!]?.isExtrapolatedData;
 
     const totalCountLabel = isSessionAggregate(aggregate)
-      ? // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         SESSION_AGGREGATE_TO_HEADING[aggregate]
       : showExtrapolatedChartData
         ? t('Estimated Transactions')
@@ -514,7 +514,7 @@ class TriggersChart extends PureComponent<Props, State> {
               size="sm"
               options={statsPeriodOptions.map(timePeriod => ({
                 value: timePeriod,
-                // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                 label: TIME_PERIOD_MAP[timePeriod],
               }))}
               value={period}
@@ -601,9 +601,9 @@ class TriggersChart extends PureComponent<Props, State> {
               api={this.historicalAPI}
               period={
                 timeWindow === 5
-                  ? // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                  ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                     HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS[period]!
-                  : // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                  : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                     HISTORICAL_TIME_PERIOD_MAP[period]!
               }
               dataLoadedCallback={onHistoricalDataLoaded}
@@ -656,9 +656,9 @@ class TriggersChart extends PureComponent<Props, State> {
         environment: environment ? [environment] : undefined,
         statsPeriod: period,
         query,
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         interval: TIME_WINDOW_TO_INTERVAL[timeWindow],
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         field: SESSION_AGGREGATE_TO_FIELD[aggregate],
         groupBy: ['session.status'],
         children: noop,
@@ -679,7 +679,7 @@ class TriggersChart extends PureComponent<Props, State> {
                 data: getCrashFreeRateSeries(
                   groups,
                   intervals,
-                  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                   SESSION_AGGREGATE_TO_FIELD[aggregate]
                 ),
               },
@@ -728,9 +728,9 @@ class TriggersChart extends PureComponent<Props, State> {
             api={this.historicalAPI}
             period={
               timeWindow === 5
-                ? // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                   HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS[period]!
-                : // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                   HISTORICAL_TIME_PERIOD_MAP[period]!
             }
             dataLoadedCallback={onHistoricalDataLoaded}

@@ -338,9 +338,7 @@ export default class ReplayReader {
       // Do this in here since we bypass setting the global offset
       // Eventually when we have video breadcrumbs we'll probably need to trim them here too
 
-      const updateVideoFrameOffsets = <T extends {offsetMs: number}>(
-        frames: Array<T>
-      ) => {
+      const updateVideoFrameOffsets = <T extends {offsetMs: number}>(frames: T[]) => {
         const offset = clipStartTimestampMs - this._replayRecord.started_at.getTime();
 
         return frames.map(frame => ({
@@ -396,7 +394,7 @@ export default class ReplayReader {
    * Filters out frames that are outside of the supplied window
    */
   _trimFramesToClipWindow = <T extends {timestampMs: number}>(
-    frames: Array<T>,
+    frames: T[],
     startTimestampMs: number,
     endTimestampMs: number
   ) => {
@@ -409,7 +407,7 @@ export default class ReplayReader {
   /**
    * Updates the offsetMs of all frames to be relative to the start of the clip window
    */
-  _updateFrameOffsets = <T extends {offsetMs: number}>(frames: Array<T>) => {
+  _updateFrameOffsets = <T extends {offsetMs: number}>(frames: T[]) => {
     return frames.map(frame => ({
       ...frame,
       offsetMs: frame.offsetMs - this.getStartOffsetMs(),
@@ -738,9 +736,9 @@ export default class ReplayReader {
     return this.getNetworkFrames().some(
       frame =>
         // We'd need to `filter()` before calling `some()` in order for TS to be happy
-        // @ts-ignore TS(2339): Property 'request' does not exist on type 'WebVita... Remove this comment to see the full error message
+        // @ts-expect-error TS(2339): Property 'request' does not exist on type 'WebVita... Remove this comment to see the full error message
         Object.keys(frame?.data?.request?.headers ?? {}).length ||
-        // @ts-ignore TS(2339): Property 'response' does not exist on type 'WebVit... Remove this comment to see the full error message
+        // @ts-expect-error TS(2339): Property 'response' does not exist on type 'WebVit... Remove this comment to see the full error message
         Object.keys(frame?.data?.response?.headers ?? {}).length
     );
   });
@@ -768,7 +766,7 @@ function findCanvasInMutation(event: incrementalSnapshotEvent) {
   );
 }
 
-// @ts-ignore TS(7023): 'findCanvasInChildNodes' implicitly has return typ... Remove this comment to see the full error message
+// @ts-expect-error TS(7023): 'findCanvasInChildNodes' implicitly has return typ... Remove this comment to see the full error message
 function findCanvasInChildNodes(nodes: serializedNodeWithId[]) {
   return nodes.find(
     node =>
