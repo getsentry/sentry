@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import abc
 import dataclasses
+import heapq
 from collections.abc import Mapping
 from datetime import datetime, timedelta
-from typing import Any, NotRequired, TypedDict
+from typing import Any, TypedDict
 
 from django.utils import timezone
+from redis.client import StrictRedis
 from rediscluster import RedisCluster
 
 from sentry.taskworker.registry import TaskRegistry
@@ -28,16 +30,11 @@ class crontab:
     month_of_year: str = "*"
 
 
-class ScheduleOptions(TypedDict):
-    expires: timedelta | int
-
-
 class ScheduleConfig(TypedDict):
     """The schedule definition for an individual task."""
 
     task: str
     schedule: timedelta | crontab
-    options: NotRequired[ScheduleOptions]
 
 
 ScheduleConfigMap = Mapping[str, ScheduleConfig]
@@ -48,7 +45,7 @@ class RunStorage(metaclass=abc.ABCMeta):
     """Interface for storing task runtimes."""
 
     @abc.abstractmethod
-    def set(self, taskname: str, next_runtime: datetime) -> None:
+    def set(self, taskname: str, next_runtime: datetime) -> bool:
         """
         Record a spawn time for a task.
         The next_runtime parameter indicates when this task should run again.
@@ -63,36 +60,54 @@ class RunStorage(metaclass=abc.ABCMeta):
         Returns None if last run time has expired or is unknown.
         """
 
+    @abc.abstractmethod
+    def delete(self, taskname: str) -> None:
+        """remove a task key - mostly for testing."""
+
 
 class RedisRunStorage(RunStorage):
-    def __init__(self, cluster: RedisCluster) -> None:
-        self._cluster = cluster
+    def __init__(self, redis: RedisCluster[bytes] | StrictRedis[bytes]) -> None:
+        self._redis = redis
 
     def _make_key(self, taskname: str) -> str:
         return f"tw:scheduler:{taskname}"
 
-    def set(self, taskname: str, next_runtime: datetime) -> None:
+    def set(self, taskname: str, next_runtime: datetime) -> bool:
         now = timezone.now()
         duration = next_runtime - now
 
-        result = self._cluster.set(self._make_key(taskname), now.isoformat(), ex=duration, nx=True)
-        if not result:
-            raise ValueError(f"Cannot set runtime for {taskname} it already has a runtime set")
+        result = self._redis.set(self._make_key(taskname), now.isoformat(), ex=duration, nx=True)
+        return bool(result)
 
     def read(self, taskname: str) -> datetime | None:
-        result = self._cluster.get(self._make_key(taskname))
+        result = self._redis.get(self._make_key(taskname))
         if result:
             return datetime.fromisoformat(result.decode())
         return None
+
+    def delete(self, taskname: str) -> None:
+        self._redis.delete(self._make_key(taskname))
 
 
 class Schedule(metaclass=abc.ABCMeta):
     """Interface for scheduling tasks to run at specific times."""
 
     @abc.abstractmethod
-    def is_due(self, last_run: datetime | None = None) -> float:
+    def is_due(self, last_run: datetime | None = None) -> bool:
         """
         Check if the schedule is due to run again based on last_run.
+        """
+
+    @abc.abstractmethod
+    def remaining_delta(self, last_run: datetime | None = None) -> timedelta:
+        """
+        Get the remaining timedelta until the schedule should run again.
+        """
+
+    @abc.abstractmethod
+    def runtime_after(self, start: datetime) -> datetime:
+        """
+        Get the next scheduled time after `start`
         """
 
 
@@ -103,30 +118,79 @@ class CrontabSchedule(Schedule):
     def is_due(self, last_run: datetime | None = None) -> bool:
         return False
 
+    def remaining_delta(self, last_run: datetime | None = None) -> timedelta:
+        return timedelta(seconds=0)
+
+    def runtime_after(self, start: datetime) -> datetime:
+        return timezone.now()
+
 
 class TimedeltaSchedule(Schedule):
     def __init__(self, delta: timedelta) -> None:
         self._delta = delta
+        if delta.microseconds:
+            raise ValueError("microseconds are not supported")
+        if delta.total_seconds() < 0:
+            raise ValueError("interval must be at least one second")
 
     def is_due(self, last_run: datetime | None = None) -> bool:
-        return False
+        """Check if the schedule is due to run again based on last_run."""
+        if last_run is None:
+            return True
+        remaining_delta = self.remaining_delta(last_run)
+        return remaining_delta.total_seconds() <= 0
+
+    def remaining_delta(self, last_run: datetime | None = None) -> timedelta:
+        """Get a timedelta remaining until the next task should spawn"""
+        if last_run is None:
+            return timedelta(seconds=0)
+        # floor to timestamp as microseconds are not relevant
+        now = int(timezone.now().timestamp())
+        last_run_ts = int(last_run.timestamp())
+
+        seconds_remaining = self._delta.total_seconds() - (now - last_run_ts)
+        return timedelta(seconds=max(seconds_remaining, 0))
+
+    def runtime_after(self, start: datetime) -> datetime:
+        """Get the next time a task should run after start"""
+        return start + self._delta
 
 
 class ScheduleEntry:
     """Metadata about a task that can be scheduled"""
 
-    def __init__(
-        self, *, task: Task[Any, Any], schedule: timedelta | crontab, options: ScheduleOptions
-    ) -> None:
+    def __init__(self, *, task: Task[Any, Any], schedule: timedelta | crontab) -> None:
         self._task = task
-        self._schedule = schedule
-        self._options = options
+        scheduler: Schedule
+        if isinstance(schedule, timedelta):
+            scheduler = TimedeltaSchedule(schedule)
+        else:
+            scheduler = CrontabSchedule(schedule)
+        self._schedule = scheduler
+        self._last_run: datetime | None = None
 
-    def is_due(self, last_run: datetime | None = None) -> bool:
-        return False
+    def __lt__(self, other: ScheduleEntry) -> bool:
+        # Secondary sorting for heapq when remaining time is the same
+        return self.fullname < other.fullname
+
+    @property
+    def fullname(self) -> str:
+        return self._task.fullname
+
+    def set_last_run(self, last_run: datetime | None) -> None:
+        self._last_run = last_run
+
+    def is_due(self) -> bool:
+        return self._schedule.is_due(self._last_run)
+
+    def remaining_delta(self) -> timedelta:
+        return self._schedule.remaining_delta(self._last_run)
+
+    def runtime_after(self, start: datetime) -> datetime:
+        return self._schedule.runtime_after(start)
 
     def delay_task(self) -> None:
-        pass
+        self._task.delay()
 
 
 class ScheduleSet:
@@ -136,22 +200,56 @@ class ScheduleSet:
         self._entries: list[ScheduleEntry] = []
         self._registry = registry
         self._run_storage = run_storage
+        self._heap: list[tuple[float, ScheduleEntry]] = []
 
     def add(self, task_config: ScheduleConfig) -> None:
         """Add a task to the schedule."""
-        # Fetch task wrapper from registry/namespace
-        # Build schedule entry, read last run time, add to collection
+        try:
+            (namespace, taskname) = task_config["task"].split(":")
+        except ValueError:
+            raise ValueError("Invalid task name. Must be in the format namespace:taskname")
 
-    def tick(self, current_time: datetime | None = None) -> float:
+        task = self._registry.get_task(namespace, taskname)
+        entry = ScheduleEntry(task=task, schedule=task_config["schedule"])
+        self._entries.append(entry)
+        self._heap = []
+
+    def tick(self) -> float:
         """
         Check if any tasks are due to run at current_time, and spawn them.
 
         Returns the number of seconds to sleep until the next task is due.
         """
-        # - put all the entries into a heap, or rebuild the heap?
-        # - look at the top of the heap, if it has is_due() == true, spawn it
-        #   if the top of the heap can't be spawned find out when it runs and return that
-        #   duration in seconds
-        # - before spawning the task, set last run time, and then spawn task
+        self._build_heap()
 
-        return 0.0
+        while True:
+            # Peek at the top, and if it is due, pop, spawn and update.
+            _, entry = self._heap[0]
+            if entry.is_due():
+                heapq.heappop(self._heap)
+                now = timezone.now()
+                next_runtime = entry.runtime_after(now)
+                if self._run_storage.set(entry.fullname, next_runtime):
+                    entry.delay_task()
+                entry.set_last_run(now)
+                heapq.heappush(self._heap, (entry.remaining_delta().total_seconds(), entry))
+                continue
+            else:
+                # The top of the heap isn't ready, break for sleep
+                break
+
+        return entry.remaining_delta().total_seconds()
+
+    def _build_heap(self) -> None:
+        if self._heap:
+            return
+
+        heap_items = []
+        for item in self._entries:
+            last_run = self._run_storage.read(item.fullname)
+            item.set_last_run(last_run)
+            remaining_time = item.remaining_delta()
+            heap_items.append((remaining_time.total_seconds(), item))
+
+        heapq.heapify(heap_items)
+        self._heap = heap_items
