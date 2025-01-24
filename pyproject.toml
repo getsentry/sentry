@@ -237,7 +237,6 @@ module = [
     "sentry.rules.actions.integrations.base",
     "sentry.rules.actions.integrations.create_ticket.form",
     "sentry.rules.actions.integrations.create_ticket.utils",
-    "sentry.rules.filters.assigned_to",
     "sentry.rules.history.preview",
     "sentry.scim.endpoints.members",
     "sentry.scim.endpoints.teams",

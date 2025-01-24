@@ -79,7 +79,7 @@ class RuleBase(abc.ABC):
     def is_enabled(self) -> bool:
         return True
 
-    def get_option(self, key: str, default: str | None = None) -> str:
+    def get_option(self, key: str, default: str | None = None) -> Any:
         return self.data.get(key, default)
 
     def get_form_instance(self) -> forms.Form:
