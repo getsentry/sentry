@@ -14,10 +14,7 @@ class ProjectUptimeSubscriptionSerializerResponse(TypedDict):
     projectSlug: str
     environment: str | None
     name: str
-    # TODO(epurkhiser): status and uptimeStatus are currently the same thing.
-    # status will be repurposed to be the object status, which keeps things
-    # consistent with other APIs
-    status: int
+    status: str
     uptimeStatus: int
     mode: int
     url: str
@@ -66,7 +63,7 @@ class ProjectUptimeSubscriptionSerializer(Serializer):
             "projectSlug": obj.project.slug,
             "environment": obj.environment.name if obj.environment else None,
             "name": obj.name or f"Uptime Monitoring for {obj.uptime_subscription.url}",
-            "status": obj.uptime_status,
+            "status": obj.get_status_display(),
             "uptimeStatus": obj.uptime_status,
             "mode": obj.mode,
             "url": obj.uptime_subscription.url,
