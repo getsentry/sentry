@@ -172,6 +172,7 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
             },
             condition_result=True,
         )
+        assert self.workflow.when_condition_group
         self.workflow.when_condition_group.update(logic_type=DataConditionGroup.Type.ALL)
 
         job = WorkflowEvaluationData({"data": [101]})
