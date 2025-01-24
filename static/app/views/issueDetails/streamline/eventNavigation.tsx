@@ -77,6 +77,10 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
   const hasManyAttachments =
     attachmentPagination.next?.results || attachmentPagination.previous?.results;
 
+  const allEventsPath = issueTypeConfig.showOpenPeriods
+    ? `${baseUrl}${TabPaths[Tab.OPEN_PERIODS]}`
+    : `${baseUrl}${TabPaths[Tab.EVENTS]}`;
+
   return (
     <EventNavigationWrapper role="navigation">
       <LargeDropdownButtonWrapper>
@@ -184,7 +188,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
             <IssueDetailsEventNavigation event={event} group={group} />
             <LinkButton
               to={{
-                pathname: `${baseUrl}${TabPaths[Tab.EVENTS]}`,
+                pathname: allEventsPath,
                 query: location.query,
               }}
               size="xs"
@@ -195,8 +199,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
             </LinkButton>
           </Fragment>
         )}
-
-        {currentTab === Tab.EVENTS && (
+        {(currentTab === Tab.EVENTS || currentTab === Tab.OPEN_PERIODS) && (
           <ButtonBar gap={1}>
             <LinkButton
               to={discoverUrl}

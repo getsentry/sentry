@@ -25,6 +25,7 @@ const metricIssueConfig: IssueCategoryConfigMapping = {
     mergedIssues: {enabled: false},
     replays: {enabled: false},
     similarIssues: {enabled: false},
+    showOpenPeriods: true,
     userFeedback: {enabled: false},
     usesIssuePlatform: true,
     stats: {enabled: false},
