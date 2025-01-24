@@ -158,7 +158,6 @@ class MonitorSerializerResponse(MonitorSerializerResponseOptional):
     slug: str
     status: str
     isMuted: bool
-    type: Literal["cron_job", "unknown"]
     config: MonitorConfigSerializerResponse
     dateCreated: datetime
     project: ProjectSerializerResponse
@@ -245,7 +244,6 @@ class MonitorSerializer(Serializer):
             "id": str(obj.guid),
             "status": obj.get_status_display(),
             "isMuted": obj.is_muted,
-            "type": obj.get_type_display(),
             "name": obj.name,
             "slug": obj.slug,
             "config": config,

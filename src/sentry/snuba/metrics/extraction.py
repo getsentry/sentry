@@ -822,7 +822,7 @@ def _is_on_demand_supported_query(tokens: Sequence[QueryToken]) -> bool:
     return True
 
 
-def _is_on_demand_supported_search_filter(token: QueryToken) -> bool:
+def _is_on_demand_supported_search_filter(token: QueryToken | AggregateFilter) -> bool:
     if isinstance(token, AggregateFilter):
         return False
 

@@ -6,14 +6,12 @@ import type {UIFrameNode, UIFrames} from 'sentry/utils/profiling/uiFrames';
 
 import {upperBound} from '../gl/utils';
 
-export interface UIFramesRendererConstructor {
-  new (
-    canvas: HTMLCanvasElement,
-    uiFrames: UIFrames,
-    theme: FlamegraphTheme,
-    options?: {draw_border: boolean}
-  ): UIFramesRenderer;
-}
+export type UIFramesRendererConstructor = new (
+  canvas: HTMLCanvasElement,
+  uiFrames: UIFrames,
+  theme: FlamegraphTheme,
+  options?: {draw_border: boolean}
+) => UIFramesRenderer;
 
 export abstract class UIFramesRenderer {
   ctx: CanvasRenderingContext2D | WebGLRenderingContext | null = null;

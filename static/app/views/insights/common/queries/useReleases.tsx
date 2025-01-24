@@ -95,11 +95,11 @@ export function useReleases(
     );
   }
 
-  const releaseStats: {
+  const releaseStats: Array<{
     dateCreated: string;
     version: string;
     count?: number;
-  }[] =
+  }> =
     releaseResults.data?.length && metricsFetched
       ? releaseResults.data.flatMap(release => {
           const releaseVersion = release.version;

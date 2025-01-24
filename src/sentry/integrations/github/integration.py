@@ -229,21 +229,29 @@ class GitHubIntegration(RepositoryIntegration, GitHubIssuesSpec, CommitContextIn
 
     def get_repositories(
         self, query: str | None = None, fetch_max_pages: bool = False
-    ) -> Sequence[Mapping[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
-        This fetches all repositories accessible to a Github App
+        args:
+        * query - a query to filter the repositories by
+
+        kwargs:
+        * fetch_max_pages - fetch as many repos as possible using pagination (slow)
+
+        This fetches all repositories accessible to the Github App
         https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation
 
-        per_page: The number of results per page (max 100; default 30).
+        It uses page_size from the base class to specify how many items per page (max 100; default 30).
+        The upper bound of requests is controlled with self.page_number_limit to prevent infinite requests.
         """
         if not query:
+            repos = self.get_client().get_repos(fetch_max_pages)
             return [
                 {
                     "name": i["name"],
                     "identifier": i["full_name"],
                     "default_branch": i.get("default_branch"),
                 }
-                for i in self.get_client().get_repositories(fetch_max_pages)
+                for i in [repo for repo in repos if not repo.get("archived")]
             ]
 
         full_query = build_repository_query(self.model.metadata, self.model.name, query)
@@ -422,7 +430,7 @@ def record_event(event: IntegrationPipelineViewType):
 
 
 class OAuthLoginView(PipelineView):
-    def dispatch(self, request: Request, pipeline) -> HttpResponseBase:
+    def dispatch(self, request: Request, pipeline: Pipeline) -> HttpResponseBase:
         with record_event(IntegrationPipelineViewType.OAUTH_LOGIN).capture() as lifecycle:
             self.determine_active_organization(request)
             lifecycle.add_extra(

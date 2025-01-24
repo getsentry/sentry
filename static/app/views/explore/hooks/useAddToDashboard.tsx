@@ -8,7 +8,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
-import {WidgetType} from 'sentry/views/dashboards/types';
+import {DashboardWidgetSource, WidgetType} from 'sentry/views/dashboards/types';
 import {MAX_NUM_Y_AXES} from 'sentry/views/dashboards/widgetBuilder/buildSteps/yAxisStep/yAxisSelector';
 import {handleAddQueryToDashboard} from 'sentry/views/discover/utils';
 import {
@@ -62,7 +62,7 @@ export function useAddToDashboard() {
       const search = new MutableSearch(query);
 
       const discoverQuery: NewQuery = {
-        name: t('Custom Explore Widget'),
+        name: t('Custom Widget'),
         fields,
         orderby: sortBys.map(formatSort),
         query: search.formatString(),
@@ -102,6 +102,7 @@ export function useAddToDashboard() {
         router,
         yAxis: eventView.yAxis,
         widgetType: WidgetType.SPANS,
+        source: DashboardWidgetSource.TRACE_EXPLORER,
       });
     },
     [organization, location, getEventView, router]

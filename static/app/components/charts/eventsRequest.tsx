@@ -144,7 +144,7 @@ type EventsRequestPartialProps = {
   /**
    * List of environments to query
    */
-  environment?: Readonly<string[]>;
+  environment?: readonly string[];
   /**
    * Is query out of retention
    */
@@ -181,7 +181,7 @@ type EventsRequestPartialProps = {
   /**
    * List of project ids to query
    */
-  project?: Readonly<number[]>;
+  project?: readonly number[];
   /**
    * A container for query batching data and functions.
    */
@@ -396,7 +396,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
     data: EventsStatsData,
     getName: (
       timestamp: number,
-      countArray: {count: number}[],
+      countArray: Array<{count: number}>,
       i: number
     ) => number = timestamp => timestamp * 1000
   ): SeriesDataUnit[] {

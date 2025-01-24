@@ -187,7 +187,7 @@ export function TimeRangeSelector({
   });
 
   const getOptions = useCallback(
-    (items: Item[]): SelectOption<string>[] => {
+    (items: Item[]): Array<SelectOption<string>> => {
       // Return the default options if there's nothing in search
       if (!search) {
         return items.map(item => {
@@ -247,7 +247,9 @@ export function TimeRangeSelector({
   );
 
   const commitChanges = useCallback(() => {
-    showRelative && setShowAbsoluteSelector(false);
+    if (showRelative) {
+      setShowAbsoluteSelector(false);
+    }
     setSearch('');
 
     if (!hasChanges) {

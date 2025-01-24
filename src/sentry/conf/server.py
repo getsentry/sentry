@@ -982,8 +982,6 @@ CELERY_QUEUES_REGION = [
     Queue("replays.delete_replay", routing_key="replays.delete_replay"),
     Queue("counters-0", routing_key="counters-0"),
     Queue("triggers-0", routing_key="triggers-0"),
-    # XXX: Temporarilty keep in place until we have migrated to the new queue
-    Queue("derive_code_mappings", routing_key="derive_code_mappings"),
     Queue("auto_source_code_config", routing_key="auto_source_code_config"),
     Queue("transactions.name_clusterer", routing_key="transactions.name_clusterer"),
     Queue("auto_enable_codecov", routing_key="auto_enable_codecov"),
@@ -2457,9 +2455,9 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             "ports": {"50051/tcp": 50051},
             "environment": {
                 "TASKBROKER_KAFKA_CLUSTER": (
-                    "kafka-kafka-1"
-                    if os.environ.get("USE_NEW_DEVSERVICES") == "1"
-                    else "sentry_kafka"
+                    "sentry_kafka"
+                    if os.environ.get("USE_OLD_DEVSERVICES") == "1"
+                    else "kafka-kafka-1"
                 ),
             },
             "only_if": settings.SENTRY_USE_TASKBROKER,
@@ -2971,6 +2969,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "buffered-segments": "default",
     "buffered-segments-dlq": "default",
     "task-worker": "default",
+    "snuba-ourlogs": "default",
 }
 
 
@@ -3473,6 +3472,12 @@ UPTIME_REGIONS = [
     ),
 ]
 
+MARKETO: Mapping[str, Any] = {
+    "base-url": os.getenv("MARKETO_BASE_URL"),
+    "client-id": os.getenv("MARKETO_CLIENT_ID"),
+    "client-secret": os.getenv("MARKETO_CLIENT_SECRET"),
+    "form-id": os.getenv("MARKETO_FORM_ID"),
+}
 
 # Devserver configuration overrides.
 ngrok_host = os.environ.get("SENTRY_DEVSERVER_NGROK")

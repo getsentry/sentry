@@ -57,7 +57,7 @@ import {
 } from './settings';
 import TemplateCard from './templateCard';
 
-const SORT_OPTIONS: SelectValue<string>[] = [
+const SORT_OPTIONS: Array<SelectValue<string>> = [
   {label: t('My Dashboards'), value: 'mydashboards'},
   {label: t('Dashboard Name (A-Z)'), value: 'title'},
   {label: t('Dashboard Name (Z-A)'), value: '-title'},
@@ -264,7 +264,13 @@ function ManageDashboards() {
         />
         <Feature features={'organizations:dashboards-table-view'}>
           <SegmentedControl<DashboardsLayout>
-            onChange={setDashboardsLayout}
+            onChange={newValue => {
+              setDashboardsLayout(newValue);
+              trackAnalytics('dashboards_manage.change_view_type', {
+                organization,
+                view_type: newValue,
+              });
+            }}
             size="md"
             value={dashboardsLayout}
             aria-label={t('Layout Control')}

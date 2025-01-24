@@ -158,7 +158,7 @@ export type SentryAppSchemaStacktraceLink = {
   type: 'stacktrace-link';
   uri: string;
   url: string;
-  params?: Array<string>;
+  params?: string[];
 };
 
 export enum Coverage {

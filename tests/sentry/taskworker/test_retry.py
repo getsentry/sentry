@@ -2,6 +2,11 @@ from __future__ import annotations
 
 from multiprocessing.context import TimeoutError
 
+from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
+    ON_ATTEMPTS_EXCEEDED_DEADLETTER,
+    ON_ATTEMPTS_EXCEEDED_DISCARD,
+)
+
 from sentry.taskworker.retry import LastAction, Retry, RetryError
 
 
@@ -14,9 +19,8 @@ def test_initial_state__discard() -> None:
     proto = retry.initial_state()
 
     assert proto.attempts == 0
-    assert proto.kind == "sentry.taskworker.retry.Retry"
-    assert proto.discard_after_attempt == 1
-    assert proto.deadletter_after_attempt == 0
+    assert proto.max_attempts == 1
+    assert proto.on_attempts_exceeded == ON_ATTEMPTS_EXCEEDED_DISCARD
 
 
 def test_initial_state__deadletter() -> None:
@@ -24,9 +28,8 @@ def test_initial_state__deadletter() -> None:
     proto = retry.initial_state()
 
     assert proto.attempts == 0
-    assert proto.kind == "sentry.taskworker.retry.Retry"
-    assert proto.discard_after_attempt == 0
-    assert proto.deadletter_after_attempt == 5
+    assert proto.max_attempts == 5
+    assert proto.on_attempts_exceeded == ON_ATTEMPTS_EXCEEDED_DEADLETTER
 
 
 def test_should_retry_no_matching_error() -> None:

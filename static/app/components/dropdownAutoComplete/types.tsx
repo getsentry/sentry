@@ -15,7 +15,7 @@ export type Item = {
 type Items<T> = Array<
   T & {
     hideGroupLabel?: boolean;
-    items?: Array<T>; // Should hide group label
+    items?: T[]; // Should hide group label
   }
 >;
 

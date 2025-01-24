@@ -119,9 +119,9 @@ export const generateOrderOptions = ({
   aggregates: string[];
   columns: string[];
   widgetType: WidgetType;
-}): SelectValue<string>[] => {
+}): Array<SelectValue<string>> => {
   const isRelease = widgetType === WidgetType.RELEASE;
-  const options: SelectValue<string>[] = [];
+  const options: Array<SelectValue<string>> = [];
   let equations = 0;
   (isRelease
     ? [...aggregates.map(stripDerivedMetricsPrefix), ...columns]
@@ -447,7 +447,7 @@ export function getFieldOptionFormat(
           kind: FieldValueKind.FUNCTION,
           meta: {
             name: functionName,
-            // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             parameters: AGGREGATIONS[field.function[0]].parameters.map((param: any) => ({
               ...param,
 

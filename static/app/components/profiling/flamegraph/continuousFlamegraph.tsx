@@ -143,13 +143,19 @@ function getProfileOffset(
 
 function getTransactionOffset(
   transaction: EventTransaction | null,
+  profileTimestamp: number,
   startedAtMs: number | null
 ): Rect {
   if (!transaction || !startedAtMs) {
     return Rect.Empty();
   }
 
-  return new Rect(transaction.startTimestamp * 1e3 - startedAtMs, 0, 0, 0);
+  return new Rect(
+    transaction.startTimestamp * 1e3 - profileTimestamp - startedAtMs,
+    0,
+    0,
+    0
+  );
 }
 
 function convertContinuousProfileMeasurementsToUIFrames(
@@ -250,7 +256,16 @@ export function ContinuousFlamegraph(): ReactElement {
   const profileGroup = useProfileGroup();
   const segment = useProfileTransaction();
 
-  const configSpaceQueryParam = useMemo(() => decodeConfigSpace(), []);
+  const profileTimestamp = useMemo(() => {
+    return (
+      Math.min(...profileGroup.profiles.map(p => p.timestamp).filter(defined)) * 1000
+    );
+  }, [profileGroup]);
+
+  const configSpaceQueryParam: [number, number] = useMemo(() => {
+    const [startedAtMs, endedAtMs] = decodeConfigSpace();
+    return [startedAtMs - profileTimestamp, endedAtMs - profileTimestamp];
+  }, [profileTimestamp]);
 
   const flamegraphTheme = useFlamegraphTheme();
   const position = useFlamegraphZoomPosition();
@@ -857,6 +872,7 @@ export function ContinuousFlamegraph(): ReactElement {
           depthOffset: flamegraphTheme.SIZES.SPANS_DEPTH_OFFSET,
           configSpaceTransform: getTransactionOffset(
             segment.type === 'resolved' ? segment.data : null,
+            profileTimestamp,
             configSpaceQueryParam[0]
           ),
         },
@@ -875,6 +891,7 @@ export function ContinuousFlamegraph(): ReactElement {
       spansCanvas,
       flamegraphView,
       flamegraphTheme.SIZES,
+      profileTimestamp,
       configSpaceQueryParam,
       segment,
     ]
