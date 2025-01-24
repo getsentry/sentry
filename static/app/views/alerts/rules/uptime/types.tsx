@@ -22,8 +22,8 @@ export interface UptimeRule {
   name: string;
   owner: Actor;
   projectSlug: string;
-  status: UptimeMonitorStatus;
   timeoutMs: number;
   traceSampling: boolean;
+  uptimeStatus: UptimeMonitorStatus;
   url: string;
 }
