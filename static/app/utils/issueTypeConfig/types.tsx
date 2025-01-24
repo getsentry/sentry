@@ -37,7 +37,7 @@ export type IssueTypeConfig = {
    * Custom copy for actions and other UI elements
    */
   customCopy: {
-    allEvents: string;
+    eventUnits: string;
     resolution: string;
   };
   /**
@@ -59,7 +59,11 @@ export type IssueTypeConfig = {
     title: string;
     helpText?: string;
   } | null;
-  filterAndSearchHeader: DisabledWithReasonConfig;
+  header: {
+    filterAndSearch: DisabledWithReasonConfig;
+    tagDistribution: DisabledWithReasonConfig;
+    timelineSummary: DisabledWithReasonConfig;
+  };
   /**
    * Is the Issue Summary available for this issue
    */

@@ -36,9 +36,14 @@ const BASE_CONFIG: IssueTypeConfig = {
     resolveInRelease: {enabled: true},
     share: {enabled: false},
   },
+  header: {
+    filterAndSearch: {enabled: true},
+    tagDistribution: {enabled: true},
+    timelineSummary: {enabled: false},
+  },
   customCopy: {
     resolution: t('Resolved'),
-    allEvents: t('All Events'),
+    eventUnits: t('Events'),
   },
   attachments: {enabled: false},
   autofix: false,
@@ -46,7 +51,6 @@ const BASE_CONFIG: IssueTypeConfig = {
   events: {enabled: true},
   logLevel: {enabled: false},
   mergedIssues: {enabled: false},
-  filterAndSearchHeader: {enabled: true},
   performanceDurationRegression: {enabled: false},
   profilingDurationRegression: {enabled: false},
   regression: {enabled: false},

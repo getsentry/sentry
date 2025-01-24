@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/button';
@@ -47,9 +48,14 @@ export function EventDetailsHeader({
     environment: environments,
   });
 
-  if (!issueTypeConfig.filterAndSearchHeader.enabled) {
+  if (!issueTypeConfig.header.filterAndSearch.enabled) {
     return null;
   }
+
+  const searchText = t(
+    'Filter %s\u2026',
+    issueTypeConfig.customCopy.eventUnits.toLocaleLowerCase()
+  );
 
   return (
     <PageErrorBoundary mini message={t('There was an error loading the event filters')}>
@@ -80,27 +86,33 @@ export function EventDetailsHeader({
             query={searchQuery}
             queryBuilderProps={{
               disallowFreeText: true,
+              placeholder: searchText,
+              label: searchText,
             }}
           />
           <ToggleSidebar />
         </Flex>
         <GraphSection>
           <EventGraph event={event} group={group} style={{flex: 1}} />
-          <SectionDivider />
-          <IssueTagsPreview groupId={group.id} environments={environments} />
-          <IssueTagsButton
-            aria-label={t('View issue tag distributions')}
-            to={{
-              pathname: `${baseUrl}${TabPaths[Tab.TAGS]}`,
-              query: location.query,
-              replace: true,
-            }}
-            analyticsEventKey="issue_details.issue_tags_clicked"
-            analyticsEventName="Issue Details: Issue Tags Clicked"
-            disabled={!tags || tags.length === 0}
-          >
-            {t('All Tags')}
-          </IssueTagsButton>
+          {issueTypeConfig.header.tagDistribution.enabled && (
+            <Fragment>
+              <SectionDivider />
+              <IssueTagsPreview groupId={group.id} environments={environments} />
+              <IssueTagsButton
+                aria-label={t('View issue tag distributions')}
+                to={{
+                  pathname: `${baseUrl}${TabPaths[Tab.TAGS]}`,
+                  query: location.query,
+                  replace: true,
+                }}
+                analyticsEventKey="issue_details.issue_tags_clicked"
+                analyticsEventName="Issue Details: Issue Tags Clicked"
+                disabled={!tags || tags.length === 0}
+              >
+                {t('All Tags')}
+              </IssueTagsButton>
+            </Fragment>
+          )}
         </GraphSection>
       </FilterContainer>
     </PageErrorBoundary>

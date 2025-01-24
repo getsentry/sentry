@@ -22,6 +22,11 @@ const cronConfig: IssueCategoryConfigMapping = {
       resolveInRelease: {enabled: true},
       share: {enabled: true},
     },
+    header: {
+      filterAndSearch: {enabled: false},
+      tagDistribution: {enabled: false},
+      timelineSummary: {enabled: true},
+    },
     attachments: {enabled: false},
     autofix: false,
     mergedIssues: {enabled: false},
@@ -30,7 +35,6 @@ const cronConfig: IssueCategoryConfigMapping = {
     userFeedback: {enabled: false},
     usesIssuePlatform: true,
     issueSummary: {enabled: false},
-    filterAndSearchHeader: {enabled: false},
   },
 };
 

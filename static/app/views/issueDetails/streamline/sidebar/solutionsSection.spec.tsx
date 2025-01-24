@@ -63,7 +63,7 @@ describe('SolutionsSection', () => {
       },
       customCopy: {
         resolution: 'Resolved',
-        allEvents: 'All Events',
+        eventUnits: 'Events',
       },
       attachments: {enabled: false},
       autofix: true,
@@ -71,7 +71,11 @@ describe('SolutionsSection', () => {
       eventAndUserCounts: {enabled: true},
       events: {enabled: false},
       evidence: null,
-      filterAndSearchHeader: {enabled: false},
+      header: {
+        filterAndSearch: {enabled: false},
+        tagDistribution: {enabled: false},
+        timelineSummary: {enabled: true},
+      },
       logLevel: {enabled: true},
       mergedIssues: {enabled: false},
       performanceDurationRegression: {enabled: false},
