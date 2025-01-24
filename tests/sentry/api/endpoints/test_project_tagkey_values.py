@@ -174,3 +174,5 @@ class ProjectTagKeyValuesTest(APITestCase, SnubaTestCase):
             results = sorted(response.data, key=lambda i: i["value"])
             assert results[0]["value"] == "false"
             assert results[1]["value"] == "true"
+            assert results[0]["count"] == 1
+            assert results[1]["count"] == 1
