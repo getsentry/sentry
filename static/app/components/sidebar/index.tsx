@@ -279,6 +279,18 @@ function Sidebar() {
     </Feature>
   );
 
+  const logs = hasOrganization && (
+    <Feature features="ourlogs-enabled">
+      <SidebarItem
+        {...sidebarItemProps}
+        label={<GuideAnchor target="logs">{t('Logs')}</GuideAnchor>}
+        to={`/organizations/${organization?.slug}/explore/logs/`}
+        id="ourlogs"
+        icon={<SubitemDot collapsed />}
+      />
+    </Feature>
+  );
+
   const performance = hasOrganization && (
     <Feature
       hookName="feature-disabled:performance-sidebar-item"
@@ -497,6 +509,7 @@ function Sidebar() {
       exact={!shouldAccordionFloat}
     >
       {traces}
+      {logs}
       {metrics}
       {profiling}
       {replays}

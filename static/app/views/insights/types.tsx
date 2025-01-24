@@ -415,3 +415,9 @@ export const subregionCodeToName = {
 };
 
 export type SubregionCode = keyof typeof subregionCodeToName;
+
+export type OurlogsFields = {
+  'sentry.body': string;
+  'sentry.severity_text': string;
+  'sentry.timestamp': string;
+};

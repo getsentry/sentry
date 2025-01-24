@@ -1900,6 +1900,14 @@ function buildRoutes() {
     </Route>
   );
 
+  const exploreRoutes = (
+    <Route
+      path="/explore/logs"
+      component={make(() => import('sentry/views/explore/logs'))}
+      withOrgPath
+    />
+  );
+
   const userFeedbackRoutes = (
     <Route
       path="/user-feedback/"
@@ -2323,6 +2331,7 @@ function buildRoutes() {
       {performanceRoutes}
       {domainViewRoutes}
       {tracesRoutes}
+      {exploreRoutes}
       {llmMonitoringRedirects}
       {profilingRoutes}
       {metricsRoutes}
