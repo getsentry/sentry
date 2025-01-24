@@ -9,6 +9,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
 )
+from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.snuba.models import QuerySubscription
@@ -16,6 +17,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.users.services.user.service import user_service
 from sentry.workflow_engine.migration_helpers.alert_rule import (
+    PRIORITY_MAP,
     MissingDataConditionGroup,
     dual_delete_migrated_alert_rule,
     dual_delete_migrated_alert_rule_trigger,
@@ -214,18 +216,18 @@ class AlertRuleMigrationHelpersTest(APITestCase):
         Return all models that we expect for a dual written alert rule.
         """
         detector_data_condition_group = self.create_data_condition_group(
-            organization=self.organization
+            organization=metric_alert.organization
         )
-        query_subscription = QuerySubscription.objects.get(snuba_query=metric_alert.snuba_query.id)
+        query_subscription = QuerySubscription.objects.get(snuba_query=metric_alert.snuba_query)
         data_source = self.create_data_source(
-            organization_id=self.organization.id,
+            organization=metric_alert.organization,
             query_id=query_subscription.id,
-            type="snuba_query_subscription",
+            type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
         )
         detector = self.create_detector(
             project_id=self.project.id,
             enabled=True,
-            created_by_id=self.rpc_user.id,
+            created_by_id=self.rpc_user.id if self.rpc_user else None,
             name=metric_alert.name,
             workflow_condition_group=detector_data_condition_group,
             type=MetricAlertFire.slug,
@@ -242,10 +244,10 @@ class AlertRuleMigrationHelpersTest(APITestCase):
         )
         workflow = self.create_workflow(
             name=metric_alert.name,
-            organization_id=self.organization.id,
+            organization_id=metric_alert.organization.id,
             when_condition_group=None,
             enabled=True,
-            created_by_id=self.rpc_user.id,
+            created_by_id=self.rpc_user.id if self.rpc_user else None,
             config={},
         )
         data_source.detectors.set([detector])
@@ -273,6 +275,104 @@ class AlertRuleMigrationHelpersTest(APITestCase):
             detector_workflow,
         )
 
+    def mock_migrate_alert_rule_trigger(
+        self, alert_rule_trigger
+    ) -> tuple[DataCondition, DataCondition]:
+        """
+        Create mock data for a dual-written alert rule trigger. Migrate the alert rule first, as required.
+        Return all models that we expect for a dual written alert rule trigger.
+        """
+        alert_rule = alert_rule_trigger.alert_rule
+        aci_tables = self.mock_migrate_alert_rule(alert_rule)
+        detector_data_condition_group = aci_tables[1]
+        workflow = aci_tables[2]
+        threshold_type = (
+            Condition.GREATER
+            if alert_rule.threshold_type == AlertRuleThresholdType.ABOVE.value
+            else Condition.LESS
+        )
+        condition_result = PRIORITY_MAP.get(alert_rule_trigger.label, DetectorPriorityLevel.HIGH)
+        detector_trigger = self.create_data_condition(
+            comparison=alert_rule_trigger.alert_threshold,
+            condition_result=condition_result,
+            type=threshold_type,
+            condition_group=detector_data_condition_group,
+        )
+
+        data_condition_group = self.create_data_condition_group(
+            organization=alert_rule.organization
+        )
+        self.create_workflow_data_condition_group(
+            condition_group=data_condition_group, workflow=workflow
+        )
+        action_filter = self.create_data_condition(
+            comparison=PRIORITY_MAP.get(alert_rule_trigger.label, DetectorPriorityLevel.HIGH),
+            condition_result=True,
+            type=Condition.ISSUE_PRIORITY_EQUALS,
+            condition_group=data_condition_group,
+        )
+        return detector_trigger, action_filter
+
+    def mock_migrate_resolve(
+        self, alert_rule, resolve_threshold, detector_dcg
+    ) -> tuple[DataCondition, DataCondition]:
+        """
+        Return the data conditions that correspond to alert rule resolution.
+        """
+        threshold_type = (
+            Condition.LESS_OR_EQUAL
+            if alert_rule.threshold_type == AlertRuleThresholdType.ABOVE.value
+            else Condition.GREATER_OR_EQUAL
+        )
+        detector_trigger = DataCondition.objects.create(
+            comparison=resolve_threshold,
+            condition_result=DetectorPriorityLevel.OK,
+            type=threshold_type,
+            condition_group=detector_dcg,
+        )
+        data_condition_group = self.create_data_condition_group(
+            organization=alert_rule.organization
+        )
+        workflow = AlertRuleWorkflow.objects.get(alert_rule=alert_rule).workflow
+        self.create_workflow_data_condition_group(
+            condition_group=data_condition_group, workflow=workflow
+        )
+        action_filter = DataCondition.objects.create(
+            comparison=DetectorPriorityLevel.OK,
+            condition_result=True,
+            type=Condition.ISSUE_PRIORITY_EQUALS,
+            condition_group=data_condition_group,
+        )
+        return detector_trigger, action_filter
+
+    def mock_migrate_integration_action(
+        self, alert_rule_trigger_action, data_condition_group
+    ) -> tuple[Action, DataConditionGroupAction, ActionAlertRuleTriggerAction]:
+        data = {
+            "type": alert_rule_trigger_action.type,
+            "sentry_app_id": alert_rule_trigger_action.sentry_app_id,
+            "sentry_app_config": alert_rule_trigger_action.sentry_app_config,
+        }
+
+        action = self.create_action(
+            required=False,
+            type=Action.Type.OPSGENIE,
+            data=data,
+            integration_id=alert_rule_trigger_action.integration_id,
+            target_display=alert_rule_trigger_action.target_display,
+            target_identifier=alert_rule_trigger_action.target_identifier,
+            target_type=alert_rule_trigger_action.target_type,
+        )
+        data_condition_group_action = self.create_data_condition_group_action(
+            condition_group=data_condition_group,
+            action=action,
+        )
+        action_alert_rule_trigger_action = ActionAlertRuleTriggerAction.objects.create(
+            action_id=action.id,
+            alert_rule_trigger_action_id=alert_rule_trigger_action.id,
+        )
+        return action, data_condition_group_action, action_alert_rule_trigger_action
+
     def test_create_metric_alert(self):
         """
         Test that when we call the helper methods we create all the ACI models correctly for an alert rule
@@ -281,22 +381,16 @@ class AlertRuleMigrationHelpersTest(APITestCase):
         assert_alert_rule_migrated(self.metric_alert, self.project.id)
 
     def test_delete_metric_alert(self):
-        self.mock_migrate_alert_rule(self.metric_alert)
-        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=self.metric_alert)
-        alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=self.metric_alert)
-        workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
-        detector = Detector.objects.get(id=alert_rule_detector.detector.id)
-        detector_workflow = DetectorWorkflow.objects.get(detector=detector)
-        data_condition_group = detector.workflow_condition_group
-        assert data_condition_group is not None
-        assert self.metric_alert.snuba_query
-        query_subscription = QuerySubscription.objects.get(
-            snuba_query=self.metric_alert.snuba_query.id
-        )
-        data_source = DataSource.objects.get(
-            organization_id=self.metric_alert.organization_id, query_id=query_subscription.id
-        )
-        detector_state = DetectorState.objects.get(detector=detector)
+        (
+            data_source,
+            detector_data_condition_group,
+            workflow,
+            detector,
+            detector_state,
+            alert_rule_detector,
+            alert_rule_workflow,
+            detector_workflow,
+        ) = self.mock_migrate_alert_rule(self.metric_alert)
         data_source_detector = DataSourceDetector.objects.get(data_source=data_source)
 
         dual_delete_migrated_alert_rule(self.metric_alert)
@@ -309,12 +403,13 @@ class AlertRuleMigrationHelpersTest(APITestCase):
 
         # check detector-related tables
         assert not Detector.objects.filter(id=detector.id).exists()
+        assert not AlertRuleDetector.objects.filter(id=alert_rule_detector.id).exists()
         assert not DetectorWorkflow.objects.filter(id=detector_workflow.id).exists()
         assert not DetectorState.objects.filter(id=detector_state.id).exists()
         assert not DataSourceDetector.objects.filter(id=data_source_detector.id).exists()
 
         # check data condition group
-        assert not DataConditionGroup.objects.filter(id=data_condition_group.id).exists()
+        assert not DataConditionGroup.objects.filter(id=detector_data_condition_group.id).exists()
 
         # check data source
         assert not DataSource.objects.filter(id=data_source.id).exists()
@@ -538,9 +633,9 @@ class AlertRuleMigrationHelpersTest(APITestCase):
         metric_alert = self.create_alert_rule()
         critical_trigger = self.create_alert_rule_trigger(alert_rule=metric_alert, label="critical")
 
-        self.mock_migrate_alert_rule(metric_alert)
-        migrate_metric_data_conditions(critical_trigger)
-        migrate_resolve_threshold_data_conditions(metric_alert)
+        detector_trigger, _ = self.mock_migrate_alert_rule_trigger(critical_trigger)
+        detector_dcg = detector_trigger.condition_group
+        self.mock_migrate_resolve(metric_alert, critical_trigger.alert_threshold, detector_dcg)
         # because there are only two objects in the DB
         critical_detector_trigger = DataCondition.objects.get(
             condition_result=DetectorPriorityLevel.HIGH
@@ -562,9 +657,11 @@ class AlertRuleMigrationHelpersTest(APITestCase):
         assert resolve_detector_trigger.type == Condition.GREATER_OR_EQUAL
 
     def test_update_metric_alert_resolve_threshold(self):
-        migrate_alert_rule(self.metric_alert, self.rpc_user)
-        migrate_metric_data_conditions(self.alert_rule_trigger_critical)
-        migrate_resolve_threshold_data_conditions(self.metric_alert)
+        detector_trigger, _ = self.mock_migrate_alert_rule_trigger(self.alert_rule_trigger_critical)
+        detector_dcg = detector_trigger.condition_group
+        self.mock_migrate_resolve(
+            self.metric_alert, self.metric_alert.resolve_threshold, detector_dcg
+        )
 
         resolve_detector_trigger = DataCondition.objects.get(
             condition_result=DetectorPriorityLevel.OK
@@ -578,10 +675,9 @@ class AlertRuleMigrationHelpersTest(APITestCase):
         assert resolve_detector_trigger.comparison == 10
 
     def test_dual_delete_migrated_alert_rule_trigger(self):
-        migrate_alert_rule(self.metric_alert, self.rpc_user)
-        data_conditions = migrate_metric_data_conditions(self.alert_rule_trigger_critical)
-        assert data_conditions is not None
-        detector_trigger, action_filter = data_conditions
+        detector_trigger, action_filter = self.mock_migrate_alert_rule_trigger(
+            self.alert_rule_trigger_critical
+        )
 
         detector_trigger_id = detector_trigger.id
         action_filter_id = action_filter.id
@@ -590,9 +686,10 @@ class AlertRuleMigrationHelpersTest(APITestCase):
         assert not DataCondition.objects.filter(id=action_filter_id).exists()
 
     def test_dual_delete_migrated_alert_rule_trigger_action(self):
-        migrate_alert_rule(self.metric_alert, self.rpc_user)
-        migrate_metric_data_conditions(self.alert_rule_trigger_critical)
-        migrate_metric_action(self.alert_rule_trigger_action_integration)
+        _, action_filter = self.mock_migrate_alert_rule_trigger(self.alert_rule_trigger_critical)
+        self.mock_migrate_integration_action(
+            self.alert_rule_trigger_action_integration, action_filter.condition_group
+        )
 
         aarta = ActionAlertRuleTriggerAction.objects.get(
             alert_rule_trigger_action=self.alert_rule_trigger_action_integration
@@ -634,7 +731,7 @@ class AlertRuleMigrationHelpersTest(APITestCase):
         Test that we raise an exception if the corresponding detector for an
         alert rule trigger is missing its workflow condition group.
         """
-        migrate_alert_rule(self.metric_alert, self.rpc_user)
+        self.mock_migrate_alert_rule(self.metric_alert)
         detector = AlertRuleDetector.objects.get(alert_rule=self.metric_alert).detector
         detector.update(workflow_condition_group=None)
 
@@ -646,10 +743,7 @@ class AlertRuleMigrationHelpersTest(APITestCase):
         Test that we raise an exception if the corresponding detector trigger
         for an alert rule trigger is missing.
         """
-        migrate_alert_rule(self.metric_alert, self.rpc_user)
-        data_conditions = migrate_metric_data_conditions(self.alert_rule_trigger_critical)
-        assert data_conditions is not None
-        detector_trigger, _ = data_conditions
+        detector_trigger, _ = self.mock_migrate_alert_rule_trigger(self.alert_rule_trigger_critical)
 
         detector_trigger.delete()
         with pytest.raises(DataCondition.DoesNotExist):
@@ -660,7 +754,7 @@ class AlertRuleMigrationHelpersTest(APITestCase):
         Test that we raise an exception if the corresponding workflow for an
         alert rule trigger action does not exist.
         """
-        migrate_alert_rule(self.metric_alert, self.rpc_user)
+        self.mock_migrate_alert_rule(self.metric_alert)
         workflow = AlertRuleWorkflow.objects.get(alert_rule=self.metric_alert).workflow
         workflow.delete()
 
@@ -672,10 +766,7 @@ class AlertRuleMigrationHelpersTest(APITestCase):
         Test that we raise an exception if the corresponding action filter for an
         alert rule trigger action does not exist.
         """
-        migrate_alert_rule(self.metric_alert, self.rpc_user)
-        data_conditions = migrate_metric_data_conditions(self.alert_rule_trigger_critical)
-        assert data_conditions is not None
-        _, action_filter = data_conditions
+        _, action_filter = self.mock_migrate_alert_rule_trigger(self.alert_rule_trigger_critical)
         action_filter.delete()
 
         with pytest.raises(DataCondition.DoesNotExist):
@@ -685,9 +776,10 @@ class AlertRuleMigrationHelpersTest(APITestCase):
         """
         Test that we raise an exception if the aarta entry for a migrated trigger action is missing
         """
-        migrate_alert_rule(self.metric_alert, self.rpc_user)
-        migrate_metric_data_conditions(self.alert_rule_trigger_critical)
-        migrate_metric_action(self.alert_rule_trigger_action_integration)
+        _, action_filter = self.mock_migrate_alert_rule_trigger(self.alert_rule_trigger_critical)
+        self.mock_migrate_integration_action(
+            self.alert_rule_trigger_action_integration, action_filter.condition_group
+        )
 
         aarta = ActionAlertRuleTriggerAction.objects.get(
             alert_rule_trigger_action=self.alert_rule_trigger_action_integration

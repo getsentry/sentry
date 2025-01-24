@@ -519,12 +519,12 @@ def get_data_source(alert_rule: AlertRule) -> DataSource | None:
         # This shouldn't be possible, but just in case.
         return None
     try:
-        query_subscription = QuerySubscription.objects.get(snuba_query=snuba_query.id)
+        query_subscription = QuerySubscription.objects.get(snuba_query_id=snuba_query.id)
     except QuerySubscription.DoesNotExist:
         return None
     try:
         data_source = DataSource.objects.get(
-            organization=organization,
+            organization_id=organization.id,
             query_id=query_subscription.id,
             type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
         )
