@@ -628,7 +628,7 @@ def register_temporary_features(manager: FeatureManager):
 
     # Feature Flags Features.
     manager.add(
-        "organizations:feature-flag-search",
+        "organizations:feature-flag-autocomplete",
         OrganizationFeature,
         FeatureHandlerStrategy.FLAGPOLE,
         api_expose=True,

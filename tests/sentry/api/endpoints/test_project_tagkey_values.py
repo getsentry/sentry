@@ -166,7 +166,7 @@ class ProjectTagKeyValuesTest(APITestCase, SnubaTestCase):
             },
         )
 
-        with self.feature({"organizations:feature-flag-search": True}):
+        with self.feature({"organizations:feature-flag-autocomplete": True}):
             response = self.client.get(url + "?useFlagsBackend=1")
             assert response.status_code == 200
             assert len(response.data) == 2

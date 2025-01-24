@@ -46,7 +46,7 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint, EnvironmentMixin):
         # could be queried in a single request. But at present we're not sure if we want to
         # treat tags and flags as the same or different and in which context.
         if request.GET.get("useFlagsBackend") == "1" and features.has(
-            "organizations:feature-flag-search", project.organization, actor=request.user
+            "organizations:feature-flag-autocomplete", project.organization, actor=request.user
         ):
             backend = tagstore.flag_backend
         else:

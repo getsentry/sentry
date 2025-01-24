@@ -102,7 +102,7 @@ class ProjectTagsTest(APITestCase, SnubaTestCase):
             project_id=self.project.id,
         )
 
-        with self.feature({"organizations:feature-flag-search": True}):
+        with self.feature({"organizations:feature-flag-autocomplete": True}):
             response = self.get_success_response(
                 self.project.organization.slug, self.project.slug, useFlagsBackend="1"
             )
