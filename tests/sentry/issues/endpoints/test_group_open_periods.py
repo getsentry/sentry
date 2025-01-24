@@ -4,6 +4,7 @@ from sentry.issues.grouptype import MetricIssuePOC, ProfileFileIOGroupType
 from sentry.models.activity import Activity
 from sentry.models.group import GroupStatus
 from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 
@@ -22,7 +23,7 @@ class GroupOpenPeriodsTest(APITestCase, SnubaTestCase):
 
         self.url = f"/api/0/issues/{self.group.id}/open-periods/"
 
-    def test_open_periods_non_metric(self) -> None:
+    def test_open_periods_flag_off(self) -> None:
         self.url = f"/api/0/issues/{self.group.id}/open-periods/"
         # open periods are not supported for non-metric issue groups
         self.group.type = ProfileFileIOGroupType.type_id
@@ -32,6 +33,7 @@ class GroupOpenPeriodsTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert response.data == []
 
+    @with_feature("organizations:issue-open-periods")
     def test_open_periods_new_group(self) -> None:
         response = self.client.get(self.url, format="json")
         assert response.status_code == 200, response.content
@@ -39,6 +41,7 @@ class GroupOpenPeriodsTest(APITestCase, SnubaTestCase):
             {"start": self.group.first_seen, "end": None, "duration": None, "isOpen": True}
         ]
 
+    @with_feature("organizations:issue-open-periods")
     def test_open_periods_resolved_group(self) -> None:
         self.group.status = GroupStatus.RESOLVED
         self.group.save()
@@ -61,6 +64,7 @@ class GroupOpenPeriodsTest(APITestCase, SnubaTestCase):
             }
         ]
 
+    @with_feature("organizations:issue-open-periods")
     def test_open_periods_unresolved_group(self) -> None:
         self.group.status = GroupStatus.RESOLVED
         self.group.save()

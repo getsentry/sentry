@@ -7,13 +7,13 @@ from django.utils import timezone
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.incidents.utils.metric_issue_poc import OpenPeriod
-from sentry.issues.grouptype import MetricIssuePOC
 from sentry.models.activity import Activity
 from sentry.types.activity import ActivityType
 
@@ -26,7 +26,7 @@ def get_open_periods_for_group(
     offset: int | None = None,
     limit: int | None = None,
 ) -> list[OpenPeriod]:
-    if group.type != MetricIssuePOC.type_id:
+    if not features.has("organizations:issue-open-periods", group.organization):
         return []
 
     activities = Activity.objects.filter(
