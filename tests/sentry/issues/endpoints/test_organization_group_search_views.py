@@ -4,7 +4,7 @@ from rest_framework.exceptions import ErrorDetail
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.rest_framework.groupsearchview import GroupSearchViewValidatorResponse
 from sentry.models.groupsearchview import GroupSearchView
-from sentry.testutils.cases import APITestCase
+from sentry.testutils.cases import APITestCase, TransactionTestCase
 from sentry.testutils.helpers.features import with_feature
 
 
@@ -519,14 +519,6 @@ class OrganizationGroupSearchViewsWithPageFiltersPutTest(BaseGSVTestCase):
         assert response.data[0]["timeFilters"] == {"period": "14d"}
 
     @with_feature({"organizations:issue-stream-custom-views": True})
-    @with_feature({"organizations:global-views": True})
-    def test_invalid_project_ids(self) -> None:
-        views = self.client.get(self.url).data
-        views[0]["projects"] = [self.project1.id, 123456]
-        response = self.get_error_response(self.organization.slug, views=views)
-        assert response.data == {"detail": "One or more projects do not exist"}
-
-    @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": False})
     def test_multiple_projects_without_global_views(self) -> None:
         views = self.client.get(self.url).data
@@ -555,6 +547,25 @@ class OrganizationGroupSearchViewsWithPageFiltersPutTest(BaseGSVTestCase):
         assert response.data == {
             "detail": "You do not have the multi project stream feature enabled"
         }
+
+
+class RandomTest(OrganizationGroupSearchViewsWithPageFiltersPutTest, TransactionTestCase):
+    def setUp(self) -> None:
+        self.login_as(user=self.user)
+        self.base_data = self.create_base_data_with_page_filters()
+
+        self.url = reverse(
+            "sentry-api-0-organization-group-search-views",
+            kwargs={"organization_id_or_slug": self.organization.slug},
+        )
+
+    @with_feature({"organizations:issue-stream-custom-views": True})
+    @with_feature({"organizations:global-views": True})
+    def test_invalid_project_ids(self) -> None:
+        views = self.client.get(self.url).data
+        views[0]["projects"] = [self.project1.id, 123456]
+        response = self.get_error_response(self.organization.slug, views=views)
+        assert response.data == {"detail": "One or more projects do not exist"}
 
 
 class OrganizationGroupSearchViewsPutRegressionTest(APITestCase):

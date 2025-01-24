@@ -140,36 +140,7 @@ def validate_projects(
             view["isAllProjects"] = True
             view["projects"] = []
         else:
-            projects = Project.objects.filter(
-                id__in=view["projects"], organization=org
-            ).values_list("id", flat=True)
-
-            if projects.count() != len(view["projects"]):
-                raise ValidationError("One or more projects do not exist")
-            view["projects"] = list(projects)
             view["isAllProjects"] = False
-    else:
-        if features.has("organizations:global-views", org):
-            view["projects"] = []
-            view["isAllProjects"] = False
-        else:
-            default_chosen_project = pick_default_project(org, user)
-
-            view["projects"] = [default_chosen_project]
-            view["isAllProjects"] = False
-
-
-def pick_default_project(org: Organization, user: User | AnonymousUser) -> int:
-    user_teams = Team.objects.get_for_user(organization=org, user=user)
-    user_team_ids = [team.id for team in user_teams]
-    user_projects = (
-        Project.objects.get_for_team_ids(user_team_ids)
-        .order_by("slug")
-        .values_list("id", flat=True)
-    )
-    if len(user_projects) == 0:
-        raise ValidationError("You do not have access to any projects")
-    return user_projects[0]
 
 
 def bulk_update_views(
@@ -184,6 +155,20 @@ def bulk_update_views(
             _create_view(org, user_id, view, position=idx)
         else:
             _update_existing_view(org, user_id, view, position=idx)
+
+
+def pick_default_project(org: Organization, user: User | AnonymousUser) -> int:
+    user_teams = Team.objects.get_for_user(organization=org, user=user)
+    user_team_ids = [team.id for team in user_teams]
+    default_user_project = (
+        Project.objects.get_for_team_ids(user_team_ids)
+        .order_by("slug")
+        .values_list("id", flat=True)
+        .first()
+    )
+    if default_user_project is None:
+        raise ValidationError("You do not have access to any projects")
+    return default_user_project
 
 
 def _delete_missing_views(org: Organization, user_id: int, view_ids_to_keep: list[str]) -> None:
@@ -213,7 +198,6 @@ def _update_existing_view(
             gsv.time_filters = view["timeFilters"]
 
         gsv.save()
-
     except GroupSearchView.DoesNotExist:
         # It is possible – though unlikely under normal circumstances – for a view to come in that
         # doesn't exist anymore. If, for example, the user has the issue stream open in separate
