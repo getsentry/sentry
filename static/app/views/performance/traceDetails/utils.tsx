@@ -35,7 +35,7 @@ export function getTraceDetailsUrl({
   targetId,
   demo,
   location,
-  source = TraceViewSources.TRACES,
+  source,
   view,
 }: {
   // @TODO add a type for dateSelection
@@ -56,7 +56,11 @@ export function getTraceDetailsUrl({
   const baseUrl = view
     ? getPerformanceBaseUrl(organization.slug, view)
     : normalizeUrl(
-        `/organizations/${organization.slug}/${TRACE_SOURCE_TO_NON_INSIGHT_ROUTES[source]}`
+        `/organizations/${organization.slug}/${
+          TRACE_SOURCE_TO_NON_INSIGHT_ROUTES[
+            source ?? TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY
+          ]
+        }`
       );
   const queryParams: Record<string, string | number | undefined | DateString | string[]> =
     {
