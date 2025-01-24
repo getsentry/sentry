@@ -506,11 +506,12 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient)
         """
         # XXX: In order to speed up this function we could use ThreadPoolExecutor
         # to fetch repositories in parallel. See src/sentry/utils/snuba.py
-        return self.get_with_pagination(
+        repos = self.get_with_pagination(
             "/installation/repositories",
             response_key="repositories",
             page_number_limit=self.page_number_limit if fetch_max_pages else 1,
         )
+        return [repo for repo in repos if not repo.get("archived")]
 
     # XXX: Find alternative approach
     def search_repositories(self, query: bytes) -> Mapping[str, Sequence[Any]]:
