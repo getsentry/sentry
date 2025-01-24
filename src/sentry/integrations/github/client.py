@@ -368,6 +368,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient)
             repositories = [
                 {"full_name": repo["full_name"], "default_branch": repo["default_branch"]}
                 for repo in self.get_repos()
+                if not repo.get("archived")
             ]
             if not repositories:
                 logger.warning("Fetching repositories returned an empty list.")
