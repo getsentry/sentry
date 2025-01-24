@@ -50,7 +50,7 @@ export function LogsTabContent({
           />
         </FilterBarContainer>
       </Layout.Main>
-      <LogsTableContainer>
+      <LogsTableContainer fullWidth>
         <LogsTable search={search} />
       </LogsTableContainer>
     </Layout.Body>
