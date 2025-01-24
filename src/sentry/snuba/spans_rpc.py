@@ -10,12 +10,13 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import AndFilter, OrFilter, Tr
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.exceptions import InvalidSearchQuery
+from sentry.search.eap.columns import ResolvedColumn, ResolvedFunction
 from sentry.search.eap.constants import MAX_ROLLUP_POINTS, VALID_GRANULARITIES
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.span_columns import SPAN_DEFINITIONS
 from sentry.search.eap.types import CONFIDENCES, EAPResponse, SearchResolverConfig
-from sentry.search.events.fields import get_function_alias, is_function
-from sentry.search.events.types import SnubaData, SnubaParams
+from sentry.search.events.fields import is_function
+from sentry.search.events.types import EventsMeta, SnubaData, SnubaParams
 from sentry.snuba import rpc_dataset_common
 from sentry.snuba.discover import OTHER_KEY, create_result_key, zerofill
 from sentry.utils import snuba_rpc
