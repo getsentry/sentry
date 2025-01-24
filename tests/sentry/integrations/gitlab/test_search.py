@@ -8,6 +8,7 @@ from django.urls import reverse
 from fixtures.gitlab import GitLabTestCase
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.types import EventLifecycleOutcome
+from sentry.testutils.asserts import assert_middleware_metrics
 from sentry.testutils.silo import control_silo_test
 
 
@@ -46,10 +47,12 @@ class GitlabSearchTest(GitLabTestCase):
             {"value": "5#25", "label": "(#25) AEIOU Error"},
             {"value": "5#45", "label": "(#45) AEIOU Error"},
         ]
-        assert len(mock_record.mock_calls) == 4
-        start1, start2, halt1, halt2 = (
-            mock_record.mock_calls
-        )  # calls get, which calls handle_search_issues
+        assert len(mock_record.mock_calls) == 8
+        middleware_calls = mock_record.mock_calls[:3] + mock_record.mock_calls[-1:]
+        assert_middleware_metrics(middleware_calls)
+        product_calls = mock_record.mock_calls[3:-1]
+        start1, start2, halt1, halt2 = product_calls  # calls get, which calls handle_search_issues
+        assert start1.args[0] == EventLifecycleOutcome.STARTED
         assert start1.args[0] == EventLifecycleOutcome.STARTED
         assert start2.args[0] == EventLifecycleOutcome.STARTED
         assert halt1.args[0] == EventLifecycleOutcome.SUCCESS
@@ -95,10 +98,14 @@ class GitlabSearchTest(GitLabTestCase):
             {"value": "1", "label": "GetSentry / Sentry"},
             {"value": "2", "label": "GetSentry2 / Sentry2"},
         ]
-        assert len(mock_record.mock_calls) == 4
+        assert len(mock_record.mock_calls) == 8
+        middleware_calls = mock_record.mock_calls[:3] + mock_record.mock_calls[-1:]
+        assert_middleware_metrics(middleware_calls)
+        product_calls = mock_record.mock_calls[3:-1]
         start1, start2, halt1, halt2 = (
-            mock_record.mock_calls
-        )  # calls get, which calls handle_search_repositories
+            product_calls  # calls get, which calls handle_search_repositories
+        )
+        assert start1.args[0] == EventLifecycleOutcome.STARTED
         assert start1.args[0] == EventLifecycleOutcome.STARTED
         assert start2.args[0] == EventLifecycleOutcome.STARTED
         assert halt1.args[0] == EventLifecycleOutcome.SUCCESS
@@ -241,8 +248,11 @@ class GitlabSearchTest(GitLabTestCase):
             self.url, data={"field": "externalIssue", "query": "GetSentry", "project": "5"}
         )
         assert resp.status_code == 400
-        assert len(mock_record.mock_calls) == 4
-        start1, start2, halt1, halt2 = mock_record.mock_calls
+        assert len(mock_record.mock_calls) == 8
+        middleware_calls = mock_record.mock_calls[:3] + mock_record.mock_calls[-1:]
+        assert_middleware_metrics(middleware_calls)
+        product_calls = mock_record.mock_calls[3:-1]
+        start1, start2, halt1, halt2 = product_calls
         assert start1.args[0] == EventLifecycleOutcome.STARTED
         assert start2.args[0] == EventLifecycleOutcome.STARTED
         assert halt1.args[0] == EventLifecycleOutcome.FAILURE
@@ -256,8 +266,11 @@ class GitlabSearchTest(GitLabTestCase):
         responses.add(responses.GET, "https://example.gitlab.com/api/v4/projects", status=503)
         resp = self.client.get(self.url, data={"field": "project", "query": "GetSentry"})
         assert resp.status_code == 400
-        assert len(mock_record.mock_calls) == 4
-        start1, start2, halt1, halt2 = mock_record.mock_calls
+        assert len(mock_record.mock_calls) == 8
+        middleware_calls = mock_record.mock_calls[:3] + mock_record.mock_calls[-1:]
+        assert_middleware_metrics(middleware_calls)
+        product_calls = mock_record.mock_calls[3:-1]
+        start1, start2, halt1, halt2 = product_calls
         assert start1.args[0] == EventLifecycleOutcome.STARTED
         assert start2.args[0] == EventLifecycleOutcome.STARTED
         assert halt1.args[0] == EventLifecycleOutcome.FAILURE

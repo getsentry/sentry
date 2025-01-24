@@ -22,6 +22,11 @@ def error_regions(region: Region, invalid_region_names: Iterable[str]):
     return region.name
 
 
+class ExampleRequestParser(BaseRequestParser):
+    provider = "test_provider"
+    webhook_identifier = WebhookProviderIdentifier.SLACK
+
+
 class BaseRequestParserTest(TestCase):
     response_handler = MagicMock()
     region_config = (
@@ -32,7 +37,7 @@ class BaseRequestParserTest(TestCase):
 
     def setUp(self):
         self.request = self.factory.get("/extensions/slack/webhook/")
-        self.parser = BaseRequestParser(self.request, self.response_handler)
+        self.parser = ExampleRequestParser(self.request, self.response_handler)
 
     @override_settings(SILO_MODE=SiloMode.MONOLITH)
     def test_fails_in_monolith_mode(self):
@@ -91,7 +96,9 @@ class BaseRequestParserTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_get_response_from_webhookpayload_creation(self):
         with pytest.raises(AttributeError):
-            self.parser.get_response_from_webhookpayload(regions=self.region_config)
+            BaseRequestParser(self.request, self.response_handler).get_response_from_webhookpayload(
+                regions=self.region_config
+            )
 
         class MockParser(BaseRequestParser):
             webhook_identifier = WebhookProviderIdentifier.SLACK
@@ -124,7 +131,7 @@ class BaseRequestParserTest(TestCase):
             status=ObjectStatus.ACTIVE,
         )
 
-        parser = BaseRequestParser(self.request, self.response_handler)
+        parser = ExampleRequestParser(self.request, self.response_handler)
         organizations = parser.get_organizations_from_integration(integration)
 
         assert len(organizations) == 2
@@ -148,7 +155,7 @@ class BaseRequestParserTest(TestCase):
             status=ObjectStatus.DISABLED,
         )
 
-        parser = BaseRequestParser(self.request, self.response_handler)
+        parser = ExampleRequestParser(self.request, self.response_handler)
         organizations = parser.get_organizations_from_integration(integration)
         assert len(organizations) == 1
         assert organizations[0].id == self.organization.id

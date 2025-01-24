@@ -5,7 +5,7 @@ from django.urls import reverse
 
 from sentry.integrations.source_code_management.metrics import SourceCodeSearchEndpointHaltReason
 from sentry.integrations.types import EventLifecycleOutcome
-from sentry.testutils.asserts import assert_halt_metric
+from sentry.testutils.asserts import assert_halt_metric, assert_middleware_metrics
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -57,10 +57,15 @@ class BitbucketSearchEndpointTest(APITestCase):
             {"label": "#123 Issue Title 123", "value": "123"},
             {"label": "#456 Issue Title 456", "value": "456"},
         ]
-        assert len(mock_record.mock_calls) == 4
-        start1, start2, halt1, halt2 = (
-            mock_record.mock_calls
-        )  # calls get, which calls handle_search_issues
+
+        assert len(mock_record.mock_calls) == 8
+
+        # first 2 are middleware calls to ensure control silo, then the next one and the last one are also middleware calls for get_response_from_control_silo
+        middleware_calls = mock_record.mock_calls[:3] + mock_record.mock_calls[-1:]
+        assert_middleware_metrics(middleware_calls)
+
+        product_calls = mock_record.mock_calls[3:-1]
+        start1, start2, halt1, halt2 = product_calls
         assert start1.args[0] == EventLifecycleOutcome.STARTED
         assert start2.args[0] == EventLifecycleOutcome.STARTED
         assert halt1.args[0] == EventLifecycleOutcome.SUCCESS
@@ -78,10 +83,14 @@ class BitbucketSearchEndpointTest(APITestCase):
 
         assert resp.status_code == 200
         assert resp.data == [{"label": "meredithanya/apples", "value": "meredithanya/apples"}]
-        assert len(mock_record.mock_calls) == 4
+
+        middleware_calls = mock_record.mock_calls[:3] + mock_record.mock_calls[-1:]
+        assert_middleware_metrics(middleware_calls)
+
+        product_calls = mock_record.mock_calls[3:-1]
         start1, start2, halt1, halt2 = (
-            mock_record.mock_calls
-        )  # calls get, which calls handle_search_repositories
+            product_calls  # calls get, which calls handle_search_repositories
+        )
         assert start1.args[0] == EventLifecycleOutcome.STARTED
         assert start2.args[0] == EventLifecycleOutcome.STARTED
         assert halt1.args[0] == EventLifecycleOutcome.SUCCESS
@@ -102,10 +111,13 @@ class BitbucketSearchEndpointTest(APITestCase):
         )
         assert resp.status_code == 400
         assert resp.data == {"detail": "Bitbucket Repository has no issue tracker."}
-        assert len(mock_record.mock_calls) == 4
-        start1, start2, halt1, halt2 = (
-            mock_record.mock_calls
-        )  # calls get, which calls handle_search_issues
+
+        middleware_calls = mock_record.mock_calls[:3] + mock_record.mock_calls[-1:]
+        assert_middleware_metrics(middleware_calls)
+
+        product_calls = mock_record.mock_calls[3:-1]
+
+        start1, start2, halt1, halt2 = product_calls  # calls get, which calls handle_search_issues
         assert start1.args[0] == EventLifecycleOutcome.STARTED
         assert start2.args[0] == EventLifecycleOutcome.STARTED
         assert halt1.args[0] == EventLifecycleOutcome.HALTED
