@@ -85,6 +85,7 @@ describe('SolutionsSection', () => {
       stats: {enabled: false},
       tags: {enabled: false},
       tagsTab: {enabled: false},
+      useOpenPeriodChecks: false,
       userFeedback: {enabled: false},
       usesIssuePlatform: false,
     });
