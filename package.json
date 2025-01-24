@@ -175,7 +175,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.1",
-    "@codecov/webpack-plugin": "^1.2.0",
+    "@codecov/webpack-plugin": "^1.8.0",
     "@emotion/eslint-plugin": "^11.12.0",
     "@eslint/compat": "^1.2.4",
     "@eslint/eslintrc": "^3.2.0",
