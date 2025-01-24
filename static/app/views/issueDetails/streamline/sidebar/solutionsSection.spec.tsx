@@ -79,6 +79,7 @@ describe('SolutionsSection', () => {
       regression: {enabled: false},
       replays: {enabled: false},
       showFeedbackWidget: false,
+      showOpenPeriods: false,
       similarIssues: {enabled: false},
       spanEvidence: {enabled: false},
       stacktrace: {enabled: false},

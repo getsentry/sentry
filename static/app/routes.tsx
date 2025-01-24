@@ -1957,6 +1957,12 @@ function buildRoutes() {
           component={hoc(make(() => import('sentry/views/issueDetails/groupEvents')))}
         />
         <Route
+          path={TabPaths[Tab.OPEN_PERIODS]}
+          component={hoc(
+            make(() => import('sentry/views/issueDetails/groupOpenPeriods'))
+          )}
+        />
+        <Route
           path={TabPaths[Tab.TAGS]}
           component={hoc(
             make(() => import('sentry/views/issueDetails/groupTags/groupTagsTab'))
