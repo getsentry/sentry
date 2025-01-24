@@ -16,7 +16,6 @@ describe('RangeMap', () => {
   });
 
   test('must provide at least one range', () => {
-    // @ts-ignore
     expect(() => new RangeMap([])).toThrow();
   });
 

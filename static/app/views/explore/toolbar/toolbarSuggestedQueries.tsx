@@ -84,9 +84,9 @@ function ToolbarSuggestedQueriesInner({dismiss}: ToolbarSuggestedQueriesInnerPro
       PlatformCategory.MOBILE,
       PlatformCategory.BACKEND,
     ]
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       .filter(k => counters[k] > 0)
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       .sort((a, b) => counters[b] - counters[a]);
 
     return getSuggestedQueries(platforms);

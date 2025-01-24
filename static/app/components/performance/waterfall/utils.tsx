@@ -238,7 +238,7 @@ const getLetterIndex = (letter: string): number => {
   return index === -1 ? 0 : index;
 };
 
-// @ts-ignore TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
+// @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
 const colorsAsArray = Object.keys(CHART_PALETTE).map(key => CHART_PALETTE[17][key]);
 
 export const barColors = {
@@ -256,9 +256,9 @@ export const pickBarColor = (input: string | undefined): string => {
     return CHART_PALETTE[17][4];
   }
 
-  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   if (barColors[input]) {
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return barColors[input];
   }
 

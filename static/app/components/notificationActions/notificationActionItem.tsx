@@ -175,9 +175,9 @@ function NotificationActionItem({
 
     // Remove keys from the data if they are falsy
     Object.keys(data).forEach(key => {
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       if (!data[key]) {
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         delete data[key];
       }
     });
@@ -201,7 +201,7 @@ function NotificationActionItem({
     const updatedAction = {...editedAction};
     names.forEach((name, i) => {
       const value = values[i];
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       updatedAction[name] = value;
     });
     setEditedAction(updatedAction);

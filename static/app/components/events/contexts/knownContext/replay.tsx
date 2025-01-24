@@ -12,9 +12,9 @@ export function getReplayContextData({
   return getContextKeys({data, hiddenKeys: [ReplayContextKey.REPLAY_ID]}).map(ctxKey => ({
     key: ctxKey,
     subject: ctxKey,
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     value: data[ctxKey],
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     meta: meta?.[ctxKey]?.[''],
   }));
 }

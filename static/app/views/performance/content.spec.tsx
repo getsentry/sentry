@@ -272,8 +272,7 @@ describe('Performance > Content', function () {
     MockApiClient.clearMockResponses();
     act(() => ProjectsStore.reset());
 
-    // TODO: This was likely a defensive check added due to a previous isolation issue, it can possibly be removed.
-    // @ts-expect-error
+    // @ts-expect-error // TODO: This was likely a defensive check added due to a previous isolation issue, it can possibly be removed.
     pageFilters.updateDateTime.mockRestore();
   });
 

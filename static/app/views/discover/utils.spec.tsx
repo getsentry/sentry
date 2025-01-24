@@ -487,9 +487,8 @@ describe('getExpandedResults()', function () {
     result = getExpandedResults(
       view,
       {},
-      // The type on this is wrong, the actual type is ReactText which is just string|number
+      // @ts-expect-error The type on this is wrong, the actual type is ReactText which is just string|number
       // however we seem to have tests that test for null values as well, hence the expect error
-      // @ts-expect-error
       {'measurements.lcp': 2, 'measurements.fcp': null}
     );
     expect(result.query).toBe('event.type:error measurements.lcp:2');

@@ -15,9 +15,9 @@ describe('Tooltip', function () {
   }
 
   afterEach(() => {
-    // @ts-expect-error
+    // @ts-expect-error cleanup previously mocked properties
     delete HTMLElement.prototype.scrollWidth;
-    // @ts-expect-error
+    // @ts-expect-error cleanup previously mocked properties
     delete HTMLElement.prototype.clientWidth;
   });
 

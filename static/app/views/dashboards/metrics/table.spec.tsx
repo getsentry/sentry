@@ -115,7 +115,7 @@ const data = [
 
 describe('getTableSeries', () => {
   it('should return table series', () => {
-    // @ts-expect-error
+    // @ts-expect-error argument does not satisfy MetricsQueryApiResponse
     const result = getTableData({data, meta: []}, queries);
 
     expect(result.headers).toEqual([

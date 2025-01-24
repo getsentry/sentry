@@ -412,7 +412,6 @@ export default typescript.config([
       '@typescript-eslint/prefer-enum-initializers': 'error',
 
       // Recommended overrides
-      '@typescript-eslint/ban-ts-comment': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-array-constructor': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-empty-object-type': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-explicit-any': 'off',
