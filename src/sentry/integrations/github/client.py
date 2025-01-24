@@ -501,14 +501,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient)
         It uses page_size from the base class to specify how many items per page.
         The upper bound of requests is controlled with self.page_number_limit to prevent infinite requests.
         """
-        # XXX: In order to speed up this function we could use ThreadPoolExecutor
-        # to fetch repositories in parallel. See src/sentry/utils/snuba.py
-        repos = self.get_with_pagination(
-            "/installation/repositories",
-            response_key="repositories",
-            page_number_limit=self.page_number_limit,
-        )
-        return [repo for repo in repos if not repo.get("archived")]
+        return self.get_with_pagination("/installation/repositories", response_key="repositories")
 
     # XXX: Find alternative approach
     def search_repositories(self, query: bytes) -> Mapping[str, Sequence[Any]]:
