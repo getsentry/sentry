@@ -25,6 +25,7 @@ import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
 import DurationChart from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart';
 import SampleTable from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/sampleTable/sampleTable';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {
   type ModuleName,
   SpanMetricsField,
@@ -59,6 +60,7 @@ export function SpanSamplesContainer({
 }: Props) {
   const location = useLocation();
   const navigate = useNavigate();
+  const {view} = useDomainViewFilters();
   const [highlightedSpanId, setHighlightedSpanId] = useState<string | undefined>(
     undefined
   );
@@ -187,6 +189,7 @@ export function SpanSamplesContainer({
               organization,
               traceSlug: span.trace,
               timestamp: span.timestamp,
+              view,
               source: TraceViewSources.APP_STARTS_MODULE,
             })
           );
