@@ -14,7 +14,7 @@ class LevelConditionHandler(DataConditionHandler[WorkflowJob]):
     comparison_json_schema = {
         "type": "object",
         "properties": {
-            "level": {"type": "integer", "enum": [*LOG_LEVELS_MAP.values()]},
+            "level": {"type": "integer", "enum": list(LOG_LEVELS_MAP.values())},
             "match": {"type": "string", "enum": [*MatchType]},
         },
         "required": ["level", "match"],

@@ -61,6 +61,10 @@ class TestLevelCondition(ConditionTestCase):
         with pytest.raises(ValidationError):
             self.dc.save()
 
+        self.dc.comparison.update({"match": "invalid_match", "level": 30})
+        with pytest.raises(ValidationError):
+            self.dc.save()
+
         self.dc.comparison.update({"match": MatchType.EQUAL, "level": "invalid_level"})
         with pytest.raises(ValidationError):
             self.dc.save()
