@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {updateUptimeRule} from 'sentry/actionCreators/uptime';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import {LinkButton} from 'sentry/components/button';
@@ -20,18 +21,28 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import getDuration from 'sentry/utils/duration/getDuration';
-import {type ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
+import {
+  type ApiQueryKey,
+  setApiQueryData,
+  useApiQuery,
+  useQueryClient,
+} from 'sentry/utils/queryClient';
+import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
 
+import {StatusToggleButton} from './statusToggleButton';
 import {UptimeIssues} from './uptimeIssues';
 
 interface UptimeAlertDetailsProps
   extends RouteComponentProps<{projectId: string; uptimeRuleId: string}, {}> {}
 
 export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
+  const api = useApi();
   const organization = useOrganization();
+  const queryClient = useQueryClient();
+
   const {projectId, uptimeRuleId} = params;
 
   const {projects, fetching: loadingProject} = useProjects({slugs: [projectId]});
@@ -69,6 +80,14 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
     );
   }
 
+  const handleUpdate = async (data: Partial<UptimeRule>) => {
+    const resp = await updateUptimeRule(api, organization.slug, uptimeRule, data);
+
+    if (resp !== null) {
+      setApiQueryData(queryClient, queryKey, resp);
+    }
+  };
+
   return (
     <Layout.Page>
       <SentryDocumentTitle title={`${uptimeRule.name} — Alerts`} />
@@ -97,6 +116,11 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <ButtonBar gap={1}>
+            <StatusToggleButton
+              uptimeRule={uptimeRule}
+              onToggleStatus={status => handleUpdate({status})}
+              size="sm"
+            />
             <LinkButton
               size="sm"
               icon={<IconEdit />}
