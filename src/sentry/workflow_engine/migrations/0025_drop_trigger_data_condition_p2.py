@@ -25,6 +25,6 @@ class Migration(CheckedMigration):
 
     operations = [
         SafeDeleteModel(
-            name="AlertRuleTriggerDataCondition", deletion_action=DeletionAction.MOVE_TO_PENDING
+            name="AlertRuleTriggerDataCondition", deletion_action=DeletionAction.DELETE
         ),
     ]
