@@ -1,23 +1,33 @@
+from datetime import timedelta
+
+import pytest
+
 from sentry.api.serializers import serialize
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricAlertFire
-
-# from sentry.snuba.dataset import Dataset
-# from sentry.snuba.models import SnubaQueryEventType
+from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
+from sentry.snuba.dataset import Dataset
+from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
+from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_kafka, requires_snuba
 from sentry.workflow_engine.models import (
     DataCondition,
     DataConditionGroup,
+    DataSource,
     DataSourceDetector,
     Detector,
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
+pytestmark = [pytest.mark.sentry_metrics, requires_snuba, requires_kafka]
 
+
+@pytest.mark.snuba_ci
 class ProjectDetectorDetailsBaseTest(APITestCase):
     endpoint = "sentry-api-0-project-detector-details"
 
@@ -39,7 +49,24 @@ class ProjectDetectorDetailsBaseTest(APITestCase):
         self.environment = self.create_environment(
             organization_id=self.organization.id, name="production"
         )
-        self.data_source = self.create_data_source(organization=self.organization)
+        self.snuba_query = create_snuba_query(
+            query_type=SnubaQuery.Type.ERROR,
+            dataset=Dataset.Events,
+            query="hello",
+            aggregate="count()",
+            time_window=timedelta(minutes=1),
+            resolution=timedelta(minutes=1),
+            environment=self.environment,
+            event_types=[SnubaQueryEventType.EventType.ERROR],
+        )
+        self.query_subscription = create_snuba_subscription(
+            project=self.project,
+            subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+            snuba_query=self.snuba_query,
+        )
+        self.data_source = self.create_data_source(
+            organization=self.organization, query_id=self.query_subscription.id
+        )
         self.condition_group = self.create_data_condition_group(
             organization_id=self.organization.id,
             logic_type=DataConditionGroup.Type.ANY,
@@ -114,18 +141,19 @@ class ProjectDetectorDetailsPostTest(ProjectDetectorDetailsGetTest):
         self.valid_data = {
             "name": "Updated Detector",
             "group_type": MetricAlertFire.slug,
-            "data_source": [],
-            # "data_source": [ # is this supposed to update the query via the query id?
-            #     {
-            #         "query_type": SnubaQuery.Type.ERROR.value,
-            #         "dataset": Dataset.Events.name.lower(),
-            #         "query_id": "test query",
-            #         "aggregate": "count()",
-            #         "time_window": 60,
-            #         "environment": self.environment.name,
-            #         "event_types": [SnubaQueryEventType.EventType.ERROR.value],
-            #     }
-            # ],
+            "data_source": [
+                {
+                    "query_type": self.snuba_query.type,
+                    "dataset": self.snuba_query.dataset,
+                    "query": "updated_query",
+                    "aggregate": self.snuba_query.aggregate,
+                    "time_window": 120,
+                    "environment": None,  # getting env not in org error when passing self.environment.id
+                    "event_types": [
+                        event_type.value for event_type in self.snuba_query.event_types
+                    ],
+                }
+            ],
             "data_conditions": {
                 "type": Condition.GREATER,
                 "comparison": 100,
@@ -161,9 +189,13 @@ class ProjectDetectorDetailsPostTest(ProjectDetectorDetailsGetTest):
         assert condition.comparison == 100
         assert condition.condition_result == DetectorPriorityLevel.HIGH
 
-        # data_source_detector = DataSourceDetector.objects.get(detector=detector)
-        # data_source = DataSource.objects.get(id=data_source_detector.detector.id)
-        # assert data_source.query == "test query"
+        data_source_detector = DataSourceDetector.objects.get(detector=detector)
+        data_source = DataSource.objects.get(id=data_source_detector.detector.id)
+        assert data_source.query == "test query"
+        assert data_source.time_window == 120
 
     def test_update_missing_data_condition(self):
+        """
+        Edge case - workflow_data_condition field is nullable
+        """
         pass
