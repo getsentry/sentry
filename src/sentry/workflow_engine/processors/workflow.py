@@ -67,8 +67,13 @@ def evaluate_workflow_triggers(workflows: set[Workflow], job: WorkflowJob) -> se
     triggered_workflows: set[Workflow] = set()
 
     for workflow in workflows:
-        if workflow.evaluate_trigger_conditions(job):
-            triggered_workflows.add(workflow)
+        is_workflow_triggered, conditions_to_enqueue = workflow.evaluate_trigger_conditions(job)
+
+        if is_workflow_triggered:
+            if conditions_to_enqueue:
+                enqueue_workflows(workflows, job)
+            else:
+                triggered_workflows.add(workflow)
 
     return triggered_workflows
 

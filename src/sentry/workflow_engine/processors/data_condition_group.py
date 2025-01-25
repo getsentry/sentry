@@ -3,6 +3,7 @@ from typing import Any, TypeVar
 
 from sentry.utils.function_cache import cache_func_for_models
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup
+from sentry.workflow_engine.models.data_condition import split_fast_slow_conditions
 from sentry.workflow_engine.models.workflow import get_slow_conditions
 from sentry.workflow_engine.types import ProcessedDataConditionResult
 
@@ -19,6 +20,34 @@ def get_data_conditions_for_group(data_condition_group_id: int) -> list[DataCond
     return list(DataCondition.objects.filter(condition_group_id=data_condition_group_id))
 
 
+def process_condition_group_results(
+    logic_type: DataConditionGroup.Type,
+    results: list[ProcessedDataConditionResult],
+) -> tuple[bool, ProcessedDataConditionResult]:
+    logic_result = False
+    condition_results: ProcessedDataConditionResult = []
+
+    if logic_type == DataConditionGroup.Type.NONE:
+        # if we get to this point, no conditions were met
+        logic_result = True
+        condition_results = []
+
+    elif logic_type == DataConditionGroup.Type.ANY:
+        logic_result = any([result[0] for result in results])
+
+        if logic_result:
+            condition_results = [result[1] for result in results if result[0]]
+
+    elif logic_type == DataConditionGroup.Type.ALL:
+        conditions_met = [result[0] for result in results]
+        logic_result = all(conditions_met)
+
+        if logic_result:
+            condition_results = [result[1] for result in results if result[0]]
+
+    return logic_result, condition_results
+
+
 def evaluate_condition_group(
     data_condition_group: DataConditionGroup,
     value: T,
@@ -32,12 +61,10 @@ def evaluate_condition_group(
     conditions = get_data_conditions_for_group(data_condition_group.id)
 
     if is_fast:
-        # filter conditions to fast
-        pass
+        conditions, remaining_conditions = split_fast_slow_conditions(conditions)
     else:
-        # filter conditions to slow
         conditions = get_slow_conditions(conditions)
-        pass
+        remaining_conditions = []
 
     if len(conditions) == 0:
         # if we don't have any conditions, always return True
@@ -50,39 +77,23 @@ def evaluate_condition_group(
         if is_condition_triggered:
             # Check for short-circuiting evaluations
             if data_condition_group.logic_type == data_condition_group.Type.ANY_SHORT_CIRCUIT:
-                return is_condition_triggered, [evaluation_result]
+                return is_condition_triggered, [evaluation_result], []
 
             if data_condition_group.logic_type == data_condition_group.Type.NONE:
-                return False, []
+                return False, [], []
 
         results.append((is_condition_triggered, evaluation_result))
 
-    logic_result = False
-    condition_results: ProcessedDataConditionResult = []
+    logic_result, condition_results = process_condition_group_results(
+        data_condition_group.logic_type, results
+    )
 
-    if data_condition_group.logic_type == data_condition_group.Type.NONE:
-        # if we get to this point, no conditions were met
-        logic_result = True
-        condition_results = []
+    if data_condition_group.logic_type == DataConditionGroup.Type.ALL and not logic_result:
+        # if we have an ALL condition group and the logic result is False,
+        # then we don't need to evaluate any more conditions
+        remaining_conditions = []
 
-    elif data_condition_group.logic_type == data_condition_group.Type.ANY:
-        logic_result = any([result[0] for result in results])
-
-        if logic_result:
-            condition_results = [result[1] for result in results if result[0]]
-
-    elif data_condition_group.logic_type == data_condition_group.Type.ALL:
-        conditions_met = [result[0] for result in results]
-        logic_result = all(conditions_met)
-
-        if logic_result:
-            condition_results = [result[1] for result in results if result[0]]
-
-    if logic_result and is_fast:
-        # enqueue fast conditions
-        pass
-
-    return logic_result, condition_results
+    return logic_result, condition_results, remaining_conditions
 
 
 def process_data_condition_group(

@@ -8,7 +8,7 @@ from sentry.types.group import PriorityLevel
 if TYPE_CHECKING:
     from sentry.eventstore.models import GroupEvent
     from sentry.eventstream.base import GroupState
-    from sentry.workflow_engine.models import Action, Detector, Workflow
+    from sentry.workflow_engine.models import Action, DataCondition, Detector, Workflow
 
 T = TypeVar("T")
 
@@ -32,7 +32,7 @@ class DataConditionHandlerType(StrEnum):
 DetectorGroupKey = str | None
 
 DataConditionResult = DetectorPriorityLevel | int | float | bool | None
-ProcessedDataConditionResult = tuple[bool, list[DataConditionResult]]
+ProcessedDataConditionResult = tuple[bool, list[DataConditionResult], list[DataCondition]]
 
 
 class EventJob(TypedDict):
