@@ -30,6 +30,7 @@ class TaggedEventConditionHandler(DataConditionHandler[WorkflowJob]):
                     "key": {"type": "string"},
                     "match": {"enum": [MatchType.IS_SET, MatchType.NOT_SET]},
                 },
+                "required": ["key", "match"],
                 "not": {"required": ["value"]},
             },
             {
@@ -40,7 +41,7 @@ class TaggedEventConditionHandler(DataConditionHandler[WorkflowJob]):
                     },
                     "value": {"type": "string"},
                 },
-                "required": ["value"],
+                "required": ["key", "match", "value"],
             },
         ],
         "additionalProperties": False,
