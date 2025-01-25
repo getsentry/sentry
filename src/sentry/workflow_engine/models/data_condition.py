@@ -158,15 +158,15 @@ def is_slow_condition(cond: DataCondition) -> bool:
 
 def split_fast_slow_conditions(
     conditions: list[DataCondition],
-) -> tuple[list[DataCondition], list[DataCondition]]:
-    fast_conditions = []
-    slow_conditions = []
+) -> tuple[set[DataCondition], set[DataCondition]]:
+    fast_conditions = {}
+    slow_conditions = {}
 
     for condition in conditions:
         if is_slow_condition(condition):
-            slow_conditions.append(condition)
+            slow_conditions.add(condition)
         else:
-            fast_conditions.append(condition)
+            fast_conditions.add(condition)
 
     return fast_conditions, slow_conditions
 
