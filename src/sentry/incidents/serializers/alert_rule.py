@@ -519,10 +519,13 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
                 "organizations:workflow-engine-metric-alert-processing", alert_rule.organization
             ):
                 migrate_alert_rule(alert_rule, user)
-                if alert_rule.resolve_threshold:
-                    migrate_resolve_threshold_data_conditions(alert_rule)
 
             self._handle_triggers(alert_rule, triggers)
+            if features.has(
+                "organizations:workflow-engine-metric-alert-processing", alert_rule.organization
+            ):
+                # create the resolution data triggers once we've migrated the critical/warning triggers
+                migrate_resolve_threshold_data_conditions(alert_rule)
             return alert_rule
 
     def update(self, instance, validated_data):
