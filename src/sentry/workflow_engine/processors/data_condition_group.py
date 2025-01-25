@@ -110,7 +110,4 @@ def process_data_condition_group(
         )
         return False, []
 
-    # should this split the conditions into fast and slow conditions?
-    # then we can evaluate_condition_group with data in fast or slow.
-
     return evaluate_condition_group(group, value, is_fast)
