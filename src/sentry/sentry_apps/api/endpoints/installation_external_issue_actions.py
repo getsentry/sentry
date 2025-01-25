@@ -1,4 +1,5 @@
 from django.utils.functional import empty
+from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -32,6 +33,12 @@ def _extract_lazy_object(lo):
     return lo._wrapped
 
 
+class SentryAppInstallationExternalIssueActionsSerializer(serializers.Serizlizer):
+    groupId = serializers.CharField(required=True, allow_null=False)
+    action = serializers.CharField(required=True, allow_null=False)
+    uri = serializers.CharField(required=True, allow_null=False)
+
+
 @region_silo_endpoint
 class SentryAppInstallationExternalIssueActionsEndpoint(SentryAppInstallationBaseEndpoint):
     owner = ApiOwner.INTEGRATIONS
@@ -42,10 +49,10 @@ class SentryAppInstallationExternalIssueActionsEndpoint(SentryAppInstallationBas
     def post(self, request: Request, installation) -> Response:
         data = request.data.copy()
 
-        if not {"groupId", "action", "uri"}.issubset(data.keys()):
-            raise SentryAppError(
-                message="Missing groupId, action, uri in request body", status_code=400
-            )
+        external_issue_action_serializer = SentryAppInstallationExternalIssueActionsSerializer(data)
+
+        if not external_issue_action_serializer.is_valid():
+            return Response(external_issue_action_serializer.errors, status=400)
 
         group_id = data.get("groupId")
         del data["groupId"]
