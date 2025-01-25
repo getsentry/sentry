@@ -134,6 +134,19 @@ class OAuth2Provider(Provider):
     def handle_refresh_error(self, req, payload):
         error_name = "unknown_error"
         error_description = "no description available"
+        
+        # Check for inactivity expiration
+        is_inactivity_expired = (
+            error_name == "invalid_grant" and
+            any(
+                marker in error_description.lower()
+                for marker in ["inactivity", "inactive for"]
+            )
+        )
+        
+        if is_inactivity_expired:
+            self.logger.info("identity.oauth.refresh.token-inactive")
+            
         for name_key in ["error", "Error"]:
             if name_key in payload:
                 error_name = payload.get(name_key)
@@ -162,15 +175,32 @@ class OAuth2Provider(Provider):
             # this may not be common, but at the very least Google will return
             # an invalid grant when a user is suspended
             if error_name == "invalid_grant":
-                self.logger.info(
-                    "identity.oauth.refresh.identity-not-valid-error",
+                log_method = (
+                    "identity.oauth.refresh.token-inactive"
+                    if is_inactivity_expired
+                    else "identity.oauth.refresh.identity-not-valid-error"
+                )
+                
+                # Schedule proactive refresh if inactivity expired
+                self.logger.info(log_method,
                     extra={
                         "error_name": error_name,
+                        "error_status_code": req.status_code,
                         "error_status_code": req.status_code,
                         "error_description": error_description,
                         "provider_key": self.key,
                     },
                 )
+                
+                if is_inactivity_expired:
+                    from sentry.tasks.refresh_vsts_token import refresh_vsts_token
+                    # Schedule next refresh in 45 days
+                    refresh_vsts_token.apply_async(
+                        kwargs={
+                            "organization_integration_id": self.pipeline.organization_integration.id
+                        },
+                        countdown=60 * 60 * 24 * 45,
+                    )
                 raise IdentityNotValid(formatted_error)
 
         if req.status_code != 200:
