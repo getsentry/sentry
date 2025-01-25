@@ -31,15 +31,15 @@ class OwnerResponseField(TypedDict):
 
 
 class SentryAppSerializerOptionalFields(TypedDict, total=False):
-    author: str
-    overview: str
-    popularity: int
-    redirectUrl: str
-    webhookUrl: str
-    datePublished: datetime
-    clientSecret: str
-    clientId: str
-    owner: OwnerResponseField
+    author: str | None
+    overview: str | None
+    popularity: int | None
+    redirectUrl: str | None
+    webhookUrl: str | None
+    datePublished: datetime | None
+    clientSecret: str | None
+    clientId: str | None
+    owner: OwnerResponseField | None
 
 
 class SentryAppSerializerResponse(SentryAppSerializerOptionalFields):

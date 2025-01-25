@@ -146,7 +146,7 @@ class SentryAppParser(Serializer):
 
     def __init__(self, *args, **kwargs):
         self.active_staff = kwargs.pop("active_staff", False)
-        self.access = kwargs.pop("access", None)
+        self.access = kwargs.pop("access")
         Serializer.__init__(self, *args, **kwargs)
 
     # an abstraction to pull fields from attrs if they are available or the sentry_app if not
