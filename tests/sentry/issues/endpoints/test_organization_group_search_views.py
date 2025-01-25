@@ -581,7 +581,7 @@ class OrganizationGroupSearchViewsProjectsTransactionTest(TransactionTestCase):
             content_type="application/json",
         )
         assert response.status_code == 400
-        assert response.data == {"detail": "One or more projects do not exist"}
+        assert response.content == {"detail": "One or more projects do not exist"}
 
 
 class OrganizationGroupSearchViewsPutRegressionTest(APITestCase):
