@@ -57,7 +57,6 @@ def evaluate_condition_group(
     Evaluate the conditions for a given group and value.
     """
     results = []
-
     conditions = get_data_conditions_for_group(data_condition_group.id)
 
     if is_fast:
