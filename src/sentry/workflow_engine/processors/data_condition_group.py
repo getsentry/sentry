@@ -66,8 +66,8 @@ def evaluate_condition_group(
         remaining_conditions = []
 
     if len(conditions) == 0:
-        # if we don't have any conditions, always return True
-        return True, []
+        # if we don't have any conditions, always return True and any remaining conditions to evaluate
+        return True, [], remaining_conditions
 
     for condition in conditions:
         evaluation_result = condition.evaluate_value(value)
@@ -75,10 +75,10 @@ def evaluate_condition_group(
 
         if is_condition_triggered:
             # Check for short-circuiting evaluations
-            if data_condition_group.logic_type == data_condition_group.Type.ANY_SHORT_CIRCUIT:
+            if data_condition_group.logic_type == DataConditionGroup.Type.ANY_SHORT_CIRCUIT:
                 return is_condition_triggered, [evaluation_result], []
 
-            if data_condition_group.logic_type == data_condition_group.Type.NONE:
+            if data_condition_group.logic_type == DataConditionGroup.Type.NONE:
                 return False, [], []
 
         results.append((is_condition_triggered, evaluation_result))
