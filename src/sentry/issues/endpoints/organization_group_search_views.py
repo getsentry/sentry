@@ -115,7 +115,16 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
             with transaction.atomic(using=router.db_for_write(GroupSearchView)):
                 bulk_update_views(organization, request.user.id, validated_data["views"])
         except IntegrityError as e:
-            sentry_sdk.capture_exception(e)
+            if (
+                len(e.args) > 0
+                and 'insert or update on table "sentry_groupsearchviewproject" violates foreign key constraint'
+                in e.args[0]
+            ):
+                sentry_sdk.capture_exception(e)
+                return Response(
+                    {"detail": "One or more projects do not exist"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         query = GroupSearchView.objects.filter(organization=organization, user_id=request.user.id)

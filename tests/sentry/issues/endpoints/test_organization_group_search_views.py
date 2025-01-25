@@ -550,7 +550,7 @@ class OrganizationGroupSearchViewsProjectsTransactionTest(TransactionTestCase):
         project1 = self.create_project(organization=self.organization, slug="project-a")
 
         issue_view_one = GroupSearchView.objects.create(
-            name="Custom View One",
+            name="Issue View One",
             organization=self.organization,
             user_id=self.user.id,
             query="is:unresolved",
@@ -561,12 +561,27 @@ class OrganizationGroupSearchViewsProjectsTransactionTest(TransactionTestCase):
         )
         issue_view_one.projects.set([project1])
 
-        views = self.client.get(url).data
-        views[0]["projects"] = [project1.id, 123456]
         response = self.client.put(
-            url, data={"views": views}, format="json", content_type="application/json"
+            url,
+            data={
+                "views": [
+                    {
+                        "id": issue_view_one.id,
+                        "name": issue_view_one.name,
+                        "query": issue_view_one.query,
+                        "query_sort": issue_view_one.query_sort,
+                        "position": issue_view_one.position,
+                        "time_filters": issue_view_one.time_filters,
+                        "environments": issue_view_one.environments,
+                        "projects": [project1.id, 123456],
+                    }
+                ]
+            },
+            format="json",
+            content_type="application/json",
         )
-        assert response.status_code == 500
+        assert response.status_code == 400
+        assert response.data == {"detail": "One or more projects do not exist"}
 
 
 class OrganizationGroupSearchViewsPutRegressionTest(APITestCase):
