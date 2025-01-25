@@ -76,7 +76,7 @@ def filter_recently_fired_workflow_actions(
     return filtered_actions
 
 
-def evaluate_workflow_action_filters(
+def evaluate_workflows_action_filters(
     workflows: set[Workflow], job: WorkflowJob
 ) -> BaseQuerySet[Action]:
     filtered_action_groups: set[DataConditionGroup] = set()
