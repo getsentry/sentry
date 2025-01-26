@@ -385,7 +385,7 @@ export const DATA_CATEGORY_INFO = {
     titleName: t('Uptime Monitors'),
     productName: t('Uptime Monitoring'),
     uid: 21,
-    isBilledCategory: false,
+    isBilledCategory: true,
   },
 } as const satisfies Record<DataCategoryExact, DataCategoryInfo>;
 
