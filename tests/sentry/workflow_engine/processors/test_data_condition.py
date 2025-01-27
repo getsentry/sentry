@@ -21,8 +21,8 @@ class SplitConditionsBySpeedTest(TestCase):
 
         fast_conditions, slow_conditions = split_conditions_by_speed(conditions)
 
-        assert fast_conditions == {conditions[0], conditions[1]}
-        assert slow_conditions == {conditions[2]}
+        assert fast_conditions == [conditions[0], conditions[1]]
+        assert slow_conditions == [conditions[2]]
 
     def test_only_fast_conditions(self):
         conditions = [
@@ -32,8 +32,8 @@ class SplitConditionsBySpeedTest(TestCase):
 
         fast_conditions, slow_conditions = split_conditions_by_speed(conditions)
 
-        assert fast_conditions == {conditions[0], conditions[1]}
-        assert slow_conditions == set()
+        assert fast_conditions == [conditions[0], conditions[1]]
+        assert slow_conditions == []
 
     def test_only_slow_conditions(self):
         conditions = [
@@ -47,11 +47,11 @@ class SplitConditionsBySpeedTest(TestCase):
 
         fast_conditions, slow_conditions = split_conditions_by_speed(conditions)
 
-        assert slow_conditions == {conditions[0], conditions[1]}
-        assert fast_conditions == set()
+        assert slow_conditions == [conditions[0], conditions[1]]
+        assert fast_conditions == []
 
     def test_no_conditions(self):
         conditions: list[DataCondition] = []
         fast_conditions, slow_conditions = split_conditions_by_speed(conditions)
-        assert fast_conditions == set()
-        assert slow_conditions == set()
+        assert fast_conditions == []
+        assert slow_conditions == []
