@@ -337,7 +337,7 @@ const TagPreviewGrid = styled(Link)`
   font-size: ${p => p.theme.fontSizeSmall};
 
   &:hover {
-    background: ${p => p.theme.backgroundSecondary};
+    background: ${p => p.theme.backgroundTertiary};
     color: ${p => p.theme.textColor};
   }
 `;
