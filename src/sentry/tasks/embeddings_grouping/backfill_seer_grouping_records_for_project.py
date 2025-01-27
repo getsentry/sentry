@@ -269,7 +269,7 @@ def backfill_seer_grouping_records_for_project(
             extra={
                 "reason": seer_response.get("reason"),
                 "project_id": current_project_id,
-                "last_processed_project_index": last_processed_project_index,
+                "project_index_in_cohort": last_processed_project_index,
                 "worker_number": worker_number,
             },
         )
