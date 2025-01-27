@@ -10,6 +10,7 @@ from django.test import RequestFactory, override_settings
 from django.urls import reverse
 from rest_framework import status
 
+from sentry.integrations.discord.client import DISCORD_BASE_URL
 from sentry.integrations.discord.requests.base import DiscordRequestError, DiscordRequestTypes
 from sentry.integrations.middleware.hybrid_cloud.parser import create_async_request_payload
 from sentry.middleware.integrations.parsers.discord import DiscordRequestParser
@@ -189,7 +190,7 @@ class DiscordRequestParserTest(TestCase):
     @patch("sentry.middleware.integrations.parsers.discord.convert_to_async_discord_response")
     @patch("sentry.integrations.discord.requests.base.verify_signature", return_value=None)
     def test_triggers_async_response(self, mock_verify_signature, mock_discord_task):
-        response_url = "https://discord.com/api/v10/webhooks/application_id/token"
+        response_url = f"{DISCORD_BASE_URL}/webhooks/application_id/token"
         data = {
             "application_id": "application_id",
             "token": "token",
