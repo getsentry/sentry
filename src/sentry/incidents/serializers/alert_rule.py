@@ -515,15 +515,14 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
                 )
                 raise BadRequest
 
-            if features.has(
+            should_dual_write = features.has(
                 "organizations:workflow-engine-metric-alert-processing", alert_rule.organization
-            ):
+            )
+            if should_dual_write:
                 migrate_alert_rule(alert_rule, user)
 
             self._handle_triggers(alert_rule, triggers)
-            if features.has(
-                "organizations:workflow-engine-metric-alert-processing", alert_rule.organization
-            ):
+            if should_dual_write:
                 # create the resolution data triggers once we've migrated the critical/warning triggers
                 migrate_resolve_threshold_data_conditions(alert_rule)
             return alert_rule
