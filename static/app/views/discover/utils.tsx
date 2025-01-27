@@ -1,5 +1,6 @@
 import type {Location, Query} from 'history';
 import * as Papa from 'papaparse';
+import * as qs from 'query-string';
 
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
@@ -886,7 +887,7 @@ export function constructAddQueryToDashboardLink({
       start: eventView.start,
       end: eventView.end,
       statsPeriod: eventView.statsPeriod,
-      defaultWidgetQuery: urlEncode(defaultWidgetQuery),
+      defaultWidgetQuery: qs.stringify(defaultWidgetQuery),
       defaultTableColumns: defaultTableFields,
       defaultTitle,
       displayType: displayType === DisplayType.TOP_N ? DisplayType.AREA : displayType,

@@ -1,3 +1,4 @@
+import * as qs from 'query-string';
 import {DashboardFixture} from 'sentry-fixture/dashboard';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {MetricsFieldFixture} from 'sentry-fixture/metrics';
@@ -10,7 +11,6 @@ import selectEvent from 'sentry-test/selectEvent';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TagStore from 'sentry/stores/tagStore';
-import {urlEncode} from 'sentry/utils';
 import type {DashboardDetails, Widget} from 'sentry/views/dashboards/types';
 import {
   DashboardWidgetSource,
@@ -396,7 +396,7 @@ describe('WidgetBuilder', function () {
       const {router} = renderTestComponent({
         query: {
           source: DashboardWidgetSource.DISCOVERV2,
-          defaultWidgetQuery: urlEncode(defaultWidgetQuery),
+          defaultWidgetQuery: qs.stringify(defaultWidgetQuery),
           displayType: DisplayType.TABLE,
           defaultTableColumns: ['title', 'count()', 'count_unique(user)', 'epm()'],
         },

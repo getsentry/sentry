@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import * as qs from 'query-string';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Alert} from 'sentry/components/alert';
@@ -17,7 +18,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
-import {generateOrgSlugUrl, urlEncode} from 'sentry/utils';
+import {generateOrgSlugUrl} from 'sentry/utils';
 import type {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
 import {
   getIntegrationFeatureGate,
@@ -202,7 +203,7 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncComponen
     window.location.assign(
       `${organization?.links.organizationUrl || ''}/extensions/${
         this.integrationSlug
-      }/configure/?${urlEncode(query)}`
+      }/configure/?${qs.stringify(query)}`
     );
   };
 

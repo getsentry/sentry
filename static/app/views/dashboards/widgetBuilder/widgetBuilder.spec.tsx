@@ -1,3 +1,4 @@
+import * as qs from 'query-string';
 import {DashboardFixture} from 'sentry-fixture/dashboard';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {MetricsFieldFixture} from 'sentry-fixture/metrics';
@@ -964,7 +965,7 @@ describe('WidgetBuilder', function () {
     renderTestComponent({
       query: {
         source: DashboardWidgetSource.DISCOVERV2,
-        defaultWidgetQuery: urlEncode(defaultWidgetQuery),
+        defaultWidgetQuery: qs.stringify(defaultWidgetQuery),
         displayType: DisplayType.LINE,
         defaultTableColumns,
       },
@@ -999,7 +1000,7 @@ describe('WidgetBuilder', function () {
     renderTestComponent({
       query: {
         source: DashboardWidgetSource.DISCOVERV2,
-        defaultWidgetQuery: urlEncode(defaultWidgetQuery),
+        defaultWidgetQuery: qs.stringify(defaultWidgetQuery),
       },
     });
 
@@ -1240,7 +1241,7 @@ describe('WidgetBuilder', function () {
     renderTestComponent({
       query: {
         source: DashboardWidgetSource.DISCOVERV2,
-        defaultWidgetQuery: urlEncode(defaultWidgetQuery),
+        defaultWidgetQuery: qs.stringify(defaultWidgetQuery),
         defaultTableColumns,
         yAxis: ['equation|count_if(transaction.duration,equals,300)*2'],
       },
@@ -1521,7 +1522,7 @@ describe('WidgetBuilder', function () {
         orgFeatures: [...defaultOrgFeatures],
         query: {
           source: DashboardWidgetSource.DISCOVERV2,
-          defaultWidgetQuery: urlEncode(defaultWidgetQuery),
+          defaultWidgetQuery: qs.stringify(defaultWidgetQuery),
           displayType: DisplayType.LINE,
           defaultTableColumns,
         },
@@ -1561,7 +1562,7 @@ describe('WidgetBuilder', function () {
         orgFeatures: [...defaultOrgFeatures],
         query: {
           source: DashboardWidgetSource.DISCOVERV2,
-          defaultWidgetQuery: urlEncode(defaultWidgetQuery),
+          defaultWidgetQuery: qs.stringify(defaultWidgetQuery),
           displayType: DisplayType.LINE,
           defaultTableColumns,
         },
