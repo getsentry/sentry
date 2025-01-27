@@ -185,8 +185,8 @@ const issuesFidelityLadder = new GranularityLadder([
 const spansFidelityLadder = new GranularityLadder([
   [SIXTY_DAYS, '1d'],
   [THIRTY_DAYS, '12h'],
-  [TWO_WEEKS, '12h'],
-  [ONE_WEEK, '12h'],
+  [TWO_WEEKS, '4h'],
+  [ONE_WEEK, '2h'],
   [FORTY_EIGHT_HOURS, '30m'],
   [TWENTY_FOUR_HOURS, '15m'],
   [SIX_HOURS, '15m'],
