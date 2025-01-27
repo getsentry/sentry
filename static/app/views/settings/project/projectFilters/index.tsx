@@ -21,7 +21,7 @@ type Props = {
 } & RouteComponentProps<{filterType: string; projectId: string}, {}>;
 
 function ProjectFilters(props: Props) {
-  const {organization, project, params} = props;
+  const {project, params} = props;
   const {projectId, filterType} = params;
   if (!project) {
     return null;
@@ -42,7 +42,7 @@ function ProjectFilters(props: Props) {
       <PermissionAlert project={project} />
 
       <div>
-        <ProjectFiltersChart project={project} organization={organization} />
+        <ProjectFiltersChart project={project} />
 
         {features.has('discard-groups') && (
           <NavTabs underlined style={{paddingTop: '30px'}}>
