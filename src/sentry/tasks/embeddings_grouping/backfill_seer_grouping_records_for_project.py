@@ -109,7 +109,11 @@ def backfill_seer_grouping_records_for_project(
     ):
         logger.info(
             "backfill_seer_grouping_records.killswitch_enabled",
-            extra={"worker_number": worker_number},
+            extra={
+                "project_id": current_project_id,
+                "last_processed_group_id": last_processed_group_id_input,
+                "worker_number": worker_number,
+            },
         )
         return
 
