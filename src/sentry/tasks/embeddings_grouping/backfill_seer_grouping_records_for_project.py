@@ -93,6 +93,14 @@ def backfill_seer_grouping_records_for_project(
                 },
             )
             return
+
+        logger.info(
+            "backfill_seer_grouping_records.cohort_created",
+            extra={
+                "cohort": cohort,
+                "worker_number": worker_number,
+            },
+        )
         current_project_id = cohort[0]
     assert current_project_id is not None
 
