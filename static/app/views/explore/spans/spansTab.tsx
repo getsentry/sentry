@@ -100,6 +100,7 @@ export function SpansTabContentImpl({
   });
   const tracesTableResult = useExploreTracesTable({
     query,
+    limit,
     enabled: queryType === 'traces',
   });
   const {timeseriesResult, canUsePreviousResults} = useExploreTimeseries({query});
