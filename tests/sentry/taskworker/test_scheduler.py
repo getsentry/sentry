@@ -60,22 +60,22 @@ def test_timedeltaschedule_is_due() -> None:
 
 
 @freeze_time("2025-01-24 14:25:00")
-def test_timedeltaschedule_remaining_delta() -> None:
+def test_timedeltaschedule_remaining_seconds() -> None:
     now = timezone.now()
     delta = timedelta(minutes=5)
     schedule = TimedeltaSchedule(delta)
 
-    assert schedule.remaining_delta(None).total_seconds() == 0
-    assert schedule.remaining_delta(now).total_seconds() == 300
+    assert schedule.remaining_seconds(None) == 0
+    assert schedule.remaining_seconds(now) == 300
 
     four_min_ago = now - timedelta(minutes=4, seconds=59)
-    assert schedule.remaining_delta(four_min_ago).total_seconds() == 1
+    assert schedule.remaining_seconds(four_min_ago) == 1
 
     five_min_ago = now - timedelta(minutes=5)
-    assert schedule.remaining_delta(five_min_ago).total_seconds() == 0
+    assert schedule.remaining_seconds(five_min_ago) == 0
 
     ten_min_ago = now - timedelta(minutes=10)
-    assert schedule.remaining_delta(ten_min_ago).total_seconds() == 0
+    assert schedule.remaining_seconds(ten_min_ago) == 0
 
 
 def test_scheduleset_add_invalid(taskregistry) -> None:

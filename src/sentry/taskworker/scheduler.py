@@ -94,9 +94,9 @@ class Schedule(metaclass=abc.ABCMeta):
         """
 
     @abc.abstractmethod
-    def remaining_delta(self, last_run: datetime | None = None) -> timedelta:
+    def remaining_seconds(self, last_run: datetime | None = None) -> int:
         """
-        Get the remaining timedelta until the schedule should run again.
+        Get the remaining seconds until the schedule should run again.
         """
 
     @abc.abstractmethod
@@ -120,19 +120,19 @@ class TimedeltaSchedule(Schedule):
         """Check if the schedule is due to run again based on last_run."""
         if last_run is None:
             return True
-        remaining_delta = self.remaining_delta(last_run)
-        return remaining_delta.total_seconds() <= 0
+        remaining = self.remaining_seconds(last_run)
+        return remaining <= 0
 
-    def remaining_delta(self, last_run: datetime | None = None) -> timedelta:
-        """Get a timedelta remaining until the next task should spawn"""
+    def remaining_seconds(self, last_run: datetime | None = None) -> int:
+        """The number of seconds remaining until the next task should spawn"""
         if last_run is None:
-            return timedelta(seconds=0)
+            return 0
         # floor to timestamp as microseconds are not relevant
         now = int(timezone.now().timestamp())
         last_run_ts = int(last_run.timestamp())
 
         seconds_remaining = self._delta.total_seconds() - (now - last_run_ts)
-        return timedelta(seconds=max(seconds_remaining, 0))
+        return max(int(seconds_remaining), 0)
 
     def runtime_after(self, start: datetime) -> datetime:
         """Get the next time a task should run after start"""
@@ -162,8 +162,8 @@ class ScheduleEntry:
     def is_due(self) -> bool:
         return self._schedule.is_due(self._last_run)
 
-    def remaining_delta(self) -> timedelta:
-        return self._schedule.remaining_delta(self._last_run)
+    def remaining_seconds(self) -> int:
+        return self._schedule.remaining_seconds(self._last_run)
 
     def runtime_after(self, start: datetime) -> datetime:
         return self._schedule.runtime_after(start)
@@ -218,13 +218,13 @@ class ScheduleSet:
                 except Exception as e:
                     # Trap errors from spawning/update state so that the heap stays consistent.
                     capture_exception(e)
-                heapq.heappush(self._heap, (entry.remaining_delta().total_seconds(), entry))
+                heapq.heappush(self._heap, (entry.remaining_seconds(), entry))
                 continue
             else:
                 # The top of the heap isn't ready, break for sleep
                 break
 
-        return entry.remaining_delta().total_seconds()
+        return entry.remaining_seconds()
 
     def _try_spawn(self, entry: ScheduleEntry) -> None:
         now = timezone.now()
@@ -251,8 +251,8 @@ class ScheduleSet:
         for item in self._entries:
             last_run = last_run_times.get(item.fullname, None)
             item.set_last_run(last_run)
-            remaining_time = item.remaining_delta()
-            heap_items.append((remaining_time.total_seconds(), item))
+            remaining_time = item.remaining_seconds()
+            heap_items.append((remaining_time, item))
 
         heapq.heapify(heap_items)
         self._heap = heap_items
