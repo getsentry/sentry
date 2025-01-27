@@ -21,7 +21,7 @@ from django.utils.http import urlencode
 from django.utils.translation import gettext_lazy as _
 from snuba_sdk import Column, Condition, Op
 
-from sentry import eventstore, eventtypes, options, tagstore
+from sentry import eventstore, eventtypes, features, options, tagstore
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS, MAX_CULPRIT_LENGTH
 from sentry.db.models import (
@@ -42,6 +42,7 @@ from sentry.issues.priority import (
     PriorityChangeReason,
     get_priority_for_ongoing_group,
 )
+from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.grouphistory import record_group_history, record_group_history_from_activity_type
 from sentry.models.organization import Organization
@@ -60,6 +61,7 @@ from sentry.utils.numbers import base32_decode, base32_encode
 from sentry.utils.strings import strip, truncatechars
 
 if TYPE_CHECKING:
+    from sentry.incidents.utils.metric_issue_poc import OpenPeriod
     from sentry.integrations.services.integration import RpcIntegration
     from sentry.models.environment import Environment
     from sentry.models.team import Team
@@ -1050,3 +1052,78 @@ def pre_save_group_default_substatus(instance, sender, *args, **kwargs):
                 "No substatus allowed for group",
                 extra={"status": instance.status, "substatus": instance.substatus},
             )
+
+
+def get_open_periods_for_group(
+    group: Group,
+    query_start: datetime | None = None,
+    query_end: datetime | None = None,
+    offset: int | None = None,
+    limit: int | None = None,
+) -> list[OpenPeriod]:
+    from sentry.incidents.utils.metric_issue_poc import OpenPeriod
+
+    if not features.has("organizations:issue-open-periods", group.organization):
+        return []
+
+    if query_start is None or query_end is None:
+        query_start = timezone.now() - timedelta(days=90)
+        query_end = timezone.now()
+
+    query_limit = limit * 2 if limit else None
+    activities = Activity.objects.filter(
+        group=group,
+        type__in=[ActivityType.SET_UNRESOLVED.value, ActivityType.SET_RESOLVED.value],
+        datetime__gte=query_start,
+        datetime__lte=query_end,
+    ).order_by("-datetime")[:query_limit]
+
+    open_periods = []
+    end: datetime | None = None
+    for activity in activities:
+        # Handle the case where the group is currently UNRESOLVED with an ongoing open period
+        if (
+            activity.type == ActivityType.SET_UNRESOLVED.value
+            and len(open_periods) == 0
+            and not end
+        ):
+            open_periods.append(
+                OpenPeriod(
+                    start=activity.datetime,
+                    end=None,
+                    duration=None,
+                    is_open=True,
+                )
+            )
+        if activity.type == ActivityType.SET_RESOLVED.value:
+            end = activity.datetime
+        elif activity.type == ActivityType.SET_UNRESOLVED.value and end is not None:
+            open_periods.append(
+                OpenPeriod(
+                    start=activity.datetime,
+                    end=end,
+                    duration=end - activity.datetime,
+                    is_open=False,
+                )
+            )
+            end = None
+
+        if len(open_periods) == limit:
+            break
+
+    # Add the very first open period, which has no UNRESOLVED activity for the group creation
+    open_periods.append(
+        OpenPeriod(
+            start=group.first_seen,
+            end=end if end else None,
+            duration=end - group.first_seen if end else None,
+            is_open=False if end else True,
+        )
+    )
+
+    if offset and limit:
+        open_periods = open_periods[offset : offset + limit]
+    elif limit:
+        open_periods = open_periods[:limit]
+
+    return open_periods

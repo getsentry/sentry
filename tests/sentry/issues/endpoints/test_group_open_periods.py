@@ -2,16 +2,13 @@ from django.utils import timezone
 
 from sentry.issues.grouptype import MetricIssuePOC, ProfileFileIOGroupType
 from sentry.models.activity import Activity
-from sentry.models.group import GroupStatus
-from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.models.group import GroupStatus, get_open_periods_for_group
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 
-pytestmark = [requires_snuba]
 
-
-class GroupOpenPeriodsTest(APITestCase, SnubaTestCase):
+class GroupOpenPeriodsTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()
 
@@ -38,7 +35,12 @@ class GroupOpenPeriodsTest(APITestCase, SnubaTestCase):
         response = self.client.get(self.url, format="json")
         assert response.status_code == 200, response.content
         assert response.data == [
-            {"start": self.group.first_seen, "end": None, "duration": None, "isOpen": True}
+            {
+                "start": self.group.first_seen,
+                "end": None,
+                "duration": None,
+                "isOpen": True,
+            }
         ]
 
     @with_feature("organizations:issue-open-periods")
@@ -112,3 +114,44 @@ class GroupOpenPeriodsTest(APITestCase, SnubaTestCase):
                 "isOpen": False,
             },
         ]
+
+    @with_feature("organizations:issue-open-periods")
+    def test_open_periods_limit(self) -> None:
+        self.group.status = GroupStatus.RESOLVED
+        self.group.save()
+        resolved_time = timezone.now()
+        Activity.objects.create(
+            group=self.group,
+            project=self.group.project,
+            type=ActivityType.SET_RESOLVED.value,
+            datetime=resolved_time,
+        )
+
+        # test that another open period is created
+        unresolved_time = timezone.now()
+        self.group.status = GroupStatus.UNRESOLVED
+        self.group.save()
+        Activity.objects.create(
+            group=self.group,
+            project=self.group.project,
+            type=ActivityType.SET_UNRESOLVED.value,
+            datetime=unresolved_time,
+        )
+
+        second_resolved_time = timezone.now()
+        self.group.status = GroupStatus.RESOLVED
+        self.group.save()
+        Activity.objects.create(
+            group=self.group,
+            project=self.group.project,
+            type=ActivityType.SET_RESOLVED.value,
+            datetime=second_resolved_time,
+        )
+        open_periods = get_open_periods_for_group(self.group, limit=1)
+        assert len(open_periods) == 1
+        assert open_periods[0].to_dict() == {
+            "start": unresolved_time,
+            "end": second_resolved_time,
+            "duration": second_resolved_time - unresolved_time,
+            "isOpen": False,
+        }

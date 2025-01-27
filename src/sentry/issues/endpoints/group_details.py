@@ -27,12 +27,11 @@ from sentry.api.serializers.models.team import TeamSerializer
 from sentry.integrations.api.serializers.models.external_issue import ExternalIssueSerializer
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.issues.constants import get_issue_tsdb_group_model
-from sentry.issues.endpoints.group_open_periods import get_open_periods_for_group
 from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.activity import Activity
 from sentry.models.eventattachment import EventAttachment
-from sentry.models.group import Group
+from sentry.models.group import Group, get_open_periods_for_group
 from sentry.models.groupinbox import get_inbox_details
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupowner import get_owner_details
@@ -51,6 +50,7 @@ from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 
 delete_logger = logging.getLogger("sentry.deletions.api")
+OPEN_PERIOD_LIMIT = 50
 
 
 def get_group_global_count(group: Group) -> str:
@@ -165,7 +165,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
 
             # TODO: these probably should be another endpoint
             activity = Activity.objects.get_activities_for_group(group, 100)
-            open_periods = get_open_periods_for_group(group, limit=50)
+            open_periods = get_open_periods_for_group(group, limit=OPEN_PERIOD_LIMIT)
             seen_by = self._get_seen_by(request, group)
 
             if "release" not in collapse:
