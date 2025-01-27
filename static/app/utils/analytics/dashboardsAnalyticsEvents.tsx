@@ -17,6 +17,7 @@ type DashboardsEventParametersWidgetBuilder = {
   };
   'dashboards_views.widget_builder.opened': {
     builder_version: WidgetBuilderVersion;
+    from: string;
     new_widget: boolean;
   };
   'dashboards_views.widget_builder.save': {

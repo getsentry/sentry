@@ -318,6 +318,7 @@ function WidgetBuilder({
       organization,
       new_widget: !isEditing,
       builder_version: WidgetBuilderVersion.PAGE,
+      from: source,
     });
 
     if (isEmptyObject(tags) && dataSet !== DataSet.SPANS) {
@@ -1198,7 +1199,7 @@ function WidgetBuilder({
                                           {
                                             from: source,
                                             field: 'title',
-                                            value: state.title ?? '',
+                                            value: '',
                                             widget_type: widgetType,
                                             organization,
                                             new_widget: !isEditing,
@@ -1228,7 +1229,7 @@ function WidgetBuilder({
                                           {
                                             from: source,
                                             field: 'description',
-                                            value: state.description ?? '',
+                                            value: '',
                                             widget_type: widgetType,
                                             organization,
                                             new_widget: !isEditing,
