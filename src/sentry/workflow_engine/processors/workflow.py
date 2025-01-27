@@ -7,7 +7,7 @@ from sentry import buffer
 from sentry.utils import json, metrics
 from sentry.workflow_engine.models import Detector, Workflow, WorkflowDataConditionGroup
 from sentry.workflow_engine.models.workflow import get_slow_conditions
-from sentry.workflow_engine.processors.action import evaluate_workflow_action_filters
+from sentry.workflow_engine.processors.action import evaluate_workflows_action_filters
 from sentry.workflow_engine.processors.data_condition_group import evaluate_condition_group
 from sentry.workflow_engine.processors.detector import get_detector_by_event
 from sentry.workflow_engine.types import WorkflowJob
@@ -101,7 +101,7 @@ def process_workflows(job: WorkflowJob) -> set[Workflow]:
     # Get the workflows, evaluate the when_condition_group, finally evaluate the actions for workflows that are triggered
     workflows = set(Workflow.objects.filter(detectorworkflow__detector_id=detector.id).distinct())
     triggered_workflows = evaluate_workflow_triggers(workflows, job)
-    actions = evaluate_workflow_action_filters(triggered_workflows, job)
+    actions = evaluate_workflows_action_filters(triggered_workflows, job)
 
     with sentry_sdk.start_span(op="workflow_engine.process_workflows.trigger_actions"):
         for action in actions:

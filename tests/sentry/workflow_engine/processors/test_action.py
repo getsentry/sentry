@@ -7,7 +7,7 @@ from sentry.workflow_engine.models.action import Action
 from sentry.workflow_engine.models.action_group_status import ActionGroupStatus
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.processors.action import (
-    evaluate_workflow_action_filters,
+    evaluate_workflows_action_filters,
     filter_recently_fired_workflow_actions,
 )
 from sentry.workflow_engine.types import WorkflowJob
@@ -31,7 +31,7 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
         self.job = WorkflowJob({"event": self.group_event})
 
     def test_basic__no_filter(self):
-        triggered_actions = evaluate_workflow_action_filters({self.workflow}, self.job)
+        triggered_actions = evaluate_workflows_action_filters({self.workflow}, self.job)
         assert set(triggered_actions) == {self.action}
 
     def test_basic__with_filter__passes(self):
@@ -42,7 +42,7 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
             condition_result=True,
         )
 
-        triggered_actions = evaluate_workflow_action_filters({self.workflow}, self.job)
+        triggered_actions = evaluate_workflows_action_filters({self.workflow}, self.job)
         assert set(triggered_actions) == {self.action}
 
     def test_basic__with_filter__filtered(self):
@@ -53,7 +53,7 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
             comparison=self.detector.id + 1,
         )
 
-        triggered_actions = evaluate_workflow_action_filters({self.workflow}, self.job)
+        triggered_actions = evaluate_workflows_action_filters({self.workflow}, self.job)
         assert not triggered_actions
 
 
