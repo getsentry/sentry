@@ -72,7 +72,6 @@ export default function StreamlinedGroupHeader({
   const issueTypeConfig = getConfigForIssueType(group, project);
 
   const hasOnlyOneUIOption = defined(organization.streamlineOnly);
-
   const [showLearnMore, setShowLearnMore] = useLocalStorageState(
     'issue-details-learn-more',
     true
