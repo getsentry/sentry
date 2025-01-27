@@ -52,6 +52,7 @@ export function NewIssueExperienceButton() {
     const label = hasStreamlinedUI
       ? t('Switch to the old issue experience')
       : t('Switch to the new issue experience');
+    const text = hasStreamlinedUI ? null : t('Try New UI');
 
     return (
       <ToggleButtonWrapper>
@@ -83,6 +84,7 @@ export function NewIssueExperienceButton() {
           borderless={!hasStreamlinedUI}
           onClick={handleToggle}
         >
+          {text ? <span>{text}</span> : null}
           <ToggleBorder />
         </ToggleButton>
       </ToggleButtonWrapper>
@@ -158,7 +160,6 @@ const ToggleButton = styled(Button)<{enabled: boolean}>`
   }
   span {
     z-index: 1;
-    margin: 0;
   }
 `;
 
@@ -174,8 +175,8 @@ const ToggleBorder = styled('div')`
   position: absolute;
   content: '';
   z-index: -1;
-  width: 46px;
-  height: 46px;
+  width: 125px;
+  height: 125px;
   border-radius: 7px;
   background: ${p => p.theme.badge.beta.background};
   animation: rotating 10s linear infinite;
