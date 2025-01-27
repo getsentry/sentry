@@ -45,7 +45,11 @@ Future<void> main() async {
           : ''
       }
     },
-    appRunner: () => runApp(const MyApp()),
+    appRunner: () => runApp(
+      SentryWidget(
+        child: MyApp(),
+      ),
+    ),
   );
 
   // or define SENTRY_DSN via Dart environment variable (--dart-define)
@@ -104,7 +108,11 @@ await SentryFlutter.init(
     options.experimental.replay.sessionSampleRate = 1.0;
     options.experimental.replay.onErrorSampleRate = 1.0;
   },
-  appRunner: () => runApp(MyApp()),
+  appRunner: () => runApp(
+      SentryWidget(
+        child: MyApp(),
+      ),
+    ),
 );
 `;
 
