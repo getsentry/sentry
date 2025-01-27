@@ -193,7 +193,7 @@ class AlertRule(Model):
     objects: ClassVar[AlertRuleManager] = AlertRuleManager()
     objects_with_snapshots: ClassVar[BaseManager[Self]] = BaseManager()
 
-    organization = FlexibleForeignKey("sentry.Organization", null=True)
+    organization = FlexibleForeignKey("sentry.Organization")
     # NOTE: for now AlertRules and Projects should be 1:1
     # We do not have multi-project alert rules yet
     projects = models.ManyToManyField(
