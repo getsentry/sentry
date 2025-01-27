@@ -67,7 +67,6 @@ describe('OrganizationContext', function () {
     jest.spyOn(ProjectsStore, 'loadInitialData');
 
     ConfigStore.init();
-    ConfigStore.set('shouldPreloadData', true);
     OrganizationStore.reset();
 
     jest.spyOn(console, 'error').mockImplementation(jest.fn());
