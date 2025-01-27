@@ -1,7 +1,11 @@
 import logging
 
+from requests import PreparedRequest
+
 from sentry.integrations.client import ApiClient
+from sentry.shared_integrations.client.proxy import IntegrationProxyClient, infer_org_integration
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.silo.base import control_silo_function
 
 logger = logging.getLogger("sentry.integrations.vercel.api")
 
@@ -92,3 +96,45 @@ class VercelClient(ApiClient):
 
     def uninstall(self, configuration_id):
         return self.delete(self.UNINSTALL % configuration_id)
+
+
+class VercelProxyClient(IntegrationProxyClient):
+    def __init__(self, integration_id: int, org_integration_id: int | None = None):
+        if org_integration_id is None:
+            org_integration_id = infer_org_integration(integration_id, logger)
+        super().__init__(org_integration_id)
+
+    @control_silo_function
+    def authorize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
+        # XXX(telemetry team): handle authentication
+        pass
+
+
+class VercelNativeClient(VercelProxyClient):
+    base_url = "https://vercel.com/api"
+
+    GET_INVOICE = "/v1/installations/%s/billing/invoices/%s"
+    SUBMIT_INVOICE = "/v1/installations/%s/billing/invoices"
+    SUBMIT_BILLING_DATA = "/v1/installations/%s/billing"
+
+    def __init__(self, org_integration_id, integration_configuration_id):
+        super().__init__(org_integration_id)
+        self.integration_configuration_id = integration_configuration_id
+
+    def get_invoice(self, invoice_id):
+        """
+        https://vercel.com/docs/integrations/marketplace-api#get-invoice
+        """
+        return self.get(self.GET_INVOICE % (self.integration_configuration_id, invoice_id))
+
+    def submit_invoice(self, data):
+        """
+        https://vercel.com/docs/integrations/marketplace-api#submit-invoice
+        """
+        return self.post(self.SUBMIT_INVOICE % self.integration_id, data=data)
+
+    def submit_billing_data(self, data):
+        """
+        https://vercel.com/docs/integrations/marketplace-api#submit-billing-data
+        """
+        return self.post(self.SUBMIT_BILLING_DATA % self.integration_id, data=data)
