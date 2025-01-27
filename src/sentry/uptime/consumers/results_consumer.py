@@ -184,6 +184,10 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         if project_subscription.status == ObjectStatus.DISABLED:
             return
 
+        if not features.has("organizations:uptime", project_subscription.project.organization):
+            metrics.incr("uptime.result_processor.dropped_no_feature")
+            return
+
         metric_tags = {
             "status": result["status"],
             "mode": ProjectUptimeSubscriptionMode(project_subscription.mode).name.lower(),
