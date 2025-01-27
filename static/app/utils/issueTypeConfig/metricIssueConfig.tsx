@@ -15,12 +15,7 @@ const metricIssueConfig: IssueCategoryConfigMapping = {
     },
     customCopy: {
       resolution: t('Back to baseline'),
-      eventUnits: t('Open Periods'),
-    },
-    detector: {
-      enabled: true,
-      title: t('Metric Alert Detector'),
-      ctaText: t('View detector details'),
+      allEvents: t('All Open Periods'),
     },
     attachments: {enabled: false},
     eventAndUserCounts: {enabled: false},

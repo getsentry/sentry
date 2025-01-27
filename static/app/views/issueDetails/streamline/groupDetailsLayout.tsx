@@ -54,11 +54,11 @@ export function GroupDetailsLayout({
           <EventDetailsHeader event={event} group={group} project={project} />
           <GroupContent>
             <NavigationSidebarWrapper
-              hasToggleSidebar={!issueTypeConfig.header.filterAndSearch.enabled}
+              hasToggleSidebar={!issueTypeConfig.filterAndSearchHeader.enabled}
             >
               <IssueEventNavigation event={event} group={group} />
               {/* Since the event details header is disabled, display the sidebar toggle here */}
-              {!issueTypeConfig.header.filterAndSearch.enabled && (
+              {!issueTypeConfig.filterAndSearchHeader.enabled && (
                 <ToggleSidebar size="sm" />
               )}
             </NavigationSidebarWrapper>
