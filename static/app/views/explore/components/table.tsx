@@ -109,7 +109,7 @@ export function useTableStyles(
         }
 
         const newWidth = Math.max(
-          MINIMUM_COLUMN_WIDTH,
+          minimumColumnWidth,
           initialWidth + (e.clientX - startX)
         );
 

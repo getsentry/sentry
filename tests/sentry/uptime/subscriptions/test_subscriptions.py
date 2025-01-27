@@ -5,6 +5,7 @@ from django.test import override_settings
 
 from sentry.conf.types.kafka_definition import Topic
 from sentry.conf.types.uptime import UptimeRegionConfig
+from sentry.constants import ObjectStatus
 from sentry.testutils.cases import UptimeTestCase
 from sentry.testutils.skips import requires_kafka
 from sentry.types.actor import Actor
@@ -19,6 +20,8 @@ from sentry.uptime.subscriptions.subscriptions import (
     delete_project_uptime_subscription,
     delete_uptime_subscription,
     delete_uptime_subscriptions_for_project,
+    disable_project_uptime_subscription,
+    enable_project_uptime_subscription,
     get_auto_monitored_subscriptions_for_project,
     get_or_create_project_uptime_subscription,
     get_or_create_uptime_subscription,
@@ -271,6 +274,47 @@ class CreateProjectUptimeSubscriptionTest(UptimeTestCase):
             subscription_regions = {r.region_slug for r in subscription2.regions.all()}
             assert subscription_regions == {"region1", "region2"}
 
+    @mock.patch("sentry.uptime.subscriptions.subscriptions.disable_project_uptime_subscription")
+    def test_status_disable(self, mock_disable_project_uptime_subscription):
+        get_or_create_project_uptime_subscription(
+            self.project,
+            self.environment,
+            url="https://sentry.io",
+            interval_seconds=3600,
+            timeout_ms=1000,
+            mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
+            status=ObjectStatus.DISABLED,
+        )
+        mock_disable_project_uptime_subscription.assert_called()
+
+    @mock.patch("sentry.uptime.subscriptions.subscriptions.enable_project_uptime_subscription")
+    def test_status_enable(self, mock_enable_project_uptime_subscription):
+        with self.tasks():
+            proj_sub = get_or_create_project_uptime_subscription(
+                self.project,
+                self.environment,
+                url="https://sentry.io",
+                interval_seconds=3600,
+                timeout_ms=1000,
+                mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
+                status=ObjectStatus.DISABLED,
+            )[0]
+            update_project_uptime_subscription(
+                proj_sub,
+                environment=self.environment,
+                url="https://santry.io",
+                interval_seconds=60,
+                timeout_ms=1000,
+                method="POST",
+                headers=[("some", "header")],
+                body="a body",
+                name="New name",
+                owner=Actor.from_orm_user(self.user),
+                trace_sampling=False,
+                status=ObjectStatus.ACTIVE,
+            )
+        mock_enable_project_uptime_subscription.assert_called()
+
 
 class UpdateProjectUptimeSubscriptionTest(UptimeTestCase):
     def test(self):
@@ -396,6 +440,61 @@ class UpdateProjectUptimeSubscriptionTest(UptimeTestCase):
             ).count()
             == 1
         )
+
+    @mock.patch("sentry.uptime.subscriptions.subscriptions.disable_project_uptime_subscription")
+    def test_status_disable(self, mock_disable_project_uptime_subscription):
+        with self.tasks():
+            proj_sub = get_or_create_project_uptime_subscription(
+                self.project,
+                self.environment,
+                url="https://sentry.io",
+                interval_seconds=3600,
+                timeout_ms=1000,
+                mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
+            )[0]
+            update_project_uptime_subscription(
+                proj_sub,
+                environment=self.environment,
+                url="https://santry.io",
+                interval_seconds=60,
+                timeout_ms=1000,
+                method="POST",
+                headers=[("some", "header")],
+                body="a body",
+                name="New name",
+                owner=Actor.from_orm_user(self.user),
+                trace_sampling=False,
+                status=ObjectStatus.DISABLED,
+            )
+        mock_disable_project_uptime_subscription.assert_called()
+
+    @mock.patch("sentry.uptime.subscriptions.subscriptions.enable_project_uptime_subscription")
+    def test_status_enable(self, mock_enable_project_uptime_subscription):
+        with self.tasks():
+            proj_sub = get_or_create_project_uptime_subscription(
+                self.project,
+                self.environment,
+                url="https://sentry.io",
+                interval_seconds=3600,
+                timeout_ms=1000,
+                mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
+                status=ObjectStatus.DISABLED,
+            )[0]
+            update_project_uptime_subscription(
+                proj_sub,
+                environment=self.environment,
+                url="https://santry.io",
+                interval_seconds=60,
+                timeout_ms=1000,
+                method="POST",
+                headers=[("some", "header")],
+                body="a body",
+                name="New name",
+                owner=Actor.from_orm_user(self.user),
+                trace_sampling=False,
+                status=ObjectStatus.ACTIVE,
+            )
+        mock_enable_project_uptime_subscription.assert_called()
 
 
 class DeleteUptimeSubscriptionsForProjectTest(UptimeTestCase):
@@ -655,3 +754,92 @@ class GetAutoMonitoredSubscriptionsForProjectTest(UptimeTestCase):
             mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE
         )
         assert get_auto_monitored_subscriptions_for_project(other_project) == []
+
+
+class DisableProjectUptimeSubscriptionTest(UptimeTestCase):
+    def test(self):
+        proj_sub = get_or_create_project_uptime_subscription(
+            self.project,
+            self.environment,
+            url="https://sentry.io",
+            interval_seconds=3600,
+            timeout_ms=1000,
+            mode=ProjectUptimeSubscriptionMode.MANUAL,
+        )[0]
+
+        with self.tasks():
+            disable_project_uptime_subscription(proj_sub)
+
+        proj_sub.refresh_from_db()
+        assert proj_sub.status == ObjectStatus.DISABLED
+        assert proj_sub.uptime_subscription.status == UptimeSubscription.Status.DISABLED.value
+
+    def test_multiple_project_subs(self):
+        project1 = self.project
+        project2 = self.create_project()
+
+        proj_sub1 = get_or_create_project_uptime_subscription(
+            project1,
+            self.environment,
+            url="https://sentry.io",
+            interval_seconds=3600,
+            timeout_ms=1000,
+            mode=ProjectUptimeSubscriptionMode.MANUAL,
+        )[0]
+        proj_sub2 = get_or_create_project_uptime_subscription(
+            project2,
+            self.environment,
+            url="https://sentry.io",
+            interval_seconds=3600,
+            timeout_ms=1000,
+            mode=ProjectUptimeSubscriptionMode.MANUAL,
+        )[0]
+
+        uptime_subscription = proj_sub1.uptime_subscription
+
+        # Disabling the first project subscription does NOT disable the
+        # subscription
+        with self.tasks():
+            disable_project_uptime_subscription(proj_sub1)
+
+        proj_sub1.refresh_from_db()
+        uptime_subscription.refresh_from_db()
+        assert proj_sub1.status == ObjectStatus.DISABLED
+        assert proj_sub2.status == ObjectStatus.ACTIVE
+        assert uptime_subscription.status != UptimeSubscription.Status.DISABLED.value
+
+        # Disabling the second project subscription DOES disable the
+        # subscription
+        with self.tasks():
+            disable_project_uptime_subscription(proj_sub2)
+
+        proj_sub2.refresh_from_db()
+        uptime_subscription.refresh_from_db()
+        assert proj_sub2.status == ObjectStatus.DISABLED
+        assert uptime_subscription.status == UptimeSubscription.Status.DISABLED.value
+
+
+class EnableProjectUptimeSubscriptionTest(UptimeTestCase):
+    def test(self):
+        proj_sub = get_or_create_project_uptime_subscription(
+            self.project,
+            self.environment,
+            url="https://sentry.io",
+            interval_seconds=3600,
+            timeout_ms=1000,
+            mode=ProjectUptimeSubscriptionMode.MANUAL,
+        )[0]
+
+        with self.tasks():
+            disable_project_uptime_subscription(proj_sub)
+
+        # Subscription is disabled
+        assert proj_sub.uptime_subscription.status == UptimeSubscription.Status.DISABLED.value
+
+        # Enabling the subscription marks the suscription as active again
+        with self.tasks():
+            enable_project_uptime_subscription(proj_sub)
+
+        proj_sub.refresh_from_db()
+        assert proj_sub.status == ObjectStatus.ACTIVE
+        assert proj_sub.uptime_subscription.status == UptimeSubscription.Status.ACTIVE.value

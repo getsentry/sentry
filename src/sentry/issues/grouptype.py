@@ -5,7 +5,7 @@ import logging
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import timedelta
-from enum import Enum, StrEnum
+from enum import IntEnum, StrEnum
 from typing import TYPE_CHECKING, Any, ClassVar
 
 import sentry_sdk
@@ -28,7 +28,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class GroupCategory(Enum):
+class GroupCategory(IntEnum):
     ERROR = 1
     PERFORMANCE = 2
     PROFILE = 3  # deprecated, merging with PERFORMANCE

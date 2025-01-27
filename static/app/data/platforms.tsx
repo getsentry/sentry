@@ -418,6 +418,20 @@ export const platforms: PlatformIntegration[] = [
     link: 'https://docs.sentry.io/platforms/javascript/guides/azure-functions/',
   },
   {
+    id: 'node-cloudflare-pages',
+    name: 'Cloudflare Pages',
+    type: 'framework',
+    language: 'node',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/cloudflare/',
+  },
+  {
+    id: 'node-cloudflare-workers',
+    name: 'Cloudflare Workers',
+    type: 'framework',
+    language: 'node',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/cloudflare/',
+  },
+  {
     id: 'node-connect',
     name: 'Connect',
     type: 'framework',
