@@ -93,6 +93,41 @@ class ProjectDetectorDetailsGetTest(ProjectDetectorDetailsBaseTest):
     def test_does_not_exist(self):
         self.get_error_response(self.organization.slug, self.project.slug, 3, status_code=404)
 
+
+@region_silo_test
+class ProjectDetectorIndexDeleteTest(ProjectDetectorDetailsBaseTest):
+    method = "DELETE"
+
+    def test_simple(self):
+        with outbox_runner():
+            self.get_success_response(self.organization.slug, self.project.slug, self.detector.id)
+
+        assert RegionScheduledDeletion.objects.filter(
+            model_name="Detector", object_id=self.detector.id
+        ).exists()
+
+    def test_error_group_type(self):
+        """
+        Test that we do not delete the required error detector
+        """
+        data_condition_group = self.create_data_condition_group()
+        error_detector = self.create_detector(
+            project_id=self.project.id,
+            name="Error Detector",
+            type=ErrorGroupType.slug,
+            workflow_condition_group=data_condition_group,
+        )
+        with outbox_runner():
+            self.get_error_response(
+                self.organization.slug, self.project.slug, error_detector.id, status_code=403
+            )
+
+        assert not RegionScheduledDeletion.objects.filter(
+            model_name="Detector", object_id=error_detector.id
+        ).exists()
+
+
+@region_silo_test
 class ProjectDetectorDetailsPutTest(ProjectDetectorDetailsBaseTest):
     method = "PUT"
 
@@ -114,11 +149,14 @@ class ProjectDetectorDetailsPutTest(ProjectDetectorDetailsBaseTest):
                     ],
                 }
             ],
-            "data_conditions": {
-                "type": Condition.GREATER,
-                "comparison": 100,
-                "result": DetectorPriorityLevel.HIGH,
-            },
+            "data_conditions": [
+                {
+                    "id": self.condition.id,
+                    "type": Condition.GREATER,
+                    "comparison": 100,
+                    "result": DetectorPriorityLevel.HIGH,
+                }
+            ],
         }
 
     def test_update(self):
@@ -157,40 +195,14 @@ class ProjectDetectorDetailsPutTest(ProjectDetectorDetailsBaseTest):
 
     def test_update_missing_data_condition(self):
         """
-        Edge case - workflow_data_condition field is nullable
+        Edge case - ensure we raise if the DataCondition can't be found
         """
-        pass
-
-
-
-@region_silo_test
-class ProjectDetectorIndexDeleteTest(ProjectDetectorDetailsBaseTest):
-    method = "DELETE"
-
-    def test_simple(self):
-        with outbox_runner():
-            self.get_success_response(self.organization.slug, self.project.slug, self.detector.id)
-
-        assert RegionScheduledDeletion.objects.filter(
-            model_name="Detector", object_id=self.detector.id
-        ).exists()
-
-    def test_error_group_type(self):
-        """
-        Test that we do not delete the required error detector
-        """
-        data_condition_group = self.create_data_condition_group()
-        error_detector = self.create_detector(
-            project_id=self.project.id,
-            name="Error Detector",
-            type=ErrorGroupType.slug,
-            workflow_condition_group=data_condition_group,
-        )
-        with outbox_runner():
+        DataCondition.objects.get(id=self.condition.id).delete()
+        with self.tasks():
             self.get_error_response(
-                self.organization.slug, self.project.slug, error_detector.id, status_code=403
+                self.organization.slug,
+                self.project.slug,
+                self.detector.id,
+                **self.valid_data,
+                status_code=400,
             )
-
-        assert not RegionScheduledDeletion.objects.filter(
-            model_name="Detector", object_id=error_detector.id
-        ).exists()
