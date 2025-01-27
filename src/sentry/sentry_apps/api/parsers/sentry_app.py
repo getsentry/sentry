@@ -146,7 +146,7 @@ class SentryAppParser(Serializer):
 
     def __init__(self, *args, **kwargs):
         self.active_staff = kwargs.pop("active_staff", False)
-        self.access = kwargs.pop("access")
+        self.access = kwargs.pop("access", None)
         Serializer.__init__(self, *args, **kwargs)
 
     # an abstraction to pull fields from attrs if they are available or the sentry_app if not
@@ -184,6 +184,10 @@ class SentryAppParser(Serializer):
             # if the existing instance already has this scope, skip the check
             if self.instance and self.instance.has_scope(scope):
                 continue
+
+            assert (
+                self.access is not None
+            ), "Access is required to validate scopes in SentryAppParser"
             # add an error if the requester lacks permissions being requested
             if not self.access.has_scope(scope) and not self.active_staff:
                 validation_errors.append(
