@@ -1,11 +1,13 @@
 import type React from 'react';
-import {Fragment, useMemo} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import Color from 'color';
 
+import {useFetchIssueTag, useFetchIssueTagValues} from 'sentry/actionCreators/group';
 import {LinkButton} from 'sentry/components/button';
 import {DeviceName} from 'sentry/components/deviceName';
+import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
 import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -17,6 +19,7 @@ import type {Project} from 'sentry/types/project';
 import {percent} from 'sentry/utils';
 import {isMobilePlatform} from 'sentry/utils/platform';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 import {useGroupTagsReadable} from 'sentry/views/issueDetails/groupTags/useGroupTags';
@@ -35,6 +38,10 @@ const BACKEND_TAGS = [
   'environment',
 ];
 const MOBILE_TAGS = ['device', 'os', 'release', 'environment', 'transaction'];
+const RTL_TAGS = ['transaction', 'url'];
+
+type TagSort = 'date' | 'count';
+const DEFAULT_SORT: TagSort = 'count';
 
 type Segment = {
   count: number;
@@ -43,60 +50,63 @@ type Segment = {
   color?: string;
 };
 
-const bgColor = (index: number) =>
-  Color(CHART_PALETTE[4].at(index)).alpha(0.8).toString();
-
-function SegmentedBar({
-  segments,
-  otherPercentage,
-  tagName,
-}: {
-  otherPercentage: string | null;
-  segments: Segment[];
-  tagName: string;
-}) {
-  const theme = useTheme();
-  const tooltipContent = (
-    <TooltipLegend>
-      <LegendTitle>{tagName}</LegendTitle>
-      <LegendGrid>
-        {segments.map((segment, idx) => (
-          <Fragment key={idx}>
-            <LegendColor style={{backgroundColor: bgColor(idx)}} />
-            <LegendText>{segment.name}</LegendText>
-            <LegendPercentage>{segment.percentage.toFixed(0)}%</LegendPercentage>
-          </Fragment>
-        ))}
-        {otherPercentage && (
-          <Fragment>
-            <LegendColor style={{backgroundColor: theme.gray200}} />
-            <LegendText>{t('Other')}</LegendText>
-            <LegendPercentage>{otherPercentage}</LegendPercentage>
-          </Fragment>
-        )}
-      </LegendGrid>
-    </TooltipLegend>
+function usePrefetchTagValues(tagKey: string, groupId: string, enabled: boolean) {
+  const organization = useOrganization();
+  const location = useLocation();
+  const sort: TagSort =
+    (location.query.tagDrawerSort as TagSort | undefined) ?? DEFAULT_SORT;
+  useFetchIssueTagValues(
+    {
+      orgSlug: organization.slug,
+      groupId,
+      tagKey,
+      sort,
+      cursor: location.query.tagDrawerCursor as string | undefined,
+    },
+    {enabled}
   );
 
-  return (
-    <Tooltip title={tooltipContent} skipWrapper>
-      <TagBarPlaceholder>
-        {segments.map((segment, idx) => (
-          <TagBarSegment
-            key={idx}
-            style={{
-              left: `${segments.slice(0, idx).reduce((sum, s) => sum + s.percentage, 0)}%`,
-              width: `${segment.percentage}%`,
-              backgroundColor: bgColor(idx),
-            }}
-          />
-        ))}
-      </TagBarPlaceholder>
-    </Tooltip>
+  useFetchIssueTag(
+    {
+      orgSlug: organization.slug,
+      groupId,
+      tagKey,
+    },
+    {enabled}
   );
 }
 
-function TagPreviewProgressBar({tag}: {tag: GroupTag}) {
+const bgColor = (index: number) =>
+  Color(CHART_PALETTE[4].at(index)).alpha(0.8).toString();
+const getRoundedPercentage = (percentage: number) =>
+  percentage < 1 ? '<1%' : `${Math.floor(percentage)}%`;
+
+function SegmentedBar({segments}: {segments: Segment[]}) {
+  return (
+    <TagBarPlaceholder>
+      {segments.map((segment, idx) => (
+        <TagBarSegment
+          key={idx}
+          style={{
+            left: `${segments.slice(0, idx).reduce((sum, s) => sum + s.percentage, 0)}%`,
+            width: `${segment.percentage}%`,
+            backgroundColor: bgColor(idx),
+          }}
+        />
+      ))}
+    </TagBarPlaceholder>
+  );
+}
+
+function TagPreviewProgressBar({tag, groupId}: {groupId: string; tag: GroupTag}) {
+  const theme = useTheme();
+  const {baseUrl} = useGroupDetailsRoute();
+  const location = useLocation();
+
+  const [isHovered, setIsHovered] = useState(false);
+  const [prefetchTagValue, setPrefetchTagValue] = useState('');
+
+  usePrefetchTagValues(prefetchTagValue, groupId, isHovered);
   const segments: Segment[] = tag.topValues.map(value => {
     let name: string | React.ReactNode = value.name;
     if (tag.key === 'release') {
@@ -117,28 +127,58 @@ function TagPreviewProgressBar({tag}: {tag: GroupTag}) {
     return null;
   }
 
-  const topPercentageString =
-    topSegment.percentage < 1 ? '<1%' : `${topSegment.percentage.toFixed(0)}%`;
+  const topPercentageString = getRoundedPercentage(topSegment.percentage);
   const otherPercentage = segments.reduce((sum, s) => sum - s.percentage, 100);
   const otherPercentageString =
-    otherPercentage === 0
-      ? null
-      : otherPercentage < 1
-        ? '<1%'
-        : `${otherPercentage.toFixed(0)}%`;
+    otherPercentage === 0 ? null : getRoundedPercentage(otherPercentage);
+
+  const tooltipContent = (
+    <TooltipLegend>
+      <LegendTitle>{tag.key}</LegendTitle>
+      <LegendGrid>
+        {segments.map((segment, idx) => (
+          <Fragment key={idx}>
+            <LegendColor style={{backgroundColor: bgColor(idx)}} />
+            <LegendText ellipsisDirection={RTL_TAGS.includes(tag.key) ? 'left' : 'right'}>
+              {segment.name}
+            </LegendText>
+            <LegendPercentage>
+              {getRoundedPercentage(segment.percentage)}
+            </LegendPercentage>
+          </Fragment>
+        ))}
+        {otherPercentageString && (
+          <Fragment>
+            <LegendColor style={{backgroundColor: theme.gray200}} />
+            <LegendText>{t('Other')}</LegendText>
+            <LegendPercentage>{otherPercentageString}</LegendPercentage>
+          </Fragment>
+        )}
+      </LegendGrid>
+    </TooltipLegend>
+  );
 
   return (
-    <Fragment>
-      <TagBarPlaceholder>
-        <SegmentedBar
-          segments={segments}
-          otherPercentage={otherPercentageString}
-          tagName={tag.key}
-        />
-      </TagBarPlaceholder>
-      <TopPercentage>{topPercentageString}</TopPercentage>
-      <TextOverflow>{topSegment?.name}</TextOverflow>
-    </Fragment>
+    <Tooltip title={tooltipContent} skipWrapper maxWidth={420}>
+      <TagPreviewGrid
+        to={{
+          pathname: `${baseUrl}${TabPaths[Tab.TAGS]}${tag.key}/`,
+          query: location.query,
+        }}
+        onMouseEnter={() => {
+          setIsHovered(true);
+          setPrefetchTagValue(tag.key);
+        }}
+      >
+        <TagBarPlaceholder>
+          <SegmentedBar segments={segments} />
+        </TagBarPlaceholder>
+        <TopPercentage>{topPercentageString}</TopPercentage>
+        <TextOverflow ellipsisDirection={RTL_TAGS.includes(tag.key) ? 'left' : 'right'}>
+          {topSegment?.name}
+        </TextOverflow>
+      </TagPreviewGrid>
+    </Tooltip>
   );
 }
 
@@ -238,7 +278,7 @@ export default function IssueTagsPreview({
     <IssueTagPreviewSection>
       <TagsPreview>
         {tagsToPreview.map(tag => (
-          <TagPreviewProgressBar key={tag.key} tag={tag} />
+          <TagPreviewProgressBar key={tag.key} tag={tag} groupId={groupId} />
         ))}
       </TagsPreview>
       <IssueTagButton tags={tagsToPreview} />
@@ -315,10 +355,26 @@ const LegendColor = styled('div')`
   border-radius: 100%;
 `;
 
-const LegendText = styled('span')`
+const TagPreviewGrid = styled(Link)`
+  display: grid;
+  grid-template-columns: subgrid;
+  grid-column: 1 / -1;
+  align-items: center;
+  padding: 0 ${space(0.75)};
+  margin: 0 -${space(0.75)};
+  border-radius: ${p => p.theme.borderRadius};
+  color: ${p => p.theme.textColor};
+  font-size: ${p => p.theme.fontSizeSmall};
+
+  &:hover {
+    background: ${p => p.theme.backgroundSecondary};
+    color: ${p => p.theme.textColor};
+  }
+`;
+
+const LegendText = styled(TextOverflow)`
   font-size: ${p => p.theme.fontSizeSmall};
   white-space: nowrap;
-  ${p => p.theme.overflowEllipsis};
 `;
 
 const LegendPercentage = styled('span')`
@@ -329,9 +385,7 @@ const LegendPercentage = styled('span')`
 `;
 
 const LegendTitle = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
   font-weight: 600;
-  color: ${p => p.theme.textColor};
   margin-bottom: ${space(0.75)};
 `;
 

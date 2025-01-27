@@ -15,6 +15,7 @@ import type {
   SpanMetricsProperty,
   SpanMetricsResponse,
 } from 'sentry/views/insights/types';
+import type {OurlogsFields} from 'sentry/views/insights/types';
 
 interface UseMetricsOptions<Fields> {
   cursor?: string;
@@ -36,6 +37,19 @@ export const useSpansIndexed = <Fields extends SpanIndexedProperty[]>(
     DiscoverDatasets.SPANS_INDEXED,
     referrer
   );
+};
+
+export const useOurlogs = <Fields extends Array<keyof OurlogsFields>>(
+  options: UseMetricsOptions<Fields> = {},
+  referrer: string
+) => {
+  const {data, ...rest} = useDiscover<Fields, OurlogsFields>(
+    options,
+    DiscoverDatasets.OURLOGS,
+    referrer
+  );
+  const castData = data as OurlogsFields[];
+  return {...rest, data: castData};
 };
 
 export const useEAPSpans = <Fields extends EAPSpanProperty[]>(

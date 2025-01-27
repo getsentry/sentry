@@ -40,7 +40,7 @@ export function TagDistribution({tag}: {tag: GroupTag}) {
         </TagHeader>
         <TagValueContent>
           {visibleTagValues.map((tagValue, tagValueIdx) => {
-            const percentage = percent(tagValue.count, tag.totalValues);
+            const percentage = Math.floor(percent(tagValue.count, tag.totalValues));
             const displayPercentage =
               percentage < 1 ? '<1%' : `${percentage.toFixed(0)}%`;
             return (

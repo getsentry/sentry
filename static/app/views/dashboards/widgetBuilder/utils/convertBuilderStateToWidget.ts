@@ -29,10 +29,12 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
               field.kind as FieldValueKind
             )
           )
-          .map(generateFieldAsString);
+          .map(generateFieldAsString)
+          .filter(Boolean);
   const columns = state.fields
     ?.filter(field => field.kind === FieldValueKind.FIELD)
-    .map(generateFieldAsString);
+    .map(generateFieldAsString)
+    .filter(Boolean);
 
   const fields =
     state.displayType === DisplayType.TABLE
@@ -53,10 +55,12 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
       aggregates: aggregates ?? [],
       columns: columns ?? [],
       conditions: query,
-      orderby: sort,
       fieldAliases: fieldAliases ?? [],
       name: legendAlias[index] ?? '',
       selectedAggregate: state.selectedAggregate,
+
+      // Big number widgets don't support sorting, so always ignore the sort state
+      orderby: state.displayType === DisplayType.BIG_NUMBER ? '' : sort,
     };
   });
 
