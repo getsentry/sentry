@@ -4,6 +4,7 @@ import {space} from 'sentry/styles/space';
 
 export const StickyFooter = styled('div')`
   position: sticky;
+  margin-top: auto;
   bottom: 0;
   right: 0;
   width: 100%;
@@ -14,4 +15,11 @@ export const StickyFooter = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
+`;
+
+export const StickyFooterLabel = styled('p')`
+  margin: 0;
+  font-family: ${p => p.theme.text.familyMono};
+  font-size: ${p => p.theme.fontSizeMedium};
+  color: ${p => p.theme.textColor};
 `;
