@@ -1,3 +1,5 @@
+import {useMemo} from 'react';
+
 import type {Series} from 'sentry/types/echarts';
 import type {
   Confidence,
@@ -22,6 +24,10 @@ import {determineSeriesConfidence} from 'sentry/views/alerts/rules/metric/utils/
 import {getSeriesEventView} from 'sentry/views/insights/common/queries/getSeriesEventView';
 import type {SpanFunctions, SpanIndexedField} from 'sentry/views/insights/types';
 
+import {
+  isEventsStats,
+  isMultiSeriesEventsStats,
+} from '../../../dashboards/utils/isEventsStats';
 import {getRetryDelay, shouldRetryHandler} from '../utils/retryHandlers';
 
 type SeriesMap = {
@@ -105,9 +111,9 @@ export const useSortedTimeSeries = <
 
   const isFetchingOrLoading = result.isPending || result.isFetching;
 
-  const data: SeriesMap = isFetchingOrLoading
-    ? {}
-    : transformToSeriesMap(result.data, yAxis);
+  const data: SeriesMap = useMemo(() => {
+    return isFetchingOrLoading ? {} : transformToSeriesMap(result.data, yAxis);
+  }, [isFetchingOrLoading, result.data, yAxis]);
 
   const pageLinks = result.response?.getResponseHeader('Link') ?? undefined;
 
@@ -119,23 +125,7 @@ export const useSortedTimeSeries = <
   };
 };
 
-export function isEventsStats(
-  obj: EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats
-): obj is EventsStats {
-  return typeof obj === 'object' && obj !== null && typeof obj.data === 'object';
-}
-
-function isMultiSeriesEventsStats(
-  obj: EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats
-): obj is MultiSeriesEventsStats {
-  if (typeof obj !== 'object' || obj === null) {
-    return false;
-  }
-
-  return Object.values(obj).every(series => isEventsStats(series));
-}
-
-function transformToSeriesMap(
+export function transformToSeriesMap(
   result: MultiSeriesEventsStats | GroupedMultiSeriesEventsStats | undefined,
   yAxis: string[]
 ): SeriesMap {
@@ -155,8 +145,8 @@ function transformToSeriesMap(
   // Multiple series, applies to multi axis or topN events queries
   const hasMultipleYAxes = yAxis.length > 1;
   if (isMultiSeriesEventsStats(result)) {
-    const processedResults: [number, Series][] = Object.keys(result).map(seriesName =>
-      processSingleEventStats(seriesName, result[seriesName])
+    const processedResults: Array<[number, Series]> = Object.keys(result).map(
+      seriesName => processSingleEventStats(seriesName, result[seriesName]!)
     );
 
     if (!hasMultipleYAxes) {
@@ -170,6 +160,7 @@ function transformToSeriesMap(
     return processedResults
       .sort(([a], [b]) => a - b)
       .reduce((acc, [, series]) => {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         acc[series.seriesName] = [series];
         return acc;
       }, {});
@@ -178,10 +169,14 @@ function transformToSeriesMap(
   // Grouped multi series, applies to topN events queries with multiple y-axes
   // First, we process the grouped multi series into a list of [seriesName, order, {[aggFunctionAlias]: EventsStats}]
   // to enable sorting.
-  const processedResults: [string, number, MultiSeriesEventsStats][] = [];
-  Object.keys(result).forEach(seriesName => {
-    const {order: groupOrder, ...groupData} = result[seriesName];
-    processedResults.push([seriesName, groupOrder || 0, groupData]);
+  const processedResults: Array<[string, number, MultiSeriesEventsStats]> = [];
+  Object.keys(result).forEach(groupName => {
+    const {order: groupOrder, ...groupData} = result[groupName]!;
+    processedResults.push([
+      groupName,
+      groupOrder || 0,
+      groupData as MultiSeriesEventsStats,
+    ]);
   });
 
   return processedResults
@@ -190,7 +185,7 @@ function transformToSeriesMap(
       Object.keys(groupData).forEach(aggFunctionAlias => {
         const [, series] = processSingleEventStats(
           seriesName,
-          groupData[aggFunctionAlias]
+          groupData[aggFunctionAlias]!
         );
 
         if (!acc[aggFunctionAlias]) {
@@ -211,6 +206,7 @@ function processSingleEventStats(
   if (seriesName) {
     const unit = seriesData.meta?.units?.[getAggregateAlias(seriesName)];
     // Scale series values to milliseconds or bytes depending on units from meta
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     scale = (unit && (DURATION_UNITS[unit] ?? SIZE_UNITS[unit])) ?? 1;
   }
 

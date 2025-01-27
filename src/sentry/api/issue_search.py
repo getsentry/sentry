@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from functools import partial
-from typing import Optional, Union
+from typing import overload
+
+from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.event_search import (
     AggregateFilter,
@@ -21,12 +23,12 @@ from sentry.issues.grouptype import (
     get_group_types_by_category,
 )
 from sentry.models.environment import Environment
-from sentry.models.group import GROUP_SUBSTATUS_TO_STATUS_MAP, STATUS_QUERY_CHOICES, GroupStatus
+from sentry.models.group import GROUP_SUBSTATUS_TO_STATUS_MAP, STATUS_QUERY_CHOICES
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.search.events.constants import EQUALITY_OPERATORS, INEQUALITY_OPERATORS
-from sentry.search.events.filter import ParsedTerms, to_list
+from sentry.search.events.filter import ParsedTerm, ParsedTerms, to_list
 from sentry.search.utils import (
     DEVICE_CLASS,
     get_teams_for_users,
@@ -36,11 +38,11 @@ from sentry.search.utils import (
     parse_substatus_value,
     parse_user_value,
 )
-from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, GroupSubStatus, PriorityLevel
+from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, PriorityLevel
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 
-is_filter_translation = {
+is_filter_translation: dict[str, tuple[str, int]] = {
     "assigned": ("unassigned", False),
     "unassigned": ("unassigned", True),
     "for_review": ("for_review", True),
@@ -78,12 +80,12 @@ parse_search_query = partial(base_parse_query, config=issue_search_config)
 
 ValueConverter = Callable[
     [
-        Iterable[Union[User, Team, str, GroupStatus, GroupSubStatus]],
+        Iterable[str],
         Sequence[Project],
         User,
-        Optional[Sequence[Environment]],
+        Sequence[Environment] | None,
     ],
-    Union[str, list[str], list[Optional[Union[User, Team]]], list[User], list[int]],
+    str | list[str] | list[RpcUser | Team | None] | list[RpcUser] | list[int],
 ]
 
 
@@ -92,10 +94,10 @@ def convert_actor_or_none_value(
     projects: Sequence[Project],
     user: User,
     environments: Sequence[Environment] | None,
-) -> list[User | Team | None]:
+) -> list[RpcUser | Team | None]:
     # TODO: This will make N queries. This should be ok, we don't typically have large
     # lists of actors here, but we can look into batching it if needed.
-    actors_or_none = []
+    actors_or_none: list[RpcUser | Team | None] = []
     for actor in value:
         if actor == "my_teams":
             actors_or_none.extend(get_teams_for_users(projects, [user]))
@@ -109,7 +111,7 @@ def convert_user_value(
     projects: Sequence[Project],
     user: User,
     environments: Sequence[Environment] | None,
-) -> list[User]:
+) -> list[RpcUser]:
     # TODO: This will make N queries. This should be ok, we don't typically have large
     # lists of usernames here, but we can look into batching it if needed.
     return [parse_user_value(username, user) for username in value]
@@ -257,14 +259,37 @@ value_converters: Mapping[str, ValueConverter] = {
 }
 
 
+# makes testing easier for the common case
+@overload
 def convert_query_values(
-    search_filters: ParsedTerms,
+    search_filters: list[SearchFilter],
     projects: Sequence[Project],
-    user: User | RpcUser | None,
+    user: User | RpcUser | AnonymousUser | None,
     environments: Sequence[Environment] | None,
     value_converters=value_converters,
     allow_aggregate_filters=False,
-) -> list[SearchFilter]:
+) -> list[SearchFilter]: ...
+
+
+@overload
+def convert_query_values(
+    search_filters: ParsedTerms,
+    projects: Sequence[Project],
+    user: User | RpcUser | AnonymousUser | None,
+    environments: Sequence[Environment] | None,
+    value_converters=value_converters,
+    allow_aggregate_filters=False,
+) -> ParsedTerms: ...
+
+
+def convert_query_values(
+    search_filters: ParsedTerms,
+    projects: Sequence[Project],
+    user: User | RpcUser | AnonymousUser | None,
+    environments: Sequence[Environment] | None,
+    value_converters=value_converters,
+    allow_aggregate_filters=False,
+) -> ParsedTerms:
     """
     Accepts a collection of SearchFilter objects and converts their values into
     a specific format, based on converters specified in `value_converters`.
@@ -276,14 +301,29 @@ def convert_query_values(
     :return: New collection of `SearchFilters`, which may have converted values.
     """
 
+    @overload
     def convert_search_filter(
         search_filter: SearchFilter, organization: Organization
-    ) -> SearchFilter:
+    ) -> SearchFilter: ...
+
+    @overload
+    def convert_search_filter(
+        search_filter: AggregateFilter, organization: Organization
+    ) -> AggregateFilter: ...
+
+    @overload
+    def convert_search_filter(
+        search_filter: ParenExpression, organization: Organization
+    ) -> ParenExpression: ...
+
+    @overload
+    def convert_search_filter(search_filter: str, organization: Organization) -> str: ...
+
+    def convert_search_filter(search_filter: ParsedTerm, organization: Organization) -> ParsedTerm:
         if isinstance(search_filter, ParenExpression):
             return search_filter._replace(
                 children=[
-                    child if isinstance(child, str) else convert_search_filter(child, organization)
-                    for child in search_filter.children
+                    convert_search_filter(child, organization) for child in search_filter.children
                 ]
             )
         elif isinstance(search_filter, str):
@@ -312,7 +352,7 @@ def convert_query_values(
 
     def expand_substatus_query_values(
         search_filters: ParsedTerms, org: Organization
-    ) -> list[SearchFilter]:
+    ) -> ParsedTerms:
         first_status_incl = None
         first_status_excl = None
         includes_status_filter = False
@@ -323,9 +363,9 @@ def convert_query_values(
             if search_filter.key.name == "substatus":
                 converted = convert_search_filter(search_filter, org)
                 new_value = converted.value.raw_value
-                status = GROUP_SUBSTATUS_TO_STATUS_MAP.get(
-                    new_value[0] if isinstance(new_value, list) else new_value
-                )
+                new_value_int = new_value[0] if isinstance(new_value, list) else new_value
+                assert isinstance(new_value_int, int), new_value_int
+                status = GROUP_SUBSTATUS_TO_STATUS_MAP[new_value_int]
                 if first_status_incl is None and converted.operator in EQUALITY_OPERATORS:
                     first_status_incl = SearchFilter(
                         key=SearchKey(name="status"), operator="IN", value=SearchValue([status])
@@ -345,8 +385,9 @@ def convert_query_values(
             return search_filters
 
         if includes_substatus_filter:
-            assert first_status_incl is not None or first_status_excl is not None
-            return search_filters + [first_status_incl or first_status_excl]
+            new_filter = first_status_incl or first_status_excl
+            assert new_filter is not None
+            return [*search_filters, new_filter]
 
         return search_filters
 

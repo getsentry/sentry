@@ -84,29 +84,6 @@ class DatabaseBackedIntegrationService(IntegrationService):
             ),
         )
 
-    def page_organization_integrations_ids(
-        self,
-        *,
-        organization_id: int,
-        statuses: list[int],
-        provider_key: str | None = None,
-        args: RpcPaginationArgs,
-    ) -> RpcPaginationResult:
-        queryset = OrganizationIntegration.objects.filter(
-            organization_id=organization_id,
-            status__in=statuses,
-        )
-
-        if provider_key:
-            queryset = queryset.filter(integration__provider=provider_key.lower())
-
-        return args.do_hybrid_cloud_pagination(
-            description="page_organization_integrations_ids",
-            paginator_cls=OffsetPaginator,
-            order_by="integration__name",
-            queryset=queryset,
-        )
-
     def get_integrations(
         self,
         *,
@@ -460,8 +437,6 @@ class DatabaseBackedIntegrationService(IntegrationService):
                 client.send_card(channel, attachment)
                 return True
             except Exception as e:
-                # TODO(iamrajjoshi): Remove the logger after we audit lifecycle
-                logger.info("rule.fail.msteams_post", exc_info=True)
                 lifecycle.add_extras({"integration_id": integration_id, "channel": channel})
                 lifecycle.record_failure(e)
             return False

@@ -2,7 +2,7 @@ from datetime import datetime
 from unittest import mock
 from unittest.mock import MagicMock
 
-from django.http import HttpRequest, QueryDict, StreamingHttpResponse
+from django.http import QueryDict, StreamingHttpResponse
 from django.test import override_settings
 from pytest import raises
 from rest_framework.permissions import AllowAny
@@ -478,17 +478,22 @@ class PaginateTest(APITestCase):
             == '<http://testserver/?&cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", <http://testserver/?&cursor=0:100:0>; rel="next"; results="false"; cursor="0:100:0"'
         )
 
-    def test_invalid_per_page(self):
-        self.request.GET = {"per_page": "nope"}
-        response = self.view(self.request)
-        assert response.status_code == 400
-
     def test_invalid_cursor(self):
         self.request.GET = {"cursor": "no:no:no"}
         response = self.view(self.request)
         assert response.status_code == 400
 
-    def test_per_page_out_of_bounds(self):
+    def test_non_int_per_page(self):
+        self.request.GET = {"per_page": "nope"}
+        response = self.view(self.request)
+        assert response.status_code == 400
+
+    def test_per_page_too_low(self):
+        self.request.GET = {"per_page": "0"}
+        response = self.view(self.request)
+        assert response.status_code == 400
+
+    def test_per_page_too_high(self):
         self.request.GET = {"per_page": "101"}
         response = self.view(self.request)
         assert response.status_code == 400
@@ -498,43 +503,6 @@ class PaginateTest(APITestCase):
         assert response.status_code == 200
         assert isinstance(response, StreamingHttpResponse)
         assert response.has_header("content-type")
-
-
-class EndpointJSONBodyTest(APITestCase):
-    def setUp(self):
-        super().setUp()
-
-        self.request = HttpRequest()
-        self.request.method = "GET"
-        self.request.META["CONTENT_TYPE"] = "application/json"
-
-    def test_json(self):
-        self.request._body = b'{"foo":"bar"}'
-
-        Endpoint().load_json_body(self.request)
-
-        assert self.request.json_body == {"foo": "bar"}
-
-    def test_invalid_json(self):
-        self.request._body = b"hello"
-
-        Endpoint().load_json_body(self.request)
-
-        assert not self.request.json_body
-
-    def test_empty_request_body(self):
-        self.request._body = b""
-
-        Endpoint().load_json_body(self.request)
-
-        assert not self.request.json_body
-
-    def test_non_json_content_type(self):
-        self.request.META["CONTENT_TYPE"] = "text/plain"
-
-        Endpoint().load_json_body(self.request)
-
-        assert not self.request.json_body
 
 
 @all_silo_test(regions=create_test_regions("us", "eu"))

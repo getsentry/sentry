@@ -163,7 +163,7 @@ function EventDisplay({
 
   useEffect(() => {
     if (defined(eventIds) && eventIds.length > 0 && !selectedEventId) {
-      setSelectedEventId(eventIds[0]);
+      setSelectedEventId(eventIds[0]!);
     }
   }, [eventIds, selectedEventId]);
 
@@ -242,7 +242,7 @@ function EventDisplay({
                 icon={<IconChevron direction="left" size={BUTTON_ICON_SIZE} />}
                 onPaginate={() => {
                   if (hasPrev) {
-                    setSelectedEventId(eventIds[eventIdIndex - 1]);
+                    setSelectedEventId(eventIds[eventIdIndex - 1]!);
                   }
                 }}
               />
@@ -252,7 +252,7 @@ function EventDisplay({
                 icon={<IconChevron direction="right" size={BUTTON_ICON_SIZE} />}
                 onPaginate={() => {
                   if (hasNext) {
-                    setSelectedEventId(eventIds[eventIdIndex + 1]);
+                    setSelectedEventId(eventIds[eventIdIndex + 1]!);
                   }
                 }}
               />

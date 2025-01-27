@@ -33,7 +33,7 @@ type OperationName = string | typeof OtherOperation;
 // mapping an operation name to a disjoint set of time intervals (start/end timestamp).
 // this is an intermediary data structure to help calculate the coverage of an operation name
 // with respect to the root transaction span's operation lifetime
-type OperationNameIntervals = Record<OperationName, Array<TimeWindowSpan>>;
+type OperationNameIntervals = Record<OperationName, TimeWindowSpan[]>;
 type OperationNameCoverage = Record<OperationName, Duration>;
 
 type OpStats = {
@@ -373,7 +373,7 @@ function mergeInterval(intervals: TimeWindowSpan[]): TimeWindowSpan[] {
       continue;
     }
 
-    const lastInterval = merged[merged.length - 1];
+    const lastInterval = merged[merged.length - 1]!;
     const lastIntervalEnd = lastInterval[1];
 
     const [currentIntervalStart, currentIntervalEnd] = currentInterval;

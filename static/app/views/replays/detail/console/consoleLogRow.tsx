@@ -42,7 +42,7 @@ export default function ConsoleLogRow({
   style,
 }: Props) {
   const handleDimensionChange = useCallback(
-    (path, expandedState) => onDimensionChange?.(index, path, expandedState),
+    (path: any, expandedState: any) => onDimensionChange?.(index, path, expandedState),
     [onDimensionChange, index]
   );
 
@@ -99,7 +99,8 @@ const ConsoleLog = styled('div')<{
 
   background-color: ${p =>
     ['warning', 'error'].includes(String(p.level))
-      ? p.theme.alert[String(p.level)].backgroundLight
+      ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        p.theme.alert[String(p.level)].backgroundLight
       : 'inherit'};
 
   color: ${p => p.theme.gray400};
@@ -138,6 +139,7 @@ const MediumFontSize = styled('span')`
 
 function ConsoleLevelIcon({level}: {level: string | undefined}) {
   return level && level in ICONS ? (
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     <MediumFontSize>{ICONS[level]}</MediumFontSize>
   ) : (
     <i />

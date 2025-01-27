@@ -53,8 +53,8 @@ const organization = OrganizationFixture({
 const event = EventFixture();
 
 describe('Event View Hierarchy', function () {
-  let mockAttachment;
-  let mockProject;
+  let mockAttachment!: ReturnType<typeof EventAttachmentFixture>;
+  let mockProject!: ReturnType<typeof ProjectFixture>;
   beforeEach(function () {
     mockAttachment = EventAttachmentFixture({type: 'event.view_hierarchy'});
     mockProject = ProjectFixture();

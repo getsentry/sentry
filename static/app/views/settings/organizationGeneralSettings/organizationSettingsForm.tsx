@@ -72,10 +72,10 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
       help: `The unique identifier for this organization. It cannot be modified.`,
     };
 
-    formsConfig[0].fields = [
-      ...formsConfig[0].fields.slice(0, 2),
+    formsConfig[0]!.fields = [
+      ...formsConfig[0]!.fields.slice(0, 2),
       organizationIdField,
-      ...formsConfig[0].fields.slice(2),
+      ...formsConfig[0]!.fields.slice(2),
       makeHideAiFeaturesField(organization),
       {
         name: 'codecovAccess',

@@ -223,20 +223,17 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                 status=403,
             )
 
-        is_member = not (
-            request.access.has_scope("member:invite") and request.access.has_scope("member:admin")
+        is_member = not request.access.has_scope("member:admin") and (
+            request.access.has_scope("member:invite")
         )
-        enable_member_invite = (
-            features.has("organizations:members-invite-teammates", organization)
-            and not organization.flags.disable_member_invite
-        )
+        members_can_invite = not organization.flags.disable_member_invite
         # Members can only resend invites
-        reinvite_request_only = set(result.keys()).issubset({"reinvite", "regenerate"})
+        is_reinvite_request_only = set(result.keys()).issubset({"reinvite", "regenerate"})
         # Members can only resend invites that they sent
         is_invite_from_user = member.inviter_id == request.user.id
 
         if is_member:
-            if not enable_member_invite or not member.is_pending:
+            if not (members_can_invite and member.is_pending and is_reinvite_request_only):
                 raise PermissionDenied
             if not is_invite_from_user:
                 return Response({"detail": ERR_MEMBER_INVITE}, status=403)
@@ -244,7 +241,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         # XXX(dcramer): if/when this expands beyond reinvite we need to check
         # access level
         if result.get("reinvite"):
-            if not reinvite_request_only:
+            if not is_reinvite_request_only:
                 return Response({"detail": ERR_EDIT_WHEN_REINVITING}, status=403)
             if member.is_pending:
                 if ratelimits.for_organization_member_invite(
@@ -470,8 +467,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                 if acting_member != member:
                     if not request.access.has_scope("member:admin"):
                         if (
-                            features.has("organizations:members-invite-teammates", organization)
-                            and not organization.flags.disable_member_invite
+                            not organization.flags.disable_member_invite
                             and request.access.has_scope("member:invite")
                         ):
                             return self._handle_deletion_by_member(

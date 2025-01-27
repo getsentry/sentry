@@ -38,7 +38,7 @@ type Props = {
 };
 
 class MiniGraph extends Component<Props> {
-  shouldComponentUpdate(nextProps) {
+  shouldComponentUpdate(nextProps: any) {
     // We pay for the cost of the deep comparison here since it is cheaper
     // than the cost for rendering the graph, which can take ~200ms to ~300ms to
     // render.
@@ -191,7 +191,7 @@ class MiniGraph extends Component<Props> {
               ? display
               : this.getChartType({
                   showDaily,
-                  yAxis: Array.isArray(yAxis) ? yAxis[0] : yAxis,
+                  yAxis: Array.isArray(yAxis) ? yAxis[0]! : yAxis,
                   timeseriesData: allSeries,
                 });
           const data = allSeries.map(series => ({
@@ -203,11 +203,15 @@ class MiniGraph extends Component<Props> {
 
           const hasOther = topEvents && topEvents + 1 === allSeries.length;
           const chartColors = allSeries.length
-            ? [...theme.charts.getColorPalette(allSeries.length - 2 - (hasOther ? 1 : 0))]
+            ? (theme.charts
+                .getColorPalette(allSeries.length - 2 - (hasOther ? 1 : 0))
+                ?.slice() as string[] | undefined) ?? []
             : undefined;
+
           if (chartColors?.length && hasOther) {
             chartColors.push(theme.chartOther);
           }
+
           const chartOptions = {
             colors: chartColors,
             height: 150,
@@ -269,7 +273,7 @@ class MiniGraph extends Component<Props> {
   }
 }
 
-const StyledGraphContainer = styled(props => (
+const StyledGraphContainer = styled((props: any) => (
   <LoadingContainer {...props} maskBackgroundColor="transparent" />
 ))`
   height: 150px;

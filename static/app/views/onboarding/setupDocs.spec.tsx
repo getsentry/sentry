@@ -9,8 +9,8 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
+import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
-import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {OnboardingRecentCreatedProject} from 'sentry/types/onboarding';
 import type {Organization} from 'sentry/types/organization';
@@ -387,7 +387,7 @@ describe('Onboarding Setup Docs', function () {
       });
 
       const updateLoaderMock = MockApiClient.addMockResponse({
-        url: `/projects/${organization.slug}/${project.slug}/keys/${PROJECT_KEY.id}/`,
+        url: `/projects/${organization.slug}/${project.slug}/keys/${PROJECT_KEY!.id}/`,
         method: 'PUT',
         body: PROJECT_KEY,
       });

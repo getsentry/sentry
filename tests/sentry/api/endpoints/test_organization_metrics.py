@@ -1,12 +1,9 @@
 import copy
-from functools import partial
 
 import pytest
 from django.urls import reverse
 
 from sentry.models.apitoken import ApiToken
-from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.silo.base import SiloMode
 from sentry.snuba.metrics import (
     DERIVED_METRICS,
@@ -38,20 +35,6 @@ MOCKED_DERIVED_METRICS.update(
         )
     }
 )
-
-
-def mocked_mri_resolver(metric_names, mri_func):
-    return lambda x: x if x in metric_names else mri_func(x)
-
-
-def indexer_record(use_case_id: UseCaseID, org_id: int, string: str) -> int:
-    ret = indexer.record(use_case_id=use_case_id, org_id=org_id, string=string)
-    assert ret is not None
-    return ret
-
-
-perf_indexer_record = partial(indexer_record, UseCaseID.TRANSACTIONS)
-rh_indexer_record = partial(indexer_record, UseCaseID.SESSIONS)
 
 
 class OrganizationMetricsPermissionTest(APITestCase):

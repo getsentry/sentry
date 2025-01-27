@@ -12,7 +12,7 @@ describe('OrganizationAuthList', function () {
     );
 
     expect(
-      screen.queryByText('No authentication providers are available.')
+      screen.getByText('No authentication providers are available.')
     ).toBeInTheDocument();
   });
 
@@ -24,9 +24,9 @@ describe('OrganizationAuthList', function () {
       />
     );
 
-    expect(screen.getAllByLabelText('Configure').length).toBe(2);
-    expect(screen.queryByText('Dummy')).toBeInTheDocument();
-    expect(screen.queryByText('Dummy SAML')).toBeInTheDocument();
+    expect(screen.getAllByLabelText('Configure')).toHaveLength(2);
+    expect(screen.getByText('Dummy')).toBeInTheDocument();
+    expect(screen.getByText('Dummy SAML')).toBeInTheDocument();
   });
 
   it('renders for members', function () {

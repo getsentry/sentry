@@ -2,8 +2,8 @@ from sentry_kafka_schemas.schema_types.group_attributes_v1 import GroupAttribute
 from snuba_sdk.legacy import json_to_snql
 
 from sentry.issues.attributes import (
+    _bulk_retrieve_group_values,
     _bulk_retrieve_snapshot_values,
-    _retrieve_group_values,
     produce_snapshot_to_kafka,
 )
 from sentry.testutils.cases import SnubaTestCase, TestCase
@@ -36,7 +36,8 @@ class DatasetTest(SnubaTestCase, TestCase):
         project = self.create_project()
         group = self.create_group(project=project)
 
-        snapshot = _bulk_retrieve_snapshot_values([_retrieve_group_values(group.id)], False)
+        group_values = _bulk_retrieve_group_values([group.id])
+        snapshot = _bulk_retrieve_snapshot_values(group_values, False)
         self._send(snapshot[0])
 
         json_body = {

@@ -47,8 +47,8 @@ describe('server side rendering', () => {
   it('reparents pageload transaction as parent of server handler', () => {
     const tree = TraceTree.FromTrace(ssrTrace, traceMetadata);
 
-    const pageload = tree.root.children[0].children[0];
-    const serverHandler = pageload.children[0];
+    const pageload = tree.root.children[0]!.children[0]!;
+    const serverHandler = pageload.children[0]!;
 
     expect(serverHandler.parent).toBe(pageload);
     expect(pageload.parent).toBe(tree.root.children[0]);
@@ -59,7 +59,7 @@ describe('server side rendering', () => {
     const tree = TraceTree.FromTrace(ssrTrace, traceMetadata);
 
     TraceTree.FromSpans(
-      tree.root.children[0].children[0],
+      tree.root.children[0]!.children[0]!,
       ssrSpans,
       makeEventTransaction()
     );

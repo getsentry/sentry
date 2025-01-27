@@ -29,7 +29,6 @@ from sentry.utils import metrics
 
 _logger = logging.getLogger(__name__)
 
-SLACK_GET_CHANNEL_ID_PAGE_SIZE = 200
 SLACK_DEFAULT_TIMEOUT = 10
 MEMBER_PREFIX = "@"
 CHANNEL_PREFIX = "#"
@@ -49,14 +48,6 @@ class SlackChannelIdData:
     prefix: str
     channel_id: str | None
     timed_out: bool
-
-
-# Different list types in slack that we'll use to resolve a channel name. Format is
-# (<list_name>, <result_name>, <prefix>).
-LIST_TYPES: list[tuple[str, str, str]] = [
-    ("conversations", "channels", CHANNEL_PREFIX),
-    ("users", "members", MEMBER_PREFIX),
-]
 
 
 def strip_channel_name(name: str) -> str:
@@ -90,7 +81,7 @@ def get_channel_id(
     return get_channel_id_with_timeout(integration, channel_name, timeout)
 
 
-def validate_channel_id(name: str, integration_id: int | None, input_channel_id: str) -> None:
+def validate_channel_id(name: str, integration_id: int, input_channel_id: str) -> None:
     """
     In the case that the user is creating an alert via the API and providing the channel ID and name
     themselves, we want to make sure both values are correct.
@@ -121,6 +112,8 @@ def validate_channel_id(name: str, integration_id: int | None, input_channel_id:
 
         if unpack_slack_api_error(e) == CHANNEL_NOT_FOUND:
             raise ValidationError("Channel not found. Invalid ID provided.") from e
+        elif unpack_slack_api_error(e) == RATE_LIMITED:
+            raise ValidationError("Rate limited") from e
 
         raise ValidationError("Could not retrieve Slack channel information.") from e
 
@@ -178,7 +171,7 @@ def get_channel_id_with_timeout(
 
 
 def check_user_with_timeout(
-    integration: Integration, name: str, time_to_quit: int
+    integration: Integration | RpcIntegration, name: str, time_to_quit: float
 ) -> SlackChannelIdData:
     """
     If the channel is not found, we check if the name is a user.
@@ -295,15 +288,15 @@ def check_for_channel(
 
     try:
         client.chat_deleteScheduledMessage(
-            channel=msg_response.get("channel"),
-            scheduled_message_id=msg_response.get("scheduled_message_id"),
+            channel=msg_response["channel"],
+            scheduled_message_id=msg_response["scheduled_message_id"],
         )
         metrics.incr(
             SLACK_UTILS_CHANNEL_SUCCESS_DATADOG_METRIC,
             sample_rate=1.0,
             tags={"type": "chat_deleteScheduledMessage"},
         )
-        return msg_response.get("channel")
+        return msg_response["channel"]
     except SlackApiError as e:
         metrics.incr(
             SLACK_UTILS_CHANNEL_FAILURE_DATADOG_METRIC,

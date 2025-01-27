@@ -1,4 +1,4 @@
-from typing_extensions import TypedDict
+from typing import TypedDict
 
 from sentry.hybridcloud.rpc import RpcModel
 

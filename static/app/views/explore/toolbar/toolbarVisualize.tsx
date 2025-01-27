@@ -12,13 +12,17 @@ import {defined} from 'sentry/utils';
 import type {ParsedFunction} from 'sentry/utils/discover/fields';
 import {parseFunction, prettifyTagKey} from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
-import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
-import type {Visualize} from 'sentry/views/explore/hooks/useVisualizes';
+import {
+  useExploreVisualizes,
+  useSetExploreVisualizes,
+} from 'sentry/views/explore/contexts/pageParamsContext';
+import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {
   DEFAULT_VISUALIZATION,
+  DEFAULT_VISUALIZATION_FIELD,
   MAX_VISUALIZES,
-  useVisualizes,
-} from 'sentry/views/explore/hooks/useVisualizes';
+} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 import {
@@ -36,10 +40,9 @@ type ParsedVisualize = {
   label: string;
 };
 
-interface ToolbarVisualizeProps {}
-
-export function ToolbarVisualize({}: ToolbarVisualizeProps) {
-  const [visualizes, setVisualizes] = useVisualizes();
+export function ToolbarVisualize() {
+  const visualizes = useExploreVisualizes();
+  const setVisualizes = useSetExploreVisualizes();
 
   const numberTags = useSpanTags('number');
 
@@ -57,7 +60,7 @@ export function ToolbarVisualize({}: ToolbarVisualizeProps) {
     );
   }, [visualizes]);
 
-  const fieldOptions: SelectOption<string>[] = useMemo(() => {
+  const fieldOptions: Array<SelectOption<string>> = useMemo(() => {
     const unknownOptions = parsedVisualizeGroups
       .flatMap(group =>
         group.flatMap(entry => {
@@ -98,7 +101,7 @@ export function ToolbarVisualize({}: ToolbarVisualizeProps) {
     return options;
   }, [numberTags, parsedVisualizeGroups]);
 
-  const aggregateOptions: SelectOption<string>[] = useMemo(() => {
+  const aggregateOptions: Array<SelectOption<string>> = useMemo(() => {
     return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => {
       return {
         label: aggregate,
@@ -109,17 +112,17 @@ export function ToolbarVisualize({}: ToolbarVisualizeProps) {
   }, []);
 
   const addChart = useCallback(() => {
-    setVisualizes([
-      ...visualizes,
-      {yAxes: [DEFAULT_VISUALIZATION], chartType: ChartType.LINE},
-    ]);
+    setVisualizes(
+      [...visualizes, {yAxes: [DEFAULT_VISUALIZATION], chartType: ChartType.LINE}],
+      DEFAULT_VISUALIZATION_FIELD
+    );
   }, [setVisualizes, visualizes]);
 
   const addOverlay = useCallback(
     (group: number) => {
       const newVisualizes = visualizes.slice();
-      newVisualizes[group].yAxes.push(DEFAULT_VISUALIZATION);
-      setVisualizes(newVisualizes);
+      newVisualizes[group]!.yAxes.push(DEFAULT_VISUALIZATION);
+      setVisualizes(newVisualizes, DEFAULT_VISUALIZATION_FIELD);
     },
     [setVisualizes, visualizes]
   );
@@ -127,9 +130,9 @@ export function ToolbarVisualize({}: ToolbarVisualizeProps) {
   const setChartField = useCallback(
     (group: number, index: number, {value}: SelectOption<SelectKey>) => {
       const newVisualizes = visualizes.slice();
-      newVisualizes[group].yAxes[index] =
-        `${parsedVisualizeGroups[group][index].func.name}(${value})`;
-      setVisualizes(newVisualizes);
+      newVisualizes[group]!.yAxes[index] =
+        `${parsedVisualizeGroups[group]![index]!.func.name}(${value})`;
+      setVisualizes(newVisualizes, String(value));
     },
     [parsedVisualizeGroups, setVisualizes, visualizes]
   );
@@ -137,8 +140,8 @@ export function ToolbarVisualize({}: ToolbarVisualizeProps) {
   const setChartAggregate = useCallback(
     (group: number, index: number, {value}: SelectOption<SelectKey>) => {
       const newVisualizes = visualizes.slice();
-      newVisualizes[group].yAxes[index] =
-        `${value}(${parsedVisualizeGroups[group][index].func.arguments[0]})`;
+      newVisualizes[group]!.yAxes[index] =
+        `${value}(${parsedVisualizeGroups[group]![index]!.func.arguments[0]})`;
       setVisualizes(newVisualizes);
     },
     [parsedVisualizeGroups, setVisualizes, visualizes]

@@ -43,6 +43,31 @@ class OrganizationFlagLogIndexEndpointTestCase(APITestCase):
             assert result["data"][0]["flag"] == "hello"
             assert result["data"][0]["tags"] == {"commit_sha": "123"}
 
+    def test_get_no_created_by(self):
+        model = FlagAuditLogModel(
+            action=0,
+            created_at=datetime.now(timezone.utc),
+            created_by=None,
+            created_by_type=None,
+            flag="hello",
+            organization_id=self.organization.id,
+            tags={"commit_sha": "123"},
+        )
+        model.save()
+
+        with self.feature(self.features):
+            response = self.client.get(self.url)
+            assert response.status_code == 200
+
+            result = response.json()
+            assert len(result["data"]) == 1
+            assert result["data"][0]["action"] == "created"
+            assert "createdAt" in result["data"][0]
+            assert result["data"][0]["createdBy"] is None
+            assert result["data"][0]["createdByType"] is None
+            assert result["data"][0]["flag"] == "hello"
+            assert result["data"][0]["tags"] == {"commit_sha": "123"}
+
     def test_get_filter_by_flag(self):
         FlagAuditLogModel(
             action=0,

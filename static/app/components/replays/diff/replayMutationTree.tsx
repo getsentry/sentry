@@ -2,18 +2,14 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {useDiffCompareContext} from 'sentry/components/replays/diff/diffCompareContext';
 import DiffFeedbackBanner from 'sentry/components/replays/diff/diffFeedbackBanner';
 import StructuredEventData from 'sentry/components/structuredEventData';
 import useExtractDiffMutations from 'sentry/utils/replays/hooks/useExtractDiffMutations';
-import type ReplayReader from 'sentry/utils/replays/replayReader';
 
-interface Props {
-  leftOffsetMs: number;
-  replay: ReplayReader;
-  rightOffsetMs: number;
-}
+export function ReplayMutationTree() {
+  const {replay, leftOffsetMs, rightOffsetMs} = useDiffCompareContext();
 
-export function ReplayMutationTree({replay, leftOffsetMs, rightOffsetMs}: Props) {
   const {data, isLoading} = useExtractDiffMutations({
     leftOffsetMs,
     replay,
@@ -23,6 +19,7 @@ export function ReplayMutationTree({replay, leftOffsetMs, rightOffsetMs}: Props)
   const timeIndexedMutations = Array.from(data?.values() ?? []).reduce(
     (acc, mutation) => {
       for (const timestamp of Object.keys(mutation)) {
+        // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
         acc[timestamp] = mutation[timestamp];
       }
       return acc;

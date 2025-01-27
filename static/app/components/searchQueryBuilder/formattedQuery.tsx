@@ -101,7 +101,7 @@ export function FormattedQuery({
 
   return (
     <QueryWrapper aria-label={query}>
-      {parsedQuery.map((token, index) => {
+      {parsedQuery.map((token: any, index: any) => {
         return <QueryToken key={index} token={token} />;
       })}
     </QueryWrapper>

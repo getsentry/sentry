@@ -18,7 +18,9 @@ type Props = {
 const SidebarOrgSummary = styled(({organization, projectCount, ...props}: Props) => (
   <div {...props}>
     {organization.status.id === 'pending_deletion' ? (
-      <PendingDeletionAvatar data-test-id="pending-deletion-icon" />
+      <PendingDeletionAvatar data-test-id="pending-deletion-icon">
+        <IconWarning size="sm" color="gray200" />
+      </PendingDeletionAvatar>
     ) : (
       <OrganizationAvatar organization={organization} size={36} />
     )}
@@ -64,9 +66,5 @@ const PendingDeletionAvatar = styled('div')`
   border: 2px dashed ${p => p.theme.gray200};
   border-radius: 4px;
 `;
-
-PendingDeletionAvatar.defaultProps = {
-  children: <IconWarning size="sm" color="gray200" />,
-};
 
 export default SidebarOrgSummary;

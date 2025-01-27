@@ -6,14 +6,12 @@ import type {UIFrameNode, UIFrames} from 'sentry/utils/profiling/uiFrames';
 
 import {upperBound} from '../gl/utils';
 
-export interface UIFramesRendererConstructor {
-  new (
-    canvas: HTMLCanvasElement,
-    uiFrames: UIFrames,
-    theme: FlamegraphTheme,
-    options?: {draw_border: boolean}
-  ): UIFramesRenderer;
-}
+export type UIFramesRendererConstructor = new (
+  canvas: HTMLCanvasElement,
+  uiFrames: UIFrames,
+  theme: FlamegraphTheme,
+  options?: {draw_border: boolean}
+) => UIFramesRenderer;
 
 export abstract class UIFramesRenderer {
   ctx: CanvasRenderingContext2D | WebGLRenderingContext | null = null;
@@ -58,7 +56,7 @@ export abstract class UIFramesRenderer {
     const end = upperBound(configSpaceCursor[0], this.uiFrames.frames);
 
     for (let i = 0; i < end; i++) {
-      const frame = this.uiFrames.frames[i];
+      const frame = this.uiFrames.frames[i]!;
       if (configSpaceCursor[0] <= frame.end && configSpaceCursor[0] >= frame.start) {
         overlaps.push(frame);
       }

@@ -40,7 +40,6 @@ class GitLabApiClientPath:
     project_issues = "/projects/{project}/issues"
     project_hooks = "/projects/{project}/hooks"
     project_hook = "/projects/{project}/hooks/{hook_id}"
-    project_search = "/projects/{project}/search"
     projects = "/projects"
     user = "/user"
 

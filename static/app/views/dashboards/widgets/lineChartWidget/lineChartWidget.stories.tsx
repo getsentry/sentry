@@ -1,8 +1,9 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {Button} from 'sentry/components/button';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import SideBySide from 'sentry/components/stories/sideBySide';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
@@ -10,12 +11,12 @@ import storyBook from 'sentry/stories/storyBook';
 import type {DateString} from 'sentry/types/core';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
-import type {Release, TimeseriesData} from '../common/types';
+import type {Release, TimeseriesData, TimeseriesSelection} from '../common/types';
+import {shiftTimeserieToNow} from '../timeSeriesWidget/shiftTimeserieToNow';
 
 import {LineChartWidget} from './lineChartWidget';
 import sampleDurationTimeSeries from './sampleDurationTimeSeries.json';
 import sampleThroughputTimeSeries from './sampleThroughputTimeSeries.json';
-import {shiftTimeserieToNow} from './shiftTimeserieToNow';
 
 const sampleDurationTimeSeries2 = {
   ...sampleDurationTimeSeries,
@@ -26,6 +27,14 @@ const sampleDurationTimeSeries2 = {
       value: datum.value * 0.3 + 30 * Math.random(),
     };
   }),
+  meta: {
+    fields: {
+      'p50(span.duration)': 'duration',
+    },
+    units: {
+      'p50(span.duration)': 'millisecond',
+    },
+  },
 };
 
 export default storyBook(LineChartWidget, story => {
@@ -45,6 +54,15 @@ export default storyBook(LineChartWidget, story => {
     const {selection} = usePageFilters();
     const {datetime} = selection;
     const {start, end} = datetime;
+
+    const [timeseriesSelection, setTimeseriesSelection] = useState<TimeseriesSelection>({
+      'p50(span.duration)': true,
+      'p99(span.duration)': true,
+    });
+
+    const toggleTimeseriesSelection = (seriesName: string): void => {
+      setTimeseriesSelection(s => ({...s, [seriesName]: !s[seriesName]}));
+    };
 
     const throughputTimeSeries = toTimeSeriesSelection(
       sampleThroughputTimeSeries as unknown as TimeseriesData,
@@ -76,14 +94,6 @@ export default storyBook(LineChartWidget, story => {
             title="eps()"
             description="Number of events per second"
             timeseries={[throughputTimeSeries]}
-            meta={{
-              fields: {
-                'eps()': 'rate',
-              },
-              units: {
-                'eps()': '1/second',
-              },
-            }}
           />
         </SmallSizingWindow>
 
@@ -92,6 +102,12 @@ export default storyBook(LineChartWidget, story => {
           and the last few buckets might not have complete data. The delay is a number in
           seconds. Any data bucket that happens in that delay window will be plotted with
           a dotted line. By default the delay is <code>0</code>.
+        </p>
+
+        <p>
+          To control the timeseries selection, you can use the{' '}
+          <code>timeseriesSelection</code> and <code>onTimeseriesSelectionChange</code>{' '}
+          props.
         </p>
 
         <SideBySide>
@@ -103,18 +119,32 @@ export default storyBook(LineChartWidget, story => {
                 shiftTimeserieToNow(durationTimeSeries1),
                 shiftTimeserieToNow(durationTimeSeries2),
               ]}
-              meta={{
-                fields: {
-                  'p99(span.duration)': 'duration',
-                  'p50(span.duration)': 'duration',
-                },
-                units: {
-                  'p99(span.duration)': 'millisecond',
-                  'p50(span.duration)': 'millisecond',
-                },
+              aliases={{
+                'p50(span.duration)': '50th Percentile',
+                'p99(span.duration)': '99th Percentile',
+              }}
+              timeseriesSelection={timeseriesSelection}
+              onTimeseriesSelectionChange={newSelection => {
+                setTimeseriesSelection(newSelection);
               }}
             />
           </MediumWidget>
+
+          <Button
+            onClick={() => {
+              toggleTimeseriesSelection('p50(span.duration)');
+            }}
+          >
+            Toggle 50th Percentile
+          </Button>
+
+          <Button
+            onClick={() => {
+              toggleTimeseriesSelection('p99(span.duration)');
+            }}
+          >
+            Toggle 99th Percentile
+          </Button>
         </SideBySide>
       </Fragment>
     );
@@ -172,17 +202,17 @@ export default storyBook(LineChartWidget, story => {
               {
                 ...sampleThroughputTimeSeries,
                 field: 'error_rate()',
+                meta: {
+                  fields: {
+                    'error_rate()': 'rate',
+                  },
+                  units: {
+                    'error_rate()': '1/second',
+                  },
+                },
                 color: theme.error,
               } as unknown as TimeseriesData,
             ]}
-            meta={{
-              fields: {
-                'error_rate()': 'rate',
-              },
-              units: {
-                'error_rate()': '1/second',
-              },
-            }}
           />
         </MediumWidget>
       </Fragment>
@@ -216,17 +246,17 @@ export default storyBook(LineChartWidget, story => {
               {
                 ...sampleThroughputTimeSeries,
                 field: 'error_rate()',
+                meta: {
+                  fields: {
+                    'error_rate()': 'rate',
+                  },
+                  units: {
+                    'error_rate()': '1/second',
+                  },
+                },
               } as unknown as TimeseriesData,
             ]}
             releases={releases}
-            meta={{
-              fields: {
-                'error_rate()': 'rate',
-              },
-              units: {
-                'error_rate()': '1/second',
-              },
-            }}
           />
         </MediumWidget>
       </Fragment>

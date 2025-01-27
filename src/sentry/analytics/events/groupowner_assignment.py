@@ -9,6 +9,9 @@ class GroupOwnerAssignment(analytics.Event):
         analytics.Attribute("project_id"),
         analytics.Attribute("group_id"),
         analytics.Attribute("new_assignment", type=bool),
+        analytics.Attribute("user_id", required=False),
+        analytics.Attribute("group_owner_type"),
+        analytics.Attribute("method", required=False),
     )
 
 

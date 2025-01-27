@@ -84,6 +84,10 @@ describe('NewWidgetBuiler', function () {
       url: '/organizations/org-slug/measurements-meta/',
       body: [],
     });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+    });
   });
 
   afterEach(() => PageFiltersStore.reset());
@@ -96,6 +100,8 @@ describe('NewWidgetBuiler', function () {
         dashboard={DashboardFixture([])}
         dashboardFilters={{}}
         onSave={onSaveMock}
+        openWidgetTemplates={false}
+        setOpenWidgetTemplates={jest.fn()}
       />,
       {
         router,
@@ -126,7 +132,8 @@ describe('NewWidgetBuiler', function () {
     // ensure the dropdown input has the default value 'table'
     expect(screen.getByDisplayValue('table')).toBeInTheDocument();
 
-    expect(screen.getByPlaceholderText('Search')).toBeInTheDocument();
+    expect(screen.getByText('Filter')).toBeInTheDocument();
+    expect(screen.getByLabelText('Create a search query')).toBeInTheDocument();
 
     // Test sort by selector for table display type
     expect(screen.getByText('Sort by')).toBeInTheDocument();
@@ -159,6 +166,8 @@ describe('NewWidgetBuiler', function () {
         dashboard={DashboardFixture([])}
         dashboardFilters={{}}
         onSave={onSaveMock}
+        openWidgetTemplates={false}
+        setOpenWidgetTemplates={jest.fn()}
       />,
       {
         router: chartsRouter,
@@ -185,6 +194,8 @@ describe('NewWidgetBuiler', function () {
         dashboard={DashboardFixture([])}
         dashboardFilters={{}}
         onSave={onSaveMock}
+        openWidgetTemplates={false}
+        setOpenWidgetTemplates={jest.fn()}
       />,
       {
         router,
@@ -195,9 +206,9 @@ describe('NewWidgetBuiler', function () {
     // see if alias field and add button are not there
     await waitFor(() => {
       expect(screen.queryByPlaceholderText('Legend Alias')).not.toBeInTheDocument();
-      expect(screen.queryByText('Add Filter')).not.toBeInTheDocument();
-      expect(screen.queryByLabelText('Remove this filter')).not.toBeInTheDocument();
     });
+    expect(screen.queryByText('Add Filter')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Remove this filter')).not.toBeInTheDocument();
   });
 
   it('renders the group by field on chart widgets', async function () {
@@ -216,6 +227,8 @@ describe('NewWidgetBuiler', function () {
         dashboard={DashboardFixture([])}
         dashboardFilters={{}}
         onSave={onSaveMock}
+        openWidgetTemplates={false}
+        setOpenWidgetTemplates={jest.fn()}
       />,
       {
         router: chartsRouter,
@@ -228,15 +241,7 @@ describe('NewWidgetBuiler', function () {
     expect(await screen.findByText('Add Group')).toBeInTheDocument();
   });
 
-  it('renders the limit sort by field on chart widgets', async function () {
-    const chartsRouter = RouterFixture({
-      ...router,
-      location: {
-        ...router.location,
-        query: {...router.location.query, displayType: 'line'},
-      },
-    });
-
+  it('renders empty widget preview when no widget selected from templates', async function () {
     render(
       <WidgetBuilderV2
         isOpen
@@ -244,43 +249,14 @@ describe('NewWidgetBuiler', function () {
         dashboard={DashboardFixture([])}
         dashboardFilters={{}}
         onSave={onSaveMock}
+        openWidgetTemplates
+        setOpenWidgetTemplates={jest.fn()}
       />,
-      {
-        router: chartsRouter,
-        organization,
-      }
+      {router, organization}
     );
 
-    expect(await screen.findByText('Limit to 5 results')).toBeInTheDocument();
-    expect(await screen.findByText('High to low')).toBeInTheDocument();
-    expect(await screen.findByText('(Required)')).toBeInTheDocument();
-  });
+    expect(await screen.findByText('Add from Widget Library')).toBeInTheDocument();
 
-  it('does not render sort by field on big number widgets', async function () {
-    const bigNumberRouter = RouterFixture({
-      ...router,
-      location: {
-        ...router.location,
-        query: {...router.location.query, displayType: 'big_number'},
-      },
-    });
-
-    render(
-      <WidgetBuilderV2
-        isOpen
-        onClose={onCloseMock}
-        dashboard={DashboardFixture([])}
-        dashboardFilters={{}}
-        onSave={onSaveMock}
-      />,
-      {
-        router: bigNumberRouter,
-        organization,
-      }
-    );
-
-    await waitFor(() => {
-      expect(screen.queryByText('Sort by')).not.toBeInTheDocument();
-    });
+    expect(await screen.findByText('Select a widget to preview')).toBeInTheDocument();
   });
 });

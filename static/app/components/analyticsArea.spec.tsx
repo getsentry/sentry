@@ -15,7 +15,7 @@ function TestButton({org}: {org: Organization}) {
       onClick={() => {
         analytics.trackAnalytics('button-clicked', {
           organization: org,
-          area: area,
+          area,
         });
       }}
     />
@@ -41,7 +41,7 @@ describe('AnalyticsAreaProvider', function () {
     await userEvent.click(button);
 
     expect(analyticsSpy).toHaveBeenCalledWith('button-clicked', {
-      organization: organization,
+      organization,
       area: 'feedback.details.activity',
     });
   });
@@ -61,7 +61,7 @@ describe('AnalyticsAreaProvider', function () {
     await userEvent.click(button);
 
     expect(analyticsSpy).toHaveBeenCalledWith('button-clicked', {
-      organization: organization,
+      organization,
       area: 'my-modal',
     });
   });

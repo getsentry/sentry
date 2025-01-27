@@ -2,7 +2,7 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {SdkDocumentation} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
-import type {ProductSolution} from 'sentry/components/onboarding/productSelection';
+import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -35,6 +35,7 @@ function SetupDocs({location, recentCreatedProject: project}: StepProps) {
   }
 
   const platformName = currentPlatform.name;
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const integrationSlug = project.platform && platformToIntegrationMap[project.platform];
   const showIntegrationOnboarding =
     integrationSlug && location.query.installationMode !== InstallationMode.MANUAL;

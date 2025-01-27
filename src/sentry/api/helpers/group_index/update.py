@@ -52,6 +52,7 @@ from sentry.types.actor import Actor, ActorType
 from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, GroupSubStatus, PriorityLevel
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
+from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
 from sentry.users.services.user_option import user_option_service
 from sentry.utils import metrics
@@ -78,10 +79,10 @@ def handle_discard(
     request: Request,
     group_list: Sequence[Group],
     projects: Sequence[Project],
-    user,
+    acting_user: RpcUser | User | None,
 ) -> Response:
     for project in projects:
-        if not features.has("projects:discard-groups", project, actor=user):
+        if not features.has("projects:discard-groups", project, actor=acting_user):
             return Response({"detail": ["You do not have that feature enabled"]}, status=400)
 
     if any(group.issue_category != GroupCategory.ERROR for group in group_list):
@@ -96,7 +97,7 @@ def handle_discard(
             try:
                 tombstone = GroupTombstone.objects.create(
                     previous_group_id=group.id,
-                    actor_id=coerce_id_from(user),
+                    actor_id=coerce_id_from(acting_user),
                     **{name: getattr(group, name) for name in TOMBSTONE_FIELDS_FROM_GROUP},
                 )
             except IntegrityError:
@@ -119,7 +120,7 @@ def handle_discard(
 
 
 def self_subscribe_and_assign_issue(
-    acting_user, group: Group, self_assign_issue: str
+    acting_user: RpcUser | User | None, group: Group, self_assign_issue: str
 ) -> Actor | None:
     """
     Used during issue resolution to assign to acting user
@@ -165,10 +166,7 @@ def get_current_release_version_of_group(group: Group, follows_semver: bool = Fa
 
 def update_groups(
     request: Request,
-    group_ids: Sequence[int | str] | None,
-    projects: Sequence[Project],
-    organization_id: int,
-    search_fn: SearchFunction | None = None,
+    groups: Sequence[Group],
     user: RpcUser | User | AnonymousUser | None = None,
     data: Mapping[str, Any] | None = None,
 ) -> Response:
@@ -178,17 +176,15 @@ def update_groups(
     acting_user = user if user and user.is_authenticated else None
     data = data or request.data
 
-    try:
-        group_ids, group_list = get_group_ids_and_group_list(
-            organization_id, projects, group_ids, search_fn
-        )
-    except ValidationError:
-        logger.exception("Error getting group ids and group list")  # Track the error in Sentry
-        return Response(
-            {"detail": "Invalid query. Error getting group ids and group list"}, status=400
-        )
+    # so we won't have to requery for each group
+    project_lookup = {g.project_id: g.project for g in groups}
+    projects = list(project_lookup.values())
 
-    if not group_ids or not group_list:
+    # Assert all projects belong to the same organization
+    if len({p.organization_id for p in projects}) > 1:
+        return Response({"detail": "All groups must belong to same organization."}, status=400)
+
+    if not groups:
         return Response({"detail": "No groups found"}, status=204)
 
     serializer = validate_request(request, projects, data)
@@ -199,19 +195,9 @@ def update_groups(
 
     result = dict(serializer.validated_data)
 
-    acting_user = user if user.is_authenticated else None
-
-    # so we won't have to requery for each group
-    project_lookup = {g.project_id: g.project for g in group_list}
-    group_project_ids = {g.project_id for g in group_list}
-    # filter projects down to only those that have groups in the search results
-    projects = [p for p in projects if p.id in group_project_ids]
-
-    queryset = Group.objects.filter(id__in=group_ids)
-
     discard = result.get("discard")
     if discard:
-        return handle_discard(request, list(queryset), projects, acting_user)
+        return handle_discard(request, groups, projects, acting_user)
 
     status_details = result.pop("statusDetails", result)
     status = result.get("status")
@@ -219,7 +205,7 @@ def update_groups(
     if "priority" in result:
         handle_priority(
             priority=result["priority"],
-            group_list=group_list,
+            group_list=groups,
             acting_user=acting_user,
             project_lookup=project_lookup,
         )
@@ -228,11 +214,10 @@ def update_groups(
             result, res_type = handle_resolve_in_release(
                 status,
                 status_details,
-                group_list,
+                groups,
                 projects,
                 project_lookup,
                 acting_user,
-                user,
                 result,
             )
         except MultipleProjectsError:
@@ -240,17 +225,16 @@ def update_groups(
     elif status:
         result = handle_other_status_updates(
             result,
-            group_list,
+            groups,
             projects,
             project_lookup,
             status_details,
             acting_user,
-            user,
         )
 
     return prepare_response(
         result,
-        group_list,
+        groups,
         project_lookup,
         projects,
         acting_user,
@@ -258,6 +242,40 @@ def update_groups(
         res_type,
         request.META.get("HTTP_REFERER", ""),
     )
+
+
+def update_groups_with_search_fn(
+    request: Request,
+    group_ids: Sequence[int | str] | None,
+    projects: Sequence[Project],
+    organization_id: int,
+    search_fn: SearchFunction,
+) -> Response:
+    group_list = []
+    if group_ids:
+        group_list = get_group_list(organization_id, projects, group_ids)
+
+    if not group_list:
+        try:
+            # It can raise ValidationError
+            cursor_result, _ = search_fn(
+                {
+                    "limit": BULK_MUTATION_LIMIT,
+                    "paginator_options": {"max_limit": BULK_MUTATION_LIMIT},
+                }
+            )
+        except ValidationError:
+            logger.exception("Error getting group ids and group list")  # Track the error in Sentry
+            return Response(
+                {"detail": "Invalid query. Error getting group ids and group list"}, status=400
+            )
+
+        group_list = list(cursor_result)
+
+    if not group_list:
+        return Response({"detail": "No groups found"}, status=204)
+
+    return update_groups(request, group_list)
 
 
 def validate_request(
@@ -284,56 +302,36 @@ def validate_request(
     return serializer
 
 
-def get_group_ids_and_group_list(
+def get_group_list(
     organization_id: int,
     projects: Sequence[Project],
-    group_ids: Sequence[int | str] | None,
-    search_fn: SearchFunction | None,
-) -> tuple[list[int | str], list[Group]]:
+    group_ids: Sequence[int | str],
+) -> list[Group]:
     """
-    Gets group IDs and group list based on provided filters.
+    Gets group list based on provided filters.
 
     Args:
         organization_id: ID of the organization
         projects: Sequence of projects to filter groups by
-        group_ids: Optional sequence of specific group IDs to fetch
-        search_fn: Optional search function to find groups if no IDs provided
+        group_ids: Sequence of specific group IDs to fetch
 
-    Returns:
-        Tuple of:
-            - List of group IDs that were found
-            - List of Group objects that were found
-
-    Notes:
-        - If group_ids provided, filters to only valid groups in the org/projects
-        - If no group_ids but search_fn provided, uses search to find groups
-        - Limited to BULK_MUTATION_LIMIT results when using search
+    Returns: List of Group objects filtered to only valid groups in the org/projects
     """
-    _group_ids: list[int | str] = []
-    _group_list: list[Group] = []
-
-    if group_ids:
-        _group_list = list(
+    groups = []
+    # Convert all group IDs to integers and filter out any non-integer values
+    group_ids_int = [int(gid) for gid in group_ids if str(gid).isdigit()]
+    if group_ids_int:
+        return list(
             Group.objects.filter(
-                project__organization_id=organization_id, project__in=projects, id__in=group_ids
+                project__organization_id=organization_id, project__in=projects, id__in=group_ids_int
             )
         )
-        # filter down group ids to only valid matches
-        _group_ids = [g.id for g in _group_list]
+    else:
+        for group_id in group_ids:
+            if isinstance(group_id, str):
+                groups.append(Group.objects.by_qualified_short_id(organization_id, group_id))
 
-    if search_fn and not _group_ids:
-        # It can raise ValidationError
-        cursor_result, _ = search_fn(
-            {
-                "limit": BULK_MUTATION_LIMIT,
-                "paginator_options": {"max_limit": BULK_MUTATION_LIMIT},
-            }
-        )
-
-        _group_list = list(cursor_result)
-        _group_ids = [g.id for g in _group_list]
-
-    return _group_ids, _group_list
+    return groups
 
 
 def handle_resolve_in_release(
@@ -342,20 +340,26 @@ def handle_resolve_in_release(
     group_list: Sequence[Group],
     projects: Sequence[Project],
     project_lookup: Mapping[int, Project],
-    acting_user,
-    user: RpcUser | User | AnonymousUser,
+    acting_user: RpcUser | User | None,
     result: MutableMapping[str, Any],
 ) -> tuple[dict[str, Any], int | None]:
     res_type = None
     release = None
     commit = None
     self_assign_issue = "0"
+    new_status_details = {}
     if acting_user:
         user_options = user_option_service.get_many(
             filter={"user_ids": [acting_user.id], "keys": ["self_assign_issue"]}
         )
         if user_options:
             self_assign_issue = user_options[0].value
+        serialized_user = user_service.serialize_many(
+            filter=dict(user_ids=[acting_user.id]), as_user=serialize_generic_user(acting_user)
+        )
+        if serialized_user:
+            new_status_details["actor"] = serialized_user[0]
+
     res_status = None
     if status == "resolvedInNextRelease" or status_details.get("inNextRelease"):
         # TODO(jess): We may want to support this for multi project, but punting on it for now
@@ -370,12 +374,7 @@ def handle_resolve_in_release(
             "version": ""
         }
 
-        serialized_user = user_service.serialize_many(filter=dict(user_ids=[user.id]), as_user=user)
-        new_status_details = {
-            "inNextRelease": True,
-        }
-        if serialized_user:
-            new_status_details["actor"] = serialized_user[0]
+        new_status_details["inNextRelease"] = True
         res_type = GroupResolution.Type.in_next_release
         res_type_str = "in_next_release"
         res_status = GroupResolution.Status.pending
@@ -386,12 +385,7 @@ def handle_resolve_in_release(
         activity_type = ActivityType.SET_RESOLVED_IN_RELEASE.value
         activity_data = {"version": ""}
 
-        serialized_user = user_service.serialize_many(filter=dict(user_ids=[user.id]), as_user=user)
-        new_status_details = {
-            "inUpcomingRelease": True,
-        }
-        if serialized_user:
-            new_status_details["actor"] = serialized_user[0]
+        new_status_details["inUpcomingRelease"] = True
         res_type = GroupResolution.Type.in_upcoming_release
         res_type_str = "in_upcoming_release"
         res_status = GroupResolution.Status.pending
@@ -408,12 +402,7 @@ def handle_resolve_in_release(
             "version": release.version
         }
 
-        serialized_user = user_service.serialize_many(filter=dict(user_ids=[user.id]), as_user=user)
-        new_status_details = {
-            "inRelease": release.version,
-        }
-        if serialized_user:
-            new_status_details["actor"] = serialized_user[0]
+        new_status_details["inRelease"] = release.version
         res_type = GroupResolution.Type.in_release
         res_type_str = "in_release"
         res_status = GroupResolution.Status.resolved
@@ -425,13 +414,8 @@ def handle_resolve_in_release(
         commit = status_details["inCommit"]
         activity_type = ActivityType.SET_RESOLVED_IN_COMMIT.value
         activity_data = {"commit": commit.id}
-        serialized_user = user_service.serialize_many(filter=dict(user_ids=[user.id]), as_user=user)
+        new_status_details["inCommit"] = serialize(commit, acting_user)
 
-        new_status_details = {
-            "inCommit": serialize(commit, user),
-        }
-        if serialized_user:
-            new_status_details["actor"] = serialized_user[0]
         res_type_str = "in_commit"
     else:
         res_type_str = "now"
@@ -459,6 +443,10 @@ def handle_resolve_in_release(
         except IndexError:
             release = None
     for group in group_list:
+        # If the group is already resolved, we don't need to do anything
+        if group.status == GroupStatus.RESOLVED:
+            continue
+
         with transaction.atomic(router.db_for_write(Group)):
             process_group_resolution(
                 group,
@@ -468,7 +456,6 @@ def handle_resolve_in_release(
                 res_type,
                 res_status,
                 acting_user,
-                user,
                 self_assign_issue,
                 activity_type,
                 activity_data,
@@ -477,7 +464,7 @@ def handle_resolve_in_release(
 
         issue_resolved.send_robust(
             organization_id=projects[0].organization_id,
-            user=(acting_user or user),
+            user=acting_user,
             group=group,
             project=project_lookup[group.project_id],
             resolution_type=res_type_str,
@@ -500,13 +487,12 @@ def process_group_resolution(
     commit: Commit | None,
     res_type: int | None,
     res_status: int | None,
-    acting_user,
-    user: RpcUser | User | AnonymousUser,
+    acting_user: RpcUser | User | None,
     self_assign_issue: str,
     activity_type: int,
     activity_data: MutableMapping[str, Any],
     result: MutableMapping[str, Any],
-):
+) -> None:
     now = django_timezone.now()
     resolution = None
     created = None
@@ -516,7 +502,7 @@ def process_group_resolution(
             "release": release,
             "type": res_type,
             "status": res_status,
-            "actor_id": user.id if user and user.is_authenticated else None,
+            "actor_id": acting_user.id if acting_user and acting_user.is_authenticated else None,
         }
 
         # We only set `current_release_version` if GroupResolution type is
@@ -645,7 +631,7 @@ def process_group_resolution(
             project=group.project,
             group=group,
             type=activity_type,
-            user_id=acting_user.id,
+            user_id=acting_user.id if acting_user else None,
             ident=resolution.id if resolution else None,
             data=dict(activity_data),
         )
@@ -660,7 +646,7 @@ def process_group_resolution(
 def merge_groups(
     group_list: Sequence[Group],
     project_lookup: Mapping[int, Project],
-    acting_user,
+    acting_user: RpcUser | User | None,
     referer: str,
 ) -> MergedGroup:
     issue_stream_regex = r"^(\/organizations\/[^\/]+)?\/issues\/$"
@@ -694,8 +680,7 @@ def handle_other_status_updates(
     projects: Sequence[Project],
     project_lookup: Mapping[int, Project],
     status_details: dict[str, Any],
-    acting_user,
-    user: RpcUser | User | AnonymousUser,
+    acting_user: RpcUser | User | None,
 ) -> dict[str, Any]:
     group_ids = [group.id for group in group_list]
     queryset = Group.objects.filter(id__in=group_ids)
@@ -706,9 +691,6 @@ def handle_other_status_updates(
     new_substatus = infer_substatus(new_status, new_substatus, status_details, group_list)
 
     with transaction.atomic(router.db_for_write(Group)):
-        # TODO(gilbert): update() doesn't call pre_save and bypasses any substatus defaulting we have there
-        #                we should centralize the logic for validating and defaulting substatus values
-        #                and refactor pre_save and the above new_substatus assignment to account for this
         status_updated = queryset.exclude(status=new_status).update(
             status=new_status, substatus=new_substatus
         )
@@ -719,9 +701,7 @@ def handle_other_status_updates(
                     group_list, acting_user, projects, sender=update_groups
                 )
             else:
-                result["statusDetails"] = handle_ignored(
-                    group_list, status_details, acting_user, user
-                )
+                result["statusDetails"] = handle_ignored(group_list, status_details, acting_user)
             result["inbox"] = None
         else:
             result["statusDetails"] = {}
@@ -746,7 +726,7 @@ def prepare_response(
     group_list: Sequence[Group],
     project_lookup: Mapping[int, Project],
     projects: Sequence[Project],
-    acting_user,
+    acting_user: RpcUser | User | None,
     data: Mapping[str, Any],
     res_type: int | None,
     referer: str,
@@ -815,7 +795,6 @@ def prepare_response(
             group_list,
             project_lookup,
             acting_user,
-            http_referrer=referer,
             sender=update_groups,
         )
 
@@ -865,7 +844,7 @@ def handle_is_subscribed(
     is_subscribed: bool,
     group_list: Sequence[Group],
     project_lookup: Mapping[int, Project],
-    acting_user,
+    acting_user: RpcUser | User | None,
 ) -> dict[str, str]:
     # TODO(dcramer): we could make these more efficient by first
     # querying for which `GroupSubscription` rows are present (if N > 2),
@@ -879,7 +858,7 @@ def handle_is_subscribed(
         # assigned" just by clicking the "subscribe" button (and you
         # may no longer be assigned to the issue anyway).
         GroupSubscription.objects.create_or_update(
-            user_id=acting_user.id,
+            user_id=acting_user.id if acting_user else None,
             group=group,
             project=project_lookup[group.project_id],
             values={"is_active": is_subscribed, "reason": GroupSubscriptionReason.unknown},
@@ -892,7 +871,7 @@ def handle_is_bookmarked(
     is_bookmarked: bool,
     group_list: Sequence[Group],
     project_lookup: Mapping[int, Project],
-    acting_user,
+    acting_user: RpcUser | User | None,
 ) -> None:
     """
     Creates bookmarks and subscriptions for a user, or deletes the existing bookmarks and subscriptions.
@@ -928,7 +907,7 @@ def handle_has_seen(
     group_list: Sequence[Group],
     project_lookup: Mapping[int, Project],
     projects: Sequence[Project],
-    acting_user,
+    acting_user: RpcUser | User | None,
 ) -> None:
     is_member_map = {
         project.id: (
@@ -940,7 +919,7 @@ def handle_has_seen(
     if has_seen:
         for group in group_list:
             if is_member_map.get(group.project_id):
-                instance, created = create_or_update(
+                create_or_update(
                     GroupSeen,
                     group=group,
                     user_id=user_id,
@@ -956,7 +935,7 @@ def handle_has_seen(
 def handle_priority(
     priority: str,
     group_list: Sequence[Group],
-    acting_user,
+    acting_user: RpcUser | User | None,
     project_lookup: Mapping[int, Project],
 ) -> None:
     for group in group_list:
@@ -976,7 +955,7 @@ def handle_is_public(
     is_public: bool,
     group_list: Sequence[Group],
     project_lookup: Mapping[int, Project],
-    acting_user,
+    acting_user: RpcUser | User | None,
 ) -> str | None:
     """
     Handle the isPublic flag on a group update.
@@ -1020,7 +999,7 @@ def handle_assigned_to(
     integration: str | None,
     group_list: Sequence[Group],
     project_lookup: Mapping[int, Project],
-    acting_user,
+    acting_user: RpcUser | User | None,
 ) -> ActorSerializerResponse | None:
     """
     Handle the assignedTo field on a group update.

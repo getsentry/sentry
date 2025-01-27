@@ -18,7 +18,7 @@ export default function getRouteStringFromRoutes(routes?: PlainRoute[]): string 
 
   const routesWithPaths = routes.filter((route): route is RouteWithPath => !!route.path);
 
-  const lastAbsolutePathIndex = routesWithPaths.findLastIndex(({path}) =>
+  const lastAbsolutePathIndex = routesWithPaths.findLastIndex(({path}: any) =>
     path.startsWith('/')
   );
 

@@ -15,9 +15,9 @@ describe('Tooltip', function () {
   }
 
   afterEach(() => {
-    // @ts-expect-error
+    // @ts-expect-error cleanup previously mocked properties
     delete HTMLElement.prototype.scrollWidth;
-    // @ts-expect-error
+    // @ts-expect-error cleanup previously mocked properties
     delete HTMLElement.prototype.clientWidth;
   });
 
@@ -25,12 +25,23 @@ describe('Tooltip', function () {
     jest.clearAllMocks();
   });
 
-  it('renders', function () {
+  it('renders', async function () {
     render(
       <Tooltip delay={0} title="test">
         <span>My Button</span>
       </Tooltip>
     );
+
+    await userEvent.hover(screen.getByText('My Button'));
+    expect(screen.getByText('test')).toBeInTheDocument();
+
+    // Check that the arrow svg is rendered
+    expect(document.querySelector('svg')).toBeInTheDocument();
+
+    await userEvent.unhover(screen.getByText('My Button'));
+    await waitFor(() => {
+      expect(screen.queryByText('test')).not.toBeInTheDocument();
+    });
   });
 
   it('updates title', async function () {

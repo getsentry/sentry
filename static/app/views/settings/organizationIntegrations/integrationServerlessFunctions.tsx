@@ -74,7 +74,7 @@ export function IntegrationServerlessFunctions({
                   existingServerlessFunctions => {
                     const newServerlessFunctions = [...existingServerlessFunctions];
                     const updatedFunction = {
-                      ...newServerlessFunctions[i],
+                      ...newServerlessFunctions[i]!,
                       ...update,
                     };
                     newServerlessFunctions[i] = updatedFunction;

@@ -68,7 +68,7 @@ describe('useSpanSamples', () => {
       }
     );
 
-    expect(result.current.isFetching).toEqual(false);
+    expect(result.current.isFetching).toBe(false);
     expect(request).not.toHaveBeenCalled();
   });
 
@@ -112,7 +112,7 @@ describe('useSpanSamples', () => {
       }
     );
 
-    expect(result.current.isPending).toEqual(true);
+    expect(result.current.isPending).toBe(true);
 
     expect(request).toHaveBeenCalledWith(
       '/api/0/organizations/org-slug/spans-samples/',
@@ -133,7 +133,7 @@ describe('useSpanSamples', () => {
       })
     );
 
-    await waitFor(() => expect(result.current.isPending).toEqual(false));
+    await waitFor(() => expect(result.current.isPending).toBe(false));
     expect(result.current.data).toEqual([
       {
         'transaction.id': '7663aab8a',

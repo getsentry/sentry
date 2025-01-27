@@ -1,7 +1,6 @@
 import {useCallback, useMemo} from 'react';
 import orderBy from 'lodash/orderBy';
 
-// eslint-disable-next-line no-restricted-imports
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import {
   SearchQueryBuilder,

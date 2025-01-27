@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 from collections.abc import Generator, Sequence
+from datetime import datetime
 from logging import Logger, getLogger
 from typing import Any
 
 import orjson
 from slack_sdk.errors import SlackApiError
 
+from sentry import features
 from sentry.api.serializers.rest_framework.rule import ACTION_UUID_KEY
 from sentry.constants import ISSUE_ALERTS_THREAD_DEFAULT
 from sentry.eventstore.models import GroupEvent
@@ -39,9 +41,11 @@ from sentry.integrations.slack.utils.errors import (
     unpack_slack_api_error,
 )
 from sentry.integrations.utils.metrics import EventLifecycle
+from sentry.issues.grouptype import GroupCategory
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.rule import Rule
 from sentry.notifications.additional_attachment_manager import get_additional_attachment
+from sentry.notifications.utils.open_period import open_period_start_for_group
 from sentry.rules.actions import IntegrationEventAction
 from sentry.rules.base import CallbackFuture
 from sentry.types.rules import RuleFuture
@@ -68,10 +72,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             "channel": {"type": "string", "placeholder": "e.g., #critical, Jane Schmidt"},
             "channel_id": {"type": "string", "placeholder": "e.g., CA2FRA079 or UA1J9RTE1"},
             "tags": {"type": "string", "placeholder": "e.g., environment,user,my_tag"},
-        }
-        self.form_fields["notes"] = {
-            "type": "string",
-            "placeholder": "e.g. @jane, @on-call-team",
+            "notes": {"type": "string", "placeholder": "e.g., @jane, @on-call-team"},
         }
 
         self._repository: IssueAlertNotificationMessageRepository = (
@@ -132,6 +133,16 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                 rule_action_uuid=rule_action_uuid,
             )
 
+            open_period_start: datetime | None = None
+            if (
+                features.has(
+                    "organizations:slack-threads-refactor-uptime", self.project.organization
+                )
+                and event.group.issue_category == GroupCategory.UPTIME
+            ):
+                open_period_start = open_period_start_for_group(event.group)
+                new_notification_message_object.open_period_start = open_period_start
+
             def get_thread_ts(lifecycle: EventLifecycle) -> str | None:
                 """Find the thread in which to post this notification as a reply.
 
@@ -155,6 +166,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                         rule_id=rule_id,
                         group_id=event.group.id,
                         rule_action_uuid=rule_action_uuid,
+                        open_period_start=open_period_start,
                     )
                 except Exception as e:
                     lifecycle.record_halt(e)
@@ -200,11 +212,6 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                         thread_ts=thread_ts,
                         reply_broadcast=reply_broadcast,
                     )
-                    metrics.incr(
-                        SLACK_ISSUE_ALERT_SUCCESS_DATADOG_METRIC,
-                        sample_rate=1.0,
-                        tags={"action": "send_notification"},
-                    )
                 except SlackApiError as e:
                     # Record the error code and details from the exception
                     new_notification_message_object.error_code = e.response.status_code
@@ -222,20 +229,6 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                     }
                     if self.get_option("channel"):
                         log_params["channel_name"] = self.get_option("channel")
-
-                    self.logger.info(
-                        "slack.issue_alert.error",
-                        extra=log_params,
-                    )
-                    metrics.incr(
-                        SLACK_ISSUE_ALERT_FAILURE_DATADOG_METRIC,
-                        sample_rate=1.0,
-                        tags={
-                            "action": "send_notification",
-                            "ok": e.response.get("ok", False),
-                            "status": e.response.status_code,
-                        },
-                    )
 
                     lifecycle.add_extras(log_params)
                     # If the error is a channel not found or archived, we can halt the flow

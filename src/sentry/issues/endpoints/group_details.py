@@ -1,7 +1,7 @@
 import functools
 import logging
 from collections.abc import Sequence
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
@@ -18,12 +18,14 @@ from sentry.api.helpers.group_index import (
     delete_group_list,
     get_first_last_release,
     prep_search,
-    update_groups,
+    update_groups_with_search_fn,
 )
 from sentry.api.serializers import GroupSerializer, GroupSerializerSnuba, serialize
 from sentry.api.serializers.models.group_stream import get_actions, get_available_issue_plugins
 from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.api.serializers.models.team import TeamSerializer
+from sentry.incidents.models.alert_rule import AlertRule
+from sentry.incidents.utils.metric_issue_poc import OpenPeriod
 from sentry.integrations.api.serializers.models.external_issue import ExternalIssueSerializer
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.issues.constants import get_issue_tsdb_group_model
@@ -45,6 +47,7 @@ from sentry.sentry_apps.api.serializers.platform_external_issue import (
 )
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.tasks.post_process import fetch_buffered_group_stats
+from sentry.types.activity import ActivityType
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
@@ -83,14 +86,66 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         },
     }
 
-    def _get_activity(self, request: Request, group, num):
-        return Activity.objects.get_activities_for_group(group, num)
-
-    def _get_seen_by(self, request: Request, group):
+    def _get_seen_by(self, request: Request, group: Group):
         seen_by = list(GroupSeen.objects.filter(group=group).order_by("-last_seen"))
         return [seen for seen in serialize(seen_by, request.user) if seen is not None]
 
-    def _get_context_plugins(self, request: Request, group):
+    def _get_open_periods_for_group(self, group: Group) -> list[OpenPeriod]:
+        if not features.has("organizations:issue-open-periods", group.organization):
+            return []
+
+        activities = Activity.objects.filter(
+            group=group,
+            type__in=[ActivityType.SET_UNRESOLVED.value, ActivityType.SET_RESOLVED.value],
+            datetime__gte=timezone.now() - timedelta(days=90),
+        ).order_by("datetime")
+
+        open_periods = []
+        start: datetime | None = group.first_seen
+
+        for activity in activities:
+            if activity.type == ActivityType.SET_RESOLVED.value and start:
+                open_periods.append(
+                    OpenPeriod(
+                        start=start,
+                        end=activity.datetime,
+                        duration=activity.datetime - start,
+                        is_open=False,
+                        last_checked=activity.datetime,
+                    )
+                )
+                start = None
+            elif activity.type == ActivityType.SET_UNRESOLVED.value and not start:
+                start = activity.datetime
+
+        if start:
+            event = group.get_latest_event()
+            last_checked = group.last_seen
+            if event:
+                alert_rule_id = (
+                    event.data.get("contexts", {}).get("metric_alert", {}).get("alert_rule_id")
+                )
+                if alert_rule_id:
+                    try:
+                        alert_rule = AlertRule.objects.get(id=alert_rule_id)
+                        now = timezone.now()
+                        last_checked = now - timedelta(seconds=alert_rule.snuba_query.time_window)
+                    except AlertRule.DoesNotExist:
+                        pass
+
+            open_periods.append(
+                OpenPeriod(
+                    start=start,
+                    end=None,
+                    duration=None,
+                    is_open=True,
+                    last_checked=last_checked,
+                )
+            )
+
+        return open_periods[::-1]
+
+    def _get_context_plugins(self, request: Request, group: Group):
         project = group.project
         return serialize(
             [
@@ -105,7 +160,9 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         )
 
     @staticmethod
-    def __group_hourly_daily_stats(group: Group, environment_ids: Sequence[int]):
+    def __group_hourly_daily_stats(
+        group: Group, environment_ids: Sequence[int]
+    ) -> tuple[list[list[float]], list[list[float]]]:
         model = get_issue_tsdb_group_model(group.issue_category)
         now = timezone.now()
         hourly_stats = tsdb.backend.rollup(
@@ -133,7 +190,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
 
         return hourly_stats, daily_stats
 
-    def get(self, request: Request, group) -> Response:
+    def get(self, request: Request, group: Group) -> Response:
         """
         Retrieve an Issue
         `````````````````
@@ -164,7 +221,8 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             )
 
             # TODO: these probably should be another endpoint
-            activity = self._get_activity(request, group, num=100)
+            activity = Activity.objects.get_activities_for_group(group, 100)
+            open_periods = self._get_open_periods_for_group(group)
             seen_by = self._get_seen_by(request, group)
 
             if "release" not in collapse:
@@ -205,7 +263,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 data.update({"inbox": inbox_reason})
 
             if "owners" in expand:
-                owner_details = get_owner_details([group], request.user)
+                owner_details = get_owner_details([group])
                 owners = owner_details.get(group.id)
                 data.update({"owners": owners})
 
@@ -230,7 +288,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 )
                 integration_issues = serialize(
                     external_issues,
-                    request,
+                    request.user,
                     serializer=ExternalIssueSerializer(),
                 )
                 data.update({"integrationIssues": integration_issues})
@@ -239,7 +297,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 platform_external_issues = PlatformExternalIssue.objects.filter(group_id=group.id)
                 sentry_app_issues = serialize(
                     list(platform_external_issues),
-                    request,
+                    request.user,
                     serializer=PlatformExternalIssueSerializer(),
                 )
                 data.update({"sentryAppIssues": sentry_app_issues})
@@ -262,9 +320,10 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             data.update(
                 {
                     "activity": serialize(activity, request.user),
+                    "openPeriods": [open_period.to_dict() for open_period in open_periods],
                     "seenBy": seen_by,
-                    "pluginActions": get_actions(request, group),
-                    "pluginIssues": get_available_issue_plugins(request, group),
+                    "pluginActions": get_actions(group),
+                    "pluginIssues": get_available_issue_plugins(group),
                     "pluginContexts": self._get_context_plugins(request, group),
                     "userReportCount": user_reports.count(),
                     "stats": {"24h": hourly_stats, "30d": daily_stats},
@@ -317,7 +376,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             )
             raise
 
-    def put(self, request: Request, group) -> Response:
+    def put(self, request: Request, group: Group) -> Response:
         """
         Update an Issue
         ```````````````
@@ -329,6 +388,11 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         :param string status: the new status for the issue.  Valid values
                               are ``"resolved"``, ``resolvedInNextRelease``,
                               ``"unresolved"``, and ``"ignored"``.
+        :param map statusDetails: additional details about the resolution.
+                                  Valid values are ``"inRelease"``, ``"inNextRelease"``,
+                                  ``"inCommit"``,  ``"ignoreDuration"``, ``"ignoreCount"``,
+                                  ``"ignoreWindow"``, ``"ignoreUserCount"``, and
+                                  ``"ignoreUserWindow"``.
         :param string assignedTo: the user or team that should be assigned to
                                   this issue. Can be of the form ``"<user_id>"``,
                                   ``"user:<user_id>"``, ``"<username>"``,
@@ -351,7 +415,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             discard = request.data.get("discard")
             project = group.project
             search_fn = functools.partial(prep_search, self, request, project)
-            response = update_groups(
+            response = update_groups_with_search_fn(
                 request, [group.id], [project], project.organization_id, search_fn
             )
             # if action was discard, there isn't a group to serialize anymore

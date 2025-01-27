@@ -40,7 +40,7 @@ function ProjectUserFeedback({organization, project, params: {projectId}}: Props
     window.sentryEmbedCallback = function (embed) {
       // Mock the embed's submit xhr to always be successful
       // NOTE: this will not have errors if the form is empty
-      embed.submit = function (_body) {
+      embed.submit = function (_body: any) {
         this._submitInProgress = true;
         window.setTimeout(() => {
           this._submitInProgress = false;

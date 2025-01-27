@@ -4,15 +4,16 @@ import styled from '@emotion/styled';
 import {logout} from 'sentry/actionCreators/account';
 import {Alert} from 'sentry/components/alert';
 import {Button, LinkButton} from 'sentry/components/button';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import NarrowLayout from 'sentry/components/narrowLayout';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {browserHistory} from 'sentry/utils/browserHistory';
-import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 type InviteDetails = {
@@ -27,13 +28,13 @@ type InviteDetails = {
 
 type Props = RouteComponentProps<{memberId: string; token: string; orgId?: string}, {}>;
 
-type State = DeprecatedAsyncView['state'] & {
+type State = DeprecatedAsyncComponent['state'] & {
   acceptError: boolean | undefined;
   accepting: boolean | undefined;
   inviteDetails: InviteDetails;
 };
 
-class AcceptOrganizationInvite extends DeprecatedAsyncView<Props, State> {
+class AcceptOrganizationInvite extends DeprecatedAsyncComponent<Props, State> {
   disableErrorReport = false;
 
   get orgSlug(): string | null {
@@ -48,16 +49,12 @@ class AcceptOrganizationInvite extends DeprecatedAsyncView<Props, State> {
     return null;
   }
 
-  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {memberId, token} = this.props.params;
     if (this.orgSlug) {
       return [['inviteDetails', `/accept-invite/${this.orgSlug}/${memberId}/${token}/`]];
     }
     return [['inviteDetails', `/accept-invite/${memberId}/${token}/`]];
-  }
-
-  getTitle() {
-    return t('Accept Organization Invite');
   }
 
   handleLogout = (e: React.MouseEvent) => {
@@ -287,6 +284,7 @@ class AcceptOrganizationInvite extends DeprecatedAsyncView<Props, State> {
 
     return (
       <NarrowLayout>
+        <SentryDocumentTitle title={t('Accept Organization Invite')} />
         <SettingsPageHeader title={t('Accept organization invite')} />
         {acceptError && (
           <Alert type="error">

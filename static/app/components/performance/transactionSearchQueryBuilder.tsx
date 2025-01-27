@@ -34,7 +34,7 @@ interface TransactionSearchQueryBuilderProps {
   filterKeyMenuWidth?: number;
   onSearch?: (query: string, state: CallbackSearchState) => void;
   placeholder?: string;
-  projects?: PageFilters['projects'];
+  projects?: PageFilters['projects'] | readonly number[];
   trailingItems?: React.ReactNode;
 }
 

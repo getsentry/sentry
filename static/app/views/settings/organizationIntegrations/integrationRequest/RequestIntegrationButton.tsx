@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
@@ -6,67 +6,55 @@ import {Button} from 'sentry/components/button';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {IntegrationType} from 'sentry/types/integrations';
-import type {Organization} from 'sentry/types/organization';
 
 import RequestIntegrationModal from './RequestIntegrationModal';
 
 type Props = {
   name: string;
-  organization: Organization;
   slug: string;
   type: IntegrationType;
 };
-type State = {
-  isOpen: boolean;
-  isSent: boolean;
-};
 
-export default class RequestIntegrationButton extends Component<Props, State> {
-  state: State = {
-    isOpen: false,
-    isSent: false,
-  };
+export default function RequestIntegrationButton(props: Props) {
+  const [isOpen, setIsOpen] = useState<boolean>(false);
+  const [isSent, setIsSent] = useState<boolean>(false);
 
-  openRequestModal() {
-    this.setState({isOpen: true});
+  const openRequestModal = () => {
+    setIsOpen(true);
     openModal(
       renderProps => (
         <RequestIntegrationModal
-          {...this.props}
+          {...props}
           {...renderProps}
-          onSuccess={() => this.setState({isSent: true})}
+          onSuccess={() => setIsSent(true)}
         />
       ),
       {
-        onClose: () => this.setState({isOpen: false}),
+        onClose: () => setIsOpen(false),
       }
     );
+  };
+
+  let buttonText: any;
+  if (isOpen) {
+    buttonText = t('Requesting Installation');
+  } else if (isSent) {
+    buttonText = t('Installation Requested');
+  } else {
+    buttonText = t('Request Installation');
   }
 
-  render() {
-    const {isOpen, isSent} = this.state;
-
-    let buttonText;
-    if (isOpen) {
-      buttonText = t('Requesting Installation');
-    } else if (isSent) {
-      buttonText = t('Installation Requested');
-    } else {
-      buttonText = t('Request Installation');
-    }
-
-    return (
-      <StyledRequestIntegrationButton
-        data-test-id="request-integration-button"
-        disabled={isOpen || isSent}
-        onClick={() => this.openRequestModal()}
-        priority="primary"
-        size="sm"
-      >
-        {buttonText}
-      </StyledRequestIntegrationButton>
-    );
-  }
+  return (
+    <StyledRequestIntegrationButton
+      data-test-id="request-integration-button"
+      disabled={isOpen || isSent}
+      onClick={openRequestModal}
+      priority="primary"
+      size="sm"
+    >
+      {buttonText}
+    </StyledRequestIntegrationButton>
+  );
 }
 
 const StyledRequestIntegrationButton = styled(Button)`

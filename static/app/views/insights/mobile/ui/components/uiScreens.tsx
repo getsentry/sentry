@@ -145,7 +145,7 @@ export function UIScreens() {
     yAxes: Y_AXES,
     primaryRelease,
     secondaryRelease,
-    colorPalette: theme.charts.getColorPalette(TOP_SCREENS - 2),
+    colorPalette: theme.charts.getColorPalette(TOP_SCREENS - 2) ?? [],
     releaseEvents,
     topTransactions,
   });
@@ -188,7 +188,7 @@ export function UIScreens() {
           });
         }}
         organization={organization}
-        query={getFreeTextFromQuery(derivedQuery)}
+        query={getFreeTextFromQuery(derivedQuery)!}
         placeholder={t('Search for Screen')}
         additionalConditions={
           new MutableSearch(

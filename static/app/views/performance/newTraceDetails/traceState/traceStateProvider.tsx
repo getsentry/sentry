@@ -8,6 +8,8 @@ import {
   useDispatchingReducer,
 } from 'sentry/utils/useDispatchingReducer';
 
+import {useHasTraceNewUi} from '../useHasTraceNewUi';
+
 import {TraceReducer, type TraceReducerAction, type TraceReducerState} from './index';
 import {storeTraceViewPreferences, type TracePreferencesState} from './tracePreferences';
 
@@ -63,6 +65,7 @@ interface TraceStateProviderProps {
 }
 
 export function TraceStateProvider(props: TraceStateProviderProps): React.ReactNode {
+  const hasTraceNewUi = useHasTraceNewUi();
   const initialQuery = useMemo((): string | undefined => {
     const query = qs.parse(location.search);
 
@@ -71,7 +74,6 @@ export function TraceStateProvider(props: TraceStateProviderProps): React.ReactN
     }
     return undefined;
     // We only want to decode on load
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const [traceState, traceDispatch, traceStateEmitter] = useDispatchingReducer(
@@ -93,8 +95,8 @@ export function TraceStateProvider(props: TraceStateProviderProps): React.ReactN
       },
       preferences: props.initialPreferences,
       tabs: {
-        tabs: STATIC_DRAWER_TABS,
-        current_tab: STATIC_DRAWER_TABS[0] ?? null,
+        tabs: hasTraceNewUi ? [] : STATIC_DRAWER_TABS,
+        current_tab: hasTraceNewUi ? null : STATIC_DRAWER_TABS[0] ?? null,
         last_clicked_tab: null,
       },
     }

@@ -46,16 +46,19 @@ function partitionSizes(data: RawSpanType['data']): {
       nonSizeKeys: {},
     };
   }
-  const sizeKeys = SIZE_DATA_KEYS.reduce((keys, key) => {
-    if (data.hasOwnProperty(key) && defined(data[key])) {
-      try {
-        keys[key] = parseFloat(data[key]);
-      } catch (e) {
-        keys[key] = data[key];
+  const sizeKeys = SIZE_DATA_KEYS.reduce(
+    (keys, key) => {
+      if (data.hasOwnProperty(key) && defined(data[key])) {
+        try {
+          keys[key] = parseFloat(data[key]);
+        } catch (e) {
+          keys[key] = data[key];
+        }
       }
-    }
-    return keys;
-  }, {});
+      return keys;
+    },
+    {} as Record<string, number>
+  );
 
   const nonSizeKeys = {...data};
   SIZE_DATA_KEYS.forEach(key => delete nonSizeKeys[key]);
@@ -148,7 +151,7 @@ export function SpanKeys({node}: {node: TraceTreeNode<TraceTree.Span>}) {
   }
   Object.entries(sizeKeys).forEach(([key, value]) => {
     items.push({
-      key: key,
+      key,
       subject: key,
       value: (
         <Fragment>
@@ -161,7 +164,7 @@ export function SpanKeys({node}: {node: TraceTreeNode<TraceTree.Span>}) {
   Object.entries(nonSizeKeys).forEach(([key, value]) => {
     if (!isHiddenDataKey(key)) {
       items.push({
-        key: key,
+        key,
         subject: key,
         value: value as string | number,
       });
@@ -169,9 +172,9 @@ export function SpanKeys({node}: {node: TraceTreeNode<TraceTree.Span>}) {
   });
   unknownKeys.forEach(key => {
     items.push({
-      key: key,
+      key,
       subject: key,
-      value: span[key],
+      value: (span as any)[key],
     });
   });
   timingKeys.forEach(timing => {

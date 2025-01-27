@@ -35,6 +35,9 @@ class ApiKeyReplica(Model, HasApiScopes):
 
     __repr__ = sane_repr("organization_id", "key")
 
+    def __str__(self) -> str:
+        return f"replica_id={self.id}, status={self.status}"
+
     @property
     def entity_id(self) -> int:
         return self.apikey_id

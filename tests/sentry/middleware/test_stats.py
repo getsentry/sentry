@@ -3,7 +3,6 @@ from unittest.mock import Mock, patch, sentinel
 
 from django.test import RequestFactory, override_settings
 from rest_framework.permissions import AllowAny
-from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
 from sentry.middleware.ratelimit import RatelimitMiddleware
@@ -19,7 +18,7 @@ class RateLimitedEndpoint(Endpoint):
     rate_limits = {"GET": {RateLimitCategory.IP: RateLimit(limit=0, window=10)}}
 
     def get(self):
-        return Response({"ok": True})
+        raise NotImplementedError
 
 
 class RequestTimingMiddlewareTest(TestCase):

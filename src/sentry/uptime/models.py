@@ -7,14 +7,18 @@ from django.db import models
 from django.db.models import Q
 from django.db.models.expressions import Value
 from django.db.models.functions import MD5, Coalesce
+from sentry_kafka_schemas.schema_types.uptime_configs_v1 import REGIONSCHEDULEMODE_ROUND_ROBIN
 
 from sentry.backup.scopes import RelocationScope
+from sentry.constants import ObjectStatus
 from sentry.db.models import (
+    DefaultFieldsModel,
     DefaultFieldsModelExisting,
     FlexibleForeignKey,
     JSONField,
     region_silo_model,
 )
+from sentry.db.models.fields.bounded import BoundedPositiveBigIntegerField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
 from sentry.models.organization import Organization
@@ -100,9 +104,30 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
                 "interval_seconds",
                 "timeout_ms",
                 "method",
+                "trace_sampling",
                 MD5("headers"),
                 Coalesce(MD5("body"), Value("")),
-                name="uptime_uptimesubscription_unique_subscription_check",
+                name="uptime_uptimesubscription_unique_subscription_check_3",
+            ),
+        ]
+
+
+@region_silo_model
+class UptimeSubscriptionRegion(DefaultFieldsModel):
+    __relocation_scope__ = RelocationScope.Excluded
+
+    uptime_subscription = FlexibleForeignKey("uptime.UptimeSubscription", related_name="regions")
+    region_slug = models.CharField(max_length=255, db_index=True, db_default="")
+
+    class Meta:
+        app_label = "uptime"
+        db_table = "uptime_uptimesubscriptionregion"
+
+        constraints = [
+            models.UniqueConstraint(
+                "uptime_subscription",
+                "region_slug",
+                name="uptime_uptimesubscription_region_slug_unique",
             ),
         ]
 
@@ -133,6 +158,9 @@ class ProjectUptimeSubscription(DefaultFieldsModelExisting):
         "sentry.Environment", db_index=True, db_constraint=False, null=True
     )
     uptime_subscription = FlexibleForeignKey("uptime.UptimeSubscription", on_delete=models.PROTECT)
+    status = BoundedPositiveBigIntegerField(
+        choices=ObjectStatus.as_choices(), db_default=ObjectStatus.ACTIVE
+    )
     mode = models.SmallIntegerField(default=ProjectUptimeSubscriptionMode.MANUAL.value)
     uptime_status = models.PositiveSmallIntegerField(default=UptimeStatus.OK.value)
     # (Likely) temporary column to keep track of the current uptime status of this monitor
@@ -205,3 +233,7 @@ def get_active_auto_monitor_count_for_org(organization: Organization) -> int:
             ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
         ],
     ).count()
+
+
+class UptimeRegionScheduleMode(enum.StrEnum):
+    ROUND_ROBIN = REGIONSCHEDULEMODE_ROUND_ROBIN

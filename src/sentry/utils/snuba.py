@@ -215,6 +215,10 @@ SPAN_EAP_COLUMN_MAP = {
     # We should be able to delete origin.transaction and just use transaction
     "origin.transaction": "segment_name",
     # Copy paste, unsure if this is truth in production
+    "cache.item_size": "attr_num[cache.item_size]",
+    "messaging.message.body.size": "attr_num[messaging.message.body.size]",
+    "messaging.message.receive.latency": "attr_num[messaging.message.receive.latency]",
+    "messaging.message.retry.count": "attr_num[messaging.message.retry.count]",
     "messaging.destination.name": "attr_str[sentry.messaging.destination.name]",
     "messaging.message.id": "attr_str[sentry.messaging.message.id]",
     "span.status_code": "attr_str[sentry.status_code]",
@@ -311,8 +315,6 @@ DATASET_FIELDS = {
     Dataset.EventsAnalyticsPlatform: list(SPAN_EAP_COLUMN_MAP.values()),
 }
 
-SNUBA_OR = "or"
-SNUBA_AND = "and"
 OPERATOR_TO_FUNCTION = {
     "LIKE": "like",
     "NOT LIKE": "notLike",
@@ -935,7 +937,6 @@ class SnubaRequest:
         return headers
 
 
-LegacyQueryBody = tuple[MutableMapping[str, Any], Translator, Translator]
 # TODO: Would be nice to make this a concrete structure
 ResultSet = list[Mapping[str, Any]]
 
@@ -1938,6 +1939,7 @@ def is_duration_measurement(key):
         "measurements.time_to_full_display",
         "measurements.time_to_initial_display",
         "measurements.inp",
+        "measurements.messaging.message.receive.latency",
     ]
 
 

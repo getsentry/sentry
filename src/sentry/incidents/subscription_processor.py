@@ -24,14 +24,11 @@ from sentry.incidents.logic import (
 from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleDetectionType,
-    AlertRuleMonitorTypeInt,
     AlertRuleStatus,
     AlertRuleThresholdType,
     AlertRuleTrigger,
     AlertRuleTriggerActionMethod,
-    invoke_alert_subscription_callback,
 )
-from sentry.incidents.models.alert_rule_activations import AlertRuleActivations
 from sentry.incidents.models.incident import (
     Incident,
     IncidentActivity,
@@ -43,7 +40,14 @@ from sentry.incidents.models.incident import (
 )
 from sentry.incidents.tasks import handle_trigger_action
 from sentry.incidents.utils.metric_issue_poc import create_or_update_metric_issue
-from sentry.incidents.utils.types import QuerySubscriptionUpdate
+from sentry.incidents.utils.process_update_helpers import (
+    get_aggregation_value_helper,
+    get_crash_rate_alert_metrics_aggregation_value_helper,
+)
+from sentry.incidents.utils.types import (
+    DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+    QuerySubscriptionUpdate,
+)
 from sentry.models.project import Project
 from sentry.search.eap.utils import add_start_end_conditions
 from sentry.seer.anomaly_detection.get_anomaly_data import get_anomaly_data_from_seer
@@ -58,6 +62,8 @@ from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.snuba.subscriptions import delete_snuba_subscription
 from sentry.utils import metrics, redis, snuba_rpc
 from sentry.utils.dates import to_datetime
+from sentry.workflow_engine.models import DataPacket
+from sentry.workflow_engine.processors.data_packet import process_data_packets
 
 logger = logging.getLogger(__name__)
 REDIS_TTL = int(timedelta(days=7).total_seconds())
@@ -244,7 +250,7 @@ class SubscriptionProcessor:
                     rpc_time_series_request, start, end
                 )
 
-                rpc_response = snuba_rpc.timeseries_rpc(rpc_time_series_request)
+                rpc_response = snuba_rpc.timeseries_rpc([rpc_time_series_request])[0]
                 if len(rpc_response.result_timeseries):
                     comparison_aggregate = rpc_response.result_timeseries[0].data_points[0].data
 
@@ -322,24 +328,12 @@ class SubscriptionProcessor:
         count is just ignored
         - `crashed` represents the total sessions or user counts that crashed.
         """
-        row = subscription_update["values"]["data"][0]
-        total_session_count = row.get("count", 0)
-        crash_count = row.get("crashed", 0)
-
-        if total_session_count == 0:
+        # NOTE (mifu67): we create this helper because we also use it in the new detector processing flow
+        aggregation_value = get_crash_rate_alert_metrics_aggregation_value_helper(
+            subscription_update
+        )
+        if aggregation_value is None:
             self.reset_trigger_counts()
-            metrics.incr("incidents.alert_rules.ignore_update_no_session_data")
-            return None
-
-        if CRASH_RATE_ALERT_MINIMUM_THRESHOLD is not None:
-            min_threshold = int(CRASH_RATE_ALERT_MINIMUM_THRESHOLD)
-            if total_session_count < min_threshold:
-                self.reset_trigger_counts()
-                metrics.incr("incidents.alert_rules.ignore_update_count_lower_than_min_threshold")
-                return None
-
-        aggregation_value: int = round((1 - crash_count / total_session_count) * 100, 3)
-
         return aggregation_value
 
     def get_aggregation_value(self, subscription_update: QuerySubscriptionUpdate) -> float | None:
@@ -348,14 +342,8 @@ class SubscriptionProcessor:
                 subscription_update
             )
         else:
-            aggregation_value = list(subscription_update["values"]["data"][0].values())[0]
-            # In some cases Snuba can return a None value for an aggregation. This means
-            # there were no rows present when we made the query for certain types of aggregations
-            # like avg. Defaulting this to 0 for now. It might turn out that we'd prefer to skip
-            # the update in the future.
-            if aggregation_value is None:
-                aggregation_value = 0
-
+            # NOTE (mifu67): we create this helper because we also use it in the new detector processing flow
+            aggregation_value = get_aggregation_value_helper(subscription_update)
             if self.alert_rule.comparison_delta:
                 aggregation_value = self.get_comparison_aggregation_value(
                     subscription_update, aggregation_value
@@ -397,6 +385,15 @@ class SubscriptionProcessor:
         if subscription_update["timestamp"] <= self.last_update:
             metrics.incr("incidents.alert_rules.skipping_already_processed_update")
             return
+
+        if features.has(
+            "organizations:workflow-engine-metric-alert-processing",
+            self.subscription.project.organization,
+        ):
+            data_packet = DataPacket[QuerySubscriptionUpdate](
+                query_id=self.subscription.id, packet=subscription_update
+            )
+            process_data_packets([data_packet], DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION)
 
         self.last_update = subscription_update["timestamp"]
 
@@ -460,16 +457,6 @@ class SubscriptionProcessor:
                     },
                 )
                 return
-
-        # Trigger callbacks for any AlertRules that may need to know about the subscription update
-        # Current callback will update the activation metric values & delete querysubscription on finish
-        # TODO: register over/under triggers as alert rule callbacks as well
-        invoke_alert_subscription_callback(
-            AlertRuleMonitorTypeInt(self.alert_rule.monitor_type),
-            subscription=self.subscription,
-            alert_rule=self.alert_rule,
-            value=aggregation_value,
-        )
 
         if aggregation_value is None:
             metrics.incr("incidents.alert_rules.skipping_update_invalid_aggregation_value")
@@ -651,19 +638,6 @@ class SubscriptionProcessor:
             # Only create a new incident if we don't already have an active incident for the AlertRule
             if not self.active_incident:
                 detected_at = self.calculate_event_date_from_update_date(self.last_update)
-                activation: AlertRuleActivations | None = None
-                if self.alert_rule.monitor_type == AlertRuleMonitorTypeInt.ACTIVATED:
-                    activations = list(self.subscription.alertruleactivations_set.all())
-                    if len(activations) != 1:
-                        logger.error(
-                            "activated alert rule subscription has unexpected activation instances",
-                            extra={
-                                "activations_count": len(activations),
-                            },
-                        )
-                    else:
-                        activation = activations[0]
-
                 self.active_incident = create_incident(
                     organization=self.alert_rule.organization,
                     incident_type=IncidentType.ALERT_TRIGGERED,
@@ -673,7 +647,6 @@ class SubscriptionProcessor:
                     date_started=detected_at,
                     date_detected=self.last_update,
                     projects=[self.subscription.project],
-                    activation=activation,
                     subscription=self.subscription,
                 )
             # Now create (or update if it already exists) the incident trigger so that

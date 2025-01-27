@@ -35,7 +35,7 @@ export function OrganizationSelectHeader({
             ),
           };
         })}
-        onChange={option => handleOrgChange(option.value)}
+        onChange={(option: any) => handleOrgChange(option.value)}
         value={organizationId}
         styles={{
           container: (provided: Record<string, string>) => ({

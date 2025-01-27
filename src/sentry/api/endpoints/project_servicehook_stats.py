@@ -26,9 +26,9 @@ class ProjectServiceHookStatsEndpoint(ProjectEndpoint, StatsMixin):
 
         stat_args = self._parse_args(request)
 
-        stats = {}
+        stats: dict[int, dict[str, int]] = {}
         for model, name in ((TSDBModel.servicehook_fired, "total"),):
-            result = tsdb.get_range(
+            result = tsdb.backend.get_range(
                 model=model,
                 keys=[hook.id],
                 **stat_args,

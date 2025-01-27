@@ -13,14 +13,14 @@ interface Series {
   fillColor: string;
   lineColor: string;
   name: string;
-  points: {x: number; y: number}[];
+  points: Array<{x: number; y: number}>;
   type: 'line' | 'area';
 }
 
 export interface ProfileSeriesMeasurement {
   name: string;
   unit: string;
-  values: {elapsed: number; value: number}[];
+  values: Array<{elapsed: number; value: number}>;
 }
 
 function computeLabelPrecision(min: number, max: number): number {
@@ -82,7 +82,7 @@ export class FlamegraphChart {
     const type = options.type ? options.type : measurements.length > 1 ? 'line' : 'area';
 
     for (let j = 0; j < measurements.length; j++) {
-      const measurement = measurements[j];
+      const measurement = measurements[j]!;
 
       if (!colors[j]) {
         throw new Error(
@@ -93,8 +93,8 @@ export class FlamegraphChart {
       this.series[j] = {
         type,
         name: measurement.name,
-        lineColor: colorComponentsToRGBA(colors[j]),
-        fillColor: colorComponentsToRGBA(colors[j]),
+        lineColor: colorComponentsToRGBA(colors[j]!),
+        fillColor: colorComponentsToRGBA(colors[j]!),
         points: new Array(measurement?.values?.length ?? 0).fill(0),
       };
 
@@ -107,7 +107,7 @@ export class FlamegraphChart {
 
       this.status = 'ok';
       for (let i = 0; i < measurement.values.length; i++) {
-        const m = measurement.values[i];
+        const m = measurement.values[i]!;
 
         // Track and update Y max and min
         if (m.value > this.domains.y[1]) {
@@ -125,7 +125,7 @@ export class FlamegraphChart {
           this.domains.x[1] = m.elapsed;
         }
 
-        this.series[j].points[i] = {x: m.elapsed, y: m.value};
+        this.series[j]!.points[i] = {x: m.elapsed, y: m.value};
       }
     }
 
@@ -138,15 +138,15 @@ export class FlamegraphChart {
     this.domains.y[1] = this.domains.y[1] + this.domains.y[1] * 0.1;
     this.configSpace = configSpace.withHeight(this.domains.y[1] - this.domains.y[0]);
 
-    assertValidProfilingUnit(measurements[0].unit);
-    this.unit = measurements[0].unit;
+    assertValidProfilingUnit(measurements[0]!.unit);
+    this.unit = measurements[0]!.unit;
 
     this.formatter = makeFormatter(
-      measurements[0].unit,
+      measurements[0]!.unit,
       computeLabelPrecision(this.domains.y[0], this.domains.y[1])
     );
     this.tooltipFormatter = makeFormatter(
-      measurements[0].unit,
+      measurements[0]!.unit,
       computeLabelPrecision(this.domains.y[0], this.domains.y[1])
     );
   }

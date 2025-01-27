@@ -35,7 +35,7 @@ function SettingsLayout(props: Props) {
   const location = useLocation();
 
   const toggleNav = useCallback((visible: boolean) => {
-    const bodyElement = document.getElementsByTagName('body')[0];
+    const bodyElement = document.getElementsByTagName('body')[0]!;
 
     window.scrollTo?.(0, 0);
     bodyElement.classList[visible ? 'add' : 'remove']('scroll-lock');

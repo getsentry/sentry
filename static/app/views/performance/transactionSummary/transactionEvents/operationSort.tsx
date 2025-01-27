@@ -62,7 +62,7 @@ class OperationSort extends Component<Props, State> {
     this.setState(({isOpen}) => ({isOpen: !isOpen}));
   };
 
-  generateSortLink(field): LocationDescriptorObject | undefined {
+  generateSortLink(field: any): LocationDescriptorObject | undefined {
     const {eventView, tableMeta, location} = this.props;
     if (!tableMeta) {
       return undefined;
@@ -77,7 +77,7 @@ class OperationSort extends Component<Props, State> {
     };
   }
 
-  renderMenuItem(operation, title) {
+  renderMenuItem(operation: any, title: any) {
     const {eventView} = this.props;
     return (
       <DropdownMenuItem>

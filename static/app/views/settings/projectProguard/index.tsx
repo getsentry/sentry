@@ -169,7 +169,7 @@ function ProjectProguard({organization, location, router, params}: ProjectProgua
               return (
                 <ProjectProguardRow
                   mapping={mapping}
-                  associations={associationsResults[index].data}
+                  associations={associationsResults[index]!.data}
                   downloadUrl={downloadUrl}
                   onDelete={handleDelete}
                   key={mapping.id}

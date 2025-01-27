@@ -122,7 +122,7 @@ class SecretScanningGitHubTest(TestCase):
         payload = [
             {
                 "source": "commit",
-                "token": str(token),
+                "token": str(token.token),
                 "type": "sentry_user_auth_token",
                 "url": "https://example.com/base-repo-url/",
             }

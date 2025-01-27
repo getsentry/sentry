@@ -47,6 +47,9 @@ export const EventDrawerHeader = styled(DrawerHeader)`
   max-height: ${MIN_NAV_HEIGHT}px;
   box-shadow: none;
   border-bottom: 1px solid ${p => p.theme.border};
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 `;
 
 export const EventNavigator = styled('div')`

@@ -31,8 +31,13 @@ def _calculate_contributes[ValuesType](values: Sequence[ValuesType]) -> bool:
 
 
 class BaseGroupingComponent[ValuesType: str | int | BaseGroupingComponent[Any]](ABC):
-    """A grouping component is a recursive structure that is flattened
-    into components to make a hash for grouping purposes.
+    """
+    A grouping component is a node in a tree describing the event data (exceptions, stacktraces,
+    messages, etc.) which can contribute to grouping. Each node's children, stored in the `values`
+    attribute, are either other grouping components or primitives representing the actual data.
+
+    For example, an exception component might have type, value, and stacktrace components as
+    children, and the type component might have the string "KeyError" as its child.
     """
 
     hint: str | None = None
@@ -45,6 +50,8 @@ class BaseGroupingComponent[ValuesType: str | int | BaseGroupingComponent[Any]](
         contributes: bool | None = None,
         values: Sequence[ValuesType] | None = None,
     ):
+        # Use `upate` to set attribute values because it ensures `contributes` is set (if
+        # `contributes` is not provided, `update` will derive it from the `values` value)
         self.update(
             hint=hint,
             contributes=contributes,
@@ -143,8 +150,9 @@ class BaseGroupingComponent[ValuesType: str | int | BaseGroupingComponent[Any]](
         return copy
 
     def iter_values(self) -> Generator[str | int]:
-        """Recursively walks the component and flattens it into a list of
-        values.
+        """
+        Recursively walks the component tree, gathering literal values from contributing
+        branches into a flat list.
         """
         if self.contributes:
             for value in self.values:
@@ -333,6 +341,17 @@ class ChainedExceptionGroupingComponent(BaseGroupingComponent[ExceptionGroupingC
 
 class ThreadsGroupingComponent(BaseGroupingComponent[StacktraceGroupingComponent]):
     id: str = "threads"
+    frame_counts: Counter[str]
+
+    def __init__(
+        self,
+        values: Sequence[StacktraceGroupingComponent] | None = None,
+        hint: str | None = None,
+        contributes: bool | None = None,
+        frame_counts: Counter[str] | None = None,
+    ):
+        super().__init__(hint=hint, contributes=contributes, values=values)
+        self.frame_counts = frame_counts or Counter()
 
 
 class CSPGroupingComponent(
@@ -401,3 +420,17 @@ class SystemGroupingComponent(
     ]
 ):
     id: str = "system"
+
+
+ContributingComponent = (
+    ChainedExceptionGroupingComponent
+    | ExceptionGroupingComponent
+    | StacktraceGroupingComponent
+    | ThreadsGroupingComponent
+    | CSPGroupingComponent
+    | ExpectCTGroupingComponent
+    | ExpectStapleGroupingComponent
+    | HPKPGroupingComponent
+    | MessageGroupingComponent
+    | TemplateGroupingComponent
+)

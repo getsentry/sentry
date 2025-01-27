@@ -1,5 +1,7 @@
 from unittest import mock
 
+from snuba_sdk import Column, Condition, Op
+
 from sentry.eventstore.base import Filter
 from sentry.eventstore.models import Event
 from sentry.eventstore.snuba.backend import SnubaEventStorage
@@ -447,3 +449,147 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
 
         assert prev_ids == (str(project.id), event1.event_id)
         assert next_ids is None
+
+    def test_adjacent_event_ids_with_query_conditions(self):
+        project = self.create_project()
+        event_a = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "type": "default",
+                "platform": "python",
+                "fingerprint": ["group"],
+                "timestamp": self.min_ago,
+                "tags": {"organization.slug": "sentry"},
+            },
+            project_id=project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "type": "default",
+                "platform": "python",
+                "fingerprint": ["group"],
+                "timestamp": self.min_ago,
+            },
+            project_id=project.id,
+        )
+        event_c = self.store_event(
+            data={
+                "event_id": "c" * 32,
+                "type": "default",
+                "platform": "python",
+                "fingerprint": ["group"],
+                "timestamp": self.min_ago,
+                "tags": {"organization.slug": "sentry"},
+            },
+            project_id=project.id,
+        )
+
+        query_conditions = [Condition(Column("tags[organization.slug]"), Op.EQ, "sentry")]
+
+        prev_ids, next_ids = self.eventstore.get_adjacent_event_ids_snql(
+            organization_id=event_a.organization.id,
+            project_id=event_a.project_id,
+            group_id=event_a.group_id,
+            environments=[],
+            event=event_a,
+            conditions=query_conditions,
+        )
+
+        assert prev_ids is None
+        assert next_ids == (str(event_c.project_id), event_c.event_id)
+
+        prev_ids, next_ids = self.eventstore.get_adjacent_event_ids_snql(
+            organization_id=event_c.organization.id,
+            project_id=event_c.project_id,
+            group_id=event_c.group_id,
+            environments=[],
+            event=event_c,
+            conditions=query_conditions,
+        )
+
+        assert prev_ids == (str(event_a.project_id), event_a.event_id)
+        assert next_ids is None
+
+    def test_adjacent_event_ids_with_date_range_conditions(self):
+        project = self.create_project()
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "type": "default",
+                "platform": "python",
+                "fingerprint": ["group"],
+                "timestamp": before_now(hours=1).isoformat(),
+            },
+            project_id=project.id,
+        )
+        event_b = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "type": "default",
+                "platform": "python",
+                "fingerprint": ["group"],
+                "timestamp": before_now(hours=2).isoformat(),
+            },
+            project_id=project.id,
+        )
+        event_c = self.store_event(
+            data={
+                "event_id": "c" * 32,
+                "type": "default",
+                "platform": "python",
+                "fingerprint": ["group"],
+                "timestamp": before_now(hours=3).isoformat(),
+            },
+            project_id=project.id,
+        )
+        event_d = self.store_event(
+            data={
+                "event_id": "d" * 32,
+                "type": "default",
+                "platform": "python",
+                "fingerprint": ["group"],
+                "timestamp": before_now(hours=4).isoformat(),
+            },
+            project_id=project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "e" * 32,
+                "type": "default",
+                "platform": "python",
+                "fingerprint": ["group"],
+                "timestamp": before_now(hours=5).isoformat(),
+            },
+            project_id=project.id,
+        )
+
+        # -> E (5h ago), D (4h ago), C (3h ago), B (2h ago), A (1h ago), now
+        date_range_conditions = [
+            Condition(Column("timestamp"), Op.LT, before_now(hours=1.5)),
+            Condition(Column("timestamp"), Op.GT, before_now(hours=4.5)),
+        ]
+
+        prev_ids, next_ids = self.eventstore.get_adjacent_event_ids_snql(
+            organization_id=event_b.organization.id,
+            project_id=event_b.project_id,
+            group_id=event_b.group_id,
+            environments=[],
+            event=event_b,
+            conditions=date_range_conditions,
+        )
+
+        assert prev_ids == (str(event_c.project_id), event_c.event_id)
+        assert next_ids is None
+
+        prev_ids, next_ids = self.eventstore.get_adjacent_event_ids_snql(
+            organization_id=event_d.organization.id,
+            project_id=event_d.project_id,
+            group_id=event_d.group_id,
+            environments=[],
+            event=event_d,
+            conditions=date_range_conditions,
+        )
+
+        assert prev_ids is None
+        assert next_ids == (str(event_c.project_id), event_c.event_id)

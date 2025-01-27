@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, NotRequired, TypedDict
+from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any, NotRequired, Self, TypedDict
 
 from sentry.grouping.component import (
     AppGroupingComponent,
+    ContributingComponent,
     DefaultGroupingComponent,
     SystemGroupingComponent,
 )
@@ -24,8 +26,11 @@ class FingerprintVariantMetadata(TypedDict):
 
 
 class BaseVariant(ABC):
-    # This is true if `get_hash` does not return `None`.
-    contributes = True
+    variant_name: str | None = None
+
+    @property
+    def contributes(self) -> bool:
+        return True
 
     @property
     @abstractmethod
@@ -35,18 +40,20 @@ class BaseVariant(ABC):
         return None
 
     @property
-    def description(self):
+    def description(self) -> str:
         return self.type
 
-    def _get_metadata_as_dict(self):
+    # This has to return `Mapping` rather than `dict` so that subtypes can override the return value
+    # with a TypedDict if they choose. See https://github.com/python/mypy/issues/4976.
+    def _get_metadata_as_dict(self) -> Mapping[str, Any]:
         return {}
 
-    def as_dict(self):
+    def as_dict(self) -> dict[str, Any]:
         rv = {"type": self.type, "description": self.description, "hash": self.get_hash()}
         rv.update(self._get_metadata_as_dict())
         return rv
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<{self.__class__.__name__} {self.get_hash()!r} ({self.type})>"
 
     def __eq__(self, other: object) -> bool:
@@ -70,7 +77,7 @@ class ChecksumVariant(BaseVariant):
     def get_hash(self) -> str | None:
         return self.checksum
 
-    def _get_metadata_as_dict(self):
+    def _get_metadata_as_dict(self) -> Mapping[str, str]:
         return {"checksum": self.checksum}
 
 
@@ -82,7 +89,7 @@ class HashedChecksumVariant(ChecksumVariant):
         self.checksum = checksum
         self.raw_checksum = raw_checksum
 
-    def _get_metadata_as_dict(self):
+    def _get_metadata_as_dict(self) -> Mapping[str, str]:
         return {"checksum": self.checksum, "raw_checksum": self.raw_checksum}
 
 
@@ -109,14 +116,14 @@ class PerformanceProblemVariant(BaseVariant):
     description = "performance problem"
     contributes = True
 
-    def __init__(self, event_performance_problem):
+    def __init__(self, event_performance_problem: Any):
         self.event_performance_problem = event_performance_problem
         self.problem = event_performance_problem.problem
 
     def get_hash(self) -> str | None:
         return self.problem.fingerprint
 
-    def _get_metadata_as_dict(self):
+    def _get_metadata_as_dict(self) -> Mapping[str, Any]:
         problem_data = self.problem.to_dict()
         evidence_hashes = self.event_performance_problem.evidence_hashes
 
@@ -124,35 +131,40 @@ class PerformanceProblemVariant(BaseVariant):
 
 
 class ComponentVariant(BaseVariant):
-    """A component variant is a variant that produces a hash from the
-    `BaseGroupingComponent` it encloses.
-    """
+    """A variant that produces a hash from the `BaseGroupingComponent` it encloses."""
 
     type = "component"
 
     def __init__(
         self,
+        # The root of the component tree
         component: AppGroupingComponent | SystemGroupingComponent | DefaultGroupingComponent,
+        # The highest non-root contributing component in the tree, representing the overall grouping
+        # method (exception, threads, message, etc.). For non-contributing variants, this will be
+        # None.
+        contributing_component: ContributingComponent | None,
         strategy_config: StrategyConfiguration,
     ):
         self.component = component
         self.config = strategy_config
+        self.contributing_component = contributing_component
+        self.variant_name = self.component.id  # "app", "system", or "default"
 
     @property
-    def description(self):
+    def description(self) -> str:
         return self.component.description
 
     @property
-    def contributes(self):
+    def contributes(self) -> bool:
         return self.component.contributes
 
     def get_hash(self) -> str | None:
         return self.component.get_hash()
 
-    def _get_metadata_as_dict(self):
+    def _get_metadata_as_dict(self) -> Mapping[str, Any]:
         return {"component": self.component.as_dict(), "config": self.config.as_dict()}
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return super().__repr__() + f" contributes={self.contributes} ({self.description})"
 
 
@@ -190,7 +202,7 @@ class CustomFingerprintVariant(BaseVariant):
         self.info = fingerprint_info
 
     @property
-    def description(self):
+    def description(self) -> str:
         return "custom fingerprint"
 
     def get_hash(self) -> str | None:
@@ -201,12 +213,12 @@ class CustomFingerprintVariant(BaseVariant):
 
 
 class BuiltInFingerprintVariant(CustomFingerprintVariant):
-    """A built-in, Sentry defined fingerprint."""
+    """A built-in, Sentry-defined fingerprint."""
 
     type = "built_in_fingerprint"
 
     @property
-    def description(self):
+    def description(self) -> str:
         return "Sentry defined fingerprint"
 
 
@@ -215,19 +227,39 @@ class SaltedComponentVariant(ComponentVariant):
 
     type = "salted_component"
 
+    @classmethod
+    def from_component_variant(
+        cls,
+        component_variant: ComponentVariant,
+        fingerprint: list[str],
+        fingerprint_info: FingerprintInfo,
+    ) -> Self:
+        return cls(
+            fingerprint=fingerprint,
+            component=component_variant.component,
+            contributing_component=component_variant.contributing_component,
+            strategy_config=component_variant.config,
+            fingerprint_info=fingerprint_info,
+        )
+
     def __init__(
         self,
         fingerprint: list[str],
+        # The root of the component tree
         component: AppGroupingComponent | SystemGroupingComponent | DefaultGroupingComponent,
+        # The highest non-root contributing component in the tree, representing the overall grouping
+        # method (exception, threads, message, etc.). For non-contributing variants, this will be
+        # None.
+        contributing_component: ContributingComponent | None,
         strategy_config: StrategyConfiguration,
         fingerprint_info: FingerprintInfo,
     ):
-        ComponentVariant.__init__(self, component, strategy_config)
+        ComponentVariant.__init__(self, component, contributing_component, strategy_config)
         self.values = fingerprint
         self.info = fingerprint_info
 
     @property
-    def description(self):
+    def description(self) -> str:
         return "modified " + self.component.description
 
     def get_hash(self) -> str | None:
@@ -235,16 +267,19 @@ class SaltedComponentVariant(ComponentVariant):
             return None
         final_values: list[str | int] = []
         for value in self.values:
+            # If we've hit the `{{ default }}` part of the fingerprint, pull in values from the
+            # original grouping method (message, stacktrace, etc.)
             if is_default_fingerprint_var(value):
                 final_values.extend(self.component.iter_values())
             else:
                 final_values.append(value)
         return hash_from_values(final_values)
 
-    def _get_metadata_as_dict(self):
-        rv = ComponentVariant._get_metadata_as_dict(self)
-        rv.update(expose_fingerprint_dict(self.values, self.info))
-        return rv
+    def _get_metadata_as_dict(self) -> Mapping[str, Any]:
+        return {
+            **ComponentVariant._get_metadata_as_dict(self),
+            **expose_fingerprint_dict(self.values, self.info),
+        }
 
 
 class VariantsByDescriptor(TypedDict, total=False):

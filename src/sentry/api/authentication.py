@@ -293,11 +293,11 @@ class ClientIdSecretAuthentication(QuietBasicAuthentication):
     """
 
     def authenticate(self, request: Request):
-        if not request.json_body:
+        if not request.data:
             raise AuthenticationFailed("Invalid request")
 
-        client_id = request.json_body.get("client_id")
-        client_secret = request.json_body.get("client_secret")
+        client_id = request.data.get("client_id")
+        client_secret = request.data.get("client_secret")
 
         invalid_pair_error = AuthenticationFailed("Invalid Client ID / Secret pair")
 
@@ -515,7 +515,7 @@ class DSNAuthentication(StandardAuthentication):
         scope.set_tag("api_token_type", self.token_name)
         scope.set_tag("api_project_key", key.id)
 
-        return (AnonymousUser(), key)
+        return (AnonymousUser(), AuthenticatedToken.from_token(key))
 
 
 @AuthenticationSiloLimit(SiloMode.REGION)

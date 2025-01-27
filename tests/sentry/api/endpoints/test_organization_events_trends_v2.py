@@ -352,7 +352,7 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
         project2 = self.create_project(organization=self.org)
 
         # force these 2 transactions from different projects
-        # to fall into the FIRST bucket when quering
+        # to fall into the FIRST bucket when querying
         for i in range(2):
             self.store_performance_metric(
                 name=TransactionMRI.DURATION.value,
@@ -371,7 +371,7 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
                 hours_before_now=2,
             )
         # force these 2 transactions from different projects
-        # to fall into the SECOND bucket when quering
+        # to fall into the SECOND bucket when querying
         self.store_performance_metric(
             name=TransactionMRI.DURATION.value,
             tags={"transaction": "foo bar*"},
@@ -411,10 +411,20 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
         trends_call_args_data_1 = mock_detect_breakpoints.call_args_list[0][0][0]["data"]
         trends_call_args_data_2 = mock_detect_breakpoints.call_args_list[1][0][0]["data"]
 
-        assert len(trends_call_args_data_1[f"{project1.id},foo bar*"]) > 0
-        assert len(trends_call_args_data_1[f'{project2.id},foo bar\\\\"']) > 0
-        assert len(trends_call_args_data_2[f'{project1.id},foo bar\\\\"']) > 0
-        assert len(trends_call_args_data_2[f"{project2.id},foo bar*"]) > 0
+        # the order the calls happen in is non-deterministic because of the async
+        # nature making making the requests in a thread pool so check that 1 of
+        # the 2 possibilities happened
+        assert (
+            len(trends_call_args_data_1.get(f"{project1.id},foo bar*", {})) > 0
+            and len(trends_call_args_data_1.get(f'{project2.id},foo bar\\\\"', {})) > 0
+            and len(trends_call_args_data_2.get(f'{project1.id},foo bar\\\\"', {})) > 0
+            and len(trends_call_args_data_2.get(f"{project2.id},foo bar*", {})) > 0
+        ) or (
+            len(trends_call_args_data_1.get(f'{project1.id},foo bar\\\\"', {})) > 0
+            and len(trends_call_args_data_1.get(f"{project2.id},foo bar*", {})) > 0
+            and len(trends_call_args_data_2.get(f"{project1.id},foo bar*", {})) > 0
+            and len(trends_call_args_data_2.get(f'{project2.id},foo bar\\\\"', {})) > 0
+        )
 
         for trends_call_args_data in [trends_call_args_data_1, trends_call_args_data_2]:
             for k, v in trends_call_args_data.items():

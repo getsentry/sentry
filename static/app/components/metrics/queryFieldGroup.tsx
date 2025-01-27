@@ -10,9 +10,9 @@ import {
   type SelectKey,
   type SingleSelectProps,
 } from 'sentry/components/compactSelect';
+import _SmartSearchBar from 'sentry/components/deprecatedSmartSearchBar';
 import {DebouncedInput as _DebouncedInput} from 'sentry/components/modals/metricWidgetViewerModal/queries';
 import {SearchQueryBuilder as _SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
-import _SmartSearchBar from 'sentry/components/smartSearchBar';
 import {Tooltip} from 'sentry/components/tooltip';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {IconDelete} from 'sentry/icons';

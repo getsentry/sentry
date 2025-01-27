@@ -63,7 +63,7 @@ export function ScreenshotDataSection({
   const [screenshotInFocus, setScreenshotInFocus] = useState<number>(0);
 
   const showScreenshot = !isShare && !!screenshots.length;
-  const screenshot = screenshots[screenshotInFocus];
+  const screenshot = screenshots[screenshotInFocus]!;
 
   const handleDeleteScreenshot = (attachmentId: string) => {
     deleteAttachment({

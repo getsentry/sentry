@@ -1,3 +1,131 @@
+25.1.0
+------
+
+### Various fixes & improvements
+
+- fix(issues): inherit ShortIdLookupEndpoint from GroupEndpoint (#83502) by @oioki
+- feat(widget-builder): Create blank widget preview for templates (#83509) by @nikkikapadia
+- fix(eslint): Cleanup some TS cruft in the eslint.config.mjs file (#83468) by @ryan953
+- feat(eap): Add has filters to eap search query builder (#83437) by @Zylphrex
+- feat(explore): Add is_transaction to explore fields (#83423) by @Zylphrex
+- styles(explore): Fix spacing between explore toolbar visualize (#83449) by @Zylphrex
+- feat(streamline): Add an option to remove opt-out for new users (#83205) by @leeandher
+- ref(issue-details): Remove all query params from legacy UI when no event is found. (#83441) by @leeandher
+- Revert "ref(quick-start): Update backend enums names (#83361)" (0729289d) by @getsentry-bot
+- feat(symx): Add os as a tag (#83504) by @loewenheim
+- ref(quick-start): Update backend enums names (#83361) by @priscilawebdev
+- ref: fix type for serializers.models.rule (#83444) by @asottile-sentry
+- ref: fix typing for plugins.bases.issue{,2} (#83445) by @asottile-sentry
+- ref: standardize user param as User | RpcUser | AnonymousUser in Serializers (#83436) by @asottile-sentry
+- Reapply "ref: upgrade to python 3.13" (#83448) by @asottile-sentry
+- feat(widget-builder): Add widget dropdown for templates (#83426) by @nikkikapadia
+- ref(quick-start): Update comments in onboarding tasks model (#83496) by @priscilawebdev
+- ref(quick-start): Remove unused functions (#83499) by @priscilawebdev
+- ref(quick-start): Remove 'INTEGRATIONS' from onboarding task (#83488) by @priscilawebdev
+- ref(quick-start): Remove 'USER_CONTEXT' from onboarding tasks (#83489) by @priscilawebdev
+- ref(quick-start): Remove 'METRIC_ALERT' from onboarding task (#83487) by @priscilawebdev
+- ref(quick-start): Add 'default=True' to the flag manager (#83483) by @priscilawebdev
+- ref(quick-start): Remove 'USER_REPORTS' from onboarding task (#83490) by @priscilawebdev
+- fix(symx): Remove log message (#83491) by @tobias-wilfert
+
+_Plus 26 more_
+
+24.12.2
+-------
+
+### Various fixes & improvements
+
+- feat(devservices): Add option to setup sentry with new devservices to existing action (#83415) by @hubertdeng123
+- ref(react19): Remove various styled defaultProps (#83409) by @scttcper
+- feat(new-trace-issues): Updating designs for trace preview in issue details (#83430) by @Abdkhan14
+- feat(metric-issues): Add "correlated issues" section  (#83353) by @snigdhas
+- fix(ui): Clamp timeline zoom to the minute (#83435) by @evanpurkhiser
+- fix(eslint): Enable no-constant-binary-expression and fix violations (#83273) by @ryan953
+- feat(eap): Support eap autocompleting booleans (#83433) by @Zylphrex
+- fix(migrations): Actually fix BoundedPositiveBigIntegerField (#83431) by @wedamija
+- ref: delete dead serializer code (#83429) by @asottile-sentry
+- feat(ui): List available param keys in useParams (#83428) by @scttcper
+- ref: fix types for mentions serializer (#83424) by @asottile-sentry
+- :recycle: feat(workflow_engine): issue alert action migration util for slack (#83123) by @iamrajjoshi
+- feat(metric-issues): Hide log level indicator for non-error issues (#83354) by @snigdhas
+- ref: use types-requests-oauthlib (#83418) by @asottile-sentry
+- ref: use types-unidiff (#83416) by @asottile-sentry
+- ref(profiling) drop drag and drop functionality (#83420) by @JonasBa
+- ref: upgrade django-stubs (#83413) by @asottile-sentry
+- chore(alerts): Remove lingering activated alerts code (#83342) by @ceorourke
+- chore(analytics): Add experimental analytics for new streamlined orgs  (#83390) by @leeandher
+- feat(dashboards): Improve duration Y axis label formatting (#83337) by @gggritso
+- ref(profiling): Merge profile provider for both modes (#83338) by @Zylphrex
+- fix(migrations): Set the correct internal type for BoundedPositiveBigIntegerField (#83412) by @wedamija
+- fix: check user in helper (#83407) by @oioki
+- fix(widget-builder): Aggregates with no column not wiped (#83410) by @narsaynorath
+
+_Plus 775 more_
+
+24.12.1
+-------
+
+### Various fixes & improvements
+
+- fix: fixes KeyError when running with stale topic dlq (#82512) by @lynnagara
+- chore(issue-views): Add analytics back to tab actions (#82504) by @MichaelSun48
+- chore(sentry apps): Introduce new error types for sentry apps (#82507) by @Christinarlong
+- fix timezone normalization (#82496) by @kneeyo1
+- ref(tsc): convert teamAccessRequestModal to FC (#82470) by @michellewzhang
+- ref(tsc): convert dashboardWidgetQuerySelectorModal to FC (#82466) by @michellewzhang
+- ref(issue-views): Overhaul issue views state and logic to a new context  (#82429) by @MichaelSun48
+- ref: strptime -> fromisoformat in tests (#82488) by @asottile-sentry
+- chore(various): Fix linter warnings (#82494) by @lobsterkatie
+- ref(insights): Split out `getAxisMaxForPercentageSeries` (#82493) by @gggritso
+- fix(ecosystem): Track metrics for issue detail ticket creation (#82436) by @GabeVillalobos
+- ref(aci): pass WorkflowJob into process_workflows (#82489) by @cathteng
+- fix(group-events): Fix typo and error text (#82490) by @leeandher
+- fix(web): Add react_config context on auth pages take 2 (#82480) by @BYK
+- feat(alerts): ACI dual write alert rule helpers (#82400) by @ceorourke
+- feat(dashboards): Pass `LineChart` series meta alongside the data (#82047) by @gggritso
+- fix(eap): Numeric attribute filtering in snql eap (#82472) by @Zylphrex
+- chore(issues): Opt in a few more endpoint tests to stronger types (#82382) by @mrduncan
+- ref: remove calls to iso_format in testutils (#82461) by @asottile-sentry
+- feat(dashboards): enable sorting by column in table view (#82239) by @harshithadurai
+- ref(workflow_engine): remove remaining references to condition in validators (#82438) by @mifu67
+- fix(flags): separate permission class (#82463) by @oioki
+- feat(new-trace): Fixing scroll on trace drawer (#82475) by @Abdkhan14
+- support routing stale messages to lowpri topic (#82322) by @lynnagara
+
+_Plus 240 more_
+
+24.12.0
+-------
+
+### Various fixes & improvements
+
+- chore(utils): allow duplicate values in registry by making reverse lookup optional (#82114) by @cathteng
+- feat(workflow_engine): Add `process_data_packets` method (#82002) by @saponifi3d
+- ref(workflow_engine): Remove DetectorType (#82111) by @saponifi3d
+- chore(aci milestone 3): move aggregation value helpers to incidents directory (#82103) by @mifu67
+- ref(feedback): remove spam detection logs - replaced by redash (#82071) by @aliu39
+- fix(activity): Update activity message for linked issues (#82064) by @snigdhas
+- ref(replay): improve error messages for invalid searches that raise CouldNotParseValue (#82048) by @aliu39
+- fix(toolbar): Include credentials with fetch requests (#82108) by @ryan953
+- feat(autofix): Add support for streamed output (#82024) by @roaga
+- :sparkles: feat(discord): add button to redirect for user linking (#82104) by @iamrajjoshi
+- feat(workflow_engine): Adding support for `process_workflows` in the IssuePlatform (#81975) by @saponifi3d
+- ref: remove skip_for_relay_store (#82106) by @asottile-sentry
+- feat(metric-issues): Configure workflow notifications by group type (#81609) by @snigdhas
+- fix(iphone-codes): update frontend definitions (#82100) by @armcknight
+- ref: improve grouphash_metadata test (#82101) by @asottile-sentry
+- fix(iphone-codes): update BE mapping; remove unused method (#82094) by @armcknight
+- ref: remove xfail_if_not_postgres (#82097) by @asottile-sentry
+- ref: fix typing for endpoints.project_rule_preview (#82089) by @asottile-sentry
+- ref: fix types for test_event_attachment_details (#82091) by @asottile-sentry
+- ref: remove requires_not_arm64 (#82093) by @asottile-sentry
+- chore(aci): enforce config schema without subclassing (#81979) by @cathteng
+- ref: fix types for eventstore.test_base (#82092) by @asottile-sentry
+- chore(stacktrace): Make source map tooltip aligned (#82016) by @MichaelSun48
+- ref: delete unused GroupEnvironmentWithStatsSerializer (#82090) by @asottile-sentry
+
+_Plus 93 more_
+
 24.11.2
 -------
 

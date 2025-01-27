@@ -3,6 +3,7 @@ import {
   forwardRef,
   Fragment,
   useCallback,
+  useEffect,
   useLayoutEffect,
   useRef,
   useState,
@@ -19,7 +20,7 @@ import mergeRefs from 'sentry/utils/mergeRefs';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import type {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {useEventDetails} from 'sentry/views/issueDetails/streamline/context';
+import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 
 export function getFoldSectionKey(key: SectionKey) {
   return `'issue-details-fold-section-collapse:${key}`;
@@ -54,19 +55,26 @@ export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function Fo
     title,
     actions,
     sectionKey,
+    className,
     initialCollapse = false,
     preventCollapse = false,
   },
   forwardedRef
 ) {
   const organization = useOrganization();
-  const {sectionData, navScrollMargin, dispatch} = useEventDetails();
-  // Does not control open/close state. Controls what state is persisted to local storage
+  const {sectionData, navScrollMargin, dispatch} = useIssueDetails();
   const [isCollapsed, setIsCollapsed] = useSyncedLocalStorageState(
     getFoldSectionKey(sectionKey),
     initialCollapse
   );
   const hasAttemptedScroll = useRef(false);
+
+  // If the section is prevented from collapsing, we need to update the local storage state and open
+  useEffect(() => {
+    if (preventCollapse) {
+      setIsCollapsed(false);
+    }
+  }, [preventCollapse, setIsCollapsed]);
 
   const scrollToSection = useCallback(
     (element: HTMLElement | null) => {
@@ -94,9 +102,14 @@ export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function Fo
 
   useLayoutEffect(() => {
     if (!sectionData.hasOwnProperty(sectionKey)) {
-      dispatch({type: 'UPDATE_SECTION', key: sectionKey, config: {initialCollapse}});
+      dispatch({
+        type: 'UPDATE_EVENT_SECTION',
+        key: sectionKey,
+        // If the section is prevented from collapsing, we don't want to persist the initial collapse state
+        config: {initialCollapse: preventCollapse ? false : initialCollapse},
+      });
     }
-  }, [sectionData, dispatch, sectionKey, initialCollapse]);
+  }, [sectionData, dispatch, sectionKey, initialCollapse, preventCollapse]);
 
   // This controls disabling the InteractionStateLayer when hovering over action items. We don't
   // want selecting an action to appear as though it'll fold/unfold the section.
@@ -110,6 +123,7 @@ export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function Fo
         sectionKey,
         organization,
         open: !isCollapsed,
+        org_streamline_only: organization.streamlineOnly ?? undefined,
       });
       setIsCollapsed(!isCollapsed);
     },
@@ -125,6 +139,7 @@ export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function Fo
         id={sectionKey}
         scrollMargin={navScrollMargin ?? 0}
         role="region"
+        className={className}
       >
         <SectionExpander
           preventCollapse={preventCollapse}
@@ -137,7 +152,7 @@ export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function Fo
             hasSelectedBackground={false}
             hidden={preventCollapse ? preventCollapse : !isLayerEnabled}
           />
-          <TitleWithActions>
+          <TitleWithActions preventCollapse={preventCollapse}>
             <TitleWrapper>{title}</TitleWrapper>
             {!isCollapsed && (
               <div
@@ -172,7 +187,7 @@ export const SectionDivider = styled('hr')`
   }
 `;
 
-export const Section = styled('section')<{scrollMargin: number}>`
+const Section = styled('section')<{scrollMargin: number}>`
   scroll-margin-top: calc(${space(1)} + ${p => p.scrollMargin ?? 0}px);
 `;
 
@@ -200,13 +215,13 @@ const TitleWrapper = styled('div')`
 const IconWrapper = styled('div')<{preventCollapse: boolean}>`
   color: ${p => p.theme.subText};
   line-height: 0;
-  visibility: ${p => (p.preventCollapse ? 'hidden' : 'initial')};
+  display: ${p => (p.preventCollapse ? 'none' : 'block')};
 `;
 
-const TitleWithActions = styled('div')`
+const TitleWithActions = styled('div')<{preventCollapse: boolean}>`
   display: grid;
   grid-template-columns: 1fr auto;
-  margin-right: 8px;
+  margin-right: ${p => (p.preventCollapse ? 0 : space(1))};
   align-items: center;
   /* Usually the actions are buttons, this height allows actions appearing after opening the
   details section to not expand the summary */

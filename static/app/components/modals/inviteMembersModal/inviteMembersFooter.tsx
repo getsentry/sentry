@@ -4,14 +4,12 @@ import InviteButton from 'sentry/components/modals/inviteMembersModal/inviteButt
 import {useInviteMembersContext} from 'sentry/components/modals/inviteMembersModal/inviteMembersContext';
 import InviteStatusMessage from 'sentry/components/modals/inviteMembersModal/inviteStatusMessage';
 import {space} from 'sentry/styles/space';
-import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {
   canSend: boolean;
 }
 
 export default function InviteMembersFooter({canSend}: Props) {
-  const organization = useOrganization();
   const {
     complete,
     inviteStatus,
@@ -56,9 +54,7 @@ export default function InviteMembersFooter({canSend}: Props) {
         priority="primary"
         disabled={!canSend || !isValidInvites}
         onClick={() => {
-          if (organization.features.includes('invite-members-new-modal')) {
-            removeSentInvites();
-          }
+          removeSentInvites();
           sendInvites();
         }}
       />

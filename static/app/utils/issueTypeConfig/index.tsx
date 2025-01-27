@@ -6,6 +6,7 @@ import {
   errorConfig,
   getErrorHelpResource,
 } from 'sentry/utils/issueTypeConfig/errorConfig';
+import metricIssueConfig from 'sentry/utils/issueTypeConfig/metricIssueConfig';
 import performanceConfig from 'sentry/utils/issueTypeConfig/performanceConfig';
 import replayConfig from 'sentry/utils/issueTypeConfig/replayConfig';
 import type {
@@ -31,19 +32,32 @@ const BASE_CONFIG: IssueTypeConfig = {
     deleteAndDiscard: {enabled: false},
     merge: {enabled: false},
     ignore: {enabled: false},
+    resolve: {enabled: true},
     resolveInRelease: {enabled: true},
     share: {enabled: false},
   },
+  header: {
+    filterAndSearch: {enabled: true},
+    tagDistribution: {enabled: true},
+    timelineSummary: {enabled: false},
+  },
+  customCopy: {
+    resolution: t('Resolved'),
+    eventUnits: t('Events'),
+  },
   attachments: {enabled: false},
   autofix: false,
+  eventAndUserCounts: {enabled: true},
+  detector: {enabled: false},
   events: {enabled: true},
+  logLevel: {enabled: false},
   mergedIssues: {enabled: false},
-  filterAndSearchHeader: {enabled: true},
   performanceDurationRegression: {enabled: false},
   profilingDurationRegression: {enabled: false},
   regression: {enabled: false},
   replays: {enabled: false},
   showFeedbackWidget: false,
+  showOpenPeriods: false,
   similarIssues: {enabled: false},
   spanEvidence: {enabled: false},
   stacktrace: {enabled: true},
@@ -56,6 +70,7 @@ const BASE_CONFIG: IssueTypeConfig = {
   resources: null,
   usesIssuePlatform: true,
   issueSummary: {enabled: false},
+  useOpenPeriodChecks: false,
 };
 
 const issueTypeConfig: Config = {
@@ -64,6 +79,7 @@ const issueTypeConfig: Config = {
   [IssueCategory.CRON]: cronConfig,
   [IssueCategory.REPLAY]: replayConfig,
   [IssueCategory.UPTIME]: uptimeConfig,
+  [IssueCategory.METRIC_ALERT]: metricIssueConfig,
 };
 
 /**

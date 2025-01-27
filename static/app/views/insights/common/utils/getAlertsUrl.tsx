@@ -18,18 +18,18 @@ export function getAlertsUrl({
   aggregate: string;
   orgSlug: string;
   pageFilters: PageFilters;
-  project: Project;
   dataset?: Dataset;
   interval?: string;
   name?: string;
+  project?: Project;
   query?: string;
 }) {
   const statsPeriod = getStatsPeriod(pageFilters);
   const environment = pageFilters.environments;
   const queryParams = {
-    aggregate: aggregate,
+    aggregate,
     dataset,
-    project: project.slug,
+    project: project?.slug,
     eventTypes: 'transaction',
     query,
     statsPeriod,

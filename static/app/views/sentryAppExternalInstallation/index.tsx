@@ -46,7 +46,7 @@ function SentryAppExternalInstallationContent({params, ...props}: Props) {
   // The selected organization's slug. Should be removed as we have the selected organization as well.
   const [selectedOrgSlug, setSelectedOrgSlug] = useState<string>();
 
-  const [organizations, setOrganizations] = useState<Array<OrganizationSummary>>([]);
+  const [organizations, setOrganizations] = useState<OrganizationSummary[]>([]);
   const [orgsLoading, setOrgsLoading] = useState<boolean>(true);
   const [isInstalled, setIsInstalled] = useState<boolean>();
 
@@ -125,7 +125,7 @@ function SentryAppExternalInstallationContent({params, ...props}: Props) {
     }
     if (organizations.length === 1) {
       // auto select the org if there is only one
-      onSelectOrg(organizations[0].slug);
+      onSelectOrg(organizations[0]!.slug);
     }
 
     // now check the subomdain and use that org slug if it exists
@@ -290,11 +290,11 @@ function CheckAndRenderError({
 }
 
 type SingleOrgProps = {
-  organizations: Array<OrganizationSummary>;
+  organizations: OrganizationSummary[];
   sentryApp: SentryApp;
 };
 function SingleOrgView({organizations, sentryApp}: SingleOrgProps) {
-  const organizationName = organizations[0].name;
+  const organizationName = organizations[0]!.name;
   return (
     <div>
       <p>
@@ -311,7 +311,7 @@ type SelectOrgCallback = (slug: string) => void;
 
 type MultiOrgProps = {
   onSelectOrg: SelectOrgCallback;
-  organizations: Array<OrganizationSummary>;
+  organizations: OrganizationSummary[];
   selectedOrgSlug: string | undefined;
   sentryApp: SentryApp;
 };
@@ -334,7 +334,7 @@ function MultiOrgView({
       </p>
       <FieldGroup label={t('Organization')} inline={false} stacked required>
         <SelectControl
-          onChange={({value}) => onSelectOrg(value)}
+          onChange={({value}: any) => onSelectOrg(value)}
           value={selectedOrgSlug}
           placeholder={t('Select an organization')}
           options={getOrganizationOptions(organizations)}
@@ -347,11 +347,11 @@ function MultiOrgView({
 
 const hasAccess = (org: Organization) => org.access.includes('org:integrations');
 
-function isSingleOrg(organizations: Array<OrganizationSummary>): boolean {
+function isSingleOrg(organizations: OrganizationSummary[]): boolean {
   return organizations.length === 1;
 }
 
-function getOrganizationOptions(organizations: Array<OrganizationSummary>) {
+function getOrganizationOptions(organizations: OrganizationSummary[]) {
   return organizations.map(org => ({
     value: org.slug,
     label: (

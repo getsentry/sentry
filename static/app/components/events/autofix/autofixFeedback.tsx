@@ -1,7 +1,6 @@
 import {useRef} from 'react';
 
 import {Button} from 'sentry/components/button';
-import {IconMegaphone} from 'sentry/icons/iconMegaphone';
 import {t} from 'sentry/locale';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 
@@ -17,7 +16,6 @@ function AutofixFeedback() {
     <Button
       ref={buttonRef}
       size="xs"
-      icon={<IconMegaphone />}
       onClick={() =>
         openForm({
           messagePlaceholder: t('How can we make Autofix better for you?'),

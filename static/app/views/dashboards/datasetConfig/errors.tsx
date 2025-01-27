@@ -16,6 +16,7 @@ import {
   ERROR_FIELDS,
   ERRORS_AGGREGATION_FUNCTIONS,
   getAggregations,
+  type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDiscoverQuery';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
@@ -25,6 +26,7 @@ import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSe
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
+import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
 
 import type {Widget, WidgetQuery} from '../types';
@@ -55,12 +57,18 @@ const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   orderby: '-count()',
 };
 
+const DEFAULT_FIELD: QueryFieldValue = {
+  function: ['count', '', undefined, undefined],
+  kind: FieldValueKind.FUNCTION,
+};
+
 export type SeriesWithOrdering = [order: number, series: Series];
 
 export const ErrorsConfig: DatasetConfig<
   EventsStats | MultiSeriesEventsStats,
   TableData | EventsTableData
 > = {
+  defaultField: DEFAULT_FIELD,
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   enableEquations: true,
   getCustomFieldRenderer: getCustomEventsFieldRenderer,
@@ -122,6 +130,7 @@ function getEventsTableFieldOptions(
     aggregations: Object.keys(aggregates)
       .filter(key => ERRORS_AGGREGATION_FUNCTIONS.includes(key as AggregationKey))
       .reduce((obj, key) => {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         obj[key] = aggregates[key];
         return obj;
       }, {}),
@@ -129,13 +138,17 @@ function getEventsTableFieldOptions(
   });
 }
 
-export function getCustomEventsFieldRenderer(field: string, meta: MetaType) {
+export function getCustomEventsFieldRenderer(
+  field: string,
+  meta: MetaType,
+  widget?: Widget
+) {
   if (field === 'id') {
     return renderEventIdAsLinkable;
   }
 
   if (field === 'trace') {
-    return renderTraceAsLinkable;
+    return renderTraceAsLinkable(widget);
   }
 
   return getFieldRenderer(field, meta, false);

@@ -72,8 +72,8 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
   };
 
   state: State = {
-    category: this.props.defaultCategory ?? categoryList[0].id,
-    filter: this.props.noAutoFilter ? '' : (this.props.platform || '').split('-')[0],
+    category: this.props.defaultCategory ?? categoryList[0]!.id,
+    filter: this.props.noAutoFilter ? '' : (this.props.platform || '').split('-')[0]!,
   };
 
   get platformList() {
@@ -104,9 +104,19 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
       }
     }
 
-    const filtered = tempSelectablePlatforms
-      .filter(this.state.filter ? subsetMatch : categoryMatch)
-      .sort((a, b) => {
+    // 'other' is not part of the createablePlatforms list, therefore it won't be included in the filtered list
+    const filtered = tempSelectablePlatforms.filter(
+      this.state.filter ? subsetMatch : categoryMatch
+    );
+
+    if (this.props.showOther && this.state.filter.toLocaleLowerCase() === 'other') {
+      // We only show 'Other' if users click on the 'Other' suggestion rendered in the not found state or type this word in the search bar
+      return [otherPlatform];
+    }
+
+    if (category !== 'popular') {
+      // We only want to sort the platforms alphabetically if users are not viewing the 'popular' tab category
+      return filtered.sort((a, b) => {
         if (startsWithPunctuation(a.name) && !startsWithPunctuation(b.name)) {
           return 1;
         }
@@ -115,13 +125,8 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
         }
         return a.name.localeCompare(b.name);
       });
-
-    if (this.props.showOther && this.state.filter.toLocaleLowerCase() === 'other') {
-      // We only show 'Other' if users click on the 'Other' suggestion rendered in the not found state or type this word in the search bar
-      return [otherPlatform];
     }
 
-    // 'other' is not part of the createablePlatforms list, therefore it won't be included in the filtered list
     return filtered;
   }
 
@@ -286,13 +291,7 @@ const ClearButton = styled(Button)`
   color: ${p => p.theme.textColor};
 `;
 
-ClearButton.defaultProps = {
-  icon: <IconClose isCircled />,
-  borderless: true,
-  size: 'xs',
-};
-
-const PlatformCard = styled(({platform, selected, onClear, ...props}) => (
+const PlatformCard = styled(({platform, selected, onClear, ...props}: any) => (
   <div {...props}>
     <StyledPlatformIcon
       platform={platform.id}
@@ -302,7 +301,15 @@ const PlatformCard = styled(({platform, selected, onClear, ...props}) => (
       format="lg"
     />
     <h3>{platform.name}</h3>
-    {selected && <ClearButton onClick={onClear} aria-label={t('Clear')} />}
+    {selected && (
+      <ClearButton
+        icon={<IconClose isCircled />}
+        borderless
+        size="xs"
+        onClick={onClear}
+        aria-label={t('Clear')}
+      />
+    )}
   </div>
 ))`
   position: relative;

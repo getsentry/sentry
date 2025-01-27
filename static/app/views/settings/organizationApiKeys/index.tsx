@@ -1,109 +1,108 @@
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'sentry/actionCreators/indicator';
+import LoadingError from 'sentry/components/loadingError';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
-import {browserHistory} from 'sentry/utils/browserHistory';
-import recreateRoute from 'sentry/utils/recreateRoute';
-import routeTitleGen from 'sentry/utils/routeTitle';
-import withOrganization from 'sentry/utils/withOrganization';
-import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
+import {
+  setApiQueryData,
+  useApiQuery,
+  useMutation,
+  useQueryClient,
+} from 'sentry/utils/queryClient';
+import useApi from 'sentry/utils/useApi';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import OrganizationApiKeysList from './organizationApiKeysList';
 import type {DeprecatedApiKey} from './types';
 
-type Props = RouteComponentProps<{}, {}> & {
-  organization: Organization;
-};
-
-type State = {
-  keys: DeprecatedApiKey[];
-} & DeprecatedAsyncView['state'];
-
 /**
  * API Keys are deprecated, but there may be some legacy customers that still use it
  */
-class OrganizationApiKeys extends DeprecatedAsyncView<Props, State> {
-  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
-    const {organization} = this.props;
-    return [['keys', `/organizations/${organization.slug}/api-keys/`]];
-  }
+function OrganizationApiKeys() {
+  const api = useApi();
+  const organization = useOrganization();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const {
+    data: apiKeys = [],
+    isPending,
+    isError,
+    refetch,
+  } = useApiQuery<DeprecatedApiKey[]>([`/organizations/${organization.slug}/api-keys/`], {
+    staleTime: 0,
+  });
 
-  getTitle() {
-    return routeTitleGen(t('API Keys'), this.props.organization.slug, false);
-  }
-
-  handleRemove = async (id: string) => {
-    const {organization} = this.props;
-    const oldKeys = [...this.state.keys];
-
-    this.setState(state => ({
-      keys: state.keys.filter(({id: existingId}) => existingId !== id),
-    }));
-
-    try {
-      await this.api.requestPromise(
-        `/organizations/${organization.slug}/api-keys/${id}/`,
+  const removeMutation = useMutation({
+    mutationFn: ({removedId}: {removedId: string}) => {
+      return api.requestPromise(
+        `/organizations/${organization.slug}/api-keys/${removedId}/`,
         {
           method: 'DELETE',
           data: {},
         }
       );
-    } catch {
-      this.setState({keys: oldKeys, busy: false});
-      addErrorMessage(t('Error removing key'));
-    }
-  };
+    },
+    onMutate: () => {
+      addLoadingMessage(t('Removing API key'));
+    },
+    onSuccess: (_data, {removedId}) => {
+      setApiQueryData<DeprecatedApiKey[]>(
+        queryClient,
+        [`/organizations/${organization.slug}/api-keys/`],
+        oldData => {
+          if (!oldData) {
+            return oldData;
+          }
 
-  handleAddApiKey = async () => {
-    this.setState({
-      busy: true,
-    });
-    const {organization} = this.props;
-
-    try {
-      const data = await this.api.requestPromise(
-        `/organizations/${organization.slug}/api-keys/`,
-        {
-          method: 'POST',
-          data: {},
+          return oldData.filter(({id}) => id !== removedId);
         }
       );
+    },
+    onError: () => {
+      addErrorMessage(t('Error removing key'));
+    },
+  });
 
-      if (data) {
-        this.setState({busy: false});
-        browserHistory.push(
-          recreateRoute(`${data.id}/`, {
-            params: {orgId: organization.slug},
-            routes: this.props.routes,
-          })
-        );
-        addSuccessMessage(t('Created a new API key "%s"', data.label));
+  const addMutation = useMutation({
+    mutationFn: (): Promise<DeprecatedApiKey> => {
+      return api.requestPromise(`/organizations/${organization.slug}/api-keys/`, {
+        method: 'POST',
+        data: {},
+      });
+    },
+    onSuccess: data => {
+      if (!data) {
+        return;
       }
-    } catch {
-      this.setState({busy: false});
-    }
-  };
 
-  renderLoading() {
-    return this.renderBody();
+      navigate(`/settings/${organization.slug}/api-keys/${data.id}/`);
+      addSuccessMessage(t('Created a new API key "%s"', data.label));
+    },
+    onError: () => {
+      addErrorMessage(t('Error creating key'));
+    },
+  });
+
+  if (isError) {
+    return <LoadingError onRetry={refetch} />;
   }
 
-  renderBody() {
-    const {organization} = this.props;
-    const params = {orgId: organization.slug};
-
-    return (
+  return (
+    <SentryDocumentTitle title={t('Api Keys')} orgSlug={organization.slug}>
       <OrganizationApiKeysList
-        {...this.props}
-        params={params}
-        loading={this.state.loading}
-        busy={this.state.busy}
-        keys={this.state.keys}
-        onRemove={this.handleRemove}
-        onAddApiKey={this.handleAddApiKey}
+        organization={organization}
+        loading={isPending}
+        busy={addMutation.isPending}
+        keys={apiKeys}
+        onRemove={id => removeMutation.mutateAsync({removedId: id})}
+        onAddApiKey={addMutation.mutateAsync}
       />
-    );
-  }
+    </SentryDocumentTitle>
+  );
 }
 
-export default withOrganization(OrganizationApiKeys);
+export default OrganizationApiKeys;

@@ -2,7 +2,7 @@ import {useMemo} from 'react';
 
 import ReplayClipPreviewPlayer from 'sentry/components/events/eventReplay/replayClipPreviewPlayer';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
-import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
+import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 
 interface ReplayClipPreviewProps
   extends Omit<
@@ -33,7 +33,7 @@ function ReplayClipPreview({
     [clipOffsets.durationBeforeMs, clipOffsets.durationAfterMs, eventTimestampMs]
   );
 
-  const replayReaderResult = useReplayReader({
+  const replayReaderResult = useLoadReplayReader({
     orgSlug,
     replaySlug,
     clipWindow,

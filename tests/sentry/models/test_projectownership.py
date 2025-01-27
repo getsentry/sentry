@@ -653,7 +653,7 @@ class ProjectOwnershipTestCase(TestCase):
         assert assignee.team_id == self.team.id
 
         # Unassign the auto-assigned user
-        GroupAssignee.objects.deassign(self.event.group)
+        GroupAssignee.objects.deassign(self.event.group, self.user)
         assert len(GroupAssignee.objects.all()) == 0
 
         # Manually assign the group to someone else

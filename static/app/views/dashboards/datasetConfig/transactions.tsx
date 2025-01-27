@@ -11,7 +11,11 @@ import type {
 import {defined} from 'sentry/utils';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
-import {SPAN_OP_BREAKDOWN_FIELDS, TRANSACTION_FIELDS} from 'sentry/utils/discover/fields';
+import {
+  type QueryFieldValue,
+  SPAN_OP_BREAKDOWN_FIELDS,
+  TRANSACTION_FIELDS,
+} from 'sentry/utils/discover/fields';
 import type {
   DiscoverQueryExtras,
   DiscoverQueryRequestParams,
@@ -25,6 +29,7 @@ import {
   shouldUseOnDemandMetrics,
 } from 'sentry/utils/performance/contexts/onDemandControl';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
+import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
 
 import type {Widget, WidgetQuery} from '../types';
@@ -56,12 +61,18 @@ const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   orderby: '-count()',
 };
 
+const DEFAULT_FIELD: QueryFieldValue = {
+  function: ['count', '', undefined, undefined],
+  kind: FieldValueKind.FUNCTION,
+};
+
 export type SeriesWithOrdering = [order: number, series: Series];
 
 export const TransactionsConfig: DatasetConfig<
   EventsStats | MultiSeriesEventsStats,
   TableData | EventsTableData
 > = {
+  defaultField: DEFAULT_FIELD,
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   enableEquations: true,
   getCustomFieldRenderer: getCustomEventsFieldRenderer,

@@ -8,6 +8,7 @@ import {FieldKind} from 'sentry/utils/fields';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import usePrevious from 'sentry/utils/usePrevious';
 import {SpanIndexedField} from 'sentry/views/insights/types';
 import {useSpanFieldCustomTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 
@@ -29,13 +30,16 @@ export function SpanTagsProvider({children, dataset, enabled}: SpanTagsProviderP
     enabled: dataset === DiscoverDatasets.SPANS_INDEXED && enabled,
   });
 
-  const numberTags: TagCollection = useTypedSpanTags({
-    enabled: dataset === DiscoverDatasets.SPANS_EAP && enabled,
+  const isEAP =
+    dataset === DiscoverDatasets.SPANS_EAP || dataset === DiscoverDatasets.SPANS_EAP_RPC;
+
+  const numberTags = useTypedSpanTags({
+    enabled: isEAP && enabled,
     type: 'number',
   });
 
-  const stringTags: TagCollection = useTypedSpanTags({
-    enabled: dataset === DiscoverDatasets.SPANS_EAP && enabled,
+  const stringTags = useTypedSpanTags({
+    enabled: isEAP && enabled,
     type: 'string',
   });
 
@@ -98,6 +102,7 @@ export function SpanTagsProvider({children, dataset, enabled}: SpanTagsProviderP
       SpanIndexedField.USER_ID,
       SpanIndexedField.USER_IP,
       SpanIndexedField.USER_USERNAME,
+      SpanIndexedField.IS_TRANSACTION, // boolean field but we can expose it as a string
     ].map(tag => [
       tag,
       {
@@ -207,7 +212,9 @@ function useTypedSpanTags({
     }
 
     return allTags;
-  }, [result, type]);
+  }, [result.data, type]);
 
-  return tags;
+  const previousTags = usePrevious(tags, result.isLoading);
+
+  return result.isLoading ? previousTags : tags;
 }

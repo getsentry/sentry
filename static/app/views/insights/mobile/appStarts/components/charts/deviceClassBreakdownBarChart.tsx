@@ -116,7 +116,7 @@ function DeviceClassBreakdownBarChart({
   const data = Object.values(
     transformedData[
       YAXIS_COLUMNS[startType === COLD_START_TYPE ? YAxis.COLD_START : YAxis.WARM_START]
-    ]
+    ]!
   );
 
   return (

@@ -115,7 +115,7 @@ function getBreadcrumbLevelOptions(crumbs: EnhancedCrumb[]) {
 
 export function useBreadcrumbFilters(crumbs: EnhancedCrumb[]) {
   const filterOptions = useMemo(() => {
-    const options: SelectSection<string>[] = [];
+    const options: Array<SelectSection<string>> = [];
     const typeOptions = getBreadcrumbTypeOptions(crumbs);
     if (typeOptions.length) {
       options.push({
@@ -137,15 +137,15 @@ export function useBreadcrumbFilters(crumbs: EnhancedCrumb[]) {
   }, [crumbs]);
 
   const applyFilters = useCallback(
-    (crumbsToFilter: EnhancedCrumb[], options: SelectOption<string>['value'][]) => {
+    (crumbsToFilter: EnhancedCrumb[], options: Array<SelectOption<string>['value']>) => {
       const typeFilterSet = new Set<string>();
       const levelFilterSet = new Set<string>();
       options.forEach(optionValue => {
         const [indicator, value] = optionValue.split('-');
         if (indicator === 'type') {
-          typeFilterSet.add(value);
+          typeFilterSet.add(value!);
         } else if (indicator === 'level') {
-          levelFilterSet.add(value);
+          levelFilterSet.add(value!);
         }
       });
 

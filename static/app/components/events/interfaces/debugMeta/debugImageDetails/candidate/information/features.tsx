@@ -20,7 +20,7 @@ function Features({download}: Props) {
     download.status === CandidateDownloadStatus.UNAPPLIED
   ) {
     features = Object.keys(download.features).filter(
-      feature => download.features[feature]
+      feature => download.features[feature as keyof typeof download.features]
     );
   }
 

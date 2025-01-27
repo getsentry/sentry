@@ -8,6 +8,7 @@ import UserBadge from 'sentry/components/idBadge/userBadge';
 import FullViewport from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Placeholder from 'sentry/components/placeholder';
+import ConfigureMobileReplayCard from 'sentry/components/replays/configureMobileReplayCard';
 import ConfigureReplayCard from 'sentry/components/replays/configureReplayCard';
 import DetailsPageBreadcrumbs from 'sentry/components/replays/header/detailsPageBreadcrumbs';
 import FeedbackButton from 'sentry/components/replays/header/feedbackButton';
@@ -75,19 +76,11 @@ export default function Page({
 
   const header = replayRecord?.is_archived ? (
     <Header>
-      <DetailsPageBreadcrumbs
-        orgSlug={orgSlug}
-        replayRecord={replayRecord}
-        isVideoReplay={isVideoReplay}
-      />
+      <DetailsPageBreadcrumbs orgSlug={orgSlug} replayRecord={replayRecord} />
     </Header>
   ) : (
     <Header>
-      <DetailsPageBreadcrumbs
-        orgSlug={orgSlug}
-        replayRecord={replayRecord}
-        isVideoReplay={isVideoReplay}
-      />
+      <DetailsPageBreadcrumbs orgSlug={orgSlug} replayRecord={replayRecord} />
 
       <ButtonActionsWrapper>
         {isLoading ? (
@@ -95,7 +88,11 @@ export default function Page({
         ) : (
           <Fragment>
             {isVideoReplay ? <FeedbackWidgetButton /> : <FeedbackButton />}
-            {isVideoReplay ? null : <ConfigureReplayCard />}
+            {isVideoReplay ? (
+              <ConfigureMobileReplayCard replayRecord={replayRecord} />
+            ) : (
+              <ConfigureReplayCard />
+            )}
           </Fragment>
         )}
 

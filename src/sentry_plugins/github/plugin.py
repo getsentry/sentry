@@ -8,7 +8,6 @@ from rest_framework.response import Response
 from sentry import options
 from sentry.exceptions import PluginError
 from sentry.integrations.base import FeatureDescription, IntegrationFeatures
-from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
 from sentry.locks import locks
@@ -423,53 +422,11 @@ class GitHubRepositoryProvider(GitHubMixin, RepositoryProvider):
                 else:
                     return self._format_commits(repo, res["commits"])
 
-        def get_pr_commits(self, repo, number, actor=None):
-            # (not currently used by sentry)
-            if actor is None:
-                raise NotImplementedError("Cannot fetch commits anonymously")
-
-            # use config name because that is kept in sync via webhooks
-            name = repo.config["name"]
-            try:
-                with self.get_client(actor) as client:
-                    res = client.get_pr_commits(name, number)
-            except Exception as e:
-                self.raise_error(e)
-            else:
-                return self._format_commits(repo, res)
-
 
 class GitHubAppsRepositoryProvider(GitHubRepositoryProvider):
     name = "GitHub Apps"
     auth_provider = "github_apps"
     logger = logging.getLogger("sentry.plugins.github_apps")
-
-    def get_install_url(self):
-        return options.get("github.apps-install-url")
-
-    def get_available_auths(self, user, organization, integrations, social_auths, **kwargs):
-        allowed_gh_installations = set(self.get_installations(user))
-
-        linked_integrations = {i.id for i in integrations}
-
-        _integrations = list(Integration.objects.filter(external_id__in=allowed_gh_installations))
-
-        # add in integrations that might have been set up for org
-        # by users w diff permissions
-        _integrations.extend(
-            [i for i in integrations if i.external_id not in allowed_gh_installations]
-        )
-
-        return [
-            {
-                "defaultAuthId": None,
-                "user": None,
-                "externalId": i.external_id,
-                "integrationId": str(i.id),
-                "linked": i.id in linked_integrations,
-            }
-            for i in _integrations
-        ]
 
     def link_auth(self, user, organization, data):
         integration_id = data["integration_id"]

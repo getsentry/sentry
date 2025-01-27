@@ -112,15 +112,6 @@ class SnubaProtocolEventStream(EventStream):
         eventstream_type: str | None = None,
         **kwargs: Any,
     ) -> None:
-        if event.get_tag("sample_event") == "true":
-            logger.info(
-                "insert: attempting to insert event in SnubaProtocolEventStream",
-                extra={
-                    "event.id": event.event_id,
-                    "project_id": event.project_id,
-                    "sample_event": True,
-                },
-            )
         if isinstance(event, GroupEvent) and not event.occurrence:
             logger.error(
                 "`GroupEvent` passed to `EventStream.insert`. `GroupEvent` may only be passed when "

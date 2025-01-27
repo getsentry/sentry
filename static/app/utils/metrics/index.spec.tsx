@@ -1,6 +1,6 @@
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
-import type {MetricAggregation, MetricType, MRI} from 'sentry/types/metrics';
+import type {MetricAggregation, MRI} from 'sentry/types/metrics';
 import {
   getAbsoluteDateTimeRange,
   getDateTimeParams,
@@ -72,7 +72,7 @@ describe('getFormattedMQL', () => {
       query: 'result:success',
     });
 
-    expect(result).toEqual(
+    expect(result).toBe(
       'avg(sentry.process_profile.symbolicate.process){result:success} by result'
     );
   });
@@ -85,7 +85,7 @@ describe('getFormattedMQL', () => {
       query: '',
     });
 
-    expect(result).toEqual('');
+    expect(result).toBe('');
   });
 });
 
@@ -159,10 +159,10 @@ describe('getAbsoluteDateTimeRange', () => {
 });
 
 describe('getDefaultAggregation', () => {
-  it.each(['c', 'd', 'g', 's'])(
+  it.each(['c', 'd', 'g', 's'] as const)(
     'should give default aggregation - metric type %s',
     metricType => {
-      const mri = `${metricType as MetricType}:custom/xyz@test` as MRI;
+      const mri = `${metricType}:custom/xyz@test` as const;
 
       expect(getDefaultAggregation(mri)).toBe(DEFAULT_AGGREGATES[metricType]);
     }

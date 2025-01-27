@@ -58,7 +58,7 @@ type Result =
 
 const ZERO_OFFSET = {offsetMs: 0};
 
-function fromOffset({offsetSec}): Result {
+function fromOffset({offsetSec}: any): Result {
   if (offsetSec === undefined) {
     // Not using this strategy
     return undefined;
@@ -67,7 +67,7 @@ function fromOffset({offsetSec}): Result {
   return {offsetMs: Number(offsetSec) * 1000};
 }
 
-function fromEventTimestamp({eventTimestamp, replayStartTimestampMs}): Result {
+function fromEventTimestamp({eventTimestamp, replayStartTimestampMs}: any): Result {
   if (eventTimestamp === undefined) {
     // Not using this strategy
     return undefined;
@@ -96,7 +96,7 @@ async function fromListPageQuery({
   replayId,
   projectSlug,
   replayStartTimestampMs,
-}): Promise<Result> {
+}: any): Promise<Result> {
   if (listPageQuery === undefined) {
     // Not using this strategy
     return undefined;

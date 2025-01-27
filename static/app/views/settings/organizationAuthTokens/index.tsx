@@ -160,7 +160,7 @@ export function OrganizationAuthTokensIndex({
     <Access access={['org:write']}>
       {({hasAccess}) => (
         <Fragment>
-          <SentryDocumentTitle title={t('Auth Tokens')} />
+          <SentryDocumentTitle title={t('Auth Tokens')} orgSlug={organization.slug} />
           <SettingsPageHeader title={t('Auth Tokens')} action={createNewToken} />
 
           <TextBlock>

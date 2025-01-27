@@ -149,8 +149,8 @@ function AggregateSpanDiff({event, project}: AggregateSpanDiffProps) {
         };
 
         if (causeType === 'throughput') {
-          const throughputBefore = row[`epm_by_timestamp(less,${breakpoint})`];
-          const throughputAfter = row[`epm_by_timestamp(greater,${breakpoint})`];
+          const throughputBefore = row[`epm_by_timestamp(less,${breakpoint})`]!;
+          const throughputAfter = row[`epm_by_timestamp(greater,${breakpoint})`]!;
           return {
             ...commonProps,
             throughputBefore,
@@ -160,9 +160,9 @@ function AggregateSpanDiff({event, project}: AggregateSpanDiffProps) {
         }
 
         const durationBefore =
-          row[`avg_by_timestamp(span.self_time,less,${breakpoint})`] / 1e3;
+          row[`avg_by_timestamp(span.self_time,less,${breakpoint})`]! / 1e3;
         const durationAfter =
-          row[`avg_by_timestamp(span.self_time,greater,${breakpoint})`] / 1e3;
+          row[`avg_by_timestamp(span.self_time,greater,${breakpoint})`]! / 1e3;
         return {
           ...commonProps,
           durationBefore,
@@ -201,7 +201,7 @@ function AggregateSpanDiff({event, project}: AggregateSpanDiffProps) {
     return {
       description: {
         defaultValue: t('(unnamed span)'),
-        link: dataRow => ({
+        link: (dataRow: any) => ({
           target: spanDetailsRouteWithQuery({
             orgSlug: organization.slug,
             spanSlug: {op: dataRow.operation, group: dataRow.group},

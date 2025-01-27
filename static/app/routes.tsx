@@ -7,11 +7,14 @@ import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
 import type {HookName} from 'sentry/types/hooks';
 import errorHandler from 'sentry/utils/errorHandler';
+import {ProvideAriaRouter} from 'sentry/utils/provideAriaRouter';
 import retryableImport from 'sentry/utils/retryableImport';
 import withDomainRedirect from 'sentry/utils/withDomainRedirect';
 import withDomainRequired from 'sentry/utils/withDomainRequired';
 import App from 'sentry/views/app';
 import AuthLayout from 'sentry/views/auth/layout';
+import {automationRoutes} from 'sentry/views/automations/routes';
+import {detectorRoutes} from 'sentry/views/detectors/routes';
 import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
 import {SUMMARY_PAGE_BASE_URL} from 'sentry/views/insights/mobile/screenRendering/settings';
 import {AI_LANDING_SUB_PATH} from 'sentry/views/insights/pages/ai/settings';
@@ -25,7 +28,7 @@ import {ModuleName} from 'sentry/views/insights/types';
 import {GroupEventDetailsLoading} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsLoading';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import IssueListContainer from 'sentry/views/issueList';
-import IssueListOverview from 'sentry/views/issueList/overview';
+import {OverviewWrapper} from 'sentry/views/issueList/overviewWrapper';
 import OrganizationContainer from 'sentry/views/organizationContainer';
 import OrganizationLayout from 'sentry/views/organizationLayout';
 import OrganizationRoot from 'sentry/views/organizationRoot';
@@ -160,6 +163,13 @@ function buildRoutes() {
       <Route path=":orgId/" component={make(() => import('sentry/views/auth/login'))} />
     </Route>
   ) : null;
+
+  const traceViewRoute = (
+    <Route
+      path="trace/:traceSlug/"
+      component={make(() => import('sentry/views/performance/traceDetails'))}
+    />
+  );
 
   const rootRoutes = (
     <Fragment>
@@ -563,6 +573,11 @@ function buildRoutes() {
         />
       </Route>
       <Route
+        path="playstation/"
+        name={t('PlayStation')}
+        component={make(() => import('sentry/views/settings/project/tempest'))}
+      />
+      <Route
         path="replays/"
         name={t('Replays')}
         component={make(() => import('sentry/views/settings/project/projectReplays'))}
@@ -731,7 +746,7 @@ function buildRoutes() {
         name={t('Auth Providers')}
         component={make(() => import('sentry/views/settings/organizationAuth'))}
       />
-      <Redirect from="members/requests" to="members/" />
+      <Redirect from="members/requests" to="../members/" />
       <Route path="members/" name={t('Members')}>
         <IndexRoute
           component={make(
@@ -1066,6 +1081,7 @@ function buildRoutes() {
             <IndexRoute
               component={make(() => import('sentry/views/dashboards/manage'))}
             />
+            {traceViewRoute}
           </Route>
         )}
         <Route
@@ -1250,6 +1266,15 @@ function buildRoutes() {
               component={make(() => import('sentry/views/alerts/rules/uptime/details'))}
             />
           </Route>
+          <Route
+            path="crons/"
+            component={make(() => import('sentry/views/alerts/rules/crons'))}
+          >
+            <Route
+              path=":projectId/:monitorSlug/details/"
+              component={make(() => import('sentry/views/alerts/rules/crons/details'))}
+            />
+          </Route>
         </Route>
         <Route path="metric-rules/">
           <IndexRedirect
@@ -1281,6 +1306,17 @@ function buildRoutes() {
           >
             <Route
               path=":ruleId/"
+              component={make(() => import('sentry/views/alerts/edit'))}
+            />
+          </Route>
+        </Route>
+        <Route path="crons-rules/">
+          <Route
+            path=":projectId/"
+            component={make(() => import('sentry/views/alerts/builder/projectProvider'))}
+          >
+            <Route
+              path=":monitorSlug/"
               component={make(() => import('sentry/views/alerts/edit'))}
             />
           </Route>
@@ -1457,10 +1493,6 @@ function buildRoutes() {
     </Fragment>
   );
 
-  // TODO(mark) Long term this /queries route should go away and /discover
-  // should be the canonical route for discover2. We have a redirect right now
-  // as /discover was for discover 1 and most of the application is linking to
-  // /discover/queries and not /discover
   const discoverRoutes = (
     <Route
       path="/discover/"
@@ -1472,6 +1504,7 @@ function buildRoutes() {
         path="homepage/"
         component={make(() => import('sentry/views/discover/homepage'))}
       />
+      {traceViewRoute}
       <Route
         path="queries/"
         component={make(() => import('sentry/views/discover/landing'))}
@@ -1499,21 +1532,9 @@ function buildRoutes() {
     />
   );
 
-  const moduleUrlToModule: Record<keyof typeof MODULE_BASE_URLS, ModuleName> = {
-    'mobile-screens': ModuleName.MOBILE_SCREENS,
-    'mobile-ui': ModuleName.MOBILE_UI,
-    'screen-rendering': ModuleName.SCREEN_RENDERING,
-    ai: ModuleName.AI,
-    app_start: ModuleName.APP_START,
-    cache: ModuleName.CACHE,
-    db: ModuleName.DB,
-    http: ModuleName.HTTP,
-    queue: ModuleName.QUEUE,
-    resource: ModuleName.RESOURCE,
-    screen_load: ModuleName.SCREEN_LOAD,
-    other: ModuleName.OTHER,
-    vital: ModuleName.VITAL,
-  };
+  const moduleUrlToModule: Record<string, ModuleName> = Object.fromEntries(
+    Object.values(ModuleName).map(name => [MODULE_BASE_URLS[name], name])
+  );
 
   const insightsRedirects = Object.values(MODULE_BASE_URLS)
     .map(
@@ -1522,7 +1543,7 @@ function buildRoutes() {
           <Redirect
             key={moduleBaseURL}
             from={`${moduleBaseURL}/*`}
-            to={`/${DOMAIN_VIEW_BASE_URL}/${getModuleView(moduleUrlToModule[moduleBaseURL])}${moduleBaseURL}/:splat`}
+            to={`/${DOMAIN_VIEW_BASE_URL}/${getModuleView(moduleUrlToModule[moduleBaseURL]!)}${moduleBaseURL}/:splat`}
           />
         )
     )
@@ -1591,179 +1612,186 @@ function buildRoutes() {
     </Route>
   );
 
-  const moduleRoutes = [
-    <Route key={ModuleName.HTTP} path={`${MODULE_BASE_URLS[ModuleName.HTTP]}/`}>
-      <IndexRoute
-        component={make(() => import('sentry/views/insights/http/views/httpLandingPage'))}
-      />
-      <Route
-        path="domains/"
-        component={make(
-          () => import('sentry/views/insights/http/views/httpDomainSummaryPage')
-        )}
-      />
-    </Route>,
-    <Route key={ModuleName.VITAL} path={`${MODULE_BASE_URLS[ModuleName.VITAL]}/`}>
-      <IndexRoute
-        component={make(
-          () =>
-            import('sentry/views/insights/browser/webVitals/views/webVitalsLandingPage')
-        )}
-      />
-      <Route
-        path="overview/"
-        component={make(
-          () => import('sentry/views/insights/browser/webVitals/views/pageOverview')
-        )}
-      />
-    </Route>,
-    <Route key={ModuleName.RESOURCE} path={`${MODULE_BASE_URLS[ModuleName.RESOURCE]}/`}>
-      <IndexRoute
-        component={make(
-          () =>
-            import('sentry/views/insights/browser/resources/views/resourcesLandingPage')
-        )}
-      />
-      <Route
-        path="spans/span/:groupId/"
-        component={make(
-          () =>
-            import('sentry/views/insights/browser/resources/views/resourceSummaryPage')
-        )}
-      />
-    </Route>,
-    <Route key={ModuleName.DB} path={`${MODULE_BASE_URLS[ModuleName.DB]}/`}>
-      <IndexRoute
-        component={make(
-          () => import('sentry/views/insights/database/views/databaseLandingPage')
-        )}
-      />
-      <Route
-        path="spans/span/:groupId/"
-        component={make(
-          () => import('sentry/views/insights/database/views/databaseSpanSummaryPage')
-        )}
-      />
-    </Route>,
-    <Route key={ModuleName.CACHE} path={`${MODULE_BASE_URLS[ModuleName.CACHE]}/`}>
-      <IndexRoute
-        component={make(
-          () => import('sentry/views/insights/cache/views/cacheLandingPage')
-        )}
-      />
-    </Route>,
-    <Route key={ModuleName.QUEUE} path={`${MODULE_BASE_URLS[ModuleName.QUEUE]}/`}>
-      <IndexRoute
-        component={make(
-          () => import('sentry/views/insights/queues/views/queuesLandingPage')
-        )}
-      />
-      <Route
-        path="destination/"
-        component={make(
-          () => import('sentry/views/insights/queues/views/destinationSummaryPage')
-        )}
-      />
-    </Route>,
-    <Route
-      key={ModuleName.MOBILE_SCREENS}
-      path={`${MODULE_BASE_URLS[ModuleName.MOBILE_SCREENS]}/`}
-    >
-      <IndexRoute
-        component={make(
-          () => import('sentry/views/insights/mobile/screens/views/screensLandingPage')
-        )}
-      />
-      <Route
-        path="details/"
-        component={make(
-          () => import('sentry/views/insights/mobile/screens/views/screenDetailsPage')
-        )}
-      />
-    </Route>,
-    <Route
-      key={ModuleName.SCREEN_RENDERING}
-      path={`${MODULE_BASE_URLS[ModuleName.SCREEN_RENDERING]}/`}
-    >
-      <IndexRoute
-        component={make(
-          () =>
-            import(
-              'sentry/views/insights/mobile/screenRendering/screenRenderingLandingPage'
-            )
-        )}
-      />
-      <Route
-        path={`${SUMMARY_PAGE_BASE_URL}/`}
-        component={make(
-          () =>
-            import(
-              'sentry/views/insights/mobile/screenRendering/screenRenderingSummaryPage'
-            )
-        )}
-      />
-    </Route>,
-    <Route key={ModuleName.APP_START} path={`${MODULE_BASE_URLS[ModuleName.APP_START]}/`}>
-      <IndexRoute
-        component={make(
-          () =>
-            import('sentry/views/insights/mobile/appStarts/views/appStartsLandingPage')
-        )}
-      />
-      <Route
-        path="spans/"
-        component={make(
-          () => import('sentry/views/insights/mobile/appStarts/views/screenSummaryPage')
-        )}
-      />
-    </Route>,
-    <Route key={ModuleName.MOBILE_UI} path={`${MODULE_BASE_URLS[ModuleName.MOBILE_UI]}/`}>
-      <IndexRoute
-        component={make(
-          () => import('sentry/views/insights/mobile/ui/views/uiLandingPage')
-        )}
-      />
-      <Route
-        path="spans/"
-        component={make(
-          () => import('sentry/views/insights/mobile/ui/views/screenSummaryPage')
-        )}
-      />
-    </Route>,
-    <Route
-      key={ModuleName.SCREEN_LOAD}
-      path={`${MODULE_BASE_URLS[ModuleName.SCREEN_LOAD]}/`}
-    >
-      <IndexRoute
-        component={make(
-          () =>
-            import('sentry/views/insights/mobile/screenload/views/screenloadLandingPage')
-        )}
-      />
-      <Route
-        path="spans/"
-        component={make(
-          () =>
-            import('sentry/views/insights/mobile/screenload/views/screenLoadSpansPage')
-        )}
-      />
-    </Route>,
-    <Route key={ModuleName.AI} path={`${MODULE_BASE_URLS[ModuleName.AI]}/`}>
-      <IndexRoute
-        component={make(
-          () =>
-            import('sentry/views/insights/llmMonitoring/views/llmMonitoringLandingPage')
-        )}
-      />
-      <Route
-        path="pipeline-type/:groupId/"
-        component={make(
-          () =>
-            import('sentry/views/insights/llmMonitoring/views/llmMonitoringDetailsPage')
-        )}
-      />
-    </Route>,
-  ];
+  const moduleRoutes = (
+    <Fragment>
+      <Route path={`${MODULE_BASE_URLS[ModuleName.HTTP]}/`}>
+        <IndexRoute
+          component={make(
+            () => import('sentry/views/insights/http/views/httpLandingPage')
+          )}
+        />
+        <Route
+          path="domains/"
+          component={make(
+            () => import('sentry/views/insights/http/views/httpDomainSummaryPage')
+          )}
+        />
+      </Route>
+      <Route path={`${MODULE_BASE_URLS[ModuleName.VITAL]}/`}>
+        <IndexRoute
+          component={make(
+            () =>
+              import('sentry/views/insights/browser/webVitals/views/webVitalsLandingPage')
+          )}
+        />
+        <Route
+          path="overview/"
+          component={make(
+            () => import('sentry/views/insights/browser/webVitals/views/pageOverview')
+          )}
+        />
+      </Route>
+      <Route path={`${MODULE_BASE_URLS[ModuleName.RESOURCE]}/`}>
+        <IndexRoute
+          component={make(
+            () =>
+              import('sentry/views/insights/browser/resources/views/resourcesLandingPage')
+          )}
+        />
+        <Route
+          path="spans/span/:groupId/"
+          component={make(
+            () =>
+              import('sentry/views/insights/browser/resources/views/resourceSummaryPage')
+          )}
+        />
+      </Route>
+      <Route path={`${MODULE_BASE_URLS[ModuleName.DB]}/`}>
+        <IndexRoute
+          component={make(
+            () => import('sentry/views/insights/database/views/databaseLandingPage')
+          )}
+        />
+        <Route
+          path="spans/span/:groupId/"
+          component={make(
+            () => import('sentry/views/insights/database/views/databaseSpanSummaryPage')
+          )}
+        />
+      </Route>
+      <Route path={`${MODULE_BASE_URLS[ModuleName.CACHE]}/`}>
+        <IndexRoute
+          component={make(
+            () => import('sentry/views/insights/cache/views/cacheLandingPage')
+          )}
+        />
+      </Route>
+      <Route path={`${MODULE_BASE_URLS[ModuleName.QUEUE]}/`}>
+        <IndexRoute
+          component={make(
+            () => import('sentry/views/insights/queues/views/queuesLandingPage')
+          )}
+        />
+        <Route
+          path="destination/"
+          component={make(
+            () => import('sentry/views/insights/queues/views/destinationSummaryPage')
+          )}
+        />
+      </Route>
+      <Route path={`${MODULE_BASE_URLS[ModuleName.MOBILE_SCREENS]}/`}>
+        <IndexRoute
+          component={make(
+            () => import('sentry/views/insights/mobile/screens/views/screensLandingPage')
+          )}
+        />
+        <Route
+          path="details/"
+          component={make(
+            () => import('sentry/views/insights/mobile/screens/views/screenDetailsPage')
+          )}
+        />
+      </Route>
+      <Route path={`${MODULE_BASE_URLS[ModuleName.SCREEN_RENDERING]}/`}>
+        <IndexRoute
+          component={make(
+            () =>
+              import(
+                'sentry/views/insights/mobile/screenRendering/screenRenderingLandingPage'
+              )
+          )}
+        />
+        <Route
+          path={`${SUMMARY_PAGE_BASE_URL}/`}
+          component={make(
+            () =>
+              import(
+                'sentry/views/insights/mobile/screenRendering/screenRenderingSummaryPage'
+              )
+          )}
+        />
+      </Route>
+      <Route path={`${MODULE_BASE_URLS[ModuleName.APP_START]}/`}>
+        <IndexRoute
+          component={make(
+            () =>
+              import('sentry/views/insights/mobile/appStarts/views/appStartsLandingPage')
+          )}
+        />
+        <Route
+          path="spans/"
+          component={make(
+            () => import('sentry/views/insights/mobile/appStarts/views/screenSummaryPage')
+          )}
+        />
+      </Route>
+      <Route path={`${MODULE_BASE_URLS[ModuleName.MOBILE_UI]}/`}>
+        <IndexRoute
+          component={make(
+            () => import('sentry/views/insights/mobile/ui/views/uiLandingPage')
+          )}
+        />
+        <Route
+          path="spans/"
+          component={make(
+            () => import('sentry/views/insights/mobile/ui/views/screenSummaryPage')
+          )}
+        />
+      </Route>
+      <Route path={`${MODULE_BASE_URLS[ModuleName.SCREEN_LOAD]}/`}>
+        <IndexRoute
+          component={make(
+            () =>
+              import(
+                'sentry/views/insights/mobile/screenload/views/screenloadLandingPage'
+              )
+          )}
+        />
+        <Route
+          path="spans/"
+          component={make(
+            () =>
+              import('sentry/views/insights/mobile/screenload/views/screenLoadSpansPage')
+          )}
+        />
+      </Route>
+      <Route path={`${MODULE_BASE_URLS[ModuleName.UPTIME]}/`}>
+        <IndexRoute
+          component={make(() => import('sentry/views/insights/uptime/views/overview'))}
+        />
+      </Route>
+      <Route path={`${MODULE_BASE_URLS[ModuleName.AI]}/`}>
+        <IndexRoute
+          component={make(
+            () =>
+              import('sentry/views/insights/llmMonitoring/views/llmMonitoringLandingPage')
+          )}
+        />
+        <Route
+          path="pipeline-type/:groupId/"
+          component={make(
+            () =>
+              import('sentry/views/insights/llmMonitoring/views/llmMonitoringDetailsPage')
+          )}
+        />
+      </Route>
+      <Route path={`${MODULE_BASE_URLS[ModuleName.CRONS]}/`}>
+        <IndexRoute
+          component={make(() => import('sentry/views/insights/crons/views/overview'))}
+        />
+      </Route>
+    </Fragment>
+  );
 
   const domainViewRoutes = (
     <Route path={`/${DOMAIN_VIEW_BASE_URL}/`} withOrgPath>
@@ -1774,10 +1802,7 @@ function buildRoutes() {
           )}
         />
         {transactionSummaryRoutes}
-        <Route
-          path="trace/:traceSlug/"
-          component={make(() => import('sentry/views/performance/traceDetails'))}
-        />
+        {traceViewRoute}
         <Route
           path="trends/"
           component={make(() => import('sentry/views/performance/trends'))}
@@ -1791,10 +1816,7 @@ function buildRoutes() {
           )}
         />
         {transactionSummaryRoutes}
-        <Route
-          path="trace/:traceSlug/"
-          component={make(() => import('sentry/views/performance/traceDetails'))}
-        />
+        {traceViewRoute}
         <Route
           path="trends/"
           component={make(() => import('sentry/views/performance/trends'))}
@@ -1808,10 +1830,7 @@ function buildRoutes() {
           )}
         />
         {transactionSummaryRoutes}
-        <Route
-          path="trace/:traceSlug/"
-          component={make(() => import('sentry/views/performance/traceDetails'))}
-        />
+        {traceViewRoute}
         <Route
           path="trends/"
           component={make(() => import('sentry/views/performance/trends'))}
@@ -1823,10 +1842,7 @@ function buildRoutes() {
           component={make(() => import('sentry/views/insights/pages/ai/aiOverviewPage'))}
         />
         {transactionSummaryRoutes}
-        <Route
-          path="trace/:traceSlug/"
-          component={make(() => import('sentry/views/performance/traceDetails'))}
-        />
+        {traceViewRoute}
         <Route
           path="trends/"
           component={make(() => import('sentry/views/performance/trends'))}
@@ -1852,10 +1868,7 @@ function buildRoutes() {
         path="vitaldetail/"
         component={make(() => import('sentry/views/performance/vitalDetail'))}
       />
-      <Route
-        path="trace/:traceSlug/"
-        component={make(() => import('sentry/views/performance/traceDetails'))}
-      />
+      {traceViewRoute}
       {insightsRedirects}
       <Redirect
         from="browser/resources"
@@ -1883,7 +1896,16 @@ function buildRoutes() {
       withOrgPath
     >
       <IndexRoute component={make(() => import('sentry/views/traces/content'))} />
+      {traceViewRoute}
     </Route>
+  );
+
+  const exploreRoutes = (
+    <Route
+      path="/explore/logs"
+      component={make(() => import('sentry/views/explore/logs'))}
+      withOrgPath
+    />
   );
 
   const userFeedbackRoutes = (
@@ -1903,20 +1925,22 @@ function buildRoutes() {
       <IndexRoute
         component={make(() => import('sentry/views/feedback/feedbackListPage'))}
       />
+      {traceViewRoute}
     </Route>
   );
 
   const issueListRoutes = (
     <Route path="/issues" component={errorHandler(IssueListContainer)} withOrgPath>
-      <IndexRoute component={errorHandler(IssueListOverview)} />
-      <Route path="searches/:searchId/" component={errorHandler(IssueListOverview)} />
+      <IndexRoute component={errorHandler(OverviewWrapper)} />
+      <Route path="searches/:searchId/" component={errorHandler(OverviewWrapper)} />
+      {traceViewRoute}
     </Route>
   );
 
   // Once org issues is complete, these routes can be nested under
   // /organizations/:orgId/issues
   const issueTabs = ({forCustomerDomain}: {forCustomerDomain: boolean}) => {
-    const hoc = forCustomerDomain ? withDomainRequired : x => x;
+    const hoc = forCustomerDomain ? withDomainRequired : (x: any) => x;
     return (
       <Fragment>
         <IndexRoute
@@ -1939,6 +1963,12 @@ function buildRoutes() {
         <Route
           path={TabPaths[Tab.EVENTS]}
           component={hoc(make(() => import('sentry/views/issueDetails/groupEvents')))}
+        />
+        <Route
+          path={TabPaths[Tab.OPEN_PERIODS]}
+          component={hoc(
+            make(() => import('sentry/views/issueDetails/groupOpenPeriods'))
+          )}
         />
         <Route
           path={TabPaths[Tab.TAGS]}
@@ -2152,6 +2182,7 @@ function buildRoutes() {
         path="profile/:projectId/differential-flamegraph/"
         component={make(() => import('sentry/views/profiling/differentialFlamegraph'))}
       />
+      {traceViewRoute}
       <Route
         path="profile/:projectId/"
         component={make(() => import('sentry/views/profiling/continuousProfileProvider'))}
@@ -2165,7 +2196,9 @@ function buildRoutes() {
       </Route>
       <Route
         path="profile/:projectId/:eventId/"
-        component={make(() => import('sentry/views/profiling/profilesProvider'))}
+        component={make(
+          () => import('sentry/views/profiling/transactionProfileProvider')
+        )}
       >
         <Route
           path="flamegraph/"
@@ -2183,6 +2216,7 @@ function buildRoutes() {
         withOrgPath
       >
         <IndexRoute component={make(() => import('sentry/views/metrics/metrics'))} />
+        {traceViewRoute}
       </Route>
       {/* TODO(ddm): fade this out */}
       <Redirect from="/ddm/" to="/metrics/" />
@@ -2279,6 +2313,8 @@ function buildRoutes() {
 
   const organizationRoutes = (
     <Route component={errorHandler(OrganizationLayout)}>
+      {automationRoutes}
+      {detectorRoutes}
       {settingsRoutes}
       {projectsRoutes}
       {dashboardRoutes}
@@ -2295,6 +2331,7 @@ function buildRoutes() {
       {performanceRoutes}
       {domainViewRoutes}
       {tracesRoutes}
+      {exploreRoutes}
       {llmMonitoringRedirects}
       {profilingRoutes}
       {metricsRoutes}
@@ -2430,15 +2467,17 @@ function buildRoutes() {
   );
 
   const appRoutes = (
-    <Route>
-      {experimentalSpaRoutes}
-      <Route path="/" component={errorHandler(App)}>
-        {rootRoutes}
-        {organizationRoutes}
-        {legacyRedirectRoutes}
-        <Route path="*" component={errorHandler(RouteNotFound)} />
+    <ProvideAriaRouter>
+      <Route>
+        {experimentalSpaRoutes}
+        <Route path="/" component={errorHandler(App)}>
+          {rootRoutes}
+          {organizationRoutes}
+          {legacyRedirectRoutes}
+          <Route path="*" component={errorHandler(RouteNotFound)} />
+        </Route>
       </Route>
-    </Route>
+    </ProvideAriaRouter>
   );
 
   return appRoutes;

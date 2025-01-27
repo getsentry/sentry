@@ -243,10 +243,15 @@ export function extractAnalyticsQueryFields(payload: NewQuery): Partial<NewQuery
 
 export function displayModeToDisplayType(displayMode: DisplayModes): DisplayType {
   switch (displayMode) {
+    case DisplayModes.DAILYTOP5:
+    case DisplayModes.DAILY:
     case DisplayModes.BAR:
       return DisplayType.BAR;
     case DisplayModes.TOP5:
       return DisplayType.TOP_N;
+    case DisplayModes.PREVIOUS:
+    case DisplayModes.DEFAULT:
+      return DisplayType.AREA;
     default:
       return DisplayType.LINE;
   }

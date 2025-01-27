@@ -1,8 +1,11 @@
 ---
+created: '2024-12-17T22:46:40.171844+00:00'
+creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: "4b8bbc500bd2cabfcadc1f1be867e0bb"
+  contributing component: exception
   component:
     app*
       exception*
@@ -28,6 +31,7 @@ app:
 --------------------------------------------------------------------------
 system:
   hash: "348fc4026c9fa11ffba8fbfa80a134c9"
+  contributing component: exception
   component:
     system*
       exception*

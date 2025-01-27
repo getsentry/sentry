@@ -10,7 +10,6 @@ from django.utils import timezone
 from sentry.integrations.github.integration import GitHubIntegration
 from sentry.integrations.models.integration import Integration
 from sentry.models.commit import Commit
-from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.grouprelease import GroupRelease
@@ -48,20 +47,6 @@ class CommitTestCase(TestCase):
             key=uuid4().hex,
             author=author,
         )
-
-    def create_commit_with_author(self, user=None, commit=None):
-        if not user:
-            user = self.create_user(name="Sentry", email="sentry@sentry.io")
-
-        author = CommitAuthor.objects.create(
-            organization_id=self.organization.id,
-            name=user.name,
-            email=user.email,
-            external_id=user.id,
-        )
-        if not commit:
-            commit = self.create_commit(author)
-        return commit
 
     def create_commitfilechange(self, commit=None, filename=None, type=None):
         return CommitFileChange.objects.create(

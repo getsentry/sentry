@@ -17,7 +17,9 @@ describe('Discover > MiniGraph', function () {
     pathname: '/',
   });
 
-  let organization, eventView, initialData;
+  let organization!: ReturnType<typeof OrganizationFixture>;
+  let eventView!: ReturnType<typeof EventView.fromSavedQueryOrLocation>;
+  let initialData!: ReturnType<typeof initializeOrg>;
 
   beforeEach(() => {
     organization = OrganizationFixture({

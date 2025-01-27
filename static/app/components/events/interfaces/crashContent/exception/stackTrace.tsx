@@ -85,7 +85,6 @@ function StackTrace({
     return (
       <NativeContent
         data={data}
-        expandFirstFrame={expandFirstFrame}
         includeSystemFrames={includeSystemFrames}
         groupingCurrentLevel={groupingCurrentLevel}
         platform={platform}

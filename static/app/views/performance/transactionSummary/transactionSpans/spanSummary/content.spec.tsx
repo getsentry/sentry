@@ -217,6 +217,11 @@ describe('SpanSummaryPage', function () {
         ],
       },
     });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      body: [],
+    });
   });
 
   it('correctly renders the details in the header', async function () {

@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, cast
-
-from typing_extensions import TypeIs
+from typing import Any, TypeIs, cast
 
 from sentry.eventstore.models import Event
+from sentry.grouping.api import get_contributing_variant_and_component
 from sentry.grouping.component import (
     ChainedExceptionGroupingComponent,
     CSPGroupingComponent,
@@ -40,7 +39,7 @@ from sentry.types.grouphash_metadata import (
     StacktraceHashingMetadata,
     TemplateHashingMetadata,
 )
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 from sentry.utils.metrics import MutableTags
 
 logger = logging.getLogger(__name__)
@@ -135,32 +134,13 @@ def get_hash_basis_and_metadata(
     metrics_timer_tags: MutableTags,
 ) -> tuple[HashBasis, HashingMetadata]:
     hashing_metadata: HashingMetadata = {}
-
-    # TODO: This (and `contributing_variant` below) are typed as `Any` so that we don't have to cast
-    # them to whatever specific subtypes of `BaseVariant` and `GroupingComponent` (respectively)
-    # each of the helper calls below requires. Casting once, to a type retrieved from a look-up,
-    # doesn't work, but maybe there's a better way?
-    contributing_variant: Any = (
-        variants["app"]
-        # TODO: We won't need this 'if' once we stop returning both app and system contributing
-        # variants
-        if "app" in variants and variants["app"].contributes
-        else (
-            variants["hashed_checksum"]
-            # TODO: We won't need this 'if' once we stop returning both hashed and non-hashed
-            # checksum contributing variants
-            if "hashed_checksum" in variants
-            # Other than in the broken app/system and hashed/raw checksum cases, there should only
-            # ever be a single contributing variant
-            else [variant for variant in variants.values() if variant.contributes][0]
-        )
-    )
-    contributing_component: Any = (
-        # There should only ever be a single contributing component here at the top level
-        [value for value in contributing_variant.component.values if value.contributes][0]
-        if hasattr(contributing_variant, "component")
-        else None
-    )
+    # TODO: These are typed as `Any` so that we don't have to cast them to whatever specific
+    # subtypes of `BaseVariant` and `GroupingComponent` (respectively) each of the helper calls
+    # below requires. Casting once, to a type retrieved from a look-up, doesn't work, but maybe
+    # there's a better way?
+    contributors = get_contributing_variant_and_component(variants)
+    contributing_variant: Any = contributors[0]
+    contributing_component: Any = contributors[1]
 
     # Hybrid fingerprinting adds 'modified' to the beginning of the description of whatever method
     # was used before the extra fingerprint was added. We classify events with hybrid fingerprints
@@ -278,7 +258,7 @@ def _get_stacktrace_hashing_metadata(
     ),
 ) -> StacktraceHashingMetadata:
     return {
-        "stacktrace_type": "in_app" if "in-app" in contributing_variant.description else "system",
+        "stacktrace_type": "in_app" if contributing_variant.variant_name == "app" else "system",
         "stacktrace_location": (
             "exception"
             if "exception" in contributing_variant.description
@@ -336,7 +316,7 @@ def _get_fingerprint_hashing_metadata(
     metadata: FingerprintHashingMetadata = {
         # For simplicity, we stringify fingerprint values (which are always lists) to keep
         # `hashing_metadata` a flat structure
-        "fingerprint": str(contributing_variant.values),
+        "fingerprint": json.dumps(contributing_variant.values),
         "fingerprint_source": (
             "client"
             if not matched_rule

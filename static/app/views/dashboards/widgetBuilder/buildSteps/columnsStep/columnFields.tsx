@@ -19,7 +19,7 @@ interface Props {
   onChange: (newColumns: QueryFieldValue[]) => void;
   organization: Organization;
   widgetType: WidgetType;
-  errors?: Record<string, string>[];
+  errors?: Array<Record<string, string>>;
   filterAggregateParameters?: (option: FieldValueOption) => boolean;
   filterPrimaryOptions?: (option: FieldValueOption) => boolean;
   noFieldsMessage?: string;
@@ -67,7 +67,7 @@ export function ColumnFields({
         <ColumnCollectionEdit
           columns={fields.slice(0, fields.length - 1)}
           onChange={newColumns => {
-            onChange([...newColumns, fields[fields.length - 1]]);
+            onChange([...newColumns, fields[fields.length - 1]!]);
           }}
           fieldOptions={fieldOptions}
           organization={organization}

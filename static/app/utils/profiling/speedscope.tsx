@@ -94,7 +94,7 @@ export class Rect {
     return [this.centerX, this.centerY];
   }
 
-  static decode(query: string | ReadonlyArray<string> | null | undefined): Rect | null {
+  static decode(query: string | readonly string[] | null | undefined): Rect | null {
     let maybeEncodedRect = query;
 
     if (typeof query === 'string') {
@@ -305,7 +305,6 @@ export function findRangeBinarySearch(
   target: number,
   precision = 1
 ): [number, number] {
-  // eslint-disable-next-line
   while (true) {
     if (high - low <= precision) {
       return [low, high];

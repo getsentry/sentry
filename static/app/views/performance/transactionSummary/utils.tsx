@@ -133,7 +133,7 @@ export function transactionSummaryRouteWithQuery({
   };
 }
 
-export function generateTraceLink(dateSelection, view?: DomainView) {
+export function generateTraceLink(dateSelection: any, view?: DomainView) {
   return (
     organization: Organization,
     tableRow: TableDataRow,
@@ -165,9 +165,9 @@ export function generateTransactionIdLink(transactionName?: string, view?: Domai
   ): LocationDescriptor => {
     return generateLinkToEventInTraceView({
       eventId: tableRow.id,
-      timestamp: tableRow.timestamp,
-      traceSlug: tableRow.trace?.toString(),
-      projectSlug: tableRow['project.name']?.toString(),
+      timestamp: tableRow.timestamp!,
+      traceSlug: tableRow.trace?.toString()!,
+      projectSlug: tableRow['project.name']?.toString()!,
       location,
       organization,
       spanId,
@@ -226,7 +226,7 @@ export function generateProfileLink() {
   };
 }
 
-export function generateReplayLink(routes: PlainRoute<any>[]) {
+export function generateReplayLink(routes: Array<PlainRoute<any>>) {
   const referrer = getRouteStringFromRoutes(routes);
 
   return (

@@ -6,7 +6,7 @@ from django.db.models import F
 from fixtures.page_objects.base import BasePage
 from sentry.models.project import Project
 from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import no_silo_test
 from sentry.utils.samples import load_data
 
@@ -28,8 +28,8 @@ class PerformanceTrendsTest(AcceptanceTestCase, SnubaTestCase):
                 {
                     "transaction": name,
                     "event_id": f"{index:02x}".rjust(32, "0"),
-                    "start_timestamp": iso_format(before_now(minutes=minutes, seconds=duration)),
-                    "timestamp": iso_format(before_now(minutes=minutes)),
+                    "start_timestamp": before_now(minutes=minutes, seconds=duration).isoformat(),
+                    "timestamp": before_now(minutes=minutes).isoformat(),
                 }
             )
             self.store_event(data=event, project_id=self.project.id)

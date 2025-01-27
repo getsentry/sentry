@@ -202,7 +202,8 @@ class FrameMatch(EnhancementMatch):
         if self.key == "family":
             arg = "".join(_f for _f in [FAMILIES.get(x) for x in self.pattern.split(",")] if _f)
         elif self.key == "app":
-            arg = {True: "1", False: "0"}.get(bool_from_string(self.pattern), "")
+            boolified_pattern = bool_from_string(self.pattern)
+            arg = "1" if boolified_pattern is True else "0" if boolified_pattern is False else ""
         else:
             arg = self.pattern
         return ("!" if self.negated else "") + MATCH_KEYS[self.key] + arg

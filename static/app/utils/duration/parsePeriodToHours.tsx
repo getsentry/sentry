@@ -13,7 +13,7 @@ export function parsePeriodToHours(str: string): number {
 
   const {period, periodLength} = result;
 
-  const periodNumber = parseInt(period, 10);
+  const periodNumber = parseInt(period!, 10);
 
   switch (periodLength) {
     case 's':

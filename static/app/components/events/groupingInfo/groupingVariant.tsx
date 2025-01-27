@@ -27,7 +27,7 @@ interface GroupingVariantProps {
   variant: EventGroupVariant;
 }
 
-type VariantData = [string, React.ReactNode][];
+type VariantData = Array<[string, React.ReactNode]>;
 
 function addFingerprintInfo(data: VariantData, variant: EventGroupVariant) {
   if ('matched_rule' in variant) {
@@ -306,7 +306,7 @@ const VariantTitle = styled('h5')`
   align-items: center;
 `;
 
-const ContributionIcon = styled(({isContributing, ...p}) =>
+const ContributionIcon = styled(({isContributing, ...p}: any) =>
   isContributing ? (
     <IconCheckmark size="sm" isCircled color="successText" {...p} />
   ) : (

@@ -8,7 +8,6 @@
  * into the configuration file loaded by the service.
  */
 
-// eslint-disable-next-line import/no-named-default
 import {discoverCharts} from './discover';
 import {metricAlertCharts} from './metricAlert';
 import {performanceCharts} from './performance';

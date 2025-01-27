@@ -78,7 +78,7 @@ function EventHeader({event}: {event: Event}) {
 
 function EventDetailsContent(props: Props) {
   const [isSidebarVisible, setIsSidebarVisible] = useState<boolean>(true);
-  const projectId = props.eventSlug.split(':')[0];
+  const projectId = props.eventSlug.split(':')[0]!;
 
   const {
     data: event,
@@ -219,7 +219,7 @@ function EventDetailsContent(props: Props) {
                           <ProfilesProvider
                             orgSlug={organization.slug}
                             projectSlug={projectId}
-                            profileId={profileId || ''}
+                            profileMeta={profileId || ''}
                           >
                             <ProfileContext.Consumer>
                               {profiles => (

@@ -31,7 +31,7 @@ class DocIntegrationDetailsEndpoint(DocIntegrationBaseEndpoint):
         return self.respond(serialize(doc_integration, request.user), status=status.HTTP_200_OK)
 
     def put(self, request: Request, doc_integration: DocIntegration) -> Response:
-        data = request.json_body
+        data = request.data
         data["metadata"] = self.generate_incoming_metadata(request)
 
         serializer = DocIntegrationSerializer(doc_integration, data=data)

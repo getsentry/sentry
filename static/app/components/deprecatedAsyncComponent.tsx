@@ -210,6 +210,7 @@ class DeprecatedAsyncComponent<
     }
 
     endpoints.forEach(([stateKey, _endpoint]) => {
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       state[stateKey] = null;
     });
     return state;
@@ -293,11 +294,11 @@ class DeprecatedAsyncComponent<
     });
   };
 
-  onRequestSuccess(_resp /* {stateKey, data, resp} */) {
+  onRequestSuccess(_resp: any /* {stateKey, data, resp} */) {
     // Allow children to implement this
   }
 
-  onRequestError(_resp, _args) {
+  onRequestError(_resp: any, _args: any) {
     // Allow children to implement this
   }
 
@@ -305,7 +306,7 @@ class DeprecatedAsyncComponent<
     // Allow children to implement this
   }
 
-  handleRequestSuccess({stateKey, data, resp}, initialRequest?: boolean) {
+  handleRequestSuccess({stateKey, data, resp}: any, initialRequest?: boolean) {
     this.setState(
       prevState => {
         const state = {
@@ -333,7 +334,7 @@ class DeprecatedAsyncComponent<
     this.onRequestSuccess({stateKey, data, resp});
   }
 
-  handleError(error, args) {
+  handleError(error: any, args: any) {
     const [stateKey] = args;
     if (error?.responseText) {
       Sentry.addBreadcrumb({

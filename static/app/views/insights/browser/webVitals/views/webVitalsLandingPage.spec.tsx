@@ -19,7 +19,7 @@ describe('WebVitalsLandingPage', function () {
     features: ['insights-initial-modules'],
   });
 
-  let eventsMock;
+  let eventsMock: jest.Mock;
 
   beforeEach(function () {
     jest.mocked(useOnboardingProject).mockReturnValue(undefined);

@@ -4,11 +4,11 @@ import {defined} from 'sentry/utils';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 
-export function defaultDataset(): DiscoverDatasets {
-  return DiscoverDatasets.SPANS_EAP;
+export function defaultDataset(): DiscoverDatasets | undefined {
+  return undefined;
 }
 
-export function getDatasetFromLocation(location: Location): DiscoverDatasets {
+export function getDatasetFromLocation(location: Location): DiscoverDatasets | undefined {
   const rawDataset = decodeScalar(location.query.dataset);
   return parseDataset(rawDataset);
 }
@@ -22,7 +22,11 @@ export function parseDataset(rawDataset: string | undefined) {
     return DiscoverDatasets.SPANS_EAP_RPC;
   }
 
-  return defaultDataset();
+  if (rawDataset === 'spans') {
+    return DiscoverDatasets.SPANS_EAP;
+  }
+
+  return undefined;
 }
 
 export function updateLocationWithDataset(

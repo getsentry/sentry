@@ -7,6 +7,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import type {IntegrationProvider, IntegrationWithConfig} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
+import type {MessagingIntegrationAnalyticsView} from 'sentry/views/alerts/rules/issue/setupMessagingIntegrationButton';
 
 type Props = {
   children: (
@@ -19,9 +20,9 @@ type Props = {
   analyticsParams?: {
     already_installed: boolean;
     view:
+      | MessagingIntegrationAnalyticsView
       | 'integrations_directory_integration_detail'
       | 'integrations_directory'
-      | 'messaging_integration_onboarding'
       | 'onboarding'
       | 'project_creation';
   };

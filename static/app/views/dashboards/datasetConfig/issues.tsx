@@ -8,7 +8,9 @@ import type {Organization} from 'sentry/types/organization';
 import {getIssueFieldRenderer} from 'sentry/utils/dashboards/issueFieldRenderers';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
+import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {
   DISCOVER_EXCLUSION_FIELDS,
   getSortLabel,
@@ -36,6 +38,11 @@ const DEFAULT_WIDGET_QUERY: WidgetQuery = {
 const DEFAULT_SORT = IssueSortOptions.DATE;
 const DEFAULT_EXPAND = ['owners'];
 
+const DEFAULT_FIELD: QueryFieldValue = {
+  field: 'issue',
+  kind: FieldValueKind.FIELD,
+};
+
 type EndpointParams = Partial<PageFilters['datetime']> & {
   environment: string[];
   project: number[];
@@ -51,6 +58,7 @@ type EndpointParams = Partial<PageFilters['datetime']> & {
 };
 
 export const IssuesConfig: DatasetConfig<never, Group[]> = {
+  defaultField: DEFAULT_FIELD,
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   enableEquations: false,
   disableSortOptions,
@@ -110,8 +118,10 @@ export function transformIssuesResponseToTable(
     }) => {
       const transformedResultProps: Omit<TableDataRow, 'id'> = {};
       Object.keys(resultProps)
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         .filter(key => ['number', 'string'].includes(typeof resultProps[key]))
         .forEach(key => {
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           transformedResultProps[key] = resultProps[key];
         });
 

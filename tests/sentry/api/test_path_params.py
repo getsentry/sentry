@@ -24,10 +24,6 @@ def extract_all_url_patterns(
             callback = pattern.callback
             if hasattr(callback, "view_class"):
                 yield (url_pattern, callback.view_class)
-            elif hasattr(callback, "dispatch_mapping"):
-                for view_func in callback.dispatch_mapping.keys():
-                    if callable(view_func):
-                        yield (url_pattern, view_func.cls)
 
 
 @no_silo_test

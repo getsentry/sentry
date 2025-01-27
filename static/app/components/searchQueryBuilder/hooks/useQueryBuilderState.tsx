@@ -131,7 +131,7 @@ function removeQueryTokensFromQuery(
   }
 
   return removeExcessWhitespaceFromParts(
-    query.substring(0, tokens[0].location.start.offset),
+    query.substring(0, tokens[0]!.location.start.offset),
     query.substring(tokens.at(-1)!.location.end.offset)
   );
 }
@@ -236,14 +236,14 @@ function modifyFilterValueDate(
 // Uses the token's location to replace a sequence of tokens with the new text value
 function replaceQueryTokens(
   query: string,
-  tokens: TokenResult<Token>[],
+  tokens: Array<TokenResult<Token>>,
   value: string
 ): string {
   if (tokens.length === 0) {
     return query;
   }
 
-  const start = query.substring(0, tokens[0].location.start.offset);
+  const start = query.substring(0, tokens[0]!.location.start.offset);
   const end = query.substring(tokens.at(-1)!.location.end.offset);
 
   return start + value + end;
@@ -289,14 +289,14 @@ function removeExcessWhitespaceFromParts(...parts: string[]): string {
 // and cleans up any extra whitespace
 export function replaceTokensWithPadding(
   query: string,
-  tokens: TokenResult<Token>[],
+  tokens: Array<TokenResult<Token>>,
   value: string
 ): string {
   if (tokens.length === 0) {
     return query;
   }
 
-  const start = query.substring(0, tokens[0].location.start.offset);
+  const start = query.substring(0, tokens[0]!.location.start.offset);
   const end = query.substring(tokens.at(-1)!.location.end.offset);
 
   return removeExcessWhitespaceFromParts(start, value, end);
@@ -326,7 +326,8 @@ function replaceTokensWithText(
     (action.tokens[0]?.location.start.offset ?? 0) + action.text.length; // TODO: Ensure this is sorted
   const newParsedQuery = parseQueryBuilderValue(newQuery, getFieldDefinition);
   const focusedToken = newParsedQuery?.find(
-    token => token.type === Token.FREE_TEXT && token.location.end.offset >= cursorPosition
+    (token: any) =>
+      token.type === Token.FREE_TEXT && token.location.end.offset >= cursorPosition
   );
 
   const focusOverride =
@@ -367,7 +368,7 @@ function updateFilterMultipleValues(
   const newValue =
     uniqNonEmptyValues.length > 1
       ? `[${uniqNonEmptyValues.join(',')}]`
-      : uniqNonEmptyValues[0];
+      : uniqNonEmptyValues[0]!;
 
   return {...state, query: replaceQueryToken(state.query, token.value, newValue)};
 }

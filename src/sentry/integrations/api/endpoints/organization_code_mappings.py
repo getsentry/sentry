@@ -196,6 +196,14 @@ class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, OrganizationIntegra
 
         try:
             project = Project.objects.get(id=request.data.get("projectId"))
+        except ValueError as exc:
+            if "invalid literal for int() with base 10" in str(exc):
+                return self.respond(
+                    "Invalid projectId param. Expected an integer.",
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            else:
+                raise
         except Project.DoesNotExist:
             return self.respond("Could not find project", status=status.HTTP_404_NOT_FOUND)
 
