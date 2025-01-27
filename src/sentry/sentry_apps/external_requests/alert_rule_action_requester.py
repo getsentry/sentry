@@ -27,7 +27,6 @@ class AlertRuleActionResult(TypedDict):
     error_type: SentryAppErrorType | None
     webhook_context: dict[str, Any] | None
     public_context: dict[str, Any] | None
-    status_code: int | None
 
 
 @dataclass
