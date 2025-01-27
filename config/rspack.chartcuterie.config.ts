@@ -11,7 +11,6 @@ const commitHash =
   process.env.SENTRY_BUILD ||
   childProcess.execSync('git rev-parse HEAD', {encoding: 'utf8'}).trim();
 
-// @ts-ignore
 const findLoader = (loaderName: string) =>
   baseConfig.module?.rules?.find(
     (rule: any) =>
