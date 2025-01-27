@@ -38,6 +38,7 @@ from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiHostError,
     ApiUnauthorized,
+    ExternalAPIConfigurationError,
     IntegrationError,
     IntegrationFormError,
 )
@@ -928,7 +929,9 @@ class JiraServerIntegration(IssueSyncIntegration):
 
         issue_type_meta = client.get_issue_fields(jira_project, issue_type)
         if not issue_type_meta:
-            raise IntegrationError("Could not fetch issue create configuration from Jira.")
+            raise ExternalAPIConfigurationError(
+                "Could not fetch issue create configuration from Jira."
+            )
 
         user_id_field = client.user_id_field()
 
