@@ -133,13 +133,6 @@ def initialize_backfill(
     last_processed_group_id: int | None,
     last_processed_project_index: int | None,
 ):
-    logger.info(
-        "backfill_seer_grouping_records.start",
-        extra={
-            "project_id": project_id,
-            "last_processed_index": last_processed_group_id,
-        },
-    )
     project = Project.objects.get_from_cache(id=project_id)
 
     last_processed_project_index_ret = (
