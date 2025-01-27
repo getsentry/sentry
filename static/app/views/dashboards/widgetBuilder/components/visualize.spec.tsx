@@ -15,6 +15,7 @@ import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 jest.mock('sentry/utils/useCustomMeasurements');
 jest.mock('sentry/views/explore/contexts/spanTagsContext');
 jest.mock('sentry/utils/useNavigate');
+jest.mock('sentry/utils/analytics');
 
 describe('Visualize', () => {
   let organization!: ReturnType<typeof OrganizationFixture>;
