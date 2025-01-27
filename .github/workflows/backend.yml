@@ -70,7 +70,10 @@ jobs:
 
       - name: Inspect failure
         if: failure()
-        run: devservices logs
+        run: |
+          if command -v devservices; then
+            devservices logs
+          fi
 
   backend-test:
     if: needs.files-changed.outputs.backend == 'true'
@@ -111,7 +114,10 @@ jobs:
 
       - name: Inspect failure
         if: failure()
-        run: devservices logs
+        run: |
+          if command -v devservices; then
+            devservices logs
+          fi
 
       - name: Collect test data
         uses: ./.github/actions/collect-test-data
@@ -159,7 +165,10 @@ jobs:
 
       - name: Inspect failure
         if: failure()
-        run: devservices logs
+        run: |
+          if command -v devservices; then
+            devservices logs
+          fi
 
       # Upload coverage data even if running the tests step fails since
       # it reduces large coverage fluctuations
@@ -195,7 +204,10 @@ jobs:
 
       - name: Inspect failure
         if: failure()
-        run: devservices logs
+        run: |
+          if command -v devservices; then
+            devservices logs
+          fi
 
       # Upload coverage data even if running the tests step fails since
       # it reduces large coverage fluctuations
@@ -268,7 +280,10 @@ jobs:
 
       - name: Inspect failure
         if: failure()
-        run: devservices logs
+        run: |
+          if command -v devservices; then
+            devservices logs
+          fi
 
   monolith-dbs:
     if: needs.files-changed.outputs.backend == 'true'
@@ -295,7 +310,10 @@ jobs:
 
       - name: Inspect failure
         if: failure()
-        run: devservices logs
+        run: |
+          if command -v devservices; then
+            devservices logs
+          fi
 
       - name: Collect test data
         uses: ./.github/actions/collect-test-data
