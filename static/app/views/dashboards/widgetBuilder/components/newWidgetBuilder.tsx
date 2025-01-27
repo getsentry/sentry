@@ -345,6 +345,7 @@ export function WidgetPreviewContainer({
                       dashboard={dashboard}
                       isWidgetInvalid={isWidgetInvalid}
                       onDataFetched={onDataFetched}
+                      shouldForceDescriptionTooltip={!isSmallScreen}
                     />
                   )}
                 </SampleWidgetCard>
