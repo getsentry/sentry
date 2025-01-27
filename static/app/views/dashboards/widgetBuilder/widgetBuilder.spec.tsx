@@ -999,7 +999,7 @@ describe('WidgetBuilder', function () {
     renderTestComponent({
       query: {
         source: DashboardWidgetSource.DISCOVERV2,
-        defaultWidgetQuery: new URLSearchParams(defaultWidgetQuery),
+        defaultWidgetQuery: qs.stringify(defaultWidgetQuery),
       },
     });
 
@@ -1561,7 +1561,7 @@ describe('WidgetBuilder', function () {
         orgFeatures: [...defaultOrgFeatures],
         query: {
           source: DashboardWidgetSource.DISCOVERV2,
-          defaultWidgetQuery: new URLSearchParams(defaultWidgetQuery),
+          defaultWidgetQuery: qs.stringify(defaultWidgetQuery),
           displayType: DisplayType.LINE,
           defaultTableColumns,
         },
