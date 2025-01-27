@@ -128,6 +128,21 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             search_type="string",
         ),
         ResolvedColumn(
+            public_alias="profiler.id",
+            internal_name="profiler_id",
+            search_type="string",
+        ),
+        ResolvedColumn(
+            public_alias="thread.id",
+            internal_name="thread.id",
+            search_type="string",
+        ),
+        ResolvedColumn(
+            public_alias="thread.name",
+            internal_name="thread.name",
+            search_type="string",
+        ),
+        ResolvedColumn(
             public_alias="replay.id",
             internal_name="sentry.replay_id",
             search_type="string",
