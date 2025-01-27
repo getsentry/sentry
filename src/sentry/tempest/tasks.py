@@ -4,14 +4,12 @@ import requests
 from django.conf import settings
 from requests import Response
 
+from sentry import options
 from sentry.models.projectkey import ProjectKey, UseCase
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.tempest.models import MessageType, TempestCredentials
-
-POLL_LIMIT = 348  # 348 every 5 min ~ 100k a day
-
 
 logger = logging.getLogger(__name__)
 
@@ -153,6 +151,7 @@ def poll_tempest_crashes(credentials_id: int) -> None:
                 client_secret=credentials.client_secret,
                 dsn=dsn,
                 offset=int(credentials.latest_fetched_item_id),
+                limit=options.get("tempest.poll-limit"),
                 attach_screenshot=attach_screenshot,
             )
         else:
@@ -213,9 +212,9 @@ def fetch_items_from_tempest(
     client_secret: str,
     dsn: str,
     offset: int,
-    limit: int = POLL_LIMIT,
+    limit: int = 348,
     attach_screenshot: bool = False,
-    time_out: int = 120,
+    time_out: int = 235,
 ) -> Response:
     payload = {
         "org_id": org_id,

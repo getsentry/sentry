@@ -58,10 +58,10 @@ const CronsStatusText: Record<
  */
 export default function CombinedAlertBadge({rule}: Props) {
   if (rule.type === CombinedAlertType.UPTIME) {
-    const {statusText, incidentStatus} = UptimeStatusText[rule.status];
+    const {statusText, incidentStatus} = UptimeStatusText[rule.uptimeStatus];
     return (
       <Tooltip title={tct('Uptime Alert Status: [statusText]', {statusText})}>
-        <AlertBadge status={incidentStatus} />
+        <AlertBadge status={incidentStatus} isDisabled={rule.status === 'disabled'} />
       </Tooltip>
     );
   }

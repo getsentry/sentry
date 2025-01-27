@@ -320,12 +320,23 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         group.type = MetricIssuePOC.type_id
         group.save()
 
+        alert_rule = self.create_alert_rule(
+            organization=self.organization,
+            projects=[self.project],
+            name="Test Alert Rule",
+        )
+        time = timezone.now() - timedelta(seconds=alert_rule.snuba_query.time_window)
+
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
-        assert response.data["openPeriods"] == [
-            {"start": group.first_seen, "end": None, "duration": None, "isOpen": True}
-        ]
-
+        open_periods = response.data["openPeriods"]
+        assert len(open_periods) == 1
+        open_period = open_periods[0]
+        assert open_period["start"] == group.first_seen
+        assert open_period["end"] is None
+        assert open_period["duration"] is None
+        assert open_period["isOpen"] is True
+        assert open_period["lastChecked"] > time
 
 class GroupUpdateTest(APITestCase):
     def test_resolve(self) -> None:

@@ -114,7 +114,6 @@ from sentry.utils import json
 from sentry.workflow_engine.models import (
     Action,
     AlertRuleDetector,
-    AlertRuleTriggerDataCondition,
     AlertRuleWorkflow,
     DataConditionGroup,
 )
@@ -662,12 +661,6 @@ class ExhaustiveFixtures(Fixtures):
             condition_group=notification_condition_group,
         )
 
-        data_condition = self.create_data_condition(
-            comparison=75,
-            condition_result=True,
-            condition_group=notification_condition_group,
-        )
-
         self.create_workflow_data_condition_group(
             workflow=workflow, condition_group=notification_condition_group
         )
@@ -693,9 +686,6 @@ class ExhaustiveFixtures(Fixtures):
 
         AlertRuleDetector.objects.create(detector=detector, alert_rule=alert)
         AlertRuleWorkflow.objects.create(workflow=workflow, alert_rule=alert)
-        AlertRuleTriggerDataCondition.objects.create(
-            alert_rule_trigger=trigger, data_condition=data_condition
-        )
         ActionGroupStatus.objects.create(action=send_notification_action, group=group)
 
         TempestCredentials.objects.create(

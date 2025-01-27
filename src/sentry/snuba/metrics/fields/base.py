@@ -3,7 +3,7 @@ from __future__ import annotations
 import copy
 import inspect
 from abc import ABC, abstractmethod
-from collections.abc import Callable, Collection, Iterable, Mapping, MutableMapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, MutableMapping, Sequence
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, Deque, Optional, Union
@@ -659,13 +659,6 @@ class MetricExpressionBase(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def generate_available_operations(self) -> Collection[MetricOperation]:
-        """
-        Method that generate the available operations for an instance of DerivedMetric
-        """
-        raise NotImplementedError
-
-    @abstractmethod
     def run_post_query_function(
         self,
         data: SnubaDataType,
@@ -818,9 +811,6 @@ class MetricExpression(MetricExpressionDefinition, MetricExpressionBase):
                 direction,
             )
         ]
-
-    def generate_available_operations(self) -> Collection[MetricOperationType]:
-        return []
 
     def generate_default_null_values(self) -> int | list[tuple[float]] | None:
         return self.metric_operation.get_default_null_values()
@@ -1126,9 +1116,6 @@ class SingularEntityDerivedMetric(DerivedMetricExpression):
             pass
         return default_null_value
 
-    def generate_available_operations(self) -> Collection[MetricOperation]:
-        return []
-
     def run_post_query_function(
         self,
         data: SnubaDataType,
@@ -1219,9 +1206,6 @@ class CompositeEntityDerivedMetric(DerivedMetricExpression):
         return self.__recursively_generate_singular_entity_constituents(
             projects=projects, derived_metric_obj=self, use_case_id=use_case_id
         )
-
-    def generate_available_operations(self) -> Collection[MetricOperation]:
-        return []
 
     @classmethod
     def __recursively_generate_singular_entity_constituents(
