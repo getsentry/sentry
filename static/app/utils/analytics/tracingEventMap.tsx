@@ -98,6 +98,9 @@ export type TracingEventParameters = {
     source: 'trace explorer' | 'new explore';
   };
   'trace_explorer.remove_span_condition': {};
+  'trace_explorer.save_as': {
+    save_type: 'alert' | 'dashboard';
+  };
   'trace_explorer.search_failure': {
     error: string;
     queries: string[];
@@ -166,4 +169,5 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace.preferences.autogrouping_change': 'Changed Autogrouping Preference',
   'trace.preferences.missing_instrumentation_change':
     'Changed Missing Instrumentation Preference',
+  'trace_explorer.save_as': 'Trace Explorer: Save As',
 };
