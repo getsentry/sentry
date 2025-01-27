@@ -67,6 +67,20 @@ def backfill_seer_grouping_records_for_project(
     child tasks that will pass the last_processed_group_id
     """
 
+    # This is our first time through
+    if last_processed_project_id is None:
+        logger.info(
+            "backfill_seer_grouping_records.backfill_start",
+            extra={
+                "project_id": current_project_id,
+                "cohort": cohort,
+                "only_delete": only_delete,
+                "skip_processed_projects": skip_processed_projects,
+                "skip_project_ids": skip_project_ids,
+                "worker_number": worker_number,
+            },
+        )
+
     if cohort is None and worker_number is not None:
         cohort = create_project_cohort(
             worker_number, skip_processed_projects, last_processed_project_id
@@ -127,6 +141,7 @@ def backfill_seer_grouping_records_for_project(
             skip_processed_projects=skip_processed_projects,
             skip_project_ids=skip_project_ids,
             worker_number=worker_number,
+            last_processed_project_id=current_project_id,
         )
         return
 
@@ -173,6 +188,7 @@ def backfill_seer_grouping_records_for_project(
             skip_processed_projects=skip_processed_projects,
             skip_project_ids=skip_project_ids,
             worker_number=worker_number,
+            last_processed_project_id=current_project_id,
         )
         return
 
@@ -192,6 +208,7 @@ def backfill_seer_grouping_records_for_project(
             skip_processed_projects=skip_processed_projects,
             skip_project_ids=skip_project_ids,
             worker_number=worker_number,
+            last_processed_project_id=current_project_id,
         )
         return
 
@@ -212,6 +229,7 @@ def backfill_seer_grouping_records_for_project(
             skip_processed_projects=skip_processed_projects,
             skip_project_ids=skip_project_ids,
             worker_number=worker_number,
+            last_processed_project_id=current_project_id,
         )
         return
 
@@ -241,6 +259,7 @@ def backfill_seer_grouping_records_for_project(
             skip_processed_projects=skip_processed_projects,
             skip_project_ids=skip_project_ids,
             worker_number=worker_number,
+            last_processed_project_id=current_project_id,
         )
         return
 
@@ -294,6 +313,7 @@ def backfill_seer_grouping_records_for_project(
         skip_processed_projects=skip_processed_projects,
         skip_project_ids=skip_project_ids,
         worker_number=worker_number,
+        last_processed_project_id=current_project_id,
     )
 
 
