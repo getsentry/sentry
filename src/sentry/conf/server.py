@@ -1885,9 +1885,6 @@ SENTRY_CACHE_MAX_VALUE_SIZE: int | None = None
 # 'name' in SENTRY_MANAGED_USER_FIELDS.
 SENTRY_MANAGED_USER_FIELDS = ()
 
-# Secret key for OpenAI
-OPENAI_API_KEY: str | None = None
-
 # AI Suggested Fix default model
 SENTRY_AI_SUGGESTED_FIX_MODEL: str = os.getenv("SENTRY_AI_SUGGESTED_FIX_MODEL", "gpt-4o-mini")
 
