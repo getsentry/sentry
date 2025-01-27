@@ -1,4 +1,3 @@
-from collections.abc import Callable
 from typing import Literal
 
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
@@ -10,10 +9,14 @@ from sentry.search.eap.columns import (
     ColumnDefinitions,
     FunctionDefinition,
     ResolvedColumn,
+    VirtualColumnDefinition,
     datetime_processor,
+    project_context_constructor,
+    project_term_resolver,
     simple_measurements_field,
     simple_sentry_field,
 )
+from sentry.search.eap.common_columns import COMMON_COLUMNS
 from sentry.search.events.constants import SPAN_MODULE_CATEGORY_VALUES
 from sentry.search.events.types import SnubaParams
 from sentry.search.utils import DEVICE_CLASS
@@ -21,7 +24,8 @@ from sentry.utils.validators import is_event_id, is_span_id
 
 SPAN_ATTRIBUTE_DEFINITIONS = {
     column.public_alias: column
-    for column in [
+    for column in COMMON_COLUMNS
+    + [
         ResolvedColumn(
             public_alias="id",
             internal_name="sentry.span_id",
@@ -33,24 +37,6 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             internal_name="sentry.parent_span_id",
             search_type="string",
             validator=is_span_id,
-        ),
-        ResolvedColumn(
-            public_alias="organization.id",
-            internal_name="sentry.organization_id",
-            search_type="string",
-        ),
-        ResolvedColumn(
-            public_alias="project.id",
-            internal_name="sentry.project_id",
-            internal_type=constants.INT,
-            search_type="string",
-        ),
-        ResolvedColumn(
-            public_alias="project_id",
-            internal_name="sentry.project_id",
-            internal_type=constants.INT,
-            search_type="string",
-            secondary_alias=True,
         ),
         ResolvedColumn(
             public_alias="span.action",
@@ -323,20 +309,6 @@ def translate_internal_to_public_alias(
     return mappings.get(internal_alias)
 
 
-def project_context_constructor(column_name: str) -> Callable[[SnubaParams], VirtualColumnContext]:
-    def context_constructor(params: SnubaParams) -> VirtualColumnContext:
-        return VirtualColumnContext(
-            from_column_name="sentry.project_id",
-            to_column_name=column_name,
-            value_map={
-                str(project_id): project_name
-                for project_id, project_name in params.project_id_map.items()
-            },
-        )
-
-    return context_constructor
-
-
 def device_class_context_constructor(params: SnubaParams) -> VirtualColumnContext:
     # EAP defaults to lower case `unknown`, but in querybuilder we used `Unknown`
     value_map = {"": "Unknown"}
@@ -360,12 +332,22 @@ def module_context_constructor(params: SnubaParams) -> VirtualColumnContext:
 
 
 SPAN_VIRTUAL_CONTEXTS = {
-    "project": project_context_constructor("project"),
-    "project.slug": project_context_constructor("project.slug"),
-    "project.name": project_context_constructor("project.name"),
-    "device.class": device_class_context_constructor,
-    "span.module": module_context_constructor,
+    "device.class": VirtualColumnDefinition(
+        constructor=device_class_context_constructor,
+        filter_column="sentry.device.class",
+        # TODO: need to change this so the VCC is using it too, but would require rewriting the term_resolver
+        default_value="Unknown",
+    ),
+    "span.module": VirtualColumnDefinition(
+        constructor=module_context_constructor,
+    ),
 }
+for key in constants.PROJECT_FIELDS:
+    SPAN_VIRTUAL_CONTEXTS[key] = VirtualColumnDefinition(
+        constructor=project_context_constructor(key),
+        term_resolver=project_term_resolver,
+        filter_column="project.id",
+    )
 
 
 SPAN_FUNCTION_DEFINITIONS = {
@@ -590,7 +572,8 @@ SPAN_FUNCTION_DEFINITIONS = {
     ),
     "count_unique": FunctionDefinition(
         internal_function=Function.FUNCTION_UNIQ,
-        default_search_type="number",
+        default_search_type="integer",
+        infer_search_type_from_arguments=False,
         arguments=[
             ArgumentDefinition(
                 argument_types={"string"},

@@ -185,7 +185,7 @@ class DetectorSerializer(Serializer):
     def serialize(self, obj: Detector, attrs: Mapping[str, Any], user, **kwargs) -> dict[str, Any]:
         return {
             "id": str(obj.id),
-            "organizationId": str(obj.organization_id),
+            "projectId": str(obj.project_id),
             "name": obj.name,
             "type": obj.type,
             "dateCreated": obj.date_added,
@@ -224,12 +224,12 @@ class WorkflowSerializer(Serializer):
             dcg_map[wdcg.workflow_id].append(serialized_condition_groups[wdcg.condition_group_id])
 
         for item in item_list:
-            attrs[item]["trigger_condition_group"] = trigger_condition_map.get(
+            attrs[item]["triggers"] = trigger_condition_map.get(
                 item.when_condition_group_id
             )  # when condition group
-            attrs[item]["data_condition_groups"] = dcg_map.get(
+            attrs[item]["actionFilters"] = dcg_map.get(
                 item.id, []
-            )  # data condition groups associated with workflow via WorkflowDataConditionGroup lookup table
+            )  # The data condition groups for filtering actions
         return attrs
 
     def serialize(self, obj: Workflow, attrs: Mapping[str, Any], user, **kwargs) -> dict[str, Any]:
@@ -238,8 +238,8 @@ class WorkflowSerializer(Serializer):
             "organizationId": str(obj.organization_id),
             "dateCreated": obj.date_added,
             "dateUpdated": obj.date_updated,
-            "triggerConditionGroup": attrs.get("trigger_condition_group"),
-            "dataConditionGroups": attrs.get("data_condition_groups"),
+            "triggers": attrs.get("triggers"),
+            "actionFilters": attrs.get("actionFilters"),
             "environment": obj.environment.name if obj.environment else None,
             "config": obj.config,
         }

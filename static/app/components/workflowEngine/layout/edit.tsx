@@ -41,6 +41,7 @@ const Body = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(3)};
+  flex-grow: 1;
 `;
 
 const ChartContainer = styled('div')`

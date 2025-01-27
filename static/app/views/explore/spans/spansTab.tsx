@@ -37,6 +37,7 @@ import {
   SpanTagsProvider,
   useSpanTags,
 } from 'sentry/views/explore/contexts/spanTagsContext';
+import {useAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {useExploreAggregatesTable} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import {useExploreSpansTable} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import {useExploreTimeseries} from 'sentry/views/explore/hooks/useExploreTimeseries';
@@ -99,6 +100,7 @@ export function SpansTabContentImpl({
   });
   const tracesTableResult = useExploreTracesTable({
     query,
+    limit,
     enabled: queryType === 'traces',
   });
   const {timeseriesResult, canUsePreviousResults} = useExploreTimeseries({query});
@@ -121,6 +123,14 @@ export function SpansTabContentImpl({
         ? tracesTableResult.result.error?.message ?? ''
         : spansTableResult.result.error?.message ?? '';
   const chartError = timeseriesResult.error?.message ?? '';
+
+  useAnalytics({
+    queryType,
+    aggregatesTableResult,
+    spansTableResult,
+    tracesTableResult,
+    timeseriesResult,
+  });
 
   return (
     <Body>
@@ -164,7 +174,9 @@ export function SpansTabContentImpl({
                   }
                 : undefined
             }
-            supportedAggregates={ALLOWED_EXPLORE_VISUALIZE_AGGREGATES}
+            supportedAggregates={
+              mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES
+            }
             numberTags={numberTags}
             stringTags={stringTags}
           />

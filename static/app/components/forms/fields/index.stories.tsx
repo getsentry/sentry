@@ -41,6 +41,15 @@ export default storyBook(Form, story => {
           help="This is a number input"
           name="myNumberInput"
         />
+        <NumberField
+          label="My Number Input with units"
+          help="This is a number input with units"
+          name="myNumberInputWithUnits"
+          placeholder={0}
+          min={0}
+          step={50}
+          suffix="ms"
+        />
         <EmailField
           label="My Email Input"
           help="This is a email input"

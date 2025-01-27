@@ -84,6 +84,7 @@ api_docs: &api_docs
 backend_any_type: &backend_any_type
   - *backend_all
   - *api_docs
+  - 'devservices/**'
 
 migrations_added:
   - added:
