@@ -44,7 +44,7 @@ def run_table_query(
     referrer: str,
     config: SearchResolverConfig,
     search_resolver: SearchResolver | None = None,
-):
+) -> EAPResponse:
     return rpc_dataset_common.run_table_query(
         query_string,
         selected_columns,
