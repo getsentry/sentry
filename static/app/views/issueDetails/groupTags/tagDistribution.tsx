@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useEffect, useState} from 'react';
 import {useRef} from 'react';
 import styled from '@emotion/styled';
 import Color from 'color';
@@ -45,6 +45,14 @@ export function TagDistribution({tag, groupId}: {groupId: string; tag: GroupTag}
       hoverTimeoutRef.current = undefined;
     }
   };
+
+  useEffect(() => {
+    return () => {
+      if (hoverTimeoutRef.current) {
+        window.clearTimeout(hoverTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return (
     <div>
