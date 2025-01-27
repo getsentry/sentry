@@ -34,7 +34,7 @@ from sentry.organizations.services.organization import (
     RpcUserOrganizationContext,
     organization_service,
 )
-from sentry.search.events.constants import TIMEOUT_ERROR_MESSAGE
+from sentry.search.events.constants import TIMEOUT_ERROR_MESSAGE, TIMEOUT_RPC_ERROR_MESSAGE
 from sentry.search.events.types import SnubaParams
 from sentry.search.utils import InvalidQuery, parse_datetime_string
 from sentry.silo.base import SiloMode
@@ -373,7 +373,7 @@ def handle_query_errors() -> Generator[None]:
         arg = error.args[0] if len(error.args) > 0 else None
         if isinstance(arg, TimeoutError):
             sentry_sdk.set_tag("query.error_reason", "Timeout")
-            raise ParseError(detail=TIMEOUT_ERROR_MESSAGE)
+            raise ParseError(detail=TIMEOUT_RPC_ERROR_MESSAGE)
         raise APIException(detail=message)
     except SnubaError as error:
         message = "Internal error. Please try again."
