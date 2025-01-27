@@ -1,7 +1,5 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -14,7 +12,6 @@ import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {useGroupTags} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 import {EventGraph} from 'sentry/views/issueDetails/streamline/eventGraph';
 import {
   EventSearch,
@@ -23,8 +20,6 @@ import {
 import IssueTagsPreview from 'sentry/views/issueDetails/streamline/issueTagsPreview';
 import {ToggleSidebar} from 'sentry/views/issueDetails/streamline/sidebar/toggleSidebar';
 import {TimelineSummary} from 'sentry/views/issueDetails/streamline/timelineSummary';
-import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
-import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
 export function EventDetailsHeader({
@@ -40,14 +35,8 @@ export function EventDetailsHeader({
   const location = useLocation();
   const environments = useEnvironmentsFromUrl();
   const searchQuery = useEventQuery({groupId: group.id});
-  const {baseUrl} = useGroupDetailsRoute();
 
   const issueTypeConfig = getConfigForIssueType(group, project);
-
-  const {data: tags} = useGroupTags({
-    groupId: group.id,
-    environment: environments,
-  });
 
   if (!issueTypeConfig.header.filterAndSearch.enabled) {
     return null;
@@ -95,25 +84,12 @@ export function EventDetailsHeader({
         </Flex>
         <GraphSection>
           <EventGraph event={event} group={group} style={{flex: 1}} />
-          {issueTypeConfig.header.tagDistribution.enabled && (
-            <Fragment>
-              <SectionDivider />
-              <IssueTagsPreview groupId={group.id} environments={environments} />
-              <IssueTagsButton
-                aria-label={t('View issue tag distributions')}
-                to={{
-                  pathname: `${baseUrl}${TabPaths[Tab.TAGS]}`,
-                  query: location.query,
-                  replace: true,
-                }}
-                analyticsEventKey="issue_details.issue_tags_clicked"
-                analyticsEventName="Issue Details: Issue Tags Clicked"
-                disabled={!tags || tags.length === 0}
-              >
-                {t('All Tags')}
-              </IssueTagsButton>
-            </Fragment>
-          )}
+          <SectionDivider />
+          <IssueTagsPreview
+            groupId={group.id}
+            environments={environments}
+            project={project}
+          />
         </GraphSection>
         <TimelineSection group={group} />
       </FilterContainer>
@@ -177,18 +153,6 @@ const TimelineSection = styled(TimelineSummary)`
   padding: ${space(2)};
   padding-right: 0;
   border-top: 1px solid ${p => p.theme.translucentBorder};
-`;
-
-const IssueTagsButton = styled(LinkButton)`
-  display: block;
-  flex: 0;
-  height: unset;
-  margin: ${space(1)} ${space(2)} ${space(1)} ${space(1)};
-  padding: ${space(1)} ${space(1.5)};
-  text-align: center;
-  span {
-    white-space: unset;
-  }
 `;
 
 const SectionDivider = styled('div')`

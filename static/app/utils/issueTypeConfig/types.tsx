@@ -120,6 +120,10 @@ export type IssueTypeConfig = {
    */
   showFeedbackWidget: boolean;
   /**
+   * showOpenPeriods
+   */
+  showOpenPeriods: boolean;
+  /**
    * Is the Similar Issues tab shown for this issue
    */
   similarIssues: DisabledWithReasonConfig;
@@ -140,6 +144,10 @@ export type IssueTypeConfig = {
    * Is the Tags tab show for this issue
    */
   tagsTab: DisabledWithReasonConfig;
+  /**
+   * Whether to use open periods for the last checked date
+   */
+  useOpenPeriodChecks: boolean;
   /**
    * Is the User Feedback tab shown for this issue
    */

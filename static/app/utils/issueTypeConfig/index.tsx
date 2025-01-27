@@ -57,6 +57,7 @@ const BASE_CONFIG: IssueTypeConfig = {
   regression: {enabled: false},
   replays: {enabled: false},
   showFeedbackWidget: false,
+  showOpenPeriods: false,
   similarIssues: {enabled: false},
   spanEvidence: {enabled: false},
   stacktrace: {enabled: true},
@@ -69,6 +70,7 @@ const BASE_CONFIG: IssueTypeConfig = {
   resources: null,
   usesIssuePlatform: true,
   issueSummary: {enabled: false},
+  useOpenPeriodChecks: false,
 };
 
 const issueTypeConfig: Config = {

@@ -35,6 +35,7 @@ const cronConfig: IssueCategoryConfigMapping = {
     userFeedback: {enabled: false},
     usesIssuePlatform: true,
     issueSummary: {enabled: false},
+    showOpenPeriods: true,
   },
 };
 

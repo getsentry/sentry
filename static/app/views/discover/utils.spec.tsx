@@ -13,7 +13,11 @@ import type {Organization} from 'sentry/types/organization';
 import type {EventViewOptions} from 'sentry/utils/discover/eventView';
 import EventView from 'sentry/utils/discover/eventView';
 import {DisplayModes} from 'sentry/utils/discover/types';
-import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {
+  DashboardWidgetSource,
+  DisplayType,
+  WidgetType,
+} from 'sentry/views/dashboards/types';
 import {
   constructAddQueryToDashboardLink,
   decodeColumnOrder,
@@ -939,6 +943,7 @@ describe('constructAddQueryToDashboardLink', function () {
         eventView,
         organization,
         location,
+        source: DashboardWidgetSource.DISCOVERV2,
         yAxis: ['count()', 'count_unique(user)'],
         widgetType: WidgetType.TRANSACTIONS,
       });
@@ -955,6 +960,7 @@ describe('constructAddQueryToDashboardLink', function () {
         dataset: WidgetType.TRANSACTIONS,
         displayType: DisplayType.AREA,
         yAxis: ['count()', 'count_unique(user)'],
+        source: DashboardWidgetSource.DISCOVERV2,
       });
     });
     it('should construct a link with the correct params - topN', function () {
@@ -969,6 +975,7 @@ describe('constructAddQueryToDashboardLink', function () {
         eventView,
         organization,
         location,
+        source: DashboardWidgetSource.DISCOVERV2,
         yAxis: ['count()'],
         widgetType: WidgetType.TRANSACTIONS,
       });
@@ -985,6 +992,7 @@ describe('constructAddQueryToDashboardLink', function () {
         displayType: DisplayType.AREA,
         yAxis: ['count()'],
         limit: 5,
+        source: DashboardWidgetSource.DISCOVERV2,
       });
     });
     it('should construct a link with the correct params - daily top N', function () {
@@ -999,6 +1007,7 @@ describe('constructAddQueryToDashboardLink', function () {
         eventView,
         organization,
         location,
+        source: DashboardWidgetSource.DISCOVERV2,
         yAxis: ['count()'],
         widgetType: WidgetType.TRANSACTIONS,
       });
@@ -1015,6 +1024,7 @@ describe('constructAddQueryToDashboardLink', function () {
         displayType: DisplayType.BAR,
         yAxis: ['count()'],
         limit: 5,
+        source: DashboardWidgetSource.DISCOVERV2,
       });
     });
   });
@@ -1045,6 +1055,7 @@ describe('handleAddQueryToDashboard', function () {
       router,
       widgetType: WidgetType.TRANSACTIONS,
       yAxis: ['count()'],
+      source: DashboardWidgetSource.DISCOVERV2,
     });
     expect(mockedOpenAddToDashboardModal).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -1081,6 +1092,7 @@ describe('handleAddQueryToDashboard', function () {
       organization,
       location,
       router,
+      source: DashboardWidgetSource.DISCOVERV2,
       widgetType: WidgetType.TRANSACTIONS,
       yAxis: ['count()'],
     });
@@ -1118,6 +1130,7 @@ describe('handleAddQueryToDashboard', function () {
       organization,
       location,
       router,
+      source: DashboardWidgetSource.DISCOVERV2,
       widgetType: WidgetType.TRANSACTIONS,
       yAxis: ['count()', 'count_unique(user)'],
     });
@@ -1162,6 +1175,7 @@ describe('handleAddQueryToDashboard', function () {
         organization,
         location,
         router,
+        source: DashboardWidgetSource.DISCOVERV2,
         widgetType: WidgetType.TRANSACTIONS,
         yAxis: ['count()'],
       });
@@ -1184,6 +1198,9 @@ describe('handleAddQueryToDashboard', function () {
             limit: undefined,
             widgetType: WidgetType.TRANSACTIONS,
           },
+          widgetAsQueryParams: expect.objectContaining({
+            source: DashboardWidgetSource.DISCOVERV2,
+          }),
         })
       );
     });
@@ -1200,6 +1217,7 @@ describe('handleAddQueryToDashboard', function () {
         organization,
         location,
         router,
+        source: DashboardWidgetSource.DISCOVERV2,
         widgetType: WidgetType.TRANSACTIONS,
         yAxis: ['count()'],
       });
@@ -1222,6 +1240,9 @@ describe('handleAddQueryToDashboard', function () {
             limit: 5,
             widgetType: WidgetType.TRANSACTIONS,
           },
+          widgetAsQueryParams: expect.objectContaining({
+            source: DashboardWidgetSource.DISCOVERV2,
+          }),
         })
       );
     });
@@ -1237,6 +1258,7 @@ describe('handleAddQueryToDashboard', function () {
         organization,
         location,
         router,
+        source: DashboardWidgetSource.DISCOVERV2,
         widgetType: WidgetType.TRANSACTIONS,
         yAxis: ['count()', 'count_unique(user)'],
       });
@@ -1259,6 +1281,9 @@ describe('handleAddQueryToDashboard', function () {
             limit: undefined,
             widgetType: WidgetType.TRANSACTIONS,
           },
+          widgetAsQueryParams: expect.objectContaining({
+            source: DashboardWidgetSource.DISCOVERV2,
+          }),
         })
       );
     });

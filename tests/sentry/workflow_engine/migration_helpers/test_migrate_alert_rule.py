@@ -55,7 +55,6 @@ def assert_alert_rule_migrated(alert_rule, project_id):
 
     workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
     assert workflow.name == alert_rule.name
-    assert alert_rule.organization
     assert workflow.organization_id == alert_rule.organization.id
     detector = Detector.objects.get(id=alert_rule_detector.detector.id)
     assert detector.name == alert_rule.name
