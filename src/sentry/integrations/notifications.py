@@ -47,10 +47,11 @@ def _get_channel_and_integration_by_user(
         # recipients.
         return {}
 
-    identity_id_to_idp = {
-        identity.id: identity_service.get_provider(provider_id=identity.idp_id)
-        for identity in identities
-    }
+    identity_id_to_idp = {}
+    for identity in identities:
+        idp = identity_service.get_provider(provider_id=identity.idp_id)
+        if idp is not None:
+            identity_id_to_idp[identity.id] = idp
 
     all_integrations = integration_service.get_integrations(
         organization_id=organization.id,
@@ -76,7 +77,7 @@ def _get_channel_and_integration_by_user(
 
 def _get_channel_and_integration_by_team(
     team_id: int, organization: Organization, provider: ExternalProviders
-) -> Mapping[str, RpcIntegration]:
+) -> dict[str, RpcIntegration]:
     org_integrations = integration_service.get_organization_integrations(
         status=ObjectStatus.ACTIVE, organization_id=organization.id
     )
@@ -94,7 +95,7 @@ def _get_channel_and_integration_by_team(
     integration = integration_service.get_integration(
         integration_id=external_actor.integration_id, status=ObjectStatus.ACTIVE
     )
-    if not integration:
+    if integration is None or external_actor.external_id is None:
         return {}
     return {external_actor.external_id: integration}
 

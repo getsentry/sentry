@@ -89,7 +89,11 @@ export function createNavConfig({organization}: {organization: Organization}): N
             to: `/${prefix}/traces/`,
             feature: {features: 'performance-trace-explorer'},
           },
-
+          {
+            label: t('Logs'),
+            to: `/${prefix}/explore/logs/`,
+            feature: {features: 'ourlogs-enabled'},
+          },
           {
             label: t('Profiles'),
             to: `/${prefix}/profiling/`,

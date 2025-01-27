@@ -1889,6 +1889,14 @@ function buildRoutes() {
     </Route>
   );
 
+  const exploreRoutes = (
+    <Route
+      path="/explore/logs"
+      component={make(() => import('sentry/views/explore/logs'))}
+      withOrgPath
+    />
+  );
+
   const userFeedbackRoutes = (
     <Route
       path="/user-feedback/"
@@ -1944,6 +1952,12 @@ function buildRoutes() {
         <Route
           path={TabPaths[Tab.EVENTS]}
           component={hoc(make(() => import('sentry/views/issueDetails/groupEvents')))}
+        />
+        <Route
+          path={TabPaths[Tab.OPEN_PERIODS]}
+          component={hoc(
+            make(() => import('sentry/views/issueDetails/groupOpenPeriods'))
+          )}
         />
         <Route
           path={TabPaths[Tab.TAGS]}
@@ -2291,6 +2305,7 @@ function buildRoutes() {
       {performanceRoutes}
       {domainViewRoutes}
       {tracesRoutes}
+      {exploreRoutes}
       {llmMonitoringRedirects}
       {profilingRoutes}
       {gettingStartedRoutes}

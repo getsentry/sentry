@@ -4,7 +4,7 @@ import hashlib
 import hmac
 import logging
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, TypedDict
 
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
@@ -40,6 +40,12 @@ class NoCommitFoundError(IntegrationError):
 
 class MissingRepositoryError(IntegrationError):
     pass
+
+
+class _ReleasePayload(TypedDict):
+    version: str
+    projects: list[str]
+    refs: list[dict[str, str]]
 
 
 def verify_signature(request):
@@ -95,7 +101,7 @@ def get_repository(meta: Mapping[str, str]) -> str:
 
 def get_payload_and_token(
     payload: Mapping[str, Any], organization_id: int, sentry_project_id: int
-) -> tuple[Mapping[str, Any], str]:
+) -> tuple[_ReleasePayload, str]:
     meta = payload["deployment"]["meta"]
 
     # look up the project so we can get the slug
@@ -121,7 +127,7 @@ def get_payload_and_token(
     commit_sha = get_commit_sha(meta)
     repository = get_repository(meta)
 
-    release_payload = {
+    release_payload: _ReleasePayload = {
         "version": commit_sha,
         "projects": [project.slug],
         "refs": [{"repository": repository, "commit": commit_sha}],
@@ -371,9 +377,10 @@ class VercelWebhookEndpoint(Endpoint):
                 }
                 json_error = None
 
-                # create the basic release payload without refs
-                no_ref_payload = release_payload.copy()
-                del no_ref_payload["refs"]
+                no_ref_payload = {
+                    "version": release_payload["version"],
+                    "projects": release_payload["projects"],
+                }
 
                 with http.build_session() as session:
                     try:

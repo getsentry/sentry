@@ -212,7 +212,7 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
     <FilterWrapper
       aria-label={token.text}
       aria-invalid={tokenHasError}
-      state={tokenHasError ? 'invalid' : tokenHasWarning ? 'warning' : 'valid'}
+      state={tokenHasWarning ? 'warning' : tokenHasError ? 'invalid' : 'valid'}
       ref={ref}
       {...modifiedRowProps}
     >

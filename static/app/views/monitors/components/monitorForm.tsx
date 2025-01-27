@@ -431,7 +431,7 @@ function MonitorForm({
                   DEFAULT_MAX_RUNTIME
                 )}
                 help={t(
-                  'Number of a minutes before an in-progress check-in is marked timed out.'
+                  'Number of minutes before an in-progress check-in is marked timed out.'
                 )}
                 label={t('Max Runtime')}
               />
