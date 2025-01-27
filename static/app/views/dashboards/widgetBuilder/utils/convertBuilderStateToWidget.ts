@@ -55,10 +55,12 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
       aggregates: aggregates ?? [],
       columns: columns ?? [],
       conditions: query,
-      orderby: sort,
       fieldAliases: fieldAliases ?? [],
       name: legendAlias[index] ?? '',
       selectedAggregate: state.selectedAggregate,
+
+      // Big number widgets don't support sorting, so always ignore the sort state
+      orderby: state.displayType === DisplayType.BIG_NUMBER ? '' : sort,
     };
   });
 
