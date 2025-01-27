@@ -234,7 +234,10 @@ def get_current_batch_groups_from_postgres(
             "backfill_seer_grouping_records.groups_already_had_embedding",
             extra={
                 "project_id": project.id,
-                "num_groups": len(groups_to_backfill_with_no_embedding),
+                "total_batch_groups": len(groups_to_backfill_batch),
+                "groups_with_embedding": (
+                    len(groups_to_backfill_batch) - len(groups_to_backfill_with_no_embedding)
+                ),
                 "worker_number": worker_number,
             },
         )
