@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import TypedDict
+from typing import Any, TypedDict
 from urllib.parse import urlparse, urlunparse
 from uuid import uuid4
 
@@ -12,6 +12,7 @@ from requests.models import Response
 from sentry.sentry_apps.external_requests.utils import send_and_save_sentry_app_request
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.services.app.model import RpcSentryAppInstallation
+from sentry.sentry_apps.utils.errors import SentryAppErrorType
 from sentry.utils import json
 
 DEFAULT_SUCCESS_MESSAGE = "Success!"
@@ -23,6 +24,10 @@ logger = logging.getLogger("sentry.sentry_apps.external_requests")
 class AlertRuleActionResult(TypedDict):
     success: bool
     message: str
+    error_type: SentryAppErrorType | None
+    webhook_context: dict[str, Any] | None
+    public_context: dict[str, Any] | None
+    status_code: int | None
 
 
 @dataclass
@@ -45,18 +50,22 @@ class AlertRuleActionRequester:
             )
 
         except RequestException as e:
+            error_type = "alert_rule_action.error"
+            extras = {
+                "sentry_app_slug": self.sentry_app.slug,
+                "install_uuid": self.install.uuid,
+                "uri": self.uri,
+                "error_message": str(e),
+            }
             logger.info(
-                "alert_rule_action.error",
-                extra={
-                    "sentry_app_slug": self.sentry_app.slug,
-                    "install_uuid": self.install.uuid,
-                    "uri": self.uri,
-                    "error_message": str(e),
-                },
+                error_type,
+                extra={**extras},
             )
-
             return AlertRuleActionResult(
-                success=False, message=self._get_response_message(e.response, DEFAULT_ERROR_MESSAGE)
+                success=False,
+                message=self._get_response_message(e.response, DEFAULT_ERROR_MESSAGE),
+                error_type=SentryAppErrorType.INTEGRATOR,
+                webhook_context={"error_type": "alert_rule_action.error", **extras},
             )
         return AlertRuleActionResult(
             success=True, message=self._get_response_message(response, DEFAULT_SUCCESS_MESSAGE)

@@ -38,6 +38,7 @@ from sentry.sentry_apps.services.app.serial import (
     serialize_sentry_app_component,
     serialize_sentry_app_installation,
 )
+from sentry.sentry_apps.utils.errors import SentryAppErrorType
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 
@@ -254,7 +255,12 @@ class DatabaseBackedAppService(AppService):
         try:
             install = SentryAppInstallation.objects.get(uuid=install_uuid)
         except SentryAppInstallation.DoesNotExist:
-            return RpcAlertRuleActionResult(success=False, message="Installation does not exist")
+            return RpcAlertRuleActionResult(
+                success=False,
+                message="Installation does not exist",
+                error_type=SentryAppErrorType.SENTRY,
+                webhook_type={"installation_uuid": install_uuid},
+            )
         result = AlertRuleActionCreator(install=install, fields=fields).run()
         return RpcAlertRuleActionResult(success=result["success"], message=result["message"])
 
