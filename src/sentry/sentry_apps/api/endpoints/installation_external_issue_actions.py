@@ -33,7 +33,7 @@ def _extract_lazy_object(lo):
     return lo._wrapped
 
 
-class SentryAppInstallationExternalIssueActionsSerializer(serializers.Serizlizer):
+class SentryAppInstallationExternalIssueActionsSerializer(serializers.Serializer):
     groupId = serializers.CharField(required=True, allow_null=False)
     action = serializers.CharField(required=True, allow_null=False)
     uri = serializers.CharField(required=True, allow_null=False)
@@ -49,7 +49,9 @@ class SentryAppInstallationExternalIssueActionsEndpoint(SentryAppInstallationBas
     def post(self, request: Request, installation) -> Response:
         data = request.data.copy()
 
-        external_issue_action_serializer = SentryAppInstallationExternalIssueActionsSerializer(data)
+        external_issue_action_serializer = SentryAppInstallationExternalIssueActionsSerializer(
+            data=data
+        )
 
         if not external_issue_action_serializer.is_valid():
             return Response(external_issue_action_serializer.errors, status=400)

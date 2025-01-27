@@ -79,7 +79,7 @@ class SelectRequester:
             raise SentryAppIntegratorError(
                 message=f"Something went wrong while getting options for Select FormField from {self.sentry_app.slug}",
                 webhook_context={"error_type": message, **extra},
-                status_code=503,
+                status_code=500,
             ) from e
 
         if not self._validate_response(response):
@@ -139,7 +139,7 @@ class SelectRequester:
                         "error_type": "select-requester.missing-fields",
                         "response": resp,
                     },
-                    status_code=503,
+                    status_code=500,
                 )
 
             choices.append([option["value"], option["label"]])

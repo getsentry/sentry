@@ -82,7 +82,7 @@ class IssueLinkRequester:
                     "response": body,
                     "installation_uuid": self.install.uuid,
                 },
-                status_code=503,
+                status_code=500,
             )
         except RequestException as e:
             error_type = "issue-link-requester.error"
@@ -98,7 +98,7 @@ class IssueLinkRequester:
             raise SentryAppIntegratorError(
                 message=f"Issue occured while trying to contact {self.sentry_app.slug} to link issue",
                 webhook_context={"error_type": error_type, **extras},
-                status_code=503,
+                status_code=500,
             )
 
         if not self._validate_response(response):
@@ -110,7 +110,7 @@ class IssueLinkRequester:
                     "installation_uuid": self.install.uuid,
                     "uri": self.uri,
                 },
-                status_code=503,
+                status_code=500,
             )
 
         return response
