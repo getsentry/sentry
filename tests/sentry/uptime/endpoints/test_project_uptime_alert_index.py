@@ -2,7 +2,9 @@ from unittest import mock
 
 from rest_framework.exceptions import ErrorDetail
 
+from sentry.constants import ObjectStatus
 from sentry.models.environment import Environment
+from sentry.quotas.base import SeatAssignmentResult
 from sentry.uptime.endpoints.validators import MAX_REQUEST_SIZE_BYTES
 from sentry.uptime.models import ProjectUptimeSubscription, ProjectUptimeSubscriptionMode
 from tests.sentry.uptime.endpoints import UptimeAlertBaseEndpointTest
@@ -277,3 +279,21 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
                 timeout_ms=1000,
                 owner=f"user:{self.user.id}",
             )
+
+    @mock.patch(
+        "sentry.quotas.backend.check_assign_seat",
+        return_value=SeatAssignmentResult(assignable=False, reason="Testing"),
+    )
+    def test_no_seat_assignment(self, _mock_check_assign_seat):
+        resp = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            environment=self.environment.name,
+            name="test",
+            url="http://sentry.io",
+            interval_seconds=60,
+            timeout_ms=1000,
+            owner=f"user:{self.user.id}",
+        )
+        uptime_monitor = ProjectUptimeSubscription.objects.get(id=resp.data["id"])
+        assert uptime_monitor.status == ObjectStatus.DISABLED
