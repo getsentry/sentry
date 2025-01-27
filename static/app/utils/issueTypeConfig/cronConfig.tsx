@@ -25,7 +25,7 @@ const cronConfig: IssueCategoryConfigMapping = {
     header: {
       filterAndSearch: {enabled: false},
       tagDistribution: {enabled: false},
-      timelineSummary: {enabled: true},
+      timelineSummary: {enabled: false},
     },
     attachments: {enabled: false},
     autofix: false,

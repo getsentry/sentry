@@ -74,6 +74,7 @@ export function DetectorSection({
         aria-label={issueConfig.detector.ctaText ?? t('View detector details')}
         href={`/organizations/${organization.slug}/alerts/rules/details/${alertRuleId}/`}
         style={{width: '100%'}}
+        size="sm"
       >
         {issueConfig.detector.ctaText ?? t('View detector details')}
       </LinkButton>
