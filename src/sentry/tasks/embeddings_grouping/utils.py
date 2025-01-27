@@ -336,7 +336,7 @@ def get_events_from_nodestore(
     # If nodestore returns no data
     if len(nodestore_events) == 0:
         logger.info(
-            "backfill_seer_grouping_records.no_data",
+            "backfill_seer_grouping_records.no_nodestore_events",
             extra={
                 "project_id": project.id,
                 "group_id_batch": json.dumps(groups_to_backfill_with_no_embedding_has_snuba_row),
