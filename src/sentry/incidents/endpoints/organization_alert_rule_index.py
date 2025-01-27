@@ -59,6 +59,11 @@ from sentry.monitors.models import (
     MonitorStatus,
 )
 from sentry.sentry_apps.services.app import app_service
+from sentry.sentry_apps.utils.errors import (
+    SentryAppError,
+    SentryAppIntegratorError,
+    SentryAppSentryError,
+)
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
 from sentry.uptime.models import (
@@ -123,7 +128,13 @@ class AlertRuleIndexMixin(Endpoint):
         if not serializer.is_valid():
             raise ValidationError(serializer.errors)
 
-        trigger_sentry_app_action_creators_for_incidents(serializer.validated_data)
+        try:
+            trigger_sentry_app_action_creators_for_incidents(serializer.validated_data)
+        except (SentryAppError, SentryAppIntegratorError, SentryAppSentryError) as e:
+            response = {"detail": e.message}
+            if public_context := e.public_context:
+                response.update({"context": public_context})
+            return Response(response, status=e.status_code)
         if get_slack_actions_with_async_lookups(organization, request.user, request.data):
             # need to kick off an async job for Slack
             client = RedisRuleStatus()

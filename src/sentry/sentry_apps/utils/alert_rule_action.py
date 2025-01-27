@@ -1,10 +1,12 @@
 import logging
 
-from rest_framework import serializers
-
-from sentry.coreapi import APIError
 from sentry.sentry_apps.services.app.model import RpcAlertRuleActionResult
-from sentry.sentry_apps.utils.errors import SentryAppErrorType
+from sentry.sentry_apps.utils.errors import (
+    SentryAppError,
+    SentryAppErrorType,
+    SentryAppIntegratorError,
+    SentryAppSentryError,
+)
 
 logger = logging.getLogger("sentry.sentry_apps.alert_rule_action")
 
@@ -16,13 +18,13 @@ def raise_alert_rule_action_result_errors(result: RpcAlertRuleActionResult) -> N
     error_type = SentryAppErrorType(result.error_type)
     match error_type:
         case SentryAppErrorType.INTEGRATOR:
-            raise APIError(
-                result.message,
+            raise SentryAppIntegratorError(
+                message=result.message, public_context=result.public_context
             )
         case SentryAppErrorType.CLIENT:
-            raise serializers.ValidationError(result.message)
+            raise SentryAppError(message=result.message, public_context=result.public_context)
         case SentryAppErrorType.SENTRY:
-            logger.info(
+            logger.error(
                 "create-failed",
                 extra={
                     "message_str": result.message,
@@ -30,6 +32,6 @@ def raise_alert_rule_action_result_errors(result: RpcAlertRuleActionResult) -> N
                     "public_context": result.public_context if result.public_context else None,
                 },
             )
-            raise Exception(
-                result.message,
+            raise SentryAppSentryError(
+                message="Something went wrong during the alert rule action process!",
             )

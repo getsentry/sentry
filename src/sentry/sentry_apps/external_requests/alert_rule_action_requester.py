@@ -49,6 +49,7 @@ class AlertRuleActionRequester:
             )
 
         except RequestException as e:
+
             error_type = "alert_rule_action.error"
             extras = {
                 "sentry_app_slug": self.sentry_app.slug,
@@ -60,6 +61,7 @@ class AlertRuleActionRequester:
                 error_type,
                 extra={**extras},
             )
+
             return AlertRuleActionResult(
                 success=False,
                 message=self._get_response_message(e.response, DEFAULT_ERROR_MESSAGE),

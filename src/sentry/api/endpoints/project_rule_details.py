@@ -35,6 +35,7 @@ from sentry.models.rule import NeglectedRule, RuleActivity, RuleActivityType
 from sentry.projects.project_rules.updater import ProjectRuleUpdater
 from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
 from sentry.rules.actions.utils import get_changed_data, get_updated_rule_data
+from sentry.sentry_apps.utils.errors import SentryAppError, SentryAppIntegratorError
 from sentry.signals import alert_rule_edited
 from sentry.types.actor import Actor
 from sentry.utils import metrics
@@ -285,7 +286,14 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
                 context = {"uuid": client.uuid}
                 return Response(context, status=202)
 
-            trigger_sentry_app_action_creators_for_issues(actions=kwargs["actions"])
+            try:
+                trigger_sentry_app_action_creators_for_issues(actions=kwargs["actions"])
+            except (SentryAppError, SentryAppIntegratorError) as e:
+                response = {}
+                if public_context := e.public_context:
+                    response.update({"context": public_context})
+
+                return Response(response, status=e.status_code)
 
             updated_rule = ProjectRuleUpdater(
                 rule=rule,
