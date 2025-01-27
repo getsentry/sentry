@@ -8,6 +8,7 @@ from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.token_exchange.refresher import Refresher
+from sentry.sentry_apps.token_exchange.util import SENSITIVE_CHARACTER_LIMIT
 from sentry.sentry_apps.utils.errors import SentryAppIntegratorError, SentryAppSentryError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
@@ -87,7 +88,6 @@ class TestRefresher(TestCase):
 
         assert e.value.message == "Given refresh token does not exist"
         assert e.value.webhook_context == {
-            "token": self.token.refresh_token,
             "installation_uuid": self.install.uuid,
         }
         assert e.value.public_context == {}
@@ -115,6 +115,7 @@ class TestRefresher(TestCase):
         assert e.value.webhook_context == {
             "application_id": self.orm_install.sentry_app.application.id,
             "installation_uuid": self.install.uuid,
+            "client_id": self.client_id[:SENSITIVE_CHARACTER_LIMIT],
         }
         assert e.value.public_context == {}
 

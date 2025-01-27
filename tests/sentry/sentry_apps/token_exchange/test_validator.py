@@ -47,6 +47,7 @@ class TestValidator(TestCase):
         assert e.value.webhook_context == {
             "user": self.user.name,
             "integration": self.install.sentry_app.slug,
+            "installation_uuid": self.install.uuid,
         }
         assert e.value.public_context == {}
 
