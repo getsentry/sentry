@@ -301,6 +301,20 @@ export function WidgetPreviewContainer({
                 {...attributes}
                 {...listeners}
               >
+                {!isSmallScreen && (
+                  <WidgetPreviewTitle
+                    initial={{opacity: 0, x: '50%', y: 0}}
+                    animate={{opacity: 1, x: 0, y: 0}}
+                    exit={{opacity: 0, x: '50%', y: 0}}
+                    transition={{
+                      type: 'spring',
+                      stiffness: 500,
+                      damping: 50,
+                    }}
+                  >
+                    {t('Widget Preview')}
+                  </WidgetPreviewTitle>
+                )}
                 <SampleWidgetCard
                   initial={{opacity: 0, x: '50%', y: 0}}
                   animate={{opacity: 1, x: 0, y: 0}}
@@ -483,4 +497,11 @@ const SurroundingWidgetContainer = styled('div')`
   display: flex;
   justify-content: center;
   align-items: center;
+`;
+
+const WidgetPreviewTitle = styled(motion.h5)`
+  margin-bottom: ${space(1)};
+  margin-left: ${space(1)};
+  color: ${p => p.theme.white};
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
