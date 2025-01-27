@@ -1,13 +1,36 @@
 from datetime import UTC, datetime, timedelta
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import pytest
 from django.utils import timezone
 
 from sentry.taskworker.registry import TaskRegistry
-from sentry.taskworker.scheduler import RedisRunStorage, RunStorage, ScheduleSet, TimedeltaSchedule
+from sentry.taskworker.scheduler import RunStorage, ScheduleSet, TimedeltaSchedule
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils.redis import redis_clusters
+
+
+@pytest.fixture
+def taskregistry() -> TaskRegistry:
+    registry = TaskRegistry()
+    namespace = registry.create_namespace("test")
+
+    @namespace.register(name="valid")
+    def test_func() -> None:
+        pass
+
+    @namespace.register(name="second")
+    def second_func() -> None:
+        pass
+
+    return registry
+
+
+@pytest.fixture
+def run_storage() -> RunStorage:
+    redis = redis_clusters.get("default")
+    redis.flushdb()
+    return RunStorage(redis)
 
 
 def test_timedeltaschedule_invalid() -> None:
@@ -55,22 +78,6 @@ def test_timedeltaschedule_remaining_delta() -> None:
     assert schedule.remaining_delta(ten_min_ago).total_seconds() == 0
 
 
-@pytest.fixture
-def taskregistry() -> TaskRegistry:
-    registry = TaskRegistry()
-    namespace = registry.create_namespace("test")
-
-    @namespace.register(name="valid")
-    def test_func() -> None:
-        pass
-
-    @namespace.register(name="second")
-    def second_func() -> None:
-        pass
-
-    return registry
-
-
 def test_scheduleset_add_invalid(taskregistry) -> None:
     run_storage = Mock(spec=RunStorage)
     schedule_set = ScheduleSet(registry=taskregistry, run_storage=run_storage)
@@ -84,14 +91,14 @@ def test_scheduleset_add_invalid(taskregistry) -> None:
         )
     assert "Invalid task name" in str(err)
 
-    with pytest.raises(KeyError) as err:
+    with pytest.raises(KeyError) as key_err:
         schedule_set.add(
             {
                 "task": "test:invalid",
                 "schedule": timedelta(minutes=5),
             }
         )
-    assert "No task registered" in str(err)
+    assert "No task registered" in str(key_err)
 
     with pytest.raises(ValueError) as err:
         schedule_set.add(
@@ -103,10 +110,9 @@ def test_scheduleset_add_invalid(taskregistry) -> None:
     assert "microseconds" in str(err)
 
 
-def test_scheduleset_tick_one_task_time_remaining(taskregistry) -> None:
-    run_storage = Mock(spec=RunStorage)
-    # Last run is two minutes from 'now'
-    run_storage.read.return_value = datetime(2025, 1, 24, 14, 23, 0)
+def test_scheduleset_tick_one_task_time_remaining(
+    taskregistry: TaskRegistry, run_storage: RunStorage
+) -> None:
     schedule_set = ScheduleSet(registry=taskregistry, run_storage=run_storage)
 
     schedule_set.add(
@@ -115,23 +121,52 @@ def test_scheduleset_tick_one_task_time_remaining(taskregistry) -> None:
             "schedule": timedelta(minutes=5),
         }
     )
+    # Last run was two minutes ago.
+    with freeze_time("2025-01-24 14:23:00"):
+        run_storage.set("test:valid", datetime(2025, 1, 24, 14, 28, 0, tzinfo=UTC))
 
-    with freeze_time("2025-01-24 14:25:00"):
+    namespace = taskregistry.get("test")
+    with freeze_time("2025-01-24 14:25:00"), patch.object(namespace, "send_task") as mock_send:
         sleep_time = schedule_set.tick()
         assert sleep_time == 180
+        assert mock_send.call_count == 0
 
-    assert run_storage.set.call_count == 0
+    last_run = run_storage.read("test:valid")
+    assert last_run == datetime(2025, 1, 24, 14, 23, 0, tzinfo=UTC)
 
 
-def test_scheduleset_tick_one_task_spawned(taskregistry) -> None:
+def test_scheduleset_tick_one_task_spawned(
+    taskregistry: TaskRegistry, run_storage: RunStorage
+) -> None:
     run_storage = Mock(spec=RunStorage)
-    # Last run was 5 min, 5 sec ago
-    run_storage.read.return_value = datetime(2025, 1, 24, 14, 19, 55)
+    schedule_set = ScheduleSet(registry=taskregistry, run_storage=run_storage)
+    schedule_set.add(
+        {
+            "task": "test:valid",
+            "schedule": timedelta(minutes=5),
+        }
+    )
+
+    # Last run was 5 minutes from the freeze_time below
+    run_storage.read_many.return_value = {
+        "test:valid": datetime(2025, 1, 24, 14, 19, 55),
+    }
     run_storage.set.return_value = True
 
     namespace = taskregistry.get("test")
-    namespace.send_task = Mock()
+    with freeze_time("2025-01-24 14:25:00"), patch.object(namespace, "send_task") as mock_send:
+        sleep_time = schedule_set.tick()
+        assert sleep_time == 300
+        assert mock_send.call_count == 1
 
+    assert run_storage.set.call_count == 1
+    # set() is called with the correct next_run time
+    run_storage.set.assert_called_with("test:valid", datetime(2025, 1, 24, 14, 30, 0, tzinfo=UTC))
+
+
+def test_scheduleset_tick_key_exists_no_spawn(
+    taskregistry: TaskRegistry, run_storage: RunStorage
+) -> None:
     schedule_set = ScheduleSet(registry=taskregistry, run_storage=run_storage)
     schedule_set.add(
         {
@@ -140,20 +175,30 @@ def test_scheduleset_tick_one_task_spawned(taskregistry) -> None:
         }
     )
 
-    with freeze_time("2025-01-24 14:25:00"):
+    namespace = taskregistry.get("test")
+    with patch.object(namespace, "send_task") as mock_send, freeze_time("2025-01-24 14:25:00"):
+        # Run tick() to initialize state in the scheduler. This will write a key to run_storage.
         sleep_time = schedule_set.tick()
         assert sleep_time == 300
+        assert mock_send.call_count == 1
 
-    assert run_storage.set.call_count == 1
-    assert namespace.send_task.call_count == 1
-    run_storage.set.assert_called_with("test:valid", datetime(2025, 1, 24, 14, 30, 0, tzinfo=UTC))
+    with freeze_time("2025-01-24 14:30:00"):
+        # Set a key into run_storage to simulate another scheduler running
+        run_storage.delete("test:valid")
+        assert run_storage.set("test:valid", timezone.now() + timedelta(minutes=2))
+
+    # Our scheduler would wakeup and tick again.
+    # The key exists in run_storage so we should not spawn a task.
+    # last_run time should synchronize with run_storage state, and count down from 14:30
+    with freeze_time("2025-01-24 14:30:02"):
+        sleep_time = schedule_set.tick()
+        assert sleep_time == 298
+        assert mock_send.call_count == 1
 
 
-def test_scheduleset_tick_one_task_multiple_ticks(taskregistry) -> None:
-    redis = redis_clusters.get("default")
-    redis.flushdb()
-    run_storage = RedisRunStorage(redis)
-
+def test_scheduleset_tick_one_task_multiple_ticks(
+    taskregistry: TaskRegistry, run_storage: RunStorage
+) -> None:
     schedule_set = ScheduleSet(registry=taskregistry, run_storage=run_storage)
     schedule_set.add(
         {
@@ -175,14 +220,9 @@ def test_scheduleset_tick_one_task_multiple_ticks(taskregistry) -> None:
         assert sleep_time == 120
 
 
-def test_scheduleset_tick_multiple_tasks(taskregistry) -> None:
-    redis = redis_clusters.get("default")
-    redis.flushdb()
-
-    namespace = taskregistry.get("test")
-    namespace.send_task = Mock()
-
-    run_storage = RedisRunStorage(redis)
+def test_scheduleset_tick_multiple_tasks(
+    taskregistry: TaskRegistry, run_storage: RunStorage
+) -> None:
     schedule_set = ScheduleSet(registry=taskregistry, run_storage=run_storage)
     schedule_set.add(
         {
@@ -197,23 +237,25 @@ def test_scheduleset_tick_multiple_tasks(taskregistry) -> None:
         }
     )
 
-    with freeze_time("2025-01-24 14:25:00"):
-        sleep_time = schedule_set.tick()
-        assert sleep_time == 120
+    namespace = taskregistry.get("test")
+    with patch.object(namespace, "send_task") as mock_send:
+        with freeze_time("2025-01-24 14:25:00"):
+            sleep_time = schedule_set.tick()
+            assert sleep_time == 120
 
-    assert namespace.send_task.call_count == 2
+        assert mock_send.call_count == 2
 
-    with freeze_time("2025-01-24 14:26:00"):
-        sleep_time = schedule_set.tick()
-        assert sleep_time == 60
+        with freeze_time("2025-01-24 14:26:00"):
+            sleep_time = schedule_set.tick()
+            assert sleep_time == 60
 
-    assert namespace.send_task.call_count == 2
+        assert mock_send.call_count == 2
 
-    # Remove the redis key, as the ttl in redis doesn't respect freeze_time()
-    run_storage.delete("test:second")
-    with freeze_time("2025-01-24 14:27:01"):
-        sleep_time = schedule_set.tick()
-        # two minutes left on the 5 min task
-        assert sleep_time == 120
+        # Remove the redis key, as the ttl in redis doesn't respect freeze_time()
+        run_storage.delete("test:second")
+        with freeze_time("2025-01-24 14:27:01"):
+            sleep_time = schedule_set.tick()
+            # two minutes left on the 5 min task
+            assert sleep_time == 120
 
-    assert namespace.send_task.call_count == 3
+        assert mock_send.call_count == 3
