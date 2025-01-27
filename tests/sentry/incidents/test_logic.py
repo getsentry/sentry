@@ -76,6 +76,7 @@ from sentry.incidents.models.incident import (
     IncidentType,
     TriggerStatus,
 )
+from sentry.integrations.discord.client import DISCORD_BASE_URL
 from sentry.integrations.discord.utils.channel import ChannelType
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pagerduty.utils import add_service
@@ -2519,7 +2520,7 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest):
         channel_id = "channel-id"
         responses.add(
             method=responses.GET,
-            url=f"https://discord.com/api/v10/channels/{channel_id}",
+            url=f"{DISCORD_BASE_URL}/channels/{channel_id}",
             json=metadata,
         )
         action = create_alert_rule_trigger_action(
@@ -2816,7 +2817,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
     def test_opsgenie(self):
         metadata = {
             "api_key": "1234-ABCD",
-            "base_url": "https://api.opsgenie.com/",
+            "DISCORD_BASE_URL": "https://api.opsgenie.com/",
             "domain_name": "test-app.app.opsgenie.com",
         }
         team = {"id": "123-id", "team": "cool-team", "integration_key": "1234-5678"}
@@ -2863,7 +2864,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
     def test_opsgenie_not_existing(self):
         metadata = {
             "api_key": "1234-ABCD",
-            "base_url": "https://api.opsgenie.com/",
+            "DISCORD_BASE_URL": "https://api.opsgenie.com/",
             "domain_name": "test-app.app.opsgenie.com",
         }
         integration, _ = self.create_provider_integration_for(
@@ -2890,7 +2891,6 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
 
     @responses.activate
     def test_discord(self):
-        base_url: str = "https://discord.com/api/v10"
         channel_id = "channel-id"
         guild_id = "example-discord-server"
         guild_name = "Server Name"
@@ -2912,7 +2912,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         responses.add(
             method=responses.GET,
-            url=f"{base_url}/channels/{channel_id}",
+            url=f"{DISCORD_BASE_URL}/channels/{channel_id}",
             json={
                 "guild_id": f"{guild_id}",
                 "name": f"{guild_name}",
@@ -2936,7 +2936,6 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
 
     @responses.activate
     def test_discord_invalid_channel_id(self):
-        base_url: str = "https://discord.com/api/v10"
         channel_id = "****bad****"
         guild_id = "example-discord-server"
         guild_name = "Server Name"
@@ -2956,7 +2955,9 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
 
         type = AlertRuleTriggerAction.Type.DISCORD
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
-        responses.add(method=responses.GET, url=f"{base_url}/channels/{channel_id}", status=404)
+        responses.add(
+            method=responses.GET, url=f"{DISCORD_BASE_URL}/channels/{channel_id}", status=404
+        )
 
         with pytest.raises(InvalidTriggerActionError):
             update_alert_rule_trigger_action(
@@ -2969,7 +2970,6 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
 
     @responses.activate
     def test_discord_bad_response(self):
-        base_url: str = "https://discord.com/api/v10"
         channel_id = "channel-id"
         guild_id = "example-discord-server"
         guild_name = "Server Name"
@@ -2990,7 +2990,10 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
         type = AlertRuleTriggerAction.Type.DISCORD
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         responses.add(
-            method=responses.GET, url=f"{base_url}/channels/{channel_id}", body="Error", status=500
+            method=responses.GET,
+            url=f"{DISCORD_BASE_URL}/channels/{channel_id}",
+            body="Error",
+            status=500,
         )
 
         with pytest.raises(InvalidTriggerActionError):
@@ -3021,7 +3024,6 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
     def test_discord_timeout(self, mock_validate_channel_id):
         mock_validate_channel_id.side_effect = ApiTimeoutError("Discord channel lookup timed out")
 
-        base_url: str = "https://discord.com/api/v10"
         channel_id = "channel-id"
         guild_id = "example-discord-server"
         guild_name = "Server Name"
@@ -3043,7 +3045,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         responses.add(
             method=responses.GET,
-            url=f"{base_url}/channels/{channel_id}",
+            url=f"{DISCORD_BASE_URL}/channels/{channel_id}",
             json={
                 "guild_id": f"{guild_id}",
                 "name": f"{guild_name}",
@@ -3061,7 +3063,6 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
 
     @responses.activate
     def test_discord_channel_not_in_guild(self):
-        base_url: str = "https://discord.com/api/v10"
         channel_id = "channel-id"
         guild_id = "example-discord-server"
         guild_name = "Server Name"
@@ -3083,7 +3084,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         responses.add(
             method=responses.GET,
-            url=f"{base_url}/channels/{channel_id}",
+            url=f"{DISCORD_BASE_URL}/channels/{channel_id}",
             json={
                 "guild_id": "other-guild",
                 "name": f"{guild_name}",
@@ -3102,7 +3103,6 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
 
     @responses.activate
     def test_discord_unsupported_type(self):
-        base_url: str = "https://discord.com/api/v10"
         channel_id = "channel-id"
         guild_id = "example-discord-server"
         guild_name = "Server Name"
@@ -3124,7 +3124,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         responses.add(
             method=responses.GET,
-            url=f"{base_url}/channels/{channel_id}",
+            url=f"{DISCORD_BASE_URL}/channels/{channel_id}",
             json={
                 "guild_id": f"{guild_id}",
                 "name": f"{guild_name}",
@@ -3145,7 +3145,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
     def test_supported_priority(self):
         metadata = {
             "api_key": "1234-ABCD",
-            "base_url": "https://api.opsgenie.com/",
+            "DISCORD_BASE_URL": "https://api.opsgenie.com/",
             "domain_name": "test-app.app.opsgenie.com",
         }
         team = {"id": "123-id", "team": "cool-team", "integration_key": "1234-5678"}

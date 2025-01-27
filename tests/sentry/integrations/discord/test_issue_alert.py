@@ -7,7 +7,7 @@ from django.core.exceptions import ValidationError
 
 from sentry.integrations.discord.actions.issue_alert.form import DiscordNotifyServiceForm
 from sentry.integrations.discord.actions.issue_alert.notification import DiscordNotifyServiceAction
-from sentry.integrations.discord.client import MESSAGE_URL
+from sentry.integrations.discord.client import DISCORD_BASE_URL, MESSAGE_URL
 from sentry.integrations.discord.message_builder import LEVEL_TO_COLOR
 from sentry.integrations.discord.message_builder.base.component import DiscordComponentCustomIds
 from sentry.integrations.messaging.message_builder import (
@@ -64,8 +64,9 @@ class DiscordIssueAlertTest(RuleTestCase):
 
         responses.add(
             method=responses.POST,
-            url=f"{MESSAGE_URL.format(channel_id=self.channel_id)}",
+            url=f"{DISCORD_BASE_URL}{MESSAGE_URL.format(channel_id=self.channel_id)}",
             status=200,
+            json={"message_id": "12345678910"},
         )
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")

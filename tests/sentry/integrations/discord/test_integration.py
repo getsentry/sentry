@@ -7,7 +7,12 @@ from responses.matchers import header_matcher, json_params_matcher
 
 from sentry import audit_log, options
 from sentry.api.client import ApiError
-from sentry.integrations.discord.client import APPLICATION_COMMANDS_URL, GUILD_URL, DiscordClient
+from sentry.integrations.discord.client import (
+    APPLICATION_COMMANDS_URL,
+    DISCORD_BASE_URL,
+    GUILD_URL,
+    DiscordClient,
+)
 from sentry.integrations.discord.integration import COMMANDS, DiscordIntegrationProvider
 from sentry.integrations.models.integration import Integration
 from sentry.models.auditlogentry import AuditLogEntry
@@ -29,6 +34,7 @@ class DiscordSetupTestCase(IntegrationTestCase):
         options.set("discord.public-key", self.public_key)
         options.set("discord.bot-token", self.bot_token)
         options.set("discord.client-secret", self.client_secret)
+        self.token_url = f"{DISCORD_BASE_URL}/oauth2/token"
 
     @mock.patch("sentry.integrations.discord.client.DiscordClient.set_application_command")
     def assert_setup_flow(
@@ -91,7 +97,7 @@ class DiscordSetupTestCase(IntegrationTestCase):
 
         responses.add(
             responses.POST,
-            url="https://discord.com/api/v10/oauth2/token",
+            url=self.token_url,
             json={
                 "access_token": "access_token",
             },
@@ -161,7 +167,7 @@ class DiscordSetupTestCase(IntegrationTestCase):
 
         responses.add(
             responses.POST,
-            url="https://discord.com/api/v10/oauth2/token",
+            url=self.token_url,
             json={
                 "access_token": "access_token",
             },
@@ -270,7 +276,7 @@ class DiscordIntegrationTest(DiscordSetupTestCase):
         )
         responses.add(
             responses.POST,
-            url="https://discord.com/api/v10/oauth2/token",
+            url=self.token_url,
             json={
                 "access_token": "access_token",
             },
@@ -307,10 +313,10 @@ class DiscordIntegrationTest(DiscordSetupTestCase):
     def test_get_guild_name_failure(self):
         provider = self.provider()
 
-        (responses.add(responses.GET, "https://discord.com/api/v10/guilds/guild_name", status=500),)
+        (responses.add(responses.GET, f"{DISCORD_BASE_URL}/guilds/guild_name", status=500),)
         responses.add(
             responses.POST,
-            url="https://discord.com/api/v10/oauth2/token",
+            url=self.token_url,
             json={
                 "access_token": "access_token",
             },
@@ -342,7 +348,7 @@ class DiscordIntegrationTest(DiscordSetupTestCase):
         )
         responses.add(
             responses.POST,
-            url="https://discord.com/api/v10/oauth2/token",
+            url=self.token_url,
             json={
                 "access_token": "access_token",
             },
@@ -366,7 +372,7 @@ class DiscordIntegrationTest(DiscordSetupTestCase):
 
         responses.add(
             responses.POST,
-            url="https://discord.com/api/v10/oauth2/token",
+            url=self.token_url,
             json={
                 "access_token": "access_token",
             },
@@ -382,7 +388,7 @@ class DiscordIntegrationTest(DiscordSetupTestCase):
     @responses.activate
     def test_get_discord_user_id_oauth_failure(self):
         provider = self.provider()
-        responses.add(responses.POST, url="https://discord.com/api/v10/oauth2/token", status=500)
+        responses.add(responses.POST, url=self.token_url, status=500)
         with pytest.raises(IntegrationError):
             provider._get_discord_user_id("auth_code", "1")
 
@@ -391,7 +397,7 @@ class DiscordIntegrationTest(DiscordSetupTestCase):
         provider = self.provider()
         responses.add(
             responses.POST,
-            url="https://discord.com/api/v10/oauth2/token",
+            url=self.token_url,
             json={},
         )
         with pytest.raises(IntegrationError):
@@ -402,7 +408,7 @@ class DiscordIntegrationTest(DiscordSetupTestCase):
         provider = self.provider()
         responses.add(
             responses.POST,
-            url="https://discord.com/api/v10/oauth2/token",
+            url=self.token_url,
             json={
                 "access_token": "access_token",
             },

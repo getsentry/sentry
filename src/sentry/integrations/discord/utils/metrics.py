@@ -11,7 +11,7 @@ def record_lifecycle_termination_level(lifecycle: EventLifecycle, error: ApiErro
     if isinstance(error, ApiRateLimitedError):
         # TODO(ecosystem): We should batch this on a per-organization basis
         lifecycle.record_halt(error)
-    elif error.code in DISCORD_HALT_ERROR_CODES:
+    elif error.json and error.json.get("code") in DISCORD_HALT_ERROR_CODES:
         lifecycle.record_halt(error)
     else:
         lifecycle.record_failure(error)
