@@ -5,6 +5,7 @@ import type {Series} from 'sentry/types/echarts';
 import type {TagCollection} from 'sentry/types/group';
 import type {
   EventsStats,
+  GroupedMultiSeriesEventsStats,
   MultiSeriesEventsStats,
   Organization,
 } from 'sentry/types/organization';
@@ -35,6 +36,7 @@ import {generateFieldOptions} from 'sentry/views/discover/utils';
 import type {Widget, WidgetQuery} from '../types';
 import {DisplayType} from '../types';
 import {eventViewFromWidget} from '../utils';
+import {transformEventsResponseToSeries} from '../utils/transformEventsResponseToSeries';
 import {EventsSearchBar} from '../widgetBuilder/buildSteps/filterResultsStep/eventsSearchBar';
 
 import {type DatasetConfig, handleOrderByReset} from './base';
@@ -47,7 +49,6 @@ import {
   getCustomEventsFieldRenderer,
   getTableSortOptions,
   getTimeseriesSortOptions,
-  transformEventsResponseToSeries,
   transformEventsResponseToTable,
 } from './errorsAndTransactions';
 
@@ -69,7 +70,7 @@ const DEFAULT_FIELD: QueryFieldValue = {
 export type SeriesWithOrdering = [order: number, series: Series];
 
 export const TransactionsConfig: DatasetConfig<
-  EventsStats | MultiSeriesEventsStats,
+  EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,
   TableData | EventsTableData
 > = {
   defaultField: DEFAULT_FIELD,
