@@ -27,7 +27,13 @@ from sentry.utils import json
 # around even if the dict is empty, to ensure that there is a ready place to pop shims into. For
 # each entry in this dict, please leave a TODO comment pointed to a github issue for removing
 # the shim, noting in the comment which self-hosted release will trigger the removal.
-DELETED_FIELDS: dict[str, set[str]] = {}
+DELETED_FIELDS: dict[str, set[str]] = {
+    # These fields were removed in 2023 but we need them to support exports from older sentry versions.
+    "sentry.team": {"actor"},
+    "sentry.rule": {"owner"},
+    "sentry.alertrule": {"owner"},
+    "sentry.grouphistory": {"actor"},
+}
 
 # When models are removed from the application, they will continue to be in exports
 # from previous releases. Models in this list are elided from data as imports are processed.
@@ -36,7 +42,10 @@ DELETED_FIELDS: dict[str, set[str]] = {}
 # around even if the set is empty, to ensure that there is a ready place to pop shims into. For
 # each entry in this set, please leave a TODO comment pointed to a github issue for removing
 # the shim, noting in the comment which self-hosted release will trigger the removal.
-DELETED_MODELS: set[str] = set()
+DELETED_MODELS: set[str] = set(
+    # This model was removed in 2023, but we need to support imports from older sentry still.
+    "sentry.actor",
+)
 
 
 class NormalizedModelName:
