@@ -69,8 +69,11 @@ jobs:
           yarn add ts-node && make test-api-docs
 
       - name: Inspect failure
-        if: failure() && command -v devservices
-        run: devservices logs
+        if: failure()
+        run: |
+          if command -v devservices; then
+            devservices logs
+          fi
 
   backend-test:
     if: needs.files-changed.outputs.backend == 'true'
@@ -115,8 +118,11 @@ jobs:
           make test-python-ci
 
       - name: Inspect failure
-        if: failure() && command -v devservices
-        run: devservices logs
+        if: failure()
+        run: |
+          if command -v devservices; then
+            devservices logs
+          fi
 
       - name: Collect test data
         uses: ./.github/actions/collect-test-data
@@ -163,8 +169,11 @@ jobs:
           PYTEST_ADDOPTS="$PYTEST_ADDOPTS -m migrations --migrations --reruns 0" make test-python-ci
 
       - name: Inspect failure
-        if: failure() && command -v devservices
-        run: devservices logs
+        if: failure()
+        run: |
+          if command -v devservices; then
+            devservices logs
+          fi
 
       # Upload coverage data even if running the tests step fails since
       # it reduces large coverage fluctuations
@@ -199,8 +208,11 @@ jobs:
           make test-cli
 
       - name: Inspect failure
-        if: failure() && command -v devservices
-        run: devservices logs
+        if: failure()
+        run: |
+          if command -v devservices; then
+            devservices logs
+          fi
 
       # Upload coverage data even if running the tests step fails since
       # it reduces large coverage fluctuations
@@ -272,8 +284,11 @@ jobs:
           ./.github/workflows/scripts/migration-check.sh
 
       - name: Inspect failure
-        if: failure() && command -v devservices
-        run: devservices logs
+        if: failure()
+        run: |
+          if command -v devservices; then
+            devservices logs
+          fi
 
   monolith-dbs:
     if: needs.files-changed.outputs.backend == 'true'
@@ -299,8 +314,11 @@ jobs:
           make test-monolith-dbs
 
       - name: Inspect failure
-        if: failure() && command -v devservices
-        run: devservices logs
+        if: failure()
+        run: |
+          if command -v devservices; then
+            devservices logs
+          fi
 
       - name: Collect test data
         uses: ./.github/actions/collect-test-data

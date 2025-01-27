@@ -124,9 +124,11 @@ jobs:
         run: make run-acceptance
 
       - name: Inspect failure
-        if: failure() && command -v devservices
+        if: failure()
         run: |
-          devservices logs
+          if command -v devservices; then
+            devservices logs
+          fi
 
       - name: Collect test data
         uses: ./.github/actions/collect-test-data
