@@ -449,7 +449,7 @@ class ColumnEditCollection extends Component<Props, State> {
       filterPrimaryOptions,
       noFieldsMessage,
       showAliasField,
-      source,
+      // source,
       isOnDemandWidget,
     } = this.props;
     const {isDragging, draggingTargetIndex, draggingIndex} = this.state;
@@ -496,23 +496,21 @@ class ColumnEditCollection extends Component<Props, State> {
           ) : singleColumn && showAliasField ? null : (
             <span />
           )}
-          {source === WidgetType.METRICS && !this.isFixedMetricsColumn(i) && (
-            <QueryField
-              fieldOptions={fieldOptions}
-              gridColumns={gridColumns}
-              fieldValue={col}
-              onChange={value => this.handleUpdateColumn(i, value)}
-              error={this.state.error.get(i)}
-              takeFocus={i === this.props.columns.length - 1}
-              otherColumns={columns}
-              shouldRenderTag
-              disabled={disabled}
-              filterPrimaryOptions={filterPrimaryOptions}
-              filterAggregateParameters={filterAggregateParameters}
-              noFieldsMessage={noFieldsMessage}
-              skipParameterPlaceholder={showAliasField}
-            />
-          )}
+          <QueryField
+            fieldOptions={fieldOptions}
+            gridColumns={gridColumns}
+            fieldValue={col}
+            onChange={value => this.handleUpdateColumn(i, value)}
+            error={this.state.error.get(i)}
+            takeFocus={i === this.props.columns.length - 1}
+            otherColumns={columns}
+            shouldRenderTag
+            disabled={disabled}
+            filterPrimaryOptions={filterPrimaryOptions}
+            filterAggregateParameters={filterAggregateParameters}
+            noFieldsMessage={noFieldsMessage}
+            skipParameterPlaceholder={showAliasField}
+          />
           {showAliasField && (
             <AliasField singleColumn={singleColumn}>
               <AliasInput
