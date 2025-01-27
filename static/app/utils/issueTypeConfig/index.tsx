@@ -48,6 +48,7 @@ const BASE_CONFIG: IssueTypeConfig = {
   attachments: {enabled: false},
   autofix: false,
   eventAndUserCounts: {enabled: true},
+  detector: {enabled: false},
   events: {enabled: true},
   logLevel: {enabled: false},
   mergedIssues: {enabled: false},

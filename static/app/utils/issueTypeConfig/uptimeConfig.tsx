@@ -18,6 +18,11 @@ const uptimeConfig: IssueCategoryConfigMapping = {
       tagDistribution: {enabled: false},
       timelineSummary: {enabled: true},
     },
+    detector: {
+      enabled: true,
+      title: t('Uptime Monitor'),
+      ctaText: t('View alert details'),
+    },
     customCopy: {
       eventUnits: t('Check-ins'),
       resolution: t('Resolved'),

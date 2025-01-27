@@ -41,6 +41,14 @@ export type IssueTypeConfig = {
     resolution: string;
   };
   /**
+   * Should show detector section in the sidebar
+   * Optionally set a custom title for it
+   */
+  detector: DisabledWithReasonConfig & {
+    ctaText?: string;
+    title?: string;
+  };
+  /**
    * Is the "Open in Discover" button available for this issue
    */
   discover: DisabledWithReasonConfig;

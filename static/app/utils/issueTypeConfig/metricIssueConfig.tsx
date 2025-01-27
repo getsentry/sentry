@@ -17,6 +17,11 @@ const metricIssueConfig: IssueCategoryConfigMapping = {
       resolution: t('Back to baseline'),
       eventUnits: t('Open Periods'),
     },
+    detector: {
+      enabled: true,
+      title: t('Metric Alert Detector'),
+      ctaText: t('View detector details'),
+    },
     attachments: {enabled: false},
     eventAndUserCounts: {enabled: false},
     resources: null,
