@@ -346,8 +346,11 @@ def taskbroker_send_tasks(
     task_args = [] if not args else eval(args)
     task_kwargs = {} if not kwargs else eval(kwargs)
 
-    for _ in range(repeat):
+    for i in range(repeat):
         func.delay(*task_args, **task_kwargs)
+        if i > 0 and int((i / repeat) * 100) % 10 == 0:
+            click.echo(message=f"{int((i / repeat) * 100)}%")
+
     click.echo(message=f"Successfully sent {repeat} messages.")
 
 
