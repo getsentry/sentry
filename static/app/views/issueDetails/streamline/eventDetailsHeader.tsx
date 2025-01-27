@@ -35,7 +35,6 @@ export function EventDetailsHeader({
   const location = useLocation();
   const environments = useEnvironmentsFromUrl();
   const searchQuery = useEventQuery({groupId: group.id});
-
   const issueTypeConfig = getConfigForIssueType(group, project);
 
   if (!issueTypeConfig.header.filterAndSearch.enabled) {
@@ -91,7 +90,9 @@ export function EventDetailsHeader({
             project={project}
           />
         </GraphSection>
-        <TimelineSection group={group} />
+        {issueTypeConfig.header.timelineSummary.enabled && (
+          <TimelineSection group={group} />
+        )}
       </FilterContainer>
     </PageErrorBoundary>
   );
