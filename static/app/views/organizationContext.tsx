@@ -76,6 +76,7 @@ export function OrganizationContextProvider({children}: Props) {
     null
   );
 
+  const shouldPreloadData = configStore.shouldPreloadData;
   const lastOrganizationSlug: string | null =
     configStore.lastOrganization ?? organizations[0]?.slug ?? null;
 
@@ -89,6 +90,11 @@ export function OrganizationContextProvider({children}: Props) {
     : params.orgId || lastOrganizationSlug;
 
   useEffect(() => {
+    // Only load the organization if the user is logged in and it's not an accept invite view.
+    if (!shouldPreloadData) {
+      return;
+    }
+
     // Nothing to do if we already have the organization loaded
     if (organization && organization.slug === orgSlug) {
       return;
@@ -102,7 +108,7 @@ export function OrganizationContextProvider({children}: Props) {
     metric.mark({name: 'organization-details-fetch-start'});
 
     setOrganizationPromise(fetchOrganizationDetails(api, orgSlug, false, true));
-  }, [api, orgSlug, organization]);
+  }, [api, orgSlug, organization, shouldPreloadData]);
 
   // Take a measurement for when organization details are done loading and the
   // new state is applied
