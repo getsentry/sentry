@@ -83,7 +83,7 @@ from sentry.utils.relocation import (
     uuid_to_identifier,
 )
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("sentry.relocation.tasks")
 
 # Time limits for various steps in the process.
 RETRY_BACKOFF = 60  # So the 1st retry is after ~1 min, 2nd after ~2 min, 3rd after ~4 min, etc.
