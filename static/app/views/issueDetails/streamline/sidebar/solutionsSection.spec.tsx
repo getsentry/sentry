@@ -65,6 +65,7 @@ describe('SolutionsSection', () => {
         resolution: 'Resolved',
         eventUnits: 'Events',
       },
+      detector: {enabled: false},
       attachments: {enabled: false},
       autofix: true,
       discover: {enabled: false},
