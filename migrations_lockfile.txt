@@ -23,4 +23,4 @@ tempest: 0001_create_tempest_credentials_model
 
 uptime: 0024_add_status_to_project_uptime_subscription
 
-workflow_engine: 0024_drop_trigger_data_condition_p1
+workflow_engine: 0025_drop_trigger_data_condition_p2
