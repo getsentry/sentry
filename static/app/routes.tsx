@@ -1991,9 +1991,7 @@ function buildRoutes() {
       <Route path="searches/:searchId/" component={errorHandler(OverviewWrapper)} />
       <Route
         path=":groupId/"
-        component={withDomainRedirect(
-          make(() => import('sentry/views/issueDetails/groupDetails'))
-        )}
+        component={make(() => import('sentry/views/issueDetails/groupDetails'))}
         key="org-issues-group-id"
       >
         {issueTabs}
