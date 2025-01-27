@@ -30,8 +30,6 @@ const popularPlatformCategories: Set<PlatformKey> = new Set([
   'unity',
   'javascript-nuxt',
   'javascript-astro',
-  'rust',
-  'go',
 ]);
 
 const browser: Set<PlatformKey> = new Set([
