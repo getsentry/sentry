@@ -87,7 +87,7 @@ def backfill_seer_grouping_records_for_project(
         )
         if not cohort:
             logger.info(
-                "backfill_seer_grouping_records.cohort_finished",
+                "backfill_seer_grouping_records.backfill_finished",
                 extra={
                     "worker_number": worker_number,
                 },
@@ -357,7 +357,7 @@ def call_next_backfill(
 
         if batch_project_id is None and worker_number is None:
             logger.info(
-                "backfill_seer_grouping_records.project_list_end",
+                "backfill_seer_grouping_records.project_list_backfill_finished",
                 extra={
                     "cohort": cohort,
                     "last_processed_project_index": last_processed_project_index,
