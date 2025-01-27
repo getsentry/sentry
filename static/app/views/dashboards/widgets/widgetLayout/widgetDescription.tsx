@@ -8,6 +8,7 @@ import {space} from 'sentry/styles/space';
 
 export interface WidgetDescriptionProps {
   description?: React.ReactElement | string;
+  forceDescriptionTooltip?: boolean;
   title?: string;
 }
 
@@ -24,6 +25,7 @@ export function WidgetDescription(props: WidgetDescriptionProps) {
       }
       containerDisplayMode="grid"
       isHoverable
+      forceVisible={props.forceDescriptionTooltip}
     >
       <WidgetTooltipButton
         aria-label={t('Widget description')}
