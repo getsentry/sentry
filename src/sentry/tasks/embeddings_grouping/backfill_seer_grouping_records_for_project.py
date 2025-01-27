@@ -345,7 +345,7 @@ def call_next_backfill(
             logger.info(
                 "backfill_seer_grouping_records.project_list_end",
                 extra={
-                    "cohort_name": cohort,
+                    "cohort": cohort,
                     "last_processed_project_index": last_processed_project_index,
                 },
             )
