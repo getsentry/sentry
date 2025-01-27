@@ -1,4 +1,4 @@
-import {useRef} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/button';
@@ -30,12 +30,12 @@ const DOWNTIME_START_TYPES = [
 
 const DOWNTIME_TERMINAL_TYPES = [GroupActivityType.SET_RESOLVED];
 
-export function useDowntimeDuration(group: Group): {
+export function useDowntimeDuration({group}: {group: Group}): {
   durationMs: number;
   endDate: Date;
   startDate: Date;
 } {
-  const nowRef = useRef(new Date());
+  const [now] = useState(() => new Date());
   const downtimeStartActivity = group.activity.find(activity =>
     DOWNTIME_START_TYPES.includes(activity.type)
   );
@@ -46,14 +46,14 @@ export function useDowntimeDuration(group: Group): {
   const endDate =
     group.status === GroupStatus.RESOLVED
       ? new Date(downtimeEndActivity?.dateCreated ?? group.lastSeen)
-      : nowRef.current;
+      : now;
 
   const durationMs = endDate.getTime() - startDate.getTime();
   return {durationMs, startDate, endDate};
 }
 
 export function DowntimeDuration({group}: {group: Group}) {
-  const {durationMs, startDate, endDate} = useDowntimeDuration(group);
+  const {durationMs, startDate, endDate} = useDowntimeDuration({group});
   return (
     <Tooltip
       title={
