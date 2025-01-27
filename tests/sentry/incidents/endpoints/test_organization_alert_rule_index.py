@@ -1252,7 +1252,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
                 "organizations:performance-view",
                 "organizations:mep-rollout-flag",
                 "organizations:dynamic-sampling",
-                "organizations:custom-metrics",
             ]
         ):
             for mri in (
@@ -1285,7 +1284,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
                 "organizations:performance-view",
                 "organizations:mep-rollout-flag",
                 "organizations:dynamic-sampling",
-                "organizations:custom-metrics",
             ]
         ):
             for mri in (
@@ -1318,7 +1316,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
                 "organizations:performance-view",
                 "organizations:mep-rollout-flag",
                 "organizations:dynamic-sampling",
-                "organizations:custom-metrics",
             ]
         ):
             test_params = {

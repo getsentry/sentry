@@ -52,8 +52,6 @@ from sentry.constants import (
     JOIN_REQUESTS_DEFAULT,
     LEGACY_RATE_LIMIT_OPTIONS,
     METRIC_ALERTS_THREAD_DEFAULT,
-    METRICS_ACTIVATE_LAST_FOR_GAUGES_DEFAULT,
-    METRICS_ACTIVATE_PERCENTILES_DEFAULT,
     PROJECT_RATE_LIMIT_DEFAULT,
     REQUIRE_SCRUB_DATA_DEFAULT,
     REQUIRE_SCRUB_DEFAULTS_DEFAULT,
@@ -214,18 +212,6 @@ ORG_OPTIONS = (
         bool,
         METRIC_ALERTS_THREAD_DEFAULT,
     ),
-    (
-        "metricsActivatePercentiles",
-        "sentry:metrics_activate_percentiles",
-        bool,
-        METRICS_ACTIVATE_PERCENTILES_DEFAULT,
-    ),
-    (
-        "metricsActivateLastForGauges",
-        "sentry:metrics_activate_last_for_gauges",
-        bool,
-        METRICS_ACTIVATE_LAST_FOR_GAUGES_DEFAULT,
-    ),
     ("uptimeAutodetection", "sentry:uptime_autodetection", bool, UPTIME_AUTODETECTION),
     ("targetSampleRate", "sentry:target_sample_rate", float, TARGET_SAMPLE_RATE_DEFAULT),
     ("samplingMode", "sentry:sampling_mode", str, SAMPLING_MODE_DEFAULT),
@@ -281,8 +267,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     githubPRBot = serializers.BooleanField(required=False)
     issueAlertsThreadFlag = serializers.BooleanField(required=False)
     metricAlertsThreadFlag = serializers.BooleanField(required=False)
-    metricsActivatePercentiles = serializers.BooleanField(required=False)
-    metricsActivateLastForGauges = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
     trustedRelays = serializers.ListField(child=TrustedRelaySerializer(), required=False)
     allowJoinRequests = serializers.BooleanField(required=False)
@@ -638,8 +622,6 @@ def post_org_pending_deletion(
         "projectRateLimit",
         "apdexThreshold",
         "genAIConsent",
-        "metricsActivatePercentiles",
-        "metricsActivateLastForGauges",
     ]
 )
 class OrganizationDetailsPutSerializer(serializers.Serializer):
@@ -839,10 +821,6 @@ Below is an example of a payload for a set of advanced data scrubbing rules for 
         min_value=PROJECT_RATE_LIMIT_DEFAULT, required=False
     )
     apdexThreshold = serializers.IntegerField(required=False)
-
-    # TODO: publish when GA'd
-    metricsActivatePercentiles = serializers.BooleanField(required=False)
-    metricsActivateLastForGauges = serializers.BooleanField(required=False)
 
 
 # NOTE: We override the permission class of this endpoint in getsentry with the OrganizationDetailsPermission class

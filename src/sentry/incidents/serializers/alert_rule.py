@@ -148,10 +148,6 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
 
     def validate_aggregate(self, aggregate):
         allow_mri = features.has(
-            "organizations:custom-metrics",
-            self.context["organization"],
-            actor=self.context.get("user", None),
-        ) or features.has(
             "organizations:insights-alerts",
             self.context["organization"],
             actor=self.context.get("user", None),
@@ -275,10 +271,6 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
         dataset = data.setdefault("dataset", Dataset.Events)
 
         if features.has(
-            "organizations:custom-metrics",
-            self.context["organization"],
-            actor=self.context.get("user", None),
-        ) or features.has(
             "organizations:insights-alerts",
             self.context["organization"],
             actor=self.context.get("user", None),

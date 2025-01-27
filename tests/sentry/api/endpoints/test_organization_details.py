@@ -727,8 +727,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "allowJoinRequests": False,
             "issueAlertsThreadFlag": False,
             "metricAlertsThreadFlag": False,
-            "metricsActivatePercentiles": False,
-            "metricsActivateLastForGauges": True,
             "uptimeAutodetection": False,
             "targetSampleRate": 0.1,
             "samplingMode": "organization",
@@ -769,8 +767,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert options.get("sentry:scrape_javascript") is False
         assert options.get("sentry:join_requests") is False
         assert options.get("sentry:events_member_admin") is False
-        assert options.get("sentry:metrics_activate_percentiles") is False
-        assert options.get("sentry:metrics_activate_last_for_gauges") is True
+
         assert options.get("sentry:uptime_autodetection") is False
         assert options.get("sentry:target_sample_rate") == 0.1
         assert options.get("sentry:sampling_mode") == "organization"
@@ -810,14 +807,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "to {}".format(data["githubNudgeInvite"]) in log.data["githubNudgeInvite"]
         assert "to {}".format(data["issueAlertsThreadFlag"]) in log.data["issueAlertsThreadFlag"]
         assert "to {}".format(data["metricAlertsThreadFlag"]) in log.data["metricAlertsThreadFlag"]
-        assert (
-            "to {}".format(data["metricsActivatePercentiles"])
-            in log.data["metricsActivatePercentiles"]
-        )
-        assert (
-            "to {}".format(data["metricsActivateLastForGauges"])
-            in log.data["metricsActivateLastForGauges"]
-        )
         assert "to {}".format(data["uptimeAutodetection"]) in log.data["uptimeAutodetection"]
 
     @responses.activate
