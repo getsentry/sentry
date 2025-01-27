@@ -22,7 +22,7 @@ repos:
       - id: pyupgrade
         name: pyupgrade
         entry: pyupgrade
-        args: ['--py312-plus']
+        args: ['--py313-plus']
         language: system
         types: [python]
       # Configuration for black exists in pyproject.toml,
