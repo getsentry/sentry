@@ -110,20 +110,6 @@ def backfill_seer_grouping_records_for_project(
         logger.info("backfill_seer_grouping_records.killswitch_enabled")
         return
 
-    logger.info(
-        "backfill_seer_grouping_records.task_start",
-        extra={
-            "project_id": current_project_id,
-            "last_processed_group_id": last_processed_group_id_input,
-            "cohort": cohort,
-            "last_processed_project_index": last_processed_project_index_input,
-            "only_delete": only_delete,
-            "skip_processed_projects": skip_processed_projects,
-            "skip_project_ids": skip_project_ids,
-            "worker_number": worker_number,
-        },
-    )
-
     try:
         (
             project,
