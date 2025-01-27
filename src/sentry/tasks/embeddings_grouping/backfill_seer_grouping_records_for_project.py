@@ -107,7 +107,10 @@ def backfill_seer_grouping_records_for_project(
     if options.get("seer.similarity-backfill-killswitch.enabled") or killswitch_enabled(
         current_project_id, ReferrerOptions.BACKFILL
     ):
-        logger.info("backfill_seer_grouping_records.killswitch_enabled")
+        logger.info(
+            "backfill_seer_grouping_records.killswitch_enabled",
+            extra={"worker_number": worker_number},
+        )
         return
 
     try:
@@ -123,7 +126,7 @@ def backfill_seer_grouping_records_for_project(
     except Project.DoesNotExist:
         logger.info(
             "backfill_seer_grouping_records.project_does_not_exist",
-            extra={"project_id": current_project_id},
+            extra={"project_id": current_project_id, "worker_number": worker_number},
         )
         assert last_processed_project_index_input is not None
         call_next_backfill(
@@ -151,6 +154,7 @@ def backfill_seer_grouping_records_for_project(
                 "project_id": current_project_id,
                 "project_already_processed": is_project_processed,
                 "project_manually_skipped": is_project_skipped,
+                "worker_number": worker_number,
             },
         )
 
@@ -169,7 +173,7 @@ def backfill_seer_grouping_records_for_project(
         if not is_project_seer_eligible:
             logger.info(
                 "backfill_seer_grouping_records.project_is_not_seer_eligible",
-                extra={"project_id": project.id},
+                extra={"project_id": project.id, "worker_number": worker_number},
             )
 
     if is_project_processed or is_project_skipped or only_delete or not is_project_seer_eligible:
@@ -189,7 +193,7 @@ def backfill_seer_grouping_records_for_project(
     batch_size = options.get("embeddings-grouping.seer.backfill-batch-size")
 
     (groups_to_backfill_with_no_embedding, batch_end_id) = get_current_batch_groups_from_postgres(
-        project, last_processed_group_id, batch_size, enable_ingestion
+        project, last_processed_group_id, batch_size, worker_number, enable_ingestion
     )
 
     if len(groups_to_backfill_with_no_embedding) == 0:
@@ -206,12 +210,16 @@ def backfill_seer_grouping_records_for_project(
         )
         return
 
-    snuba_results = get_data_from_snuba(project, groups_to_backfill_with_no_embedding)
+    snuba_results = get_data_from_snuba(
+        project, groups_to_backfill_with_no_embedding, worker_number
+    )
 
     (
         filtered_snuba_results,
         groups_to_backfill_with_no_embedding_has_snuba_row,
-    ) = filter_snuba_results(snuba_results, groups_to_backfill_with_no_embedding, project)
+    ) = filter_snuba_results(
+        snuba_results, groups_to_backfill_with_no_embedding, project, worker_number
+    )
 
     if len(groups_to_backfill_with_no_embedding_has_snuba_row) == 0:
         call_next_backfill(
@@ -229,7 +237,10 @@ def backfill_seer_grouping_records_for_project(
 
     try:
         nodestore_results, group_hashes_dict = get_events_from_nodestore(
-            project, filtered_snuba_results, groups_to_backfill_with_no_embedding_has_snuba_row
+            project,
+            filtered_snuba_results,
+            groups_to_backfill_with_no_embedding_has_snuba_row,
+            worker_number,
         )
     except EVENT_INFO_EXCEPTIONS:
         metrics.incr("sentry.tasks.backfill_seer_grouping_records.grouping_config_error")
@@ -239,6 +250,7 @@ def backfill_seer_grouping_records_for_project(
             "organization_id": project.organization.id,
             "project_id": project.id,
             "error": e.message,
+            "worker_number": worker_number,
         }
         logger.exception("backfill_seer_grouping_records.bulk_event_lookup_exception", extra=extra)
         group_hashes_dict = {}
@@ -296,6 +308,7 @@ def backfill_seer_grouping_records_for_project(
             seer_response,
             groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row,
             group_hashes_dict,
+            worker_number,
         )
 
     call_next_backfill(
