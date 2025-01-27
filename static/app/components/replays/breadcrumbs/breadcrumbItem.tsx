@@ -190,7 +190,7 @@ function WebVitalData({
 }) {
   const webVitalData = {value: frame.data.value};
   if (isCLSFrame(frame) && frame.data.attributions && selectors) {
-    const layoutShifts: {[x: string]: ReactNode[]}[] = [];
+    const layoutShifts: Array<{[x: string]: ReactNode[]}> = [];
     for (const attr of frame.data.attributions) {
       const elements: ReactNode[] = [];
       if ('nodeIds' in attr && Array.isArray(attr.nodeIds)) {
@@ -225,12 +225,12 @@ function WebVitalData({
       layoutShifts.push({[`score ${attr.value}`]: elements});
     }
     if (layoutShifts.length) {
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       webVitalData['Layout shifts'] = layoutShifts;
     }
   } else if (selectors) {
     selectors.forEach((key, value) => {
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       webVitalData[key] = (
         <span
           key={key}

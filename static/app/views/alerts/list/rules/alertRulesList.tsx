@@ -82,7 +82,7 @@ function AlertRulesList() {
     getResponseHeader,
     isPending,
     isError,
-  } = useApiQuery<(CombinedAlerts | null)[]>(
+  } = useApiQuery<Array<CombinedAlerts | null>>(
     getAlertListQueryKey(organization.slug, location.query),
     {
       staleTime: 0,
@@ -160,7 +160,7 @@ function AlertRulesList() {
 
     try {
       await api.requestPromise(deleteEndpoints[rule.type], {method: 'DELETE'});
-      setApiQueryData<(CombinedAlerts | null)[]>(
+      setApiQueryData<Array<CombinedAlerts | null>>(
         queryClient,
         getAlertListQueryKey(organization.slug, location.query),
         data => data?.filter(r => r?.id !== rule.id && r?.type !== rule.type)

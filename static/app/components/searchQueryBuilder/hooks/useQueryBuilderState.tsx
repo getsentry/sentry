@@ -122,7 +122,10 @@ function removeQueryToken(query: string, token: TokenResult<Token>): string {
   );
 }
 
-function removeQueryTokensFromQuery(query: string, tokens: TokenResult<Token>[]): string {
+function removeQueryTokensFromQuery(
+  query: string,
+  tokens: Array<TokenResult<Token>>
+): string {
   if (!tokens.length) {
     return query;
   }
@@ -233,7 +236,7 @@ function modifyFilterValueDate(
 // Uses the token's location to replace a sequence of tokens with the new text value
 function replaceQueryTokens(
   query: string,
-  tokens: TokenResult<Token>[],
+  tokens: Array<TokenResult<Token>>,
   value: string
 ): string {
   if (tokens.length === 0) {
@@ -258,7 +261,7 @@ function replaceQueryToken(
 // Takes a list of token replacements and applies them to the query
 function multipleReplaceQueryToken(
   query: string,
-  replacements: {replacement: string; token: TokenResult<Token>}[]
+  replacements: Array<{replacement: string; token: TokenResult<Token>}>
 ) {
   // Because replacements to earlier tokens can affect the offsets of later tokens,
   // we need to apply the replacements in order from rightmost to leftmost
@@ -286,7 +289,7 @@ function removeExcessWhitespaceFromParts(...parts: string[]): string {
 // and cleans up any extra whitespace
 export function replaceTokensWithPadding(
   query: string,
-  tokens: TokenResult<Token>[],
+  tokens: Array<TokenResult<Token>>,
   value: string
 ): string {
   if (tokens.length === 0) {

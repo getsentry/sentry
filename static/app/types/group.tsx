@@ -177,7 +177,7 @@ const ISSUE_TYPE_TO_ISSUE_TITLE = {
 
 export function getIssueTitleFromType(issueType: string): IssueTitle | undefined {
   if (issueType in ISSUE_TYPE_TO_ISSUE_TITLE) {
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return ISSUE_TYPE_TO_ISSUE_TITLE[issueType];
   }
   return undefined;
@@ -215,7 +215,7 @@ export function getIssueTypeFromOccurrenceType(
   if (!typeId) {
     return null;
   }
-  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   return OCCURRENCE_TYPE_TO_ISSUE_TYPE[typeId] ?? null;
 }
 
@@ -816,7 +816,7 @@ export interface BaseGroup {
   logger: string | null;
   metadata: EventMetadata;
   numComments: number;
-  participants: (UserParticipant | TeamParticipant)[];
+  participants: Array<UserParticipant | TeamParticipant>;
   permalink: string;
   platform: PlatformKey;
   pluginActions: TitledPlugin[];
@@ -848,6 +848,7 @@ export interface GroupOpenPeriod {
   duration: string;
   end: string;
   isOpen: boolean;
+  lastChecked: string;
   start: string;
 }
 
@@ -897,7 +898,7 @@ export type Meta = {
 };
 
 export type MetaError = string | [string, any];
-export type MetaRemark = (string | number)[];
+export type MetaRemark = Array<string | number>;
 
 export type ChunkType = {
   rule_id: string | number;
@@ -960,7 +961,7 @@ export type Note = {
   /**
    * Array of [id, display string] tuples used for @-mentions
    */
-  mentions: [string, string][];
+  mentions: Array<[string, string]>;
 
   /**
    * Note contents (markdown allowed)

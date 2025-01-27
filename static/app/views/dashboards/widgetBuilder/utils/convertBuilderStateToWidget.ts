@@ -29,10 +29,12 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
               field.kind as FieldValueKind
             )
           )
-          .map(generateFieldAsString);
+          .map(generateFieldAsString)
+          .filter(Boolean);
   const columns = state.fields
     ?.filter(field => field.kind === FieldValueKind.FIELD)
-    .map(generateFieldAsString);
+    .map(generateFieldAsString)
+    .filter(Boolean);
 
   const fields =
     state.displayType === DisplayType.TABLE

@@ -126,7 +126,7 @@ export function DomainSelector({
     textValue: t('(No %s)', domainAlias ?? LABEL_FOR_MODULE_NAME[moduleName]),
   };
 
-  const options: SelectOption<string>[] = [
+  const options: Array<SelectOption<string>> = [
     {value: '', label: 'All'},
     ...(emptyOptionLocation === 'top' ? [emptyOption] : []),
     ...domainOptions,

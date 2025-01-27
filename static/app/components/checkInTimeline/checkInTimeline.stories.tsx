@@ -50,7 +50,7 @@ const statusPrecedent = [ExampleStatus.OK, ExampleStatus.TIMEOUT, ExampleStatus.
 function generateMockTickData(
   secondsGap: number,
   timeWindowConfig: TimeWindowConfig
-): CheckInBucket<ExampleStatus>[] {
+): Array<CheckInBucket<ExampleStatus>> {
   const buckets = timeWindowConfig.timelineWidth;
   const secondsPerBucket = (timeWindowConfig.elapsedMinutes * 60) / buckets;
 

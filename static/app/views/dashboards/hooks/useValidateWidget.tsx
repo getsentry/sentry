@@ -24,8 +24,15 @@ export function useValidateWidgetQuery(_widget: Widget) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
+  const cleanedWidget = cleanWidgetForRequest(_widget);
+
+  // Pin title and description to avoid re-triggering validation on
+  // every change in title/description.
+  cleanedWidget.title = 'sentinel';
+  cleanedWidget.description = 'sentinel';
+
   const data = useApiQuery<ValidateWidgetResponse>(
-    validateWidgetRequest(organization.slug, cleanWidgetForRequest(_widget), selection),
+    validateWidgetRequest(organization.slug, cleanedWidget, selection),
     {
       staleTime: 10000,
       enabled: hasOnDemandMetricWidgetFeature(organization),

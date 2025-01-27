@@ -52,7 +52,7 @@ class ProjectDetectorIndexEndpoint(ProjectEndpoint):
         )
 
     @extend_schema(
-        operation_id="Fetch a Detector",
+        operation_id="Fetch a Project's Detectors",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -72,7 +72,7 @@ class ProjectDetectorIndexEndpoint(ProjectEndpoint):
         Return a list of detectors for a given project.
         """
         queryset = Detector.objects.filter(
-            organization_id=project.organization_id,
+            project_id=project.id,
         ).order_by("id")
 
         return self.paginate(

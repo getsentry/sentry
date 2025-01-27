@@ -1,3 +1,5 @@
+import * as Sentry from '@sentry/react';
+
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -6,7 +8,6 @@ import {
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import type {ObjectStatus} from 'sentry/types/core';
-import {logException} from 'sentry/utils/logging';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import type {Monitor, ProcessingErrorType} from 'sentry/views/monitors/types';
 
@@ -74,7 +75,7 @@ export async function updateMonitor(
         ? (respError.responseJSON?.[updateKeys[0]!] as any)?.[0]
         : undefined;
 
-    logException(err);
+    Sentry.captureException(err);
     addErrorMessage(validationError ?? t('Unable to update monitor.'));
   }
 
@@ -98,7 +99,7 @@ export async function setEnvironmentIsMuted(
     clearIndicators();
     return resp;
   } catch (err) {
-    logException(err);
+    Sentry.captureException(err);
     addErrorMessage(
       isMuted ? t('Unable to mute environment.') : t('Unable to unmute environment.')
     );
@@ -139,7 +140,7 @@ export async function bulkEditMonitors(
     }
     return resp;
   } catch (err) {
-    logException(err);
+    Sentry.captureException(err);
     addErrorMessage(t('Unable to apply the changes to all monitors'));
   }
 
@@ -165,7 +166,7 @@ export async function deleteMonitorProcessingErrorByType(
     );
     clearIndicators();
   } catch (err) {
-    logException(err);
+    Sentry.captureException(err);
     if (err.status === 403) {
       addErrorMessage(t('You do not have permission to dismiss these processing errors'));
     } else {
@@ -189,7 +190,7 @@ export async function deleteProjectProcessingErrorByType(
     });
     clearIndicators();
   } catch (err) {
-    logException(err);
+    Sentry.captureException(err);
     if (err.status === 403) {
       addErrorMessage(t('You do not have permission to dismiss these processing errors'));
     } else {
