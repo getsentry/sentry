@@ -126,7 +126,9 @@ jobs:
       - name: Inspect failure
         if: failure()
         run: |
-          devservices logs
+          if command -v devservices; then
+            devservices logs
+          fi
 
       - name: Collect test data
         uses: ./.github/actions/collect-test-data
