@@ -372,6 +372,13 @@ def call_next_backfill(
             # we're at the end of the project list
             return
         elif batch_project_id is None:
+            logger.info(
+                "backfill_seer_grouping_records.cohort_finished",
+                extra={
+                    "cohort": cohort,
+                    "worker_number": worker_number,
+                },
+            )
             cohort = None
             last_processed_project_id = project_id
 
