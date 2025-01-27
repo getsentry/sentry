@@ -35,7 +35,7 @@ import {useDiscoverSplitAlert} from 'sentry/views/dashboards/discoverSplitAlert'
 import WidgetCardChartContainer from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 
 import type {DashboardFilters, Widget} from '../types';
-import {DisplayType, OnDemandExtractionState, type WidgetType} from '../types';
+import {DisplayType, OnDemandExtractionState, WidgetType} from '../types';
 import {DEFAULT_RESULTS_LIMIT} from '../widgetBuilder/utils';
 import type WidgetLegendSelectionState from '../widgetLegendSelectionState';
 import {BigNumberWidget} from '../widgets/bigNumberWidget/bigNumberWidget';
