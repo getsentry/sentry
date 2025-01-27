@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, cast
-
-from typing_extensions import TypeIs
+from typing import Any, TypeIs, cast
 
 from sentry.eventstore.models import Event
 from sentry.grouping.api import get_contributing_variant_and_component
