@@ -18,7 +18,6 @@ const uptimeConfig: IssueCategoryConfigMapping = {
       tagDistribution: {enabled: false},
       timelineSummary: {enabled: true},
     },
-    showOpenPeriods: true,
     detector: {
       enabled: true,
       title: t('Uptime Monitor'),
