@@ -51,7 +51,7 @@ function ReplayView({toggleFullscreen, isLoading}: Props) {
             ) : null}
           </ContextContainer>
           {!isFetching && replay?.hasProcessingErrors() ? (
-            <ReplayProcessingError processingErrors={replay.processingErrors()} />
+            <ReplayProcessingError />
           ) : (
             <FluidHeight>
               <CanvasSupportNotice />

@@ -1,5 +1,5 @@
+import {fill, isThenable, loadModule} from '@sentry/core';
 import * as Sentry from '@sentry/react';
-import {fill, isThenable, loadModule} from '@sentry/utils';
 
 export function instrumentUserEvent(): void {
   const pkg = loadModule('@testing-library/user-event') as any;

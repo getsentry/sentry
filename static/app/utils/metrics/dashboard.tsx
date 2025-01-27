@@ -1,4 +1,4 @@
-import {urlEncode} from '@sentry/utils';
+import * as qs from 'query-string';
 
 import type {PageFilters} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
@@ -70,7 +70,7 @@ export function getWidgetEquation(equation: EquationParams): WidgetQuery {
 }
 
 export function encodeWidgetQuery(query: any) {
-  return urlEncode({
+  return qs.stringify({
     ...query,
     aggregates: query.aggregates.join(','),
     fields: query.fields?.join(','),
