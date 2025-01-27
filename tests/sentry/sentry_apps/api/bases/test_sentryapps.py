@@ -1,6 +1,3 @@
-import unittest
-from unittest.mock import Mock, patch
-
 import pytest
 from django.contrib.auth.models import AnonymousUser
 from django.test.utils import override_settings
@@ -12,7 +9,6 @@ from sentry.sentry_apps.api.bases.sentryapps import (
     SentryAppInstallationBaseEndpoint,
     SentryAppInstallationPermission,
     SentryAppPermission,
-    add_integration_platform_metric_tag,
 )
 from sentry.sentry_apps.utils.errors import SentryAppError
 from sentry.testutils.cases import TestCase
@@ -244,19 +240,3 @@ class SentryAppInstallationBaseEndpointTest(TestCase):
     def test_raises_when_sentry_app_not_found(self):
         with pytest.raises(SentryAppError):
             self.endpoint.convert_args(self.request, "1234")
-
-
-@control_silo_test
-class AddIntegrationPlatformMetricTagTest(unittest.TestCase):
-    @patch("sentry.sentry_apps.api.bases.sentryapps.add_request_metric_tags")
-    def test_record_platform_integration_metric(self, add_request_metric_tags):
-        @add_integration_platform_metric_tag
-        def get(self, request, *args, **kwargs):
-            pass
-
-        request = Mock()
-        endpoint = Mock(request=request)
-
-        get(endpoint, request)
-
-        add_request_metric_tags.assert_called_with(request, integration_platform=True)

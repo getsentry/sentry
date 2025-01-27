@@ -13,10 +13,7 @@ from sentry.organizations.services.organization.model import (
     RpcOrganization,
     RpcUserOrganizationContext,
 )
-from sentry.sentry_apps.api.bases.sentryapps import (
-    SentryAppBaseEndpoint,
-    add_integration_platform_metric_tag,
-)
+from sentry.sentry_apps.api.bases.sentryapps import SentryAppBaseEndpoint
 from sentry.sentry_apps.api.serializers.sentry_app_component import SentryAppComponentSerializer
 from sentry.sentry_apps.components import SentryAppComponentPreparer
 from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
@@ -51,7 +48,6 @@ class OrganizationSentryAppComponentsEndpoint(ControlSiloOrganizationEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    @add_integration_platform_metric_tag
     def get(
         self,
         request: Request,
