@@ -91,7 +91,7 @@ def backfill_seer_grouping_records_for_project(
     logger.info(
         "backfill_seer_grouping_records.task_start",
         extra={
-            "current_project_id": current_project_id,
+            "project_id": current_project_id,
             "last_processed_group_id": last_processed_group_id_input,
             "cohort": cohort,
             "last_processed_project_index": last_processed_project_index_input,
@@ -115,7 +115,7 @@ def backfill_seer_grouping_records_for_project(
     except Project.DoesNotExist:
         logger.info(
             "backfill_seer_grouping_records.project_does_not_exist",
-            extra={"current_project_id": current_project_id},
+            extra={"project_id": current_project_id},
         )
         assert last_processed_project_index_input is not None
         call_next_backfill(
@@ -149,7 +149,7 @@ def backfill_seer_grouping_records_for_project(
         delete_seer_grouping_records(current_project_id)
         logger.info(
             "backfill_seer_grouping_records.deleted_all_records",
-            extra={"current_project_id": current_project_id},
+            extra={"project_id": current_project_id},
         )
 
     # Only check if project is seer eligible if we are running the GA backfill
@@ -268,7 +268,7 @@ def backfill_seer_grouping_records_for_project(
             "backfill_seer_grouping_records.seer_failed",
             extra={
                 "reason": seer_response.get("reason"),
-                "current_project_id": current_project_id,
+                "project_id": current_project_id,
                 "last_processed_project_index": last_processed_project_index,
                 "worker_number": worker_number,
             },
