@@ -355,8 +355,9 @@ const StyledButton = styled(Button)`
 const StyledCard = styled('div')`
   background: ${p => p.theme.backgroundElevated};
   overflow: hidden;
-  border-bottom: 1px solid ${p => p.theme.border};
-  padding: ${space(1)} ${space(0.5)} ${space(3)} ${space(0.5)};
+  border: 2px solid ${p => p.theme.innerBorder};
+  border-radius: ${p => p.theme.borderRadius};
+  padding: ${space(2)};
 `;
 
 const HeaderText = styled('div')`
