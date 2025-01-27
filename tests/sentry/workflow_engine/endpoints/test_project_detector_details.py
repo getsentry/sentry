@@ -1,5 +1,7 @@
 from datetime import timedelta
 
+import pytest
+
 from sentry.api.serializers import serialize
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.grouping.grouptype import ErrorGroupType
@@ -22,6 +24,7 @@ from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
+@pytest.mark.snuba_ci
 class ProjectDetectorDetailsBaseTest(APITestCase):
     endpoint = "sentry-api-0-project-detector-details"
 
