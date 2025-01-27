@@ -97,6 +97,7 @@ class OrganizationSerializerTest(TestCase):
             "symbol-sources",
             "team-insights",
             "team-roles",
+            "uptime",
         ]
 
     @mock.patch("sentry.features.batch_has")
