@@ -70,7 +70,7 @@ class GroupStacktraceData(TypedDict):
 def filter_snuba_results(snuba_results, groups_to_backfill_with_no_embedding, project):
     if not snuba_results or not snuba_results[0].get("data"):
         logger.info(
-            "backfill_seer_grouping_records.results",
+            "backfill_seer_grouping_records.empty_snuba_results",
             extra={
                 "project_id": project.id,
                 "group_id_batch": json.dumps(groups_to_backfill_with_no_embedding),
