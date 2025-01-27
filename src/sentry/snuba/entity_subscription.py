@@ -273,7 +273,7 @@ class PerformanceSpansEAPRpcEntitySubscription(BaseEntitySubscription):
             end=now,
         )
 
-        rpc_request = get_timeseries_query(
+        rpc_request, _, _ = get_timeseries_query(
             params=snuba_params,
             query_string=query,
             y_axes=[self.aggregate],
