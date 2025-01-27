@@ -17,19 +17,19 @@ def raise_alert_rule_action_result_errors(result: RpcAlertRuleActionResult) -> N
     match error_type:
         case SentryAppErrorType.INTEGRATOR:
             raise APIError(
-                message=result.message,
+                result.message,
             )
         case SentryAppErrorType.CLIENT:
-            raise serializers.ValidationError(result.message, result.public_context)
+            raise serializers.ValidationError(result.message)
         case SentryAppErrorType.SENTRY:
-            logger.error(
+            logger.info(
                 "create-failed",
-                extras={
-                    "message": result.message,
-                    **result.webhook_context,
-                    **result.public_context,
+                extra={
+                    "message_str": result.message,
+                    "webhook_context": result.webhook_context if result.webhook_context else None,
+                    "public_context": result.public_context if result.public_context else None,
                 },
             )
             raise Exception(
-                message=result.message,
+                result.message,
             )

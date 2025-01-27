@@ -21,7 +21,7 @@ DEFAULT_ERROR_MESSAGE = "Something went wrong!"
 logger = logging.getLogger("sentry.sentry_apps.external_requests")
 
 
-class AlertRuleActionResult(TypedDict):
+class AlertRuleActionResult(TypedDict, total=False):
     success: bool
     message: str
     error_type: SentryAppErrorType | None
