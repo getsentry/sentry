@@ -32,14 +32,14 @@ export function getTooltipText({
   organization?: Organization;
   project?: Project;
 }) {
-  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const method = REMARKS[remark];
 
-  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   if (NON_DATA_SCRUBBING_RULES[rule_id]) {
     return tct('[method] because of [ruleDescription]', {
       method,
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       ruleDescription: NON_DATA_SCRUBBING_RULES[rule_id],
     });
   }

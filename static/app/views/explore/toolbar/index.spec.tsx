@@ -171,17 +171,17 @@ describe('ExploreToolbar', function () {
 
     expect(fields).toEqual([
       'id',
-      'project',
       'span.op',
       'span.description',
       'span.duration',
+      'transaction',
       'timestamp',
     ]); // default
 
     // Add a group by, and leave one unselected
     await userEvent.click(aggregates);
     const groupBy = screen.getByTestId('section-group-by');
-    await userEvent.click(within(groupBy).getByRole('button', {name: 'None'}));
+    await userEvent.click(within(groupBy).getByRole('button', {name: 'span.op'}));
     await userEvent.click(within(groupBy).getByRole('option', {name: 'release'}));
     expect(groupBys).toEqual(['release']);
     await userEvent.click(within(groupBy).getByRole('button', {name: 'Add Group'}));
@@ -190,10 +190,10 @@ describe('ExploreToolbar', function () {
     await userEvent.click(samples);
     expect(fields).toEqual([
       'id',
-      'project',
       'span.op',
       'span.description',
       'span.duration',
+      'transaction',
       'timestamp',
       'release',
     ]); // default
@@ -322,11 +322,15 @@ describe('ExploreToolbar', function () {
 
     const section = screen.getByTestId('section-group-by');
 
-    expect(within(section).getByRole('button', {name: 'None'})).toBeInTheDocument();
-    expect(groupBys).toEqual(['']);
+    expect(
+      within(section).getByRole('button', {name: 'Samples not grouped'})
+    ).toBeInTheDocument();
+    expect(groupBys).toEqual(['span.op']);
 
     // disabled in the samples mode
-    expect(within(section).getByRole('button', {name: 'None'})).toBeDisabled();
+    expect(
+      within(section).getByRole('button', {name: 'Samples not grouped'})
+    ).toBeDisabled();
 
     // click the aggregates mode to enable
     await userEvent.click(
@@ -335,16 +339,16 @@ describe('ExploreToolbar', function () {
       })
     );
 
-    expect(within(section).getByRole('button', {name: 'None'})).toBeEnabled();
-    await userEvent.click(within(section).getByRole('button', {name: 'None'}));
+    expect(within(section).getByRole('button', {name: 'span.op'})).toBeEnabled();
+    await userEvent.click(within(section).getByRole('button', {name: 'span.op'}));
     const groupByOptions1 = await within(section).findAllByRole('option');
     expect(groupByOptions1.length).toBeGreaterThan(0);
 
-    await userEvent.click(within(section).getByRole('option', {name: 'span.op'}));
-    expect(groupBys).toEqual(['span.op']);
+    await userEvent.click(within(section).getByRole('option', {name: 'project'}));
+    expect(groupBys).toEqual(['project']);
 
     await userEvent.click(within(section).getByRole('button', {name: 'Add Group'}));
-    expect(groupBys).toEqual(['span.op', '']);
+    expect(groupBys).toEqual(['project', '']);
 
     await userEvent.click(within(section).getByRole('button', {name: 'None'}));
     const groupByOptions2 = await within(section).findAllByRole('option');
@@ -353,7 +357,7 @@ describe('ExploreToolbar', function () {
     await userEvent.click(
       within(section).getByRole('option', {name: 'span.description'})
     );
-    expect(groupBys).toEqual(['span.op', 'span.description']);
+    expect(groupBys).toEqual(['project', 'span.description']);
 
     await userEvent.click(within(section).getAllByLabelText('Remove Column')[0]!);
     expect(groupBys).toEqual(['span.description']);
@@ -393,11 +397,11 @@ describe('ExploreToolbar', function () {
     // check the default field options
     const fields = [
       'id',
-      'project',
       'span.description',
       'span.duration',
       'span.op',
       'timestamp',
+      'transaction',
     ];
     await userEvent.click(within(section).getByRole('button', {name: 'timestamp'}));
     const fieldOptions = await within(section).findAllByRole('option');
@@ -557,10 +561,10 @@ describe('ExploreToolbar', function () {
             dataset: 'spans',
             defaultTableColumns: [
               'id',
-              'project',
               'span.op',
               'span.description',
               'span.duration',
+              'transaction',
               'timestamp',
             ],
             defaultTitle: 'Custom Widget',
@@ -570,14 +574,14 @@ describe('ExploreToolbar', function () {
             end: undefined,
             field: [
               'id',
-              'project',
               'span.op',
               'span.description',
               'span.duration',
+              'transaction',
               'timestamp',
             ],
             limit: undefined,
-            source: 'discoverv2',
+            source: 'traceExplorer',
             start: undefined,
             statsPeriod: '14d',
           }),

@@ -139,7 +139,7 @@ class SentryAppFormModel extends FormModel {
   getData() {
     return this.fields.toJSON().reduce((data, [k, v]) => {
       if (!k.endsWith('--permission')) {
-        // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         data[k] = v;
       }
       return data;
@@ -176,7 +176,7 @@ class SentryApplicationDetails extends DeprecatedAsyncComponent<Props, State> {
       if (this.hasTokenAccess) {
         endpoints.push(['tokens', `/sentry-apps/${appSlug}/api-tokens/`]);
       }
-      return endpoints as [string, string][];
+      return endpoints as Array<[string, string]>;
     }
 
     return [];

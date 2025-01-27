@@ -2,6 +2,7 @@ import pickBy from 'lodash/pickBy';
 
 import {doEventsRequest} from 'sentry/actionCreators/events';
 import type {Client} from 'sentry/api';
+import {getInterval} from 'sentry/components/charts/utils';
 import type {PageFilters} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
 import type {
@@ -57,7 +58,7 @@ const DEFAULT_FIELD: QueryFieldValue = {
 };
 
 const EAP_AGGREGATIONS = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.reduce((acc, aggregate) => {
-  // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   acc[aggregate] = {
     isSortable: true,
     outputType: null,
@@ -275,6 +276,7 @@ function getSeriesRequest(
   );
 
   requestData.useRpc = true;
+  requestData.interval = getInterval(pageFilters.datetime, 'spans');
 
   return doEventsRequest<true>(api, requestData);
 }

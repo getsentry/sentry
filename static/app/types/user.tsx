@@ -25,11 +25,11 @@ export type AvatarUser = {
 export interface User extends Omit<AvatarUser, 'options'> {
   canReset2fa: boolean;
   dateJoined: string;
-  emails: {
+  emails: Array<{
     email: string;
     id: string;
     is_verified: boolean;
-  }[];
+  }>;
   experiments: Partial<UserExperiments>;
   flags: {newsletter_consent_prompt: boolean};
   has2fa: boolean;

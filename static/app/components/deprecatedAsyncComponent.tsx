@@ -210,7 +210,7 @@ class DeprecatedAsyncComponent<
     }
 
     endpoints.forEach(([stateKey, _endpoint]) => {
-      // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       state[stateKey] = null;
     });
     return state;
@@ -370,7 +370,7 @@ class DeprecatedAsyncComponent<
    *   ['stateKeyName', '/endpoint/', {optional: 'query params'}, {options}]
    * ]
    */
-  getEndpoints(): [string, string, any?, any?][] {
+  getEndpoints(): Array<[string, string, any?, any?]> {
     return [];
   }
 

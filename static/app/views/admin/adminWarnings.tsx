@@ -5,7 +5,7 @@ import {t} from 'sentry/locale';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 type Data = {
-  groups: [groupName: string, grouppedWarnings: string[]][];
+  groups: Array<[groupName: string, grouppedWarnings: string[]]>;
   warnings: string[];
 };
 

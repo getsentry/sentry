@@ -46,39 +46,44 @@ DURATION_TYPE: set[SearchType] = set(DURATION_UNITS.keys())
 
 STRING = AttributeKey.TYPE_STRING
 BOOLEAN = AttributeKey.TYPE_BOOLEAN
-FLOAT = AttributeKey.TYPE_FLOAT
 DOUBLE = AttributeKey.TYPE_DOUBLE
 INT = AttributeKey.TYPE_INT
+TYPE_TO_STRING_MAP = {
+    STRING: "string",
+    BOOLEAN: "boolean",
+    DOUBLE: "double",
+    INT: "integer",
+}
 
 # TODO: we need a datetime type
 # Maps search types back to types for the proto
 TYPE_MAP: dict[SearchType, AttributeKey.Type.ValueType] = {
-    "bit": FLOAT,
-    "byte": FLOAT,
-    "kibibyte": FLOAT,
-    "mebibyte": FLOAT,
-    "gibibyte": FLOAT,
-    "tebibyte": FLOAT,
-    "pebibyte": FLOAT,
-    "exbibyte": FLOAT,
-    "kilobyte": FLOAT,
-    "megabyte": FLOAT,
-    "gigabyte": FLOAT,
-    "terabyte": FLOAT,
-    "petabyte": FLOAT,
-    "exabyte": FLOAT,
-    "nanosecond": FLOAT,
-    "microsecond": FLOAT,
-    "millisecond": FLOAT,
-    "second": FLOAT,
-    "minute": FLOAT,
-    "hour": FLOAT,
-    "day": FLOAT,
-    "week": FLOAT,
-    "duration": FLOAT,
+    "bit": DOUBLE,
+    "byte": DOUBLE,
+    "kibibyte": DOUBLE,
+    "mebibyte": DOUBLE,
+    "gibibyte": DOUBLE,
+    "tebibyte": DOUBLE,
+    "pebibyte": DOUBLE,
+    "exbibyte": DOUBLE,
+    "kilobyte": DOUBLE,
+    "megabyte": DOUBLE,
+    "gigabyte": DOUBLE,
+    "terabyte": DOUBLE,
+    "petabyte": DOUBLE,
+    "exabyte": DOUBLE,
+    "nanosecond": DOUBLE,
+    "microsecond": DOUBLE,
+    "millisecond": DOUBLE,
+    "second": DOUBLE,
+    "minute": DOUBLE,
+    "hour": DOUBLE,
+    "day": DOUBLE,
+    "week": DOUBLE,
+    "duration": DOUBLE,
     "integer": INT,
-    "number": FLOAT,
-    "percentage": FLOAT,
+    "number": DOUBLE,
+    "percentage": DOUBLE,
     "string": STRING,
     "boolean": BOOLEAN,
 }
@@ -98,7 +103,9 @@ VALID_GRANULARITIES = frozenset(
         15 * 60,
         30 * 60,  # minutes
         1 * 3600,
+        2 * 3600,
         3 * 3600,
+        4 * 3600,
         12 * 3600,
         24 * 3600,  # hours
     }
@@ -106,3 +113,6 @@ VALID_GRANULARITIES = frozenset(
 TRUTHY_VALUES = {"1", "true"}
 FALSEY_VALUES = {"0", "false"}
 BOOLEAN_VALUES = TRUTHY_VALUES.union(FALSEY_VALUES)
+
+PROJECT_FIELDS = {"project", "project.slug", "project.name"}
+REVERSE_CONTEXT_ERROR = "Unknown value {} for filter {}, expecting one of: {}"

@@ -28,7 +28,7 @@ import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
 import QueryList from './queryList';
 import {getPrebuiltQueries, setRenderPrebuilt, shouldRenderPrebuilt} from './utils';
 
-const SORT_OPTIONS: SelectValue<string>[] = [
+const SORT_OPTIONS: Array<SelectValue<string>> = [
   {label: t('My Queries'), value: 'myqueries'},
   {label: t('Recently Edited'), value: '-dateUpdated'},
   {label: t('Query Name (A-Z)'), value: 'name'},

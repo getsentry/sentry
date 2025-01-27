@@ -8,6 +8,8 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -29,6 +31,12 @@ function SaveButton({isEditing, onSave, setError}: SaveButtonProps) {
   const [isSaving, setIsSaving] = useState(false);
 
   const handleSave = useCallback(async () => {
+    trackAnalytics('dashboards_views.widget_builder.save', {
+      builder_version: WidgetBuilderVersion.SLIDEOUT,
+      data_set: state.dataset ?? '',
+      new_widget: !isEditing,
+      organization: organization.slug,
+    });
     const widget = convertBuilderStateToWidget(state);
     setIsSaving(true);
     try {
@@ -42,7 +50,7 @@ function SaveButton({isEditing, onSave, setError}: SaveButtonProps) {
       setError(errorDetails);
       addErrorMessage(t('Unable to save widget'));
     }
-  }, [api, onSave, organization.slug, state, widgetIndex, setError]);
+  }, [api, onSave, organization.slug, state, widgetIndex, setError, isEditing]);
 
   return (
     <Button priority="primary" onClick={handleSave} busy={isSaving}>

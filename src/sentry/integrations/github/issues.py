@@ -171,22 +171,24 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
 
     def create_issue(self, data: Mapping[str, Any], **kwargs: Any) -> Mapping[str, Any]:
         client = self.get_client()
-
         repo = data.get("repo")
-
         if not repo:
             raise IntegrationError("repo kwarg must be provided")
 
+        # Create clean issue data with required fields
+        issue_data = {
+            "title": data["title"],
+            "body": data["description"],
+        }
+
+        # Only include optional fields if they have valid values
+        if data.get("assignee"):
+            issue_data["assignee"] = data["assignee"]
+        if data.get("labels"):
+            issue_data["labels"] = data["labels"]
+
         try:
-            issue = client.create_issue(
-                repo=repo,
-                data={
-                    "title": data["title"],
-                    "body": data["description"],
-                    "assignee": data.get("assignee"),
-                    "labels": data.get("labels"),
-                },
-            )
+            issue = client.create_issue(repo=repo, data=issue_data)
         except ApiError as e:
             raise IntegrationError(self.message_from_error(e))
 

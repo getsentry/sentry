@@ -3,11 +3,11 @@ import type {SpanChartNode} from 'sentry/utils/profiling/spanChart';
 
 export type FlamegraphSearchResult = {
   frame: FlamegraphFrame;
-  match: readonly [number, number][];
+  match: ReadonlyArray<[number, number]>;
 };
 
 export type SpansSearchResult = {
-  match: readonly [number, number][];
+  match: ReadonlyArray<[number, number]>;
   span: SpanChartNode;
 };
 

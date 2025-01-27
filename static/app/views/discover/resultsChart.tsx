@@ -182,7 +182,7 @@ type ContainerProps = {
 };
 
 type ContainerState = {
-  yAxisOptions: SelectValue<string>[];
+  yAxisOptions: Array<SelectValue<string>>;
 };
 
 class ResultsChartContainer extends Component<ContainerProps, ContainerState> {

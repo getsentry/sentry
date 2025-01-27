@@ -2455,9 +2455,9 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             "ports": {"50051/tcp": 50051},
             "environment": {
                 "TASKBROKER_KAFKA_CLUSTER": (
-                    "kafka-kafka-1"
-                    if os.environ.get("USE_NEW_DEVSERVICES") == "1"
-                    else "sentry_kafka"
+                    "sentry_kafka"
+                    if os.environ.get("USE_OLD_DEVSERVICES") == "1"
+                    else "kafka-kafka-1"
                 ),
             },
             "only_if": settings.SENTRY_USE_TASKBROKER,
@@ -2969,6 +2969,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "buffered-segments": "default",
     "buffered-segments-dlq": "default",
     "task-worker": "default",
+    "snuba-ourlogs": "default",
 }
 
 

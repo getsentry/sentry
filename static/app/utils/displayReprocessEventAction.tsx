@@ -95,7 +95,7 @@ function getStackTracePlatforms(
   )?.data ?? {}) as StacktraceType;
 
   Object.keys(stackTraceEntry).forEach(key =>
-    // @ts-ignore TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     addFramePlatforms(platforms, stackTraceEntry[key])
   );
 
@@ -127,7 +127,7 @@ function addFramePlatforms(
  */
 function addPlatforms(
   platforms: Set<PlatformKey>,
-  iter: {platform?: PlatformKey | null}[]
+  iter: Array<{platform?: PlatformKey | null}>
 ) {
   for (const o of iter) {
     if (o.platform) {
