@@ -135,7 +135,7 @@ class BaseRequestParser(ABC):
         self, regions: Sequence[Region]
     ) -> Mapping[str, RegionResult]:
         self.ensure_control_silo()
-        
+
         if not regions:
             logger.info(
                 "integration.regions.empty",
