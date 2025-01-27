@@ -165,4 +165,19 @@ describe('convertBuilderStateToWidget', function () {
 
     expect(widget.queries[0]!.fields).toEqual(['geo.country', 'count()']);
   });
+
+  it('ignores empty fields', function () {
+    const mockState: WidgetBuilderState = {
+      fields: [{field: '', kind: FieldValueKind.FIELD}],
+      yAxis: [
+        {function: ['count', '', undefined, undefined], kind: FieldValueKind.FUNCTION},
+      ],
+    };
+
+    const widget = convertBuilderStateToWidget(mockState);
+
+    expect(widget.queries[0]!.fields).toEqual(['count()']);
+    expect(widget.queries[0]!.aggregates).toEqual(['count()']);
+    expect(widget.queries[0]!.columns).toEqual([]);
+  });
 });
