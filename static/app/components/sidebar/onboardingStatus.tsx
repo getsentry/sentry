@@ -144,7 +144,11 @@ export function OnboardingStatus({
             <Heading>{label}</Heading>
             <Remaining role="status">
               {demoMode
-                ? tn('%s completed tour', '%s completed tours', doneTasks.length)
+                ? tn(
+                    '%s remaining tour',
+                    '%s remaining tours',
+                    allTasks.length - doneTasks.length
+                  )
                 : tn('%s completed task', '%s completed tasks', doneTasks.length)}
               {pendingCompletionSeen && (
                 <PendingSeenIndicator data-test-id="pending-seen-indicator" />
