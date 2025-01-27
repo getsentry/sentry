@@ -1,7 +1,5 @@
 from datetime import timedelta
 
-import pytest
-
 from sentry.api.serializers import serialize
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.grouping.grouptype import ErrorGroupType
@@ -13,7 +11,6 @@ from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscrip
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import region_silo_test
-from sentry.testutils.skips import requires_kafka, requires_snuba
 from sentry.workflow_engine.models import (
     DataCondition,
     DataConditionGroup,
@@ -24,10 +21,7 @@ from sentry.workflow_engine.models import (
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
-pytestmark = [pytest.mark.sentry_metrics, requires_snuba, requires_kafka]
 
-
-@pytest.mark.snuba_ci
 class ProjectDetectorDetailsBaseTest(APITestCase):
     endpoint = "sentry-api-0-project-detector-details"
 
@@ -49,21 +43,22 @@ class ProjectDetectorDetailsBaseTest(APITestCase):
         self.environment = self.create_environment(
             organization_id=self.organization.id, name="production"
         )
-        self.snuba_query = create_snuba_query(
-            query_type=SnubaQuery.Type.ERROR,
-            dataset=Dataset.Events,
-            query="hello",
-            aggregate="count()",
-            time_window=timedelta(minutes=1),
-            resolution=timedelta(minutes=1),
-            environment=self.environment,
-            event_types=[SnubaQueryEventType.EventType.ERROR],
-        )
-        self.query_subscription = create_snuba_subscription(
-            project=self.project,
-            subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
-            snuba_query=self.snuba_query,
-        )
+        with self.tasks():
+            self.snuba_query = create_snuba_query(
+                query_type=SnubaQuery.Type.ERROR,
+                dataset=Dataset.Events,
+                query="hello",
+                aggregate="count()",
+                time_window=timedelta(minutes=1),
+                resolution=timedelta(minutes=1),
+                environment=self.environment,
+                event_types=[SnubaQueryEventType.EventType.ERROR],
+            )
+            self.query_subscription = create_snuba_subscription(
+                project=self.project,
+                subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+                snuba_query=self.snuba_query,
+            )
         self.data_source = self.create_data_source(
             organization=self.organization, query_id=self.query_subscription.id
         )
@@ -145,9 +140,9 @@ class ProjectDetectorDetailsPostTest(ProjectDetectorDetailsGetTest):
                 {
                     "query_type": self.snuba_query.type,
                     "dataset": self.snuba_query.dataset,
-                    "query": "updated_query",
+                    "query": "updated query",
                     "aggregate": self.snuba_query.aggregate,
-                    "time_window": 120,
+                    "time_window": 5,  # minutes
                     "environment": None,  # getting env not in org error when passing self.environment.id
                     "event_types": [
                         event_type.value for event_type in self.snuba_query.event_types
@@ -191,8 +186,9 @@ class ProjectDetectorDetailsPostTest(ProjectDetectorDetailsGetTest):
 
         data_source_detector = DataSourceDetector.objects.get(detector=detector)
         data_source = DataSource.objects.get(id=data_source_detector.detector.id)
-        assert data_source.query == "test query"
-        assert data_source.time_window == 120
+        snuba_query = SnubaQuery.objects.get(id=data_source.query_id)
+        assert snuba_query.query == "updated query"
+        assert snuba_query.time_window == 300  # seconds = 5 minutes
 
     def test_update_missing_data_condition(self):
         """
