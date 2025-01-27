@@ -168,6 +168,21 @@ function getEventsRequest(
 ) {
   const isMEPEnabled = defined(mepSetting) && mepSetting !== MEPState.TRANSACTIONS_ONLY;
   const url = `/organizations/${organization.slug}/events/`;
+
+  // To generate the target url for TRACE ID links we always include a timestamp,
+  // to speed up the trace endpoint. Adding timestamp for the non-aggregate case and
+  // max(timestamp) for the aggregate case as fields, to accomodate this.
+  if (
+    query.aggregates.length &&
+    query.columns.includes('trace') &&
+    !query.aggregates.includes('max(timestamp)') &&
+    !query.columns.includes('timestamp')
+  ) {
+    query.aggregates.push('max(timestamp)');
+  } else if (query.columns.includes('trace') && !query.columns.includes('timestamp')) {
+    query.columns.push('timestamp');
+  }
+
   const eventView = eventViewFromWidget('', query, pageFilters);
 
   const params: DiscoverQueryRequestParams = {
