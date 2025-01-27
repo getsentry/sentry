@@ -60,6 +60,61 @@ class OrganizationTagsTest(APITestCase, OccurrenceTestMixin, SnubaTestCase):
             {"name": "Some Tag", "key": "some_tag", "totalValues": 1},
         ]
 
+    def test_simple_flags(self):
+        user = self.create_user()
+        org = self.create_organization()
+        team = self.create_team(organization=org)
+        self.create_member(organization=org, user=user, teams=[team])
+
+        self.login_as(user=user)
+
+        project = self.create_project(organization=org, teams=[team])
+        self.store_event(
+            data={
+                "contexts": {
+                    "flags": {
+                        "values": [
+                            {"flag": "abc", "result": True},
+                            {"flag": "def", "result": False},
+                        ]
+                    }
+                },
+                "timestamp": before_now(minutes=1).isoformat(),
+            },
+            project_id=project.id,
+        )
+        self.store_event(
+            data={
+                "contexts": {
+                    "flags": {
+                        "values": [
+                            {"flag": "abc", "result": False},
+                        ]
+                    }
+                },
+                "timestamp": before_now(minutes=1).isoformat(),
+            },
+            project_id=project.id,
+        )
+
+        url = reverse(
+            "sentry-api-0-organization-tags", kwargs={"organization_id_or_slug": org.slug}
+        )
+
+        with self.feature({"organizations:feature-flag-autocomplete": True}):
+            response = self.client.get(
+                url,
+                {"statsPeriod": "14d", "useFlagsBackend": "1", "dataset": "events"},
+                format="json",
+            )
+        assert response.status_code == 200, response.content
+        data = response.data
+        data.sort(key=lambda val: val["totalValues"], reverse=True)
+        assert data == [
+            {"key": "abc", "name": "Abc", "totalValues": 2},
+            {"key": "def", "name": "Def", "totalValues": 1},
+        ]
+
     def test_dataset_events(self):
         user = self.create_user()
         org = self.create_organization()
