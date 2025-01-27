@@ -160,7 +160,6 @@ const ToggleButton = styled(Button)<{enabled: boolean}>`
   }
   span {
     z-index: 1;
-    margin: 0;
   }
 `;
 
@@ -176,8 +175,8 @@ const ToggleBorder = styled('div')`
   position: absolute;
   content: '';
   z-index: -1;
-  width: 120px;
-  height: 120px;
+  width: 125px;
+  height: 125px;
   border-radius: 7px;
   background: ${p => p.theme.badge.beta.background};
   animation: rotating 10s linear infinite;
