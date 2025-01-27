@@ -15,7 +15,7 @@ interface DetectorDetails {
   description?: string;
 }
 
-export function useDetectorDetails({event}: {event: Event}): DetectorDetails {
+export function getDetectorDetails({event}: {event: Event}): DetectorDetails {
   /**
    * Rather than check the issue category, we just check all the current set locations
    * for Alert Rule IDs. Hopefully we can consolidate this when we move to the detector system.
@@ -57,7 +57,7 @@ export function DetectorSection({
   project: Project;
 }) {
   const organization = useOrganization();
-  const {alertRuleId, description} = useDetectorDetails({event});
+  const {alertRuleId, description} = getDetectorDetails({event});
   const issueConfig = getConfigForIssueType(group, project);
 
   if (!alertRuleId) {
