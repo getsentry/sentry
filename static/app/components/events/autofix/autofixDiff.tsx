@@ -494,14 +494,21 @@ function FileDiff({
   runId,
   repoId,
   editable,
+  previousDefaultStepIndex,
+  previousInsightCount,
 }: {
   editable: boolean;
   file: FilePatch;
   groupId: string;
   runId: string;
+  previousDefaultStepIndex?: number;
+  previousInsightCount?: number;
   repoId?: string;
 }) {
   const [isExpanded, setIsExpanded] = useState(true);
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const selection = useTextSelection(containerRef);
 
   return (
     <FileDiffWrapper>
@@ -520,8 +527,22 @@ function FileDiff({
           borderless
         />
       </FileHeader>
+      {selection && (
+        <AutofixHighlightPopup
+          selectedText={selection.selectedText}
+          referenceElement={selection.referenceElement}
+          groupId={groupId}
+          runId={runId}
+          stepIndex={previousDefaultStepIndex ?? 0}
+          retainInsightCardIndex={
+            previousInsightCount !== undefined && previousInsightCount >= 0
+              ? previousInsightCount - 1
+              : -1
+          }
+        />
+      )}
       {isExpanded && (
-        <DiffContainer>
+        <DiffContainer ref={containerRef}>
           {file.hunks.map(({section_header, source_start, lines}, index) => {
             return (
               <DiffHunkContent
@@ -552,44 +573,25 @@ export function AutofixDiff({
   previousDefaultStepIndex,
   previousInsightCount,
 }: AutofixDiffProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const selection = useTextSelection(containerRef);
-
   if (!diff || !diff.length) {
     return null;
   }
 
   return (
-    <div>
-      {selection && (
-        <AutofixHighlightPopup
-          selectedText={selection.selectedText}
-          referenceElement={selection.referenceElement}
+    <DiffsColumn>
+      {diff.map(file => (
+        <FileDiff
+          key={file.path}
+          file={file}
           groupId={groupId}
           runId={runId}
-          stepIndex={previousDefaultStepIndex ?? 0}
-          retainInsightCardIndex={
-            previousInsightCount !== undefined && previousInsightCount >= 0
-              ? previousInsightCount - 1
-              : -1
-          }
+          repoId={repoId}
+          editable={editable}
+          previousDefaultStepIndex={previousDefaultStepIndex}
+          previousInsightCount={previousInsightCount}
         />
-      )}
-      <div ref={containerRef}>
-        <DiffsColumn>
-          {diff.map(file => (
-            <FileDiff
-              key={file.path}
-              file={file}
-              groupId={groupId}
-              runId={runId}
-              repoId={repoId}
-              editable={editable}
-            />
-          ))}
-        </DiffsColumn>
-      </div>
-    </div>
+      ))}
+    </DiffsColumn>
   );
 }
 

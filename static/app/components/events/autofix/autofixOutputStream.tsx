@@ -268,6 +268,7 @@ const ActiveLogWrapper = styled('div')`
 
 const ActiveLog = styled('div')`
   flex-grow: 1;
+  word-break: break-word;
 `;
 
 const VerticalLine = styled('div')`

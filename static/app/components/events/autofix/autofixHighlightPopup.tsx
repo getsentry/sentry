@@ -109,10 +109,11 @@ function AutofixHighlightPopupContent({
   );
 
   // Combine server messages with optimistic ones
-  const allMessages = useMemo(
-    () => [...messages, ...optimisticMessages],
-    [messages, optimisticMessages]
-  );
+  const allMessages = useMemo(() => {
+    const serverMessageCount = messages.length;
+    const relevantOptimisticMessages = optimisticMessages.slice(serverMessageCount);
+    return [...messages, ...relevantOptimisticMessages];
+  }, [messages, optimisticMessages]);
 
   const truncatedText =
     selectedText.length > 70
@@ -123,14 +124,20 @@ function AutofixHighlightPopupContent({
 
   const currentUser = useUser();
 
+  const hasLoadingMessage = useMemo(
+    () => allMessages.some(msg => msg.role === 'assistant' && msg.isLoading),
+    [allMessages]
+  );
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!comment.trim()) {
+    if (!comment.trim() || hasLoadingMessage) {
       return;
     }
 
     // Add user message and loading assistant message immediately
-    setOptimisticMessages([
+    setOptimisticMessages(prev => [
+      ...prev,
       {role: 'user', content: comment},
       {role: 'assistant', content: '', isLoading: true},
     ]);
@@ -144,13 +151,6 @@ function AutofixHighlightPopupContent({
     });
     setComment('');
   };
-
-  // Clear optimistic messages when we get new server messages
-  useEffect(() => {
-    if (messages.length > 0) {
-      setOptimisticMessages([]);
-    }
-  }, [messages]);
 
   const handleContainerClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -422,6 +422,8 @@ const MessageContent = styled('div')`
   padding-top: ${space(0.5)};
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.textColor};
+  word-break: break-word;
+  overflow-wrap: break-word;
 `;
 
 const CircularSeerIcon = styled('div')`
